@@ -26,7 +26,7 @@ Write a plugin to paint on the grid, observe data changes, or add a command. Thi
 
 ## Paint a column
 
-The sample below does all seven steps. Create the plugin once per grid with `useState`:
+The sample below does all seven steps. `./orders` stands for your own module of `columns` and `orders` rows. Create the plugin once per grid with `useState`:
 
 ```tsx
 "use client";
@@ -97,7 +97,12 @@ export function OrdersGrid() {
   return (
     <HighlightedColumn.Provider value={column}>
       <button onClick={() => setColumn(1)}>Highlight the second column</button>
-      <DataGrid defaultData={orders} columns={columns} plugins={[plugin]} />
+      <DataGrid
+        className="h-96"
+        defaultData={orders}
+        columns={columns}
+        plugins={[plugin]}
+      />
     </HighlightedColumn.Provider>
   );
 }

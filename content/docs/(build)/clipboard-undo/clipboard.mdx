@@ -7,13 +7,13 @@ aliases: ["copy paste", "paste from a spreadsheet", "spreadsheet paste", "usedat
 demos: none
 ---
 
-Users move data between the grid and spreadsheets with Ctrl+C, Ctrl+X, and Ctrl+V. The grid listens for the native clipboard events, so the core needs no add-on and no permission prompt. Copy and paste cap at 200,000 cells each, as [Known limitations](#known-limitations) lists. Copied formula-like text stays as it is until you set `sanitizeClipboardFormulas`. Three props change what the grid copies, how it reads a paste, and whether a paste can land.
+Users move data between the grid and spreadsheets with Ctrl+C, Ctrl+X, and Ctrl+V. The grid listens for the native clipboard events, so the core needs no add-on and no permission prompt. Copy and paste cap at 200,000 cells each, as [Known limitations](#known-limitations) lists. Three props change what the grid copies, how it reads a paste, and whether a paste can land.
 
 ## Paste [#paste]
 
-The grid reads the `text/html` payload first, for example from another gridcn grid, Excel, Sheets, or Numbers. If the payload has no table, it reads the `text/plain` payload with a quoted-TSV parser. The parser handles tabs, line breaks, and quotes inside quoted cells.
+The grid reads the `text/html` payload first, for example from gridcn, Excel, Sheets, or Numbers. If the payload has no table, it reads the `text/plain` payload with a quoted-TSV parser. The parser handles tabs, line breaks, and quotes in cells.
 
-- **Anchored expand.** An N×M block lands at the top-left of the selected range and overwrites that N×M region. The block stops at the last row and the last column.
+- **Anchored expand.** An N×M block lands at the top-left of the selected range and overwrites that N×M region. The block stops at the last row and the last column. To add rows from a longer sheet, use [Import](/docs/import-export/import) or [Row operations](/docs/rows-pages-menus/row-operations).
 - **Single-row tiling.** If you paste one row into a taller selected range, the row repeats down every selected row.
 - **Value steps.** The `fromText` of each target cell type reads the pasted text. Then `validate` runs. A cell that fails stays unchanged, and `onValidationError` reports it with the source `"paste"`.
 - **Skipped cells.** Read-only cells keep their value. This covers a column's static `readOnly` and its per-row function form. A `readOnly` grid ignores the paste.
@@ -41,7 +41,7 @@ A paste back into gridcn reads that attribute, so tabs and runs of spaces surviv
 
 <NewBadge />
 
-Select a range, press <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>C</kbd>, and paste into a cell of the spreadsheet. The spreadsheet reads the `text/html` table, so each grid cell lands in its own spreadsheet cell. The spreadsheet then reads each text with its own locale rules. These rules apply to the copy:
+Select a range, press <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>C</kbd>, and paste into a cell of the spreadsheet. The spreadsheet reads the `text/html` table, so each grid cell lands in its own spreadsheet cell. The spreadsheet reads each text with its own locale rules. The copy follows these rules:
 
 - The rows come in view order, after the sort and the filters.
 - Only visible columns go into the copy. Column headers stay out.
@@ -52,8 +52,8 @@ Select a range, press <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>C</kbd>, and paste int
 
 | Limit | Value | Above the limit |
 | --- | --- | --- |
-| Copied cells, `MAX_COPY_CELLS` | 200,000 | The copy writes only the rows that fit. |
-| Pasted cells, `MAX_PASTE_CELLS` | 200,000 | The paste applies only the first rows that fit. |
+| Copied cells | 200,000 | The copy writes only the rows that fit. |
+| Pasted cells | 200,000 | The paste applies only the first rows that fit. |
 | Pasted HTML | 16,000,000 characters, 80 for each pasted cell | The grid ignores the HTML and reads the plain text. |
 | Pasted plain text | 51,200,000 characters, 200,000 cells at 256 characters each | The paste writes nothing. |
 
@@ -88,7 +88,7 @@ function MyGrid() {
 
 Result: copying the cell puts `'=SUM(A1:A3)` on the clipboard.
 
-If the prop is on, Ctrl+C, Ctrl+X, and the context menu's Copy and Cut put a single quote in front of each formula-like cell. The quote goes into both the `text/plain` and the `text/html` payload. Plain numbers such as `-5` and `+5` stay unchanged. A paste back into gridcn restores the raw value.
+With the prop on, Ctrl+C, Ctrl+X, and the context menu's Copy and Cut put a single quote in front of each formula-like cell. The quote goes into both the `text/plain` and the `text/html` payload. Plain numbers such as `-5`, `+5`, and `-1e-7` stay unchanged. A paste back into gridcn restores the raw value.
 
 The context menu writes through the async Clipboard API. If the browser lacks or denies that API, the copy writes plain text only. A paste back from that copy keeps the quote.
 
@@ -136,7 +136,7 @@ function MyGrid() {
 
 - `processCellForClipboard(value, { row, column, text })` returns the text of one copied cell. `text` <NewBadge /> is the `toText` of the cell type. Without the prop, `text` is copied.
 - `processCellFromClipboard(text, { row, column, fromText })` returns the value of one pasted cell. `fromText` <NewBadge /> parses `text` with the parser of the column. Without the prop, that parser decides.
-- `processPaste({ cells, target, signal })` <NewBadge /> receives the text grid after single-row tiling and before the paste cap. `target` is the top-left cell of the paste. `signal` is an `AbortSignal` that aborts when the grid turns `readOnly`, an edit starts, the target row is gone, or the grid unmounts. Return the grid to write, or `false` to veto the whole paste. See [Async gates](/docs/editing-cells/cancel-async-gates#cancel-a-request-with-the-signal).
+- `processPaste({ cells, target, signal })` <NewBadge /> receives the text grid after single-row tiling and before the paste cap. `target` is the top-left cell of the paste. `signal` is an `AbortSignal` that aborts when the grid turns `readOnly`, an edit starts, `gateTimeoutMs` runs out, or the grid unmounts. Return the grid to write, or `false` to veto the whole paste. See [Async gates](/docs/editing-cells/cancel-async-gates#cancel-a-request-with-the-signal).
 
 `processPaste` <NewBadge /> and `processCellFromClipboard` also accept a promise:
 
@@ -190,7 +190,7 @@ function CopyButton() {
 }
 ```
 
-`copy` and `cut` resolve `"ok"`, `"fallback"` (plain text only), `"failed"`, or `"no-selection"`. `pasteFromClipboard` reads text from the clipboard and resolves `"ok"`, `"empty"`, or `"permission-denied"`. A paste through this hook carries no HTML.
+`copy` and `cut` resolve `"ok"`, `"fallback"` (plain text only), `"failed"`, or `"no-selection"`. `pasteFromClipboard` resolves `"ok"`, `"permission-denied"`, `"empty"` (no text on the clipboard), or `"refused"` <NewBadge />. No paste started. Causes: a `readOnly` grid or an open editor (checked before any read), no target, a sync `processPaste` veto, a pending gate, or no cells. A paste through this hook carries no HTML.
 
 ### Context menu paste [#context-menu-paste]
 
@@ -198,11 +198,11 @@ The [context menu add-on](/docs/rows-pages-menus/context-menu#paste-permission) 
 
 ## Server mode
 
-Copy and paste work on the rows that the grid displays, in their displayed order. On a paged grid, that is the shown page. A column selection copies the rows of the shown page, and a paste stops at the page's last row. This rule is the same in client pagination and in server pagination. With `sortMode="server"`, the displayed order is the order your server returned.
+Copy and paste work on the rows that the grid displays, in their displayed order. On a paged grid, that is the shown page. A column selection copies the rows of the shown page, and a paste stops at the page's last row. Client and server pagination follow this rule. With `sortMode="server"`, the displayed order is the order your server returned.
 
 A paste is one change with the source `"paste"`. The grid calls `onDataChange` and `onSave` with it, and `onSave` sends it to the server. If `onSave` resolves with `{ rejected }` or rejects, the grid reverts the refused cells through `onDataChange` with the source `"rollback"`.
 
-In scroll mode, a paste writes the loaded rows and skips rows that are not loaded. It adds no row. A copy gives empty cells for rows that are not loaded. [Data modes](/docs/data-modes) owns the detail for every mode.
+In scroll mode, a paste writes the loaded rows, skips the rest, and adds no row. A copy gives empty cells for rows that are not loaded. [Data modes](/docs/data-modes) owns the detail for every mode. To copy or export every server row, see [Export the whole result](/docs/import-export/export-whole-result).
 
 ## Related
 

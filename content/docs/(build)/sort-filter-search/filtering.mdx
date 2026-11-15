@@ -71,7 +71,7 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
 
 After the click, a row stays if its country is NL and its name contains A or B. A group with `join: "and"` needs every child to match. A group with `join: "or"` needs one child. Any other `join` value acts as `"and"`, and an empty group matches every row.
 
-A group holds one more group at most. `setFilters` <NewBadge /> drops a group nested deeper, with its rows. `filterId` is an optional stable key for a row or group. The store adds one when it is missing.
+A group can contain one level of nested groups. `setFilters` <NewBadge /> drops a group nested deeper, with its rows. `filterId` is an optional stable key for a row or group. The store adds one when it is missing.
 
 ## Operators
 
@@ -91,9 +91,9 @@ Every value is text, even for number and date columns, as in `{ columnId: "stock
 Four fields change this behavior for one column:
 
 - `filterOperators` replaces the list of operators the filter menu offers.
-- `filterMatch(value, filter)` replaces the built-in test. It receives the raw cell value and returns whether the row passes. A thrown error fails the row. A `text` or untyped column with a custom match drops `isAnyOf` and `isNoneOf` from its default operators.
+- `filterMatch(value, filter)` replaces the built-in test. It receives the raw cell value and returns whether the row passes. A thrown error fails the row. A `text` or untyped column with `filterMatch` has no `isAnyOf`, `isNoneOf`, or header filter button, unless `filterOperators` lists them. A cell type with `filter.match` and no `filter.operators` does the same. `number`, `date`, and `select` keep them.
 - `filterable: false` keeps the column out of the filter menu and the header filter.
-- `filterCompare(text, bound)` <NewBadge /> orders the cells of a column for `gt`, `gte`, `lt`, `lte`, and `isBetween`. Use it for ranks, versions, or any order that the default text and number order gets wrong. A result of `NaN` or a thrown error falls back to the default order. A column with `filterMatch` ignores `filterCompare` for built-in operators.
+- `filterCompare(text, bound)` <NewBadge /> orders the cells of a column for `gt`, `gte`, `lt`, `lte`, and `isBetween`. Use it for ranks or versions. A result of `NaN` or a thrown error falls back to the default order. A column with `filterMatch` ignores `filterCompare` for built-in operators.
 
 A cell type sets the same defaults with `filter.operators` and `filter.match`. The column's own fields win.
 
@@ -135,7 +135,7 @@ With `filterMode="server"`, the grid never calls `match`, so leave it out. In cl
 
 [Custom operators on the server](/docs/contracts/server-rows-contract#custom-operators) maps the `id` to a query.
 
-An empty grid shows `labels.grid.noResults` <NewBadge /> ("No results") when a filter or the search hides every row. A grid with no rows and no filter shows `labels.grid.emptyState`. This holds in client and server filter mode.
+An empty grid shows `labels.grid.noResults` <NewBadge /> ("No results") when a filter or a server search hides every row. A grid with no rows and no filter shows `labels.grid.emptyState`.
 
 ## Filter menu
 

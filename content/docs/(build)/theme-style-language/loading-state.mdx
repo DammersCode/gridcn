@@ -32,6 +32,7 @@ export function LoadingGrid({ rows }: { rows: Row[] }) {
       <DataGrid
         className="h-80"
         data={rows}
+        readOnly
         columns={columns}
         loading={loading}
       />
@@ -43,7 +44,7 @@ export function LoadingGrid({ rows }: { rows: Row[] }) {
 - With zero rows, a skeleton fills the viewport. The empty state does not show while `loading` is true.
 - With rows present, such as a background refresh, the rows stay visible. A slim indeterminate bar appears under the header.
 - The grid root has `aria-busy="true"` while `loading` is true.
-- The skeleton and the screen reader progress element use `labels.grid.loading` as their label.
+- The screen reader progress element uses `labels.grid.loading` as its label. The skeleton and the bar are hidden from assistive technology.
 - With `prefers-reduced-motion`, the skeleton does not pulse and the bar does not sweep.
 
 `--grid-loading-sweep-duration` sets the duration of the sweep. The default is `1.2s`.

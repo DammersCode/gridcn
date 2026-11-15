@@ -48,6 +48,7 @@ describe("DEFAULT_LABELS", () => {
     expect(DEFAULT_LABELS.io.mapColumnAriaLabel("Email")).toBe('Map "Email" to grid column');
     expect(DEFAULT_LABELS.io.previewTruncated(50, 1000)).toBe("Showing 50 of 1000 rows");
     expect(DEFAULT_LABELS.io.sheet).toBe("Sheet");
+    expect(DEFAULT_LABELS.io.acceptedFileTypes(".csv, .xlsx")).toBe("Accepted file types: .csv, .xlsx.");
     expect(DEFAULT_LABELS.io.maxFileSize(50 * 1024 * 1024)).toBe("up to 50 MB");
     expect(DEFAULT_LABELS.io.maxFileSize(1536 * 1024)).toBe("up to 1.5 MB");
     expect(DEFAULT_LABELS.io.maxFileSize(512 * 1024)).toBe("up to 512 KB");
@@ -77,6 +78,16 @@ describe("label layers", () => {
 describe("deepMergeLabels", () => {
   it("returns the base object unchanged when there's no override", () => {
     expect(deepMergeLabels(DEFAULT_LABELS, undefined)).toBe(DEFAULT_LABELS);
+  });
+
+  it("a key set to undefined keeps the default at every depth", () => {
+    const merged = deepMergeLabels(DEFAULT_LABELS, { grid: { emptyState: undefined }, toolbar: { searchPlaceholder: undefined } });
+    expect(merged.grid.emptyState).toBe(DEFAULT_LABELS.grid.emptyState);
+    expect(merged.toolbar.searchPlaceholder).toBe(DEFAULT_LABELS.toolbar.searchPlaceholder);
+  });
+
+  it("an empty string still blanks a label", () => {
+    expect(deepMergeLabels(DEFAULT_LABELS, { grid: { emptyState: "" } }).grid.emptyState).toBe("");
   });
 
   it("a partial override at a nested group keeps its untouched sibling keys", () => {

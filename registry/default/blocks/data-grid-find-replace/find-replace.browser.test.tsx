@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { page, userEvent } from "vitest/browser";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import {
   DataGridBody,
@@ -121,7 +121,7 @@ describe("find and replace in a browser", () => {
     await expect.element(status).toHaveTextContent("2 of 27 cells");
   });
 
-  it("a single Replace keeps the position on the next match instead of restarting", async () => {
+  it("a single Replace on the last match wraps to the first match, and Enter steps on from there", async () => {
     await render(<Harness />);
     await page.getByRole("gridcell").first().click();
     await userEvent.keyboard("{Control>}h{/Control}");
@@ -135,9 +135,10 @@ describe("find and replace in a browser", () => {
     await page.getByRole("textbox", { name: "Replace with" }).fill("pin");
     await page.getByRole("button", { name: "Replace", exact: true }).click();
     await expect.element(status).toHaveTextContent("1 replaced");
+    await expect.element(page.getByRole("gridcell", { name: "needle 5" })).toHaveAttribute("tabindex", "0");
     await page.getByRole("textbox", { name: "Find" }).click();
     await userEvent.keyboard("{Enter}");
-    await expect.element(page.getByRole("gridcell", { name: "needle 5" })).toHaveAttribute("tabindex", "0");
+    await expect.element(page.getByRole("gridcell", { name: "needle 15" })).toHaveAttribute("tabindex", "0");
   });
 
   it("Next match button keeps focus on the button and opens no editor", async () => {
@@ -153,6 +154,29 @@ describe("find and replace in a browser", () => {
     await userEvent.keyboard("{Enter}");
     await expect.element(status).toHaveTextContent("3 of 3 cells");
     expect(document.querySelector(gridAttrSelector("cellEditor"))).toBeNull();
+  });
+
+  it("Escape returns the focus to the header button that had it when the panel opened", async () => {
+    function ZeroRows() {
+      const findReplace = useDataGridFindReplace();
+      return (
+        <DataGridProvider data={[] as Row[]} columns={columns} getRowId={(r) => r.id} plugins={[findReplace.plugin]}>
+          <DataGridRoot className="h-[400px]" renderHeaderMenu={({ trigger }) => trigger}>
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+    await render(<ZeroRows />);
+    const menuTrigger = () => document.querySelector<HTMLElement>(gridAttrSelector("headerMenuTrigger"))!;
+    await vi.waitFor(() => expect(menuTrigger()).toBeTruthy());
+    menuTrigger().focus();
+    await userEvent.keyboard("{Control>}h{/Control}");
+    await expect.element(page.getByRole("textbox", { name: "Find" })).toHaveFocus();
+    await userEvent.keyboard("{Escape}");
+    await expect.element(page.getByRole("dialog")).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(menuTrigger());
   });
 
   it("Escape leaves focus alone when the panel was not opened from the grid", async () => {

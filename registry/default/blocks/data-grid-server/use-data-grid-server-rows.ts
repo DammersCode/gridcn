@@ -67,7 +67,7 @@ export type UseDataGridServerRowsOptions<TData, TCursor = never> = {
   onDataChange?: (next: readonly TData[], change: DataChange<TData>) => void;
   /** Saves a change; spread to the provider through `gridProps.onSave`, where it behaves as the `DataGridProvider` prop of the same name. The hook refreshes after saves settle by `refreshAfterSave`. */
   onSave?: SaveRefreshOptions<TData>["onSave"];
-  /** When the hook calls `refresh()` after `onSave` settles: `"settled"` once after every save in flight (default), `"each"` after every save, `false` never, or a function that gets the counts and returns whether to refresh. */
+  /** When the hook calls `refresh()` after `onSave` settles: `"settled"` once after every save in flight (default), `"each"` after saves settle without waiting for the saves in flight, `false` never, or a function that gets the counts and returns whether to refresh. */
   refreshAfterSave?: SaveRefreshPolicy;
 };
 
@@ -121,6 +121,7 @@ export type UseDataGridServerRowsProviderProps<TData> = {
   onSearchTextChange: (next: string) => void;
   /** The row count of the result; `null` when the server sends none. */
   totalRowCount: number | null;
+  /** Keeps checks by row id across pages and server sorts and filters. */
   checkedRowsLifetime: "across-filters";
   /** Mounts the guard that keeps a refresh from overwriting a row with a pending save or an open edit. Put your own plugins after it. */
   plugins: readonly DataGridPlugin<unknown>[];

@@ -172,8 +172,8 @@ describe("DataGridImportButton (browser)", () => {
       </DataGridProvider>,
     );
     await userEvent.click(page.getByRole("button", { name: "Import" }));
-    // this file mocks the default limit down to 100,000 bytes
-    await expect.element(page.getByText("No file chosen — up to 98 KB")).toBeInTheDocument();
+    await expect.element(page.getByText("No file chosen — up to 50 MB")).toBeInTheDocument();
+    expect(document.querySelector(".sr-only")?.textContent).toMatch(/^Accepted types: .+ — up to 50 MB$/);
 
     await rerender(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>

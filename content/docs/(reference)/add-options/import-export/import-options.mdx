@@ -100,7 +100,7 @@ The result lists each cleared cell:
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-io/build-imported-rows.ts" name="BuildImportedRowsResult" />
 
-The function returns the result itself for 5,000 data rows or fewer with synchronous validators and a synchronous `createRow`. Otherwise it returns a promise, so always await it. If `signal` aborts, a build over 5,000 data rows rejects between chunks with `"import-cancelled"`, which the add-on exports as `IMPORT_CANCELLED_MESSAGE`. A smaller build checks `signal` once, after an async `createRow` settles, and rejects with the same message. `signal` has no effect on a fully synchronous small build. If two entries of `mapping` name one grid column, the later entry wins, and development mode warns once for that column.
+The function returns the result itself for 5,000 data rows or fewer with synchronous validators, a synchronous `createRow`, and no `processCellFromText`. Otherwise it returns a promise, so always await it. If `signal` aborts, a build over 5,000 data rows, or one with `processCellFromText`, rejects between chunks with `"import-cancelled"`, which the add-on exports as `IMPORT_CANCELLED_MESSAGE`. A smaller build checks `signal` once, after an async `createRow` settles, and rejects with the same message. `signal` has no effect on a fully synchronous small build. If two entries of `mapping` name one grid column, the later entry wins, and development mode warns once for that column.
 
 `mapping` is a list of `ImportColumnMapping` entries: `{ importColumnIndex, gridColumnId }`, with `null` as `gridColumnId` for a skipped column. `rejected` lists `ImportRejectedCell` entries.
 
@@ -112,7 +112,7 @@ The hook runs the file, header, and mapping steps of the dialog and leaves the U
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-io/use-data-grid-import.ts" name="UseDataGridImportPreviewResult" />
 
-`preview` is an `ImportFileState`. `loadFile(file, gridColumns)` takes the grid columns as `ImportTargetColumn` entries: `{ id, header, headerText? }`. `error` is an `ImportErrorKey`, a key into `labels.io`. To build the rows, pass `importRows` as `dataRows`, `preview.mapping` as `mapping`, and `columns` and `cellTypes` from the read state, and your `createRow`, to `buildImportedRows`. `isParsing` is `true` while a file loads.
+`preview` is an `ImportFileState`. `loadFile(file, gridColumns)` takes the grid columns as `ImportTargetColumn` entries: `{ id, header, headerText? }`. `error` is an `ImportErrorKey`, a key into `labels.io`. To build the rows, call `build(options)` from the hook. To build them yourself, pass `importRows` as `dataRows`, `preview.mapping` as `mapping`, and `columns` and `cellTypes` from the read state, and your `createRow`, to `buildImportedRows`. `isParsing` is `true` while a file loads.
 
 `setMapping(importColumnIndex, gridColumnId)` sets one menu, and `null` skips the column. It does not check for a grid column that another source column already holds. `setHasHeaderRow`, `setDelimiter`, and `setSheetName` are the calls for the header toggle, the delimiter menu, and the sheet picker of your UI. `previewRows` holds at most 10 rows.
 
@@ -130,11 +130,13 @@ The hook runs the file, header, and mapping steps of the dialog and leaves the U
 | `disabled` | `boolean` | `false` | Ignores drops, clicks, and keys. |
 | `compact` | `boolean` | `false` | Shows the zone as one row. |
 | `onDrop` | `(accepted: File[], rejections: DropzoneRejection[]) => void` | none | Receives the accepted files and the rejections after a drop or a pick. |
+| `onError` | `(error: Error) => void` | none | Receives an error that filtering the files or `onDrop` throws. |
 | `files` | `File[]` | none | Holds the files to show. `DropzoneEmptyState` hides while it holds a file, and `DropzoneContent` lists them. |
 | `description` <NewBadge /> | `string` | English list of `accept` | Sets the screen-reader description of the accepted file types. |
 | `children` | `ReactNode` | `DropzoneEmptyState` and `DropzoneContent` | Replaces the default content. |
 | `className` | `string` | none | Merges after the built-in classes. |
 | `aria-label` | `string` | none | Names the drop surface. |
+| `description` <NewBadge /> | `string` | The accepted types, in English | Replaces the whole screen reader description of the accepted files. `DataGridImportDialog` sets it from `labels.io`. |
 
 A `DropzoneRejection` is `{ file, reasons }`. Each reason is `accept`, `maxSize`, `minSize`, or `maxFiles`. `filterFiles(files, options)` applies the same rules and returns a `FilterFilesResult`: `accepted` holds the accepted files, and `rejections` holds the rejections. `matchesAccept(file, accept)` tests one file. `DropzoneEmptyState` takes a `title` and a `description`. `DropzoneContent` shows its `children` in place of the file list.
 
@@ -146,7 +148,7 @@ The root carries `data-drag-active` during a drag and `data-disabled` while `dis
 - `ProcessImportRows` rewrites or drops the data rows before they are mapped. It receives `{ rows, headers, mapping, signal }` and returns the rows, or `false` to cancel.
 - `BuildImportOptions` are the options of `build()` in `useDataGridImportPreview`. They add `processImportRows`.
 - `ParseFile` parses a `File` into rows. It receives the file and `{ signal, limits, sheetName, csvDelimiter }`.
-- `ImportContext` is the second argument of `onImport`. It holds `signal`, `rejected`, `fileName`, and `sheetName`.
+- `ImportContext` is the second argument of `onImport`. It holds `signal`, `rejected`, `fileName`, `sheetName`, and `mapping` (a list of `ImportColumnMapping` entries).
 
 ## Related
 

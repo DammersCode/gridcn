@@ -52,7 +52,7 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
   return (
     <>
       {/* a toolbar here, outside the grid */}
-      <DataGrid {...grid} columns={columns}>
+      <DataGrid {...grid} className="h-96" columns={columns}>
         <DataGridGlobalShortcuts />
         <DataGridHeader />
         <DataGridBody />
@@ -92,7 +92,7 @@ The layer fires a binding only when the key press carries <kbd>Ctrl</kbd> or <kb
 
 ## Multiple grids [#multiple-grids]
 
-When several grids with the component share a page, the last focused grid owns the shortcut. When focus moves to grid B, undo and redo target the history of B. Until focus returns to grid A, they target the history of A.
+When several grids with the component share a page, the last focused grid owns the shortcut. When focus moves to grid B, undo and redo target the history of B. They stay with B until focus returns to grid A.
 
 A grid without the component never claims the shortcut. If you add the component to one of two grids, the layer does nothing until the user focuses that grid.
 
@@ -114,3 +114,4 @@ Your app can register its own window-level <kbd>Mod</kbd>+<kbd>Z</kbd> handler. 
 - [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping): the effective keymap
 - [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation): the in-grid keymap table
 - [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts): every chord on one sheet
+- [Handle row action results](/docs/rows-live-data/handle-row-action-results#action-results): why a shortcut did nothing

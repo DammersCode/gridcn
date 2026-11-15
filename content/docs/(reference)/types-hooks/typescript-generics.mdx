@@ -19,7 +19,7 @@ The row type, `TData`, flows from your rows through the columns, the grid, and t
 
 | API | Where `TData` comes from |
 | --- | --- |
-| `defineColumns<TData>()(columns)` | You pass it. The second call checks each column literal: `accessorKey` must name a row field whose type matches the cell type. See [ColumnDef types](/docs/components-props/column-def#types). |
+| `defineColumns<TData>()(columns)` | You pass it. The second call types each column literal from `TData`: `accessorKey` names a row field. See [ColumnDef types](/docs/components-props/column-def#types). |
 | `DataGrid`, `DataGridProvider` | Inferred from `data` or `defaultData` and from `columns`. `getRowId`, `onDataChange`, and `onSave` receive `TData`. |
 | `useDataGridState(defaultRows)` | Inferred from `defaultRows`. See [Undo and redo](/docs/clipboard-undo/undo-redo). |
 | `useDataGridServerRows<TData, TCursor>` | You pass `TData`. `TCursor` is the cursor type of a sequential source and defaults to `never`. See [Load without row count](/docs/scroll-mode/load-without-row-count#a-source-with-no-total). |
@@ -62,7 +62,7 @@ declare module "@/components/data-grid/types" {
 }
 ```
 
-The module name is the import path of the installed `types.ts`. If your `components.json` aliases differ, use your path. A plugin that offers a global shortcut extends `DataGridGlobalShortcutActions` the same way, from `@/components/data-grid/keyboard/global-shortcuts`. See [Plugin API](/docs/plugins/plugin-contract#resolution-rules).
+The module name is the import path of the installed `types.ts`. If your `components.json` aliases differ, use your path. A plugin that offers a global shortcut extends `DataGridGlobalShortcutActions` the same way, from `@/components/data-grid/keyboard/global-shortcuts`. See [Plugin API](/docs/plugins/plugin-contract#global-shortcut-flags).
 
 ## Related
 

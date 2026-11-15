@@ -59,7 +59,7 @@ Keep `fetchOptions` and the `options` object outside the render, or memoize them
 
 A cell holds `{ value, label }` or `null`. `value` is the key your server uses. `label` is the text the grid shows, copies, sorts, searches, and filters.
 
-A row can also hold a bare key, for example `"c9"`. The cell shows the key in muted text with a `data-unresolved` attribute until the user picks an option.
+A row can also hold a bare key, for example `"c9"`. The cell shows a bare key in muted text with a `data-unresolved` attribute until the user picks an option. An option with an empty `label` shows the same way.
 
 ## Editing
 
@@ -87,7 +87,7 @@ A new request aborts the one before it through `signal`. The editor drops a late
 | `debounceMs` | the grid's `inputDebounceMs` | Wait after the last keystroke before a request starts. |
 | `minQueryLength` | `0` | Fewest typed characters that start a request. |
 | `maxResults` | `50` | Most options shown. The limit is `200`. |
-| `unresolvedPaste` | `"clear"` | A pasted text that matches no known option empties the cell. With `"keep"`, the text is stored as a key without a label and shown as unresolved. |
+| `unresolvedPaste` | `"clear"` | A pasted text that matches no known option empties the cell. With `"keep"`, the grid stores `{ value: text, label: "" }`, with the pasted text trimmed, and shows it as unresolved. |
 | `labels` | English | Text for `searching`, `noResults`, `error`, `retry`, and `typeMore`. |
 
 [Lookup options](/docs/add-options/editing-cells/lookup-options) <NewBadge /> lists every option, the request fields, and the label defaults.
@@ -107,8 +107,8 @@ fetchOptions: ({ query, row, signal }) => searchCities(query, (row as Order).cou
 ## Clipboard, fill, import, and export
 
 - Copy and export write the label.
-- Paste and import turn a label or a key back into the option when the column has shown or copied that option before. Any other text follows `unresolvedPaste`.
-- Fill copies the stored `{ value, label }`.
+- Paste and import turn a label or a key back into the option when the editor listed it or the grid wrote it as text. Copy, export, print, the source cells of a fill, autosize, and the filter value list write text. Any other text follows `unresolvedPaste`.
+- A plain fill inside the lookup column copies the stored `{ value, label }`, also a bare key and a label that two options share. A fill that continues a series of labels resolves each label like a paste. If one label resolves to no option, a vertical fill copies the stored values instead. A horizontal fill repeats the source text of that row. With `unresolvedPaste: "keep"` every label is accepted, so the series stores each new label as a bare key, such as `Store 3`. A fill into another lookup column resolves each label like a paste into that column.
 - Clear and <kbd>Delete</kbd> store `null`.
 
 ## Sort, search, and filter

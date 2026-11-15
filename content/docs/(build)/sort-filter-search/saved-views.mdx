@@ -121,9 +121,11 @@ Pass it as `storage`. A thrown error from `save` shows in the popover with a Ret
 "Export active view" writes the view as JSON into the text area. "Import view" reads that text and adds it as a new view. Import bounds the text and checks it against the live columns:
 
 - Import refuses text over 100,000 characters, and anything but a gridcn view file.
-- A sort, filter, or layout entry for a column that does not exist, or that opted out with `sortable: false` or `filterable: false`, goes away. The status message reports how many entries it left out.
+- A sort, filter, or layout entry for a column that does not exist, or that opted out with `sortable: false` or `filterable: false`, goes away. A sort or filter on a column that the file hides goes away too. The status message reports how many entries it left out.
 - A built-in operator with a value of the wrong shape goes away. An operator that a column or its cell type registers in `filterOperators` keeps a value of the shape its `input` names. Any other shape drops the filter.
-- A list is cut to 1,000 entries. A view keeps at most 16 sorts, 64 filters, and 16 filter groups. A filter value over 1,000 characters drops the filter. The search text is cut to 500 characters. The document keeps at most 50 views.
+- An `isAnyOf` list is cut to 1,000 entries. An `isNoneOf` list or a custom operator list over 1,000 entries drops the filter.
+- A view keeps at most 16 sorts, 64 filters, and 16 filter groups. A filter value over 1,000 characters drops the filter.
+- A column id has no length limit. A stored view keeps the ids of columns that the grid lacks, and applying the view skips them. A column width over 10,000 px goes away. Each of `order`, `hidden`, `widths`, and `pins` in a layout is cut to 1,000 entries. The search text is cut to 500 characters. The document keeps at most 50 views.
 
 ## Use the hook [#use-the-hook]
 
@@ -135,19 +137,27 @@ const views = useDataGridViews({ storage: serverViews });
 <button onClick={() => views.saveView("My view")}>Save</button>;
 ```
 
+### Limits [#limits]
+
+<NewBadge />
+
+A save never cuts a view. `overLimit` names the part that is over a limit. It is `"sorts"`, `"filters"`, `"search"`, or `"layout"`. These are the values of `OverLimitPart`. A sort, filter, or layout entry for a column that the grid lacks is not over a limit.
+
+Two cases are over a limit although no count is. A view never stores the column id `__proto__`, so state for that column is over the limit of its part. A filter whose value does not fit its operator is over the `"filters"` limit, such as a list on `contains` or no value on `equals`. Only code builds such a filter: `setFilters`, `filterState`, or `defaultFilterState`.
+
+"Save as new view" and "Update" are off with a line for that part. `saveView` returns `null` and `updateView` returns `false`. Remove a sort or a filter, shorten the search text, or reset the column layout to save. The limits are listed under [Share a view as text](#share-a-view-as-text).
+
 ## Server mode [#server-mode]
 
 A view stores the grid state only, so it works in every data mode:
 
 - **Local array and client pagination.** Opening a view sorts and filters the local rows again.
-- **Server pagination and scroll mode** with `sortMode="server"` or `filterMode="server"`. Opening a view calls `onSortChange` and `onFilterChange` for the parts that differ, and `useDataGridServerRows` sends the new spec. A filter on a set column keeps its saved values even when they are not in the `choices` of the column.
+- **Server pagination and scroll mode** with `sortMode="server"` or `filterMode="server"`. Opening a view calls `onSortChange`, `onFilterChange`, and `onSearchTextChange` for the parts that differ, and `useDataGridServerRows` sends the new spec. A filter on a set column keeps its saved values even when they are not in the `choices` of the column.
 - **Controlled state.** Your props receive the change callbacks.
 
-A view saves no page number. A view that changes the sort or the filters sends server rows back to page 1. A view that changes only the layout keeps the page.
+A view saves no page number. A view that changes the sort, the filters, or the search text sends server rows back to page 1. A view that changes only the layout keeps the page.
 
-A view can hold up to 16 sorts and a search text of 500 characters.
-
-The `parseServerSpec` <NewBadge /> defaults allow 8 sorts and 200 characters, so raise `maxSorts` and `maxSearchLength`. See [Match the limits to the grid](/docs/contracts/server-rows-contract#match-limits).
+A view can hold up to 16 sorts and a search text of 500 characters. See [Limits](#limits).
 
 ## Related
 

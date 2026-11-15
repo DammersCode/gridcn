@@ -141,7 +141,7 @@ export { CompactSelection } from "./selection/compact-selection";
 export { viewIndex, viewIndexes } from "./types";
 export { defineColumns, getCellValue } from "./columns/column-helpers";
 export type { KeysMatching, TypedColumnDef, TypedTextColumnDef, AnyTypedColumn, AccessorLike, InferredValue } from "./columns/column-helpers";
-/** A column's sort-direction arrow + multi-sort priority number — string headers get it automatically in `sort` mode; embed it inside a custom (ReactNode) header when you want it there. */
+/** A column's sort-direction arrow + multi-sort priority number — string headers get it automatically while the column is sorted and not `sortable: false`; embed it inside a custom (ReactNode) header when you want it there. */
 export { DataGridSortIndicator, type DataGridSortIndicatorProps } from "./columns/sort-indicator";
 
 export { DEFAULT_KEYMAP } from "./keyboard";
@@ -200,6 +200,7 @@ export type {
   FetchFilterValues,
   FetchFilterValuesContext,
   FilterJoinOperator,
+  CheckedRowsLifetime,
   GridActions,
   GridAction,
   CommandGroup,

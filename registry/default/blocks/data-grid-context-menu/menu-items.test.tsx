@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { DataGridProvider, DataGridRoot, defineColumns, useDataGridActions } from "../data-grid/data-grid";
+import { useDataGridStoreApi } from "../data-grid/data-grid-sdk";
 import {
   useDefaultCellMenuItems,
   useDefaultHeaderMenuItems,
@@ -36,6 +37,7 @@ type ProbeProps = {
   pin?: "start" | "end";
   hideable?: false;
   readOnly?: boolean;
+  allMatching?: boolean;
   headerColumnId?: string;
   clipboardFailed?: boolean;
   onClipboardFailed?: () => void;
@@ -44,7 +46,10 @@ type ProbeProps = {
 
 function Probe(props: ProbeProps) {
   const actions = useDataGridActions();
-  useEffect(() => actions.selectCellAt({ col: 0, row: 0 }), [actions]);
+  useEffect(() => {
+    actions.selectCellAt({ col: 0, row: 0 });
+    if (props.allMatching) actions.selectAllMatching();
+  }, [actions, props.allMatching]);
   const cellSpecs = useDefaultCellMenuItems({
     clipboardFailed: props.clipboardFailed,
     onClipboardFailed: props.onClipboardFailed,
@@ -68,6 +73,8 @@ function renderProbe(props: ProbeProps) {
       createRow={props.createRow}
       duplicateRow={props.duplicateRow}
       readOnly={props.readOnly}
+      totalRowCount={props.allMatching ? 50 : undefined}
+      checkedRowsLifetime={props.allMatching ? "across-filters" : undefined}
     >
       <DataGridRoot>
         <Probe {...props} />
@@ -110,6 +117,15 @@ describe("useDefaultCellMenuItems", () => {
     }
     expect(item(cell, "copy")?.disabled).toBeUndefined();
     expect(item(cell, "paste")?.tooltip).toBeUndefined();
+  });
+
+  it("turns off Duplicate and Delete under all matching and explains why", async () => {
+    let cell: GridMenuItemSpec[] = [];
+    renderProbe({ allMatching: true, createRow: () => rows[0]!, duplicateRow: (row) => row, onSpecs: (c) => { cell = c; } });
+    await waitFor(() => expect(item(cell, "delete-rows")?.disabled).toBe(true));
+    expect(item(cell, "duplicate-rows")?.disabled).toBe(true);
+    expect(item(cell, "delete-rows")?.tooltip).toMatch(/all matching/i);
+    expect(item(cell, "insert-row-above")?.disabled).toBeFalsy();
   });
 
   describe("a failed clipboard write", () => {
@@ -289,6 +305,28 @@ describe("row items with only hidden checked rows", () => {
     await waitFor(() => expect(item(cell, "delete-rows")?.disabled).toBe(true));
     expect(item(cell, "delete-rows")?.tooltip).toBe("All matching rows are checked; use the bulk action");
     expect(item(cell, "duplicate-rows")?.tooltip).toBe("All matching rows are checked; use the bulk action");
+  });
+});
+
+describe("Insert row anchor", () => {
+  it("follows the row id when the view re-sorts before the click", async () => {
+    let cell: GridMenuItemSpec[] = [];
+    let api!: ReturnType<typeof useDataGridStoreApi>;
+    function Anchor() {
+      api = useDataGridStoreApi();
+      cell = useDefaultCellMenuItems({ row: 0, rowId: "r0", canInsertRow: true, canDuplicateRow: false, pasteBlocked: false, onPasteBlocked: () => {} });
+      return null;
+    }
+    render(
+      <DataGridProvider data={rows} columns={columns} getRowId={(row) => row.id} createRow={() => ({ id: "new", name: "New", score: 0 })}>
+        <DataGridRoot>
+          <Anchor />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await act(async () => api.getState().actions.setSorts([{ columnId: "score", direction: "desc" }]));
+    await act(async () => item(cell, "insert-row-below")?.onClick?.());
+    expect((api.getState().data as Row[]).map((r) => r.id)).toEqual(["r0", "new", "r1"]);
   });
 });
 

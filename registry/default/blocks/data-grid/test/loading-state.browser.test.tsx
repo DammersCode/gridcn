@@ -31,12 +31,13 @@ describe("loading + zero rows: skeleton body", () => {
     expect(document.querySelector(gridAttrSelector("emptyState"))).toBeNull();
     const skeleton = document.querySelector(gridAttrSelector("loadingSkeleton"));
     expect(skeleton).not.toBeNull();
-    expect(skeleton!.getAttribute("aria-label")).toBe("Loading…");
+    expect(skeleton!.getAttribute("aria-hidden")).toBe("true");
+    expect(document.querySelector("[role=progressbar]")!.getAttribute("aria-label")).toBe("Loading…");
     // enough bars to more than fill a 360px-tall viewport at the default 36px row height.
     expect(skeleton!.children.length).toBeGreaterThanOrEqual(9);
   });
 
-  it("labels.grid.loading overrides the skeleton's aria-label", async () => {
+  it("labels.grid.loading overrides the progressbar label while the skeleton shows", async () => {
     const labels: DeepPartialLabels = { grid: { loading: "Wird geladen…" } };
     await render(
       <div style={{ height: 360, width: 600 }}>
@@ -49,8 +50,7 @@ describe("loading + zero rows: skeleton body", () => {
       </div>,
     );
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
-    const skeleton = document.querySelector(gridAttrSelector("loadingSkeleton"));
-    expect(skeleton!.getAttribute("aria-label")).toBe("Wird geladen…");
+    expect(document.querySelector("[role=progressbar]")!.getAttribute("aria-label")).toBe("Wird geladen…");
   });
 });
 

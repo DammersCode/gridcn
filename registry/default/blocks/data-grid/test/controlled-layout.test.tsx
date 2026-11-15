@@ -129,7 +129,7 @@ describe("the controlled columnLayout prop", () => {
     expect(store().getState().columnWidths).toEqual({ a: 120 });
   });
 
-  it("normalizes through the prop: unknown ids dropped, missing ids appended, widths clamped, unpinnable pins dropped", () => {
+  it("normalizes through the prop: unknown ids dropped, missing ids appended, widths clamped, unpinnable pins ignored", () => {
     const columns: readonly ColumnDef<Row, unknown>[] = [
       col("a", { pinnable: false, minWidth: 80, maxWidth: 200 }),
       col("b"),

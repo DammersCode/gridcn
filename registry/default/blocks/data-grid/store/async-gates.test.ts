@@ -319,6 +319,26 @@ describe("createRow async", () => {
   });
 });
 
+describe("hostile rejections", () => {
+  const hostile = () => Promise.reject(Object.create(null));
+
+  it("a createRow rejection without a string form is cancelled and leaves no unhandled rejection", async () => {
+    warnings();
+    const m = mount({ createRow: hostile });
+    m.state().actions.insertRow(0, "below");
+    await settle();
+    expect(m.ids()).toEqual(["a", "b", "c"]);
+  });
+
+  it("a duplicateRow rejection without a string form is cancelled and leaves no unhandled rejection", async () => {
+    warnings();
+    const m = mount({ duplicateRow: hostile });
+    m.state().actions.duplicateRows(["a"]);
+    await settle();
+    expect(m.ids()).toEqual(["a", "b", "c"]);
+  });
+});
+
 describe("duplicateRow async", () => {
   const duplicate = (row: unknown, index: number): Row => ({ id: `${(row as Row).id}-copy${index}`, name: (row as Row).name });
 

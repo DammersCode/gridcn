@@ -33,6 +33,7 @@ for (const item of registry.items) {
   for (const dep of [...(item.dependencies ?? []), ...(item.devDependencies ?? [])]) {
     if (dep === dependencyName(dep)) problems.push(`${item.name}: dependency "${dep}" declares no version range`);
   }
+  const usedComponents = new Set();
   const need = (kind, name, declared, from) => {
     if (!declared) problems.push(`${item.name}: ${from} needs ${kind} "${name}" but registry.json does not declare it`);
   };
@@ -59,11 +60,15 @@ for (const item of registry.items) {
       if (owner) need("registry item", `${NAMESPACE}${owner}`, registryDeps.has(`${NAMESPACE}${owner}`), file.path);
       else if (target.startsWith("components/ui/")) {
         const component = target.slice("components/ui/".length).replace(/\.tsx?$/, "");
+        usedComponents.add(component);
         need("shadcn component", component, registryDeps.has(component), file.path);
       } else if (target.startsWith("registry/")) {
         problems.push(`${item.name}: ${file.path} imports ${target}, which no registry item ships`);
       }
     }
+  }
+  for (const dep of registryDeps) {
+    if (!dep.includes("/") && !usedComponents.has(dep)) problems.push(`${item.name}: declares shadcn component "${dep}" but no file imports it`);
   }
 }
 

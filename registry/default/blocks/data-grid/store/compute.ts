@@ -25,6 +25,7 @@ import {
   type SearchMatch,
 } from "../sort-filter";
 import { compareLocaleText, compareNumbers } from "../sort-filter/builtin-compare";
+import { withSortLocale } from "../sort-filter/sort-collator";
 import { EMPTY_SORT_VALUE } from "../sort-filter/keyed-sort";
 import { getCellValue } from "../columns/column-helpers";
 import { clampColumnWidth } from "../columns/resolve-column-width";
@@ -694,9 +695,9 @@ export type ColumnLayoutParts = {
 /**
  * Normalizes a (partial) layout against `columns`: unknown column ids are dropped from every part,
  * `order` gets missing ids appended in def order (a layout from before a column was added still
- * renders that column), widths pass through `clampColumnWidth`, and a pin on a `pinnable: false`
- * column is dropped. Size is bounded by the column count, so a hostile input cannot allocate past
- * it. Runs for `defaultColumnLayout`, `columnLayout`, `setColumnLayout`, and URL input.
+ * renders that column), widths pass through `clampColumnWidth`, and a `pinnable: false`
+ * column keeps the pin of its definition whatever the given pins say. Size is bounded by the
+ * column count, so a hostile input cannot allocate past it. Runs for `defaultColumnLayout`, `columnLayout`, `setColumnLayout`, and URL input.
  */
 export function normalizeColumnLayout(
   columns: readonly AnyColumnDef[],
@@ -709,9 +710,10 @@ export function normalizeColumnLayout(
   const pins = isRecord(parts.pins) ? parts.pins : null;
   const nextColumns = pins
     ? columns.map((c) => {
+        if (!columnFlag(c, "pinnable")) return c;
         const pin = readColumnPin(pins[c.id]);
         // The given pins map is authoritative: a column it does not pin drops a stale pin.
-        return (pin === "start" || pin === "end") && columnFlag(c, "pinnable") ? { ...c, pin } : c.pin ? { ...c, pin: undefined } : c;
+        return pin === "start" || pin === "end" ? { ...c, pin } : c.pin ? { ...c, pin: undefined } : c;
       })
     : columns;
   const columnWidths: Record<string, number> = {};
@@ -804,10 +806,11 @@ export function computeViewIndex(
   prevViewIndex?: readonly number[],
   cellTypes?: Record<string, CellType>,
   window: ViewWindow = null,
+  sortLocale?: string,
 ): number[] {
   const accessor = textAccessorFor(allColumns, data, cellTypes);
   // Quick-search never narrows viewIndex — it only highlights/navigates.
-  const next = buildViewIndex(data.length, accessor, { sorts: sortState, filters: filterState });
+  const next = withSortLocale(sortLocale, () => buildViewIndex(data.length, accessor, { sorts: sortState, filters: filterState }));
   const prevFull = prevViewIndex ? fullViewOf(prevViewIndex) : undefined;
   const full = prevFull && sameElements(next, prevFull) ? (prevFull as number[]) : next;
   return windowView(full, window, prevViewIndex);
@@ -884,15 +887,16 @@ export function incrementalViewIndex(
   prevViewIndex: readonly number[],
   touchedRows: readonly number[],
   cellTypes?: Record<string, CellType>,
+  sortLocale?: string,
 ): number[] | null {
   // A view longer than the data can only come from a row removal the caller failed to declare.
   if (prevViewIndex.length > data.length) return null;
   const accessor = textAccessorFor(allColumns, data, cellTypes);
   const opts = { sorts: sortState, filters: filterState };
-  const result = updateViewIndex(prevViewIndex, touchedRows, accessor, opts);
+  const result = withSortLocale(sortLocale, () => updateViewIndex(prevViewIndex, touchedRows, accessor, opts));
   if (result.viewIndex === null) return null;
   if (isDev() && Math.random() < incrementalAssertRate) {
-    const reference = buildViewIndex(data.length, accessor, opts);
+    const reference = withSortLocale(sortLocale, () => buildViewIndex(data.length, accessor, opts));
     if (!sameElements(result.viewIndex, reference)) {
       console.error(
         "[data-grid] incremental view index diverged from the full rebuild; using the rebuild. Please report this with the sort/filter state.",
@@ -949,18 +953,20 @@ export function computeSearchMatches(
     getValue: (viewRow, columnId) => dataAccessor.getValue?.(searched[viewRow]!, columnId),
     filterMatch: (columnId) => dataAccessor.filterMatch?.(columnId),
   };
-  const searchMatches = findSearchMatches(
+  const scanned = findSearchMatches(
     searched.length,
     viewAccessor,
     searchText,
     visibleColumns.map((c) => c.id),
-    MAX_SEARCH_MATCHES,
+    MAX_SEARCH_MATCHES + 1,
     searchOptions,
   );
+  const searchMatchesCapped = scanned.length > MAX_SEARCH_MATCHES;
+  const searchMatches = searchMatchesCapped ? scanned.slice(0, MAX_SEARCH_MATCHES) : scanned;
   const onPage = searched === viewIndex ? searchMatches : searchMatches.filter((m) => m.row >= pageStart && m.row < pageStart + viewIndex.length).map((m) => ({ ...m, row: m.row - pageStart }));
   const searchMatchSet = new Set(onPage.map((m) => searchMatchKey(m.row, m.columnId)));
   const searchMatchRows = buildSearchMatchRows(onPage, visibleColumns);
-  return { searchMatches, searchMatchSet, searchMatchRows, searchMatchesCapped: searchMatches.length >= MAX_SEARCH_MATCHES };
+  return { searchMatches, searchMatchSet, searchMatchRows, searchMatchesCapped };
 }
 
 /** Cycles a column's sort direction: asc -> desc -> none (removed). */
@@ -995,7 +1001,7 @@ export function clampIndex(n: number, max: number): number {
   return Math.max(0, Math.min(n, Math.max(0, max)));
 }
 
-/** Resolves the optional selection-config sync props to their defaulted (all-true) form. */
+/** Resolves the optional selection-config sync props to their defaults, and a non-finite or negative `totalRowCount` to `null`. */
 export function resolveSelectionConfig(props: InternalSyncProps): Pick<
   DataGridStoreState,
   | "rowMarkers"
@@ -1013,7 +1019,7 @@ export function resolveSelectionConfig(props: InternalSyncProps): Pick<
   return {
     rowMarkers: props.rowMarkers ?? "none",
     enableRowSelection: props.enableRowSelection ?? true,
-    checkedRowsLifetime: props.checkedRowsLifetime ?? "until-click",
+    checkedRowsLifetime: props.checkedRowsLifetime ?? (props.totalRowCount !== undefined ? "across-filters" : "until-click"),
     totalRowCount: typeof props.totalRowCount === "number" && !(Number.isFinite(props.totalRowCount) && props.totalRowCount >= 0) ? null : props.totalRowCount,
     enableColumnSelection: props.enableColumnSelection ?? true,
     enableRangeSelection: props.enableRangeSelection ?? true,

@@ -210,6 +210,6 @@ export const DataGridRootContext = createContext<DataGridRootContextValue | null
 /** Resolves the shared root layout context; throws outside a `<DataGridRoot>`. */
 export function useDataGridRootContext(): DataGridRootContextValue {
   const ctx = use(DataGridRootContext);
-  if (!ctx) throw new Error("gridcn: DataGridHeader/DataGridBody must be used inside a <DataGridRoot>.");
+  if (!ctx) throw new Error("gridcn: this component or hook must be rendered inside a <DataGridRoot>.");
   return ctx;
 }

@@ -59,8 +59,7 @@ export type UseDataGridPresenceResult = {
  * to this hook instance, NOT part of the grid's own store, so core stays entirely unaware of
  * presence past the generic `plugins` seam.
  *
- * Zero-cell-render contract preserved: `plugin`'s identity never changes across renders (returned
- * from a one-time `useState` initializer), and the plugin's `Overlay` component's own
+ * Zero-cell-render contract preserved: `plugin`'s identity never changes across renders (memoized on the store), and the plugin's `Overlay` component's own
  * `usePresenceHighlights` subscription only re-renders `DataGridOverlays` (the component that
  * renders the `Overlay` inside its own tree) — never rows or cells.
  *

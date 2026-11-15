@@ -8,7 +8,7 @@ import { CELL_INPUT_CLASS, useCellEditorDraft } from "../interaction/use-cell-ed
 import { cn } from "@/lib/utils";
 import { isComposingKey } from "../interaction/is-composing-key";
 import { displayText } from "./display-text";
-import { warnDev } from "../store/commit";
+import { createFormatterCache, formatKey } from "./formatter-cache";
 import { compareNumbers } from "../sort-filter/builtin-compare";
 
 const DECIMAL_NUMBER = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i;
@@ -61,26 +61,18 @@ function clampToDecimals(value: number, options: GridCellTypes["number"]["option
   return clamped;
 }
 
-/** One `Intl.NumberFormat` per (format options object, locale, decimals); the options object as WeakMap key keeps a per-render literal GC-able. */
-const numberFormatterCache = new WeakMap<Intl.NumberFormatOptions, Map<string, Intl.NumberFormat>>();
-/** Options objects whose `new Intl.NumberFormat` threw; the dev fallback warning fires once per object. */
-const warnedNumberFormats = new WeakSet<Intl.NumberFormatOptions>();
+const cachedNumberFormatter = createFormatterCache<Intl.NumberFormat>("invalid number format options, showing the raw value");
 
-function getNumberFormatter(format: Intl.NumberFormatOptions, locale: string, decimals: number | undefined): Intl.NumberFormat {
-  const perOptions = numberFormatterCache.get(format) ?? new Map<string, Intl.NumberFormat>();
-  const key = `${locale}|${decimals ?? ""}`;
-  let formatter = perOptions.get(key);
-  if (!formatter) {
+/** The formatter for the options, or `null` when they are invalid. A re-created literal with equal content reuses one formatter. */
+function getNumberFormatter(format: Intl.NumberFormatOptions, locale: string, decimals: number | undefined): Intl.NumberFormat | null {
+  return cachedNumberFormatter(`${locale}|${decimals ?? ""}|${formatKey(format)}`, () => {
     // decimals fills in fraction digits the format left open (0.25 under style:"percent" + decimals:2 renders 25.00%)
     const effective =
       decimals !== undefined && format.minimumFractionDigits === undefined && format.maximumFractionDigits === undefined
         ? { ...format, minimumFractionDigits: decimals, maximumFractionDigits: decimals }
         : format;
-    formatter = new Intl.NumberFormat(locale, effective);
-    perOptions.set(key, formatter);
-    numberFormatterCache.set(format, perOptions);
-  }
-  return formatter;
+    return new Intl.NumberFormat(locale, effective);
+  });
 }
 
 function NumberCell({ value, options }: CellRenderProps<unknown, number | null, GridCellTypes["number"]["options"]>) {
@@ -141,18 +133,9 @@ export const numberCellType: CellType<unknown, number | null, GridCellTypes["num
   },
   toDisplayText: (value, options) => {
     if (value == null) return "";
-    if (!options?.format) return numberCellType.toText(value, options);
-    try {
-      return getNumberFormatter(options.format, options.locale ?? "en-US", options.decimals).format(roundToDecimals(value, options));
-    } catch (error) {
-      // invalid options (e.g. style:"currency" without currency) — raw text, one dev warning per options object;
-      // engines differ on the thrown type (V8/Node: TypeError, spec: RangeError)
-      if ((error instanceof RangeError || error instanceof TypeError) && !warnedNumberFormats.has(options.format)) {
-        warnedNumberFormats.add(options.format);
-        warnDev(`invalid number format options, showing the raw value: ${error instanceof Error ? error.message : String(error)}`);
-      }
-      return numberCellType.toText(value, options);
-    }
+    if (!options?.format || typeof value !== "number") return numberCellType.toText(value, options);
+    const formatter = getNumberFormatter(options.format, options.locale ?? "en-US", options.decimals);
+    return formatter ? formatter.format(roundToDecimals(value, options)) : numberCellType.toText(value, options);
   },
   fromText: (text, options) => {
     const normalized = normalizeNumberText(text);

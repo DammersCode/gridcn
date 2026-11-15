@@ -66,7 +66,7 @@ A reducer has the type `AggregateReducer`: a name or a function.
 
 | Reducer | Result |
 | --- | --- |
-| `"sum"`, `"avg"`, `"min"`, `"max"` | The result is a number for number values. The reducer skips `null` and `undefined` values and does not check the other values. With no value left, the result is `undefined`. |
+| `"sum"`, `"avg"`, `"min"`, `"max"` <NewBadge /> | The reducer uses finite numbers only. It skips numeric strings, `NaN`, dates, `null`, and `undefined`. With no number left, the result is `undefined`. |
 | `"count"` | The number of values that are not `null` or `undefined` |
 | `(values, rows) => unknown` | Your result. `values` holds every resolved value, empty ones included. `rows` holds the source rows. |
 

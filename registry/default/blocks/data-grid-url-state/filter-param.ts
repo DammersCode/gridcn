@@ -23,6 +23,9 @@ const MAX_URL_FILTER_SEGMENTS = MAX_URL_FILTERS * 4;
 
 const GROUP_CLOSE = "]";
 
+/** Longest decoded filter value (or choice, or range bound) a URL may carry; a segment above it is dropped, never cut, so a link cannot mean another filter. */
+const MAX_URL_FILTER_VALUE_LENGTH = 1000;
+
 /** Bound for one `isAnyOf` or `isNoneOf` list parsed from a URL when the caller names no per-column limit. */
 const DEFAULT_MAX_ANYOF_CHOICES = 1000;
 
@@ -35,7 +38,7 @@ export type ParseFilterStateOptions = {
 };
 
 /** Options for {@link serializeFilterState}. */
-export type SerializeFilterStateOptions = Pick<ParseFilterStateOptions, "operatorInput">;
+export type SerializeFilterStateOptions = Pick<ParseFilterStateOptions, "operatorInput" | "maxChoices">;
 
 /** `encodeURIComponent` plus escaping the one character it doesn't (`~`), so a literal tilde in a bound never collides with {@link RANGE_SEPARATOR}. */
 function encodeRangePart(part: string): string {
@@ -83,6 +86,7 @@ function writeNodes(nodes: readonly FilterNode[], depth: number, segments: strin
   for (const node of nodes) {
     if (!isFilterGroup(node)) {
       const input = isFilterOperator(node.operator) ? filterOperatorInput(node.operator) : (options.operatorInput?.(node.columnId, node.operator) ?? "single");
+      if (!readerKeeps(node, options)) continue;
       segments.push(`${encodeURIComponent(node.columnId)}:${encodeURIComponent(node.operator)}:${encodeFilterValue(input, node.value)}`);
       continue;
     }
@@ -96,6 +100,18 @@ function writeNodes(nodes: readonly FilterNode[], depth: number, segments: strin
   }
 }
 
+function valueStrings(value: FilterSpec["value"]): readonly string[] {
+  if (Array.isArray(value)) return value;
+  return typeof value === "string" ? [value] : [];
+}
+
+/** True unless {@link parseFilterState} would drop the leaf. An `isAnyOf` list over its bound stays and the reader cuts it. */
+function readerKeeps(node: FilterSpec, options: SerializeFilterStateOptions): boolean {
+  if (valueStrings(node.value).some((part) => part.length > MAX_URL_FILTER_VALUE_LENGTH)) return false;
+  if (node.operator !== "isNoneOf" || !Array.isArray(node.value)) return true;
+  return node.value.length <= (options.maxChoices?.(node.columnId) ?? DEFAULT_MAX_ANYOF_CHOICES);
+}
+
 /** Sentinel distinguishing "decode failed, drop the segment" from a legitimately-empty decoded value (`""`). */
 const DECODE_FAILED = Symbol("decode-failed");
 
@@ -104,26 +120,27 @@ function decodeFilterValue(operator: string, input: FilterOperatorInput, raw: st
   if (input === "list") {
     if (raw === "") return [];
     const parts: string[] = [];
-    for (const rawPart of raw.split(ANYOF_SEPARATOR)) {
+    // one entry past the bound tells an over-long list from an exact fit without splitting the whole value
+    for (const rawPart of raw.split(ANYOF_SEPARATOR, maxChoices + 1)) {
       if (parts.length >= maxChoices) {
         // a truncated exclusion list would match more rows than the link meant
         if (operator === "isNoneOf") return DECODE_FAILED;
         break;
       }
       const decoded = rawPart === EMPTY_ENTRY_TOKEN ? "" : safeDecode(rawPart);
-      if (decoded === null) return DECODE_FAILED;
+      if (decoded === null || decoded.length > MAX_URL_FILTER_VALUE_LENGTH) return DECODE_FAILED;
       parts.push(decoded);
     }
     return parts;
   }
   if (input !== "range") {
     const decoded = safeDecode(raw);
-    return decoded === null ? DECODE_FAILED : decoded;
+    return decoded === null || decoded.length > MAX_URL_FILTER_VALUE_LENGTH ? DECODE_FAILED : decoded;
   }
   const parts = raw.split(RANGE_SEPARATOR);
   if (parts.length !== 2) return DECODE_FAILED;
   const [min, max] = parts.map(safeDecode);
-  if (min == null || max == null) return DECODE_FAILED;
+  if (min == null || max == null || min.length > MAX_URL_FILTER_VALUE_LENGTH || max.length > MAX_URL_FILTER_VALUE_LENGTH) return DECODE_FAILED;
   return [min, max];
 }
 
@@ -132,7 +149,8 @@ function decodeFilterValue(operator: string, input: FilterOperatorInput, raw: st
  * column id, wrong field count, malformed `isBetween` range or `isAnyOf` / `isNoneOf` list) are dropped silently
  * rather than throwing — a corrupt/hand-edited URL degrades to fewer filters, never an error.
  * Parsing stops after 256 raw segments. The parsed tree is capped at 64 filter rows and 16 groups, and each `isAnyOf`
- * list at `options.maxChoices(columnId)` entries (1000 by default); the first segments win, so a
+ * list at `options.maxChoices(columnId)` entries (1000 by default); a segment whose decoded value, choice, or range bound
+ * exceeds 1,000 characters is dropped; the first segments win, so a
  * hand-edited URL cannot express an unbounded filter set. A group opener deeper than the nesting cap,
  * with an unknown join, or over the group cap drops its whole subtree; a stray `]` is ignored, an
  * unclosed group closes at the end, and an empty group is dropped. An `isNoneOf` list over its bound drops

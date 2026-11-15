@@ -20,7 +20,7 @@ afterEach(cleanup);
 
 type Deferred = { req: FetchAggregatesRequest; resolve: (v: unknown) => void; reject: (e: unknown) => void };
 
-function setup(extra: Partial<UseDataGridServerAggregateOptions> = {}, onSave?: () => Promise<undefined>) {
+function setup(extra: Partial<UseDataGridServerAggregateOptions> = {}, onSave?: () => Promise<undefined | void>) {
   const calls: Deferred[] = [];
   const fetchAggregates = (req: FetchAggregatesRequest) =>
     new Promise<Record<string, unknown>>((resolve, reject) => {
@@ -169,6 +169,28 @@ describe("useDataGridServerAggregate", () => {
     const s = setup();
     s.view.unmount();
     expect(s.call(0).req.signal.aborted).toBe(true);
+  });
+
+  it("asks again when a pending save settles", async () => {
+    let finish!: () => void;
+    const s = setup({}, () => new Promise<void>((resolve) => (finish = resolve)));
+    await act(async () => s.call(0).resolve({ qty: 1 }));
+    act(() => s.actions.commitCellValue({ rowId: "a", columnId: "qty" }, 5));
+    expect(s.calls).toHaveLength(1);
+    await act(async () => finish());
+    await vi.waitFor(() => expect(s.calls).toHaveLength(2));
+    await act(async () => s.call(1).resolve({ qty: 5 }));
+    expect(s.result.row).toEqual({ qty: 5 });
+  });
+
+  it("does not ask again after a save when refreshAfterSave is false", async () => {
+    let finish!: () => void;
+    const s = setup({ refreshAfterSave: false }, () => new Promise<void>((resolve) => (finish = resolve)));
+    await act(async () => s.call(0).resolve({ qty: 1 }));
+    act(() => s.actions.commitCellValue({ rowId: "a", columnId: "qty" }, 5));
+    await act(async () => finish());
+    await new Promise((r) => setTimeout(r, 30));
+    expect(s.calls).toHaveLength(1);
   });
 
   it("debounces a burst of filter changes into one request", async () => {

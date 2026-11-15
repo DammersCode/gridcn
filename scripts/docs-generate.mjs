@@ -208,7 +208,8 @@ const FIRST_TAGGED_RELEASE = "1.0.0";
 
 // CHANGELOG.md lists releases newest first, so a higher index is an older release.
 function changelogReleases() {
-  const parts = read("CHANGELOG.md").split(/^## (\S+).*$/m);
+  const parts = `${read("CHANGELOG.md")}
+${read("CHANGELOG-2.0.md")}`.split(/^## (\S+).*$/m);
   const releases = [];
   for (let i = 1; i < parts.length; i += 2) releases.push({ name: parts[i], body: parts[i + 1] });
   const firstNamed = new Map();
@@ -346,7 +347,11 @@ function keyboardShortcuts() {
     ...sections,
     "## Other keys [#other-keys]",
     "",
-    table(["Action", "Keys", "Page"], [["Open the shortcuts dialog", `${code("?")} with ${code("useDataGridKeybindings")} in ${code("plugins")}`, link("/docs/selection-shortcuts/shortcut-remapping")]]),
+    table(["Action", "Keys", "Page"], [
+      ["Open the shortcuts dialog", `${code("?")} with ${code("useDataGridKeybindings")} in ${code("plugins")}`, link("/docs/selection-shortcuts/shortcut-remapping")],
+      ["Open the cell menu", `${code("Shift+F10")} with ${code("DataGridContextMenu")} mounted, on Windows and Linux`, link("/docs/rows-pages-menus/context-menu#cell-surface-row-operation-items")],
+      ["Focus the toolbar search", `${code("Mod+F")} with ${code("DataGridSearch")} mounted, while focus is in the grid or its toolbar. With ${code("data-grid-find-replace")} mounted, ${code("Mod+F")} in the grid opens Find. On macOS, both ${code("Cmd+F")} and ${code("Ctrl+F")} match`, link("/docs/sort-filter-search/quick-search")],
+    ]),
     related(["/docs/selection-shortcuts/shortcut-remapping", "change the keys"], ["/docs/selection-shortcuts/global-shortcuts", "keys outside the grid"], ["/docs/plugins/plugin-commands-shortcuts", "keys from a plugin"]),
   ].join("\n");
 }
@@ -447,7 +452,7 @@ const PURPOSE = {
   "DataGridSyncProps.enableColumnSelection": "Turns on whole-column selection by a header click. Default `true`.",
   "DataGridSyncProps.enableRangeSelection": "Turns on range selection by shift-click, drag, and shift+arrow keys. Default `true`.",
   "DataGridSyncProps.enableMultiRange": "Turns on several ranges by Ctrl or Cmd click. Default `true`.",
-  "DataGridSyncProps.inputDebounceMs": "Sets the wait in ms before a text input commits. It covers the toolbar search, the filter value inputs, the set-filter search, and find and replace.",
+  "DataGridSyncProps.inputDebounceMs": "Sets the wait in ms before a text input commits. It covers the toolbar search, the filter value inputs, the set-filter search, find and replace, and the lookup editor.",
   "DataGridSyncProps.keymap": "Merges over `DEFAULT_KEYMAP` per action. An action mapped to `[]` has no binding.",
   "DataGridSyncProps.sanitizeClipboardFormulas": "Prefixes formula-like copied cells with `'` in the clipboard text and HTML. Default `false`.",
   "DataGridSyncProps.duplicateRow": "Builds the new row for `duplicateRows` from the source row and its new data index.",
@@ -461,6 +466,8 @@ const PURPOSE = {
   "DataGridSyncProps.onGateAborted": "Fires once for every async gate that the grid stopped waiting for, with its name and the reason.",
   "DataGridSyncProps.sortMode": "Who sorts: `\"client\"` sorts `data`, `\"server\"` only tracks the sort. Default `\"server\"` with `totalRowCount`, else `\"client\"`.",
   "DataGridSyncProps.filterMode": "Who filters: `\"client\"` filters `data`, `\"server\"` only tracks the filters. Default `\"server\"` with `totalRowCount`, else `\"client\"`.",
+  "DataGridSyncProps.enableColumnReorder": "Enables drag-to-reorder columns grid-wide. Default `true`. `false` makes `setColumnOrder` do nothing.",
+  "DataGridSyncProps.enableColumnPinning": "Enables pin/unpin actions grid-wide. Default `true`. `false` makes `setColumnPin` do nothing.",
   "DataGridSyncProps.enableRowSelection": "Turns on whole-row selection by a row marker click and Shift+Space. Default `true`.",
   "DataGridSyncProps.labels": "Overrides the UI text. The grid deep-merges it over `DEFAULT_LABELS`.",
   "DataGridSyncProps.commands": "Your own keyboard commands, keyed by name. A keymap binding that names no built-in action runs one.",
@@ -550,9 +557,9 @@ const ACTION_PURPOSE = {
   setRowChecked: "Checks or unchecks one row by id. It sets the state and never toggles.",
   setRowCheckedAt: "Checks or unchecks one row by view index. It sets the state and never toggles.",
   checkRowRange: "Checks or unchecks the rows from the anchor row to a target view index.",
-  setAllRowsChecked: "Checks or unchecks every row of the view, as the header checkbox does. On a paged grid, the view is the shown page.",
+  setAllRowsChecked: "Checks or unchecks every row of the view, as the header checkbox does. On a paged grid, the view is the shown page. With `totalRowCount`, `checkedRowsLifetime='across-filters'`, and unloaded rows in the view, checking selects all matching.",
   selectAllMatching: "Checks every row of the result, loaded or not. It does nothing without `totalRowCount` or without `checkedRowsLifetime='across-filters'`.",
-  setPageSize:"Shows `pageSize` rows per page and keeps the first row of the page on screen. `null` shows every row.",
+  setPageSize:"Shows `pageSize` rows per page and keeps the first row of the page on screen. `null` shows every row for an uncontrolled page size.",
   cancelEditing: "Discards the open edit. It writes nothing.",
   pushRange: "Adds a new range at a `CellRef`, as a Ctrl or Cmd click does.",
   updateRows: "Writes whole-row patches by row id. Each `RowPatch` expands to one cell patch per column, as in `updateCells`.",

@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { anchorsOf, capped, pageIndex, readLf, rel, splitFrontmatter, urlOfPage, walk, lineOf } from "./docs-verify-lib.mjs";
 
-const OTHER_FILES = ["README.md", "GLOSSARY.md", "DEVELOPMENT.md", "CHANGELOG.md", "AGENTS.md", "registry.json", "research/parity-matrix.json", "scripts/verify-parity.mjs"];
+const OTHER_FILES = ["README.md", "GLOSSARY.md", "DEVELOPMENT.md", "CHANGELOG.md", "CHANGELOG-2.0.md", "AGENTS.md", "registry.json", "research/parity-matrix.json", "scripts/verify-parity.mjs"];
 const OTHER_DIRS = [
   ["skills", [".md"]],
   ["public/skills", [".md"]],
@@ -15,7 +15,7 @@ const OTHER_DIRS = [
   ["lib", [".ts", ".tsx"]],
   ["registry/default", [".ts", ".tsx"]],
 ];
-const ANY_REDIRECT_OK = new Set(["CHANGELOG.md"]);
+const ANY_REDIRECT_OK = new Set(["CHANGELOG.md", "CHANGELOG-2.0.md"]);
 
 /** Exact `source:` strings of next.config.mjs redirects (patterns with `:` params are skipped). */
 export function redirectSources(root, extraFile) {

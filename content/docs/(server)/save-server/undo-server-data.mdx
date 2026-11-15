@@ -58,7 +58,7 @@ export function RowsGrid({ rows }: { rows: Row[] }) {
 
 `rollback` applies the inverse change with `source: "rollback"` and removes the entry from the stack. A cell reverts only while it still holds the change's value, so later edits stay. If the user already undid the change, `rollback` writes nothing. `onSave` never receives a `"rollback"` change, and history never records a `"history"`, `"rollback"`, `"merge"`, or `"id-swap"` change. `createHistory` from `@/components/data-grid/data-grid-sdk` exposes the same removal as `discard(change)`.
 
-If the server refuses an undo or a redo, the grid <NewBadge /> reverts the data and puts the entry back. A refused undo is on the undo stack again, and a refused redo is on the redo stack again. A change that took server content (`serverRowIds`) removes the older operations on those rows from the stacks. [Undo and redo](/docs/clipboard-undo/undo-redo#server-mode) lists the rules.
+If the server refuses an undo or a redo, the grid <NewBadge /> reverts the data and, when the revert writes, puts the entry back. A refused undo is on the undo stack again, and a refused redo is on the redo stack again. A change that took server content (`serverRowIds`) removes the older operations on those rows from the stacks. [Undo and redo](/docs/clipboard-undo/undo-redo#server-mode) lists the rules.
 
 ## Run history with scroll mode [#with-scroll-mode]
 
@@ -94,7 +94,7 @@ Three rules keep the combination safe:
 
 - Pass a custom `getRowId` to the hook, never to the grid, and pass `server.gridProps` to the grid. The grid runs `getRowId` on every element, holes included, and a plain `(row) => row.id` throws on a hole. The hook's own option sees loaded rows only, and `gridProps.getRowId` gives each hole a placeholder id.
 - An entry whose rows left the loaded rows <NewBadge /> applies nothing, stays on its stack, and calls `onSkip` with `"rows-not-loaded"`. Load the rows, then undo again.
-- A change of `spec` starts the blocks over, and `server.refresh()` drops every loaded row outside the rendered rows. A row operation in a source with a row count runs that refresh. A tick of `revalidateIntervalMs` refetches the same dataset, so it needs no `clear()`. Pass a key that changes with the dataset as `datasetKey`, so the stacks clear. Without a stable key, call `clear()` in the handler that swaps the dataset or calls `refresh()`.
+- A change of `spec` starts the blocks over, and `server.refresh()` drops every loaded row outside the rendered rows. A row operation in a source with a row count runs that refresh. A tick of `revalidateIntervalMs` refetches the same dataset, so it needs no `clear()`. An undo writes only the cells of its entry onto the refetched row, so a value that the server changed in another column stays. Pass a key that changes with the dataset as `datasetKey`, so the stacks clear. Without a stable key, call `clear()` in the handler that swaps the dataset or calls `refresh()`.
 
 When `undo` runs over a sparse array, it warns once in development.
 

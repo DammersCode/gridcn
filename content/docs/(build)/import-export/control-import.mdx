@@ -25,7 +25,7 @@ Install `data-grid-io`. See [Import](/docs/import-export/import). A hook cannot 
 ## Steps
 
 1. Pick the hooks from the table.
-2. Pass them as props. The `processCellFromText` hook in the sample trims every cell.
+2. Pass them as props. The `processCellFromText` hook in the sample parses `total` as a number and trims every other cell. The hook returns the stored value. The column's `fromText` does not run.
 
 ```tsx
 import { DataGridImportButton } from "@/components/data-grid-io/data-grid-io";
@@ -38,7 +38,9 @@ export function ImportOrders({ refresh }: { refresh: () => void }) {
       importDefaults={{ defaultHeaderRow: 3 }}
       csvEncoding="windows-1252"
       processImportRows={({ rows }) => rows.filter((row) => row[0] !== "TOTAL")}
-      processCellFromText={(text) => text.trim()}
+      processCellFromText={(text, { column }) =>
+        column.id === "total" ? Number.parseFloat(text) : text.trim()
+      }
       onImport={async (rows, { signal, rejected, fileName }) => {
         await api.import(rows, { signal, fileName, skipped: rejected.length });
         refresh();

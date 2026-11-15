@@ -30,7 +30,7 @@ Range selection, spreadsheet clipboard, typed cell editors, validation, and virt
 - **Typed columns.** `defineColumns<TData>()` infers value types and per-cell-type `options` from your data shape. A typo in an accessor key is a compile error.
 - **Validation.** A function or any [Standard Schema](https://standardschema.dev) library (Zod, Valibot, ArkType). Sync and async, on single edits and on bulk paste, fill, and import.
 - **Server errors.** `setCellErrors` paints an API rejection on the exact cell. The error clears when the user commits a fix.
-- **Streaming updates.** `updateCells` applies live value patches without a full re-render. An incremental sort keeps sorted grids correct and fast at 100k rows.
+- **Streaming updates.** `updateCells` applies live value patches without a full re-render. An incremental sort keeps sorted grids correct; a test compares it with a full rebuild. `research/perf-sort-1m.md` records its timings at 100k rows.
 - **Virtualization.** CSS Grid with virtualized row rendering. A real-browser test suite enforces the no-blank-rows guarantee at 100k rows.
 - **Row operations.** Insert above or below, duplicate, and delete, each with a default key binding. Insert and duplicate need the `createRow` / `duplicateRow` props; the `data-grid-context-menu` add-on adds the menu entries.
 - **Touch.** A tap selects, a double-tap edits, a long-press opens the context menu, and selection handles extend a range. Touch targets grow under a coarse pointer.
@@ -38,7 +38,7 @@ Range selection, spreadsheet clipboard, typed cell editors, validation, and virt
 - **Global shortcuts.** The opt-in `DataGridGlobalShortcuts` layer (inside `DataGridRoot`) keeps key bindings active while focus is outside the grid. Undo and redo by default; per-action flags enable more.
 - **Controlled or uncontrolled.** Data, sort, filter, search text, selection, and column layout are uncontrolled by default. Pass `data`, `sortState`, `filterState`, `searchText`, `selection`, or `columnLayout` with the matching `on*Change` callback to control them. Each callback fires after the grid writes the change.
 - **Server data and saves.** `onSave` acknowledges each change, and the grid reverts only the rows that the server refuses. The `data-grid-server` add-on loads server pages or scroll-loaded row blocks and sends the sort, filters, and search text with each request.
-- **RTL and i18n.** A `direction` prop (or `dir="rtl"` on the page) mirrors layout, pinning, pointer math, and keyboard semantics. Every user-facing string lives in one typed `labels` object with English defaults.
+- **RTL and i18n.** A `direction` prop (or `dir="rtl"` on the page) mirrors layout, pinning, pointer math, and keyboard semantics. Nearly every user-facing string lives in one typed `labels` object with English defaults.
 - **Your theme.** Styled through your shadcn CSS tokens plus a few `--grid-*` variables, for example `--grid-column-border`. See the [styling guide](https://gridcn.vercel.app/docs/theme-style-language/colors-radius).
 - **Plugins.** A single `plugins` prop mounts add-ons and your own overlays, row bands, observers, commands, and keymap entries. See the [plugin guide](https://gridcn.vercel.app/docs/plugins/plugin-shape).
 - **Accessibility.** WAI-ARIA grid roles, roving tabindex, and live regions. axe-core reports zero violations on the test fixture in Chromium. No screen reader and no WCAG conformance audit has been run yet; see the [accessibility page](https://gridcn.vercel.app/docs/accessibility/accessibility-gaps).
@@ -54,7 +54,7 @@ The CLI resolves the `@gridcn` registry from the hosted site, so there is no set
 To pin a tag, branch, or commit, use the GitHub registry path:
 
 ```bash
-npx shadcn add DammersCode/gridcn/data-grid#v1.0.0
+npx shadcn add DammersCode/gridcn/data-grid#v1.3.0
 ```
 
 The ref applies to the item you name only. The CLI resolves its `registryDependencies` without the ref, so a pinned add-on still installs its dependencies from the default branch. To pin the whole install, install each dependency with the same ref first, starting with the core. If the CLI then asks to overwrite a dependency file, answer no. A GitHub path install resolves the ref with `git ls-remote`, or through the GitHub API when that fails, and reads files from `raw.githubusercontent.com`. A full commit SHA skips the lookup.
@@ -99,7 +99,7 @@ The [quick start](https://gridcn.vercel.app/docs/learning-path/render-your-first
 
 ## Add-ons
 
-Each add-on is a separate registry item that depends on the core `data-grid`. A few also install the shadcn/ui components they use, `data-grid-pagination`, `use-debounce`, or `dropzone` (for `data-grid-io`):
+Each add-on is a separate registry item that depends on the core `data-grid`, except the `use-debounce` and `is-composing-key` utilities. A few also install the shadcn/ui components they use, `data-grid-pagination`, `use-debounce`, or `dropzone` (for `data-grid-io`):
 
 | Item | Adds | Docs |
 | --- | --- | --- |

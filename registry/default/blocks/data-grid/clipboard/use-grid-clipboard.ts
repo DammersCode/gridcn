@@ -10,11 +10,13 @@ import { closestGridRoot } from "../interaction/closest-grid-root";
 import { serializeCells } from "./serialize-cells";
 import { parseClipboard } from "./parse-clipboard";
 import { useDataGridActions, useDataGridInternalActions, useDataGridStoreApi, type DataGridActions, type DataGridStoreState } from "../store";
+import { isColumnReadOnly } from "../store/compute";
 import { resolveBulkWrites, type BulkCandidate, type BulkResolution } from "../validation/validate-batch";
 import { createWarnOnce, isThenable } from "../store/async-gate";
 import { GateRun } from "../store/gate-signal";
 import { gateTrackerOf } from "../store/internal-actions";
 import { exportText } from "../cell-types/display-text";
+import { toSafeText } from "../cell-types/safe-text";
 import { resolveColumnValidate } from "../cell-types/capabilities";
 import { safeFromText } from "../cell-types/safe-from-text";
 import { candidateRowIds, reresolveBulkWrites, snapshotBulkBatch, useBulkGeneration, type BulkGeneration } from "../validation/bulk-generation";
@@ -277,7 +279,7 @@ function collectPasteCandidates(s: DataGridStoreState, cells: string[][], target
       if (col >= colCount) break;
       const column = s.visibleColumns[col];
       if (!column) continue;
-      if (typeof column.readOnly === "function" ? column.readOnly(row) : Boolean(column.readOnly)) continue;
+      if (isColumnReadOnly(column, row)) continue;
 
       const cellType = s.cellTypes[column.type ?? "text"];
       if (!cellType) continue;
@@ -367,18 +369,18 @@ function applyParsedPaste(
         if (!now) return;
         runPaste(current, actions, final, now, latch, guard, storeApi, token);
       } catch (error) {
-        latch.warnOnce("threw", `processCellFromClipboard threw, so the paste is cancelled: ${String(error)}`);
+        latch.warnOnce("threw", () => `processCellFromClipboard threw, so the paste is cancelled: ${toSafeText(error)}`);
       }
     },
     (error: unknown) => {
       if (!finish()) return;
-      latch.warnOnce("rejected", `processPaste rejected, so the paste is cancelled: ${String(error)}`);
+      latch.warnOnce("rejected", () => `processPaste rejected, so the paste is cancelled: ${toSafeText(error)}`);
     },
   );
   return true;
 }
 
-type PasteLatch = { gate: "processPaste" | "processCellFromClipboard" | null; run: GateRun | null; warnOnce: (key: string, message: string) => void };
+type PasteLatch = { gate: "processPaste" | "processCellFromClipboard" | null; run: GateRun | null; warnOnce: ReturnType<typeof createWarnOnce> };
 const pasteLatches = new WeakMap<object, PasteLatch>();
 
 /** One latch per grid: the pending gate blocks a second paste, whatever surface it comes from. */
@@ -457,7 +459,7 @@ function runPaste(
       },
       (error: unknown) => {
         latch.gate = null;
-        latch.warnOnce("cell rejected", `processCellFromClipboard rejected, so the paste is cancelled: ${String(error)}`);
+        latch.warnOnce("cell rejected", () => `processCellFromClipboard rejected, so the paste is cancelled: ${toSafeText(error)}`);
       },
     );
     return true;

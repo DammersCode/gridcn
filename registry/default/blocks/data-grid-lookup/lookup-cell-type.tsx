@@ -3,7 +3,7 @@
 import { CellSpan, type CellRenderProps, type CellType } from "@/registry/default/blocks/data-grid/data-grid";
 import { createFilterMatcher } from "@/registry/default/blocks/data-grid/data-grid";
 import type { FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { TEXT_FILTER_OPERATORS } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { TEXT_FILTER_OPERATORS, sortCollator } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { LookupEditor } from "./lookup-editor";
 import { isUnresolved, MAX_LOOKUP_TEXT, readLookup, recallOption, rememberOption, type LookupOptions, type LookupValue } from "./lookup-model";
 
@@ -20,7 +20,6 @@ function LookupCell({ value }: CellRenderProps<unknown, LookupValue, LookupOptio
   return <CellSpan text={option.label} />;
 }
 
-const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 const matchers = new WeakMap<FilterSpec, (text: string) => boolean>();
 
 function matcherFor(filter: FilterSpec): (text: string) => boolean {
@@ -38,8 +37,8 @@ function labelOf(value: unknown): string {
 
 /**
  * `lookup`: the stored value is `{ value, label }` (the key and the text the user sees). `toText`
- * copies the label; `fromText` resolves a pasted label or key against the options this column has
- * shown or copied, else follows `unresolvedPaste`. Sort, quick search, and the text filter operators
+ * copies the label; `fromText` resolves a pasted label or key against the options the editor
+ * listed or `toText` wrote (copy, export, print, fill source, autosize, filter value list), else follows `unresolvedPaste`. Sort, quick search, and the text filter operators
  * read the label.
  */
 export const lookupCellType: CellType<unknown, LookupValue, LookupOptions> = {
@@ -60,7 +59,7 @@ export const lookupCellType: CellType<unknown, LookupValue, LookupOptions> = {
   },
   clearValue: () => null,
   isEmpty: (value) => readLookup(value) === null,
-  compare: (a, b) => collator.compare(labelOf(a), labelOf(b)),
+  compare: (a, b) => sortCollator().compare(labelOf(a), labelOf(b)),
   toSearchText: (value) => labelOf(value),
   filter: {
     operators: TEXT_FILTER_OPERATORS,

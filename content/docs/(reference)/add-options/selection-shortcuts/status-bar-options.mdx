@@ -14,7 +14,7 @@ Mount the bar inside `DataGridProvider`, next to `DataGridRoot`.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-status-bar/status-bar.tsx" name="DataGridStatusBarProps" />
 
-`StatusBarAggregate` is `"count" | "sum" | "avg" | "min" | "max"`. The bar renders the aggregates in the order of `aggregates`. A value that is `null` does not render. The aggregates show once the selection holds 2 cells. The bar also renders for hidden checked rows and the select-all banner. If the walk hits the cell cap, each value takes a `≈` prefix.
+`StatusBarAggregate` is `"count" | "sum" | "avg" | "min" | "max"`. The bar renders the aggregates in the order of `aggregates`. A value that is `null` does not render. The aggregates show once the selection holds 2 cells whose value is not `undefined`. The bar also renders for hidden checked rows and the select-all banner. If the walk hits the cell cap, each value takes a `≈` prefix.
 
 The bar is a polite live region with `role="status"`. After a computation ends, its text changes.
 

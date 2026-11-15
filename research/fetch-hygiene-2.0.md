@@ -136,7 +136,7 @@ cleanup, so a StrictMode double mount leaves no timer and starts each block once
 - Pages mode: `refresh()` refetches the page and keeps the rows (exists). Scroll random access: `refresh()` refetches the
   rendered blocks and drops every other loaded row (exists), so revalidation also keeps the cache small.
 - Sequential: a refresh walks from block 0 to the rendered rows. A tick is skipped (not deferred) while the rendered
-  rows end beyond `MAX_SEQUENTIAL_REVALIDATE_BLOCKS = 10` blocks, so one tick costs at most 10 requests.
+  rows plus `overscan` end beyond `MAX_SEQUENTIAL_REVALIDATE_BLOCKS = 10` blocks, so one tick costs at most 10 requests.
 - The refresh guard protects saves and the edit session as for a manual refresh. `readOnly` changes nothing: no write.
 - Revalidation is not a dataset change; the undo stack is not cleared. `onLoaded` fires for each landed block.
 

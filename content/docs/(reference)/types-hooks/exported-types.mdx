@@ -37,7 +37,7 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | --- | --- | --- |
 | `DataOp<TData>` | An `update`, `insert`, `delete`, or `move` operation | One row operation, addressed by row id. |
 | `RowPatch` | `{ rowId, changes }` | One whole-row update for `actions.updateRows`. `changes` maps column ids to new values. |
-| `DataChange<TData>` | `{ ops, source, label?, reverts? }` | One batch of operations with its origin. |
+| `DataChange<TData>` | `{ ops, source, label?, reverts?, serverRowIds? }` | One batch of operations with its origin. |
 
 [Operation engine contract](/docs/contracts/operation-engine-contract) covers `applyChange` and `invertChange`. [Data change events](/docs/events-state/data-change-events) covers `source`.
 
@@ -47,7 +47,7 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | --- | --- | --- |
 | `GateName` | A union of 7 gate names | For example `processPaste`, `validateRow`, `onBeforeEditStart`, and `import`. |
 | `GateContext` | `{ signal }` | The argument of an async gate. `signal` aborts when the grid stops waiting. |
-| `RowActionSkipReason` | A union of 7 reasons | Why a row action did nothing, such as `readOnly`, `gate-pending`, and `nothing-to-do`. |
+| `RowActionSkipReason` | A union of 9 reasons | Why a row action did nothing, such as `readOnly`, `gate-pending`, and `nothing-to-do`. |
 | `SaveResolution` | `"theirs" \| "mine" \| { row } \| void` | The answer of `resolveSaveConflict`: take the server row, keep the grid row, or save a merged row. |
 
 ## Sort and filter [#sort-and-filter]
@@ -122,6 +122,7 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | --- | --- | --- |
 | `ColumnLayout` | `{ widths, order, pins, hidden }` | A snapshot of the column layout. It is the payload of `onColumnLayoutChange`. The `columnLayout` and `defaultColumnLayout` props take it in `Partial` form. |
 | `RowMarkersMode` | `"none"`, `"number"`, `"checkbox"`, `"both"`, `"reorder"`, or `"reorder-"` plus a content name | What the marker column shows. |
+| `CheckedRowsLifetime` <NewBadge /> | `"until-click" \| "until-cleared" \| "across-filters"` | How long checked rows stay checked. It is the type of the `checkedRowsLifetime` prop. |
 | `HeaderClickBehavior` | `"select" \| "sort" \| "none"` | What a header click does. |
 | `RowMarkersContent` | `"number" \| "checkbox" \| "both"` | The content of the marker column. |
 | `GridDirection` | `"ltr" \| "rtl"` | The text direction of the grid. |

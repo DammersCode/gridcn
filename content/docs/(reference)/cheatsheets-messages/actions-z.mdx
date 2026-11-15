@@ -26,7 +26,7 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `commitCellValueAt` | Takes a `ViewCoord` in place of the `CellRef` of `commitCellValue`. | [Cell type model](/docs/concepts/cell-type-model) |
 | `commitChange` | Applies a whole `DataChange` in one write and fires `onDataChange` once. | [Data change events](/docs/events-state/data-change-events) |
 | `deleteRows` | Deletes the rows at the given view indexes, as one change. | [Row operations](/docs/rows-pages-menus/row-operations) |
-| `deleteRowsById` | Deletes the rows with the given ids, as one change. The grid skips an id that matches no row. | [Row operations](/docs/rows-pages-menus/row-operations) |
+| `deleteRows` | Deletes the rows with the given ids, as one change. The grid skips an id that matches no row. | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `deleteSelection` | Clears every editable cell of the selection to its empty value, as one change. | [Global shortcuts](/docs/selection-shortcuts/global-shortcuts) |
 | `duplicateRows` | Duplicates the rows at the given view indexes through `duplicateRow`, as one change. | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `extendSelection` | Grows or shrinks the main range by one cell in a direction, or moves its edge to the edge of the view with `toEdge`. | [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation) |
@@ -52,7 +52,7 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `selectRow` | Selects the row at a view index, as a click on its row marker does. | [Row markers](/docs/rows-pages-menus/row-markers) |
 | `setActiveCell` | Moves only the active cell to a `CellRef` and keeps the selection. `null` clears it. Fires no `onSelectionChange`. | [Selection model](/docs/concepts/selection-model) |
 | `setActiveCellAt` | Takes a `ViewCoord` in place of the `CellRef` of `setActiveCell`. | [Selection model](/docs/concepts/selection-model) |
-| `setAllRowsSelected` | Checks or unchecks every row of the view, as the header checkbox does. On a paged grid, the view is the shown page. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
+| `setAllRowsChecked` | Checks or unchecks every row of the view, as the header checkbox does. On a paged grid, the view is the shown page. With `totalRowCount`, `checkedRowsLifetime='across-filters'`, and unloaded rows in the view, checking selects all matching. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | `setCellErrors` | Merges server errors into the cell errors. It is not a data change. | [Show errors on cells](/docs/save-server/show-errors-cells) |
 | `setColumnHidden` | Shows or hides a column. | [Column visibility](/docs/columns/column-visibility) |
 | `setColumnLayout` | Applies a partial `ColumnLayout` as one commit. Omitted parts keep their value. | [Column visibility](/docs/columns/column-visibility) |
@@ -61,7 +61,7 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `setColumnWidth` | Sets a column width and fires `onColumnLayoutChange` once, as a resize release does. | [Column sizing](/docs/columns/column-sizing) |
 | `setFilters` | Replaces the filter tree. | [Filtering](/docs/sort-filter-search/filtering) |
 | `setPage` | Shows a page of the view. Pages start at 1. Calls `onPageChange`. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
-| `setPageSize` | Shows `pageSize` rows per page and keeps the first row of the page on screen. `null` shows every row. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
+| `setPageSize` | Shows `pageSize` rows per page and keeps the first row of the page on screen. `null` shows every row for an uncontrolled page size. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | `setRowSelected` | Checks or unchecks one row by view index. It sets the state and never toggles. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | `setSearch` | Sets the quick-search text. With `options`, it also sets the search options. | [Quick search](/docs/sort-filter-search/quick-search) |
 | `setSelection` | Applies a whole `SelectionState` in `CellRef` terms. `null` clears the selection. | [Selection and cell events](/docs/events-state/selection-cell-events) |

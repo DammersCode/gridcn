@@ -339,3 +339,27 @@ describe("custom operator ids with reserved characters", () => {
     expect(parseFilterState(serializeFilterState(filters, options), options)).toEqual(filters);
   });
 });
+
+describe("URL value bounds", () => {
+  it("drops a segment whose decoded value is over 1,000 characters and keeps one at the limit", () => {
+    expect(parseFilterState(`note:contains:${"a".repeat(1001)}`)).toEqual([]);
+    expect(parseFilterState(`note:contains:${"a".repeat(1000)}`)).toHaveLength(1);
+  });
+
+  it("drops a segment with an over-long choice or range bound", () => {
+    expect(parseFilterState(`note:isAnyOf:ok|${"a".repeat(1001)}`)).toEqual([]);
+    expect(parseFilterState(`note:isBetween:a~${"b".repeat(1001)}`)).toEqual([]);
+  });
+
+  it("splits an isAnyOf list at one entry past the bound", () => {
+    const [spec] = parseFilterState(`note:isAnyOf:${"a|".repeat(1_000_000)}a`);
+    expect((spec as { value: string[] }).value).toHaveLength(1000);
+    expect(parseFilterState(`note:isNoneOf:${"a|".repeat(1000)}a`)).toEqual([]);
+  });
+
+  it("the writer leaves out what the reader would drop", () => {
+    const long = "a".repeat(1001);
+    expect(serializeFilterState([{ columnId: "note", operator: "contains", value: long }, { columnId: "n", operator: "equals", value: "1" }])).toBe("n:equals:1");
+    expect(serializeFilterState([{ columnId: "note", operator: "isNoneOf", value: ["a", "b", "c"] }], { maxChoices: () => 2 })).toBe("");
+  });
+});

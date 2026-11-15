@@ -34,7 +34,8 @@ const cellValues = (change: DataChange<unknown>) =>
   change.ops.flatMap((op) => (op.type === "update" ? (op.cells ?? []).map((cell) => cell.value) : []));
 
 describe("a throwing validateRow on a delete", () => {
-  it("emits nothing for the failed delete and only the later edit afterwards", () => {
+  it("emits the delete, adds no verdict, and emits the later edit after it", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     const { store, onDataChange } = makeStore({
       validateRow: (row) => {
         if ((row as Row).name === "") throw new Error("validateRow crashed");
@@ -43,11 +44,11 @@ describe("a throwing validateRow on a delete", () => {
     });
     store.getState().actions.selectCellAt({ row: 0, col: 0 });
 
-    expect(() => store.getState().actions.deleteSelection()).toThrow("validateRow crashed");
+    expect(() => store.getState().actions.deleteSelection()).not.toThrow();
     store.getState().actions.commitCellValueAt({ row: 1, col: 1 }, "edited");
 
-    expect(onDataChange).toHaveBeenCalledTimes(1);
-    expect(cellValues(onDataChange.mock.calls[0]![1])).toEqual(["edited"]);
+    expect(onDataChange).toHaveBeenCalledTimes(2);
+    expect(cellValues(onDataChange.mock.calls[1]![1])).toEqual(["edited"]);
   });
 });
 

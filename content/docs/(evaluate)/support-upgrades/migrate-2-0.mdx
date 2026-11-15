@@ -1,12 +1,12 @@
 ---
 title: Migrate to 2.0
 icon: Milestone
-description: Move a grid from 1.3 to 2.0. Rename the save APIs, replace the lazy rows add-on with server rows, and check the changed defaults.
+description: Move a grid from 1.3 to 2.0. Replace the lazy rows add-on with server rows, move server pages to the server pager, and check the changed defaults.
 type: task
-aliases: ["migrate to 2.0", "upgrade to 2.0", "data-grid-lazy removed", "onwriterejected"]
+aliases: ["migrate to 2.0", "upgrade to 2.0", "data-grid-lazy removed", "from 1.3"]
 ---
 
-Release 2.0 renames the save APIs, replaces the `data-grid-lazy` add-on with `data-grid-server`, and changes some defaults of selection, filters, and pushes. Until 2.0 has a tag, the [changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) lists these changes under Unreleased.
+Release 2.0 replaces the `data-grid-lazy` add-on with `data-grid-server` and changes some defaults of selection, filters, and pushes. [Changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) lists every breaking change.
 
 Before you start, upgrade to 1.3.0 and commit your work. For an older version, first apply the **Breaking:** entries up to 1.3.0.
 
@@ -19,12 +19,12 @@ Before you start, upgrade to 1.3.0 and commit your work. For an older version, f
 5. Check each behavior change below, and the [changed defaults](#changed-defaults).
 6. Run `npx tsc --noEmit` and your tests. A removed or renamed export fails the type check.
 
-The type check passes, and the grid works as before.
-
 ### Changed defaults [#changed-defaults]
 
-- A grid with a `totalRowCount` prop defaults `sortMode` and `filterMode` to `"server"`. Set `sortMode="client"` and `filterMode="client"` to keep the 1.3 behavior.
-- Every body cell carries an integer `z-index`. A `z-*` class from `cellClassName` or `getCellClassName` does not change its stacking. A `z-index` inside a custom cell stays inside that cell. Portal a popup that must sit above other cells. See [Style contract](/docs/contracts/style-contract).
+- If you add `totalRowCount`, `sortMode` and `filterMode` default to `"server"`. Set both to `"client"` to sort or filter the window in the browser.
+- Text sorts use the `"en-US"` collation, not the language of the runtime. The same setting decides text range filters and the filter value lists. An app on a runtime with another language, such as Swedish, sees a different order for letters like `ä`. To pin another language, pass a `sortLocale` tag, and pass the same tag on the server and in the browser.
+- `pasteFromClipboard` <NewBadge /> resolves `"refused"` when the grid starts no paste. 1.3 resolved `"empty"`. Handle `"refused"`. `"empty"` means no text on the clipboard.
+- Every body cell carries an integer `z-index`. A `z-*` class from `cellClassName` or `getCellClassName` does not change its stacking. Portal a popup that must sit above other cells. See [Style contract](/docs/contracts/style-contract).
 
 ### Callback timing [#callbacks]
 
@@ -34,33 +34,21 @@ In 1.3, `onSortChange`, `onFilterChange`, and `onSearchTextChange` fired before 
 
 `labels.contextMenu.pasteBlocked` and `clipboardFailed` can be a function of the modifier key. Handle both forms where you read them.
 
-## Save APIs [#save-apis]
-
-| 1.3 | 2.0 |
-| --- | --- |
-| `onWriteRejected` | `onSaveRejected`. Its context adds `error`. |
-| `WriteAck`, `WriteRejection`, `RowWriteStatus` | `SaveAck`, `SaveRejection`, `RowSaveStatus` |
-| `useDataGridRowWriteStatus`, `useDataGridPendingWriteCount` | `useDataGridRowSaveStatus`, `useDataGridPendingSaveCount` |
-| `clearWriteStatus` | `clearSaveStatus` |
-| `data-write-status` row attribute | `data-save-status` |
-| `writeStatus`, `pendingWriteCount` store fields | `saveStatus`, `pendingSaveCount` |
-
 ## Server rows [#server-rows]
 
-`useDataGridServerRows({ mode: "scroll" })` from `data-grid-server` replaces `useDataGridLazyRows` and `useDataGridInfiniteRows`. `DataGridLazyGuard` has no replacement. If a client sort or filter changes over unloaded rows, the core warns in development.
+`useDataGridServerRows({ mode: "scroll" })` from `data-grid-server` replaces `useDataGridLazyRows`. `DataGridLazyGuard` has no replacement. If a client sort or filter changes over unloaded rows, the core warns in development.
 
 | 1.3 | 2.0 |
 | --- | --- |
-| `fetchRows` resolves the rows | `fetchRows(request)` resolves `{ rows, totalRowCount?, hasMore?, nextCursor? }` |
-| `total`, `hasNextPage` | `totalRowCount`, `hasMore` in the answer |
-| `batchSize`, `pageSize` | `blockSize` |
+| `fetchRows(start, end, signal)` resolves the rows | `fetchRows({ start, end, signal })` resolves `{ rows, totalRowCount?, hasMore?, nextCursor? }` |
+| `total` | `totalRowCount` in the answer |
+| `batchSize` | `blockSize` |
 | `reset()`, `isLoading` | `refresh()`, `loading` |
-| `LazyFetchContext` | `ServerRowsRequest` |
-| `Range`, `ServerSpec`, `serverSpecKey` from `data-grid-lazy` | `RowRange`, `ServerSpec`, `serverSpecKey` from `data-grid` |
-| `spec.search` | `spec.searchText`, also in `defaultSpec` |
+| `Range` from `data-grid-lazy` | `RowRange` from `data-grid` |
 | `maxFetchRows` | none. Each request covers one block. |
+| `onError(error, range)` | `onError(error)` |
 
-The hook owns the spec. Remove your `spec`, `sortMode`, `filterMode`, and `onRenderedRowsChange` wiring, and spread `server.gridProps`:
+The hook owns the spec. Remove your `onRenderedRowsChange` and `onDataChange` wiring, and spread `server.gridProps`:
 
 ```tsx
 "use client";
@@ -96,43 +84,42 @@ Scroll mode starts a block request after `loadDelayMs` milliseconds (default 100
 
 ### Pushes and row operations [#pushes]
 
-- A `source: "stream"` call of `updateCells` or `updateRows` skips a row whose save is in flight (reason `"saving"`). Push again after the save settles.
 - A stream call takes at most 100,000 patches. The rest skip as `"limit"`.
-- A stream call of `updateCells`, `updateRows`, or `deleteRowsById` writes into a `readOnly` grid and read-only columns and rows. Pass `source: "edit"` to keep the read-only checks.
-- In a scroll-mode grid, `deleteRows`, `duplicateRows`, `insertRow`, and `insertRows` do nothing if the target touches an unloaded row. Delete known rows with `deleteRowsById`.
+- A stream call of `updateCells`, `updateRows`, or `deleteRows` writes into a `readOnly` grid and read-only columns and rows. Pass `source: "edit"` to keep the read-only checks.
+- In a scroll-mode grid, `deleteRows`, `duplicateRows`, `insertRow`, and `insertRows` do nothing if the target touches an unloaded row. Delete known rows with `deleteRows`.
 
 ## Pagination [#pagination]
 
 - `useDataGridPagination` pages an array on the client and returns `{ pageData, pager }` in place of `{ pageData, controls }`. Its `pageSize` needs `onPageSizeChange`, and `defaultPageSize` seeds the size.
-- For server pages, call `useDataGridServerPager({ page, pageSize, totalRowCount, hasMore, onPageChange })`. It returns `{ pager }` and hides the size select without `onPageSizeChange`.
-- `total` is `totalRowCount` in the server options, `pager`, and `useDataGridUrlPagination`. `null` marks an unknown size.
+- Server mode of `useDataGridPagination` moves to `useDataGridServerPager({ page, pageSize, totalRowCount, hasMore, onPageChange })`. It returns `{ pager }` and hides the size select without `onPageSizeChange`. The options type `UseDataGridPaginationServerOptions` is renamed `UseDataGridServerPagerOptions`.
+- `total` is `totalRowCount` in the pager and in `useDataGridUrlPagination`. `null` marks an unknown size.
 - `reconcilePage` is gone. A server page outside the range calls `onPageChange` once with the clamped page.
 - To page the grid view, set `pageSize` on the provider instead of `pageData`.
 
 ## Filters [#filters]
 
-- A `fetchFilterValues` entry is `{ value, label?, count? }`. Rename its `label` to `value`. Add `label` only for other display text.
-- The `search` field of the `fetchFilterValues` context is `query`.
 - `FilterOperator` accepts any string. A `switch` over it needs a default branch. `BuiltInFilterOperator` is the closed set.
-- A grid that a filter or the search empties shows `labels.grid.noResults` ("No results"). Set that label to keep "No rows".
+- A grid that a filter or a server search empties shows `labels.grid.noResults` ("No results"). Set that label to keep "No rows".
 
 ## Selection [#selection]
 
-- The header checkbox, the row marker checkboxes, `aria-selected`, Ctrl+Shift+Space, and the "3 rows checked" announcement read the checked rows only. Ctrl+A selects cells and checks no rows. To check every row from code, call `setAllRowsSelected(true)`.
-- `DataGridSelectedRows.count` and `labels.statusBar.allSelected` take `null` for an unknown size.
-- <NewBadge /> `checkedRowsLifetime` replaces `keepCheckedRows` and `keepHiddenCheckedRows`. Map your props like this:
+- The header checkbox, the row marker checkboxes, the row `aria-selected`, Ctrl+Shift+Space, and the "3 rows checked" announcement read the checked rows only. Ctrl+A selects cells, unchecks every checked row, and ends all matching. To check every row from code, call `setAllRowsChecked(true)`.
+- `checkedRowsLifetime` replaces `keepCheckedRows` and `keepHiddenCheckedRows`. Map your props like this:
 
 | 1.x props | 2.0 prop |
 |---|---|
-| neither | `checkedRowsLifetime="until-click"` (default) |
+| neither | the default: `'until-click'`, or `'across-filters'` with `totalRowCount` |
 | `keepCheckedRows` | `checkedRowsLifetime="until-cleared"` |
 | `keepCheckedRows` and `keepHiddenCheckedRows` | `checkedRowsLifetime="across-filters"` |
+| `keepHiddenCheckedRows` alone | Drop it. It had no effect. |
+
+`useDataGridSelectionConfig()` and the store state return `checkedRowsLifetime` in place of `keepCheckedRows` and `keepHiddenCheckedRows`. A custom `CompactSelectionLike` implements `runs()`.
 
 ## Removed exports [#removed-exports]
 
 Twelve names leave the `data-grid` barrel: `useDataGridRowCount`, `useDataGridHasActiveCell`, `useDataGridIsSearchMatch`, `useDataGridIsRowSelected`, `useDataGridIsRowChannelSelected`, `useDataGridIsRowCellSelected`, `useDataGridAllRowsSelected`, `useDataGridHeaderClickBehavior`, `useDataGridRowMarkers`, `useDataGridSelectionConfig`, `deepMergeLabels`, and `measureTextWidths`. A [`createDataGridSelector`](/docs/types-hooks/store-hooks#createdatagridselector) hook reads the same values. An add-on imports `useDataGridSelectionConfig` from `data-grid-sdk`.
 
-The `data-grid-pagination` barrel drops `pageCount`, `clampPage`, `pageRange`, `pageWindow`, and `DEFAULT_PAGE_SIZES`. The toolbar, io, and keybindings barrels drop untaught helpers such as `operatorLabel` and `downloadBlob`.
+The `data-grid-pagination` barrel drops `pageCount`, `clampPage`, `pageRange`, `pageWindow`, and `DEFAULT_PAGE_SIZES`. The toolbar, io, and keybindings barrels drop `operatorLabel`, `operatorsForColumnType`, `operatorHasValue`, `downloadBlob`, `buildExportHeaders`, `quoteCsvField`, `IMPORT_PREVIEW_ROW_COUNT`, `KEYBINDING_CATEGORIES`, `ACTION_CATEGORY`, `categoryForAction`, `categoryLabel`, `KeybindingCategory`, and `labelForAction`.
 
 ## Related
 

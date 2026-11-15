@@ -6,11 +6,10 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DEFAULT_LABELS, type DataGridPaginationLabels } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev, mergeLabelLayers, useDataGridSelector, useOptionalDataGridLabels } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { GRID_ATTR, isDev, mergeLabelLayers, useDataGridSelector, useOptionalDataGridLabels } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { DataGridPaginationControls } from "./use-data-grid-pagination";
 import { useDataGridPager } from "./use-data-grid-pager";
 import { DEFAULT_PAGE_SIZES, pageWindow } from "./pagination-math";
-import { GRID_ATTR } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Default window size for {@link DataGridPaginationPages} when its `windowSize` prop is omitted. */
 const DEFAULT_PAGE_WINDOW_SIZE = 5;
@@ -39,9 +38,8 @@ export type DataGridPaginationBarProps = (BarControls | { [K in keyof BarControl
   pageSizeOptions?: readonly number[];
   className?: string;
   /**
-   * i18n override for this footer's strings, merged key by key over the grid's `labels.pagination`
-   * (read from the enclosing `DataGridProvider`), which sits over the built-in defaults. Outside a
-   * provider, the footer cannot see a grid: pass the strings here.
+   * i18n override for this footer's strings, merged key by key over the enclosing grid's
+   * `labels.pagination` (the built-in defaults outside a `DataGridProvider`).
    */
   labels?: Partial<DataGridPaginationLabels>;
   /** How many numbered page buttons the default layout shows at once (forwarded to `DataGridPaginationPages`; ignored with `children`). Default 5. */

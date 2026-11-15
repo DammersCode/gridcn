@@ -191,7 +191,7 @@ describe("planServerSetFilter", () => {
   const serverPlan = (checked: string[], filters: FilterNode[] = [], allowed: readonly FilterOperator[] = BOTH) =>
     planServerSetFilter({ filters, columnId: "city", known, checked: new Set(checked), allowed });
 
-  it("stores isAnyOf with the checked texts, never isNoneOf, for a list that may be partial", () => {
+  it("stores isAnyOf with the checked texts when no isNoneOf entry exists", () => {
     expect(serverPlan(["a", "b", "c"])).toEqual({ status: "apply", filters: [{ columnId: "city", operator: "isAnyOf", value: ["A", "B", "C"] }] });
   });
 

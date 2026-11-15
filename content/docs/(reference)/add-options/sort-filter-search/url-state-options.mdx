@@ -113,6 +113,8 @@ A hand-edited URL cannot grow the view state without bound. Every write uses `hi
 
 - `filter`: 64 rows, 16 groups, 256 segments.
 - `filter` list values: A column with `choices` allows the larger of its choice count and 64. Other columns allow 1,000. A longer `isAnyOf` list keeps its first entries. A longer `isNoneOf` list drops the segment.
+- `filter` value length: A value, a choice, or a range bound over 1,000 characters drops the segment. <NewBadge />
+- `q`: The grid cuts the search text to 500 characters. <NewBadge />
 - `sort`: 64 sorts, 256 segments, one direction for each column.
 - `cols`, `hide`, `widths`, `pins`: 1,024 entries. The grid ignores a key over 16,384 characters.
 - `pageSize`: a value outside `pageSizeOptions` reads as `defaultPageSize`.
@@ -122,7 +124,7 @@ A sort or filter row for a removed, hidden, or unsortable, or unfilterable colum
 
 ## Server mode
 
-On a scroll-mode grid, set `sortMode="server"` and `filterMode="server"`. The store then holds the restored spec and your fetch applies it. `useDataGridServerRows` sets both modes, and a grid with `totalRowCount` gets them by default. Without both modes, the add-on sorts and filters the partial `data` on the client. Value lists that depend on server filtering have a known gap in server filter mode.
+On a scroll-mode grid, set `sortMode="server"` and `filterMode="server"`. The store then holds the restored spec and your fetch applies it. `useDataGridServerRows` sets both modes, and a grid with `totalRowCount` gets them by default. Without both modes, the add-on sorts and filters the partial `data` on the client. In server filter mode, the `choices` of a column can hold fewer values than your server lists. The [Limits](#limits) bound still applies: a longer `isAnyOf` list keeps its first entries, and a longer `isNoneOf` list drops the segment. See [Data mode support](/docs/data-modes/data-mode-support).
 
 ## Related
 

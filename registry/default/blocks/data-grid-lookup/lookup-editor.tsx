@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useDebouncedInput } from "@/registry/default/hooks/use-debounce";
 import { useCommitGuard, type CellEditorProps } from "@/registry/default/blocks/data-grid/data-grid";
-import { columnLabelText, isComposingKey, useDataGridInputDebounce } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { columnLabelText, deepMergeLabels, isComposingKey, useDataGridInputDebounce } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
   DEFAULT_LABELS,
   MAX_LOOKUP_TEXT,
@@ -24,7 +24,7 @@ type Fetched = { status: "idle" | "loading" | "ready" | "error"; options: readon
 /** Opens on edit start. Typing searches `fetchOptions` after a pause; arrow keys move, Enter or a click picks, Escape cancels. */
 export function LookupEditor(props: CellEditorProps<unknown, LookupValue, LookupOptions>) {
   const { value, options, onChange, commit, cancel, column, pending, rejectionCount, initialText, row, rowId } = props;
-  const labels = { ...DEFAULT_LABELS, ...options?.labels };
+  const labels = deepMergeLabels(DEFAULT_LABELS, options?.labels);
   const minQueryLength = Math.max(0, options?.minQueryLength ?? 0);
   const providerDelay = useDataGridInputDebounce();
   const delayMs = options?.debounceMs ?? providerDelay;

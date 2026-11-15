@@ -34,7 +34,7 @@ Spread `gridProps` onto `DataGrid`. For a composed layout, spread `providerProps
 
 ### Pager options [#pager-options]
 
-`pager` in pages mode comes from `useDataGridServerPager`. If you fetch rows without `useDataGridServerRows`, call that hook yourself. It returns `{ pager }`. Pass `page`, `pageSize`, `totalRowCount`, and `onPageChange`, and fetch each page yourself.
+`pager` in pages mode comes from `useDataGridServerPager`. If you fetch rows without `useDataGridServerRows`, call that hook yourself. It returns `{ pager }`. Pass `page`, `pageSize`, `totalRowCount`, and `onPageChange`, and fetch each page yourself. If the server sends no count, pass `totalRowCount: null` and `hasMore`.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="UseDataGridPaginationServerOptions" />
 
@@ -74,8 +74,8 @@ The hook <NewBadge /> sets `sortMode` and `filterMode` to `"server"`. A grid wit
 | `loadDelayMs` | `100` | Milliseconds a block stays in the wanted range before its request starts. At most 2000. `0` starts at once. |
 | `maxConcurrentFetches` | `3` | Most block requests in flight on a random access source. At most 16. |
 | `maxLoadedRows` | `10000` | Most rows kept loaded. A value below `blockSize` counts as `blockSize`. `Infinity` keeps every row. |
-| `revalidateIntervalMs` | off | Milliseconds between timed `refresh()` calls while the page is visible. At least 1000. |
-| `reshapeDelayMs` | off | Milliseconds after a push marked a row stale before one `refresh()`. At least 250. |
+| `revalidateIntervalMs` | off | Milliseconds between timed `refresh()` calls while the page is visible. At least 1000. A sequential source skips a tick while the rendered rows plus `overscan` end beyond 10 blocks. |
+| `reshapeDelayMs` | off | Milliseconds after a push marked a row stale before one `refresh()`. At least 250. A sequential source skips it while the rendered rows plus `overscan` end beyond 10 blocks. |
 
 The limits and the timers are on [Tune row retention](/docs/scroll-mode/tune-row-retention).
 
@@ -98,7 +98,7 @@ Both modes take `onSave` and `refreshAfterSave`. `gridProps.onSave` runs your ha
 | Option | Default | Effect |
 | --- | --- | --- |
 | `onSave` | none | Sends a change to your server. Behaves as the `DataGridProvider` prop of the same name. |
-| `refreshAfterSave` | `"settled"` | `"settled"` refreshes once after every save in flight. `"each"` refreshes after every save. `false` never refreshes. A function of the save report returns whether to refresh. |
+| `refreshAfterSave` | `"settled"` | `"settled"` refreshes once after every save in flight has settled, or after 10 seconds when at least one save has settled by then. After the 10 seconds, each save still in flight refreshes when it settles. `"each"` refreshes after saves settle, without waiting for the saves still in flight. `false` never refreshes. A function of the save report returns whether to refresh, once after every save in flight has settled or after the same 10 seconds. A sequential source skips the refresh while the rendered rows plus `overscan` end beyond 10 blocks, so call `server.refresh()` there. Only an `onSave` that returns a promise triggers a refresh. |
 
 `refresh()` stays available. See [Save edits](/docs/save-server/save-edits).
 

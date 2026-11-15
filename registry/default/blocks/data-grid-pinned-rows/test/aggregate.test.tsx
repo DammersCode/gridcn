@@ -137,7 +137,14 @@ describe("useDataGridAggregate — unknown spec key", () => {
     expect(String(warn.mock.calls[0]?.[0])).toContain("quants");
   });
 
-  it("does not re-warn for a different unknown key (warn-once per app)", () => {
+  it("warns once on one grid across recomputes", () => {
+    const data = makeRows([1, 2, 3]);
+    const view = render(<Capture data={data} specs={{ quants: "sum" }} onResult={() => {}} />);
+    view.rerender(<Capture data={data} specs={{ quants: "sum" }} onResult={() => {}} />);
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it("warns again on another grid (warn-once per grid)", () => {
     const results: Record<string, unknown>[] = [];
     render(
       <Capture
@@ -147,7 +154,7 @@ describe("useDataGridAggregate — unknown spec key", () => {
       />,
     );
     expect(results.at(-1)).toEqual({});
-    expect(warn).toHaveBeenCalledTimes(0);
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -169,6 +176,43 @@ describe("useDataGridAggregate — empty-value skipping", () => {
       onResult(row);
       return null;
     }
+  });
+});
+
+describe("useDataGridAggregate — values that are not finite numbers", () => {
+  type MixedRow = { id: string; amount: unknown };
+  const mixedColumns: readonly ColumnDef<MixedRow, unknown>[] = [{ id: "amount", header: "Amount", accessorKey: "amount", width: 80 }];
+  const mixed: MixedRow[] = [{ id: "a", amount: 3 }, { id: "b", amount: "5" }, { id: "c", amount: Number.NaN }, { id: "d", amount: 7 }];
+
+  function aggregateOf(reducer: AggregateSpecs["amount"]): unknown {
+    let value: unknown;
+    function Probe() {
+      value = useDataGridAggregate({ amount: reducer })["amount"];
+      return null;
+    }
+    render(
+      <DataGrid data={mixed} columns={mixedColumns} getRowId={(r) => r.id}>
+        <Probe />
+      </DataGrid>,
+    );
+    return value;
+  }
+
+  it.each([
+    ["sum", 10],
+    ["avg", 5],
+    ["min", 3],
+    ["max", 7],
+  ] as const)("%s reduces over finite numbers only", (reducer, expected) => {
+    expect(aggregateOf(reducer)).toBe(expected);
+  });
+
+  it("count counts every non-empty value", () => {
+    expect(aggregateOf("count")).toBe(4);
+  });
+
+  it("a function reducer receives every value", () => {
+    expect(aggregateOf((values) => values.length)).toBe(4);
   });
 });
 
@@ -271,7 +315,7 @@ describe("useDataGridAggregate — sparse (lazy) data", () => {
     expect(warn).toHaveBeenCalledTimes(1);
   });
 
-  it("skips holes over the raw sparse array too (scope all), without re-warning", () => {
+  it("skips holes over the raw sparse array too (scope all), and warns once on this grid", () => {
     const results: Record<string, unknown>[] = [];
     function AllInner() {
       const row = useDataGridAggregate({ qty: "sum" }, { scope: "all" });
@@ -284,8 +328,7 @@ describe("useDataGridAggregate — sparse (lazy) data", () => {
       </DataGrid>,
     );
     expect(results.at(-1)).toEqual({ qty: 4 });
-    // the warn fires at most once per app, so this second grid stays quiet
-    expect(warn).toHaveBeenCalledTimes(0);
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 
   afterEach(() => warn.mockClear());

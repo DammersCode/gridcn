@@ -66,11 +66,11 @@ The header dropdown and the right-click header menu show the same items:
 
 The `pin` field of a column sets the first pin. These items change it at run time. [Column order and pinning](/docs/columns/column-order-pinning) owns the pin behavior.
 
-<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowDown</kbd> (the `openColumnMenu` action) opens the dropdown of the active cell's column. Arrow keys move through the items. <kbd>Escape</kbd> closes the menu and returns focus to the cell.
+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowDown</kbd> (the `openColumnMenu` action) opens the dropdown of the focused header button's column, or else the active cell's column. Arrow keys move through the items. <kbd>Escape</kbd> closes the menu and returns focus to where it was.
 
 ## Cell surface items [#cell-surface-row-operation-items]
 
-A right-click on a cell outside the current selection selects that cell first. A right-click inside the selection keeps it. The row items then act on every view row that the selection covers. With an empty selection, they act on the clicked row. With a `checkedRowsLifetime` of `'until-cleared'` or `'across-filters'` and at least one checked row, they act on the checked rows only. A range selection duplicates or deletes all of its rows at once.
+A right-click on a cell outside the selection selects that cell first. A right-click inside the selection keeps it. The row items act on every view row that the selection covers, or on the clicked row if nothing is selected. With a `checkedRowsLifetime` of `'until-cleared'` or `'across-filters'` and a checked row, they act on the checked rows only. With `'until-click'` (the default without `totalRowCount`), a right-click outside the selection ends the checks. Set `'until-cleared'` to keep them for bulk menu actions.
 
 <kbd>Shift</kbd>+<kbd>F10</kbd> opens the cell menu of the active cell on Windows and Linux. The browser sends it to the focused cell as a right-click.
 
@@ -82,7 +82,7 @@ The cell menu holds these items, in order:
 4. **Duplicate rows**. It needs `duplicateRow`.
 5. **Delete rows**, a destructive item. It runs `onBeforeDeleteRows` first.
 
-Without `createRow` or `duplicateRow`, the menu hides the matching items. A `readOnly` grid turns off every item except Copy. With `checkedRowsLifetime="across-filters"`, when every checked row is hidden, Duplicate and Delete turn off too. The insert items stay on, because they insert next to the right-clicked row. A turned-off row item shows the reason as its tooltip: `labels.contextMenu.rowActionReadOnly` or `labels.contextMenu.rowActionHiddenChecked`.
+Without `createRow` or `duplicateRow`, the menu hides the matching items. A `readOnly` grid turns off every item except Copy. With `checkedRowsLifetime="across-filters"`, when every checked row is hidden, Duplicate and Delete turn off too. While [all matching](/docs/rows-live-data/select-server-rows) is on, they turn off as well. The insert items stay on, because they insert next to the right-clicked row. A turned-off row item shows the reason as its tooltip: `labels.contextMenu.rowActionReadOnly`, `rowActionHiddenChecked`, or `rowActionAllMatching`.
 
 The shortcut of each item <NewBadge /> shows as a key hint. [Row operations](/docs/rows-pages-menus/row-operations) owns what each operation does.
 

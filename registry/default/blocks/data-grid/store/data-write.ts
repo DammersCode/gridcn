@@ -33,7 +33,9 @@ import {
   type PrevalidatedPatches,
   warnDev,
 } from "./commit";
+import { toSafeText } from "../cell-types/safe-text";
 import { createWarnOnce, isThenable } from "./async-gate";
+import { reportRowActionSkipped } from "./row-action-skip";
 import type { GateRun, GateTracker } from "./gate-signal";
 import { buildRollback } from "../interaction/rollback";
 import { readRejections, refusedOps, type RowSaveStatus, type SaveAck, type SaveRejection, type SaveResolution } from "./write-ack";
@@ -124,7 +126,7 @@ export function resolveRefOrWarn(ctx: DataWriteContext, s: DataGridStoreState, r
   const coord = resolveCellRef(s, ctx.rowIndexCache, ref);
   if (!coord && !ctx.warnedStaleCellRef) {
     ctx.warnedStaleCellRef = true;
-    warnDev(`CellRef { rowId: ${ref.rowId}, columnId: ${ref.columnId} } does not resolve in the current view (row no longer in data, or column hidden); the action is a no-op`);
+    warnDev(`CellRef { rowId: ${toSafeText(ref.rowId)}, columnId: ${toSafeText(ref.columnId)} } does not resolve in the current view (row no longer in data, or column hidden); the action is a no-op`);
   }
   return coord;
 }
@@ -266,10 +268,10 @@ export function pendingRows(ctx: DataWriteContext, touchedRows: readonly number[
 export function resolveViewIndex(s: DataGridStoreState, data: readonly unknown[], pending: readonly number[] | null): number[] {
   const prevFull = fullViewOf(s.viewIndex);
   const incremental = pending
-    ? incrementalViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), prevFull, pending, s.cellTypes)
+    ? incrementalViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), prevFull, pending, s.cellTypes, s.sortLocale)
     : null;
   if (incremental) return windowView(sameElements(incremental, prevFull) ? prevFull : incremental, viewWindowOf(s), s.viewIndex);
-  return computeViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, s.cellTypes, viewWindowOf(s));
+  return computeViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, s.cellTypes, viewWindowOf(s), s.sortLocale);
 }
 
 /**
@@ -300,7 +302,7 @@ export function reconcileAfterWrite(s: DataGridStoreState, nextData: readonly un
  * `activeCell` (it follows or clears the cursor itself).
  */
 export function rebuildRowOpView(s: DataGridStoreState, nextData: readonly unknown[]): Partial<DataGridStoreState> {
-  const viewIndex = computeViewIndex(nextData, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, s.cellTypes, viewWindowOf(s));
+  const viewIndex = computeViewIndex(nextData, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, s.cellTypes, viewWindowOf(s), s.sortLocale);
   const staleRowIds = s.dataWrite.staleRows.size > 0 ? staleStateAfterPrune(s.dataWrite, s.staleRowIds, pruneStaleRows(s.dataWrite, nextData, s.getRowId)) : s.staleRowIds;
   return {
     viewIndex,
@@ -837,28 +839,18 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     return true;
   };
   const OK: RowActionResult = { ok: true };
-  const skippedBy = (action: RowActionName, reason: RowActionSkipReason): RowActionResult => {
-    const handler = get().onRowActionSkipped;
-    if (handler) {
-      try {
-        handler({ action, reason });
-      } catch (error) {
-        warnDev(`onRowActionSkipped threw: ${String(error)}`);
-      }
-    }
-    return { ok: false, reason };
-  };
+  const skippedBy = (action: RowActionName, reason: RowActionSkipReason): RowActionResult => reportRowActionSkipped(get(), action, reason);
   const requestDelete = (dataRowIndexes: number[]): RowActionResult => {
     const s = get();
     if (s.readOnly) return skippedBy("deleteRows", "readOnly");
     if (touchesUnloadedRow(s, dataRowIndexes, "deleteRows")) return skippedBy("deleteRows", "unloaded-rows");
+    if (!dataRowIndexes.some((i) => s.data[i] !== undefined)) return skippedBy("deleteRows", "nothing-to-do");
     const confirm = s.onBeforeDeleteRows;
     if (!confirm) {
       deleteDataRows(dataRowIndexes);
       return OK;
     }
     const rowIds = [...new Set(dataRowIndexes.flatMap((i) => (s.data[i] === undefined ? [] : [s.getRowId(s.data[i], i)])))];
-    if (rowIds.length === 0) return skippedBy("deleteRows", "nothing-to-do");
     if (deleteRun && !deleteRun.aborted) {
       warnGateOnce("pending", "a row delete was requested while the promise of onBeforeDeleteRows is still pending, so it is ignored; the promise must settle");
       return skippedBy("deleteRows", "gate-pending");
@@ -870,7 +862,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     try {
       verdict = confirm({ rowIds, hiddenCount, signal: run.signal });
     } catch (error) {
-      warnGateOnce("threw", `onBeforeDeleteRows threw, so the delete is cancelled: ${String(error)}`);
+      warnGateOnce("threw", () => `onBeforeDeleteRows threw, so the delete is cancelled: ${toSafeText(error)}`);
       return skippedBy("deleteRows", "gate-threw");
     }
     if (typeof verdict === "boolean") {
@@ -895,7 +887,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         if (confirmed === true && !changed(get())) deleteDataRows(dataRowIndexes);
       },
       (error: unknown) => {
-        if (finish()) warnGateOnce("rejected", `onBeforeDeleteRows rejected, so the delete is cancelled: ${String(error)}`);
+        if (finish()) warnGateOnce("rejected", () => `onBeforeDeleteRows rejected, so the delete is cancelled: ${toSafeText(error)}`);
       },
     );
     return OK;
@@ -1010,7 +1002,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       },
       (error: unknown) => {
         if (!finish()) return;
-        warnGateOnce("createRow rejected", `createRow rejected, so the insert is cancelled: ${String(error)}`);
+        warnGateOnce("createRow rejected", () => `createRow rejected, so the insert is cancelled: ${toSafeText(error)}`);
       },
     );
   };
@@ -1048,7 +1040,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       },
       (error: unknown) => {
         if (!finish()) return;
-        warnGateOnce("duplicateRow rejected", `duplicateRow rejected, so the duplicate is cancelled: ${String(error)}`);
+        warnGateOnce("duplicateRow rejected", () => `duplicateRow rejected, so the duplicate is cancelled: ${toSafeText(error)}`);
       },
     );
   };

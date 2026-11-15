@@ -27,29 +27,28 @@ This grid imports `columns` and `Order` from `orders.ts` and `loadPage` from `ap
 ```tsx
 "use client";
 
-import { DataGrid, type DataChange } from "@/components/data-grid/data-grid";
+import { DataGrid } from "@/components/data-grid/data-grid";
+import {
+  DataGridPaginationBar,
+} from "@/components/data-grid-pagination/data-grid-pagination";
 import {
   useDataGridServerRows,
 } from "@/components/data-grid-server/data-grid-server";
 import { columns, type Order } from "./orders";
-import { loadPage } from "./api";
-
-async function saveOrders(change: DataChange<Order>) {
-  const response = await fetch("/api/orders/changes", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(change.ops),
-  });
-  if (!response.ok) throw new Error("Save refused");
-}
+import { loadPage, sendChange } from "./api";
 
 export function OrdersGrid() {
   const server = useDataGridServerRows<Order>({
     fetchRows: loadPage,
-    onSave: saveOrders,
+    onSave: sendChange,
   });
 
-  return <DataGrid {...server.gridProps} columns={columns} />;
+  return (
+    <>
+      <DataGrid {...server.gridProps} columns={columns} className="h-96" />
+      <DataGridPaginationBar {...server.pager} />
+    </>
+  );
 }
 ```
 
@@ -57,7 +56,7 @@ export function OrdersGrid() {
 
 Pass `onSave` to the hook, not to `DataGrid`. While the promise is pending, the row has the save status `"saving"`, and a refresh keeps the local value of a saving row. After the promise resolves, the status clears. After a refusal, it is `"failed"`.
 
-The `refreshAfterSave` option of the hook defaults to `"settled"`. When every save in flight has settled, the hook calls `refresh()` once. The refresh brings in the server values. See [Save options](/docs/add-options/server/server-rows-options#save-options) for the other policies.
+The `refreshAfterSave` option of the hook defaults to `"settled"`. When every save in flight has settled, or after 10 seconds, the hook calls `refresh()` once. The refresh brings in the server values. See [Save options](/docs/add-options/server/server-rows-options#save-options) for the other policies.
 
 `onSave` never receives the revert, which has the source `"rollback"`. It never receives a server push, which has the source `"stream"`.
 

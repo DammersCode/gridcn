@@ -18,6 +18,8 @@ import {
   type DataGridStoreState,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { getInternalActions, useDataGridStoreApi as useRawStoreApi } from "@/registry/default/blocks/data-grid/store";
+import { lookupCellType } from "@/registry/default/blocks/data-grid-lookup/lookup-cell-type";
+import type { LookupValue } from "@/registry/default/blocks/data-grid-lookup/lookup-model";
 import { createFillStore } from "./fill-store";
 import { buildFillWrites, readRectAsText, useFillHandle, type UseFillHandleOptions } from "./use-fill-handle";
 import { viewIndexes } from "@/registry/default/blocks/data-grid/types";
@@ -137,6 +139,16 @@ describe("buildFillWrites", () => {
     expect(syncResolution(buildFillWrites(s, source, strip).resolution).writes).toEqual([]);
   });
 
+  it("skips a computed column that has no write path, without validating it", () => {
+    const computed: readonly ColumnDef<Row, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      { id: "double", header: "Double", accessorFn: (r: Row) => (r.qty ?? 0) * 2, type: "number", validate: () => "never valid" },
+    ];
+    const s = fakeState({ columns: computed, visibleColumns: computed });
+    const settled = syncResolution(buildFillWrites(s, { x: 1, y: 0, width: 1, height: 2 }, { x: 1, y: 2, width: 1, height: 1 }).resolution);
+    expect({ writes: settled.writes, rejected: settled.rejected }).toEqual({ writes: [], rejected: [] });
+  });
+
   it("skips a destination value rejected by validate", () => {
     const validated: readonly ColumnDef<Row, unknown>[] = [
       { id: "name", header: "Name", accessorKey: "name" },
@@ -171,6 +183,148 @@ describe("buildFillWrites", () => {
     const source: GridRect = { x: 0, y: 0, width: 2, height: 1 };
     const strip: GridRect = { x: 2, y: 0, width: 1, height: 1 };
     expect(syncResolution(buildFillWrites(s, source, strip).resolution).writes).toEqual([{ viewRowIndex: 0, columnId: "c2", value: "6" }]);
+  });
+});
+
+describe("buildFillWrites over a closed value set (select)", () => {
+  type TierRow = { id: string; tier: string | null };
+  const tierColumns: readonly ColumnDef<TierRow, unknown>[] = [
+    {
+      id: "tier",
+      header: "Tier",
+      accessorKey: "tier",
+      type: "select",
+      options: {
+        choices: [
+          { value: "t1", label: "Tier 1" },
+          { value: "t2", label: "Tier 2" },
+        ],
+      },
+    },
+  ];
+  function tierState(values: (string | null)[]): DataGridStoreState {
+    const data = values.map((tier, i) => ({ id: String(i), tier }));
+    return fakeState({ data, columns: tierColumns, visibleColumns: tierColumns });
+  }
+
+  it("copies the stored values when the label series continues past the last choice", () => {
+    const s = tierState(["t1", "t2", "t2", null]);
+    const { resolution } = buildFillWrites(s, { x: 0, y: 0, width: 1, height: 2 }, { x: 0, y: 2, width: 1, height: 2 });
+    expect(syncResolution(resolution).writes).toEqual([
+      { viewRowIndex: 2, columnId: "tier", value: "t1" },
+      { viewRowIndex: 3, columnId: "tier", value: "t2" },
+    ]);
+  });
+
+  it("copies a stored value that has no choice", () => {
+    const s = tierState(["orphan", "x"]);
+    const { resolution } = buildFillWrites(s, { x: 0, y: 0, width: 1, height: 1 }, { x: 0, y: 1, width: 1, height: 1 });
+    expect(syncResolution(resolution).writes).toEqual([{ viewRowIndex: 1, columnId: "tier", value: "orphan" }]);
+  });
+
+  it("copies upward from the far edge of the source", () => {
+    const s = tierState([null, "t1", "t2"]);
+    const { resolution } = buildFillWrites(s, { x: 0, y: 1, width: 1, height: 2 }, { x: 0, y: 0, width: 1, height: 1 });
+    expect(syncResolution(resolution).writes).toEqual([{ viewRowIndex: 0, columnId: "tier", value: "t2" }]);
+  });
+});
+
+describe("buildFillWrites applies a series only when every generated value fits the column", () => {
+  type GridRow = { id: string; [key: string]: unknown };
+  const stripAt = (y: number, height: number, x = 0, width = 1): GridRect => ({ x, y, width, height });
+  const stateOf = (cols: readonly ColumnDef<GridRow, unknown>[], data: GridRow[], types: Record<string, unknown> = {}) =>
+    fakeState({ data, columns: cols, visibleColumns: cols, cellTypes: { ...cellTypes, ...types } });
+  const values = (state: DataGridStoreState, source: GridRect, strip: GridRect) =>
+    syncResolution(buildFillWrites(state, source, strip).resolution).writes.map((write) => write.value);
+
+  const tierChoices = [
+    { value: "t1", label: "Tier 1" },
+    { value: "t2", label: "Tier 2" },
+    { value: "t3", label: "Tier 3" },
+  ];
+  const tierColumn: ColumnDef<GridRow, unknown> = { id: "tier", header: "Tier", accessorKey: "tier", type: "select", options: { choices: tierChoices } };
+
+  it("copies the whole run of a select column when a later label is no choice, not only that cell", () => {
+    const s = stateOf([tierColumn], ["t1", "t2", null, null, null].map((tier, i) => ({ id: String(i), tier })));
+    expect(values(s, stripAt(0, 2), stripAt(2, 3))).toEqual(["t1", "t2", "t1"]);
+  });
+
+  it("continues a select series while every label is a choice", () => {
+    const s = stateOf([{ ...tierColumn, options: { choices: [...tierChoices, { value: "t4", label: "Tier 4" }] } }], ["t1", "t2", null, null].map((tier, i) => ({ id: String(i), tier })));
+    expect(values(s, stripAt(0, 2), stripAt(2, 2))).toEqual(["t3", "t4"]);
+  });
+
+  it("copies the whole run of a date column when one date is invalid", () => {
+    const dateColumn: ColumnDef<GridRow, unknown> = { id: "due", header: "Due", accessorKey: "due", type: "date" };
+    const s = stateOf([dateColumn], ["2026-01-29", "2026-01-30", null, null].map((due, i) => ({ id: String(i), due })));
+    const written = values(s, stripAt(0, 2), stripAt(2, 2));
+    expect(written).toEqual(["2026-01-29", "2026-01-30"]);
+  });
+
+  it("continues number and text series", () => {
+    const cols: readonly ColumnDef<GridRow, unknown>[] = [
+      { id: "name", header: "Name", accessorKey: "name" },
+      { id: "qty", header: "Qty", accessorKey: "qty", type: "number" },
+    ];
+    const s = stateOf(cols, [
+      { id: "1", name: "Item 1", qty: 1 },
+      { id: "2", name: "Item 2", qty: 2 },
+      { id: "3", name: "", qty: null },
+      { id: "4", name: "", qty: null },
+    ]);
+    expect(values(s, stripAt(0, 2, 0, 2), stripAt(2, 2, 0, 2))).toEqual(["Item 3", 3, "Item 4", 4]);
+  });
+
+  it("does not copy a select value into another select column that lacks the choice", () => {
+    const status = (id: string, choices: { value: string; label: string }[]): ColumnDef<GridRow, unknown> => ({ id, header: id, accessorKey: id, type: "select", options: { choices } });
+    const cols = [status("a", [{ value: "open", label: "Open" }]), status("b", [{ value: "low", label: "Low" }]), status("c", [{ value: "c-open", label: "Open" }])];
+    const s = stateOf(cols, [{ id: "1", a: "open", b: null, c: null }]);
+    expect(values(s, { x: 0, y: 0, width: 1, height: 1 }, { x: 1, y: 0, width: 2, height: 1 })).toEqual([null, "c-open"]);
+  });
+
+  describe("lookup column", () => {
+    const lookupColumn = (unresolvedPaste?: "keep"): ColumnDef<GridRow, unknown> => ({
+      id: "store",
+      header: "Store",
+      accessorKey: "store",
+      type: "lookup",
+      options: { fetchOptions: async () => [], ...(unresolvedPaste ? { unresolvedPaste } : {}) },
+    });
+    const stores = (...list: LookupValue[]) => [...list, null, null].map((store, i) => ({ id: String(i), store }));
+    const a: LookupValue = { value: "a", label: "Store 1" };
+    const b: LookupValue = { value: "b", label: "Store 1" };
+    const s1: LookupValue = { value: "s1", label: "Store 1" };
+    const s2: LookupValue = { value: "s2", label: "Store 2" };
+    const types = { lookup: lookupCellType };
+
+    it("copies a label that two options share, by default", () => {
+      const s = stateOf([lookupColumn()], stores(a, b), types);
+      expect(values(s, stripAt(0, 2), stripAt(2, 2))).toEqual([a, b]);
+    });
+
+    it("copies a label that two options share with unresolvedPaste keep", () => {
+      const s = stateOf([lookupColumn("keep")], stores(a, b), types);
+      expect(values(s, stripAt(0, 2), stripAt(2, 2))).toEqual([a, b]);
+    });
+
+    it("copies Store 1 and Store 2 by default, because the next labels resolve to nothing", () => {
+      const s = stateOf([lookupColumn()], stores(s1, s2), types);
+      expect(values(s, stripAt(0, 2), stripAt(2, 2))).toEqual([s1, s2]);
+    });
+
+    it("continues the series as bare keys with unresolvedPaste keep", () => {
+      const s = stateOf([lookupColumn("keep")], stores(s1, s2), types);
+      expect(values(s, stripAt(0, 2), stripAt(2, 2))).toEqual([
+        { value: "Store 3", label: "" },
+        { value: "Store 4", label: "" },
+      ]);
+    });
+
+    it("does not write the option of one lookup column into another lookup column", () => {
+      const supplier: ColumnDef<GridRow, unknown> = { id: "supplier", header: "Supplier", accessorKey: "supplier", type: "lookup", options: { fetchOptions: async () => [] } };
+      const s = stateOf([lookupColumn(), supplier], [{ id: "1", store: s1, supplier: null }], types);
+      expect(values(s, { x: 0, y: 0, width: 1, height: 1 }, { x: 1, y: 0, width: 1, height: 1 })).toEqual([null]);
+    });
   });
 });
 

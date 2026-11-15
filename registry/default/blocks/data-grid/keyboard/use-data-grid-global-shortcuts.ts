@@ -84,7 +84,7 @@ export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void
       });
       if (action === null) return;
       storeApi.getState().runShortcutImpl?.(action, {
-        triggerKey: isPrintableKey(event) ? event.key : undefined,
+        triggerKey: isPrintableKey({ key: event.key, ctrlKey: event.ctrlKey, metaKey: event.metaKey, shiftKey: event.shiftKey, altKey: event.altKey, altGraph: event.getModifierState?.("AltGraph") }, isMacPlatform()) ? event.key : undefined,
         preventDefault: () => event.preventDefault(),
       });
     }

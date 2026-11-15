@@ -52,7 +52,7 @@ node scripts/perf-scroll.mjs --runs 5 \
 
 With `--runs`, the script loads the page fresh for each run. It prints the median, the minimum, the maximum, and the spread of each metric. With `--baseline`, a change that is larger than both spreads counts as significant.
 
-In a production build, the `/dev` routes return 404. They exist only in development.
+A production build returns 404 for the `/dev` routes unless `GRIDCN_DEV_PAGES=1` is set.
 
 ## Measure sort latency [#measure-sort]
 

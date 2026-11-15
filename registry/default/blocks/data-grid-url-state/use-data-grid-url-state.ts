@@ -9,7 +9,7 @@ import {
   useDataGridSearchText,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev, isFilterGroup, pruneFilterSpecs, resolveCustomFilterOperators, useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { MAX_SPEC_SEARCH_LENGTH, isDev, isFilterGroup, pruneFilterSpecs, resolveCustomFilterOperators, useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { ColumnLayout, FilterOperatorInput } from "@/registry/default/blocks/data-grid/data-grid";
 import { serializeSortState, parseSortState } from "./sort-param";
 import { parseLayoutPart, serializeLayoutPart, type UrlLayoutPart } from "./layout-param";
@@ -24,6 +24,15 @@ const MIN_CHOICE_BOUND = 64;
 type UrlSpecPart = "sort" | "filter" | "search";
 
 const DEFAULT_SPEC_PARTS: readonly UrlSpecPart[] = ["sort", "filter", "search"];
+
+function choiceBoundsOf(columns: readonly { id: string; options?: unknown }[]): Map<string, number | undefined> {
+  return new Map(
+    columns.map((c) => {
+      const choices = (c.options as { choices?: unknown } | undefined)?.choices;
+      return [c.id, Array.isArray(choices) && choices.length > 0 ? Math.max(choices.length, MIN_CHOICE_BOUND) : undefined];
+    }),
+  );
+}
 
 const DEFAULT_LAYOUT_PARTS: readonly UrlLayoutPart[] = ["order", "hidden"];
 
@@ -73,9 +82,8 @@ export type UseDataGridUrlStateResult = {
  * Syncs the grid store's `sortState`/`filterState`/`searchText` with the URL via
  * nuqs: applies any URL params to the store once on mount, then writes store changes back to the
  * URL (replacing, never pushing, history entries). Requires a `NuqsAdapter` (or the testing
- * adapter) above it in the tree — nuqs itself is router-agnostic. Search writes are debounced so
- * typing doesn't spam `history.replaceState`; sort/filter writes (menu-driven, not
- * keystroke-driven) are immediate. A filter group lives inside the `filter` param. A legacy
+ * adapter) above it in the tree — nuqs itself is router-agnostic. Writes are not delayed: the search
+ * input debounces typing and nuqs coalesces the `history.replaceState` calls. A filter group lives inside the `filter` param. A legacy
  * `join=or` param is read once (it wraps a flat filter list in one `or` group) and every filter
  * write removes it.
  *
@@ -183,12 +191,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
       warnDev(`dropped URL sort spec for removed, hidden, or unsortable column "${spec.columnId}"`);
       return false;
     });
-    const choiceBounds = new Map(
-      allColumns.map((c) => {
-        const choices = (c.options as { choices?: unknown } | undefined)?.choices;
-        return [c.id, Array.isArray(choices) && choices.length > 0 ? Math.max(choices.length, MIN_CHOICE_BOUND) : undefined];
-      }),
-    );
+    const choiceBounds = choiceBoundsOf(allColumns);
     const parsedFilters = parseFilterState(filterParam, { maxChoices: (columnId) => choiceBounds.get(columnId), operatorInput });
     const legacyOr = parsedFilters.length > 0 && parseLegacyJoin(joinParam) === "or" && !parsedFilters.some(isFilterGroup);
     const filters = pruneFilterSpecs(legacyOr ? [{ join: "or", filters: parsedFilters }] : parsedFilters, (spec) => {
@@ -199,7 +202,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
     // On mount an absent param keeps the grid's initial state; a re-apply mirrors the URL, so a removed param clears its state.
     if (syncSort && (sorts.length > 0 || !keepMountDefaults)) actions.setSorts(sorts);
     if (syncFilter && (filters.length > 0 || !keepMountDefaults)) actions.setFilters(filters);
-    if (syncSearch && (searchParam || !keepMountDefaults)) actions.setSearch(searchParam);
+    if (syncSearch && (searchParam || !keepMountDefaults)) actions.setSearch(searchParam.slice(0, MAX_SPEC_SEARCH_LENGTH));
 
     if (Object.keys(layoutPatch).length > 0) actions.setColumnLayout(layoutPatch);
   }, [actions, allColumns, operatorInput, storeApi, sortParam, filterParam, joinParam, searchParam, syncSort, syncFilter, syncSearch, layoutParts, orderParam, hiddenParam, widthsParam, pinsParam]);
@@ -223,7 +226,8 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
 
   useEffect(() => {
     if (!appliedRef.current || !syncFilter) return;
-    void setFilterParamRef.current(serializeFilterState(filterState, { operatorInput }) || null);
+    const choiceBounds = choiceBoundsOf(allColumns);
+    void setFilterParamRef.current(serializeFilterState(filterState, { operatorInput, maxChoices: (columnId) => choiceBounds.get(columnId) }) || null);
     void setJoinParamRef.current(null);
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [filterState]);
@@ -246,7 +250,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   // The search text is already debounced by the input; the adapter coalesces the writes, so none is waited for here.
   useEffect(() => {
     if (!appliedRef.current || !syncSearch) return;
-    void setSearchParamRef.current(searchText || null);
+    void setSearchParamRef.current(searchText.slice(0, MAX_SPEC_SEARCH_LENGTH) || null);
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [searchText]);
 

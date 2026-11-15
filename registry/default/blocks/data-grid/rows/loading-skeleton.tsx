@@ -11,7 +11,6 @@ export type DataGridLoadingSkeletonProps = {
   columnCount: number;
   rowHeight: number;
   headerHeight: number;
-  ariaLabel: string;
 };
 
 /**
@@ -21,7 +20,7 @@ export type DataGridLoadingSkeletonProps = {
  * column layout (there's no data yet), just enough rows/bars to fill the viewport.
  */
 export function DataGridLoadingSkeleton(props: DataGridLoadingSkeletonProps): ReactNode {
-  const { rowCount, columnCount, rowHeight, headerHeight, ariaLabel } = props;
+  const { rowCount, columnCount, rowHeight, headerHeight } = props;
   const rows = Array.from({ length: rowCount }, (_, i) => i);
   const cols = Array.from({ length: columnCount }, (_, i) => i);
   const style: CSSProperties = {
@@ -32,8 +31,7 @@ export function DataGridLoadingSkeleton(props: DataGridLoadingSkeletonProps): Re
   };
   return (
     <div
-      role="presentation"
-      aria-label={ariaLabel}
+      aria-hidden="true"
       data-grid-loading-skeleton=""
       className="pointer-events-none absolute"
       style={style}
@@ -86,7 +84,7 @@ export function DataGridLoadingBar(props: DataGridLoadingBarProps): ReactNode {
   );
 }
 
-/** Screen-reader progress announcement, rendered outside the grid element because a `progressbar` is not a valid child of `grid`. */
+/** Screen-reader progress element for the grid's own loading state, rendered outside the grid element because a `progressbar` is not a valid child of `grid`. */
 export function DataGridLoadingProgress(props: { ariaLabel: string }): ReactNode {
   return <div role="progressbar" aria-label={props.ariaLabel} aria-valuetext={props.ariaLabel} className="sr-only" />;
 }

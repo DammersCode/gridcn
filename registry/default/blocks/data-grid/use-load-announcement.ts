@@ -15,8 +15,8 @@ const loadKey = (s: DataGridStoreState) =>
 
 /**
  * Speaks the result count when a load ends (`loading` true to false) and the filters, sort, search,
- * or count that the server evaluates differ from the last load's end, or the load before it failed. A block fill or page change
- * that changes none of them stays quiet. Waits one microtask so the provider's passive prop sync has
+ * or count that the server evaluates differ from the last load's end, the load before it failed, or the load began with zero rows and the result count changed. A block fill or page change
+ * that changes none of them stays quiet, and so does a refetch of an unchanged empty result. Waits one microtask so the provider's passive prop sync has
  * landed `data` first. A failed load stays with the alert overlay.
  */
 export function useLoadAnnouncement(loading: boolean, error: unknown): void {
@@ -24,9 +24,12 @@ export function useLoadAnnouncement(loading: boolean, error: unknown): void {
   const wasLoading = useRef(loading);
   const settledKey = useRef<string | null>(null);
   const failedBefore = useRef(false);
+  const beganEmpty = useRef<boolean | null>(null);
+  const settledCount = useRef<number | null>(null);
   const failed = error !== undefined && error !== null;
   useEffect(() => {
     if (settledKey.current === null) settledKey.current = loadKey(storeApi.getState());
+    if (loading && beganEmpty.current === null) beganEmpty.current = storeApi.getState().viewIndex.length === 0;
     const ended = wasLoading.current && !loading;
     wasLoading.current = loading;
     if (!ended) {
@@ -34,6 +37,8 @@ export function useLoadAnnouncement(loading: boolean, error: unknown): void {
       return;
     }
     const retried = failedBefore.current;
+    const fromEmpty = beganEmpty.current === true;
+    beganEmpty.current = null;
     failedBefore.current = failed;
     if (failed) return;
     let cancelled = false;
@@ -43,13 +48,15 @@ export function useLoadAnnouncement(loading: boolean, error: unknown): void {
       const key = loadKey(state);
       const changed = key !== settledKey.current;
       settledKey.current = key;
-      if (!state.announceResults || (!retried && !changed)) return;
+      const view = fullViewOf(state.viewIndex);
+      const loaded = typeof state.totalRowCount === "number" ? state.totalRowCount : loadedRowCount(view, state.data);
+      const countChanged = loaded !== settledCount.current;
+      settledCount.current = loaded;
+      if (!state.announceResults || (!retried && !changed && !(fromEmpty && countChanged))) return;
       if (typeof state.totalRowCount === "number") {
         storeApi.setState({ liveAnnouncement: nextAnnouncement(state.liveAnnouncement, "results", state.totalRowCount) });
         return;
       }
-      const view = fullViewOf(state.viewIndex);
-      const loaded = loadedRowCount(view, state.data);
       storeApi.setState({ liveAnnouncement: nextAnnouncement(state.liveAnnouncement, "results", loaded, loaded < view.length) });
     });
     return () => {

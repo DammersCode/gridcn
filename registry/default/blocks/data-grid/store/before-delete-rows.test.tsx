@@ -56,6 +56,17 @@ describe("onBeforeDeleteRows", () => {
     expect(m.dataIds()).toEqual(["b", "c", "d", "e"]);
   });
 
+  it("without the prop a delete that matches no row reports nothing-to-do", () => {
+    const m = mount(undefined);
+    const skipped = vi.fn();
+    m.rerender({ onRowActionSkipped: skipped });
+    const nothing = { ok: false, reason: "nothing-to-do" };
+    expect(m.state().actions.deleteRows(["missing"])).toEqual(nothing);
+    expect(m.state().actions.deleteRows([])).toEqual(nothing);
+    expect(skipped).toHaveBeenCalledTimes(2);
+    expect(m.dataIds()).toHaveLength(5);
+  });
+
   it("gets the row ids that go and the hidden count, and a true result deletes synchronously", () => {
     const gate = vi.fn<Gate>(() => true);
     const m = mount(gate, { checkedRowsLifetime: "across-filters" });
@@ -174,6 +185,33 @@ describe("onBeforeDeleteRows", () => {
     expect(warn.mock.calls.filter((c) => String(c[0]).includes("onBeforeDeleteRows"))).toHaveLength(2);
     act(() => rejecting.state().actions.deleteRowsAt(viewIndexes([0])));
     expect(rejecting.dataIds()).toEqual(["a", "b", "c", "d", "e"]);
+  });
+
+  it("cancels the delete when the gate throws or rejects a value without a string form", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const throwing = mount(() => {
+      throw Object.create(null);
+    });
+    expect(() => act(() => throwing.state().actions.deleteRows(["a"]))).not.toThrow();
+    expect(throwing.dataIds()).toEqual(["a", "b", "c", "d", "e"]);
+
+    const rejecting = mount(() => Promise.reject(Object.create(null)));
+    act(() => rejecting.state().actions.deleteRows(["a"]));
+    await flush();
+    expect(rejecting.dataIds()).toEqual(["a", "b", "c", "d", "e"]);
+  });
+
+  it("returns the skip when onRowActionSkipped throws a value without a string form", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const m = mount(undefined, {
+      readOnly: true,
+      onRowActionSkipped: () => {
+        throw Object.create(null);
+      },
+    });
+    let result: unknown;
+    expect(() => act(() => void (result = m.state().actions.deleteRows(["a"])))).not.toThrow();
+    expect(result).toMatchObject({ ok: false, reason: "readOnly" });
   });
 
   it("does not run for a readOnly grid", () => {

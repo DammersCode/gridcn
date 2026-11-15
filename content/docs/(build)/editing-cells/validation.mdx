@@ -7,7 +7,7 @@ demos: none
 aliases: ["validate cell", "validate email", "invalid value", "schema", "zod", "required field", "error message in cell"]
 ---
 
-A column's `validate` rejects a value before it enters `data`. It takes a function or a Standard Schema, and it runs on a typed edit, a checkbox toggle, paste, fill, `updateCells`, `updateRows`, and import. Live columns for each form are in the [validation example](/docs/validation-examples/validation-example). To check a whole row or wait for an async schema, see [Validate rows and async checks](/docs/editing-cells/validate-rows-cross-field).
+A column's `validate` rejects a value before it enters `data`. It takes a function or a Standard Schema, and it runs on a typed edit, a checkbox toggle, paste, fill, `updateCells`, `updateRows`, and import. Delete and Cut write the empty value of the cell type without running `validate`. Live columns for each form are in the [validation example](/docs/validation-examples/validation-example). To check a whole row or wait for an async schema, see [Validate rows and async checks](/docs/editing-cells/validate-rows-cross-field).
 
 ## Validate a column [#validation]
 
@@ -20,7 +20,7 @@ A schema message joins its issues with `"; "` and prefixes an issue path as `a.b
 
 A cell type can declare `validate` as a default for its columns. The column's own `validate` wins. Undo and redo replay recorded changes and skip `validate`.
 
-This grid uses both forms:
+Install zod first with `pnpm add zod`. This grid uses both forms:
 
 ```tsx
 import { z } from "zod";
@@ -81,7 +81,7 @@ A schema works too, for example `validate: z.email()` with Zod 4. Your server ch
 
 <Callout type="warn" title="A rejected edit stays open">
   The editor stays open on a rejected value and shows the message. The value never enters `data`.
-  A soft rule is the exception.
+  A soft rule is the exception. A rejected checkbox toggle has no editor: the cell keeps its old value and shows no message.
 </Callout>
 
 The message <NewBadge /> shows as an error line next to the open editor. The line escapes the cell and widens to its text, up to 16rem. It flips above the cell at the bottom edge of the grid. At the side edges, it anchors to the end side of the cell. An editing cell does not clip its content, so a custom `Editor` wider than its cell spills over the neighbors.
@@ -92,7 +92,7 @@ If a validator throws or its promise rejects, the grid rejects the value and sho
 
 By default a rejection blocks the commit. Set `validationMode: "warn"` to commit the value and flag the cell instead. The flag uses the same ring, tint, and hover tooltip as a server error. The next valid commit of that cell clears it. The editor closes, because the commit succeeded. [Validation example](/docs/validation-examples/validation-example#blocking-and-soft-rules) compares a blocking rule with a soft rule.
 
-A rejection carries no transformed value, so a soft commit stores the raw input. The flag works with the function form and with sync and async schemas. Paste, fill, and `updateCells` still drop rejected cells in a soft column.
+A rejection carries no transformed value, so a soft commit stores the raw input. The flag works with the function form and with sync and async schemas. Paste, fill, `updateCells`, and import still drop rejected cells in a soft column. Import writes an empty value.
 
 This column flags a note over 12 characters:
 
@@ -143,7 +143,7 @@ const columns = defineColumns<Contact>()([
 
 ## Report rejected cells [#onvalidationerror]
 
-After a paste, a fill, or an `updateCells` call settles with at least one rejected cell, `onValidationError` fires. The grid has applied the accepted cells by then. `updateCells` also lists each rejected patch in its return value.
+After a paste, a fill, or an `updateCells` call settles with at least one rejected cell, `onValidationError` fires. The grid has applied the accepted cells by then. `updateCells` also lists each rejected patch in its return value. Import reports its rejected cells through `rejected` in `onImport`, not here. See [Control the import](/docs/import-export/control-import).
 
 {/* props: GridValidationErrorEvent */}
 
@@ -171,7 +171,7 @@ After a paste, a fill, or an `updateCells` call settles with at least one reject
 
 ## Server mode
 
-Validation runs in the browser in every data mode: local data, client and server pagination, scroll mode, controlled state, server sort, and server filter. `validate` runs before the grid emits `onDataChange` and `onSave`, so a blocking rule keeps a refused value from your server. A soft rule, a `validateRow` flag, and `skipValidation` let the value through. Check the same rules on your server.
+Validation runs in the browser in every data mode: local data, client and server pagination, scroll mode, controlled state, server sort, and server filter. `validate` runs before the grid emits `onDataChange` and `onSave`, so a blocking rule keeps a refused value from your server. A soft rule, a `validateRow` flag, `skipValidation`, a Delete or Cut clear, undo or redo, and `actions.commitChange` let the value through. Check the same rules on your server.
 
 A server can still refuse a value after it commits. Paint that refusal with `actions.setCellErrors`. It marks the cell without a data change. See [Show errors on cells](/docs/save-server/show-errors-cells).
 

@@ -171,7 +171,7 @@ export type DataGridSyncProps<TData = unknown> = {
    * Runs on the parsed paste grid before it's applied; returning `false` (or a promise of `false`)
    * vetoes the paste entirely. A pending promise blocks a second paste. A rejection cancels the
    * paste. The cell cap applies to the settled grid. `signal` aborts when the grid goes read-only,
-   * an edit starts, the target row is gone, or the grid unmounts; an aborted result is dropped.
+   * an edit starts, `gateTimeoutMs` runs out, or the grid unmounts; an aborted result is dropped.
    */
   processPaste?: (ctx: { cells: string[][]; target: ViewCoord; signal: AbortSignal }) => string[][] | false | Promise<string[][] | false>;
   /**
@@ -185,20 +185,20 @@ export type DataGridSyncProps<TData = unknown> = {
   /** Whole-row selection channel gestures (marker click, Shift+Space); default true. */
   enableRowSelection?: boolean;
   /**
-   * How long the checked rows last. Default `'until-click'`.
+   * How long the checked rows last. Default `'across-filters'` with `totalRowCount`, else `'until-click'`; an explicit value always wins.
    * - `'until-click'`: a cell or column selection (click, arrows, Shift or Ctrl click, a header click, Ctrl+Space) clears the checked rows.
    * - `'until-cleared'`: the checked rows stay across those gestures, and row operations (delete, duplicate, move, the cell menu's
-   *   row items) act only on the checked rows while any exist. Escape, the checkboxes, Ctrl+A, a row delete, and `clearSelection`
-   *   still change the checks.
+   *   row items) act only on the checked rows while any exist. Escape, the checkboxes, Ctrl+A, a click on a row number, a row delete,
+   *   and `clearSelection` still change the checks.
    * - `'across-filters'`: like `'until-cleared'`, and a checked row is remembered by id when it leaves the view (a page change, a window
    *   move, a filter that hides it) and checked again when it returns. Remembered rows stay out of every row action, the controlled
    *   `selection`, and select all; `useDataGridHiddenCheckedCount` reads their number, and `actions.selectAllMatching()` needs it with
-   *   `totalRowCount`. A server-sorted or server-filtered grid without `totalRowCount` behaves like `'until-cleared'`.
+   *   `totalRowCount`. A server-sorted or server-filtered grid without `totalRowCount`, and a lazy grid without `totalRowCount`, behave like `'until-cleared'`.
    */
   checkedRowsLifetime?: CheckedRowsLifetime;
   /**
    * Wait in ms between the last keystroke and the commit of the grid's own text inputs: the toolbar search, the
-   * filter value inputs, the set-filter search, and find & replace. `0` commits each keystroke. A component's own
+   * filter value inputs, the set-filter search, find & replace, and the lookup editor. `0` commits each keystroke. A component's own
    * prop (such as `DataGridSearch debounceMs`) wins. Default 200.
    */
   inputDebounceMs?: number;
@@ -219,12 +219,12 @@ export type DataGridSyncProps<TData = unknown> = {
    * has not settled after this many ms (one number for every gate, or a number per gate name): its `signal` aborts, the action is cancelled, and the next action may start. Default: off
    * (a gate waits for its promise).
    */
-  gateTimeoutMs?: number | Partial<Record<GateName, number>>;
+  gateTimeoutMs?: number | Partial<Record<Exclude<GateName, "import">, number>>;
   /** Fires when a row action (`insertRows`, `duplicateRows`, `deleteRows`, `moveRows`) does nothing, with its name and the reason; the insert, duplicate, and delete actions also return it, and `reorderRows` and `moveRowsBy` (both report as `moveRows`) return `false`. `deleteRowsAt` reports as `deleteRows`, and its `source: "stream"` path never reports. Shortcuts and menu items run through the same actions, so one handler can toast every skip. */
   onRowActionSkipped?: (ctx: { action: RowActionName; reason: RowActionSkipReason }) => void;
   /**
    * Fires once for every async gate the grid stopped waiting for, with the gate's name and why: `"timeout"` (see `gateTimeoutMs`),
-   * `"changed"` (the rows, the checked rows, or `readOnly` changed while it waited), `"superseded"` (a newer run replaced it), `"cancelled"` (the user pressed Escape), or `"reset"`.
+   * `"changed"` (the rows, the checked rows, or `readOnly` changed, the active cell moved during `onEditStart`, or an edit started during `processPaste`), `"superseded"` (a newer run replaced it), `"cancelled"` (the user pressed Escape), or `"reset"`.
    */
   onGateAborted?: (ctx: { gate: GateName; reason: GateAbortReason }) => void;
   /**
@@ -232,6 +232,7 @@ export type DataGridSyncProps<TData = unknown> = {
    * such as the current server page, the loaded part of a lazy source, or a server-filtered window. With
    * `checkedRowsLifetime="across-filters"`, a checked row that leaves `data` is remembered by row id in every mode and checked
    * again when it returns, and `actions.selectAllMatching()` can check the whole result.
+   * Setting it, even to `null`, makes `checkedRowsLifetime` default to `'across-filters'` and `sortMode` and `filterMode` default to `"server"`.
    * `useDataGridSelectedRows` reads the outcome. Default: `undefined` (`data` is the whole result).
    */
   totalRowCount?: number | null;
@@ -244,7 +245,7 @@ export type DataGridSyncProps<TData = unknown> = {
   announceResults?: boolean;
   /**
    * Runs before every row delete the grid starts: the Delete rows shortcut, the context-menu
-   * item, and `actions.deleteRows` / `deleteRowsAt`. `rowIds` are the rows that go; `hiddenCount`
+   * item, and `actions.deleteRows` / `deleteRowsAt` (except `deleteRows` with `source: "stream"`). `rowIds` are the rows that go; `hiddenCount`
    * counts the hidden checked rows that stay. Return `false` (or a promise of `false`) to cancel.
    * A pending promise blocks a second delete. A throw or a rejection cancels. `signal` aborts when
    * the grid goes read-only, the rows or the checked rows change, or the grid unmounts; an aborted
@@ -265,9 +266,9 @@ export type DataGridSyncProps<TData = unknown> = {
   enableMultiRange?: boolean;
   /** Enables the header resize handle grid-wide; default true. Per-column `resizable: false` still wins. */
   enableColumnResize?: boolean;
-  /** Enables drag-to-reorder columns grid-wide; default true. Per-column `reorderable: false` still wins. */
+  /** Enables drag-to-reorder columns grid-wide; default true. `false` also makes `setColumnOrder` do nothing. Per-column `reorderable: false` still wins. */
   enableColumnReorder?: boolean;
-  /** Enables pin/unpin actions grid-wide; default true. Per-column `pinnable: false` still wins. */
+  /** Enables pin/unpin actions grid-wide; default true. `false` also makes `setColumnPin` do nothing. Per-column `pinnable: false` still wins. */
   enableColumnPinning?: boolean;
   /** How a plain header click behaves; default 'select'. See {@link HeaderClickBehavior}. */
   headerClickBehavior?: HeaderClickBehavior;
@@ -317,6 +318,11 @@ export type DataGridSyncProps<TData = unknown> = {
    * Default: `"server"` while `totalRowCount` is set (`data` is a window of the result), else `"client"`. Set `"client"` to sort the window locally.
    */
   sortMode?: "client" | "server";
+  /**
+   * BCP 47 tag that decides the client text sort, the text range filters, and the filter value lists. It covers `gt`, `gte`, `lt`, `lte`, and `between`, and the lists of the header filter and the filter builder. Default `"en-US"`: the server render and the browser order rows alike.
+   * To follow the browser, read `navigator.language` after mount. Under `sortMode="server"` the grid does not sort rows; the server owns their order. A malformed or unsupported tag falls back to `"en-US"` with one development warning.
+   */
+  sortLocale?: string;
   /** Seeds the sort ONCE at store creation (uncontrolled, like `defaultData`); later changes are ignored. `sortState` wins when both are given. */
   defaultSortState?: SortSpec[];
   /** Fires after the user (or `actions.toggleSort`/`setSorts`) changes the sort: uncontrolled, after the grid writes it; controlled, with the next sort. See `sortState`. */
@@ -361,7 +367,7 @@ export type DataGridSyncProps<TData = unknown> = {
    * a user's layout (e.g. to localStorage) without a fully-controlled overlay fighting the defs.
    * Partial layouts are normalized the same way `columnLayout` is: unknown column ids are dropped,
    * `order` gets missing ids appended in def order, widths are clamped, and pins on
-   * `pinnable: false` columns are dropped.
+   * `pinnable: false` columns are ignored.
    */
   defaultColumnLayout?: Partial<ColumnLayout>;
   /**
@@ -556,8 +562,7 @@ export type AnyColumnDef = ColumnDef<unknown, unknown, any>; // eslint-disable-l
  * `ColumnDef<TData, unknown, any>` — the same TValidate-erased-to-`any` widening as `AnyColumnDef`
  * (see its doc comment), but keeping `TData` open for call sites that are still generic over the
  * consumer's row type (sync-prop declarations, the public `useDataGridVisibleColumns`/`useDataGridAllColumns`
- * hooks) rather than already erased to `unknown`. Named once here (was 10 verbatim repeats across
- * store.tsx/data-grid.tsx, each with its own eslint-disable) so the widening reason lives in one place.
+ * hooks) rather than already erased to `unknown`. Named once here so the widening reason lives in one place.
  */
 export type ColumnDefOf<TData> = ColumnDef<TData, unknown, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -753,14 +758,14 @@ export type DataGridStoreState = Omit<
   data: readonly unknown[];
   /** Whether `data` is controlled (the `data` prop was defined on the last `_syncProps`/init) — see `data`'s doc comment and `defaultData`. Mirrors the `sortControlled`-style pattern below. */
   dataControlled: boolean;
-  /** Row-agnostic view of the cell-type registry; the `never`-typed sync prop is widened once at the store boundary. */
+  /** Row-agnostic view of the cell-type registry; the typed sync prop is widened once at the store boundary. */
   cellTypes: Record<string, CellType>;
   /** Defaulted (never undefined) — see `resolveSelectionConfig`. */
   rowMarkers: RowMarkersMode;
   enableRowSelection: boolean;
   checkedRowsLifetime: CheckedRowsLifetime;
   announceResults: boolean;
-  /** Row ids of checked rows a filter hides; empty unless `checkedRowsLifetime` is `'across-filters'` and in effect. Actions never read it. */
+  /** Row ids of checked rows that left the view (a filter, a page change, a window move), or the excluded rows in "all matching"; empty unless `checkedRowsLifetime` is `'across-filters'` and in effect. */
   hiddenCheckedRowIds: ReadonlySet<string>;
   /** "All matching" is on: the checked rows are every row of the result except the ids in `hiddenCheckedRowIds` (the excluded rows). */
   allMatching: boolean;
@@ -859,6 +864,8 @@ export type DataGridStoreState = Omit<
   sortState: SortSpec[];
   /** Mirrors the `sortMode` sync prop; `"server"` keeps `sortState` out of every view rebuild. */
   sortMode: "client" | "server";
+  /** Mirrors the `sortLocale` sync prop; the default is `"en-US"`. */
+  sortLocale: string;
   /** Mirrors the `filterMode` sync prop; `"server"` keeps `filterState` out of every view rebuild. */
   filterMode: "client" | "server";
   filterState: FilterNode[];
@@ -888,7 +895,7 @@ export type DataGridStoreState = Omit<
   onPageSizeChange: ((pageSize: number | null) => void) | undefined;
   /** Every cell matching `searchText`, view-index row-major order; computed once per `setSearch`/`_syncProps`/`setSorts`/`setFilters`, capped at 1000 hits with early exit. */
   searchMatches: SearchMatch[];
-  /** `searchMatches` as a `"${viewRow}:${columnId}"` Set for O(1) per-cell highlight lookup ({@link useDataGridIsSearchMatch}). */
+  /** `searchMatches` as a `"${viewRow}:${columnId}"` Set for O(1) per-cell highlight lookup. */
   searchMatchSet: ReadonlySet<string>;
   /**
    * `searchMatches` grouped by view row -> matched column indices, for {@link computeRowCellState}'s
@@ -898,7 +905,7 @@ export type DataGridStoreState = Omit<
    * search-text change and doing an O(1) `Map.get` per row per tick instead).
    */
   searchMatchRows: ReadonlyMap<number, ReadonlySet<number>>;
-  /** True when `searchMatches` hit the 1000-match cap (more matches exist but weren't collected). */
+  /** True when more than 1000 cells match; `searchMatches` then holds the first 1000. */
   searchMatchesCapped: boolean;
   /** Recomputed by _syncProps/toggleSort/setSorts/setFilters only — search no longer affects it. */
   viewIndex: number[];
@@ -1017,7 +1024,7 @@ export type DataGridActions = {
    * `commit` keeps the rows checked so far as the base of the new span. No-op when `enableRowSelection` is false.
    */
   checkRowRange(target: number, opts?: { commit?: boolean }): void;
-  /** Header marker select-all checkbox: sets every view row's membership in the rows channel at once (on a paged grid, the shown page's rows). No-op when `enableRowSelection` is false. */
+  /** Header marker select-all checkbox: sets every view row's membership in the rows channel at once (on a paged grid, the shown page's rows). On a grid with `totalRowCount` and `checkedRowsLifetime="across-filters"` whose view holds unloaded rows, checking calls `selectAllMatching`. No-op when `enableRowSelection` is false. */
   setAllRowsChecked(checked: boolean): void;
   /**
    * Checks every row of the result, loaded or not. Rows that load later show as checked; unchecking a row excludes it.
@@ -1026,7 +1033,7 @@ export type DataGridActions = {
   selectAllMatching(): void;
   /** Shows page `page` (1-based) of the view. Calls `onPageChange`; a controlled `page` changes when the parent passes the next one. */
   setPage(page: number): void;
-  /** Shows `pageSize` rows per page and keeps the first row of the page on screen; `null` shows every row. Calls `onPageSizeChange` with the new size, or `null`; a controlled `pageSize` changes when the parent passes it. */
+  /** Shows `pageSize` rows per page and keeps the first row of the page on screen; `null` shows every row. Calls `onPageSizeChange` with the new size, or `null`; a controlled `pageSize` changes when the parent passes it. `null` calls `onPageChange(1)` when the page was not 1. */
   setPageSize(pageSize: number | null): void;
   clearSelection(): void;
   /** Drops the `"failed"` marks of rows whose write was refused; rows still `"saving"` keep their mark. */
@@ -1035,7 +1042,7 @@ export type DataGridActions = {
    * Swaps a row's id for the one the server assigned. `row` is the server's row; `getRowId(row)` is the new id.
    * One write: the row keeps its data position and view position, `onDataChange` fires once with `source: "id-swap"`
    * (`onSave` does not see it, history does not record it), and every state keyed by the old id follows: the open
-   * edit, cell errors, checked rows a filter hides, flashes, save status, saves still in flight and undo entries.
+   * edit, cell errors, remembered checked rows, flashes, save status, saves still in flight and undo entries.
    * No-op on a `readOnly` grid; a development warning for an unknown `oldId` or a new id another row holds. `validateRow` runs again for the swapped row; flashes of the row end.
    */
   replaceRowId(oldId: string, row: unknown): void;
@@ -1110,7 +1117,7 @@ export type DataGridActions = {
    * Applies a partial column layout as ONE commit (the imperative twin of the `columnLayout`
    * prop): each given part (`widths`, `order`, `pins`, `hidden`) replaces that part, omitted
    * parts keep the current value. Normalized like `columnLayout` (unknown ids dropped, missing
-   * order ids appended in def order, widths clamped, unpinnable pins dropped), and fires
+   * order ids appended in def order, widths clamped, pins on `pinnable: false` columns ignored), and fires
    * `onColumnLayoutChange` once only when the layout actually changed.
    */
   setColumnLayout(parts: Partial<ColumnLayout>): void;
@@ -1329,7 +1336,8 @@ export type DataGridInternalActions = {
    */
   _subscribeSelection(): () => void;
   /** @internal Derives the current selection's public {@link SelectionState} on demand (`api.getSelection()`). Not part of the public hook surface. */
-  _deriveSelection(): SelectionState;  /** @internal `DataGridRoot` registers/clears its scroll-into-view on mount/unmount; not part of the public hook surface. */
+  _deriveSelection(): SelectionState;
+  /** @internal `DataGridRoot` registers/clears its scroll-into-view on mount/unmount; not part of the public hook surface. */
   _registerScrollToCell(impl: ((coord: ViewCoord) => void) | null): void;
   /** @internal `DataGridRoot` registers/clears its DOM focus on mount/unmount; not part of the public hook surface. */
   _registerFocus(impl: (() => void) | null): void;
@@ -1384,6 +1392,7 @@ export type SyncInputs = {
   columnGroupModel: ColumnGroupModel | null;
   /** `"<page>|<pageSize>"`: a page change rebuilds the paged view. */
   pageKey: string;
+  sortLocale: string;
 };
 
 export function syncInputsEqual(a: SyncInputs, b: SyncInputs): boolean {
@@ -1397,11 +1406,11 @@ export function syncInputsEqual(a: SyncInputs, b: SyncInputs): boolean {
     a.columnOrder === b.columnOrder &&
     a.hiddenColumns === b.hiddenColumns &&
     a.columnGroupModel === b.columnGroupModel &&
-    a.pageKey === b.pageKey
+    a.pageKey === b.pageKey &&
+    a.sortLocale === b.sortLocale
   );
 }
 
-/** Result of a successful direct-write commit; `null` state fields mean "leave editing/editingError untouched". */
 /**
  * `warnings` (only on the success/noop arms) carries `validationMode: "warn"` rejections that committed
  * anyway — the store merges them into `cellErrors` AFTER the gesture's auto-clear and `validateRow`
@@ -1442,7 +1451,7 @@ export type DataGridProviderProps<TData = unknown> = (ExternalStoreProps | Owned
   store?: StoreApi<DataGridStoreState>;
 };
 
-/** {@link useDataGridCellState}'s return shape — the 5 primitives `DataGridCell` reads every render. */
+/** {@link useDataGridCellState}'s return shape — the primitives `DataGridCell` reads every render. */
 export type DataGridCellState = {
   isActive: boolean;
   /** True for any selected cell (active cell, inside the primary range/range stack, or its row/column channel) — drives `aria-selected` (WAI-ARIA grid pattern: every selected cell reports it, not just the focused one). */

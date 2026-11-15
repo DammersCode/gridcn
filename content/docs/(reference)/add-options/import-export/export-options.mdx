@@ -12,7 +12,7 @@ The `data-grid-io` add-on exports the rows of the grid to a CSV or XLSX file and
 
 | Function | Returns | What it does |
 | --- | --- | --- |
-| `exportGrid(state, options?)` | `Promise<void>` | Writes a CSV or XLSX file and starts the download. |
+| `exportGrid(state, options?)` | `Promise<ExportResult>` | Writes a CSV or XLSX file and starts the download. |
 | `printGrid(state, options?)` | `void` | Opens the print dialog for a paged table. It does nothing without a DOM. |
 | `buildExportRows(state, scope, options?)` | `string[][]` | Builds the text rows. `options.text` is `"export"` (default) or `"display"`, and `options.maxRows` caps the rows (`BuildExportRowsOptions`). |
 | `rowsToCsv(rows, delimiter, sanitizeFormulas?)` | `string` | Joins rows into CSV with CRLF line ends. `sanitizeFormulas` defaults to `true`. |
@@ -51,7 +51,7 @@ Render the button under the grid provider.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-io/export-grid.ts" name="ExportGridOptions" />
 
-Without a `source` <NewBadge />, every scope covers the rows the grid holds. That is all pages of a client grid that pages its view, the current page of server pages, and the loaded rows in scroll mode. `scope: "page"` covers the shown page. With a `source`, `scope` does not apply. See [Export: server mode](/docs/import-export/export#server-mode) and [Export the whole result](/docs/import-export/export-whole-result). `csvDelimiter` takes a `CsvDelimiter`: `","`, `";"`, or a tab.
+Without a `source` <NewBadge />, every scope covers the rows the grid holds. That is all pages of a client grid that pages its view, the current page of server pages, and the loaded rows in scroll mode. `scope: "page"` covers the shown page. With a `source`, `scope` does not apply. See [Export: server mode](/docs/import-export/export#server-mode) and [Export the whole result](/docs/import-export/export-whole-result). `csvDelimiter` takes a `CsvDelimiter`: `","`, `";"`, `"|"`, or a tab.
 
 ## Shape and output [#shape-output]
 
@@ -74,7 +74,7 @@ XLSX export and print cut a cell text at 32,767 characters. CSV export cuts only
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-io/print-grid.ts" name="PrintGridOptions" />
 
-`pageSize` takes a `PrintPageSize`: `"A3"`, `"A4"`, `"Letter"`, or `"Legal"`. The printed rows are `min(maxRows, floor(500,000 / visible columns))`. `maxRows` defaults to `10,000`. Print uses the display text of each cell (`toDisplayText`, else `toText`).
+`pageSize` takes a `PrintPageSize`: `"A3"`, `"A4"`, `"Letter"`, or `"Legal"`. The printed rows are `min(maxRows, floor(500,000 / visible columns))`. `maxRows` defaults to `10,000`. `NaN` reads as the default and a negative value counts as 0. <NewBadge /> Print uses the display text of each cell (`toDisplayText`, else `toText`).
 
 ## DataGridExportButtonProps [#datagridexportbuttonprops]
 
@@ -88,7 +88,7 @@ XLSX export and print cut a cell text at 32,767 characters. CSV export cuts only
 
 | Hook | Result |
 | --- | --- |
-| `useDataGridExport()` | `UseDataGridExportResult`, `{ exportGrid }`. `exportGrid(options?)` returns `Promise<void>`. |
+| `useDataGridExport()` | `UseDataGridExportResult`, `{ exportGrid }`. `exportGrid(options?)` returns `Promise<ExportResult>`. |
 | `useDataGridPrint()` | `UseDataGridPrintResult`, `{ printGrid }`. `printGrid(options?)` returns `void`. |
 
 ## Related

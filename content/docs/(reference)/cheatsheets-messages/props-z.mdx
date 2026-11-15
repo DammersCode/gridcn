@@ -38,8 +38,8 @@ Props of DataGrid, DataGridProvider.
 | `defaultSelection` | The selection, seeded once. | [Selection and cell events](/docs/events-state/selection-cell-events) |
 | `defaultSortState` | The sort, seeded once. | [Sort and filter events](/docs/events-state/sort-filter-events) |
 | `duplicateRow` | Builds the new row for `duplicateRows` from the source row and its new data index. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `enableColumnPinning` | Enables pin/unpin actions grid-wide. Default true. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `enableColumnReorder` | Enables drag-to-reorder columns grid-wide. Default true. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `enableColumnPinning` | Enables pin/unpin actions grid-wide. Default `true`. `false` makes `setColumnPin` do nothing. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `enableColumnReorder` | Enables drag-to-reorder columns grid-wide. Default `true`. `false` makes `setColumnOrder` do nothing. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `enableColumnResize` | Enables the header resize handle grid-wide. Default true. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `enableColumnSelection` | Turns on whole-column selection by a header click. Default `true`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `enableMultiRange` | Turns on several ranges by Ctrl or Cmd click. Default `true`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
@@ -51,7 +51,7 @@ Props of DataGrid, DataGridProvider.
 | `gateTimeoutMs` | Aborts an async gate that has not settled after this many ms. Default: off. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `getRowId` | Stable, unique id of a row. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `headerClickBehavior` | How a plain header click behaves. Default 'select'. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `inputDebounceMs` | Sets the wait in ms before a text input commits. It covers the toolbar search, the filter value inputs, the set-filter search, and find and replace. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `inputDebounceMs` | Sets the wait in ms before a text input commits. It covers the toolbar search, the filter value inputs, the set-filter search, find and replace, and the lookup editor. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `keymap` | Merges over `DEFAULT_KEYMAP` per action. An action mapped to `[]` has no binding. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `labels` | Overrides the UI text. The grid deep-merges it over `DEFAULT_LABELS`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `locale` | BCP 47 language tag, such as `"de-DE"`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
@@ -67,6 +67,7 @@ Props of DataGrid, DataGridProvider.
 | `sanitizeClipboardFormulas` | Prefixes formula-like copied cells with `'` in the clipboard text and HTML. Default `false`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `searchText` | The quick search text, controlled by your code. | [Sort and filter events](/docs/events-state/sort-filter-events) |
 | `selection` | The selection, controlled by your code. | [Selection and cell events](/docs/events-state/selection-cell-events) |
+| `sortLocale` | BCP 47 tag that decides the client text sort, the text range filters, and the filter value lists. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `sortMode` | Who sorts: `"client"` sorts `data`, `"server"` only tracks the sort. Default `"server"` with `totalRowCount`, else `"client"`. | [Sort and filter events](/docs/events-state/sort-filter-events) |
 | `sortState` | The sort, controlled by your code. | [Sort and filter events](/docs/events-state/sort-filter-events) |
 | `totalRowCount` | Declares that `data` is a window of a larger result of this many rows. `null` means the size is unknown. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
@@ -118,7 +119,7 @@ Props of ColumnDef.
 | `filterMatch` | Replaces the text matcher for this column. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `filterOperators` | Operators that the filter menu offers. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `flex` | Share of the free width of the grid. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `header` | A string header shows a sort arrow once you sort the column. | [ColumnDef](/docs/components-props/column-def#fields) |
+| `header` | A string header shows a sort arrow while the column is sorted, unless the column has `sortable: false`. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `headerClassName` | Adds classes to the header cell. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `headerText` | Plain-text header when `header` is a ReactNode: names the column in export, import matching, autosize, menus, and assistive technology. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `hidden` | `true` hides the column when its id first appears. | [ColumnDef](/docs/components-props/column-def#fields) |
@@ -128,7 +129,7 @@ Props of ColumnDef.
 | `minWidth` | Smallest width in px. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `options` | Settings for the cell type, such as the choices of a select. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `pin` | Starting pin side, applied when the column id first appears. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `pinnable` | `false` removes pin and unpin. | [ColumnDef](/docs/components-props/column-def#fields) |
+| `pinnable` | `false` turns off pin and unpin. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `readOnly` | Blocks edits. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `renderCell` | Replaces how the cell looks. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `reorderable` | `false` stops the drag of this column. | [ColumnDef](/docs/components-props/column-def#fields) |

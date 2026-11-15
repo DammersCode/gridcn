@@ -20,7 +20,7 @@ The marker column sits at the start of the grid, outside your `columns`. This gr
 
 ## Custom markers [#custom-markers]
 
-`renderMarker` receives `rowId`, `viewRowIndex`, `isRowChannelSelected`, and `isCellSelected`. A cell click sets `isCellSelected` and never sets `isRowChannelSelected`. With the default `checkedRowsLifetime="until-click"`, it clears the row selection. `renderMarkerHeader` receives `allSelected`. The header renderer runs inside the provider, so it can call `useDataGridActions`. Define both renderers at module scope:
+`renderMarker` receives `rowId`, `viewRowIndex`, `isRowChannelSelected`, and `isCellSelected`. A cell click sets `isCellSelected` and never sets `isRowChannelSelected`. With `checkedRowsLifetime="until-click"` (the default without `totalRowCount`), it clears the row selection. `renderMarkerHeader` receives `allSelected`. The header renderer runs inside the provider, so it can call `useDataGridActions`. Define both renderers at module scope:
 
 ```tsx
 import { Check, Circle, Minus } from "lucide-react";
@@ -57,7 +57,7 @@ const renderMarker: MarkerCellRenderer = ({
 type AllSelected = MarkerHeaderRenderCtx["allSelected"];
 
 function SelectAllButton({ allSelected }: { allSelected: AllSelected }) {
-  const { setAllRowsSelected } = useDataGridActions();
+  const { setAllRowsChecked } = useDataGridActions();
   const checked = allSelected === "checked";
 
   return (
@@ -65,7 +65,7 @@ function SelectAllButton({ allSelected }: { allSelected: AllSelected }) {
       variant="ghost"
       size="icon"
       aria-label={checked ? "Unselect all rows" : "Select all rows"}
-      onClick={() => setAllRowsSelected(!checked)}
+      onClick={() => setAllRowsChecked(!checked)}
     >
       {checked ? "On" : "Off"}
     </Button>

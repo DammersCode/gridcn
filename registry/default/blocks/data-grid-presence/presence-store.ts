@@ -102,7 +102,7 @@ export function warnDev(message: string): void {
 /** Shared empty-array identity for the no-highlights state, so a grid with none never allocates a fresh `[]` per render. */
 const EMPTY_HIGHLIGHTS: readonly PresenceHighlightEntry[] = [];
 
-/** This add-on's own state slice: just the highlight list. Deliberately NOT part of the core store — core knows nothing about presence past the generic `overlayPlugins` seam it renders through. */
+/** This add-on's own state slice: just the highlight list. Deliberately NOT part of the core store — core knows nothing about presence past the generic `plugins` seam it renders through. */
 export type PresenceStoreState = {
   highlights: readonly PresenceHighlightEntry[];
   setPresenceHighlights(highlights: readonly PresenceHighlightEntry[]): void;
@@ -150,7 +150,7 @@ function sanitizeEntry(entry: unknown): PresenceHighlightEntry | string {
     ...(typeof e.label === "string" && e.label.length > 0 ? { label: e.label.slice(0, MAX_PRESENCE_LABEL_LENGTH) } : {}),
   };
   if (isRowIdPresenceHighlight(e as PresenceHighlightEntry)) {
-    if (!isBoundedString(e.rowId, MAX_PRESENCE_ID_LENGTH) || !isBoundedString(e.columnId, MAX_PRESENCE_ID_LENGTH)) return "rowId-native entries need a non-empty columnId";
+    if (!isBoundedString(e.rowId, MAX_PRESENCE_ID_LENGTH) || !isBoundedString(e.columnId, MAX_PRESENCE_ID_LENGTH)) return "rowId-native entries need a bounded rowId and columnId";
     return { ...base, rowId: e.rowId, columnId: e.columnId };
   }
   if (isRowIdRangePresenceHighlight(e as PresenceHighlightEntry)) {

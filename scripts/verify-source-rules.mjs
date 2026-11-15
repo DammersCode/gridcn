@@ -70,6 +70,7 @@ function main() {
   scan(["registry/default/blocks"], /\.tsx?$/, /process\.env\.NODE_ENV/, "read the environment through isDev", (file) => basename(file) === "is-dev.ts");
   scan(["registry/default/blocks"], /\.tsx?$/, /\.isComposing\b/, "read IME state through isComposingKey, which also covers the Safari keyCode 229 confirm key", (file) => basename(file) === "is-composing-key.ts");
   scan(["registry/default/blocks"], /\.tsx?$/, /Math\.(?:min|max)\(\.\.\./, "reduce or loop instead of spreading into Math.min or Math.max; a large array throws RangeError");
+  scan(["registry/default/blocks"], /\.tsx$/, /\[-?\d+(?:\.\d+)?px\]/, "use a Tailwind scale value or a CSS variable with a fallback; a preset cannot change a fixed px size");
   scan(["content/docs"], /\.mdx$/, /^\s*#+ .*<NewBadge/, "put <NewBadge /> on its own line under the heading");
   scan(["registry/default/examples", "components", "app"], /\.tsx?$/, /toLocale(?:Date|Time)?String\(\)|Intl\.(?:NumberFormat|DateTimeFormat)\((?:undefined)?\)/, "pin the locale so server and client render the same text");
   scan(["registry/default/examples"], /\.tsx?$/, /onDataChange=\{\(\s*(\w+)[^)]*\)\s*=>\s*\w+\(\[\.\.\.\1\]\)/, "store the array onDataChange hands over as given; a copy defeats the store's echo check");

@@ -1,10 +1,9 @@
 /**
  * Add-on-facing SDK surface of the grid core: the internal seams first-party add-ons
- * (fill, io, pinned-rows, presence, context-menu, keybindings, history, server, pagination)
  * build on, and the API for add-on and plugin authors. App code imports from `./data-grid`;
  * the docs teach this file for plugin work and store reads (`useDataGridStoreApi`,
  * `DataGridReadState`, `GRID_LAYER`, `hasAnyPin`, `createHistory`, `isComposingKey`). Add-on
- * imports of this file are rewritten to relative paths at install time (scripts/fix-registry-imports.mjs).
+ * imports of this file are rewritten to the registry alias by scripts/fix-registry-imports.mjs at registry build.
  */
 
 import { useCallback, useEffect } from "react";
@@ -76,9 +75,10 @@ export {
 } from "./cell-types/capabilities";
 export { displayText, exportText } from "./cell-types/display-text";
 export { textAccessorFor as rowAccessorFor } from "./store/compute";
+export { sortCollator, withSortLocale } from "./sort-filter/sort-collator";
 export { isBuiltInOperator } from "./sort-filter/matches-filter";
 export { makeFilterPredicate } from "./sort-filter/incremental-view-index";
-export { MAX_FILTER_GROUP_DEPTH, countFilterSpecs, forEachFilterSpec, groupChildren, isFilterGroup, pruneFilterSpecs } from "./sort-filter/filter-tree";
+export { MAX_FILTER_GROUP_DEPTH, MAX_SPEC_SEARCH_LENGTH, MAX_SPEC_SORTS, countFilterSpecs, forEachFilterSpec, groupChildren, isFilterGroup, pruneFilterSpecs } from "./sort-filter/filter-tree";
 export { resolveSelectChoices } from "./cell-types/select";
 export { toSafeText } from "./cell-types/safe-text";
 export { safeFromText, isUnparseable, type ParsedCellText } from "./cell-types/safe-from-text";
@@ -92,11 +92,12 @@ export {
 } from "./validation/bulk-generation";
 
 export { combineRects, getSelectedViewRows, selectionContainsCell, selectionRects } from "./selection";
-export { holeRowId, rowIdAtViewRow, viewRowsMoved, visibleColumnsMoved, fullViewOf, effectivePage, pageStartOf } from "./store/compute";
+export { holeRowId, isColumnReadOnly, rowIdAtViewRow, viewRowsMoved, visibleColumnsMoved, fullViewOf, effectivePage, pageStartOf } from "./store/compute";
 export { measureColumnAutosizeWidth } from "./columns/measure-column-text";
 export { groupPathOf, type ColumnGroupModel } from "./columns/column-groups";
 export { isDev } from "./is-dev";
 export { isThenable } from "./store/async-gate";
+export { keepsCheckedRows } from "./store/hidden-checked-rows";
 export { isComposingKey } from "./interaction/is-composing-key";
 export { createTextMatcher } from "./sort-filter";
 export {
@@ -157,10 +158,11 @@ export { setCellValue } from "./columns/column-helpers";
 export { applyChangeWith, type ApplyChangeOptions } from "./interaction/history";
 export { columnLabelText } from "./columns/column-format-helpers";
 export { createHistory, type History, type HistoryOptions } from "./interaction/history";
-export { buildRollback } from "./interaction/rollback";
+export { buildRollback, rebaseOntoCurrent } from "./interaction/rollback";
 export { mergeLabelLayers } from "./labels";
 export { useOptionalDataGridLabels } from "./store";
 export type { DataGridFilterOperatorLabels } from "./labels";
+export { deepMergeLabels } from "./labels";
 export { GRID_ATTR, gridAttrSelector, type GridAttrName, type GridAttr, type GridAttrValue } from "./data-attributes";
 export { EMPTY_SERVER_SPEC } from "./server-spec";
 export { defaultGetRowId } from "./store/types";

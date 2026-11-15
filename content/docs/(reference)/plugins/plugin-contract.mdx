@@ -51,7 +51,7 @@ The grid calls `onDataChange(next, change, ctx)` after the store write, your `on
 
 ### keymap [#keymap]
 
-`keymap` binds keys to commands of the same plugin. The grid drops an entry that names a core action other than the six pluggable actions, or a command that the plugin does not define. It also drops a binding that another action already holds. The first owner of a key keeps it. The kept bindings replace the bindings of that action. See [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts#a-plugins-own-keymap-entries).
+`keymap` binds keys to commands of the same plugin. The grid drops an entry that names a core action other than the six pluggable actions, or a command that the plugin does not define. The entry is the full binding list of its action and replaces its bindings, like the same entry in your `keymap` prop. The grid drops a key that another action already holds; the first owner of a key keeps it. See [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts#a-plugins-own-keymap-entries).
 
 ### Mount [#mount]
 

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { useDataGridApi, type DataChange, type DataGridApi, type DataGridPlugin } from "@/registry/default/blocks/data-grid/data-grid";
 import { HISTORY_KEYMAP } from "./history-keymap";
-import { isDev, createHistory, buildRollback, useDataGridAnnounce, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { isDev, createHistory, buildRollback, rebaseOntoCurrent, useDataGridAnnounce, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 type RecordSources<TData> =
   | readonly DataChange<TData>["source"][]
@@ -112,7 +112,7 @@ export type UseDataGridHistoryResult<TData> = {
 /**
  * Operation-based undo/redo as a grid plugin. Records the grid's own `onDataChange` stream (the observer
  * runs after the store write and after the consumer's `onDataChange`), and undoes/redoes by
- * applying the inverted operation batch back through the grid's `commitChange` — one write, one emit,
+ * applying the inverted operation batch back through the grid's `commitChange` (an update with `cells` writes only those cells onto the current row) — one write, one emit,
  * so a controlled `data` prop sees the same change the user made.
  *
  * Design: the plugin does not take `data`/`setData` — the grid's store is the write target, and
@@ -163,7 +163,8 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
       const state = api.store.getState();
       // A read-only grid refuses the revert, so popping the entry would only lose it.
       if (state.readOnly) return;
-      const change = direction === "undo" ? history.undo() : history.redo();
+      const rebase = (entry: DataChange<TData>) => rebaseOntoCurrent(entry, state);
+      const change = direction === "undo" ? history.undo(rebase) : history.redo(rebase);
       if (!change) return;
       const { missing, hasHoles } = findMissingRows(change, state.data, state.getRowId);
       if (!warnedSparseData.current && hasHoles && isDev()) {

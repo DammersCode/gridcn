@@ -18,7 +18,7 @@ A custom `currency` type stores a plain `number | null`, shows it through `Intl.
 - `useCellEditor` supplies the editor with its draft text and the caret at the end of the text. It also supplies a commit that runs once, and the <kbd>Enter</kbd>, <kbd>Escape</kbd>, and blur bindings. The demo passes it a `toDraft` and a `toValue` function.
 - `Cell` and `Editor` receive the column `options` with the type `CurrencyOptions`, so reading `options.currency` needs no cast.
 - The demo keeps one `Intl.NumberFormat` for each locale and currency pair, so a cell reuses a formatter.
-- `cellTypes={{ currency }}` on `DataGridProvider` merges over the built-in types. The `text` column of the demo keeps working.
+- `cellTypes={{ currency: currencyCellType }}` on `DataGridProvider` merges over the built-in types. The `text` column of the demo keeps working.
 - One type serves two columns through `options`: `{ currency: "USD" }` and `{ currency: "EUR", locale: "de-DE" }`. A column with no `locale` uses `en-US`.
 
 The demo types its columns as `ColumnDef` because `currency` is not a key of `GridCellTypes`. To make `defineColumns` check `type: "currency"` and its options, add the key to `GridCellTypes`.

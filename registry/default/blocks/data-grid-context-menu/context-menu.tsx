@@ -8,7 +8,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { useDataGridActions } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { gridAttrSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { resolveContextMenuTarget, type ContextMenuTarget } from "./resolve-context-menu-target";
 import { isCellInSelection } from "./selection-queries";
 import {
@@ -23,6 +23,8 @@ import { useHasCreateRow, useHasDuplicateRow } from "./has-row-op";
 
 type CellTarget = Extract<ContextMenuTarget, { kind: "cell" }> & { rowId: string };
 type MenuTarget = CellTarget | Extract<ContextMenuTarget, { kind: "header" }>;
+
+const TEXT_ENTRY_SELECTOR = `input, textarea, select, [contenteditable]:not([contenteditable="false"]), ${gridAttrSelector("cellEditor")}`;
 
 /**
  * The cell-surface items, mounted only while the menu content is open on a cell target — the
@@ -42,6 +44,7 @@ function CellMenuContent(props: {
   const canDuplicateRow = useHasDuplicateRow();
   const defaultSpecs = useDefaultCellMenuItems({
     row: target.row,
+    rowId: target.rowId,
     canInsertRow,
     canDuplicateRow,
     pasteBlocked,
@@ -129,7 +132,13 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
   const [scrollRoot, setScrollRoot] = useState<HTMLElement | null>(null);
 
   const onContextMenu = useCallback(
-    (event: ReactMouseEvent<HTMLDivElement>) => {
+    (event: ReactMouseEvent<HTMLDivElement> & { preventBaseUIHandler: () => void }) => {
+      // Portaled popups (find panel, filter popover) bubble contextmenu through the React tree; they and any text-entry target keep the browser menu.
+      const outsideGrid = !event.currentTarget.contains(event.target as Node);
+      if (outsideGrid || (event.target instanceof Element && event.target.closest(TEXT_ENTRY_SELECTOR) !== null)) {
+        event.preventBaseUIHandler();
+        return;
+      }
       const resolved = resolveContextMenuTarget(event.target);
       // the DOM carries only view-index coords; the stable row id and the selection both come off
       // the store at event time.

@@ -70,7 +70,7 @@ The result keeps `label`. Its `source` is `"history"` by default. Pass `"rollbac
 
 `commitChange` clears the errors of the cells it writes, and the active cell and the checked rows follow their records. It does not run the column `validate`. It runs `validateRow` for the rows it inserts or updates, except for a change with `source: "stream"`. A change with `source: "history"` or `"rollback"` is never recorded in the undo stack.
 
-The history add-on inverts with `invertChange` and applies with `commitChange`. Its `rollback` reverts a cell only while the cell still holds the change's value.
+The history add-on inverts with `invertChange`. It re-targets each update that has `cells` onto the current row, so it writes only those cells. It applies the result with `commitChange`. Its `rollback` reverts a cell only while the cell still holds the change's value.
 
 ## Related
 

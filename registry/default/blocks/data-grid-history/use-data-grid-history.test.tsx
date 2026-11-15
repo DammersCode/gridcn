@@ -163,17 +163,17 @@ describe("useDataGridHistory", () => {
     const rows = [...initialRows];
     for (let i = 0; i < 3; i++) {
       const prev = rows[0]!;
-      const next = { ...prev, age: prev.age + 1 };
+      const next = { ...prev, name: `Edit ${i + 1}` };
       rows[0] = next;
       h.commit(editChange("a", next, prev));
     }
-    expect(h.data()[0]!.age).toBe(33);
+    expect(h.data()[0]!.name).toBe("Edit 3");
 
     // capacity 2: only the last 2 of 3 edits are undoable
     act(() => h.history().undo());
-    expect(h.data()[0]!.age).toBe(32);
+    expect(h.data()[0]!.name).toBe("Edit 2");
     act(() => h.history().undo());
-    expect(h.data()[0]!.age).toBe(31);
+    expect(h.data()[0]!.name).toBe("Edit 1");
     expect(h.history().canUndo).toBe(false);
   });
 

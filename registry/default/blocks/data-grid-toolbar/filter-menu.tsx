@@ -175,7 +175,8 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
   const newRow = (): FilterSpec | undefined => {
     const first = filterableColumns[0];
     if (!first) return undefined;
-    const operator = operatorsFor(first)[0]!; // always non-empty (TEXT_OPERATORS is the floor)
+    const operator = operatorsFor(first)[0]; // empty when the column declares no operators
+    if (!operator) return undefined;
     return { columnId: first.id, operator, value: emptyValueFor(operator, customFor(first)) };
   };
 

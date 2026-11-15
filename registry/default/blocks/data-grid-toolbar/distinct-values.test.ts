@@ -25,6 +25,20 @@ describe("distinctColumnValues", () => {
     expect(result.capped).toBe(false);
   });
 
+  it("orders the values by sortLocale", () => {
+    const data: Row[] = [{ city: "ä" }, { city: "z" }];
+    expect(distinctColumnValues(input(data), "city").values.map((v) => v.text)).toEqual(["ä", "z"]);
+    expect(distinctColumnValues({ ...input(data), sortLocale: "sv" }, "city").values.map((v) => v.text)).toEqual(["z", "ä"]);
+  });
+
+  it("a text range filter keeps the rows the sort locale keeps", () => {
+    const data = [{ city: "ä", age: 1 }, { city: "a", age: 2 }];
+    const filters: FilterSpec[] = [{ columnId: "city", operator: "gt", value: "z" }];
+    const ages = (sortLocale?: string) => distinctColumnValues({ ...input(data, filters), sortLocale }, "age").values.map((v) => v.key);
+    expect(ages("sv")).toEqual(["1"]);
+    expect(ages()).toEqual([]);
+  });
+
   it("keeps the first-seen original text of each key", () => {
     const data: Row[] = [{ city: "berlin" }, { city: "Berlin" }, { city: "BONN" }];
     expect(distinctColumnValues(input(data), "city").values.map((v) => [v.key, v.text])).toEqual([["berlin", "berlin"], ["bonn", "BONN"]]);

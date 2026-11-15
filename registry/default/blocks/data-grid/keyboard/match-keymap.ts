@@ -11,12 +11,15 @@ export type ParsedBinding = {
   key: string;
 };
 
+const KNOWN_MODIFIERS: ReadonlySet<string> = new Set(["mod", "ctrl", "shift", "alt"]);
+
 /** Splits a binding string like "mod+shift+ArrowUp" into its modifier flags and key. */
 export function parseBinding(binding: string): ParsedBinding {
   const parts = binding.split("+");
   // last part is always the key; a literal "+" key never occurs in this keymap
-  const key = parts[parts.length - 1] ?? "";
   const modifiers = parts.slice(0, -1);
+  // an unknown modifier (a typo or a wrong case) leaves no key, so the binding never matches
+  const key = modifiers.every((token) => KNOWN_MODIFIERS.has(token)) ? (parts[parts.length - 1] ?? "") : "";
   return {
     mod: modifiers.includes("mod"),
     ctrl: modifiers.includes("ctrl"),
@@ -33,6 +36,8 @@ export type KeymapEvent = {
   metaKey: boolean;
   shiftKey: boolean;
   altKey: boolean;
+  /** Windows reports AltGr as Ctrl+Alt; `getModifierState("AltGraph")` tells it apart from a real Ctrl+Alt chord. */
+  altGraph?: boolean;
 };
 
 function keysEqual(eventKey: string, bindingKey: string): boolean {

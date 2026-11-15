@@ -31,12 +31,12 @@ export const FINDER = [
   {
     id: "select-copy-undo",
     title: "Select, copy, and undo",
-    pages: ["/docs/clipboard-undo/clipboard", "/docs/clipboard-undo/fill-handle", "/docs/clipboard-undo/undo-redo", "/docs/selection-shortcuts/checked-rows", ["/docs/selection-shortcuts/status-bar", "Show totals of the selected cells"], "/docs/cheatsheets-messages/keyboard-shortcuts"],
+    pages: ["/docs/clipboard-undo/clipboard", "/docs/clipboard-undo/fill-handle", "/docs/clipboard-undo/undo-redo", "/docs/selection-shortcuts/checked-rows", ["/docs/rows-live-data/select-server-rows", "Select every row of a server result"], ["/docs/selection-shortcuts/status-bar", "Show totals of the selected cells"]],
   },
   {
     id: "columns-rows",
     title: "Columns and rows",
-    pages: ["/docs/columns/column-sizing", ["/docs/columns/column-order-pinning", "Pin or freeze columns"], "/docs/columns/column-visibility", ["/docs/columns/column-headers-groups", "Keep the header row on top"], "/docs/rows-pages-menus/row-operations", "/docs/rows-pages-menus/row-markers", ["/docs/rows-pages-menus/row-order", "Drag rows to reorder them"], "/docs/rows-pages-menus/pinned-rows", "/docs/rows-pages-menus/client-pagination", ["/docs/components-props/data-grid-props#imperative-handle", "Scroll to a row from your own button"]],
+    pages: ["/docs/columns/column-sizing", ["/docs/columns/column-order-pinning", "Pin or freeze columns"], "/docs/columns/column-visibility", ["/docs/columns/column-headers-groups", "Keep the header row on top"], "/docs/rows-pages-menus/row-operations", ["/docs/rows-pages-menus/row-order", "Drag rows to reorder them"], "/docs/rows-pages-menus/pinned-rows", "/docs/rows-pages-menus/client-pagination", ["/docs/components-props/data-grid-props#imperative-handle", "Scroll to a row from your own button"], ["/docs/rows-live-data/handle-row-action-results", "Find out why a row action or shortcut did nothing"]],
   },
   {
     id: "import-export-style",
@@ -62,7 +62,7 @@ export const ADDONS = [
   { name: "use-debounce", adds: "The `useDebounce` and `useDebouncedInput` hooks.", guides: [A("/docs/types-hooks/use-debounce", "useDebounce"), A("/docs/types-hooks/use-debounced-input", "useDebouncedInput")], options: [] },
   { name: "is-composing-key", adds: "The `isComposingKey` function for keys that belong to an IME composition.", guides: [A("/docs/types-hooks/is-composing-key", "isComposingKey")], options: [] },
   { name: "data-grid-server", adds: "`useDataGridServerRows`, one data source for server pages and scroll mode.", guides: [A("/docs/scroll-mode/load-rows-while-scrolling", "Load rows while scrolling"), A("/docs/server-pagination/load-rows-page", "Load rows by page")], options: [A("/docs/add-options/server/server-rows-options", "Server rows options")] },
-  { name: "data-grid-pagination", adds: "`useDataGridPagination` and the pagination bar.", guides: [A("/docs/rows-pages-menus/client-pagination", "Client pagination")], options: [A("/docs/add-options/rows-pages-menus/client-pagination-options", "Client pagination options")] },
+  { name: "data-grid-pagination", adds: "`useDataGridPagination`, `useDataGridPager`, `useDataGridServerPager`, and the pagination bar.", guides: [A("/docs/rows-pages-menus/client-pagination", "Client pagination")], options: [A("/docs/add-options/rows-pages-menus/client-pagination-options", "Client pagination options")] },
   { name: "data-grid-views", adds: "Saved views: named sorts, filters, search, and column layouts that persist in a storage adapter.", guides: [A("/docs/sort-filter-search/saved-views", "Saved views")], options: [A("/docs/add-options/sort-filter-search/saved-views-options", "Saved views options")] },
   { name: "data-grid-sort-list", adds: "A sort button and a popover that lists the applied sorts.", guides: [A("/docs/sort-filter-search/sorting", "Sorting")], options: [A("/docs/add-options/sort-filter-search/sort-list-options", "Sort list options")] },
   { name: "data-grid-status-bar", adds: "Count, sum, average, minimum, and maximum of the selected cells.", guides: [A("/docs/selection-shortcuts/status-bar", "Status bar")], options: [A("/docs/add-options/selection-shortcuts/status-bar-options", "Status bar options")] },
@@ -75,8 +75,8 @@ export const ADDONS = [
  * The generator fails when a row's title names a symbol that CHANGELOG.md first names in a later release than this one.
  */
 export const FEATURE_SINCE = {
-  "1.2.0": ["find-replace"],
-  Unreleased: ["unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "error-state", "input-debounce", "lookup-cell", "server-aggregate"],
+  "1.2.0": ["find-replace", "filter-values"],
+  Unreleased: ["unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "error-state", "input-debounce", "lookup-cell", "server-aggregate", "zero-row-header"],
 };
 
 const F = (guide, reference, item) => ({ item, guide, reference });
@@ -122,6 +122,7 @@ export const FEATURES = {
   revalidate: F(["/docs/scroll-mode/tune-row-retention#revalidate"], ["/docs/add-options/server/server-rows-options"], "data-grid-server"),
   "page-prefetch": F(["/docs/server-pagination/tune-page-loading#prefetch"], ["/docs/add-options/server/server-rows-options"], "data-grid-server"),
   "lookup-cell": F(["/docs/editing-cells/lookup-cell"], ["/docs/add-options/editing-cells/lookup-options"], "data-grid-lookup"),
+  "zero-row-header": F(["/docs/selection-shortcuts/keyboard-navigation"], ["/docs/accessibility/screen-reader-support"]),
   "input-debounce": F(["/docs/types-hooks/use-debounced-input"], ["/docs/types-hooks/use-debounce"], "use-debounce"),
 };
 
@@ -211,6 +212,7 @@ export const TERM_PAGES = {
   "long-press": "/docs/selection-shortcuts/pointer-selection",
   "selection handle": "/docs/selection-shortcuts/pointer-selection",
   "coarse pointer": "/docs/selection-shortcuts/pointer-selection",
+  "paste result": "/docs/clipboard-undo/clipboard",
   "result count": "/docs/accessibility/screen-reader-support",
   override: "/docs/editing-cells/display-override",
   "Standard Schema": "/docs/editing-cells/validation",

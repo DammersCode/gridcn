@@ -243,6 +243,32 @@ describe("printGrid", () => {
     }
   });
 
+  it.each([
+    ["NaN", Number.NaN, "Printed 10000 of 10001 rows"],
+    ["-1", -1, "Printed 0 of 10001 rows"],
+    ["0", 0, "Printed 0 of 10001 rows"],
+  ])("maxRows %s is read as a finite cap", (_name, maxRows, expectedNote) => {
+    const { restore } = stubIframePrint();
+    try {
+      const data = Array.from({ length: 10_001 }, (_, i) => ({ id: String(i), name: `p${i}`, note: "n" }));
+      printGrid(makeState({ data: data as never, viewIndex: data.map((_, i) => i) }), { maxRows });
+      expect(tableOf(lastIframe()).note).toBe(expectedNote);
+    } finally {
+      restore();
+    }
+  });
+
+  it("maxRows Infinity prints every row the cell ceiling allows", () => {
+    const { restore } = stubIframePrint();
+    try {
+      const data = Array.from({ length: 10_001 }, (_, i) => ({ id: String(i), name: `p${i}`, note: "n" }));
+      printGrid(makeState({ data: data as never, viewIndex: data.map((_, i) => i) }), { maxRows: Number.POSITIVE_INFINITY });
+      expect(tableOf(lastIframe()).rows).toHaveLength(10_001);
+    } finally {
+      restore();
+    }
+  });
+
   // 500,000 DOM cells in jsdom take several seconds even on a quiet machine; under the parallel
   // unit-suite load the default 5 s timeout flakes, so give the test the generous wall budget
   // commit-perf.test.ts uses for its heavy cases.

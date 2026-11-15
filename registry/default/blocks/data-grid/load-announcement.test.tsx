@@ -45,6 +45,44 @@ function mount(setup: Setup = {}) {
 }
 
 describe("load announcements", () => {
+  it.each(["client", "server"] as const)("speaks the result count when a %s load that began with zero rows ends", async (filterMode) => {
+    const grid = mount({ data: [], filterMode });
+    await grid.rerender({ loading: false, data: rows(3) });
+    expect(grid.live()).toMatchObject({ kind: "results", count: 3 });
+  });
+
+  it.each(["client", "server"] as const)("stays quiet when a %s refetch of an unchanged empty result ends", async (filterMode) => {
+    const grid = mount({ data: [], filterMode });
+    await grid.rerender({ loading: false, data: [] });
+    expect(grid.live()).toMatchObject({ kind: "results", count: 0 });
+    const first = grid.live();
+    for (let i = 0; i < 3; i++) {
+      await grid.rerender({ loading: true, data: [] });
+      await grid.rerender({ loading: false, data: [] });
+    }
+    expect(grid.live()).toBe(first);
+  });
+
+  it.each(["client", "server"] as const)("speaks again when a %s refetch of an empty result returns rows", async (filterMode) => {
+    const grid = mount({ data: [], filterMode });
+    await grid.rerender({ loading: false, data: [] });
+    await grid.rerender({ loading: true, data: [] });
+    await grid.rerender({ loading: false, data: rows(2) });
+    expect(grid.live()).toMatchObject({ kind: "results", count: 2 });
+  });
+
+  it("stays silent for a first load into zero rows when announceResults is off", async () => {
+    const grid = mount({ data: [], announceResults: false });
+    await grid.rerender({ loading: false, data: rows(3) });
+    expect(grid.live()).toBeNull();
+  });
+
+  it("does not speak when a load that began with rows ends unchanged", async () => {
+    const grid = mount({ data: rows(3) });
+    await grid.rerender({ loading: false, data: rows(3) });
+    expect(grid.live()).toBeNull();
+  });
+
   it("announces the server count when a load that changed it ends", async () => {
     const grid = mount({ totalRowCount: 100, filterMode: "server" });
     expect(grid.live()).toBeNull();

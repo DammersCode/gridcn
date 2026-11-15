@@ -96,7 +96,7 @@ About the sample:
 
 - The grid sends every value as text. A numeric column needs `Number(value)`.
 - The grid compares text without case. The sample uses `ilike` for the pattern operators only. Compare `lower(column)` in the others to match.
-- `parseServerSpec` <NewBadge /> checks the spec: the column ids, the operators, the value shapes, and the size of the tree. Its default caps are 8 sorts, 200 characters of search text, 64 filters, 16 groups, and 1,000 list values. A request over a cap gets status 400.
+- `parseServerSpec` <NewBadge /> checks the spec: the column ids, the operators, the value shapes, and the size of the tree. Its default caps are 64 sorts, 500 characters of search text, 64 filters, 16 groups, and 1,000 list values. A request over a cap gets status 400.
 - Number and date columns also get `isBetween`, a `[min, max]` pair in which either bound can be `""`. The sample refuses it.
 - The grid's `empty` also matches a null cell. A nullable column needs an `IS NULL` test.
 - The route caps a page at 500 rows. A larger page returns fewer rows than the grid asked for.

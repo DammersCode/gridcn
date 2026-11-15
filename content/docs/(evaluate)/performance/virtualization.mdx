@@ -27,13 +27,13 @@ On every scroll tick, the grid moves the canvas with one `translate`. It does no
 
 ### Overscan [#overscan]
 
-The base overscan covers the gap between one scroll tick and the next update of the rendered rows. During a fling or a scrollbar drag, the grid tracks the recent scroll speed. It grows the overscan on the leading edge only, up to 1,600 px of rows or columns.
+The base overscan covers the gap between one scroll tick and the next update of the rendered rows. During a fling or a scrollbar drag, the grid tracks the recent scroll speed. It grows the overscan on the leading edge only, by up to 1,600 px of rows or columns on top of the base overscan. The trailing edge keeps the base overscan.
 
 A jump is a scroll of more than the viewport height plus 1,600 px in one scroll tick. After a jump, the grid mounts only the base overscan. A jump from the top to the middle of 100,000 rows mounts one screen of rows, not a screen plus a large buffer.
 
 ## Give the grid a bounded height [#bounded-height]
 
-Virtualization needs a scroll area with a fixed height. Without one, the viewport covers every row. The grid then caps rendering at 200 rows. A development build logs a warning once per page load, for the first grid that hits the cap. The warning names an unbounded height as the likely cause.
+Virtualization needs a scroll area with a fixed height. Without one, the viewport covers every row. The grid then caps rendering at 200 rows. A development build logs a warning once per page load, for the first grid whose viewport holds more than 200 rows. The warning names an unbounded height as the likely cause.
 
 To fix this, give the grid, or a sized parent, an explicit height. Set `className="h-150"` on the grid, or use `h-full` inside a parent that has its own height.
 

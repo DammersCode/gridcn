@@ -48,7 +48,7 @@ export function Lines({ lines }: { lines: Line[] }) {
 
 `validateRow` <NewBadge /> also runs for the rows that `actions.commitChange` inserts or updates, for every change source except `"stream"`. An import that replaces the data with `delete` and `insert` operations validates each imported row, and does not validate the deleted rows. An undo, a redo, and a rollback validate the rows they restore, so a cross-field error that the undone edit caused goes away. A newer change that touches the row cancels its pending verdict.
 
-`validateRow` can return a promise. The write commits first. The verdict merges after the promise settles. A newer verdict for the same row replaces a pending one. The grid drops a verdict for a row that is gone, and a rejected promise adds no error.
+`validateRow` can return a promise. The write commits first. The verdict merges after the promise settles. A newer verdict for the same row replaces a pending one. The grid drops a verdict for a row that is gone. A rejected promise or a thrown error adds no error and keeps the write. <NewBadge />
 
 `validateRow` <NewBadge /> receives `{ signal }` as its third argument. The signal aborts when a newer verdict for the same row replaces this one, when the row is gone, and when the grid unmounts. The grid drops an aborted verdict.
 
@@ -143,7 +143,7 @@ const columns = defineColumns<Item>()([
 ]);
 ```
 
-In a single-cell edit, the editor stays open while the schema resolves. The built-in text and number inputs turn `readOnly`, never `disabled`, so <kbd>Escape</kbd> still cancels. If the schema resolves with issues, the message shows like a sync rejection and editing continues. If it succeeds, the grid commits `result.value` and then applies the pending move from <kbd>Enter</kbd>.
+In a single-cell edit, the editor stays open while the schema resolves. The built-in text and number inputs turn `readOnly`, never `disabled`, so <kbd>Escape</kbd> still cancels. If the schema resolves with issues, the message shows like a sync rejection and editing continues. If it succeeds, the grid commits `result.value` and then applies the pending move from <kbd>Enter</kbd>, unless the user selected another cell in the meantime.
 
 <kbd>Escape</kbd>, a newer commit, an unmounted cell, or a restarted edit on the same cell invalidates the pending check. The grid drops its result silently.
 

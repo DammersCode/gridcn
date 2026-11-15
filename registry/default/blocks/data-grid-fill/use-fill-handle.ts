@@ -5,6 +5,7 @@ import { getCellValue, useDataGridActions, type CellRef, type GridRect } from "@
 import {
   applyInlineScrollDelta,
   combineRects,
+  isColumnReadOnly,
   isDev,
   inlineAutoScrollStep,
   candidateRowIds,
@@ -14,6 +15,8 @@ import {
   resolveBulkWrites,
   resolveColumnValidate,
   safeFromText,
+  isUnparseable,
+  type ParsedCellText,
   snapshotBulkBatch,
   useBulkGeneration,
   useDataGridStoreApi,
@@ -22,7 +25,7 @@ import {
   type InteractionLayout,
   type DataGridReadState,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { computeFillTarget, fillDirection, generateFill, rectRelativeTo, type SeriesDescriptor } from "./fill";
+import { computeFillTarget, fillDirection, generateFill, rectRelativeTo, type FillDirection, type SeriesDescriptor } from "./fill";
 import type { FillStoreApi } from "./fill-store";
 
 /** Cells a fill is about to write, resolved before the write so a re-sort cannot shift them. */
@@ -80,6 +83,26 @@ function cellText(s: DataGridReadState, viewRow: number, colIndex: number): stri
   return cellType.toText(value, column.options);
 }
 
+/** The source cell the plain copy puts at strip cell (`row`, `col`): its column and stored value. */
+function tiledSourceCell(
+  s: DataGridReadState,
+  source: GridRect,
+  relativeStrip: GridRect,
+  direction: FillDirection,
+  row: number,
+  col: number,
+): { columnId: string; value: unknown } | undefined {
+  const wrap = (index: number, size: number) => ((index % size) + size) % size;
+  const vertical = direction === "up" || direction === "down";
+  const sourceRow = vertical ? wrap(relativeStrip.y + row, source.height) : relativeStrip.y + row;
+  const sourceCol = vertical ? relativeStrip.x + col : wrap(relativeStrip.x + col, source.width);
+  const column = s.visibleColumns[source.x + sourceCol];
+  const dataRowIndex = s.viewIndex[source.y + sourceRow];
+  const dataRow = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
+  if (!column || dataRow === undefined) return undefined;
+  return { columnId: column.id, value: getCellValue<unknown, typeof column>(dataRow, column) };
+}
+
 /** Reads `rect` as a 2D string grid via each cell type's `toText` — the fill algorithm's raw input. */
 export function readRectAsText(s: DataGridReadState, rect: GridRect): string[][] {
   const out: string[][] = [];
@@ -106,13 +129,34 @@ export function generateFillText(
   return generateFill(sourceValues, rectRelativeTo(strip, source), fillDirection(source, strip), opts);
 }
 
+/** The plain-copy tiling of a fill: the strip as it reads when no series continues, and where each tile comes from. */
+export type PlainFill = { source: GridRect; relativeStrip: GridRect; direction: FillDirection; tiled: string[][] };
+
+export function plainFillOf(
+  s: DataGridReadState,
+  source: GridRect,
+  strip: GridRect,
+  opts: { detect?: (values: readonly string[]) => SeriesDescriptor | null } = {},
+): PlainFill {
+  const direction = fillDirection(source, strip);
+  const relativeStrip = rectRelativeTo(strip, source);
+  return { source, relativeStrip, direction, tiled: generateFill(readRectAsText(s, source), relativeStrip, direction, { ...opts, forceCopy: true }) };
+}
+
 /**
  * Builds the unvalidated candidate cells for `strip` from its fill text: converts each text back
  * through its own column's `fromText`, skipping readOnly columns, rows that don't resolve, and
- * cells the text grid does not cover. Exported for direct unit testing; not part of the public hook surface.
+ * cells the text grid does not cover. With `plain`, a run that continues no series, or whose
+ * column rejects a generated text, copies the stored source values instead of their text.
+ * Exported for direct unit testing; not part of the public hook surface.
  */
-export function buildFillCandidatesFromText(s: DataGridReadState, strip: GridRect, filled: readonly (readonly string[])[]): BulkCandidate[] {
-  const candidates: BulkCandidate[] = [];
+export function buildFillCandidatesFromText(s: DataGridReadState, strip: GridRect, filled: readonly (readonly string[])[], plain?: PlainFill): BulkCandidate[] {
+  const vertical = plain?.direction === "up" || plain?.direction === "down";
+  // a run is the strip column of a vertical fill and the strip row of a horizontal one
+  const runOf = (row: number, col: number) => (vertical ? col : row);
+  const seriesRuns = new Set<number>();
+  const rejectedRuns = new Set<number>();
+  const entries: { row: number; col: number; viewRow: number; column: (typeof s.visibleColumns)[number]; cellType: NonNullable<(typeof s.cellTypes)[string]>; dataRow: Exclude<(typeof s.data)[number], undefined>; rowId: string; parsed: ParsedCellText }[] = [];
   let skippedHoleRows = 0;
   for (let row = 0; row < strip.height; row++) {
     const viewRow = strip.y + row;
@@ -130,17 +174,37 @@ export function buildFillCandidatesFromText(s: DataGridReadState, strip: GridRec
       const colIndex = strip.x + col;
       const column = s.visibleColumns[colIndex];
       if (!column) continue;
-      if (typeof column.readOnly === "function" ? column.readOnly(dataRow) : Boolean(column.readOnly)) continue;
+      if (isColumnReadOnly(column, dataRow)) continue;
 
       const cellType = s.cellTypes[column.type ?? "text"];
       if (!cellType) continue;
 
       const text = filled[row]?.[col];
       if (text === undefined) continue;
-      const { value, validate } = safeFromText(cellType, text, column.options, resolveColumnValidate(column, cellType));
-      candidates.push({ viewRowIndex: viewRow, columnId: column.id, value, validate, row: dataRow, rowId, warn: column.validationMode === "warn" });
+      const parsed = safeFromText(cellType, text, column.options, resolveColumnValidate(column, cellType));
+      if (plain && text !== plain.tiled[row]?.[col]) seriesRuns.add(runOf(row, col));
+      if (plain && text !== "" && (isUnparseable(parsed) || cellType.isEmpty(parsed.value))) rejectedRuns.add(runOf(row, col));
+      entries.push({ row, col, viewRow, column, cellType, dataRow, rowId, parsed });
     }
   }
+
+  const candidates: BulkCandidate[] = entries.map((entry) => {
+    let { value, validate } = entry.parsed;
+    if (plain) {
+      const run = runOf(entry.row, entry.col);
+      const rejected = rejectedRuns.has(run);
+      if (rejected || !seriesRuns.has(run)) {
+        const sourceCell = tiledSourceCell(s, plain.source, plain.relativeStrip, plain.direction, entry.row, entry.col);
+        if (sourceCell?.columnId === entry.column.id) {
+          value = sourceCell.value;
+          validate = resolveColumnValidate(entry.column, entry.cellType);
+        } else if (rejected) {
+          ({ value, validate } = safeFromText(entry.cellType, plain.tiled[entry.row]![entry.col]!, entry.column.options, resolveColumnValidate(entry.column, entry.cellType)));
+        }
+      }
+    }
+    return { viewRowIndex: entry.viewRow, columnId: entry.column.id, value, validate, row: entry.dataRow, rowId: entry.rowId, warn: entry.column.validationMode === "warn" };
+  });
   if (skippedHoleRows > 0 && isDev()) {
     console.warn(
       `[data-grid-fill] the fill target skipped ${skippedHoleRows} unloaded row(s) (lazy grid): unloaded cells are never filled and the selection still expands over them. Fill over a lazy grid covers loaded rows only.`,
@@ -157,7 +221,7 @@ export function buildFillCandidates(
   opts: { forceCopy?: boolean; detect?: (values: readonly string[]) => SeriesDescriptor | null } = {},
 ): { candidates: BulkCandidate[]; filled: string[][] } {
   const filled = generateFillText(s, source, strip, opts);
-  return { candidates: buildFillCandidatesFromText(s, strip, filled), filled };
+  return { candidates: buildFillCandidatesFromText(s, strip, filled, plainFillOf(s, source, strip, opts)), filled };
 }
 
 /**
@@ -264,7 +328,7 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
       const filled = generateFillText(s, source, strip, { ...opts, detect: detectSeries });
       const processed = processFill ? processFill({ source, target: strip, cells: filled }) : filled;
       if (processed === false) return;
-      const candidates = buildFillCandidatesFromText(s, strip, processed);
+      const candidates = buildFillCandidatesFromText(s, strip, processed, plainFillOf(s, source, strip, { detect: detectSeries }));
 
       const resolution = resolveBulkWrites(candidates);
       if (resolution instanceof Promise) {

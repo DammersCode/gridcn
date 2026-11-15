@@ -34,9 +34,6 @@
             "popover",
             "calendar",
             "input-group",
-            "dropdown-menu",
-            "context-menu",
-            "separator",
             "tooltip"
          ],
           "files": [
@@ -64,6 +61,11 @@
                "path": "registry/default/blocks/data-grid/cell-types/checkbox.tsx",
                "type": "registry:component",
                "target": "components/data-grid/cell-types/checkbox.tsx"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/cell-types/formatter-cache.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/cell-types/formatter-cache.ts"
             },
             {
                "path": "registry/default/blocks/data-grid/cell-types/date.tsx",
@@ -521,6 +523,11 @@
                "target": "components/data-grid/sort-filter/incremental-view-index.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/sort-filter/sort-collator.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/sort-filter/sort-collator.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/sort-filter/builtin-compare.ts",
                "type": "registry:component",
                "target": "components/data-grid/sort-filter/builtin-compare.ts"
@@ -624,6 +631,11 @@
                "path": "registry/default/blocks/data-grid/store/row-operation-targets.ts",
                "type": "registry:component",
                "target": "components/data-grid/store/row-operation-targets.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/store/row-action-skip.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/row-action-skip.ts"
             },
             {
                "path": "registry/default/blocks/data-grid/store/selected-rows.ts",
@@ -1345,6 +1357,11 @@
                "target": "components/data-grid-io/export-grid.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid-io/normalize-limit.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-io/normalize-limit.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid-io/export-source.ts",
                "type": "registry:component",
                "target": "components/data-grid-io/export-source.ts"
@@ -2018,9 +2035,6 @@
          "title": "Data Grid Context Menu Slots Demo",
          "description": "Custom context menu items via getCellMenuItems and getHeaderMenuItems, replacing the built-in item sets.",
          "author": "gridcn",
-         "dependencies": [
-            "lucide-react@^1.46.0"
-         ],
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
             "DammersCode/gridcn/data-grid-context-menu"
@@ -2586,8 +2600,7 @@
             "DammersCode/gridcn/data-grid",
             "DammersCode/gridcn/data-grid-server",
             "DammersCode/gridcn/data-grid-pinned-rows",
-            "DammersCode/gridcn/data-grid-toolbar",
-            "button"
+            "DammersCode/gridcn/data-grid-toolbar"
          ],
          "files": [
             {

@@ -637,3 +637,35 @@ describe("useRowWindow velocity-aware overscan (Phase 4)", () => {
     vi.useRealTimers();
   });
 });
+
+describe("useRowWindow render cap warning", () => {
+  async function flingWindow(clientHeight: number) {
+    vi.resetModules();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { useRowWindow: freshUseRowWindow } = await import("./use-row-window");
+    const el = makeScrollElement(0, clientHeight);
+    const ref = { current: el };
+    const { result } = renderHook(() => freshUseRowWindow(ref, { rowCount: 100_000, rowHeight: 20, dataRowTop: 0 }));
+    act(() => {
+      for (let i = 1; i <= 5; i++) {
+        Object.defineProperty(el, "scrollTop", { value: i * 1500, writable: true, configurable: true });
+        el.dispatchEvent(new Event("scroll"));
+      }
+    });
+    return { warn, window: result.current };
+  }
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it("does not warn for a bounded grid whose fling overscan pushes the window past 200 rows", async () => {
+    const { warn, window } = await flingWindow(2400);
+    expect(window.end - window.start).toBe(200);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("warns once for a viewport that holds more than 200 rows", async () => {
+    const { warn } = await flingWindow(4200);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]![0])).toContain("viewport shows more than 200 rows");
+  });
+});

@@ -76,6 +76,21 @@ describe("config home: keymap", () => {
     expect(result.current.undo).toEqual(DEFAULT_KEYMAP.undo);
   });
 
+  it("useDataGridKeymap leaves out a binding that never matches", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { result } = renderHook(() => useDataGridKeymap(), {
+      wrapper: function Wrapper({ children }: { children: ReactNode }) {
+        return (
+          <DataGridProvider data={makeRows(1)} columns={columns} getRowId={getRowId} keymap={{ undo: ["Mod+Z", "mod+y"] }}>
+            {children}
+          </DataGridProvider>
+        );
+      },
+    });
+    expect(result.current.undo).toEqual(["mod+y"]);
+    warn.mockRestore();
+  });
+
   it("an equal re-render syncs nothing; a content-equal keymap literal keeps state.keymap's identity", () => {
     const flags = { data: makeRows(2), keymap: { selectAll: ["mod+a"] } as Keymap | undefined, readOnly: false };
     function Wrapper({ children }: { children: ReactNode }) {

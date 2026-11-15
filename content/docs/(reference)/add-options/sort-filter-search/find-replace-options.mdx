@@ -46,7 +46,7 @@ export function PeopleGrid() {
 
 <NewBadge />
 
-Runs after the panel builds the plan and before it writes. It gets `{ plan, signal }` and returns the plan to write, or `false` to cancel. A plan longer than `replaceAllLimit`, a value that is not a plan, or a rejection cancels the replace.
+Runs after the panel builds the plan and before it writes. It gets `{ plan, signal }` and returns the plan to write, or `false` to cancel. A plan longer than `replaceAllLimit`, a value that is not a plan, or a rejection cancels the replace. So does a patched row that changes or goes away, a `readOnly` grid, or an open cell editor. A change of the find text, the replacement, or an option aborts `signal` and drops a late answer.
 
 ### scope [#scope]
 

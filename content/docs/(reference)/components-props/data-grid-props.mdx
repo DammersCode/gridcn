@@ -10,11 +10,11 @@ aliases: ["getrowid", "row id", "props"]
 
 | Concern | Props | Guide |
 | --- | --- | --- |
-| Rows and ids | `data`, `defaultData`, `getRowId` | [Define columns](/docs/learning-path/define-columns) |
+| Rows and ids | `data`, `defaultData`, `getRowId` | [Render your first grid](/docs/learning-path/render-your-first-grid#row-ids) |
 | Saving | `onDataChange`, `onSave`, `onSaveRejected` | [Plan server saves](/docs/server-path/plan-server-saves) |
 | Sort, filter, search | `sortState`, `filterState`, `searchText`, and their `default` and `on` props | [Sorting](/docs/sort-filter-search/sorting) |
 | Server data | `sortMode`, `filterMode`, `totalRowCount` | [Load server rows](/docs/server-path/load-server-rows) |
-| Selection | `selection`, `defaultSelection`, `onSelectionChange` | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
+| Selection | `selection`, `defaultSelection`, `onSelectionChange`, `checkedRowsLifetime`, `rowMarkers` | [Pointer selection](/docs/selection-shortcuts/pointer-selection), [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | Column layout | `columnLayout`, `columnGroups`, `autosizeOnMount` | [Column visibility](/docs/columns/column-visibility) |
 | Editing | `validateRow`, `onBeforeEditStart`, `onEditEnd` | [Validation](/docs/editing-cells/validation) |
 | Clipboard | `processCellForClipboard`, `processPaste` | [Clipboard](/docs/clipboard-undo/clipboard) |
@@ -74,7 +74,7 @@ These props set the look and the states of the grid. When you compose the parts 
 | `headerHeight` | `number` | `36` | Height of one header row in px. Density does not change it. |
 | `columnOverscan` | `number` | `1` | Unpinned columns that render past each side of the view. |
 | `direction` | `GridDirection` (`"ltr" \| "rtl"`) | inherited | Layout direction. |
-| `emptyState` | `ReactNode \| EmptyStateRenderer` | `labels.grid.emptyState` | Content for a view with no rows. The default text is "No rows", or `labels.grid.noResults` ("No results") when a filter or the search hides every row. |
+| `emptyState` | `ReactNode \| EmptyStateRenderer` | `labels.grid.emptyState` | Content for a view with no rows. The default text is "No rows", or `labels.grid.noResults` ("No results") when a filter or a server search hides every row. |
 | `loading` | `boolean` | `false` | Shows the loading skeleton or the loading bar. |
 | `loadingState` | `ReactNode \| LoadingStateRenderer` | none | Replaces the built-in loading display. |
 | `error` | `unknown` | none | Any value except `undefined` and `null` shows the error state. |

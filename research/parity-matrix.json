@@ -57,13 +57,15 @@
         "defaultSortState",
         "onSortChange",
         "sortMode",
+        "sortLocale",
         "headerClickBehavior"
       ],
       "cells": {
         "L": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid/sort-filter/index.test.ts"
+            "registry/default/blocks/data-grid/sort-filter/index.test.ts",
+            "registry/default/blocks/data-grid/store/sort-locale.test.ts"
           ]
         },
         "PC": {
@@ -93,7 +95,8 @@
         "SS": {
           "status": "supported",
           "evidence": [
-            "content/docs/(reference)/contracts/server-rows-contract.mdx"
+            "content/docs/(reference)/contracts/server-rows-contract.mdx",
+            "content/docs/(build)/sort-filter-search/sorting.mdx"
           ]
         },
         "FS": {
@@ -110,7 +113,7 @@
     },
     {
       "id": "filter",
-      "feature": "Filter (flat and groups)",
+      "feature": "Filter",
       "options": [
         "filterState",
         "defaultFilterState",
@@ -302,7 +305,7 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid/selection/compact-selection.test.ts"
+            "registry/default/blocks/data-grid/store/checked-rows-lifetime.test.tsx"
           ]
         },
         "PC": {
@@ -381,6 +384,7 @@
           "status": "supported",
           "evidence": [
             "content/docs/(server)/scroll-mode/load-rows-while-scrolling.mdx",
+            "tests/parity/row-ids.parity.test.tsx",
             "registry/default/blocks/data-grid/store/replace-row-id.test.tsx"
           ]
         },
@@ -408,7 +412,8 @@
         "API": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid/store/replace-row-id.test.tsx"
+            "registry/default/blocks/data-grid/store/replace-row-id.test.tsx",
+            "tests/parity/row-ids.parity.test.tsx"
           ]
         }
       }
@@ -822,7 +827,8 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/import-export/import.mdx"
+            "content/docs/(build)/import-export/import.mdx",
+            "registry/default/blocks/data-grid-io/import-button.browser.test.tsx"
           ]
         },
         "PC": {
@@ -858,7 +864,8 @@
         "API": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/import-export/import.mdx"
+            "content/docs/(build)/import-export/import.mdx",
+            "registry/default/blocks/data-grid-io/import-button.browser.test.tsx"
           ]
         }
       }
@@ -1019,6 +1026,7 @@
           "status": "supported",
           "evidence": [
             "registry/default/blocks/data-grid-history/history-write-path.test.tsx",
+            "tests/parity/undo-redo.parity.test.tsx",
             "content/docs/(build)/clipboard-undo/undo-redo.mdx"
           ]
         },
@@ -1046,7 +1054,8 @@
         "API": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid-history/history-write-path.test.tsx"
+            "registry/default/blocks/data-grid-history/history-write-path.test.tsx",
+            "tests/parity/undo-redo.parity.test.tsx"
           ]
         }
       }
@@ -1330,11 +1339,11 @@
       "cells": {
         "L": {
           "status": "n/a",
-          "reason": "The client sorts and filters the pushed rows itself. With the default `reorder: \"defer\"`, a pushed row keeps its position and `viewStale` turns on. `reconcileView()` or the next sort, filter, or search change moves the row. `reorder: \"immediate\"` moves it at once. See Stream updates."
+          "reason": "The client sorts and filters the pushed rows itself. With the default `reorder: \"defer\"`, a pushed row keeps its position and `viewStale` turns on. `reconcileView()` or the next sort, filter, or search change moves the row. `reorder: \"immediate\"` moves it at once. See [Stream updates](/docs/rows-live-data/stream-updates)."
         },
         "PC": {
           "status": "n/a",
-          "reason": "The client sorts and filters the pushed rows itself. With the default `reorder: \"defer\"`, a pushed row keeps its position and `viewStale` turns on. `reconcileView()` or the next sort, filter, or search change moves the row. `reorder: \"immediate\"` moves it at once. See Stream updates."
+          "reason": "The client sorts and filters the pushed rows itself. With the default `reorder: \"defer\"`, a pushed row keeps its position and `viewStale` turns on. `reconcileView()` or the next sort, filter, or search change moves the row. `reorder: \"immediate\"` moves it at once. See [Stream updates](/docs/rows-live-data/stream-updates)."
         },
         "PS": {
           "status": "supported",
@@ -1541,6 +1550,61 @@
           "status": "supported",
           "evidence": [
             "tests/parity/announce.parity.test.tsx"
+          ]
+        }
+      }
+    },
+    {
+      "id": "zero-row-header",
+      "feature": "Header tab stops with zero rows",
+      "options": [],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/zero-row-header.parity.test.tsx"
+          ]
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/zero-row-header.parity.test.tsx"
+          ]
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/zero-row-header.parity.test.tsx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/zero-row-header.parity.test.tsx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/zero-row-header.parity.test.tsx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/zero-row-header.parity.test.tsx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/zero-row-header.parity.test.tsx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/zero-row-header.parity.test.tsx"
           ]
         }
       }
@@ -1947,7 +2011,8 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/data-modes/query-server-rows.mdx"
+            "content/docs/(server)/data-modes/query-server-rows.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.controlled-spec.test.tsx"
           ]
         },
         "SS": {
@@ -1995,7 +2060,8 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/scroll-mode/tune-row-retention.mdx"
+            "content/docs/(server)/scroll-mode/tune-row-retention.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.controlled-spec.test.tsx"
           ]
         },
         "SS": {
@@ -2038,7 +2104,7 @@
           "status": "supported",
           "evidence": [
             "content/docs/(reference)/contracts/server-rows-contract.mdx",
-            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.prefetch.test.tsx"
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.controlled-spec.test.tsx"
           ]
         },
         "Z": {
@@ -2051,7 +2117,8 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "content/docs/(server)/scroll-mode/tune-row-retention.mdx"
+            "content/docs/(server)/scroll-mode/tune-row-retention.mdx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.controlled-spec.test.tsx"
           ]
         },
         "SS": {

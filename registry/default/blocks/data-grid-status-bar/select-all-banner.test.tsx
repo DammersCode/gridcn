@@ -17,7 +17,7 @@ function Probe() {
   return null;
 }
 
-const mount = (props: { totalRowCount?: number | null } = {}) =>
+const mount = (props: { totalRowCount?: number | null; checkedRowsLifetime?: "until-click" | "until-cleared" | "across-filters" } = {}) =>
   render(
     <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id} rowMarkers="checkbox" checkedRowsLifetime="across-filters" {...props}>
       <Probe />
@@ -26,6 +26,16 @@ const mount = (props: { totalRowCount?: number | null } = {}) =>
   );
 
 describe("select-all banner", () => {
+  it("shows the banner by default with totalRowCount and hides it when checkedRowsLifetime is until-cleared", () => {
+    mount({ totalRowCount: 237, checkedRowsLifetime: undefined });
+    act(() => actions!.setAllRowsChecked(true));
+    expect(screen.getByRole("button", { name: "Select all 237 matching" })).toBeInTheDocument();
+    cleanup();
+    mount({ totalRowCount: 237, checkedRowsLifetime: "until-cleared" });
+    act(() => actions!.setAllRowsChecked(true));
+    expect(screen.queryByRole("button", { name: /Select all/ })).toBeNull();
+  });
+
   it("offers to select all matching once every row of the page is checked and the result is larger", () => {
     mount({ totalRowCount: 237 });
     expect(screen.queryByText(/on this page are selected/)).toBeNull();

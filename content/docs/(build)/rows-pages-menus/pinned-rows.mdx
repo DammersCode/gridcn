@@ -50,7 +50,7 @@ A pinned row is display-only. It is not part of `data` or the view index. As a r
 - It never sorts or filters. It stays in the order that you pass.
 - It never joins the selection. A click on it does nothing, and it never becomes the active cell.
 - It has no tab stop, and arrow keys skip it.
-- Unless the column sets `readOnly` to `false` or to a function that returns `false` for the row, its cells carry `data-readonly`.
+- Unless the column sets `readOnly` to `false` or to a function that returns `false` for the row, its cells carry `data-readonly`. A column with `accessorFn` and no `accessorKey` or `setValue` always carries it.
 
 A pinned row goes through the `getRowId` of the grid, so `ctx.rowId` in a pinned cell is that id. If `getRowId` throws or returns an empty or non-string value, the row gets a band id. The band id is `__pinned-top-<index>` or `__pinned-bottom-<index>`, where `<index>` is the position of the row in its band.
 
@@ -118,7 +118,7 @@ function TotalsGrid() {
 
 Create the row once, at module scope. The hook compares the entries of `topRows` and `bottomRows` by identity, so an inline array of stable entries keeps the plugin.
 
-A reducer is `"sum"`, `"avg"`, `"min"`, `"max"`, `"count"`, or a function. The numeric reducers skip `null` and `undefined` values. `count` counts the values that are not empty. The aggregate ignores a spec key that matches no column id and warns once in development.
+A reducer is `"sum"`, `"avg"`, `"min"`, `"max"`, `"count"`, or a function. The numeric reducers <NewBadge /> use finite numbers only, so they skip numeric strings and dates. `count` counts the values that are not `null` or `undefined`. A function receives every value, so use one for dates or numeric strings. The aggregate ignores a spec key that matches no column id and warns once in development.
 
 ### Custom reducers [#custom-reducers]
 

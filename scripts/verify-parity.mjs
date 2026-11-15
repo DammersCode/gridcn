@@ -105,7 +105,7 @@ const jsxText = (text) => text.replace(/[{}<>&]/g, (c) => `{${JSON.stringify(c)}
 const cellNote = (cell) => (cell.status === "gap" ? cell.note : cell.status === "n/a" ? cell.reason : cell.status === "unverified" && cell.note !== UNVERIFIED ? cell.note : undefined);
 const parityCell = (cell) => {
   const note = cellNote(cell);
-  return `<ParityCell status="${cell.status}"${note ? ` note={${JSON.stringify(note.replaceAll("`", ""))}}` : ""} />`;
+  return `<ParityCell status="${cell.status}"${note ? ` note={${JSON.stringify(note.replaceAll("`", "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1"))}}` : ""} />`;
 };
 
 /** The docs page generated from the matrix. */

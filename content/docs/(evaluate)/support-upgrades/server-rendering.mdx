@@ -14,7 +14,7 @@ In the Next.js App Router, the server renders each client component to HTML, and
 
 - the header row and the column group headers
 - every pinned column and the first 20 other columns
-- the first 30 rows of the view, sorted and filtered as in the first render
+- the first 30 rows of the view, sorted and filtered as in the first render (see **Pin the text sort** below)
 - the row bands, such as pinned totals rows, with their heights
 
 The server cannot know the height of the grid, so it renders a fixed preview. After hydration, the grid measures itself and renders the visible rows plus the overscan. Each cell carries about 1 KB of class names, so serve the page with compression.
@@ -58,7 +58,6 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
     <DataGrid
       defaultData={orders}
       columns={columns}
-      getRowId={(row) => row.id}
       className="h-96"
     />
   );
@@ -69,7 +68,8 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
 
 ## Keep the first render equal [#hydration-rules]
 
-- **Pin the locale.** Without `options.locale` on the column, the `number` and `date` cell types format with `"en-US"`. The built-in labels format counts with `"en-US"`. A server and a browser can have different default locales. In a custom cell type or label, pass a locale to `Intl` and `toLocaleString`.
+- **Pin the locale.** With `format` or `displayFormat` and no `options.locale`, the `number` and `date` cell types format with `"en-US"`. The built-in labels format counts with `"en-US"`. A server and a browser can have different default locales. In a custom cell type or label, pass a locale to `Intl` and `toLocaleString`.
+- **Pin the text sort.** The built-in text sorts use the `"en-US"` collation on the server and in the browser. Pass `sortLocale` for another language, and pass the same value on both sides.
 - **Read browser-only globals after mount.** `window`, `navigator`, and `localStorage` do not exist on the server. Read them in an effect and set state. [Column visibility](/docs/columns/column-visibility#persisting-a-users-layout) loads a saved layout this way.
 - **Make the rows once.** Rows built in render with `Date.now()` or `Math.random()` differ on each side. Build them on the server and pass them as props, or build them in an effect.
 - **Pass `direction` on a right-to-left page.** Without the prop, the server HTML is left-to-right, and the grid reads the inherited direction at mount. See [RTL layout](/docs/theme-style-language/labels-i18n#rtl-layout).

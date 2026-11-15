@@ -6,7 +6,7 @@ type: feature
 aliases: ["keybindings", "rebind keys", "remap shortcuts", "shortcuts dialog", "hotkey editor", "change keyboard shortcut"]
 ---
 
-The `keymap` prop on `DataGridProvider` changes the key bindings of the grid. The `data-grid-keybindings` add-on renders them. `useDataGridKeybindings` mounts a dialog that lists the effective keymap with your overrides, and `BindingChips` renders one binding as keycaps for your own UI. The `commands` prop binds keys to your own functions.
+The `keymap` prop on `DataGridProvider` changes the key bindings of the grid. The `data-grid-keybindings` add-on renders them. `useDataGridKeybindings` mounts a dialog that lists the effective keymap with your overrides. It leaves out actions that do nothing on this grid, such as Undo without the history add-on. <NewBadge /> A `commands` entry for an action such as `undo` lists it. `BindingChips` renders one binding as keycaps for your own UI. The `commands` prop binds keys to your own functions.
 
 <ComponentPreview name="data-grid-keybindings-demo" />
 
@@ -130,7 +130,7 @@ The key is one of these:
 - Any single printable character.
 - The space bar, written as a literal space, as in `"shift+ "`.
 
-The plus key cannot be bound, because the last `+` separates the modifiers from the key. A binding with an unknown modifier or an unknown key name warns in the browser console in development. A punctuation binding without `shift` matches with or without <kbd>Shift</kbd>, so `"?"` and `"mod+/"` work on every layout. Write `shift+` to require it: `"shift+?"`. <NewBadge />
+The plus key cannot be bound, because the last `+` separates the modifiers from the key. A binding with an unknown modifier, such as `Mod+z` (modifiers are lowercase), never matches. A binding with an unknown modifier or an unknown key name also warns in the browser console in development. A punctuation binding without `shift` matches with or without <kbd>Shift</kbd>, so `"?"` and `"mod+/"` work on every layout. Write `shift+` to require it: `"shift+?"`. <NewBadge />
 
 When two actions share a key combination, the most specific binding wins. On a tie, a `keymap` binding beats a default binding. A `keymap` entry that repeats a default binding counts as the default. Development mode warns once per shared combination that includes a `keymap` binding.
 
@@ -144,7 +144,7 @@ The OS or the browser owns some key combinations. A binding on one of them never
 
 | Chord | Owner |
 | --- | --- |
-| <kbd>Ctrl</kbd>+<kbd>Alt</kbd> with any key | Windows reads it as <kbd>AltGr</kbd>. If a user types a character such as `@` on a German layout, a `ctrl+alt` or `mod+alt` binding fires. |
+| <kbd>Ctrl</kbd>+<kbd>Alt</kbd> with any key | Windows reads it as <kbd>AltGr</kbd>. On a German layout, <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Q</kbd> types `@`, so a `mod+alt+q` or `ctrl+alt+q` binding never fires there. The grid matches the typed character, so only a binding on that character, such as `mod+alt+@`, fires. |
 | <kbd>Cmd</kbd>+<kbd>Space</kbd> | macOS Spotlight. |
 | <kbd>Ctrl</kbd>+<kbd>Option</kbd> with any key | VoiceOver on macOS, while it runs. For example, <kbd>Ctrl</kbd>+<kbd>Option</kbd>+<kbd>Space</kbd> activates an item. |
 | `mod` with <kbd>+</kbd>, <kbd>-</kbd>, or <kbd>=</kbd> | Browser zoom. The page cannot stop it. |
@@ -201,8 +201,8 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
 | `run` | `(ctx: GridCommandCtx) => void` | required | Runs when a bound key fires. The grid calls `preventDefault` first, so `mod+s` opens no browser save dialog. |
 | `when` | `(ctx: GridCommandCtx) => boolean` | none | Return `false` to ignore the key. The browser then runs its own action. |
 | `scope` | `"grid" \| "editing" \| "always"` | `"grid"` | When the command dispatches. |
-| `label` | `string` | humanized name | The row label in the dialog. |
-| `group` | `CommandGroup` | `"other"` | The section in the dialog. |
+| `label` | `string` | `labels.keybindings.actions[name]`, else the humanized name | The row label in the dialog. |
+| `group` | `CommandGroup` | `"other"`, or the section of the built-in action that the command names | The section in the dialog. |
 
 {/* props: GridCommandCtx */}
 

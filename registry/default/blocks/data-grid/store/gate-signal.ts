@@ -54,7 +54,7 @@ export type GateTracker = {
   track(name: GateName): () => void;
 };
 
-/** Why a gate run stopped before its result applied: it ran longer than `gateTimeoutMs`, the rows or mode it asked about changed, a newer run replaced it, the user pressed Escape, or the grid reset or unmounted. */
+/** Why a gate run stopped before its result applied: it ran longer than `gateTimeoutMs`, the rows, the mode, or the cell it asked about changed, a newer run replaced it, the user pressed Escape, or the grid reset or unmounted. */
 export type GateAbortReason = "timeout" | "changed" | "superseded" | "cancelled" | "reset";
 
 export type GateTrackerHost = {

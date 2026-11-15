@@ -16,7 +16,7 @@ Store hooks read the state of one grid. Inside a `DataGridProvider` they work. O
 | [Selection](#selection) | `useDataGridSelection`, `useDataGridGetSelectionValues`, `useDataGridSelectedRows`, `useDataGridHiddenCheckedCount` |
 | [Columns](#columns) | `useDataGridVisibleColumns`, `useDataGridAllColumns`, `useDataGridIsColumnHidden`, `useDataGridColumnWidth`, `useDataGridColumnWidths` |
 | [Sort, filter, and search](#query) | `useDataGridSortState`, `useDataGridFilterState`, `useDataGridSearchText` |
-| [Labels, keys, and saves](#misc) | `useDataGridLabels`, `useDataGridKeymap`, `useDataGridCellErrors`, `useDataGridRowSaveStatus`, `useDataGridPendingSaveCount` |
+| [Labels, keys, and saves](#misc) | `useDataGridLabels`, `useDataGridKeymap`, `useDataGridCellErrors`, `useDataGridRowSaveStatus`, `useDataGridPendingSaveCount`, `useDataGridGatePending` |
 | [Typed selector](#createdatagridselector) | `createDataGridSelector` |
 
 ## Handle and actions [#handle]
@@ -30,7 +30,7 @@ Hooks that reach the grid from code.
 | <a id="usedatagridstoreprops"></a>`useDataGridStoreProps` | `{ store, actions }` | Creates the store outside the provider. Feed `store` to `DataGridProvider`. |
 | <a id="usedatagridscrolltocell"></a>`useDataGridScrollToCell` | `(ref: CellRef) => void` | Scrolls a cell into view. It does nothing before `DataGridRoot` mounts, and warns in development for a ref that does not resolve. |
 | <a id="usedatagridscrolltocellat"></a>`useDataGridScrollToCellAt` | `(coord: ViewCoord) => void` | The same scroll for a view coordinate. |
-| <a id="usedatagridclipboard"></a>`useDataGridClipboard` | `UseDataGridClipboardResult` | Returns `copy`, `cut`, and `pasteFromClipboard`. `copy` and `cut` resolve `"ok"`, `"fallback"`, `"failed"`, or `"no-selection"`. `pasteFromClipboard` resolves a `PasteFromClipboardResult`: `"ok"`, `"permission-denied"`, or `"empty"`. The hook takes an optional `{ sanitizeFormulas }`. Its default is the `sanitizeClipboardFormulas` prop. |
+| <a id="usedatagridclipboard"></a>`useDataGridClipboard` | `UseDataGridClipboardResult` | Returns `copy`, `cut`, and `pasteFromClipboard`. `copy` and `cut` resolve `"ok"`, `"fallback"`, `"failed"`, or `"no-selection"`. `pasteFromClipboard` resolves a `PasteFromClipboardResult`: `"ok"`, `"permission-denied"`, `"empty"` (the clipboard holds no text), or `"refused"` <NewBadge /> (the grid started no paste, as [Clipboard](/docs/clipboard-undo/clipboard) lists). The hook takes an optional `{ sanitizeFormulas }`. Its default is the `sanitizeClipboardFormulas` prop. |
 
 ## Rows and addresses [#rows]
 
@@ -89,7 +89,7 @@ Hooks that read the selection. [Selection model](/docs/concepts/selection-model)
 | <a id="usedatagridselection"></a>`useDataGridSelection` | `GridSelection` | The selection in view indexes. |
 | <a id="usedatagridgetselectionvalues"></a>`useDataGridGetSelectionValues` | `() => unknown[][]` | A stable callback. Each call reads the values of the main range at call time, or `[]` without a range. |
 | <a id="usedatagridselectedrows"></a>`useDataGridSelectedRows` | `DataGridSelectedRows` | The checked rows as a value for a bulk action. Mode `"ids"` holds `ids`. Mode `"allMatching"` holds `excludedIds`. See [Select server rows](/docs/rows-live-data/select-server-rows). |
-| <a id="usedatagridhiddencheckedcount"></a>`useDataGridHiddenCheckedCount` | `number` | The count of checked rows that a filter hides and `checkedRowsLifetime="across-filters"` remembers. It is `0` after `selectAllMatching()`. |
+| <a id="usedatagridhiddencheckedcount"></a>`useDataGridHiddenCheckedCount` | `number` | The count of checked rows that left the view (a filter, a page change, or a window move) and `checkedRowsLifetime="across-filters"` remembers. It is `0` after `selectAllMatching()`. |
 
 ## Columns [#columns]
 
@@ -120,10 +120,11 @@ Hooks for text, keys, and server results.
 | Hook | Returns | Meaning |
 | --- | --- | --- |
 | <a id="usedatagridlabels"></a>`useDataGridLabels` | `DataGridLabels` | The labels: the defaults merged with your `labels` prop. |
-| <a id="usedatagridkeymap"></a>`useDataGridKeymap` | `Keymap` | The effective keymap: defaults, plugin keymaps, then your `keymap` prop. |
-| <a id="usedatagridcellerrors"></a>`useDataGridCellErrors` | `ReadonlyMap<string, string>` | The map of server errors, keyed `"rowId:columnId"`. A cell renders its own error through `useDataGridCellState`. |
+| <a id="usedatagridkeymap"></a>`useDataGridKeymap` | `Keymap` | The effective keymap: defaults, plugin keymaps, then your `keymap` prop. It leaves out a binding that never matches: an unknown modifier, an unknown key name, or an empty key. An action with no live binding reads `[]`. |
+| <a id="usedatagridcellerrors"></a>`useDataGridCellErrors` | `ReadonlyMap<string, string>` | The map of cell errors, keyed `"rowId:columnId"`. The server sets them with `setCellErrors`, and a column with `onInvalid: "warn"` sets them on a rejected commit. A cell renders its own error through `useDataGridCellState`. |
 | <a id="usedatagridrowsavestatus"></a>`useDataGridRowSaveStatus` | `RowSaveStatus \| undefined` | `"saving"` while the `onSave` promise of the row is pending, `"failed"` after a refusal, else `undefined`. |
 | <a id="usedatagridpendingsavecount"></a>`useDataGridPendingSaveCount` | `number` | The count of `onSave` promises that have not settled. |
+| <a id="usedatagridgatepending"></a>`useDataGridGatePending` <NewBadge /> | `ReadonlySet<GateName>` | The names of the gates whose promise has not settled. See [Cancel async gates](/docs/editing-cells/cancel-async-gates). |
 
 ## createDataGridSelector [#createdatagridselector]
 

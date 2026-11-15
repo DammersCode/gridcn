@@ -1,5 +1,5 @@
 /**
- * i18n via a typed labels object: every user-facing string across core + add-ons lives here with
+ * i18n via a typed labels object: nearly every user-facing string across core + add-ons lives here with
  * English defaults. Consumers pass a `labels` prop (deep-merged over {@link DEFAULT_LABELS}) to
  * `DataGridProvider`; no i18n library dependency — wiring translated strings into
  * `DEFAULT_LABELS`'s shape is the consumer's job.
@@ -15,7 +15,7 @@ export type DataGridToolbarLabels = {
   searchNextMatch: string;
   /** e.g. "3/17". */
   searchMatches: (current: number, total: number) => string;
-  /** e.g. "3/1000+" when the match count hit the cap. */
+  /** e.g. "3/1000+" when more than 1,000 cells match. */
   searchMatchesCapped: (current: number) => string;
   /** No search performed yet / zero matches ("0/0"). */
   searchNoMatches: string;
@@ -196,13 +196,13 @@ export type DataGridMarkerLabels = {
 export type DataGridGridLabels = {
   /** Shown when the source has no rows and nothing filters; the `emptyState` prop on `DataGridRoot`, when provided, wins over this default. */
   emptyState: string;
-  /** Shown instead of `emptyState` when a filter or the search leaves zero rows. */
+  /** Shown instead of `emptyState` when a filter or a server search leaves zero rows. */
   noResults: string;
   /** The built-in error state of `DataGridRoot` (`error`). */
   errorState: string;
   /** The Retry button of the built-in error state. */
   errorRetry: string;
-  /** aria-label for the loading skeleton region (`loading && rowCount === 0`); also used as the indeterminate progress bar's aria-label when rows are present. */
+  /** Label of the screen reader progress element that the grid renders while `loading` is true. The skeleton and the bar are `aria-hidden`. */
   loading: string;
   /** Placeholder for the date editor's typed input (default hints the ISO `yyyy-mm-dd` format). */
   datePlaceholder: string;
@@ -254,6 +254,7 @@ export type DataGridIOLabels = {
   delimiterComma: string;
   delimiterSemicolon: string;
   delimiterTab: string;
+  delimiterPipe: string;
   hasHeaderRow: string;
   mapColumns: string;
   /** One-line hint under the mapping grid explaining why mapped columns disappear from other selects. */
@@ -342,6 +343,8 @@ export type DataGridViewsLabels = {
   loadFailed: string;
   saveFailed: string;
   limit: string;
+  /** The line shown while the view state is over a limit; `part` names what is over. */
+  overLimit: (part: "sorts" | "filters" | "search" | "layout") => string;
   importedName: string;
   retry: string;
   setDefault: (name: string) => string;
@@ -414,7 +417,7 @@ export interface DataGridLabels {
   findReplace: DataGridFindReplaceLabels;
 }
 
-/** English defaults — every string in the shipped UI today, verbatim (so adopting `labels` never changes visible copy without an explicit override). */
+/** English defaults — nearly every string in the shipped UI, verbatim (so adopting `labels` never changes visible copy without an explicit override). */
 /** The default labels in English; every number in a label is formatted with `locale`. */
 function buildDefaultLabels(locale: string): DataGridLabels {
   return {
@@ -660,6 +663,7 @@ function buildDefaultLabels(locale: string): DataGridLabels {
       delimiterComma: "Comma (,)",
       delimiterSemicolon: "Semicolon (;)",
       delimiterTab: "Tab",
+      delimiterPipe: "Pipe (|)",
       hasHeaderRow: "First row is a header",
       mapColumns: "Map columns",
       mapColumnsHint: "Each grid column can only be mapped from one source column.",
@@ -719,6 +723,13 @@ function buildDefaultLabels(locale: string): DataGridLabels {
       loadFailed: "Saved views could not be loaded.",
       saveFailed: "Your last change could not be saved.",
       limit: "The limit of 50 views is reached.",
+      overLimit: (part) =>
+        ({
+          sorts: "The sorts are over the view limit of 16. Remove one to save the view.",
+          filters: "The filters are over a view limit: 64 filters, 16 groups, 1,000 characters in a value, or 1,000 entries in a value list. Remove or shorten them to save the view.",
+          search: "The search text is over the view limit of 500 characters. Shorten it to save the view.",
+          layout: "The column layout is over a view limit: a column wider than 10,000 px or a layout list over 1,000 entries. Reset the layout to save the view.",
+        })[part],
       importedName: "Imported view",
       retry: "Retry",
       setDefault: (name) => `Use ${name} as the default view`,
@@ -771,7 +782,7 @@ function buildDefaultLabels(locale: string): DataGridLabels {
   };
 }
 
-/** English defaults — every string in the shipped UI today, verbatim (so adopting `labels` never changes visible copy without an explicit override). */
+/** English defaults — nearly every string in the shipped UI, verbatim (so adopting `labels` never changes visible copy without an explicit override). */
 export const DEFAULT_LABELS: DataGridLabels = buildDefaultLabels("en-US");
 
 const MAX_CACHED_LOCALES = 16;

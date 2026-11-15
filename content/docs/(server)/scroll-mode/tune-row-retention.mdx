@@ -81,7 +81,7 @@ Call the hook's own `onRenderedRowsChange` first. A prop after the spread replac
 Two behaviors matter for a policy of your own:
 
 - `evict` aborts the requests it covers, and a request that started before the evict drops its answer. It keeps rows with an open edit, a pending save, or an unsaved change, and the row under the active cell.
-- An evicted row loses an edit that you did not persist, because the hook does not own persistence. When an edit targets a row that the hook evicted before the merge, the hook warns once in development. See [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling#editing-loaded-rows).
+- An unsaved change stays in the row until its block loads again. The answer then replaces the unsaved value, because the hook does not own persistence. When an edit targets a row that the hook evicted before the merge, the hook warns once in development. See [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling#editing-loaded-rows).
 
 `evict` clamps the row range to `[0, totalRowCount)`. A sequential source ignores it.
 
@@ -101,7 +101,7 @@ Call `refresh()` <NewBadge /> after your `onSave` promise settles to pick up fie
 
 <NewBadge />
 
-Set `revalidateIntervalMs` (milliseconds, at least 1000) to call `refresh()` on a timer while the page is visible. A tick waits for a request in flight, and every refresh restarts the clock. A sequential source skips a tick while the rendered rows end beyond 10 blocks. The default is off. Pages mode takes the same option.
+Set `revalidateIntervalMs` (milliseconds, at least 1000) to call `refresh()` on a timer while the page is visible. A tick waits for a request in flight, and every refresh restarts the clock. A sequential source skips a tick while the rendered rows plus `overscan` end beyond 10 blocks. The default is off. Pages mode takes the same option.
 
 When live pushes leave rows out of order for the server's sort, set `reshapeDelayMs` to refetch after a push. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
 
@@ -114,7 +114,7 @@ Undo and redo compose with the `onDataChange` of the hook. See [Run history with
 The limits, the timer, and `evict` follow the spec of the hook in every setup:
 
 - **Server sort and filter.** The hook sets `sortMode="server"` and `filterMode="server"`. A sort or filter change starts the blocks over, so no limit holds rows of the old order.
-- **Controlled state.** Pass `spec` with `onSpecChange`, or feed the hook from `sortState`, `filterState`, and `searchText` that your app owns. A changed spec drops the loaded rows and aborts the requests in flight.
+- **Controlled state.** Pass `spec` with `onSpecChange` to the hook, and the grid follows it. A changed spec drops the loaded rows and aborts the requests in flight.
 - **Your own `onDataChange`.** The `onDataChange` option of the hook runs after the merge. Rows that your handler keeps outside the hook are not covered by `maxLoadedRows`.
 
 ## Related

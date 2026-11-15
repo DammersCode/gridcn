@@ -51,6 +51,8 @@ function MyGrid() {
 
 Result: edit a cell, then press Undo. The cell returns to its earlier value and Redo turns on.
 
+Undo and Redo <NewBadge /> write only the cells of the entry onto the current row. A value in another column that changed after the edit, for example from a stream push or a refetch, stays. An update that you build for `record` without a `cells` list writes the whole row.
+
 `getRowId` defaults to the `id` field of a row. `grid.history` holds `canUndo`, `canRedo`, `historySize`, `undo`, `redo`, `clear`, `record`, and `rollback`. `historySize` counts the entries on the undo stack. `clear` empties both stacks. To mount other plugins, pass `plugins` after the spread and keep `grid.plugins` in it: `<DataGrid {...grid} columns={columns} plugins={[fillPlugin, ...grid.plugins]} />`.
 
 ### Keyboard [#keyboard]
@@ -110,7 +112,7 @@ A `readOnly` grid refuses writes, so it records nothing. The keys, `undo`, and `
 
 Undo works in every data mode. Entries address rows by row id, so they follow server sort and server filter. In server pagination, `data` holds one page.
 
-`onSave` receives an undo or a redo as a change with `source: "history"`. Your handler sends the inverse change to the server like any other change. If `onSave` refuses all or part of a change, the grid reverts the refused rows and removes the entry from the stack. A refused undo or redo goes back on its stack instead (see [Refused undo and redo](#refused-undo)).
+`onSave` receives an undo or a redo as a change with `source: "history"`. Your handler sends the inverse change to the server like any other change. If `onSave` refuses all or part of a change, the grid reverts the refused rows. When the revert writes, the grid also removes the entry from the stack. The revert writes nothing on a `readOnly` grid, or when a newer edit already replaced every refused value. The entry then stays where it is. A refused undo or redo goes back on its stack instead, when the revert writes (see [Refused undo and redo](#refused-undo)).
 
 If your `onDataChange` writes to your backend and you pass no `onSave`, the stack does not learn whether the server accepted the write. After a failed save, call `rollback(change)`.
 
@@ -123,10 +125,10 @@ An update, delete, or move needs its row in `data`. An insert needs no row. If a
 | Case | Entry | `onSkip` reason |
 | --- | --- | --- |
 | Every needed row is in `data` | applied | none |
-| A needed row is a hole in a sparse `data` array (scroll mode) | stays on its stack | `"rows-not-loaded"` |
+| A needed row is missing and `data` has holes (scroll mode) | stays on its stack | `"rows-not-loaded"` |
 | A needed row is gone from a dense `data` array | dropped | `"rows-gone"` |
 
-For `"rows-not-loaded"`, load the rows and call `undo` again. Pass `onSkip` to react:
+For `"rows-not-loaded"`, load the rows and call `undo` again. Until the rows load, `datasetKey` changes, or `clear()` runs, the entry blocks the older entries under it. Pass `onSkip` to react:
 
 ```tsx
 const history = useDataGridHistory({
@@ -144,7 +146,7 @@ const history = useDataGridHistory({
 
 <NewBadge />
 
-If `onSave` refuses an undo or a redo, the grid reverts the change with a `"rollback"` change. History then puts the entry back. A refused undo is on the undo stack again, and a refused redo is on the redo stack again. A refused ordinary change still drops its entry.
+If `onSave` refuses an undo or a redo, the grid reverts the change with a `"rollback"` change. When the revert writes, history then puts the entry back. A refused undo is on the undo stack again, and a refused redo is on the redo stack again. A refused ordinary change still drops its entry. On a `readOnly` grid, or when a newer edit already replaced every refused value, the revert writes nothing and the entry stays where it is.
 
 ### Rows the server replaced [#server-replaced-rows]
 

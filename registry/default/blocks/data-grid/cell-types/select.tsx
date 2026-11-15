@@ -13,6 +13,7 @@ import { SET_FILTER_OPERATORS, TEXT_FILTER_OPERATORS } from "./capabilities";
 import { useCommitGuard } from "../interaction/use-commit-guard";
 import { columnLabelText } from "../columns/column-format-helpers";
 import { defaultCompareText } from "../sort-filter/default-compare-text";
+import { sortCollator } from "../sort-filter/sort-collator";
 
 type Choice = { value: string; label: string };
 type ChoiceInput = GridCellTypes["select"]["options"]["choices"];
@@ -49,10 +50,13 @@ function choiceIndex(choices: readonly Choice[]): ChoiceIndex {
 }
 
 // Sort ranks by label per `choices` array; equal labels share a rank, so a sort compares integers.
-const choiceRanks = new WeakMap<readonly Choice[], Map<string, number>>();
+const choiceRanks = new WeakMap<readonly Choice[], WeakMap<Intl.Collator, Map<string, number>>>();
 
 function choiceRank(choices: readonly Choice[]): Map<string, number> {
-  let ranks = choiceRanks.get(choices);
+  const collator = sortCollator();
+  let byCollator = choiceRanks.get(choices);
+  if (!byCollator) choiceRanks.set(choices, (byCollator = new WeakMap()));
+  let ranks = byCollator.get(collator);
   if (ranks) return ranks;
   ranks = new Map();
   const byLabel = [...choices].sort((a, b) => defaultCompareText(a.label, b.label));
@@ -63,7 +67,7 @@ function choiceRank(choices: readonly Choice[]): Map<string, number> {
     previous = choice.label;
     if (!ranks.has(choice.value)) ranks.set(choice.value, rank);
   }
-  choiceRanks.set(choices, ranks);
+  byCollator.set(collator, ranks);
   return ranks;
 }
 

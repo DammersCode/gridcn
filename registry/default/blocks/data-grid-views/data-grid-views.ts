@@ -9,4 +9,4 @@ export {
   type UseDataGridViewsResult,
 } from "./use-data-grid-views";
 export { createLocalStorageViewsStorage, createMemoryViewsStorage, type DataGridViewsStorage } from "./view-storage";
-export type { DataGridView, DataGridViewState, DataGridViewsDocument } from "./view-state";
+export type { DataGridView, DataGridViewState, DataGridViewsDocument, OverLimitPart } from "./view-state";

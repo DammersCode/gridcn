@@ -22,7 +22,7 @@ Before you start, commit your work. A clean working tree makes every upgrade cha
 
    Your version is the last release in the changelog with a date on or before the date of that commit. If you installed with a ref, that ref is your version. If your `components.json` aliases put the files elsewhere, use that folder.
 
-2. Collect every **Breaking:** entry in the [changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) from your version to the target. For an install without a ref, also read the `Unreleased` section.
+2. Collect every **Breaking:** entry in the [changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) from your version to the target. For an install without a ref, also read the `Unreleased` section and [`CHANGELOG-2.0.md`](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG-2.0.md).
 
 3. Use the same path in steps 3, 4, and 5. For a pinned release, write `DammersCode/gridcn/<item>#<ref>` in place of `@gridcn/<item>` in each command. Preview the install of each item you use. The command lists each file as `create`, `overwrite`, or `skip` and writes nothing. `overwrite` marks a file that differs. Step 5 asks before it overwrites it:
 
@@ -56,7 +56,7 @@ Each file that you overwrote matches the version from step 5. Each file that you
 
 ## Heavily edited files
 
-When a file has many edits, create a scratch branch and run the install there with `--overwrite`. Compare it with your branch through `git diff <your-branch> -- components/data-grid`, and carry your edits into the new files on the scratch branch. `--overwrite` also replaces the shadcn components in `components/ui`. Restore each component that you changed, commit, and merge the scratch branch into your branch.
+When a file has many edits, create a scratch branch and run the install there with `--overwrite`. Compare it with your branch through `git diff <your-branch> -- 'components/data-grid*'`, and carry your edits into the new files on the scratch branch. `--overwrite` also replaces the shadcn components in `components/ui`. Restore each component that you changed, commit, and merge the scratch branch into your branch.
 
 ## Related
 

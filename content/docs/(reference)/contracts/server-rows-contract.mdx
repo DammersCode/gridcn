@@ -23,7 +23,7 @@ sorting and filtering the response a second time. The [Server rows example](/doc
 
 <NewBadge />
 
-For a paged grid, `useDataGridServerRows` does steps 1 to 4 below and the race guard. It returns `gridProps`, `pager`, `status`, `loading`, `error`, `retry`, and `refresh`. The [Server rows example](/docs/server-data-examples/server-rows-example) shows it.
+For a paged grid, `useDataGridServerRows` does steps 1 to 4 below and the race guard. It returns `gridProps`, `providerProps`, `rootProps`, `spec`, `totalRowCount`, `pager`, `status`, `loading`, `error`, `retry`, `refresh`, and `reshape`. The [Server rows example](/docs/server-data-examples/server-rows-example) shows it.
 
 ## The contract
 
@@ -133,7 +133,7 @@ Both modes of `useDataGridServerRows` take the same spec. They differ in how row
 | | [Pages mode](/docs/add-options/server/server-rows-options#server-mode) | [Scroll mode](/docs/scroll-mode/load-rows-while-scrolling) |
 |---|---|---|
 | The grid shows | One page at a time | One continuous list of `totalRowCount` rows |
-| You send | `page`, `pageSize`, `start`, `end`, and the spec | `start`, `end`, a `cursor` on a cursor source, and the spec |
+| You send | `page`, `pageSize`, `start`, `end`, a `cursor` on a cursor source, and the spec | `start`, `end`, a `cursor` on a cursor source, and the spec |
 | The answer holds | The rows of one page, and the filtered `totalRowCount` or `hasMore` | The rows of one block, and `totalRowCount` or `nextCursor` |
 | After a spec change | Go to page 1 and refetch | Reset the loaded rows and refetch |
 | Stale requests | `fetchRows` receives an `AbortSignal` that aborts a replaced request | The same `AbortSignal` |
@@ -145,7 +145,7 @@ calls your `onPageChange` once with the clamped page. It skips this while `total
 
 The cell range and the active cell follow their row ids while the rows stay in `data`. A page
 change or refetch that removes a row drops it from the range. Checked rows depend on `totalRowCount`:
-without it, a checked row that leaves `data` drops out. With it, the grid
+without it, a checked row that leaves `data` drops out. With it and the default `checkedRowsLifetime`, the grid
 remembers the check by row id and checks the row again when it returns. See
 [Selection and bulk actions](#selection-and-bulk-actions).
 
@@ -309,22 +309,9 @@ response. Your fetch reads the restored spec and loads the rows. With pagination
 
 ### Check the request on your server [#parse-server-spec]
 
-`parseServerSpec(input, options)` checks a request body against `ParseServerSpecOptions`. Its `columns` option lists the ids a request can name, or maps each id to its `ServerSpecColumnRules`: `sortable`, `filterable`, `operators`, and custom operators. Its `limits` option is a `ServerSpecLimits`: `maxSorts` (8), `maxFilters` (64), `maxGroups` (16), `maxValueLength` (1000), `maxListLength` (1000), and `maxSearchLength` (200).
+`parseServerSpec(input, options)` checks a request body against `ParseServerSpecOptions`. Its `columns` option lists the ids a request can name, or maps each id to its `ServerSpecColumnRules`: `sortable`, `filterable`, `operators`, and custom operators. Its `limits` option is a `ServerSpecLimits`: `maxSorts` (64), `maxFilters` (64), `maxGroups` (16), `maxValueLength` (1000), `maxListLength` (1000), and `maxSearchLength` (500).
 
-#### Match the limits to the grid [#match-limits]
-
-<NewBadge />
-
-The grid can send more than the default limits allow. [URL state](/docs/sort-filter-search/url-state) restores up to 64 sorts. A [saved view](/docs/sort-filter-search/saved-views) restores up to 16 sorts and a search text of 500 characters. Over a limit, `parseServerSpec` throws a `ServerSpecError`, the route answers 400, and the grid shows its error bar. If your grid uses URL state or saved views, raise the two limits:
-
-```ts
-const spec = parseServerSpec(body.spec, {
-  columns: ["customer", "total"],
-  limits: { maxSorts: 64, maxSearchLength: 500 },
-});
-```
-
-URL state does not bound the length of a filter value or of the search text. `maxValueLength` and `maxSearchLength` bound them on the server.
+URL state drops a filter value over 1,000 characters and cuts the search text to 500 characters. `maxValueLength` and `maxSearchLength` bound them on the server.
 
 ## Related
 

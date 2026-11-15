@@ -10,7 +10,7 @@ Each table lists the hooks of one source. Every row links to the page that expla
 
 ## Store hooks
 
-Call these inside a `DataGridProvider`. Import them from `@/components/data-grid/data-grid`.
+Call these hooks inside a `DataGridProvider`. `useDataGridStoreProps` runs outside it and creates the store. `createDataGridSelector` builds such a hook. Import them from `@/components/data-grid/data-grid`.
 
 | Hook | Purpose | Page |
 | --- | --- | --- |
@@ -31,9 +31,9 @@ Call these inside a `DataGridProvider`. Import them from `@/components/data-grid
 | `useDataGridFilterState` | Returns the filter tree. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridfilterstate) |
 | `useDataGridGatePending` | Returns the set of gate names whose promise has not settled. | [Cancel async gates](/docs/editing-cells/cancel-async-gates#show-the-pending-state) |
 | `useDataGridGetSelectionValues` | Returns a callback that reads the values of the main range. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridgetselectionvalues) |
-| `useDataGridHiddenCheckedCount` | Returns the count of checked rows that a filter hides. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridhiddencheckedcount) |
+| `useDataGridHiddenCheckedCount` | Returns the count of checked rows that left the view. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridhiddencheckedcount) |
 | `useDataGridIsColumnHidden` | Returns whether a column is hidden. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridiscolumnhidden) |
-| `useDataGridKeymap` | Returns the effective keymap. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridkeymap) |
+| `useDataGridKeymap` | Returns the effective keymap without bindings that never match. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridkeymap) |
 | `useDataGridLabels` | Returns the merged labels. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridlabels) |
 | `useDataGridPendingSaveCount` | Returns the count of pending saves. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridpendingsavecount) |
 | `useDataGridReadOnly` | Returns the `readOnly` flag. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridreadonly) |
@@ -54,13 +54,16 @@ Call these inside a `DataGridProvider`. Import them from `@/components/data-grid
 | `useDataGridViewStale` | Returns whether rows keep an old view index. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridviewstale) |
 | `useDataGridVisibleColumns` | Returns the visible columns. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridvisiblecolumns) |
 
-## SDK hook
+## SDK exports
 
-Import it from `@/components/data-grid/data-grid-sdk`.
+Import them from `@/components/data-grid/data-grid-sdk`.
 
-| Hook | Purpose | Page |
+| Export | Purpose | Page |
 | --- | --- | --- |
 | `useDataGridStoreApi` | Returns the read-only store view for `exportGrid` and the import helpers. | [Export options](/docs/add-options/import-export/export-options) |
+| `useOptionalDataGridLabels` <NewBadge /> | Returns the labels of the enclosing `DataGridProvider`, or `null` outside one. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridlabels) |
+| `sortCollator` <NewBadge /> | Returns the collator of the `sortLocale` in scope, or the `"en-US"` collator outside a scope. A custom text `compare` calls it synchronously. | [Cell type contract](/docs/contracts/cell-type-contract) |
+| `withSortLocale` <NewBadge /> | Runs a synchronous function with a `sortLocale` in scope. A function that returns a promise leaves the scope at its first `await`, with one development warning. Wrap a sort or text compare that runs outside the view build. | [Sorting](/docs/sort-filter-search/sorting#sort-order) |
 
 ## Cell editor hooks
 

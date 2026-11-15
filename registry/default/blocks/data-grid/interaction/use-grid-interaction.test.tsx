@@ -56,6 +56,20 @@ describe("jumpToDataBoundary", () => {
     expect(jumpToDataBoundary(state, { col: 0, row: 0 }, "down")).toEqual({ col: 0, row: 2 });
   });
 
+  it("from an empty cell lands on the first non-empty cell, not the end of the run", () => {
+    const data: Row[] = [
+      { id: "1", name: "", qty: null },
+      { id: "2", name: "b", qty: 2 },
+      { id: "3", name: "c", qty: 3 },
+      { id: "4", name: "d", qty: 4 },
+    ];
+    expect(jumpToDataBoundary(fakeState(data), { col: 0, row: 0 }, "down")).toEqual({ col: 0, row: 1 });
+    expect(jumpToDataBoundary(fakeState([...data].reverse()), { col: 0, row: 3 }, "up")).toEqual({ col: 0, row: 2 });
+    expect(jumpToDataBoundary(fakeState([{ id: "1", name: "", qty: null }]), { col: 0, row: 0 }, "right")).toEqual({ col: 1, row: 0 });
+    expect(jumpToDataBoundary(fakeState([{ id: "1", name: "x", qty: null }]), { col: 1, row: 0 }, "left")).toEqual({ col: 0, row: 0 });
+    expect(jumpToDataBoundary(fakeState([{ id: "1", name: "", qty: 5 }]), { col: 0, row: 0 }, "right")).toEqual({ col: 1, row: 0 });
+  });
+
   it("clamps to the grid edge when no boundary is found", () => {
     const data: Row[] = [
       { id: "1", name: "", qty: null },
@@ -115,7 +129,7 @@ function makeRows(count: number): Row[] {
 
 function renderInteraction(
   rowCount = 20,
-  options: { readOnly?: boolean; createRow?: (index: number) => Row; duplicateRow?: (row: Row, index: number) => Row; keymap?: Keymap; columns?: readonly ColumnDef<Row, unknown>[]; uncontrolled?: boolean } = {},
+  options: { readOnly?: boolean; createRow?: (index: number) => Row; duplicateRow?: (row: Row, index: number) => Row; keymap?: Keymap; columns?: readonly ColumnDef<Row, unknown>[]; uncontrolled?: boolean; onRowActionSkipped?: DataGridStoreState["onRowActionSkipped"]; checkedRowsLifetime?: DataGridStoreState["checkedRowsLifetime"]; totalRowCount?: number } = {},
 ) {
   const { readOnly = false, createRow, duplicateRow, keymap = DEFAULT_KEYMAP, columns: testColumns = columns } = options;
   const scrollRef = { current: makeScrollElement() };
@@ -135,6 +149,9 @@ function renderInteraction(
         createRow={createRow}
         duplicateRow={duplicateRow}
         readOnly={readOnly}
+        onRowActionSkipped={options.onRowActionSkipped}
+        checkedRowsLifetime={options.checkedRowsLifetime}
+        totalRowCount={options.totalRowCount}
       >
         {children}
       </DataGridProvider>
@@ -164,7 +181,7 @@ function dataLength(hook: ReturnType<typeof renderInteraction>["hook"]): number 
 function pressKey(
   hook: ReturnType<typeof renderInteraction>["hook"],
   key: string,
-  modifiers: { ctrlKey?: boolean; shiftKey?: boolean } = {},
+  modifiers: { ctrlKey?: boolean; shiftKey?: boolean; altKey?: boolean; altGraph?: boolean } = {},
   preventDefault?: () => void,
 ) {
   act(() => {
@@ -173,7 +190,8 @@ function pressKey(
       ctrlKey: modifiers.ctrlKey ?? false,
       metaKey: false,
       shiftKey: modifiers.shiftKey ?? false,
-      altKey: false,
+      altKey: modifiers.altKey ?? false,
+      getModifierState: (name: string) => name === "AltGraph" && (modifiers.altGraph ?? false),
       nativeEvent: { isComposing: false } as unknown as KeyboardEvent,
       preventDefault: preventDefault ?? (() => {}),
     } as unknown as React.KeyboardEvent<HTMLElement>);
@@ -362,6 +380,30 @@ describe("useGridInteraction onKeyDown", () => {
     pressKey(hook, "k");
     const editing = hook.result.current.storeApi.getState().editing;
     expect(editing?.initialText).toBe("k");
+  });
+
+  it("an AltGr character on Windows (Ctrl+Alt with AltGraph) starts an edit seeded with it", () => {
+    const { hook } = renderInteraction(5);
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    hook.rerender();
+    pressKey(hook, "@", { ctrlKey: true, altKey: true, altGraph: true });
+    expect(hook.result.current.storeApi.getState().editing?.initialText).toBe("@");
+  });
+
+  it("an AltGr letter such as ł starts an edit seeded with it", () => {
+    const { hook } = renderInteraction(5);
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    hook.rerender();
+    pressKey(hook, "ł", { ctrlKey: true, altKey: true, altGraph: true });
+    expect(hook.result.current.storeApi.getState().editing?.initialText).toBe("ł");
+  });
+
+  it("Ctrl+Alt+C without AltGraph does not start an edit", () => {
+    const { hook } = renderInteraction(5);
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    hook.rerender();
+    pressKey(hook, "c", { ctrlKey: true, altKey: true });
+    expect(hook.result.current.storeApi.getState().editing).toBeNull();
   });
 
   it("disables implicit type-to-replace when the keymap defines typeToReplace (even empty)", () => {
@@ -653,6 +695,78 @@ describe("useGridInteraction: insertRowAbove/deleteRows dispatch", () => {
     pressKey(hook, "Backspace", { ctrlKey: true, shiftKey: true });
 
     expect(dataLength(hook)).toBe(3);
+  });
+});
+
+describe("useGridInteraction: onRowActionSkipped from shortcuts", () => {
+  const createRow = (index: number): Row => ({ id: `new-${index}`, name: "new", qty: 0 });
+  const duplicateRow = (row: Row, index: number): Row => ({ ...row, id: `dup-${index}` });
+  const insertBelow = (hook: ReturnType<typeof renderInteraction>["hook"]) => pressKey(hook, "f", { ctrlKey: true, shiftKey: true });
+  const insertAbove = (hook: ReturnType<typeof renderInteraction>["hook"]) => pressKey(hook, "u", { ctrlKey: true, shiftKey: true });
+  const deleteRows = (hook: ReturnType<typeof renderInteraction>["hook"]) => pressKey(hook, "Backspace", { ctrlKey: true, shiftKey: true });
+  const duplicate = (hook: ReturnType<typeof renderInteraction>["hook"]) => pressKey(hook, "x", { ctrlKey: true, shiftKey: true });
+
+  function setup(options: Parameters<typeof renderInteraction>[1] = {}) {
+    const onRowActionSkipped = vi.fn();
+    const { hook } = renderInteraction(3, { ...options, onRowActionSkipped });
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    hook.rerender();
+    return { hook, onRowActionSkipped };
+  }
+
+  it("reports readOnly for insert, duplicate, and delete", () => {
+    const { hook, onRowActionSkipped } = setup({ readOnly: true, createRow, duplicateRow });
+    insertBelow(hook);
+    insertAbove(hook);
+    duplicate(hook);
+    deleteRows(hook);
+    expect(onRowActionSkipped.mock.calls.map(([ctx]) => ctx)).toEqual([
+      { action: "insertRows", reason: "readOnly" },
+      { action: "insertRows", reason: "readOnly" },
+      { action: "duplicateRows", reason: "readOnly" },
+      { action: "deleteRows", reason: "readOnly" },
+    ]);
+  });
+
+  it("reports no-factory for insert and duplicate", () => {
+    const { hook, onRowActionSkipped } = setup();
+    insertBelow(hook);
+    duplicate(hook);
+    expect(onRowActionSkipped.mock.calls.map(([ctx]) => ctx)).toEqual([
+      { action: "insertRows", reason: "no-factory" },
+      { action: "duplicateRows", reason: "no-factory" },
+    ]);
+  });
+
+  it("reports all-matching for duplicate and delete while all matching is on", () => {
+    const { hook, onRowActionSkipped } = setup({ createRow, duplicateRow, checkedRowsLifetime: "across-filters", totalRowCount: 100 });
+    act(() => hook.result.current.actions.selectAllMatching());
+    hook.rerender();
+    expect(hook.result.current.storeApi.getState().allMatching).toBe(true);
+    duplicate(hook);
+    deleteRows(hook);
+    expect(onRowActionSkipped.mock.calls.map(([ctx]) => ctx)).toEqual([
+      { action: "duplicateRows", reason: "all-matching" },
+      { action: "deleteRows", reason: "all-matching" },
+    ]);
+  });
+
+  it("reports hidden-checked for duplicate and delete when only filtered-out rows are checked", () => {
+    const { hook, onRowActionSkipped } = setup({ createRow, duplicateRow, checkedRowsLifetime: "across-filters" });
+    act(() => hook.result.current.storeApi.setState({ hiddenCheckedRowIds: new Set(["gone"]) }));
+    hook.rerender();
+    duplicate(hook);
+    deleteRows(hook);
+    expect(onRowActionSkipped.mock.calls.map(([ctx]) => ctx)).toEqual([
+      { action: "duplicateRows", reason: "hidden-checked" },
+      { action: "deleteRows", reason: "hidden-checked" },
+    ]);
+  });
+
+  it("stays silent when the shortcut runs the action", () => {
+    const { hook, onRowActionSkipped } = setup({ createRow });
+    insertBelow(hook);
+    expect(onRowActionSkipped).not.toHaveBeenCalled();
   });
 });
 
@@ -1050,5 +1164,29 @@ describe("touch input", () => {
     const event = { detail: 0, target, currentTarget: target, metaKey: false, ctrlKey: false } as unknown as React.MouseEvent<HTMLElement>;
     act(() => hook.result.current.interaction.onCellClick({ col: 1, row: 5 }, event));
     expect(hook.result.current.activeCell).toEqual({ col: 1, row: 5 });
+  });
+});
+
+describe("Ctrl+Shift+Arrow extends from the far end of the selection", () => {
+  const gapColumns: readonly ColumnDef<Row, unknown>[] = [
+    { id: "name", header: "Name", accessorFn: (r: Row) => (["4", "5"].includes(r.id) ? "" : r.name), readOnly: true },
+    { id: "qty", header: "Qty", accessorKey: "qty", type: "number" },
+  ];
+  it("repeated Ctrl+Shift+ArrowDown grows the selection past each boundary", () => {
+    const { hook } = renderInteraction(10, { columns: gapColumns });
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    hook.rerender();
+    pressKey(hook, "ArrowDown", { ctrlKey: true, shiftKey: true });
+    expect(hook.result.current.selection.current?.range).toMatchObject({ y: 0, height: 4 });
+    pressKey(hook, "ArrowDown", { ctrlKey: true, shiftKey: true });
+    expect(hook.result.current.selection.current?.range).toMatchObject({ y: 0, height: 7 });
+  });
+  it("Ctrl+Shift+ArrowDown after Shift+ArrowDown scans from the focus cell", () => {
+    const { hook } = renderInteraction(10, { columns: gapColumns });
+    act(() => hook.result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    hook.rerender();
+    for (let i = 0; i < 4; i++) pressKey(hook, "ArrowDown", { shiftKey: true });
+    pressKey(hook, "ArrowDown", { ctrlKey: true, shiftKey: true });
+    expect(hook.result.current.selection.current?.range).toMatchObject({ y: 0, height: 7 });
   });
 });

@@ -40,6 +40,7 @@ export function OrdersGrid() {
     <>
       <DataGrid
         {...server.gridProps}
+        className="h-96"
         columns={columns}
         onSaveRejected={({ rejected }) =>
           notify(rejected[0]?.message ?? "Save refused")

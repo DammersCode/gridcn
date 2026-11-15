@@ -31,7 +31,7 @@ export function DataGridSortIndicator(props: DataGridSortIndicatorProps): ReactN
   return (
     <span className={cn("ms-1 inline-flex items-center gap-0.5 text-muted-foreground", className)} data-grid-sort-indicator={direction}>
       <Icon className="size-3.5" />
-      {sortState.length > 1 && <span className="text-xs tabular-nums">{index + 1}</span>}
+      {sortState.length > 1 && <span className="text-xs leading-none tabular-nums">{index + 1}</span>}
     </span>
   );
 }

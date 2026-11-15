@@ -11,6 +11,7 @@ import {
   useDataGridLabels,
   useDataGridSelectedRows,
   useDataGridVisibleColumns,
+  numberCellType,
   type DataGridStatusBarLabels,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { mergeLabelLayers, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
@@ -27,7 +28,7 @@ export type DataGridStatusBarProps = {
   /**
    * Formats the shown aggregate values. When omitted, the single-column rule applies: if every
    * numeric cell comes from one column, its `toDisplayText` formats sum/avg/min/max (a `number`
-   * column's `options.format` shows currency); otherwise `Intl.NumberFormat` in the `locale` of the grid with `maximumFractionDigits: 4`.
+   * column needs `options.format`, such as currency or percent, or `options.decimals`, which rounds with `Intl.NumberFormat(locale, { maximumFractionDigits: decimals })`); otherwise `Intl.NumberFormat(locale, { maximumFractionDigits: 4 })`.
    */
   formatValue?: (value: number, aggregate: StatusBarAggregate) => string;
   /** i18n overrides for this bar's strings, merged over `labels.statusBar`. */
@@ -43,8 +44,8 @@ const DEFAULT_AGGREGATES: readonly StatusBarAggregate[] = ["count", "sum", "avg"
  * Aggregate bar for the selected cells: count of non-empty cells plus sum/avg/min/max of numeric
  * cells, computed by {@link useDataGridSelectionStats}. Place it inside `DataGridProvider`, next
  * to `DataGridRoot`, like the pagination bar. Shows the number of hidden checked rows when `checkedRowsLifetime="across-filters"` remembers any, and the
- * select-all banner: "Select all matching" while every row of a partial view is checked, "Clear
- * selection" after `selectAllMatching`. Renders nothing while fewer than 2 selected cells hold a value, no
+ * select-all banner: with `totalRowCount` and `checkedRowsLifetime="across-filters"`, "Select all matching" while every
+ * row of a partial view is checked, "Clear selection" after `selectAllMatching`. Renders nothing while fewer than 2 selected cells have a value other than `undefined`, no
  * hidden checked row exists, and no banner shows.
  */
 export function DataGridStatusBar({
@@ -69,16 +70,26 @@ export function DataGridStatusBar({
     const cellType = column ? (cellTypes[column.type ?? "text"] ?? cellTypes["text"]) : undefined;
     const toDisplayText = cellType?.toDisplayText;
     if (!column || !toDisplayText) return null;
+    const options = column.options as { format?: unknown; decimals?: unknown } | undefined;
+    if (toDisplayText === numberCellType.toDisplayText && !options?.format) {
+      const decimals = options?.decimals;
+      if (decimals === undefined) return null;
+      if (typeof decimals === "number" && Number.isInteger(decimals) && decimals >= 0 && decimals <= 20) {
+        const rounded = new Intl.NumberFormat(locale, { maximumFractionDigits: decimals });
+        return (value: number) => rounded.format(value);
+      }
+    }
     return (value: number) => toDisplayText(value, column.options);
-  }, [stats.numericColumnId, visibleColumns, cellTypes]);
+  }, [stats.numericColumnId, visibleColumns, cellTypes, locale]);
 
   const showStats = stats.cells >= 2;
   const total = useDataGridSelector((s) => s.totalRowCount);
+  const canSelectAllMatching = useDataGridSelector((s) => s.checkedRowsLifetime === "across-filters");
   const allMatching = useDataGridSelector((s) => s.allMatching);
   const pageRows = useDataGridSelector((s) => s.viewIndex.length);
   const pageChecked = useDataGridSelector((s) => s.viewIndex.length > 0 && s.selection.rows.hasAll([0, s.viewIndex.length]));
   const actions = useDataGridActions();
-  const escalate = !allMatching && pageChecked && total !== undefined && (total === null || total > pageRows);
+  const escalate = canSelectAllMatching && !allMatching && pageChecked && total !== undefined && (total === null || total > pageRows);
   if (!showStats && hiddenChecked === 0 && !allMatching && !escalate && Children.toArray(children).length === 0) return null;
 
   const format = (value: number, aggregate: StatusBarAggregate) =>

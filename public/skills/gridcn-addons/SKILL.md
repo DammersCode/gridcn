@@ -113,7 +113,7 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
   replaces the core's uncontrolled `defaultData` with a controlled echo loop. If nothing needs undo,
   skip the add-on. Already own the array via your own state? Use `useDataGridHistory` instead — its
   plugin observes the grid's changes (your `onDataChange` echo stays the single write target) and
-  `undo`/`redo` apply the inverted batch through the grid's `commitChange`.
+  `undo`/`redo` apply the inverted batch through the grid's `commitChange`; an update with `cells` writes only those cells onto the current row.
 - **Undo over missing rows**: an undo or redo that needs a row missing from `data` applies nothing. Rows not loaded yet (holes) keep the entry and report `"rows-not-loaded"` to `onSkip`. Rows that are gone drop the entry and report `"rows-gone"`. An `onSave` refusal of an undo puts the entry back. Pass `datasetKey` to clear the stacks on a dataset swap.
 
 ## Async gates
@@ -127,7 +127,7 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
 
 ## Bounds and failure reporting
 
-- A paste or copy is capped at 200,000 cells (`MAX_PASTE_CELLS`, `MAX_COPY_CELLS`). Do not parse unbounded clipboard input in `processPaste`.
+- A paste or copy is capped at 200,000 cells. Do not parse unbounded clipboard input in `processPaste`.
 - An import is bounded by `importLimits` (`maxFileBytes`, `maxRows`, `maxCells`, and more). Lower the limits to fit your data. Do not raise them without a memory budget: a raised `maxCells` raises the peak memory of a workbook parse.
 - A grid that holds one page or some loaded blocks exports only those rows. For the whole server result pass `options={{ source }}` to `DataGridExportButton` (or `source` to `exportGrid`): `source({ spec, signal })` returns an array or an async iterable of batches, and your server applies `spec`. Bound it with `maxRows` and `maxBytes`. A `DataGridProvider` with `pageSize` holds every row, so its export, print, and totals cover every page; pass `scope: "page"` to `exportGrid`, `printGrid`, or `aggregateRow` for the shown page only.
 - Without `onImport`, an import confirm appends the rows as one undoable `"import"` change. On a server or counted grid, `onImport(rows, { signal })` must send the rows to the server and then call `server.refresh()`. Never append imported rows to `data` of a grid that has a `totalRowCount`.

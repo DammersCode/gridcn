@@ -422,7 +422,7 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   Editor: FC<CellEditorProps<TData, TValue, TOptions>>;
   /** Serialize for clipboard/export; quick search uses it when the type declares no `toSearchText`. Filter never uses it — it matches the raw value. */
   toText(value: TValue, options?: TOptions): string;
-  /** Optional display-only rendering (e.g. locale-formatted dates); the cell renders `toDisplayText ?? toText`. Clipboard/export always use `toText`. */
+  /** Optional display-only rendering (e.g. locale-formatted dates); the cell renders `toDisplayText ?? toText`. Clipboard copy and export use `toText`; export with `text: "display"`, print, autosize, header filter set values, and the status bar read `toDisplayText ?? toText`. */
   toDisplayText?(value: TValue, options?: TOptions): string;
   /** Parse from paste/import/typing; return clearValue()'s result for garbage. A throw rejects the cell on paste, fill, import, and replace. */
   fromText(text: string, options?: TOptions): TValue;
@@ -503,8 +503,8 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   /** Stable identity — never derived from the header label. */
   id: string;
   /**
-   * String headers render truncated and get the built-in sort-direction arrow in `sort`
-   * header-click mode; a ReactNode header renders as-is and owns its own display (the built-in
+   * String headers render truncated and get the built-in sort-direction arrow
+   * while the column is sorted and not `sortable: false`, in every header-click mode; a ReactNode header renders as-is and owns its own display (the built-in
    * arrow is NOT appended — embed DataGridSortIndicator inside it when you still want it).
    */
   header: string | ReactNode;
@@ -847,7 +847,7 @@ export type DataGridReadState = Omit<
 >;
 
 /**
- * The read-only store view behind `DataGridApi.store` and `useDataGridStoreApi`: `getState` and
+ * The read-only store view behind `DataGridApi.store` and `useDataGridStoreApi`: `getState`, `getInitialState`, and
  * `subscribe` only — `setState` does not exist on it. The consumer's writable store (the
  * store-ownership path) is `useDataGridStoreProps`.
  */
@@ -878,7 +878,7 @@ export type DataGridPlugin<TData = unknown> = {
   onDataChange?(next: readonly TData[], change: DataChange<TData>, ctx: DataGridPluginCtx<TData>): void;
   /** This plugin's commands, merged into the grid's command map (the consumer's `commands` win; a built-in action name is dropped unless pluggable). */
   commands?: Record<string, GridCommand<TData>>;
-  /** Binds keys to this plugin's own commands and to the pluggable built-in actions it also defines in `commands`. An entry for any other name is dropped, dev-warned; a key another action already holds is dropped, dev-warned. The kept bindings replace the action's default bindings. */
+  /** Binds keys to this plugin's own commands. An entry for any other name is dropped, dev-warned; a key another action already holds is dropped, dev-warned. An entry is the action's full binding list: it replaces the action's default bindings, and an empty list unbinds the action. */
   keymap?: Partial<Record<GridAction | (string & {}), KeyBinding[]>>;
   /** A component rendered inside `DataGridRoot` after its children (no props — read the grid through {@link useDataGridApi}). */
   Mount?: ComponentType;
@@ -982,7 +982,7 @@ export interface GridCellTypes {
       decimals?: number;
       /** Display-only locale format (currency, percent, compact); `toText`, copy, export, and the editor stay on the raw value. */
       format?: Intl.NumberFormatOptions;
-      /** Locale for `format`; default `"en-US"` — an explicit default keeps SSR and client HTML identical. */
+      /** Language of `format` (`format: {}` groups the digits by it); default `"en-US"` — an explicit default keeps SSR and client HTML identical. */
       locale?: string;
     };
   };
@@ -1001,7 +1001,7 @@ export interface GridCellTypes {
   };
   date: {
     value: string | null;
-    /** `locale` defaults to `"en-US"` — an explicit default keeps SSR and client HTML identical. */
+    /** `locale` sets the language of `displayFormat` and defaults to `"en-US"` — an explicit default keeps SSR and client HTML identical. */
     options: {
       min?: string;
       max?: string;

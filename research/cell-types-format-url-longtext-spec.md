@@ -132,7 +132,7 @@ export function safeHref(raw: string): string | null;
 
 - Unit `number.test.ts`: currency, percent, compact output with `locale`; `decimals` fills the
   fraction digits; `toText` stays raw; copy and CSV export of a formatted column give raw numbers;
-  invalid `format` falls back with one warning; one formatter per options object (spy).
+  invalid `format` falls back with one warning; one formatter per equal options (spy).
 - Unit `safe-href.test.ts`: the security list above plus a 2,049-character URL → `null`.
 - Unit: `openLink` calls `window.open` with `noopener,noreferrer` for a safe value, and does
   nothing for an unsafe value, a non-url column, or a lazy hole; it runs in a read-only grid.

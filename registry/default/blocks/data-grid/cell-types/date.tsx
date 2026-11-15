@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { toSafeText } from "./safe-text";
+import { createFormatterCache, formatKey } from "./formatter-cache";
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import { CalendarIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -91,17 +92,11 @@ function localDateToIsoDatePart(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-/** Formatters keyed by serialized options, so a re-created column literal reuses one (build ~38us, reuse ~0.7us). */
-const dateFormatterCache = new Map<string, Intl.DateTimeFormat>();
+const cachedDateFormatter = createFormatterCache<Intl.DateTimeFormat>("invalid date format options, showing the ISO text");
 
-function getDateFormatter(locale: string, format: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
-  const key = `${locale}|${JSON.stringify(format)}`;
-  let formatter = dateFormatterCache.get(key);
-  if (!formatter) {
-    formatter = new Intl.DateTimeFormat(locale, format);
-    dateFormatterCache.set(key, formatter);
-  }
-  return formatter;
+/** Formatters keyed by serialized options, so a re-created column literal reuses one (build ~38us, reuse ~0.7us). `null` when the options are invalid. */
+function getDateFormatter(locale: string, format: Intl.DateTimeFormatOptions): Intl.DateTimeFormat | null {
+  return cachedDateFormatter(`${locale}|${formatKey(format)}`, () => new Intl.DateTimeFormat(locale, format));
 }
 
 /** Formats an ISO date part per the column's `displayFormat`/`locale`, falling back to the raw ISO text. */
@@ -111,7 +106,8 @@ function formatDateDisplay(value: string | null, options?: GridCellTypes["date"]
   const date = isoDatePartToLocalDate(text);
   if (!date) return text;
   // pinned default: server and browser Intl defaults can differ -> SSR hydration mismatch
-  return getDateFormatter(options.locale ?? "en-US", options.displayFormat).format(date);
+  const formatter = getDateFormatter(options.locale ?? "en-US", options.displayFormat);
+  return formatter ? formatter.format(date) : text;
 }
 
 function DateCell({ value, options }: CellRenderProps<unknown, string | null, GridCellTypes["date"]["options"]>) {

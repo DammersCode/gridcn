@@ -33,7 +33,7 @@ describe("operatorsForColumnType", () => {
 });
 
 describe("operatorLabel", () => {
-  it("returns a human-readable label for every FilterOperator", () => {
+  it("returns a non-empty label for every FilterOperator", () => {
     const all: FilterOperator[] = [
       "contains",
       "notContains",

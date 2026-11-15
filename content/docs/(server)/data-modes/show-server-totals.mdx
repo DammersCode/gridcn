@@ -23,6 +23,7 @@ This grid pins the totals of the filtered result:
 ```tsx
 "use client";
 
+import { useMemo } from "react";
 import {
   DataGridBody,
   DataGridHeader,
@@ -65,12 +66,16 @@ export function OrdersGrid() {
     },
   });
   const { plugin } = useDataGridPinnedRows({ bottomRows: [TOTALS] });
+  const plugins = useMemo(
+    () => [...server.providerProps.plugins, plugin],
+    [server.providerProps.plugins, plugin],
+  );
 
   return (
     <DataGridProvider
       {...server.providerProps}
       columns={columns}
-      plugins={[plugin]}
+      plugins={plugins}
     >
       <DataGridRoot {...server.rootProps}>
         <DataGridHeader />
@@ -89,6 +94,8 @@ The band sets its own `status` from the row. An explicit `status` option of `use
 
 `serverAggregateRow`, `DataGridServerAggregateReporter`, and `useDataGridServerAggregate` fetch again after the last pending save settles. An edit that your `onSave` answers with a promise therefore updates the totals. Set `refreshAfterSave: false` to keep the totals of the last request, and call `refresh()` on the result yourself.
 
+A grid without `onSave` has no save to wait for. Call `totals.refresh()`, the `refresh` of the result that `onChange` stored, after your own write lands.
+
 ## Read the result yourself [#read-the-result]
 
 <NewBadge />
@@ -100,7 +107,7 @@ To show the status or a refresh button outside the band, render `DataGridServerA
 The request carries the spec and not the rows in the grid. The same code serves pages mode, scroll mode, a controlled spec, and your own API.
 
 - The row requests once on mount.
-- It requests again after each filter, quick-search, or `columnIds` change, and after `refresh()` and `retry()`.
+- It requests again after each filter, quick-search, or `columnIds` change, after the saves in flight settle, and after `refresh()` and `retry()`.
 - Each request waits `debounceMs` before it starts, the one on mount too.
 - A sort does not change the totals, so it does not request.
 - A newer request aborts the older one through `signal`, and the grid drops a late answer of the older one.

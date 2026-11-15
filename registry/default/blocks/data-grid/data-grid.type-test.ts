@@ -603,3 +603,6 @@ publicActions.setRowCheckedAt(4, true);
 // @ts-expect-error - deleteRows takes stable row ids, not view indexes
 publicActions.deleteRows([4]);
 publicActions.deleteRowsAt(viewIndexes([4]));
+export const gateTimeoutPerGate: DataGridProviderProps<{ id: string }>["gateTimeoutMs"] = { onBeforeDeleteRows: 5000 };
+// @ts-expect-error - the import gate has no timeout
+export const gateTimeoutImport: DataGridProviderProps<{ id: string }>["gateTimeoutMs"] = { import: 5000 };

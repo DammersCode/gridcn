@@ -3,6 +3,8 @@ import {
   MAX_VIEWS,
   MAX_VIEW_NAME_LENGTH,
   captureViewState,
+  overLimitPart,
+  savableViewState,
   parseViewDocument,
   parseViewFile,
   sanitizeViewState,
@@ -166,7 +168,7 @@ describe("sanitizeViewState", () => {
     expect(result.state.searchText.length).toBeLessThanOrEqual(500);
   });
 
-  it("drops a list filter over its bound instead of narrowing it", () => {
+  it("drops an isNoneOf filter over its value bound instead of narrowing it", () => {
     const result = sanitizeViewState(
       { ...state, filters: [{ columnId: "name", operator: "isNoneOf", value: Array.from({ length: 2000 }, (_, i) => String(i)) }] },
       columns,
@@ -299,8 +301,62 @@ describe("view files", () => {
     expect((result.state.filters[0] as { value: string[] }).value).toHaveLength(1000);
   });
 
-  it("names a nameless file", () => {
+  it("reads a nameless file with an empty name", () => {
     const text = JSON.stringify({ format: "gridcn-view", version: 1, state });
     expect(parseViewFile(text, columns)).toMatchObject({ ok: true, name: "" });
+  });
+});
+
+describe("a long column id", () => {
+  const long = "c".repeat(300);
+  const empty = { sorts: [], filters: [], searchText: "", searchOptions: { matchCase: false, wholeCell: false }, columnLayout: { widths: {}, order: [], pins: {}, hidden: [] } } as DataGridViewState;
+  it.each([
+    ["a sort", { sorts: [{ columnId: long, direction: "asc" }] }],
+    ["a nested filter", { filters: [{ join: "and", filters: [{ columnId: long, operator: "contains", value: "a" }] }] }],
+    ["a width", { columnLayout: { widths: { [long]: 100 }, order: [], pins: {}, hidden: [] } }],
+    ["a pin", { columnLayout: { widths: {}, order: [], pins: { [long]: "left" }, hidden: [] } }],
+    ["the order", { columnLayout: { widths: {}, order: [long], pins: {}, hidden: [] } }],
+    ["the hidden list", { columnLayout: { widths: {}, order: [], pins: {}, hidden: [long] } }],
+  ])("is not over a limit for %s", (_name, change) => {
+    const state = { ...empty, ...change } as DataGridViewState;
+    expect(overLimitPart(state)).toBe(false);
+    expect(savableViewState(state)).not.toBeNull();
+  });
+  it("survives save then reload of a stored document", () => {
+    const state = {
+      sorts: [{ columnId: long, direction: "desc" }],
+      filters: [{ join: "and", filters: [{ columnId: long, operator: "contains", value: "a" }] }],
+      searchText: "",
+      searchOptions: { matchCase: false, wholeCell: false },
+      columnLayout: { widths: { [long]: 120 }, order: [long], pins: { [long]: "start" }, hidden: [long] },
+    } as DataGridViewState;
+    const stored = JSON.parse(JSON.stringify({ version: 1, defaultViewId: null, views: [{ id: "v", name: "Long", state: savableViewState(state) }] }));
+    expect(parseViewDocument(stored)!.views[0]!.state).toEqual(state);
+  });
+  it("is kept by a file import only for a live column", () => {
+    const state = { ...empty, sorts: [{ columnId: long, direction: "asc" }] } as DataGridViewState;
+    const text = serializeViewFile({ name: "n", state });
+    expect(parseViewFile(text, new Map([[long, {}]]))).toMatchObject({ ok: true, dropped: 0, state: { sorts: [{ columnId: long }] } });
+    expect(parseViewFile(text, new Map([["a", {}]]))).toMatchObject({ ok: true, dropped: 1, state: { sorts: [] } });
+  });
+  it("is not over a limit for a custom operator id of any length", () => {
+    const filters = [{ columnId: "a", operator: "op".repeat(40), value: "q" }];
+    expect(overLimitPart({ ...empty, filters })).toBe(false);
+    expect(savableViewState({ ...empty, filters })).not.toBeNull();
+  });
+  it("cannot save a column named __proto__", () => {
+    const sorts = [{ columnId: "__proto__", direction: "asc" as const }];
+    expect(overLimitPart({ ...empty, sorts })).toBe("sorts");
+    expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
+  });
+  it.each([
+    ["a list on contains", { columnId: "a", operator: "contains", value: ["x"] }],
+    ["no value on equals", { columnId: "a", operator: "equals" }],
+  ])("reports %s as over the filters limit", (_name, filter) => {
+    expect(overLimitPart({ ...empty, filters: [filter] } as DataGridViewState)).toBe("filters");
+  });
+  it("is still reported for a part over a real limit", () => {
+    const sorts = Array.from({ length: 17 }, (_, i) => ({ columnId: `c${i}`, direction: "asc" as const }));
+    expect(overLimitPart({ ...empty, sorts })).toBe("sorts");
   });
 });

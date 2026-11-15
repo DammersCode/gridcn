@@ -10,15 +10,15 @@ The grid follows the WAI-ARIA grid pattern.
 
 ## Conformance target [#conformance-target]
 
-The target is WCAG 2.1 AA. gridcn makes no conformance claim, and no conformance audit has run. The automated checks run axe-core in Chromium on two core fixtures and the saved-views menu. One fixture has a toolbar, markers, a pinned row, and a sort. One has column groups. The repository records no manual pass with a screen reader.
+The target is WCAG 2.1 AA. gridcn makes no conformance claim and has had no conformance audit. The automated checks run axe-core in Chromium on two core fixtures and the saved-views menu. One fixture has a toolbar, markers, a pinned row, and a sort. One has column groups. No manual screen reader pass is on record.
 
 ## Roles and indices [#semantics]
 
 ### Roles [#grid-semantics]
 
-The scroll root has `role="grid"`. Each rendered row has `role="row"`. Each data cell has `role="gridcell"`. Each column header has `role="columnheader"`.
+The scroll root has `role="grid"`, a rendered row `role="row"`, a data cell `role="gridcell"`, and a column header `role="columnheader"`.
 
-The marker column holds `gridcell` cells and a `columnheader` with a screen-reader-only label (`labels.markers.columnHeader`). A checkbox cell is a display-only `role="checkbox"` with `aria-checked`. Its `aria-label` is the column `headerText`, a string header, or the column id.
+The marker column holds `gridcell` cells and a `columnheader` with a screen-reader-only label (`labels.markers.columnHeader`). A checkbox cell is a display-only `role="checkbox"` with `aria-checked`. Its `aria-label` is the `headerText`, a string header, or the column id.
 
 ### Counts and indices [#the-aria-index-and-count-model]
 
@@ -39,7 +39,7 @@ The marker column sits outside this index space. It has no `aria-colindex`. `ari
 
 ### Sort and state [#sort-and-read-only-state]
 
-A sortable column header has `aria-sort` set to `ascending`, `descending`, or `none`. The attribute appears in every `headerClickBehavior` mode. The visual arrow shows on every sorted column with a string header. In `"sort"` mode, it shows on the other sortable columns too. A column with `sortable: false` has no `aria-sort`.
+A sortable column header has `aria-sort` set to `ascending`, `descending`, or `none`. The attribute appears in every `headerClickBehavior` mode. The visual arrow shows on every sorted column that has a string header and is not `sortable: false`. A column with `sortable: false` has no `aria-sort` and no arrow.
 
 With `readOnly`, the root has `aria-readonly`. While any of `enableRangeSelection`, `enableRowSelection`, `enableColumnSelection`, or `enableMultiRange` is true, the root has `aria-multiselectable`. All four default to `true`.
 
@@ -49,9 +49,9 @@ A cell with a validation error has `aria-invalid="true"` and the message in `ari
 
 ### Roving tabindex [#roving-tabindex]
 
-The grid uses the roving tabindex pattern. Before a cell is active, a grid with rows gives the root `tabindex="0"`, and the root is the one tab stop. Once a cell is active, that cell alone has `tabindex="0"`. The other cells have `-1`, and the root drops to `-1`.
+The grid uses the roving tabindex pattern. Before a cell is active, the root of a grid with rows is the one tab stop (`tabindex="0"`) <NewBadge />. Once a cell is active, only that cell has `tabindex="0"`. The other cells and the root have `-1`. With zero rows, the root has `-1`. Each column header has one tab stop.
 
-DOM focus follows the active cell. The grid keeps the active row mounted after it scrolls out of view, so focus stays in place. Pinned-row cells and skeleton cells have no `tabindex`.
+DOM focus follows the active cell. The active row stays mounted after it scrolls out of view, so focus stays. Pinned-row cells and skeleton cells have no `tabindex`.
 
 ### Selection [#selection-announcement-model]
 
@@ -66,8 +66,8 @@ A text editor is a native `<input>` inside the `gridcell`, so a screen reader re
 ### Loading state [#aria-busy-and-loading]
 
 - The root has `aria-busy="true"` while `loading` is true.
-- With `loading` and zero rows, the skeleton block has `role="presentation"` and an `aria-label` from `labels.grid.loading`.
-- With `loading` and rows present, a slim bar shows. The bar is hidden from the accessibility tree. A visually hidden `role="progressbar"` outside the grid announces it, with `aria-label` and `aria-valuetext` from `labels.grid.loading`.
+- The skeleton (zero rows) and the slim bar (rows present) are hidden from the accessibility tree.
+- While the grid draws its own loading state, a visually hidden `role="progressbar"` outside the grid exposes `aria-label` and `aria-valuetext` from `labels.grid.loading`. <NewBadge /> A screen reader does not read it aloud.
 - A custom `loadingState` replaces the skeleton or the bar. The grid adds no role, label, or progressbar. The node owns its accessibility.
 - In scroll mode, a row and its cells that have not arrived have `aria-busy="true"`.
 
@@ -83,7 +83,7 @@ The region waits 500 ms after the last change. A marker range drag gets one read
 
 With `announceResults`, the region also reads the number of rows of the view after a client filter or sort change, for example "42 rows" (`labels.grid.resultsCount`). A filter change that keeps the same rows in the same order stays quiet. Every sort change announces. A mount stays quiet. In scroll mode, while some rows have not arrived, the region counts the loaded rows only, for example "42 loaded rows" (`labels.grid.resultsCountLoaded`). With client pagination, the count covers every page, like the footer.
 
-A server sort or filter change announces nothing. With `announceResults`, the region reads the result when the next load ends. See [Load result](/docs/accessibility/live-region-messages#load-result). A client filter announces under `sortMode="server"`. With `announceResults` in a server grid, a new numeric `totalRowCount` becomes the result count.
+A server sort or filter change announces nothing. With `announceResults`, the region reads the result when the next load ends. A load that began with zero rows also reads its result count. <NewBadge /> See [Load result](/docs/accessibility/live-region-messages#load-result). A client filter announces under `sortMode="server"`. With `announceResults` in a server grid, a new numeric `totalRowCount` becomes the result count.
 
 `announceResults` is a `boolean` grid prop with the default `false`. [Checked rows](/docs/selection-shortcuts/checked-rows) lists it.
 

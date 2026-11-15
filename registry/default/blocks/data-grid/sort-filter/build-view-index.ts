@@ -1,6 +1,7 @@
 import type { FilterNode, FilterSpec, SortSpec } from "../types";
 import { groupChildren, isFilterGroup } from "./filter-tree";
 import { isDev } from "../is-dev";
+import { sortCollator } from "./sort-collator";
 import { createFilterMatcher, isBuiltInOperator } from "./matches-filter";
 import { KEYED_SORT_MIN_ROWS, sortByKeys, type SortKeyReader } from "./keyed-sort";
 
@@ -153,8 +154,8 @@ export function buildViewIndex(
   }
 
   // One collator amortized across every default-compare column and every pairwise
-  // comparison in this call, instead of a fresh Intl.Collator per `localeCompare`.
-  const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+  // comparison in this call, instead of a lookup per comparison.
+  const collator = sortCollator();
 
   const comparators = opts.sorts.map((sort) => {
     const custom = accessor.compare?.(sort.columnId);

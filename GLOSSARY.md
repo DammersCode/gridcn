@@ -20,7 +20,7 @@ mirror the change there.
 | checked row | A row whose marker checkbox is on, kept in the row channel of the selection. | ticked row |
 | data mode | One way the grid gets its rows: local array, client pagination, server pagination (pages mode), scroll mode, controlled state, server sort, server filter, or write-through to your own API. `research/parity-matrix.json` lists each feature against each data mode. | source kind |
 | checked rows lifetime | How long the checked rows last: `'until-click'`, `'until-cleared'`, or `'across-filters'`. Set by the prop `checkedRowsLifetime`. | keep checks, remember checks |
-| hidden checked row | A checked row that the current filter hides. `checkedRowsLifetime="across-filters"` remembers it by row id, outside the row channel. The grid's row operations never act on it. | invisible check, filtered-out selection |
+| hidden checked row | A checked row that a filter, a page change, or a window move takes out of the view. `checkedRowsLifetime="across-filters"` remembers it by row id, outside the row channel. The grid's row operations never act on it. | invisible check, filtered-out selection |
 | block move | Moving several rows so they land next to each other in their current order: `reorderRows(rows, to)`. `moveRowsBy(rows, delta)` shifts each row and keeps the gaps. | bulk move |
 | commit | Check a value with `validate` and write it to the data. | |
 | controlled / uncontrolled | `data` puts the state in your code. `defaultData` seeds the grid once. | |
@@ -118,6 +118,7 @@ mirror the change there.
 | Use | Meaning | Do not use |
 |---|---|---|
 | override | A prop or callback that replaces default behavior. | escape hatch |
+| paste result | The value `pasteFromClipboard` resolves: `"ok"` (a paste started), `"permission-denied"` (the browser denied the clipboard read), `"empty"` (the clipboard held no text), or `"refused"` (the grid started no paste). | paste outcome |
 | save acknowledgement | The answer of `onSave`: nothing (accepted), `{ rejected }` (named rows or cells refused), or a rejected promise (everything refused). | write result |
 | save status | `"saving"` while an `onSave` promise is pending and `"failed"` after a refusal. `useDataGridRowSaveStatus` reads it. | save state |
 | save conflict | A refused save for which the server sent its current row. `resolveSaveConflict` decides whether the row becomes the server's row, stays as it is, or becomes a merged row. | edit conflict |

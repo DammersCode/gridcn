@@ -30,6 +30,8 @@ export type DataGridHeaderDropdownProps = {
    * resolver applies automatically; this prop overrides it for this dropdown only.
    */
   getHeaderMenuItems?: HeaderMenuItemsResolver;
+  /** Merged into the classes of the menu content. */
+  className?: string;
 };
 
 /**
@@ -55,18 +57,22 @@ function HeaderDropdownItems(props: {
  * menu. Wire via `<DataGridRoot renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}>`.
  */
 export function DataGridHeaderDropdown(props: DataGridHeaderDropdownProps): ReactNode {
-  const { column, trigger, getHeaderMenuItems } = props;
+  const { column, trigger, getHeaderMenuItems, className } = props;
   // rendered inline inside DataGridRoot's subtree (not portaled like the context menu), so the
   // container is reachable directly via the shared hook instead of a contextmenu-time ref capture.
   const scrollRoot = useDataGridContainer();
   const inheritedResolver = useContext(DataGridHeaderMenuItemsContext);
   const api = useDataGridApi();
   const keyboardOpenedRef = useRef(false);
+  const openerRef = useRef<HTMLElement | null>(null);
 
   return (
     <DropdownMenu
       onOpenChange={(open, details) => {
-        if (open) keyboardOpenedRef.current = (details.event?.target as HTMLElement | null)?.hasAttribute(GRID_ATTR.keyboardOpen) ?? false;
+        if (!open) return;
+        keyboardOpenedRef.current = (details.event?.target as HTMLElement | null)?.hasAttribute(GRID_ATTR.keyboardOpen) ?? false;
+        const focused = document.activeElement as HTMLElement | null;
+        openerRef.current = keyboardOpenedRef.current && focused?.closest("[role='columnheader']") ? focused : null;
       }}
     >
       <DropdownMenuTrigger render={trigger} />
@@ -77,12 +83,16 @@ export function DataGridHeaderDropdown(props: DataGridHeaderDropdownProps): Reac
         data-grid-header-dropdown=""
         data-grid-header-menu-popup=""
         align="end"
-        // the trigger is not a tab stop; the keyboard path (openColumnMenu) opens from the active cell
+        className={className}
+        // the trigger is a tab stop only at zero rows; openColumnMenu opens it from a focused header button or the active cell
         finalFocus={() => {
           if (!keyboardOpenedRef.current) return true;
           const active = document.activeElement;
           const focusIsFree = !active || active === document.body || active.closest("[data-grid-header-menu-popup], [" + GRID_ATTR.headerMenuTrigger + "]") !== null;
-          if (focusIsFree) api.focus();
+          if (focusIsFree) {
+            if (openerRef.current?.isConnected) openerRef.current.focus();
+            else api.focus();
+          }
           return false;
         }}
       >

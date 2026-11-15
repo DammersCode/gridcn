@@ -26,10 +26,10 @@ selection, W6-05 `commitChange`, W5-10 commands.
    shifts each row by `delta` and keeps the gaps (keyboard). Both build their ops through one
    internal `buildRowMoves(s, finalIndexOf)`. Rejected: keyboard as a block move —
    stepping of rows 1, 3, 7 would collapse them into one block, which the user did not ask for.
-3. **Keyboard: `shift+alt+ArrowUp` / `shift+alt+ArrowDown`.** New built-in actions
+3. **Keyboard: `shift+alt+PageUp` / `shift+alt+PageDown`.** New built-in actions
    `moveRowsUp`/`moveRowsDown`. Rationale: matching is exact on shift, alt, and mod
    (`keyboard/match-keymap.ts:45-60`); plain, `alt`, `mod`, `shift`, and `mod+shift` Arrow are
-   taken (`keyboard/default-keymap.ts:10-38`). Rejected: `mod+alt+Arrow` — Ctrl+Alt is AltGr on
+   taken (`keyboard/default-keymap.ts:10-38`), and `shift+alt+ArrowUp` / `shift+alt+ArrowDown` open the column filter and menu. Rejected: `mod+alt+Arrow` — Ctrl+Alt is AltGr on
    Windows.
 4. **A grip press keeps a multi-row check.** A plain press on the grip of a row already in the row
    channel defers `selectRow(i)` to a stationary release; a drag then moves the whole row channel.
@@ -41,7 +41,7 @@ selection, W6-05 `commitChange`, W5-10 commands.
 // DataGridActions (store/types.ts) — Breaking: rows widen from one index to a list
 reorderRows(rows: number | readonly number[], to: number): boolean;  // view indices; to = final index of the block's first row
 moveRowsBy(rows: readonly number[], delta: number): boolean;          // each row moves by delta; whole batch no-ops at an edge
-// GridActions: moveRowsUp, moveRowsDown (default "shift+alt+ArrowUp" / "shift+alt+ArrowDown")
+// GridActions: moveRowsUp, moveRowsDown (default "shift+alt+PageUp" / "shift+alt+PageDown")
 // labels.markers: reorderRowsAnnouncement(count: number, position: number, total: number): string
 // labels.keybindings.actions: moveRowsUp, moveRowsDown
 ```
@@ -124,7 +124,7 @@ view length after dedupe; out-of-range indices fail the whole call.
   controlled consumer applying via `applyChange` matches the uncontrolled result.
 - Browser `row-reorder.browser.test.tsx`: drag three checked rows (contiguous and disjoint);
   stationary press still selects one row (replaces the test at `:296`); touch drag past the window
-  with autoscroll; `shift+alt+ArrowDown` moves the row channel; announcement text.
+  with autoscroll; `shift+alt+PageDown` moves the row channel; announcement text.
 - Perf: 1,000-row batch at 100k rows under the recorded budget.
 
 ## Dependencies

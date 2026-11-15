@@ -481,6 +481,19 @@ describe("buildXlsx", () => {
     expect(parsed.rows[1]![1]).toBe("short");
   });
 
+  it("buildXlsx and buildExportRows count a maxRows below 0 as 0 and read NaN as no cap", async () => {
+    const data = [
+      { id: "1", name: "a", note: "" },
+      { id: "2", name: "b", note: "" },
+      { id: "3", name: "c", note: "" },
+    ];
+    const xlsxRows = async (maxRows: number) => (await parseImportFile(new File([await buildXlsx(makeState({ data }), { maxRows })], "export.xlsx"))).rows.length;
+    expect(await xlsxRows(-1)).toBe(1);
+    expect(await xlsxRows(Number.NaN)).toBe(4);
+    expect(buildExportRows(makeState({ data }), "view", { maxRows: -1 })).toEqual([]);
+    expect(buildExportRows(makeState({ data }), "view", { maxRows: Number.NaN })).toHaveLength(3);
+  });
+
   it("rejects a sheetName that Excel does not accept as a sheet name", async () => {
     await expect(buildXlsx(makeState(), { sheetName: "Q3/Q4" })).rejects.toThrow();
     await expect(buildXlsx(makeState(), { sheetName: "x".repeat(32) })).rejects.toThrow();

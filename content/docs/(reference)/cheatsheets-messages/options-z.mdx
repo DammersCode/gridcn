@@ -15,8 +15,9 @@ Options of the sort, filter, search, saved views, and URL add-ons.
 | Options | Used by | Page |
 | --- | --- | --- |
 | `allColumns` | `DataGridSortList`, `DataGridFilterMenu` | [Sort list options](/docs/add-options/sort-filter-search/sort-list-options#allcolumns) |
-| `debounceMs`, `placeholder` | `DataGridSearch` | [Toolbar options](/docs/add-options/sort-filter-search/toolbar-options#datagridsearch) |
-| `column`, `index` | `DataGridHeaderFilter` | [Toolbar options](/docs/add-options/sort-filter-search/toolbar-options#datagridheaderfilter) |
+| `debounceMs`, `placeholder`, `className` | `DataGridSearch` | [Toolbar options](/docs/add-options/sort-filter-search/toolbar-options#datagridsearch) |
+| `className` | `DataGridFilterMenu` | [Toolbar options](/docs/add-options/sort-filter-search/toolbar-options) |
+| `column`, `index`, `className` | `DataGridHeaderFilter` | [Toolbar options](/docs/add-options/sort-filter-search/toolbar-options#datagridheaderfilter) |
 | `scope`, `replaceAllLimit`, `processReplace` | `useDataGridFindReplace`, `planReplace` | [Find and replace options](/docs/add-options/sort-filter-search/find-replace-options#usedatagridfindreplace) |
 | `matchCase`, `wholeCell`, `only`, `skip` | `planReplace` | [Find and replace options](/docs/add-options/sort-filter-search/find-replace-options#planreplace) |
 | `storage`, `value`, `defaultValue`, `onValueChange`, `enableDefaultView`, `onError` | `useDataGridViews`, `DataGridViews` | [Saved views options](/docs/add-options/sort-filter-search/saved-views-options#options) |
@@ -69,9 +70,9 @@ Options of the pagination, pinned rows, and menu add-ons.
 | `page`, `pageSize`, `totalRowCount`, `hasMore`, `onPageChange`, `pageSizeOptions`, `onPageSizeChange` | `useDataGridServerPager` | [Client pagination options](/docs/add-options/rows-pages-menus/client-pagination-options) |
 | `pageSizeOptions` | `useDataGridPager` | [Client pagination options](/docs/add-options/rows-pages-menus/client-pagination-options#grid-pager) |
 | `className`, `labels`, `windowSize`, `children`, `pageSizeOptions`, the fields of the pager | `DataGridPaginationBar` | [Client pagination options](/docs/add-options/rows-pages-menus/client-pagination-options) |
-| `getCellMenuItems`, `getHeaderMenuItems` | `DataGridContextMenu` | [Context menu options](/docs/add-options/rows-pages-menus/context-menu-options) |
+| `getCellMenuItems`, `getHeaderMenuItems`, `className`, `children` | `DataGridContextMenu` | [Context menu options](/docs/add-options/rows-pages-menus/context-menu-options) |
 | `topRows`, `bottomRows`, `status` | `useDataGridPinnedRows` | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options#usedatagridpinnedrowsoptions) |
-| `fetchAggregates`, `columnIds`, `debounceMs`, `onError` | `useDataGridServerAggregate`, `DataGridServerAggregateReporter` | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options#usedatagridserveraggregateoptions) |
+| `fetchAggregates`, `columnIds`, `debounceMs`, `refreshAfterSave`, `onError` | `useDataGridServerAggregate`, `DataGridServerAggregateReporter` | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options#usedatagridserveraggregateoptions) |
 | `onChange` | `DataGridServerAggregateReporter` | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options#usedatagridserveraggregateoptions) |
 | `scope`, `cells` <NewBadge /> | `aggregateRow` | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options#aggregaterow) |
 | `fetchAggregates`, `columnIds`, `debounceMs`, `onError`, `cells`, `refreshAfterSave` <NewBadge /> | `serverAggregateRow` | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options#serveraggregaterow) |
@@ -84,7 +85,7 @@ Options of the status bar and the key dialog.
 | Options | Used by | Page |
 | --- | --- | --- |
 | `aggregates`, `formatValue`, `labels`, `className`, `children` | `DataGridStatusBar` | [Status bar options](/docs/add-options/selection-shortcuts/status-bar-options) |
-| `open`, `onOpenChange`, `defaultOpen`, `trigger` | `DataGridKeybindingsDialog` | [Shortcut remapping options](/docs/add-options/selection-shortcuts/shortcut-remapping-options) |
+| `open`, `onOpenChange`, `defaultOpen`, `trigger`, `className` | `DataGridKeybindingsDialog` | [Shortcut remapping options](/docs/add-options/selection-shortcuts/shortcut-remapping-options) |
 
 ## Server
 

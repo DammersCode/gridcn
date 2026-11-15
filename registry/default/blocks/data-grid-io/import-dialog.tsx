@@ -20,8 +20,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { IMPORT_CANCELLED_MESSAGE, type ImportColumnMapping, type ImportRejectedCell, type ProcessCellFromText } from "./build-imported-rows";
 import { importErrorKey, useDataGridImportPreview, type ImportTargetColumn, type ImportDefaults, type ParseFile, type ProcessImportRows, type ImportErrorKey } from "./use-data-grid-import";
-import { DEFAULT_IMPORT_LIMITS, type CsvDelimiter, type ImportLimits } from "./parse-import-file";
-import { Dropzone, DropzoneEmptyState, type DropzoneAccept, type DropzoneRejection } from "@/registry/default/blocks/dropzone/dropzone";
+import { resolveImportLimits, type CsvDelimiter, type ImportLimits } from "./parse-import-file";
+import { acceptedTypeNames, Dropzone, DropzoneEmptyState, type DropzoneAccept, type DropzoneRejection } from "@/registry/default/blocks/dropzone/dropzone";
 
 /** Accepted import file types, shared by the file input and the {@link Dropzone}. */
 const IMPORT_ACCEPT: DropzoneAccept = {
@@ -33,10 +33,11 @@ const IMPORT_ACCEPT: DropzoneAccept = {
 
 export type { ImportDefaults };
 
-const DELIMITER_OPTIONS: { value: CsvDelimiter; labelKey: "delimiterComma" | "delimiterSemicolon" | "delimiterTab" }[] = [
+const DELIMITER_OPTIONS: { value: CsvDelimiter; labelKey: "delimiterComma" | "delimiterSemicolon" | "delimiterTab" | "delimiterPipe" }[] = [
   { value: ",", labelKey: "delimiterComma" },
   { value: ";", labelKey: "delimiterSemicolon" },
   { value: "\t", labelKey: "delimiterTab" },
+  { value: "|", labelKey: "delimiterPipe" },
 ];
 
 /** Mapping-select value for a source column that maps to no grid column. */
@@ -103,7 +104,7 @@ export type DataGridImportDialogProps<TData> = {
  */
 export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TData>): ReactNode {
   const { open, onOpenChange, createRow, onImport, onImportError, importDefaults, importLimits, parseFile, accept = IMPORT_ACCEPT, csvEncoding, processImportRows, processCellFromText, file, className } = props;
-  const maxFileBytes = importLimits?.maxFileBytes ?? DEFAULT_IMPORT_LIMITS.maxFileBytes;
+  const maxFileBytes = resolveImportLimits(importLimits).maxFileBytes;
   const labels = useDataGridLabels();
   const actions = useDataGridActions();
   const storeApi = useDataGridStoreApi();
@@ -275,6 +276,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
     try {
       built = build<TData>({
         columns: allColumns,
+        // The store erases TData; the cast re-widens cellTypes to this dialog's TData.
         cellTypes: state.cellTypes as never,
         createRow,
         signal: abortController.signal,
@@ -305,7 +307,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
     onOpenChange(false);
   }, [onOpenChange]);
 
-  const acceptedTypesLabel = labels.io.acceptedFileTypes(Object.values(accept).flat().join(", "));
+  const acceptedTypesLabel = labels.io.acceptedFileTypes(acceptedTypeNames(accept).join(", "));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

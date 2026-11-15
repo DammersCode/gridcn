@@ -1,3 +1,4 @@
+import { isDev } from "../is-dev";
 import { warnDev } from "./commit";
 
 /** Whether an event-time gate answered with a promise instead of a plain value. */
@@ -6,11 +7,11 @@ export function isThenable<T = unknown>(value: unknown): value is PromiseLike<T>
 }
 
 /** A dev warning that fires once per key for the lifetime of the returned function. */
-export function createWarnOnce(): (key: string, message: string) => void {
+export function createWarnOnce(): (key: string, message: string | (() => string)) => void {
   const warned = new Set<string>();
   return (key, message) => {
     if (warned.has(key)) return;
     warned.add(key);
-    warnDev(message);
+    if (isDev()) warnDev(typeof message === "function" ? message() : message);
   };
 }

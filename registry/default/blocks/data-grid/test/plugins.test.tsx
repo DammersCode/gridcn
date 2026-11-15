@@ -264,6 +264,32 @@ describe("plugin conflicts (decision 3 table)", () => {
     expect(warn.mock.calls[0]![0]).toBe("keymap-collide:p:fillDown");
   });
 
+  it("a plugin entry is the action's full binding list: a restated default key stays, an added key joins it", () => {
+    const warn = vi.fn();
+    const plugin = { name: "p", commands: { fillDown: { run: () => {} } }, keymap: { fillDown: ["mod+d", "mod+shift+d"] } };
+    expect(mergePluginKeymaps([plugin], undefined, warn).fillDown).toEqual(["mod+d", "mod+shift+d"]);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("a plugin entry keeps one binding for keys that differ only in letter case", () => {
+    const warn = vi.fn();
+    const plugin = { name: "p", commands: { undo: { run: () => {} } }, keymap: { undo: ["mod+Z", "mod+z", "alt+Backspace"] } };
+    expect(mergePluginKeymaps([plugin], undefined, warn).undo).toEqual(["mod+Z", "alt+Backspace"]);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("an empty plugin entry unbinds the action like an empty consumer entry", () => {
+    const plugin = { name: "p", commands: { fillDown: { run: () => {} } }, keymap: { fillDown: [] } };
+    expect(mergePluginKeymaps([plugin], undefined, vi.fn()).fillDown).toEqual([]);
+  });
+
+  it("a consumer entry replaces the plugin's list", () => {
+    const warn = vi.fn();
+    const plugin = { name: "p", commands: { fillDown: { run: () => {} } }, keymap: { fillDown: ["mod+d", "mod+shift+d"] } };
+    expect(mergePluginKeymaps([plugin], { fillDown: ["mod+c"] }, warn).fillDown).toEqual(["mod+c"]);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it("a plugin binding takes mod+f from the default focusSearch binding without a warning", () => {
     const warn = vi.fn();
     const plugin = { name: "p", commands: { openFind: { run: () => {} } }, keymap: { openFind: ["mod+f"] } };

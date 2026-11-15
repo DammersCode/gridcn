@@ -23,8 +23,9 @@ aliases: ["presence highlight", "remote cursors", "collaborator selection"]
 `setPresenceHighlights` drops malformed entries:
 
 - A value that is no object.
-- A cell entry without a non-empty `columnId`.
-- A range entry with empty `rowIds` or `columnIds`, or with a `columnIds` that holds a non-string.
+- A cell entry whose `rowId` or `columnId` is empty, not a string, or longer than 256 characters.
+- A range entry with empty `rowIds` or `columnIds`.
+- A range entry with a `rowIds` or `columnIds` entry that is empty, not a string, or longer than 256 characters.
 - A view entry without a finite `x`, `y`, `width`, and `height`.
 - An entry whose `id` is missing, not a string, or longer than 256 characters.
 - An entry past the first 1000.

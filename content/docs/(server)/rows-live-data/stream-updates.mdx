@@ -46,7 +46,7 @@ export function TickerFeed({ url }: { url: string }) {
 
 One call is one batch. The grid applies all patches together and calls `onDataChange` once, with one `update` operation per touched row. Rows you do not patch keep their object identity and do not render again. The grid skips a patch for an unknown row id. To add a row, pass a new `data` array.
 
-A call with `source: "stream"` <NewBadge /> (the default) takes at most 100,000 patches. The grid skips the patches after the limit. A stream `deleteRowsById` call takes at most 100,000 ids under the same rule.
+A call with `source: "stream"` <NewBadge /> (the default) takes at most 100,000 patches. The grid skips the patches after the limit. A stream `deleteRows` call takes at most 100,000 ids under the same rule.
 
 A hidden column takes patches like a visible one.
 
@@ -74,7 +74,7 @@ export function ReSortBar() {
 }
 ```
 
-`reconcileView()` clears the flag. A change of sort or filter does the same. An edit, paste, fill, or cleared selection that touches such a column also marks the view stale.
+`reconcileView()` clears the flag. A change of sort or filter does the same. An edit, paste, fill, or cell clear that touches such a column also marks the view stale.
 
 The `reorder` option of `UpdateCellsOptions` takes an `UpdateCellsReorder` value and sets this behavior per call, for example `{ reorder: "immediate" }`:
 
@@ -92,11 +92,11 @@ With `sortMode="server"` <NewBadge /> or `filterMode="server"`, the server order
 
 ## Control the data yourself [#controlled-mode]
 
-In controlled mode, store the array that `onDataChange` gives you in state, and pass it back as `data` unchanged. The grid recognizes its own array and keeps the sort, filter, and search results. Pass a stable `sortState` and `filterState`. A new array on each render counts as a change, and the grid computes the view again. A rebuilt array makes the grid compute them again on every update.
+In controlled mode, store the array that `onDataChange` gives you in state, and pass it back as `data` unchanged. The grid recognizes its own array and keeps the sort, filter, and search results. Pass a stable `sortState` and `filterState`. A new array on each render counts as a change, and the grid computes the view again.
 
 ## Undo and save [#undo-history]
 
-A batch <NewBadge /> carries `source: "stream"`. The history add-on does not record that source, and `onSave` never receives it. A push into a row with a save in flight is skipped with reason `saving`. Push the value again after the save settles.
+A batch <NewBadge /> carries `source: "stream"`. The history add-on does not record it, and `onSave` never receives it. Undo writes only the cells of its edit, so values pushed into other cells stay. A push into a row with a save in flight is skipped with reason `saving`. Push it again after the save settles.
 
 To make one batch undoable, pass `{ source: "edit" }` to `updateCells`. An `"edit"` batch reaches `onSave`. To record streams without that, add the source to the defaults of the history add-on:
 

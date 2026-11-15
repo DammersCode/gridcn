@@ -12,7 +12,7 @@ Row operations change the rows of the grid. Each one reaches `onDataChange` and 
 
 ## Enable the operations [#enable-the-operations]
 
-Insert needs `createRow`. Duplicate needs `duplicateRow`. Delete needs nothing. Give each new row an id that the server accepts:
+Insert needs `createRow`. Duplicate needs `duplicateRow`. Delete needs nothing. Give each new row an id that the server accepts. The sample shows the callbacks on a local array. `useDataGridServerRows` takes the same `onSave`:
 
 ```tsx
 import { DataGrid, type DataChange } from "@/components/data-grid/data-grid";
@@ -29,7 +29,7 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
       defaultData={rows}
       columns={columns}
       getRowId={(row) => row.id}
-      createRow={() => ({ id: crypto.randomUUID(), item: "", quantity: 0 })}
+      createRow={() => ({ id: crypto.randomUUID(), customer: "", total: 0 })}
       duplicateRow={(row) => ({ ...row, id: crypto.randomUUID() })}
       onSave={onSave}
     />
@@ -63,11 +63,11 @@ If the promise creates the row on the server, skip the `insert` operation in `on
 
 A scroll-mode grid holds unloaded rows as holes. If their target touches a hole, `deleteRows`, `duplicateRows`, `insertRow`, and `insertRows` do nothing. The target is every row of a delete, every source row of a duplicate, and the anchor row of an insert. One hole cancels the whole request. The grid writes nothing, calls no `onDataChange`, and warns once in development.
 
-`deleteRowsById` skips an id that matches no row and deletes the rest. A placeholder id matches a hole, so it cancels the whole request. Drop those ids before you call it.
+`deleteRows` skips an id that matches no row and deletes the rest. A placeholder id matches a hole, so it cancels the whole request. Drop those ids before you call it.
 
 `isPlaceholderRowId(id)` <NewBadge /> tells a placeholder from a real id. `reorderRows` does nothing while any row is unloaded.
 
-Select all in a scroll-mode grid checks the holes too. To delete rows that you know, pass their ids to `deleteRowsById`. Render the button inside `DataGridProvider`, next to `DataGridRoot`:
+Select all in a scroll-mode grid checks the holes too. To delete rows that you know, pass their ids to `deleteRows`. Render the button inside `DataGridProvider`, next to `DataGridRoot`:
 
 ```tsx
 import { useDataGridActions } from "@/components/data-grid/data-grid";
@@ -75,7 +75,7 @@ import { useDataGridActions } from "@/components/data-grid/data-grid";
 export function DeleteKnownRows() {
   const actions = useDataGridActions();
   return (
-    <button onClick={() => actions.deleteRowsById(["o-17", "o-18"])}>
+    <button onClick={() => actions.deleteRows(["o-17", "o-18"])}>
       Delete
     </button>
   );
@@ -94,7 +94,7 @@ Pass `onSave` <NewBadge /> to `useDataGridServerRows` and the hook refreshes aft
 
 ## Confirm a delete [#confirm-a-delete]
 
-`onBeforeDeleteRows` runs before every delete, from the shortcut, the context menu, and `deleteRows` or `deleteRowsById`. Return `false` or a promise of `false` to cancel. Without the prop, a delete runs at once.
+`onBeforeDeleteRows` runs before every delete, from the shortcut, the context menu, and `deleteRows` or `deleteRowsAt`. A `deleteRows` call with `source: "stream"` skips the gate. Return `false` or a promise of `false` to cancel. Without the prop, a delete runs at once.
 
 When "select all matching" is on, the Delete, Duplicate, and Move shortcuts do nothing. See [Select server rows](/docs/rows-live-data/select-server-rows).
 

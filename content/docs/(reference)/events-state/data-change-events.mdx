@@ -85,7 +85,7 @@ An `update` carries `cells` (`columnId`, `value`, `prev`) for an edit, a paste, 
 | `rollback` | The revert of a refused save |
 | `merge` <NewBadge /> | The change that `resolveSaveConflict` commits on top of the server row. `onSave` receives it, and history does not record it |
 | `id-swap` <NewBadge /> | `actions.replaceRowId` or `actions.replaceRowIds`. `onSave` does not receive it, and history does not record it |
-| `stream` | A batch from `updateCells` or `updateRows`, or a `deleteRowsById` call with `source: "stream"` |
+| `stream` | A batch from `updateCells` or `updateRows`, or a `deleteRows` call with `source: "stream"` |
 | `replace` | A batch from find and replace |
 | `app` | A change you apply with the history `record` function |
 
@@ -131,7 +131,7 @@ The callback fires once per refused change, after the revert. It receives a `Sav
 
 ## onBeforeDeleteRows [#onbeforedeleterows]
 
-The callback runs before every row delete that the grid starts: the delete shortcut, the context menu item, `deleteRows`, and `deleteRowsById`. It receives `{ rowIds, hiddenCount, signal }`. `rowIds` are the rows that go. `hiddenCount` counts the hidden checked rows that stay. Return `false`, or a promise of `false`, to cancel.
+The callback runs before every row delete that the grid starts: the delete shortcut, the context menu item, `deleteRows`, and `deleteRowsAt`. It receives `{ rowIds, hiddenCount, signal }`. `rowIds` are the rows that go. `hiddenCount` counts the hidden checked rows that stay. Return `false`, or a promise of `false`, to cancel.
 
 A pending promise blocks a second delete. A throw or a rejection cancels the delete. If the grid became `readOnly`, or the rows or the checked rows changed while the promise was pending, the grid drops a confirmed delete.
 

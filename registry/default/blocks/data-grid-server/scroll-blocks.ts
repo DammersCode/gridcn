@@ -59,7 +59,7 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
   maxLoadedRows?: number;
   /**
    * Milliseconds between `refresh()` calls the hook runs itself while the page is visible. A tick waits for a request in flight,
-   * and every refresh restarts the clock. A sequential source skips a tick while the rendered rows end beyond 10 blocks.
+   * and every refresh restarts the clock. A sequential source skips a tick while the rendered rows plus `overscan` end beyond 10 blocks.
    * At least 1000. Off by default.
    */
   revalidateIntervalMs?: number;
@@ -67,7 +67,7 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
    * Milliseconds to wait after a push marked a row stale before the hook runs a `refresh()` (a reshape) so the server places the
    * rows again. The first push starts the wait and later pushes join it, so a steady feed reshapes at most once per delay. A
    * reshape that falls due during a request, or while the page is hidden, waits and runs once; a sequential source skips it while the
-   * rendered rows end beyond 10 blocks. At least 250. Off by default: a stale row then waits for `reshape()`, `refresh()`, or a spec change.
+   * rendered rows plus `overscan` end beyond 10 blocks. At least 250. Off by default: a stale row then waits for `reshape()`, `refresh()`, or a spec change.
    */
   reshapeDelayMs?: number;
   /** Fires after a request fails. */
@@ -78,7 +78,7 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
   onDataChange?: (next: readonly TData[], change: DataChange<TData>) => void;
   /** Saves a change; spread to the provider through `gridProps.onSave`, where it behaves as the `DataGridProvider` prop of the same name. The hook refreshes after saves settle by `refreshAfterSave`. */
   onSave?: SaveRefreshOptions<TData>["onSave"];
-  /** When the hook calls `refresh()` after `onSave` settles: `"settled"` once after every save in flight (default), `"each"` after every save, `false` never, or a function that gets the counts and returns whether to refresh. */
+  /** When the hook calls `refresh()` after `onSave` settles: `"settled"` once after every save in flight (default), `"each"` after saves settle without waiting for the saves in flight, `false` never, or a function that gets the counts and returns whether to refresh. A sequential source skips the refresh while the rendered rows plus `overscan` end beyond 10 blocks. */
   refreshAfterSave?: SaveRefreshPolicy;
 };
 
@@ -104,6 +104,7 @@ export type UseDataGridServerRowsScrollProviderProps<TData> = {
   onSearchTextChange: (next: string) => void;
   /** The row count of the result; `null` until the first block lands, and for a sequential source until it ends or the server sends one. */
   totalRowCount: number | null;
+  /** Keeps checks by row id across window moves, evictions, and server sorts and filters. */
   checkedRowsLifetime: "across-filters";
   /** Mounts the guard that keeps a refresh from overwriting a row with a pending save or an open edit. Put your own plugins after it. */
   plugins: readonly DataGridPlugin<unknown>[];
@@ -135,7 +136,7 @@ export type UseDataGridServerRowsScrollResult<TData> = {
    * The hook calls it after saves settle by `refreshAfterSave`; call it yourself with `refreshAfterSave: false` or a void `onSave`.
    */
   refresh: () => void;
-  /** Asks the server to place the pushed rows again: one `refresh()` on the next frame, or after `reshapeDelayMs` when it is set. Calls in one frame join. */
+  /** Asks the server to place the pushed rows again: one `refresh()` on the next frame, or after `reshapeDelayMs` when it is set. Calls in one frame join. A sequential source skips it while the rendered rows plus `overscan` end beyond 10 blocks. */
   reshape: () => void;
   /** Rows with no data yet; they render as skeletons. A sequential source reports its one block of skeletons. */
   unloadedCount: number;
@@ -870,6 +871,8 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     restartClockRef.current();
     const core = getCore();
     if (!core.ready || (core.kind !== "sequence" && core.count === null)) {
+      core.failed.clear();
+      setError(null);
       runFetch({ start: 0, end: blockSize() });
       return;
     }

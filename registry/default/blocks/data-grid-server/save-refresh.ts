@@ -20,8 +20,8 @@ export type SaveRefreshReport = {
 
 /**
  * When the hook fetches again after `onSave` settles.
- * - `"settled"`: once, after every save in flight has settled (or after 10 seconds, so one stuck save cannot stop the refresh). A burst of saves costs one request.
- * - `"each"`: after every save that settles.
+ * - `"settled"`: once, after every save in flight has settled (or after 10 seconds, so one stuck save cannot stop the refresh). A burst of saves costs one request. After the 10 seconds, each save still in flight refreshes when it settles, until a new save starts a new wait.
+ * - `"each"`: after saves settle, without waiting for the saves still in flight. Saves that settle in the same task share one refresh.
  * - `false`: never. Call `refresh()` yourself.
  * - a function: once after every save in flight has settled (or after the same 10 seconds), when it returns `true`. A throw counts as `false`.
  *
@@ -50,17 +50,24 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
   useLayoutEffect(() => {
     live.current = { options, refresh };
   });
-  const state = useRef({ inflight: 0, counts: { saved: 0, rejected: 0, failed: 0 }, changes: [] as DataChange<unknown>[], scheduled: false, mounted: true, maxWait: null as ReturnType<typeof setTimeout> | null });
+  const state = useRef({ inflight: 0, counts: { saved: 0, rejected: 0, failed: 0 }, changes: [] as DataChange<unknown>[], scheduled: false, settleTimer: null as ReturnType<typeof setTimeout> | null, mounted: true, waitExpired: false, maxWait: null as ReturnType<typeof setTimeout> | null });
   useEffect(() => {
     state.current.mounted = true;
     return () => {
-      state.current.mounted = false;
+      const current = state.current;
+      current.mounted = false;
+      if (current.maxWait !== null) clearTimeout(current.maxWait);
+      if (current.settleTimer !== null) clearTimeout(current.settleTimer);
+      current.maxWait = null;
+      current.settleTimer = null;
+      current.scheduled = false;
     };
   }, []);
 
   const decide = useCallback((force = false) => {
     const current = state.current;
     current.scheduled = false;
+    current.settleTimer = null;
     if (current.maxWait !== null && (force || current.inflight === 0)) {
       clearTimeout(current.maxWait);
       current.maxWait = null;
@@ -76,8 +83,10 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
     if (current.counts.saved + current.counts.rejected === 0) {
       current.counts = { saved: 0, rejected: 0, failed: 0 };
       current.changes = [];
+      if (force) current.waitExpired = true;
       return;
     }
+    current.waitExpired = (force || current.waitExpired) && current.inflight > 0;
     const report: SaveRefreshReport = { ...current.counts, changes: current.changes, pending: current.inflight };
     current.counts = { saved: 0, rejected: 0, failed: 0 };
     current.changes = [];
@@ -100,7 +109,7 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
       if (current.changes.length < 100) current.changes.push(change);
       if (current.scheduled) return;
       current.scheduled = true;
-      setTimeout(() => decide(), 0); // after the grid has settled the row, so the refresh sees it as saved
+      current.settleTimer = setTimeout(() => decide(current.waitExpired), 0); // after the grid has settled the row, so the refresh sees it as saved
     },
     [decide],
   );
@@ -134,7 +143,10 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
       }
       if (!isThenable(result)) return result;
       state.current.inflight += 1;
-      if (state.current.maxWait === null) state.current.maxWait = setTimeout(() => decide(true), SAVE_REFRESH_MAX_WAIT_MS);
+      if (state.current.maxWait === null) {
+        state.current.waitExpired = false;
+        state.current.maxWait = setTimeout(() => decide(true), SAVE_REFRESH_MAX_WAIT_MS);
+      }
       return Promise.resolve(result).then(
         (ack) => {
           state.current.inflight -= 1;

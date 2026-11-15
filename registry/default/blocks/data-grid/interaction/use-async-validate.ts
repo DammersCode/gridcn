@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { toSafeText } from "../cell-types/safe-text";
 import type { AnyColumnDef, DataGridInternalActions } from "../store";
 
 type AsyncValidateActions = Pick<DataGridInternalActions, "_commitCellEdit" | "_setEditingError">;
@@ -97,5 +98,5 @@ export function useAsyncValidate(actions: AsyncValidateActions, column: AnyColum
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  return error instanceof Error ? error.message : toSafeText(error);
 }

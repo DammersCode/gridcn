@@ -41,7 +41,7 @@ A term row links to the page that explains it.
 | revalidation | A `refresh()` that the hook runs on a timer (`revalidateIntervalMs`). | [Tune row retention](/docs/scroll-mode/tune-row-retention#revalidate) |
 | prefetch | The pages-mode request for the page after the current one, made before the user asks for it (`prefetchNextPage`). | [Tune page loading](/docs/server-pagination/tune-page-loading#prefetch) |
 | paged view | A grid with `pageSize`: `data` stays whole, the sorted and filtered list is the full view, and `viewIndex` holds the shown page of it. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
-| push | A change that your code writes from the server: `updateCells`, `updateRows`, or `deleteRowsById` with `source: "stream"`. | [Stream updates](/docs/rows-live-data/stream-updates) |
+| push | A change that your code writes from the server: `updateCells`, `updateRows`, or `deleteRows` with `source: "stream"`. | [Stream updates](/docs/rows-live-data/stream-updates) |
 | stale row | A loaded row that a push changed in a column the server spec reads. | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
 | reshape | A `refresh()` that `useDataGridServerRows` runs after a push, so the server places the rows again. | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
 | saved view | A named copy of the sort, filters, search, and column layout, kept by `data-grid-views` in a storage adapter. | [Saved views](/docs/sort-filter-search/saved-views) |
@@ -77,7 +77,7 @@ A term row links to the page that explains it.
 | save | Sending a change to a server through `onSave`. | [Save edits](/docs/save-server/save-edits) |
 | row operation | The `source` value `"row-operation"` marks a change from an insert, duplicate, delete, or move of rows. | [Data change events](/docs/events-state/data-change-events#sources) |
 | change | One `onDataChange` call: a batch of operations plus its `source`. | [Data change events](/docs/events-state/data-change-events#ondatachange) |
-| hidden checked row | A checked row that the current filter hides. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
+| hidden checked row | A checked row that a filter, a page change, or a window move takes out of the view. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | block move | Moving several rows so they land next to each other in their current order: `reorderRows(rows, to)`. | [Row order](/docs/rows-pages-menus/row-order) |
 | request, answer | What `fetchRows` receives (`spec`, `start`, `end`, `cursor`, `signal`, plus `page` and `pageSize` in pages mode) and what it resolves (`rows`, `totalRowCount`, `hasMore`, `nextCursor`). | [Server rows contract](/docs/contracts/server-rows-contract) |
 | value query | The text a `fetchFilterValues` request carries as `query`. | [Server rows contract](/docs/contracts/server-rows-contract) |
@@ -100,6 +100,7 @@ A term row links to the page that explains it.
 | long-press | A touch press held for 500 ms without moving more than 10 px. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
 | selection handle | One of the two circles at the corners of a touch selection. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
 | coarse pointer | An input whose `(pointer: coarse)` media query matches, such as a finger. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
+| paste result | The value `pasteFromClipboard` resolves: `"ok"`, `"permission-denied"`, `"empty"`, or `"refused"`. | [Clipboard](/docs/clipboard-undo/clipboard) |
 | result count | The number of rows in the view after a filter or sort change. | [Screen reader support](/docs/accessibility/screen-reader-support) |
 | override | A prop or callback that replaces default behavior. | [Display override](/docs/editing-cells/display-override) |
 | Standard Schema | The shared validator interface that Zod and Valibot implement. | [Validation](/docs/editing-cells/validation) |
@@ -182,6 +183,7 @@ A word in this table names a term from the first table.
 | `range handle` | selection handle | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
 | `touch mode` | coarse pointer | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
 | `escape hatch` | override | [Display override](/docs/editing-cells/display-override) |
+| `paste outcome` | paste result | [Clipboard](/docs/clipboard-undo/clipboard) |
 | `write result` | save acknowledgement | [Save edits](/docs/save-server/save-edits) |
 | `save state` | save status | [Save edits](/docs/save-server/save-edits) |
 | `edit conflict` | save conflict | [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict) |
@@ -346,6 +348,7 @@ A search word in this table opens the page that answers it.
 | `default skip columns` | [Import options](/docs/add-options/import-export/import-options) |
 | `default view` | [Saved views](/docs/sort-filter-search/saved-views) |
 | `delay a value` | [useDebounce](/docs/types-hooks/use-debounce) |
+| `delete did nothing` | [Handle row action results](/docs/rows-live-data/handle-row-action-results) |
 | `delete rows` | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `dirty row` | [Style overrides](/docs/theme-style-language/style-overrides) |
 | `disable editing` | [Editable columns](/docs/editing-cells/editable-columns) |
@@ -410,6 +413,7 @@ A search word in this table opens the page that answers it.
 | `freeze columns` | [Column order and pinning](/docs/columns/column-order-pinning) |
 | `freeze header` | [Column headers and groups](/docs/columns/column-headers-groups) |
 | `freeze top row` | [Column headers and groups](/docs/columns/column-headers-groups) |
+| `from 1.3` | [Migrate to 2.0](/docs/support-upgrades/migrate-2-0) |
 | `frozen columns` | [Column order and pinning](/docs/columns/column-order-pinning) |
 | `gate pending` | [Handle row action results](/docs/rows-live-data/handle-row-action-results) |
 | `gate timeout` | [Cancel async gates](/docs/editing-cells/cancel-async-gates) |
@@ -535,6 +539,7 @@ A search word in this table opens the page that answers it.
 | `oneditstart` | [Edit and validation events](/docs/events-state/edit-validation-events) |
 | `onGateAborted` | [Handle row action results](/docs/rows-live-data/handle-row-action-results) |
 | `oninvalid` | [Edit and validation events](/docs/events-state/edit-validation-events) |
+| `onRowActionSkipped` | [Handle row action results](/docs/rows-live-data/handle-row-action-results) |
 | `onsave` | [Save edits](/docs/save-server/save-edits) |
 | `onsaverejected` | [Save edits](/docs/save-server/save-edits) |
 | `onvalidationerror` | [Edit and validation events](/docs/events-state/edit-validation-events) |
@@ -648,6 +653,7 @@ A search word in this table opens the page that answers it.
 | `row height` | [Density and small screens](/docs/theme-style-language/density-small-screens) |
 | `row id` | [DataGrid props](/docs/components-props/data-grid-props) |
 | `row index` | [State and view index](/docs/concepts/state-view-index) |
+| `row not deleted` | [Handle row action results](/docs/rows-live-data/handle-row-action-results) |
 | `row number` | [Row markers](/docs/rows-pages-menus/row-markers) |
 | `row numbers` | [Row markers](/docs/rows-pages-menus/row-markers) |
 | `row position` | [State and view index](/docs/concepts/state-view-index) |
@@ -709,6 +715,7 @@ A search word in this table opens the page that answers it.
 | `share a link` | [URL state options](/docs/add-options/sort-filter-search/url-state-options) |
 | `share selection` | [Broadcast your selection](/docs/rows-live-data/broadcast-your-selection) |
 | `share view` | [URL state](/docs/sort-filter-search/url-state) |
+| `shortcut does nothing` | [Handle row action results](/docs/rows-live-data/handle-row-action-results) |
 | `shortcut list` | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
 | `shortcuts dialog` | [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) |
 | `shortcuts outside the grid` | [Global shortcuts](/docs/selection-shortcuts/global-shortcuts) |

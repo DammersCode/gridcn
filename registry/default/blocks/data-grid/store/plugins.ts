@@ -1,6 +1,7 @@
 import type { GridAction, Keymap } from "../types";
 import type { DataGridPlugin, GridCommand } from "../types";
 import { BUILTIN_ACTIONS, DEFAULT_KEYMAP } from "../keyboard";
+import { bindingSignature } from "../keyboard/match-keymap";
 import type {
   ResolvedBandSegment,
   ResolvedPluginMount,
@@ -172,12 +173,23 @@ export function mergePluginCommands(
   return Object.keys(merged).length > 0 ? merged : null;
 }
 
+function dedupeBySignature(bindings: readonly string[]): string[] {
+  const seen = new Set<string>();
+  return bindings.filter((binding) => {
+    const signature = bindingSignature(binding);
+    if (seen.has(signature)) return false;
+    seen.add(signature);
+    return true;
+  });
+}
+
 /**
  * The merged keymap: `DEFAULT_KEYMAP` <- the plugins' keymaps (array order) <- the consumer's
  * `keymap` (always last, and wins). A plugin entry names a command the plugin defines; any other
- * entry is dropped, dev-warned. A binding another action already holds (default keymap, consumer
- * keymap, or an earlier plugin) is dropped, dev-warned; the kept bindings replace that action's
- * bindings. A plugin binding takes a chord from the default `focusSearch` binding silently.
+ * entry is dropped, dev-warned. An entry is the action's full binding list: keys that differ only in
+ * letter case count once, and an empty list unbinds the action. A binding another action already
+ * holds (default keymap, consumer keymap, or an earlier plugin) is dropped, dev-warned. A plugin
+ * binding takes a chord from the default `focusSearch` binding silently.
  */
 export function mergePluginKeymaps(
   plugins: readonly DataGridPlugin[],
@@ -202,21 +214,22 @@ export function mergePluginKeymaps(
         );
         continue;
       }
+      const given = dedupeBySignature(bindings ?? []);
       const takesSearchKey = !consumerKeymap?.focusSearch;
       const effective: Keymap = consumerKeymap ? { ...merged, ...consumerKeymap } : merged;
-      const taken = new Set<string>(DEFAULT_KEYMAP[name as GridAction] ?? []);
+      const taken = new Set<string>();
       for (const [other, otherBindings] of Object.entries(effective)) {
         if (other === name || (other === "focusSearch" && takesSearchKey)) continue;
         for (const binding of otherBindings ?? []) taken.add(binding);
       }
-      const kept = (bindings ?? []).filter((binding) => !taken.has(binding));
-      if (kept.length < (bindings ?? []).length) {
+      const kept = given.filter((binding) => !taken.has(binding));
+      if (kept.length < given.length) {
         warn(
           `keymap-collide:${plugin.name}:${name}`,
           `plugin "${plugin.name}"'s binding for "${name}" repeats a key that another action, the default keymap, or the consumer's keymap already binds; the colliding binding is dropped`,
         );
       }
-      if (kept.length > 0) merged[name as GridAction] = kept;
+      if (kept.length > 0 || given.length === 0) merged[name as GridAction] = kept;
       if (takesSearchKey && merged.focusSearch) merged.focusSearch = merged.focusSearch.filter((binding) => !kept.includes(binding));
     }
   }

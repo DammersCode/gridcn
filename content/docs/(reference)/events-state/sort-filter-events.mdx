@@ -14,6 +14,7 @@ Sort, filters, and quick search text each have a controlled prop. The callback r
 | `sortState` | The sort, controlled by your code | none |
 | `defaultSortState` | The sort, seeded once | none |
 | `sortMode` | `"client"` sorts `data`. `"server"` only tracks the sort | `"client"`, or `"server"` with `totalRowCount` |
+| `sortLocale` <NewBadge /> | The language tag for text compares in a client sort, text range filters, and the filter value lists | `"en-US"` |
 | `onSortChange` | Fires with the next sort | none |
 | `filterState` | The filter tree, controlled by your code | none |
 | `defaultFilterState` | The filters, seeded once | none |
@@ -91,7 +92,7 @@ The callback receives the new text. If the text equals the current text, it does
 
 The callback <NewBadge /> runs after the grid writes the text. If it throws, the text stays, and the grid rethrows the error. See [Callback timing and errors](/docs/events-state/event-shapes#callback-errors).
 
-The toolbar search waits `inputDebounceMs` after the last keystroke before it commits. The default is `200`. `0` commits each keystroke. The setting also delays the filter value inputs, the set filter search, and find and replace. The `debounceMs` prop of `DataGridSearch` wins for that search box.
+The toolbar search waits `inputDebounceMs` after the last keystroke before it commits. The default is `200`. `0` commits each keystroke. The setting also delays the filter value inputs, the set filter search, find and replace, and the lookup editor. The `debounceMs` prop of `DataGridSearch` wins for that search box.
 
 ## Related
 

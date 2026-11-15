@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { repairGroupOrder, type ColumnGroupModel } from "../columns/column-groups";
+import type { ColumnGroupModel } from "../columns/column-groups";
 import type {
   CellRef,
   ViewCoord,
   CellType,
   FilterNode,
+  GridAction,
   GridCommand,
   GridSelection,
   HeaderClickBehavior,
@@ -18,9 +19,10 @@ import type { DataGridLabels } from "../labels";
 import { hasFilterOnColumn, type SearchMatch } from "../sort-filter";
 import { isSelectionEmpty, selectionContainsCell } from "../selection";
 import { colRangesEqual, selectedColRangesForRow, type ColRange } from "../selection/selected-col-ranges-for-row";
-import { cellErrorKey, flashCellKey, getRangeValues, holeRowId, rowIdAtViewRow, searchMatchKey } from "./compute";
+import { cellErrorKey, completeColumnOrder, flashCellKey, getRangeValues, holeRowId, rowIdAtViewRow, searchMatchKey } from "./compute";
 import { resolveRefOrWarn } from "./data-write";
 import { getInternalActions } from "./internal-actions";
+import { bindingCanMatch } from "../keyboard/key-syntax";
 import { useDataGridStore, useDataGridStoreApi, useOptionalDataGridStore } from "./provider";
 import type { GateName } from "./gate-signal";
 import type { RowSaveStatus } from "./write-ack";
@@ -91,11 +93,20 @@ export function useDataGridReadOnly(): boolean {
 /**
  * The grid's effective keymap — `DEFAULT_KEYMAP` merged with the plugins' keymaps, then the
  * provider's `keymap` prop over everything — the single source of truth for every bound action
- * (backs the `data-grid-keybindings` add-on's dialog so it never hardcodes a shortcut list).
+ * (backs the `data-grid-keybindings` add-on's dialog so it never hardcodes a shortcut list). A binding that never matches (an unknown modifier, an unknown key name, an empty key) is left out.
  * Seeded from the provider's props, so it is live from the first render, SSR included.
  */
 export function useDataGridKeymap(): Keymap {
-  return useDataGridStore((s) => s.keymap);
+  const keymap = useDataGridStore((s) => s.keymap);
+  return useMemo(() => withoutDeadBindings(keymap), [keymap]);
+}
+
+function withoutDeadBindings(keymap: Keymap): Keymap {
+  const live: Keymap = {};
+  for (const [action, bindings] of Object.entries(keymap) as [GridAction, string[] | undefined][]) {
+    if (bindings) live[action] = bindings.filter(bindingCanMatch);
+  }
+  return live;
 }
 
 /** The input that wrote the current selection. */
@@ -283,7 +294,7 @@ export function useDataGridVisibleColumns<TData = unknown>(): readonly ColumnDef
 export function useDataGridAllColumns<TData = unknown>(): readonly ColumnDefOf<TData>[] {
   return useDataGridStore(
     useShallow((s) => {
-      const orderedIds = repairGroupOrder(s.columnOrder ?? s.columns.map((c) => c.id), s.columnGroupModel);
+      const orderedIds = completeColumnOrder(s.columns, s.columnOrder, s.columnGroupModel);
       const byId = new Map(s.columns.map((c) => [c.id, c] as const));
       return orderedIds.map((id) => byId.get(id)).filter((c): c is AnyColumnDef => c != null);
     }),
@@ -359,7 +370,7 @@ export function useDataGridSearchMatches(): SearchMatch[] {
   return useDataGridStore(useShallow((s) => s.searchMatches));
 }
 
-/** True when `searchMatches` hit the 1000-match cap — drives the toolbar's "1000+" badge. */
+/** True when more than 1000 cells match, so `searchMatches` holds the first 1000 — drives the toolbar's "1000+" badge. */
 export function useDataGridSearchCapped(): boolean {
   return useDataGridStore((s) => s.searchMatchesCapped);
 }
@@ -663,7 +674,7 @@ export function useDataGridSelectionConfig(): {
 /**
  * The checked rows as a value for a bulk action: ids (the checked loaded rows plus the remembered ones), or
  * "all matching except these ids" after `actions.selectAllMatching()`. Needs `totalRowCount` and `checkedRowsLifetime="across-filters"`
- * to cover rows outside `data`. The value changes only when the selection or the data does.
+ * to cover rows outside `data`. The value changes when the selection, the data, the view (sort, filter, search), or `totalRowCount` does.
  */
 export function useDataGridSelectedRows(): DataGridSelectedRows {
   const rows = useDataGridStore((s) => s.selection.rows);
@@ -711,7 +722,7 @@ export function useDataGridMarkGatePending(name: GateName, active: boolean): voi
   useEffect(() => (active ? gates.track(name) : undefined), [gates, name, active]);
 }
 
-/** The number of checked rows a filter hides, remembered by `checkedRowsLifetime="across-filters"`; `0` otherwise and while "all matching" is on. */
+/** The number of checked rows that left the view (a filter, a page change, a window move), remembered by `checkedRowsLifetime="across-filters"`; `0` otherwise and while "all matching" is on. */
 export function useDataGridHiddenCheckedCount(): number {
   return useDataGridStore((s) => (s.allMatching ? 0 : s.hiddenCheckedRowIds.size));
 }

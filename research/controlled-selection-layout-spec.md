@@ -170,7 +170,7 @@ The plan's "absorbs the `setColumnLayout` action" names an action that does not 
 - Unknown column ids are dropped from every part; `order` gets missing ids appended in def order.
   `computeVisibleColumns` appends a column missing from `columnOrder` in def order, so a saved
   layout from before a column was added still renders that column.
-- Widths go through `clampColumnWidth`; a pin on a `pinnable: false` column is dropped.
+- Widths go through `clampColumnWidth`; a pin in a layout is ignored for a `pinnable: false` column.
 - Size is bounded by the column count, so a hostile URL cannot allocate past it.
 
 ### 10. Write-back points
@@ -259,7 +259,7 @@ Unit (`test/controlled-selection.test.tsx`, `test/controlled-layout.test.tsx`):
 - Lazy: a placeholder ref resolves to its data index; a hole that loads fires nothing.
 - Layout: every write-back point in decision 10 fires once; a no-op pin/hide/width fires nothing;
   controlled echo writes nothing; a non-echo prop applies without an event; normalization (unknown
-  ids dropped, missing ids appended, clamped widths, unpinnable pins); `setColumnLayout` replaces
+  ids dropped, missing ids appended, clamped widths, pins ignored for unpinnable columns); `setColumnLayout` replaces
   parts and fires once; a `columns` swap followed by a pin fires exactly once; `{ widths }`-only
   control keeps a user reorder; a new `columns` array keeps controlled pins.
 - SSR: `renderToString` with `defaultSelection` and `columnLayout` paints them in the first render.

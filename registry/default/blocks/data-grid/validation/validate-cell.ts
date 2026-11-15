@@ -1,4 +1,5 @@
 import type { StandardSchemaV1, StandardSchemaV1Issue, StandardSchemaV1Result } from "../types";
+import { toSafeText } from "../cell-types/safe-text";
 
 /** A column's resolved `validate` field: the sync function form or any Standard Schema for the value. */
 export type CellValidate = ((value: unknown, row: unknown) => string | null) | StandardSchemaV1 | undefined;
@@ -44,7 +45,7 @@ export function runValidateSync(validate: CellValidate, value: unknown, row: unk
   try {
     pending = runValidatePending(validate, value, row);
   } catch (error) {
-    return { error: error instanceof Error ? error.message : String(error), thrown: true };
+    return { error: error instanceof Error ? error.message : toSafeText(error), thrown: true };
   }
   return pending instanceof Promise ? { value } : pending;
 }

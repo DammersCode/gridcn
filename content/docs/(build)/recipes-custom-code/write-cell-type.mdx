@@ -10,7 +10,7 @@ Most column needs end before a custom cell type. Take the first step that fits.
 
 ## Format the display [#format-the-display]
 
-A `number` column formats its value with `options.format`, which takes any `Intl.NumberFormat` options, and with `options.locale`, which defaults to the `locale` of the grid. Copy, export, sort, and the editor keep the raw number:
+A `number` column formats its value with `options.format`, which takes any `Intl.NumberFormat` options, in the language of `options.locale`, which defaults to the `locale` of the grid. Copy, export, sort, and the editor keep the raw number:
 
 ```tsx
 import { defineColumns } from "@/components/data-grid/data-grid";

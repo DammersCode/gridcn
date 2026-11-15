@@ -12,7 +12,7 @@ import { DataGridSortIndicator, ariaSortFor } from "./columns/sort-indicator";
 import type { ColumnReorderState } from "./columns/use-column-reorder";
 import type { HeaderFilterRenderer, HeaderMenuRenderer } from "./layout-context";
 import type { GridDirection } from "./virtualization/direction";
-import { useDataGridCellTypes, useDataGridIsColumnFiltered, useDataGridLabels, type AnyColumnDef } from "./store";
+import { useDataGridCellTypes, useDataGridIsColumnFiltered, useDataGridLabels, useDataGridSelector, type AnyColumnDef } from "./store";
 import { offersSetFilter } from "./cell-types/capabilities";
 import { columnLabelText as headerLabelText } from "./columns/column-format-helpers";
 import { gridAttrSelector } from "./data-attributes";
@@ -115,6 +115,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
   const labels = useDataGridLabels();
   const cellTypes = useDataGridCellTypes();
   const filtered = useDataGridIsColumnFiltered(column.id);
+  const viewIsEmpty = useDataGridSelector((s) => s.viewIndex.length === 0);
   const showHeaderFilter = Boolean(renderHeaderFilter) && offersSetFilter(column, cellTypes[column.type ?? "text"]);
   const pinned = column.pin;
   const cellRef = useRef<HTMLDivElement | null>(null);
@@ -202,9 +203,9 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
             <button
               type="button"
               data-grid-header-menu-trigger=""
-              tabIndex={-1}
+              tabIndex={viewIsEmpty && !showHeaderFilter ? 0 : -1}
               aria-label={labels.contextMenu.columnMenuAriaLabel(headerLabelText(column))}
-              className={cn("shrink-0 rounded-md p-0.5 text-muted-foreground opacity-0 outline-none transition-opacity hover:bg-accent hover:text-accent-foreground focus:opacity-100 group-hover:opacity-100 pointer-coarse:p-1 pointer-coarse:opacity-100", !showHeaderFilter && "ms-auto")}
+              className={cn("shrink-0 rounded-md p-0.5 text-muted-foreground opacity-0 outline-hidden transition-opacity focus-visible:ring-2 focus-visible:ring-ring/50 hover:bg-accent hover:text-accent-foreground focus:opacity-100 group-hover:opacity-100 pointer-coarse:p-1.5 pointer-coarse:opacity-100", !showHeaderFilter && "ms-auto")}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => event.stopPropagation()}
             >
@@ -221,7 +222,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
       role="columnheader"
       aria-colindex={index + 1}
       aria-rowspan={rowSpan > 1 ? rowSpan : undefined}
-      // sort state is announced to AT in every click behavior — only the visual arrow below is click-gated
+      // sort state is announced to AT in every click behavior
       aria-sort={column.sortable !== false ? ariaSortFor(column.id, sortState) : undefined}
       data-column-id={column.id}
       data-pinned={pinned || undefined}
@@ -244,7 +245,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
           data-grid-resize-handle=""
           data-resizing={resize.isResizing || undefined}
           role="presentation"
-          className="absolute end-0 top-0 z-10 h-full w-2 cursor-col-resize touch-none pointer-coarse:w-6 after:absolute after:inset-y-1.5 after:end-[2px] after:w-[3px] after:rounded-full after:bg-primary after:opacity-0 after:transition-opacity hover:after:opacity-60 data-[resizing]:after:opacity-100"
+          className="absolute end-0 top-0 z-10 h-full w-2 cursor-col-resize touch-none pointer-coarse:w-6 after:absolute after:inset-y-1.5 after:end-0.5 after:w-1 after:rounded-full after:bg-primary after:opacity-0 after:transition-opacity hover:after:opacity-60 data-[resizing]:after:opacity-100"
           style={{ touchAction: "none" }}
           onPointerDown={resize.onPointerDown}
           onDoubleClick={resize.onDoubleClick}

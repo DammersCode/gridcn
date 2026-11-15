@@ -16,7 +16,7 @@ The add-on depends on `hucre` (pinned to 1.1.0) for XLSX and on `papaparse` for 
 
 ## Download a file [#export]
 
-Place `DataGridExportButton` inside the provider, usually in the [toolbar](/docs/sort-filter-search/toolbar) (the `data-grid-toolbar` item):
+Place `DataGridExportButton` inside the provider, usually in the [toolbar](/docs/sort-filter-search/toolbar). The sample imports `DataGridToolbar`, so install `data-grid-toolbar` as well:
 
 ```tsx
 import {
@@ -38,7 +38,7 @@ export function OrdersGrid() {
       <DataGridToolbar>
         <DataGridExportButton options={{ fileName: "orders" }} />
       </DataGridToolbar>
-      <DataGridRoot>
+      <DataGridRoot className="h-80">
         <DataGridHeader />
         <DataGridBody />
       </DataGridRoot>
@@ -47,7 +47,7 @@ export function OrdersGrid() {
 }
 ```
 
-The button opens a menu with XLSX and CSV. With one format, such as `formats={["csv"]}`, a click exports at once. The `options` prop passes every `exportGrid` option except `format`. `onError(error, format)` receives the error and the format of a failed export. Without it, a failure logs a warning in development only.
+The button opens a menu with XLSX and CSV. With one format and no `source`, such as `formats={["csv"]}`, a click exports at once. The `options` prop passes every `exportGrid` option except `format`. `onError(error, format)` receives the error and the format of a failed export. Without it, a failure logs a warning in development only.
 
 To start an export from your own control, call `exportGrid` from `useDataGridExport()`:
 
@@ -81,7 +81,7 @@ Every scope writes all visible columns in view order. Hidden columns stay out. A
 
 A CSV file holds UTF-8 text with a byte order mark. Excel reads UTF-8 from a file that starts with that mark. Set `csvBom: false` for a reader that fails on the mark. `csvDelimiter` sets the separator (comma by default). The writer quotes a field that holds the delimiter, a quote, or a line break. Lines end with CRLF.
 
-A cell that starts with `=`, `+`, `-`, `@`, a tab, or a carriage return gets a leading single quote. Plain numbers stay as they are. Spreadsheets read the quote as a text marker, so a cell such as `=HYPERLINK("http://x")` opens as text and does not run.
+A cell that starts with `=`, `+`, `-`, `@`, a tab, or a carriage return gets a leading single quote. Plain numbers stay as they are, also in exponent form such as `-1e-7`. Spreadsheets read the quote as a text marker, so a cell such as `=HYPERLINK("http://x")` opens as text and does not run.
 
 <Callout type="warn">
   `sanitizeFormulas: false` writes the raw text. A spreadsheet runs a cell that starts with `=` as a formula. Set it only for a program that expects the exact text.
@@ -129,7 +129,7 @@ Print takes the same `scope` as export. It prints visible columns in view order.
 - `title` prints as a heading and sets the document title.
 - `orientation` defaults to `landscape` above 6 visible columns, else `portrait`.
 - `pageSize` is `"A4"` (default), `"A3"`, `"Letter"`, or `"Legal"`.
-- `maxRows` defaults to 10,000. A 500,000-cell ceiling cuts it further. A cut table ends with a note such as "Printed 10000 of 25000 rows".
+- `maxRows` defaults to 10,000. A 500,000-cell ceiling cuts it further. `NaN` reads as the default, and a negative value counts as 0. <NewBadge /> A cut table ends with a note such as "Printed 10000 of 25000 rows".
 - A cell text over 32,767 characters is cut, as in XLSX.
 - `DataGridPrintButton` passes its `options` prop to `printGrid`.
 

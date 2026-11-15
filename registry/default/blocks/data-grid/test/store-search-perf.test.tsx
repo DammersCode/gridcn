@@ -100,7 +100,20 @@ describe("search performance", () => {
     expect(result.current.capped).toBe(true);
     expect(spy).toHaveBeenCalledTimes(1);
     const call = spy.mock.calls[0]!;
-    expect(call[4]).toBe(1000);
+    expect(call[4]).toBe(1001);
+  });
+
+  it("does not report capped when exactly 1000 cells match", () => {
+    const wrapper = makeWrapper(manyRows(1000, 1));
+    const { result } = renderHook(
+      () => ({ actions: useDataGridActions(), matches: useDataGridSearchMatches(), capped: useDataGridSearchCapped() }),
+      { wrapper },
+    );
+
+    act(() => result.current.actions.setSearch("needle"));
+
+    expect(result.current.matches.length).toBe(1000);
+    expect(result.current.capped).toBe(false);
   });
 
   it("does not report capped when matches are below the cap", () => {

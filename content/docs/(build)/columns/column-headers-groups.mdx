@@ -14,7 +14,7 @@ The header row stays fixed at the top of the grid while the rows scroll under it
 
 `header` takes a string or a React node. The grid truncates a string. A node renders as it is and owns its display. A node can be a component that reads grid state, for example the sort direction.
 
-A string header shows the built-in arrow on every sorted column, and a node does not. `headerClickBehavior="sort"` only adds the click that cycles the sort of the column. Place `<DataGridSortIndicator columnId="score" />` inside the node to add the arrow. It reads the sort of the grid and renders nothing for an unsorted column. The optional `sortState` prop overrides the sort it reads. This sample builds its own three-state icon:
+A string header shows the built-in arrow on every sorted column that is not `sortable: false`, and a node does not. `headerClickBehavior="sort"` only adds the click that cycles the sort of the column. Place `<DataGridSortIndicator columnId="score" />` inside the node to add the arrow. It reads the sort of the grid and renders nothing for an unsorted column. The optional `sortState` prop overrides the sort it reads. This sample builds its own three-state icon:
 
 ```tsx
 import type { ReactNode } from "react";

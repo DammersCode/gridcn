@@ -110,7 +110,7 @@ useDataGridImportPreview().build(options)      // runs processImportRows + build
 ReplacePlan | false | Promise<ReplacePlan | false>`. Runs after `planReplace`, before
 `actions.updateCells`. `false` vetoes: nothing is written, the status line shows the cancelled text.
 The returned patches are bounded after the hook by `replaceAllLimit` (more patches is a veto with a
-dev warning). Each patch still goes through `fromText` and `validate` inside `updateCells`.
+dev warning). Each patch value is written as given, with no `fromText`, and goes through `validate` inside `updateCells`.
 A newer replace or closing the panel aborts the signal; a late answer is dropped, and the store is
 read again after the `await`.
 

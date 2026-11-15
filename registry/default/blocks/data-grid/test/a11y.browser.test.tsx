@@ -130,4 +130,25 @@ describe("DataGrid a11y — axe-core", () => {
     const violations = await runAxe();
     expect(violations, formatViolations(violations)).toHaveLength(0);
   });
+
+  it("has zero violations while loading with zero rows, and exposes the label on a progressbar", async () => {
+    await render(
+      <main>
+        <DataGridProvider data={[]} columns={columns} getRowId={(r: Row) => r.id}>
+          <DataGridRoot loading className="h-[300px] w-[800px]">
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      </main>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const skeleton = document.querySelector("[data-grid-loading-skeleton]")!;
+    expect(skeleton.getAttribute("aria-hidden")).toBe("true");
+    expect(skeleton.hasAttribute("aria-label")).toBe(false);
+    expect(document.querySelector("[role=progressbar]")?.getAttribute("aria-label")).toBeTruthy();
+
+    const violations = await runAxe();
+    expect(violations, formatViolations(violations)).toHaveLength(0);
+  });
 });

@@ -43,6 +43,19 @@ function menuItem(name: string): HTMLElement | undefined {
 }
 
 describe("DataGridHeaderDropdown", () => {
+  it("merges className into the menu content", async () => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+        <DataGridRoot className="h-75" renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} className="uppercase" />}>
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    document.querySelector<HTMLElement>(gridAttrSelector("headerMenuTrigger"))!.click();
+    await vi.waitFor(() => expect(document.querySelector("[data-grid-header-dropdown]")).toHaveClass("uppercase"));
+  });
+
   it("renders no chevron trigger when the root has no renderHeaderMenu prop", async () => {
     await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
@@ -239,5 +252,51 @@ describe("DataGridHeaderDropdown", () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(warn.mock.calls.some(([message]) => String(message).includes("column menu"))).toBe(false);
     warn.mockRestore();
+  });
+});
+
+describe("DataGridHeaderDropdown trigger and the keyboard", () => {
+  const menuTriggers = () => [...document.querySelectorAll<HTMLElement>(gridAttrSelector("headerMenuTrigger"))];
+
+  function renderEmptyGrid() {
+    return render(
+      <DataGridProvider data={[] as Row[]} columns={columns} getRowId={(r) => r.id}>
+        <DataGridRoot className="h-75" renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}>
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+  }
+
+  it("zero rows: each header menu button is the one tab stop of its column, and Enter and Space open the menu", async () => {
+    await renderEmptyGrid();
+    await vi.waitFor(() => expect(menuTriggers()).toHaveLength(2));
+    expect(menuTriggers().map((t) => t.getAttribute("tabindex"))).toEqual(["0", "0"]);
+    for (const key of ["{Enter}", "{ }"]) {
+      menuTriggers()[0]!.focus();
+      await userEvent.keyboard(key);
+      await vi.waitFor(() => expect(menuItem("Sort ascending")).toBeTruthy());
+      await userEvent.keyboard("{Escape}");
+      await vi.waitFor(() => expect(menuItem("Sort ascending")).toBeUndefined());
+    }
+  });
+
+  it("a mouse-opened menu returns focus to its trigger, and ArrowRight and Delete still reach the grid", async () => {
+    await renderGrid(5);
+    await vi.waitFor(() => expect(menuTriggers()).toHaveLength(2));
+    const nameCell = () => document.querySelector<HTMLElement>('[role="gridcell"][aria-colindex="1"]')!;
+    await userEvent.click(nameCell());
+    const trigger = menuTriggers()[0]!;
+    await userEvent.click(trigger);
+    await vi.waitFor(() => expect(menuItem("Sort ascending")).toBeTruthy());
+    await userEvent.keyboard("{Escape}");
+    await vi.waitFor(() => expect(document.activeElement).toBe(trigger));
+
+    await userEvent.keyboard("{ArrowRight}");
+    const active = () => document.querySelector<HTMLElement>('[role="gridcell"][tabindex="0"]');
+    await vi.waitFor(() => expect(active()?.getAttribute("aria-colindex")).toBe("2"));
+    await userEvent.keyboard("{Delete}");
+    await vi.waitFor(() => expect(active()?.textContent).toBe(""));
   });
 });

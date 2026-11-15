@@ -134,9 +134,9 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     if (hookRunRef.current) gates.abortRun(hookRunRef.current, reason);
   };
   const replacedRef = useRef<Map<string, Set<string>>>(new Map());
-  const [openedFromGrid] = useState(() => {
+  const [opener] = useState(() => {
     const grid = document.querySelector(`[${GRID_ATTR.instance}="${CSS.escape(instanceId)}"]`);
-    return grid !== null && grid.contains(document.activeElement);
+    return grid !== null && grid.contains(document.activeElement) ? (document.activeElement as HTMLElement) : null;
   });
 
   useEffect(() => {
@@ -161,7 +161,9 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
 
   const closePanel = () => {
     panelStore.close();
-    if (openedFromGrid) api.focus();
+    if (!opener) return;
+    if (opener.isConnected && opener.closest("[role='columnheader']")) opener.focus();
+    else api.focus();
   };
 
   useLayoutEffect(() => {
@@ -242,13 +244,8 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
 
   const canReplace = !readOnly && find.trim() !== "";
 
-  const refOfMatch = (): { rowId: string; columnId: string } | null => {
-    const s = api.store.getState();
-    const active = s.activeCell;
-    const activeColumnId = active ? s.visibleColumns[active.col]?.id : undefined;
-    const start = pageStartOf(s.viewIndex);
-    const onActive = active && s.searchMatches.find((m) => m.row === active.row + start && m.columnId === activeColumnId);
-    const match = onActive || s.searchMatches[cursor];
+  const refOfIndex = (s: ReturnType<typeof api.store.getState>, index: number): { rowId: string; columnId: string } | null => {
+    const match = s.searchMatches[index];
     if (!match) return null;
     const dataIndex = fullViewOf(s.viewIndex)[match.row];
     const row = dataIndex === undefined ? undefined : s.data[dataIndex];
@@ -256,10 +253,22 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     return { rowId: s.getRowId(row, dataIndex), columnId: match.columnId };
   };
 
-  const apply = (only: { rowId: string; columnId: string } | undefined) => {
+  const refOfMatch = (): { ref: { rowId: string; columnId: string }; index: number } | null => {
+    const s = api.store.getState();
+    const active = s.activeCell;
+    const activeColumnId = active ? s.visibleColumns[active.col]?.id : undefined;
+    const start = pageStartOf(s.viewIndex);
+    const activeIndex = active ? s.searchMatches.findIndex((m) => m.row === active.row + start && m.columnId === activeColumnId) : -1;
+    const index = activeIndex === -1 ? cursor : activeIndex;
+    const ref = refOfIndex(s, index);
+    return ref ? { ref, index } : null;
+  };
+
+  const apply = (only: { rowId: string; columnId: string } | undefined, nextIndex = cursor) => {
     const s = api.store.getState();
     if (s.readOnly || s.editing !== null || find.trim() === "") return;
     const replaced = replacedRef.current;
+    const replacedAt = only ? refOfIndex(s, nextIndex) : null;
     const skip = only ? undefined : (ref: { rowId: string; columnId: string }) => replaced.get(ref.rowId)?.has(ref.columnId) === true;
     const plan = planReplace(s, find, replacement, { ...panelStore.getOptions(), ...searchOptions, only, skip });
     const run = (finalPlan: ReplacePlan) => {
@@ -278,8 +287,17 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
         });
         runSearch(find, searchOptions);
         if (only) {
-          const left = api.store.getState().searchMatches.length;
-          if (left > 0) goTo(Math.min(cursor, left - 1));
+          const after = api.store.getState();
+          const columnOrder = (columnId: string) => after.visibleColumns.findIndex((c) => c.id === columnId);
+          const replacedRow = replacedAt ? fullViewOf(after.viewIndex).findIndex((dataIndex) => {
+            const row = after.data[dataIndex];
+            return row !== undefined && after.getRowId(row, dataIndex) === replacedAt.rowId;
+          }) : -1;
+          const next =
+            replacedAt && replacedRow !== -1
+              ? after.searchMatches.findIndex((m) => m.row > replacedRow || (m.row === replacedRow && columnOrder(m.columnId) > columnOrder(replacedAt.columnId)))
+              : nextIndex;
+          goTo(next === -1 ? 0 : next);
         }
       };
       if (verdict?.pending) {
@@ -345,8 +363,8 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   };
 
   const replaceOne = () => {
-    const ref = refOfMatch();
-    if (ref) apply(ref);
+    const target = refOfMatch();
+    if (target) apply(target.ref, target.index);
   };
 
   const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -474,6 +492,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
               replacedRef.current.clear();
               applyTokenRef.current++;
               abortHook();
+              setStatus(null);
             }}
             onKeyDown={onReplaceKeyDown}
             aria-label={labels.replaceLabel}

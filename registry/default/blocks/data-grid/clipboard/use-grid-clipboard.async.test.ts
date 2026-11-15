@@ -105,6 +105,14 @@ describe("processPaste async", () => {
     expect(m.names()).toEqual(["one", "B", "C"]);
   });
 
+  it("a processPaste rejection without a string form cancels the paste", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const m = mount({ processPaste: () => Promise.reject(Object.create(null)) });
+    m.paste("raw");
+    await settle();
+    expect(m.names()).toEqual(["A", "B", "C"]);
+  });
+
   it("a rejection writes nothing, warns, and leaves the pipeline usable", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const results: Promise<string[][]>[] = [Promise.reject(new Error("down")), Promise.resolve([["ok"]])];
@@ -219,6 +227,14 @@ describe("processCellFromClipboard async", () => {
     d.resolve("done");
     await settle();
     expect(m.names()).toEqual(["done", "B", "C"]);
+  });
+
+  it("a processCellFromClipboard rejection without a string form cancels the paste", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const m = mount({ processCellFromClipboard: () => Promise.reject(Object.create(null)) });
+    m.paste("x");
+    await settle();
+    expect(m.names()).toEqual(["A", "B", "C"]);
   });
 
   it("one rejected cell cancels the whole paste and leaves the pipeline usable", async () => {

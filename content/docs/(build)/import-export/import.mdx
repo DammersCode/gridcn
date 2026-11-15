@@ -55,7 +55,7 @@ Clear the "first row is a header" toggle, which starts on, for a file without he
 
 ### Delimiter [#delimiter]
 
-A CSV or TSV file shows a delimiter menu with comma, semicolon, and tab. The dialog detects the delimiter on load. If `importDefaults` sets one, the dialog uses it. A delimiter change drops the column mapping that the user set by hand. An Excel file has no delimiter menu.
+A CSV or TSV file shows a delimiter menu with comma, semicolon, tab, and pipe. The dialog detects one of these four on load. A file with another separator reads as one column with a comma. If `importDefaults` sets one, the dialog uses it. A delimiter change drops the column mapping that the user set by hand. An Excel file has no delimiter menu.
 
 ### Map columns [#map-columns]
 
@@ -81,11 +81,11 @@ The dialog rejects an HTML table, Excel 2003 XML, or an Excel 5.0 file with an `
 
 ## Import limits [#import-limits]
 
-The dialog rejects a file over a limit with a message and never cuts a file.
+The dialog rejects a file over a limit with a message and never cuts a file. A limit that is `NaN` takes its default. A negative limit counts as 0.
 
 - `maxFileBytes`: 50 MiB, checked before the read.
 - `maxRows`: 1,000,000, header row included. `maxColumns`: 1,000.
-- `maxCells`: 5,000,000, rows times columns. A CSV file counts its widest row as its columns, before the parse.
+- `maxCells`: 5,000,000, rows times columns. A CSV file counts its widest row as its columns. The parser stops at the first row that breaks a limit. A CSV file with more delimiter characters than `maxCells` is rejected before the parse, even when quotes hide some of them.
 - `maxDecompressedBytes`: the unpacked size of one XLSX part, such as a worksheet or the shared strings. Without it, the cap is `maxCells` times 10 bytes plus 1 MiB, about 51 million bytes at the default. A value you set replaces that cap.
 
 The shared strings of a workbook count as one part, so a text-heavy sheet with few cells can need a higher `maxDecompressedBytes`. A higher cap raises the memory that a read can use. An XLS file counts the cells of all its sheets against `maxCells`. An XLSX file counts the selected sheet only.
@@ -107,7 +107,7 @@ Pass `importLimits={{ maxRows: 10_000 }}` to the button or the dialog to change 
 `importDefaults` sets where the dialog starts, and the user can change every choice:
 
 - `defaultDelimiter` sets the delimiter and skips detection.
-- `defaultHeaderRow` sets the header toggle.
+- `defaultHeaderRow` sets the header toggle. A number names the 0-based header row and drops the rows above it. See [Control the import](/docs/import-export/control-import).
 - `defaultSkipColumns` skips source columns by header text (any case) or 0-based index.
 - `mapColumn(header, index, { signal })` returns a grid column id, `null` to skip, or `undefined` to keep the built-in match. It wins over `defaultSkipColumns` and can return a promise. A rejected promise falls back to the built-in match with `defaultSkipColumns`. The dialog does not compare the answers. When two answers name one grid column, the later one wins on import.
 

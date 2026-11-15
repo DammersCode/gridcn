@@ -9,6 +9,7 @@ import {
   defineColumns,
   type Keymap,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridHistory } from "@/registry/default/blocks/data-grid-history/use-data-grid-history";
 import { useDataGridFindReplace } from "@/registry/default/blocks/data-grid-find-replace/use-data-grid-find-replace";
 import { DataGridKeybindingsDialog } from "./keybindings-dialog";
 import { useDataGridKeybindings } from "./use-data-grid-keybindings";
@@ -30,8 +31,9 @@ const columnsWithHeaderInput = defineColumns<Row>()([
 
 function Harness({ gridColumns = columns }: { gridColumns?: typeof columns | typeof columnsWithHeaderInput }) {
   const keys = useDataGridKeybindings();
+  const history = useDataGridHistory();
   return (
-    <DataGridProvider data={ROWS} columns={gridColumns} getRowId={(r) => r.id} plugins={[keys.plugin]}>
+    <DataGridProvider data={ROWS} columns={gridColumns} getRowId={(r) => r.id} plugins={[keys.plugin, history.plugin]}>
       <DataGridRoot className="h-[300px]">
         <DataGridHeader />
         <DataGridBody />
@@ -150,8 +152,9 @@ describe("useDataGridKeybindings + DataGridKeybindingsDialog", () => {
 
 function FindReplaceDialog({ keymap }: { keymap?: Keymap }) {
   const findReplace = useDataGridFindReplace();
+  const history = useDataGridHistory();
   return (
-    <DataGridProvider data={ROWS} columns={columns} getRowId={(r) => r.id} plugins={[findReplace.plugin]} keymap={keymap}>
+    <DataGridProvider data={ROWS} columns={columns} getRowId={(r) => r.id} plugins={[findReplace.plugin, history.plugin]} keymap={keymap}>
       <DataGridKeybindingsDialog open />
       <DataGridRoot className="h-[300px]">
         <DataGridHeader />

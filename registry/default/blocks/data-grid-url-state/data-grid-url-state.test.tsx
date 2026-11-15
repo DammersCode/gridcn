@@ -155,6 +155,11 @@ describe("DataGridUrlState mount-apply", () => {
     expect(getState().search).toBe("alice");
   });
 
+  it("cuts the search text from the URL to 500 characters", () => {
+    const { getState } = renderGrid({ searchParams: `?q=${"a".repeat(600)}` });
+    expect(getState().search).toHaveLength(500);
+  });
+
   it("falls back to defaults silently for malformed URL params", () => {
     const { getState } = renderGrid({ searchParams: "?sort=!!!garbage!!!&filter=also-garbage" });
     expect(getState().sort).toEqual([]);
@@ -338,8 +343,10 @@ describe("DataGridUrlState state -> URL write", () => {
       getActions().setSearch("a");
       getActions().setSearch("ab");
     });
-    const written = onUrlUpdate.mock.calls.map((c) => (c[0] as UrlUpdateEvent).searchParams.get("q")).filter((q) => q !== null);
-    expect(written.at(-1)).toBe("ab");
+    await vi.waitFor(() => {
+      const written = onUrlUpdate.mock.calls.map((c) => (c[0] as UrlUpdateEvent).searchParams.get("q")).filter((q) => q !== null);
+      expect(written.at(-1)).toBe("ab");
+    });
   });
 
   it("uses history replace, never push, for URL writes", async () => {

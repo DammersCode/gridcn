@@ -61,7 +61,7 @@ With controlled `data`, `onDataChange` keeps your state in step and returns noth
 | Field | Meaning | Default |
 | --- | --- | --- |
 | `rowId` | The row the server refused. | none |
-| `columnId` | Refuses one cell of an update. | whole row |
+| `columnId` | Refuses one cell of an update that lists `cells`. Any other operation is refused whole. | whole row |
 | `message` | Text for `onSaveRejected`. The grid does not render it. | none |
 | `current` | The row with the values the server holds. | none |
 
@@ -69,7 +69,7 @@ A cell reverts only while it still holds the refused value. A newer edit of the 
 
 ## Put the server row in place [#current]
 
-If you pass `current`, the revert writes that row in place of the old local row. A refused delete restores `current`. A refused insert removes the row and ignores `current`. A refused move reverts its position. Pass a rejection with `current` like this:
+If you pass `current`, the revert writes that row in place of the old local row. A refused delete restores `current` without the resolver. A refused insert removes the row and ignores `current`. A refused move reverts its position. Pass a rejection like this:
 
 ```ts
 import type { SaveRejection } from "@/components/data-grid/data-grid";
@@ -78,7 +78,7 @@ import type { Order } from "./orders";
 const rejection = {
   rowId: "o-17",
   message: "Locked by another user",
-  current: { id: "o-17", status: "shipped" } as Order,
+  current: { id: "o-17", customer: "Acme", total: 120 },
 } satisfies SaveRejection<Order>;
 ```
 
@@ -117,13 +117,13 @@ export async function POST(request: Request) {
 }
 ```
 
-Validate the body first, and run the check and the write in one transaction. On the client, `onSave` returns the parsed answer.
+Validate the body first, and run the check and the write in one transaction.
 
 ## Resolve a conflict [#resolve-a-conflict]
 
 <NewBadge />
 
-When a refusal carries `current`, the revert takes the server row. To decide per row, pass `resolveSaveConflict` to the provider. It receives `{ rowId, mine, theirs, change, message, signal }` for each refused row with a usable `current`. `mine` is the row in the grid. `theirs` is `current`. Return one of these:
+When a refusal carries `current`, the revert takes the server row. To decide per row, pass `resolveSaveConflict` to the provider. It receives `{ rowId, mine, theirs, change, message, signal }` for each refused row with a usable `current`, except on a `readOnly` grid. `mine` is the row in the grid, and `theirs` is `current`. Return one of these:
 
 | Return | Result |
 | --- | --- |
@@ -131,20 +131,20 @@ When a refusal carries `current`, the revert takes the server row. To decide per
 | `"mine"` | The grid keeps its row. |
 | `{ row }` | The grid takes your merged row. |
 
-In this demo, the server refuses a save and sends its row. Pick one of the three answers:
+Pick one of the three answers in this demo:
 
 <ComponentPreview name="data-grid-save-conflict-demo" />
 
-`"mine"` and `{ row }` commit one change with `source: "merge"` on top of the server row. `onSave` receives it, so the server sees the new write. History does not record it. A promise keeps the row `saving` until it settles. `signal` aborts when a newer write to the row starts or the grid unmounts.
+`"mine"` and `{ row }` commit one change with `source: "merge"` on top of the server row. `onSave` receives it. History does not record it. A promise keeps the row `saving` until it settles. `signal` aborts when a newer write to the row starts or the grid unmounts.
 
-This handler keeps the user's `note` and takes the server's other fields:
+This handler keeps the user's `customer` and takes the server's other fields:
 
 ```tsx
 import type { SaveConflictContext } from "@/components/data-grid/data-grid";
 import type { Order } from "./orders";
 
 function resolveSaveConflict({ mine, theirs }: SaveConflictContext<Order>) {
-  return { row: { ...theirs, note: mine.note } };
+  return { row: { ...theirs, customer: mine.customer } };
 }
 ```
 

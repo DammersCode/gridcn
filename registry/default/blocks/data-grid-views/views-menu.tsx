@@ -8,9 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
-import { isComposingKey } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { isComposingKey, mergeLabelLayers } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { DEFAULT_LABELS, useDataGridLabels, type DataGridViewsLabels } from "@/registry/default/blocks/data-grid/data-grid";
-import { mergeLabelLayers } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { useDataGridViews, type UseDataGridViewsOptions } from "./use-data-grid-views";
 import { MAX_VIEWS, MAX_VIEW_FILE_LENGTH, MAX_VIEW_NAME_LENGTH, type DataGridView } from "./view-state";
 
@@ -146,7 +145,7 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
   };
   const focusNameField = () => requestAnimationFrame(() => nameField.current?.focus());
   const atLimit = views.views.length >= MAX_VIEWS;
-  const canSave = !views.loading && views.failed !== "load" && !atLimit && newName.trim() !== "";
+  const canSave = !views.loading && views.failed !== "load" && !atLimit && !views.overLimit && newName.trim() !== "";
 
   const save = () => {
     if (!canSave) return;
@@ -224,6 +223,7 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
               type="button"
               variant="outline"
               size="sm"
+              disabled={views.overLimit !== false}
               onClick={() => {
                 if (views.updateView()) {
                   announce(labels.updated(activeView.name));
@@ -271,6 +271,7 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
             </div>
           </div>
           {atLimit ? <p className="text-muted-foreground">{labels.limit}</p> : null}
+          {views.overLimit ? <p className="text-muted-foreground">{labels.overLimit(views.overLimit)}</p> : null}
           {problem ? <p className="text-destructive">{problem}</p> : null}
           <p role="status" className="sr-only">
             {/* a trailing no-break space on every second message makes a repeated text change, so it is announced again */}

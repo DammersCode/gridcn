@@ -90,7 +90,7 @@ plain refresh request: `{ spec, start, end, cursor, signal }` (+ `page`, `pageSi
 - A reshape restarts the revalidation clock (every refresh does). A spec change, page size change, or `refresh()` call
   cancels the pending timer: they refetch anyway.
 - Result field `reshape: () => void`, stable. It is the only push path for inserts (2.6). Calls in one frame join.
-- Sequential sources: a reshape follows the revalidation tick rule (skipped while the rendered rows end beyond 10 blocks).
+- Sequential sources: a reshape follows the revalidation tick rule (skipped while the rendered rows plus `overscan` end beyond 10 blocks).
 
 ### 2.4 Pushes and the refresh guard
 

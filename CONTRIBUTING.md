@@ -26,7 +26,7 @@ pnpm types:check
 pnpm types:check:ts5             # consumer TypeScript 5.9 baseline
 pnpm lint
 pnpm lint:typed
-npx vitest run registry --exclude "**/*.browser.test.*" --project unit --coverage   # jsdom suite
+npx vitest run registry tests --exclude "**/*.browser.test.*" --project unit --coverage   # jsdom suite
 npx vitest run --project browser --bail=1   # real-Chromium suite
 ```
 
@@ -56,11 +56,10 @@ actually find their way around in.
    `rows/`, `interaction/`, …).
 2. **No single-file directories.** A folder must contain 2+ files or it doesn't exist — if a
    domain would only ever hold one file, that file stays at the block root instead.
-3. **Tests live in a `test/` subfolder inside their domain folder** — except when a domain has
-   only *one* test file, which stays colocated next to the source it tests (rule 2 applies to
-   `test/` too: no single-file `test/` folders). Cross-domain integration/browser tests that
-   exercise the whole block (not one domain) live in a block-root `test/` folder instead.
-4. **Max two folder levels inside a block** — `data-grid/clipboard/test/` is the floor; nothing
+3. **Tests sit next to the source they test.** A domain may group its tests in a `test/`
+   subfolder (rule 2 applies: no single-file `test/` folders). Cross-domain integration/browser
+   tests that exercise the whole block (not one domain) live in a block-root `test/` folder.
+4. **Max two folder levels inside a block** — `data-grid/validation/test/` is the floor; nothing
    nests deeper.
 5. **Merge tiny sibling files into one concept-named file.** Closely-related small functions
    belong together in one file; a symbol only earns its own file when it's large (roughly
@@ -69,7 +68,7 @@ actually find their way around in.
    `columns/pin-offsets.ts` (`pinLeftOffsets` + `pinRightOffsets`) for the canonical examples.
    All of the merged file's exports are preserved; nothing that was previously importable stops
    being importable, it just moves to a new path.
-6. **Every domain folder gets an `index.ts` barrel.** The block-root barrel
+6. **A domain folder that other domains import gets an `index.ts` barrel.** The block-root barrel
    (e.g. `data-grid-toolbar.ts`) remains the **only** public entry point — docs, consumer code, and
    other registry items must never deep-import a domain's internals directly. If you need a
    symbol from inside a domain, it must be re-exported from the block-root barrel (add it there
@@ -97,9 +96,9 @@ actually find their way around in.
 - **Unsure whether a new file deserves its own file or should merge into an existing one:**
   default to merging (rule 5) unless the new code is large or has no natural sibling.
 - **Cycle check:** before wiring a domain's `index.ts` into another module's imports, check
-  whether that module is itself a dependency of anything inside the domain (`store.tsx` is the
+  whether that module is itself a dependency of anything inside the domain (`store/` is the
   usual culprit — it's imported by several domains, so those domains' files should import
-  `../store` directly rather than through a barrel that could re-import back into `store.tsx`'s
+  `../store` directly rather than through a barrel that could re-import back into `store/`'s
   own dependency chain). When in doubt, import the specific file you need rather than a barrel.
 - **Registry bookkeeping:** after moving/adding files, regenerate `registry.json`'s `files` array
   for the affected item(s) so it matches the filesystem (see `scripts/verify-registry.mjs`,

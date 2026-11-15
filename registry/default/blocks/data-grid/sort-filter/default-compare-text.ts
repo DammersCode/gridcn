@@ -1,5 +1,4 @@
-/** Module-default collator, used when a call site doesn't supply its own (e.g. to amortize one instance across a whole sort). */
-export const defaultCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+import { sortCollator } from "./sort-collator";
 
 /**
  * Default text comparator: numeric-aware localeCompare that ignores case and accents.
@@ -7,7 +6,7 @@ export const defaultCollator = new Intl.Collator(undefined, { numeric: true, sen
  * negate this result wholesale).
  * `collator` lets a caller reuse one Intl.Collator across many comparisons.
  */
-export function defaultCompareText(a: string, b: string, collator: Intl.Collator = defaultCollator): number {
+export function defaultCompareText(a: string, b: string, collator: Intl.Collator = sortCollator()): number {
   const aEmpty = a === "";
   const bEmpty = b === "";
   if (aEmpty && bEmpty) return 0;

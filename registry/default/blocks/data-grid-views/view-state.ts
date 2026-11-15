@@ -1,5 +1,5 @@
 import type { ColumnLayout, ColumnPin, BuiltInFilterOperator, FilterNode, FilterOperator, FilterOperatorInput, FilterSpec, SearchOptions, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { MAX_FILTER_GROUP_DEPTH, countFilterSpecs, isFilterGroup, pruneFilterSpecs } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { MAX_FILTER_GROUP_DEPTH, MAX_SPEC_SEARCH_LENGTH, countFilterSpecs, isFilterGroup, pruneFilterSpecs } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 export const MAX_VIEWS = 50;
 /** Largest stored document, in characters; a save over it is refused so the next load can read it. */
@@ -12,9 +12,7 @@ const MAX_FILTERS = 64;
 const MAX_FILTER_GROUPS = 16;
 const MAX_LIST_ENTRIES = 1000;
 const MAX_TEXT_LENGTH = 1000;
-const MAX_SEARCH_LENGTH = 500;
 const MAX_LAYOUT_ENTRIES = 1000;
-const MAX_COLUMN_ID_LENGTH = 200;
 const MAX_COLUMN_WIDTH = 10_000;
 const MAX_VIEW_ID_LENGTH = 64;
 const FILE_FORMAT = "gridcn-view";
@@ -33,7 +31,7 @@ export type DataGridView = { id: string; name: string; state: DataGridViewState 
 /** What a storage adapter persists. */
 export type DataGridViewsDocument = { version: 1; views: DataGridView[]; defaultViewId: string | null };
 
-/** The live columns a view is checked against; `undefined` accepts every id (structure only). */
+/** The live columns a view is checked against; `undefined` checks structure and limits only, so any column id passes. */
 export type ViewColumns = ReadonlyMap<string, { sortable?: boolean; filterable?: boolean; operators?: ReadonlyMap<string, FilterOperatorInput> }>;
 
 export type ViewFileResult = { ok: true; name: string; state: DataGridViewState; dropped: number } | { ok: false; reason: "too-large" | "invalid" };
@@ -61,7 +59,6 @@ const operatorsAreExhaustive: Exclude<BuiltInFilterOperator, (typeof OPERATORS)[
 void operatorsAreExhaustive;
 
 const FILTER_OPERATOR_IDS: ReadonlySet<string> = new Set(OPERATORS);
-const MAX_OPERATOR_ID_LENGTH = 64;
 
 export function emptyViewState(): DataGridViewState {
   return { sorts: [], filters: [], searchText: "", searchOptions: { matchCase: false, wholeCell: false }, columnLayout: { widths: {}, order: [], pins: {}, hidden: [] } };
@@ -108,8 +105,13 @@ function sortKeys(_key: string, value: unknown): unknown {
   return Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
 }
 
+export type ViewStatePart = "sorts" | "filters" | "search" | "layout";
+
+/** The part of a view state that a view limit cuts. */
+export type OverLimitPart = ViewStatePart;
+
 /** One string per part of a state; equal strings mean the part restores the same grid. */
-export function viewPartKeys(state: DataGridViewState): { sorts: string; filters: string; search: string; layout: string } {
+export function viewPartKeys(state: DataGridViewState): Record<ViewStatePart, string> {
   // lossless except for the one thing storage drops: the unused `value` of `empty` and `notEmpty`
   const captured = captureViewState(state);
   captured.filters = withoutUnusedValues(captured.filters);
@@ -127,6 +129,19 @@ export function viewStateKey(state: DataGridViewState): string {
   return Object.values(viewPartKeys(state)).join("|");
 }
 
+/** The part of `state` that a view limit would cut or drop, or `false` when none. A column the grid lacks is not a limit. Layout covers a width over 10,000 px and a list over 1,000 entries. */
+export function overLimitPart(state: DataGridViewState): OverLimitPart | false {
+  const kept = viewPartKeys(sanitizeViewState(state).state);
+  const wanted = viewPartKeys(state);
+  return (Object.keys(wanted) as ViewStatePart[]).find((part) => kept[part] !== wanted[part]) ?? false;
+}
+
+/** The state in the form that reloads unchanged, or `null` when a view limit would cut or drop part of it. */
+export function savableViewState(state: DataGridViewState): DataGridViewState | null {
+  const clean = sanitizeViewState(state).state;
+  return viewStateKey(clean) === viewStateKey(state) ? clean : null;
+}
+
 type RawSort = { columnId?: unknown; direction?: unknown };
 type RawFilter = { columnId?: unknown; operator?: unknown; value?: unknown; join?: unknown; filters?: unknown };
 type RawLayout = { widths?: unknown; order?: unknown; pins?: unknown; hidden?: unknown };
@@ -142,17 +157,20 @@ function asRecord<T extends object>(value: unknown): T | undefined {
 }
 
 /** Counts the entries beyond `cap` as dropped, then returns the first `cap`. */
-function boundedEntries<T>(entries: readonly T[], cap: number, tally: { dropped: number }): readonly T[] {
+function boundedEntries<T>(entries: readonly T[], cap: number, tally: Tally): readonly T[] {
   if (entries.length > cap) tally.dropped += entries.length - cap;
   return entries.slice(0, cap);
 }
 
+type Tally = { dropped: number };
+
+/** An id passes when it is a usable key and, given a column set, names a live column. */
 function acceptsColumnId(id: unknown, columns: ViewColumns | undefined): id is string {
-  if (typeof id !== "string" || id === "" || id.length > MAX_COLUMN_ID_LENGTH || id === "__proto__") return false;
-  return columns === undefined || columns.has(id);
+  if (typeof id !== "string" || id === "" || id === "__proto__") return false;
+  return columns ? columns.has(id) : true;
 }
 
-function sanitizeSorts(raw: unknown, columns: ViewColumns | undefined, tally: { dropped: number }): SortSpec[] {
+function sanitizeSorts(raw: unknown, columns: ViewColumns | undefined, tally: Tally): SortSpec[] {
   if (!Array.isArray(raw)) return [];
   const sorts: SortSpec[] = [];
   const seen = new Set<string>();
@@ -172,7 +190,7 @@ function sanitizeSorts(raw: unknown, columns: ViewColumns | undefined, tally: { 
 
 type FilterBudget = { leaves: number; groups: number };
 
-function sanitizeFilterValue(operator: string, raw: unknown, tally: { dropped: number }): { ok: true; value: FilterSpec["value"] } | { ok: false } {
+function sanitizeFilterValue(operator: string, raw: unknown, tally: Tally): { ok: true; value: FilterSpec["value"] } | { ok: false } {
   const text = (v: unknown): v is string => typeof v === "string" && v.length <= MAX_TEXT_LENGTH;
   if (operator === "empty" || operator === "notEmpty") return { ok: true, value: undefined };
   if (operator === "isBetween") return Array.isArray(raw) && raw.length === 2 && text(raw[0]) && text(raw[1]) ? { ok: true, value: [raw[0], raw[1]] } : { ok: false };
@@ -203,17 +221,17 @@ function sanitizeCustomValue(input: FilterOperatorInput | "any", raw: unknown): 
   return text(raw) ? { ok: true, value: raw } : { ok: false };
 }
 
-function sanitizeOperatorValue(operator: unknown, columnId: unknown, raw: unknown, columns: ViewColumns | undefined, tally: { dropped: number }): { ok: true; value: FilterSpec["value"] } | { ok: false } {
+function sanitizeOperatorValue(operator: unknown, columnId: unknown, raw: unknown, columns: ViewColumns | undefined, tally: Tally): { ok: true; value: FilterSpec["value"] } | { ok: false } {
   if (typeof operator !== "string") return { ok: false };
   if (FILTER_OPERATOR_IDS.has(operator)) return sanitizeFilterValue(operator, raw, tally);
-  if (operator.length === 0 || operator.length > MAX_OPERATOR_ID_LENGTH) return { ok: false };
+  if (operator.length === 0) return { ok: false };
   // a live-grid snapshot has no column map; a column map accepts only operators the column registers
   if (!columns) return sanitizeCustomValue("any", raw);
   const input = typeof columnId === "string" ? columns.get(columnId)?.operators?.get(operator) : undefined;
   return input ? sanitizeCustomValue(input, raw) : { ok: false };
 }
 
-function sanitizeFilterNodes(raw: unknown, depth: number, columns: ViewColumns | undefined, budget: FilterBudget, tally: { dropped: number }): FilterNode[] {
+function sanitizeFilterNodes(raw: unknown, depth: number, columns: ViewColumns | undefined, budget: FilterBudget, tally: Tally): FilterNode[] {
   if (!Array.isArray(raw)) return [];
   const out: FilterNode[] = [];
   for (const item of boundedEntries(raw, MAX_FILTERS * 4, tally)) {
@@ -248,7 +266,7 @@ function sanitizeFilterNodes(raw: unknown, depth: number, columns: ViewColumns |
   return out;
 }
 
-function sanitizeIdList(raw: unknown, columns: ViewColumns | undefined, tally: { dropped: number }): string[] {
+function sanitizeIdList(raw: unknown, columns: ViewColumns | undefined, tally: Tally): string[] {
   if (!Array.isArray(raw)) return [];
   const seen = new Set<string>();
   for (const id of boundedEntries(raw, MAX_LAYOUT_ENTRIES, tally)) {
@@ -258,7 +276,7 @@ function sanitizeIdList(raw: unknown, columns: ViewColumns | undefined, tally: {
   return [...seen];
 }
 
-function sanitizeLayout(raw: unknown, columns: ViewColumns | undefined, tally: { dropped: number }): ColumnLayout {
+function sanitizeLayout(raw: unknown, columns: ViewColumns | undefined, tally: Tally): ColumnLayout {
   const layout = asRecord<RawLayout>(raw) ?? {};
   const widths: [string, number][] = [];
   const pins: [string, ColumnPin][] = [];
@@ -285,16 +303,16 @@ function sanitizeLayout(raw: unknown, columns: ViewColumns | undefined, tally: {
  * Checks untrusted view state: unknown shapes, operators, and columns drop, lists and strings are
  * bounded. `dropped` counts every rejected or cut entry so the caller can tell the user; text cut to its limit is not counted.
  */
-export function sanitizeViewState(raw: unknown, columns: ViewColumns | undefined): { state: DataGridViewState; dropped: number } {
+export function sanitizeViewState(raw: unknown, columns?: ViewColumns): { state: DataGridViewState; dropped: number } {
   const source = asRecord<RawState>(raw);
   if (!source) return { state: emptyViewState(), dropped: 0 };
-  const tally = { dropped: 0 };
+  const tally: Tally = { dropped: 0 };
   const options = asRecord<RawSearchOptions>(source.searchOptions) ?? {};
   return {
     state: {
       sorts: sanitizeSorts(source.sorts, columns, tally),
       filters: sanitizeFilterNodes(source.filters, 0, columns, { leaves: 0, groups: 0 }, tally),
-      searchText: typeof source.searchText === "string" ? source.searchText.slice(0, MAX_SEARCH_LENGTH) : "",
+      searchText: typeof source.searchText === "string" ? source.searchText.slice(0, MAX_SPEC_SEARCH_LENGTH) : "",
       searchOptions: { matchCase: options.matchCase === true, wholeCell: options.wholeCell === true },
       columnLayout: sanitizeLayout(source.columnLayout, columns, tally),
     },
@@ -306,7 +324,7 @@ export function cleanViewName(raw: unknown): string {
   return typeof raw === "string" ? raw.trim().slice(0, MAX_VIEW_NAME_LENGTH) : "";
 }
 
-/** Reads a stored document, or `null` when `raw` is not a version 1 document. Column ids are not checked here: a view keeps the columns that return later. */
+/** Reads a stored document, or `null` when `raw` is not a version 1 document. A view keeps the columns that return later, so ids are not checked against the live columns. */
 export function parseViewDocument(raw: unknown): DataGridViewsDocument | null {
   const source = asRecord<RawDocument>(raw);
   if (!source || source.version !== 1 || !Array.isArray(source.views)) return null;
@@ -320,7 +338,7 @@ export function parseViewDocument(raw: unknown): DataGridViewsDocument | null {
     const name = cleanViewName(entry?.name);
     if (name === "") continue;
     ids.add(id);
-    views.push({ id, name, state: sanitizeViewState(entry?.state, undefined).state });
+    views.push({ id, name, state: sanitizeViewState(entry?.state).state });
   }
   const defaultViewId = typeof source.defaultViewId === "string" && ids.has(source.defaultViewId) ? source.defaultViewId : null;
   return { version: 1, defaultViewId, views };

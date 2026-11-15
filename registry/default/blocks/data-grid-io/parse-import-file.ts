@@ -1,17 +1,18 @@
 import Papa from "papaparse";
 import type { CellValue } from "hucre";
+import { normalizeLimit } from "./normalize-limit";
 
 /** CSV delimiter choices exposed in the import dialog; `undefined` means auto-detect. */
-export type CsvDelimiter = "," | ";" | "\t";
+export type CsvDelimiter = "," | ";" | "\t" | "|";
 
 /**
  * Default bounds for every import. Unbounded parsing is a memory/CPU DoS vector: a tiny xlsx with
  * two far-apart cells expands to millions of cells. File size is checked before the file is read;
  * the row, column, and cell caps are checked against the real cell extent before any conversion
- * (xlsx/xls) or by a scan before the parse (CSV). A file over a cap is rejected, never truncated.
+ * (xlsx/xls) or by the parser's own row callback and a delimiter count (CSV). A file over a cap is rejected, never truncated.
  */
 export const DEFAULT_IMPORT_LIMITS = {
-  /** Maximum file size in bytes; default 50 MB. */
+  /** Maximum file size in bytes; default 50 MiB. */
   maxFileBytes: 50 * 1024 * 1024,
   /** Maximum rows, header row included; default 1,000,000. */
   maxRows: 1_000_000,
@@ -46,6 +47,18 @@ export type ImportLimits = {
   /** Reject an xlsx whose parts (a worksheet, the shared strings) unpack to more than this many bytes; default `maxCells` times 10 bytes plus 1 MiB. Stops zip bombs. */
   maxDecompressedBytes?: number;
 };
+
+/** Every import bound with its default (`maxDecompressedBytes` defaults to {@link defaultPartCap}); a `NaN` bound takes the default, a negative one counts as 0. */
+export function resolveImportLimits(limits: ImportLimits = {}): Required<ImportLimits> {
+  const maxCells = normalizeLimit(limits.maxCells, DEFAULT_IMPORT_LIMITS.maxCells);
+  return {
+    maxFileBytes: normalizeLimit(limits.maxFileBytes, DEFAULT_IMPORT_LIMITS.maxFileBytes),
+    maxRows: normalizeLimit(limits.maxRows, DEFAULT_IMPORT_LIMITS.maxRows),
+    maxColumns: normalizeLimit(limits.maxColumns, DEFAULT_IMPORT_LIMITS.maxColumns),
+    maxCells,
+    maxDecompressedBytes: normalizeLimit(limits.maxDecompressedBytes, defaultPartCap(maxCells)),
+  };
+}
 
 /** Options for {@link parseImportFile}. */
 export type ParseImportFileOptions = ImportLimits & {
@@ -130,67 +143,43 @@ function detectNewline(sample: string): "\n" | "\r\n" | "\r" {
   return sample[cr + 1] === "\n" ? "\r\n" : "\r";
 }
 
-/**
- * Checks the rows and the widest row against the limits without building a field. The counts
- * are upper bounds of papaparse's: it leaves a quoted field only at a quote before a delimiter or newline.
- * This mirrors the parser on purpose: papaparse has no row or cell limit option, and its parse
- * materializes a whole row at once. A regression test pins the counts against papaparse.
- */
-function assertCsvWithinLimits(text: string, delimiter: string, newline: string, limits: GridLimits): void {
-  const delimiterCode = delimiter.charCodeAt(0);
-  const newlineCode = newline.charCodeAt(0);
-  let rows = 0;
-  let columns = 0;
-  let fields = 1;
-  let lineLength = 0;
-  let inQuotes = false;
-  let fieldStart = true;
-  const endLine = () => {
-    if (lineLength > 0) {
-      rows += 1;
-      if (fields > columns) columns = fields;
-      assertWithinLimits(rows, columns, limits);
-    }
-    fields = 1;
-    lineLength = 0;
-    fieldStart = true;
-  };
-  for (let i = 0; i < text.length; i++) {
-    const code = text.charCodeAt(i);
-    if (inQuotes) {
-      lineLength += 1;
-      if (code !== 34) continue;
-      if (text.charCodeAt(i + 1) === 34) i += 1;
-      else inQuotes = false;
-      continue;
-    }
-    if (code === newlineCode && text.startsWith(newline, i)) {
-      endLine();
-      i += newline.length - 1;
-      continue;
-    }
-    lineLength += 1;
-    if (code === delimiterCode) {
-      fields += 1;
-      if (fields > limits.maxColumns) assertWithinLimits(rows + 1, fields, limits);
-      fieldStart = true;
-      continue;
-    }
-    if (fieldStart && code === 34) inQuotes = true;
-    fieldStart = false;
-  }
-  endLine();
+/** Counts `char` in `text`: a quote-agnostic upper bound of the fields on one line, so no quoting rule is mirrored. */
+function countChar(text: string, char: string): number {
+  let count = 0;
+  for (let at = text.indexOf(char); at !== -1; at = text.indexOf(char, at + 1)) count++;
+  return count;
 }
 
-/** Parses CSV text with papaparse; delimiter auto-detected unless `csvDelimiter` overrides it. The limits run before the parse, which builds a whole row at once. */
+/**
+ * Parses CSV text with papaparse; delimiter auto-detected unless `csvDelimiter` overrides it.
+ * papaparse builds a whole row before `step` sees it, so a delimiter count above `maxCells` rejects
+ * first: every field boundary is a delimiter, so one row cannot hold more fields than that. `step` then
+ * stops the real parser at the first row, column, or cell breach.
+ */
 function parseCsvText(text: string, csvDelimiter: CsvDelimiter | undefined, limits: GridLimits): ParsedImportFile {
   const sample = text.slice(0, CSV_SAMPLE_CHARS);
   const newline = detectNewline(sample);
   const delimiter =
-    csvDelimiter ?? ((Papa.parse<string[]>(sample, { preview: 10, newline, skipEmptyLines: true }).meta.delimiter as CsvDelimiter | undefined) || ",");
-  assertCsvWithinLimits(text, delimiter, newline, limits);
-  const result = Papa.parse<string[]>(text, { delimiter, newline, skipEmptyLines: true });
-  return { rows: result.data.map((row) => row.map((cell) => cell ?? "")), delimiter };
+    csvDelimiter ?? ((Papa.parse<string[]>(sample, { preview: 10, newline, skipEmptyLines: true, delimitersToGuess: [",", ";", "	", "|"] }).meta.delimiter as CsvDelimiter | undefined) || ",");
+  if (countChar(text, delimiter) > limits.maxCells) throw new Error(IMPORT_TOO_MANY_CELLS_MESSAGE);
+  const rows: string[][] = [];
+  let columns = 0;
+  let exceeded = false;
+  Papa.parse<string[]>(text, {
+    delimiter,
+    newline,
+    skipEmptyLines: true,
+    step: (result, parser) => {
+      rows.push(result.data.map((cell) => cell ?? ""));
+      if (result.data.length > columns) columns = result.data.length;
+      if (rows.length > limits.maxRows || columns > limits.maxColumns || rows.length * columns > limits.maxCells) {
+        exceeded = true;
+        parser.abort();
+      }
+    },
+  });
+  if (exceeded) throw new Error(IMPORT_TOO_MANY_CELLS_MESSAGE);
+  return { rows, delimiter };
 }
 
 /** Aborts the file read; rejected parses surface as an AbortError the caller can ignore. */
@@ -632,16 +621,11 @@ async function parseExcelFile(file: File, sheetName: string | undefined, limits:
  */
 export async function parseImportFile(file: File, options: ParseImportFileOptions = {}): Promise<ParsedImportFile> {
   const { signal } = options;
-  const maxFileBytes = options.maxFileBytes ?? DEFAULT_IMPORT_LIMITS.maxFileBytes;
-  const limits: GridLimits = {
-    maxRows: options.maxRows ?? DEFAULT_IMPORT_LIMITS.maxRows,
-    maxColumns: options.maxColumns ?? DEFAULT_IMPORT_LIMITS.maxColumns,
-    maxCells: options.maxCells ?? DEFAULT_IMPORT_LIMITS.maxCells,
-  };
+  const { maxFileBytes, maxDecompressedBytes, ...limits } = resolveImportLimits(options);
   // before any file read: file.size is synchronous, so the DoS check costs nothing
   if (file.size > maxFileBytes) throw new Error(FILE_TOO_LARGE_MESSAGE);
   if (isExcelFile(file)) {
-    return parseExcelFile(file, options.sheetName, { ...limits, maxDecompressedBytes: options.maxDecompressedBytes }, signal);
+    return parseExcelFile(file, options.sheetName, { ...limits, maxDecompressedBytes }, signal);
   }
   if (isCsvFile(file)) {
     const text = await readCsvText(file, options.csvEncoding);
@@ -665,11 +649,8 @@ export const INVALID_IMPORT_ROWS_MESSAGE = "invalid-import-rows";
  */
 export function assertImportRows(rows: unknown, limits: ImportLimits, extraRows = 0): asserts rows is string[][] {
   if (!Array.isArray(rows)) throw new Error(INVALID_IMPORT_ROWS_MESSAGE);
-  const bounds: GridLimits = {
-    maxRows: limits.maxRows ?? DEFAULT_IMPORT_LIMITS.maxRows,
-    maxColumns: limits.maxColumns ?? DEFAULT_IMPORT_LIMITS.maxColumns,
-    maxCells: limits.maxCells ?? DEFAULT_IMPORT_LIMITS.maxCells,
-  };
+  const { maxRows, maxColumns, maxCells } = resolveImportLimits(limits);
+  const bounds: GridLimits = { maxRows, maxColumns, maxCells };
   let columns = 0;
   for (const row of rows as unknown[]) {
     if (!Array.isArray(row)) throw new Error(INVALID_IMPORT_ROWS_MESSAGE);

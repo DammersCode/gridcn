@@ -22,7 +22,7 @@ Four default props seed the view once: `defaultSortState`, `defaultFilterState`,
 
 ## Save and restore the view
 
-The sample merges every callback into one stored object:
+The sample merges every callback into one stored object. `./orders` stands for your own module of `columns` and `orders` rows:
 
 ```tsx
 "use client";
@@ -64,7 +64,7 @@ export function OrdersGrid() {
   if (!view) return null;
 
   return (
-    <DataGrid
+    <DataGrid className="h-96"
       defaultData={orders}
       columns={columns}
       defaultSortState={view.sort}

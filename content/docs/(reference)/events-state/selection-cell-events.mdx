@@ -85,7 +85,7 @@ The grid resolves each reference against its current view. It drops a range with
 The second argument holds two functions. They are lazy, so a handler that ignores them pays nothing on each drag step.
 
 - `getValues()` returns the raw cell values of the primary range as `unknown[][]`, one array per view row. It returns `[]` without a range. It reads `range` only and skips `rangeStack`. In scroll mode, it returns `undefined` for an unloaded cell.
-- `getRowIds()` returns the ids of every selected row in view order. It covers the checked rows and every row under `range` and `rangeStack`. It skips unloaded rows. Pass the ids to `deleteRowsById`.
+- `getRowIds()` returns the ids of every selected row in view order. It covers the checked rows and every row under `range` and `rangeStack`. It skips unloaded rows. Pass the ids to `deleteRows`.
 
 Outside the callback, `useDataGridGetSelectionValues()` returns a stable function that behaves like `getValues`.
 

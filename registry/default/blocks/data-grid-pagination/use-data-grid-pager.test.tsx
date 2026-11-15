@@ -68,3 +68,37 @@ describe("useDataGridPager, edge cases", () => {
     expect(result.current.pager).toMatchObject({ pageCount: 1, totalRowCount: 23 });
   });
 });
+
+describe("setPageSize(null) page callbacks", () => {
+  function setupPaged(extra: Record<string, unknown>) {
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <DataGridProvider data={rows} columns={columns} getRowId={(row) => row.id} defaultPageSize={10} {...extra}>
+        {children}
+      </DataGridProvider>
+    );
+    return renderHook(() => ({ api: useDataGridApi(), requested: useDataGridSelector<unknown, number>((s) => s.page) }), { wrapper });
+  }
+
+  it("an uncontrolled page goes back to page 1 and calls onPageChange(1)", () => {
+    const onPageChange = vi.fn();
+    const { result } = setupPaged({ defaultPage: 3, onPageChange });
+    act(() => result.current.api.actions.setPageSize(null));
+    expect(result.current.requested).toBe(1);
+    expect(onPageChange).toHaveBeenCalledWith(1);
+  });
+
+  it("a controlled page keeps its value and still gets onPageChange(1)", () => {
+    const onPageChange = vi.fn();
+    const { result } = setupPaged({ page: 3, onPageChange });
+    act(() => result.current.api.actions.setPageSize(null));
+    expect(result.current.requested).toBe(3);
+    expect(onPageChange).toHaveBeenCalledWith(1);
+  });
+
+  it("calls nothing when the page is already 1", () => {
+    const onPageChange = vi.fn();
+    const { result } = setupPaged({ onPageChange });
+    act(() => result.current.api.actions.setPageSize(null));
+    expect(onPageChange).not.toHaveBeenCalled();
+  });
+});

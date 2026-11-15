@@ -3,6 +3,8 @@
 Implements `research/api-caveat-audit.md` under the API principles in `AGENTS.md`. One entry per finding: what changed, the decision, and the
 capability check (before / after).
 
+Superseded: `checkedRowsLifetime` (see `research/checked-rows-lifetime.md`) replaced `keepCheckedRows`, `keepHiddenCheckedRows`, and `rememberCheckedRows`. Read their entries below as history.
+
 ## Capabilities
 
 ### F2 (done)
@@ -41,7 +43,7 @@ Decision: B. `sortMode="client"` / `filterMode="client"` still sort or filter a 
 `revalidateInterval` and `reshapeDelay` already clamp to their minimum (`fetch-hygiene.ts`); the dev warning only says so. Grouping the three live options into `live: {}` would rename 33 source lines, 4 test files, 6 docs pages and the skills for a naming gain, not a trap fix. Kept flat. Capabilities unchanged.
 
 ### F22 (done)
-`record()` warns in development when an inserted row id is already in `data`; the docs callout is shortened and stays (production stays silent, so the trap is only detected, not removed). The return value stays `void`: `record` is fire-and-forget by design.
+`record()` warns in development when an inserted row id is already in `data`; the docs callout is shortened and stays (production stays silent, so the trap is only detected, not removed). `record` later returns a boolean: `false` before mount and when every insert is already in `data`, `true` otherwise.
 
 ### F11 (decided: no code change)
 The hook already composes: its `onDataChange` option runs after the merge (pages and scroll). Only a provider-level override of `gridProps.onDataChange` drops the merge, and the core cannot tell a hook-owned `data` from a plain one. The JSDoc already points callers to the hook option. A scroll-mode dev warning exists for evicted edits. No capability change.
@@ -64,27 +66,32 @@ Default off (a gate waits as before). `gateTimeoutMs` aborts the signal, cancels
 ### F20 (done)
 The sort arrow shows for any active sort (URL sorts are visible); the context-menu callout is a sentence (the provider hook already throws an error that names the fix). The `NuqsAdapter` nesting note stays: nuqs owns that behavior.
 
-### F9 (decided: keep one hook with a fixed mode)
-Splitting into `useDataGridServerPages` / `useDataGridServerScroll` would rename a hook that every server doc and demo uses, for a case that is a demo toggle. The existing dev warning names the fix (remount with a key). The two lint disables stay. No capability change either way.
+### F9 (decided: one hook with a fixed mode; later `useDataGridServerPages` and `useDataGridServerScroll` were added as the hook fixed to one mode)
+Splitting would have renamed a hook that every server doc and demo uses, for a case that is a demo toggle. `useDataGridServerRows` stays; the two hooks fix its mode. The existing dev warning names the fix (remount with a key). No capability change.
 
 ### F21 (skipped)
 Low value, touches the context-menu resolver contract; only worth doing together with a change to that file.
 
-### F14 (not done)
-One shared `{ ok: false, reason }` result for every mode-dependent row action touches a dozen actions, their menu and shortcut gating, and the return types. Not started; spec below.
+### F14 (done, see the pagination wave below)
+One shared `{ ok: false, reason }` result for every mode-dependent row action touches a dozen actions, their menu and shortcut gating, and the return types. Spec below.
+
+### sortLocale (done, see `research/sort-locale-spec.md`)
+- Before: a text sort followed the language of the runtime, so a server and a browser disagreed.
+- After: the sort language is `"en-US"`, and `sortLocale` sets another tag. A developer who wants the runtime language passes `sortLocale={navigator.language}` after mount, or sets a column `sortCompare`. Nothing is removed.
+- SDK: `sortCollator()` and `withSortLocale()` stay synchronous; a promise from the callback warns once in development.
 
 ## The pagination wave (F1, F4, F5, F18) and F14: done
 
 **F1, paginate the view.** `DataGridProvider` takes `pageSize` / `defaultPageSize`, `page` / `defaultPage`, `onPageChange`, `onPageSizeChange`; `actions.setPage` / `setPageSize`. The store keeps the full sorted and filtered list; `viewIndex` holds the shown page and `fullViewOf(viewIndex)` returns the full list (a module `WeakMap`, so the 9 view-building call sites changed by one argument). A filter change goes back to page 1 and calls `onPageChange(1)`; a page past the end shows the last. `reorderRows`, inserts, and deletes treat a page like an active sort. The pager comes from `useDataGridPager()`; `<DataGridPaginationBar />` with no props reads it. Aggregates (`useDataGridAggregate`, scope view) and `exportGrid` (scope view) read the full view.
 - Capabilities kept: controlled page and size, size options, the pure math, `useDataGridPagination({ data })` for a list outside the grid (client-only now), server paging through `useDataGridServerPager` / `useDataGridServerRows`, a bar spread with `{...pager}` outside the provider.
-- Known limit (a sentence in `pagination.mdx`, no callout): quick search marks matches on the current page only; the filter menu searches every page. Cross-page match navigation needs matches over the full view plus a page jump.
+- Known limit (a sentence in `pagination.mdx`, no callout): quick search first marked matches on the current page only. A paged grid now searches every page: the match count covers the whole view, the highlights show the shown page, and next and previous match jump to the page of the match.
 - The four client-pagination callouts are gone (merge step, page-local sort/filter/search, selection drops, streaming skips); selection across a page change keeps what stays on screen, one bullet.
 
 **F5, F4.** `useDataGridPagination` lost the `"data" in options` union: server mode is `useDataGridServerPager` (returns `{ pager }`). Without `onPageSizeChange` the bar hides the page-size select instead of dropping the change with a warning. `useDataGridUrlPagination` returns the pair `DataGridProvider` and `useDataGridServerPager` both accept; page reset on filter change is automatic for the provider path and in `useDataGridServerRows`. Type names `UseDataGridPaginationClientOptions` / `UseDataGridPaginationServerOptions` stay, because `scripts/verify-parity.mjs` (not mine to touch) reads them; the docs session can rename them with that script.
 
 **F18.** `hasNextPage` is `hasMore` on the pager and the server pager options. The `totalRowCount` `undefined` / `null` table is not added to the glossary (the existing "row count" row covers `null`).
 
-**F14.** `insertRow`, `insertRows`, `duplicateRows`, `deleteRows`, `deleteRowsById` return `RowActionResult` (`{ ok: true }` or `{ ok: false, reason }`, seven reasons) instead of nothing. Not done: disabled menu items for the same reasons (the menu already hides items without `createRow`/`duplicateRow`), and `reorderRows` / `moveRowsBy` keep their boolean. The return type widens from `void`, so no caller breaks.
+**F14.** `insertRow`, `insertRows`, `duplicateRows`, `deleteRows`, `deleteRowsById` return `RowActionResult` (`{ ok: true }` or `{ ok: false, reason }`, seven reasons) instead of nothing. Disabled context-menu items carry the same reasons as a tooltip. `reorderRows` / `moveRowsBy` keep their boolean. The return type widens from `void`, so no caller breaks.
 
 ## Opus review of the whole diff: findings taken
 - A cell click without `keepCheckedRows` now releases remembered ids and "all matching" (`releaseRemembered`); test added.
@@ -100,7 +107,7 @@ One shared `{ ok: false, reason }` result for every mode-dependent row action to
 - A filter set through props reports `onPageChange(1)` (after the write).
 - Capability opt-outs: `scope: "page"` on `exportGrid`, `printGrid`, `useDataGridAggregate`; `setPageSize(null)` turns paging off.
 - The bar props are a union (all controls or none), so `page` without handlers no longer type-checks.
-- Not taken: moving the clamp into the store (the effective page already clamps the view; the stored page catches up when a pager is mounted); a mixed-state fix for a half-controlled `setPageSize`; following the active record across a page change; reorder across a page (still blocked, now with a warning that names the page; row order inside a page is not stable against the full list); cross-page select all for client paging (needs `selectAllMatching` without `totalRowCount`).
+- Not taken: moving the clamp into the store (the effective page already clamps the view; the stored page catches up when a pager is mounted); a mixed-state fix for a half-controlled `setPageSize`; following the active record across a page change; reorder across a page (a move stays on the shown page with page-relative rows; a move past the page edge does nothing); cross-page select all for client paging (needs `selectAllMatching` without `totalRowCount`).
 
 ## API scorecard (0-10), third pass
 

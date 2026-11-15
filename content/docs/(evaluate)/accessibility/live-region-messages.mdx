@@ -14,7 +14,7 @@ The grid has one `role="status"` live region. [Screen reader support](/docs/acce
 | Refused save | `labels.grid.saveRejected` | The server refuses rows of a save. It reads the row count, for example "2 rows not saved". |
 | Undo or redo, rows not loaded | `labels.grid.historyRowsNotLoaded` | An undo or redo needs rows that are not loaded. |
 | Undo or redo, rows gone | `labels.grid.historyRowsGone` | An undo or redo needs rows that do not exist. |
-| Load result | `labels.grid.resultsCount`, `resultsCountLoaded`, or `noResults` | A load ends and `announceResults` is on. |
+| Load result | `labels.grid.resultsCount`, `resultsCountLoaded`, or `noResults` | A load ends with `announceResults` on. The server spec or count changed, the load before failed, or a load from zero rows changed the count. |
 
 ## Stale view
 
@@ -32,6 +32,7 @@ A load ends when `loading` goes from `true` to `false`. With `announceResults`, 
 
 - The server-evaluated filters, sort, search, or `totalRowCount` changed since the last load ended.
 - The load before it failed.
+- The load began with zero rows and the result count changed. <NewBadge /> A refetch of an unchanged empty result stays quiet.
 
 A block fill in scroll mode and a page change with the same count stay quiet. A server grid reads `totalRowCount` when it is a number, for example "1,234 rows". Otherwise it reads the loaded rows. When the view also holds unloaded rows, the text says so, for example "40 loaded rows" (`labels.grid.resultsCountLoaded`). Without unloaded rows, a count of 0 reads "No results" (`labels.grid.noResults`).
 

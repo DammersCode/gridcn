@@ -43,7 +43,8 @@ import { warnDev } from "../store/commit";
 import { allRowsSelectedState } from "../store/hooks";
 import { apiHandleOf } from "../store/api";
 import { getInternalActions } from "../store/internal-actions";
-import { holeRowId } from "../store/compute";
+import { holeRowId, isColumnReadOnly } from "../store/compute";
+import { reportRowActionSkipped } from "../store/row-action-skip";
 import { rowOperationTargets } from "../store/row-operation-targets";
 import { isComposingKey } from "./is-composing-key";
 import { isReorderMarkerMode } from "../rows/marker-width";
@@ -51,8 +52,11 @@ import { createLongPressTimer, isDoubleTap, isTap, movedBeyondSlop, type TapSamp
 
 const MODIFIER_KEYS: ReadonlySet<string> = new Set(["Shift", "Control", "Alt", "Meta", "AltGraph"]);
 
-/** Action names already dev-warned as bound-but-unwired (dev-only, process-wide). */
+const isActivationKey = (event: ReactKeyboardEvent<HTMLElement>) =>
+  (event.key === "Enter" || event.key === " ") && !event.ctrlKey && !event.metaKey && !event.altKey;
+
 const KEEP_RANGE_SURFACES = (["cellEditor", "headerFilterPopup", "headerMenuPopup", "findReplacePanel", "contextMenu"] as const).map((name) => gridAttrSelector(name)).join(", ");
+/** Action names already dev-warned as bound-but-unwired (dev-only, process-wide). */
 const warnedUnwiredActions = new Set<string>();
 
 /** Column/row layout the interaction hook needs to translate pointer px <-> view coords and to scroll a cell into view. */
@@ -244,10 +248,12 @@ export function dispatchGridAction(args: {
   /** The printable seed char for `typeToReplace`, when the trigger was a printable key; undefined otherwise. */
   triggerKey?: string;
   preventDefault: () => void;
+  /** The column of the focused header button; the column menu and filter actions use it instead of the active cell. */
+  headerColumnId?: string;
   /** Holds the pending animation frame of a deferred action so the caller can cancel it on unmount. */
   pendingFrameRef?: RefObject<number | null>;
 }): void {
-  const { action, actions, storeApi, scrollRef, scrollCellIntoView, rowHeight, triggerKey, preventDefault, pendingFrameRef } = args;
+  const { action, actions, storeApi, scrollRef, scrollCellIntoView, rowHeight, triggerKey, preventDefault, headerColumnId, pendingFrameRef } = args;
   const state = storeApi.getState();
   const rowCount = state.viewIndex.length;
   const colCount = state.visibleColumns.length;
@@ -312,7 +318,7 @@ export function dispatchGridAction(args: {
   };
 
   const jumpAndScroll = (direction: JumpDirection, opts?: { extend?: boolean }) => {
-    const active = state.activeCell ?? { col: 0, row: 0 };
+    const active = (opts?.extend ? getFocusCell(state) : state.activeCell) ?? { col: 0, row: 0 };
     const target = jumpToDataBoundary(state, active, direction);
     if (opts?.extend) actions.extendToAt(target);
     else actions.selectCellAt(target);
@@ -327,15 +333,15 @@ export function dispatchGridAction(args: {
   const openActiveColumnTrigger = (triggerAttr: "headerMenuTrigger" | "headerFilterTrigger", triggerLabel: string, slotProp: string, offered: (column: (typeof state.visibleColumns)[number]) => boolean = () => true) => {
     preventDefault();
     const active = state.activeCell;
-    const column = active && state.visibleColumns[active.col];
-    if (!active || !column || !offered(column)) return;
+    const column = headerColumnId !== undefined ? state.visibleColumns.find((candidate) => candidate.id === headerColumnId) : active && state.visibleColumns[active.col];
+    if (!column || !offered(column)) return;
     const findTrigger = () => scrollRef.current?.querySelector<HTMLElement>(`[data-column-id="${CSS.escape(column.id)}"] ${gridAttrSelector(triggerAttr)}`);
     const open = (trigger: HTMLElement) => {
       trigger.setAttribute(GRID_ATTR.keyboardOpen, "");
       trigger.click();
       trigger.removeAttribute(GRID_ATTR.keyboardOpen);
     };
-    scrollCellIntoView(active);
+    if (headerColumnId === undefined && active) scrollCellIntoView(active);
     const mounted = findTrigger();
     if (mounted) {
       open(mounted);
@@ -537,11 +543,14 @@ export function dispatchGridAction(args: {
       if (!state.readOnly) actions.deleteSelection();
       break;
     }
-    case "insertRowBelow": {
+    case "insertRowBelow":
+    case "insertRowAbove": {
       preventDefault();
-      // mirrors cell-menu-content.tsx's canInsertRow guard: without createRow, insertRow is a
-      // dev-warning no-op — skip the call so the shortcut doesn't spam that warning on every press.
-      if (!state.readOnly && state.createRow && state.activeCell) actions.insertRow(state.activeCell.row, "below");
+      if (!state.activeCell) break;
+      // Without createRow, insertRow warns on every press; report the skip here instead.
+      if (state.readOnly) reportRowActionSkipped(state, "insertRows", "readOnly");
+      else if (!state.createRow) reportRowActionSkipped(state, "insertRows", "no-factory");
+      else actions.insertRow(state.activeCell.row, action === "insertRowBelow" ? "below" : "above");
       break;
     }
     case "duplicateRow": {
@@ -559,11 +568,6 @@ export function dispatchGridAction(args: {
       });
       const active = storeApi.getState().activeCell;
       if (moved && active) scrollCellIntoView(active);
-      break;
-    }
-    case "insertRowAbove": {
-      preventDefault();
-      if (!state.readOnly && state.createRow && state.activeCell) actions.insertRow(state.activeCell.row, "above");
       break;
     }
     case "deleteRows": {
@@ -623,8 +627,7 @@ function activateCell(state: DataGridStoreState, actions: DataGridActions, coord
   const dataRowIndex = state.viewIndex[coord.row];
   const row = dataRowIndex === undefined ? undefined : state.data[dataRowIndex];
   if (row === undefined) return;
-  const readOnly = typeof column.readOnly === "function" ? column.readOnly(row) : Boolean(column.readOnly);
-  if (readOnly) return;
+  if (isColumnReadOnly(column, row)) return;
   // explicit TData=unknown: row's `undefined`-narrowed type ({} | null) would otherwise drive inference instead of column's own already-unknown TData.
   const value = getCellValue<unknown, typeof column>(row, column);
   actions.commitCellValueAt(coord, cellType.activate(value, column.options));
@@ -635,9 +638,10 @@ export type JumpDirection = "up" | "down" | "left" | "right";
 
 /**
  * Excel-style Ctrl/Cmd+Arrow "jump to data boundary": from `active`, scans view rows/columns in
- * `direction` using the cell type's `isEmpty`. If the next cell is non-empty, jumps to the last
- * non-empty cell of the contiguous run; if the next cell is empty, jumps to the first non-empty
- * cell found (or the grid edge if none). Clamped at the grid edges either way.
+ * `direction` using the cell type's `isEmpty`. If `active` and the next cell are both non-empty, jumps
+ * to the last non-empty cell of the contiguous run; if `active` is empty and the next cell is not,
+ * jumps to the next cell; otherwise jumps to the first non-empty cell found (or the grid edge if none).
+ * Clamped at the grid edges either way.
  * Exported for direct unit testing of the boundary-scan math; not part of the public hook surface.
  */
 export function jumpToDataBoundary(state: DataGridStoreState, active: ViewCoord, direction: JumpDirection): ViewCoord {
@@ -675,7 +679,8 @@ export function jumpToDataBoundary(state: DataGridStoreState, active: ViewCoord,
   if (!inBounds(next)) return active;
 
   if (!isEmptyAt(next)) {
-    // scan the contiguous non-empty run, land on the last non-empty cell before an empty one or the edge
+    // from an empty cell the first non-empty cell is the target; from a filled one, land on the last cell of the run
+    if (isEmptyAt(active)) return next;
     let coord = next;
     while (true) {
       const after = { col: coord.col + dx, row: coord.row + dy };
@@ -1050,7 +1055,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       if (lastKeyEvent.current === event.nativeEvent) return;
       lastKeyEvent.current = event.nativeEvent;
 
-      // A key from an editor (inline, or a portaled popup) belongs to that edit even after its own handler ended it.
+      // A key from an editor (inline, or a portaled popup) belongs to that edit even after its own handler ended it; a focused header trigger keeps only Enter and Space for its click.
       const target = event.target as HTMLElement | null;
       const fromEditorInput =
         target !== null &&
@@ -1058,6 +1063,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         (/^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName) ||
           target.isContentEditable ||
           target.closest(gridAttrSelector("cellEditor")) !== null ||
+          (isActivationKey(event) && target.closest(`${gridAttrSelector("headerMenuTrigger")}, ${gridAttrSelector("headerFilterTrigger")}`) !== null) ||
           !event.currentTarget.contains(target));
 
       const state = storeApi.getState();
@@ -1075,6 +1081,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         metaKey: event.metaKey,
         shiftKey: event.shiftKey,
         altKey: event.altKey,
+        altGraph: event.getModifierState?.("AltGraph"),
       };
 
       const dispatch = (action: GridAction) =>
@@ -1085,8 +1092,9 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
           scrollRef,
           scrollCellIntoView: scrollActiveCellIntoView,
           rowHeight: layoutRef.current.rowHeight,
-          triggerKey: isPrintableKey(keymapEvent) ? keymapEvent.key : undefined,
+          triggerKey: isPrintableKey(keymapEvent, isMacRef.current) ? keymapEvent.key : undefined,
           preventDefault: () => event.preventDefault(),
+          headerColumnId: target?.closest<HTMLElement>("[role='columnheader'][data-column-id]")?.dataset["columnId"],
           pendingFrameRef: pendingActionFrameRef,
         });
 
@@ -1108,7 +1116,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       // unbound printable key = implicit typeToReplace trigger (Excel behavior); a consumer keymap that DEFINES typeToReplace (even []) takes it over and disables the fallback
       const action =
         matchKeymap(keymapEvent, keymap, isMacRef.current, notEditorOnly) ??
-        (isPrintableKey(keymapEvent) && keymap.typeToReplace === undefined ? "typeToReplace" : null);
+        (isPrintableKey(keymapEvent, isMacRef.current) && keymap.typeToReplace === undefined ? "typeToReplace" : null);
 
       if (action) dispatch(action);
     },

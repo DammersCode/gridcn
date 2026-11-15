@@ -174,3 +174,22 @@ describe("parseClipboardText: differential vs pre-rewrite implementation", () =>
     assertSameParse(toTsv(grid));
   });
 });
+
+describe("parseClipboardText: quotes inside a field", () => {
+  const cases: Array<[string, string[][]]> = [
+    ['5" pipe\t10\nx\ty', [['5" pipe', "10"], ["x", "y"]]],
+    ['a\tb"c\td', [["a", 'b"c', "d"]]],
+    ['a\t"b""c"\td', [["a", 'b"c', "d"]]],
+    ['x\r\n5" pipe\r\ny', [["x"], ['5" pipe'], ["y"]]],
+    ['say"', [['say"']]],
+    ['"', [[""]]],
+    ['"abc\tdef\nghi', [["abc\tdef\nghi"]]],
+    ['ab"', [['ab"']]],
+  ];
+  for (const [text, expected] of cases) {
+    it(`parses ${JSON.stringify(text)}`, () => {
+      expect(parseClipboardText(text)).toEqual(expected);
+      assertSameParse(text);
+    });
+  }
+});

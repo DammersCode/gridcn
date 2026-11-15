@@ -15,7 +15,7 @@ The `loading` prop and the number of rows in view decide what the grid shows. In
 |---|---|---|
 | none | `true` | Skeleton rows that fill the viewport. |
 | some | `true` | A slim indeterminate bar under the header. The rows stay on screen. |
-| none | `false` | The empty state, with the text `labels.grid.emptyState`, or `labels.grid.noResults` when a filter or the search hides every row. |
+| none | `false` | The empty state, with the text `labels.grid.emptyState`, or `labels.grid.noResults` when a filter or a server search hides every row. |
 
 <Callout type="info" title="Where the data comes from">
 `loading` changes what the grid shows and fetches nothing. Pass the flag from the code that owns your request. The server rows hook returns `loading` in `gridProps`.

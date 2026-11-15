@@ -92,7 +92,7 @@ function sanitizeAnswer(answer: unknown, columnIds: readonly string[], warnDropp
 
 /**
  * Pinned-row values from a server. Calls `fetchAggregates` with the current spec on mount and again
- * after each filter, quick-search, or `columnIds` change (a sort never changes the aggregated rows), aborts the
+ * after each filter, quick-search, or `columnIds` change (a sort never changes the aggregated rows) and after the saves in flight settle, aborts the
  * request a newer one replaces, and drops its late answer. Pagination, scroll, and own-API grids
  * use it alike, because the request carries the spec and not the rows the grid holds. Answer
  * values are untrusted: unknown column ids are ignored, text is cut at 1000 characters,

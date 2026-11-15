@@ -17,6 +17,7 @@ import {
   pruneFilterSpecs,
   resolveFilterOperators,
   useDataGridIsColumnFiltered,
+  useDataGridSelector,
   useDataGridStoreApi,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MAX_SET_FILTER_ENTRIES, checkedKeysFromFilters, planServerSetFilter, planSetFilter } from "./apply-set-filter";
@@ -189,9 +190,11 @@ export function DataGridHeaderFilter(props: DataGridHeaderFilterProps): ReactNod
   const { column, className } = props;
   const labels = useDataGridLabels().toolbar;
   const filtered = useDataGridIsColumnFiltered(column.id);
+  const viewIsEmpty = useDataGridSelector((s) => s.viewIndex.length === 0);
   const api = useDataGridApi();
   const [open, setOpen] = useState(false);
   const keyboardOpenedRef = useRef(false);
+  const openerRef = useRef<HTMLElement | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const columnLabel = columnLabelText(column);
 
@@ -199,7 +202,11 @@ export function DataGridHeaderFilter(props: DataGridHeaderFilterProps): ReactNod
     <Popover
       open={open}
       onOpenChange={(next, details) => {
-        if (next) keyboardOpenedRef.current = (details.event?.target as HTMLElement | null)?.hasAttribute(GRID_ATTR.keyboardOpen) ?? false;
+        if (next) {
+          keyboardOpenedRef.current = (details.event?.target as HTMLElement | null)?.hasAttribute(GRID_ATTR.keyboardOpen) ?? false;
+          const focused = document.activeElement as HTMLElement | null;
+          openerRef.current = keyboardOpenedRef.current && focused?.closest("[role='columnheader']") ? focused : null;
+        }
         setOpen(next);
       }}
     >
@@ -208,9 +215,9 @@ export function DataGridHeaderFilter(props: DataGridHeaderFilterProps): ReactNod
           <button
             type="button"
             data-grid-header-filter-trigger=""
-            tabIndex={-1}
+            tabIndex={viewIsEmpty ? 0 : -1}
             aria-label={labels.headerFilterAriaLabel(columnLabel, filtered)}
-            className={cn("shrink-0 rounded-md p-0.5 pointer-coarse:p-1 text-muted-foreground outline-hidden hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50", filtered && "text-primary", className)}
+            className={cn("shrink-0 rounded-md p-0.5 pointer-coarse:p-1.5 text-muted-foreground outline-hidden hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/50", filtered && "text-primary", className)}
           >
             <Filter className={cn("size-3.5", filtered && "fill-current")} />
           </button>
@@ -227,7 +234,10 @@ export function DataGridHeaderFilter(props: DataGridHeaderFilterProps): ReactNod
           if (!keyboardOpenedRef.current) return true;
           const active = document.activeElement;
           const focusIsFree = !active || active === document.body || active.closest("[data-grid-header-filter-popup], [data-grid-header-filter-trigger]") !== null;
-          if (focusIsFree) api.focus();
+          if (focusIsFree) {
+            if (openerRef.current?.isConnected) openerRef.current.focus();
+            else api.focus();
+          }
           return false;
         }}
       >

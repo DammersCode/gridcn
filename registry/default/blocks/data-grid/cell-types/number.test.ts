@@ -9,6 +9,11 @@ describe("number display formatting", () => {
     vi.restoreAllMocks();
   });
 
+  it("a null-prototype value with a format falls back to safe text", () => {
+    const hostile = Object.create(null) as never;
+    expect(() => toDisplayText(hostile, { format: { style: "currency", currency: "USD" } })).not.toThrow();
+  });
+
   it("formats currency, percent, and compact from options.format", () => {
     expect(toDisplayText(1234.5, { format: { style: "currency", currency: "USD" } })).toBe("$1,234.50");
     expect(toDisplayText(0.25, { format: { style: "percent" } })).toBe("25%");
@@ -53,17 +58,25 @@ describe("number display formatting", () => {
     expect(warnSpy.mock.calls[0]![0]).toContain("invalid number format options");
   });
 
-  it("builds one formatter per options object and reuses it across renders and decimals", () => {
+  it("two equal fresh format literals warn once and build the failing formatter once", () => {
+    const warnSpy = vi.spyOn(console, "warn");
     const constructorSpy = vi.spyOn(Intl, "NumberFormat");
-    const format: Intl.NumberFormatOptions = { style: "currency", currency: "USD" };
+    for (let i = 0; i < 3; i++) expect(toDisplayText(7, { format: { style: "unit" as const } })).toBe("7");
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(constructorSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("builds one formatter per equal options and reuses it across renders and decimals", () => {
+    const constructorSpy = vi.spyOn(Intl, "NumberFormat");
+    const format: Intl.NumberFormatOptions = { style: "currency", currency: "CHF" };
     toDisplayText(1, { format });
     toDisplayText(2, { format });
-    toDisplayText(3, { format });
+    toDisplayText(3, { format: { ...format } });
     // a different decimals value needs its own formatter
     toDisplayText(3, { format, decimals: 0 });
     expect(constructorSpy).toHaveBeenCalledTimes(2);
-    // a different options object is a fresh cache entry
-    toDisplayText(1, { format: { style: "currency", currency: "EUR" } });
+    // different options are a fresh cache entry
+    toDisplayText(1, { format: { style: "currency", currency: "SEK" } });
     expect(constructorSpy).toHaveBeenCalledTimes(3);
   });
 });
