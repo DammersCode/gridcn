@@ -89,6 +89,20 @@ describe("updateViewIndex: targeted cases", () => {
     expect(result.viewIndex).toEqual(rebuild(next, state));
   });
 
+  it("moves one row a long way in either direction and leaves the previous view untouched", () => {
+    const rows: Row[] = Array.from({ length: 300 }, (_, i) => ({ name: "", city: "", score: i, note: "" }));
+    const state: State = { sorts: [{ columnId: "score", direction: "asc" }], filters: [] };
+    const view = rebuild(rows, state);
+    const before = [...view];
+    for (const [row, score] of [[10, 290.5], [280, -1], [150, 150.5], [150, 149.5]] as const) {
+      const { next, result } = step(rows, view, state, [row], (copy) => {
+        copy[row]!.score = score;
+      });
+      expect(result.viewIndex).toEqual(rebuild(next, state));
+    }
+    expect(view).toEqual(before);
+  });
+
   it("keeps isAnyOf and isNoneOf views identical to the rebuild after a patch", () => {
     for (const filter of [
       { columnId: "score", operator: "isAnyOf", value: ["25", "40"] },
