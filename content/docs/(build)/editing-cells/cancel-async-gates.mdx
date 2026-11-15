@@ -46,9 +46,10 @@ The grid drops an aborted gate result. A rejection after an abort adds no warnin
 | `createRow` | `(index, { signal })` |
 | `duplicateRow` | `(row, index, { signal })` |
 | `onBeforeDeleteRows` | `({ rowIds, hiddenCount, signal })` |
+| `processReplace` <NewBadge /> | `({ plan, signal })` |
 | `mapColumn` | `(header, index, { signal })` |
 
-`gateTimeoutMs` covers the first six gates in the table. `mapColumn` receives a `signal` and has no timeout. A gate that ignores the extra argument keeps working. `processCellFromClipboard` can return a promise, but it receives no `signal`, has no `gateTimeoutMs` timeout, and is not in the pending set.
+`gateTimeoutMs` covers the first seven gates in the table. `mapColumn` receives a `signal` and has no timeout. A gate that ignores the extra argument keeps working. `processCellFromClipboard` can return a promise, but it receives no `signal`, has no `gateTimeoutMs` timeout, and is not in the pending set.
 
 ## Stop waiting for a slow gate [#gate-timeout]
 
@@ -72,7 +73,7 @@ Both props are off by default.
 
 ## Show the pending state [#show-the-pending-state]
 
-`useDataGridGatePending()` returns the set of gate names whose promise has not settled. The set can hold `"import"` while the import dialog parses or validates. No timeout applies to that gate. Call it inside the provider:
+`useDataGridGatePending()` returns the set of gate names whose promise has not settled. The set can hold `"import"` while the import dialog parses or validates, and `"processReplace"` while that hook runs. No timeout applies to that gate. Call it inside the provider:
 
 ```tsx
 import { useDataGridGatePending } from "@/components/data-grid/data-grid";

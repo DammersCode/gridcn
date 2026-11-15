@@ -37,7 +37,7 @@ The demo lists the kind of every column above the grid. `validationMode: "warn"`
 | Message in a line next to the cell | Yes, while the editor is open | When the user edits the flagged cell again |
 | <kbd>Escape</kbd> | Cancels the edit and restores the old value. The error goes away | Cancels the edit. A flagged cell keeps its flag |
 | The error ends when | The user commits a valid value, or cancels with <kbd>Escape</kbd> | The user commits a valid value |
-| Paste and fill | Invalid cells drop | Invalid cells drop |
+| Paste and fill | Invalid cells drop | Invalid cells keep their value and carry a flag |
 
 For a value that must never reach your data, such as an amount, use a blocking rule. For a value that is allowed but needs a second look, such as a long note, use a soft rule.
 

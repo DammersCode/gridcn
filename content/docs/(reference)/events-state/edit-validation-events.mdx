@@ -93,7 +93,7 @@ A single cell edit does not use this event. `onEditEnd` with `result: "rejected"
 
 ### Soft columns [#soft-columns]
 
-A column with `validationMode: "warn"` commits a refused value from an edit, closes the editor, and flags the cell. Bulk writes still drop the refused cells of such a column and report them here.
+A column with `validationMode: "warn"` commits a refused value from an edit, closes the editor, and flags the cell. Paste, fill, `updateCells`, and import commit the refused cells of such a column too and flag them. They call `onValidationError` for no flagged cell.
 
 ## Related
 

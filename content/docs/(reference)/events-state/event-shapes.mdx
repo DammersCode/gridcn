@@ -6,7 +6,7 @@ type: reference
 aliases: ["event list", "which callback", "controlled props"]
 ---
 
-Every callback on these pages except `processFill` is a prop of `DataGrid` or `DataGridProvider`. `processFill` is an option of `useDataGridFill`. Other add-ons document their own callbacks on their option pages. A callback belongs to a controlled prop, reports an event, or is a gate. The tables below name the callback for each need and link its payload.
+Every callback on these pages except `processFill` and `processReplace` is a prop of `DataGrid` or `DataGridProvider`. `processFill` is an option of `useDataGridFill`, and `processReplace` is an option of `useDataGridFindReplace`. Other add-ons document their own callbacks on their option pages. A callback belongs to a controlled prop, reports an event, or is a gate. The tables below name the callback for each need and link its payload.
 
 ## Find the callback [#find-the-callback]
 
@@ -77,6 +77,7 @@ A gate runs before the grid acts and can stop the action:
 - `onBeforeDeleteRows` returns `false` to stop a row delete.
 - `processFill` returns `false` to stop a fill. It can also return a rewritten text grid.
 - `processPaste` returns `false` to stop a paste.
+- `processReplace` <NewBadge /> returns `false` to stop a find and replace. It can also return a rewritten plan.
 
 `onSave` is a save acknowledgement. It is neither a reporting callback nor a gate: see [onSave](/docs/events-state/data-change-events#onsave).
 

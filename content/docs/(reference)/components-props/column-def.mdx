@@ -71,7 +71,7 @@ Keep the `columns` array stable: define it outside the component or memoize it. 
 | `options` | `unknown` | none | Settings for the cell type, such as the choices of a select. |
 | `readOnly` | `boolean \| (row) => boolean` | none | Blocks edits. The function form decides per row. |
 | `validate` | `(value, row) => string \| null` or a schema | none | Rejects a value. |
-| `validationMode` | `"block" \| "warn"` | `"block"` | What a rejection does to a single-cell commit. |
+| `validationMode` | `"block" \| "warn"` | `"block"` | What a rejection does to a commit: a single-cell edit, a paste, a fill, `updateCells`, and an import. |
 | `width` | `number` | `150` | Width in px. |
 | `minWidth` | `number` | none | Smallest width in px. |
 | `maxWidth` | `number` | none | Largest width in px. |
@@ -104,7 +104,7 @@ Keep the `columns` array stable: define it outside the component or memoize it. 
 
 - `validationMode: "block"` refuses the commit. The editor stays open with the message.
 - `validationMode: "warn"` commits the raw value and flags the cell. The next valid commit of that cell clears the flag. A validator that throws, or a schema promise that rejects, blocks the commit even in a `"warn"` column.
-- Paste, fill, and `updateCells` drop a rejected cell, even in a `"warn"` column.
+- Paste, fill, `updateCells`, and import keep the raw value of a rejected cell in a `"warn"` column and flag it. In a `"block"` column they drop the cell.
 - An async schema works in the editor and in bulk writes. A bulk write runs at most 32 validations at a time.
 
 ## Width and flex [#width]

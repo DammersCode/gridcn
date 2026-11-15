@@ -92,7 +92,7 @@ If a validator throws or its promise rejects, the grid rejects the value and sho
 
 By default a rejection blocks the commit. Set `validationMode: "warn"` to commit the value and flag the cell instead. The flag uses the same ring, tint, and hover tooltip as a server error. The next valid commit of that cell clears it. The editor closes, because the commit succeeded. [Validation example](/docs/validation-examples/validation-example#blocking-and-soft-rules) compares a blocking rule with a soft rule.
 
-A rejection carries no transformed value, so a soft commit stores the raw input. The flag works with the function form and with sync and async schemas. Paste, fill, `updateCells`, and import still drop rejected cells in a soft column. Import writes an empty value.
+A rejection carries no transformed value, so a soft commit stores the raw input. The flag works with the function form and with sync and async schemas. Paste, fill, `updateCells`, and import also keep the raw value of a rejected cell in a soft column and flag it. A validator that throws still blocks the cell. A bulk write updates the flags once and calls no `onValidationError` for a flagged cell. Use `validationMode: "block"` or `processPaste` to drop rejected cells.
 
 This column flags a note over 12 characters:
 

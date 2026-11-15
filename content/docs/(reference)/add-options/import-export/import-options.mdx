@@ -102,7 +102,7 @@ The result lists each cleared cell:
 
 The function returns the result itself for 5,000 data rows or fewer with synchronous validators, a synchronous `createRow`, and no `processCellFromText`. Otherwise it returns a promise, so always await it. If `signal` aborts, a build over 5,000 data rows, or one with `processCellFromText`, rejects between chunks with `"import-cancelled"`, which the add-on exports as `IMPORT_CANCELLED_MESSAGE`. A smaller build checks `signal` once, after an async `createRow` settles, and rejects with the same message. `signal` has no effect on a fully synchronous small build. If two entries of `mapping` name one grid column, the later entry wins, and development mode warns once for that column.
 
-`mapping` is a list of `ImportColumnMapping` entries: `{ importColumnIndex, gridColumnId }`, with `null` as `gridColumnId` for a skipped column. `rejected` lists `ImportRejectedCell` entries.
+`mapping` is a list of `ImportColumnMapping` entries: `{ importColumnIndex, gridColumnId }`, with `null` as `gridColumnId` for a skipped column. `rejected` lists `ImportRejectedCell` entries for cleared cells. `flagged` <NewBadge /> lists the cells of `validationMode: "warn"` columns that keep their value.
 
 ## useDataGridImportPreview [#usedatagridimportpreview]
 
@@ -147,7 +147,7 @@ The root carries `data-drag-active` during a drag and `data-disabled` while `dis
 - `ProcessImportRows` rewrites or drops the data rows before they are mapped. It receives `{ rows, headers, mapping, signal }` and returns the rows, or `false` to cancel.
 - `BuildImportOptions` are the options of `build()` in `useDataGridImportPreview`. They add `processImportRows`.
 - `ParseFile` parses a `File` into rows. It receives the file and `{ signal, limits, sheetName, csvDelimiter }`.
-- `ImportContext` is the second argument of `onImport`. It holds `signal`, `rejected`, `fileName`, `sheetName`, and `mapping` (a list of `ImportColumnMapping` entries).
+- `ImportContext` is the second argument of `onImport`. It holds `signal`, `rejected`, `flagged`, `fileName`, `sheetName`, and `mapping` (a list of `ImportColumnMapping` entries).
 
 ## Related
 
