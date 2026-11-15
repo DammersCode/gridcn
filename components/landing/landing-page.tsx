@@ -4,6 +4,7 @@ import { highlight } from "fumadocs-core/highlight";
 import { InstallCommand } from "@/components/install-command";
 import { gitConfig } from "@/lib/shared";
 import { CLIENT_CODE, newInTwo, SERVER_CODE, SUBLINE } from "./data";
+import { Code } from "./code";
 import { HeroGrid } from "./hero-grid";
 import { addOnTiles, agentSkills, AgentIcon, COMPARISON_DATE, comparison, FEATURE_MATRIX_HREF, kitTiles } from "./items";
 import { HeroActions, ReleaseBadge } from "./hero";
@@ -13,23 +14,6 @@ const tile = `flex h-full flex-col gap-1 p-3 transition-colors hover:bg-muted ${
 const repo = `https://github.com/${gitConfig.user}/${gitConfig.repo}`;
 
 const installFit = "min-w-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-all max-sm:[&_button]:min-h-10 max-sm:[&_button]:min-w-10";
-
-async function Code({ code, label }: { code: string; label: string }) {
-  return highlight(code, {
-    lang: "tsx",
-    themes: { light: "light-plus", dark: "github-dark" },
-    components: {
-      pre: (props) => (
-        <pre
-          {...props}
-          tabIndex={0}
-          aria-label={label}
-          className="min-w-0 overflow-x-auto border p-4 text-start font-mono text-xs leading-relaxed dark:!bg-background dark:[&_span]:!text-[var(--shiki-dark)]"
-        />
-      ),
-    },
-  });
-}
 
 function Panel({ id, title, intro, children, className }: { id: string; title: string; intro?: ReactNode; children: ReactNode; className?: string }) {
   return (
@@ -68,11 +52,11 @@ function Hero() {
           <InstallCommand item="data-grid" />
         </div>
         <p className="text-xs text-muted-foreground">
-          Needs a shadcn/ui project, React 19 and Tailwind v4.{" "}
-          <Link href="/docs/learning-path/install-gridcn" className="underline underline-offset-4">
-            Install guide
-          </Link>
+          Needs a shadcn/ui project, React 19 and Tailwind v4.
         </p>
+        <Link href="/docs/learning-path/install-gridcn" className="inline-flex min-h-10 items-center text-sm underline underline-offset-4">
+          Install guide
+        </Link>
         <Link href="/docs/try-automate/use-agent-skills" className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium underline underline-offset-4">
           <AgentIcon className="size-4" aria-hidden="true" />
           Building with an AI agent? Install the gridcn agent skills
@@ -112,13 +96,9 @@ function NewPanel() {
           </li>
         ))}
       </ul>
-      <p className="text-xs text-muted-foreground">
-        The{" "}
-        <a href={`${repo}/blob/${gitConfig.branch}/CHANGELOG.md`} className="underline underline-offset-4" target="_blank" rel="noreferrer">
-          changelog
-        </a>{" "}
-        lists every change.
-      </p>
+      <SiteLink href={`${repo}/blob/${gitConfig.branch}/CHANGELOG.md`} className="inline-flex min-h-10 items-center text-sm underline underline-offset-4">
+        Every change is in the changelog
+      </SiteLink>
     </Panel>
   );
 }
