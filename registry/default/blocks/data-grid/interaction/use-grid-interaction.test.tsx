@@ -129,7 +129,7 @@ function makeRows(count: number): Row[] {
 
 function renderInteraction(
   rowCount = 20,
-  options: { readOnly?: boolean; createRow?: (index: number) => Row; duplicateRow?: (row: Row, index: number) => Row; keymap?: Keymap; columns?: readonly ColumnDef<Row, unknown>[]; uncontrolled?: boolean; onRowActionSkipped?: DataGridStoreState["onRowActionSkipped"]; checkedRowsLifetime?: DataGridStoreState["checkedRowsLifetime"]; totalRowCount?: number } = {},
+  options: { readOnly?: boolean; createRow?: (index: number) => Row; duplicateRow?: (row: Row, index: number) => Row; keymap?: Keymap; columns?: readonly ColumnDef<Row, unknown>[]; uncontrolled?: boolean; rowMarkers?: "reorder-checkbox"; onRowActionSkipped?: DataGridStoreState["onRowActionSkipped"]; checkedRowsLifetime?: DataGridStoreState["checkedRowsLifetime"]; totalRowCount?: number } = {},
 ) {
   const { readOnly = false, createRow, duplicateRow, keymap = DEFAULT_KEYMAP, columns: testColumns = columns } = options;
   const scrollRef = { current: makeScrollElement() };
@@ -152,6 +152,7 @@ function renderInteraction(
         onRowActionSkipped={options.onRowActionSkipped}
         checkedRowsLifetime={options.checkedRowsLifetime}
         totalRowCount={options.totalRowCount}
+        rowMarkers={options.rowMarkers}
       >
         {children}
       </DataGridProvider>
@@ -1188,5 +1189,35 @@ describe("Ctrl+Shift+Arrow extends from the far end of the selection", () => {
     for (let i = 0; i < 4; i++) pressKey(hook, "ArrowDown", { shiftKey: true });
     pressKey(hook, "ArrowDown", { ctrlKey: true, shiftKey: true });
     expect(hook.result.current.selection.current?.range).toMatchObject({ y: 0, height: 7 });
+  });
+});
+
+describe("useGridInteraction: keyboard row moves", () => {
+  const moveDown = (hook: ReturnType<typeof renderInteraction>["hook"]) => pressKey(hook, "PageDown", { shiftKey: true, altKey: true });
+  const ids = (hook: ReturnType<typeof renderInteraction>["hook"]) => (hook.result.current.storeApi.getState().data as Row[]).map((r) => r.id).join(",");
+  const setup = (checked: number[], activeRow: number | null) => {
+    const { hook } = renderInteraction(6, { uncontrolled: true, rowMarkers: "reorder-checkbox", checkedRowsLifetime: "until-click" });
+    if (activeRow !== null) act(() => hook.result.current.actions.selectCellAt({ col: 0, row: activeRow }));
+    for (const row of checked) act(() => hook.result.current.actions.setRowCheckedAt(row, true));
+    hook.rerender();
+    return hook;
+  };
+
+  it("moves the checked rows, not the cell range, when both exist", () => {
+    const hook = setup([3], 0);
+    moveDown(hook);
+    expect(ids(hook)).toBe("0,1,2,4,3,5");
+  });
+
+  it("moves the checked rows while the active row is another row", () => {
+    const hook = setup([1, 2], 5);
+    moveDown(hook);
+    expect(ids(hook)).toBe("0,3,1,2,4,5");
+  });
+
+  it("moves the cell range when no row is checked", () => {
+    const hook = setup([], 0);
+    moveDown(hook);
+    expect(ids(hook)).toBe("1,0,2,3,4,5");
   });
 });
