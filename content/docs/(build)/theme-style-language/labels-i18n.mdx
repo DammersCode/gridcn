@@ -147,7 +147,7 @@ The grid compares `labels` <NewBadge /> by content, so a literal object of strin
 
 ## RTL layout
 
-`labels` translates strings. The `locale` prop of the provider is a BCP 47 tag such as `"de-DE"`. <NewBadge /> It sets the language of numbers and dates in the `number` and `date` columns, the status bar, and the default labels. It defaults to `"en-US"`, so the server and the browser render the same text.
+`labels` translates strings. The `locale` prop of the provider is a BCP 47 tag such as `"de-DE"`. <NewBadge /> It sets the language of numbers and dates in the `number` and `date` columns, the status bar, and the default labels. It also sets the sort language unless you pass `sortLocale`. It defaults to `"en-US"`, so the server and the browser render the same text.
 
 `options.locale` of a column and `formatValue` of the status bar win over `locale`. `options.locale` sets the language of `options.format` on a `number` column and of `options.displayFormat` on a `date` column. Without a format, a `number` cell shows the plain number and a `date` cell shows the ISO text.
  See [Built-in cell types](/docs/editing-cells/built-cell-types). `labels` does not flip the layout. `direction` flips the layout and does not translate. Most apps derive both from one active locale:
