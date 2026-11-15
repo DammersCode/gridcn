@@ -309,9 +309,9 @@ describe("plugin conflicts (decision 3 table)", () => {
   });
 
   it("a plugin binding a case variant of the focusSearch key takes it from focusSearch", () => {
-    const plugin = { name: "p", commands: { openFind: { run: () => {} } }, keymap: { openFind: ["Mod+F"] } };
+    const plugin = { name: "p", commands: { openFind: { run: () => {} } }, keymap: { openFind: ["mod+F"] } };
     const merged = mergePluginKeymaps([plugin], undefined, vi.fn());
-    expect(merged.openFind).toEqual(["Mod+F"]);
+    expect(merged.openFind).toEqual(["mod+F"]);
     expect(merged.focusSearch).toEqual([]);
   });
 
