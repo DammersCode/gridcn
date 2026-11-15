@@ -185,6 +185,7 @@ export type {
   CellType,
   CellTypeValueInput,
   CellTypeFilter,
+  ColumnFilter,
   FilterValueInputProps,
   ColumnDef,
   SortSpec,

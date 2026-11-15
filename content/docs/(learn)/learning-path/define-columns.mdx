@@ -26,7 +26,7 @@ export const columns = defineColumns<Person>()([
     accessorKey: "name",
     type: "text",
     width: 200,
-    pin: "left",
+    pin: "start",
   },
   {
     id: "age",
@@ -58,7 +58,7 @@ Result: the grid shows a fourth column. Group reads Adult or Minor from the age 
 
 - `width` sets the width in pixels. The default is 150.
 - `flex` shares leftover width between columns. A flex column grows from its `width` and never gets narrower.
-- `pin: "left"` sets the initial pin side. A pinned column stays in place while the others scroll.
+- `pin: "start"` sets the initial pin side. A pinned column stays in place while the others scroll.
 - `options` carries the settings of the cell type. When a user types or pastes a number outside `min` and `max`, the cell snaps it to the nearest bound.
 - `accessorFn` computes the value. A column with `accessorFn` and no `accessorKey` or `setValue` locks itself. To make it writable, add `setValue`.
 

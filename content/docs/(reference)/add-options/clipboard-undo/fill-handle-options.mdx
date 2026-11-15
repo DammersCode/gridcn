@@ -34,8 +34,8 @@ const everySecond = (values: readonly string[]): SeriesDescriptor | null =>
 export function FillGrid() {
   const { plugin } = useDataGridFill({
     disabled: false,
-    processFill: ({ target, values }: ProcessFillContext) =>
-      target.height > 100 ? false : values,
+    processFill: ({ target, cells }: ProcessFillContext) =>
+      target.height > 100 ? false : cells,
     detectSeries: everySecond,
   });
   return <DataGrid defaultData={data} columns={columns} plugins={[plugin]} />;
@@ -58,7 +58,7 @@ Every option is optional.
 
 `source` and `target` are rectangles in view index. `target` covers the new cells only. For <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>D</kbd>, `source` is the top row of the selection and `target` is the rest of it. For <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>R</kbd>, `source` is the left column.
 
-`values` holds one text per cell of `target`, before parsing and validation. A returned grid replaces it. A cell that the returned grid does not cover is not written. It includes the cells that the grid skips: read-only cells and, in scroll mode, rows that are not loaded yet.
+`cells` holds one text per cell of `target`, before parsing and validation. A returned grid replaces it. A cell that the returned grid does not cover is not written. It includes the cells that the grid skips: read-only cells and, in scroll mode, rows that are not loaded yet.
 
 ## SeriesDescriptor [#seriesdescriptor]
 

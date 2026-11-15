@@ -59,7 +59,7 @@ These are the classes that the grid renders and the place where you override the
 | Marker header | `flex items-center justify-center border-b border-border bg-muted`, plus the column line | None |
 | Selection overlay | `pointer-events-none border border-primary/40 bg-primary/10` | `--primary`, or a plugin `Overlay` |
 | Active cell ring | `pointer-events-none ring-2 ring-inset ring-primary` | `--primary` |
-| Column line | A 1px border at the end side of a column. A right-pinned column has it at the start side instead | `--grid-column-border` |
+| Column line | A 1px border at the end side of a column. An end-pinned column has it at the start side instead | `--grid-column-border` |
 | Empty state <NewBadge /> | `pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground` | The `emptyState` prop or `labels.grid.emptyState`. A filter or a server search that leaves zero rows shows `labels.grid.noResults` instead |
 | Loading skeleton | One `h-4 flex-1 rounded-md bg-muted` bar per column. The bars pulse. Under reduced motion they stay still | The `loading` flag |
 | Loading bar | A 2px track `bg-primary/20` with a `bg-primary` sweep. Under reduced motion the sweep is a full-width static bar | `--primary`, `--grid-loading-sweep-duration` |
@@ -79,7 +79,7 @@ Use these in CSS or with the Tailwind `data-[attr]:` variant.
 |---|---|---|
 | `data-active` | Cell | The active cell |
 | `data-editing` | Cell | The cell is in edit mode |
-| `data-pinned` | Cell, header | `"left"` or `"right"`, the pin side |
+| `data-pinned` | Cell, header | `"start"` or `"end"`, the pin side |
 | `data-pinned` | Overlay | An empty value. The overlay segment sits in a pinned zone |
 | `data-readonly` | Cell | The cell is not editable: the grid or its column is `readOnly`, or the column has no `accessorKey` and no `setValue`. Pinned-row cells carry it, and a column can set `readOnly: false` to remove it, unless it has no `accessorKey` and no `setValue` |
 | `data-type` | Cell | The cell type key. `text` is the key of a column with no type |
@@ -119,7 +119,7 @@ Each structural element carries one attribute for targeting:
 - Header: `data-grid-resize-handle`, `data-grid-header-menu-trigger`, `data-grid-column-reorder-handle`, `data-grid-header-filter-slot`, `data-grid-header-filter-trigger`, `data-grid-header-filter-popup`, `data-grid-header-menu-popup`, `data-grid-header-dropdown`, `data-grid-sort-indicator` (`"asc"` or `"desc"`), `data-grid-drop-indicator`
 - Touch: `data-grid-selection-handle` (`"start"` or `"end"`)
 - Row markers: `data-grid-marker-header`, `data-grid-marker-cell`, `data-grid-marker-number`, `data-grid-marker-checkbox`, `data-grid-reorder-handle`
-- Edge shadows: `data-grid-pin-shadow` (`"left"`, `"right"`, `"top"`, or `"bottom"`) and `data-scrolled-left`, `data-scrolled-right`, `data-scrolled-top`, `data-scrolled-bottom` on the viewport
+- Edge shadows: `data-grid-pin-shadow` (`"start"`, `"end"`, `"top"`, or `"bottom"`) and `data-scrolled-start`, `data-scrolled-end`, `data-scrolled-top`, `data-scrolled-bottom` on the viewport
 - Loading and empty: `data-grid-loading-skeleton`, `data-grid-loading-bar`, `data-grid-loading-state`, `data-grid-empty-state`
 - Editors: `data-grid-cell-editor` on the portaled content of a cell editor
 - Add-ons: `data-grid-fill-preview`, `data-grid-fill-handle`, `data-grid-presence-overlay`, `data-grid-presence-label`, `data-grid-pinned-row-band`, `data-grid-pinned-row-index`, `data-grid-context-menu`, `data-grid-pagination`

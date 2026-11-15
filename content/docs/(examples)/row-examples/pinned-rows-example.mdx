@@ -13,7 +13,7 @@ One grid uses all four pin zones. Name sits in the start band and Score sits in 
 
 ## What the demo shows [#whats-in-the-demo]
 
-- `pin: "left"` on Name and `pin: "right"` on Score pin the column bands.
+- `pin: "start"` on Name and `pin: "end"` on Score pin the column bands.
 - `useDataGridPinnedRows` takes `topRows` and `bottomRows`. The top band holds the averages row. The bottom band holds the totals row.
 - `aggregateRow` declares both rows. The band computes them from the rows that pass the filter (the `scope` defaults to `"view"`).
 - The grid has nine columns and 200 rows. Scroll it in both directions.
@@ -32,14 +32,14 @@ import {
 type Row = { id: string; name: string; age: number; score: number };
 
 const columns = defineColumns<Row>()([
-  { id: "name", header: "Name", accessorKey: "name", pin: "left" },
+  { id: "name", header: "Name", accessorKey: "name", pin: "start" },
   { id: "age", header: "Age", accessorKey: "age", type: "number" },
   {
     id: "score",
     header: "Score",
     accessorKey: "score",
     type: "number",
-    pin: "right",
+    pin: "end",
   },
 ]);
 

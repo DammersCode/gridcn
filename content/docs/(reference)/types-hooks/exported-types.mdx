@@ -68,7 +68,7 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | `CellTypeValueInput` | `"text" \| "number" \| "date" \| "boolean" \| "choices"` | The built-in widget of a filter value. |
 | `FilterValueInputProps` | `{ column, operator, value, onValueChange }` | The props of a custom `valueInput` component. |
 
-`createFilterMatcher(filter)` parses the bounds of a `FilterSpec` once. It returns a `(text: string) => boolean` matcher. The grid's built-in text filter uses the same matcher. A column with `filterMatch`, or a cell type with `filter.match`, filters with that function instead. [CellType contract](/docs/contracts/cell-type-contract) covers the filter members.
+`createFilterMatcher(filter)` parses the bounds of a `FilterSpec` once. It returns a `(text: string) => boolean` matcher. The grid's built-in text filter uses the same matcher. A column or a cell type with `filter.match` filters with that function instead. [CellType contract](/docs/contracts/cell-type-contract) covers the filter members.
 
 ## Commands and keys [#commands-and-keys]
 

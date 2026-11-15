@@ -100,8 +100,9 @@ The answer is untrusted. The editor keeps only entries with a non-empty `value` 
 
 `fetchOptions` receives the row that the user edits. Read it to narrow the options, such as the cities of the country in that row:
 
-```tsx
-fetchOptions: ({ query, row, signal }) => searchCities(query, (row as Order).country, signal),
+```tsx fragment="one option of the lookup column"
+fetchOptions: ({ query, row, signal }) =>
+  searchCities(query, (row as Order).country, signal),
 ```
 
 ## Clipboard, fill, import, and export

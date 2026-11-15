@@ -104,7 +104,7 @@ Set these CSS variables on the grid or on any ancestor:
 For a different look, select the shadow elements. Each one has `data-grid-pin-shadow` with its side. A shadow at a pinned zone also has `data-pinned`. The grid sets `background-image` inline, so the rule needs `!important`:
 
 ```css
-[data-grid-pin-shadow="right"]:not([data-pinned]) {
+[data-grid-pin-shadow="end"]:not([data-pinned]) {
   background-image: linear-gradient(
     to left,
     var(--color-primary),

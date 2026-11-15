@@ -13,7 +13,7 @@ Two surfaces run the same row operations. A toolbar acts on the rows that the ro
 
 ## What the demo shows [#whats-in-the-demo]
 
-- The toolbar buttons call `insertRows(anchor, 1, "above")`, `insertRows(anchor, 1, "below")`, `duplicateRows(rows)`, and `deleteRows(rows)`.
+- The toolbar buttons call `insertRows(anchor, 1, "above")`, `insertRows(anchor, 1, "below")`, `runShortcut("duplicateRow")`, and `runShortcut("deleteRows")`. `runShortcut` runs the key action on the selected rows, or on the active row.
 - A right-click on a row opens the context menu with Insert, Duplicate, and Delete items.
 - The `createRow` and `duplicateRow` props enable Insert and Duplicate. Without them, the menu hides those items.
 - The Read-only switch sets `readOnly`. The toolbar buttons and the menu items that change data turn off.
@@ -30,8 +30,8 @@ import {
   DataGridProvider,
   DataGridRoot,
   defineColumns,
-  useDataGridActions,
   useDataGridActiveCell,
+  useDataGridApi,
   useDataGridSelection,
 } from "@/components/data-grid/data-grid";
 import {
@@ -48,15 +48,10 @@ const columns = defineColumns<Row>()([
 const rows: Row[] = [{ id: "1", name: "Ada" }];
 
 function DeleteButton() {
-  const actions = useDataGridActions();
+  const api = useDataGridApi();
   const activeCell = useDataGridActiveCell();
-  const checked = useDataGridSelection().rows;
-  const hasChecked = checked.length > 0;
-  // Read the indexes on click: a render-time toArray() copies every checked row.
-  const deleteTargets = () =>
-    actions.deleteRows(
-      hasChecked ? checked.toArray() : activeCell ? [activeCell.row] : [],
-    );
+  const hasChecked = useDataGridSelection().rows.length > 0;
+  const deleteTargets = () => api.runShortcut("deleteRows");
 
   return (
     <Button

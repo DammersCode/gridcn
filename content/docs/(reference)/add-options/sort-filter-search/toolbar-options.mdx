@@ -84,7 +84,7 @@ The `focusSearch` action of the `keymap` prop binds <kbd>Mod</kbd>+<kbd>F</kbd> 
 
 The menu picks the operator list of a column in this order:
 
-1. The `filterOperators` of the column.
+1. The `filter.operators` of the column.
 2. The `filter.operators` of the cell type.
 3. The default list for the column type.
 
@@ -104,8 +104,10 @@ The menu shows and hides columns. It has no pin controls.
 
 Spread the context of the `renderHeaderFilter` slot into the component. The slot passes `column` and `index`. `className` <NewBadge /> adds classes to the trigger button. For example, a darker trigger:
 
-```tsx
-renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} className="text-foreground" />}
+```tsx fragment="one prop of DataGrid"
+renderHeaderFilter={(ctx) => (
+  <DataGridHeaderFilter {...ctx} className="text-foreground" />
+)}
 ```
 
 ## Server mode

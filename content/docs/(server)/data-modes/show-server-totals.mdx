@@ -137,7 +137,6 @@ A band with a status other than `"ready"` dims. A band that loads or goes stale 
 | `onError` | none | Called once per failed request. |
 | `cells` | none | Fixed cell values by column id, such as the id and a label. |
 | `refreshAfterSave` | `"settled"` | `false` skips the fetch after saves. The reporter and the hook take it too. |
-| `onChange` | required on the reporter only | Receives the result, to keep in state. |
 
 The answer is untrusted. The hook keeps values only for the requested columns. It cuts text at 1000 characters and drops everything but text, finite numbers, booleans, and `null`. An answer that is not an object counts as an error. The band formats each value with the cell type of its column, so a `number` column shows the total as a number.
 

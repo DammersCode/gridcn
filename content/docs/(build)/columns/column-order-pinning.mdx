@@ -35,11 +35,11 @@ Render the button inside `DataGridProvider`. `reorderable: false` on a column st
 
 ## Pin to the start or end [#pin-startend]
 
-`pin: "left"` pins a column to the start side, and `pin: "right"` pins it to the end side. This column stays at the start edge, so the first column is frozen:
+`pin: "start"` pins a column to the start side, and `pin: "end"` pins it to the end side. This column stays at the start edge, so the first column is frozen:
 
 ```tsx
 const columns = defineColumns<Person>()([
-  { id: "name", header: "Name", accessorKey: "name", pin: "left" },
+  { id: "name", header: "Name", accessorKey: "name", pin: "start" },
   { id: "email", header: "Email", accessorKey: "email" },
 ]);
 ```
@@ -48,13 +48,13 @@ In a left-to-right page, start means left. In a right-to-left page, start means 
 
 The grid draws start-pinned columns first, then unpinned columns, then end-pinned columns. The order of `columns` does not change that.
 
-At run time, users pin and unpin through the header menu of the [context menu add-on](/docs/rows-pages-menus/context-menu#header-surface). Your code calls `setColumnPin(id, "left" | "right" | null)`. `pinnable: false` on a column stops every pin change for it. `enableColumnPinning={false}` turns off the pin items of the header menu and makes `setColumnPin` do nothing. `setColumnLayout`, `columnLayout`, and URL state still set pins. The `pin` field of a column still applies.
+At run time, users pin and unpin through the header menu of the [context menu add-on](/docs/rows-pages-menus/context-menu#header-surface). Your code calls `setColumnPin(id, "start" | "end" | null)`. `pinnable: false` on a column stops every pin change for it. `enableColumnPinning={false}` turns off the pin items of the header menu and makes `setColumnPin` do nothing. `setColumnLayout`, `columnLayout`, and URL state still set pins. The `pin` field of a column still applies.
 
 A soft shadow marks the edge of a pinned zone. It shows only while content scrolls out underneath. [Density and small screens](/docs/theme-style-language/density-small-screens#scroll-shadows) lists the CSS variables that style it.
 
 ## Mark pinned headers [#persistent-pin-indicator]
 
-The shadow marks the edge of the zone, not each pinned header. Header and body cells of a pinned column carry `data-pinned="left"` or `data-pinned="right"`. Style the marker with CSS:
+The shadow marks the edge of the zone, not each pinned header. Header and body cells of a pinned column carry `data-pinned="start"` or `data-pinned="end"`. Style the marker with CSS:
 
 ```css
 [role="grid"] [role="columnheader"][data-pinned] {
@@ -89,7 +89,7 @@ const columns = defineColumns<Row>()([
       </span>
     ),
     accessorKey: "name",
-    pin: "left",
+    pin: "start",
   },
 ]);
 
@@ -104,7 +104,7 @@ export function MarkedGrid({ rows }: { rows: Row[] }) {
 
 | Field | Type | Default |
 | --- | --- | --- |
-| `pin` | `"left" \| "right"` | none |
+| `pin` | `"start" \| "end"` | none |
 | `pinnable` | `boolean` | `true` |
 | `reorderable` | `boolean` | `true` |
 

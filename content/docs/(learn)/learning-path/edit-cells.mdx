@@ -27,7 +27,7 @@ export const columns = defineColumns<Person>()([
     accessorKey: "name",
     type: "text",
     width: 200,
-    pin: "left",
+    pin: "start",
     readOnly: (person) => !person.active,
   },
   {

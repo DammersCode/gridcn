@@ -116,8 +116,8 @@ Pass these options to `useDataGridFill`. Every option is optional:
 import { useDataGridFill } from "@/components/data-grid-fill/data-grid-fill";
 import type { ProcessFillContext } from "@/components/data-grid-fill/data-grid-fill";
 
-function processFill({ target, values }: ProcessFillContext) {
-  return target.height > 100 ? false : values;
+function processFill({ target, cells }: ProcessFillContext) {
+  return target.height > 100 ? false : cells;
 }
 
 function MyGrid() {
@@ -126,7 +126,7 @@ function MyGrid() {
 }
 ```
 
-`ProcessFillContext` also carries `source`, the rectangle of the source cells, and `values`, the text grid for the target before parsing. For Ctrl/Cmd+D, `source` is the top row. For Ctrl/Cmd+R, it is the left column. `target` covers the new cells only. `onDataChange` with the `"fill"` source reports each fill that the grid writes.
+`ProcessFillContext` also carries `source`, the rectangle of the source cells, and `cells`, the text grid for the target before parsing. For Ctrl/Cmd+D, `source` is the top row. For Ctrl/Cmd+R, it is the left column. `target` covers the new cells only. `onDataChange` with the `"fill"` source reports each fill that the grid writes.
 
 ### detectSeries [#custom-series-detection]
 

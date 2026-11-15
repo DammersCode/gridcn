@@ -21,7 +21,7 @@ The demo shows both. Two icon buttons run Edit and Delete, and a dropdown holds 
 
 ## How it is wired [#how-its-wired]
 
-`renderCell` receives `viewRowIndex`, the position of the row in the view. The row actions take the same index. Call `useDataGridActions` in a component that `renderCell` renders:
+`renderCell` receives `rowId` and `viewRowIndex`, the position of the row in the view. `duplicateRows` and `deleteRows` take row ids, and `startEditingAt` takes the view position. Call `useDataGridActions` in a component that `renderCell` renders:
 
 ```tsx
 import {
@@ -33,7 +33,13 @@ import { Button } from "@/components/ui/button";
 
 type Row = { id: string; name: string };
 
-function RowActions({ viewRowIndex }: { viewRowIndex: number }) {
+function RowActions({
+  rowId,
+  viewRowIndex,
+}: {
+  rowId: string;
+  viewRowIndex: number;
+}) {
   const actions = useDataGridActions();
 
   return (
@@ -48,14 +54,14 @@ function RowActions({ viewRowIndex }: { viewRowIndex: number }) {
       <Button
         size="sm"
         variant="ghost"
-        onClick={() => actions.duplicateRows([viewRowIndex])}
+        onClick={() => actions.duplicateRows([rowId])}
       >
         Duplicate
       </Button>
       <Button
         size="sm"
         variant="ghost"
-        onClick={() => actions.deleteRows([viewRowIndex])}
+        onClick={() => actions.deleteRows([rowId])}
       >
         Delete
       </Button>
@@ -69,11 +75,11 @@ const columns = defineColumns<Row>()([
     id: "actions",
     header: <span className="sr-only">Actions</span>,
     accessorFn: () => "",
-    pin: "right",
+    pin: "end",
     readOnly: true,
     width: 220,
-    renderCell: ({ viewRowIndex }) => (
-      <RowActions viewRowIndex={viewRowIndex} />
+    renderCell: ({ rowId, viewRowIndex }) => (
+      <RowActions rowId={rowId} viewRowIndex={viewRowIndex} />
     ),
   },
 ]);
@@ -94,7 +100,7 @@ function ActionsGrid() {
 
 `startEditingAt` starts an edit in the cell at a view row and a column position. Here, column 0 is Name. Without a `duplicateRow` prop, `duplicateRows` does nothing and warns in development.
 
-To address a row by its identity, use the `rowId` that `renderCell` receives. `startEditing` takes a `{ rowId, columnId }` cell ref, and `deleteRows` takes row ids.
+`startEditing` takes a `{ rowId, columnId }` cell ref. `duplicateRowsAt` and `deleteRowsAt` take view indexes.
 
 ## Related
 

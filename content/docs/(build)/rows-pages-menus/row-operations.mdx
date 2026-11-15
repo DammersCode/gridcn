@@ -6,7 +6,7 @@ aliases: ["add a row", "delete rows", "new row", "remove rows", "copy row", "pro
 icon: ListPlus
 ---
 
-Users add, copy, and remove rows while they work. The grid inserts, duplicates, and deletes rows through two factory props, keyboard shortcuts, the [context menu](/docs/rows-pages-menus/context-menu), and `useDataGridActions`. Every operation except `deleteRows` addresses view indexes, the positions the user sees. Each one writes one change with `source: "row-operation"`, or `source: "stream"` for a stream delete.
+Users add, copy, and remove rows while they work. The grid inserts, duplicates, and deletes rows through two factory props, keyboard shortcuts, the [context menu](/docs/rows-pages-menus/context-menu), and `useDataGridActions`. `insertRow` and `insertRows` address view indexes, the positions the user sees. `duplicateRows` and `deleteRows` take row ids, and their `At` forms take view indexes. Each operation writes one change with `source: "row-operation"`, or `source: "stream"` for a stream delete.
 
 <ComponentPreview name="data-grid-row-ops-demo" />
 
@@ -67,8 +67,8 @@ function RowTools() {
   const editRows = () => {
     actions.insertRow(2, "below");
     actions.insertRows(0, 5, "above");
-    actions.duplicateRows([1, 2]);
-    actions.deleteRows([4]);
+    actions.duplicateRows(["1"]);
+    actions.deleteRows(["1"]);
   };
 
   return (
@@ -82,8 +82,10 @@ function RowTools() {
 - `insertRow(viewRowIndex, position)` inserts one row that `createRow` builds. `position` is `"above"` or `"below"`.
 - `insertRows(viewRowIndex, count, position)` inserts `count` rows as one change. `createRow` runs once per row. A `count` of 0 or less does nothing.
 - `duplicateRows(rowIds)` puts each copy directly after its own source row. `duplicateRowsAt(viewIndexes)` takes view indexes.
-- `deleteRowsAt(viewIndexes)` deletes the rows at these view indexes as one change.
+- `deleteRowsAt(viewIndexes)` deletes the rows at these view indexes as one change. `viewIndexes([4])` marks plain numbers as view indexes for the `At` forms.
 - `deleteRows(rowIds, options?)` <NewBadge /> deletes the rows with these ids as one change. The grid skips an id that matches no row. `{ source: "stream" }` deletes rows that the server removed. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
+
+`api.runShortcut(action)` <NewBadge /> from `useDataGridApi` runs what the key of a keymap action runs, on the same rows as the key. A toolbar button that calls `api.runShortcut("deleteRows")` computes no targets.
 
 Insert and duplicate shift the selection around the new rows. Under a sort, a new row lands in its sorted position. Under a sort, a filter, or paging, the range collapses onto the active cell. Delete clears the selection, the active cell, and ["all matching"](/docs/rows-live-data/select-server-rows#what-ends-all-matching), but remembered checks of hidden rows stay. An open edit that survives the delete keeps its cell.
 

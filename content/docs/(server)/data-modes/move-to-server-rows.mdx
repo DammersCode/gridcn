@@ -73,7 +73,7 @@ The hook sets `sortMode="server"`, `filterMode="server"`, `totalRowCount`, and `
 | Feature | Local array | Server rows |
 | --- | --- | --- |
 | [Sort](/docs/data-modes/query-server-rows#sorting-a-scroll-grid) | The grid sorts `data`. `sortCompare` and the cell type compare the values. | Your server sorts. `sortCompare` does not run. |
-| [Filter](/docs/data-modes/query-server-rows#filtering-a-scroll-grid) | The grid runs `filterMatch` and the operators. | Your server filters. `filterMatch` does not run. Without `fetchFilterValues`, the header filter lists the values of the loaded rows. |
+| [Filter](/docs/data-modes/query-server-rows#filtering-a-scroll-grid) | The grid runs `filter.match` and the operators. | Your server filters. `filter.match` does not run. Without `fetchFilterValues`, the header filter lists the values of the loaded rows. |
 | [Quick search](/docs/sort-filter-search/quick-search#server-mode) | Highlights matches in every row. | Puts the text in `spec.searchText`. The box highlights matches in the rows that come back. |
 | [Copy and paste](/docs/clipboard-undo/clipboard#server-mode) | Every displayed row. On a paged grid, the shown page. | The rows that `data` holds. In scroll mode, a copy gives empty cells for rows that are not loaded, and a paste skips them. |
 | [Checked rows](/docs/rows-live-data/select-server-rows) | The checks cover `data`. | `actions.selectAllMatching()` checks the whole result. Send `useDataGridSelectedRows()` to your server. |
@@ -86,7 +86,7 @@ The hook sets `sortMode="server"`, `filterMode="server"`, `totalRowCount`, and `
 ## Check the server [#check-the-server]
 
 - Treat the request as untrusted input. Pass `body.spec` through `parseServerSpec`, and bound the page or the row range. See [Check the spec on your server](/docs/data-modes/query-server-rows#parse-the-spec).
-- Port each custom `sortCompare` and `filterMatch` to your query. The grid does not run them in server mode.
+- Port each custom `sortCompare` and `filter.match` to your query. The grid does not run them in server mode.
 - Make the order total, for example with the row id as the last sort key.
 - Answer with `totalRowCount`. A source without a count answers with `nextCursor` or `hasMore`. See [Load without row count](/docs/scroll-mode/load-without-row-count).
 

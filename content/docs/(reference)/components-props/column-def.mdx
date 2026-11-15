@@ -15,7 +15,7 @@ A `ColumnDef` describes one column. It names the column, says how to read and wr
 | Cell type | `type`, `options` | [Fields](#fields) |
 | Validation | `validate`, `validationMode` | [Validation](#validation) |
 | Size | `width`, `minWidth`, `maxWidth`, `flex`, `resizable` | [Width and flex](#width) |
-| Sort and filter | `sortable`, `sortCompare`, `filterable`, `filterMatch`, `filterCompare`, `filterOperators` | [Sort and filter](#sort-and-filter) |
+| Sort and filter | `sortable`, `sortCompare`, `filterable`, `filter` | [Sort and filter](#sort-and-filter) |
 | Layout | `pin`, `pinnable`, `reorderable`, `hidden`, `hideable` | [Fields](#fields) |
 
 `defineColumns` checks each literal. The `type` key sets the value type and the `options` type of the column. A column without `type` is a `text` column. `accessorKey` must name a row field of that value type, and `accessorFn` must return it:
@@ -30,7 +30,7 @@ export const columns = defineColumns<Order>()([
     id: "symbol",
     header: "Symbol",
     accessorKey: "symbol",
-    pin: "left",
+    pin: "start",
     width: 120,
   },
   {
@@ -76,12 +76,10 @@ Keep the `columns` array stable: define it outside the component or memoize it. 
 | `minWidth` | `number` | none | Smallest width in px. |
 | `maxWidth` | `number` | none | Largest width in px. |
 | `flex` | `number` | none | Share of the free width of the grid. |
-| `pin` | `"left" \| "right"` | none | Starting pin side, applied when the column id first appears. `"left"` is the start side and `"right"` the end side. In a right-to-left page, both flip. |
+| `pin` | `"start" \| "end"` | none | Starting pin side, applied when the column id first appears. `"start"` and `"end"` follow the inline axis, so both flip in a right-to-left page. |
 | `sortable` | `boolean` | `true` | `false` removes the column from header-click sorting, the sort list, and the sort items of the header menu. |
 | `filterable` | `boolean` | `true` | `false` removes the column from the filter column picker and the header filter. |
-| `filterMatch` | `(value, filter) => boolean` | none | Replaces the text matcher for this column. |
-| `filterOperators` | `readonly (BuiltInFilterOperator \| CustomFilterOperator)[]` | from `type` | Operators that the filter menu offers. A custom operator is an object. See [Filtering](/docs/sort-filter-search/filtering#custom-operators). |
-| `filterCompare` | `(text, bound) => number` | none | Orders cell text against a filter bound for `gt`, `gte`, `lt`, `lte`, and `isBetween`. A `NaN` result or a throw falls back to the default order. See [Filtering](/docs/sort-filter-search/filtering). |
+| `filter` <NewBadge /> | `ColumnFilter` | from `type` | Sets the filter capabilities of this column. Each member beats the same member of the cell type. See the table below. |
 | `sortCompare` | `(a, b) => number` | none | Compares two rows for sorting. |
 | `hidden` | `boolean` | none | `true` hides the column when its id first appears. `setColumnHidden` and the columns menu change it later. |
 | `resizable` | `boolean` | `true` | `false` removes the resize handle and leaves the column out of autosize. |
@@ -120,9 +118,11 @@ Keep the `columns` array stable: define it outside the component or memoize it. 
 - `sortable: false` removes header-click sorting. `setSorts` and `toggleSort` still sort the column. URL state drops a sort for a `sortable: false` column, and a filter for a `filterable: false` column.
 - `sortCompare` receives two whole rows. A result of zero, a non-finite number such as `NaN`, or a thrown error defers that pair to the default text compare. The `SortSpec` direction still applies, and empty cells still sort last.
 - `filterable: false` hides the column from the filter column picker. Filters that already target the column keep applying.
-- `filterMatch` receives the raw cell value and the filter. A thrown error fails the row for that filter.
-- `filterOperators` wins over the `filter.operators` of the cell type and the defaults. A `text` or untyped column with `filterMatch`, or a cell type with `filter.match`, loses the set operators `isAnyOf` and `isNoneOf`. This holds only without `filterOperators` and without `filter.operators` on the cell type. The `number`, `date`, and `select` types declare `filter.operators`, so they keep the set operators.
-- With `sortMode="server"`, the server orders the rows and `sortCompare` does not run. With `filterMode="server"`, the server filters and `filterMatch` does not run. `filterOperators` sets the operators of the filter menu in both modes.
+- `filter.match` receives the raw cell value and the filter. A thrown error fails the row for that filter.
+- `filter.operators` wins over the `filter.operators` of the cell type and the defaults. A `text` or untyped column with `filter.match`, or a cell type with `filter.match`, loses the set operators `isAnyOf` and `isNoneOf`. This holds only without `filter.operators` on the column and on the cell type. The `number`, `date`, and `select` types declare `filter.operators`, so they keep the set operators.
+- `filter.compare` orders cell text against a filter bound for `gt`, `gte`, `lt`, `lte`, and `isBetween`. A `NaN` result or a throw falls back to the default order. See [Filtering](/docs/sort-filter-search/filtering).
+- `filter.valueInput` picks the value widget of the filter row. It takes a built-in name or a component.
+- With `sortMode="server"`, the server orders the rows and `sortCompare` does not run. With `filterMode="server"`, the server filters and `filter.match` does not run. `filter.operators` sets the operators of the filter menu in both modes.
 
 ## Types [#types]
 

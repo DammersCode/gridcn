@@ -27,7 +27,7 @@ type: example
 type ColumnLayout = {
   widths: Record<string, number>; // only columns the user resized
   order: string[]; // the full current column-id order
-  pins: Record<string, "left" | "right">;
+  pins: Record<string, "start" | "end">;
   hidden: string[];
 };
 ```

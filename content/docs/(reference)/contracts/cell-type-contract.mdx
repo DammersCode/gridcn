@@ -42,7 +42,7 @@ Each feature reads the value through its own member. One override does not reach
 | Clipboard copy and export | `toText`. Export with `text: "display"` reads `toDisplayText`, else `toText` |
 | Sort | The column's `sortCompare`, else `compare`, else a numeric-aware collation of `String(value)` |
 | Quick search | `toSearchText`, else `toText` |
-| Filter | The raw value, through the column's `filterMatch`, `filter.match`, or the built-in text matcher |
+| Filter | The raw value, through the `filter.match` of the column or the cell type, or the built-in text matcher |
 | Fill | `toText` of the source cells, then the `fromText` of the target column. A vertical repeat writes the stored source value of the column. A horizontal repeat writes the `fromText` of the source text |
 
 A custom `toText` changes copy, export, and search. It does not change what a filter matches. A column with no declared type searches `String(value)`.
@@ -97,11 +97,12 @@ A type with `activate` has no editor session. Enter, F2, Space, a stationary cli
 
 ### filter [#filter]
 
-`filter` holds three optional members. Each falls back to the default for the type name.
+`filter` holds four optional members. Each falls back to the default for the type name.
 
 - `operators` replaces the operator list of the filter menu.
 - `match(value, filter)` is a predicate over the raw value. It replaces the text matcher.
-- `valueInput` picks the value widget: `"text"`, `"number"`, `"date"`, `"boolean"`, `"choices"`, or a component. A component receives `FilterValueInputProps`: `column`, `operator`, `value`, and `onValueChange`. It renders for every operator that takes a value. `value` is a string, a `[from, to]` pair for `isBetween`, or a `string[]` for `isAnyOf` and `isNoneOf`. For a custom type, add `isNoneOf` to `filter.operators` or `filterOperators`. A `filter.match` or `filterMatch` predicate sees that operator after you do.
+- `compare(text, bound)` orders cell text against a filter bound for `gt`, `gte`, `lt`, `lte`, and `isBetween`. A `NaN` result or a throw falls back to the default order.
+- `valueInput` picks the value widget: `"text"`, `"number"`, `"date"`, `"boolean"`, `"choices"`, or a component. A component receives `FilterValueInputProps`: `column`, `operator`, `value`, and `onValueChange`. It renders for every operator that takes a value. `value` is a string, a `[from, to]` pair for `isBetween`, or a `string[]` for `isAnyOf` and `isNoneOf`. For a custom type, add `isNoneOf` to `filter.operators`. A `filter.match` predicate sees that operator after you do.
 
 ## Example [#example]
 

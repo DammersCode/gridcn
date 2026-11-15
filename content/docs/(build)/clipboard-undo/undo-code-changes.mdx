@@ -92,22 +92,18 @@ function ClearNameButton({ rowId }: { rowId: string }) {
 }
 ```
 
-To change the list, pass `recordSources` to `useDataGridHistory`. This list records edits, pastes, and stream batches:
+To change the list, pass `recordSources` to `useDataGridHistory`. An array replaces the list, for example `["edit", "paste", "stream"]`. <NewBadge /> A function receives the defaults, so this hook keeps them and adds one source:
 
-```tsx fragment="one option"
-const history = useDataGridHistory<Row>({
-  recordSources: ["edit", "paste", "stream"],
-});
-```
+```tsx
+import { useDataGridHistory } from "@/components/data-grid-history/data-grid-history";
 
-<NewBadge />
+type Row = { id: string; name: string };
 
-To keep the default list and add one source, pass a function of the defaults:
-
-```tsx fragment="one option"
-const history = useDataGridHistory<Row>({
-  recordSources: (defaults) => [...defaults, "stream"],
-});
+export function useHistoryWithStream() {
+  return useDataGridHistory<Row>({
+    recordSources: (defaults) => [...defaults, "stream"],
+  });
+}
 ```
 
 ## Dataset changes [#dataset-changes]
