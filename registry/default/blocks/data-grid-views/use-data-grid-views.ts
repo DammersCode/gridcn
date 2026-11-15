@@ -66,7 +66,7 @@ export type UseDataGridViewsResult = {
   modified: boolean;
   /**
    * The part of the grid state that exceeds a view limit, or `false`. `saveView` returns `null` and `updateView` returns `false` while it is set.
-   * Limits: `"sorts"` 16 sorts; `"filters"` 64 filters, 16 groups, 1,000 characters per value, 1,000 entries per value list; `"search"` 500 characters; `"layout"` a column width over 10,000 px, 1,000 entries per layout list.
+   * Limits: `"sorts"` 16 sorts; `"filters"` 64 filters, 16 groups, 1,000 characters per value, 1,000 entries per value list; `"search"` 500 characters; `"layout"` a column width over 10,000 px, 1,000 entries per layout list. State of a column the grid lacks is not a limit.
    */
   overLimit: false | OverLimitPart;
   defaultViewId: string | null;
@@ -168,7 +168,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
     return captureViewState({ sorts: s.sortState, filters: s.filterState, searchText: s.searchText, searchOptions: s.searchOptions, columnLayout: s.columnLayout });
   }, [storeApi]);
 
-  const readSavableState = useCallback(() => savableViewState(readState(), latest.current.knownColumns), [readState]);
+  const readSavableState = useCallback(() => savableViewState(readState()), [readState]);
 
   const reportError = useCallback((kind: "load" | "save", cause: unknown) => {
     failedRef.current = kind;
@@ -262,7 +262,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
         return;
       }
       if (controller.signal.aborted) return;
-      const parsed = raw == null ? emptyViewsDocument() : parseViewDocument(raw, latest.current.knownColumns);
+      const parsed = raw == null ? emptyViewsDocument() : parseViewDocument(raw);
       if (!parsed) {
         reportError("load", new Error("The saved views are in an unknown format"));
         return;
@@ -300,8 +300,8 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
   );
 
   const overLimit = useMemo(
-    () => overLimitPart(captureViewState({ sorts: sortState, filters: filterState, searchText, searchOptions, columnLayout }), knownColumns),
-    [sortState, filterState, searchText, searchOptions, columnLayout, knownColumns],
+    () => overLimitPart(captureViewState({ sorts: sortState, filters: filterState, searchText, searchOptions, columnLayout })),
+    [sortState, filterState, searchText, searchOptions, columnLayout],
   );
 
   const activeIdNow = useCallback(() => (latest.current.value !== undefined ? latest.current.value : appliedIdRef.current) ?? null, []);

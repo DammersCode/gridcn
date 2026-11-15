@@ -45,9 +45,9 @@ They need a `reorder` family `rowMarkers` mode and `enableRowReorder`, which def
 
 ## Opening the column filter [#opening-the-column-filter]
 
-<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowUp</kbd> (`openColumnFilter`) opens the header filter of the active cell's column. It needs a `renderHeaderFilter` slot on the root and a column that offers a set filter. Otherwise it does nothing.
+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowUp</kbd> (`openColumnFilter`) opens the header filter of the focused header button's column, or else the active cell's column. It needs a `renderHeaderFilter` slot on the root and a column that offers a set filter. Otherwise it does nothing.
 
-<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowDown</kbd> (`openColumnMenu`) opens the column menu, which needs a `renderHeaderMenu` slot. Without an active cell, it opens the menu of the focused header button's column.
+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowDown</kbd> (`openColumnMenu`) opens the column menu, which needs a `renderHeaderMenu` slot. It opens the menu of the focused header button's column, or else the active cell's column.
 
 ## Two-stage Ctrl+A [#two-stage-ctrla]
 

@@ -84,7 +84,7 @@ export function DataGridHeaderDropdown(props: DataGridHeaderDropdownProps): Reac
         data-grid-header-menu-popup=""
         align="end"
         className={className}
-        // the trigger is not a tab stop; the keyboard path (openColumnMenu) opens from the active cell
+        // the trigger is a tab stop only at zero rows; openColumnMenu opens it from a focused header button or the active cell
         finalFocus={() => {
           if (!keyboardOpenedRef.current) return true;
           const active = document.activeElement;

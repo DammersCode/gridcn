@@ -1361,6 +1361,14 @@ describe("updateCells — verdict", () => {
     expect(onDataChange).not.toHaveBeenCalled();
   });
 
+  it("setActiveCell on a ref whose row id has no string form does not throw", () => {
+    const { result } = renderHarness();
+    const hostile = Object.create(null) as string;
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(() => act(() => result.current.actions.setActiveCell({ rowId: hostile, columnId: "price" }))).not.toThrow();
+    warn.mockRestore();
+  });
+
   it('reports a grid-level readOnly as an empty verdict for source "edit"', () => {
     const { result } = renderHarness({ readOnly: true });
     expect(result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 1 }], { source: "edit" })).toEqual({

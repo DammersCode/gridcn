@@ -27,9 +27,9 @@ All gates must be green before you commit. Run them in order:
 
 ```powershell
 pnpm types:check && pnpm types:check:ts5                       # repo TypeScript, then consumer TypeScript 5.9
-pnpm lint                                                      # oxlint + import-boundary script
+pnpm lint                                                      # oxlint + the verify-* scripts
 pnpm lint:typed                                                # type-checked no-unsafe-* on registry source (slow)
-npx vitest run registry --exclude "**/*.browser.test.*" --project unit --coverage
+npx vitest run registry tests --exclude "**/*.browser.test.*" --project unit --coverage
 npx vitest run --project browser --bail=1                      # real-Chromium tests, about 2 minutes
 ```
 
@@ -64,6 +64,7 @@ After ANY change to files under `registry/` or to `registry.json`:
 ```powershell
 npx shadcn build                        # regenerate public/r/*.json from registry.json
 node scripts/fix-registry-imports.mjs   # rewrite cross-item imports in the payloads
+node scripts/normalize-payload-eol.mjs  # discard EOL-only drift before you stage public/r
 node scripts/verify-registry.mjs        # must print "All items match the filesystem."
 ```
 

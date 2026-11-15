@@ -122,7 +122,7 @@ export function resolveRefOrWarn(ctx: DataWriteContext, s: DataGridStoreState, r
   const coord = resolveCellRef(s, ctx.rowIndexCache, ref);
   if (!coord && !ctx.warnedStaleCellRef) {
     ctx.warnedStaleCellRef = true;
-    warnDev(`CellRef { rowId: ${ref.rowId}, columnId: ${ref.columnId} } does not resolve in the current view (row no longer in data, or column hidden); the action is a no-op`);
+    warnDev(`CellRef { rowId: ${toSafeText(ref.rowId)}, columnId: ${toSafeText(ref.columnId)} } does not resolve in the current view (row no longer in data, or column hidden); the action is a no-op`);
   }
   return coord;
 }

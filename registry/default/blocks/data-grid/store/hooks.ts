@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { repairGroupOrder, type ColumnGroupModel } from "../columns/column-groups";
+import type { ColumnGroupModel } from "../columns/column-groups";
 import type {
   CellRef,
   ViewCoord,
@@ -19,7 +19,7 @@ import type { DataGridLabels } from "../labels";
 import { hasFilterOnColumn, type SearchMatch } from "../sort-filter";
 import { isSelectionEmpty, selectionContainsCell } from "../selection";
 import { colRangesEqual, selectedColRangesForRow, type ColRange } from "../selection/selected-col-ranges-for-row";
-import { cellErrorKey, flashCellKey, getRangeValues, holeRowId, rowIdAtViewRow, searchMatchKey } from "./compute";
+import { cellErrorKey, completeColumnOrder, flashCellKey, getRangeValues, holeRowId, rowIdAtViewRow, searchMatchKey } from "./compute";
 import { resolveRefOrWarn } from "./data-write";
 import { getInternalActions } from "./internal-actions";
 import { bindingCanMatch } from "../keyboard/key-syntax";
@@ -289,7 +289,7 @@ export function useDataGridVisibleColumns<TData = unknown>(): readonly ColumnDef
 export function useDataGridAllColumns<TData = unknown>(): readonly ColumnDefOf<TData>[] {
   return useDataGridStore(
     useShallow((s) => {
-      const orderedIds = repairGroupOrder(s.columnOrder ?? s.columns.map((c) => c.id), s.columnGroupModel);
+      const orderedIds = completeColumnOrder(s.columns, s.columnOrder, s.columnGroupModel);
       const byId = new Map(s.columns.map((c) => [c.id, c] as const));
       return orderedIds.map((id) => byId.get(id)).filter((c): c is AnyColumnDef => c != null);
     }),

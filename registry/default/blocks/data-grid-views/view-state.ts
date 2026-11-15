@@ -14,7 +14,6 @@ const MAX_LIST_ENTRIES = 1000;
 const MAX_TEXT_LENGTH = 1000;
 const MAX_SEARCH_LENGTH = 500;
 const MAX_LAYOUT_ENTRIES = 1000;
-const MAX_COLUMN_ID_LENGTH = 200;
 const MAX_COLUMN_WIDTH = 10_000;
 const MAX_VIEW_ID_LENGTH = 64;
 const FILE_FORMAT = "gridcn-view";
@@ -33,7 +32,7 @@ export type DataGridView = { id: string; name: string; state: DataGridViewState 
 /** What a storage adapter persists. */
 export type DataGridViewsDocument = { version: 1; views: DataGridView[]; defaultViewId: string | null };
 
-/** The live columns a view is checked against; `undefined` accepts every id up to 200 characters (structure only); a live column id passes at any length. */
+/** The live columns a view is checked against; `undefined` checks structure and limits only, so any column id passes. */
 export type ViewColumns = ReadonlyMap<string, { sortable?: boolean; filterable?: boolean; operators?: ReadonlyMap<string, FilterOperatorInput> }>;
 
 export type ViewFileResult = { ok: true; name: string; state: DataGridViewState; dropped: number } | { ok: false; reason: "too-large" | "invalid" };
@@ -132,16 +131,16 @@ export function viewStateKey(state: DataGridViewState): string {
   return Object.values(viewPartKeys(state)).join("|");
 }
 
-/** The part of `state` that a view limit would cut or drop, or `false` when none. A column id in `columns` passes at any length. Layout covers a width over 10,000 px and a list over 1,000 entries. */
-export function overLimitPart(state: DataGridViewState, columns?: ViewColumns): OverLimitPart | false {
-  const kept = viewPartKeys(sanitizeViewState(state, columns).state);
+/** The part of `state` that a view limit would cut or drop, or `false` when none. A column the grid lacks is not a limit. Layout covers a width over 10,000 px and a list over 1,000 entries. */
+export function overLimitPart(state: DataGridViewState): OverLimitPart | false {
+  const kept = viewPartKeys(sanitizeViewState(state).state);
   const wanted = viewPartKeys(state);
   return (Object.keys(wanted) as ViewStatePart[]).find((part) => kept[part] !== wanted[part]) ?? false;
 }
 
 /** The state in the form that reloads unchanged, or `null` when a view limit would cut or drop part of it. */
-export function savableViewState(state: DataGridViewState, columns?: ViewColumns): DataGridViewState | null {
-  const clean = sanitizeViewState(state, columns).state;
+export function savableViewState(state: DataGridViewState): DataGridViewState | null {
+  const clean = sanitizeViewState(state).state;
   return viewStateKey(clean) === viewStateKey(state) ? clean : null;
 }
 
@@ -165,13 +164,12 @@ function boundedEntries<T>(entries: readonly T[], cap: number, tally: Tally): re
   return entries.slice(0, cap);
 }
 
-type Tally = { dropped: number; live?: ViewColumns };
+type Tally = { dropped: number };
 
-/** One rule for save, apply, and read: a live column id passes at any length; without a column set, an id passes up to the length cap. */
-function acceptsColumnId(id: unknown, columns: ViewColumns | undefined, tally: Tally): id is string {
+/** An id passes when it is a usable key and, given a column set, names a live column. */
+function acceptsColumnId(id: unknown, columns: ViewColumns | undefined): id is string {
   if (typeof id !== "string" || id === "" || id === "__proto__") return false;
-  if (columns) return columns.has(id);
-  return id.length <= MAX_COLUMN_ID_LENGTH || tally.live?.has(id) === true;
+  return columns ? columns.has(id) : true;
 }
 
 function sanitizeSorts(raw: unknown, columns: ViewColumns | undefined, tally: Tally): SortSpec[] {
@@ -182,7 +180,7 @@ function sanitizeSorts(raw: unknown, columns: ViewColumns | undefined, tally: Ta
     const entry = asRecord<RawSort>(item);
     const columnId = entry?.columnId;
     const direction = entry?.direction;
-    if (!acceptsColumnId(columnId, columns, tally) || columns?.get(columnId)?.sortable === false || (direction !== "asc" && direction !== "desc") || seen.has(columnId) || sorts.length >= MAX_SORTS) {
+    if (!acceptsColumnId(columnId, columns) || columns?.get(columnId)?.sortable === false || (direction !== "asc" && direction !== "desc") || seen.has(columnId) || sorts.length >= MAX_SORTS) {
       tally.dropped++;
       continue;
     }
@@ -258,7 +256,7 @@ function sanitizeFilterNodes(raw: unknown, depth: number, columns: ViewColumns |
     }
     const { columnId, operator } = entry;
     const value = sanitizeOperatorValue(operator, columnId, entry.value, columns, tally);
-    if (!acceptsColumnId(columnId, columns, tally) || columns?.get(columnId)?.filterable === false || !value.ok || budget.leaves >= MAX_FILTERS) {
+    if (!acceptsColumnId(columnId, columns) || columns?.get(columnId)?.filterable === false || !value.ok || budget.leaves >= MAX_FILTERS) {
       tally.dropped++;
       continue;
     }
@@ -274,7 +272,7 @@ function sanitizeIdList(raw: unknown, columns: ViewColumns | undefined, tally: T
   if (!Array.isArray(raw)) return [];
   const seen = new Set<string>();
   for (const id of boundedEntries(raw, MAX_LAYOUT_ENTRIES, tally)) {
-    if (acceptsColumnId(id, columns, tally) && !seen.has(id)) seen.add(id);
+    if (acceptsColumnId(id, columns) && !seen.has(id)) seen.add(id);
     else tally.dropped++;
   }
   return [...seen];
@@ -286,12 +284,12 @@ function sanitizeLayout(raw: unknown, columns: ViewColumns | undefined, tally: T
   const pins: [string, "left" | "right"][] = [];
   const widthEntries = boundedEntries(Object.entries(asRecord<Record<string, unknown>>(layout.widths) ?? {}), MAX_LAYOUT_ENTRIES, tally);
   for (const [id, width] of widthEntries) {
-    if (acceptsColumnId(id, columns, tally) && typeof width === "number" && Number.isFinite(width) && width > 0 && width <= MAX_COLUMN_WIDTH) widths.push([id, width]);
+    if (acceptsColumnId(id, columns) && typeof width === "number" && Number.isFinite(width) && width > 0 && width <= MAX_COLUMN_WIDTH) widths.push([id, width]);
     else tally.dropped++;
   }
   const pinEntries = boundedEntries(Object.entries(asRecord<Record<string, unknown>>(layout.pins) ?? {}), MAX_LAYOUT_ENTRIES, tally);
   for (const [id, side] of pinEntries) {
-    if (acceptsColumnId(id, columns, tally) && (side === "left" || side === "right")) pins.push([id, side]);
+    if (acceptsColumnId(id, columns) && (side === "left" || side === "right")) pins.push([id, side]);
     else tally.dropped++;
   }
   return {
@@ -306,10 +304,10 @@ function sanitizeLayout(raw: unknown, columns: ViewColumns | undefined, tally: T
  * Checks untrusted view state: unknown shapes, operators, and columns drop, lists and strings are
  * bounded. `dropped` counts every rejected or cut entry so the caller can tell the user; text cut to its limit is not counted.
  */
-export function sanitizeViewState(raw: unknown, columns: ViewColumns | undefined, live?: ViewColumns): { state: DataGridViewState; dropped: number } {
+export function sanitizeViewState(raw: unknown, columns?: ViewColumns): { state: DataGridViewState; dropped: number } {
   const source = asRecord<RawState>(raw);
   if (!source) return { state: emptyViewState(), dropped: 0 };
-  const tally: Tally = { dropped: 0, live };
+  const tally: Tally = { dropped: 0 };
   const options = asRecord<RawSearchOptions>(source.searchOptions) ?? {};
   return {
     state: {
@@ -327,8 +325,8 @@ export function cleanViewName(raw: unknown): string {
   return typeof raw === "string" ? raw.trim().slice(0, MAX_VIEW_NAME_LENGTH) : "";
 }
 
-/** Reads a stored document, or `null` when `raw` is not a version 1 document. A view keeps the columns that return later, so an id passes up to the length cap; an id of a `live` column passes at any length. */
-export function parseViewDocument(raw: unknown, live?: ViewColumns): DataGridViewsDocument | null {
+/** Reads a stored document, or `null` when `raw` is not a version 1 document. A view keeps the columns that return later, so ids are not checked against the live columns. */
+export function parseViewDocument(raw: unknown): DataGridViewsDocument | null {
   const source = asRecord<RawDocument>(raw);
   if (!source || source.version !== 1 || !Array.isArray(source.views)) return null;
   const views: DataGridView[] = [];
@@ -341,7 +339,7 @@ export function parseViewDocument(raw: unknown, live?: ViewColumns): DataGridVie
     const name = cleanViewName(entry?.name);
     if (name === "") continue;
     ids.add(id);
-    views.push({ id, name, state: sanitizeViewState(entry?.state, undefined, live).state });
+    views.push({ id, name, state: sanitizeViewState(entry?.state).state });
   }
   const defaultViewId = typeof source.defaultViewId === "string" && ids.has(source.defaultViewId) ? source.defaultViewId : null;
   return { version: 1, defaultViewId, views };

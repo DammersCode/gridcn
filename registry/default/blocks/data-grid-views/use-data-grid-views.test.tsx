@@ -686,8 +686,8 @@ describe("useDataGridViews limits", () => {
     expect(probe.current!.views.activeView!.name).toBe("Fine");
   });
 
-  it("a grid with a column id over 200 characters can save, sort on it, and reads as not modified", async () => {
-    const longId = "c".repeat(201);
+  it("a grid with a 300-character column id can save, sort on it, and reads as not modified", async () => {
+    const longId = "c".repeat(300);
     const longColumns = defineColumns<Row>()([
       { id: "name", header: "Name", accessorKey: "name", type: "text", width: 100 },
       { id: longId, header: "Age", accessorKey: "age", type: "number", width: 80 },
@@ -708,6 +708,76 @@ describe("useDataGridViews limits", () => {
     });
     expect(saved).not.toBeNull();
     expect(probe.current!.views.modified).toBe(false);
+  });
+
+  describe("state of a column the grid lacks is not a view limit", () => {
+    const [nameColumn] = columns;
+    const withColumns = (...cols: readonly object[]) => defineColumns<Row>()(cols as never);
+    const both = withColumns(columns[0], columns[1]);
+    const nameOnly = withColumns(nameColumn);
+
+    async function mountSwappable(initial: typeof both, providerProps: Record<string, unknown> = {}) {
+      const probe: { current: Probe | null } = { current: null };
+      const tree = (cols: typeof both) => (
+        <DataGridProvider data={rows} columns={cols} getRowId={(r) => r.id} {...providerProps}>
+          <Harness options={{ storage: createMemoryViewsStorage() }} onProbe={(p) => (probe.current = p)} />
+        </DataGridProvider>
+      );
+      const view = render(tree(initial));
+      await ready(probe);
+      return { probe, swap: (cols: typeof both) => view.rerender(tree(cols)) };
+    }
+    function expectSavable(probe: { current: Probe | null }) {
+      expect(probe.current!.views.overLimit).toBe(false);
+      let saved: ReturnType<UseDataGridViewsResult["saveView"]> = null;
+      act(() => {
+        saved = probe.current!.views.saveView("Kept");
+      });
+      expect(saved).not.toBeNull();
+    }
+
+    it("a sort on an unknown column", async () => {
+      const { probe } = await mountSwappable(both);
+      act(() => probe.current!.actions.setSorts([{ columnId: "ghost", direction: "asc" }]));
+      expectSavable(probe);
+    });
+    it("a server filter on a field that is not a column", async () => {
+      const { probe } = await mountSwappable(both, { filterMode: "server" });
+      act(() => probe.current!.actions.setFilters([{ columnId: "ghost", operator: "contains", value: "x" }]));
+      expectSavable(probe);
+    });
+    it("a server filter with an operator the column does not register", async () => {
+      const { probe } = await mountSwappable(both, { filterMode: "server" });
+      act(() => probe.current!.actions.setFilters([{ columnId: "name", operator: "fuzzy" as never, value: "x" }]));
+      expectSavable(probe);
+    });
+    it("a width of a removed column", async () => {
+      const { probe, swap } = await mountSwappable(both);
+      act(() => probe.current!.actions.setColumnLayout({ widths: { name: 150, age: 222 } } as never));
+      swap(nameOnly);
+      expectSavable(probe);
+    });
+    it("a hidden removed column", async () => {
+      const { probe, swap } = await mountSwappable(both);
+      act(() => probe.current!.actions.setColumnLayout({ hidden: ["age"] } as never));
+      swap(nameOnly);
+      expectSavable(probe);
+    });
+    it("a sort and a filter on a removed column", async () => {
+      const { probe, swap } = await mountSwappable(both);
+      act(() => {
+        probe.current!.actions.setSorts([{ columnId: "age", direction: "asc" }]);
+        probe.current!.actions.setFilters([{ columnId: "age", operator: "equals", value: "30" }]);
+      });
+      swap(nameOnly);
+      expectSavable(probe);
+    });
+    it("a column added after a reorder", async () => {
+      const { probe, swap } = await mountSwappable(nameOnly);
+      act(() => probe.current!.actions.setColumnLayout({ order: ["name"] } as never));
+      swap(both);
+      expectSavable(probe);
+    });
   });
 
   it("17 sorts are refused and 16 are saved", async () => {

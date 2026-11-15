@@ -302,9 +302,8 @@ describe("view files", () => {
   });
 });
 
-describe("a column id over 200 characters", () => {
-  const long = "c".repeat(201);
-  const live: ViewColumns = new Map([[long, {}]]);
+describe("a long column id", () => {
+  const long = "c".repeat(300);
   const empty = { sorts: [], filters: [], searchText: "", searchOptions: { matchCase: false, wholeCell: false }, columnLayout: { widths: {}, order: [], pins: {}, hidden: [] } } as DataGridViewState;
   it.each([
     ["a sort", { sorts: [{ columnId: long, direction: "asc" }] }],
@@ -313,16 +312,12 @@ describe("a column id over 200 characters", () => {
     ["a pin", { columnLayout: { widths: {}, order: [], pins: { [long]: "left" }, hidden: [] } }],
     ["the order", { columnLayout: { widths: {}, order: [long], pins: {}, hidden: [] } }],
     ["the hidden list", { columnLayout: { widths: {}, order: [], pins: {}, hidden: [long] } }],
-  ])("is not over a limit for %s when the column is live", (_name, change) => {
+  ])("is not over a limit for %s", (_name, change) => {
     const state = { ...empty, ...change } as DataGridViewState;
-    expect(overLimitPart(state, live)).toBe(false);
-    expect(savableViewState(state, live)).not.toBeNull();
+    expect(overLimitPart(state)).toBe(false);
+    expect(savableViewState(state)).not.toBeNull();
   });
-  it("stays savable for an untouched live column with the full order", () => {
-    const state = { ...empty, columnLayout: { widths: {}, order: ["a", long], pins: {}, hidden: [] } } as DataGridViewState;
-    expect(savableViewState(state, new Map([["a", {}], [long, {}]]))).not.toBeNull();
-  });
-  it("survives save then reload of a stored document when the column is live", () => {
+  it("survives save then reload of a stored document", () => {
     const state = {
       sorts: [{ columnId: long, direction: "desc" }],
       filters: [{ join: "and", filters: [{ columnId: long, operator: "contains", value: "a" }] }],
@@ -330,14 +325,17 @@ describe("a column id over 200 characters", () => {
       searchOptions: { matchCase: false, wholeCell: false },
       columnLayout: { widths: { [long]: 120 }, order: [long], pins: { [long]: "left" }, hidden: [long] },
     } as DataGridViewState;
-    const saved = savableViewState(state, live)!;
-    const stored = JSON.parse(JSON.stringify({ version: 1, defaultViewId: null, views: [{ id: "v", name: "Long", state: saved }] }));
-    expect(parseViewDocument(stored, live)!.views[0]!.state).toEqual(state);
-    expect(parseViewDocument(stored)!.views[0]!.state.sorts).toEqual([]);
-    expect(parseViewDocument(stored, new Map([["other", {}]]))!.views[0]!.state.sorts).toEqual([]);
+    const stored = JSON.parse(JSON.stringify({ version: 1, defaultViewId: null, views: [{ id: "v", name: "Long", state: savableViewState(state) }] }));
+    expect(parseViewDocument(stored)!.views[0]!.state).toEqual(state);
   });
-  it("is dropped from a state read without live columns", () => {
-    expect(overLimitPart({ ...empty, sorts: [{ columnId: long, direction: "asc" }] })).toBe("sorts");
-    expect(overLimitPart({ ...empty, sorts: [{ columnId: "c".repeat(200), direction: "asc" }] })).toBe(false);
+  it("is kept by a file import only for a live column", () => {
+    const state = { ...empty, sorts: [{ columnId: long, direction: "asc" }] } as DataGridViewState;
+    const text = serializeViewFile({ name: "n", state });
+    expect(parseViewFile(text, new Map([[long, {}]]))).toMatchObject({ ok: true, dropped: 0, state: { sorts: [{ columnId: long }] } });
+    expect(parseViewFile(text, new Map([["a", {}]]))).toMatchObject({ ok: true, dropped: 1, state: { sorts: [] } });
+  });
+  it("is still reported for a part over a real limit", () => {
+    const sorts = Array.from({ length: 17 }, (_, i) => ({ columnId: `c${i}`, direction: "asc" as const }));
+    expect(overLimitPart({ ...empty, sorts })).toBe("sorts");
   });
 });
