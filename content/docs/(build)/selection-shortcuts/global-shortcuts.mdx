@@ -24,7 +24,7 @@ The component ships with the core `data-grid` item. Undo and redo need the [Undo
 6. An edit session is open. The editor owns the key, also in a popup such as the select list.
 7. The key resolves to no enabled action through the effective keymap.
 
-When the gate passes, the component runs the action through the same dispatch as the in-grid binding. For undo and redo, that is the `undo` and `redo` command of the history add-on. Without the add-on, the grid cancels the key's default action and does nothing else.
+When the gate passes, the component runs the action through the same dispatch as the in-grid binding. For undo and redo, that is the `undo` and `redo` command of the history add-on. Without the add-on, the key has no binding, rule 7 skips the event, and the browser default runs.
 
 ## Usage [#usage]
 

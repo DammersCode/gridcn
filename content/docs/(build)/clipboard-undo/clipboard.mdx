@@ -118,8 +118,12 @@ function copyText(value: unknown, { column, text }: ClipboardCopyCtx<Row>) {
   return column.id === "price" ? `$${value}` : text;
 }
 
-function pasteValue(text: string, { column, fromText }: ClipboardPasteCtx<Row>) {
-  return column.id === "price" ? Number(text.replace("$", "")) : fromText(text);
+function pasteValue(
+  text: string,
+  { column, fromText }: ClipboardPasteCtx<Row>,
+) {
+  if (column.id !== "price") return fromText(text);
+  return Number(text.replace("$", ""));
 }
 
 function MyGrid() {

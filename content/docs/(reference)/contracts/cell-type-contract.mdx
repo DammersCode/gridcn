@@ -75,7 +75,7 @@ Content that the editor portals out of the cell, such as a popover, carries `dat
 
 ### toText, fromText, clearValue, and isEmpty [#totext-fromtext-clearvalue-and-isempty]
 
-`fromText` <NewBadge /> parses typed, pasted, and imported text. For text it cannot parse, return the result of `clearValue`. If `fromText` throws, the grid rejects that cell: paste and fill leave it unchanged and report it through `onValidationError`, import lists it in `rejected`, and replace skips it.
+`fromText` <NewBadge /> parses typed, pasted, and imported text. For text it cannot parse, return the result of `clearValue`. If `fromText` throws, the grid rejects that cell. Paste and fill leave it unchanged and report it through `onValidationError`. Import lists it in `rejected`, and replace skips it.
 
 `toText` must round-trip through `fromText` for every value the type can hold.
 

@@ -60,7 +60,7 @@ export function Scores({ rows }: { rows: Row[] }) {
 }
 ```
 
-If `header` <NewBadge /> is a node, the screen reader label, the header menu, the export, and the import matching use the text of its elements, for example `Name` in `<span><User /> Name</span>`. A component inside the node adds no text. Set `headerText` when the label comes from a component or when it differs from the visible text. <NewBadge /> `headerClassName` adds classes to the header cell.
+If `header` <NewBadge /> is a node, the screen reader label, the header menu, the export, and the import matching read its text. In `<span><User /> Name</span>`, that text is `Name`. A component inside the node adds no text. Set `headerText` when the label comes from a component or when it differs from the visible text. <NewBadge /> `headerClassName` adds classes to the header cell.
 
 ## Replace the header cell content [#header-cell-contents]
 

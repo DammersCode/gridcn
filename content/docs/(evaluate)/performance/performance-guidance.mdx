@@ -41,7 +41,7 @@ If an identity changes between renders, a development build logs a warning:
 | `getCellClassName` | The function identity differs from the last render. |
 | A plugin `Overlay` or `Mount` | The component identity differs. The overlay remounts and loses its state. |
 
-An inline `getRowId` function costs nothing. If the new function returns the same ids as the old one for the same `data` array, the grid keeps the old function. A function that returns other ids takes effect; pass it with a new `data` array.
+An inline `getRowId` function costs nothing. If the new function returns the same ids as the old one for the same `data` array, the grid keeps the old function. A function that returns other ids takes effect. Pass it with a new `data` array.
 
 The warning for a class function reads `getRowClassName identity changed since the last render`. The `columns` warning reads `columns array identity changed since the last render`. The `data` warning reads `data array identity changed with no row changes`.
 

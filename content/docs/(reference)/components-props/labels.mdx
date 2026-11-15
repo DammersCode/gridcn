@@ -53,7 +53,7 @@ The empty grid shows "Keine Zeilen". With the toolbar add-on, its search shows "
 - A string, a function, or an array that you set replaces the default as a whole.
 - The grid compares `labels` by content, so a literal object of strings needs no `useMemo`. A label that is a function counts as changed when its identity changes.
 - A key that you set to `undefined` keeps the default. To blank a string label, set it to `""`.
-- A component with its own `labels` prop (`DataGridPaginationBar`, `DataGridStatusBar`, `DataGridViews`) merges three layers: the default, then the `labels.<group>` of the grid, then the `labels` prop of the component. <NewBadge />
+- A component with its own `labels` prop merges three layers: the default, then the `labels.<group>` of the grid, then the `labels` prop of the component. These components are `DataGridPaginationBar`, `DataGridStatusBar`, and `DataGridViews`. <NewBadge />
 - `useDataGridLabels()` returns the merged result under the provider.
 
 ## DataGridLabels [#datagridlabels]

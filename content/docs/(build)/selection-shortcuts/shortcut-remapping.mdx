@@ -221,7 +221,7 @@ On an unloaded row of a lazy grid, `cell` is a placeholder ref that `api` cannot
 
 Three more rules apply:
 
-- A name that shadows a built-in action wins over it. Development mode warns once. The pluggable names `undo`, `redo`, `fillDown`, `fillRight`, `openFindReplace`, and `openFind` do not warn.
+- A name that shadows a built-in action wins over it. Development mode warns once. The names of the [add-on actions](/docs/plugins/plugin-commands-shortcuts#add-on-actions) are no built-in actions, so they do not warn.
 - A bound name with neither a built-in handler nor a `commands` entry does nothing. Development mode warns once.
 - A key bound to two or more actions follows the tie rules in [Remapping](#remapping).
 

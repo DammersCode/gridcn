@@ -31,7 +31,9 @@ Each of the five row actions returns `{ ok: true }` once it ran or an async gate
 
 A call with `source: "stream"` returns `{ ok: true }` when no id matched, because a server push can repeat a delete.
 
-`onRowActionSkipped({ action, reason })` <NewBadge /> on `DataGridProvider` fires for every skip of `insertRows`, `duplicateRows`, `deleteRows`, or `moveRows` <NewBadge />, whether a shortcut, a drag, a menu item, or a call started it. One handler can show a message for all four paths. A `deleteRows` call with `source: "stream"` never fires it. `insertRow` reports the action as `"insertRows"`, and `deleteRowsAt` reports it as `"deleteRows"`. Insert row with no active cell reports nothing, even in a read-only grid. Duplicate row and Delete rows with no selection and no active cell report nothing when no reason applies. Disabled row items of the context menu show the reason as a tooltip.
+`onRowActionSkipped({ action, reason })` <NewBadge /> on `DataGridProvider` fires for every skip of `insertRows`, `duplicateRows`, `deleteRows`, or `moveRows` <NewBadge />. A shortcut, a drag, a menu item, or a call can start the action. One handler shows a message for all four.
+
+A `deleteRows` call with `source: "stream"` never fires it. `insertRow` reports the action as `"insertRows"`, and `deleteRowsAt` reports it as `"deleteRows"`. Insert row with no active cell reports nothing, even in a read-only grid. Duplicate row and Delete rows with no selection and no active cell report nothing when no reason applies. Disabled row items of the context menu show the reason as a tooltip.
 
 Pass the handler to `DataGridProvider`:
 
