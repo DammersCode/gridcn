@@ -751,15 +751,15 @@ describe("useGridInteraction: onRowActionSkipped from shortcuts", () => {
     ]);
   });
 
-  it("reports hidden-checked for duplicate and delete when only filtered-out rows are checked", () => {
+  it("reports hidden-rows-only for duplicate and delete when only filtered-out rows are checked", () => {
     const { hook, onRowActionSkipped } = setup({ createRow, duplicateRow, checkedRowsLifetime: "across-filters" });
     act(() => hook.result.current.storeApi.setState({ hiddenCheckedRowIds: new Set(["gone"]) }));
     hook.rerender();
     duplicate(hook);
     deleteRows(hook);
     expect(onRowActionSkipped.mock.calls.map(([ctx]) => ctx)).toEqual([
-      { action: "duplicateRows", reason: "hidden-checked" },
-      { action: "deleteRows", reason: "hidden-checked" },
+      { action: "duplicateRows", reason: "hidden-rows-only" },
+      { action: "deleteRows", reason: "hidden-rows-only" },
     ]);
   });
 

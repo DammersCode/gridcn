@@ -45,7 +45,7 @@ describe("DataGridKeybindingsDialog", () => {
   });
 
   it("lists an action that a command wires", () => {
-    const actions = listedActions({ commands: { undo: { label: "Undo", run: () => {} } } });
+    const actions = listedActions({ commands: { undo: { label: "Undo", run: () => {} } }, keymap: { undo: ["mod+z"] } });
     expect(actions).toContain("undo");
   });
 });

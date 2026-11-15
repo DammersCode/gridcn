@@ -314,7 +314,7 @@ describe("a long column id", () => {
     ["a sort", { sorts: [{ columnId: long, direction: "asc" }] }],
     ["a nested filter", { filters: [{ join: "and", filters: [{ columnId: long, operator: "contains", value: "a" }] }] }],
     ["a width", { columnLayout: { widths: { [long]: 100 }, order: [], pins: {}, hidden: [] } }],
-    ["a pin", { columnLayout: { widths: {}, order: [], pins: { [long]: "left" }, hidden: [] } }],
+    ["a pin", { columnLayout: { widths: {}, order: [], pins: { [long]: "start" }, hidden: [] } }],
     ["the order", { columnLayout: { widths: {}, order: [long], pins: {}, hidden: [] } }],
     ["the hidden list", { columnLayout: { widths: {}, order: [], pins: {}, hidden: [long] } }],
   ])("is not over a limit for %s", (_name, change) => {
