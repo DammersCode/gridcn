@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { highlight } from "fumadocs-core/highlight";
 import { InstallCommand } from "@/components/install-command";
 import { gitConfig } from "@/lib/shared";
 import { CLIENT_CODE, newInTwo, SERVER_CODE, SUBLINE } from "./data";
