@@ -3,6 +3,12 @@ import type { FilterGroup, FilterNode, FilterSpec } from "../types";
 /** Deepest group nesting a filter tree may have: a group (1) holds at most one more group (2). */
 export const MAX_FILTER_GROUP_DEPTH = 2;
 
+/** Most sort entries that URL state restores and `parseServerSpec` accepts by default. */
+export const MAX_SPEC_SORTS = 64;
+
+/** Longest search text that URL state and saved views restore and `parseServerSpec` accepts by default. */
+export const MAX_SPEC_SEARCH_LENGTH = 500;
+
 export function isFilterGroup(node: FilterNode): node is FilterGroup {
   return "filters" in node;
 }

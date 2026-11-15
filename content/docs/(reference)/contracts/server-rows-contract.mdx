@@ -309,20 +309,7 @@ response. Your fetch reads the restored spec and loads the rows. With pagination
 
 ### Check the request on your server [#parse-server-spec]
 
-`parseServerSpec(input, options)` checks a request body against `ParseServerSpecOptions`. Its `columns` option lists the ids a request can name, or maps each id to its `ServerSpecColumnRules`: `sortable`, `filterable`, `operators`, and custom operators. Its `limits` option is a `ServerSpecLimits`: `maxSorts` (8), `maxFilters` (64), `maxGroups` (16), `maxValueLength` (1000), `maxListLength` (1000), and `maxSearchLength` (200).
-
-#### Match the limits to the grid [#match-limits]
-
-<NewBadge />
-
-The grid can send more than the default limits allow. [URL state](/docs/sort-filter-search/url-state) restores up to 64 sorts and a search text of 500 characters. A [saved view](/docs/sort-filter-search/saved-views) restores up to 16 sorts and a search text of 500 characters. The toolbar search box has no length bound, and Shift+click multi-sort has no cap. Over a limit, `parseServerSpec` throws a `ServerSpecError`, the route answers 400, and the grid shows its error bar. If your grid uses URL state, saved views, a search box, or multi-sort, raise the two limits:
-
-```ts
-const spec = parseServerSpec(body.spec, {
-  columns: ["customer", "total"],
-  limits: { maxSorts: 64, maxSearchLength: 500 },
-});
-```
+`parseServerSpec(input, options)` checks a request body against `ParseServerSpecOptions`. Its `columns` option lists the ids a request can name, or maps each id to its `ServerSpecColumnRules`: `sortable`, `filterable`, `operators`, and custom operators. Its `limits` option is a `ServerSpecLimits`: `maxSorts` (64), `maxFilters` (64), `maxGroups` (16), `maxValueLength` (1000), `maxListLength` (1000), and `maxSearchLength` (500).
 
 URL state drops a filter value over 1,000 characters and cuts the search text to 500 characters. `maxValueLength` and `maxSearchLength` bound them on the server.
 

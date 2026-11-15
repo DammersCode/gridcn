@@ -1,5 +1,5 @@
 import type { FilterGroup, FilterNode, FilterOperator, FilterOperatorInput, FilterSpec, ServerSpec, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { MAX_FILTER_GROUP_DEPTH, filterOperatorInput, isBuiltInOperator } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { MAX_FILTER_GROUP_DEPTH, MAX_SPEC_SEARCH_LENGTH, MAX_SPEC_SORTS, filterOperatorInput, isBuiltInOperator } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** What a request may do with one column. Every field is optional. */
 export type ServerSpecColumnRules = {
@@ -15,7 +15,7 @@ export type ServerSpecColumnRules = {
 
 /** Bounds that apply to the whole request. Every field is optional; a negative or non-finite value keeps the default. Groups nest at most 2 levels deep. */
 export type ServerSpecLimits = {
-  /** Most sort entries. Default 8. */
+  /** Most sort entries. Default 64. */
   maxSorts?: number;
   /** Most filter rows in the tree. Default 64. */
   maxFilters?: number;
@@ -25,7 +25,7 @@ export type ServerSpecLimits = {
   maxValueLength?: number;
   /** Most entries of an `isAnyOf` or `isNoneOf` list. Default 1000. */
   maxListLength?: number;
-  /** Longest `searchText`. Default 200. */
+  /** Longest `searchText`. Default 500. */
   maxSearchLength?: number;
 };
 
@@ -45,7 +45,7 @@ export class ServerSpecError extends Error {
   }
 }
 
-const DEFAULT_LIMITS = { maxSorts: 8, maxFilters: 64, maxGroups: 16, maxValueLength: 1000, maxListLength: 1000, maxSearchLength: 200 } satisfies Required<ServerSpecLimits>;
+const DEFAULT_LIMITS = { maxSorts: MAX_SPEC_SORTS, maxFilters: 64, maxGroups: 16, maxValueLength: 1000, maxListLength: 1000, maxSearchLength: MAX_SPEC_SEARCH_LENGTH } satisfies Required<ServerSpecLimits>;
 
 type Budget = { filters: number; groups: number };
 

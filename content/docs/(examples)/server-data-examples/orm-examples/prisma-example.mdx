@@ -106,7 +106,7 @@ About the sample:
 
 - The grid sends every value as text. A numeric field needs `Number(value)` in its operator.
 - The grid compares text without case. The sample sets `mode: "insensitive"` on the text operators, which Prisma supports on PostgreSQL, CockroachDB, and MongoDB. On other databases, remove `mode`. `in` and `notIn` compare with case.
-- `parseServerSpec` <NewBadge /> checks the spec: the column ids, the operators, the value shapes, and the size of the tree. Its default caps are 8 sorts, 200 characters of search text, 64 filters, 16 groups, and 1,000 list values. A request over a cap gets status 400.
+- `parseServerSpec` <NewBadge /> checks the spec: the column ids, the operators, the value shapes, and the size of the tree. Its default caps are 64 sorts, 500 characters of search text, 64 filters, 16 groups, and 1,000 list values. A request over a cap gets status 400.
 - Number and date columns also get `isBetween`, with a `[min, max]` pair in which either bound can be `""`. The sample refuses it. Map it before you add such a column.
 - The grid's `empty` also matches a null cell. The sample compares with `""`, so a nullable column needs an `IS NULL` test too.
 - The route caps a page at 500 rows. Keep the page size at or below 500. A larger page returns fewer rows than the grid asked for.

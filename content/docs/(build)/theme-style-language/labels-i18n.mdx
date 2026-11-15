@@ -44,7 +44,7 @@ const labels: DeepPartialLabels = {
 
 The merge goes through plain objects key by key. A function, an array, or a string that you set replaces the default as a whole. The grid does not merge a function with the default function.
 
-Setting `toolbar.searchPlaceholder` leaves every other `toolbar` string and every other group in English. A key that you set to `undefined` replaces the default with `undefined`, so leave out keys that you do not translate.
+Setting `toolbar.searchPlaceholder` leaves every other `toolbar` string and every other group in English. A key that you set to `undefined` keeps the default.
 
 ### Reading effective labels
 
@@ -87,7 +87,7 @@ The `grid` group <NewBadge /> also holds `noResults`, which shows when a filter 
 
 ## Full German example
 
-A representative override. Leave out any key that you do not translate:
+A representative override. Every key that it leaves out keeps its English default:
 
 ```tsx
 import type { DeepPartialLabels } from "@/components/data-grid/data-grid";

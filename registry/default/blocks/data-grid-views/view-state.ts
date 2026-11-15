@@ -1,5 +1,5 @@
 import type { ColumnLayout, BuiltInFilterOperator, FilterNode, FilterOperator, FilterOperatorInput, FilterSpec, SearchOptions, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { MAX_FILTER_GROUP_DEPTH, countFilterSpecs, isFilterGroup, pruneFilterSpecs } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { MAX_FILTER_GROUP_DEPTH, MAX_SPEC_SEARCH_LENGTH, countFilterSpecs, isFilterGroup, pruneFilterSpecs } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 export const MAX_VIEWS = 50;
 /** Largest stored document, in characters; a save over it is refused so the next load can read it. */
@@ -12,7 +12,6 @@ const MAX_FILTERS = 64;
 const MAX_FILTER_GROUPS = 16;
 const MAX_LIST_ENTRIES = 1000;
 const MAX_TEXT_LENGTH = 1000;
-const MAX_SEARCH_LENGTH = 500;
 const MAX_LAYOUT_ENTRIES = 1000;
 const MAX_COLUMN_WIDTH = 10_000;
 const MAX_VIEW_ID_LENGTH = 64;
@@ -312,7 +311,7 @@ export function sanitizeViewState(raw: unknown, columns?: ViewColumns): { state:
     state: {
       sorts: sanitizeSorts(source.sorts, columns, tally),
       filters: sanitizeFilterNodes(source.filters, 0, columns, { leaves: 0, groups: 0 }, tally),
-      searchText: typeof source.searchText === "string" ? source.searchText.slice(0, MAX_SEARCH_LENGTH) : "",
+      searchText: typeof source.searchText === "string" ? source.searchText.slice(0, MAX_SPEC_SEARCH_LENGTH) : "",
       searchOptions: { matchCase: options.matchCase === true, wholeCell: options.wholeCell === true },
       columnLayout: sanitizeLayout(source.columnLayout, columns, tally),
     },

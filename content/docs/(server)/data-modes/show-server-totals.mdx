@@ -105,7 +105,7 @@ Inside the grid, call `useDataGridServerAggregate(options)` yourself. It returns
 The request carries the spec and not the rows in the grid. The same code serves pages mode, scroll mode, a controlled spec, and your own API.
 
 - The reporter requests once on mount.
-- It requests again after each filter, quick-search, or `columnIds` change, and after `refresh()` and `retry()`.
+- It requests again after each filter, quick-search, or `columnIds` change, after the saves in flight settle, and after `refresh()` and `retry()`.
 - Each request waits `debounceMs` before it starts, the one on mount too.
 - A sort does not change the totals, so it does not request.
 - A newer request aborts the older one through `signal`, and the grid drops a late answer of the older one.
@@ -132,6 +132,7 @@ A band with a status other than `"ready"` dims. A band that loads or goes stale 
 | `fetchAggregates` | required | Resolves the values for a `{ spec, columnIds, signal }` request. |
 | `columnIds` | every column | The columns to ask for. |
 | `debounceMs` | `150` | Milliseconds to wait before each request starts. `0` starts it at once. |
+| `refreshAfterSave` | `"settled"` | `"settled"` requests again once every save in flight has settled. `false` never does. |
 | `onError` | none | Called once per failed request. |
 | `onChange` | required on the reporter | Receives the result, to keep in state. |
 
@@ -139,9 +140,7 @@ The answer is untrusted. The hook keeps values only for the requested columns. I
 
 The values come keyed by column id. A pinned cell reads its row through `accessorKey` or `accessorFn`. A total shows only where the `accessorKey` of the column equals its `id`. When they differ, copy the total to the `accessorKey` in `onChange`. [Pinned rows](/docs/rows-pages-menus/pinned-rows#computing-a-totals-row) shows the same rule for client totals.
 
-<Callout type="warn">
-  Call `totals.refresh()`, the `refresh` of the result that `onChange` stored, after your save lands. An edit does not request new totals, so the band keeps the totals of the last request.
-</Callout>
+A grid without `onSave` has no save to wait for. Call `totals.refresh()`, the `refresh` of the result that `onChange` stored, after your own write lands.
 
 ## Related
 

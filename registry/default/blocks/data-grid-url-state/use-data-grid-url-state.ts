@@ -9,7 +9,7 @@ import {
   useDataGridSearchText,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev, isFilterGroup, pruneFilterSpecs, resolveCustomFilterOperators, useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { MAX_SPEC_SEARCH_LENGTH, isDev, isFilterGroup, pruneFilterSpecs, resolveCustomFilterOperators, useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { ColumnLayout, FilterOperatorInput } from "@/registry/default/blocks/data-grid/data-grid";
 import { serializeSortState, parseSortState } from "./sort-param";
 import { parseLayoutPart, serializeLayoutPart, type UrlLayoutPart } from "./layout-param";
@@ -22,7 +22,6 @@ const MIN_CHOICE_BOUND = 64;
 
 
 /** Longest search text read from or written to the URL. */
-const MAX_URL_SEARCH_LENGTH = 500;
 
 function choiceBoundsOf(columns: readonly { id: string; options?: unknown }[]): Map<string, number | undefined> {
   return new Map(
@@ -192,7 +191,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
     // On mount an absent param keeps the grid's initial state; a re-apply mirrors the URL, so a removed param clears its state.
     if (sorts.length > 0 || !keepMountDefaults) actions.setSorts(sorts);
     if (filters.length > 0 || !keepMountDefaults) actions.setFilters(filters);
-    if (searchParam || !keepMountDefaults) actions.setSearch(searchParam.slice(0, MAX_URL_SEARCH_LENGTH));
+    if (searchParam || !keepMountDefaults) actions.setSearch(searchParam.slice(0, MAX_SPEC_SEARCH_LENGTH));
 
     if (Object.keys(layoutPatch).length > 0) actions.setColumnLayout(layoutPatch);
   }, [actions, allColumns, operatorInput, storeApi, sortParam, filterParam, joinParam, searchParam, layoutParts, orderParam, hiddenParam, widthsParam, pinsParam]);
@@ -240,7 +239,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   // The search text is already debounced by the input; the adapter coalesces the writes, so none is waited for here.
   useEffect(() => {
     if (!appliedRef.current) return;
-    void setSearchParamRef.current(searchText.slice(0, MAX_URL_SEARCH_LENGTH) || null);
+    void setSearchParamRef.current(searchText.slice(0, MAX_SPEC_SEARCH_LENGTH) || null);
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [searchText]);
 

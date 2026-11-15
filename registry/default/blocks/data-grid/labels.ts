@@ -726,7 +726,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/** Pure deep merge for label overrides: plain objects merge recursively, everything else (functions, arrays, primitives) replaces the base value wholesale. */
+/** Pure deep merge for label overrides: plain objects merge recursively, everything else (functions, arrays, primitives) replaces the base value wholesale. A key set to `undefined` keeps the base value. */
 export function deepMergeLabels<T>(base: T, override: DeepPartialLabels<T> | undefined): T {
   if (!override) return base;
   if (!isPlainObject(base) || !isPlainObject(override)) return (override as T) ?? base;
@@ -735,6 +735,7 @@ export function deepMergeLabels<T>(base: T, override: DeepPartialLabels<T> | und
   const result: Record<string, unknown> = { ...base };
   for (const key of Object.keys(overrideRecord)) {
     const overrideValue = overrideRecord[key];
+    if (overrideValue === undefined) continue;
     const baseValue = (base as Record<string, unknown>)[key];
     result[key] = isPlainObject(baseValue) && isPlainObject(overrideValue) ? deepMergeLabels(baseValue, overrideValue) : overrideValue;
   }

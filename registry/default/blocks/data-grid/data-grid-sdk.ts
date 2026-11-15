@@ -76,7 +76,7 @@ export { textAccessorFor as rowAccessorFor } from "./store/compute";
 export { sortCollator, withSortLocale } from "./sort-filter/sort-collator";
 export { isBuiltInOperator } from "./sort-filter/matches-filter";
 export { makeFilterPredicate } from "./sort-filter/incremental-view-index";
-export { MAX_FILTER_GROUP_DEPTH, countFilterSpecs, forEachFilterSpec, groupChildren, isFilterGroup, pruneFilterSpecs } from "./sort-filter/filter-tree";
+export { MAX_FILTER_GROUP_DEPTH, MAX_SPEC_SEARCH_LENGTH, MAX_SPEC_SORTS, countFilterSpecs, forEachFilterSpec, groupChildren, isFilterGroup, pruneFilterSpecs } from "./sort-filter/filter-tree";
 export { toSafeText } from "./cell-types/safe-text";
 export { PLUGGABLE_ACTIONS } from "./keyboard";
 export {
@@ -137,6 +137,7 @@ export { columnLabelText } from "./columns/column-format-helpers";
 export { createHistory, type History, type HistoryOptions } from "./interaction/history";
 export { buildRollback, rebaseOntoCurrent } from "./interaction/rollback";
 export type { DataGridFilterOperatorLabels } from "./labels";
+export { deepMergeLabels } from "./labels";
 export { GRID_ATTR, gridAttrSelector, type GridAttrName, type GridAttr, type GridAttrValue } from "./data-attributes";
 export { EMPTY_SERVER_SPEC } from "./server-spec";
 export { defaultGetRowId } from "./store/types";

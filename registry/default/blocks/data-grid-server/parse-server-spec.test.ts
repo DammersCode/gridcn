@@ -15,6 +15,13 @@ describe("parseServerSpec", () => {
     expect(spec).toEqual({ sorts: [{ columnId: "age", direction: "desc" }], filters: [{ columnId: "name", operator: "contains", value: "a" }], searchText: "q" });
   });
 
+  it("accepts with default limits what URL state and saved views restore", () => {
+    const sorts = Array.from({ length: 9 }, () => ({ columnId: "age", direction: "asc" }));
+    const spec = parse({ sorts, searchText: "x".repeat(500) });
+    expect(spec.sorts).toHaveLength(9);
+    expect(spec.searchText).toHaveLength(500);
+  });
+
   it("reads a missing part as empty", () => {
     expect(parse({})).toEqual({ sorts: [], filters: [], searchText: "" });
   });
@@ -50,8 +57,8 @@ describe("parseServerSpec", () => {
     expect(() => parse({ filters: [deep] })).toThrow(/deeper/);
     expect(() => parse({ filters: Array.from({ length: 65 }, () => row) })).toThrow(/more than 64 filters/);
     expect(() => parse({ filters: Array.from({ length: 17 }, () => ({ join: "and", filters: [] })) })).toThrow(/more than 16 groups/);
-    expect(() => parse({ sorts: Array.from({ length: 9 }, () => ({ columnId: "age", direction: "asc" })) })).toThrow(/more than 8/);
-    expect(() => parse({ searchText: "x".repeat(201) })).toThrow(/longer than 200/);
+    expect(() => parse({ sorts: Array.from({ length: 65 }, () => ({ columnId: "age", direction: "asc" })) })).toThrow(/more than 64/);
+    expect(() => parse({ searchText: "x".repeat(501) })).toThrow(/longer than 500/);
     expect(() => parse({ filters: [{ columnId: "name", operator: "equals", value: "x".repeat(1001) }] })).toThrow(/longer than 1000/);
     expect(() => parse({ filters: [{ columnId: "name", operator: "isAnyOf", value: Array.from({ length: 1001 }, () => "a") }] })).toThrow(/more than 1000/);
     expect(parse({ filters: Array.from({ length: 65 }, () => row) }, { limits: { maxFilters: 100 } }).filters).toHaveLength(65);

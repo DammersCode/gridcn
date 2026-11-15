@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
-import { isComposingKey } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { deepMergeLabels, isComposingKey } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { useDataGridViews, type ImportViewResult, type UseDataGridViewsOptions } from "./use-data-grid-views";
 import { MAX_VIEWS, MAX_VIEW_FILE_LENGTH, MAX_VIEW_NAME_LENGTH, type DataGridView, type OverLimitPart } from "./view-state";
 
@@ -204,7 +204,7 @@ function ViewRow({
  * {@link useDataGridViews}.
  */
 export function DataGridViews({ className, labels: labelOverrides, ...options }: DataGridViewsProps) {
-  const labels = { ...DEFAULT_VIEWS_LABELS, ...labelOverrides };
+  const labels = deepMergeLabels(DEFAULT_VIEWS_LABELS, labelOverrides);
   const views = useDataGridViews(options);
   const [newName, setNewName] = useState("");
   const [fileText, setFileText] = useState("");

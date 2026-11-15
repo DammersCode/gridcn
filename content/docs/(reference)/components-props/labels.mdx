@@ -52,10 +52,7 @@ The empty grid shows "Keine Zeilen". With the toolbar add-on, its search shows "
 - A string, a function, or an array that you set replaces the default as a whole.
 - The grid compares `labels` by content, so a literal object of strings needs no `useMemo`. A label that is a function counts as changed when its identity changes.
 - `useDataGridLabels()` returns the merged result under the provider.
-
-<Callout type="warn">
-  Leave out every key that you do not translate. A key that you set to `undefined` replaces the default with `undefined`. A string label then disappears from the UI, and calling a function label throws an error.
-</Callout>
+- A key that you set to `undefined` keeps the default. An empty string blanks a label.
 
 ## DataGridLabels [#datagridlabels]
 

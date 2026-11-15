@@ -63,6 +63,16 @@ describe("deepMergeLabels", () => {
     expect(deepMergeLabels(DEFAULT_LABELS, undefined)).toBe(DEFAULT_LABELS);
   });
 
+  it("a key set to undefined keeps the default at every depth", () => {
+    const merged = deepMergeLabels(DEFAULT_LABELS, { grid: { emptyState: undefined }, toolbar: { searchPlaceholder: undefined } });
+    expect(merged.grid.emptyState).toBe(DEFAULT_LABELS.grid.emptyState);
+    expect(merged.toolbar.searchPlaceholder).toBe(DEFAULT_LABELS.toolbar.searchPlaceholder);
+  });
+
+  it("an empty string still blanks a label", () => {
+    expect(deepMergeLabels(DEFAULT_LABELS, { grid: { emptyState: "" } }).grid.emptyState).toBe("");
+  });
+
   it("a partial override at a nested group keeps its untouched sibling keys", () => {
     const merged = deepMergeLabels(DEFAULT_LABELS, { toolbar: { searchPlaceholder: "Suchen…" } });
     expect(merged.toolbar.searchPlaceholder).toBe("Suchen…");
