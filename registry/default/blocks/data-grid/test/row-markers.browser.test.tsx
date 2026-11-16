@@ -922,12 +922,12 @@ describe("row checking by keyboard", () => {
     await vi.waitFor(() => expect(checked()[0]).toBe(false));
   });
 
-  it("Mod+Shift+E checks every row, then unchecks them, like the header checkbox", async () => {
+  it("Mod+Shift+Enter checks every row, then unchecks them, like the header checkbox", async () => {
     await renderCheckboxGrid();
     await userEvent.click(gridCells()[0]!);
-    await userEvent.keyboard("{Control>}{Shift>}e{/Shift}{/Control}");
+    await userEvent.keyboard("{Control>}{Shift>}{Enter}{/Shift}{/Control}");
     await vi.waitFor(() => expect(checked()).toEqual([true, true, true, true, true]));
-    await userEvent.keyboard("{Control>}{Shift>}e{/Shift}{/Control}");
+    await userEvent.keyboard("{Control>}{Shift>}{Enter}{/Shift}{/Control}");
     await vi.waitFor(() => expect(checked()).toEqual([false, false, false, false, false]));
   });
 });

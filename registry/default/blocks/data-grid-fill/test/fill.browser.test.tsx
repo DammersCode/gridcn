@@ -477,6 +477,7 @@ describe("data-grid-fill add-on", () => {
     const onDataChange = mockDataChangeFn();
     const data = makeFillRows(3);
     data[0]!.value = 10;
+    data[0]!.label = "5";
     await renderFillGrid(data, onDataChange);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
