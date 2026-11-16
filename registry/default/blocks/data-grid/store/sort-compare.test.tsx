@@ -297,8 +297,12 @@ describe("select sort cost", () => {
     }
     time("fruit");
     time("label");
-    const collatedSort = time("label");
-    const selectSort = time("fruit");
+    let selectSort = Infinity;
+    let collatedSort = Infinity;
+    for (let i = 0; i < 5; i++) {
+      selectSort = Math.min(selectSort, time("fruit"));
+      collatedSort = Math.min(collatedSort, time("label"));
+    }
     // integer ranks stay within the cost of collating the label per comparison
     expect(selectSort).toBeLessThan(collatedSort * 1.5);
   });
