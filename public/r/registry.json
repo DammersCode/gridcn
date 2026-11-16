@@ -683,6 +683,21 @@
           "target": "components/data-grid/store/write-ack.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/store/changed-rows.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/store/changed-rows.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid/store/clear-writes.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/store/clear-writes.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid/keyboard/use-shortcut-label.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/keyboard/use-shortcut-label.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/store/row-index.ts",
           "type": "registry:component",
           "target": "components/data-grid/store/row-index.ts"
@@ -1702,6 +1717,11 @@
           "path": "registry/default/blocks/data-grid-views/view-storage.ts",
           "type": "registry:component",
           "target": "components/data-grid-views/view-storage.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-views/shared-key.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-views/shared-key.ts"
         },
         {
           "path": "registry/default/blocks/data-grid-views/views-menu.tsx",
