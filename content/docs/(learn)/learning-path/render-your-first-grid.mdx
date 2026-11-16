@@ -55,21 +55,21 @@ export function PeopleGrid() {
 
 `className="h-96"` gives the grid a fixed height. Without a bounded height the grid cannot virtualize. It draws at most 200 rows and, when more than 200 rows fit, warns once in development. In a flex column or a CSS grid track, give the grid `min-h-0 flex-1` or `h-full min-h-0` instead. Without `min-h-0`, a flex or grid item grows to fit every row.
 
-To keep the rows in your own state, see [Keep edits in your state](/docs/learning-path/keep-edits-state).
+To keep the rows in your own state, see [Keep edits in state](/docs/learning-path/keep-edits-state).
 
 ## Row ids
 
-`getRowId` returns the id of a row. It defaults to the `id` field of the row. The field must be a string or a number. Otherwise the grid throws an error that asks for `getRowId`. If the id lives in another field, such as `name` here, pass `getRowId`:
+`getRowId` returns the id of a row. It defaults to the `id` field of the row, which must be a string or a number. The rows above have that field and need no `getRowId`. If the id lives in another field, such as `uuid`, pass `getRowId`:
 
 ```tsx fragment="a prop of the grid, not a full file"
 <DataGrid
-  defaultData={people}
+  defaultData={accounts}
   columns={columns}
-  getRowId={(person) => person.name}
+  getRowId={(account) => account.uuid}
 />
 ```
 
-Each id must be stable and unique. Selection, edit sessions, and undo address rows by row id. If you change what `getRowId` returns, pass a new `data` array in the same render. Otherwise development mode warns.
+Each id must be stable and unique. Selection, edit sessions, and undo address rows by row id. If you change what `getRowId` returns, pass a new `data` array in the same render, or remount a `defaultData` grid with a new `key`. Otherwise development mode warns.
 
 ## Try it
 
@@ -83,7 +83,7 @@ Click a cell, then use these keys:
 
 A click on a column header selects the whole column. It does not sort. To sort on a header click, see [Sort and filter rows](/docs/learning-path/sort-filter-rows).
 
-## DataGrid is shorthand [#datagrid-is-shorthand]
+## DataGrid parts [#datagrid-is-shorthand]
 
 `<DataGrid>` renders `DataGridProvider`, `DataGridRoot`, `DataGridHeader`, and `DataGridBody`. To place a toolbar above the grid, compose the parts yourself: the toolbar goes inside `DataGridProvider`, before `DataGridRoot`.
 

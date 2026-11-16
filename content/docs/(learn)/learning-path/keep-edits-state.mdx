@@ -6,7 +6,7 @@ type: step
 aliases: ["usestate", "keep edits"]
 ---
 
-Before you start, [edit cells](/docs/learning-path/edit-cells) and install the undo add-on:
+Before you start, finish [edit cells](/docs/learning-path/edit-cells). Then install the undo add-on:
 
 <InstallCommand item="data-grid-history" />
 
@@ -14,7 +14,9 @@ Before you start, [edit cells](/docs/learning-path/edit-cells) and install the u
 
 ## Pass data and onDataChange [#going-controlled]
 
-`data` puts the rows in your code. The grid shows an edit at once and calls `onDataChange` with the new array. Every edit, paste, fill, and delete reaches your array only through `onDataChange`. If you do not store the new array, the grid drops the edit the next time it reads your `data`. A development build warns once when a write reaches controlled `data` and neither `onDataChange` nor `onSave` is set. Replace `people-grid.tsx` with this file:
+`data` puts the rows in your code. The grid shows an edit at once and calls `onDataChange` with the new array. Every edit, paste, fill, and delete reaches your array only through `onDataChange`. If you do not store the new array, the grid drops the edit the next time it reads your `data`. A development build warns once when a write reaches controlled `data` and neither `onDataChange` nor `onSave` is set.
+
+Replace `people-grid.tsx` with this file:
 
 ```tsx title="people-grid.tsx"
 "use client";
@@ -55,7 +57,9 @@ If you pass both `data` and `defaultData`, `data` wins.
 "use client";
 
 import { DataGrid } from "@/components/data-grid/data-grid";
-import { useDataGridState } from "@/components/data-grid-history/data-grid-history";
+import {
+  useDataGridState,
+} from "@/components/data-grid-history/data-grid-history";
 import { columns, type Person } from "./columns";
 
 const initialPeople: Person[] = [
