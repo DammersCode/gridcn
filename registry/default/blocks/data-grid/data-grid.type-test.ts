@@ -372,6 +372,12 @@ void withSchemaValidate;
 const badSchemaValidate: NumberColumnValidate = mockSchema<string>(() => true, "n/a");
 void badSchemaValidate;
 
+// The committed value is the schema output, so a transform to another type does not compile.
+declare const transformingSchema: StandardSchemaV1<number, string>;
+// @ts-expect-error - a number-to-string transform would store a string in a number column
+const transformingValidate: NumberColumnValidate = transformingSchema;
+void transformingValidate;
+
 // The function form is untouched (still assignable, still bivariant per column-helpers.type-test.ts).
 const withFnValidate: NumberColumnValidate = (value) => (value !== null && value < 0 ? "must be >= 0" : null);
 void withFnValidate;
