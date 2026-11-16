@@ -16,7 +16,30 @@ A row has three addresses, and the grid APIs mix them. A call that takes the wro
 | View index | The position in the sorted and filtered list that the user sees. On a paged grid, the position on the shown page. | `ViewCoord`, `insertRow`, `insertRows`, and the `At` actions `deleteRowsAt`, `duplicateRowsAt`, and `setRowCheckedAt`. `viewIndexes([…])` marks numbers as view indexes. |
 | Row id | The stable id that `getRowId` returns. | `CellRef`, `deleteRows`, `duplicateRows`, `setRowChecked`, and the operations of a `DataChange`. |
 
-When you omit `getRowId`, the grid reads the `id` field of the row. A row without a string or number `id` throws an error.
+[Data grid props](/docs/components-props/data-grid-props#rows-and-ids) covers the default of `getRowId`.
+
+This sample deletes a row by id and a row by view index. After a sort, the view index names another record than before, and the id names the same record:
+
+```tsx
+import {
+  useDataGridActions,
+  viewIndexes,
+} from "@/components/data-grid/data-grid";
+
+export function DeleteButtons() {
+  const actions = useDataGridActions();
+  return (
+    <>
+      <button onClick={() => actions.deleteRows(["order-7"])}>
+        Delete order 7
+      </button>
+      <button onClick={() => actions.deleteRowsAt(viewIndexes([0]))}>
+        Delete top row
+      </button>
+    </>
+  );
+}
+```
 
 A column has the same split. A column id names the column for good. The column part of a `ViewCoord` counts the visible columns in display order, without the row marker column.
 

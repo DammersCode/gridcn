@@ -19,6 +19,30 @@ The layers run from the least effort to the most:
 5. Content replacement. `renderCell` on a column, `renderHeaderCell` on `DataGridHeader`, `renderMarker`, `emptyState`, and `loadingState` replace what the grid draws. They change the content and not the style.
 6. Plugin overlays. The `Overlay` member of a plugin paints your own layer above the cells. See [Plugin overlays](/docs/plugins/plugin-overlays).
 
+This CSS underlines the cells that match the quick search:
+
+```css
+[role="grid"] [data-search-match] {
+  text-decoration: underline;
+}
+```
+
+The same rule as a Tailwind class on the root:
+
+```tsx
+import { DataGrid } from "@/components/data-grid/data-grid";
+
+export function Grid() {
+  return (
+    <DataGrid
+      className="h-80 [&_[data-search-match]]:underline"
+      defaultData={[]}
+      columns={[]}
+    />
+  );
+}
+```
+
 ## Choose a layer
 
 - Re-brand the grid with the theme tokens. One change in `--primary` re-colors the selection, the active-cell ring, the resize handle, and the loading bar.

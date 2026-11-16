@@ -10,7 +10,7 @@ A custom cell type is a bigger decision than a column option. This page explains
 
 ## The mental model [#the-mental-model]
 
-A cell type is one object. `Cell` renders a value, and `Editor` edits it. The methods `toText`, `fromText`, `clearValue`, and `isEmpty` form the value pipeline. Clipboard, fill, delete, search, sort, import, and export all run through it.
+A cell type is one object. `Cell` renders a value, and `Editor` edits it. The methods `toText`, `fromText`, `clearValue`, and `isEmpty` form the value pipeline. Clipboard, fill, delete, search, import, and export read through it. Sort and filter read the raw value.
 
 The optional members tell the grid more: `compare`, `toDisplayText`, `toSearchText`, `align`, `numeric`, `validate`, `activate`, `href`, and `filter`. The grid reads these members from the type and not from the type name.
 
@@ -25,7 +25,7 @@ The built-in types follow these rules. Each rule has a reason.
 Each feature reads a value through its own surface:
 
 - Print, column autosize, and the set values of the header filter show `toDisplayText`, or `toText` without it. If the numbers of a selection come from one column, the status bar formats its totals with `toDisplayText`, or with a number format. A custom `Cell` decides its own display.
-- Clipboard copy and export use `toText`. With `text: "display"`, `buildExportRows` reads it too.
+- Clipboard copy and export use `toText`. Export with `text: "display"` reads `toDisplayText`.
 - Sort uses `compare`. Without it, sort uses a numeric-aware collation of the raw `String(value)`.
 - When the type has no `toSearchText`, quick search uses `toText`. Otherwise it uses `toSearchText`.
 - Filter matches the raw value, through `filter.match` or the built-in text matcher.
@@ -47,7 +47,7 @@ Follow these rules for the methods:
 
 - Create costly objects once. The `date` type keeps its `Intl.DateTimeFormat` instances in a cache.
 - Key a cache on serialized option values, not on object identity. A column definition creates its `options` object on every render, so an identity key never hits. The `date` and `number` caches key on the locale and the JSON of the format. The JSON is computed once per `format` object, so replace the object to change the format.
-- Pin every locale. `Intl` formatters fall back to the runtime locale, and a server and a browser can differ. The `date` type defaults to `en-US`, so server and client text match.
+- Pin every locale. `Intl` formatters fall back to the runtime locale, and a server and a browser can differ. The `date` type formats with `options.locale` and defaults to `en-US`, so server and client text match.
 
 ### Editor UX [#editor-ux]
 
