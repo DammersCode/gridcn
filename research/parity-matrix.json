@@ -2540,6 +2540,57 @@
       "doc": "/docs/server-data-examples/server-rows-example"
     },
     {
+      "id": "server-initial-answer",
+      "feature": "First server answer without a request (`initialAnswer`)",
+      "options": [
+        "initialAnswer"
+      ],
+      "cells": {
+        "L": {
+          "status": "n/a",
+          "reason": "A local array needs no fetch."
+        },
+        "PC": {
+          "status": "n/a",
+          "reason": "A client grid with `defaultPageSize` holds every row, so no fetch runs."
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.initial-answer.test.tsx"
+          ]
+        },
+        "Z": {
+          "status": "gap",
+          "track": "K",
+          "note": "Scroll mode takes no first answer; its first block always fetches."
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.initial-answer.test.tsx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.initial-answer.test.tsx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.initial-answer.test.tsx"
+          ]
+        },
+        "API": {
+          "status": "n/a",
+          "reason": "The first answer is an option of the server hook, not an action."
+        }
+      },
+      "doc": "/docs/server-data-examples/server-rows-example"
+    },
+    {
       "id": "error-state",
       "feature": "Error state and retry",
       "options": [],

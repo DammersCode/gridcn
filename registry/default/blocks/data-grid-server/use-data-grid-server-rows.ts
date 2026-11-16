@@ -71,6 +71,12 @@ export type UseDataGridServerRowsOptions<TData, TCursor = never> = {
   refreshAfterSave?: SaveRefreshPolicy;
   /** Plugins the hook mounts after its refresh guard, through `gridProps.plugins`. */
   plugins?: readonly DataGridPlugin<unknown>[];
+  /**
+   * The answer for the first state (`defaultSpec`, `defaultPage`, the first page size), for example from a Server Component.
+   * The hook shows it without a request, so the server HTML holds the rows; the next state fetches as usual. It counts as
+   * untrusted input like any answer. `onLoaded` does not fire for it.
+   */
+  initialAnswer?: ServerRowsAnswer<TData, TCursor>;
 };
 
 /** Return value of {@link useDataGridServerRows}. */
@@ -208,13 +214,26 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   const [rawPage, setPage] = useControlled(options.page, () => options.defaultPage ?? 1, options.onPageChange);
   const maxPage = Math.max(1, Math.ceil(MAX_ROW_COUNT / Math.max(1, pageSize)));
   const wantedPage = Number.isSafeInteger(rawPage) && rawPage >= 1 ? Math.min(rawPage, maxPage) : 1;
-  const live = useRef({ options, spec: EMPTY_LIVE_SPEC, page: wantedPage, pageSize, settledOnce: false, requested: false, error: null as unknown });
+  const live = useRef({ options, spec: EMPTY_LIVE_SPEC, page: wantedPage, pageSize, settledOnce: false, requested: false, error: null as unknown, initialKey: null as string | null });
   const { spec, onSortChange, onFilterChange, onSearchTextChange } = useServerSpec(options, () => {
     if (live.current.settledOnce) setPage(1);
   });
   const chainKey = `${serverSpecKey(spec)}|${pageSize}`;
   const chain = useRef<CursorChain<TCursor>>({ key: chainKey, cursors: new Map([[1, undefined]]) });
-  const [settled, setSettled] = useState<Settled<TData>>({ key: "", view: "", rows: [], totalRowCount: null, hasMore: false, error: null, chainKey: "", furthestPage: 1, cursorSource: false });
+  const [settled, setSettled] = useState<Settled<TData>>(() => {
+    const empty: Settled<TData> = { key: "", view: "", rows: [], totalRowCount: null, hasMore: false, error: null, chainKey: "", furthestPage: 1, cursorSource: false };
+    if (options.initialAnswer === undefined) return empty;
+    const start = (wantedPage - 1) * pageSize;
+    const read = readAnswer<TData, TCursor>(options.initialAnswer, { start, end: start + pageSize }, (_, message) => isDev() && console.warn(`[data-grid-server] ${message}`), options.getRowId);
+    const cursorAnswer = read.nextCursor !== undefined;
+    if (cursorAnswer) recordCursor(chain.current.cursors, wantedPage, read.nextCursor as TCursor | null);
+    const view = `${serverSpecKey(spec)}|${wantedPage}|${pageSize}`;
+    live.current.settledOnce = true;
+    live.current.requested = true;
+    live.current.initialKey = `${view}|0`;
+    const rows = read.rows.filter((row) => row !== undefined) as TData[];
+    return { ...empty, key: live.current.initialKey, view, rows, totalRowCount: read.totalRowCount ?? null, hasMore: cursorAnswer ? read.nextCursor !== null : read.hasMore, chainKey, furthestPage: furthestPage(chain.current.cursors), cursorSource: cursorAnswer };
+  });
   const cursorSource = settled.chainKey === chainKey && settled.cursorSource;
   const awaitingChain = !cursorSource && settled.cursorSource;
   const page = cursorSource ? Math.min(wantedPage, settled.furthestPage) : awaitingChain ? 1 : wantedPage;
@@ -305,7 +324,8 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   useEffect(() => {
     const adoptedRequest = adoptedKey.current === key;
     adoptedKey.current = null;
-    if (adoptedRequest) return;
+    if (live.current.initialKey === key || adoptedRequest) return;
+    live.current.initialKey = null;
     const ahead = prefetch.current;
     if (ahead !== null && ahead.view === view && !ahead.landed) {
       ahead.adopted = { key };

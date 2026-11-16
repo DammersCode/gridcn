@@ -76,7 +76,7 @@ export const ADDONS = [
  */
 export const FEATURE_SINCE = {
   "1.2.0": ["find-replace", "filter-values"],
-  Unreleased: ["unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "error-state", "input-debounce", "lookup-cell", "server-aggregate", "zero-row-header"],
+  Unreleased: ["unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "server-initial-answer", "error-state", "input-debounce", "lookup-cell", "server-aggregate", "zero-row-header"],
 };
 
 const F = (guide, reference, item) => ({ item, guide, reference });
@@ -116,6 +116,7 @@ export const FEATURES = {
   "mode-neutral": F(["/docs/selection-shortcuts/shortcut-remapping"], ["/docs/components-props/labels"]),
   "unknown-total": F(["/docs/scroll-mode/load-without-row-count"], ["/docs/add-options/server/server-rows-options"], "data-grid-server"),
   "server-rows": F(["/docs/data-modes/query-server-rows"], ["/docs/add-options/server/server-rows-options"], "data-grid-server"),
+  "server-initial-answer": F(["/docs/data-modes/query-server-rows"], ["/docs/add-options/server/server-rows-options"], "data-grid-server"),
   "error-state": F(["/docs/scroll-mode/recover-load-errors"], ["/docs/add-options/server/server-rows-options"], "data-grid-server"),
   "saved-views": F(["/docs/sort-filter-search/saved-views"], ["/docs/add-options/sort-filter-search/saved-views-options"], "data-grid-views"),
   "push-reshape": F(["/docs/rows-live-data/push-server-ordered-view"], ["/docs/add-options/server/server-rows-options#fetch-limits"], "data-grid-server"),
