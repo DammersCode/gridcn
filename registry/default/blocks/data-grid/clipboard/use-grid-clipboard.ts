@@ -108,7 +108,7 @@ function serializeDisjointRows(s: DataGridStoreState, rows: readonly RowRun[], c
   const rowCount = Math.min(total, maxRows);
   // A truncated copy warns in development, as the paste cap does in runPaste.
   if (rowCount < total && isDev()) {
-    console.warn(`gridcn: copy truncated to ${rowCount} of ${total} rows (MAX_COPY_CELLS)`);
+    console.warn(`[data-grid] copy truncated to ${rowCount} of ${total} rows (MAX_COPY_CELLS)`);
   }
 
   const out: string[][] = [];
@@ -148,7 +148,7 @@ export function serializeCopyScope(s: DataGridStoreState, scope: CopyScope): str
   if (scope.kind === "rect") {
     const maxRows = Math.max(1, Math.floor(MAX_COPY_CELLS / Math.max(1, scope.rect.width)));
     if (scope.rect.height > maxRows && isDev()) {
-      console.warn(`gridcn: copy truncated to ${maxRows} of ${scope.rect.height} rows (MAX_COPY_CELLS)`);
+      console.warn(`[data-grid] copy truncated to ${maxRows} of ${scope.rect.height} rows (MAX_COPY_CELLS)`);
     }
     return serializeRect(s, { ...scope.rect, height: Math.min(scope.rect.height, maxRows) });
   }
@@ -450,7 +450,7 @@ function runPaste(
   // Cap AFTER processPaste so a consumer hook cannot re-expand a truncated grid past the bound.
   const cappedCells = truncatePasteGrid(finalCells, MAX_PASTE_CELLS);
   if (cappedCells.length < finalCells.length && isDev()) {
-    console.warn(`gridcn: paste truncated to ${cappedCells.length} of ${finalCells.length} rows (MAX_PASTE_CELLS)`);
+    console.warn(`[data-grid] paste truncated to ${cappedCells.length} of ${finalCells.length} rows (MAX_PASTE_CELLS)`);
   }
 
   const run = new GateRun("processCellFromClipboard", (now) => now.readOnly || now.editing !== null);

@@ -163,7 +163,7 @@ describe("serializeCopyScope cell-count cap", () => {
     const result = serializeCopyScope(s, scope);
     expect(result.length).toBe(rowCap);
     expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn).toHaveBeenCalledWith(`gridcn: copy truncated to ${rowCap} of ${totalRows} rows (MAX_COPY_CELLS)`);
+    expect(warn).toHaveBeenCalledWith(`[data-grid] copy truncated to ${rowCap} of ${totalRows} rows (MAX_COPY_CELLS)`);
   });
 
   it("copies 1,000,000 checked rows up to the cap without materializing the channel", () => {
@@ -179,6 +179,6 @@ describe("serializeCopyScope cell-count cap", () => {
     expect(toArray).not.toHaveBeenCalled();
     expect(result.length).toBe(rowCap);
     expect(result[rowCap - 1]).toEqual([`row-${rowCap - 1}`, String(rowCap - 1)]);
-    expect(warn).toHaveBeenCalledWith(`gridcn: copy truncated to ${rowCap} of ${totalRows} rows (MAX_COPY_CELLS)`);
+    expect(warn).toHaveBeenCalledWith(`[data-grid] copy truncated to ${rowCap} of ${totalRows} rows (MAX_COPY_CELLS)`);
   });
 });

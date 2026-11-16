@@ -88,7 +88,7 @@ describe("pasteText cap", () => {
     expect(next[0]!["c0"]).toBe("p0");
     expect(next[expectedRows - 1]!["c19"]).toBe("p19");
     expect(next[expectedRows]!["c0"]).toBe(`row-${expectedRows}-c0`);
-    expect(warn).toHaveBeenCalledWith(`gridcn: paste truncated to ${expectedRows} of ${rowCount} rows (MAX_PASTE_CELLS)`);
+    expect(warn).toHaveBeenCalledWith(`[data-grid] paste truncated to ${expectedRows} of ${rowCount} rows (MAX_PASTE_CELLS)`);
   });
 });
 

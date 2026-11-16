@@ -25,7 +25,7 @@ const PaginationBarContext = createContext<PaginationBarContextValue | null>(nul
 function usePaginationBarContext(part: string): PaginationBarContextValue {
   const ctx = use(PaginationBarContext);
   if (!ctx) {
-    throw new Error(`gridcn: <${part} /> must be used inside a <DataGridPaginationBar>.`);
+    throw new Error(`[data-grid-pagination] <${part} /> must be used inside a <DataGridPaginationBar>.`);
   }
   return ctx;
 }

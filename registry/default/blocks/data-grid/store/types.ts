@@ -575,7 +575,7 @@ export type AnyCellType = CellType<any, any, any>; // eslint-disable-line @types
 export function defaultGetRowId(row: unknown): string {
   const id = (row as { id?: unknown } | null | undefined)?.id;
   if (typeof id === "string" || typeof id === "number") return String(id);
-  throw new Error("gridcn: a row has no string or number `id` field. Pass `getRowId` to identify rows.");
+  throw new Error("[data-grid] a row has no string or number `id` field. Pass `getRowId` to identify rows.");
 }
 
 export function toInternalSyncProps<TData>(props: DataGridSyncProps<TData>): InternalSyncProps {

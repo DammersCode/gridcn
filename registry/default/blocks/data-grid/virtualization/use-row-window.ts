@@ -87,7 +87,7 @@ function computeWindow(
     if (isDev() && !warnedUnboundedHeight && clientHeight / rowHeight > MAX_RENDERED_ROWS) {
       warnedUnboundedHeight = true;
       console.warn(
-        `gridcn: the grid viewport shows more than ${MAX_RENDERED_ROWS} rows at once — its height is probably unbounded, which disables virtualization. Give the grid a bounded height (e.g. className="h-150" or h-full inside a sized parent). Rendering is capped at ${MAX_RENDERED_ROWS} rows.`,
+        `[data-grid] the grid viewport shows more than ${MAX_RENDERED_ROWS} rows at once — its height is probably unbounded, which disables virtualization. Give the grid a bounded height (e.g. className="h-150" or h-full inside a sized parent). Rendering is capped at ${MAX_RENDERED_ROWS} rows.`,
       );
     }
   }

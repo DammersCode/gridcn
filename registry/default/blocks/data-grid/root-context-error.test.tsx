@@ -31,7 +31,7 @@ function thrownBy(child: ReactNode): string {
 }
 
 describe("a root-only part mounted under the provider but outside DataGridRoot", () => {
-  const message = "gridcn: this component or hook must be rendered inside a <DataGridRoot>.";
+  const message = "[data-grid] this component or hook must be rendered inside a <DataGridRoot>.";
 
   it("DataGridGlobalShortcuts outside DataGridRoot throws the shared message", () => {
     expect(thrownBy(<DataGridGlobalShortcuts />)).toBe(message);

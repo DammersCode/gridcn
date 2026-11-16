@@ -66,7 +66,7 @@ const GridInstanceIdContext = createContext<string>("");
 export function useDataGridInstanceId(): string {
   const instanceId = use(GridInstanceIdContext);
   if (instanceId === "") {
-    throw new Error("gridcn: this hook must be used inside a <DataGridProvider>.");
+    throw new Error("[data-grid] this hook must be used inside a <DataGridProvider>.");
   }
   return instanceId;
 }
@@ -296,7 +296,7 @@ export function DataGridProvider<TData>(props: DataGridProviderProps<TData>): Re
 function useDataGridStoreApiInternal(): StoreApi<DataGridStoreState> {
   const store = use(DataGridStoreContext);
   if (!store) {
-    throw new Error("gridcn: this hook must be used inside a <DataGridProvider>.");
+    throw new Error("[data-grid] this hook must be used inside a <DataGridProvider>.");
   }
   return store;
 }

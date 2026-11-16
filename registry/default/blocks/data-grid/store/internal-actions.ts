@@ -32,7 +32,7 @@ export function getInternalActions(store: StoreApi<DataGridStoreState>): DataGri
   let merged = mergedActionsByStore.get(store);
   if (!merged) {
     const internal = internalActionsByStore.get(store);
-    if (!internal) throw new Error("gridcn: no internal actions registered for this store");
+    if (!internal) throw new Error("[data-grid] no internal actions registered for this store");
     merged = { ...store.getState().actions, ...internal };
     mergedActionsByStore.set(store, merged);
   }
