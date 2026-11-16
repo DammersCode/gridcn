@@ -168,7 +168,7 @@ const columns = defineColumns<Order>()([
   { id: "customer", header: "Customer", accessorKey: "customer", type: "text" },
 ] as const);
 
-const keymap = { saveRow: ["mod+s"] } as Keymap;
+const keymap: Keymap = { saveRow: ["mod+s"] };
 
 const commands: Record<string, GridCommand<Order>> = {
   saveRow: {
@@ -225,7 +225,7 @@ Three more rules apply:
 - A bound name with neither a built-in handler nor a `commands` entry does nothing. Development mode warns once.
 - A key bound to two or more actions follows the tie rules in [Remapping](#remapping).
 
-To list a new name in the `keymap` type, merge it into the `GridActions` interface:
+The `keymap` type takes any name. To add a new name to the built-in action names, such as for autocomplete, merge it into the `GridActions` interface:
 
 ```ts fragment="module augmentation"
 export {};

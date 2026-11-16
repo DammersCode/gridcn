@@ -88,7 +88,7 @@ function NumberCell({ value, options }: CellRenderProps<unknown, number | null, 
   return <CellSpan text={displayText(numberCellType, value, options)} />;
 }
 
-function parseDraft(draft: string, options: GridCellTypes["number"]["options"]): number | null {
+function parseDraft(draft: string, options?: GridCellTypes["number"]["options"]): number | null {
   try {
     return numberCellType.fromText(draft, options);
   } catch {

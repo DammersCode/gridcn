@@ -879,7 +879,7 @@ export type DataGridPlugin<TData = unknown> = {
   /** This plugin's commands, merged into the grid's command map (the consumer's `commands` win; a built-in action name is dropped). */
   commands?: Record<string, GridCommand<TData>>;
   /** Binds keys to this plugin's own commands. An entry for any other name is dropped, dev-warned; a key another action already holds is dropped, dev-warned. An entry is the action's full binding list: it replaces the action's default bindings, and an empty list unbinds the action. */
-  keymap?: Partial<Record<GridAction | (string & {}), KeyBinding[]>>;
+  keymap?: Keymap;
   /** A component rendered inside `DataGridRoot` after its children (no props — read the grid through {@link useDataGridApi}). */
   Mount?: ComponentType;
 };
@@ -949,7 +949,7 @@ export type GridCommand<TData = unknown> = {
  * Keep `ctrl` where `DEFAULT_KEYMAP` uses it (`ctrl+ ` for selectColumn): `mod+ ` on macOS is
  * Cmd+Space, which the OS intercepts (Spotlight), so the binding would be dead there.
  */
-export type Keymap = Partial<Record<GridAction, KeyBinding[]>>;
+export type Keymap = Partial<Record<GridAction | (string & {}), KeyBinding[]>>;
 
 /**
  * Map of built-in cell-type keys to their value/options shapes. Consumers
