@@ -151,3 +151,16 @@ describe("task finder page", () => {
     expect(entries.filter((text) => nouns.includes(text))).toEqual([]);
   });
 });
+
+describe("exported types coverage", () => {
+  it("reads type names from a barrel", async () => {
+    const { exportedTypeNames } = await import("../scripts/docs-generate.mjs");
+    const barrel = 'export type { A, B as C } from "./a";\nexport { x, type D } from "./b";\nexport type E = number;';
+    expect(exportedTypeNames(barrel).sort()).toEqual(["A", "C", "D", "E"]);
+  });
+
+  it("names every exported type of the data-grid barrel on a docs page", () => {
+    const types = page("(reference)/types-hooks/exported-types");
+    for (const name of ["ColumnPin", "ViewIndex", "CellPatch", "RowActionResult", "RowActionName", "HeaderFilterRenderer"]) expect(types, name).toContain("`" + name);
+  });
+});

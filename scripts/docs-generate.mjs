@@ -749,6 +749,24 @@ function messages() {
   ].join("\n");
 }
 
+/** The type names that the data-grid barrel exports. */
+export function exportedTypeNames(barrel) {
+  const names = new Set();
+  for (const m of barrel.matchAll(/export\s+type\s*\{([^}]*)\}\s*from/g)) for (const part of m[1].split(",")) names.add(part.trim().split(/\s+as\s+/).pop().trim());
+  for (const m of barrel.matchAll(/export\s*\{([^}]*)\}\s*from/g)) for (const part of m[1].split(",")) names.add(/^\s*type\s+(\w+)/.exec(part)?.[1] ?? "");
+  for (const m of barrel.matchAll(/^export (?:type|interface) (\w+)/gm)) names.add(m[1]);
+  names.delete("");
+  return [...names];
+}
+
+/** Fails for an exported type that no docs page names. */
+function checkTypeCoverage() {
+  const text = [...pages.values()].filter((page) => !page.body.includes(MARKER)).map((page) => page.body).join("\n");
+  for (const name of exportedTypeNames(read(`${BLOCKS}/data-grid/data-grid.tsx`))) {
+    if (!new RegExp(`\\b${name}\\b`).test(text)) problems.push(`types: data-grid exports type ${name}, which no docs page names; add a row to exported-types.mdx`);
+  }
+}
+
 // Terms renders last: it reads the aliases of every other generated page.
 const OUTPUTS = [
   ["content/docs/(learn)/terms-help/task-finder.mdx", taskFinder],
@@ -764,6 +782,7 @@ const OUTPUTS = [
 
 function main() {
   const check = process.argv.includes("--check");
+  checkTypeCoverage();
   const rendered = [];
   for (const [file, make] of OUTPUTS) {
     const text = make().replace(/\n{3,}/g, "\n\n").trimEnd() + "\n";
