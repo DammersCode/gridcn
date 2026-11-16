@@ -25,8 +25,8 @@ import {
   type SearchMatch,
 } from "../sort-filter";
 import { compareLocaleText, compareNumbers } from "../sort-filter/builtin-compare";
-import { withSortLocale } from "../sort-filter/sort-collator";
-import { EMPTY_SORT_VALUE } from "../sort-filter/keyed-sort";
+import { sortCollator, withSortLocale } from "../sort-filter/sort-collator";
+import { EMPTY_SORT_VALUE, isSortNumber } from "../sort-filter/keyed-sort";
 import { getCellValue } from "../columns/column-helpers";
 import { clampColumnWidth } from "../columns/resolve-column-width";
 import { selectCell } from "../selection/selection-ops";
@@ -464,6 +464,15 @@ function searchTextFor(column: AnyColumnDef, cellTypes: Record<string, CellType>
   };
 }
 
+const MAX_WARNED_MIXED_COLUMNS = 100;
+const warnedMixedColumns = new Set<string>();
+
+function warnMixedUntypedSort(columnId: string): void {
+  if (!isDev() || warnedMixedColumns.has(columnId) || warnedMixedColumns.size >= MAX_WARNED_MIXED_COLUMNS) return;
+  warnedMixedColumns.add(columnId);
+  console.warn(`[data-grid] the untyped column "${columnId}" sorts numbers and text together, so its numbers sort before its text. Set \`type\` on the column, or give it one value type.`);
+}
+
 /**
  * The `CellAccessor` the view pipeline reads through. `getText` is the raw `String(value)` the
  * filter matcher, the empty check, and the default sort read; `getSearchText` is the quick-search
@@ -522,14 +531,28 @@ export function textAccessorFor(
     },
   };
 
-  // A column opts into a custom row comparator through its own `sortCompare`, or through its
-  // declared cell type's `compare` — only a DECLARED type opts in, because an undeclared column
-  // falls back to "text", whose `localeCompare` is strictly worse than `defaultCompareText`
-  // (numeric-aware, ignores case and accents) and throws outright on a non-string value. Without either
-  // comparator the whole accessor stays on the default text path (no allocation of `compare`).
+  // Comparator chain: the column's `sortCompare`, else its declared cell type's `compare`, else (untyped)
+  // numbers by value and text by the sort collator. Without `cellTypes` or a `sortCompare` the accessor stays on pure text.
   if (!cellTypes && !columns.some((c) => c.sortCompare)) return accessor;
 
   const declaredType = (column: AnyColumnDef) => (column.type ? cellTypes?.[column.type] : undefined);
+
+  // An untyped column holds whatever the rows hold: finite numbers order by value, before any text.
+  const untypedCompare = (column: AnyColumnDef) => (a: number, b: number) => {
+    const rowA = data[a];
+    const rowB = data[b];
+    if (rowA === undefined || rowB === undefined) return 0;
+    const valueA = rawCellValue(column, rowA);
+    const valueB = rawCellValue(column, rowB);
+    const numberA = isSortNumber(valueA);
+    const numberB = isSortNumber(valueB);
+    if (numberA && numberB) return (valueA as number) - (valueB as number) || 0;
+    if (numberA !== numberB) {
+      warnMixedUntypedSort(column.id);
+      return numberA ? -1 : 1;
+    }
+    return sortCollator().compare(toSafeText(valueA), toSafeText(valueB));
+  };
 
   accessor.compare = (columnId) => {
     const column = byId.get(columnId);
@@ -553,6 +576,7 @@ export function textAccessorFor(
         return defaultCompareText(accessor.getText(a, columnId), accessor.getText(b, columnId));
       };
     }
+    if (column.type === undefined) return untypedCompare(column);
     const compare = declaredType(column)?.compare;
     if (!compare) return undefined;
     return (a, b) => {
@@ -577,6 +601,17 @@ export function textAccessorFor(
   accessor.sortKeys = (columnId) => {
     const column = byId.get(columnId);
     if (!column || column.sortCompare) return undefined;
+    if (column.type === undefined) {
+      return {
+        kind: "untyped",
+        read: (rowIndex) => {
+          const row = data[rowIndex];
+          if (row === undefined) return EMPTY_SORT_VALUE;
+          const value = rawCellValue(column, row);
+          return value == null || toSafeText(value) === "" ? EMPTY_SORT_VALUE : value;
+        },
+      };
+    }
     const cellType = declaredType(column);
     const kind = cellType?.compare === compareNumbers ? "number" : cellType?.compare === compareLocaleText ? "text" : undefined;
     if (!cellType || !kind) return undefined;

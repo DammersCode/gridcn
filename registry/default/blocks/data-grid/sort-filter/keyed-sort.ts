@@ -11,12 +11,16 @@ export const EMPTY_SORT_VALUE: unique symbol = Symbol("empty-sort-value");
 /**
  * Reads one column's raw sort values for the keyed sort. `kind: "number"` promises that the column
  * orders finite numbers by `a - b`; `kind: "text"` promises that it orders strings by `localeCompare`.
+ * `kind: "untyped"` orders finite numbers by `a - b` before any other value, which orders by its text.
  * `read` returns {@link EMPTY_SORT_VALUE} for a cell that sorts last in both directions.
  */
 export type SortKeyReader = {
-  kind: "number" | "text";
+  kind: "number" | "text" | "untyped";
   read(rowIndex: number): unknown;
 };
+
+/** A value the untyped sort orders by number: a finite `number`. */
+export const isSortNumber = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
 
 const LITTLE_ENDIAN = new Uint8Array(new Uint32Array([1]).buffer)[0] === 1;
 /** Beyond this magnitude two finite numbers can differ by Infinity, which the comparator treats as unordered. */
@@ -187,6 +191,21 @@ function radixStage(buffers: Buffers, keys: Keys, count: number): Buffers {
 function keysFor(indices: readonly number[], accessor: CellAccessor, sort: SortSpec): Keys | null {
   const descending = sort.direction === "desc";
   const reader = accessor.sortKeys?.(sort.columnId);
+  if (reader?.kind === "untyped") {
+    const numbers = numberKeys(indices, reader.read, descending);
+    if (numbers) return numbers;
+    // Numbers mixed with text need the two-tier comparator; text alone keys exactly by its collation.
+    if (indices.some((row) => isSortNumber(reader.read(row)))) return null;
+    return textKeys(
+      indices.length,
+      (position) => {
+        const text = accessor.getText(indices[position]!, sort.columnId);
+        return text === "" ? null : text;
+      },
+      sortCollator().compare,
+      descending,
+    );
+  }
   if (reader) {
     if (reader.kind === "number") return numberKeys(indices, reader.read, descending);
     return textKeys(
