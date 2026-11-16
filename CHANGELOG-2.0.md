@@ -286,3 +286,5 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - Fix: `useDataGridFill({ disabled: true })` leaves Ctrl/Cmd+D and Ctrl/Cmd+R to the browser. It turned both into no-ops.
 - Fix: a `keymap` that binds Tab to `moveRight` (or Shift+Tab to `moveLeft`) lets the focus leave the grid at the last (or first) column. It kept the focus in the grid.
 - Fix: the hosted registry names the gridcn dependencies of an add-on `@gridcn/<item>`, so `npx shadcn add @gridcn/<add-on>` installs the core from the hosted registry. They named `DammersCode/gridcn/<item>`.
+- Fix: `useDataGridAggregate` keeps its result when an inline `specs` object keeps the same keys and reducers. A reducer function still recomputes when its identity changes. Before, every new `specs` object recomputed.
+- Fix: on a touch screen, the header menu button and the reorder grip of a resizable column no longer sit under the column resize handle. Before, a tap on the menu button started a resize.
