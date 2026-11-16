@@ -329,7 +329,7 @@ export type GridEditEndEvent = ViewCellRef & { result: "commit" | "cancel" | "re
 export type GridBulkValidationError = { rowId: string; columnId: string; viewRowIndex: number; value: unknown; message: string };
 
 /**
- * Fired by `onValidationError` after a bulk paste, a fill, a Delete or Cut clear (`"delete"`), or an `updateCells` call (`"stream"`, or `"replace"` for a find-and-replace batch)
+ * Fired by `onValidationError` after a bulk paste, a fill, a Delete or Cut clear (`"delete"`), an `updateCells` call (`"stream"`, or `"replace"` for a find-and-replace batch), or an `editRows` save or a checkbox toggle (`"edit"`)
  * settles, ONLY when at least one cell was rejected — the accepted cells are already applied
  * (their `onDataChange`/`onSelectionChange` fire first). `rejected` lists every refused cell with
  * its validator's message.

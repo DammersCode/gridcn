@@ -764,7 +764,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       });
     }
     const event: GridValidationErrorEvent = {
-      source: batchSource === "replace" ? "replace" : "stream",
+      source: batchSource === "replace" || batchSource === "edit" ? batchSource : "stream",
       rejected: rejected.map(({ patchIndex, message }) => {
         const { rowId, columnId, value } = patches[patchIndex]!;
         const dataRowIndex = rowIndex.get(rowId);
