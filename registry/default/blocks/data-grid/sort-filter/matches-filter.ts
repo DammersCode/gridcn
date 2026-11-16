@@ -13,7 +13,12 @@ export type FilterMatcherOptions = {
   compare?: (text: string, bound: string) => number;
   /** Evaluates an operator that is not built in. */
   custom?: (text: string, filter: FilterSpec) => boolean;
+  /** Respects letter case in the text and set operators. Default `false`: `"bonn"` equals `"Bonn"`. */
+  matchCase?: boolean;
 };
+
+const lowerCase = (text: string) => text.toLowerCase();
+const sameCase = (text: string) => text;
 
 const BUILT_IN_OPERATORS: ReadonlySet<string> = new Set<BuiltInFilterOperator>([
   "contains",
@@ -92,18 +97,19 @@ function stringChoices(filter: FilterSpec): string[] {
 export function matchesFilter(text: string, filter: FilterSpec, options: FilterMatcherOptions = {}): boolean {
   const op = filter.operator;
   if (!BUILT_IN_OPERATORS.has(op)) return customOperatorTest(filter, options.custom)(text);
+  const fold = options.matchCase ? sameCase : lowerCase;
   if (op === "empty") return text === "";
   if (op === "notEmpty") return text !== "";
 
   if (op === "isAnyOf") {
     // an empty choice list matches nothing, so a half-built filter row hides every row rather than being a no-op
-    const textLower = text.toLowerCase();
-    return stringChoices(filter).some((choice) => choice.toLowerCase() === textLower);
+    const textLower = fold(text);
+    return stringChoices(filter).some((choice) => fold(choice) === textLower);
   }
 
   if (op === "isNoneOf") {
-    const textLower = text.toLowerCase();
-    return !stringChoices(filter).some((choice) => choice.toLowerCase() === textLower);
+    const textLower = fold(text);
+    return !stringChoices(filter).some((choice) => fold(choice) === textLower);
   }
 
   if (op === "isBetween") {
@@ -116,8 +122,8 @@ export function matchesFilter(text: string, filter: FilterSpec, options: FilterM
   }
 
   const value = typeof filter.value === "string" ? filter.value : "";
-  const textLower = text.toLowerCase();
-  const valueLower = value.toLowerCase();
+  const textLower = fold(text);
+  const valueLower = fold(value);
 
   switch (op as BuiltInFilterOperator) {
     case "contains":
@@ -179,17 +185,18 @@ export function createFilterMatcher(filter: FilterSpec, options: FilterMatcherOp
   const op = filter.operator;
   if (!BUILT_IN_OPERATORS.has(op)) return customOperatorTest(filter, options.custom);
   const { compare } = options;
+  const fold = options.matchCase ? sameCase : lowerCase;
   if (op === "empty") return (text) => text === "";
   if (op === "notEmpty") return (text) => text !== "";
 
   if (op === "isAnyOf") {
-    const set = new Set(stringChoices(filter).map((choice) => choice.toLowerCase()));
-    return (text) => set.has(text.toLowerCase());
+    const set = new Set(stringChoices(filter).map((choice) => fold(choice)));
+    return (text) => set.has(fold(text));
   }
 
   if (op === "isNoneOf") {
-    const set = new Set(stringChoices(filter).map((choice) => choice.toLowerCase()));
-    return (text) => !set.has(text.toLowerCase());
+    const set = new Set(stringChoices(filter).map((choice) => fold(choice)));
+    return (text) => !set.has(fold(text));
   }
 
   if (op === "isBetween") {
@@ -208,28 +215,28 @@ export function createFilterMatcher(filter: FilterSpec, options: FilterMatcherOp
 
   switch (op as BuiltInFilterOperator) {
     case "contains": {
-      const needle = value.toLowerCase();
-      return (text) => text.toLowerCase().includes(needle);
+      const needle = fold(value);
+      return (text) => fold(text).includes(needle);
     }
     case "notContains": {
-      const needle = value.toLowerCase();
-      return (text) => !text.toLowerCase().includes(needle);
+      const needle = fold(value);
+      return (text) => !fold(text).includes(needle);
     }
     case "equals": {
-      const needle = value.toLowerCase();
-      return (text) => text.toLowerCase() === needle;
+      const needle = fold(value);
+      return (text) => fold(text) === needle;
     }
     case "notEquals": {
-      const needle = value.toLowerCase();
-      return (text) => text.toLowerCase() !== needle;
+      const needle = fold(value);
+      return (text) => fold(text) !== needle;
     }
     case "startsWith": {
-      const needle = value.toLowerCase();
-      return (text) => text.toLowerCase().startsWith(needle);
+      const needle = fold(value);
+      return (text) => fold(text).startsWith(needle);
     }
     case "endsWith": {
-      const needle = value.toLowerCase();
-      return (text) => text.toLowerCase().endsWith(needle);
+      const needle = fold(value);
+      return (text) => fold(text).endsWith(needle);
     }
     case "gt":
     case "gte":

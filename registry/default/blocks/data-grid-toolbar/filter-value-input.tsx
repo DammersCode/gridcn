@@ -13,7 +13,8 @@ import {
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { resolveCustomFilterOperators, resolveFilterValueInput, resolveSelectChoices, useDataGridInputDebounce, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { distinctColumnValues } from "./distinct-values";
+import { columnMatchCase, distinctColumnValues } from "./distinct-values";
+import { setFilterKey } from "./apply-set-filter";
 import { useServerFilterValues } from "./server-filter-values";
 import { SetFilterList, filterSetOptions, useDebouncedSearch, type SetFilterOption } from "./set-filter-list";
 import {
@@ -149,13 +150,14 @@ function SetValueBody(props: { column: AnyColumnDef; selected: readonly string[]
   const options = server ? server.options : localOptions;
   const visible = server ? options : filterSetOptions(options, search.query);
   const serverLine = server?.status === "error" ? labels.headerFilterError : server?.status === "loading" && options.length === 0 ? labels.headerFilterLoading : null;
-  const checked = new Set(selected.map((value) => value.toLowerCase()));
+  const matchCase = columnMatchCase(column, storeApi.getState().cellTypes);
+  const checked = new Set(selected.map((value) => setFilterKey(value, matchCase)));
 
   const toggle = (key: string) => {
     const known = new Set(options.map((option) => option.key));
     const next = new Set(checked);
     if (!next.delete(key)) next.add(key);
-    onValueChange([...options.filter((option) => next.has(option.key)).map((option) => option.text), ...selected.filter((value) => !known.has(value.toLowerCase()))]);
+    onValueChange([...options.filter((option) => next.has(option.key)).map((option) => option.text), ...selected.filter((value) => !known.has(setFilterKey(value, matchCase)))]);
   };
 
   return (

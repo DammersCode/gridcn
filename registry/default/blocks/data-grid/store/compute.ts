@@ -32,7 +32,7 @@ import { clampColumnWidth } from "../columns/resolve-column-width";
 import { selectCell } from "../selection/selection-ops";
 import { keepsCheckedRows } from "./hidden-checked-rows";
 import { CompactSelection, forEachMember } from "../selection/compact-selection";
-import { resolveCustomFilterOperators, resolveFilterMatch } from "../cell-types/capabilities";
+import { resolveCustomFilterOperators, resolveFilterMatch, resolveFilterMatchCase } from "../cell-types/capabilities";
 import { toSafeText } from "../cell-types/safe-text";
 import { moveGroupBlock, moveWithinGroups, repairGroupOrder, type ColumnGroupModel } from "../columns/column-groups";
 import { readColumnPin, withLogicalPin } from "../columns/column-pin";
@@ -510,6 +510,10 @@ export function textAccessorFor(
       const row = data[rowIndex];
       if (!column || row === undefined) return undefined;
       return rawCellValue(column, row);
+    },
+    filterMatchCase(columnId) {
+      const column = byId.get(columnId);
+      return column ? resolveFilterMatchCase(column, column.type ? cellTypes?.[column.type] : undefined) : false;
     },
     filterMatch(columnId, operator) {
       const column = byId.get(columnId);

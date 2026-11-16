@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useDataGridLabels, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MAX_SET_FILTER_ENTRIES } from "./apply-set-filter";
-import { customOperatorsOf, isOwnSetFilter } from "./distinct-values";
+import { columnMatchCase, customOperatorsOf, isOwnSetFilter } from "./distinct-values";
 import type { SetFilterOption } from "./set-filter-list";
 
 const MAX_LABEL_LENGTH = 1000;
@@ -37,7 +37,7 @@ export function mergeKnownValues(
 }
 
 /** Reads an untrusted provider response: string values only, one entry per lowercase value, at most {@link MAX_SET_FILTER_ENTRIES}. `null` when the shape is wrong. */
-export function sanitizeServerValues(response: unknown): { options: ServerFilterOption[]; capped: boolean } | null {
+export function sanitizeServerValues(response: unknown, matchCase = false): { options: ServerFilterOption[]; capped: boolean } | null {
   const values = (response as { values?: unknown } | null)?.values;
   if (!Array.isArray(values)) return null;
   const byKey = new Map<string, ServerFilterOption>();
@@ -46,7 +46,7 @@ export function sanitizeServerValues(response: unknown): { options: ServerFilter
     const value = (entry as { value?: unknown } | null)?.value;
     if (typeof value !== "string") continue;
     const text = value.slice(0, MAX_LABEL_LENGTH);
-    const key = text.toLowerCase();
+    const key = matchCase ? text : text.toLowerCase();
     if (byKey.has(key)) continue;
     if (byKey.size >= MAX_SET_FILTER_ENTRIES) {
       capped = true;
@@ -106,7 +106,7 @@ export function useServerFilterValues(column: AnyColumnDef, search: string, pinn
         const filters = state.filterState.filter((node) => !isOwnSetFilter(node, columnId, custom));
         const response = await fetchValues({ columnId, query: search, filters, signal: controller.signal });
         if (controller.signal.aborted) return;
-        const clean = sanitizeServerValues(response);
+        const clean = sanitizeServerValues(response, columnMatchCase(column, state.cellTypes));
         if (!clean) {
           setResult((previous) => ({ ...previous, status: "error" }));
           return;

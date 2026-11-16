@@ -36,6 +36,8 @@ export type CellAccessor = {
   filterMatch?(columnId: string, operator: FilterSpec["operator"]): ((value: unknown, filter: FilterSpec) => boolean) | undefined;
   /** The column's `filter.compare`, ordering text against a filter bound. */
   filterCompare?(columnId: string): ((text: string, bound: string) => number) | undefined;
+  /** Whether the column's built-in text and set operators respect letter case. */
+  filterMatchCase?(columnId: string): boolean;
   /** The `match` of the custom operator `operator` registered on the column, if any. */
   customFilterMatch?(columnId: string, operator: string): ((text: string, filter: FilterSpec) => boolean) | undefined;
 };
@@ -73,7 +75,7 @@ export function makeFilterTest(accessor: CellAccessor, filter: FilterSpec): (row
       );
     }
   }
-  const test = createFilterMatcher(filter, { compare, custom: customMatch });
+  const test = createFilterMatcher(filter, { compare, custom: customMatch, matchCase: accessor.filterMatchCase?.(filter.columnId) });
   const numberTest = !compare && getValue ? createNumberMatcher(filter) : null;
   if (numberTest) {
     return (row: number) => {

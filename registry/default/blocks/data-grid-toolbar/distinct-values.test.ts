@@ -25,6 +25,13 @@ describe("distinctColumnValues", () => {
     expect(result.capped).toBe(false);
   });
 
+  it("keeps values that differ only by case apart when the column filter sets matchCase", () => {
+    const data: Row[] = [{ city: "Berlin" }, { city: "berlin" }, { city: "Berlin" }];
+    const caseColumns = columns.map((c) => (c.id === "city" ? { ...c, filter: { matchCase: true } } : c));
+    const result = distinctColumnValues({ ...input(data), columns: caseColumns }, "city");
+    expect(summary(result)).toEqual([["Berlin", "Berlin", 2], ["berlin", "berlin", 1]]);
+  });
+
   it("orders the values by sortLocale", () => {
     const data: Row[] = [{ city: "ä" }, { city: "z" }];
     expect(distinctColumnValues(input(data), "city").values.map((v) => v.text)).toEqual(["ä", "z"]);

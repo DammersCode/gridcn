@@ -490,6 +490,8 @@ export type CellTypeFilter = {
   match?: (value: unknown, filter: FilterSpec) => boolean;
   compare?: (text: string, bound: string) => number;
   valueInput?: CellTypeValueInput | ComponentType<FilterValueInputProps>;
+  /** The built-in text and set operators, and the header filter's value list, respect letter case. Default `false`. */
+  matchCase?: boolean;
 };
 
 /** The filter capabilities of one column: the shape of {@link CellTypeFilter}. */

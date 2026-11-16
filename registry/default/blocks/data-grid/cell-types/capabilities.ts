@@ -43,6 +43,11 @@ export function resolveFilterOperators<TData = unknown, TValue = unknown, TOptio
   return operatorsForColumnType(column.type);
 }
 
+/** Whether the column's filters respect letter case: `column.filter.matchCase ?? cellType.filter.matchCase ?? false`. */
+export function resolveFilterMatchCase<TData = unknown, TValue = unknown, TOptions = unknown>(column: AnyColumnDef, cellType: CellType<TData, TValue, TOptions> | undefined): boolean {
+  return column.filter?.matchCase ?? cellType?.filter?.matchCase ?? false;
+}
+
 /**
  * The `filter.match` that evaluates `operator`: the column's, else its cell type's. A `match` sees
  * `isAnyOf` and `isNoneOf` only when its own `filter` lists them in `operators`; otherwise the built-in

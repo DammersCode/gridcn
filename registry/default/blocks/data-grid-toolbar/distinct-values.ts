@@ -3,7 +3,7 @@ import { displayText, filterOperatorInput, isFilterGroup, resolveCustomFilterOpe
 
 export const DISTINCT_VALUES_CAP = 100_000;
 
-/** `key` is the lowercased text the matcher groups by; `text` is the first-seen original text a filter entry stores. */
+/** `key` is the text the matcher groups by (lowercased unless the column's `filter.matchCase`); `text` is the first-seen original text a filter entry stores. */
 export type DistinctValue = { key: string; text: string; label: string; count: number };
 
 export type DistinctValues = { values: DistinctValue[]; capped: boolean; hasHoles: boolean };
@@ -45,6 +45,7 @@ function collectDistinctValues(state: DistinctValuesInput, columnId: string, exc
   const custom = excludeCustomLists ? customOperatorsOf(column, state.cellTypes) : undefined;
   const passes = makeFilterPredicate(accessor, (state.filterMode === "server" ? [] : state.filterState).filter((node) => !isOwnSetFilter(node, columnId, custom)));
 
+  const matchCase = accessor.filterMatchCase?.(columnId) ?? false;
   const groups = new Map<string, { row: number; text: string; count: number }>();
   let capped = false;
   let hasHoles = false;
@@ -55,7 +56,7 @@ function collectDistinctValues(state: DistinctValuesInput, columnId: string, exc
     }
     if (!passes(row)) continue;
     const text = accessor.getText(row, columnId);
-    const key = text.toLowerCase();
+    const key = matchCase ? text : text.toLowerCase();
     const group = groups.get(key);
     if (group) group.count++;
     else if (groups.size < DISTINCT_VALUES_CAP) groups.set(key, { row, text, count: 1 });
@@ -71,3 +72,7 @@ function collectDistinctValues(state: DistinctValuesInput, columnId: string, exc
   values.sort(compare ? (a, b) => compare(a.row, b.row) : (a, b) => sortCollator().compare(a.label, b.label));
   return { values: values.map(({ key, text, label, count }) => ({ key, text, label, count })), capped, hasHoles };
 }
+
+/** The column's `filter.matchCase`, else its cell type's; `false` by default. */
+export const columnMatchCase = (column: AnyColumnDef, cellTypes: Record<string, CellType>): boolean =>
+  column.filter?.matchCase ?? (column.type ? cellTypes[column.type]?.filter?.matchCase : undefined) ?? false;
