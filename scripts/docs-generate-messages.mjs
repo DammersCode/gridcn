@@ -176,8 +176,9 @@ export const MESSAGES = [
   {
     id: "thrown-errors",
     title: "Errors the grid throws",
-    intro: "The grid throws these errors. Fix the cause in your code.",
+    intro: "The grid throws these errors, or hands them to an error callback. Fix the cause in your code.",
     rows: [
+      { text: "fetchRows rejected", file: "registry/default/blocks/data-grid-server/use-data-grid-server-rows.ts", find: "fetchRows rejected", fix: "Reaches `onError` and `server.error` when `fetchRows` rejects with no error value. Reject with an `Error` to give it a message.", page: "/docs/server-path/handle-failures" },
       { text: "gridcn: a row has no string or number `id` field. Pass `getRowId` to identify rows.", file: `${CORE}/store/types.ts`, find: "a row has no string or number `id` field", fix: "Pass `getRowId`, or give every row an `id` field.", page: "/docs/components-props/data-grid-props#rows-and-ids" },
       { text: "gridcn: this hook must be used inside a <DataGridProvider>.", file: `${CORE}/store/provider.tsx`, find: "this hook must be used inside a <DataGridProvider>", fix: "Call the hook in a component below `DataGridProvider`.", page: "/docs/types-hooks/store-hooks" },
       { text: "gridcn: this component or hook must be rendered inside a <DataGridRoot>.", file: `${CORE}/layout-context.ts`, find: "must be rendered inside a <DataGridRoot>", fix: "Render the component, or call the hook, below `DataGridRoot`.", page: "/docs/components-props/data-grid-provider#compose" },
@@ -312,6 +313,7 @@ const CODE = "throws an internal code that the import dialog maps to a label in 
 
 /** Call sites that print or throw a message without a row. `line` is a fragment of the call line. */
 export const OMITTED = [
+  { file: `${B}/data-grid-server/scroll-blocks.ts`, line: 'new Error("fetchRows rejected")', reason: "the message of the fetchRows rejected row" },
   { file: `${B}/data-grid-io/import-dialog.tsx`, line: "throw new Error(labels.io[block]);", reason: "shows the importNeedsOnImport or importReadOnly label, which have their own rows" },
   { file: `${B}/data-grid/cell-types/formatter-cache.ts`, line: "warnDev(`${failureMessage}", reason: "forwards the date and number format messages that a row quotes" },
   { file: `${B}/data-grid/interaction/use-grid-interaction.ts`, line: "warnDev(message);", reason: FORWARD },

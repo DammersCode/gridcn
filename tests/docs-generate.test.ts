@@ -57,6 +57,22 @@ describe("messages page", () => {
     }
   });
 
+  it("gives every row an anchor", () => {
+    const rows = messages().split("\n").filter((line) => line.startsWith("| <span id="));
+    const ids = rows.map((row) => /^\| <span id="([^"]+)" \/>/.exec(row)?.[1]);
+    expect(rows.length).toBeGreaterThan(100);
+    expect(ids.every(Boolean)).toBe(true);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("names the last column of the shown text table by when it shows", () => {
+    expect(messages()).toContain("| Message | When it shows | Page |");
+  });
+
+  it("has a row for the rejected fetchRows error", () => {
+    expect(messages()).toContain("fetchRows rejected");
+  });
+
   it("drops the removed class function identity warnings", () => {
     expect(messages()).not.toContain("getRowClassName identity changed");
   });

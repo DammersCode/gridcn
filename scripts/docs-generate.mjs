@@ -671,7 +671,7 @@ function actionsZ() {
 }
 
 // ---------------------------------------------------------------- messages
-const MESSAGE_CALL = /\b(console\.(?:warn|error)|warnDev|warnOnce|warnGateOnce|pluginWarnOnce|warn|throw new (?:Type|Range)?Error)\(|\bissues\.push\(|\{ kind: "\w+", message:/;
+const MESSAGE_CALL = /\b(console\.(?:warn|error)|warnDev|warnOnce|warnGateOnce|pluginWarnOnce|warn|new (?:Type|Range)?Error)\(|\bissues\.push\(|\{ kind: "\w+", message:/;
 
 function walkSources(dir, out = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -710,8 +710,18 @@ function messageLiterals(m) {
     .filter((c) => c.length >= 12);
 }
 
+/** An id from the first words of the message, so a row can be linked. */
+function messageAnchor(text, taken) {
+  const base = text.replace(/^\[[\w-]+\]\s*/, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").split("-").slice(0, 8).join("-") || "message";
+  let id = base;
+  for (let n = 2; taken.has(id); n++) id = `${base}-${n}`;
+  taken.add(id);
+  return `<span id="${id}" />`;
+}
+
 function messages() {
   const sections = [];
+  const anchors = new Set();
   const sources = new Map();
   const all = MESSAGES.flatMap((s) => s.rows).filter((m) => m.file);
   for (const section of MESSAGES) {
@@ -722,9 +732,9 @@ function messages() {
         if (!text.includes(m.find)) problems.push(`messages: "${m.find}" not found in ${m.file}`);
         for (const chunk of messageLiterals(m)) if (!normalizeMessage(text).includes(chunk)) problems.push(`messages: "${chunk}" of the row text not found in ${m.file}`);
       }
-      return [code(m.text), cell(m.fix), m.page ? link(m.page) : ""];
+      return [`${messageAnchor(m.text, anchors)}${code(m.text)}`, cell(m.fix), m.page ? link(m.page) : ""];
     });
-    sections.push(`## ${section.title} [#${section.id}]`, "", section.intro, "", table(["Message", "What to do", "Page"], rows));
+    sections.push(`## ${section.title} [#${section.id}]`, "", section.intro, "", table(["Message", section.id === "shown-text" ? "When it shows" : "What to do", "Page"], rows));
   }
   scanMessageSites(all);
   for (const o of OMITTED) if (!(sources.get(o.file) ?? read(o.file)).includes(o.line)) problems.push(`messages: OMITTED line "${o.line}" is gone from ${o.file}`);
