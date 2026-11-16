@@ -6,7 +6,7 @@ aliases: ["pagination", "paging", "client pagination", "page size", "pager", "ro
 icon: Files
 ---
 
-Readers who want a numbered page, a page size, and a "21-40 of 240" label need a pager. Set `defaultPageSize` on `DataGridProvider` to page the view of a local array. `DataGridPaginationBar` renders the footer. If your server returns one page per request, see [Load rows by page](/docs/server-pagination/load-rows-page).
+A pager gives the user a numbered page, a page size, and a "21-40 of 240" label. Set `defaultPageSize` on `DataGridProvider` to page the view of a local array, and render `DataGridPaginationBar` as the footer. If your server returns one page per request, see [Load rows by page](/docs/server-pagination/load-rows-page).
 
 <ComponentPreview name="data-grid-pagination-demo" />
 
@@ -45,7 +45,12 @@ function OrdersGrid({ rows }: { rows: Order[] }) {
 }
 ```
 
-The provider keeps the page and the page size in its own state. `defaultPage` and `defaultPageSize` seed them once. To control a value, pass `page` with `onPageChange`, or `pageSize` with `onPageSizeChange`. `actions.setPage(page)` and `actions.setPageSize(size)` change them from code. `actions.setPageSize(null)` turns paging off and calls `onPageChange(1)` when the page was not 1. A controlled `pageSize` of `null` shows every row, and `onPageSizeChange` receives `null` when paging turns off.
+The provider keeps the page and the page size in its own state:
+
+- `defaultPage` and `defaultPageSize` seed them once.
+- To control a value, pass `page` with `onPageChange`, or `pageSize` with `onPageSizeChange`.
+- `actions.setPage(page)` and `actions.setPageSize(size)` change them from code. `actions.setPageSize(null)` turns paging off and calls `onPageChange(1)` when the page was not 1.
+- A controlled `pageSize` of `null` shows every row, and `onPageSizeChange` receives `null` when paging turns off.
 
 If the data shrinks, the grid shows the last page. A page-size change keeps the first visible row on screen. A filter change goes back to page 1 and calls `onPageChange(1)`, also when the filter comes from props.
 
@@ -110,7 +115,7 @@ function OrderList({ rows }: { rows: Order[] }) {
 }
 ```
 
-The hook takes the same `page`, `pageSize`, `defaultPage`, `defaultPageSize`, `onPageChange`, and `onPageSizeChange` as the provider, plus `pageSizeOptions` (default `[10, 25, 50, 100]`). Do not pass `pageData` to a grid. Page the grid with `pageSize` on the provider, so sort, filter, and totals cover every row.
+The hook takes `page`, `pageSize`, `defaultPage`, `defaultPageSize`, `onPageChange`, and `onPageSizeChange`, named as on the provider. Its page sizes are numbers, so it takes no `null`. It also takes `pageSizeOptions` (default `[10, 25, 50, 100]`). Do not pass `pageData` to a grid. Page the grid with `pageSize` on the provider, so sort, filter, and totals cover every row.
 
 ## The pager footer
 

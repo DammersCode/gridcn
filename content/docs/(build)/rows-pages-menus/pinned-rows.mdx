@@ -12,7 +12,7 @@ A totals or averages row must stay in sight while the data rows scroll. `useData
 
 <InstallCommand item="data-grid-pinned-rows" manual manualSlot={<ManualInstall item="data-grid-pinned-rows" />} />
 
-## Wiring it up [#wiring-it-up]
+## Pin rows [#wiring-it-up]
 
 The hook returns one plugin. Pass the plugin to the grid through `plugins`. Each band takes its own array of rows. The arrays do not index into `data`:
 
@@ -54,7 +54,7 @@ A pinned row is display-only. It is not part of `data` or the view index. As a r
 
 A pinned row goes through the `getRowId` of the grid, so `ctx.rowId` in a pinned cell is that id. If `getRowId` throws or returns an empty or non-string value, the row gets a band id. The band id is `__pinned-top-<index>` or `__pinned-bottom-<index>`, where `<index>` is the position of the row in its band.
 
-## Computing a totals row [#computing-a-totals-row]
+## Totals row [#computing-a-totals-row]
 
 The shortest totals row sums your data in a `useMemo`:
 
@@ -136,13 +136,13 @@ const specs: AggregateSpecs<Row> = {
 };
 ```
 
-### Reading the totals elsewhere [#reading-the-totals-elsewhere]
+### Totals outside the band [#reading-the-totals-elsewhere]
 
-`useDataGridAggregate(specs)` returns the same `{ [columnId]: value }` object inside the grid provider. `DataGridAggregateReporter` reports that object through `onChange` to state of the parent. Use them to show a total outside the band, for example in a toolbar. A plain row object in a band reads its cells through each `accessorKey` or `accessorFn`, as a data row does.
+`useDataGridAggregate(specs)` returns the same `{ [columnId]: value }` object inside the grid provider. `DataGridAggregateReporter` reports that object through `onChange` to state of the parent. Use them to show a total outside the band, for example in a toolbar. A plain row object in a band reads its cells through each `accessorKey` or `accessorFn`, as a data row does. A result object therefore shows a total only where `accessorKey` equals the column id. `aggregateRow` reads each value by column id and has no such limit.
 
-### Manual computation [#manual-computation]
+### Own totals [#manual-computation]
 
-For anything else, compute the band rows yourself in a `useMemo`, as the first sample does. If the band must match the filtered view, reduce over `useDataGridViewIndex()`.
+For anything else, compute the band rows yourself in a `useMemo`, as the first sample does. If the band must match the filtered view, reduce over `useDataGridViewIndex()`. When the grid pages its view, that hook holds the shown page only.
 
 ## Options
 
@@ -184,7 +184,7 @@ Aggregates reduce the rows that the grid holds in memory. Three data modes set t
 
 `serverAggregateRow` gives the totals of the whole server result. It asks your server for the totals of the current filter and search. See [Show totals from a server](/docs/data-modes/show-server-totals).
 
-With `filterMode="server"` or `sortMode="server"`, the view holds the rows of the response, so `scope: "view"` covers the response.
+With `filterMode="server"` or `sortMode="server"`, the view holds the rows of the answer, so `scope: "view"` covers the response.
 
 ## Related
 

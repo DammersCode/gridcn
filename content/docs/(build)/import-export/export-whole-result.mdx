@@ -20,6 +20,8 @@ A paged or scroll-mode grid holds only part of its result. Pass a `source` to `e
 1. Write the `source`. It returns an array, or an async iterable of row batches. It receives `{ spec, signal, columnIds }`.
 2. Pass it in `options`. Set `maxRows` to the most rows your server can send.
 
+This source pages through your API 500 rows at a time:
+
 ```tsx
 import {
   DataGridExportButton,
@@ -27,10 +29,10 @@ import {
 } from "@/components/data-grid-io/data-grid-io";
 import { api, type Order } from "./api";
 
-async function* ordersSource({ spec, signal }: ExportSourceContext) {
+async function* ordersSource({ spec, signal, columnIds }: ExportSourceContext) {
   for (let offset = 0; ; offset += 500) {
-    const query = { ...spec, offset, limit: 500, signal };
-    const rows: Order[] = await api.orders(query);
+    const query = { ...spec, offset, limit: 500, columns: columnIds };
+    const rows: Order[] = await api.orders(query, { signal });
     if (rows.length === 0) return;
     yield rows;
   }
@@ -46,7 +48,7 @@ export function ExportAll() {
 
 With a `source`, `DataGridExportButton` adds "Export all rows" items. The plain items still export the rows the grid holds. While an all-rows export runs, the menu shows "Cancel export". When the export ends, the button announces the row count. It says so when a limit made the file incomplete.
 
-A client grid with `defaultPageSize` holds every row, so its plain items cover all pages already. For server pages, pass a `source` that fetches every page from your API, as the sample above does. The source returns the rows in the order you choose.
+A client grid with `defaultPageSize` holds every row, so its plain items cover all pages already. For server pages, pass a `source` that fetches every page from your API. The source returns the rows in the order you choose.
 
 `exportGrid` resolves `{ rowCount, truncated }`. `truncated` is `true` when `maxRows` or `maxBytes` ended the export before the source did. The file then holds the rows read so far.
 
@@ -69,8 +71,9 @@ A client grid with `defaultPageSize` holds every row, so its plain items cover a
 - A `maxRows` or `maxBytes` below 0 counts as 0.
 - A CSV cell that looks like a formula gets the same quote prefix as in a loaded export.
 - A CSV or xlsx export holds the rows in memory until the source ends. The browser then builds one file and downloads it. Memory grows with the file size.
-- For a very large result, set `maxRows` and `maxBytes` to what the memory of your users' devices can hold. The defaults stop at 1,000,000 rows or 256 MiB of file text, whichever comes first. To export more, raise both together: 2,000,000 rows of 150 bytes make about 300 MB, which is above the default `maxBytes`. Past the memory of a browser, export on the server and link to the file.
-- An invalid `sheetName` rejects before the source runs.
+- Set `maxRows` and `maxBytes` to what the memory of your users' devices can hold. The defaults stop at 1,000,000 rows or 256 MiB of file text, whichever comes first. To export more, raise both together: 2,000,000 rows of 150 bytes make about 300 MB, which is above the default `maxBytes`.
+- For a result larger than a browser holds, export on the server and link to the file.
+- An xlsx export with an invalid `sheetName` rejects before the source runs.
 
 ## Related
 
