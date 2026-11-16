@@ -152,7 +152,7 @@ The OS or the browser owns some key combinations. A binding on one of them never
 | `mod+shift` with <kbd>D</kbd>, <kbd>M</kbd>, <kbd>N</kbd>, or <kbd>Delete</kbd> | Browser bookmarks, profiles, a private window, and the dialog that clears browsing data. |
 | `mod` with <kbd>N</kbd>, <kbd>T</kbd>, or <kbd>W</kbd>, `mod+shift` with <kbd>T</kbd> or <kbd>W</kbd>, and <kbd>Ctrl</kbd>+<kbd>Tab</kbd> | Browser windows and tabs. Chrome keeps these keys and never sends them to the page, so `preventDefault` cannot stop them. |
 
-One default binding meets a reserved chord. `toggleAllRows` uses `mod+shift+e`, which is free in Chrome. If your users run Firefox or Edge, bind `toggleAllRows` to another chord in `keymap`. `fillDown` (`mod+d`) and `fillRight` (`mod+r`) keep their keys while the grid has focus, also without the fill add-on. The grid calls `preventDefault` on them, so the browser does not bookmark or reload the page.
+Two default bindings meet a reserved chord. `fillDown` (`mod+d`) and `fillRight` (`mod+r`) keep their keys while the grid has focus, also without the fill add-on. The grid calls `preventDefault` on them, so the browser does not bookmark or reload the page.
 
 ## Custom commands [#custom-commands]
 

@@ -107,11 +107,11 @@ describe("custom keymap commands through <DataGrid commands keymap>", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { grid, press } = renderGrid({
       commands: { saveAll: { run: vi.fn() } },
-      keymap: { saveAll: ["mod+shift+e"] } as Keymap, // mod+shift+e is the default toggleAllRows binding
+      keymap: { saveAll: ["mod+shift+Enter"] } as Keymap, // mod+shift+Enter is the default toggleAllRows binding
     });
     // the warning fires at mount (keymap sync); a keypress must not re-warn
-    press(grid, { key: "e", ctrlKey: true, shiftKey: true });
-    const shared = warn.mock.calls.filter((c) => String(c[0]).includes("mod+shift+e"));
+    press(grid, { key: "Enter", ctrlKey: true, shiftKey: true });
+    const shared = warn.mock.calls.filter((c) => String(c[0]).includes("mod+shift+Enter"));
     expect(shared.length).toBe(1);
     expect(String(shared[0]![0])).toContain("toggleAllRows");
     expect(String(shared[0]![0])).toContain("saveAll");

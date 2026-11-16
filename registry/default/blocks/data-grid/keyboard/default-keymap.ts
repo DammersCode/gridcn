@@ -48,8 +48,8 @@ export const DEFAULT_KEYMAP: Keymap = {
   selectColumn: ["ctrl+ "],
   selectAll: ["mod+a"],
   toggleRow: ["ctrl+shift+ "],
-  // Ctrl+Alt is AltGr on Windows; mod+shift+e is free in Chrome but opens DevTools in Firefox and Edge, so rebind it via keymap there
-  toggleAllRows: ["mod+shift+e"],
+  // mod+shift+letter chords are browser shortcuts (DevTools, tab search, add-ons) and Ctrl+Alt is AltGr on Windows; no browser binds Ctrl+Shift+Enter
+  toggleAllRows: ["mod+shift+Enter"],
   // alt+ArrowDown is moveDownKeepSelection and Shift+F10 opens the cell context menu
   openColumnMenu: ["shift+alt+ArrowDown"],
   // mirrors openColumnMenu; Alt+Arrow produces no character on any layout, so it never collides with AltGr

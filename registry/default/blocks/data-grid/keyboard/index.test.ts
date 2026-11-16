@@ -237,6 +237,13 @@ describe("matchKeymap - other actions", () => {
     expect(matchKeymap(makeEvent({ key: "Enter", shiftKey: true }), DEFAULT_KEYMAP, false)).toBeNull();
   });
 
+  it("toggleAllRows default avoids reserved chords", () => {
+    expect(DEFAULT_KEYMAP.toggleAllRows).toEqual(["mod+shift+Enter"]);
+    const reserved = ["mod+shift+e", "mod+shift+i", "mod+shift+j", "mod+shift+c", "mod+shift+k", "mod+shift+a", "ctrl+h", "mod+alt+e"];
+    const defaults = Object.values(DEFAULT_KEYMAP).flat();
+    for (const chord of reserved) expect(defaults).not.toContain(chord);
+  });
+
   it("has no commitDown, commitUp, commitRight, or commitLeft action", () => {
     for (const name of ["commitDown", "commitUp", "commitRight", "commitLeft"]) expect(DEFAULT_KEYMAP).not.toHaveProperty(name);
   });
@@ -446,9 +453,9 @@ describe("matchKeymap - tie-break", () => {
   });
 
   it("counts a restated default as a default regardless of modifier order or key case", () => {
-    expect(isDefaultBinding("toggleAllRows", "shift+mod+e")).toBe(true);
-    expect(isDefaultBinding("toggleAllRows", "mod+shift+E")).toBe(true);
-    expect(isDefaultBinding("toggleAllRows", "mod+alt+e")).toBe(false);
+    expect(isDefaultBinding("toggleAllRows", "shift+mod+Enter")).toBe(true);
+    expect(isDefaultBinding("toggleAllRows", "mod+alt+Enter")).toBe(false);
+    expect(isDefaultBinding("toggleAllRows", "mod+shift+e")).toBe(false);
     expect(isDefaultBinding("selectAll", "ctrl+a")).toBe(false);
     expect(isDefaultBinding("undo", "mod+z")).toBe(false);
   });

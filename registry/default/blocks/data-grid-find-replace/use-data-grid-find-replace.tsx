@@ -19,7 +19,7 @@ export type UseDataGridFindReplaceOptions = Pick<ReplaceOptions, "scope" | "repl
 };
 
 export type UseDataGridFindReplaceResult = {
-  /** One entry of the grid's `plugins` prop: the panel, the `openFindReplace` and `openFind` commands, and their `ctrl+h` and `mod+f` bindings. */
+  /** One entry of the grid's `plugins` prop: the panel, the `openFindReplace` and `openFind` commands, and their `shift+alt+Enter` and `mod+f` bindings. */
   plugin: DataGridPlugin<unknown>;
   /** Opens the panel; `"replace"` (default) shows the Replace field, `"find"` hides it until the user expands it. */
   open: (mode?: "find" | "replace") => void;
@@ -64,7 +64,7 @@ function createPanelStore(): PanelStore {
 /**
  * Find and replace for a grid: a panel with Find and Replace fields that shares the quick search
  * (highlights, next/previous) and writes through each column's text codec as one undoable change.
- * Pass `plugin` in the grid's `plugins`; `ctrl+h` opens it with Replace and `mod+f` opens it with Find only.
+ * Pass `plugin` in the grid's `plugins`; `shift+alt+Enter` opens it with Replace and `mod+f` opens it with Find only.
  */
 export function useDataGridFindReplace(options: UseDataGridFindReplaceOptions = {}): UseDataGridFindReplaceResult {
   const [panelStore] = useState(createPanelStore);
@@ -87,7 +87,7 @@ export function useDataGridFindReplace(options: UseDataGridFindReplaceOptions = 
           run: () => panelStore.open("find"),
         },
       },
-      keymap: { openFindReplace: ["ctrl+h"], openFind: ["mod+f"] },
+      keymap: { openFindReplace: ["shift+alt+Enter"], openFind: ["mod+f"] },
     };
   }, [panelStore]);
 

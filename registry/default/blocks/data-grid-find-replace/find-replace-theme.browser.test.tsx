@@ -29,7 +29,7 @@ describe("find and replace panel surface", () => {
     document.documentElement.style.setProperty("--radius", "1rem");
     await render(<Harness />);
     await page.getByRole("gridcell").first().click();
-    await userEvent.keyboard("{Control>}h{/Control}");
+    await userEvent.keyboard("{Shift>}{Alt>}{Enter}{/Alt}{/Shift}");
     const panel = document.querySelector<HTMLElement>('[role="dialog"]')!;
     const style = getComputedStyle(panel);
     expect(parseFloat(style.borderTopLeftRadius)).toBe(16);
