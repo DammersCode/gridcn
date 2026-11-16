@@ -971,7 +971,7 @@ export type Keymap = Partial<Record<GridAction, KeyBinding[]>>;
  * with a new key never breaks that file's compile.
  */
 export interface GridCellTypes {
-  text: { value: string; options: { placeholder?: string } };
+  text: { value: string; options: Record<string, never> };
   number: {
     value: number | null;
     options: {
