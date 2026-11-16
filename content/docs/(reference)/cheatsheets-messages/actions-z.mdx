@@ -34,7 +34,7 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `extendSelection` | Grows or shrinks the main range by one cell in a direction, or moves its edge to the edge of the view with `toEdge`. | [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation) |
 | `extendTo` | Extends the selection to the cell named by the stable `CellRef`. | [Selection model](/docs/concepts/selection-model) |
 | `extendToAt` | Takes a `ViewCoord` in place of the `CellRef` of `extendTo`. | [Selection model](/docs/concepts/selection-model) |
-| `flashCells` | Plays the fade pulse on the given cells. It is not a data change. | [Read a push verdict](/docs/rows-live-data/read-push-verdict#flash-cells) |
+| `flashCells` | Plays the fade pulse on the given cells. It is not a data change. | [Stream updates](/docs/rows-live-data/stream-updates#flash-cells) |
 | `insertRow` | Inserts one row from `createRow` above or below a view index. Returns a `RowActionResult`. | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `insertRows` | Inserts `count` rows from `createRow` above or below a view index, as one change. Returns a `RowActionResult`. | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `moveRowsBy` | Shifts rows by `delta` and keeps the gaps between them. Returns whether rows moved. | [Row order](/docs/rows-pages-menus/row-order) |
@@ -57,7 +57,7 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `setAllRowsChecked` | Checks or unchecks every row of the view, as the header checkbox does. On a paged grid, the view is the shown page. With `totalRowCount`, `checkedRowsLifetime='across-filters'`, and unloaded rows in the view, checking selects all matching. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | `setCellErrors` | Merges server errors into the cell errors. It is not a data change. | [Show errors on cells](/docs/save-server/show-errors-cells) |
 | `setColumnHidden` | Shows or hides a column. | [Column visibility](/docs/columns/column-visibility) |
-| `setColumnLayout` | Applies a partial `ColumnLayout` as one commit. Omitted parts keep their value. | [Column visibility](/docs/columns/column-visibility) |
+| `setColumnLayout` | Applies a partial `ColumnLayout` as one commit. Omitted parts keep their value. | [Save a column layout](/docs/columns/column-layout) |
 | `setColumnOrder` | Moves a column, or a column group, before or after another column. | [Column order and pinning](/docs/columns/column-order-pinning) |
 | `setColumnPin` | Pins a column to `"start"` or `"end"`, or unpins it with `null`. | [Column order and pinning](/docs/columns/column-order-pinning) |
 | `setColumnWidth` | Sets a column width and fires `onColumnLayoutChange` once, as a resize release does. | [Column sizing](/docs/columns/column-sizing) |

@@ -37,7 +37,7 @@ mirror the change there.
 | prefetch | The pages-mode request for the page after the current one, made before the user asks for it (`prefetchNextPage`). | preload |
 | row range | `RowRange`: `{ start, end }` over rows, `end` excluded. A scroll-mode request asks for one. | range (a range is a cell selection) |
 | value query | The text a `fetchFilterValues` request carries as `query`. The server lists the values that match it. | value search |
-| server grid | A grid with `sortMode="server"` and `filterMode="server"`. Your backend applies the spec and the grid shows the response. | |
+| server grid | A grid with `sortMode="server"` and `filterMode="server"`. Your backend applies the spec and the grid shows the answer. | |
 | server mode | How a feature behaves when your server holds the rows, the sort, or the filter: `sortMode` or `filterMode` `"server"`, or `useDataGridServerRows`. The heading of that section on a feature page. | |
 | result | Every row that matches the spec on the server. `data` holds the loaded rows of it. | result set, dataset |
 | sort locale | The BCP 47 tag that orders text compares in a client sort, text range filters, and filter value lists. The `sortLocale` prop sets it, then `locale`, then `"en-US"`. | |
@@ -65,7 +65,7 @@ mirror the change there.
 | Use | Meaning | Do not use |
 |---|---|---|
 | virtualization | Draw only the rows and columns in view, plus overscan. | windowing, windowed, row window |
-| rendered rows | The rows currently in the DOM. `onRenderedRowsChange` reports their range. | visible window |
+| rendered rows | The rows currently in the DOM. `onRenderedRowsChange` reports their range. The identifiers `windowStart` and `clampRectToWindow` call this range the window. | visible window |
 | overscan | Extra rows or columns drawn beyond the viewport edge. | |
 | grid origin | The row that anchors the rows canvas. It trails the first rendered row and moves only when the rendered rows drift far from it. | |
 | jump | A scroll of more than the viewport height plus 1,600 px in one scroll tick. After a jump, the grid mounts only the base overscan. | |
@@ -90,7 +90,7 @@ mirror the change there.
 | lookup | A cell type whose options a server searches as the user types. It stores a value and a label. | |
 | column group | A named set of columns, or of other groups, that share one header above their own headers. `columnGroups` defines it. | column span, super header |
 | header row | One level of the header block. Group levels come first, and the column headers fill the last row. | |
-| start side, end side | The two ends of the inline axis. The start side is the `pin: "start"` zone, the end side the `pin: "end"` zone; in a left-to-right page start is left and end is right, in a right-to-left page the reverse. | left side, right side (for pin sides) |
+| start side, end side | The two ends of the inline axis. The start side is the `pin: "start"` zone, the end side the `pin: "end"` zone; in a left-to-right page start is left and end is right, in a right-to-left page the reverse. | left side, right side (for pin sides), pinned left, pinned right |
 
 ## Selection and input
 

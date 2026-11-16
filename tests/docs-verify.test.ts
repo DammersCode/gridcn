@@ -123,6 +123,29 @@ export type Pager = { size: number } & ToolbarOptions;
     expect(table?.rows.map((r: { name: string }) => r.name)).toEqual(["a", "b", "c"]);
   });
 
+  it("fails when a DataGridApi table leaves a member out", () => {
+    const root = fixture({
+      "registry/default/blocks/x/types.ts": "export interface DataGridApi { focus(): void; runShortcut(action: string): void }",
+      "content/docs/p.mdx": page("P", "{/* props: DataGridApi */}\n\n| Member | Description |\n|---|---|\n| `focus()` | x |\n"),
+    });
+    expect(runProps({ root }).failures.join("\n")).toContain("members not in the table: runShortcut");
+  });
+
+  it("reads a row name that carries call arguments", () => {
+    const [table] = propsTables("{/* props: A */}\n\n| Member | Description |\n|---|---|\n| `run(action)` | x |\n");
+    expect(table?.rows.map((r: { name: string }) => r.name)).toEqual(["run"]);
+  });
+
+  it("pins a marker to the same-named type that covers the table rows", () => {
+    const root = fixture({
+      "registry/default/blocks/x/a.ts": "export type Layout = { template: string; totalWidth: number };",
+      "registry/default/blocks/x/b.ts": "export type Layout = { widths: Record<string, number>; order: string[] };",
+      "content/docs/p.mdx": page("P", "{/* props: Layout */}\n\n| Field | Meaning |\n|---|---|\n| `widths` | x |\n| `order` | x |\n"),
+    });
+    const result: Run = runProps({ root });
+    expect([...result.failures, ...result.warnings]).toEqual([]);
+  });
+
   it("fails a pinned table for an unknown prop, a wrong default, and a required prop with a default", () => {
     const root = fixture({
       "registry/default/blocks/x/types.ts": source,

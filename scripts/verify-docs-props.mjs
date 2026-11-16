@@ -235,7 +235,7 @@ export function propsTables(body, { small = false } = {}) {
       const rows = [];
       for (let r = i + 2; r < end; r++) {
         const first = raw[r].trim().startsWith("|") ? splitRow(raw[r])[0] : "";
-        const name = /^`([A-Za-z_$][\w$]*)(?:\?|\(\))?`$/.exec(first)?.[1];
+        const name = /^`([A-Za-z_$][\w$]*)(?:\?|\([^)]*\))?`$/.exec(first)?.[1];
         if (name) rows.push({ name, cells: splitRow(raw[r]), line: r + 1 });
         else if (marker && LISTED_NAMES.test(first)) for (const [, listed] of first.matchAll(/`([A-Za-z_$][\w$]*)`/g)) rows.push({ name: listed, cells: splitRow(raw[r]), line: r + 1, listed: true });
       }
@@ -262,6 +262,12 @@ export function sourceDefaults(name, dirTexts) {
   return found;
 }
 
+/** Picks the definition that covers most table rows when two source types share a name. */
+function bestDefinition(matches, names) {
+  const covered = (def) => names.filter((n) => def.members.has(n)).length;
+  return matches.reduce((best, def) => (!best || covered(def) > covered(best) ? def : best), undefined);
+}
+
 export function run({ root = process.cwd(), strict = false } = {}) {
   const defs = sourceIndex(root);
   const dirCache = new Map();
@@ -281,7 +287,7 @@ export function run({ root = process.cwd(), strict = false } = {}) {
       const names = table.rows.map((r) => r.name);
       let candidates;
       if (table.marker) {
-        candidates = table.marker.map((n) => defs.find((d) => d.name === n));
+        candidates = table.marker.map((n) => bestDefinition(defs.filter((d) => d.name === n), names));
         const missing = table.marker.filter((n, i) => !candidates[i]);
         for (const n of missing) failures.push(`${where}: marker names ${n}, which no source type defines`);
         candidates = candidates.filter(Boolean);
@@ -340,7 +346,8 @@ export function run({ root = process.cwd(), strict = false } = {}) {
       if (table.marker && !open) {
         const missing = [...merged.keys()].filter((k) => !names.includes(k));
         stats.undocumented += missing.length;
-        if (missing.length) warnings.push(`${where}: members not in the table: ${missing.join(", ")}`);
+        const target = candidates.some((d) => d.name === "DataGridApi") ? failures : warnings;
+        if (missing.length) target.push(`${where}: members not in the table: ${missing.join(", ")}`);
       }
     }
   }

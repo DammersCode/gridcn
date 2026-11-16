@@ -72,7 +72,7 @@ A term row links to the page that explains it.
 | push verdict | The `UpdateCellsVerdict` that `updateCells` and `updateRows` return: the count of cells the call wrote, and the patches it skipped with a reason. | [Read a push verdict](/docs/rows-live-data/read-push-verdict) |
 | quick search | The toolbar search that highlights matches and never filters rows. | [Quick search](/docs/sort-filter-search/quick-search) |
 | range | A rectangle of selected cells. | [Selection model](/docs/concepts/selection-model) |
-| rendered rows | The rows in the DOM. `onRenderedRowsChange` reports their range. | [Column and viewport events](/docs/events-state/column-viewport-events#onrenderedrowschange) |
+| rendered rows | The rows in the DOM. `onRenderedRowsChange` reports their range. The identifiers `windowStart` and `clampRectToWindow` call this range the window. | [Column and viewport events](/docs/events-state/column-viewport-events#onrenderedrowschange) |
 | request, answer | What `fetchRows` receives (`spec`, `start`, `end`, `cursor`, `signal`, plus `page` and `pageSize` in pages mode) and what it resolves (`rows`, `totalRowCount`, `hasMore`, `nextCursor`). The hook validates every answer. | [Server rows contract](/docs/contracts/server-rows-contract) |
 | reshape | A `refresh()` that `useDataGridServerRows` runs after a push, so the server places the rows again. `reshapeDelayMs` and `reshape()` control it. | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
 | result | Every row that matches the spec on the server. `data` holds the loaded rows of it. | [Data mode guide](/docs/data-modes) |
@@ -93,7 +93,7 @@ A term row links to the page that explains it.
 | selection handle | One of the two circles at the corners of a touch selection. Dragging one extends the range. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
 | sequential source | A scroll-mode source whose first answer carries `nextCursor`, or neither a count nor a cursor. `useDataGridServerRows({ mode: "scroll", source: "sequential" })` asks for it. Blocks load in order, one at a time. The grid shows the loaded rows plus one block of skeleton rows until `nextCursor: null` or `hasMore: false` ends it. | [Load without row count](/docs/scroll-mode/load-without-row-count) |
 | server aggregate | A value for a band that a server computes for the whole result of the current spec. | [Show totals from a server](/docs/data-modes/show-server-totals) |
-| server grid | A grid with `sortMode="server"` and `filterMode="server"`. Your backend applies the spec and the grid shows the response. | [Data mode guide](/docs/data-modes) |
+| server grid | A grid with `sortMode="server"` and `filterMode="server"`. Your backend applies the spec and the grid shows the answer. | [Data mode guide](/docs/data-modes) |
 | server mode | How a feature behaves when your server holds the rows, the sort, or the filter: `sortMode` or `filterMode` `"server"`, or `useDataGridServerRows`. The heading of that section on a feature page. | [Data mode guide](/docs/data-modes) |
 | set filter | A filter that keeps or drops rows by a list of values. It uses the `isAnyOf` or `isNoneOf` operator. | [Header filter](/docs/sort-filter-search/header-filter) |
 | set values | The list of values that a header filter or an `isAnyOf` input offers. They come from the loaded rows, or from `fetchFilterValues` when the grid has it. Each has a `value` and a `label`. | [Header filter](/docs/sort-filter-search/header-filter) |
@@ -168,6 +168,8 @@ A word in this table names a term from the first table.
 | `super header` | column group | [Column headers and groups](/docs/columns/column-headers-groups) |
 | `left side` | start side, end side | [Column order and pinning](/docs/columns/column-order-pinning) |
 | `right side` | start side, end side | [Column order and pinning](/docs/columns/column-order-pinning) |
+| `pinned left` | start side, end side | [Column order and pinning](/docs/columns/column-order-pinning) |
+| `pinned right` | start side, end side | [Column order and pinning](/docs/columns/column-order-pinning) |
 | `focused cell` | active cell | [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation) |
 | `filter builder` | filter menu | [Toolbar](/docs/sort-filter-search/toolbar#the-pieces) |
 | `search and replace` | find and replace | [Find and replace](/docs/sort-filter-search/find-replace) |

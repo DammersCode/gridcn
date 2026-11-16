@@ -1,44 +1,64 @@
-// Fails on a runtime import cycle among core store files (type-only imports are ignored).
-import { readFileSync, existsSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+// Fails on a runtime import cycle among the registry block sources (type-only imports are ignored).
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+import { isTestFile } from "./_lib.mjs";
 
-const root = resolve("registry/default/blocks/data-grid");
-const entries = ["store/compute.ts", "columns/column-pin.ts", "columns/legacy-filter-keys.ts", "store/async-gate.ts", "store/commit.ts", "is-dev.ts"].map((f) => resolve(root, f));
+const RUNTIME_IMPORT = /^(?:import|export)\s+(?!type\b)(?:[^"';]*?\sfrom\s+)?["']((?:\.|@\/registry\/)[^"']+)["']/gms;
 
-const RUNTIME_IMPORT = /^(?:import|export)\s+(?!type\b)(?:[^"';]*?\sfrom\s+)?["'](\.[^"']+)["']/gms;
-
-function resolveSpecifier(from, spec) {
-  const base = resolve(dirname(from), spec);
-  return [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`].find(existsSync);
+function resolveSpecifier(root, from, spec) {
+  const base = spec.startsWith("@/") ? resolve(root, spec.slice(2)) : resolve(dirname(from), spec);
+  return [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`, base].find((f) => /\.tsx?$/.test(f) && existsSync(f));
 }
 
-function runtimeImports(file) {
+export function runtimeImports(root, file) {
   const text = readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
   const targets = [];
   for (const [statement, spec] of [...text.matchAll(RUNTIME_IMPORT)].map((m) => [m[0], m[1]])) {
     const names = statement.match(/\{([^}]*)\}/)?.[1];
     if (names && names.split(",").map((n) => n.trim()).filter(Boolean).every((n) => n.startsWith("type "))) continue;
-    const target = resolveSpecifier(file, spec);
+    const target = resolveSpecifier(root, file, spec);
     if (target) targets.push(target);
   }
   return targets;
 }
 
-const cycles = [];
-function visit(file, path) {
-  const at = path.indexOf(file);
-  if (at !== -1) return void cycles.push([...path.slice(at), file]);
-  for (const next of runtimeImports(file)) visit(next, [...path, file]);
+function* sources(dir) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) yield* entry.name === "node_modules" ? [] : sources(path);
+    else if (/\.tsx?$/.test(entry.name) && !entry.name.endsWith(".d.ts") && !isTestFile(entry.name)) yield path;
+  }
 }
-for (const entry of entries) visit(entry, []);
 
-const seen = new Set();
-const unique = cycles.filter((c) => {
-  const key = c.slice(0, -1).sort().join("|");
-  return seen.has(key) ? false : (seen.add(key), true);
-});
-if (unique.length) {
-  for (const c of unique) console.error(`runtime import cycle: ${c.map((f) => f.slice(root.length + 1)).join(" -> ")}`);
-  process.exit(1);
+/** Returns each distinct cycle once as a list of files that ends where it starts. */
+export function findCycles(root, files) {
+  const done = new Set();
+  const cycles = [];
+  const seen = new Set();
+  const visit = (file, path) => {
+    if (done.has(file)) return;
+    const at = path.indexOf(file);
+    if (at !== -1) {
+      const cycle = path.slice(at);
+      const key = [...cycle].sort().join("|");
+      if (!seen.has(key)) {
+        seen.add(key);
+        cycles.push([...cycle, file]);
+      }
+      return;
+    }
+    for (const next of runtimeImports(root, file)) visit(next, [...path, file]);
+    done.add(file);
+  };
+  for (const file of files) visit(file, []);
+  return cycles;
 }
-console.log("check-runtime-cycles: ok");
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const root = resolve(".");
+  const cycles = findCycles(root, [...sources(resolve(root, "registry/default/blocks"))]);
+  for (const c of cycles) console.error(`runtime import cycle: ${c.map((f) => f.slice(root.length + 1)).join(" -> ")}`);
+  if (cycles.length) process.exit(1);
+  console.log("check-runtime-cycles: ok");
+}
