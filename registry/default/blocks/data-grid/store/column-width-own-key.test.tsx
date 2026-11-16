@@ -20,7 +20,7 @@ describe("column widths keyed by inherited Object property names", () => {
       return null;
     }
     render(
-      <DataGridProvider defaultData={[]} columns={columns} getRowId={(row) => row.id!} onColumnLayoutChange={onColumnLayoutChange}>
+      <DataGridProvider defaultData={[]} columns={columns} getRowId={(row) => row["id"]!} onColumnLayoutChange={onColumnLayoutChange}>
         <Probe />
       </DataGridProvider>,
     );
@@ -40,7 +40,7 @@ describe("column widths keyed by inherited Object property names", () => {
     }
     const pinned = columns.map((column) => (column.id === "__proto__" ? { ...column, pin: "start" as const } : column));
     render(
-      <DataGridProvider defaultData={[]} columns={pinned} getRowId={(row) => row.id!} columnLayout={{ order: ["__proto__", "constructor", "a"] }}>
+      <DataGridProvider defaultData={[]} columns={pinned} getRowId={(row) => row["id"]!} columnLayout={{ order: ["__proto__", "constructor", "a"] }}>
         <Probe />
       </DataGridProvider>,
     );
