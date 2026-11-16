@@ -1107,8 +1107,8 @@ export type DataGridActions = {
   setColumnPin(id: string, pin: ColumnPin | null): void;
   /**
    * Shows/hides a column via the `hiddenColumns` set; works on a def-level `hidden: true` column
-   * — `setColumnHidden(id, false)` re-shows it, and the def's flag re-applies only when a NEW
-   * `columns` array is passed (a same-reference re-render keeps the user's choice).
+   * — `setColumnHidden(id, false)` re-shows it. A new `columns` array seeds the def's flag only for an id
+   * the grid has not seen; a known id keeps its runtime visibility.
    * No-op when the id is unknown or the visibility already matches; otherwise fires
    * `onColumnLayoutChange` once.
    */

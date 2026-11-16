@@ -865,7 +865,8 @@ export type DataGridStoreWrapper = {
  * row bands; `onDataChange` observes every data change AFTER the store write and the consumer's
  * `onDataChange`; `commands`/`keymap` join the grid's command and keymap merges; `Mount` renders
  * inside `DataGridRoot` after its children for engine work (pointer handlers, listeners). Array
- * order is precedence and visual order. A plugin object attaches to ONE grid.
+ * order is the paint order, the observer order, and the precedence: a later plugin wins a command name,
+ * and an earlier plugin keeps a key that a later plugin also binds. A plugin object attaches to ONE grid.
  */
 export type DataGridPlugin<TData = unknown> = {
   /** Unique per grid: the React key of the plugin's components and its identity in the store. A later plugin with a taken name is ignored, with all its members. */
@@ -878,7 +879,7 @@ export type DataGridPlugin<TData = unknown> = {
   onDataChange?(next: readonly TData[], change: DataChange<TData>, ctx: DataGridPluginCtx<TData>): void;
   /** This plugin's commands, merged into the grid's command map (the consumer's `commands` win; a built-in action name is dropped). */
   commands?: Record<string, GridCommand<TData>>;
-  /** Binds keys to this plugin's own commands. An entry for any other name is dropped, dev-warned; a key another action already holds is dropped, dev-warned. An entry is the action's full binding list: it replaces the action's default bindings, and an empty list unbinds the action. */
+  /** Binds keys to this plugin's own commands. An entry for any other name is dropped, dev-warned; a key another action already holds is dropped, dev-warned. An entry is the action's full binding list: it replaces the action's default bindings, and an empty list or `undefined` unbinds the action. */
   keymap?: Partial<Record<GridAction | (string & {}), KeyBinding[]>>;
   /** A component rendered inside `DataGridRoot` after its children (no props — read the grid through {@link useDataGridApi}). */
   Mount?: ComponentType;

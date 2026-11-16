@@ -669,10 +669,10 @@ function completeUngroupedOrder(columns: readonly AnyColumnDef[], columnOrder: r
 }
 
 /**
- * Visible columns in display order (pinned-left, unpinned, pinned-right). Visibility reads
+ * Visible columns in display order (start-pinned, unpinned, end-pinned). Visibility reads
  * `hiddenColumns` alone — a def-level `hidden: true` is honored only through that set's seeding —
- * so `setColumnHidden(id, false)` re-shows a def-hidden column, and the def's flag re-applies only
- * when a new `columns` array re-seeds it.
+ * so `setColumnHidden(id, false)` re-shows a def-hidden column. A new `columns` array seeds the def's
+ * flag for an id the grid has not seen; a known id keeps its runtime visibility.
  */
 export function computeVisibleColumns(
   columns: readonly AnyColumnDef[],
