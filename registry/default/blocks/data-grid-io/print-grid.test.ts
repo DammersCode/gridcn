@@ -388,18 +388,20 @@ describe("printGrid", () => {
     }
   });
 
-  it("sets the page size from the pageSize option, A4 by default", () => {
+  it("sets the paper size from the paperSize option, A4 by default, and still reads the deprecated pageSize", () => {
     const { restore } = stubIframePrint();
     try {
       const styleText = () => lastIframe().contentDocument!.querySelector("style")!.textContent;
       printGrid(makeState());
       expect(styleText()).toContain("@page { size: A4 portrait;");
-      printGrid(makeState(), { pageSize: "Letter" });
+      printGrid(makeState(), { paperSize: "Letter" });
       expect(styleText()).toContain("@page { size: letter portrait;");
-      printGrid(makeState(), { pageSize: "Legal", orientation: "landscape" });
+      printGrid(makeState(), { paperSize: "Legal", orientation: "landscape" });
       expect(styleText()).toContain("@page { size: legal landscape;");
       printGrid(makeState(), { pageSize: "A3" });
       expect(styleText()).toContain("@page { size: A3 portrait;");
+      printGrid(makeState(), { paperSize: "Letter", pageSize: "A3" });
+      expect(styleText()).toContain("@page { size: letter portrait;");
     } finally {
       restore();
     }
@@ -408,8 +410,8 @@ describe("printGrid", () => {
   it("falls back to A4 for a page size outside the fixed set", () => {
     const { restore } = stubIframePrint();
     try {
-      const styleFor = (pageSize: string) => {
-        printGrid(makeState(), { pageSize: pageSize as never });
+      const styleFor = (paperSize: string) => {
+        printGrid(makeState(), { paperSize: paperSize as never });
         return lastIframe().contentDocument!.querySelector("style")!.textContent;
       };
       expect(styleFor("A4; } body { display: none")).toContain("@page { size: A4 portrait;");

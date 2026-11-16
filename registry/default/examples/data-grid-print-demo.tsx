@@ -12,7 +12,7 @@ import { useDataGridState } from "@/registry/default/blocks/data-grid-history/da
 import { DataGridToolbar } from "@/registry/default/blocks/data-grid-toolbar/data-grid-toolbar";
 import {
   DataGridPrintButton,
-  type PrintPageSize,
+  type PrintPaperSize,
 } from "@/registry/default/blocks/data-grid-io/data-grid-io";
 import {
   Select,
@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { generateDemoRows, type DemoRow } from "./demo-data";
 
-const PAGE_SIZES: PrintPageSize[] = ["A4", "A3", "Letter", "Legal"];
+const PAPER_SIZES: PrintPaperSize[] = ["A4", "A3", "Letter", "Legal"];
 
 const columns = defineColumns<DemoRow>()([
   { id: "name", header: "Name", accessorKey: "name", type: "text", width: 120, flex: 1 },
@@ -31,10 +31,10 @@ const columns = defineColumns<DemoRow>()([
   { id: "score", header: "Score", accessorKey: "score", type: "number", width: 80, flex: 1 },
 ] as const);
 
-/** Print button with a page size picker: the chosen size is passed as `options.pageSize`. */
+/** Print button with a paper size picker: the chosen size is passed as `options.paperSize`. */
 export default function DataGridPrintDemo(): ReactNode {
   const grid = useDataGridState(generateDemoRows(10), { getRowId: (row) => row.id });
-  const [pageSize, setPageSize] = useState<PrintPageSize>("A4");
+  const [paperSize, setPaperSize] = useState<PrintPaperSize>("A4");
 
   return (
     <div className="w-full flex flex-col gap-3">
@@ -48,19 +48,19 @@ export default function DataGridPrintDemo(): ReactNode {
             <label htmlFor="print-page-size" className="text-sm text-muted-foreground">
               Page size
             </label>
-            <Select value={pageSize} onValueChange={(value) => value && setPageSize(value as PrintPageSize)}>
+            <Select value={paperSize} onValueChange={(value) => value && setPaperSize(value as PrintPaperSize)}>
               <SelectTrigger id="print-page-size" className="w-28">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {PAGE_SIZES.map((size) => (
+                {PAPER_SIZES.map((size) => (
                   <SelectItem key={size} value={size}>
                     {size}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <DataGridPrintButton options={{ pageSize }} />
+            <DataGridPrintButton options={{ paperSize }} />
           </DataGridToolbar>
           <DataGridRoot className="min-h-0 flex-1 rounded-none border-none">
             <DataGridHeader />

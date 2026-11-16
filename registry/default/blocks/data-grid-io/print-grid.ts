@@ -9,11 +9,13 @@ const PRINT_CELL_CEILING = 500_000;
 /** Fallback removal (ms) for the print iframe when the window's `afterprint` never fires. */
 const PRINT_FALLBACK_MS = 60_000;
 
-/** Page sizes for {@link PrintGridOptions.pageSize}. */
-export type PrintPageSize = "A3" | "A4" | "Letter" | "Legal";
+/** Paper sizes for {@link PrintGridOptions.paperSize}. */
+export type PrintPaperSize = "A3" | "A4" | "Letter" | "Legal";
+/** @deprecated Use {@link PrintPaperSize}. */
+export type PrintPageSize = PrintPaperSize;
 
-/** CSS `@page` size keyword per page size. */
-const PAGE_SIZE_CSS: Record<PrintPageSize, string> = { A3: "A3", A4: "A4", Letter: "letter", Legal: "legal" };
+/** CSS `@page` size keyword per paper size. */
+const PAPER_SIZE_CSS: Record<PrintPaperSize, string> = { A3: "A3", A4: "A4", Letter: "letter", Legal: "legal" };
 
 /** Options for {@link printGrid}. */
 export type PrintGridOptions = {
@@ -23,8 +25,10 @@ export type PrintGridOptions = {
   title?: string;
   /** Emit a `<thead>` header row; default `true`. */
   includeHeaders?: boolean;
-  /** Page size of the printed PDF; default `"A4"`. */
-  pageSize?: PrintPageSize;
+  /** Paper size of the printed page; default `"A4"`. */
+  paperSize?: PrintPaperSize;
+  /** @deprecated Use `paperSize`; `pageSize` elsewhere counts rows per page. `paperSize` wins when both are set. */
+  pageSize?: PrintPaperSize;
   /** Page orientation; default: `landscape` above 6 visible columns, else `portrait`. */
   orientation?: "portrait" | "landscape";
   /** Cap on the rows printed (the header row is not counted); default 10,000, further cut by the 500,000-cell ceiling. */
@@ -50,9 +54,9 @@ function cutText(text: string): string {
   return text.length > MAX_CELL_TEXT ? text.slice(0, MAX_CELL_TEXT) : text;
 }
 
-function printCss(pageSize: string, orientation: "portrait" | "landscape"): string {
+function printCss(paperSize: string, orientation: "portrait" | "landscape"): string {
   return [
-    `@page { size: ${pageSize} ${orientation}; margin: 12mm; }`,
+    `@page { size: ${paperSize} ${orientation}; margin: 12mm; }`,
     "body { font: 10pt/1.4 system-ui, sans-serif; color: #000; }",
     "h1 { font-size: 14pt; margin: 0 0 8px; }",
     "table { border-collapse: collapse; width: 100%; }",
@@ -87,8 +91,8 @@ export function printGrid(state: DataGridReadState, options: PrintGridOptions = 
   const headers = buildExportHeaders(state);
   const orientation = options.orientation ?? (colCount > 6 ? "landscape" : "portrait");
   // Untyped callers can pass any string; only the fixed map reaches the CSS.
-  const requestedSize = options.pageSize ?? "A4";
-  const pageSize = Object.hasOwn(PAGE_SIZE_CSS, requestedSize) ? PAGE_SIZE_CSS[requestedSize] : "A4";
+  const requestedSize = options.paperSize ?? options.pageSize ?? "A4";
+  const paperSize = Object.hasOwn(PAPER_SIZE_CSS, requestedSize) ? PAPER_SIZE_CSS[requestedSize] : "A4";
 
   const iframe = document.createElement("iframe");
   // attribute, not the sandbox IDL property: jsdom reflects the IDL property incompletely
@@ -114,7 +118,7 @@ export function printGrid(state: DataGridReadState, options: PrintGridOptions = 
   meta.httpEquiv = "Content-Security-Policy";
   meta.content = "default-src 'none'; style-src 'unsafe-inline'";
   const style = doc.createElement("style");
-  style.textContent = printCss(pageSize, orientation);
+  style.textContent = printCss(paperSize, orientation);
   doc.head.append(meta, style);
   if (options.title) {
     const heading = doc.createElement("h1");
