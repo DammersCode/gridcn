@@ -26,12 +26,12 @@ export const FINDER = [
   {
     id: "ui-patterns",
     title: "UI patterns",
-    pages: [["/docs/recipes-custom-code/open-detail-panel", "Open a detail panel from a row"], ["/docs/recipes-custom-code/run-bulk-actions", "Run a bulk action on checked rows"], ["/docs/rows-pages-menus/context-menu", "Add a right-click menu to cells"]],
+    pages: [["/docs/recipes-custom-code/open-detail-panel", "Open a detail panel from a row"], ["/docs/rows-pages-menus/context-menu", "Add a right-click menu to cells"]],
   },
   {
     id: "select-copy-undo",
     title: "Select, copy, and undo",
-    pages: [["/docs/clipboard-undo/clipboard", "Copy and paste cells"], ["/docs/clipboard-undo/change-copy-paste", "Change how cells copy and paste"], ["/docs/clipboard-undo/fill-handle", "Fill cells by dragging"], ["/docs/clipboard-undo/undo-redo", "Undo and redo edits"], ["/docs/selection-shortcuts/status-bar", "Show totals of the selected cells"], ["/docs/selection-shortcuts/checked-rows", "Check rows and act on them"], ["/docs/rows-live-data/select-server-rows", "Select every row of a server result"], ["/docs/selection-shortcuts/keyboard-navigation", "Move around the grid with the keyboard"]],
+    pages: [["/docs/clipboard-undo/clipboard", "Copy and paste cells, and change how they convert"], ["/docs/clipboard-undo/fill-handle", "Fill cells by dragging"], ["/docs/clipboard-undo/undo-redo", "Undo and redo edits"], ["/docs/clipboard-undo/undo-code-changes", "Undo code changes"], ["/docs/selection-shortcuts/status-bar", "Show totals of the selected cells"], ["/docs/selection-shortcuts/checked-rows", "Check rows and run a bulk action on them"], ["/docs/rows-live-data/select-server-rows", "Select every row of a server result"], ["/docs/selection-shortcuts/keyboard-navigation", "Move around the grid with the keyboard"]],
   },
   {
     id: "columns-rows",
@@ -41,7 +41,7 @@ export const FINDER = [
   {
     id: "import-export-style",
     title: "Files, style, accessibility, and speed",
-    pages: [["/docs/import-export/import", "Import a file into the grid"], ["/docs/import-export/export", "Export or print the grid"], ["/docs/theme-style-language/colors-radius", "Colors, dark mode, and radius"], ["/docs/theme-style-language/labels-i18n", "Translate the text the grid shows"], ["/docs/theme-style-language/loading-state", "Show a loading state"], ["/docs/theme-style-language/style-overrides", "Color cells, align columns, mark changed rows"], ["/docs/accessibility/screen-reader-support", "Make the grid accessible"], ["/docs/performance/performance-guidance", "Keep a grid with many rows fast"]],
+    pages: [["/docs/import-export/import", "Import a file into the grid"], ["/docs/import-export/export", "Export or print the grid"], ["/docs/theme-style-language/colors-radius", "Colors, dark mode, and radius"], ["/docs/theme-style-language/density-small-screens", "Change row height or fit a phone screen"], ["/docs/theme-style-language/labels-i18n", "Translate the text the grid shows"], ["/docs/theme-style-language/loading-state", "Show a loading state"], ["/docs/theme-style-language/style-overrides", "Color cells, align columns, mark changed rows"], ["/docs/accessibility/screen-reader-support", "Make the grid accessible"], ["/docs/performance/performance-guidance", "Keep a grid with many rows fast"]],
   },
 ];
 
