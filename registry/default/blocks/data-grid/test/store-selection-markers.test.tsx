@@ -4,7 +4,7 @@ import type { DataChange } from "../types";
 import { CompactSelection } from "../selection/compact-selection";
 import { DataGridProvider, useDataGridInternalActions, useDataGridActiveCell, useDataGridAllRowsSelected, useDataGridIsRowSelected, useDataGridRowMarkers, useDataGridSelection, useDataGridSelectionConfig } from "../store";
 import { viewIndex } from "@/registry/default/blocks/data-grid/types";
-import { type Row, columns, rows, makeWrapper, makeConfigWrapper, type EditRow, makeEditWrapper } from "./store-setup.test-helper";
+import { type Row, columns, makeWrapper, makeConfigWrapper, type EditRow, makeEditWrapper } from "./store-setup.test-helper";
 
 describe("deleteSelection", () => {
   it("clears the selected range to each column's clearValue, skips readOnly cells, and emits one batch DataChange", () => {

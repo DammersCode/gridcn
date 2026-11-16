@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ColumnDef } from "../types";
 import { DataGridProvider, useDataGridInternalActions, useDataGridAllColumns, useDataGridColumnFeatureFlags, useDataGridColumnWidth, useDataGridGetSelectionValues, useDataGridVisibleColumns } from "../store";
 import { viewIndex } from "@/registry/default/blocks/data-grid/types";
-import { type Row, columns, rows, makeConfigWrapper } from "./store-setup.test-helper";
+import { type Row, rows, makeConfigWrapper } from "./store-setup.test-helper";
 
 describe("column UX actions (resize/reorder/pin/visibility)", () => {
   const threeColumns: readonly ColumnDef<Row, unknown>[] = [

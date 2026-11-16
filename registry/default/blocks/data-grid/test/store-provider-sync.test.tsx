@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { memo, type ReactNode } from "react";
 import type { ColumnDef, DataChange } from "../types";
 import { DataGridProvider, useDataGridInternalActions, useDataGridActiveCell, useDataGridIsRowSelected, useDataGridRow, useDataGridRowCellState, useDataGridRowIdToViewRow, useDataGridSearchMatches, useDataGridSelection, useDataGridSortState, useDataGridViewIndex, useDataGridVisibleColumns } from "../store";
-import { viewIndex, viewIndexes } from "@/registry/default/blocks/data-grid/types";
+import { viewIndexes } from "@/registry/default/blocks/data-grid/types";
 import { type Row, columns, rows, makeWrapper, makeConfigWrapper } from "./store-setup.test-helper";
 
 describe("DataGridProvider instance isolation", () => {

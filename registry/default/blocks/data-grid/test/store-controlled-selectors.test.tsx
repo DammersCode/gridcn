@@ -5,7 +5,7 @@ import type { DataChange } from "../types";
 import { withFilterIds } from "../store/compute";
 import { DataGridProvider, createDataGridSelector, useDataGridInternalActions, useDataGridActiveCell, useDataGridEditing, useDataGridFilterState, useDataGridIsColumnFiltered, useDataGridRow, useDataGridSearchMatches, useDataGridSearchText, useDataGridSelection, useDataGridSortState, useDataGridStoreApi, useDataGridViewIndex, useDataGridViewStale, type DataGridStoreState, useDataGridSelector } from "../store";
 import type { FilterGroup, FilterNode, FilterSpec, SortSpec } from "../types";
-import { viewIndex, viewIndexes } from "@/registry/default/blocks/data-grid/types";
+import { viewIndexes } from "@/registry/default/blocks/data-grid/types";
 import { type Row, columns, rows, makeWrapper, makeConfigWrapper, type EditRow, makeUncontrolledWrapper } from "./store-setup.test-helper";
 
 describe("controlled sortState/filterState/searchText (server escape hatch)", () => {

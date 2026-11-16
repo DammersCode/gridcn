@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ColumnDef } from "../types";
 import { cellTypes } from "../cell-types/cell-types";
 import { DataGridProvider } from "../store";
-import { type Row, columns, rows } from "./store-setup.test-helper";
+import { type Row, rows } from "./store-setup.test-helper";
 
 describe("dev-mode guardrails", () => {
   it("warns once per instance on duplicate column ids, not per render", () => {

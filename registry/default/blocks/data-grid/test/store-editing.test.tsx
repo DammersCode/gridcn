@@ -4,8 +4,8 @@ import { type ReactNode } from "react";
 import type { ColumnDef, DataChange } from "../types";
 import { DataGridProvider, cellErrorKey, getInternalActions, useDataGridInternalActions, useDataGridCellErrors, useDataGridActiveCell, useDataGridEditing, useDataGridRow, useDataGridSelection, useDataGridStore, useDataGridStoreApi, useDataGridViewIndex, useDataGridVisibleColumns, type DataGridStoreState } from "../store";
 import type { SortSpec } from "../types";
-import { viewIndex, viewIndexes } from "@/registry/default/blocks/data-grid/types";
-import { type Row, columns, rows, makeWrapper, makeConfigWrapper, type EditRow, editColumns, editRows, makeEditWrapper, makeUncontrolledWrapper } from "./store-setup.test-helper";
+import { viewIndexes } from "@/registry/default/blocks/data-grid/types";
+import { type Row, makeWrapper, makeConfigWrapper, type EditRow, editColumns, editRows, makeEditWrapper, makeUncontrolledWrapper } from "./store-setup.test-helper";
 
 describe("defaultData (uncontrolled mode)", () => {
   it("an edit mutates the internal array with no data prop, visible via useDataGridRow", () => {
