@@ -244,31 +244,6 @@ function sinceOf() {
   return since;
 }
 
-const ROADMAP_LINK = "[Roadmap](#roadmap)";
-const ROADMAP = [
-  "## Roadmap [#roadmap]",
-  "",
-  "<NewBadge />",
-  "",
-  "The roadmap lists planned releases, not dates. Each feature is additive: a grid that does not use it keeps its behavior.",
-  "",
-  table(
-    ["Release", "Feature"],
-    [
-      ["2.1", "Row grouping on the client, with aggregates per group"],
-      ["2.1", "Keyboard column reorder and resize"],
-      ["2.1", "Touch input"],
-      ["2.2", "Row grouping on the server"],
-      ["2.2", "Variable row heights"],
-      ["2.3", "Tree data and master-detail"],
-      ["After server grouping", "Server pivoting"],
-      ["Not planned", "Formulas and cell merging"],
-    ],
-  ),
-  "The grid generates row ids that start with `__`. Do not use that prefix for your own rows.",
-  "",
-].join("\n");
-
 function featureMatrix() {
   const rows = [];
   const since = sinceOf();
@@ -289,7 +264,7 @@ function featureMatrix() {
     rows.push([cell(row.feature), kind, item, modeText(row, CLIENT), modeText(row, SERVER), release, link(f.guide[0], f.guide[1]), link(f.reference[0], f.reference[1])]);
   }
   for (const feature of ["Tree data", "Pivoting", "Master-detail"]) {
-    rows.push([`${feature} <NewBadge />`, "Not built", "none", "Gap", "Gap", "none", ROADMAP_LINK, ROADMAP_LINK]);
+    rows.push([`${feature} <NewBadge />`, "Not built", "none", "Gap", "Gap", "none", "none", "none"]);
   }
   return [
     frontmatter({ title: "Feature matrix", description: "See which features are core or add-on, whether each works with client and server data, and where its guide is.", type: "cheatsheet", icon: "Table", aliases: ["row grouping", "group rows", "tree data", "aggregation", "since version"] }),
@@ -300,7 +275,6 @@ function featureMatrix() {
     `Since names the first release with the feature. ${FIRST_TAGGED_RELEASE} is the first tagged release. Item names the item that holds the feature. In 1.x, \`data-grid-lazy\` held scroll row fetching. Unreleased marks a feature that only an install without a ref has. The [changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) lists each release.`,
     "",
     table(["Feature", "Kind", "Item", "Client", "Server", "Since", "Guide", "Reference"], rows),
-    ROADMAP,
     related(["/docs/data-modes/data-mode-support", "every feature against every data mode"], ["/docs/fit-features/add-ons-a-z", "every add-on"], ["/docs/data-modes", "choose where the rows come from"]),
   ].join("\n");
 }

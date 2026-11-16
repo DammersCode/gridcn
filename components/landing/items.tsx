@@ -76,7 +76,6 @@ export const agentSkills = [
 export const AgentIcon = Bot;
 
 export const COMPARISON_DATE = "2026-11-16";
-export const ROADMAP_HREF = "/docs/fit-features/feature-matrix#roadmap";
 export const FEATURE_MATRIX_HREF = "/docs/fit-features/feature-matrix";
 
 const AG = "https://www.ag-grid.com/react-data-grid";
@@ -131,7 +130,7 @@ export const comparison: { columns: string[]; rows: Row[] } = {
     {
       feature: "Row grouping",
       cells: [
-        { value: NOT_BUILT, href: ROADMAP_HREF },
+        { value: NOT_BUILT, href: FEATURE_MATRIX_HREF },
         { value: "Enterprise", href: `${AG}/grouping/` },
         { value: "Premium", href: `${MUI}/row-grouping/` },
         { value: HEADLESS, href: TANSTACK },
@@ -140,7 +139,7 @@ export const comparison: { columns: string[]; rows: Row[] } = {
     {
       feature: "Tree data",
       cells: [
-        { value: NOT_BUILT, href: ROADMAP_HREF },
+        { value: NOT_BUILT, href: FEATURE_MATRIX_HREF },
         { value: "Enterprise", href: `${AG}/tree-data/` },
         { value: "Pro", href: `${MUI}/tree-data/` },
         { value: HEADLESS, href: TANSTACK },
@@ -149,7 +148,7 @@ export const comparison: { columns: string[]; rows: Row[] } = {
     {
       feature: "Pivoting",
       cells: [
-        { value: NOT_BUILT, href: ROADMAP_HREF },
+        { value: NOT_BUILT, href: FEATURE_MATRIX_HREF },
         { value: "Enterprise", href: `${AG}/pivoting/` },
         { value: "Premium", href: `${MUI}/pivoting/` },
         { value: NOT_LISTED, href: TANSTACK },
@@ -158,7 +157,7 @@ export const comparison: { columns: string[]; rows: Row[] } = {
     {
       feature: "Master-detail",
       cells: [
-        { value: NOT_BUILT, href: ROADMAP_HREF },
+        { value: NOT_BUILT, href: FEATURE_MATRIX_HREF },
         { value: "Enterprise", href: `${AG}/master-detail/` },
         { value: "Pro", href: `${MUI}/master-detail/` },
         { value: HEADLESS, href: TANSTACK },

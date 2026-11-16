@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { pageIndex } from "../scripts/docs-verify-lib.mjs";
 import { CLIENT_CODE, HEADLINE, newInTwo, perfStats, serverHighlights, SUBLINE } from "../components/landing/data";
 import { showReleaseBadge } from "../components/landing/hero";
-import { addOnTiles, agentSkills, COMPARISON_DATE, comparison, kitTiles, ROADMAP_HREF } from "../components/landing/items";
+import { addOnTiles, agentSkills, COMPARISON_DATE, comparison, kitTiles, FEATURE_MATRIX_HREF } from "../components/landing/items";
 
 const root = join(__dirname, "..");
 const pages = pageIndex(join(root, "content/docs")) as Map<string, { anchors: Set<string> }>;
@@ -74,11 +74,11 @@ describe("landing comparison", () => {
     }
   });
 
-  it("shows the rows where gridcn loses, linked to the roadmap", () => {
+  it("shows the rows where gridcn loses, linked to the feature matrix", () => {
     const losing = comparison.rows.filter((r) => r.cells[0].value === "Not built");
     expect(losing.map((r) => r.feature)).toEqual(["Row grouping", "Tree data", "Pivoting", "Master-detail"]);
-    for (const row of losing) expect(row.cells[0].href).toBe(ROADMAP_HREF);
-    expect(resolves(ROADMAP_HREF)).toBe(true);
+    for (const row of losing) expect(row.cells[0].href).toBe(FEATURE_MATRIX_HREF);
+    expect(resolves(FEATURE_MATRIX_HREF)).toBe(true);
   });
 
   it("links vendor cells to the page section that states them", () => {

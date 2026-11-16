@@ -5,7 +5,7 @@ import { gitConfig } from "@/lib/shared";
 import { CLIENT_CODE, HEADLINE, newInTwo, SERVER_CODE, SUBLINE } from "./data";
 import { Code } from "./code";
 import { HeroGrid } from "./hero-grid";
-import { addOnTiles, agentSkills, COMPARISON_DATE, comparison, FEATURE_MATRIX_HREF, kitTiles, ROADMAP_HREF } from "./items";
+import { addOnTiles, agentSkills, COMPARISON_DATE, comparison, FEATURE_MATRIX_HREF, kitTiles } from "./items";
 import { HeroActions, ReleaseBadge } from "./hero";
 import { DataModesLink, focus, PerfStats, ServerHighlights, SiteLink } from "./parts";
 
@@ -199,16 +199,13 @@ function ComparePanel() {
     <Panel
       id="compare"
       title="How gridcn compares"
-      intro="Each cell links to the page that states it. gridcn ships the editing features free. It does not build row grouping, tree data, pivoting or master-detail; the roadmap lists them."
+      intro="Each cell links to the page that states it. gridcn ships the editing features free. It does not build row grouping, tree data, pivoting or master-detail."
     >
       <CompareTable />
       <p className="text-xs text-muted-foreground">
         Checked on {COMPARISON_DATE} against the vendors&apos; public documentation pages. TanStack Table is headless: it ships state and logic, not UI. Headless means the overview lists the feature and you build the UI; Not listed means the overview does not name it. Vendors change tiers: check the linked page.{" "}
         <Link href={FEATURE_MATRIX_HREF} className="inline-flex min-h-10 items-center underline underline-offset-4">
           Feature matrix of gridcn
-        </Link>{" "}
-        <Link href={ROADMAP_HREF} className="inline-flex min-h-10 items-center underline underline-offset-4">
-          Roadmap
         </Link>
       </p>
     </Panel>
