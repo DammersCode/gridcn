@@ -475,7 +475,7 @@ const PURPOSE = {
   "DataGridSyncProps.enableMultiRange": "Turns on several ranges by Ctrl or Cmd click. Default `true`.",
   "DataGridSyncProps.inputDebounceMs": "Sets the wait in ms before a text input commits. It covers the toolbar search, the filter value inputs, the set-filter search, find and replace, and the lookup editor.",
   "DataGridSyncProps.keymap": "Merges over `DEFAULT_KEYMAP` per action. An action mapped to `[]` has no binding.",
-  "DataGridSyncProps.sanitizeClipboardFormulas": "Prefixes formula-like copied cells with `'` in the clipboard text and HTML. Default `false`.",
+  "DataGridSyncProps.sanitizeClipboardFormulas": "Prefixes formula-like copied cells with `'` in the clipboard text and HTML. Default `true`. `false` copies raw text.",
   "DataGridSyncProps.duplicateRow": "Builds the new row for `duplicateRows` from the source row and its new data index.",
   "DataGridSyncProps.totalRowCount": "Declares that `data` is a window of a larger result of this many rows. `null` means the size is unknown.",
   "DataGridSyncProps.validateRow": "Validates a whole row once after a write gesture commits. The row already has every cell of the gesture applied.",
