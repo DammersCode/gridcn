@@ -53,8 +53,7 @@ Every page has exactly one type. The type decides the budget and the template. A
   force. Version facts live on the version policy page, and the row ceiling lives on the row limits page. A support matrix
   has one data file. Pages may show generated views of it, such as the feature matrix with client and server columns. The
   page that explains each mode owns the prose, and each matrix row links to it.
-- P7. A page ends with a Related section of 1 to 5 links. Landing pages are exempt. A Step page ends with a Next link
-  instead.
+- P7. A page ends with a Related section of 1 to 5 links. Landing pages are exempt. A Step page ends with a Next link, then Related.
 - P8. Every page has a `description` of at most 160 characters. It states what the page lets the reader do.
 - P9. Disclosure inside a page has one level: `<Tabs>` or one details block, never nested. A heading that has an inbound
   deep link stays a heading and never sits inside a tab.

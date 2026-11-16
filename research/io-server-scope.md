@@ -101,4 +101,4 @@ the unloaded ones. The parity cell cites the test.
 ## Not done
 
 - No server-side import preview, no streaming XLSX writer, no server search source (gap P stays
-  a documented scope).
+  a documented scope: server search stays outside the grid's server contract, so the parity matrix has no row for it).

@@ -137,4 +137,4 @@ except `columnIds`.
 ## Not done
 
 Header override, async `formatCell`, import `valueMode: "raw"` (I9), print `source` and `css`
-(P1, P2), `validateRow` on import (I7, write-path branch).
+(P1, P2), `validateRow` on import (I7, write-path branch). None of these is part of 2.0.

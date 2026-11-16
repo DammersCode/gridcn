@@ -24,11 +24,11 @@ record of what landed (commit SHAs point at `main`).
 | 005 | Scope the selection zero-render invariant + guard it (accept the `aria-selected` churn) | P2 | S | LOW | — | DONE (39cd2d6 + ec1464f) |
 | 006 | Implement the three spec'd-but-missing behaviors (Alt+Arrow, mod+Enter, outside-click clear + `onSelectionCleared`) | P2 | M | LOW-MED | — | DONE (67d7688) |
 | 007 | Lazy rows: short `fetchRows` resolution must not mark the range complete | P3 | S | LOW | — | DONE (on main since the repo import: short responses mark only the written rows loaded and re-fetch the gap; test `marks only actually written rows loaded` in `use-data-grid-lazy-rows.test.ts`) |
-| 008 | Editor keystroke-to-paint timing test (unenforced §4.6 budget) | P3 | M | LOW | — | TODO |
+| 008 | Editor keystroke-to-paint timing test (unenforced §4.6 budget) | P3 | M | LOW | — | DEFERRED (not part of 2.0: the §4.6 budget stays unenforced by a test; see `research/deferred-not-2.0.md`) |
 | 009 | Glide spec doc fix + store-barrel public-surface decision | P3 | S | LOW | — | DONE (67d7688 + 723d50c) |
-| 010 | Hoist per-cell store subscriptions (actions/cellTypes via root context) | P3 | S/M | LOW | 005 | TODO |
+| 010 | Hoist per-cell store subscriptions (actions/cellTypes via root context) | P3 | S/M | LOW | 005 | DEFERRED (not part of 2.0: per-cell subscriptions stay as they are; see `research/deferred-not-2.0.md`) |
 
-Status values: TODO | IN PROGRESS | DONE (commit SHA) | BLOCKED (reason) | REJECTED (rationale).
+Status values: TODO | DEFERRED (reason) | IN PROGRESS | DONE (commit SHA) | BLOCKED (reason) | REJECTED (rationale).
 
 ## Other plans (not 2026-09-03 audit follow-ups)
 

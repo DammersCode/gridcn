@@ -154,11 +154,11 @@ copy does not state a 1M-row figure for the whole interaction.
 | Dense ranks of distinct strings for text | Kept. 2-11x. Costs a string map; already-sorted text input got 0.7x slower at 1M (the map pass costs more than the old run detection). |
 | Collation keys for mostly unique text (ASCII fast path, normalized key strings sorted with `<`, then a verifying pass) | Dropped. Unique strings gain only 1-2x without it, and the key table depends on the locale (contractions), so it needs a verify-and-fall-back layer. More code and risk than the maintainer asked for. |
 | 32-bit keys for small integers, an already-sorted early exit | Dropped. Saves about 10-30 ms at 1M; extra branches for no clear need. |
-| Keying `date`, `select`, `checkbox`, `url`, and `longText` columns | Not done. Their comparators stay on the old path; a select column is now the slowest typed sort relative to number. |
+| Keying `date`, `select`, `checkbox`, `url`, and `longText` columns | Not done. Their comparators stay on the old path; a select column is now the slowest typed sort relative to number. Accepted for 2.0. |
 | Cache of the unfiltered sorted order for filter-only changes | Dropped. A filter change sorts only the surviving rows, which is already cheaper than the full sort, and the cache would hold 8 bytes per row per grid. |
 | Worker thread for the sort | Dropped. The sort is under 0.2 s for numbers; a worker needs the row data copied across threads. |
 | Position map for live updates | Dropped. Costs 4 bytes per row plus upkeep on every move; the `indexOf` scan is 0.5 ms at 1M. |
-| Coalescing `"immediate"` ticks inside one frame | Not done. It changes the documented "moves now" contract; propose it as a separate option if needed. |
+| Coalescing `"immediate"` ticks inside one frame | Not done. It changes the documented "moves now" contract; propose it as a separate option if needed. Accepted for 2.0. |
 
 ## Equivalence
 

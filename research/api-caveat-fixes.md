@@ -78,7 +78,7 @@ One shared `{ ok: false, reason }` result for every mode-dependent row action to
 
 ### sortLocale (done, see `research/sort-locale-spec.md`)
 - Before: a text sort followed the language of the runtime, so a server and a browser disagreed.
-- After: the sort language is `"en-US"`, and `sortLocale` sets another tag. A developer who wants the runtime language passes `sortLocale={navigator.language}` after mount, or sets a column `sortCompare`. Nothing is removed.
+- After: the sort language follows the `locale` prop, then `"en-US"`; `sortLocale` overrides it. A developer who wants the runtime language passes `sortLocale={navigator.language}` after mount, or sets a column `sortCompare`. Nothing is removed.
 - SDK: `sortCollator()` and `withSortLocale()` stay synchronous; a promise from the callback warns once in development.
 
 ## The pagination wave (F1, F4, F5, F18) and F14: done
