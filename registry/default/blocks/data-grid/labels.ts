@@ -1,8 +1,6 @@
 /**
- * i18n via a typed labels object: nearly every user-facing string across core + add-ons lives here with
- * English defaults. Consumers pass a `labels` prop (deep-merged over {@link DEFAULT_LABELS}) to
- * `DataGridProvider`; no i18n library dependency — wiring translated strings into
- * `DEFAULT_LABELS`'s shape is the consumer's job.
+ * i18n via a typed labels object: nearly every user-facing string across core + add-ons lives here with English defaults. Consumers
+ * pass a `labels` prop (deep-merged over {@link DEFAULT_LABELS}) to `DataGridProvider`; no i18n library dependency — wiring translated strings into `DEFAULT_LABELS`'s shape is the consumer's job.
  */
 
 import type { GridAction } from "./types";
@@ -150,14 +148,7 @@ export type DataGridContextMenuLabels = {
   autosize: string;
   /** "Autosize all columns" — sizes every visible resizable column to its content. */
   autosizeAll: string;
-  /** Menu item that moves the column one place toward the start side, within its pin zone. */
-  moveTowardStart: string;
-  /** Menu item that moves the column one place toward the end side, within its pin zone. */
-  moveTowardEnd: string;
-  /** Menu item that makes the column one step wider. */
-  widenColumn: string;
-  /** Menu item that makes the column one step narrower. */
-  narrowColumn: string;
+  moveTowardStart: string; moveTowardEnd: string; widenColumn: string; narrowColumn: string;
   /** aria-label for the per-column header dropdown's ghost chevron trigger; `column` is the header text. */
   columnMenuAriaLabel: (column: string) => string;
 };
@@ -542,10 +533,7 @@ function buildDefaultLabels(locale: string): DataGridLabels {
       hideColumn: "Hide column",
       autosize: "Autosize column",
       autosizeAll: "Autosize all columns",
-      moveTowardStart: "Move toward start",
-      moveTowardEnd: "Move toward end",
-      widenColumn: "Widen column",
-      narrowColumn: "Narrow column",
+      moveTowardStart: "Move toward start", moveTowardEnd: "Move toward end", widenColumn: "Widen column", narrowColumn: "Narrow column",
       columnMenuAriaLabel: (column) => `${column} column menu`,
     },
     keybindings: {

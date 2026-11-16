@@ -43,9 +43,11 @@ export function resolveFilterOperators<TData = unknown, TValue = unknown, TOptio
   return operatorsForColumnType(column.type);
 }
 
-/** Whether the column's filters respect letter case: `column.filter.matchCase ?? cellType.filter.matchCase ?? false`. */
-export function resolveFilterMatchCase<TData = unknown, TValue = unknown, TOptions = unknown>(column: AnyColumnDef, cellType: CellType<TData, TValue, TOptions> | undefined): boolean {
-  return column.filter?.matchCase ?? cellType?.filter?.matchCase ?? false;
+const typeOf = (column: AnyColumnDef, cellTypes: Record<string, CellType> | undefined) => (column.type ? cellTypes?.[column.type] : undefined);
+
+/** Whether the column's filters respect letter case: `column.filter.matchCase ?? cellType.filter.matchCase ?? false`; `false` for no column. */
+export function resolveFilterMatchCase(column: AnyColumnDef | undefined, cellTypes: Record<string, CellType> | undefined): boolean {
+  return column ? (column.filter?.matchCase ?? typeOf(column, cellTypes)?.filter?.matchCase ?? false) : false;
 }
 
 /**
@@ -53,12 +55,13 @@ export function resolveFilterMatchCase<TData = unknown, TValue = unknown, TOptio
  * `isAnyOf` and `isNoneOf` only when its own `filter` lists them in `operators`; otherwise the built-in
  * set match evaluates them on the cell text, the same text the header filter lists.
  */
-export function resolveFilterMatch<TData = unknown, TValue = unknown, TOptions = unknown>(
-  column: AnyColumnDef,
-  cellType: CellType<TData, TValue, TOptions> | undefined,
+export function resolveFilterMatch(
+  column: AnyColumnDef | undefined,
+  cellTypes: Record<string, CellType> | undefined,
   operator: FilterOperator,
 ): ((value: unknown, filter: FilterSpec) => boolean) | undefined {
-  const owner = column.filter?.match ? column.filter : cellType?.filter;
+  if (!column) return undefined;
+  const owner = column.filter?.match ? column.filter : typeOf(column, cellTypes)?.filter;
   if (!owner?.match) return undefined;
   if (SET_FILTER_OPERATORS.includes(operator as BuiltInFilterOperator) && !owner.operators?.includes(operator as BuiltInFilterOperator)) return undefined;
   return owner.match;

@@ -478,19 +478,17 @@ export type FilterValueInputProps = {
 
 /**
  * Filter capabilities a cell type declares instead of the toolbar's name-derived defaults:
- * `operators` beats the type-name operator table, `match` replaces the built-in text matcher
- * (it receives the cell's RAW value and the spec and returns whether the row passes; a throw fails the
- * row; a custom operator uses its own `match`), `compare` orders cell text against a filter bound for
- * `gt`, `gte`, `lt`, `lte`, and `isBetween` (a NaN result or a throw falls back to the default order for
- * that pair), and `valueInput` picks the filter row's widget: a built-in one by name, or a component that
- * renders for every operator with a value. `ColumnDef.filter` takes the same shape and wins per member.
+ * `operators` beats the type-name operator table, `match` replaces the built-in text matcher (it receives the cell's RAW
+ * value and the spec and returns whether the row passes; a throw fails the row; a custom operator uses its own `match`;
+ * `isAnyOf` and `isNoneOf` reach it only when the same `filter` lists them in `operators`), `compare` orders cell text against a filter bound for
+ * `gt`, `gte`, `lt`, `lte`, and `isBetween` (a NaN result or a throw falls back to the default order for that pair), `valueInput` picks the
+ * filter row's widget: a built-in one by name, or a component that renders for every operator with a value, and `matchCase` (default `false`) makes the built-in text and set operators and the header filter list respect letter case. `ColumnDef.filter` takes the same shape and wins per member.
  */
 export type CellTypeFilter = {
   operators?: readonly (BuiltInFilterOperator | CustomFilterOperator)[];
   match?: (value: unknown, filter: FilterSpec) => boolean;
   compare?: (text: string, bound: string) => number;
   valueInput?: CellTypeValueInput | ComponentType<FilterValueInputProps>;
-  /** The built-in text and set operators, and the header filter's value list, respect letter case. Default `false`. */
   matchCase?: boolean;
 };
 
