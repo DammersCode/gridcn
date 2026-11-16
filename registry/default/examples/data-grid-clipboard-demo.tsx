@@ -17,7 +17,7 @@ const columns = defineColumns<Entry>()([
   { id: "formula", header: "Formula", accessorKey: "formula", type: "text", width: 160, flex: 2 },
 ] as const);
 
-/** Copy a range, then paste it into a spreadsheet: `sanitizeClipboardFormulas` puts a quote before each formula-like cell. */
+/** Copy a range, then paste it into a spreadsheet: the grid puts a quote before each formula-like cell. */
 export default function DataGridClipboardDemo(): ReactNode {
   return (
     <div className="w-full flex flex-col gap-3">
@@ -26,7 +26,7 @@ export default function DataGridClipboardDemo(): ReactNode {
         arrives as text. Paste back into the grid to restore the raw value.
       </p>
       <div className="h-[240px] overflow-hidden rounded-md border border-border">
-        <DataGridProvider defaultData={ROWS} columns={columns} sanitizeClipboardFormulas>
+        <DataGridProvider defaultData={ROWS} columns={columns}>
           <DataGridRoot className="h-full">
             <DataGridHeader />
             <DataGridBody />
