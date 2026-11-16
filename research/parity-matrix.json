@@ -487,7 +487,7 @@
     },
     {
       "id": "counts",
-      "feature": "Counts and total",
+      "feature": "Row count",
       "options": [
         "totalRowCount"
       ],
@@ -2417,6 +2417,412 @@
         }
       },
       "modeNeutral": true
+    },
+    {
+      "id": "column-groups",
+      "feature": "Column groups",
+      "options": [],
+      "note": "Mode-neutral.",
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/columns/column-headers-groups.mdx"
+          ]
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/columns/column-headers-groups.mdx"
+          ]
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/columns/column-headers-groups.mdx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/columns/column-headers-groups.mdx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/columns/column-headers-groups.mdx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/columns/column-headers-groups.mdx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/columns/column-headers-groups.mdx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/columns/column-headers-groups.mdx"
+          ]
+        }
+      },
+      "modeNeutral": true,
+      "doc": "/docs/columns/column-headers-groups"
+    },
+    {
+      "id": "context-menu",
+      "feature": "Context menu",
+      "options": [],
+      "note": "Mode-neutral.",
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/rows-pages-menus/context-menu.mdx"
+          ]
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/rows-pages-menus/context-menu.mdx"
+          ]
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/rows-pages-menus/context-menu.mdx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/rows-pages-menus/context-menu.mdx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/rows-pages-menus/context-menu.mdx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/rows-pages-menus/context-menu.mdx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/rows-pages-menus/context-menu.mdx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/rows-pages-menus/context-menu.mdx"
+          ]
+        }
+      },
+      "modeNeutral": true,
+      "doc": "/docs/rows-pages-menus/context-menu"
+    },
+    {
+      "id": "status-bar",
+      "feature": "Status bar",
+      "options": [],
+      "note": "Mode-neutral.",
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/status-bar.mdx"
+          ]
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/status-bar.mdx"
+          ]
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/status-bar.mdx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/status-bar.mdx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/status-bar.mdx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/status-bar.mdx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/status-bar.mdx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/status-bar.mdx"
+          ]
+        }
+      },
+      "modeNeutral": true,
+      "doc": "/docs/selection-shortcuts/status-bar"
+    },
+    {
+      "id": "sort-list",
+      "feature": "Sort list",
+      "options": [],
+      "note": "Mode-neutral.",
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/sort-filter-search/sorting.mdx"
+          ]
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/sort-filter-search/sorting.mdx"
+          ]
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/sort-filter-search/sorting.mdx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/sort-filter-search/sorting.mdx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/sort-filter-search/sorting.mdx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/sort-filter-search/sorting.mdx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/sort-filter-search/sorting.mdx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/sort-filter-search/sorting.mdx"
+          ]
+        }
+      },
+      "modeNeutral": true,
+      "doc": "/docs/sort-filter-search/sorting"
+    },
+    {
+      "id": "keybindings-dialog",
+      "feature": "Keybindings dialog",
+      "options": [],
+      "note": "Mode-neutral.",
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/shortcut-remapping.mdx"
+          ]
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/shortcut-remapping.mdx"
+          ]
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/shortcut-remapping.mdx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/shortcut-remapping.mdx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/shortcut-remapping.mdx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/shortcut-remapping.mdx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/shortcut-remapping.mdx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/shortcut-remapping.mdx"
+          ]
+        }
+      },
+      "modeNeutral": true,
+      "doc": "/docs/selection-shortcuts/shortcut-remapping"
+    },
+    {
+      "id": "touch",
+      "feature": "Touch gestures",
+      "options": [],
+      "note": "Mode-neutral.",
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/pointer-selection.mdx"
+          ]
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/pointer-selection.mdx"
+          ]
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/pointer-selection.mdx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/pointer-selection.mdx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/pointer-selection.mdx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/pointer-selection.mdx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/pointer-selection.mdx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/selection-shortcuts/pointer-selection.mdx"
+          ]
+        }
+      },
+      "modeNeutral": true,
+      "doc": "/docs/selection-shortcuts/pointer-selection#touch-gestures"
+    },
+    {
+      "id": "row-reorder",
+      "feature": "Row reorder",
+      "options": [],
+      "note": "Mode-neutral.",
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/rows-pages-menus/row-order.mdx"
+          ]
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/rows-pages-menus/row-order.mdx"
+          ]
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/rows-pages-menus/row-order.mdx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/rows-pages-menus/row-order.mdx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/rows-pages-menus/row-order.mdx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/rows-pages-menus/row-order.mdx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/rows-pages-menus/row-order.mdx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/rows-pages-menus/row-order.mdx"
+          ]
+        }
+      },
+      "modeNeutral": true,
+      "doc": "/docs/rows-pages-menus/row-order"
     },
     {
       "id": "unknown-total",
