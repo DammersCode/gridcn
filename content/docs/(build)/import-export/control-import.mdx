@@ -42,7 +42,7 @@ The `createRow` prop receives `(index, { signal })` with the same `signal`.
 
 ## Steps
 
-Pick the props from the table. Pass them as props. In this sample, `processCellFromText` parses `total` as a number. Every other cell goes through the column's `fromText` after a trim:
+Pick the props from the table. Pass them as props. In this sample, `processCellFromText` parses `total` as a number and maps an empty cell to `null`. Every other cell goes through the column's `fromText` after a trim:
 
 ```tsx
 import { DataGridImportButton } from "@/components/data-grid-io/data-grid-io";
@@ -56,7 +56,11 @@ export function ImportOrders({ refresh }: { refresh: () => void }) {
       csvEncoding="windows-1252"
       processImportRows={({ rows }) => rows.filter((row) => row[0] !== "TOTAL")}
       processCellFromText={(text, { column, fromText }) =>
-        column.id === "total" ? Number.parseFloat(text) : fromText(text.trim())
+        column.id === "total"
+          ? text.trim() === ""
+            ? null
+            : Number.parseFloat(text)
+          : fromText(text.trim())
       }
       onImport={async (rows, { signal, rejected, fileName }) => {
         await api.import(rows, { signal, fileName, skipped: rejected.length });

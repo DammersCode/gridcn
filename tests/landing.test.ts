@@ -186,7 +186,7 @@ describe("landing copy", () => {
 
 describe("landing code block", () => {
   it("uses the shared code theme pair", () => {
-    expect(CODE_THEMES).toEqual({ light: "github-light-high-contrast", dark: "github-dark" });
+    expect(CODE_THEMES).toEqual({ light: "github-light-high-contrast", dark: "github-dark-high-contrast" });
     for (const f of ["components/component-preview.tsx", "components/manual-install.tsx", "components/landing/code.tsx", "source.config.ts"]) {
       expect(readFileSync(join(root, f), "utf8"), f).toContain("CODE_THEMES");
     }

@@ -125,9 +125,9 @@ The receiver resolves the ids against its own view. The receiver drops a row tha
 
 `getRowIds()` lists every selected row, and checked rows count too. A select-all of 100,000 rows sends 100,000 ids. Cap the list on the sender or on the server.
 
-- In scroll mode, `getRowIds()` skips unloaded rows. A peer paints only the loaded rows of the range.
+- In scroll mode, `getRowIds()` skips unloaded rows. A peer paints only the loaded rows of the range. `getViewRowIds({ loaded: true })` on the grid ref lists the same loaded rows of the whole view.
 - The sample sends the columns of the main range only. A selection of checked rows or whole columns has no `range`, so the sample reports it as a leave.
-- `getRowIds()` lists the rows of every range and the checked rows together. For several ranges, build the row ids of each range from its corners and the view order, and send one entry per range. `getViewRowIds({ loaded: true })` on the grid ref lists the loaded rows in view order.
+- `getRowIds()` lists the rows of every range and the checked rows together. For several ranges, build the row ids of each range from its corners and the view order, and send one entry per range.
 - The sample waits 100 ms after the last change before it sends, because a drag fires one change for each step.
 
 Treat every incoming message as untrusted input. The add-on drops malformed entries and repairs a bad `label` or `color`: [Presence options](/docs/add-options/server/presence-options) lists each rule. The add-on renders a `label` as text.

@@ -103,7 +103,7 @@ export function OrdersGrid() {
   Pass the request through `parseServerSpec(body.spec, { columns })` from `data-grid-server` before you build a query, and cap the request body size. The function throws a `ServerSpecError` for an unknown column, an unknown operator, a tree that is too large, or a long value. The [ORM examples](/docs/server-data-examples/orm-examples/drizzle-example) call it.
 </Callout>
 
-A failed request keeps the last good rows on screen and shows an error state with Retry. See [Handle failures](/docs/server-path/handle-failures). To own the spec or the page, see [Query server rows](/docs/data-modes/query-server-rows#controlled-mode-server-side-sortfilter) and [Load rows by page](/docs/server-pagination/load-rows-page).
+A failed request keeps the last good rows on screen and shows an error state with Retry. See [Handle failures](/docs/server-path/handle-failures). To own the spec or the page, see [Query server rows](/docs/data-modes/query-server-rows#control-the-spec-and-the-page) and [Load rows by page](/docs/server-pagination/load-rows-page).
 
 ## Delay every request [#wait-for-typing-to-pause]
 

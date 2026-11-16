@@ -1,3 +1,4 @@
+import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { faq, perfDemos, perfNote, perfRunHref, perfStats, serverHighlights } from "./data";
@@ -11,6 +12,7 @@ export function SiteLink({ href, className, children, ...rest }: { href: string;
     return (
       <a href={href} className={className} target="_blank" rel="noreferrer" {...rest}>
         {children}
+        <ExternalLink aria-hidden className="ms-1 size-3 shrink-0" />
       </a>
     );
   }

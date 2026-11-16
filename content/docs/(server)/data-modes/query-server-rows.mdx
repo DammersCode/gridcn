@@ -130,7 +130,7 @@ The grid tracks the filter spec: the filter menu, the header filters, and `data-
 
 The quick-search box highlights and navigates matches in the rows the grid holds. It never narrows the rows. The hook puts the text in `spec.searchText`. Your server can narrow the rows by it, and the box then highlights the rows that come back.
 
-## Control the spec [#controlled-mode-server-side-sortfilter]
+## Control the spec [#control-the-spec-and-the-page]
 
 The hook owns the spec. Seed it with `defaultSpec`. Control it with `spec` and `onSpecChange`. A change of the spec content starts the requests over. In pages mode, the change also goes back to page 1, unless no answer has landed yet.
 
