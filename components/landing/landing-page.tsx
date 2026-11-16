@@ -14,9 +14,9 @@ const repo = `https://github.com/${gitConfig.user}/${gitConfig.repo}`;
 
 const installFit = "min-w-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-all max-sm:[&_button]:min-h-10 max-sm:[&_button]:min-w-10";
 
-function Panel({ id, title, intro, children, className }: { id: string; title: string; intro?: ReactNode; children: ReactNode; className?: string }) {
+function Panel({ id, title, intro, children, plain }: { id: string; title: string; intro?: ReactNode; children: ReactNode; plain?: boolean }) {
   return (
-    <section aria-labelledby={id} className={`flex min-w-0 flex-col gap-3 rounded-lg border bg-card p-4 ${className ?? ""}`}>
+    <section aria-labelledby={id} className={`flex min-w-0 flex-col gap-3 ${plain ? "" : "rounded-lg border bg-card p-4"}`}>
       <div>
         <h2 id={id} className="text-xl font-semibold tracking-tight sm:text-2xl">
           {title}
@@ -192,7 +192,7 @@ function ComparePanel() {
 
 function AgentsPanel() {
   return (
-    <Panel id="agents" title="Skills for your coding agent" intro="Five skills for Claude Code, Cursor, Codex and other agents. Each one is a step-by-step procedure for one gridcn task.">
+    <Panel plain id="agents" title="Skills for your coding agent" intro="Five skills for Claude Code, Cursor, Codex and other agents. Each one is a step-by-step procedure for one gridcn task.">
       <div className={`w-full max-w-md ${installFit}`}>
         <InstallCommand command="skills add DammersCode/gridcn" label="Install command for agent skills" />
       </div>
@@ -228,13 +228,13 @@ function AddOnsPanel() {
 
 function FaqPanel() {
   return (
-    <Panel id="faq" title="Questions">
+    <Panel plain id="faq" title="Questions">
       <Faq />
     </Panel>
   );
 }
 
-function FooterLinks() {
+export function FooterLinks() {
   const links = [
     { label: "Docs", href: "/docs" },
     { label: "Accessibility gaps", href: "/docs/accessibility/accessibility-gaps" },
@@ -243,7 +243,7 @@ function FooterLinks() {
     { label: "GitHub", href: repo },
   ];
   return (
-    <footer>
+    <footer className="relative z-10 flex w-full max-w-5xl justify-center px-4 pb-12 sm:px-6">
       <nav aria-label="Site links" className="flex flex-wrap justify-center gap-x-4 text-sm">
         {links.map((l) => (
           <SiteLink key={l.label} href={l.href} className={`inline-flex min-h-10 items-center underline underline-offset-4 ${focus}`}>
@@ -255,19 +255,26 @@ function FooterLinks() {
   );
 }
 
+const group = "flex flex-col gap-4";
+
 export function LandingPage() {
   return (
-    <div className="relative z-10 flex w-full max-w-5xl flex-col gap-4 px-4 pb-12 pt-6 sm:px-6">
+    <div className="relative z-10 flex w-full max-w-5xl flex-col gap-12 px-4 pb-6 pt-6 sm:px-6">
       <Hero />
-      <ComparePanel />
-      <KitPanel />
-      <PerfPanel />
-      <StartPanel />
-      <ServerPanel />
-      <AddOnsPanel />
-      <AgentsPanel />
-      <FaqPanel />
-      <FooterLinks />
+      <div className={group}>
+        <ComparePanel />
+        <KitPanel />
+      </div>
+      <div className={group}>
+        <PerfPanel />
+        <StartPanel />
+        <ServerPanel />
+      </div>
+      <div className={group}>
+        <AddOnsPanel />
+        <AgentsPanel />
+        <FaqPanel />
+      </div>
     </div>
   );
 }
