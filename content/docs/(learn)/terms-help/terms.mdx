@@ -33,7 +33,7 @@ A term row links to the page that explains it.
 | row range | `RowRange`: `{ start, end }` over rows, `end` excluded. | [Server rows contract](/docs/contracts/server-rows-contract) |
 | row count | The size of the result. | [Load rows by page](/docs/server-pagination/load-rows-page) |
 | all matching | The whole result as the target of a bulk action. | [Select server rows](/docs/rows-live-data/select-server-rows) |
-| gate | A prop function that the grid calls before it acts, for example `processPaste`, `processFill`, or `createRow`. | [Event shapes](/docs/events-state/event-shapes#gates) |
+| gate | A prop function that the grid calls before it acts, for example `processPaste` or `createRow`. | [Event shapes](/docs/events-state/event-shapes#gates) |
 | gate pending | The state of a gate whose promise has not settled. | [Cancel async gates](/docs/editing-cells/cancel-async-gates#show-the-pending-state) |
 | wanted range | The rendered rows grown by `overscan` on each side and rounded out to blocks. | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
 | keep range | The wanted range grown by one more block on each side. | [Tune row retention](/docs/scroll-mode/tune-row-retention) |
