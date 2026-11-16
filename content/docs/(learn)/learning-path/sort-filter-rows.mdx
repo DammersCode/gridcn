@@ -5,11 +5,11 @@ description: Add a toolbar with quick search, a filter menu, and a columns menu,
 type: step
 ---
 
-Before you start, [select and paste](/docs/learning-path/select-paste) and install the toolbar add-on:
+Before you start, finish [select and paste](/docs/learning-path/select-paste). Then install the toolbar add-on:
 
 <InstallCommand item="data-grid-toolbar" />
 
-A toolbar sits between the provider and the scrolling box. `<DataGrid>` has no slot for it, so this step uses the parts that `<DataGrid>` renders. `DataGridProvider` holds the state and the props. `DataGridRoot` is the scrolling box. `DataGridHeader` and `DataGridBody` draw the rows.
+A toolbar sits between the provider and the scrolling box. `<DataGrid>` has no slot for it, so this step uses the parts that `<DataGrid>` renders. `DataGridProvider` holds the state and the props. `DataGridRoot` is the scrolling box. `DataGridHeader` draws the column headers. `DataGridBody` draws the rows.
 
 ## Compose the grid [#compose-the-grid]
 
@@ -30,7 +30,9 @@ import {
   DataGridSearch,
   DataGridToolbar,
 } from "@/components/data-grid-toolbar/data-grid-toolbar";
-import { useDataGridState } from "@/components/data-grid-history/data-grid-history";
+import {
+  useDataGridState,
+} from "@/components/data-grid-history/data-grid-history";
 import { columns, type Person } from "./columns";
 
 const people: Person[] = [

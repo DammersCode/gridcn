@@ -29,7 +29,9 @@ import {
   DataGridSearch,
   DataGridToolbar,
 } from "@/components/data-grid-toolbar/data-grid-toolbar";
-import { useDataGridState } from "@/components/data-grid-history/data-grid-history";
+import {
+  useDataGridState,
+} from "@/components/data-grid-history/data-grid-history";
 import { columns, type Person } from "./columns";
 
 const people: Person[] = [
@@ -72,14 +74,19 @@ Result: rows are 44 px high, Margaret Hamilton shows in the muted text color, an
 
 - `density` picks a row height preset, and `comfortable` gives rows 44 px. See [Density and small screens](/docs/theme-style-language/density-small-screens) for the other values and `rowHeight`.
 - `className` merges after the built-in classes of the root, so your utility wins a conflict.
-- `getRowClassName` takes a row and its [view index](/docs/concepts/state-view-index), the position of the row in the sorted and filtered list. Define it outside the component, as above, so its identity stays stable.
+- `getRowClassName` takes a row and its [view index](/docs/concepts/state-view-index), the position of the row in the sorted and filtered list. It can be an inline function. Rows re-render only when it returns different classes for the rendered rows.
 - `cellClassName: "font-medium"` on a column styles every cell of that column. `headerClassName` styles its header cell.
 
-Where next: [Column sizing](/docs/columns/column-sizing) and [Editable columns](/docs/editing-cells/editable-columns).
+Where next:
+
+- The [server path](/docs/server-path/compare-data-modes) loads rows from your API.
+- The [custom code path](/docs/custom-code-path/pick-code-route) adds your own cell types and plugins.
+- The [task finder](/docs/terms-help/task-finder) looks up a task.
 
 ## Related
 
+- [Column sizing](/docs/columns/column-sizing)
+- [Editable columns](/docs/editing-cells/editable-columns)
 - [Style overrides](/docs/theme-style-language/style-overrides)
 - [Density and small screens](/docs/theme-style-language/density-small-screens)
 - [Colors and radius](/docs/theme-style-language/colors-radius)
-- [Styling model](/docs/concepts/styling-model)

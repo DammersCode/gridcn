@@ -27,7 +27,7 @@ With a local array, the grid sorts, filters, and searches `data` itself. With a 
 
 The browser limits how many rows one grid scrolls. See [Row limits](/docs/performance/row-limits). A result above that limit needs pages mode, because a scroll mode source with a row count shows every row in one list.
 
-By default, scroll mode picks random access or a sequential source from the first answer. Set `source: "indexed"` or `source: "cursor"` to fix the choice. An answer with `totalRowCount` and no `nextCursor` field gives random access. Any other first answer gives a sequential source.
+By default, scroll mode picks random access or a sequential source from the first answer. Set `source: "random"` or `source: "sequential"` to fix the choice. An answer with `totalRowCount` and no `nextCursor` field gives random access. Any other first answer gives a sequential source.
 
 ## See the difference in code [#see-the-difference]
 
@@ -51,7 +51,7 @@ const columns = defineColumns<Order>()([
 ]);
 
 export function LocalOrders({ rows }: { rows: Order[] }) {
-  return <DataGrid defaultData={rows} columns={columns} />;
+  return <DataGrid defaultData={rows} columns={columns} className="h-96" />;
 }
 
 export function ServerOrders() {
@@ -76,14 +76,17 @@ Without `mode`, the hook runs in pages mode and needs a pager. With `mode: "scro
 
 ## Result
 
-You know which mode fits your rows. For pages mode, go on to the next step. For scroll mode, read [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling), then continue with [Plan server saves](/docs/server-path/plan-server-saves). The later steps use `loadPage` and a pager. In scroll mode, keep your own `fetchRows` and leave out the pager. The matrix on [Data mode support](/docs/data-modes/data-mode-support) shows how each feature behaves in each mode. To move a grid that already uses a local array, follow [Move from client rows to server rows](/docs/data-modes/move-to-server-rows).
+You know which mode fits your rows. The later steps use `loadPage` and a pager.
+
+- For pages mode, go on to the next step.
+- For scroll mode, read [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling), keep your own `fetchRows`, leave out the pager, and continue with [Plan server saves](/docs/server-path/plan-server-saves).
 
 Next: [Load server rows](/docs/server-path/load-server-rows).
 
 ## Related
 
 - [Data mode support](/docs/data-modes/data-mode-support)
+- [Move from client rows to server rows](/docs/data-modes/move-to-server-rows)
 - [Client pagination](/docs/rows-pages-menus/client-pagination)
 - [Load rows by page](/docs/server-pagination/load-rows-page)
 - [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling)
-- [Load without row count](/docs/scroll-mode/load-without-row-count)

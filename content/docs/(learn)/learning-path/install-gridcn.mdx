@@ -15,7 +15,9 @@ Your project needs these before you install:
 - React 19 and Tailwind CSS 4.
 - shadcn/ui, set up with `npx shadcn init`. If `components.json` is missing, run that command first. The CLI reads the file to place the gridcn files.
 
-In the Next.js App Router, `data-grid.tsx` starts with `"use client"`. Render the grid from a client component, as the next steps do. [Server rendering and hydration](/docs/support-upgrades/server-rendering) lists what the server renders. In a Vite app, the `@` alias in `vite.config.ts` and `tsconfig.app.json` must match `components.json`. See [Fix imports that do not resolve](/docs/terms-help/fix-install-problems#non-default-aliases). The Node.js and TypeScript floors are on [Framework floors](/docs/support-upgrades/browser-framework-support#framework-floors).
+- In the Next.js App Router, a client component that renders the grid. The next steps do this, because `data-grid.tsx` starts with `"use client"`.
+- In a Vite app, the `@` alias in `vite.config.ts` and `tsconfig.app.json` matches `components.json`. See [Fix imports that do not resolve](/docs/terms-help/fix-install-problems#non-default-aliases).
+- Node.js and TypeScript versions that meet the [framework floors](/docs/support-upgrades/browser-framework-support#framework-floors).
 
 ## Install the core grid [#install-the-core-grid]
 
@@ -25,7 +27,7 @@ The core is the `data-grid` item. It holds the grid, the built-in cell types, se
 
 The command installs these npm packages: `zustand`, `use-sync-external-store`, `lucide-react`, and `@base-ui/react`. It also adds the shadcn/ui components that the grid uses, such as `button`, `popover`, and `tooltip`.
 
-The files land in `components/data-grid/`. Import from the barrel file, not from single files:
+The files land in `components/data-grid/`. Import from the barrel file `data-grid.tsx`:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
@@ -60,7 +62,7 @@ An add-on is an optional item with its own folder, such as `components/data-grid
 
 The learning path uses the toolbar and undo and redo. The CLI also installs the npm packages and the other gridcn items that an add-on needs. Each add-on adds the shadcn/ui components it uses.
 
-An add-on install fetches the core from GitHub, so it needs `git` or access to the GitHub API. See [Pin a release](/docs/support-upgrades/version-policy-changelog#pinned-installs) for the details. The table lists the rest:
+An add-on install fetches the core from GitHub, so it needs `git` or access to the GitHub API. The table lists the rest:
 
 | Add-on | npm packages | Also installs |
 |---|---|---|
@@ -87,3 +89,4 @@ Next: [Render your first grid](/docs/learning-path/render-your-first-grid).
 - [Fix install problems](/docs/terms-help/fix-install-problems)
 - [Framework floors](/docs/support-upgrades/browser-framework-support#framework-floors)
 - [Pin a release](/docs/support-upgrades/version-policy-changelog#pinned-installs)
+- [Server rendering and hydration](/docs/support-upgrades/server-rendering)

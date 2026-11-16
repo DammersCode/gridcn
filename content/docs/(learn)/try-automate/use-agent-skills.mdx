@@ -7,9 +7,15 @@ type: task
 
 gridcn ships five agent skills for tasks that cross many docs pages. Each skill gives the agent an ordered procedure, the failures that stay silent, and a check that tells it to stop.
 
-To install all five skills, run:
+Before you start, install a coding agent that supports skills, such as Claude Code, Cursor, or Codex.
+
+1. Install all five skills in your project:
 
 <InstallCommand command="skills add DammersCode/gridcn" />
+
+2. Check that each skill folder is in your agent's skills folder.
+3. Ask the agent by skill name, for example: `Use gridcn-performance to audit the grid on the orders page.`
+4. Read the **It is working if** line of that skill below. Stop when it holds.
 
 ## Skills
 
@@ -23,7 +29,7 @@ To install all five skills, run:
 
 The copy button in the Install column copies the command for that one skill.
 
-Each skill is also served as raw markdown at `https://gridcn.vercel.app/skills/<name>/SKILL.md`. The `gridcn-version` metadata field of a skill names the last gridcn release. Between releases, a skill also teaches the APIs that `CHANGELOG.md` and `CHANGELOG-2.0.md` list for the unreleased version.
+Each skill is also served as raw markdown at `https://gridcn.vercel.app/skills/<name>/SKILL.md`. The `gridcn-version` metadata field of a skill names the last gridcn release. A skill also teaches the APIs that the `## Unreleased` section of `CHANGELOG.md` lists for installs from `main`.
 
 ## gridcn-performance
 
@@ -31,7 +37,6 @@ The skill works through a checklist, cheapest check first:
 
 - a bounded grid height, so virtualization can start
 - stable `columns` and `data` references
-- stable `getRowClassName` and `getCellClassName` functions
 - stable members of each plugin in `plugins`
 - no formatter allocation inside a custom `Cell`
 - `updateCells` for high-rate feeds
@@ -46,14 +51,14 @@ The skill builds a cell type in order. First the value pipeline: `toText`, `from
 
 - A `cellTypes` entry merges over the built-in types. An entry set to `null` removes that type.
 - A `type` key that matches no entry renders the column as plain text.
-- A `fromText` that throws aborts the paste.
+- A `fromText` that throws rejects that cell, and the paste continues. Return `clearValue()` for text that does not parse.
 - A portaled editor without `data-grid-cell-editor` closes on the first click.
 
 **It is working if** `fromText(toText(value))` returns the value, pasted garbage clears the cell, Enter commits and moves down, and Escape keeps the original value.
 
 ## gridcn-data-source
 
-The skill picks one base for the rows: plain `data`, pagination, or scroll mode. If values change live, it adds streaming on top. If the grid scrolls or pages, a client sort, filter, or search sees only the loaded rows. So the skill moves them to the server. The skill also handles stale page responses and the combinations that the add-ons do not support, such as scroll mode with pagination.
+The skill picks one base for the rows: plain `data`, pagination, or scroll mode. If values change live, it adds streaming on top. If the server sends rows in pages or scroll-mode blocks, a client sort, filter, or search sees only the loaded rows. So the skill moves them to the server. The skill also handles stale page responses and the combinations that the add-ons do not support, such as scroll mode with pagination.
 
 **It is working if** every sort, filter, and search path covers the full dataset, or the page states that it covers only the loaded rows.
 

@@ -21,7 +21,7 @@ Before you start, [compare the data modes](/docs/server-path/compare-data-modes)
 
 The next steps reuse two small files. `orders.ts` holds the row type and the columns:
 
-```ts
+```ts title="orders.ts"
 import { defineColumns } from "@/components/data-grid/data-grid";
 
 export type Order = { id: string; customer: string; total: number };
@@ -34,7 +34,7 @@ export const columns = defineColumns<Order>()([
 
 `api.ts` holds the calls to your API. `notify` shows a message to the user:
 
-```ts
+```ts title="api.ts"
 import type { DataChange } from "@/components/data-grid/data-grid";
 import type {
   ServerRowsPageRequest,
@@ -73,7 +73,7 @@ export function notify(message: string) {
 
 This grid loads orders with `loadPage`:
 
-```tsx
+```tsx title="orders-grid.tsx"
 "use client";
 
 import { DataGrid } from "@/components/data-grid/data-grid";
@@ -102,7 +102,7 @@ export function OrdersGrid() {
 
 ## What your API receives and returns [#api-contract]
 
-- `spec` holds the sort, the filters, and the search text. Treat it as untrusted input.
+- `spec` holds the sort, the filters, and the search text. It is untrusted input. On the server, check it with `parseServerSpec`: it returns a bounded `ServerSpec` or throws `ServerSpecError`. See [Query server rows](/docs/data-modes/query-server-rows) and the [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example).
 - `start` and `end` give the same page as a row range. `end - start` is `pageSize`.
 - After a change of the page, the page size, or the spec, the hook aborts `signal`.
 - `rows` holds at most `pageSize` rows. The hook drops the extra rows and warns in development.
