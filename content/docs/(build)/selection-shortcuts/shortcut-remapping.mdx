@@ -6,7 +6,7 @@ type: feature
 aliases: ["keybindings", "rebind keys", "remap shortcuts", "shortcuts dialog", "hotkey editor", "change keyboard shortcut"]
 ---
 
-The `keymap` prop on `DataGridProvider` changes the key bindings of the grid. The `data-grid-keybindings` add-on renders them. `useDataGridKeybindings` mounts a dialog that lists the effective keymap with your overrides. It leaves out actions that do nothing on this grid, such as Undo without the history add-on. A `commands` entry for an action such as `undo` lists it. `BindingChips` renders one binding as keycaps for your own UI. The `commands` prop binds keys to your own functions.
+The `keymap` prop on `DataGridProvider` changes the key bindings of the grid. The `data-grid-keybindings` add-on renders them. `useDataGridKeybindings` mounts a dialog that lists the effective keymap with your overrides. It leaves out actions that do nothing on this grid, such as Undo without the history add-on. `BindingChips` renders one binding as keycaps for your own UI. The `commands` prop binds keys to your own functions.
 
 <ComponentPreview name="data-grid-keybindings-demo" />
 
@@ -52,15 +52,15 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
 }
 ```
 
-The dialog lists the default bindings, your `keymap` entries, and the bindings of plugins such as find and replace. A `keymap` entry for the same action replaces the plugin binding. Copy, cut, and paste are native browser events, so the dialog adds them to the clipboard group. `mod` shows as <kbd>Cmd</kbd> on macOS, iOS, and iPadOS, and as <kbd>Ctrl</kbd> elsewhere. The `labels.keybindings` group holds the dialog text. See [Labels and i18n](/docs/theme-style-language/labels-i18n).
+The dialog lists the default bindings, your `keymap` entries, and the bindings of plugins such as find and replace. A `keymap` entry for the same action replaces the plugin binding. Copy, cut, and paste are native browser events, so the dialog adds them to the clipboard group. The `labels.keybindings` group holds the dialog text. See [Labels and i18n](/docs/theme-style-language/labels-i18n).
 
-The <kbd>?</kbd> key is a normal keymap binding. With the grid focused and no cell editor open, it opens the dialog before type-to-edit sees it. A <kbd>?</kbd> typed into a text field that a cell or header renders stays with that field. Change the key with `keymap={{ openKeybindings: ["F1"] }}`. Remove it with `keymap={{ openKeybindings: [] }}`, and <kbd>?</kbd> starts an edit like any other printable key.
+The <kbd>?</kbd> key is a normal keymap binding. With the grid focused and no cell editor open, it opens the dialog before type-to-edit sees it. A <kbd>?</kbd> typed into a text field that a cell or header renders stays with that field. Change the key with `keymap={{ openKeybindings: ["F1"] }}`. Remove it with `keymap={{ openKeybindings: [] }}`, and <kbd>?</kbd> starts an edit.
 
-`DataGridKeybindingsDialog` is the same dialog as a component. Use it for a custom placement or your own trigger. It takes `open`, `onOpenChange`, `defaultOpen`, `trigger`, and `className`, and it mounts inside `DataGridProvider`.
+`DataGridKeybindingsDialog` is the same dialog as a component. Use it for a custom placement or your own trigger. It mounts inside `DataGridProvider`.
 
 ## Binding chips [#binding-chips]
 
-`BindingChips` renders one binding string as a row of keycaps, the same tokens the dialog uses. Pass the binding as a prop, for example `<BindingChips binding="mod+z" />`. `className` adds classes to the row.
+`BindingChips` renders one binding string as a row of keycaps, like the dialog, for example `<BindingChips binding="mod+z" />`.
 
 ## Shortcut labels for your own UI [#shortcut-labels-for-your-own-ui]
 
@@ -85,13 +85,13 @@ export function RedoHint() {
 }
 ```
 
-The tokens are `["⌘", "⇧", "Z"]` on macOS and `["Ctrl", "Shift", "Z"]` elsewhere. Modifiers render as glyphs on macOS, iOS, and iPadOS, and as words elsewhere. `ctrl` always renders as `Ctrl`.
+The tokens are `["⌘", "⇧", "Z"]` on macOS and `["Ctrl", "Shift", "Z"]` elsewhere. `ctrl` always renders as `Ctrl`.
 
-`navigator` does not exist during server rendering, so the labels render as words there. `BindingChips` switches to glyphs after hydration. Compute your own labels after mount.
+During server rendering, the labels render as words. `BindingChips` switches to glyphs after hydration. Compute your own labels after mount.
 
 ## Remapping [#remapping]
 
-The `keymap` prop merges over `DEFAULT_KEYMAP`. It replaces only the actions that you name. The prop lives on `DataGridProvider` and on the `DataGrid` wrapper, not on `DataGridRoot`:
+The `keymap` prop merges over `DEFAULT_KEYMAP`. It replaces only the actions that you name. The prop lives on `DataGridProvider` and on the `DataGrid` wrapper:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
@@ -121,16 +121,7 @@ export function Tasks({ tasks }: { tasks: Task[] }) {
 
 A binding string is modifiers plus a key, joined with `+`. The modifiers are `mod`, `ctrl`, `shift`, and `alt`. `mod` is <kbd>Cmd</kbd> on macOS, iOS, and iPadOS, and <kbd>Ctrl</kbd> elsewhere. `ctrl` is the physical <kbd>Ctrl</kbd> key on every platform. Use it where the OS reserves <kbd>Cmd</kbd>, as `selectColumn` does with <kbd>Ctrl</kbd>+<kbd>Space</kbd>. The modifiers of the event must equal the modifiers of the binding, so the binding `"a"` does not match <kbd>Shift</kbd>+<kbd>A</kbd>.
 
-The key is one of these:
-
-- A letter, written in lower case. Matching ignores case.
-- A digit.
-- A function key, `F1` to `F24`.
-- A named key, in exact case: `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`, `Home`, `End`, `PageUp`, `PageDown`, `Enter`, `Escape`, `Tab`, `Backspace`, or `Delete`. Other stable key names, such as `Insert` or `MediaPlayPause`, bind the same way.
-- Any single printable character.
-- The space bar, written as a literal space, as in `"shift+ "`.
-
-The plus key cannot be bound, because the last `+` separates the modifiers from the key. A binding with an unknown modifier, such as `Mod+z` (modifiers are lowercase), never matches. A binding with an unknown modifier or an unknown key name also warns in the browser console in development. A punctuation binding without `shift` matches with or without <kbd>Shift</kbd>, so `"?"` and `"mod+/"` work on every layout. Write `shift+` to require it: `"shift+?"`.
+The key is a letter, a digit, a function key, a named key such as `ArrowUp` or `Enter`, or a printable character. A punctuation binding without `shift` matches with or without <kbd>Shift</kbd>, so `"?"` and `"mod+/"` work on every layout. [Shortcut remapping options](/docs/add-options/selection-shortcuts/shortcut-remapping-options#binding-strings) lists the key names and the matching rules. In development, a binding with an unknown modifier or key name warns in the console.
 
 When two actions share a key combination, the most specific binding wins. On a tie, a `keymap` binding beats a default binding. A `keymap` entry that repeats a default binding counts as the default. Development mode warns once per shared combination that includes a `keymap` binding.
 
@@ -140,17 +131,9 @@ The type-to-replace trigger (`typeToReplace`) has no default binding. Any unboun
 
 The OS or the browser owns some key combinations. A binding on one of them never fires, or the browser acts on the key too. Do not bind these chords:
 
-| Chord | Owner |
-| --- | --- |
-| <kbd>Ctrl</kbd>+<kbd>Alt</kbd> with any key | Windows reads it as <kbd>AltGr</kbd>. On a German layout, <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Q</kbd> types `@`, so a `mod+alt+q` or `ctrl+alt+q` binding never fires there. The grid matches the typed character, so only a binding on that character, such as `mod+alt+@`, fires. |
-| <kbd>Cmd</kbd>+<kbd>Space</kbd> | macOS Spotlight. |
-| <kbd>Ctrl</kbd>+<kbd>Option</kbd> with any key | VoiceOver on macOS, while it runs. For example, <kbd>Ctrl</kbd>+<kbd>Option</kbd>+<kbd>Space</kbd> activates an item. |
-| `mod` with <kbd>+</kbd>, <kbd>-</kbd>, or <kbd>=</kbd> | Browser zoom. The page cannot stop it. |
-| `mod+shift` with <kbd>I</kbd>, <kbd>J</kbd>, <kbd>C</kbd>, <kbd>K</kbd>, or <kbd>E</kbd> | Developer tools. <kbd>E</kbd> opens them in Firefox and Edge. |
-| `mod+shift` with <kbd>D</kbd>, <kbd>M</kbd>, <kbd>N</kbd>, or <kbd>Delete</kbd> | Browser bookmarks, profiles, a private window, and the dialog that clears browsing data. |
-| `mod` with <kbd>N</kbd>, <kbd>T</kbd>, or <kbd>W</kbd>, `mod+shift` with <kbd>T</kbd> or <kbd>W</kbd>, and <kbd>Ctrl</kbd>+<kbd>Tab</kbd> | Browser windows and tabs. Chrome keeps these keys and never sends them to the page, so `preventDefault` cannot stop them. |
+[Shortcut remapping options](/docs/add-options/selection-shortcuts/shortcut-remapping-options#reserved-chords) lists the chords to avoid.
 
-Two default bindings meet a reserved chord. `fillDown` (`mod+d`) and `fillRight` (`mod+r`) keep their keys while the grid has focus, also without the fill add-on. The grid calls `preventDefault` on them, so the browser does not bookmark or reload the page.
+Two default bindings meet a reserved chord. With the [fill add-on](/docs/clipboard-undo/fill-handle) mounted, `fillDown` (`mod+d`) and `fillRight` (`mod+r`) take their keys while the grid has focus, and the grid calls `preventDefault` on them. Without the add-on, the browser keeps the keys.
 
 ## Custom commands [#custom-commands]
 
@@ -192,30 +175,11 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
 }
 ```
 
-{/* props: GridCommand */}
-
-| Prop | Type | Default | Description |
-|---|---|---|---|
-| `run` | `(ctx: GridCommandCtx) => void` | required | Runs when a bound key fires. The grid calls `preventDefault` first, so `mod+s` opens no browser save dialog. |
-| `when` | `(ctx: GridCommandCtx) => boolean` | none | Return `false` to ignore the key. The browser then runs its own action. |
-| `scope` | `"grid" \| "editing" \| "always"` | `"grid"` | When the command dispatches. |
-| `label` | `string` | `labels.keybindings.actions[name]`, else the humanized name | The row label in the dialog. |
-| `group` | `CommandGroup` | `"other"`, or the section of the built-in action that the command names | The section in the dialog. |
-
-{/* props: GridCommandCtx */}
-
-| Prop | Type | Description |
-|---|---|---|
-| `api` | `DataGridApi` | The handle that `useDataGridApi` returns. |
-| `cell` | `CellRef \| null` | The active cell as a `{ rowId, columnId }` ref, or `null`. |
-| `viewRowIndex` | `number \| null` | The view index of the active row, or `null`. |
-| `viewColumnIndex` | `number \| null` | The view index of the active column, or `null`. |
-| `row` | `TData \| undefined` | The data row of the active cell. |
-| `readOnly` | `boolean` | The effective `readOnly` flag of the grid. |
+`run` receives a `GridCommandCtx` with `api`, `cell`, `viewRowIndex`, `viewColumnIndex`, `row`, and `readOnly`. The grid calls `preventDefault` before `run`, so `mod+s` opens no browser save dialog. When `when` returns `false`, the grid ignores the key and the browser runs its own action. [Shortcut remapping options](/docs/add-options/selection-shortcuts/shortcut-remapping-options#custom-commands) lists every field of `GridCommand` and `GridCommandCtx`.
 
 On an unloaded row of a lazy grid, `cell` is a placeholder ref that `api` cannot resolve.
 
-`scope` selects the moment of dispatch. `"grid"` dispatches while no edit session is open. `"editing"` dispatches during an edit session. That covers editors without a text input, such as the select list and the date calendar. `"always"` dispatches in both cases. An `"editing"` command never takes over a grid binding: while no edit session is open, the grid keeps its built-in bindings on that key.
+`scope` selects the moment of dispatch: `"grid"` while no edit session is open, `"editing"` during an edit session (also in editors without a text input, such as the select list), `"always"` in both. An `"editing"` command never takes over a grid binding outside an edit session.
 
 Three more rules apply:
 

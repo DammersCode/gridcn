@@ -4,14 +4,13 @@ icon: Compass
 description: Move, extend, edit, and select with the keyboard, and find the key chords for rows, headers, and select all.
 type: feature
 aliases: ["arrow keys", "tab key", "keyboard shortcuts in the grid", "default keymap"]
-demos: none
 ---
 
 The `keymap` is one data table that binds keys to grid actions. The grid handles a key only while DOM focus is inside the grid. <kbd>Tab</kbd> moves focus into the grid. Outside an edit, <kbd>Tab</kbd> and <kbd>Shift</kbd>+<kbd>Tab</kbd> leave the grid.
 
-With zero rows, no cell can take focus. Each column header then has one tab stop. It is the filter button, or the menu button when the column has no filter button. Press <kbd>Enter</kbd> or <kbd>Space</kbd> on the filter button to open it and clear the filter that emptied the grid.
+<ComponentPreview name="data-grid-keyboard-demo" />
 
-With a header button focused, <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowDown</kbd> opens the column menu of that column, even when a cell in another column is active. It works with `DataGridHeaderDropdown` alone, without `DataGridContextMenu`. Without a focused header button, the grid uses the column of the active cell. A focused header button takes only <kbd>Enter</kbd> and <kbd>Space</kbd>, with or without <kbd>Shift</kbd>. Every other key, such as <kbd>ArrowRight</kbd> and <kbd>Delete</kbd>, still goes to the grid.
+With zero rows, no cell can take focus. Each column header then has one tab stop. It is the filter button, or the menu button when the column has no filter button. Press <kbd>Enter</kbd> or <kbd>Space</kbd> on the filter button to open it and clear the filter that emptied the grid.
 
 ## Keyboard map [#keyboard-map]
 
@@ -21,11 +20,17 @@ The table lists the default bindings, generated from `DEFAULT_KEYMAP`:
 
 `mod` is <kbd>Cmd</kbd> on macOS, iOS, and iPadOS, and <kbd>Ctrl</kbd> elsewhere. Copy, cut, and paste (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+C, X, V) are native browser clipboard events, not keymap entries. The table lists them for completeness. [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) changes any binding. The built-in editors handle their keys themselves, so a `keymap` entry for `commitDown`, `commitUp`, `commitRight`, or `commitLeft` changes no editor key. In the `text`, `number`, `url`, and `date` editors, <kbd>Shift</kbd>+<kbd>Enter</kbd> commits and moves down, like <kbd>Enter</kbd>.
 
+## Header buttons [#header-buttons]
+
+A focused header button takes only <kbd>Enter</kbd> and <kbd>Space</kbd>, with or without <kbd>Shift</kbd>. Every other key, such as <kbd>ArrowRight</kbd> and <kbd>Delete</kbd>, still goes to the grid.
+
+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowDown</kbd> on a focused header button opens the column menu of that column, even when a cell in another column is active. It works with `DataGridHeaderDropdown` alone, without `DataGridContextMenu`. Without a focused header button, the grid uses the column of the active cell.
+
 ## Move and edit
 
 - Arrow keys move the active cell. In a right-to-left grid, <kbd>ArrowRight</kbd> moves to the next column on the screen.
 - <kbd>Alt</kbd>+<kbd>Arrow</kbd> moves the active cell and keeps the selection.
-- <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Arrow</kbd> jumps along the row or column. From a non-empty cell whose neighbour is non-empty, it stops at the last non-empty cell of the run. From an empty cell, or from a non-empty cell whose neighbour is empty, it stops at the next non-empty cell. If there is none, it stops at the grid edge. With <kbd>Shift</kbd>, it scans from the far end of the selection and extends the selection to that cell.
+- <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Arrow</kbd> jumps along the row or column. From a non-empty cell whose neighbor is non-empty, it stops at the last non-empty cell of the run. From an empty cell, or from a non-empty cell whose neighbor is empty, it stops at the next non-empty cell. If there is none, it stops at the grid edge. With <kbd>Shift</kbd>, it scans from the far end of the selection and extends the selection to that cell.
 - <kbd>PageUp</kbd> and <kbd>PageDown</kbd> move by the visible rows minus four.
 - <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Enter</kbd> scrolls the active cell into view without moving it.
 - <kbd>Enter</kbd>, <kbd>F2</kbd>, and <kbd>Space</kbd> start an edit. On a checkbox cell they toggle the value. A read-only grid does not edit.
@@ -33,13 +38,9 @@ The table lists the default bindings, generated from `DEFAULT_KEYMAP`:
 - <kbd>Alt</kbd>+<kbd>Enter</kbd> opens the link of a link cell in a new tab.
 - <kbd>Shift</kbd>+<kbd>F10</kbd> opens the [cell menu](/docs/rows-pages-menus/context-menu#cell-surface-row-operation-items) of the active cell on Windows and Linux. It needs `DataGridContextMenu`.
 
-## Undo and redo outside the grid [#undo-and-redo-outside-the-grid]
-
-The in-grid undo and redo bindings work only while focus is inside the grid. [Global shortcuts](/docs/selection-shortcuts/global-shortcuts) extends them to a toolbar or any other focus position.
-
 ## Moving rows [#moving-rows]
 
-<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageUp</kbd> (`moveRowsUp`) and <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> (`moveRowsDown`) move rows one place. They move the checked rows. Without checked rows, they move the rows of the main range, or the active row.
+<kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageUp</kbd> (`moveRowsUp`) and <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> (`moveRowsDown`) move rows one place. They move the checked rows. Without checked rows, they move the rows of every selected range, or the active row.
 
 They need a `reorder` family `rowMarkers` mode. A read-only grid ignores them. See [Row order](/docs/rows-pages-menus/row-order).
 
@@ -86,5 +87,5 @@ export function Tasks({ tasks }: { tasks: Task[] }) {
 
 - [Checked rows](/docs/selection-shortcuts/checked-rows#checking-rows-by-keyboard): the chords that check rows
 - [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping): change or add bindings
-- [Global shortcuts](/docs/selection-shortcuts/global-shortcuts): undo, redo, and more outside the grid
+- [Global shortcuts](/docs/selection-shortcuts/global-shortcuts): undo, redo, and more while focus sits outside the grid
 - [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts): the lookup sheet

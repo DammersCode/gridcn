@@ -50,7 +50,7 @@ export function SalesGrid({ sales }: { sales: Sale[] }) {
 
 ## Which cells count [#which-cells-count]
 
-The bar aggregates the union of every selection channel: the primary range, the stacked <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+click ranges, whole-row selections, and whole-column selections. A cell that sits in two channels counts once. Hidden columns and filtered-out rows are outside the view, so they never count. The unloaded rows of a source in scroll mode have no value and count as nothing. With client pagination, the grid keeps every row, but a selection covers the shown page only. So the bar aggregates the cells of that page.
+The bar aggregates the union of every selection channel: the primary range, the stacked <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+click ranges, whole-row selections, and whole-column selections. A cell that sits in two channels counts once. Hidden columns and filtered-out rows are outside the view, so they never count. With client pagination, the grid keeps every row, but a selection covers the shown page only. So the bar aggregates the cells of that page.
 
 ## Which values count [#which-values-count]
 
@@ -58,18 +58,17 @@ A cell counts as numeric if its raw value is a finite `number`. Detection reads 
 
 ## Display and formatting [#display-and-formatting]
 
-The aggregates show once the selection covers two cells whose value is not `undefined`. A `null` or empty-text cell counts. `count` always shows. `sum`, `avg`, `min`, and `max` show only with a numeric cell in the selection.
+The aggregates show once the selection covers two cells whose value is not `undefined`. A `null` cell or an empty-text cell has a value, so it counts toward the two cells. `count` shows with the others. `sum`, `avg`, `min`, and `max` show only with a numeric cell in the selection.
 
-When every numeric cell comes from one column, the `toDisplayText` of that column formats `sum`, `avg`, `min`, and `max`. A `number` column with a `format` option uses that format, for example currency or percent. A `number` column with `decimals` and no `format` uses `Intl.NumberFormat(locale, { maximumFractionDigits: decimals })`, which rounds to `decimals` and groups digits by `locale`. A `number` column with neither does not count. The bar then uses `Intl.NumberFormat` with `maximumFractionDigits: 4` in the `locale` of the grid, as it does when the numeric cells span several columns.
- `formatValue` overrides both.
+When every numeric cell comes from one column, the `toDisplayText` of that column formats `sum`, `avg`, `min`, and `max`. A `number` column with a `format` option uses that format, for example currency or percent. A `number` column with `decimals` and no `format` rounds to `decimals` and groups digits by `locale`. A `number` column with neither falls back to the format of the bar, like numeric cells that span several columns: `Intl.NumberFormat` with `maximumFractionDigits: 4` in the `locale` of the grid. `formatValue` overrides all of these.
 
 The bar also shows the count of [hidden checked rows](/docs/selection-shortcuts/checked-rows#hidden-checked-rows) as `(+3 hidden)`, and the select-all banner of a [server grid](/docs/rows-live-data/select-server-rows). With nothing to show and no `children`, it renders nothing.
 
-## Select-all banner [#select-all-banner]
+## Server mode [#server-mode]
 
-A grid with `totalRowCount` shows a banner when every row of the page is checked and the result is larger. The banner needs `checkedRowsLifetime="across-filters"`, which is the default with `totalRowCount`. The banner offers "Select all 237 matching", or "Select all matching" when the size is `null`. After the click, it reads "All 237 selected." with a "Clear selection" button. `selectAllMatching()` announces the real count in the live region, or "All matching rows checked" when the size is `null`.
+The unloaded rows of a lazy source in scroll mode have no value and count as nothing. A grid with `totalRowCount` shows a select-all banner when every row of the page is checked and the result is larger. The banner needs `checkedRowsLifetime="across-filters"`, which is the default with `totalRowCount`. The banner offers "Select all 237 matching", or "Select all matching" when the size is `null`. After the click, it reads "All 237 selected." with a "Clear selection" button. `selectAllMatching()` announces the real count in the live region, or "All matching rows checked" when the size is `null`.
 
-Set the banner text with `labels.statusBar.pageSelected`, `selectAllMatching`, `allSelected`, and `clearSelection`. `selectAllMatching` and `allSelected` take `null` for an unknown size. The bar aggregates the selected cells, which sit on the current page.
+Set the banner text with `labels.statusBar.pageSelected`, `selectAllMatching`, `allSelected`, and `clearSelection`. `selectAllMatching` and `allSelected` take `null` for an unknown size.
 
 ## When it computes [#when-it-computes]
 

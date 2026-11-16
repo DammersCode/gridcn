@@ -14,7 +14,7 @@ The component ships with the core `data-grid` item. Undo and redo need the [Undo
 
 ## How it works [#how-it-works]
 
-`DataGridGlobalShortcuts` renders nothing. It listens for `keydown` on the window. A gate of seven rules decides whether an event reaches the grid. The rules run in this order, and the first hit skips the event:
+`DataGridGlobalShortcuts` renders nothing. It listens for `keydown` on the window. A gate of eight rules decides whether an event reaches the grid. The rules run in this order, and the first hit skips the event:
 
 1. IME composition is in progress.
 2. The event is already `defaultPrevented`. The page or the grid handled it first.
@@ -23,6 +23,7 @@ The component ships with the core `data-grid` item. Undo and redo need the [Undo
 5. This grid is not the last focused grid that mounts the component.
 6. An edit session is open. The editor owns the key, also in a popup such as the select list.
 7. The key resolves to no enabled action through the effective keymap.
+8. The key press carries neither <kbd>Ctrl</kbd> nor <kbd>Cmd</kbd>.
 
 When the gate passes, the component runs the action through the same dispatch as the in-grid binding. For undo and redo, that is the `undo` and `redo` command of the history add-on. Without the add-on, the key has no binding, rule 7 skips the event, and the browser default runs.
 
@@ -88,7 +89,7 @@ export function Shortcuts() {
 
 Each flagged action runs the same dispatch as its in-grid binding, with the same guards. For example, `insertRowBelow` does nothing without `createRow`, and the row actions do nothing in a read-only grid. The listener reads the effective keymap, so a remapped binding applies to the global layer too. See [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping#remapping).
 
-The layer fires a binding only when the key press carries <kbd>Ctrl</kbd> or <kbd>Cmd</kbd>. A flagged action with a bare key binding, such as `deleteRows: ["Delete"]`, stays in the grid. In development, the grid warns once about such a binding. To act on a bare key page-wide, add your own `window` listener that calls `api.actions`.
+A flagged action with a bare key binding, such as `deleteRows: ["Delete"]`, stays in the grid (rule 8). In development, the grid warns once about such a binding. To act on a bare key page-wide, add your own `window` listener that calls `api.actions`.
 
 ## Multiple grids [#multiple-grids]
 
