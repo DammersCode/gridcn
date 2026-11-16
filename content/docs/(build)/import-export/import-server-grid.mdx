@@ -6,7 +6,7 @@ type: task
 aliases: ["import to server", "import server rows", "import totalRowCount"]
 ---
 
-The default append of the import dialog needs the full data. `onImport(rows, { signal })` is the exit of a server grid. A grid with a `totalRowCount` or unloaded rows cannot take appended rows. The data exceeds the count, and the next refresh drops them. Send the rows to your server instead.
+A grid with a `totalRowCount` or unloaded rows cannot take appended rows: the data exceeds the count, and the next refresh drops them. Without `onImport`, its import button is disabled. Pass `onImport` to send the rows to your server instead.
 
 <ComponentPreview name="data-grid-export-all-demo" />
 
@@ -20,31 +20,67 @@ The default append of the import dialog needs the full data. `onImport(rows, { s
 1. Pass `createRow` to `DataGridImportButton`. It builds the base row of each imported record.
 2. In `onImport`, send the rows to your API and wait for the answer.
 3. Call `server.refresh()`.
-4. Set `importLimits.maxRows` to what one request of yours accepts.
+4. Set `importLimits.maxRows` to your request limit plus 1. `maxRows` counts the header row.
 
 ```tsx
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
 import { DataGridImportButton } from "@/components/data-grid-io/data-grid-io";
-import { api, type Order } from "./api";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
+import { DataGridToolbar } from "@/components/data-grid-toolbar/data-grid-toolbar";
+import { api } from "./api";
 
-export function ImportOrders({ refresh }: { refresh: () => void }) {
+type Order = { id: string; customer: string; total: number };
+
+const newOrder = (): Order => ({
+  id: crypto.randomUUID(),
+  customer: "",
+  total: 0,
+});
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+  { id: "total", header: "Total", accessorKey: "total", type: "number" },
+]);
+
+export function OrdersGrid() {
+  const server = useDataGridServerRows<Order>({
+    defaultPageSize: 25,
+    fetchRows: async ({ spec, page, pageSize, signal }) => {
+      const answer = await api.orders({ spec, page, pageSize }, { signal });
+      return { rows: answer.rows, totalRowCount: answer.total };
+    },
+  });
+
   return (
-    <DataGridImportButton<Order>
-      importLimits={{ maxRows: 5_000 }}
-      createRow={() => ({ id: crypto.randomUUID(), customer: "", total: 0 })}
-      onImport={async (rows, { signal }) => {
-        await api.createOrders(rows, { signal });
-        refresh();
-      }}
-    />
+    <DataGridProvider {...server.providerProps} columns={columns}>
+      <DataGridToolbar>
+        <DataGridImportButton<Order>
+          importLimits={{ maxRows: 5_001 }}
+          createRow={newOrder}
+          onImport={async (rows, { signal }) => {
+            await api.createOrders(rows, { signal });
+            server.refresh();
+          }}
+        />
+      </DataGridToolbar>
+      <DataGridRoot {...server.rootProps}>
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
   );
 }
 ```
 
-Pass `server.refresh` as `refresh`.
-
 ## Result
 
-The dialog stays pending until `onImport` settles. If it rejects, the dialog stays open and the user can retry. `signal` aborts when the user clicks Cancel or the dialog closes. A late answer after that changes nothing.
+The dialog stays pending until `onImport` settles. If it rejects, the dialog stays open and the user can retry. `signal` aborts when the user clicks Cancel or the dialog closes. A late answer after that changes nothing. When the build cleared cells, the dialog stays open after `onImport` resolves. `ctx.rejected` and `ctx.flagged` list the cells to report to the user.
 
 The server decides where the new rows sit under the current sort. `server.refresh()` reads the new `totalRowCount` and the rows in view. Rows keep the ids that `createRow` gave them. If your server assigns ids, read them from the refreshed rows.
 

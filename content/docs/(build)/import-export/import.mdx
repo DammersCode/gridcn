@@ -65,38 +65,22 @@ The preview shows the first 10 rows with a note such as "Showing 10 of 250 rows"
 
 ### Confirm [#confirm]
 
-The dialog clears a cell that fails the `validate` of its column and keeps its row. The rows still reach `onImport`. The dialog then shows the count of cleared cells, disables Import, and stays open. A file over 5,000 data rows builds in chunks, and Cancel stops the build between chunks.
+The dialog clears a cell that fails the `validate` of its column and keeps its row. A cell of a `validationMode: "warn"` column keeps its value and goes to `flagged`. The import still runs: the rows reach `onImport`, or the default append. The dialog then shows the count of cleared cells, disables Import, and stays open. A file over 5,000 data rows builds 2,000 rows at a time, and Cancel stops the build between chunks.
 
 ## Read Excel files [#excel-files]
-
-The dialog reads the bytes of an `.xlsx` or `.xls` file, not its name. A zip file reads as XLSX, and an OLE2 file (the container of Excel 97-2003 files) reads as XLS.
-
-- An XLSX cell comes in as the text that Excel shows, so a date, a currency, or a percentage follows its number format. A number without a format keeps 15 significant digits, so `0.1 + 0.2` comes in as `0.3`.
-- A boolean comes in as `TRUE` or `FALSE`. An error cell comes in as its code, such as `#DIV/0!`.
-- An XLS cell has no number format. A date comes in as an ISO date such as `2024-01-15`, and a date with a time comes in as `2024-01-15 13:45:00`.
-
-The dialog rejects an HTML table, Excel 2003 XML, or an Excel 5.0 file with an `.xls` name. The message asks for an `.xlsx` file.
 
 ## Import limits [#import-limits]
 
 The dialog rejects a file over a limit with a message and never cuts it. A `NaN` limit takes its default, and a negative limit counts as 0.
 
 - `maxFileBytes`: 50 MiB, checked before the read.
-- `maxRows`: 1,000,000, header row included. `maxColumns`: 1,000.
+- `maxRows`: 1,000,000. It counts the header row. `maxColumns`: 1,000.
 - `maxCells`: 5,000,000, rows times columns. A CSV file counts its widest row as its columns. The parser stops at the first row that breaks a limit. A CSV file with more delimiter characters than `maxCells` is rejected before the parse, even when quotes hide some of them.
 - `maxDecompressedBytes`: the unpacked size of one XLSX part, such as a worksheet or the shared strings. Without it, the cap is `maxCells` times 10 bytes plus 1 MiB, about 51 million bytes at the default. A value you set replaces that cap.
 
 The shared strings of a workbook count as one part, so a text-heavy sheet with few cells can need a higher `maxDecompressedBytes`. A higher cap raises the memory that a read can use. An XLS file counts the cells of all its sheets against `maxCells`. An XLSX file counts the selected sheet only.
 
 The dialog rejects an XLS file with more than `maxCells / 2 + 100,000` records. The drop zone shows `maxFileBytes`.
-
-If its number format meets one of these rules, an XLSX cell comes in as its plain value (Excel's General format), not as formatted text:
-
-- over 255 characters
-- a fraction with four or more denominator placeholders, such as `# ?/????`
-- a format that fails on use
-
-A damaged file, or a workbook that the size check cannot follow, gets a read-error message. A file or a sheet without rows gets a "no rows" message.
 
 Pass `importLimits={{ maxRows: 10_000 }}` to the button or the dialog to change a limit. `parseImportFile` takes the same fields.
 
@@ -121,7 +105,7 @@ The dialog's drop target is the `dropzone` item, which `data-grid-io` installs. 
 
 ## Server mode
 
-Import reads no sort, filter, page, or server state. A grid with a `totalRowCount` or unloaded rows cannot take appended rows, so it needs `onImport`. Send the rows to your API there, and call `server.refresh()`. See [Import into a server grid](/docs/import-export/import-server-grid).
+Import reads no sort, filter, page, or server state. A grid with a `totalRowCount` or unloaded rows cannot take appended rows, so it needs `onImport`. Without `onImport`, the import button is disabled. Send the rows to your API there, and call `server.refresh()`. See [Import into a server grid](/docs/import-export/import-server-grid).
 
 ## Related
 

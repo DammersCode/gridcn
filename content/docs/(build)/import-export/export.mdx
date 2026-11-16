@@ -6,7 +6,7 @@ type: feature
 aliases: ["csv export", "xlsx export", "xlsx download", "csv injection", "formula injection", "print"]
 ---
 
-Export writes the rows of the grid to a CSV or XLSX file. `DataGridExportButton` adds a toolbar button for it. `exportGrid` does the same from code. Both write each cell as the text that its cell type's `toText` gives. If `processCellForClipboard` is unset, copy gives the same text. `printGrid` prints the rows as a paged table. In the demo, the toolbar button downloads the rows as XLSX or CSV:
+Export writes the rows of the grid to a CSV or XLSX file. `DataGridExportButton` adds a toolbar button for it, and `exportGrid` does the same from code. In the demo, the toolbar button downloads the rows as XLSX or CSV:
 
 <ComponentPreview name="data-grid-io-demo" />
 
@@ -79,6 +79,8 @@ Every scope writes all visible columns in view order. Hidden columns stay out. A
 
 ## Write a CSV file
 
+Export writes each cell as the text that its cell type's `toText` gives. If `processCellForClipboard` is unset, copy gives the same text.
+
 A CSV file holds UTF-8 text with a byte order mark. Excel reads UTF-8 from a file that starts with that mark. Set `csvBom: false` for a reader that fails on the mark. `csvDelimiter` sets the separator (comma by default). The writer quotes a field that holds the delimiter, a quote, or a line break. Lines end with CRLF.
 
 A cell that starts with `=`, `+`, `-`, `@`, a tab, or a carriage return gets a leading single quote. Plain numbers stay as they are, also in exponent form such as `-1e-7`. Spreadsheets read the quote as a text marker, so a cell such as `=HYPERLINK("http://x")` opens as text and does not run.
@@ -91,7 +93,7 @@ A cell that starts with `=`, `+`, `-`, `@`, a tab, or a carriage return gets a l
 
 ## Write an XLSX file
 
-An XLSX file holds one compressed sheet. A `number` column writes number cells. A `date` column writes date cells, and a `checkbox` column writes boolean cells. Excel can sum and sort them. Every other cell is a text cell with its `toText` string. A string never runs as a formula there. To write other typed cells, or to write a built-in column as text, return the value from [`formatCell`](/docs/import-export/shape-export-file#result).
+An XLSX file holds one compressed sheet. A `number` column writes number cells. A `date` column writes date cells, and a `checkbox` column writes boolean cells. Excel can sum and sort them. Every other cell is a text cell with its `toText` string. A string never runs as a formula there. To write other typed cells, or to write a built-in column as text, return the value from [`formatCell`](/docs/import-export/shape-export-file#cell-values).
 
 `sheetName` names the sheet (`Sheet1` by default). An export rejects a name that Excel does not allow:
 
@@ -122,10 +124,13 @@ export function useUploadWorkbook() {
 
 ## Print
 
-`printGrid(state, options)` fills a hidden frame with a plain table of the rows and opens the browser print dialog. The dialog's "Save as PDF" creates a PDF. Call `useDataGridPrint()` inside the provider, or place `DataGridPrintButton` in the toolbar. The [Print example](/docs/basic-examples/print-example) shows the button with a page size picker.
+`printGrid(state, options)` fills a hidden frame with a plain table of the rows and opens the browser print dialog. The dialog's "Save as PDF" creates a PDF. Call `useDataGridPrint()` inside the provider, or place `DataGridPrintButton` in the toolbar. The [Print example](/docs/basic-examples/print-example) shows the button with a page size picker. Print takes the same `scope` as export. It prints visible columns in view order.
 
-Print takes the same `scope` as export. It prints visible columns in view order. Each cell shows the display text of its cell type (`toDisplayText`, else `toText`), so a formatted value prints as it reads on screen. A cell aligns with the `align` of its cell type, in reading direction, so an end-aligned number stays at the end in a right-to-left page. A `cellClassName` does not reach the printed table. A call while a print frame is open replaces that frame. Print does nothing during server rendering.
-
+- Each cell shows the display text of its cell type (`toDisplayText`, else `toText`), so a formatted value prints as it reads on screen.
+- A cell aligns with the `align` of its cell type, in reading direction, so an end-aligned number stays at the end in a right-to-left page.
+- A `cellClassName` does not reach the printed table.
+- A call while a print frame is open replaces that frame.
+- Print does nothing during server rendering.
 - `title` prints as a heading and sets the document title.
 - `orientation` defaults to `landscape` above 6 visible columns, else `portrait`.
 - `pageSize` is `"A4"` (default), `"A3"`, `"Letter"`, or `"Legal"`.

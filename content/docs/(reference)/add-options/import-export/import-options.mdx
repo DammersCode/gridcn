@@ -49,6 +49,26 @@ The user can change every default in the open dialog.
 
 An XLSX part has a cap of `maxDecompressedBytes` bytes after unpacking. Without `maxDecompressedBytes`, the cap is `maxCells * 10 + 1 MiB`.
 
+## Excel files [#excel-files]
+
+The parser reads the bytes of an `.xlsx` or `.xls` file, not its name. A zip file reads as XLSX, and an OLE2 file (the container of Excel 97-2003 files) reads as XLS.
+
+The dialog reads the bytes of an `.xlsx` or `.xls` file, not its name. A zip file reads as XLSX, and an OLE2 file (the container of Excel 97-2003 files) reads as XLS.
+
+- An XLSX cell comes in as the text that Excel shows, so a date, a currency, or a percentage follows its number format. A number without a format keeps 15 significant digits, so `0.1 + 0.2` comes in as `0.3`.
+- A boolean comes in as `TRUE` or `FALSE`. An error cell comes in as its code, such as `#DIV/0!`.
+- An XLS cell has no number format. A date comes in as an ISO date such as `2024-01-15`, and a date with a time comes in as `2024-01-15 13:45:00`.
+
+The dialog rejects an HTML table, Excel 2003 XML, or an Excel 5.0 file with an `.xls` name. The message asks for an `.xlsx` file.
+
+If its number format meets one of these rules, an XLSX cell comes in as its plain value (Excel's General format), not as formatted text:
+
+- over 255 characters
+- a fraction with four or more denominator placeholders, such as `# ?/????`
+- a format that fails on use
+
+A damaged file, or a workbook that the size check cannot follow, gets a read-error message. A file or a sheet without rows gets a "no rows" message.
+
 ## DataGridImportButtonProps [#datagridimportbuttonprops]
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-io/import-button.tsx" name="DataGridImportButtonProps" />
