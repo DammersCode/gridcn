@@ -86,16 +86,11 @@ function writeProject(dir, up, ambient) {
   );
 }
 
-function tscErrors(root, dir) {
-  let output = "";
-  try {
-    execFileSync(process.execPath, [join(root, "node_modules", "typescript", "bin", "tsc"), "-p", join(dir, "tsconfig.json"), "--pretty", "false"], { encoding: "utf8", stdio: "pipe", maxBuffer: 1 << 28 });
-  } catch (error) {
-    output = String(error.stdout);
-  }
+/** Parses `tsc --pretty false` output; CRLF output (Windows) parses like LF. */
+export function parseTscOutput(output) {
   const byBlock = new Map();
   const syntactic = new Set();
-  for (const line of output.split("\n")) {
+  for (const line of output.split(/\r?\n/)) {
     const match = /(block-\d+\.[jt]sx?)\((\d+),\d+\): error (TS\d+): (.*)$/.exec(line);
     if (!match || match[3] === "TS2347") continue;
     byBlock.set(match[1], [...(byBlock.get(match[1]) ?? []), { line: Number(match[2]), code: match[3], message: match[4] }]);
@@ -104,7 +99,37 @@ function tscErrors(root, dir) {
   return { byBlock, syntactic };
 }
 
-export function run({ root = process.cwd(), files, pendingText } = {}) {
+/** The TypeScript 7 compiler of the repo and, when installed, the TypeScript 5.9 one that consumers run. */
+export function tscCompilers(root) {
+  const ts5 = join(root, "node_modules", ".pnpm", "typescript@5.9.3", "node_modules", "typescript", "bin", "tsc");
+  return [join(root, "node_modules", "typescript", "bin", "tsc"), ...(existsSync(ts5) ? [ts5] : [])];
+}
+
+function tscOnce(compiler, dir) {
+  try {
+    execFileSync(process.execPath, [compiler, "-p", join(dir, "tsconfig.json"), "--pretty", "false"], { encoding: "utf8", stdio: "pipe", maxBuffer: 1 << 28 });
+    return "";
+  } catch (error) {
+    return String(error.stdout);
+  }
+}
+
+function tscErrors(compilers, dir) {
+  const byBlock = new Map();
+  const syntactic = new Set();
+  for (const compiler of compilers) {
+    const parsed = parseTscOutput(tscOnce(compiler, dir));
+    for (const [name, errors] of parsed.byBlock) {
+      const seen = byBlock.get(name) ?? [];
+      const fresh = errors.filter((e) => !seen.some((s) => s.code === e.code && s.line === e.line));
+      byBlock.set(name, [...seen, ...fresh]);
+    }
+    for (const name of parsed.syntactic) syntactic.add(name);
+  }
+  return { byBlock, syntactic };
+}
+
+export function run({ root = process.cwd(), files, pendingText, compilers = tscCompilers(root) } = {}) {
   const contentDir = join(root, "content/docs");
   const pageFiles = files ? files.map((f) => join(root, f)) : walk(contentDir, [".mdx"]);
   const blocks = [];
@@ -179,13 +204,13 @@ export function run({ root = process.cwd(), files, pendingText } = {}) {
   const unknownApi = new Map();
   if (blocks.length > 0) {
     // tsc reports no semantic errors while any file has a syntax error, so syntax failures leave the program first.
-    const pass1 = tscErrors(root, mainDir);
+    const pass1 = tscErrors(compilers, mainDir);
     const syntaxErrors = new Map([...pass1.syntactic].map((name) => [name, pass1.byBlock.get(name)]));
     for (const name of pass1.syntactic) {
       rmSync(join(mainDir, name));
       rmSync(join(firstDir, name), { force: true });
     }
-    errorsByBlock = tscErrors(root, mainDir).byBlock;
+    errorsByBlock = tscErrors(compilers, mainDir).byBlock;
     for (const [name, errors] of errorsByBlock) {
       const block = byName.get(name);
       if (block.first) continue;
@@ -194,7 +219,7 @@ export function run({ root = process.cwd(), files, pendingText } = {}) {
     }
     for (const [name, errors] of syntaxErrors) errorsByBlock.set(name, errors);
     if ([...byName.values()].some((b) => b.first)) {
-      const firstErrors = tscErrors(root, firstDir);
+      const firstErrors = tscErrors(compilers, firstDir);
       for (const [name, block] of byName) {
         if (!block.first) continue;
         errorsByBlock.delete(name);

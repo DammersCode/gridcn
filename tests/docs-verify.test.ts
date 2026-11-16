@@ -16,6 +16,8 @@ import * as symbolsMod from "../scripts/verify-docs-symbols.mjs";
 type Run = { failures: string[]; warnings: string[]; checked?: number; fragments?: number; pending?: number };
 type Opts = Record<string, unknown>;
 const runCode = codeMod.run as (o: Opts) => Run;
+const parseTscOutput = codeMod.parseTscOutput as (o: string) => { byBlock: Map<string, unknown[]> };
+const tscCompilers = codeMod.tscCompilers as (root: string) => string[];
 const fragmentReason = codeMod.fragmentReason as (meta: string) => string | undefined;
 const runDemos = demosMod.run as (o: Opts) => Run;
 const runLinks = linksMod.run as (o: Opts) => Promise<Run>;
@@ -356,6 +358,17 @@ describe("verify-docs-code", () => {
       expect.arrayContaining([expect.stringContaining("TS2322"), expect.stringContaining("fragment needs a reason"), expect.stringContaining("useDataGridNoSuchHook is not exported"), expect.stringContaining("TS1108")]),
     );
     expect(result.failures.join("\n")).not.toContain("code.mdx:8");
+  }, 60_000);
+
+  it("reads CRLF compiler output", () => {
+    const crlf = "block-0.ts(3,5): error TS2322: Type 'string' is not assignable to type 'number'.\r\n";
+    expect(parseTscOutput(crlf).byBlock.get("block-0.ts")).toHaveLength(1);
+  });
+
+  it("detects a seeded error under TypeScript 5.9 alone", () => {
+    const compilers = tscCompilers(process.cwd()).filter((c) => c.includes("typescript@5.9"));
+    expect(compilers).toHaveLength(1);
+    expect(runCode({ files, compilers }).failures.join("\n")).toContain("TS2322");
   }, 60_000);
 
   it("compiles a needs block in full with the missing package as an untyped module", () => {
