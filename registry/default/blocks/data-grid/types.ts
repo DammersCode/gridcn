@@ -212,8 +212,12 @@ export type DataOp<TData> =
       row: TData;
       /** The row's position before the move. */
       from: number;
-      /** The row's position after the move (final index; `applyChange` deletes by id and places the row at output slot `to`, `invertChange` swaps `from`/`to`). */
+      /** The row's position after the move (final index; `applyChange` deletes by id and places the row at output slot `to`, `invertChange` swaps `from`/`to`). `from` and `to` index the loaded `data`, so on a paged grid they count from the first loaded row, not from the page. */
       to: number;
+      /** The id of the row that follows the moved row in `data` after the whole batch; absent when the row ends last. A server places the row with this id, which does not depend on what the server has loaded. Absent on a move that undo or redo produces. */
+      beforeRowId?: string;
+      /** The id of the row that precedes the moved row in `data` after the whole batch; absent when the row ends first. Absent on a move that undo or redo produces. */
+      afterRowId?: string;
     };
 
 /** One user gesture = one batch (a paste, a fill, a delete-range is a single entry). */
@@ -326,12 +330,12 @@ export type GridEditEndEvent = ViewCellRef & { result: "commit" | "cancel" | "re
 export type GridBulkValidationError = { rowId: string; columnId: string; viewRowIndex: number; value: unknown; message: string };
 
 /**
- * Fired by `onValidationError` after a bulk paste, a fill, or an `updateCells` call (`"stream"`, or `"replace"` for a find-and-replace batch)
+ * Fired by `onValidationError` after a bulk paste, a fill, a Delete or Cut clear (`"delete"`), or an `updateCells` call (`"stream"`, or `"replace"` for a find-and-replace batch)
  * settles, ONLY when at least one cell was rejected — the accepted cells are already applied
  * (their `onDataChange`/`onSelectionChange` fire first). `rejected` lists every refused cell with
  * its validator's message.
  */
-export type GridValidationErrorEvent = { source: "paste" | "fill" | "stream" | "replace"; rejected: GridBulkValidationError[] };
+export type GridValidationErrorEvent = { source: "paste" | "fill" | "stream" | "replace" | "delete"; rejected: GridBulkValidationError[] };
 
 /** Fired on a double-click on any non-pinned, non-skeleton cell — a pure notification in the {@link OnCellClick} sense (no veto), fired regardless of readOnly. */
 export type OnCellDoubleClick<TData> = (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;
@@ -547,7 +551,7 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   validate?: ((value: TValidate, row: TData) => string | null) | StandardSchemaV1<TValidate>;
   /**
    * What a `validate` rejection does. `"block"` (default): a single-cell commit is refused (the editor
-   * stays open with the message); paste, fill, `updateCells`, and import drop or clear the value. `"warn"`:
+   * stays open with the message); paste, fill, `updateCells`, import, Delete, and Cut drop or clear the value (Delete and Cut keep the cell as it is). `"warn"`:
    * every one of those writes commits the value and flags the cell in `cellErrors` (same ring/tint/tooltip as
    * server errors, auto-cleared by the next valid write of that cell, and by undo of the write). A rejection
    * carries no transformed value, so `"warn"` commits the RAW value. A validator that throws blocks on both
@@ -865,7 +869,8 @@ export type DataGridStoreWrapper = {
  * row bands; `onDataChange` observes every data change AFTER the store write and the consumer's
  * `onDataChange`; `commands`/`keymap` join the grid's command and keymap merges; `Mount` renders
  * inside `DataGridRoot` after its children for engine work (pointer handlers, listeners). Array
- * order is precedence and visual order. A plugin object attaches to ONE grid.
+ * order is the paint order, the observer order, and the precedence: a later plugin wins a command name,
+ * and an earlier plugin keeps a key that a later plugin also binds. A plugin object attaches to ONE grid.
  */
 export type DataGridPlugin<TData = unknown> = {
   /** Unique per grid: the React key of the plugin's components and its identity in the store. A later plugin with a taken name is ignored, with all its members. */
@@ -878,7 +883,7 @@ export type DataGridPlugin<TData = unknown> = {
   onDataChange?(next: readonly TData[], change: DataChange<TData>, ctx: DataGridPluginCtx<TData>): void;
   /** This plugin's commands, merged into the grid's command map (the consumer's `commands` win; a built-in action name is dropped). */
   commands?: Record<string, GridCommand<TData>>;
-  /** Binds keys to this plugin's own commands. An entry for any other name is dropped, dev-warned; a key another action already holds is dropped, dev-warned. An entry is the action's full binding list: it replaces the action's default bindings, and an empty list unbinds the action. */
+  /** Binds keys to this plugin's own commands. An entry for any other name is dropped, dev-warned; a key another action already holds is dropped, dev-warned. An entry is the action's full binding list: it replaces the action's default bindings, and an empty list or `undefined` unbinds the action. */
   keymap?: Partial<Record<GridAction | (string & {}), KeyBinding[]>>;
   /** A component rendered inside `DataGridRoot` after its children (no props — read the grid through {@link useDataGridApi}). */
   Mount?: ComponentType;

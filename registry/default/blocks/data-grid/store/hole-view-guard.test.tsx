@@ -21,7 +21,7 @@ const full = (): Row[] => [{ id: "a", name: "A" }];
 type Controlled = { sortState: SortSpec[]; filterState: FilterNode[]; searchText: string };
 const idle: Controlled = { sortState: [], filterState: [], searchText: "" };
 
-function mount(data: Row[], modes: { sortMode?: "client" | "server"; filterMode?: "client" | "server" } = {}) {
+function mount(data: Row[], modes: { sortMode?: "client" | "server"; filterMode?: "client" | "server"; totalRowCount?: number } = {}) {
   const tree = (state: Controlled) => (
     <DataGridProvider data={data} columns={columns} getRowId={getRowId} {...modes} {...state}>
       {null}
@@ -75,6 +75,30 @@ describe("client sort or filter over unloaded rows", () => {
   it("stays silent on a search change", () => {
     const warn = spyWarn();
     mount(sparse())({ searchText: "a" });
+    expect(holeWarnings(warn)).toHaveLength(0);
+  });
+
+  it("warns on a client sort over fewer rows than totalRowCount", () => {
+    const warn = spyWarn();
+    mount(full(), { sortMode: "client", filterMode: "client", totalRowCount: 100 })({ sortState: asc });
+    expect(holeWarnings(warn)).toHaveLength(1);
+  });
+
+  it("warns on a client sort with sortMode client only over fewer rows than totalRowCount", () => {
+    const warn = spyWarn();
+    mount(full(), { sortMode: "client", totalRowCount: 100 })({ sortState: asc });
+    expect(holeWarnings(warn)).toHaveLength(1);
+  });
+
+  it("stays silent for a totalRowCount grid on its default server modes", () => {
+    const warn = spyWarn();
+    mount(full(), { totalRowCount: 100 })({ sortState: asc, filterState: nameFilter });
+    expect(holeWarnings(warn)).toHaveLength(0);
+  });
+
+  it("stays silent when totalRowCount equals the loaded rows", () => {
+    const warn = spyWarn();
+    mount(full(), { sortMode: "client", filterMode: "client", totalRowCount: 1 })({ sortState: asc });
     expect(holeWarnings(warn)).toHaveLength(0);
   });
 

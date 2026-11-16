@@ -55,6 +55,8 @@ import {
 } from "../selection";
 import { forEachMember } from "../selection/compact-selection";
 import { viewIndexes, type CellRef, type CompactSelectionLike, type DataChange, type DataGridApi, type DataOp, type GridBulkValidationError, type GridValidationErrorEvent, type ViewCoord } from "../types";
+import { resolveColumnValidate } from "../cell-types/capabilities";
+import { runValidateSync } from "../validation/validate-cell";
 import { nextAnnouncement } from "./announcements";
 import { clearStaleRows, followStaleRows, markStaleRows, pruneStaleRows, requestReshape, staleStateAfterPrune } from "./server-stale";
 import type { AnyColumnDef, CellErrorEntry, CellPatch, DataGridActions, DataGridInternalActions, DataGridStoreState, UpdateCellsSkip, RowActionName, RowActionResult, RowActionSkipReason, UpdateCellsVerdict } from "./types";
@@ -110,7 +112,6 @@ export type DataWriteContext = {
   /** Asks the mounted `useDataGridServerRows` to refetch the rows; `null` without one. `"urgent"` skips the hook's `reshapeDelayMs`, `"stale"` is a deferred push that marked a row. */
   reshape: ((trigger: "urgent" | "stale") => void) | null;
   warnedReshape: boolean;
-  warnedStreamLimit: boolean;
   /** Aborts every pending `resolveSaveConflict` call; set by {@link createDataWriteActions}, run when the grid unmounts. */
   abortConflicts: (() => void) | null;
   /** The grid's async-gate tracker: pending state and abort for the row operations' consumer hooks. */
@@ -118,7 +119,7 @@ export type DataWriteContext = {
 };
 
 export function createDataWriteContext(rowIndexCache: RowIndexCache, gates: GateTracker): DataWriteContext {
-  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, warnedViewIndexIds: false, warnedUnreceivedWrite: false, pendingEmits: [], writeDepth: 0, pluginApi: null, trackWrite: null, disposed: false, staleRows: new Map(), reshape: null, warnedReshape: false, warnedStreamLimit: false, abortConflicts: null, gates };
+  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, warnedViewIndexIds: false, warnedUnreceivedWrite: false, pendingEmits: [], writeDepth: 0, pluginApi: null, trackWrite: null, disposed: false, staleRows: new Map(), reshape: null, warnedReshape: false, abortConflicts: null, gates };
 }
 
 /** {@link resolveCellRef} plus the once-per-grid dev-warn for a ref that no longer resolves. */
@@ -413,6 +414,7 @@ export type DataWriteActions = Pick<
   | "applyCellUpdates"
   | "updateCells"
   | "updateRows"
+  | "editRows"
   | "reconcileView"
   | "insertRow"
   | "insertRows"
@@ -780,20 +782,50 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   };
 
   /** Commits clear-to-clearValue() `writes` as one `delete` batch; shared by both delete actions. */
-  const commitClearWrites = (s: DataGridStoreState, writes: { viewRowIndex: number; columnId: string; value: unknown }[]): void => {
-    const batch = computeRowEditsBatch(s, writes);
-    if (!batch) return;
-    ctx.rowIndexCache.rebase(batch.nextData);
-    forgetDeferredRows(ctx);
-    ctx.lastEmittedData = batch.nextData;
-    const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), batch.nextData, batch.ops);
-    writeThenEmit(ctx, s, batch.nextData, { source: "delete", ops: batch.ops }, () =>
-      set({
-        data: batch.nextData,
-        cellErrors,
-        ...reconcileAfterWrite(s, batch.nextData, batch.ops),
-      }),
-    );
+  /** Runs each column's sync `validate` on the cleared value: a rejected cell stays, except in a `validationMode: "warn"` column, which clears and flags it. */
+  const validateClearWrites = (s: DataGridStoreState, writes: { viewRowIndex: number; columnId: string; value: unknown }[]) => {
+    const columns = new Map(s.columns.map((c) => [c.id, c] as const));
+    const accepted: typeof writes = [];
+    const rejected: GridBulkValidationError[] = [];
+    const warnings: CellErrorEntry[] = [];
+    for (const write of writes) {
+      const column = columns.get(write.columnId);
+      const dataRowIndex = s.viewIndex[write.viewRowIndex];
+      const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
+      const validate = column && resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]);
+      if (!validate || row === undefined) {
+        accepted.push(write);
+        continue;
+      }
+      const result = runValidateSync(validate, write.value, row);
+      const rowId = s.getRowId(row, dataRowIndex!);
+      if (!("error" in result)) accepted.push({ ...write, value: result.value });
+      else if (column.validationMode === "warn" && !result.thrown) {
+        warnings.push({ rowId, columnId: write.columnId, message: result.error });
+        accepted.push(write);
+      } else rejected.push({ rowId, columnId: write.columnId, viewRowIndex: write.viewRowIndex, value: write.value, message: result.error });
+    }
+    return { accepted, rejected, warnings };
+  };
+
+  const commitClearWrites = (s: DataGridStoreState, requested: { viewRowIndex: number; columnId: string; value: unknown }[]): void => {
+    const { accepted, rejected, warnings } = validateClearWrites(s, requested);
+    const batch = computeRowEditsBatch(s, accepted);
+    if (batch) {
+      ctx.rowIndexCache.rebase(batch.nextData);
+      forgetDeferredRows(ctx);
+      ctx.lastEmittedData = batch.nextData;
+      const validated = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), batch.nextData, batch.ops);
+      const cellErrors = mergeCellErrors(validated, warnings);
+      writeThenEmit(ctx, s, batch.nextData, { source: "delete", ops: batch.ops }, () =>
+        set({
+          data: batch.nextData,
+          cellErrors,
+          ...reconcileAfterWrite(s, batch.nextData, batch.ops),
+        }),
+      );
+    }
+    emitBulkRejections("delete", rejected);
   };
 
   const hiddenAfterDelete = (s: DataGridStoreState, ops: readonly DataOp<unknown>[]): Partial<DataGridStoreState> => {
@@ -1092,7 +1124,21 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     }
     const nextData = new Array<unknown>(data.length);
     for (let i = 0; i < data.length; i++) nextData[newIndexOf[i]!] = data[i];
-    const ops = plan.sources.map<DataOp<unknown>>((from, i) => ({ type: "move", rowId: getRowId(data[from]!, from), row: data[from]!, from, to: plan.targets[i]! }));
+    const neighborId = (index: number): string | undefined => (nextData[index] === undefined ? undefined : getRowId(nextData[index], index));
+    const ops = plan.sources.map<DataOp<unknown>>((from, i) => {
+      const to = plan.targets[i]!;
+      const beforeRowId = neighborId(to + 1);
+      const afterRowId = neighborId(to - 1);
+      return {
+        type: "move",
+        rowId: getRowId(data[from]!, from),
+        row: data[from]!,
+        from,
+        to,
+        ...(beforeRowId !== undefined && { beforeRowId }),
+        ...(afterRowId !== undefined && { afterRowId }),
+      };
+    });
     ctx.rowIndexCache.invalidate();
     forgetDeferredRows(ctx);
     ctx.lastEmittedData = nextData;
@@ -1130,11 +1176,11 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   const updateCellsCore = (patches: Parameters<DataWriteActions["updateCells"]>[0], options?: Parameters<DataWriteActions["updateCells"]>[1], prevalidatedWarnings?: readonly CellErrorEntry[]): UpdateCellsVerdict => {
     const s = get();
     if (patches.length === 0 || (s.readOnly && (options?.source ?? "stream") !== "stream")) return { applied: 0, skipped: [], pending: false };
+    if (s.readOnly && options?.source === undefined) {
+      warnGateOnce("readOnly stream write", 'the grid is readOnly and this call has no source, so it defaults to source "stream" and writes anyway. Pass source: "edit" to keep the readOnly check');
+    }
     if (patches.length > MAX_STREAM_PATCHES && (options?.source ?? "stream") === "stream") {
-      if (!ctx.warnedStreamLimit) {
-        ctx.warnedStreamLimit = true;
-        warnDev(`a "stream" call takes at most ${MAX_STREAM_PATCHES} patches; the ${patches.length - MAX_STREAM_PATCHES} after them skip with reason "limit". Send smaller batches`);
-      }
+      warnGateOnce("stream patch limit", `a "stream" call takes at most ${MAX_STREAM_PATCHES} patches; the ${patches.length - MAX_STREAM_PATCHES} after them skip with reason "limit". Send smaller batches`);
       const beyond: UpdateCellsSkip[] = [];
       for (let patchIndex = MAX_STREAM_PATCHES; patchIndex < patches.length; patchIndex++) beyond.push({ patchIndex, reason: "limit" });
       const verdict = updateCellsCore(patches.slice(0, MAX_STREAM_PATCHES), options, prevalidatedWarnings);
@@ -1487,6 +1533,9 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       }
       return get().actions.updateCells(patches, options);
     },
+    editRows(updates, options) {
+      return get().actions.updateRows(updates, { ...options, source: "edit", reorder: "immediate" });
+    },
     reconcileView() {
       const s = get();
       if (!s.viewStale) return;
@@ -1519,11 +1568,11 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const s = get();
       if (s.readOnly) return skippedBy("insertRows", "readOnly");
       if (!s.createRow) {
-        warnDev("row insertion is a no-op because no `createRow` prop was provided");
+        warnGateOnce("no createRow", "row insertion is a no-op because no `createRow` prop was provided");
         return skippedBy("insertRows", "no-factory");
       }
       if (count <= 0 || !Number.isInteger(count)) {
-        if (count > 0) warnDev(`insertRows: count must be an integer (got ${count})`);
+        if (count > 0) warnGateOnce("insertRows count", `insertRows: count must be an integer (got ${count})`);
         return skippedBy("insertRows", "nothing-to-do");
       }
       if (createRun && !createRun.aborted) {
@@ -1553,9 +1602,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       warnViewIndexIds(ctx, rowIds, "deleteRows");
       const dataRowIndexByRowId = ctx.rowIndexCache.resolve(s.data, s.getRowId);
       if (options?.source === "stream") {
-        if (rowIds.length > MAX_STREAM_PATCHES && !ctx.warnedStreamLimit) {
-          ctx.warnedStreamLimit = true;
-          warnDev(`a "stream" call takes at most ${MAX_STREAM_PATCHES} patches or row ids; the ${rowIds.length - MAX_STREAM_PATCHES} after them are skipped. Send smaller batches`);
+        if (rowIds.length > MAX_STREAM_PATCHES) {
+          warnGateOnce("stream delete limit", `a "stream" call takes at most ${MAX_STREAM_PATCHES} patches or row ids; the ${rowIds.length - MAX_STREAM_PATCHES} after them are skipped. Send smaller batches`);
         }
         const ops: DataOp<unknown>[] = [];
         const seen = new Set<string>();

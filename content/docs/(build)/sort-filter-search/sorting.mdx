@@ -72,18 +72,18 @@ The first sort is primary. Each later sort orders only the rows that the earlier
 A column compares two rows with the first of these that applies:
 
 1. The column `sortCompare(rowA, rowB)`. A result of `0`, `NaN`, or a thrown error passes the pair to the text compare.
-2. The `compare` of the column's declared cell type. Numbers sort by value, dates in date order, and `select` columns by choice label. A column that sets `type: "text"` compares with the locale order, so `item10` comes before `item2`.
-3. A text compare that ignores case and accents and reads digit runs as numbers, so `item2` comes before `item10`. A column that omits `type` uses it.
+2. The `compare` of the column's declared cell type. Numbers sort by value, dates in date order, and `select` columns by choice label. The `text`, `longText`, and `url` types use the text compare of the next step.
+3. A text compare that ignores case and accents and reads digit runs as numbers, so `item2` comes before `item10`. A column that omits `type` uses it too.
 
 For numbers, set `type: "number"`. The text compare reads `1.5` as 1 and 5, and it puts negative numbers backwards.
 
 The direction applies to all three. Empty cells sort last in both directions.
 
-`sortLocale` <NewBadge /> sets the language of every text compare. It covers the `text`, `longText`, `url`, `select`, and `lookup` types and columns without a `type`. It also orders the value lists of the header filter and the filter builder. It decides the text range filters (`gt`, `gte`, `lt`, `lte`, `between`) too, so it changes which rows such a filter keeps. The default is the `locale` prop, then `"en-US"`, so a server and a browser order rows alike. To format in one language and sort in another, set both: `locale="de-DE" sortLocale="en-US"`.
+`sortLocale` <NewBadge /> sets the language of every text compare. It covers the `text`, `longText`, `url`, `select`, and `lookup` types and columns without a `type`. It also orders the value lists of the header filter and the filter menu. It decides the text range filters (`gt`, `gte`, `lt`, `lte`, `isBetween`) too, so it changes which rows such a filter keeps. The default is the `locale` prop, then `"en-US"`, so a server and a browser order rows alike. To format in one language and sort in another, set both: `locale="de-DE" sortLocale="en-US"`.
 
 A tag that is malformed or that the runtime does not support falls back to `"en-US"` with one development warning. A `sortCompare` or a custom `compare` orders by its own rule.
 
-To follow the browser language, read `navigator.language` after mount and pass it. Code that sorts outside the grid wraps the sort in `withSortLocale(locale, run)` and compares with `sortCollator()`, both from `data-grid-sdk`.
+To follow the browser language, read `navigator.language` after mount and pass it. Code that sorts outside the grid compares with `sortCollator(locale)` from `data-grid-sdk`. `withSortLocale(locale, run)` sets the locale for a synchronous `run` only. Work after an `await` sorts with `"en-US"`, so pass the locale to `sortCollator` there.
 
 ## Sort list
 
@@ -118,7 +118,7 @@ If your server orders the rows, set `sortMode="server"`. The grid tracks the sor
 
 A grid with a `totalRowCount` prop <NewBadge /> defaults `sortMode` to `"server"`, because its `data` holds only part of the result. To sort the rows in `data` in the browser, set `sortMode="client"`.
 
-The request is the `SortSpec[]` that `onSortChange` receives. The answer is the rows, already in that order. `sortLocale` and `locale` do not reach the server: your server picks the collation of its own sort. The grid still uses `sortLocale` for the value lists of the header filter and the filter builder, and for text range filters under `filterMode="client"`.
+The request is the `SortSpec[]` that `onSortChange` receives. The answer is the rows, already in that order. `sortLocale` and `locale` do not reach the server: your server picks the collation of its own sort. The grid still uses `sortLocale` for the value lists of the header filter and the filter menu, and for text range filters under `filterMode="client"`.
 
 `useDataGridServerRows` sets `sortMode`, `filterMode`, and the controlled sort for you. It passes each fetch the spec as `request.spec.sorts`. Make that order total, because the hook keeps only the first row of a repeated row id. See [Query server rows](/docs/data-modes/query-server-rows) for the full flow.
 

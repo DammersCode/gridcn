@@ -67,9 +67,11 @@ Each operation addresses a row by `rowId`, because row ids survive sorts and fil
 | `update` | `rowId`, `row`, `prev`, and `cells` |
 | `insert` | `rowId`, `row`, `index` |
 | `delete` | `rowId`, `row`, `index` |
-| `move` | `rowId`, `row`, `from`, `to` |
+| `move` | `rowId`, `row`, `from`, `to`, and `beforeRowId` and `afterRowId` when the row has a neighbor |
 
-An `update` carries `cells` (`columnId`, `value`, `prev`) for an edit, a paste, or a fill. A whole-row update has no `cells`. The `index` of a `delete` and the `from` of a `move` are positions before the whole change. The `index` of an `insert` and the `to` of a `move` are positions in the result. An insert `index` past the end puts the row last. Apply the operations of one change together, for example with `applyChange`. The [operation engine contract](/docs/contracts/operation-engine-contract) has the rules.
+An `update` carries `cells` (`columnId`, `value`, `prev`) for an edit, a paste, or a fill. A whole-row update has no `cells`. The `index` of a `delete` and the `from` of a `move` are positions before the whole change. The `index` of an `insert` and the `to` of a `move` are positions in the result. `beforeRowId` and `afterRowId` name the rows that follow and precede the moved row in the result. A move that undo or redo produces has neither.
+
+An insert `index` past the end puts the row last. Apply the operations of one change together, for example with `applyChange`. The [operation engine contract](/docs/contracts/operation-engine-contract) has the rules.
 
 ### Sources [#sources]
 

@@ -100,7 +100,7 @@ When "select all matching" is on, the Delete, Duplicate, and Move shortcuts do n
 
 ## Move rows [#move-rows]
 
-`reorderRows(rows, to)` and `moveRowsBy(rows, delta)` emit one `move` operation per moved row. The grid blocks them while a client-side sort or filter is active, the grid is `readOnly`, or a row is unloaded. A server sort or a server filter does not block moves. Your server decides the order of the next answer.
+`reorderRows(rows, to)` and `moveRowsBy(rows, delta)` emit one `move` operation per moved row. Each operation holds `from` and `to` in the loaded rows, plus `afterRowId` and `beforeRowId` for the neighbors. Send the ids when your server holds rows that the grid has not loaded. The grid blocks them while a client-side sort or filter is active, the grid is `readOnly`, or a row is unloaded. A server sort or a server filter does not block moves. Your server decides the order of the next answer.
 
 ## Related
 

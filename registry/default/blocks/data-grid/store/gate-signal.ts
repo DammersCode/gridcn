@@ -57,9 +57,14 @@ export type GateTracker = {
 /** Why a gate run stopped before its result applied: it ran longer than `gateTimeoutMs`, the rows, the mode, or the cell it asked about changed, a newer run replaced it, the user pressed Escape, or the grid reset or unmounted. */
 export type GateAbortReason = "timeout" | "changed" | "superseded" | "cancelled" | "reset";
 
+/** How long a pending run without a timeout waits before the host hears of it. */
+export const STUCK_GATE_MS = 30_000;
+
 export type GateTrackerHost = {
   /** Read on every hold; `undefined` or a non-positive number turns the timeout off. */
   timeoutMs?: (name: GateName) => number | undefined;
+  /** Called when a run is still pending after {@link STUCK_GATE_MS} and no timeout aborts it. */
+  stuck?: (name: GateName) => void;
   /** Called once per run that is aborted while pending. */
   aborted?: (name: GateName, reason: GateAbortReason) => void;
   publish: (pending: ReadonlySet<GateName>) => void;
@@ -130,7 +135,9 @@ export function createGateTracker(host: GateTrackerHost): GateTracker {
       }
       if (count === 0) publish();
       const timeoutMs = host.timeoutMs?.(run.name);
-      if (typeof timeoutMs === "number" && Number.isFinite(timeoutMs) && timeoutMs > 0 && run.name !== "import") timers.set(run, setTimeout(() => tracker.abortRun(run, "timeout"), Math.min(timeoutMs, 2_147_483_647)));
+      if (run.name === "import") return;
+      if (typeof timeoutMs === "number" && Number.isFinite(timeoutMs) && timeoutMs > 0) timers.set(run, setTimeout(() => tracker.abortRun(run, "timeout"), Math.min(timeoutMs, 2_147_483_647)));
+      else if (host.stuck) timers.set(run, setTimeout(() => host.stuck?.(run.name), STUCK_GATE_MS));
     },
     settle: release,
     abortRun(run, reason = "superseded") {

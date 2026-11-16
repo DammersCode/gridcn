@@ -52,6 +52,7 @@ function setup() {
     history: () => history!,
     data: () => data,
     editName: (value: string) => act(() => store!.getState().actions.commitCellValueAt({ row: 0, col: 0 }, value)),
+    editRows: (updates: Parameters<DataGridStoreState["actions"]["editRows"]>[0]) => act(() => void store!.getState().actions.editRows(updates)),
     pushAge: (rowId: string, value: number) => act(() => void store!.getState().actions.updateCells([{ rowId, columnId: "age", value }])),
     swapData: (next: Row[]) => {
       data = next;
@@ -62,6 +63,19 @@ function setup() {
 }
 
 afterEach(cleanup);
+
+describe("editRows", () => {
+  it("records one undo entry and reaches onSave", () => {
+    const h = setup();
+    h.editRows([{ rowId: "a", changes: { name: "Ann", age: 31 } }, { rowId: "b", changes: { age: 26 } }]);
+    expect(h.data().map((row) => [row.name, row.age])).toEqual([["Ann", 31], ["Bob", 26]]);
+    expect(h.saves).toHaveLength(1);
+    expect(h.saves[0]!.source).toBe("edit");
+    act(() => h.history().undo());
+    expect(h.data().map((row) => [row.name, row.age])).toEqual([["Alice", 30], ["Bob", 25]]);
+    expect(h.history().canUndo).toBe(false);
+  });
+});
 
 describe("undo and redo write the entry's cells onto the current row", () => {
   it("undo keeps a later push into another column", () => {

@@ -95,7 +95,7 @@ describe("text sort locale", () => {
 
 describe("sortLocale through the store", () => {
   const sortState = [{ columnId: "v", direction: "asc" }] as never;
-  const base = (extra: object) => ({ data: ["z", "ä", "a"].map((v, i) => ({ id: String(i), v })), columns: column("text"), getRowId: (r: unknown) => (r as { id: string }).id, sortState, ...extra }) as never;
+  const base = (extra: object) => ({ data: ["z", "ä", "b"].map((v, i) => ({ id: String(i), v })), columns: column("text"), getRowId: (r: unknown) => (r as { id: string }).id, sortState, ...extra }) as never;
 
   it("the initial value and a later sync reach the view", async () => {
     const { createDataGridStore } = await import("./create-store");
@@ -103,9 +103,9 @@ describe("sortLocale through the store", () => {
     const { cellTypes } = await import("../cell-types/cell-types");
     const store = createDataGridStore(base({ cellTypes, sortLocale: "sv" }));
     const order = () => store.getState().viewIndex.map((i) => (store.getState().data[i] as { v: string }).v);
-    expect(order()).toEqual(["a", "z", "ä"]);
+    expect(order()).toEqual(["b", "z", "ä"]);
     getInternalActions(store)._syncProps(base({ cellTypes, sortLocale: "en-US" }));
-    expect(order()).toEqual(["a", "ä", "z"]);
+    expect(order()).toEqual(["ä", "b", "z"]);
   });
 
   it("a paged view sorts with the locale", async () => {
@@ -113,7 +113,7 @@ describe("sortLocale through the store", () => {
     const { cellTypes } = await import("../cell-types/cell-types");
     const store = createDataGridStore(base({ cellTypes, sortLocale: "sv", paginationMode: "client", pageSize: 10 }));
     const state = store.getState();
-    expect(state.viewIndex.map((i) => (state.data[i] as { v: string }).v)).toEqual(["a", "z", "ä"]);
+    expect(state.viewIndex.map((i) => (state.data[i] as { v: string }).v)).toEqual(["b", "z", "ä"]);
   });
 
   const orderWith = async (extra: object) => {
@@ -125,15 +125,15 @@ describe("sortLocale through the store", () => {
   };
 
   it("the locale prop alone sets the sort language", async () => {
-    expect((await orderWith({ locale: "sv" })).order()).toEqual(["a", "z", "ä"]);
+    expect((await orderWith({ locale: "sv" })).order()).toEqual(["b", "z", "ä"]);
   });
 
   it("an explicit sortLocale wins over the locale prop", async () => {
-    expect((await orderWith({ locale: "sv", sortLocale: "en-US" })).order()).toEqual(["a", "ä", "z"]);
+    expect((await orderWith({ locale: "sv", sortLocale: "en-US" })).order()).toEqual(["ä", "b", "z"]);
   });
 
   it("no locale props sort with en-US", async () => {
-    expect((await orderWith({})).order()).toEqual(["a", "ä", "z"]);
+    expect((await orderWith({})).order()).toEqual(["ä", "b", "z"]);
   });
 
   it("a locale change rebuilds the view", async () => {
@@ -141,12 +141,43 @@ describe("sortLocale through the store", () => {
     const { cellTypes } = await import("../cell-types/cell-types");
     const { store, order } = await orderWith({ locale: "en-US" });
     getInternalActions(store)._syncProps(base({ cellTypes, locale: "sv" }));
-    expect(order()).toEqual(["a", "z", "ä"]);
+    expect(order()).toEqual(["b", "z", "ä"]);
   });
 
   it("a text range filter follows the locale prop", async () => {
     const filterState = [{ columnId: "v", operator: "gt", value: "z" }];
     expect((await orderWith({ locale: "sv", filterState })).order()).toEqual(["ä"]);
     expect((await orderWith({ filterState })).order()).toEqual([]);
+  });
+});
+
+describe("sort locale warnings and collator argument", () => {
+  const stubbed = async () => {
+    const { cellTypes } = await loadUnderSwedishRuntime();
+    const { createDataGridStore } = await import("./create-store");
+    const create = (extra: object) =>
+      createDataGridStore({ data: [{ id: "0", v: "z" }], columns: column("text"), getRowId: (r: unknown) => (r as { id: string }).id, sortState: [{ columnId: "v", direction: "asc" }], cellTypes, ...extra } as never);
+    return create;
+  };
+
+  it("names locale when the invalid tag came from the locale prop", async () => {
+    const create = await stubbed();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    create({ locale: "not a tag!!" });
+    expect(warn.mock.calls.map(([m]) => String(m)).filter((m) => m.includes("not a tag!!"))).toEqual([expect.stringMatching(/^\[data-grid\] locale "not a tag!!" is not a valid language tag/)]);
+  });
+
+  it("names sortLocale when the invalid tag came from sortLocale", async () => {
+    const create = await stubbed();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    create({ locale: "sv", sortLocale: "not a tag!!" });
+    expect(warn.mock.calls.map(([m]) => String(m)).filter((m) => m.includes("not a tag!!"))).toEqual([expect.stringMatching(/^\[data-grid\] sortLocale "not a tag!!"/)]);
+  });
+
+  it("sortCollator(locale) ignores the scope", async () => {
+    await loadUnderSwedishRuntime();
+    const { sortCollator, withSortLocale } = await import("../sort-filter/sort-collator");
+    expect(withSortLocale("en-US", () => sortCollator("sv").compare("ä", "z"))).toBeGreaterThan(0);
+    expect(withSortLocale("sv", () => sortCollator("en-US").compare("ä", "z"))).toBeLessThan(0);
   });
 });

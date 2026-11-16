@@ -80,7 +80,7 @@ Scroll mode starts a block request after `loadDelayMs` milliseconds (default 100
 ### Pushes and row operations [#pushes]
 
 - A stream call takes at most 100,000 patches. The rest skip as `"limit"`.
-- A stream call of `updateCells`, `updateRows`, or `deleteRows` writes into a `readOnly` grid and read-only columns and rows. Pass `source: "edit"` to keep the read-only checks.
+- `updateCells` and `updateRows` default to `source: "stream"`, which skips read-only checks. Pass `source: "edit"` to keep them. Such a call into a `readOnly` grid warns once in development.
 - In a scroll-mode grid, `deleteRows`, `duplicateRows`, `insertRow`, and `insertRows` do nothing when the target touches an unloaded row.
 
 ## Renamed and moved [#renamed]

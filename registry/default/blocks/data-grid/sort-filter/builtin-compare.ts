@@ -1,4 +1,4 @@
-import { variantSortCollator } from "./sort-collator";
+import { sortCollator } from "./sort-collator";
 
 /** The built-in `number` cell type's `compare`; the keyed sort recognizes a column that uses it by identity. */
 export function compareNumbers(a: number | null, b: number | null): number {
@@ -11,5 +11,5 @@ export function compareNumbers(a: number | null, b: number | null): number {
 /** The built-in `text` cell type's `compare`; the keyed sort recognizes a column that uses it by identity. */
 export function compareLocaleText(a: string, b: string): number {
   if (typeof a !== "string" || typeof b !== "string") return NaN;
-  return variantSortCollator().compare(a, b);
+  return sortCollator().compare(a, b);
 }

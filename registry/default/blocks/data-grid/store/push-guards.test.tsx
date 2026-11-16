@@ -215,3 +215,52 @@ describe("stream into read-only targets", () => {
     expect(onValidationError).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("a defaulted stream write into a readOnly grid", () => {
+  const readOnlyWarnings = (warn: { mock: { calls: unknown[][] } }) => warn.mock.calls.filter(([m]) => String(m).includes("defaults to source"));
+
+  it("warns once when updateCells and updateRows pass no source", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const m = mount(undefined, { readOnly: true });
+    act(() => {
+      m.state().actions.updateCells([{ rowId: "a", columnId: "note", value: "1" }]);
+      m.state().actions.updateRows([{ rowId: "a", changes: { note: "2" } }]);
+    });
+    expect(readOnlyWarnings(warn)).toHaveLength(1);
+  });
+
+  it("stays silent with an explicit source or a writable grid", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const readOnly = mount(undefined, { readOnly: true });
+    act(() => readOnly.state().actions.updateCells([{ rowId: "a", columnId: "note", value: "1" }], { source: "stream" }));
+    const writable = mount();
+    act(() => writable.state().actions.updateCells([{ rowId: "a", columnId: "note", value: "1" }]));
+    expect(readOnlyWarnings(warn)).toHaveLength(0);
+  });
+});
+
+describe("stream limit warnings", () => {
+  it("warns for the patch cap and the delete cap separately", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const m = mount();
+    const patches = Array.from({ length: 100_001 }, () => ({ rowId: "a", columnId: "note", value: "x" }));
+    const many = Array.from({ length: 100_001 }, (_, i) => `x${i}`);
+    act(() => {
+      m.state().actions.updateCells(patches);
+      m.state().actions.deleteRows(many, { source: "stream" });
+    });
+    expect(warn.mock.calls.filter(([message]) => String(message).includes("100000"))).toHaveLength(2);
+  });
+});
+
+describe("insertRows warnings", () => {
+  it("warns once per grid when there is no createRow", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const m = mount();
+    act(() => {
+      m.state().actions.insertRows(0, 1);
+      m.state().actions.insertRows(0, 1);
+    });
+    expect(warn.mock.calls.filter(([message]) => String(message).includes("createRow"))).toHaveLength(1);
+  });
+});

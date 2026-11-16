@@ -1,8 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ColumnDef } from "../types";
 import { cellTypes } from "../cell-types/cell-types";
-import { computeInsertRowsBatch, computeRowEditsBatch } from "./commit";
-import type { DataGridStoreState } from "./types";
+import { checkDevGuardrails, computeInsertRowsBatch, computeRowEditsBatch } from "./commit";
+import type { DataGridStoreState, InternalSyncProps } from "./types";
 
 type Row = { id: string; name: string; age: number; locked: string };
 
@@ -98,5 +98,32 @@ describe("computeRowEditsBatch", () => {
         { viewRowIndex: 1, columnId: "missing", value: "nowhere" },
       ]),
     ).toBeNull();
+  });
+});
+
+describe("checkDevGuardrails defaultData seed", () => {
+  const props = (defaultData?: unknown[]) => ({ columns, getRowId: (row: Row) => row.id, defaultData }) as unknown as InternalSyncProps;
+  const seedWarnings = (warn: { mock: { calls: unknown[][] } }) => warn.mock.calls.filter(([m]) => String(m).includes("defaultData seeds the grid once"));
+
+  it("warns once when defaultData changes after an empty seed", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const warned = new Set<string>();
+    checkDevGuardrails(props([]), undefined, undefined, warned);
+    checkDevGuardrails(props(rows()), columns as never, undefined, warned);
+    checkDevGuardrails(props(rows()), columns as never, undefined, warned);
+    expect(seedWarnings(warn)).toHaveLength(1);
+    warn.mockRestore();
+  });
+
+  it("stays silent after a non-empty seed and for controlled data", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const warned = new Set<string>();
+    checkDevGuardrails(props(rows()), undefined, undefined, warned);
+    checkDevGuardrails(props([...rows(), ...rows()]), columns as never, undefined, warned);
+    const controlled = new Set<string>();
+    checkDevGuardrails({ ...props([]), defaultData: undefined, data: [] } as never, undefined, undefined, controlled);
+    checkDevGuardrails({ ...props([]), defaultData: undefined, data: rows() } as never, undefined, undefined, controlled);
+    expect(seedWarnings(warn)).toHaveLength(0);
+    warn.mockRestore();
   });
 });

@@ -130,9 +130,7 @@ The hook owns the spec. Seed it with `defaultSpec`. Control it with `spec` and `
 
 `serverSpecKey(spec)` returns the spec as a string without the generated filter ids. Use it as a query key or an effect dependency. `ServerSpec` and `serverSpecKey` import from the `data-grid` barrel.
 
-<Callout type="warn" title="Client sort and filter cannot see unloaded rows">
-  A client sort or filter works on the rows in `data`. It cannot reason about rows the grid never fetched. When a client sort or filter changes while `data` holds unloaded rows, the grid warns once in development. Set `sortMode="server"` and `filterMode="server"`, or use the hook.
-</Callout>
+A client sort or filter works on the rows in `data` and cannot see rows the grid never fetched. The grid warns once in development when a client sort or filter changes while `data` holds unloaded rows or fewer rows than `totalRowCount`. Without `totalRowCount`, set `sortMode="server"` and `filterMode="server"`, or use the hook.
 
 ## Related
 

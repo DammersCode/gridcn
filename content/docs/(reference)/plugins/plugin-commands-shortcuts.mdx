@@ -59,7 +59,7 @@ A command of your own for one of these names needs two steps. Declare the name i
 
 An entry in the `keymap` of a plugin needs two things. The plugin must define a command with that name, and the name must not be a core action. Bind a core action through your own `keymap` prop.
 
-The entry is the full binding list of its action, like the same entry in your `keymap` prop. The list replaces the bindings of that action, so list every key the action keeps. Keys that differ only in letter case count once. An empty list unbinds the action. The grid drops a binding that another action already holds. The first owner of a key keeps it.
+The entry is the full binding list of its action, like the same entry in your `keymap` prop. The list replaces the bindings of that action, so list every key the action keeps. Keys that differ only in letter case count once. An empty list or `undefined` unbinds the action. The grid drops a binding that another action already holds. The first owner of a key keeps it.
 
 The keymap resolves in this order, and a later step wins:
 

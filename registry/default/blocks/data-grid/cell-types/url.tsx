@@ -5,7 +5,7 @@ import { TEXT_FILTER_OPERATORS } from "./capabilities";
 import { safeHref } from "./safe-href";
 import { displayText } from "./display-text";
 import { toSafeText } from "./safe-text";
-import { variantSortCollator } from "../sort-filter/sort-collator";
+import { sortCollator } from "../sort-filter/sort-collator";
 import { CELL_INPUT_CLASS, useCellEditor } from "../interaction/use-cell-editor";
 
 // One window.open-style opening context for every cell link; the same attributes the `openLink`
@@ -50,5 +50,5 @@ export const urlCellType: CellType<unknown, string | null, GridCellTypes["url"][
   fromText: (text) => text.trim(),
   clearValue: () => null,
   isEmpty: (value) => value == null || value === "",
-  compare: (a, b) => variantSortCollator().compare(a ?? "", b ?? ""),
+  compare: (a, b) => sortCollator().compare(a ?? "", b ?? ""),
 };

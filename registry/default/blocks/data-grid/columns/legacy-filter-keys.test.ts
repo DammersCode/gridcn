@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { AnyColumnDef } from "../store/types";
+import { createDataGridStore } from "../store/create-store";
+import type { AnyColumnDef, InternalSyncProps } from "../store/types";
 import { warnLegacyFilterKeys, withLogicalFilter } from "./legacy-filter-keys";
 
 describe("warnLegacyFilterKeys", () => {
@@ -28,5 +29,18 @@ describe("withLogicalFilter", () => {
   it("returns a column without flat keys by identity", () => {
     const column = { id: "a", header: "A", filter: { operators: ["gt"] } } as unknown as AnyColumnDef;
     expect(withLogicalFilter(column)).toBe(column);
+  });
+});
+
+describe("legacy filter key warning per grid", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("warns once for each grid that reads a flat filter key", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const columns = [{ id: "a", header: "A", accessorKey: "a", filterOperators: ["gt"] }];
+    const create = () => createDataGridStore({ data: [], columns, getRowId: () => "x" } as unknown as InternalSyncProps);
+    create();
+    create();
+    expect(warn.mock.calls.filter(([message]) => String(message).includes("moved to"))).toHaveLength(2);
   });
 });

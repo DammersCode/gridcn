@@ -66,7 +66,7 @@ With `sortMode="server"`, the grid tracks the spec and never reorders `data`. Wh
 The callback runs synchronously, after the grid applies the sort. Inside the callback, the store holds the new sort. With a controlled `sortState`, the grid writes nothing, and the callback receives the next sort. These rules apply:
 
 - The sort list, the context menu sort items, URL state, and saved views call `setSorts`, so the callback fires for them too.
-- `setSorts` fires the callback even when the spec equals the current sort. Compare the specs yourself if a fetch must not repeat.
+- `setSorts` with the current spec does nothing. The callback does not fire. A stale view is the exception: the call rebuilds it and fires the callback.
 - A change of the `sortState` prop never fires the callback.
 - If the callback throws, the sort stays applied, and the other callbacks of the change still run. Then the grid rethrows the error to the caller, for example the header click handler or your `setSorts` call.
 
@@ -82,7 +82,7 @@ A `FilterSpec` holds `columnId`, `operator`, and `value`. The `value` is a strin
 - `isAnyOf` and `isNoneOf` take a `string[]`. An empty `isNoneOf` list matches every row.
 - `empty` and `notEmpty` take no value.
 
-The callback fires for the filter menu, header filters, and `setFilters`, with or without a `filterState` prop. With `filterMode="server"`, the grid tracks the filters and never filters `data`. Fetch the matching rows, for example with `useDataGridServerRows`.
+The callback fires for the filter menu, header filters, and `setFilters`, with or without a `filterState` prop. `setFilters` with the current tree does nothing. With `filterMode="server"`, the grid tracks the filters and never filters `data`. Fetch the matching rows, for example with `useDataGridServerRows`.
 
 The callback <NewBadge /> runs after the grid writes the filters. If it throws, the filters stay applied, and the reset to page 1 of a paged grid still fires `onPageChange`. Then the grid rethrows the error. See [Callback timing and errors](/docs/events-state/event-shapes#callback-errors).
 

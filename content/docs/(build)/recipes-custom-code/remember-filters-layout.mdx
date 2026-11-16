@@ -84,7 +84,7 @@ export function OrdersGrid() {
 
 A reload restores the sort, the filters, the search text, and the width, order, pins, and hidden state of the columns. An `undefined` default leaves that part at its normal start. The grid reads each default once at mount and ignores later changes.
 
-The grid drops a saved layout id that names no column, and a new column joins at the end, in the order of `columns`. A saved sort or filter keeps its id, and a filter such as `contains` on a removed column matches no row. Drop those entries in `readView` before you pass them.
+The grid drops a saved layout id that names no column. It drops a saved sort or filter that names no column too, and warns once in development. A new column joins at the end, in the order of `columns`.
 
 ## Convert a view saved before 1.3.0
 

@@ -81,8 +81,8 @@ function RowTools() {
 
 - `insertRow(viewRowIndex, position)` inserts one row that `createRow` builds. `position` is `"above"` or `"below"`.
 - `insertRows(viewRowIndex, count, position)` inserts `count` rows as one change. `createRow` runs once per row. A `count` of 0 or less does nothing.
-- `duplicateRows(rowIds)` puts each copy directly after its own source row. `duplicateRowsAt(viewIndexes)` takes view indexes.
-- `deleteRowsAt(viewIndexes)` deletes the rows at these view indexes as one change. `viewIndexes([4])` marks plain numbers as view indexes for the `At` forms.
+- `duplicateRows(rowIds)` puts each copy directly after its own source row. `duplicateRowsAt(viewIndexes)` takes view row numbers.
+- `deleteRowsAt(viewIndexes)` deletes the rows at these view row numbers as one change.
 - `deleteRows(rowIds, options?)` <NewBadge /> deletes the rows with these ids as one change. The grid skips an id that matches no row. `{ source: "stream" }` deletes rows that the server removed. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
 
 `api.runShortcut(action)` <NewBadge /> from `useDataGridApi` runs what the key of a keymap action runs, on the same rows as the key. A toolbar button needs no target code.
@@ -176,9 +176,7 @@ function GridWithConfirm() {
 
 While a promise is pending, a second delete does nothing. After the promise resolves, the grid reads its state again. If the grid became `readOnly`, it drops a `true` result. It also drops the result after a change of the row set or the checks. A callback that throws or rejects cancels the delete and warns in development.
 
-<Callout type="warn">
-  Settle the promise on every path. A dismissed dialog is a path too. A promise that never settles blocks every later delete until `gateTimeoutMs` <NewBadge /> aborts it.
-</Callout>
+Settle the promise on every path, also when the user dismisses the dialog. A promise that never settles blocks every later delete. `gateTimeoutMs` aborts it. Without that prop, the grid warns once in development after 30 seconds.
 
 Clearing cell contents with <kbd>Delete</kbd> skips `onBeforeDeleteRows`. Undo restores a confirmed delete.
 

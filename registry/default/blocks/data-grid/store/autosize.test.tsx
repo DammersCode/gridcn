@@ -196,3 +196,24 @@ describe("autosizeOnMount", () => {
     expect(snapshot.widths).toEqual({ b: MEASURED.b }); // a untouched → not in the saved widths
   });
 });
+
+describe("a column id that is a prototype key", () => {
+  it("autosizes a column with the id __proto__ into an own width", () => {
+    const onColumnLayoutChange = vi.fn();
+    const protoColumn = { id: "__proto__", header: "AAA", accessorKey: "a" } as ColumnDef<Row, unknown>;
+    const { store } = mount({ columns: [protoColumn, col("b")], onColumnLayoutChange });
+    registerFonts(store());
+    act(() => store().getState().actions.autosizeColumns());
+    expect(Object.getOwnPropertyDescriptor(store().getState().columnWidths, "__proto__")?.value).toBe(MEASURED.a);
+    expect(onColumnLayoutChange).toHaveBeenCalledTimes(1);
+    expect(Object.getOwnPropertyDescriptor(onColumnLayoutChange.mock.calls[0]![0].widths, "__proto__")?.value).toBe(MEASURED.a);
+  });
+
+  it("keeps a pin on a column with the id __proto__", () => {
+    const protoColumn = { id: "__proto__", header: "AAA", accessorKey: "a" } as ColumnDef<Row, unknown>;
+    const onColumnLayoutChange = vi.fn();
+    const { store } = mount({ columns: [protoColumn, col("b")], onColumnLayoutChange, enableColumnPinning: true });
+    act(() => store().getState().actions.setColumnPin("__proto__", "start"));
+    expect(Object.getOwnPropertyDescriptor(onColumnLayoutChange.mock.calls[0]![0].pins, "__proto__")?.value).toBe("start");
+  });
+});

@@ -53,9 +53,8 @@ export function OrdersGrid({ initialOrders }: { initialOrders: Order[] }) {
   const checkedIds = () => gridRef.current?.getSelection().rowIds ?? [];
 
   const markShipped = () => {
-    gridRef.current?.actions.updateRows(
+    gridRef.current?.actions.editRows(
       checkedIds().map((rowId) => ({ rowId, changes: { status: "shipped" } })),
-      { source: "edit", reorder: "immediate" },
     );
   };
 
@@ -94,7 +93,7 @@ export function OrdersGrid({ initialOrders }: { initialOrders: Order[] }) {
 
 ## One write for each button [#one-write-per-button]
 
-`updateRows` writes every row in one batch. `onDataChange` fires once, and [undo](/docs/clipboard-undo/undo-redo) records one entry. Pass `source: "edit"`, because the default `"stream"` source stays off the undo stack and never reaches `onSave`. `reorder: "immediate"` moves the patched rows to their sorted position at once. The call returns how many cells it wrote and which patches it skipped, such as a read-only column or a value that fails `validate`.
+`editRows` writes every row in one batch. `onDataChange` fires once, `onSave` fires once, and [undo](/docs/clipboard-undo/undo-redo) records one entry. The patched rows move to their sorted position at once. `editRows` is `updateRows` with `source: "edit"` and `reorder: "immediate"`. A plain `updateRows` call uses the `"stream"` source, which stays off the undo stack and never reaches `onSave`. The call returns how many cells it wrote and which patches it skipped, such as a read-only column or a value that fails `validate`.
 
 `deleteRows` deletes the rows in one batch and clears the selection, so the bar hides itself. If the grid has `onBeforeDeleteRows`, that callback can cancel the delete.
 

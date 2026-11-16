@@ -319,7 +319,7 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   sortMode?: "client" | "server";
   /**
-   * BCP 47 tag that decides the client text sort, the text range filters, and the filter value lists. It covers `gt`, `gte`, `lt`, `lte`, and `between`, and the lists of the header filter and the filter builder. Defaults to `locale`, then `"en-US"`: the server render and the browser order rows alike.
+   * BCP 47 tag that decides the client text sort, the text range filters, and the filter value lists. It covers `gt`, `gte`, `lt`, `lte`, and `isBetween`, and the lists of the header filter and the filter menu. Defaults to `locale`, then `"en-US"`: the server render and the browser order rows alike.
    * To follow the browser, read `navigator.language` after mount. Under `sortMode="server"` the grid does not sort rows; the server owns their order. A malformed or unsupported tag falls back to `"en-US"` with one development warning.
    */
   sortLocale?: string;
@@ -1107,8 +1107,8 @@ export type DataGridActions = {
   setColumnPin(id: string, pin: ColumnPin | null): void;
   /**
    * Shows/hides a column via the `hiddenColumns` set; works on a def-level `hidden: true` column
-   * — `setColumnHidden(id, false)` re-shows it, and the def's flag re-applies only when a NEW
-   * `columns` array is passed (a same-reference re-render keeps the user's choice).
+   * — `setColumnHidden(id, false)` re-shows it. A new `columns` array seeds the def's flag only for an id
+   * the grid has not seen; a known id keeps its runtime visibility.
    * No-op when the id is unknown or the visibility already matches; otherwise fires
    * `onColumnLayoutChange` once.
    */
@@ -1185,6 +1185,8 @@ export type DataGridActions = {
   updateCells(patches: readonly CellPatch[], options?: UpdateCellsOptions): UpdateCellsVerdict;
   /** {@link updateCells} keyed by whole row: each {@link RowPatch}'s `changes` expands to one patch per column id. */
   updateRows(updates: readonly RowPatch[], options?: UpdateCellsOptions): UpdateCellsVerdict;
+  /** {@link updateRows} as a user edit: `source: "edit"` and `reorder: "immediate"`. One undo entry, one `onSave`, and the `readOnly`, read-only column, and `validate` checks apply. `options` takes the rest of {@link UpdateCellsOptions}, such as `flash`. */
+  editRows(updates: readonly RowPatch[], options?: Omit<UpdateCellsOptions, "source" | "reorder">): UpdateCellsVerdict;
   /** Rebuilds the view index that a deferred `updateCells` postponed, and clears `viewStale`. With `useDataGridServerRows` it asks for a reshape instead, and `viewStale` stays `true` until the answer delivers the stale rows again. No-op when the view is not stale. */
   reconcileView(): void;
   /**
@@ -1204,7 +1206,7 @@ export type DataGridActions = {
    */
   insertRows(viewRowIndex: number, count: number, position?: "above" | "below"): RowActionResult;
   /** View-index variant of {@link DataGridActions.deleteRows}: deletes the rows at `viewRowIndexes` as one `{source: 'row-operation'}` DataChange with row-id-based `delete` operations. */
-  deleteRowsAt(viewRowIndexes: readonly ViewIndex[]): RowActionResult;
+  deleteRowsAt(viewRowIndexes: readonly number[]): RowActionResult;
   /**
    * Deletes the rows with the given ids (the shape `getRowIds()` returns) as one `{source: 'row-operation'}` DataChange; ids that match no row are skipped.
    * With `{ source: "stream" }` the delete is a push: it skips `onBeforeDeleteRows` and `onSave`, takes at most 100,000 ids, and unchecks the rows. The other checked rows and the cursor follow their rows: a range collapses onto the cursor, and the cursor clears when its row is deleted.
@@ -1223,7 +1225,7 @@ export type DataGridActions = {
    * every duplicated row gets a distinct id, never colliding with its source's React key — and
    * `"readOnly"`, `"gate-pending"`, `"unloaded-rows"`, or `"nothing-to-do"` when it does nothing else.
    */
-  duplicateRowsAt(viewRowIndexes: readonly ViewIndex[]): RowActionResult;
+  duplicateRowsAt(viewRowIndexes: readonly number[]): RowActionResult;
   /**
    * Moves the rows at view indices `rows` (a number or a list) as one block: they keep their
    * relative order and land contiguous, the first at view index `to` (final position — arrayMove

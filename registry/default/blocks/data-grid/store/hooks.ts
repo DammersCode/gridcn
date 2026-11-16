@@ -288,7 +288,7 @@ export function useDataGridVisibleColumns<TData = unknown>(): readonly ColumnDef
 
 /**
  * Every column (including currently-hidden ones), in `columnOrder` order (definition order when
- * unset) — the columns-visibility/pin menu's full inventory, unlike {@link useDataGridVisibleColumns}
+ * unset; a column that `columnOrder` does not list follows it in definition order, inside its group) — the columns-visibility/pin menu's full inventory, unlike {@link useDataGridVisibleColumns}
  * which excludes hidden columns. Same optional `TData` typed-narrowing as `useDataGridVisibleColumns`.
  */
 export function useDataGridAllColumns<TData = unknown>(): readonly ColumnDefOf<TData>[] {

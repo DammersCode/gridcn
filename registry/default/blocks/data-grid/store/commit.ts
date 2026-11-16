@@ -115,6 +115,15 @@ export function checkDevGuardrails(
     warnBothDataPropsOnce(warned);
   }
 
+  if (props.data === undefined) {
+    const seeded = (props.defaultData?.length ?? 0) > 0;
+    if (!warned.has("seed:empty") && !warned.has("seed:filled")) warned.add(seeded ? "seed:filled" : "seed:empty");
+    else if (seeded && warned.has("seed:empty") && !warned.has("seed:late")) {
+      warned.add("seed:late");
+      warnDev("defaultData seeds the grid once and ignores later changes, so these rows do not show; pass them in `data` with `onDataChange`, or remount the grid with a new `key`");
+    }
+  }
+
   if (prevColumns !== undefined && prevColumns !== props.columns && columnsStructurallyEqual(prevColumns, props.columns)) {
     warnDev(
       "columns array identity changed since the last render; pass a stable reference (e.g. useMemo) or every row re-renders",

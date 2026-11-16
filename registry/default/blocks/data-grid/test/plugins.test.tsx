@@ -336,6 +336,28 @@ describe("plugin conflicts (decision 3 table)", () => {
   });
 });
 
+describe("plugin array order precedence", () => {
+  const run = () => {};
+  it("a later plugin wins a command name", () => {
+    const first = { name: "first", commands: { pick: { run } } };
+    const second = { name: "second", commands: { pick: { run: () => {} } } };
+    expect(mergePluginCommands([first, second], undefined, vi.fn())!["pick"]).toBe(second.commands.pick);
+  });
+
+  it("an earlier plugin keeps a key that a later plugin also binds", () => {
+    const first = { name: "first", commands: { one: { run } }, keymap: { one: ["mod+alt+j"] } };
+    const second = { name: "second", commands: { two: { run } }, keymap: { two: ["mod+alt+j"] } };
+    const merged = mergePluginKeymaps([first, second], undefined, vi.fn());
+    expect((merged as Record<string, unknown>)["one"]).toEqual(["mod+alt+j"]);
+    expect((merged as Record<string, unknown>)["two"]).toBeUndefined();
+  });
+
+  it("a keymap entry of undefined unbinds the action like an empty list", () => {
+    const plugin = { name: "p", commands: { fillDown: { run } }, keymap: { fillDown: undefined } };
+    expect(mergePluginKeymaps([plugin], undefined, vi.fn()).fillDown).toEqual([]);
+  });
+});
+
 describe("plugin order (real store)", () => {
   it("overlays, bands, Mounts, and observers follow the array order", () => {
     const overlays = { name: "ov", Overlay: () => null } as const;

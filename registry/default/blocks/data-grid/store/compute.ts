@@ -36,6 +36,7 @@ import { resolveCustomFilterOperators } from "../cell-types/capabilities";
 import { toSafeText } from "../cell-types/safe-text";
 import { moveGroupBlock, moveWithinGroups, repairGroupOrder, type ColumnGroupModel } from "../columns/column-groups";
 import { readColumnPin, withLogicalPin } from "../columns/column-pin";
+import type { createWarnOnce } from "./async-gate";
 import { warnLegacyFilterKeys, withLogicalFilter } from "../columns/legacy-filter-keys";
 import { isDev } from "../is-dev";
 import type {
@@ -345,6 +346,8 @@ export function memoizedMergeLabels(): (override: DeepPartialLabels | undefined,
 /** The locale of a grid without a `locale` prop; pinned so the server and the browser format alike. */
 export const DEFAULT_LOCALE = "en-US";
 
+type WarnOnce = ReturnType<typeof createWarnOnce>;
+
 const GRID_LOCALE = Symbol("gridLocale");
 type LocaleOptions = { locale?: string; [GRID_LOCALE]?: true };
 const LOCALE_TYPES = new Set(["number", "date"]);
@@ -354,10 +357,10 @@ const columnsByLocale = new WeakMap<AnyColumnDef, { locale: string; resolved: An
  * `columns` with the grid `locale` merged into the `options` of `number` and `date` columns that set no `locale`
  * themselves. The default locale changes nothing. A column resolved earlier is resolved again from its own `options`.
  */
-export function withGridLocale(columns: readonly AnyColumnDef[], locale: string): readonly AnyColumnDef[] {
+export function withGridLocale(columns: readonly AnyColumnDef[], locale: string, warnOnce?: WarnOnce): readonly AnyColumnDef[] {
   let resolved: AnyColumnDef[] | null = null;
   columns.forEach((column, index) => {
-    const next = resolveColumnLocale(column, locale);
+    const next = resolveColumnLocale(column, locale, warnOnce);
     if (next === column) return;
     resolved ??= [...columns];
     resolved[index] = next;
@@ -365,9 +368,9 @@ export function withGridLocale(columns: readonly AnyColumnDef[], locale: string)
   return resolved ?? columns;
 }
 
-function resolveColumnLocale(source: AnyColumnDef, locale: string): AnyColumnDef {
-  warnLegacyFilterKeys(source);
-  const column = withLogicalFilter(withLogicalPin(source));
+function resolveColumnLocale(source: AnyColumnDef, locale: string, warnOnce?: WarnOnce): AnyColumnDef {
+  warnLegacyFilterKeys(source, warnOnce);
+  const column = withLogicalFilter(withLogicalPin(source, warnOnce));
   const options = column.options as LocaleOptions | undefined;
   const injected = options?.[GRID_LOCALE] === true;
   if (!column.type || !LOCALE_TYPES.has(column.type) || (options?.locale !== undefined && !injected)) return column;
@@ -606,14 +609,29 @@ export function defHiddenColumnIds(columns: readonly AnyColumnDef[]): string[] {
   return columns.filter((c) => c.hidden).map((c) => c.id);
 }
 
-/** The first column id whose def `pin` or `hidden` differs between two `columns` arrays, with the field that differs. */
-export function firstChangedSeedField(previous: readonly AnyColumnDef[], next: readonly AnyColumnDef[]): { id: string; field: "pin" | "hidden" } | null {
+const readPinSilently = (pin: unknown) => readColumnPin(pin, () => {});
+
+/** The `start` and `end` pins of `columns` by id; built with `Object.fromEntries` so that a column id such as `__proto__` stays an own key. */
+export function pinsOf(columns: readonly AnyColumnDef[]): Record<string, ColumnPin> {
+  return Object.fromEntries(columns.flatMap((c) => (c.pin === "start" || c.pin === "end" ? [[c.id, c.pin] as const] : [])));
+}
+
+/** The first column id whose def `pin` or `hidden` differs between two `columns` arrays and from the runtime value, with the field that differs. */
+export function firstChangedSeedField(
+  previous: readonly AnyColumnDef[],
+  next: readonly AnyColumnDef[],
+  runtime: { columns: readonly AnyColumnDef[]; hiddenColumns: readonly string[] },
+): { id: string; field: "pin" | "hidden" } | null {
   const before = new Map(previous.map((c) => [c.id, c]));
+  const runtimePins = new Map(runtime.columns.map((c) => [c.id, c.pin]));
+  const runtimeHidden = new Set(runtime.hiddenColumns);
   for (const def of next) {
     const old = before.get(def.id);
     if (!old) continue;
-    if (old.pin !== def.pin) return { id: def.id, field: "pin" };
-    if (Boolean(old.hidden) !== Boolean(def.hidden)) return { id: def.id, field: "hidden" };
+    const pin = readPinSilently(def.pin);
+    if (readPinSilently(old.pin) !== pin && pin !== runtimePins.get(def.id)) return { id: def.id, field: "pin" };
+    const hidden = Boolean(def.hidden);
+    if (Boolean(old.hidden) !== hidden && hidden !== runtimeHidden.has(def.id)) return { id: def.id, field: "hidden" };
   }
   return null;
 }
@@ -651,10 +669,10 @@ function completeUngroupedOrder(columns: readonly AnyColumnDef[], columnOrder: r
 }
 
 /**
- * Visible columns in display order (pinned-left, unpinned, pinned-right). Visibility reads
+ * Visible columns in display order (start-pinned, unpinned, end-pinned). Visibility reads
  * `hiddenColumns` alone — a def-level `hidden: true` is honored only through that set's seeding —
- * so `setColumnHidden(id, false)` re-shows a def-hidden column, and the def's flag re-applies only
- * when a new `columns` array re-seeds it.
+ * so `setColumnHidden(id, false)` re-shows a def-hidden column. A new `columns` array seeds the def's
+ * flag for an id the grid has not seen; a known id keeps its runtime visibility.
  */
 export function computeVisibleColumns(
   columns: readonly AnyColumnDef[],
@@ -681,10 +699,7 @@ export function computeColumnLayout(
   hiddenColumns: readonly string[],
   groups?: ColumnGroupModel | null,
 ): ColumnLayout {
-  const pins: Record<string, ColumnPin> = {};
-  for (const c of columns) {
-    if (c.pin === "start" || c.pin === "end") pins[c.id] = c.pin;
-  }
+  const pins = pinsOf(columns);
   return {
     widths: { ...columnWidths },
     order: completeColumnOrder(columns, columnOrder, groups),
@@ -716,6 +731,7 @@ export function normalizeColumnLayout(
   parts: ColumnLayoutParts,
   hiddenColumns: string[],
   groups?: ColumnGroupModel | null,
+  warnOnce?: WarnOnce,
 ): { columns: readonly AnyColumnDef[]; columnWidths: Record<string, number>; columnOrder: string[] | null; hiddenColumns: string[] } {
   const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
   const stringList = (value: unknown): string[] | null => (Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : null);
@@ -723,19 +739,18 @@ export function normalizeColumnLayout(
   const nextColumns = pins
     ? columns.map((c) => {
         if (!columnFlag(c, "pinnable")) return c;
-        const pin = readColumnPin(pins[c.id]);
+        const pin = readColumnPin(pins[c.id], warnOnce);
         // The given pins map is authoritative: a column it does not pin drops a stale pin.
         return pin === "start" || pin === "end" ? { ...c, pin } : c.pin ? { ...c, pin: undefined } : c;
       })
     : columns;
-  const columnWidths: Record<string, number> = {};
   const widths = isRecord(parts.widths) ? parts.widths : null;
-  if (widths) {
-    for (const column of columns) {
-      const width = widths[column.id];
-      if (typeof width === "number" && Number.isFinite(width)) columnWidths[column.id] = clampColumnWidth(column, width);
-    }
-  }
+  const columnWidths: Record<string, number> = Object.fromEntries(
+    columns.flatMap((column) => {
+      const width = widths?.[column.id];
+      return typeof width === "number" && Number.isFinite(width) ? [[column.id, clampColumnWidth(column, width)] as const] : [];
+    }),
+  );
   const known = new Set(columns.map((c) => c.id));
   const order = stringList(parts.order);
   const savedHidden = stringList(parts.hidden);
