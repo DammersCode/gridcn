@@ -15,95 +15,100 @@ A term row links to the page that explains it.
 
 | Term | Meaning | Page |
 | --- | --- | --- |
-| operation | One record of a change to one row: `insert`, `update`, `delete`, or `move`. | [Data change events](/docs/events-state/data-change-events#datachange) |
-| export source | The function that returns the rows of the whole result for an all-rows export. | [Export the whole result](/docs/import-export/export-whole-result) |
-| row id | The stable id from `getRowId`. | [DataGrid props](/docs/components-props/data-grid-props#rows-and-ids) |
-| view index | A row's position in the sorted and filtered list the user sees, on the shown page of a paged grid. | [State and view index](/docs/concepts/state-view-index) |
-| data index | A row's position in your `data` array. | [State and view index](/docs/concepts/state-view-index) |
+| accessor | The `accessorKey` or `accessorFn` that reads a column's value from a row. | [ColumnDef](/docs/components-props/column-def#values) |
+| active cell | The one cell that has focus and receives typing. | [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation) |
+| add-on | An optional registry item you install, such as `data-grid-fill`. It ships hooks and components. | [Add-ons A to Z](/docs/fit-features/add-ons-a-z) |
+| aggregate row | A pinned row that `aggregateRow` or `serverAggregateRow` declares. The band computes its values and reads them by column id. | [Pinned rows](/docs/rows-pages-menus/pinned-rows) |
+| all matching | The whole result as the target of a bulk action. `selectAllMatching()` turns it on and the status bar offers it. | [Select server rows](/docs/rows-live-data/select-server-rows) |
+| anchor | The cell where a selection started. | [Selection model](/docs/concepts/selection-model) |
+| band | A fixed strip of rows above or below the body, such as pinned rows. | [Pinned rows](/docs/rows-pages-menus/pinned-rows) |
+| block | The fixed-size slice of rows that scroll mode requests. | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
+| block move | Moving several rows so they land next to each other in their current order: `reorderRows(rows, to)`. `moveRowsBy(rows, delta)` shifts each row and keeps the gaps. | [Row order](/docs/rows-pages-menus/row-order) |
+| blocking rule | A column rule that stops the commit of a value it rejects. It is the default of `validationMode`. | [Validation](/docs/editing-cells/validation#soft-rules-oninvalid) |
+| cell type | The kind of value a column holds, for example `text` or `number`. | [Cell type model](/docs/concepts/cell-type-model) |
+| change | One `onDataChange` call: a batch of operations plus its `source`. | [Data change events](/docs/events-state/data-change-events#ondatachange) |
 | checked row | A row whose marker checkbox is on, kept in the row channel of the selection. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
-| checked rows lifetime | How long the checked rows last: `'until-click'`, `'until-cleared'`, or `'across-filters'`. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
-| data mode | One way the grid gets its rows, such as a local array or server pages. | [Data mode guide](/docs/data-modes) |
+| checked rows lifetime | How long the checked rows last: `'until-click'`, `'until-cleared'`, or `'across-filters'`. Set by the prop `checkedRowsLifetime`. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
+| `clearContents` | Empties the selected cells. | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
+| coarse pointer | An input whose `(pointer: coarse)` media query matches, such as a finger. Hit areas grow under it. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
+| column group | A named set of columns, or of other groups, that share one header above their own headers. `columnGroups` defines it. | [Column headers and groups](/docs/columns/column-headers-groups) |
 | commit | Check a value with `validate` and write it to the data. | [Validation](/docs/editing-cells/validation) |
 | controlled / uncontrolled | `data` puts the state in your code. `defaultData` seeds the grid once. | [Event shapes](/docs/events-state/event-shapes#controlled-pairs) |
-| spec | What the user chose: sort, filter, and search text. | [Server rows contract](/docs/contracts/server-rows-contract) |
-| block | The fixed-size slice of rows that scroll mode requests. | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
-| pages mode | The default mode of `useDataGridServerRows`: the server answers one page per request. | [Load rows by page](/docs/server-pagination/load-rows-page) |
-| scroll mode | The mode of `useDataGridServerRows` that fetches the blocks the rendered rows need. | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
-| sequential source | A scroll-mode source whose first answer carries `nextCursor`, or neither a count nor a cursor. | [Load without row count](/docs/scroll-mode/load-without-row-count) |
-| row range | `RowRange`: `{ start, end }` over rows, `end` excluded. | [Server rows contract](/docs/contracts/server-rows-contract) |
-| row count | The size of the result. | [Load rows by page](/docs/server-pagination/load-rows-page) |
-| all matching | The whole result as the target of a bulk action. | [Select server rows](/docs/rows-live-data/select-server-rows) |
-| gate | A prop function that the grid calls before it acts, for example `processPaste`, `processFill`, or `createRow`. | [Event shapes](/docs/events-state/event-shapes#gates) |
-| gate pending | The state of a gate whose promise has not settled. | [Cancel async gates](/docs/editing-cells/cancel-async-gates#show-the-pending-state) |
-| wanted range | The rendered rows grown by `overscan` on each side and rounded out to blocks. | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
-| keep range | The wanted range grown by one more block on each side. | [Tune row retention](/docs/scroll-mode/tune-row-retention) |
-| eviction | Unloading loaded rows back to holes, so a hole renders as a skeleton again. | [Tune row retention](/docs/scroll-mode/tune-row-retention#max-loaded-rows) |
-| revalidation | A `refresh()` that the hook runs on a timer (`revalidateIntervalMs`). | [Tune row retention](/docs/scroll-mode/tune-row-retention#revalidate) |
-| prefetch | The pages-mode request for the page after the current one, made before the user asks for it (`prefetchNextPage`). | [Tune page loading](/docs/server-pagination/tune-page-loading#prefetch) |
-| paged view | A grid with `pageSize`: `data` stays whole, the sorted and filtered list is the full view, and `viewIndex` holds the shown page of it. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
-| push | A change that your code writes from the server: `updateCells`, `updateRows`, or `deleteRows` with `source: "stream"`. | [Stream updates](/docs/rows-live-data/stream-updates) |
-| stale row | A loaded row that a push changed in a column the server spec reads. | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
-| reshape | A `refresh()` that `useDataGridServerRows` runs after a push, so the server places the rows again. | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
-| saved view | A named copy of the sort, filters, search, and column layout, kept by `data-grid-views` in a storage adapter. | [Saved views](/docs/sort-filter-search/saved-views) |
-| server aggregate | A value for a band that a server computes for the whole result of the current spec. | [Show totals from a server](/docs/data-modes/show-server-totals) |
-| aggregate row | A pinned row that `aggregateRow` or `serverAggregateRow` declares. | [Pinned rows](/docs/rows-pages-menus/pinned-rows) |
-| save conflict | A refused save for which the server sent its current row. | [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict) |
-| id swap | Replacing the client id of a row with the id the server assigned, through `actions.replaceRowId`. | [Save edits](/docs/save-server/save-edits#id-swap) |
-| lookup | A cell type whose options a server searches as the user types. | [Lookup cell](/docs/editing-cells/lookup-cell) |
-| custom operator | A filter operator a column registers in `filter.operators` with an `id`, a `label`, an `input` shape, and an optional `match`. | [Filtering](/docs/sort-filter-search/filtering#custom-operators) |
-| seed | The initial value a `default*` prop gives once, at mount. | [Event shapes](/docs/events-state/event-shapes#controlled-pairs) |
-| virtualization | Draw only the rows and columns in view, plus overscan. | [Virtualization](/docs/performance/virtualization) |
-| rendered rows | The rows in the DOM. | [Column and viewport events](/docs/events-state/column-viewport-events#onrenderedrowschange) |
-| overscan | Extra rows or columns drawn beyond the viewport edge. | [Virtualization](/docs/performance/virtualization) |
-| add-on | An optional registry item you install, such as `data-grid-fill`. | [Add-ons A to Z](/docs/fit-features/add-ons-a-z) |
-| core | The `data-grid` item. | [Install gridcn](/docs/learning-path/install-gridcn) |
-| plugin | A runtime `DataGridPlugin` object in the `plugins` prop. | [Plugin model](/docs/plugins/plugin-shape) |
-| row marker | The narrow column at the left edge that shows a row number, a checkbox, or a drag handle. | [Row markers](/docs/rows-pages-menus/row-markers) |
-| cell type | The kind of value a column holds, for example `text` or `number`. | [Cell type model](/docs/concepts/cell-type-model) |
-| accessor | The `accessorKey` or `accessorFn` that reads a column's value from a row. | [ColumnDef](/docs/components-props/column-def#values) |
-| band | A fixed strip of rows above or below the body, such as pinned rows. | [Pinned rows](/docs/rows-pages-menus/pinned-rows) |
-| column group | A named set of columns, or of other groups, that share one header above their own headers. | [Column headers and groups](/docs/columns/column-headers-groups) |
-| active cell | The one cell that has focus and receives typing. | [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation) |
-| anchor | The cell where a selection started. | [Selection model](/docs/concepts/selection-model) |
-| range | A rectangle of selected cells. | [Selection model](/docs/concepts/selection-model) |
-| quick search | The toolbar search that highlights matches and never filters rows. | [Quick search](/docs/sort-filter-search/quick-search) |
-| find and replace | The add-on panel that finds text through the quick search and replaces it in one match or in all matches. | [Find and replace](/docs/sort-filter-search/find-replace) |
-| set filter | A filter that keeps or drops rows by a list of values. | [Header filter](/docs/sort-filter-search/header-filter) |
-| filter group | A box of filter nodes that match together. | [Filtering](/docs/sort-filter-search/filtering) |
-| header filter | The filter button in a column header. | [Header filter](/docs/sort-filter-search/header-filter) |
-| live region announcement | The text the grid's live region reads to a screen reader: a row move, the number of checked rows, or the result count. | [Screen reader support](/docs/accessibility/screen-reader-support) |
-| save acknowledgement | The answer of `onSave`: nothing, `{ rejected }`, or a rejected promise. | [Save edits](/docs/save-server/save-edits) |
-| save status | `"saving"` while an `onSave` promise is pending and `"failed"` after a refusal. | [Save edits](/docs/save-server/save-edits) |
-| save | Sending a change to a server through `onSave`. | [Save edits](/docs/save-server/save-edits) |
-| row operation | The `source` value `"row-operation"` marks a change from an insert, duplicate, delete, or move of rows. | [Data change events](/docs/events-state/data-change-events#sources) |
-| change | One `onDataChange` call: a batch of operations plus its `source`. | [Data change events](/docs/events-state/data-change-events#ondatachange) |
-| hidden checked row | A checked row that a filter, a page change, or a window move takes out of the view. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
-| block move | Moving several rows so they land next to each other in their current order: `reorderRows(rows, to)`. | [Row order](/docs/rows-pages-menus/row-order) |
-| request, answer | What `fetchRows` receives (`spec`, `start`, `end`, `cursor`, `signal`, plus `page` and `pageSize` in pages mode) and what it resolves (`rows`, `totalRowCount`, `hasMore`, `nextCursor`). | [Server rows contract](/docs/contracts/server-rows-contract) |
-| value query | The text a `fetchFilterValues` request carries as `query`. | [Server rows contract](/docs/contracts/server-rows-contract) |
-| server grid | A grid with `sortMode="server"` and `filterMode="server"`. | [Data mode guide](/docs/data-modes) |
-| server mode | How a feature behaves when your server holds the rows, the sort, or the filter: `sortMode` or `filterMode` `"server"`, or `useDataGridServerRows`. | [Data mode guide](/docs/data-modes) |
-| result | Every row that matches the spec on the server. | [Data mode guide](/docs/data-modes) |
-| clearContents | Empties the selected cells. | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
-| typeToReplace | Typing over a cell replaces its value. | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
-| moveUpKeepSelection | Moves the active cell and keeps the selection. | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
-| grid origin | The row line the rows canvas is positioned from. | [Virtualization](/docs/performance/virtualization) |
-| jump | A scroll farther than the viewport plus the largest velocity buffer. | [Virtualization](/docs/performance/virtualization) |
-| hosted registry | The `@gridcn` registry that serves the most recent deployment of `main`. | [Install gridcn](/docs/learning-path/install-gridcn) |
-| pinned release | A release installed with `#<ref>` on the GitHub registry path. | [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn) |
+| core | The `data-grid` item. Add-ons build on it. | [Install gridcn](/docs/learning-path/install-gridcn) |
+| custom operator | A filter operator a column registers in `filter.operators` with an `id`, a `label`, an `input` shape, and an optional `match`. A server vocabulary uses it to name its own filters. | [Filtering](/docs/sort-filter-search/filtering#custom-operators) |
+| data index | A row's position in your `data` array. | [State and view index](/docs/concepts/state-view-index) |
+| data mode | One way the grid gets its rows, such as a local array or server pages. | [Data mode guide](/docs/data-modes) |
 | drag handle | The control you drag to reorder a row or a sort entry. | [Row order](/docs/rows-pages-menus/row-order) |
-| header row | One level of the header block. | [Column headers and groups](/docs/columns/column-headers-groups) |
-| start side, end side | The two ends of the inline axis. | [Column order and pinning](/docs/columns/column-order-pinning) |
+| eviction | Unloading loaded rows back to holes, so a hole renders as a skeleton again. `maxLoadedRows` and `evict()` do it. | [Tune row retention](/docs/scroll-mode/tune-row-retention#max-loaded-rows) |
+| export source | The function that returns the rows of the whole result for an all-rows export. It gets the `spec` and a `signal`. | [Export the whole result](/docs/import-export/export-whole-result) |
+| filter group | A box of filter nodes that match together. Its join is `and` or `or`. A group holds one more group at most. The top level of `filterState` always combines with `and`. | [Filtering](/docs/sort-filter-search/filtering) |
+| filter menu | The toolbar menu where the user builds filters from filter rows and filter groups. `DataGridFilterMenu` is the built-in one. | [Toolbar](/docs/sort-filter-search/toolbar#the-pieces) |
 | filter node | One entry of `filterState`: a filter row or a filter group. | [Filtering](/docs/sort-filter-search/filtering) |
-| set values | The list of values that a header filter or an `isAnyOf` input offers. | [Header filter](/docs/sort-filter-search/header-filter) |
-| tap | A touch press that lifts within 10 px and under 500 ms. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
-| long-press | A touch press held for 500 ms without moving more than 10 px. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
-| selection handle | One of the two circles at the corners of a touch selection. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
-| coarse pointer | An input whose `(pointer: coarse)` media query matches, such as a finger. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
-| paste result | The value `pasteFromClipboard` resolves: `"ok"`, `"permission-denied"`, `"empty"`, or `"refused"`. | [Clipboard](/docs/clipboard-undo/clipboard) |
-| result count | The number of rows in the view after a filter or sort change. | [Screen reader support](/docs/accessibility/screen-reader-support) |
+| find and replace | The add-on panel that finds text through the quick search and replaces it in one match or in all matches. A replace writes one change with the source `"replace"`. | [Find and replace](/docs/sort-filter-search/find-replace) |
+| gate | A prop function that the grid calls before it acts, for example `processPaste` or `createRow`. It returns a value or a promise. | [Event shapes](/docs/events-state/event-shapes#gates) |
+| gate pending | The state of a gate whose promise has not settled. `useDataGridGatePending()` reads the gate names. The root carries `data-gate-pending`. | [Cancel async gates](/docs/editing-cells/cancel-async-gates#show-the-pending-state) |
+| grid origin | The row that anchors the rows canvas. It trails the first rendered row and moves only when the rendered rows drift far from it. | [Virtualization](/docs/performance/virtualization) |
+| header filter | The filter button in a column header. It opens a popover with the set filter of that column. `renderHeaderFilter` places it, and `DataGridHeaderFilter` is the built-in one. | [Header filter](/docs/sort-filter-search/header-filter) |
+| header row | One level of the header block. Group levels come first, and the column headers fill the last row. | [Column headers and groups](/docs/columns/column-headers-groups) |
+| hidden checked row | A checked row that a filter, a page change, or a window move takes out of the view. `checkedRowsLifetime="across-filters"` remembers it by row id, outside the row channel. The grid's row operations never act on it. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
+| hosted registry | The `@gridcn` registry that serves the most recent deployment of `main`. | [Install gridcn](/docs/learning-path/install-gridcn) |
+| id swap | Replacing the client id of a row with the id the server assigned, through `actions.replaceRowId`. | [Save edits](/docs/save-server/save-edits#id-swap) |
+| jump | A scroll of more than the viewport height plus 1,600 px in one scroll tick. After a jump, the grid mounts only the base overscan. | [Virtualization](/docs/performance/virtualization) |
+| keep range | The wanted range grown by one more block on each side. Scroll mode aborts and evicts only blocks outside it. | [Tune row retention](/docs/scroll-mode/tune-row-retention) |
+| live region announcement | The text the grid's live region reads to a screen reader: a row move, the number of checked rows, or the result count. The region waits 500 ms after the last change. | [Screen reader support](/docs/accessibility/screen-reader-support) |
+| long-press | A touch press held for 500 ms without moving more than 10 px. It opens the context menu. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
+| lookup | A cell type whose options a server searches as the user types. | [Lookup cell](/docs/editing-cells/lookup-cell) |
+| `moveUpKeepSelection` | Moves the active cell and keeps the selection. | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
+| operation | One record of a change to one row: `insert`, `update`, `delete`, or `move`. `DataChange.ops` holds a batch. Write "operations (`ops`)" at first use on a page. | [Data change events](/docs/events-state/data-change-events#datachange) |
 | override | A prop or callback that replaces default behavior. | [Display override](/docs/editing-cells/display-override) |
+| overscan | Extra rows or columns drawn beyond the viewport edge. | [Virtualization](/docs/performance/virtualization) |
+| paged view | A grid with `pageSize` or `defaultPageSize`. `data` stays whole. The sorted and filtered list is the full view, and `viewIndex` holds the shown page of it. `fullViewOf(viewIndex)` returns the full view. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
+| pages mode | The default mode of `useDataGridServerRows`: the server answers one page per request. | [Load rows by page](/docs/server-pagination/load-rows-page) |
+| paste result | The value `pasteFromClipboard` resolves: `"ok"`, `"permission-denied"`, `"empty"`, or `"refused"`. | [Clipboard](/docs/clipboard-undo/clipboard) |
+| pinned release | A release installed with `#<ref>` on the GitHub registry path. | [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn) |
+| plugin | A runtime `DataGridPlugin` object in the `plugins` prop. Many add-ons install one. Not every add-on does. | [Plugin model](/docs/plugins/plugin-shape) |
+| prefetch | The pages-mode request for the page after the current one, made before the user asks for it (`prefetchNextPage`). | [Tune page loading](/docs/server-pagination/tune-page-loading#prefetch) |
+| push | A change that your code writes from the server: `updateCells`, `updateRows`, or `deleteRows` with `source: "stream"`. A push is not a save: it never reaches `onSave`. | [Stream updates](/docs/rows-live-data/stream-updates) |
+| push verdict | The `UpdateCellsVerdict` that `updateCells` and `updateRows` return: the count of cells the call wrote, and the patches it skipped with a reason. | [Read a push verdict](/docs/rows-live-data/read-push-verdict) |
+| quick search | The toolbar search that highlights matches and never filters rows. | [Quick search](/docs/sort-filter-search/quick-search) |
+| range | A rectangle of selected cells. | [Selection model](/docs/concepts/selection-model) |
+| rendered rows | The rows in the DOM. `onRenderedRowsChange` reports their range. | [Column and viewport events](/docs/events-state/column-viewport-events#onrenderedrowschange) |
+| request, answer | What `fetchRows` receives (`spec`, `start`, `end`, `cursor`, `signal`, plus `page` and `pageSize` in pages mode) and what it resolves (`rows`, `totalRowCount`, `hasMore`, `nextCursor`). The hook validates every answer. | [Server rows contract](/docs/contracts/server-rows-contract) |
+| reshape | A `refresh()` that `useDataGridServerRows` runs after a push, so the server places the rows again. `reshapeDelayMs` and `reshape()` control it. | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
+| result | Every row that matches the spec on the server. `data` holds the loaded rows of it. | [Data mode guide](/docs/data-modes) |
+| result count | The number of rows in the view after a filter or sort change. `announceResults` turns its announcement on. | [Screen reader support](/docs/accessibility/screen-reader-support) |
+| revalidation | A `refresh()` that the hook runs on a timer (`revalidateIntervalMs`). | [Tune row retention](/docs/scroll-mode/tune-row-retention#revalidate) |
+| row count | The size of the result. `totalRowCount` names it on the pager, the pagination hooks, URL pagination, and the provider prop that the hook's `gridProps` carries. `null` means unknown. | [Load rows by page](/docs/server-pagination/load-rows-page) |
+| row id | The stable id of a row: its `id` field, or the value that `getRowId` returns. Selection, editing, undo, and redo address rows by it. | [DataGrid props](/docs/components-props/data-grid-props#rows-and-ids) |
+| row marker | The narrow column at the start side that shows a row number, a checkbox, or a drag handle. | [Row markers](/docs/rows-pages-menus/row-markers) |
+| row operation | The `source` value `"row-operation"` marks a change from an insert, duplicate, delete, or move of rows. | [Data change events](/docs/events-state/data-change-events#sources) |
+| row range | `RowRange`: `{ start, end }` over rows, `end` excluded. A scroll-mode request asks for one. | [Server rows contract](/docs/contracts/server-rows-contract) |
+| save | Sending a change to a server through `onSave`. A save is accepted or refused. A refusal is reverted. | [Save edits](/docs/save-server/save-edits) |
+| save acknowledgement | The answer of `onSave`: nothing, `{ rejected }`, or a rejected promise. | [Save edits](/docs/save-server/save-edits) |
+| save conflict | A refused save for which the server sent its current row. `resolveSaveConflict` decides whether the row becomes the server's row, stays as it is, or becomes a merged row. | [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict) |
+| save status | `"saving"` while an `onSave` promise is pending and `"failed"` after a refusal. `useDataGridRowSaveStatus` reads it. | [Save edits](/docs/save-server/save-edits) |
+| saved view | A named copy of the sort, filters, search, and column layout, kept by `data-grid-views` in a storage adapter. It holds no rows and no selection. Not the view index. | [Saved views](/docs/sort-filter-search/saved-views) |
+| scroll mode | The mode of `useDataGridServerRows` that fetches the blocks the rendered rows need. | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
+| seed | The initial value a `default*` prop gives once, at mount. | [Event shapes](/docs/events-state/event-shapes#controlled-pairs) |
+| selection handle | One of the two circles at the corners of a touch selection. Dragging one extends the range. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
+| sequential source | A scroll-mode source whose first answer carries `nextCursor`, or neither a count nor a cursor. `useDataGridServerRows({ mode: "scroll", source: "sequential" })` asks for it. Blocks load in order, one at a time. The grid shows the loaded rows plus one block of skeleton rows until `nextCursor: null` or `hasMore: false` ends it. | [Load without row count](/docs/scroll-mode/load-without-row-count) |
+| server aggregate | A value for a band that a server computes for the whole result of the current spec. | [Show totals from a server](/docs/data-modes/show-server-totals) |
+| server grid | A grid with `sortMode="server"` and `filterMode="server"`. Your backend applies the spec and the grid shows the response. | [Data mode guide](/docs/data-modes) |
+| server mode | How a feature behaves when your server holds the rows, the sort, or the filter: `sortMode` or `filterMode` `"server"`, or `useDataGridServerRows`. The heading of that section on a feature page. | [Data mode guide](/docs/data-modes) |
+| set filter | A filter that keeps or drops rows by a list of values. It uses the `isAnyOf` or `isNoneOf` operator. | [Header filter](/docs/sort-filter-search/header-filter) |
+| set values | The list of values that a header filter or an `isAnyOf` input offers. They come from the loaded rows, or from `fetchFilterValues` when the grid has it. Each has a `value` and a `label`. | [Header filter](/docs/sort-filter-search/header-filter) |
+| soft rule | A column rule that commits the value it rejects and flags the cell. `validationMode: "warn"` turns it on. | [Validation](/docs/editing-cells/validation#soft-rules-oninvalid) |
+| sort locale | The BCP 47 tag that orders text compares in a client sort, text range filters, and filter value lists. The `sortLocale` prop sets it, then `locale`, then `"en-US"`. | [Sorting](/docs/sort-filter-search/sorting#sort-order) |
+| spec | What the user chose: sort, filter, and search text. `ServerSpec` (`{ sorts, filters, searchText }`) carries it to `fetchRows`. The page or the row range travels beside it. The mode decides who applies it. | [Server rows contract](/docs/contracts/server-rows-contract) |
+| stale row | A loaded row that a push changed in a column the server spec reads. It keeps its place and carries `data-row-stale` until the server places it again. | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
 | Standard Schema | The shared validator interface that Zod and Valibot implement. | [Validation](/docs/editing-cells/validation) |
+| start side, end side | The two ends of the inline axis. The start side is the `pin: "start"` zone, the end side the `pin: "end"` zone. In a left-to-right page start is left and end is right, in a right-to-left page the reverse. | [Column order and pinning](/docs/columns/column-order-pinning) |
+| tap | A touch press that lifts within 10 px and under 500 ms. A tap selects. Two taps on one cell edit. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
+| `typeToReplace` | Typing over a cell replaces its value. | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
+| value query | The text a `fetchFilterValues` request carries as `query`. The server lists the values that match it. | [Server rows contract](/docs/contracts/server-rows-contract) |
+| view index | A row's position in the sorted and filtered list the user sees, on the shown page of a paged grid. | [State and view index](/docs/concepts/state-view-index) |
+| virtualization | Draw only the rows and columns in view, plus overscan. | [Virtualization](/docs/performance/virtualization) |
+| wanted range | The rendered rows grown by `overscan` on each side and rounded out to blocks. Scroll mode loads the blocks of it. | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
 
 ## Other words for a term [#other-words]
 
@@ -128,7 +133,6 @@ A word in this table names a term from the first table.
 | `lazy mode` | scroll mode | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
 | `infinite rows` | sequential source | [Load without row count](/docs/scroll-mode/load-without-row-count) |
 | `open-ended source` | sequential source | [Load without row count](/docs/scroll-mode/load-without-row-count) |
-| `visible window` | wanted range | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
 | `purge` | eviction | [Tune row retention](/docs/scroll-mode/tune-row-retention#max-loaded-rows) |
 | `polling` | revalidation | [Tune row retention](/docs/scroll-mode/tune-row-retention#revalidate) |
 | `auto-refresh` | revalidation | [Tune row retention](/docs/scroll-mode/tune-row-retention#revalidate) |
@@ -165,6 +169,7 @@ A word in this table names a term from the first table.
 | `left side` | start side, end side | [Column order and pinning](/docs/columns/column-order-pinning) |
 | `right side` | start side, end side | [Column order and pinning](/docs/columns/column-order-pinning) |
 | `focused cell` | active cell | [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation) |
+| `filter builder` | filter menu | [Toolbar](/docs/sort-filter-search/toolbar#the-pieces) |
 | `search and replace` | find and replace | [Find and replace](/docs/sort-filter-search/find-replace) |
 | `value filter` | set filter | [Header filter](/docs/sort-filter-search/header-filter) |
 | `filter item` | filter node | [Filtering](/docs/sort-filter-search/filtering) |

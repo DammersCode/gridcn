@@ -25,17 +25,18 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `commitCellValue` | Validates and writes a value at a `CellRef` without an edit session, as a checkbox does. | [Cell type model](/docs/concepts/cell-type-model) |
 | `commitCellValueAt` | Takes a `ViewCoord` in place of the `CellRef` of `commitCellValue`. | [Cell type model](/docs/concepts/cell-type-model) |
 | `commitChange` | Applies a whole `DataChange` in one write and fires `onDataChange` once. | [Data change events](/docs/events-state/data-change-events) |
-| `deleteRows` | Deletes the rows with the given ids, as one change. The grid skips an id that matches no row. | [Row operations](/docs/rows-pages-menus/row-operations) |
-| `deleteRowsAt` | Deletes the rows at the given view indexes, as one change. | [Row operations](/docs/rows-pages-menus/row-operations) |
+| `deleteRows` | Deletes the rows with the given ids, as one change. The grid skips an id that matches no row. Returns a `RowActionResult`. | [Row operations](/docs/rows-pages-menus/row-operations) |
+| `deleteRowsAt` | Deletes the rows at the given view indexes, as one change. Returns a `RowActionResult`. | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `deleteSelection` | Clears every editable cell of the selection to its empty value, as one change. | [Global shortcuts](/docs/selection-shortcuts/global-shortcuts) |
-| `duplicateRows` | Duplicates the rows with the given ids through `duplicateRow`, as one change. | [Row operations](/docs/rows-pages-menus/row-operations) |
-| `duplicateRowsAt` | Duplicates the rows at the given view indexes through `duplicateRow`, as one change. | [Row operations](/docs/rows-pages-menus/row-operations) |
+| `duplicateRows` | Duplicates the rows with the given ids through `duplicateRow`, as one change. Returns a `RowActionResult`. | [Row operations](/docs/rows-pages-menus/row-operations) |
+| `duplicateRowsAt` | Duplicates the rows at the given view indexes through `duplicateRow`, as one change. Returns a `RowActionResult`. | [Row operations](/docs/rows-pages-menus/row-operations) |
+| `editRows` | Writes whole-row patches as a user edit: `source: "edit"`, one undo entry, and one `onSave`. The `readOnly`, read-only column, and `validate` checks apply. | [Edit rows in forms](/docs/editing-cells/edit-rows-forms) |
 | `extendSelection` | Grows or shrinks the main range by one cell in a direction, or moves its edge to the edge of the view with `toEdge`. | [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation) |
 | `extendTo` | Extends the selection to the cell named by the stable `CellRef`. | [Selection model](/docs/concepts/selection-model) |
 | `extendToAt` | Takes a `ViewCoord` in place of the `CellRef` of `extendTo`. | [Selection model](/docs/concepts/selection-model) |
 | `flashCells` | Plays the fade pulse on the given cells. It is not a data change. | [Read a push verdict](/docs/rows-live-data/read-push-verdict#flash-cells) |
-| `insertRow` | Inserts one row from `createRow` above or below a view index. | [Row operations](/docs/rows-pages-menus/row-operations) |
-| `insertRows` | Inserts `count` rows from `createRow` above or below a view index, as one change. | [Row operations](/docs/rows-pages-menus/row-operations) |
+| `insertRow` | Inserts one row from `createRow` above or below a view index. Returns a `RowActionResult`. | [Row operations](/docs/rows-pages-menus/row-operations) |
+| `insertRows` | Inserts `count` rows from `createRow` above or below a view index, as one change. Returns a `RowActionResult`. | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `moveRowsBy` | Shifts rows by `delta` and keeps the gaps between them. Returns whether rows moved. | [Row order](/docs/rows-pages-menus/row-order) |
 | `previewColumnWidth` | Writes a column width while a resize drag moves. Fires `onColumnResizing`. | [Column sizing](/docs/columns/column-sizing) |
 | `pushRange` | Adds a new range at a `CellRef`, as a Ctrl or Cmd click does. | [Selection model](/docs/concepts/selection-model) |
@@ -58,7 +59,7 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `setColumnHidden` | Shows or hides a column. | [Column visibility](/docs/columns/column-visibility) |
 | `setColumnLayout` | Applies a partial `ColumnLayout` as one commit. Omitted parts keep their value. | [Column visibility](/docs/columns/column-visibility) |
 | `setColumnOrder` | Moves a column, or a column group, before or after another column. | [Column order and pinning](/docs/columns/column-order-pinning) |
-| `setColumnPin` | Pins a column with `"left"` or `"right"`, or unpins it with `null`. | [Column order and pinning](/docs/columns/column-order-pinning) |
+| `setColumnPin` | Pins a column to `"start"` or `"end"`, or unpins it with `null`. | [Column order and pinning](/docs/columns/column-order-pinning) |
 | `setColumnWidth` | Sets a column width and fires `onColumnLayoutChange` once, as a resize release does. | [Column sizing](/docs/columns/column-sizing) |
 | `setFilters` | Replaces the filter tree. | [Filtering](/docs/sort-filter-search/filtering) |
 | `setPage` | Shows a page of the view. Pages start at 1. Calls `onPageChange`. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
