@@ -218,7 +218,7 @@ function AgentsPanel() {
       <div className={`w-full max-w-md ${installFit}`}>
         <InstallCommand command="skills add DammersCode/gridcn" />
       </div>
-      <TileGrid className="grid-cols-1 md:grid-cols-2">
+      <TileGrid className="grid-cols-1">
         {agentSkills.map(({ icon: Icon, title, text }) => (
           <li key={title} className="bg-card">
             <Link href={`/docs/try-automate/use-agent-skills#${title}`} className={tile}>
@@ -236,12 +236,12 @@ function AgentsPanel() {
 function AddOnsPanel() {
   return (
     <Panel id="addons" title="Modular by design" intro="Each add-on is a separate registry item. Install only the ones you want.">
-      <TileGrid className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+      <TileGrid className="grid-cols-2 sm:grid-cols-3 xl:grid-cols-6">
         {addOnTiles.map(({ icon: Icon, title, href }) => (
           <li key={title} className="bg-card">
             <Link
               href={href}
-              className={`flex h-full min-h-16 flex-col items-center justify-center gap-1.5 p-2 text-center text-sm transition-colors hover:bg-muted lg:min-h-12 lg:flex-row lg:justify-start lg:px-3 lg:text-start ${focus}`}
+              className={`flex h-full min-h-16 flex-col items-center justify-center gap-1.5 p-2 text-center text-sm transition-colors hover:bg-muted ${focus}`}
             >
               <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
               {title}

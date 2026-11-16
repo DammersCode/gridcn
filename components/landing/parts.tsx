@@ -48,7 +48,7 @@ export function PerfStats() {
 
 export function ServerHighlights() {
   return (
-    <ul className="grid gap-px border bg-border sm:grid-cols-2 lg:grid-cols-3">
+    <ul className="grid gap-px border bg-border md:grid-cols-3">
       {serverHighlights.map((h) => (
         <li key={h.title} className="bg-card">
           <Link href={h.href} className={`flex h-full flex-col gap-1 p-4 transition-colors hover:bg-muted ${focus}`}>

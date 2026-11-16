@@ -51,6 +51,12 @@ describe("landing page links", () => {
   });
 });
 
+describe("landing kit tiles", () => {
+  it("fill a 2, 3 and 4 column grid without a gap", () => {
+    for (const columns of [2, 3, 4]) expect(kitTiles.length % columns, `${columns} columns`).toBe(0);
+  });
+});
+
 describe("landing add-on tiles", () => {
   const registry = JSON.parse(readFileSync(join(root, "registry.json"), "utf8")) as { items: { name: string; type: string }[] };
   const blocks = registry.items.filter((i) => i.type === "registry:block").map((i) => i.name);

@@ -27,6 +27,20 @@ const sectionBox = (id: string) => {
   return r ? { left: r.left, right: r.right, top: r.top, bottom: r.bottom } : null;
 };
 
+const gridRows = () =>
+  [...document.querySelectorAll<HTMLElement>("main ul")]
+    .filter((ul) => getComputedStyle(ul).display === "grid" && ul.getClientRects().length > 0)
+    .map((ul) => {
+      const rows = new Map<number, number>();
+      for (const li of ul.children) {
+        const top = Math.round(li.getBoundingClientRect().top);
+        rows.set(top, (rows.get(top) ?? 0) + 1);
+      }
+      return { name: (ul.closest("section")?.querySelector("h2")?.textContent ?? "?") + ` (${ul.children.length} items)`, perRow: [...rows.values()] };
+    });
+
+const gridWidths = [375, 768, 1024, 1280, 1440];
+
 describe.skipIf(!url)("landing layout", () => {
   let browser: Browser;
   beforeAll(async () => {
@@ -58,5 +72,18 @@ describe.skipIf(!url)("landing layout", () => {
       const verticalOverlap = Math.min(perf!.bottom, news!.bottom) - Math.max(perf!.top, news!.top);
       expect(verticalOverlap).toBeLessThanOrEqual(0);
     });
+  }
+
+  for (const width of gridWidths) {
+    for (const colorScheme of ["light", "dark"] as const) {
+      it(`${width}px ${colorScheme}: every tile grid fills every row`, async () => {
+        const page = await browser.newPage({ viewport: { width, height: 800 }, colorScheme });
+        await page.goto(url as string);
+        const grids = await page.evaluate(gridRows);
+        await page.close();
+        expect(grids.length).toBeGreaterThan(3);
+        expect(grids.filter((g) => new Set(g.perRow).size > 1).map((g) => `${g.name}: ${g.perRow.join(",")}`)).toEqual([]);
+      });
+    }
   }
 });
