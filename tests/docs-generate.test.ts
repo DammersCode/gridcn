@@ -116,3 +116,22 @@ describe("terms page", () => {
     expect(terms()).not.toContain("left edge");
   });
 });
+
+describe("task finder page", () => {
+  const finder = () => page("(learn)/terms-help/task-finder");
+
+  it("names the data intent as a task", () => {
+    expect(finder()).toContain("## Load and save data [#data-fetching]");
+  });
+
+  it("offers row markers, the context menu, and keyboard navigation", () => {
+    for (const text of ["Show row numbers, checkboxes, and drag handles", "Add a right-click menu to cells", "Move around the grid with the keyboard"]) expect(finder()).toContain(`[${text}]`);
+  });
+
+  it("gives every entry a task phrase, not the noun title of its page", () => {
+    const entries = [...finder().split("## Related")[0]!.matchAll(/^- \[([^\]]+)\]\(/gm)].map((m) => m[1]!);
+    const nouns = ["Sorting", "Filtering", "Quick search", "Find and replace", "URL state", "Saved views", "Validation", "Lookup cell", "Clipboard", "Fill handle", "Undo and redo", "Checked rows", "Column sizing", "Column visibility", "Row operations", "Pinned rows", "Client pagination", "Import", "Export", "Data modes", "Fetch cache"];
+    expect(entries.length).toBeGreaterThan(40);
+    expect(entries.filter((text) => nouns.includes(text))).toEqual([]);
+  });
+});

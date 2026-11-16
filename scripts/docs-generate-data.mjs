@@ -1,47 +1,47 @@
 // Hand-kept inputs of scripts/docs-generate.mjs: which pages answer which task, feature, add-on, and term.
 // The generator fails when a listed page or anchor does not exist.
 
-// A finder entry is a page URL, or [url, text] when the task reads better than the page title.
+// A finder entry is [url, text]: the text names the task that the page does.
 export const FINDER = [
   {
     id: "start",
     title: "Start a grid",
-    pages: ["/docs/learning-path/install-gridcn", "/docs/learning-path/render-your-first-grid", "/docs/learning-path/define-columns", "/docs/learning-path/edit-cells", "/docs/learning-path/style-grid", ["/docs/terms-help/fix-install-problems#blank-grid", "Fix an empty grid"], ["/docs/support-upgrades/adopt-grid-existing-table", "Replace an existing table with the grid"], ["/docs/support-upgrades/server-rendering", "Render the grid on the server"]],
+    pages: [["/docs/learning-path/install-gridcn", "Install gridcn"], ["/docs/learning-path/render-your-first-grid", "Render your first grid"], ["/docs/learning-path/define-columns", "Define columns"], ["/docs/learning-path/edit-cells", "Lock cells and reject bad values"], ["/docs/learning-path/style-grid", "Style the grid"], ["/docs/terms-help/fix-install-problems#blank-grid", "Fix an empty grid"], ["/docs/support-upgrades/adopt-grid-existing-table", "Replace an existing table with the grid"], ["/docs/support-upgrades/server-rendering", "Render the grid on the server"]],
   },
   {
     id: "data-fetching",
-    title: "Data fetching",
-    pages: ["/docs/data-modes", "/docs/server-path/load-server-rows", "/docs/data-modes/move-to-server-rows", ["/docs/save-server/save-edits", "Save edits to your server"], "/docs/data-modes/fetch-cache", "/docs/server-path/handle-failures", ["/docs/save-server/handle-refused-saves#resolve-a-conflict", "Resolve an edit conflict between two users"], "/docs/server-pagination/load-rows-page", "/docs/scroll-mode/load-rows-while-scrolling", ["/docs/rows-live-data/stream-updates", "Stream live updates into the grid"]],
+    title: "Load and save data",
+    pages: [["/docs/data-modes", "Choose where the rows come from"], ["/docs/server-path/load-server-rows", "Load rows from your server"], ["/docs/data-modes/move-to-server-rows", "Move from client rows to server rows"], ["/docs/save-server/save-edits", "Save edits to your server"], ["/docs/data-modes/fetch-cache", "Cache fetched rows"], ["/docs/server-path/handle-failures", "Handle a failed request"], ["/docs/save-server/handle-refused-saves#resolve-a-conflict", "Resolve an edit conflict between two users"], ["/docs/server-pagination/load-rows-page", "Load rows by page"], ["/docs/scroll-mode/load-rows-while-scrolling", "Load rows while the user scrolls"], ["/docs/rows-live-data/stream-updates", "Stream live updates into the grid"]],
   },
   {
     id: "sort-filter-search",
     title: "Sort, filter, and search",
-    pages: ["/docs/sort-filter-search/sorting", "/docs/sort-filter-search/filtering", "/docs/sort-filter-search/quick-search", "/docs/sort-filter-search/find-replace", "/docs/sort-filter-search/url-state", "/docs/sort-filter-search/saved-views", ["/docs/sort-filter-search/toolbar", "Add a toolbar with search and a filter menu"], ["/docs/sort-filter-search/header-filter", "Filter from the column header"]],
+    pages: [["/docs/sort-filter-search/sorting", "Sort rows"], ["/docs/sort-filter-search/filtering", "Filter rows"], ["/docs/sort-filter-search/quick-search", "Search the rows"], ["/docs/sort-filter-search/find-replace", "Find and replace text"], ["/docs/sort-filter-search/url-state", "Keep sort and filters in the URL"], ["/docs/sort-filter-search/saved-views", "Save and restore named views"], ["/docs/sort-filter-search/toolbar", "Add a toolbar with search and a filter menu"], ["/docs/sort-filter-search/header-filter", "Filter from the column header"]],
   },
   {
     id: "editing--access",
     title: "Editing and access",
-    pages: [["/docs/editing-cells/editable-columns", "Make a column editable or read-only"], "/docs/editing-cells/edit-rows-forms", "/docs/editing-cells/validation", "/docs/editing-cells/validate-rows-cross-field", "/docs/editing-cells/lock-cells-role", "/docs/editing-cells/lookup-cell", ["/docs/editing-cells/built-cell-types", "Use date, select, and other cell types"]],
+    pages: [["/docs/editing-cells/editable-columns", "Make a column editable or read-only"], ["/docs/editing-cells/edit-rows-forms", "Edit a whole row in a form"], ["/docs/editing-cells/validation", "Validate cell values"], ["/docs/editing-cells/validate-rows-cross-field", "Validate a row across fields"], ["/docs/editing-cells/lock-cells-role", "Lock cells by user role"], ["/docs/editing-cells/lookup-cell", "Search options on a server while the user types"], ["/docs/editing-cells/built-cell-types", "Use date, select, and other cell types"]],
   },
   {
     id: "ui-patterns",
     title: "UI patterns",
-    pages: ["/docs/recipes-custom-code/open-detail-panel", "/docs/recipes-custom-code/run-bulk-actions", "/docs/recipes-custom-code/remember-filters-layout"],
+    pages: [["/docs/recipes-custom-code/open-detail-panel", "Open a detail panel from a row"], ["/docs/recipes-custom-code/run-bulk-actions", "Run a bulk action on checked rows"], ["/docs/rows-pages-menus/context-menu", "Add a right-click menu to cells"]],
   },
   {
     id: "select-copy-undo",
     title: "Select, copy, and undo",
-    pages: ["/docs/clipboard-undo/clipboard", "/docs/clipboard-undo/fill-handle", "/docs/clipboard-undo/undo-redo", "/docs/selection-shortcuts/checked-rows", ["/docs/rows-live-data/select-server-rows", "Select every row of a server result"], ["/docs/selection-shortcuts/status-bar", "Show totals of the selected cells"]],
+    pages: [["/docs/clipboard-undo/clipboard", "Copy and paste cells"], ["/docs/clipboard-undo/fill-handle", "Fill cells by dragging"], ["/docs/clipboard-undo/undo-redo", "Undo and redo edits"], ["/docs/selection-shortcuts/checked-rows", "Check rows and act on them"], ["/docs/rows-live-data/select-server-rows", "Select every row of a server result"], ["/docs/selection-shortcuts/status-bar", "Show totals of the selected cells"], ["/docs/selection-shortcuts/keyboard-navigation", "Move around the grid with the keyboard"]],
   },
   {
     id: "columns-rows",
     title: "Columns and rows",
-    pages: ["/docs/columns/column-sizing", ["/docs/columns/column-order-pinning", "Pin or freeze columns"], "/docs/columns/column-visibility", ["/docs/columns/column-headers-groups", "Keep the header row on top"], "/docs/rows-pages-menus/row-operations", ["/docs/rows-pages-menus/row-order", "Drag rows to reorder them"], "/docs/rows-pages-menus/pinned-rows", "/docs/rows-pages-menus/client-pagination", ["/docs/components-props/data-grid-props#imperative-handle", "Scroll to a row from your own button"], ["/docs/rows-live-data/handle-row-action-results", "Find out why a row action or shortcut did nothing"]],
+    pages: [["/docs/columns/column-sizing", "Size and resize columns"], ["/docs/columns/column-order-pinning", "Pin or freeze columns"], ["/docs/columns/column-visibility", "Hide and show columns"], ["/docs/rows-pages-menus/row-operations", "Insert, duplicate, and delete rows"], ["/docs/rows-pages-menus/row-order", "Drag rows to reorder them"], ["/docs/rows-pages-menus/row-markers", "Show row numbers, checkboxes, and drag handles"], ["/docs/rows-pages-menus/pinned-rows", "Pin rows above or below the body"], ["/docs/rows-pages-menus/client-pagination", "Split the rows into pages"], ["/docs/rows-live-data/handle-row-action-results", "Find out why a row action or shortcut did nothing"]],
   },
   {
     id: "import-export-style",
     title: "Files, style, accessibility, and speed",
-    pages: ["/docs/import-export/import", ["/docs/import-export/export", "Export or print the grid"],["/docs/theme-style-language/colors-radius", "Colors, dark mode, and radius"], "/docs/theme-style-language/labels-i18n", "/docs/theme-style-language/loading-state", ["/docs/theme-style-language/style-overrides", "Color cells, align columns, mark changed rows"], ["/docs/accessibility/screen-reader-support", "Make the grid accessible"], ["/docs/performance/performance-guidance", "Keep a grid with many rows fast"]],
+    pages: [["/docs/import-export/import", "Import a file into the grid"], ["/docs/import-export/export", "Export or print the grid"], ["/docs/theme-style-language/colors-radius", "Colors, dark mode, and radius"], ["/docs/theme-style-language/labels-i18n", "Translate the text the grid shows"], ["/docs/theme-style-language/loading-state", "Show a loading state"], ["/docs/theme-style-language/style-overrides", "Color cells, align columns, mark changed rows"], ["/docs/accessibility/screen-reader-support", "Make the grid accessible"], ["/docs/performance/performance-guidance", "Keep a grid with many rows fast"]],
   },
 ];
 

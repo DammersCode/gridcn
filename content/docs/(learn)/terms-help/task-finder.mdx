@@ -15,81 +15,81 @@ Find the page for the job you want to do. Each link opens the page that does it.
 - [Install gridcn](/docs/learning-path/install-gridcn)
 - [Render your first grid](/docs/learning-path/render-your-first-grid)
 - [Define columns](/docs/learning-path/define-columns)
-- [Edit cells](/docs/learning-path/edit-cells)
+- [Lock cells and reject bad values](/docs/learning-path/edit-cells)
 - [Style the grid](/docs/learning-path/style-grid)
 - [Fix an empty grid](/docs/terms-help/fix-install-problems#blank-grid)
 - [Replace an existing table with the grid](/docs/support-upgrades/adopt-grid-existing-table)
 - [Render the grid on the server](/docs/support-upgrades/server-rendering)
 
-## Data fetching [#data-fetching]
+## Load and save data [#data-fetching]
 
-- [Data mode guide](/docs/data-modes)
-- [Load server rows](/docs/server-path/load-server-rows)
+- [Choose where the rows come from](/docs/data-modes)
+- [Load rows from your server](/docs/server-path/load-server-rows)
 - [Move from client rows to server rows](/docs/data-modes/move-to-server-rows)
 - [Save edits to your server](/docs/save-server/save-edits)
-- [Fetch with a cache](/docs/data-modes/fetch-cache)
-- [Handle failures](/docs/server-path/handle-failures)
+- [Cache fetched rows](/docs/data-modes/fetch-cache)
+- [Handle a failed request](/docs/server-path/handle-failures)
 - [Resolve an edit conflict between two users](/docs/save-server/handle-refused-saves#resolve-a-conflict)
 - [Load rows by page](/docs/server-pagination/load-rows-page)
-- [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling)
+- [Load rows while the user scrolls](/docs/scroll-mode/load-rows-while-scrolling)
 - [Stream live updates into the grid](/docs/rows-live-data/stream-updates)
 
 ## Sort, filter, and search [#sort-filter-search]
 
-- [Sorting](/docs/sort-filter-search/sorting)
-- [Filtering](/docs/sort-filter-search/filtering)
-- [Quick search](/docs/sort-filter-search/quick-search)
-- [Find and replace](/docs/sort-filter-search/find-replace)
-- [URL state](/docs/sort-filter-search/url-state)
-- [Saved views](/docs/sort-filter-search/saved-views)
+- [Sort rows](/docs/sort-filter-search/sorting)
+- [Filter rows](/docs/sort-filter-search/filtering)
+- [Search the rows](/docs/sort-filter-search/quick-search)
+- [Find and replace text](/docs/sort-filter-search/find-replace)
+- [Keep sort and filters in the URL](/docs/sort-filter-search/url-state)
+- [Save and restore named views](/docs/sort-filter-search/saved-views)
 - [Add a toolbar with search and a filter menu](/docs/sort-filter-search/toolbar)
 - [Filter from the column header](/docs/sort-filter-search/header-filter)
 
 ## Editing and access [#editing--access]
 
 - [Make a column editable or read-only](/docs/editing-cells/editable-columns)
-- [Edit rows in forms](/docs/editing-cells/edit-rows-forms)
-- [Validation](/docs/editing-cells/validation)
-- [Validate rows and async checks](/docs/editing-cells/validate-rows-cross-field)
-- [Lock cells by role](/docs/editing-cells/lock-cells-role)
-- [Lookup cell](/docs/editing-cells/lookup-cell)
+- [Edit a whole row in a form](/docs/editing-cells/edit-rows-forms)
+- [Validate cell values](/docs/editing-cells/validation)
+- [Validate a row across fields](/docs/editing-cells/validate-rows-cross-field)
+- [Lock cells by user role](/docs/editing-cells/lock-cells-role)
+- [Search options on a server while the user types](/docs/editing-cells/lookup-cell)
 - [Use date, select, and other cell types](/docs/editing-cells/built-cell-types)
 
 ## UI patterns [#ui-patterns]
 
-- [Open a detail panel](/docs/recipes-custom-code/open-detail-panel)
-- [Run bulk actions](/docs/recipes-custom-code/run-bulk-actions)
-- [Remember filters and layout](/docs/recipes-custom-code/remember-filters-layout)
+- [Open a detail panel from a row](/docs/recipes-custom-code/open-detail-panel)
+- [Run a bulk action on checked rows](/docs/recipes-custom-code/run-bulk-actions)
+- [Add a right-click menu to cells](/docs/rows-pages-menus/context-menu)
 
 ## Select, copy, and undo [#select-copy-undo]
 
-- [Clipboard](/docs/clipboard-undo/clipboard)
-- [Fill handle](/docs/clipboard-undo/fill-handle)
-- [Undo and redo](/docs/clipboard-undo/undo-redo)
-- [Checked rows](/docs/selection-shortcuts/checked-rows)
+- [Copy and paste cells](/docs/clipboard-undo/clipboard)
+- [Fill cells by dragging](/docs/clipboard-undo/fill-handle)
+- [Undo and redo edits](/docs/clipboard-undo/undo-redo)
+- [Check rows and act on them](/docs/selection-shortcuts/checked-rows)
 - [Select every row of a server result](/docs/rows-live-data/select-server-rows)
 - [Show totals of the selected cells](/docs/selection-shortcuts/status-bar)
+- [Move around the grid with the keyboard](/docs/selection-shortcuts/keyboard-navigation)
 
 ## Columns and rows [#columns-rows]
 
-- [Column sizing](/docs/columns/column-sizing)
+- [Size and resize columns](/docs/columns/column-sizing)
 - [Pin or freeze columns](/docs/columns/column-order-pinning)
-- [Column visibility](/docs/columns/column-visibility)
-- [Keep the header row on top](/docs/columns/column-headers-groups)
-- [Row operations](/docs/rows-pages-menus/row-operations)
+- [Hide and show columns](/docs/columns/column-visibility)
+- [Insert, duplicate, and delete rows](/docs/rows-pages-menus/row-operations)
 - [Drag rows to reorder them](/docs/rows-pages-menus/row-order)
-- [Pinned rows](/docs/rows-pages-menus/pinned-rows)
-- [Client pagination](/docs/rows-pages-menus/client-pagination)
-- [Scroll to a row from your own button](/docs/components-props/data-grid-props#imperative-handle)
+- [Show row numbers, checkboxes, and drag handles](/docs/rows-pages-menus/row-markers)
+- [Pin rows above or below the body](/docs/rows-pages-menus/pinned-rows)
+- [Split the rows into pages](/docs/rows-pages-menus/client-pagination)
 - [Find out why a row action or shortcut did nothing](/docs/rows-live-data/handle-row-action-results)
 
 ## Files, style, accessibility, and speed [#import-export-style]
 
-- [Import](/docs/import-export/import)
+- [Import a file into the grid](/docs/import-export/import)
 - [Export or print the grid](/docs/import-export/export)
 - [Colors, dark mode, and radius](/docs/theme-style-language/colors-radius)
-- [Labels and i18n](/docs/theme-style-language/labels-i18n)
-- [Loading state](/docs/theme-style-language/loading-state)
+- [Translate the text the grid shows](/docs/theme-style-language/labels-i18n)
+- [Show a loading state](/docs/theme-style-language/loading-state)
 - [Color cells, align columns, mark changed rows](/docs/theme-style-language/style-overrides)
 - [Make the grid accessible](/docs/accessibility/screen-reader-support)
 - [Keep a grid with many rows fast](/docs/performance/performance-guidance)
