@@ -1,33 +1,32 @@
 ---
 title: Migrate to 2.0
 icon: Milestone
-description: Move a grid from 1.3 to 2.0. Replace the lazy rows add-on with server rows, move server pages to the server pager, and check the changed defaults.
+description: Move a grid from 1.3 to 2.0. Replace the lazy rows add-on with server rows, apply each breaking change, and check the changed behavior.
 type: task
 aliases: ["migrate to 2.0", "upgrade to 2.0", "data-grid-lazy removed", "from 1.3"]
 ---
 
-Release 2.0 replaces the `data-grid-lazy` add-on with `data-grid-server` and changes some defaults of selection, filters, and pushes. [Changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) lists every breaking change.
+Follow these steps to move a grid from gridcn 1.3 to 2.0. [2.0 breaking changes](/docs/support-upgrades/breaking-changes-2-0) lists each change with its 1.3 form, its 2.0 form, and the change to make.
 
-Upgrade to 1.3.0 and commit your work first. For an older version, apply the **Breaking:** entries up to 1.3.0.
+Upgrade to 1.3.0 and commit your work first. For an older version, apply the **Breaking:** entries up to 1.3.0, as [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn) shows.
 
 ## Steps [#steps]
 
-1. Reinstall the core and each add-on that you use, as [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn) shows.
-2. If you used `data-grid-lazy`, move the grid to `data-grid-server` as [Server rows](#server-rows) shows. Then delete the `components/data-grid-lazy/` folder, which a reinstall does not remove.
-3. Rename the identifiers in the tables below, and check each behavior change and the [changed defaults](#changed-defaults).
-4. Run `npx tsc --noEmit` and your tests. A removed or renamed export fails the type check.
+1. Reinstall the core and each add-on that you use, as [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn#updating-installed-code) shows. Leave out `data-grid-lazy`, because 2.0 has no such item. If you used it, install `data-grid-server` instead.
+2. If you used `data-grid-lazy`, move each grid to `useDataGridServerRows`, as [Server rows](#server-rows) shows. Then delete the `components/data-grid-lazy/` folder. A reinstall does not remove it.
+3. Run `npx tsc --noEmit`. Each error names a removed or renamed identifier. Find the identifier on [2.0 breaking changes](/docs/support-upgrades/breaking-changes-2-0) and apply its row.
+4. Search your CSS and selectors for `data-pinned="left"`, `data-grid-pin-shadow`, `data-scrolled-left`, and `--grid-pin-shadow-left-x`, and their `right` forms. Rename them as the [pin rows](/docs/support-upgrades/breaking-changes-2-0#pin-shadow) show. The type check does not see these names.
+5. Check the behavior changes, which compile without an error:
+   - Sorting: the [sort language](/docs/support-upgrades/breaking-changes-2-0#sort-locale), the [text order](/docs/support-upgrades/breaking-changes-2-0#text-collator), and the [callback timing](/docs/support-upgrades/breaking-changes-2-0#callback-timing).
+   - Selection: the [checkbox state](/docs/support-upgrades/breaking-changes-2-0#checked-rows-only).
+   - Editing: [Delete and Cut](/docs/support-upgrades/breaking-changes-2-0#delete-validates), [number text](/docs/support-upgrades/breaking-changes-2-0#number-rejects), and [bulk writes on `"warn"` columns](/docs/support-upgrades/breaking-changes-2-0#warn-bulk).
+   - Columns: the [def `pin` and `hidden`](/docs/support-upgrades/breaking-changes-2-0#pin-hidden-seed) and the [cell `z-index`](/docs/support-upgrades/breaking-changes-2-0#cell-z-index).
+   - Keys: the [default chords](/docs/support-upgrades/breaking-changes-2-0#default-chords).
+   - Server data: [stream writes](/docs/support-upgrades/breaking-changes-2-0#stream-readonly), the [URL page size](/docs/support-upgrades/breaking-changes-2-0#url-page-size), and the [request delay](/docs/support-upgrades/breaking-changes-2-0#load-delay).
+   - Export: the [XLSX cell types](/docs/support-upgrades/breaking-changes-2-0#xlsx-typed).
+6. Run your tests.
 
-### Changed defaults [#changed-defaults]
-
-- If you add `totalRowCount`, `sortMode` and `filterMode` default to `"server"`. Set both to `"client"` to sort or filter the window in the browser.
-- Text sorts use the `locale` prop, then `"en-US"`, not the runtime language. The tag sets text range filters and value lists too. Pass it on server and browser.
-- `pasteFromClipboard` resolves `"refused"` when the grid starts no paste, where 1.3 resolved `"empty"`. `"empty"` means no text on the clipboard.
-- `labels.contextMenu.pasteBlocked` and `clipboardFailed` can be a function of the modifier key. Handle both forms where you read them.
-- Every body cell carries an integer `z-index`, so a `z-*` class from `cellClassName` or `getCellClassName` does not change its stacking. Portal a popup that must sit above other cells.
-
-### Callback timing [#callbacks]
-
-In 1.3, `onSortChange`, `onFilterChange`, and `onSearchTextChange` fired before the write, and a throw stopped it. In 2.0, a callback fires after the write. A throw keeps the write, and the grid rethrows it after the other [callbacks](/docs/events-state/event-shapes#callback-errors).
+The type check and the tests pass. Each grid sorts, checks rows, and writes data as your code expects.
 
 ## Server rows [#server-rows]
 
@@ -77,60 +76,9 @@ export function OrdersGrid() {
 
 Scroll mode starts a block request after `loadDelayMs` milliseconds (default 100). Pass `loadDelayMs: 0` for the 1.3 timing. It keeps at most `maxLoadedRows` rows (default 10,000). `Infinity` keeps every row.
 
-### Pushes and row operations [#pushes]
-
-- A stream call takes at most 100,000 patches. The rest skip as `"limit"`.
-- `updateCells` and `updateRows` default to `source: "stream"`, which skips read-only checks. Pass `source: "edit"` to keep them. Such a call into a `readOnly` grid warns once in development.
-- In a scroll-mode grid, `deleteRows`, `duplicateRows`, `insertRow`, and `insertRows` do nothing when the target touches an unloaded row.
-
-## Renamed and moved [#renamed]
-
-| 1.3 | 2.0 |
-|---|---|
-| `deleteRows(viewIndexes)`, `duplicateRows(viewIndexes)` | `deleteRows(rowIds)`, `duplicateRows(rowIds)`. The `At` forms take `viewIndexes([2])`. |
-| `setRowSelected`, `setAllRowsSelected` | `setRowCheckedAt`, `setAllRowsChecked`. `setRowChecked(rowId, checked)` takes an id. |
-| `pin: "left"` and `"right"`, `pin-left`, `data-pinned="left"`, `data-scrolled-left`, `--grid-pin-shadow-left-x` | `start` and `end` in each name. The old `pin` values still read. |
-| Def `pin` or `hidden` on a known id | Ignored. Use `setColumnPin`, `setColumnHidden`, `columnLayout`. |
-| `filterOperators`, `filterMatch`, `filterCompare` | `filter: { operators, match, compare }` |
-| `processFill({ values })` | `processFill({ cells })` |
-| Keys of `undo`, `redo`, `fillDown`, `fillRight`, `openFind`, `openFindReplace` in the core | The add-on binds them. Your command [declares the name and binds a key](/docs/plugins/plugin-commands-shortcuts#add-on-actions). |
-| `DataGridKeybindingsShortcut` | `useDataGridKeybindings()` |
-| `validationMode: "warn"` drops invalid bulk values | Paste, fill, `updateCells`, and import accept them and flag them in `cellErrors`. |
-
-## Pagination [#pagination]
-
-- `useDataGridPagination` pages an array on the client and returns `{ pageData, pager }` in place of `{ pageData, controls }`. Its `pageSize` needs `onPageSizeChange`, and `defaultPageSize` seeds the size.
-- Server mode of `useDataGridPagination` moves to `useDataGridServerPager({ page, pageSize, totalRowCount, hasMore, onPageChange })`. It returns `{ pager }` and hides the size select without `onPageSizeChange`. Its options type is `UseDataGridServerPagerOptions`.
-- `total` is `totalRowCount` in the pager and in `useDataGridUrlPagination`. `null` marks an unknown size.
-- `reconcilePage` is gone. A server page outside the range calls `onPageChange` once with the clamped page.
-- To page the grid view, set `pageSize` on the provider instead of `pageData`.
-
-## Filters [#filters]
-
-- `FilterOperator` accepts any string. A `switch` over it needs a default branch. `BuiltInFilterOperator` is the closed set.
-- A grid that a filter or a server search empties shows `labels.grid.noResults` ("No results"). Set that label to keep "No rows".
-
-## Selection [#selection]
-
-- The header checkbox, the row marker checkboxes, the row `aria-selected`, Ctrl+Shift+Space, and the "3 rows checked" announcement read the checked rows only. Ctrl+A selects cells, unchecks every checked row, and ends all matching. To check every row from code, call `setAllRowsChecked(true)`.
-- `checkedRowsLifetime` replaces `keepCheckedRows` and `keepHiddenCheckedRows`. Map your props like this:
-
-| 1.x props | 2.0 prop |
-|---|---|
-| neither | the default: `'until-click'`, or `'across-filters'` with `totalRowCount` |
-| `keepCheckedRows` | `checkedRowsLifetime="until-cleared"` |
-| `keepCheckedRows` and `keepHiddenCheckedRows` | `checkedRowsLifetime="across-filters"` |
-| `keepHiddenCheckedRows` alone | Drop it. It had no effect. |
-
-`useDataGridSelectionConfig()` and the store state return `checkedRowsLifetime` in place of `keepCheckedRows` and `keepHiddenCheckedRows`. A custom `CompactSelectionLike` implements `runs()`.
-
-## Removed exports [#removed-exports]
-
-[Version policy and changelog](/docs/support-upgrades/version-policy-changelog#changelog) lists the names that leave the barrels.
-
 ## Related
 
+- [2.0 breaking changes](/docs/support-upgrades/breaking-changes-2-0): each change with its 1.3 and 2.0 form
 - [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn): reinstall the files and keep your edits
 - [Version policy and changelog](/docs/support-upgrades/version-policy-changelog)
 - [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling)
-- [Save edits](/docs/save-server/save-edits)
