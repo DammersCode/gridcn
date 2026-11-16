@@ -215,3 +215,29 @@ describe("stream into read-only targets", () => {
     expect(onValidationError).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("stream limit warnings", () => {
+  it("warns for the patch cap and the delete cap separately", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const m = mount();
+    const patches = Array.from({ length: 100_001 }, () => ({ rowId: "a", columnId: "note", value: "x" }));
+    const many = Array.from({ length: 100_001 }, (_, i) => `x${i}`);
+    act(() => {
+      m.state().actions.updateCells(patches);
+      m.state().actions.deleteRows(many, { source: "stream" });
+    });
+    expect(warn.mock.calls.filter(([message]) => String(message).includes("100000"))).toHaveLength(2);
+  });
+});
+
+describe("insertRows warnings", () => {
+  it("warns once per grid when there is no createRow", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const m = mount();
+    act(() => {
+      m.state().actions.insertRows(0, 1);
+      m.state().actions.insertRows(0, 1);
+    });
+    expect(warn.mock.calls.filter(([message]) => String(message).includes("createRow"))).toHaveLength(1);
+  });
+});

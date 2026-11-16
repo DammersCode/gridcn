@@ -110,7 +110,6 @@ export type DataWriteContext = {
   /** Asks the mounted `useDataGridServerRows` to refetch the rows; `null` without one. `"urgent"` skips the hook's `reshapeDelayMs`, `"stale"` is a deferred push that marked a row. */
   reshape: ((trigger: "urgent" | "stale") => void) | null;
   warnedReshape: boolean;
-  warnedStreamLimit: boolean;
   /** Aborts every pending `resolveSaveConflict` call; set by {@link createDataWriteActions}, run when the grid unmounts. */
   abortConflicts: (() => void) | null;
   /** The grid's async-gate tracker: pending state and abort for the row operations' consumer hooks. */
@@ -118,7 +117,7 @@ export type DataWriteContext = {
 };
 
 export function createDataWriteContext(rowIndexCache: RowIndexCache, gates: GateTracker): DataWriteContext {
-  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, warnedViewIndexIds: false, warnedUnreceivedWrite: false, pendingEmits: [], writeDepth: 0, pluginApi: null, trackWrite: null, disposed: false, staleRows: new Map(), reshape: null, warnedReshape: false, warnedStreamLimit: false, abortConflicts: null, gates };
+  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, warnedViewIndexIds: false, warnedUnreceivedWrite: false, pendingEmits: [], writeDepth: 0, pluginApi: null, trackWrite: null, disposed: false, staleRows: new Map(), reshape: null, warnedReshape: false, abortConflicts: null, gates };
 }
 
 /** {@link resolveCellRef} plus the once-per-grid dev-warn for a ref that no longer resolves. */
@@ -1131,10 +1130,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     const s = get();
     if (patches.length === 0 || (s.readOnly && (options?.source ?? "stream") !== "stream")) return { applied: 0, skipped: [], pending: false };
     if (patches.length > MAX_STREAM_PATCHES && (options?.source ?? "stream") === "stream") {
-      if (!ctx.warnedStreamLimit) {
-        ctx.warnedStreamLimit = true;
-        warnDev(`a "stream" call takes at most ${MAX_STREAM_PATCHES} patches; the ${patches.length - MAX_STREAM_PATCHES} after them skip with reason "limit". Send smaller batches`);
-      }
+      warnGateOnce("stream patch limit", `a "stream" call takes at most ${MAX_STREAM_PATCHES} patches; the ${patches.length - MAX_STREAM_PATCHES} after them skip with reason "limit". Send smaller batches`);
       const beyond: UpdateCellsSkip[] = [];
       for (let patchIndex = MAX_STREAM_PATCHES; patchIndex < patches.length; patchIndex++) beyond.push({ patchIndex, reason: "limit" });
       const verdict = updateCellsCore(patches.slice(0, MAX_STREAM_PATCHES), options, prevalidatedWarnings);
@@ -1519,11 +1515,11 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       const s = get();
       if (s.readOnly) return skippedBy("insertRows", "readOnly");
       if (!s.createRow) {
-        warnDev("row insertion is a no-op because no `createRow` prop was provided");
+        warnGateOnce("no createRow", "row insertion is a no-op because no `createRow` prop was provided");
         return skippedBy("insertRows", "no-factory");
       }
       if (count <= 0 || !Number.isInteger(count)) {
-        if (count > 0) warnDev(`insertRows: count must be an integer (got ${count})`);
+        if (count > 0) warnGateOnce("insertRows count", `insertRows: count must be an integer (got ${count})`);
         return skippedBy("insertRows", "nothing-to-do");
       }
       if (createRun && !createRun.aborted) {
@@ -1553,9 +1549,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       warnViewIndexIds(ctx, rowIds, "deleteRows");
       const dataRowIndexByRowId = ctx.rowIndexCache.resolve(s.data, s.getRowId);
       if (options?.source === "stream") {
-        if (rowIds.length > MAX_STREAM_PATCHES && !ctx.warnedStreamLimit) {
-          ctx.warnedStreamLimit = true;
-          warnDev(`a "stream" call takes at most ${MAX_STREAM_PATCHES} patches or row ids; the ${rowIds.length - MAX_STREAM_PATCHES} after them are skipped. Send smaller batches`);
+        if (rowIds.length > MAX_STREAM_PATCHES) {
+          warnGateOnce("stream delete limit", `a "stream" call takes at most ${MAX_STREAM_PATCHES} patches or row ids; the ${rowIds.length - MAX_STREAM_PATCHES} after them are skipped. Send smaller batches`);
         }
         const ops: DataOp<unknown>[] = [];
         const seen = new Set<string>();
