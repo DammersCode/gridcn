@@ -8,7 +8,7 @@ function hasHole(data: readonly unknown[]): boolean {
   return false;
 }
 
-/** Warns once per store when a client sort or filter changes while `data` holds unloaded rows. */
+/** Warns once per store when a client sort or filter changes while `data` holds unloaded rows or fewer rows than `totalRowCount`. */
 export function watchClientViewOverHoles(store: StoreApi<DataGridStoreState>): () => void {
   let warned = false;
   return store.subscribe((state, prev) => {
@@ -16,10 +16,10 @@ export function watchClientViewOverHoles(store: StoreApi<DataGridStoreState>): (
     const sortChanged = state.sortMode !== "server" && state.sortState !== prev.sortState;
     const filterChanged = state.filterMode !== "server" && state.filterState !== prev.filterState;
     if (!sortChanged && !filterChanged) return;
-    if (!hasHole(state.data)) return;
+    if (!hasHole(state.data) && !(state.totalRowCount !== undefined && state.totalRowCount > state.data.length)) return;
     warned = true;
     warnDev(
-      'a client sort or filter changed while data holds unloaded rows. The client cannot sort or filter rows it has not fetched; use sortMode="server" and filterMode="server" and send the sort and filter to your backend.',
+      'a client sort or filter changed while data holds unloaded rows or fewer rows than totalRowCount. The client cannot sort or filter rows it has not fetched; use sortMode="server" and filterMode="server" and send the sort and filter to your backend.',
     );
   });
 }
