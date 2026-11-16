@@ -105,8 +105,9 @@ export type DataGridRootProps<TData = unknown> = {
   columnOverscan?: number;
   /**
    * Layout direction. Omitted, the grid reads the direction it inherits from the page (the `dir`
-   * attribute on an ancestor, or the document default) once at mount — so a grid inside
-   * `<html dir="rtl">` is right-to-left with no prop at all. Pass this to force one direction
+   * attribute on an ancestor, or the document default) at mount and again whenever a `dir`
+   * attribute in the document changes — so a grid inside `<html dir="rtl">` is right-to-left with
+   * no prop at all. Pass this to force one direction
    * independent of the page.
    *
    * `"rtl"` mirrors column order, pinned bands, pointer hit-testing, drag gestures, and the
