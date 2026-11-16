@@ -18,7 +18,7 @@ function mount(columns: readonly ColumnDef<Row, unknown>[], extra: Record<string
   render(
     <DataGridProvider defaultData={data} columns={columns} getRowId={(r: Row) => r.id} {...extra}>
       <Probe />
-      <DataGridRoot />
+      <DataGridRoot aria-label="Test" />
     </DataGridProvider>,
   );
   return api;

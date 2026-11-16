@@ -70,7 +70,7 @@ function setupHarness(historyOpts: UseDataGridHistoryOptions<Row> = {}, gridOpts
         onSave={currentGridOpts.onSave as never}
         readOnly={currentGridOpts.readOnly}
       >
-        <DataGridRoot>
+        <DataGridRoot aria-label="Test">
           <Capture />
         </DataGridRoot>
       </DataGridProvider>

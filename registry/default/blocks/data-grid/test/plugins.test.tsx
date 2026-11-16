@@ -66,7 +66,7 @@ function mountGrid(
       onDataChange={extra.onDataChange}
       readOnly={extra.readOnly}
     >
-      <DataGridRoot className="h-[360px]">
+      <DataGridRoot aria-label="Test" className="h-[360px]">
         <DataGridHeader />
         <DataGridBody />
         <StoreCapture />
@@ -363,7 +363,7 @@ describe("plugin identity across renders", () => {
   function Grid({ plugins }: { plugins: readonly DataGridPlugin[] }) {
     return (
       <DataGridProvider data={rows} columns={columns} getRowId={getRowId} plugins={plugins}>
-        <DataGridRoot className="h-[360px]">
+        <DataGridRoot aria-label="Test" className="h-[360px]">
           <DataGridHeader />
           <DataGridBody />
           <StoreCapture />
@@ -430,7 +430,7 @@ describe("plugin identity across renders", () => {
     render(
       <StrictMode>
         <DataGridProvider data={rows} columns={columns} getRowId={getRowId} plugins={[plugin]}>
-          <DataGridRoot className="h-[360px]">
+          <DataGridRoot aria-label="Test" className="h-[360px]">
             <DataGridBody />
             <StoreCapture />
           </DataGridRoot>
@@ -447,7 +447,7 @@ describe("plugin identity across renders", () => {
     const warn = vi.spyOn(console, "warn");
     const first = render(
       <DataGridProvider data={rows} columns={columns} getRowId={getRowId} plugins={[plugin]}>
-        <DataGridRoot className="h-[360px]"><DataGridBody /></DataGridRoot>
+        <DataGridRoot aria-label="Test" className="h-[360px]"><DataGridBody /></DataGridRoot>
       </DataGridProvider>,
     );
     first.unmount();
@@ -463,7 +463,7 @@ describe("plugin identity across renders", () => {
     const warn = vi.spyOn(console, "warn");
     const grid = (key: string) => (
       <DataGridProvider key={key} data={rows} columns={columns} getRowId={getRowId} plugins={[plugin]}>
-        <DataGridRoot className="h-[360px]"><DataGridBody /><StoreCapture /></DataGridRoot>
+        <DataGridRoot aria-label="Test" className="h-[360px]"><DataGridBody /><StoreCapture /></DataGridRoot>
       </DataGridProvider>
     );
     const view = render(grid("1"));
@@ -484,10 +484,10 @@ describe("plugin identity across renders", () => {
     const pair = (aPlugins: readonly DataGridPlugin[], bPlugins: readonly DataGridPlugin[]) => (
       <>
         <DataGridProvider data={rows} columns={columns} getRowId={getRowId} plugins={aPlugins}>
-          <DataGridRoot className="h-[120px]"><DataGridBody /><Capture id="a" /></DataGridRoot>
+          <DataGridRoot aria-label="Test" className="h-[120px]"><DataGridBody /><Capture id="a" /></DataGridRoot>
         </DataGridProvider>
         <DataGridProvider data={rows} columns={columns} getRowId={getRowId} plugins={bPlugins}>
-          <DataGridRoot className="h-[120px]"><DataGridBody /><Capture id="b" /></DataGridRoot>
+          <DataGridRoot aria-label="Test" className="h-[120px]"><DataGridBody /><Capture id="b" /></DataGridRoot>
         </DataGridProvider>
       </>
     );
@@ -513,7 +513,7 @@ describe("plugin identity across renders", () => {
       <>
         {[0, 1].map((i) => (
           <DataGridProvider key={i} data={rows} columns={columns} getRowId={getRowId} plugins={list}>
-            <DataGridRoot className="h-[120px]"><DataGridBody />{i === 1 ? <Capture /> : null}</DataGridRoot>
+            <DataGridRoot aria-label="Test" className="h-[120px]"><DataGridBody />{i === 1 ? <Capture /> : null}</DataGridRoot>
           </DataGridProvider>
         ))}
       </>,
@@ -528,7 +528,7 @@ describe("plugin identity across renders", () => {
     const second = { name: "second", Overlay: () => null } as const;
     const grid = (plugins: readonly DataGridPlugin[]) => (
       <DataGridProvider data={rows} columns={columns} getRowId={getRowId} plugins={plugins}>
-        <DataGridRoot className="h-[360px]"><DataGridBody /><StoreCapture /></DataGridRoot>
+        <DataGridRoot aria-label="Test" className="h-[360px]"><DataGridBody /><StoreCapture /></DataGridRoot>
       </DataGridProvider>
     );
     const view = render(grid([first]));
@@ -546,7 +546,7 @@ describe("plugin identity across renders", () => {
     // re-render the provider with the plugin gone
     render(
       <DataGridProvider data={rows} columns={columns} getRowId={getRowId}>
-        <DataGridRoot className="h-[360px]">
+        <DataGridRoot aria-label="Test" className="h-[360px]">
           <DataGridHeader />
           <DataGridBody />
           <StoreCapture />
@@ -602,7 +602,7 @@ describe("row bands from multiple plugins", () => {
   it("an SSR render with pinned rows has the band heights", () => {
     function SsrGrid() {
       const { plugin } = useDataGridPinnedRows({ topRows: [rows[0]!, rows[1]!] });
-      return <DataGrid data={rows} columns={columns} getRowId={getRowId} rowHeight={40} plugins={[plugin]} />;
+      return <DataGrid aria-label="Test" data={rows} columns={columns} getRowId={getRowId} rowHeight={40} plugins={[plugin]} />;
     }
     const html = renderToString(<SsrGrid />);
     expect(html).toContain("data-grid-pinned-row-band");
@@ -686,7 +686,7 @@ describe("the public surface stays read-only", () => {
       return null;
     }
     render(
-      <DataGrid data={rows} columns={columns} getRowId={getRowId}>
+      <DataGrid aria-label="Test" data={rows} columns={columns} getRowId={getRowId}>
         <ApiCapture />
       </DataGrid>,
     );
@@ -701,7 +701,7 @@ describe("the public surface stays read-only", () => {
       return null;
     }
     render(
-      <DataGrid data={rows} columns={columns} getRowId={getRowId}>
+      <DataGrid aria-label="Test" data={rows} columns={columns} getRowId={getRowId}>
         <ApiCapture />
       </DataGrid>,
     );
@@ -739,7 +739,7 @@ describe("history plugin against the store", () => {
     let data: readonly Row[] | null = null;
     return (
       <DataGridProvider data={data ?? rows} columns={columns} getRowId={getRowId} plugins={[history.plugin]} onDataChange={(next) => (data = next)}>
-        <DataGridRoot className="h-[360px]">
+        <DataGridRoot aria-label="Test" className="h-[360px]">
           <DataGridHeader />
           <DataGridBody />
           <StoreCapture />
@@ -753,7 +753,7 @@ describe("history plugin against the store", () => {
     historyApi = history;
     return (
       <DataGridProvider defaultData={rows} columns={columns} getRowId={getRowId} plugins={[history.plugin]}>
-        <DataGridRoot className="h-[360px]">
+        <DataGridRoot aria-label="Test" className="h-[360px]">
           <DataGridHeader />
           <DataGridBody />
           <StoreCapture />
@@ -799,7 +799,7 @@ describe("history plugin against the store", () => {
       historyApi = history;
       return (
         <DataGridProvider data={rows} columns={columns} getRowId={getRowId} plugins={[history.plugin]} readOnly>
-          <DataGridRoot className="h-[360px]">
+          <DataGridRoot aria-label="Test" className="h-[360px]">
             <DataGridHeader />
             <DataGridBody />
             <StoreCapture />
@@ -831,7 +831,7 @@ describe("fill plugin commands (mod+D / mod+R)", () => {
     function Inner() {
       return (
         <DataGridProvider data={fillRows} columns={columns} getRowId={getRowId} plugins={withPlugin ? [plugin] : []} readOnly={readOnly}>
-          <DataGridRoot className="h-[360px]">
+          <DataGridRoot aria-label="Test" className="h-[360px]">
             <DataGridHeader />
             <DataGridBody />
             <StoreCapture />
