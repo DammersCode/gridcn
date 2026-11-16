@@ -6,9 +6,9 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const BLOCKS = "registry/default/blocks/";
 const KEBAB = "[a-z0-9]+(?:-[a-z0-9]+)*";
-const SUFFIX = "(?:test|browser\.test|type-test|test-helper|perf\.test|property\.test|bench)";
-const PLAIN_NAME = new RegExp(`^${KEBAB}\.tsx?$`);
-const TOPIC_NAME = new RegExp(`^${KEBAB}(?:\.${KEBAB})*\.${SUFFIX}\.tsx?$`);
+const SUFFIX = "(?:test|browser[.]test|type-test|test-helper|perf[.]test|property[.]test|bench)";
+const PLAIN_NAME = new RegExp(`^${KEBAB}[.]tsx?$`);
+const TOPIC_NAME = new RegExp(`^${KEBAB}(?:[.]${KEBAB})*[.]${SUFFIX}[.]tsx?$`);
 const HOOK_EXPORT = /export\s+(?:default\s+)?(?:async\s+)?(?:function|const)\s+use[A-Z]|export\s*\{[^}]*\buse[A-Z]/;
 const MAX_DEPTH = 2;
 
@@ -21,7 +21,7 @@ export function namingProblems(files) {
     const name = basename(path);
     const folder = dirname(path);
     folderFiles.set(folder, (folderFiles.get(folder) ?? 0) + 1);
-    if (!/\.tsx?$/.test(name)) continue;
+    if (!/[.]tsx?$/.test(name)) continue;
     if (!PLAIN_NAME.test(name) && !TOPIC_NAME.test(name)) {
       problems.push(`${path} — name a file in kebab-case with an optional topic infix and a suffix from .test, .browser.test, .type-test, .test-helper, .perf.test, .property.test, .bench`);
     }
@@ -50,7 +50,7 @@ function* walk(dir) {
 function main() {
   const files = [...walk(join(root, "registry", "default", "blocks"))].map((file) => ({
     path: relative(root, file).replaceAll("\\", "/"),
-    text: /\.tsx?$/.test(file) ? readFileSync(file, "utf8") : "",
+    text: /[.]tsx?$/.test(file) ? readFileSync(file, "utf8") : "",
   }));
   const problems = namingProblems(files);
   if (problems.length > 0) {
