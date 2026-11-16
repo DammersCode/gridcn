@@ -3,11 +3,12 @@ title: Validate rows and async checks
 description: Check fields against each other with validateRow or a schema refine, and wait for an async schema on every write path.
 icon: ListChecks
 type: feature
-demos: none
 aliases: ["validaterow", "validate row", "zod refine", "async validation", "cross field validation", "unique value check"]
 ---
 
 A column's `validate` sees one value. This page covers two checks that go beyond it. `validateRow` compares the fields of a row. An async schema waits for a remote answer. Live grids are in the [cross-field example](/docs/validation-examples/cross-field-validation-example) and the [async example](/docs/validation-examples/async-validation-example).
+
+<ComponentPreview name="data-grid-cross-field-demo" />
 
 Before you start, set up column rules as [Validation](/docs/editing-cells/validation) describes. Check the same rules on your server, because validation runs in the browser only.
 
@@ -46,7 +47,7 @@ export function Lines({ lines }: { lines: Line[] }) {
 
 `validateRow` does not run on a row insert or duplicate, because a fresh default row is incomplete. It does not run on a row delete, or after you replace the `data` array.
 
-`validateRow` also runs in these cases:
+`validateRow` runs on more paths:
 
 - `actions.commitChange` inserts or updates rows, for every change source except `"stream"`.
 - An import replaces the data with `delete` and `insert` operations. The grid validates each imported row, and not the deleted rows.
@@ -56,11 +57,11 @@ A newer change that touches the row cancels its pending verdict.
 
 `validateRow` can return a promise. The write commits first. The verdict merges after the promise settles. A newer verdict for the same row replaces a pending one. The grid drops a verdict for a row that is gone. A rejected promise or a thrown error adds no error and keeps the write.
 
-`validateRow` receives `{ signal }` as its third argument. The signal aborts when a newer verdict for the same row replaces this one, when the row is gone, and when the grid unmounts. The grid drops an aborted verdict.
+`validateRow` receives `{ signal }` as its third argument. The signal aborts when a newer verdict replaces this one, the row is gone, `gateTimeoutMs` runs out, or the grid unmounts. The grid drops an aborted verdict.
 
 ### Schema refine rules [#schema-refine-rules]
 
-A column schema receives only the cell value, so its `refine` checks one value. Put a rule that compares fields in `validateRow`. In a paste or a fill, the `row` of a column `validate` is the row as it was before the gesture. To use an object schema, parse the row and map each issue to its column:
+A column schema receives only the cell value, so its `refine` checks one value. Put a rule that compares fields in `validateRow`. To use an object schema, parse the row and map each issue to its column:
 
 ```ts
 import { z } from "zod";
@@ -85,40 +86,28 @@ Pass `validateRow={validateLine}`. For an async `refine`, return the promise of 
 
 ## Check for duplicate values [#duplicate-values]
 
-A column `validate` receives the value and its row, but not the other rows. To refuse a value that another row holds, keep the rows in a ref that `onDataChange` updates:
+A column `validate` sees one value, so it cannot tell whether another row holds it. `unique()` is a `validate` function that does. In a paste or a fill, the `row` of a column `validate` is the row as it was before the gesture. `unique()` also reads the other cells of the gesture:
 
 ```tsx
-"use client";
+import { DataGrid, defineColumns, unique } from "@/components/data-grid/data-grid";
 
-import { useMemo, useRef } from "react";
-import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+type Account = { id: string; email: string };
 
-type Permit = { id: string; plate: string };
+const columns = defineColumns<Account>()([
+  {
+    id: "email",
+    header: "Email",
+    accessorKey: "email",
+    validate: unique({ message: "Email is taken", ignoreCase: true }),
+  },
+]);
 
-const isTaken = (rows: readonly Permit[], id: string, plate: string) =>
-  rows.some((other) => other.id !== id && other.plate === plate);
-
-export function Permits({ permits }: { permits: Permit[] }) {
-  const rows = useRef<readonly Permit[]>(permits);
-  const columns = useMemo(() => defineColumns<Permit>()([{
-    id: "plate",
-    header: "Plate",
-    accessorKey: "plate",
-    validate: (plate: string, row: Permit) =>
-      isTaken(rows.current, row.id, plate) ? "Plate in use" : null,
-  }]), []);
-  return (
-    <DataGrid
-      defaultData={permits}
-      columns={columns}
-      getRowId={(permit) => permit.id}
-      onDataChange={(next) => (rows.current = next)}
-    />
-  );
+export function Accounts({ accounts }: { accounts: Account[] }) {
+  return <DataGrid defaultData={accounts} columns={columns} />;
 }
 ```
 
-The ref holds the rows before the gesture, so two cells of one paste with the same new value both pass.
+`unique()` compares the value with the other rows and with the other cells of the same paste or fill. Blank values pass. On a server grid it sees only the loaded rows, so check uniqueness on the server too. `unique()` takes `message` (default `"Must be unique"`) and `ignoreCase` (default `false`).
 
 ## Wait for an async schema [#async-schemas]
 
@@ -163,8 +152,8 @@ Import validates each cell the same way. It writes an empty value for a rejected
 <Callout type="warn" title="A slow schema makes a slow batch">
   For a large paste against a remote check, validate the block once with `processPaste` of
   [Clipboard](/docs/clipboard-undo/clipboard). A 200 ms call across 10,000 cells takes about 60
-  seconds, and the grid shows no progress. `processPaste` does not cover a fill. A large fill
-  against a remote check runs one call for each cell.
+  seconds, and the grid shows no progress. `processPaste` does not cover a fill, and `gateTimeoutMs`
+  aborts a slow fill like any async `validate`. A large fill against a remote check runs one call for each cell.
 </Callout>
 
 `actions.updateCells(patches, { skipValidation: true })` skips `validate` for a trusted feed.

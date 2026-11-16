@@ -10,16 +10,11 @@ Three props replace one step of copy or paste. Use them to write a cell in your 
 
 ## Before you start
 
-- Mount a grid with `columns` and data.
-- Know that each prop runs for every cell or paste. The `text` and `fromText` fields of the context hold the default, so return them for the cells you do not change.
-
-## Steps
-
-1. Pass `processCellForClipboard` to change the text of a copied cell.
-2. Pass `processCellFromClipboard` to change the value of a pasted cell.
-3. Pass `processPaste` to change or veto the whole pasted block.
+Mount a grid with `columns` and data. Then pass `processCellForClipboard` for the copied text, `processCellFromClipboard` for the pasted values, and `processPaste` for the whole block.
 
 ## Change one cell
+
+Each prop runs for every cell or paste. The `text` and `fromText` fields of the context hold the default, so return them for the cells you do not change.
 
 This sample writes prices with a `$` sign and reads them back:
 
@@ -69,9 +64,18 @@ function MyGrid() {
 
 `signal` is an `AbortSignal`. It aborts when the grid turns `readOnly`, an edit starts, `gateTimeoutMs` runs out, or the grid unmounts. See [Async gates](/docs/editing-cells/cancel-async-gates#cancel-a-request-with-the-signal).
 
-`processPaste` and `processCellFromClipboard` also accept a promise. This function sends the pasted block to your server:
+`processPaste` and `processCellFromClipboard` also accept a promise. `ctx.signal` aborts when `gateTimeoutMs` runs out, the grid turns `readOnly`, or an edit starts. This function sends the pasted block to your server:
 
 ```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string };
+
+const rows: Row[] = [{ id: "1", name: "Pen" }];
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
 async function processPaste({
   cells,
   signal,
@@ -86,15 +90,27 @@ async function processPaste({
   });
   return response.ok ? ((await response.json()) as string[][]) : false;
 }
+
+function MyGrid() {
+  return (
+    <DataGrid
+      defaultData={rows}
+      columns={columns}
+      processPaste={processPaste}
+    />
+  );
+}
 ```
 
-The grid holds the paste until the promise settles, then writes one change. The paste cap applies to the settled grid. A pending promise blocks a second paste. A rejection cancels the paste.
+The grid caps the returned grid at 200,000 cells, so a bad answer cannot grow the paste.
+
+The grid holds the paste until the promise settles, then writes one change. A newer paste replaces the pending one. A rejection cancels the paste.
 
 The grid drops a late result when one of these happens:
 
 - The grid went `readOnly`.
 - A cell editor opened.
-- A newer paste started.
+- A newer paste started and replaced it.
 - The grid unmounted.
 - The row or the column under the paste is gone.
 - A sort or a filter changed.

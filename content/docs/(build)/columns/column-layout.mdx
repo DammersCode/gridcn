@@ -58,7 +58,15 @@ export function SavedLayoutGrid() {
 
   useEffect(() => {
     const saved = localStorage.getItem(LAYOUT_KEY);
-    if (saved) setLayout(JSON.parse(saved) as ColumnLayout);
+    if (!saved) return;
+    try {
+      const parsed: unknown = JSON.parse(saved);
+      if (parsed && typeof parsed === "object") {
+        setLayout(parsed as Partial<ColumnLayout>);
+      }
+    } catch {
+      localStorage.removeItem(LAYOUT_KEY);
+    }
   }, []);
 
   return (
@@ -84,13 +92,15 @@ The grid restores the saved widths, order, pins, and hidden columns after a relo
 
 Each part of `columnLayout` replaces that part. An omitted part stays under the control of the grid. So `columnLayout={{ widths }}` controls widths, and a user reorder survives.
 
+A user change applies at once. The grid applies `columnLayout` again only when the prop is a new object that differs from the current layout. Keep the object stable, for example in state, and store each `onColumnLayoutChange` snapshot in it. `actions.setColumnLayout(parts)` applies a partial layout from code as one change.
+
 The grid cleans a layout before it applies it:
 
 - It drops ids that match no column.
 - It adds columns that `order` does not list after the listed ones, in `columns` order. A `hidden: true` column that `order` does not list stays hidden.
 - It clamps each width to `minWidth` and `maxWidth`.
 - It ignores the pins of a `pinnable: false` column. That column keeps the `pin` of its definition. For every other column, when `pins` is present, a column that it does not list loses its own `pin`.
-- It ignores a part with the wrong shape, so a damaged saved layout does not break the grid.
+- It ignores a part with the wrong shape, and a layout that is `null` or not an object.
 
 To keep order and hidden columns in a shareable link, use the [URL state add-on](/docs/sort-filter-search/url-state#column-layout).
 

@@ -16,7 +16,9 @@ Drag a header sideways to move its column. A drop indicator shows where the colu
 
 A column moves inside its pin zone: start-pinned, unpinned, or end-pinned. A drop in another zone changes nothing, and it does not change the pin.
 
-The keyboard has no reorder shortcut. For your own control, call `setColumnOrder`. The column lands next to the target. The `id` can also name a [column group](/docs/columns/column-headers-groups#column-groups), and then the whole group moves as one block:
+To move a column without a drag, open its header menu with <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowDown</kbd> or a right-click. The [context menu add-on](/docs/rows-pages-menus/context-menu#header-surface) provides it. Choose **Move toward start** or **Move toward end**. A move stays in the pin zone.
+
+For your own control, call `setColumnOrder`. The column lands next to the target. The `id` can also name a [column group](/docs/columns/column-headers-groups#column-groups), and then the whole group moves as one block:
 
 ```tsx
 import { useDataGridActions } from "@/components/data-grid/data-grid";
@@ -31,7 +33,36 @@ function MoveEmailFirst() {
 }
 ```
 
-Render the button inside `DataGridProvider`. `reorderable: false` on a column stops the drag of that column and stops drops onto it. `enableColumnReorder={false}` turns reorder off for the grid and makes `setColumnOrder` do nothing.
+Render the button inside `DataGridProvider`. `setColumnOrder` returns `{ ok: true }`, or `{ ok: false, reason }` when the order stays. `canSetColumnOrder` takes the same arguments and returns the same result without the move, for the `disabled` state of a button.
+
+Two `keymap` actions move the active column, and both are unbound by default. This chord pair is free in the browsers and the OSes:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string; email: string };
+
+const rows: Row[] = [{ id: "1", name: "Ada", email: "ada@example.com" }];
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+  { id: "email", header: "Email", accessorKey: "email" },
+]);
+
+export function MovableColumnsGrid() {
+  return (
+    <DataGrid
+      defaultData={rows}
+      columns={columns}
+      keymap={{
+        moveColumnTowardStart: ["shift+alt+ArrowLeft"],
+        moveColumnTowardEnd: ["shift+alt+ArrowRight"],
+      }}
+    />
+  );
+}
+```
+
+`reorderable: false` on a column stops the drag of that column and stops drops onto it. `enableColumnReorder={false}` turns reorder off for the grid and makes `setColumnOrder` do nothing.
 
 ## Pin to the start or end [#pin-startend]
 

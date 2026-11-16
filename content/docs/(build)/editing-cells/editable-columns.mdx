@@ -27,7 +27,7 @@ While an editor is open, the editor owns the built-in keys. Built-in grid shortc
 
 | Editor | Commits | Cancels |
 |---|---|---|
-| `text`, `number`, `url` | <kbd>Enter</kbd> or <kbd>Shift</kbd>+<kbd>Enter</kbd> moves down. <kbd>Tab</kbd> or a click away stays in place | <kbd>Escape</kbd> |
+| `text`, `number`, `url` | <kbd>Enter</kbd> or <kbd>Shift</kbd>+<kbd>Enter</kbd> moves down. <kbd>Tab</kbd> or a click away commits without moving the active cell | <kbd>Escape</kbd> |
 | `select` | Picking a choice stays in place | <kbd>Escape</kbd>, or closing the list without a pick |
 | `date` | <kbd>Enter</kbd> on the typed date moves down. Picking a day stays in place | <kbd>Escape</kbd>, or closing the popover |
 | `longText` | <kbd>Enter</kbd> moves down. A click away stays in place | <kbd>Escape</kbd> |
@@ -72,9 +72,9 @@ A locked cell rejects typed edits, paste, fill, and clear. Cells in pinned rows 
 
 `onBeforeEditStart` runs before an editor opens on an editable cell, and before a checkbox toggle. Return `false` to refuse the edit or the toggle. A returned promise holds the editor until it settles, and a promise that rejects cancels the edit. While the promise is pending, the grid ignores a second edit start. `gateTimeoutMs` ends a wait that takes too long: see [Cancel async gates](/docs/editing-cells/cancel-async-gates).
 
-A checkbox toggle opens no editor, so `onEditEnd` does not fire for it. Use `readOnly` to lock a checkbox.
+A checkbox toggle opens no editor, so `onEditEnd` does not fire for it. Read toggles from `onDataChange` with `source: "edit"`. Use `readOnly` to lock a checkbox.
 
-`ctx.signal` aborts when the cursor moves to another cell, the edit is cancelled with Escape, the grid turns `readOnly`, or the grid unmounts. This sample refuses the edit of a fixed set of rows:
+`ctx.signal` aborts when the active cell moves, the edit is cancelled with Escape, `gateTimeoutMs` runs out, the grid turns `readOnly`, or the grid unmounts. This sample refuses the edit of a fixed set of rows:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
