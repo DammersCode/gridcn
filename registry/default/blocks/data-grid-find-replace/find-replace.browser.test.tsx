@@ -281,9 +281,9 @@ describe("find and replace in a browser", () => {
     const panel = () => document.querySelector('[role="dialog"]') as HTMLElement;
     const statusLine = () => panel().querySelector('[role="status"]') as HTMLElement;
 
-    async function openPanel(chord = "f") {
+    async function openPanel(chord = "{Control>}f{/Control}") {
       await page.getByRole("gridcell").first().click();
-      await userEvent.keyboard(`{Control>}${chord}{/Control}`);
+      await userEvent.keyboard(chord);
       await expect.element(page.getByRole("textbox", { name: "Find" })).toHaveFocus();
     }
 
@@ -335,7 +335,7 @@ describe("find and replace in a browser", () => {
 
     it("keeps the panel height across empty, matching, and no-result states", async () => {
       await render(<Harness />);
-      await openPanel("h");
+      await openPanel("{Shift>}{Alt>}{Enter}{/Alt}{/Shift}");
       const empty = panel().getBoundingClientRect().height;
       await userEvent.keyboard("needle");
       await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("1 of 3 cells");
@@ -349,7 +349,7 @@ describe("find and replace in a browser", () => {
 
     it("keeps the panel height and the full text in the title when a replace leaves more matches", async () => {
       await render(<Harness replaceAllLimit={1} />);
-      await openPanel("h");
+      await openPanel("{Shift>}{Alt>}{Enter}{/Alt}{/Shift}");
       const empty = panel().getBoundingClientRect().height;
       await userEvent.keyboard("needle");
       await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("1 of 3 cells");
@@ -362,7 +362,7 @@ describe("find and replace in a browser", () => {
 
     it("sizes its buttons to at least 32px", async () => {
       await render(<Harness />);
-      await openPanel("h");
+      await openPanel("{Shift>}{Alt>}{Enter}{/Alt}{/Shift}");
       for (const name of ["Toggle replace", "Match case", "Whole cell", "Next match", "Previous match", "Close", "Replace", "Replace all"]) {
         expect(page.getByRole("button", { name, exact: true }).element().getBoundingClientRect().height).toBeGreaterThanOrEqual(32);
       }
@@ -372,7 +372,7 @@ describe("find and replace in a browser", () => {
       await page.viewport(375, 800);
       try {
         await render(<Harness />);
-        await openPanel("h");
+        await openPanel("{Shift>}{Alt>}{Enter}{/Alt}{/Shift}");
         const rect = panel().getBoundingClientRect();
         expect(rect.left).toBeGreaterThanOrEqual(0);
         expect(rect.right).toBeLessThanOrEqual(375);
