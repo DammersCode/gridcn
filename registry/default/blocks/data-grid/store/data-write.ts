@@ -59,6 +59,7 @@ import { viewIndexes, type CellRef, type CompactSelectionLike, type DataChange, 
 import type { BulkResolution } from "../validation/validate-batch";
 import { candidateRowIds, isBulkBatchCurrent, reresolveBulkWrites, snapshotBulkBatch } from "../validation/bulk-generation";
 import { resolveClearWrites, type ClearWrite } from "./clear-writes";
+import { markChangedRows } from "./changed-rows";
 import { nextAnnouncement } from "./announcements";
 import { clearStaleRows, followStaleRows, markStaleRows, pruneStaleRows, requestReshape, staleStateAfterPrune } from "./server-stale";
 import type { AnyColumnDef, CellErrorEntry, CellPatch, DataGridActions, DataGridInternalActions, DataGridStoreState, UpdateCellsSkip, RowActionName, RowActionResult, RowActionSkipReason, UpdateCellsVerdict } from "./types";
@@ -157,6 +158,7 @@ export function writeThenEmit(
   write: () => void,
 ): void {
   followStaleRows(ctx, change.ops);
+  markChangedRows(s.actions, change, (rowId) => next[ctx.rowIndexCache.resolve(next, s.getRowId).get(rowId) ?? -1]);
   if (s.dataControlled && !s.onDataChange && !s.onSave && change.source !== "rollback" && !ctx.warnedUnreceivedWrite) {
     ctx.warnedUnreceivedWrite = true;
     warnDev("data is controlled and no onDataChange receives this change, so the grid drops it on the next render. Pass onDataChange, use defaultData, or set readOnly.");

@@ -141,6 +141,8 @@ export const GRID_ATTR = {
   saveStatus: "data-save-status",
   /** row.tsx: present (`""`) on a row that a push changed in a column the server spec reads, until the server delivers it again. */
   rowStale: "data-row-stale",
+  /** row.tsx: present (`""`) on a row that a user edit, paste, fill, clear, cut, replace, import, or row operation wrote; an undo, a push, or new `data` clears it. */
+  rowChanged: "data-row-changed",
   /** root.tsx: the names of the consumer hooks whose promise is pending, space separated; absent while none is. */
   gatePending: "data-gate-pending",
 } as const;
