@@ -124,7 +124,7 @@ The quick-search box highlights and navigates matches in the rows the grid holds
 
 ## Control the spec [#controlled-mode-server-side-sortfilter]
 
-The hook owns the spec. Seed it with `defaultSpec`. Control it with `spec` and `onSpecChange`. A change of the spec content starts the requests over.
+The hook owns the spec. Seed it with `defaultSpec`. Control it with `spec` and `onSpecChange`. A change of the spec content starts the requests over. In pagination mode, the change also goes back to page 1, unless no answer has landed yet.
 
 `serverSpecKey(spec)` returns the spec as a string without the generated filter ids. Use it as a query key or an effect dependency. `ServerSpec` and `serverSpecKey` import from the `data-grid` barrel.
 

@@ -11,7 +11,7 @@ Before you start, [plan server saves](/docs/server-path/plan-server-saves). Your
 
 1. Pass `onError` to `useDataGridServerRows`. It runs once for each failed load.
 2. Pass `onSaveRejected` to the grid. It runs once for each refused save, after the grid reverted the change.
-3. Leave out `errorState`. The built-in error state says `Could not load rows.` and shows a Retry button. It does not show the error message, so `onError` reports that.
+3. Leave out `errorState`. The built-in error state says `Could not load rows.` and shows a Retry button. It does not show the error message, so `onError` reports that. To show your own, pass `errorState` as a node, or as a function that receives `{ error, retry }`.
 
 This grid imports `columns`, `Order`, `loadPage`, `sendChange`, and `notify` from the files of [Load server rows](/docs/server-path/load-server-rows). It reports both failures:
 

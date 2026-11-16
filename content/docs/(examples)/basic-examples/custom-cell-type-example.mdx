@@ -38,9 +38,14 @@ A single separator that matches the decimal separator of the column `locale` is 
 The demo types its columns as `ColumnDef` because `currency` is not a key of `GridCellTypes`. To make `defineColumns` check `type: "currency"` and its options, add the key to `GridCellTypes`:
 
 ```ts
+export {};
+
 declare module "@/components/data-grid/types" {
   interface GridCellTypes {
-    currency: { value: number | null; options: { currency: string } };
+    currency: {
+      value: number | null;
+      options: { currency: string; locale?: string };
+    };
   }
 }
 ```
