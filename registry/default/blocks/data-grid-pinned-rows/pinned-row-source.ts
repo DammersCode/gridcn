@@ -38,9 +38,37 @@ const SOURCES = new WeakSet<object>();
 /** The newest equal source of a held one, so an inline source with new function identities keeps its band and calls the newest functions. */
 const LATEST_SOURCE = new WeakMap<object, PinnedRowSource>();
 
-/** Points `held` at `next`, an equal source from a later render. */
+const REDUCER_VERSIONS = new WeakMap<object, number>();
+const REDUCER_LISTENERS = new WeakMap<object, Set<() => void>>();
+
+function reducerChanged(a: AggregateSpecs<never>, b: AggregateSpecs<never>): boolean {
+  return Object.keys(b).some((key) => typeof b[key] === "function" && a[key] !== b[key]);
+}
+
+/** Points `held` at `next`, an equal source from a later render; a new reducer function makes the band reduce again. */
 export function forwardSource(held: PinnedRowSource, next: PinnedRowSource): void {
-  if (held !== next && held.kind === next.kind) LATEST_SOURCE.set(held, next);
+  if (held === next || held.kind !== next.kind) return;
+  const previous = latestOf(held);
+  LATEST_SOURCE.set(held, next);
+  if (previous.kind !== "aggregate" || next.kind !== "aggregate" || !reducerChanged(previous.specs, next.specs)) return;
+  REDUCER_VERSIONS.set(held, (REDUCER_VERSIONS.get(held) ?? 0) + 1);
+  REDUCER_LISTENERS.get(held)?.forEach((listener) => listener());
+}
+
+/** Counts the reducer function changes forwarded to `source`. */
+export function reducerVersion(source: PinnedRowSource): number {
+  return REDUCER_VERSIONS.get(source) ?? 0;
+}
+
+/** Calls `listener` after a reducer function of `source` changes; returns the unsubscribe. */
+export function subscribeReducers(source: PinnedRowSource, listener: () => void): () => void {
+  let listeners = REDUCER_LISTENERS.get(source);
+  if (!listeners) {
+    listeners = new Set();
+    REDUCER_LISTENERS.set(source, listeners);
+  }
+  listeners.add(listener);
+  return () => listeners.delete(listener);
 }
 
 function latestOf<K extends PinnedRowSource["kind"]>(source: Extract<PinnedRowSource, { kind: K }>): Extract<PinnedRowSource, { kind: K }> {
@@ -52,8 +80,8 @@ export function liveServerOptions(source: Extract<PinnedRowSource, { kind: "serv
   return { ...source.options, fetchAggregates: (request) => latestOf(source).options.fetchAggregates(request), onError: (error) => latestOf(source).options.onError?.(error) };
 }
 
-/** The specs of `source` with each reducer function calling the newest one. */
-export function liveSpecs(source: Extract<PinnedRowSource, { kind: "aggregate" }>): AggregateSpecs<never> {
+/** The specs of `source` with each reducer function calling the newest one; a new `version` gives new function identities, so the aggregate reduces again. */
+export function liveSpecs(source: Extract<PinnedRowSource, { kind: "aggregate" }>, _version = 0): AggregateSpecs<never> {
   return Object.fromEntries(
     Object.entries(source.specs).map(([key, reducer]) => [
       key,

@@ -74,6 +74,17 @@ describe("useDataGridPinnedRows entry identity", () => {
     expect(bandText("bottom")).toContain("200");
   });
 
+  it("shows the value of the newest inline reducer after a re-render", () => {
+    function InlineGrid({ factor }: { factor: number }) {
+      const { plugin } = useDataGridPinnedRows({ bottomRows: [aggregateRow({ price: (values) => values.length * factor })] });
+      return <DataGrid data={data} columns={columns} getRowId={(r) => r.id} plugins={[plugin]} />;
+    }
+    const { rerender } = render(<InlineGrid factor={100} />);
+    expect(bandText("bottom")).toContain("200");
+    rerender(<InlineGrid factor={7} />);
+    expect(bandText("bottom")).toContain("14");
+  });
+
   it("keeps the plugin while the entries stay identical", () => {
     const TOTALS = aggregateRow({ price: "sum" });
     const { result, rerender } = renderHook(() => useDataGridPinnedRows({ bottomRows: [TOTALS] }));

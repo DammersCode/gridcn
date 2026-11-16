@@ -1,8 +1,8 @@
 "use client";
 
-import { useLayoutEffect, useMemo, type ReactNode } from "react";
+import { useCallback, useLayoutEffect, useMemo, useSyncExternalStore, type ReactNode } from "react";
 import { DataGridPinnedRow, type DataGridPinnedRowProps } from "./pinned-row";
-import { liveServerOptions, liveSpecs, type PinnedRowSource } from "./pinned-row-source";
+import { liveServerOptions, liveSpecs, reducerVersion, subscribeReducers, type PinnedRowSource } from "./pinned-row-source";
 import { useDataGridAggregate } from "./use-data-grid-aggregate";
 import { useDataGridServerAggregate, type ServerAggregateStatus } from "./use-data-grid-server-aggregate";
 
@@ -18,7 +18,9 @@ function withCells(cells: Readonly<Record<string, unknown>> | undefined, values:
 
 function AggregateSourceRow(props: SourceRowProps & { source: Extract<PinnedRowSource, { kind: "aggregate" }> }): ReactNode {
   const { source, onStatus: _onStatus, ...rowProps } = props;
-  const specs = useMemo(() => liveSpecs(source), [source]);
+  const subscribe = useCallback((listener: () => void) => subscribeReducers(source, listener), [source]);
+  const version = useSyncExternalStore(subscribe, () => reducerVersion(source), () => reducerVersion(source));
+  const specs = useMemo(() => liveSpecs(source, version), [source, version]);
   const values = useDataGridAggregate(specs, { scope: source.scope });
   const row = useMemo(() => withCells(source.cells, values), [source.cells, values]);
   return <DataGridPinnedRow {...rowProps} row={row} byColumnId />;
