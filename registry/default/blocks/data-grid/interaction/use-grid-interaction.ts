@@ -43,7 +43,7 @@ import { warnDev } from "../store/commit";
 import { allRowsSelectedState } from "../store/hooks";
 import { apiHandleOf } from "../store/api";
 import { getInternalActions } from "../store/internal-actions";
-import { holeRowId, isColumnReadOnly } from "../store/compute";
+import { holeRowId } from "../store/compute";
 import { reportRowActionSkipped } from "../store/row-action-skip";
 import { rowOperationTargets } from "../store/row-operation-targets";
 import { isComposingKey } from "./is-composing-key";
@@ -298,8 +298,6 @@ export function dispatchGridAction(args: {
     if (targets.reason) getInternalActions(storeApi)._skipRowAction(name, targets.reason);
     else if (targets.rows.length > 0) run(targets.rows);
   };
-
-  const activateCell = (coord: ViewCoord): void => getInternalActions(storeApi)._activateCellAt(coord);
 
   const moveAndScroll = (d: { dx: number; dy: number }, opts?: { extend?: boolean; retain?: boolean }) => {
     getInternalActions(storeApi)._moveActiveCell(d, opts);
