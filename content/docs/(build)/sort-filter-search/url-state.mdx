@@ -100,9 +100,8 @@ An older link can carry a `join=or` param. The grid reads it once: when the `fil
 
 ## Behavior
 
-- URL params apply to the store on mount. A missing param keeps the grid's initial state. After that, the store drives the URL.
-- Back and forward navigation applies the URL to the grid. <NewBadge /> `enableNavigationSync` (default `true`) controls it. A param that is missing from the URL clears its sort, filter, or search, and resets its layout part to the starting layout.
-- `useDataGridUrlState()` returns `applyFromUrl()`, the manual form of the same apply. Call it when the URL changed outside the grid's own writes in another way, such as a framework `setSearchParams`. The grid then mirrors the URL. A param that is missing from the URL clears its sort, filter, or search, and resets its layout part to the starting layout. It reads the params of the current render, so call it after your router has updated them.
+- URL params apply to the store on mount and on back and forward navigation. <NewBadge /> `enableNavigationSync` (default `true`) controls the navigation apply. A missing param keeps the initial state on mount. After navigation it clears the sort, filter, or search, and resets the layout part.
+- `useDataGridUrlState()` returns `applyFromUrl()`, the manual form of the navigation apply. Call it when the URL changed in another way, such as a framework `setSearchParams`. It reads the params of the current render, so call it after your router has updated them.
 - `spec` <NewBadge /> lists the synced parts: `"sort"`, `"filter"`, and `"search"` (default all three). `spec={["sort"]}` keeps filter values and search text out of the URL.
 - Every write uses `history: "replace"`, so changes never add browser history entries.
 - Sort and filter writes are immediate. The search input waits for the typing to pause (`inputDebounceMs`) before the store changes.
@@ -135,29 +134,18 @@ The `layout` option picks which parts of the column layout go into the URL. The 
 `useDataGridUrlPagination` syncs `page` and `pageSize` with the URL, apart from `<DataGridUrlState>`. It returns the controlled pair `page`, `pageSize`, `onPageChange`, and `onPageSizeChange`, plus the resolved `pageSizeOptions`. Take `pageSizeOptions` out of the result, spread the rest onto `DataGridProvider`, and pass `pageSizeOptions` to `DataGridPaginationBar`:
 
 ```tsx
-"use client";
-
-import { DataGridProvider, defineColumns } from "@/components/data-grid/data-grid";
+import { DataGridProvider } from "@/components/data-grid/data-grid";
 import { DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
 import { useDataGridUrlPagination } from "@/components/data-grid-url-state/data-grid-url-state";
 
-type Order = { id: string; customer: string };
-
-const columns = defineColumns<Order>()([
-  { id: "customer", header: "Customer", accessorKey: "customer" },
-]);
+type Order = { id: string };
+const columns = [{ id: "id", header: "Order", accessorKey: "id" }] as const;
 
 export function OrdersGrid({ rows }: { rows: Order[] }) {
   const { pageSizeOptions, ...pagination } = useDataGridUrlPagination();
 
   return (
-    <DataGridProvider
-      data={rows}
-      columns={columns}
-      getRowId={(row) => row.id}
-      {...pagination}
-    >
-      {/* grid parts */}
+    <DataGridProvider data={rows} columns={columns} {...pagination}>
       <DataGridPaginationBar pageSizeOptions={pageSizeOptions} />
     </DataGridProvider>
   );

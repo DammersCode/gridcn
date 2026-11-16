@@ -103,9 +103,9 @@ Each surface resolves its items through a function prop of `DataGridContextMenu`
 | `getCellMenuItems` | `CellMenuItemsResolver` | built-in cell items |
 | `getHeaderMenuItems` | `HeaderMenuItemsResolver` | built-in header items |
 
-`getCellMenuItems(ctx, defaults)` receives `ctx` with `rowId`, `viewRowIndex`, `columnId`, `canInsertRow`, and `canDuplicateRow` of the clicked cell. <NewBadge /> `ctx.targetRowIds` lists the row ids that the row items act on: the checked rows, else the rows of the selected cells, else the clicked row. The list is empty while checked rows are hidden or all matching rows are selected, which also turns the built-in row items off. `ctx.actions` holds the grid actions. `getHeaderMenuItems(ctx, defaults)` receives `columnId`, `scrollRoot`, the scroll container element, and `actions`. If the clicked element has no grid ancestor, `scrollRoot` is `null`. The header resolver applies to the right-click header menu and to every `DataGridHeaderDropdown` inside the wrapper.
+`getCellMenuItems(ctx, defaults)` receives `ctx` with `rowId`, `viewRowIndex`, `columnId`, `canInsertRow`, and `canDuplicateRow` of the clicked cell. <NewBadge /> `ctx.targetRowIds` lists the row ids that the row items act on, and `ctx.actions` holds the grid actions. `getHeaderMenuItems(ctx, defaults)` receives `columnId`, `scrollRoot`, the scroll container element, and `actions`. If the clicked element has no grid ancestor, `scrollRoot` is `null`. The header resolver applies to the right-click header menu and to every `DataGridHeaderDropdown` inside the wrapper.
 
-Built-in items have stable ids, so a resolver can keep or drop them by id. The `BuiltInMenuItemId` type lists them, and `GridMenuItemSpec.id` also takes any string for your own items:
+Built-in items have stable ids, so a resolver can keep or drop them by id:
 
 | Surface | Built-in ids, in order |
 | --- | --- |

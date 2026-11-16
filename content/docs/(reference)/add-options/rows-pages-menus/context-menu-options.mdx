@@ -38,6 +38,32 @@ Each resolver receives a context and the built-in items as `defaults`.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-context-menu/menu-items.tsx" name="HeaderMenuItemsCtx" />
 
+## useDataGridRowOps [#usedatagridrowops]
+
+<NewBadge />
+
+`useDataGridRowOps()` returns `{ canCreateRow, canDuplicateRow }`. `canCreateRow` is true when the grid has a `createRow` prop, and `canDuplicateRow` is true when it has a `duplicateRow` prop. The built-in menu reads the same flags. Call it below `DataGridProvider`, for example to disable a custom duplicate button:
+
+```tsx
+import { useDataGridActions } from "@/components/data-grid/data-grid";
+import { useDataGridRowOps } from "@/components/data-grid-context-menu/data-grid-context-menu";
+
+function DuplicateButton({ rowId }: { rowId: string }) {
+  const actions = useDataGridActions();
+  const { canDuplicateRow } = useDataGridRowOps();
+
+  return (
+    <button
+      type="button"
+      disabled={!canDuplicateRow}
+      onClick={() => actions.duplicateRows([rowId])}
+    >
+      Duplicate
+    </button>
+  );
+}
+```
+
 ## Menu item [#gridmenuitemspec]
 
 A menu item is an item or a separator. A separator is `{ id, separator: true }`. An item has these fields:

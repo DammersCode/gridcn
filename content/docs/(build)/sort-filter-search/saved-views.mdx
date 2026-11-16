@@ -114,7 +114,9 @@ const serverViews: DataGridViewsStorage = {
 };
 ```
 
-Pass it as `storage`. A thrown error from `save` shows in the popover with a Retry button, and `onError` receives it. The change stays on screen. Saves that start while another save runs collapse into one, so the last document wins. `createLocalStorageViewsStorage(key)` is the default adapter. `createMemoryViewsStorage(seed?)` keeps views for the life of the page. The default adapter listens to the `storage` event, so a save in one tab reloads the views of another tab on the same key. A custom adapter that offers `subscribe` gets the same reload.
+Pass it as `storage`. A thrown error from `save` shows in the popover with a Retry button, and `onError` receives it. The change stays on screen. Saves that start while another save runs collapse into one, so the last document wins. `createLocalStorageViewsStorage(key)` is the default adapter. `createMemoryViewsStorage(seed?)` keeps views for the life of the page.
+
+The default adapter listens to the `storage` event, so a save in one tab reloads the views of another tab on the same key. A custom adapter that offers `subscribe` gets the same reload.
 
 ## Share a view as text [#share-a-view-as-text]
 

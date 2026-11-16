@@ -85,30 +85,6 @@ function RowTools() {
 - `deleteRowsAt(viewIndexes)` deletes the rows at these view indexes as one change. `viewIndexes([4])` marks plain numbers as view indexes for the `At` forms.
 - `deleteRows(rowIds, options?)` <NewBadge /> deletes the rows with these ids as one change. The grid skips an id that matches no row. `{ source: "stream" }` deletes rows that the server removed. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
 
-`useDataGridRowOps()` from the context menu add-on returns `{ canCreateRow, canDuplicateRow }`. `canCreateRow` is true when the grid has a `createRow` prop, and `canDuplicateRow` is true when it has a `duplicateRow` prop. Read the flags to disable a custom button:
-
-<NewBadge />
-
-```tsx
-import { useDataGridActions } from "@/components/data-grid/data-grid";
-import { useDataGridRowOps } from "@/components/data-grid-context-menu/data-grid-context-menu";
-
-function DuplicateButton({ rowId }: { rowId: string }) {
-  const actions = useDataGridActions();
-  const { canDuplicateRow } = useDataGridRowOps();
-
-  return (
-    <button
-      type="button"
-      disabled={!canDuplicateRow}
-      onClick={() => actions.duplicateRows([rowId])}
-    >
-      Duplicate
-    </button>
-  );
-}
-```
-
 `api.runShortcut(action)` <NewBadge /> from `useDataGridApi` runs what the key of a keymap action runs, on the same rows as the key. A toolbar button needs no target code.
 
 Insert and duplicate shift the selection around the new rows. Under a sort, a new row lands in its sorted position. Under a sort, a filter, or paging, the range collapses onto the active cell. Delete clears the selection, the active cell, and ["all matching"](/docs/rows-live-data/select-server-rows#what-ends-all-matching), but remembered checks of hidden rows stay.
