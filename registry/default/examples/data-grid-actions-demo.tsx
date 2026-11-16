@@ -132,6 +132,7 @@ export default function DataGridActionsDemo(): ReactNode {
         <DataGridProvider
           defaultData={rows}
           columns={columns}
+          duplicateRow={duplicateRow}
         >
           <DataGridRoot className="h-full rounded-none border-none">
             <DataGridHeader />
