@@ -1510,8 +1510,7 @@ describe("row operations under sortMode server", () => {
   });
 
   it("reorderRows is a no-op while the server sort owns the order", () => {
-    vi.spyOn(console, "warn").mockImplementation(() => {});
-    const { result } = renderServer();
+    const { result } = (vi.spyOn(console, "warn").mockImplementation(() => {}), renderServer());
     expect(result.current.actions.reorderRows(0, 2)).toBe(false);
   });
 });

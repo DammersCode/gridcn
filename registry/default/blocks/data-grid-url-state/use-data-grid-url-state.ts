@@ -256,7 +256,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
 
   useEffect(() => {
     if (!enableNavigationSync) return;
-    seenSearchRef.current ??= window.location.search;
+    if (seenSearchRef.current === null) seenSearchRef.current = window.location.search;
     const onPopState = () => {
       if (window.location.search === seenSearchRef.current) return;
       seenSearchRef.current = window.location.search;
