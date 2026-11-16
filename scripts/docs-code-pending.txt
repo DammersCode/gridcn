@@ -7,7 +7,6 @@ content/docs/(build)/columns/column-sizing.mdx#3 fix-pending WP-08
 content/docs/(build)/columns/column-sizing.mdx#4 fix-pending WP-08
 content/docs/(build)/editing-cells/edit-rows-forms.mdx#3 fix-pending WP-08
 content/docs/(build)/editing-cells/lookup-cell.mdx#1 fix-pending WP-08
-content/docs/(build)/clipboard-undo/undo-redo.mdx#3 fix-pending WP-09
 content/docs/(build)/import-export/control-import.mdx#2 fix-pending WP-10
 content/docs/(build)/sort-filter-search/filtering.mdx#2 fix-pending WP-11
 content/docs/(build)/sort-filter-search/find-replace.mdx#2 fix-pending WP-11
