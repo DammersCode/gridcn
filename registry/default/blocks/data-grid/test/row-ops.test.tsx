@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type { ColumnDef, DataChange } from "../types";
 import {
   DataGridProvider,
+  useDataGridActions,
   useDataGridActiveCell,
   useDataGridInternalActions,
   useDataGridEditing,
@@ -450,6 +451,16 @@ describe("reorderRows", () => {
     const wrapper = makeWrapper(onDataChange, {}, [...rows(), { id: "4", name: "Dana", age: 20 }]);
     const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
     act(() => result.current.reorderRows(3, 1));
+    const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(next.map((r) => r.id)).toEqual(["1", "4", "2", "3"]);
+    expect(change.ops).toEqual([expect.objectContaining({ rowId: "4", from: 3, to: 1, beforeRowId: "2", afterRowId: "1" })]);
+  });
+
+  it("a move that commitChange applies without neighbors (an undo) gets them from the data after the batch", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange, {}, [...rows(), { id: "4", name: "Dana", age: 20 }]);
+    const { result } = renderHook(() => useDataGridActions(), { wrapper });
+    act(() => result.current.commitChange({ source: "history", ops: [{ type: "move", rowId: "4", row: { id: "4", name: "Dana", age: 20 }, from: 3, to: 1 }] }));
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(next.map((r) => r.id)).toEqual(["1", "4", "2", "3"]);
     expect(change.ops).toEqual([expect.objectContaining({ rowId: "4", from: 3, to: 1, beforeRowId: "2", afterRowId: "1" })]);
