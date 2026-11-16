@@ -787,18 +787,18 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
 
   let clearGeneration = 0;
   /** Commits clear-to-clearValue() `writes` as one `delete` batch once their validators settle; shared by both delete actions. */
-  const commitClearWrites = (s: DataGridStoreState, requested: ClearWrite[]): void => {
+  const commitClearWrites = (s: DataGridStoreState, requested: ClearWrite[], source: "delete" | "cut"): void => {
     const token = ++clearGeneration;
     const resolution = resolveClearWrites(s, requested);
-    if (!(resolution instanceof Promise)) return writeClears(s, resolution);
+    if (!(resolution instanceof Promise)) return writeClears(s, resolution, source);
     const snapshot = snapshotBulkBatch(s, candidateRowIds(s, requested));
     void resolution.then((resolved) => {
       const now = get();
-      if (token === clearGeneration && !now.readOnly && isBulkBatchCurrent(now, snapshot)) writeClears(now, { ...resolved, writes: reresolveBulkWrites(now, resolved.writes) });
+      if (token === clearGeneration && !now.readOnly && isBulkBatchCurrent(now, snapshot)) writeClears(now, { ...resolved, writes: reresolveBulkWrites(now, resolved.writes) }, source);
     });
   };
 
-  const writeClears = (s: DataGridStoreState, { writes, rejected, warnings }: BulkResolution): void => {
+  const writeClears = (s: DataGridStoreState, { writes, rejected, warnings }: BulkResolution, source: "delete" | "cut"): void => {
     const batch = computeRowEditsBatch(s, writes);
     if (batch) {
       ctx.rowIndexCache.rebase(batch.nextData);
@@ -806,7 +806,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       ctx.lastEmittedData = batch.nextData;
       const validated = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), batch.nextData, batch.ops);
       const cellErrors = mergeCellErrors(validated, warnings);
-      writeThenEmit(ctx, s, batch.nextData, { source: "delete", ops: batch.ops }, () =>
+      writeThenEmit(ctx, s, batch.nextData, { source, ops: batch.ops }, () =>
         set({
           data: batch.nextData,
           cellErrors,
@@ -814,7 +814,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         }),
       );
     }
-    emitBulkRejections("delete", rejected);
+    emitBulkRejections(source, rejected);
   };
 
   const hiddenAfterDelete = (s: DataGridStoreState, ops: readonly DataOp<unknown>[]): Partial<DataGridStoreState> => {
@@ -1449,7 +1449,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           }
         }
       }
-      commitClearWrites(s, writes);
+      commitClearWrites(s, writes, "delete");
     },
     _skipRowAction(action, reason) {
       skippedBy(action, reason);
@@ -1474,7 +1474,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         if (!dataRows.has(dataRowIndex)) return;
         for (const { columnId, value } of cleared) writes.push({ viewRowIndex, columnId, value });
       });
-      commitClearWrites(s, writes);
+      commitClearWrites(s, writes, "cut");
     },
     applyCellUpdates(updates, source, rejected, warnings) {
       const s = get();

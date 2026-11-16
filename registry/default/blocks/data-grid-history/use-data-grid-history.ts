@@ -20,7 +20,7 @@ export type UseDataGridHistoryOptions<TData> = {
   datasetKey?: string | number;
   /**
    * Which `DataChange.source` values go on the undo stack. Defaults to
-   * `["edit", "paste", "fill", "delete", "row-operation", "import", "replace", "app"]`: `"stream"` stays
+   * `["edit", "paste", "fill", "delete", "cut", "row-operation", "import", "replace", "app"]`: `"stream"` stays
    * out because a 100-updates/s `updateCells` feed would otherwise evict the user's whole undo
    * stack within seconds. Pass a list to replace the set, or a function of the defaults to edit it, for
    * example `(defaults) => [...defaults, "stream"]` to record streams too. `"history"`, `"rollback"`,
@@ -71,6 +71,7 @@ const DEFAULT_RECORD_SOURCES: readonly DataChange<unknown>["source"][] = [
   "paste",
   "fill",
   "delete",
+  "cut",
   "row-operation",
   "import",
   "replace",

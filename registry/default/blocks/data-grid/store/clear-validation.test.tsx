@@ -44,7 +44,14 @@ describe("clearing a cell runs its validator", () => {
     const store = mount({}, { onValidationError });
     clear(store, how);
     expect(name(store)).toBe("Ada");
-    expect(onValidationError).toHaveBeenCalledWith({ source: "delete", rejected: [expect.objectContaining({ rowId: "a", columnId: "name", message: "Required" })] });
+    expect(onValidationError).toHaveBeenCalledWith({ source: how, rejected: [expect.objectContaining({ rowId: "a", columnId: "name", message: "Required" })] });
+  });
+
+  it.each(["delete", "cut"] as const)("%s writes one change with its own source", (how) => {
+    const onDataChange = vi.fn();
+    const store = mount({ validate: undefined }, { onDataChange });
+    clear(store, how);
+    expect(onDataChange).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ source: how }));
   });
 
   it("a validationMode warn column clears and flags the cell", () => {
@@ -81,7 +88,7 @@ describe("clearing a cell waits for an async schema", () => {
     clear(store, how);
     await settle();
     expect(name(store)).toBe("Ada");
-    expect(onValidationError).toHaveBeenCalledWith({ source: "delete", rejected: [expect.objectContaining({ rowId: "a", columnId: "name", message: "Required" })] });
+    expect(onValidationError).toHaveBeenCalledWith({ source: how, rejected: [expect.objectContaining({ rowId: "a", columnId: "name", message: "Required" })] });
   });
 
   it("clears once an accepting schema settles, and drops the held clear on a readOnly grid", async () => {

@@ -235,7 +235,7 @@ export type DataChange<TData> = {
    * `"id-swap"` tags `replaceRowId`, which swaps a row's id for the server's.
    * `onSave` never receives a `"rollback"`, a `"stream"` or an `"id-swap"` change.
    */
-  source: "edit" | "paste" | "fill" | "delete" | "row-operation" | "import" | "history" | "rollback" | "merge" | "id-swap" | "stream" | "replace" | "app";
+  source: "edit" | "paste" | "fill" | "delete" | "cut" | "row-operation" | "import" | "history" | "rollback" | "merge" | "id-swap" | "stream" | "replace" | "app";
   /** Optional human-readable label for this entry (e.g. "Batch save rollback"); carried through the undo/redo stack as-is. */
   label?: string;
   /** On a `source: "rollback"` or `"merge"` change: the change this one reverts. */
@@ -329,12 +329,12 @@ export type GridEditEndEvent = ViewCellRef & { result: "commit" | "cancel" | "re
 export type GridBulkValidationError = { rowId: string; columnId: string; viewRowIndex: number; value: unknown; message: string };
 
 /**
- * Fired by `onValidationError` after a bulk paste, a fill, a Delete or Cut clear (`"delete"`), an `updateCells` call (`"stream"`, or `"replace"` for a find-and-replace batch), or an `editRows` save or a checkbox toggle (`"edit"`)
+ * Fired by `onValidationError` after a bulk paste, a fill, a Delete clear (`"delete"`), a Cut (`"cut"`), an `updateCells` call (`"stream"`, or `"replace"` for a find-and-replace batch), or an `editRows` save or a checkbox toggle (`"edit"`)
  * settles, ONLY when at least one cell was rejected — the accepted cells are already applied
  * (their `onDataChange`/`onSelectionChange` fire first). `rejected` lists every refused cell with
  * its validator's message.
  */
-export type GridValidationErrorEvent = { source: "paste" | "fill" | "stream" | "replace" | "delete" | "edit"; rejected: GridBulkValidationError[] };
+export type GridValidationErrorEvent = { source: "paste" | "fill" | "stream" | "replace" | "delete" | "cut" | "edit"; rejected: GridBulkValidationError[] };
 
 /** Fired on a double-click on any non-pinned, non-skeleton cell — a pure notification in the {@link OnCellClick} sense (no veto), fired regardless of readOnly. */
 export type OnCellDoubleClick<TData> = (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;

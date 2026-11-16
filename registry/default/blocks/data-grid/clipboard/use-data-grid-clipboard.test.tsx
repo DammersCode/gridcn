@@ -369,7 +369,7 @@ describe("useDataGridClipboard.copy/cut outcomes", () => {
     const outcome = await act(async () => result.current.clipboard.cut());
     expect(outcome).toBe("ok");
     expect(onDataChange).toHaveBeenCalledTimes(1);
-    expect((onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>])[1].source).toBe("delete");
+    expect((onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>])[1].source).toBe("cut");
   });
 
   it("resolves 'no-selection' for copy and cut when nothing is selected", async () => {
@@ -431,7 +431,7 @@ describe("useDataGridClipboard.copy/cut outcomes", () => {
     const outcome = await act(async () => result.current.clipboard.cut());
     expect(outcome).toBe("fallback");
     expect(onDataChange).toHaveBeenCalledTimes(1);
-    expect((onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>])[1].source).toBe("delete");
+    expect((onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>])[1].source).toBe("cut");
   });
 
   it("cut still clears a whole-column range when a sort during the write keeps its records", async () => {
