@@ -55,7 +55,9 @@ The result is a `ServerAggregateResult`:
 
 ## useDataGridAggregate [#usedatagridaggregateoptions]
 
-`useDataGridAggregate(specs, options)` takes a `specs` object with one reducer for each column id. It returns a `{ [columnId]: value }` object. Use it to read the totals inside the provider. It recomputes when the view index, the data, the scope, or an entry of `specs` changes. It compares a named reducer by its name and a reducer function by its identity, so an inline `specs` object of named reducers keeps its result. A reducer function in the render recomputes on every render. To skip that work, define the function at module scope or memoize it.
+`useDataGridAggregate(specs, options)` takes a `specs` object with one reducer for each column id. It returns a `{ [columnId]: value }` object. Use it to read the totals inside the provider. It recomputes when the view index, the data, the scope, or an entry of `specs` changes. It compares a named reducer by its name and a reducer function by its identity.
+
+An inline `specs` object of named reducers keeps its result. A reducer function in the render recomputes on every render. To skip that work, define the function at module scope or memoize it.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-pinned-rows/use-data-grid-aggregate.ts" name="UseDataGridAggregateOptions" />
 
