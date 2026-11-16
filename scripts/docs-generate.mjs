@@ -8,7 +8,7 @@ import { pathToFileURL } from "node:url";
 import { frontField, pageIndex, readLf, splitFrontmatter, urlOfPage } from "./docs-verify-lib.mjs";
 import { parseTypes } from "./verify-docs-props.mjs";
 import { MESSAGES, OMITTED } from "./docs-generate-messages.mjs";
-import { FINDER, FEATURES, FEATURE_SINCE, ADDONS, TERM_PAGES, ACTION_PAGES, PROP_PAGES, HOOK_GROUPS, OPTION_GROUPS } from "./docs-generate-data.mjs";
+import { FINDER, FEATURES, FEATURE_SINCE, ADDONS, TERM_PAGES, ACTION_PAGES, PROP_PAGES, HOOK_GROUPS, OPTION_GROUPS, OPTION_PURPOSE } from "./docs-generate-data.mjs";
 
 const root = process.cwd();
 const BLOCKS = "registry/default/blocks";
@@ -729,22 +729,45 @@ function hooksZ() {
 // ---------------------------------------------------------------- options
 const OPTION_NAME = /^[A-Za-z_$][\w$]*$/;
 
+/** An owner is a symbol in a code span; "useX pages mode" is the symbol with its mode, and "lookup cell type" is plain text. */
+function ownerText(owner) {
+  const [symbol, ...mode] = owner.split(" ");
+  if (!OPTION_NAME.test(symbol) || !/^(use|[A-Z]|[a-z]+[A-Z])/.test(symbol)) return owner;
+  return mode.length ? `${code(symbol)} (${mode.join(" ")})` : code(symbol);
+}
+
+/** Source of the JSDoc of option `name`: the AutoTypeTable types of the page that documents the row, the type named like the owner first. */
+function optionPurpose(row, name) {
+  const override = OPTION_PURPOSE[`${row.owners[0]}.${name}`];
+  if (override) return override;
+  const owner = row.owners[0].toLowerCase().replace(/[^a-z]/g, "");
+  const declared = [...(pages.get(row.page.split("#")[0])?.body ?? "").matchAll(/<AutoTypeTable path="([^"]+)" name="(\w+)"/g)].map((m) => ({ file: m[1].replace(/^\.\//, ""), type: m[2] }));
+  declared.sort((a, b) => Number(b.type.toLowerCase().startsWith(owner)) - Number(a.type.toLowerCase().startsWith(owner)));
+  for (const { file, type } of declared) {
+    const text = jsdocOf(file, type, name);
+    if (text) return cell(tidy(text));
+  }
+  problems.push(`options: no purpose for ${row.owners[0]}.${name}; add it to OPTION_PURPOSE`);
+  return "";
+}
+
 function optionsZ() {
   const taken = new Set();
   const optionRows = [];
   for (const group of OPTION_GROUPS) {
     for (const row of group.rows) {
-      const owners = row.owners.map(code).join(", ");
+      const owners = row.owners.map(ownerText).join(", ");
       const target = link(row.page);
-      for (const name of row.names.filter((n) => OPTION_NAME.test(n))) optionRows.push({ name, owners, target, key: `${name}-${row.owners[0]}` });
+      for (const name of row.names.filter((n) => OPTION_NAME.test(n))) optionRows.push({ name, owners, target, purpose: optionPurpose(row, name), key: `${name}-${row.owners[0]}` });
     }
   }
   optionRows.sort((a, b) => a.name.localeCompare(b.name) || a.owners.localeCompare(b.owners));
-  const byName = table(["Option", "Used by", "Page"], optionRows.map((r) => {
+  for (const r of optionRows) checkCell(`options: ${r.name} of ${r.owners}`, r.purpose);
+  const byName = table(["Option", "Purpose", "Used by", "Page"], optionRows.map((r) => {
     let id = r.key.toLowerCase().replace(/[^a-z0-9]+/g, "-");
     for (let n = 2; taken.has(id); n++) id = `${id}-${n}`;
     taken.add(id);
-    return [`<span id="${id}" />${code(r.name)}`, r.owners, r.target];
+    return [`<span id="${id}" />${code(r.name)}`, r.purpose, r.owners, r.target];
   }));
   const grouped = OPTION_GROUPS.flatMap((group) => [
     `### ${group.title}`,
@@ -752,13 +775,13 @@ function optionsZ() {
     group.intro,
     "",
     ...(group.props ? [`{/* props: ${group.props} */}`, ""] : []),
-    table(["Options", "Used by", "Page"], group.rows.map((row) => [row.names.map((n) => (OPTION_NAME.test(n) ? code(n) : n)).join(", "), row.owners.map(code).join(", "), link(row.page)])),
+    table(["Options", "Used by", "Page"], group.rows.map((row) => [row.names.map((n) => (OPTION_NAME.test(n) ? code(n) : n)).join(", "), row.owners.map(ownerText).join(", "), link(row.page)])),
   ]);
   return [
     frontmatter({ title: "Options A to Z", description: "Find the add-on option you need by name, see which hook or component takes it, and open its reference page.", type: "cheatsheet", icon: "Settings2", aliases: ["add-on options", "option names"] }),
     MARKER,
     "",
-    "The first table has one row for each option. The Used by column names the hook, component, or function that takes it. Each row links to the reference page of that add-on. The second table set groups the options by add-on.",
+    "The first table has one row for each option. The Purpose column gives the first sentence of the option documentation. The Used by column names the hook, component, or function that takes it. Each row links to the reference page of that add-on. The second table set groups the options by add-on.",
     "",
     "## By name [#by-name]",
     "",
