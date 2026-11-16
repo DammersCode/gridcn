@@ -18,7 +18,7 @@ import { gateTrackerOf } from "../store/internal-actions";
 import { exportText } from "../cell-types/display-text";
 import { toSafeText } from "../cell-types/safe-text";
 import { resolveColumnValidate } from "../cell-types/capabilities";
-import { safeFromText } from "../cell-types/safe-from-text";
+import { parseWithHook, safeFromText, settleHookFailure } from "../cell-types/safe-from-text";
 import { candidateRowIds, reresolveBulkWrites, snapshotBulkBatch, useBulkGeneration, type BulkGeneration } from "../validation/bulk-generation";
 
 /** Options for {@link useGridClipboard}. */
@@ -255,10 +255,12 @@ export function buildPasteCandidates(s: DataGridStoreState, cells: string[][], t
 /** Resolves the promised `value` of every candidate; a rejected value rejects the batch. */
 async function settleCandidateValues(candidates: BulkCandidate[]): Promise<BulkCandidate[]> {
   const values = await Promise.all(candidates.map((candidate) => candidate.value));
-  return candidates.map((candidate, i) => ({ ...candidate, value: values[i] }));
+  return candidates.map((candidate, i) => settleHookFailure({ ...candidate, value: values[i] }));
 }
 
-function collectPasteCandidates(s: DataGridStoreState, cells: string[][], target: ViewCoord): { candidates: BulkCandidate[]; pending: number } {
+const pageWarnOnce = createWarnOnce();
+
+function collectPasteCandidates(s: DataGridStoreState, cells: string[][], target: ViewCoord, warnOnce = pageWarnOnce): { candidates: BulkCandidate[]; pending: number } {
   const candidates: BulkCandidate[] = [];
   let pending = 0;
   const rowCount = s.viewIndex.length;
@@ -286,8 +288,9 @@ function collectPasteCandidates(s: DataGridStoreState, cells: string[][], target
 
       const text = sourceRow[c]!; // c < sourceRow.length by loop condition
       const columnValidate = resolveColumnValidate(column, cellType);
-      const { value, validate } = s.processCellFromClipboard
-        ? { value: s.processCellFromClipboard(text, { row, column, fromText: (raw) => cellType.fromText(raw, column.options) }), validate: columnValidate }
+      const { processCellFromClipboard } = s;
+      const { value, validate } = processCellFromClipboard
+        ? parseWithHook("processCellFromClipboard", () => processCellFromClipboard(text, { row, column, fromText: (raw) => cellType.fromText(raw, column.options) }), columnValidate, warnOnce)
         : safeFromText(cellType, text, column.options, columnValidate);
 
       if (isThenable(value)) pending++;
@@ -444,7 +447,7 @@ function runPaste(
     console.warn(`gridcn: paste truncated to ${cappedCells.length} of ${finalCells.length} rows (MAX_PASTE_CELLS)`);
   }
 
-  const { candidates, pending } = collectPasteCandidates(s, cappedCells, target);
+  const { candidates, pending } = collectPasteCandidates(s, cappedCells, target, latch.warnOnce);
   if (pending > 0) {
     latch.gate = "processCellFromClipboard";
     const token = gateToken ?? guard?.begin();
