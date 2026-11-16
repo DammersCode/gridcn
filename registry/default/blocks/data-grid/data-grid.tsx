@@ -135,6 +135,7 @@ export {
   safeHref,
 } from "./cell-types/cell-types";
 export { displayText } from "./cell-types/display-text";
+export { rejectText } from "./cell-types/safe-from-text";
 export { CellSpan } from "./cell-types/cell-span";
 
 export { CompactSelection } from "./selection/compact-selection";

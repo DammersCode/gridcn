@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { currencyCellType } from "./data-grid-custom-cell-demo";
 import type { ColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
+import { UnparseableTextError } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 describe("currencyCellType value pipeline", () => {
   it("fromText strips currency symbols and thousands separators", () => {
@@ -23,10 +24,11 @@ describe("currencyCellType value pipeline", () => {
     expect(currencyCellType.fromText("  99.5  ")).toBeCloseTo(99.5);
   });
 
-  it("fromText never throws on garbage; returns clearValue()'s result (null)", () => {
-    expect(currencyCellType.fromText("not a price")).toBeNull();
-    expect(currencyCellType.fromText("$")).toBeNull();
+  it("fromText refuses garbage with rejectText, so a paste keeps the cell value, and reads blank text as empty", () => {
+    expect(() => currencyCellType.fromText("not a price")).toThrow(UnparseableTextError);
+    expect(() => currencyCellType.fromText("$")).toThrow(UnparseableTextError);
     expect(currencyCellType.fromText("")).toBeNull();
+    expect(currencyCellType.fromText("  ")).toBeNull();
   });
 
   it("toText is the canonical unformatted number, not the display format", () => {

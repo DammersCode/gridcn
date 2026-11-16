@@ -7,6 +7,7 @@ import {
   DataGridHeader,
   DataGridBody,
   defineColumns,
+  rejectText,
   useCellEditor,
   type CellEditorProps,
   type CellRenderProps,
@@ -98,14 +99,14 @@ function CurrencyEditor(props: CellEditorProps<unknown, number | null, CurrencyO
   return <Input ref={ref} {...bindings} className="h-full w-full border-none bg-transparent p-0 text-end shadow-none outline-none focus-visible:ring-0" />;
 }
 
-/** `currency`: number storage, cached locale-formatted display, a locale-aware fromText that never throws. */
+/** `currency`: number storage, cached locale-formatted display, a locale-aware fromText that refuses text with no amount. */
 export const currencyCellType: CellType<unknown, number | null, CurrencyOptions> = {
   Cell: CurrencyCell,
   Editor: CurrencyEditor,
   // toText is the canonical (unformatted) serialization used by copy/export/search
   toText: (value) => (value == null ? "" : String(value)),
   toDisplayText: (value, options) => formatCurrencyDisplay(value, options),
-  fromText: (text, options) => parseAmount(text, options?.locale),
+  fromText: (text, options) => (text.trim() === "" ? null : (parseAmount(text, options?.locale) ?? rejectText(`"${text}" is not an amount`))),
   clearValue: () => null,
   isEmpty: (value) => value == null,
   compare: (a, b) => {

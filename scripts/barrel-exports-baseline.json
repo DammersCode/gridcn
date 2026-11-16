@@ -1,6 +1,7 @@
 {
   "data-grid": [
     "DataGridCell",
+    "rejectText",
     "viewIndexes"
   ]
 }

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { isRejectedText, isUnparseable, parseWithHook, safeFromText, UnparseableTextError } from "./safe-from-text";
+import { isRejectedText, isUnparseable, parseWithHook, rejectText, safeFromText, UnparseableTextError } from "./safe-from-text";
 import { runValidateSync } from "../validation/validate-cell";
 import type { CellType } from "../types";
 
@@ -29,6 +29,18 @@ describe("safeFromText", () => {
     safeFromText(type, "a", undefined, undefined);
     safeFromText(type, "b", undefined, undefined);
     expect(warn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("rejectText", () => {
+  it("refuses the text on purpose: the cell is rejected without the faulty-type warning", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const rating: CellType<unknown, number> = { fromText: (text: string) => (/^[0-5]$/.test(text) ? Number(text) : rejectText()) } as unknown as CellType<unknown, number>;
+    expect(safeFromText(rating, "4", undefined, undefined).value).toBe(4);
+    const parsed = safeFromText(rating, "abc", undefined, undefined);
+    expect(isRejectedText(parsed)).toBe(true);
+    expect(warn).not.toHaveBeenCalled();
+    expect(() => rejectText()).toThrow(UnparseableTextError);
   });
 });
 

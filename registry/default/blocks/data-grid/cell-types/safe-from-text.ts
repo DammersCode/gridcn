@@ -15,6 +15,15 @@ export type ParsedCellText = { value: unknown; validate: CellValidate };
 /** Thrown by a built-in `fromText` for text it deliberately rejects; the cell reports a rejection without the development warning for a faulty type. */
 export class UnparseableTextError extends Error {}
 
+/**
+ * Refuses the text inside a cell type's `fromText`: the cell keeps its value, and the grid reports the
+ * text to `onValidationError`, as the built-in types do. Typed `never`, so it fits any `fromText` return:
+ * `fromText: (text) => parseRating(text) ?? rejectText()`.
+ */
+export function rejectText(message = "The text could not be parsed"): never {
+  throw new UnparseableTextError(message);
+}
+
 const rejectUnparseable = (): string => UNPARSEABLE_MESSAGE;
 const rejectFaulty = (): string => UNPARSEABLE_MESSAGE;
 
@@ -33,7 +42,7 @@ export function safeFromText(
   } catch (error) {
     if (!(error instanceof UnparseableTextError) && isDev() && !warnedTypes.has(cellType)) {
       warnedTypes.add(cellType);
-      console.warn("[data-grid] a cell type's fromText threw; the cell is rejected. fromText must return a value for any text.");
+      console.warn("[data-grid] a cell type's fromText threw; the cell is rejected. Call rejectText() in fromText to refuse text without this warning.");
     }
     return { value: undefined, validate: error instanceof UnparseableTextError ? rejectUnparseable : rejectFaulty };
   }

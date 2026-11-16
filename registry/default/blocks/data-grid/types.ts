@@ -424,7 +424,7 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   toText(value: TValue, options?: TOptions): string;
   /** Optional display-only rendering (e.g. locale-formatted dates); the cell renders `toDisplayText ?? toText`. Clipboard copy and export use `toText`; export with `text: "display"`, print, autosize, header filter set values, and the status bar read `toDisplayText ?? toText`. */
   toDisplayText?(value: TValue, options?: TOptions): string;
-  /** Parse from paste/import/typing; return clearValue()'s result for garbage. A throw rejects the cell on paste, fill, import, and replace. */
+  /** Parse from paste/import/typing. Call `rejectText()` for text it cannot parse: the cell keeps its value on paste, fill, import, and replace, and the grid reports the text. Return `clearValue()`'s result only to empty the cell on purpose. */
   fromText(text: string, options?: TOptions): TValue;
   clearValue(options?: TOptions): TValue;
   isEmpty(value: TValue): boolean;
