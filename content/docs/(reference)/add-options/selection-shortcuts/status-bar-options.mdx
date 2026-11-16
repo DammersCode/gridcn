@@ -8,6 +8,12 @@ aliases: ["aggregates prop", "selection sum", "cell count"]
 
 `DataGridStatusBar` shows the count, sum, average, minimum, and maximum of the selected cells. `useDataGridSelectionStats` returns the same numbers without markup. Both read committed values and change no cell value. Which cells and values count is on [Status bar](/docs/selection-shortcuts/status-bar).
 
+| Symbol | Purpose | Guide |
+| --- | --- | --- |
+| [`DataGridStatusBar`](#datagridstatusbarprops) | Shows the aggregates of the selected cells | [Status bar](/docs/selection-shortcuts/status-bar) |
+| [`useDataGridSelectionStats`](#usedatagridselectionstats) | Returns the same numbers without markup | [Status bar](/docs/selection-shortcuts/status-bar) |
+| [Limits](#limits) | Bound the aggregate walk | [Status bar](/docs/selection-shortcuts/status-bar) |
+
 ## DataGridStatusBar [#datagridstatusbarprops]
 
 Mount the bar inside `DataGridProvider`, next to `DataGridRoot`.
@@ -48,7 +54,9 @@ import {
   DataGridRoot,
   defineColumns,
 } from "@/components/data-grid/data-grid";
-import { DataGridStatusBar } from "@/components/data-grid-status-bar/data-grid-status-bar";
+import {
+  DataGridStatusBar,
+} from "@/components/data-grid-status-bar/data-grid-status-bar";
 
 type Row = { id: string; price: number };
 

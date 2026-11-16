@@ -8,6 +8,15 @@ aliases: ["right-click menu", "header menu items", "menu ids", "custom menu item
 
 `DataGridContextMenu` wraps the grid and opens a menu on right-click and on long-press. `DataGridHeaderDropdown` is the column menu behind the header chevron. A resolver prop returns the complete item list of a menu. The install steps and the behavior are on [Context menu](/docs/rows-pages-menus/context-menu).
 
+| Symbol | Purpose | Guide |
+| --- | --- | --- |
+| [`DataGridContextMenu`](#datagridcontextmenuprops) | Opens the cell and header menus | [Context menu](/docs/rows-pages-menus/context-menu) |
+| [`DataGridHeaderDropdown`](#datagridheaderdropdown) | The column menu behind the header chevron | [Context menu](/docs/rows-pages-menus/context-menu) |
+| [Resolver context](#resolver-context) | The context that each resolver receives | [Context menu](/docs/rows-pages-menus/context-menu) |
+| [`useDataGridRowOps`](#usedatagridrowops) | Tells whether the grid can create and duplicate rows | [Row operations](/docs/rows-pages-menus/row-operations) |
+| [Menu item](#gridmenuitemspec) | The fields of one item | [Context menu](/docs/rows-pages-menus/context-menu) |
+| [Built-in item ids](#item-ids) | The ids that a resolver keeps or drops | [Context menu](/docs/rows-pages-menus/context-menu) |
+
 ## DataGridContextMenu [#datagridcontextmenuprops]
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-context-menu/context-menu.tsx" name="DataGridContextMenuProps" />
@@ -44,7 +53,9 @@ Each resolver receives a context and the built-in items as `defaults`.
 
 ```tsx
 import { useDataGridActions } from "@/components/data-grid/data-grid";
-import { useDataGridRowOps } from "@/components/data-grid-context-menu/data-grid-context-menu";
+import {
+  useDataGridRowOps,
+} from "@/components/data-grid-context-menu/data-grid-context-menu";
 
 function DuplicateButton({ rowId }: { rowId: string }) {
   const actions = useDataGridActions();
@@ -100,6 +111,7 @@ These ids appear only under a condition:
 | `sort-asc`, `sort-desc`, `sep-sort` | On a sortable column |
 | `clear-sort` | On a sorted column |
 | `unpin` | On a pinned column |
+| `hide-column` | On a column that can hide |
 | `sep-autosize`, `autosize`, `autosize-all` | When the grid and the column allow resizing |
 
 A column that cannot pin gets disabled `pin-start`, `pin-end`, and `unpin` items.

@@ -6,29 +6,50 @@ type: reference
 aliases: ["page size options", "pager props", "footer parts"]
 ---
 
-`useDataGridPagination` takes `data` and returns the rows of the current page with a `pager`. A grid pages its view with `pageSize` on `DataGridProvider`, and `useDataGridPager()` returns `{ pager }`. `DataGridPaginationBar` renders the footer from the pager. The behavior, how sort, filter, and search cover every page, and the install steps are on [Client pagination](/docs/rows-pages-menus/client-pagination).
+A grid pages its view with `pageSize` or `defaultPageSize` on `DataGridProvider`. `DataGridPaginationBar` renders the footer from the pager of the grid. `useDataGridPagination` pages a list that is not a grid. The behavior, how sort, filter, and search cover every page, and the install steps are on [Client pagination](/docs/rows-pages-menus/client-pagination).
 
-## Client options [#client-mode]
+| Symbol | Purpose | Guide |
+| --- | --- | --- |
+| [`useDataGridPager`](#grid-pager) | Returns the `pager` of a grid that pages its view | [Client pagination](/docs/rows-pages-menus/client-pagination) |
+| [`DataGridPaginationBar`](#datagridpaginationbarprops) | Renders the footer | [Client pagination](/docs/rows-pages-menus/client-pagination) |
+| [Footer parts](#parts) | Compose a custom footer | [Client pagination](/docs/rows-pages-menus/client-pagination) |
+| [`useDataGridServerPager`](#server-pager) | Returns the `pager` of rows that you fetch yourself | [Load rows by page](/docs/server-pagination/load-rows-page) |
+| [`useDataGridPagination`](#usedatagridpagination) | Pages a list that is not a grid | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 
-The hook slices `data` into pages for a list that is not a grid. To page a grid, set `pageSize` or `defaultPageSize` on `DataGridProvider` instead, as [Page the grid](/docs/rows-pages-menus/client-pagination#client-mode) shows.
+## Grid pager [#grid-pager]
 
-<AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="UseDataGridPaginationClientOptions" />
+This sample pages a grid with 25 rows to a page:
 
-`pageSizeOptions` defaults to `[10, 25, 50, 100]`. Without `defaultPageSize`, the first size of `pageSizeOptions` applies. The page and the page size stay uncontrolled until you pass `page` or `pageSize`. A page-size change moves to the page that holds the first row of the current page.
+```tsx
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
+import {
+  DataGridPaginationBar,
+} from "@/components/data-grid-pagination/data-grid-pagination";
 
-## Result [#result]
+type Person = { id: string; name: string };
 
-<AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="UseDataGridPaginationResult" />
+const columns = defineColumns<Person>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
 
-`pageData` holds the rows of the current page. The pager has one shape for every source of pages:
-
-<AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="DataGridPaginationControls" />
-
-## Server pager
-
-`useDataGridServerPager({ page, pageSize, totalRowCount, hasMore, onPageChange, pageSizeOptions, onPageSizeChange })` returns `{ pager }` for rows that you fetch yourself. `totalRowCount` is a number, or `null` for an unknown size. `hasMore` is read only while `totalRowCount` is `null`. Without `onPageSizeChange`, the bar hides the page-size select. Its other options are on [Server rows options](/docs/add-options/server/server-rows-options#pager-options). Its options type is `UseDataGridServerPagerOptions`.
-
-## Grid pager
+export function PagedGrid({ rows }: { rows: Person[] }) {
+  return (
+    <DataGridProvider defaultData={rows} columns={columns} defaultPageSize={25}>
+      <DataGridRoot className="h-96">
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+      <DataGridPaginationBar />
+    </DataGridProvider>
+  );
+}
+```
 
 `useDataGridPager({ pageSizeOptions })` returns `{ pager }` for a grid that pages its view. Call it under `DataGridProvider`. `DataGridPaginationBar` with no props calls it for you. Its options type is `UseDataGridPagerOptions`.
 
@@ -54,7 +75,7 @@ Without `children`, the bar renders the range, the page-size select, and the fir
 | `DataGridPaginationNext` | A button to the next page, disabled without a next page |
 | `DataGridPaginationLast` | A button to the last page, disabled on the last page and while the count is unknown |
 
-This sample builds a compact footer:
+This sample builds a compact footer for a list:
 
 ```tsx
 import {
@@ -84,6 +105,26 @@ export function CompactPager({ rows }: { rows: { id: string }[] }) {
   );
 }
 ```
+
+## Server pager [#server-pager]
+
+`useDataGridServerPager` returns `{ pager }` for rows that you fetch yourself. Its options are on [Server rows options](/docs/add-options/server/server-rows-options#pager-options).
+
+## useDataGridPagination [#usedatagridpagination]
+
+The hook slices `data` into pages for a list that is not a grid. To page a grid, set `pageSize` or `defaultPageSize` on `DataGridProvider`.
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="UseDataGridPaginationClientOptions" />
+
+`pageSizeOptions` defaults to `[10, 25, 50, 100]`. Without `defaultPageSize`, the first size of `pageSizeOptions` applies. The page and the page size stay uncontrolled until you pass `page` or `pageSize`. A page-size change moves to the page that holds the first row of the current page.
+
+### Result [#result]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="UseDataGridPaginationResult" />
+
+`pageData` holds the rows of the current page. The pager has one shape for every source of pages:
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="DataGridPaginationControls" />
 
 ## Related
 
