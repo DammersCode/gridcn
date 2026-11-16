@@ -611,6 +611,11 @@ export function defHiddenColumnIds(columns: readonly AnyColumnDef[]): string[] {
 
 const readPinSilently = (pin: unknown) => readColumnPin(pin, () => {});
 
+/** The `start` and `end` pins of `columns` by id; built with `Object.fromEntries` so that a column id such as `__proto__` stays an own key. */
+export function pinsOf(columns: readonly AnyColumnDef[]): Record<string, ColumnPin> {
+  return Object.fromEntries(columns.flatMap((c) => (c.pin === "start" || c.pin === "end" ? [[c.id, c.pin] as const] : [])));
+}
+
 /** The first column id whose def `pin` or `hidden` differs between two `columns` arrays and from the runtime value, with the field that differs. */
 export function firstChangedSeedField(
   previous: readonly AnyColumnDef[],
@@ -694,10 +699,7 @@ export function computeColumnLayout(
   hiddenColumns: readonly string[],
   groups?: ColumnGroupModel | null,
 ): ColumnLayout {
-  const pins: Record<string, ColumnPin> = {};
-  for (const c of columns) {
-    if (c.pin === "start" || c.pin === "end") pins[c.id] = c.pin;
-  }
+  const pins = pinsOf(columns);
   return {
     widths: { ...columnWidths },
     order: completeColumnOrder(columns, columnOrder, groups),
@@ -742,14 +744,13 @@ export function normalizeColumnLayout(
         return pin === "start" || pin === "end" ? { ...c, pin } : c.pin ? { ...c, pin: undefined } : c;
       })
     : columns;
-  const columnWidths: Record<string, number> = {};
   const widths = isRecord(parts.widths) ? parts.widths : null;
-  if (widths) {
-    for (const column of columns) {
-      const width = widths[column.id];
-      if (typeof width === "number" && Number.isFinite(width)) columnWidths[column.id] = clampColumnWidth(column, width);
-    }
-  }
+  const columnWidths: Record<string, number> = Object.fromEntries(
+    columns.flatMap((column) => {
+      const width = widths?.[column.id];
+      return typeof width === "number" && Number.isFinite(width) ? [[column.id, clampColumnWidth(column, width)] as const] : [];
+    }),
+  );
   const known = new Set(columns.map((c) => c.id));
   const order = stringList(parts.order);
   const savedHidden = stringList(parts.hidden);

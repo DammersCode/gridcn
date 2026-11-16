@@ -99,7 +99,7 @@ export function computeAutosizeWidths(
 
   const sortedColumnIds = new Set(sortState.map((spec) => spec.columnId));
   const textFallback = cellTypes["text"]!;
-  const result: Record<string, number> = {};
+  const result: [string, number][] = [];
   for (const column of targets) {
     const cellType = cellTypes[column.type ?? "text"] ?? textFallback;
     const cellTexts = new Set<string>();
@@ -118,7 +118,7 @@ export function computeAutosizeWidths(
       ? measureTextWidths([headerText], fonts.headerFont) + (sortedColumnIds.has(column.id) ? SORTED_HEADER_AFFORDANCE : 0) + (hasHeaderMenu ? HEADER_MENU_AFFORDANCE : 0) + (hasHeaderFilter && offersSetFilter(column, cellType) ? HEADER_FILTER_AFFORDANCE : 0)
       : 0;
     const cellWidth = measureTextWidths([...cellTexts], fonts.cellFont);
-    result[column.id] = clampColumnWidth(column, Math.max(headerWidth, cellWidth) + (fonts.cellPadding ?? DEFAULT_CELL_INLINE_PADDING) + CELL_PADDING_BUFFER);
+    result.push([column.id, clampColumnWidth(column, Math.max(headerWidth, cellWidth) + (fonts.cellPadding ?? DEFAULT_CELL_INLINE_PADDING) + CELL_PADDING_BUFFER)]);
   }
-  return result;
+  return Object.fromEntries(result);
 }

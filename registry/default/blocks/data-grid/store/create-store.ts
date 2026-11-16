@@ -39,6 +39,7 @@ import {
   viewFilters,
   carryRuntimePins,
   firstChangedSeedField,
+  pinsOf,
   defHiddenColumnIds,
   DEFAULT_LOCALE,
   withGridLocale,
@@ -832,8 +833,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
      */
     const commitLayout = (changedParts: Partial<ColumnLayout>): void => {
       const s = get();
-      const pins: Record<string, ColumnPin> = {};
-      for (const column of s.columns) if (column.pin === "start" || column.pin === "end") pins[column.id] = column.pin;
+      const pins = pinsOf(s.columns);
       const merged: ColumnLayoutParts = {
         widths: changedParts.widths ?? s.columnWidths,
         order: changedParts.order !== undefined ? changedParts.order : s.columnOrder,
@@ -1200,8 +1200,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
               // The echo and every older entry leave the queue (decision 4); newer entries stay.
               layoutEchoQueue.splice(0, echoIndex + 1);
             } else {
-              const pins: Record<string, ColumnPin> = {};
-              for (const column of nextColumns) if (column.pin === "start" || column.pin === "end") pins[column.id] = column.pin;
+              const pins = pinsOf(nextColumns);
               const normalized = normalizeColumnLayout(
                 nextColumns,
                 {
@@ -1754,14 +1753,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           context.window,
           options,
         );
-        const changed: Record<string, number> = {};
-        for (const id of Object.keys(measured)) {
+        const changed = Object.entries(measured).filter(([id, width]) => {
           const column = s.columns.find((c) => c.id === id);
-          if (!column) continue;
-          if (resolveColumnWidth(column, s.columnWidths[id]) !== measured[id]!) changed[id] = measured[id]!;
-        }
-        if (Object.keys(changed).length > 0) {
-          commitLayout({ widths: { ...s.columnWidths, ...changed } });
+          return column !== undefined && resolveColumnWidth(column, s.columnWidths[id]) !== width;
+        });
+        if (changed.length > 0) {
+          commitLayout({ widths: { ...s.columnWidths, ...Object.fromEntries(changed) } });
         }
         return measured;
       },
@@ -1799,9 +1796,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const column = s.columns.find((c) => c.id === id);
         if (!column || !columnFlag(column, "pinnable") || (column.pin ?? null) === pin) return;
         const nextColumns = s.columns.map((c) => (c.id === id ? { ...c, pin: pin ?? undefined } : c));
-        const pins: Record<string, ColumnPin> = {};
-        for (const column of nextColumns) if (column.pin === "start" || column.pin === "end") pins[column.id] = column.pin;
-        commitLayout({ pins });
+        commitLayout({ pins: pinsOf(nextColumns) });
       },
       setColumnHidden(id, hidden) {
         const s = get();
