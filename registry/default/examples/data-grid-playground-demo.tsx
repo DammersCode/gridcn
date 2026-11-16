@@ -194,8 +194,8 @@ const HEADER_CLICK_OPTIONS: readonly HeaderClickBehavior[] = ["select", "sort", 
 const MODE_OPTIONS: readonly RowSupplyMode[] = ["virtualized", "paginated", "lazy"];
 
 const SIMULATED_PEERS = [
-  { id: "ada", color: "#e11d48", label: "Ada" },
-  { id: "grace", color: "#2563eb", label: "Grace" },
+  { id: "ada", color: "var(--chart-1)", label: "Ada" },
+  { id: "grace", color: "var(--chart-2)", label: "Grace" },
 ] as const;
 
 /** Every control this demo exposes, threaded through from the single top-level state block into whichever row-supply subtree is mounted. */

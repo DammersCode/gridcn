@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import Joi from "joi";
 import { z } from "zod";
 import * as v from "valibot";
-import { DataGrid, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
+import { DataGrid, defineColumns, type StandardSchemaV1 } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridState } from "@/registry/default/blocks/data-grid-history/data-grid-history";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -32,7 +32,7 @@ function isSkuFree(sku: string): Promise<boolean> {
 /** Hand-rolled Standard Schema (no library dependency): rejects a taken SKU, async. */
 const skuSchema = {
   "~standard": {
-    version: 1,
+    version: 1 as const,
     vendor: "gridcn-demo",
     validate: async (value: unknown) => {
       const sku = String(value);
@@ -40,31 +40,31 @@ const skuSchema = {
       return free ? { value: sku } : { issues: [{ message: "Already in use" }] };
     },
   },
-};
+} satisfies StandardSchemaV1<string>;
 
 /** Hand-rolled Standard Schema, sync: rejects a value without an "@", trims whitespace. */
 const emailSchema = {
   "~standard": {
-    version: 1,
+    version: 1 as const,
     vendor: "gridcn-demo",
     validate: (value: unknown) => {
       const email = String(value).trim();
       return email.includes("@") ? { value: email } : { issues: [{ message: "Must contain @" }] };
     },
   },
-};
+} satisfies StandardSchemaV1<string>;
 
-/** Coercing schema: "42.9" commits as the rounded integer 43, not the raw text. */
+/** Coercing schema: "42.9" commits as the rounded text "43", not the raw text. */
 const roundedPriceSchema = {
   "~standard": {
-    version: 1,
+    version: 1 as const,
     vendor: "gridcn-demo",
     validate: (value: unknown) => {
       const n = Number(value);
-      return Number.isNaN(n) ? { issues: [{ message: "Must be a number" }] } : { value: Math.round(n) };
+      return Number.isNaN(n) ? { issues: [{ message: "Must be a number" }] } : { value: String(Math.round(n)) };
     },
   },
-};
+} satisfies StandardSchemaV1<string>;
 
 /** One column per major Standard Schema library, so the reader can break each one and see its own error message. */
 const zodScoreSchema = z.number().int().min(0).max(100);
@@ -95,7 +95,7 @@ const columns = defineColumns<ValidationRow>()([
     header: "Email",
     accessorKey: "email",
     type: "text",
-    validate: emailSchema as never,
+    validate: emailSchema,
     width: 52,
     flex: 1,
   },
@@ -104,7 +104,7 @@ const columns = defineColumns<ValidationRow>()([
     header: "SKU",
     accessorKey: "sku",
     type: "text",
-    validate: skuSchema as never,
+    validate: skuSchema,
     width: 44,
     flex: 1,
   },
@@ -113,7 +113,7 @@ const columns = defineColumns<ValidationRow>()([
     header: "Price",
     accessorKey: "price",
     type: "text",
-    validate: roundedPriceSchema as never,
+    validate: roundedPriceSchema,
     width: 40,
     flex: 1,
   },

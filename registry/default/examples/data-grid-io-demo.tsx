@@ -1,15 +1,13 @@
 "use client";
 
-import { useCallback, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
   DataGridProvider,
   DataGridRoot,
   DataGridHeader,
   DataGridBody,
   defineColumns,
-  useDataGridActions,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { useDataGridState } from "@/registry/default/blocks/data-grid-history/data-grid-history";
 import { DataGridToolbar } from "@/registry/default/blocks/data-grid-toolbar/data-grid-toolbar";
 import {
@@ -48,27 +46,7 @@ function createImportedRow(index: number): DemoRow {
   return { id: `imported-${nextImportedRowId++}`, name: "", email: "", age: 18, active: false, role: "User", joined: "", score: index };
 }
 
-/** The import button under the provider: on confirm, imported rows land through `actions.commitChange` as one `source: "import"` change - a single undo entry. */
-function ImportButton({ createRow }: { createRow: (index: number) => DemoRow }): ReactNode {
-  const actions = useDataGridActions();
-  const storeApi = useDataGridStoreApi();
-  const onImport = useCallback(
-    (importedRows: DemoRow[]) => {
-      const data = storeApi.getState().data as readonly DemoRow[];
-      actions.commitChange({
-        source: "import",
-        ops: [
-          ...data.map((row, index) => ({ type: "delete" as const, rowId: row.id, row, index })),
-          ...importedRows.map((row, index) => ({ type: "insert" as const, rowId: row.id, row, index })),
-        ],
-      });
-    },
-    [actions, storeApi],
-  );
-  return <DataGridImportButton createRow={createRow} onImport={onImport} />;
-}
-
-/** Import/export toolbar buttons: export downloads the current view as xlsx or csv; import parses a file and replaces the grid's data through `actions.commitChange`. */
+/** Import/export toolbar buttons: export downloads the current view as xlsx or csv; import parses a file and appends its rows as one undoable change. */
 export default function DataGridIODemo(): ReactNode {
   const grid = useDataGridState(generateDemoRows(10), { getRowId: (row) => row.id });
 
@@ -76,13 +54,13 @@ export default function DataGridIODemo(): ReactNode {
     <div className="w-full flex flex-col gap-3">
       <p className="text-sm text-muted-foreground">
         Export downloads the current view as a csv or xlsx file. Import accepts a csv or xlsx file
-        (a sheet picker appears for multi-sheet workbooks), lets you map its columns, and replaces
-        the grid's rows with the result.
+        (a sheet picker appears for multi-sheet workbooks), lets you map its columns, and appends
+        the rows to the grid.
       </p>
       <div className="flex h-[360px] flex-col overflow-hidden rounded-md border border-border">
         <DataGridProvider {...grid} columns={columns}>
           <DataGridToolbar>
-            <ImportButton createRow={createImportedRow} />
+            <DataGridImportButton createRow={createImportedRow} />
             <DataGridExportButton />
           </DataGridToolbar>
           <DataGridRoot className="min-h-0 flex-1 rounded-none border-none">

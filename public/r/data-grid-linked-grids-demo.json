@@ -1,0 +1,22 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "data-grid-linked-grids-demo",
+  "title": "Data Grid Linked Grids Demo",
+  "author": "gridcn",
+  "description": "Two grids linked through React state: onActiveCellChange of a customer grid sets the rows of a read-only order grid.",
+  "registryDependencies": [
+    "DammersCode/gridcn/data-grid"
+  ],
+  "files": [
+    {
+      "path": "registry/default/examples/data-grid-linked-grids-demo.tsx",
+      "content": "\"use client\";\n\nimport { useMemo, useState, type ReactNode } from \"react\";\nimport { DataGrid, defineColumns } from \"@/registry/default/components/data-grid/data-grid\";\n\ntype Customer = { id: string; name: string };\ntype Order = { id: string; customerId: string; total: number };\n\nconst customers: Customer[] = [\n  { id: \"c1\", name: \"Ada Lovelace\" },\n  { id: \"c2\", name: \"Grace Hopper\" },\n  { id: \"c3\", name: \"Alan Turing\" },\n];\n\nconst orders: Order[] = [\n  { id: \"o1\", customerId: \"c1\", total: 120 },\n  { id: \"o2\", customerId: \"c1\", total: 45 },\n  { id: \"o3\", customerId: \"c2\", total: 310 },\n  { id: \"o4\", customerId: \"c3\", total: 80 },\n  { id: \"o5\", customerId: \"c3\", total: 15 },\n];\n\nconst customerColumns = defineColumns<Customer>()([\n  { id: \"name\", header: \"Customer\", accessorKey: \"name\", type: \"text\" },\n] as const);\n\nconst orderColumns = defineColumns<Order>()([\n  { id: \"id\", header: \"Order\", accessorKey: \"id\", type: \"text\", flex: 1 },\n  { id: \"total\", header: \"Total\", accessorKey: \"total\", type: \"number\", flex: 1 },\n] as const);\n\n/** The active cell of the customer grid sets the rows of the read-only order grid through React state. */\nexport default function DataGridLinkedGridsDemo(): ReactNode {\n  const [customerId, setCustomerId] = useState<string | null>(null);\n  const customerOrders = useMemo(() => orders.filter((order) => order.customerId === customerId), [customerId]);\n\n  return (\n    <div className=\"w-full flex flex-col gap-3\">\n      <p className=\"text-sm text-muted-foreground\">\n        Click a customer. The order grid shows the orders of the customer in the active cell.\n      </p>\n      <div className=\"grid grid-cols-2 gap-4\">\n        <DataGrid\n          className=\"h-60\"\n          defaultData={customers}\n          columns={customerColumns}\n          onActiveCellChange={(next) => setCustomerId(next?.rowId ?? null)}\n        />\n        <DataGrid className=\"h-60\" data={customerOrders} columns={orderColumns} readOnly />\n      </div>\n    </div>\n  );\n}\n",
+      "type": "registry:example",
+      "target": "components/data-grid-linked-grids-demo.tsx"
+    }
+  ],
+  "categories": [
+    "data"
+  ],
+  "type": "registry:example"
+}

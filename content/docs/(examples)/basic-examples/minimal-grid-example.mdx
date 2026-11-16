@@ -16,9 +16,9 @@ The smallest working grid needs the `data-grid` item, a column list, and `defaul
 - `DataGrid` composes the provider, the scroll root, the header, and the body.
 - `defineColumns` types three columns: `text`, `number`, and `checkbox`.
 - `defaultData` seeds the rows. The grid ignores later changes to the prop.
-- `className` sizes the grid. The demo sets `w-full h-[240px]`.
+- `className` sizes the grid. The demo sets `w-full h-[240px]`. The grid needs a bounded height to virtualize. Without one, it draws at most 200 rows.
 
-The grid reads the row id from the `id` field of each row. If your rows have no `id` field, pass `getRowId`. If the app must own the rows, pass `data` and `onDataChange`.
+The grid reads the row id from the `id` field of each row. If a row has no string or number `id` field, the grid throws. Pass `getRowId` to read the id from another field. If the app must own the rows, pass `data` and `onDataChange`.
 
 A minimal version of the demo, with its imports:
 

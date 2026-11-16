@@ -22,7 +22,7 @@ function makeRows(): CellTypesDemoRow[] {
 }
 
 export const cellTypesDemoColumns = defineColumns<CellTypesDemoRow>()([
-  { id: "name", header: "Text", accessorKey: "name", type: "text", width: 55, flex: 1 },
+  { id: "name", header: "Text", accessorKey: "name", width: 55, flex: 1 },
   {
     id: "email",
     header: "Read-only",

@@ -1,6 +1,8 @@
 import { applyChange, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
 import { generateDemoRows, type DemoRow } from "./demo-data";
 
+const collator = new Intl.Collator("en-US", { numeric: true, sensitivity: "base" });
+
 export type RemoteSort = { columnId: string; direction: "asc" | "desc" };
 export type RemoteFilter = { columnId: string; operator: string; value?: string | [string, string] | string[] };
 export type RemoteFilterGroup = { join: "and" | "or"; filters: readonly RemoteFilterNode[] };
@@ -131,7 +133,7 @@ export function createRemoteServer() {
         for (const s of sorts) {
           const av = a[s.columnId as keyof DemoRow];
           const bv = b[s.columnId as keyof DemoRow];
-          const delta = typeof av === "number" && typeof bv === "number" ? av - bv : String(av).localeCompare(String(bv));
+          const delta = typeof av === "number" && typeof bv === "number" ? av - bv : collator.compare(String(av), String(bv));
           if (delta !== 0) return s.direction === "asc" ? delta : -delta;
         }
         return 0;
@@ -171,7 +173,7 @@ export function createRemoteServer() {
       const label = cell(row, query.columnId);
       if (needle === "" || label.toLowerCase().includes(needle)) counts.set(label, (counts.get(label) ?? 0) + 1);
     }
-    const values = [...counts].map(([value, count]) => ({ value, count })).sort((a, b) => a.value.localeCompare(b.value));
+    const values = [...counts].map(([value, count]) => ({ value, count })).sort((a, b) => collator.compare(a.value, b.value));
     return { values: values.slice(0, query.limit ?? 200) };
   }
 

@@ -14,13 +14,20 @@ Each header holds a filter button. The button opens a popover with a search box 
 ## What the demo shows [#whats-in-the-demo]
 
 - `renderHeaderFilter` on `DataGridRoot` renders `DataGridHeaderFilter` in each header. The demo has two `text` columns and two `number` columns, and all four get a button.
-- The button stays hidden on a pointer device until you hover the header. While the column has a filter, the button stays visible.
+- With a mouse, the button stays hidden until you hover or focus the header. On a touch screen, the button is always visible. While the column has a filter, the button stays visible. From the keyboard, <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowUp</kbd> opens the popover of the focused header button's column, or else the active cell's column.
 - The search box narrows the list. The checkbox at its start checks or unchecks the values that match the search.
 - Apply writes the filter. Clear removes every filter of the column.
 
 ## The filter it writes [#header-filter]
 
-If the user checks fewer values than they leave unchecked, Apply stores `isAnyOf` with the checked values. Otherwise it stores `isNoneOf` with the unchecked values. On a tie, it keeps the operator of the current set filter, or uses `isAnyOf` if there is none. The filter menu writes the same shape. This `defaultFilterState` starts a grid with the filter that checking Admin and Editor writes on a `role` column:
+Apply picks the operator from the counts:
+
+- If the user checks fewer values than they leave unchecked, Apply stores `isAnyOf` with the checked values.
+- Otherwise it stores `isNoneOf` with the unchecked values.
+
+On a tie, Apply keeps the operator of the current set filter, or uses `isAnyOf` if there is none. The filter menu writes the same shape.
+
+This `defaultFilterState` starts a grid with the filter that checking Admin and Editor writes on a `role` column:
 
 ```tsx
 import type { FilterNode } from "@/components/data-grid/data-grid";

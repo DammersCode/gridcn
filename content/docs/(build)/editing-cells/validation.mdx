@@ -85,9 +85,23 @@ If a validator throws or its promise rejects, the grid rejects the value and sho
 
 ## Soft rules [#soft-rules-oninvalid]
 
-By default a rejection blocks the commit. Set `validationMode: "warn"` to commit the value and flag the cell instead. The flag uses the same ring, tint, and hover tooltip as a server error. The next valid commit of that cell clears it. The editor closes, because the commit succeeded. [Validation example](/docs/validation-examples/validation-example#blocking-and-soft-rules) compares a blocking rule with a soft rule.
+By default a rejection blocks the commit. Set `validationMode: "warn"` to commit the value and flag the cell instead. The flag uses the same ring, tint, and hover tooltip as a server error. The next valid commit of that cell clears it. The editor closes, because the commit succeeded.
 
 A rejection carries no transformed value, so a soft commit stores the raw input. The flag works with the function form and with sync and async schemas. Paste, fill, `updateCells`, import, Delete, and Cut also keep the raw value of a rejected cell in a soft column and flag it. A validator that throws still blocks the cell. A bulk write updates the flags once and calls no `onValidationError` for a flagged cell. Use `validationMode: "block"` or `processPaste` to drop rejected cells.
+
+This table compares a blocking rule with a soft rule:
+
+| Behavior | Blocking rule (default) | Soft rule (`validationMode: "warn"`) |
+| --- | --- | --- |
+| <kbd>Enter</kbd>, <kbd>Tab</kbd>, or a click on another cell | The editor stays open | The editor closes |
+| The value | Stays out of the data | Enters the data as typed |
+| Message on hover | Yes, while the editor is open | Yes, always |
+| Message in a line next to the cell | Yes, while the editor is open | When the user edits the flagged cell again |
+| <kbd>Escape</kbd> | Cancels the edit and restores the old value. The error goes away | Cancels the edit. A flagged cell keeps its flag |
+| The error ends when | The user commits a valid value, or cancels with <kbd>Escape</kbd> | The user commits a valid value, or undoes the write |
+| Paste and fill | Invalid cells drop | Invalid cells keep their value and carry a flag |
+
+For a value that must never reach your data, such as an amount, use a blocking rule. For a value that is allowed but needs a second look, such as a long note, use a soft rule.
 
 This column flags a note over 12 characters:
 
@@ -174,7 +188,7 @@ A server can still refuse a value after it commits. Paint that refusal with `act
 
 ## Related
 
-- [Validation example](/docs/validation-examples/validation-example#blocking-and-soft-rules): a table that compares a blocking rule with a soft rule.
+- [Validation example](/docs/validation-examples/validation-example): the rules in one live grid
 - [Built-in cell types](/docs/editing-cells/built-cell-types): the empty value for unparseable text.
 - [Edit and validation events](/docs/events-state/edit-validation-events): the event shapes.
 - [Show errors on cells](/docs/save-server/show-errors-cells): flag a cell after a server refusal.

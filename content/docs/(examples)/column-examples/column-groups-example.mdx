@@ -20,6 +20,25 @@ Three groups sit above the columns: Contact, Work, and Standing. Work holds a ne
 - If the user hides every column of a group, the group header disappears.
 - `DataGridColumnsMenu` lists the members of each group under the group label.
 
+The demo passes this list to `columnGroups`:
+
+```tsx
+import type { ColumnGroupDef } from "@/components/data-grid/data-grid";
+
+export const columnGroups: readonly ColumnGroupDef[] = [
+  { id: "contact", header: "Contact", children: ["name", "email"] },
+  {
+    id: "work",
+    header: "Work",
+    children: [
+      "role",
+      { id: "history", header: "History", children: ["joined", "age"] },
+    ],
+  },
+  { id: "standing", header: "Standing", children: ["score", "active"] },
+];
+```
+
 ## Related
 
 - [Column headers and groups](/docs/columns/column-headers-groups#column-groups): the rules for order, pin, selection, and limits

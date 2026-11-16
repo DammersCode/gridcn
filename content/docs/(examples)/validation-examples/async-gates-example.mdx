@@ -1,11 +1,11 @@
 ---
 title: "Async gates example"
-description: Ask a server before the grid acts on a paste, an edit start, a row insert, or a row check, and see the grid wait for the answer.
+description: Ask a server before the grid acts on a paste, an edit start, a row insert, or a row rule, and see the grid wait for the answer.
 icon: Hourglass
 type: example
 ---
 
-Some checks need a server before the grid acts. A paste can need normalizing. A new row can need an id from the server. Each of these props accepts a function that returns a value or a promise. The grid holds the gesture until the promise settles, then writes once.
+A gate is a prop function that the grid calls before it acts. Some checks need a server before the grid acts. A paste can need normalizing. A new row can need an id from the server. Each of these props accepts a function that returns a value or a promise. The grid holds the gesture until the promise settles, then writes once.
 
 In this grid, `processPaste` upper-cases pasted SKUs on the server, `createRow` waits for a server id, and `validateRow` flags a taken SKU. Paste lower-case text, add a row, or type AB-100 in the SKU column. The status line shows the pending call.
 
@@ -80,6 +80,7 @@ The grid reads its state again when the promise settles. It discards the result 
 - Paste: the grid is `readOnly`, a cell is in edit, the sort or filter changed, or a target row left the data.
 - Insert: the grid is `readOnly`, or the row beside the insert left the data. A duplicate skips each source row that left.
 - Edit start: the grid is `readOnly`, the cell is gone, or the user moved to another cell.
+- Delete: the grid is `readOnly`, or the rows or checked rows changed.
 - Row verdict: the row left the data.
 
 A row that moved keeps its gesture, because the grid follows the row id. The grid ignores a second gesture of the same kind until the promise settles.

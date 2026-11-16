@@ -3236,7 +3236,7 @@
         "joi@^18.2.9",
         "sonner@^2.0.8",
         "valibot@^1.5.0",
-        "zod@^4.6.5"
+        "zod@^4.6.7"
       ],
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
@@ -3304,7 +3304,7 @@
       "name": "data-grid-cell-errors-demo",
       "type": "registry:example",
       "title": "Data Grid Cell Errors Demo",
-      "description": "A fake saveOrders rejects any committed Quantity over 100 after ~600ms; the onDataChange handler calls actions.setCellErrors to paint the exact cell with the same ring/tint/aria-invalid treatment as a live validate rejection, after commit. A badge reads the count via useDataGridCellErrors(), and a Clear all button calls clearCellErrors().",
+      "description": "A fake saveOrders rejects any committed Quantity over 100 after ~600ms; the onSave handler calls actions.setCellErrors to paint the exact cell with the same ring/tint/aria-invalid treatment as a live validate rejection, after commit. A badge reads the count via useDataGridCellErrors(), and a Clear all button calls clearCellErrors().",
       "author": "gridcn",
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
@@ -3316,6 +3316,26 @@
           "path": "registry/default/examples/data-grid-cell-errors-demo.tsx",
           "type": "registry:example",
           "target": "components/data-grid-cell-errors-demo.tsx"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    },
+    {
+      "name": "data-grid-linked-grids-demo",
+      "type": "registry:example",
+      "title": "Data Grid Linked Grids Demo",
+      "description": "Two grids linked through React state: onActiveCellChange of a customer grid sets the rows of a read-only order grid.",
+      "author": "gridcn",
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid"
+      ],
+      "files": [
+        {
+          "path": "registry/default/examples/data-grid-linked-grids-demo.tsx",
+          "type": "registry:example",
+          "target": "components/data-grid-linked-grids-demo.tsx"
         }
       ],
       "categories": [

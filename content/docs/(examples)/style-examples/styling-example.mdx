@@ -62,7 +62,7 @@ export function Deals({ rows }: { rows: Deal[] }) {
 
 `density` is `"compact"`, `"default"`, or `"comfortable"`, which set the row height to 28, 36, or 44 pixels. If you also pass `rowHeight`, `rowHeight` wins. Neither changes the header height.
 
-Define `getRowClassName` at module scope, as the sample does, or memoize it. The grid merges the class names after its built-in classes, so a conflicting utility wins.
+Define `getRowClassName` at module scope, as the sample does, or memoize it. A new function on each render re-renders every row. The grid merges the class names after its built-in classes, so a conflicting utility wins.
 
 ## Related
 
