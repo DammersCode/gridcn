@@ -15,6 +15,7 @@ export default function Layout({ children }: LayoutProps<'/docs'>) {
       tabs={getDocsTabs(tree)}
       {...baseOptions()}
       githubUrl={undefined}
+      links={[]}
       themeSwitch={{ enabled: false }}
       sidebar={{
         components: { Item: DocsSidebarItem, Folder: DocsSidebarFolder },

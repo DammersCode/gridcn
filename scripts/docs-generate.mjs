@@ -263,6 +263,9 @@ function featureMatrix() {
     if (!notBuilt) checkSinceAgainstChangelog(row, release, changelog);
     rows.push([cell(row.feature), kind, item, modeText(row, CLIENT), modeText(row, SERVER), release, link(f.guide[0], f.guide[1]), link(f.reference[0], f.reference[1])]);
   }
+  for (const feature of ["Tree data", "Pivoting", "Master-detail"]) {
+    rows.push([`${feature} <NewBadge />`, "Not built", "none", "Gap", "Gap", "none", "none", "none"]);
+  }
   return [
     frontmatter({ title: "Feature matrix", description: "See which features are core or add-on, whether each works with client and server data, and where its guide is.", type: "cheatsheet", icon: "Table", aliases: ["row grouping", "group rows", "tree data", "aggregation", "since version"] }),
     MARKER,

@@ -444,4 +444,4 @@ compiler mirror 4m44, build 1m02, rest < 1 min.
 | W6 | W6-01 DONE (`f3b0626`), W6-02 DONE (`d66bbde`), W6-03 DONE (`c88a7d0`), W6-04 DONE (`081ccf7`), W6-05 DONE (`a426c59`); all gates green incl. e2e install |
 | Post-W6 | API gap sweep P1 batch `d196d74`; vocabulary pass (glossary `4c9d0d7`, lint `1b44dc9`, payloads `11ce8d0`); history rollback `b6c3dc0` with fixes `63681d3`, `1b88647`, `563e485`; audit and perf pass `61ce348` (perf commits `a41cd17`, `2d2f462`, `3a5d176`, `42d90a6`); feature smoke suite `d07141d` (`2ffc8be`, `e5479da`); keyboard and pointer review fixes `ec3cb6a`, `6d16d76`, `98d6e7f`; docs status dots and New badges `c30c39e`, `e5e0be7`, `8f30725`; release prep `34fecf7`, `bae6f2e`, `1e83eaf` |
 | Issues | #58 (W6-01), #59 (W6-02), #60 (W6-03), and #61 (W6-04) are implemented on `chore/improvement-plan`; close them after the merge |
-| Roadmap | W6-06…W6-15 (issues #62…#71) are post-1.0 work, one issue at a time; see `research/release-1.0-checklist.md` for the release steps |
+| Open work | W6-06…W6-15 (issues #62…#71) are post-1.0 work, one issue at a time; see `research/release-1.0-checklist.md` for the release steps |

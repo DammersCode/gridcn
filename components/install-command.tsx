@@ -99,7 +99,7 @@ export function InstallCommand({ item, items, command, manual = false, manualSlo
       tabClassName="px-2.5"
       headerEnd={copyButton}
     >
-      <pre className="overflow-x-auto px-4 py-3 font-mono text-sm text-foreground">{full || "Select at least one item"}</pre>
+      <pre tabIndex={0} className="overflow-x-auto px-4 py-3 font-mono text-sm text-foreground">{full || "Select at least one item"}</pre>
       {picker}
     </DocsTabs>
   );

@@ -80,7 +80,7 @@ Per-feature shipped detail (incl. user decisions): `docs/agent-work/2026-09-18-p
   async, cross-field `validateRow`)
 - Data IO (`data-grid-io` add-on): xlsx/csv export + import with preview, selection-aware
 
-### v2 roadmap (documented, not built)
+### Not built
 
 Row DOM slot-recycling (conflicts with the row-identity invariant §4.2 — needs a design);
 variable/auto row heights; row grouping + aggregation; summary rows; cell merging; a
@@ -226,7 +226,7 @@ keyboard-shortcut table generated from `keymap.ts` (single source of truth).
 
 Phases 1–10 (scaffold → lib → engine → interaction → Excel layer → table features → IO →
 registry → docs → hardening) are SHIPPED. Original phase specs and history:
-`docs/agent-work/2026-09-18-plan-v1-archive.md` §11. Open follow-up work is planned and
+`docs/agent-work/2026-09-18-plan-v1-archive.md` §11. Open follow-up work is
 tracked in `plans/README.md` (executor-ready plans in `plans/`); the 2026-09-03 audit's
 forward queue was `docs/agent-work/plans/2026-09-03-audit-followups.md` (superseded by
 `plans/` for execution; kept as reference).

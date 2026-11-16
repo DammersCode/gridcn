@@ -327,7 +327,7 @@ Each later slice decides its mechanics in its own spec at start. It must respect
 ## Feasibility verdict
 
 Feasible after #68 and #71 land. Steps 1-3 ship in 2.0 regardless; the first slice (steps 4-11)
-ships in 2.0 only if #71 merges before the freeze, else in 2.1 with no break. Child-list storage,
+ships in 2.0 only if #71 merges before the freeze, else later with no break. Child-list storage,
 re-layouts with anchors, and the rule-based selection are the risky parts.
 
 ## Minimal scope proposal
