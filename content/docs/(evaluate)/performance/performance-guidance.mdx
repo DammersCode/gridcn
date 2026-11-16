@@ -6,7 +6,7 @@ type: concept
 aliases: ["slow scrolling", "laggy", "stutter", "dropped frames", "large dataset", "100k rows", "slow grid", "huge data", "many rows", "100000 rows"]
 ---
 
-Why does a grid with 100,000 rows scroll smoothly, and what slows it down? The grid draws only the rows in view and skips work for rows that did not change. Your code keeps the second part working. A new `columns` array, `data` array, or class function on every render makes every row in view render again.
+Why does a grid with 100,000 rows scroll smoothly, and what slows it down? The grid draws only the rows in view and skips work for rows that did not change. Your code keeps the second part working. A new `columns` array or `data` array on every render makes every row in view render again.
 
 ## What the grid does for you [#keeping-it-fast]
 
@@ -27,6 +27,37 @@ A row skips rendering while its props keep the same identity. If the component t
 - `data` in a controlled grid
 - Render props such as `renderMarker`, `renderMarkerHeader`, and `renderHeaderCell` (on `DataGridHeader`)
 - The `topRows` and `bottomRows` arrays of [pinned rows](/docs/rows-pages-menus/pinned-rows)
+
+This component builds a new `columns` array on every render, so every row renders again:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Task = { id: string; title: string };
+
+export function SlowTasks({ tasks }: { tasks: Task[] }) {
+  const columns = defineColumns<Task>()([
+    { id: "title", header: "Title", accessorKey: "title" },
+  ] as const);
+  return <DataGrid data={tasks} columns={columns} className="h-96" />;
+}
+```
+
+This component defines `columns` once at module level, so a row renders again only when its own data changes:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Task = { id: string; title: string };
+
+const columns = defineColumns<Task>()([
+  { id: "title", header: "Title", accessorKey: "title" },
+] as const);
+
+export function FastTasks({ tasks }: { tasks: Task[] }) {
+  return <DataGrid data={tasks} columns={columns} className="h-96" />;
+}
+```
 
 In a controlled grid, store the array that `onDataChange` passes as it is. A copy, `map`, or `filter` makes the grid rebuild its row id map and its view on every change.
 

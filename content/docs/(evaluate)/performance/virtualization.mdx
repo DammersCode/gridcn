@@ -35,7 +35,21 @@ A jump is a scroll of more than the viewport height plus 1,600 px in one scroll 
 
 Virtualization needs a scroll area with a fixed height. Without one, the viewport covers every row. The grid then caps rendering at 200 rows. A development build logs a warning once per page load, for the first grid whose viewport holds more than 200 rows. The warning names an unbounded height as the likely cause.
 
-To fix this, give the grid, or a sized parent, an explicit height. Set `className="h-150"` on the grid, or use `h-full` inside a parent that has its own height.
+To fix this, give the grid, or a sized parent, an explicit height. Set `className="h-150"` on the grid, or use `h-full` inside a parent that has its own height:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Task = { id: string; title: string };
+
+const columns = defineColumns<Task>()([
+  { id: "title", header: "Title", accessorKey: "title" },
+] as const);
+
+export function Tasks({ tasks }: { tasks: Task[] }) {
+  return <DataGrid data={tasks} columns={columns} className="h-150" />;
+}
+```
 
 A grid taller than a browser allows has no full scroll range. [Row limits](/docs/performance/row-limits) lists the limits.
 

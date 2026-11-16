@@ -10,7 +10,7 @@ gridcn copies its source into your project, so your bundler builds the grid with
 
 | Part | What it adds to the bundle | When it loads |
 | --- | --- | --- |
-| Core (`data-grid`) | About 594 KiB minified, 200 KiB gzip, with React left out. See [Core](#core). | With the grid |
+| Core (`data-grid`) | About 555 KiB minified, 190 KiB gzip, with React left out. See [Core](#core). | With the grid |
 | `data-grid-io` | `papaparse` for CSV import. The xlsx reader and writer of `hucre`. | `papaparse` with the add-on. `hucre` on the first xlsx or xls file. See [Parts that load on first use](#lazy-parts). |
 | `data-grid-toolbar`, `data-grid-sort-list` | `@dnd-kit/dom` and `@dnd-kit/react` for drag to reorder | With the toolbar or sort list import. A bundler that tree-shakes drops it from a toolbar import that uses no filter menu. `data-grid-sort-list` always loads it. |
 | `data-grid-url-state` | `nuqs` | With the URL state hooks |
@@ -20,21 +20,19 @@ gridcn copies its source into your project, so your bundler builds the grid with
 
 ## Core [#core]
 
-A measurement of the core import (`data-grid.tsx`, esbuild, minified, React external) gave 594 KiB, or 200 KiB gzip (1 KiB is 1,024 bytes). The numbers change with each release, so run the recipe in [Measure your build](#measure) for your version.
+A measurement of the core import (`data-grid.tsx`, esbuild, minified, React external) gave 555 KiB, or 190 KiB gzip (1 KiB is 1,024 bytes). The size counts the entry chunk and its shared chunk, and leaves out the date picker chunk. The numbers change with each release, so run the recipe in [Measure your build](#measure) for your version.
 
 | Share | Minified size (KiB) |
 | --- | --- |
-| gridcn code | 298 |
+| gridcn code | 326 |
 | `@base-ui/react` | 156 |
-| `react-day-picker` | 41 |
-| `tailwind-merge` | 26 |
-| `date-fns` | 22 |
-
-The date picker and its packages are about 67 KiB, or 22 KiB gzip. They load with the grid, also in a grid without a `date` column.
+| `cn` | 25 |
 
 The shadcn/ui components of the core, such as `button`, `popover`, and `calendar`, are files in your project. If your app already uses them, the grid shares them and adds nothing for them.
 
 ## Parts that load on first use [#lazy-parts]
+
+The date picker loads on the first calendar open. `react-day-picker` and `date-fns` add about 72 KiB minified, or 22 KiB gzip, in a chunk of their own. A grid without a `date` column never fetches it.
 
 `data-grid-io` imports the xlsx reader and the xlsx writer with a dynamic `import()`. Your bundler puts each one in its own chunk. The browser fetches the chunk on the first xlsx or xls import, or on the first xlsx export. CSV import and export never fetch it.
 
@@ -44,16 +42,16 @@ The rest of gridcn loads with the module that imports it. To defer a whole add-o
 
 In a Next.js app, run `next build` before and after you add the grid. Compare the "First Load JS" of the route that renders it.
 
-To measure one import outside your app, bundle it with esbuild and gzip the result:
+To measure one import outside your app, bundle it with esbuild and gzip the result. Splitting keeps the date picker in a chunk of its own:
 
 ```bash
 echo 'export * from "./components/data-grid/data-grid";' > grid-entry.ts
 npx esbuild grid-entry.ts --bundle --minify --format=esm \
-  --external:react --external:react-dom --outfile=grid-bundle.js
-gzip -c grid-bundle.js | wc -c
+  --external:react --external:react-dom --splitting --outdir=out
+cat out/grid-entry.js out/chunk-*.js | gzip -c | wc -c
 ```
 
-The recipe prints bytes. Divide by 1,024 for KiB.
+The recipe prints bytes for the entry chunk and its shared chunks. Divide by 1,024 for KiB.
 
 esbuild reads the `@/` alias from `tsconfig.json`. Add an add-on to the entry file to see what it adds to the core.
 

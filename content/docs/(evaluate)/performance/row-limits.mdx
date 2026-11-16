@@ -20,13 +20,13 @@ The browser limits how tall an element can be. The scroll height of a grid is th
 
 To stay under both limits, keep the row count times the row height below 17.8 million px. The count that matters is the number of rows of the view: the sorted and filtered list, rendered or not. A scroll-mode source that reports `totalRowCount` shows that many rows, so the same limit applies to that count.
 
-The table gives the row count at which each limit starts, for the three densities:
+The table gives the row count at which each limit starts, for the three densities. The Firefox column uses the portable limit of 17.8 million px:
 
 | Density | Row height | Firefox: no scroll range above | Chromium: rows out of reach past |
 |---|---|---|---|
-| `compact` | 28 px | About 639,000 rows | About 1,198,000 rows |
-| `default` | 36 px | About 497,000 rows | About 932,000 rows |
-| `comfortable` | 44 px | About 406,000 rows | About 762,000 rows |
+| `compact` | 28 px | About 635,000 rows | About 1,198,000 rows |
+| `default` | 36 px | About 494,000 rows | About 932,000 rows |
+| `comfortable` | 44 px | About 404,000 rows | About 762,000 rows |
 
 The table rounds the counts down. A smaller row height allows more rows. A larger row height allows fewer. The table covers Firefox and Chromium. Test the other engines that you ship to.
 
@@ -42,7 +42,7 @@ export function fitsPortableHeight(rows: number, rowHeight = 36): boolean {
 
 ## Development warning [#warning]
 
-If the row count times the row height passes 17.8 million px, a development build logs one warning per grid. The warning names row counts rounded down to two significant digits. Its Firefox count comes from the portable limit of 17.8 million px. At 36 px it names about 490,000 rows for Firefox and about 930,000 for Chromium. The table above uses the Firefox limit of 17.9 million px. Production builds log nothing.
+If the row count times the row height passes 17.8 million px, a development build logs one warning per grid. The warning names row counts rounded down to two significant digits. Its Firefox count comes from the portable limit. At 36 px it names about 490,000 rows for Firefox and about 930,000 for Chromium. Production builds log nothing.
 
 ## Rendered rows [#rendered-rows]
 
