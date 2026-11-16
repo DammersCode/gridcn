@@ -41,7 +41,7 @@ export { useDataGridContainer } from "./interaction/use-data-grid-container";
 export {
   useDataGridRootContext,
   type DataGridRootContextValue,
-  type ColumnLayout as GridColumnLayout,
+  type GridColumnLayout,
   type RenderedColumn,
 } from "./layout-context";
 

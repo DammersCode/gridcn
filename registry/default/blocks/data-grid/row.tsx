@@ -8,7 +8,7 @@ import { markerContent } from "./rows/marker-width";
 import { colRangesContain } from "./selection/selected-col-ranges-for-row";
 import { DataGridCell } from "./cell";
 import { DataGridMarkerCell } from "./rows/marker-cell";
-import type { ColumnLayout, MarkerCellRenderer, RenderedColumn } from "./layout-context";
+import type { GridColumnLayout, MarkerCellRenderer, RenderedColumn } from "./layout-context";
 import type { RowMarkersMode } from "./types";
 import type { CellClassNameReader, RowClassNameReader } from "./rows/use-class-name-revision";
 
@@ -17,7 +17,7 @@ export type DataGridRowProps = {
   /** The row's `getRowId()` value (a hole's placeholder id); `undefined` only for a view index past the end. */
   rowId: string | undefined;
   renderedColumns: readonly RenderedColumn[];
-  layout: ColumnLayout;
+  layout: GridColumnLayout;
   readOnly?: boolean;
   /** 'none' renders no marker cell for this row. */
   rowMarkers: RowMarkersMode;

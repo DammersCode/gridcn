@@ -36,7 +36,7 @@ function trackRights(widths: number[], lefts: number[]): number[] {
  * this array's own `index` stay pure data-column indices throughout (the marker lives
  * outside the data index space).
  */
-export type ColumnLayout = {
+export type GridColumnLayout = {
   template: string;
   leftOffsets: number[];
   rightOffsets: number[];
@@ -55,7 +55,7 @@ export type ColumnLayout = {
  * distribute `flex` leftover space; 0 on first render/SSR before measurement, which correctly
  * bails flex distribution to base widths until the real measurement lands.
  */
-export function useColumnLayout(columns: readonly AnyColumnDef[], availableWidth = 0, markerWidthOverride?: number): ColumnLayout {
+export function useColumnLayout(columns: readonly AnyColumnDef[], availableWidth = 0, markerWidthOverride?: number): GridColumnLayout {
   const ids = useMemo(() => columns.map((c) => c.id), [columns]);
   const overrides = useDataGridColumnWidths(ids);
   const rowMarkers = useDataGridRowMarkers();
@@ -102,7 +102,7 @@ export type RowBandRenderCtx = {
   /** The rows that earlier plugins put in this plugin's band position, before this plugin's rows. */
   rowOffset: number;
   renderedColumns: readonly RenderedColumn[];
-  layout: ColumnLayout;
+  layout: GridColumnLayout;
   rowHeight: number;
   template: string;
   /** The whole sticky header block's height (not including either band). */
@@ -164,7 +164,7 @@ export type DataGridRootContextValue = {
   columns: readonly AnyColumnDef[];
   /** Columns in the current column window, in display order, each tagged with its real index. */
   renderedColumns: readonly RenderedColumn[];
-  layout: ColumnLayout;
+  layout: GridColumnLayout;
   rowHeight: number;
   /** The whole sticky header block (every header row, group rows included), NOT including any pinned band. Consumers computing "where data row 0 starts" need `headerHeight + pinnedTopHeight`; body.tsx does this itself for `useRowWindow`/the canvas transform. */
   headerHeight: number;
