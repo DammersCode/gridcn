@@ -29,7 +29,7 @@ export default function DataGridFindReplaceDemo(): ReactNode {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
-        <Button type="button" size="sm" variant="outline" onClick={() => findReplace.open()}>
+        <Button type="button" size="sm" variant="outline" onClick={() => findReplace.open("replace")}>
           Find and replace
         </Button>
         <Button type="button" size="sm" variant="outline" disabled={!history.canUndo} onClick={history.undo}>
