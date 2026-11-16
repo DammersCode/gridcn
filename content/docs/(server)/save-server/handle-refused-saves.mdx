@@ -120,7 +120,7 @@ onSave={async (change) => {
 
 ## Resolve a conflict [#resolve-a-conflict]
 
-When a refusal carries `current`, the revert takes the server row. To decide per row, pass `resolveSaveConflict` to the provider. It receives `{ rowId, mine, theirs, change, message, signal }` for each refused row with a usable `current`. It does not run on a `readOnly` grid. `mine` is the row in the grid, and `theirs` is `current`. Return one of these:
+When a refusal carries `current`, the revert takes the server row. To decide per row, pass `resolveSaveConflict` to the provider. It receives a `SaveConflictContext`, `{ rowId, mine, theirs, change, message, signal }` for each refused row with a usable `current`. It does not run on a `readOnly` grid. `mine` is the row in the grid, and `theirs` is `current`. Return one of these:
 
 | Return | Result |
 | --- | --- |
