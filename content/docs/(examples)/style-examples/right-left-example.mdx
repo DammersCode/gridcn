@@ -19,7 +19,7 @@ Column headers are not labels. They belong to the column definitions, so build t
 
 ## RTL [#rtl]
 
-`direction` is `"ltr"` or `"rtl"`. `locale` is a BCP 47 language tag. It sets the language of number and date formats and the sort order. Take both from the same locale record as the labels. The demo also sets `dir` on the element around the grid, so the page around the grid mirrors with it:
+`direction` is `"ltr"` or `"rtl"`. `locale` is a BCP 47 language tag. It sets the language of number and date formats and the sort order. Take both from the same locale record as the labels. The sample sets `dir` on the element around the grid, so the page around the grid mirrors with it, and the grid follows that `dir`:
 
 ```tsx
 import {
@@ -66,7 +66,7 @@ export function LocaleGrid({ locale }: { locale: Locale }) {
         labels={labels}
         locale={tag}
       >
-        <DataGridRoot className="h-48" direction={dir}>
+        <DataGridRoot className="h-48">
           <DataGridHeader />
           <DataGridBody />
         </DataGridRoot>
@@ -76,7 +76,7 @@ export function LocaleGrid({ locale }: { locale: Locale }) {
 }
 ```
 
-With no rows, the grid shows the empty-state text of the locale. In `rtl`, the grid mirrors the column order, the pinned bands, the pointer math, and the placement of popups. The arrow keys move visually, so <kbd>ArrowRight</kbd> goes to the column on the right of the screen. If you omit `direction`, the grid follows the `dir` that it inherits from the page and updates when a `dir` attribute on the page changes. `direction` overrides the inherited value.
+With no rows, the grid shows the empty-state text of the locale. In `rtl`, the grid mirrors the column order, the pinned bands, the pointer math, and the placement of popups. The arrow keys move visually, so <kbd>ArrowRight</kbd> goes to the column on the right of the screen. If you omit `direction`, the grid follows the `dir` that it inherits from the page and updates when a `dir` attribute on the page changes. A `direction` prop on `DataGridRoot` overrides the inherited value.
 
 ## Related
 

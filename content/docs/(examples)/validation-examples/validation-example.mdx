@@ -26,7 +26,7 @@ To try the bulk path, copy a column of mixed ages from a spreadsheet and paste i
 
 The demo lists the kind of every column above the grid. Age, Email, SKU, Price, Zod Score, Joi Code, and Valibot Tag use a blocking rule. Notes uses `validationMode: "warn"`, a soft rule. [Soft rules](/docs/editing-cells/validation#soft-rules-oninvalid) compares the two kinds.
 
-Every cell that shows an error also shows its message on hover, and carries it in `aria-description`. A cell that is not being edited shows a tooltip. A cell with an open editor shows no tooltip. It shows the native tooltip (its `title`) and the line next to the cell, so the user reads the message without a hover.
+Every cell that shows an error also shows its message on hover, and carries it in `aria-description`. A cell that is not being edited shows a tooltip. A cell with an open editor shows no tooltip popover. It carries the message in its `title` attribute and shows it on the line next to the cell.
 
 A server rejection set with `actions.setCellErrors` looks like a soft flag. It has the same ring, tint, and tooltip, and the value stays in the grid. The cell shows the line when the user opens it. The next commit of a new value clears the error. See [Server errors example](/docs/validation-examples/server-errors-example).
 

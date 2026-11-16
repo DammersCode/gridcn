@@ -15,7 +15,7 @@ type: example
 
 <InstallCommand item="data-grid-pagination-react-query-demo" />
 
-This grid saves an edit, and then invalidates the pages so the grid shows what the server holds:
+This grid keeps an edit in the cached page with `onDataChange`. `onSave` sends the change to the server and then invalidates the pages, so the grid shows what the server holds. If the server refuses the request, `onSave` throws and the grid reverts the edit:
 
 ```tsx
 import { useState } from "react";
@@ -67,11 +67,20 @@ export function OrdersGrid() {
     },
   });
 
-  function onDataChange(_next: readonly Order[], change: DataChange<Order>) {
-    void fetch("/api/orders", {
+  function onDataChange(next: readonly Order[]) {
+    queryClient.setQueryData(["orders", page, pageSize], {
+      rows: next,
+      total: query.data?.total ?? 0,
+    });
+  }
+
+  async function onSave(change: DataChange<Order>) {
+    const response = await fetch("/api/orders", {
       method: "POST",
       body: JSON.stringify(change.ops),
-    }).then(() => queryClient.invalidateQueries({ queryKey: ["orders"] }));
+    });
+    if (!response.ok) throw new Error("Save refused");
+    await queryClient.invalidateQueries({ queryKey: ["orders"] });
   }
 
   return (
@@ -81,6 +90,7 @@ export function OrdersGrid() {
         columns={columns}
         getRowId={(row) => row.id}
         onDataChange={onDataChange}
+        onSave={onSave}
         className="h-96"
       />
       <DataGridPaginationBar {...pager} />
@@ -91,40 +101,39 @@ export function OrdersGrid() {
 
 ## SWR [#swr]
 
-`useSWR` fetches the page with the key `["orders", page, pageSize]`. The demo keeps the last fetched page in state and swaps it when new data lands. The grid then shows the old page while the next page loads. After an edit, the scoped `mutate` that `useSWR` returns revalidates the current page.
+`useSWR` fetches the page with the key `["orders", page, pageSize]`. The `keepPreviousData` option keeps the old page on screen while the next page loads. After an edit, the scoped `mutate` that `useSWR` returns revalidates the current page.
 
 <ComponentPreview name="data-grid-pagination-swr-demo" />
 
 <InstallCommand item="data-grid-pagination-swr-demo" />
 
-The fetcher of SWR receives the key itself, so the key is a tuple. This hook fetches a page. It exposes the rows and the count of the last page that landed, and a revalidate function:
+The fetcher of SWR receives the key itself, so the key is a tuple. This hook fetches a page. It exposes the rows and the count of the page on screen, and a revalidate function:
 
 ```tsx
-import { useEffect, useState } from "react";
 import useSWR from "swr";
 
 type Order = { id: string; customer: string };
 type OrdersPage = { rows: Order[]; total: number };
 
 export function useOrdersPage(page: number, pageSize: number) {
-  const [last, setLast] = useState<OrdersPage>({ rows: [], total: 0 });
   const { data, mutate } = useSWR(
     ["orders", page, pageSize] as [string, number, number],
     async ([, p, size]): Promise<OrdersPage> => {
       const response = await fetch(`/api/orders?page=${p}&size=${size}`);
       return response.json();
     },
+    { keepPreviousData: true },
   );
 
-  useEffect(() => {
-    if (data) setLast(data);
-  }, [data]);
-
-  return { rows: last.rows, total: last.total, revalidate: () => mutate() };
+  return {
+    rows: data?.rows ?? [],
+    total: data?.total ?? 0,
+    revalidate: () => mutate(),
+  };
 }
 ```
 
-Pass `rows` and `total` to the grid and the pager as in the TanStack Query sample, and call `revalidate` after the save.
+Pass `rows` and `total` to the grid and the pager as in the TanStack Query sample, and call `revalidate` after the save. The grid reads one page and no `totalRowCount`, so `useSWR` and `useQuery` fetch the page and the total themselves.
 
 ## Related
 

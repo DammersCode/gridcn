@@ -14,7 +14,7 @@ A custom `currency` type stores a plain `number | null`, shows it through `Intl.
 ## What the demo shows [#whats-in-the-demo]
 
 - The `CellType` object sets `Cell`, `Editor`, `toText`, `toDisplayText`, `fromText`, `clearValue`, `isEmpty`, `compare`, and `align`. `toText` returns the unformatted number for copy and export. `toDisplayText` returns the formatted text.
-- `fromText` must never throw. It strips every character except digits, `.`, `,`, and `-`, and returns `null` for text that is not a number. The table below lists the separator rules.
+- `fromText` strips every character except digits, `.`, `,`, and `-`. It calls `rejectText()` for text with no amount: the cell keeps its value, and the grid reports the text, as the built-in types do. Return `clearValue()` only to empty the cell on purpose. The table below lists the separator rules.
 - `useCellEditor` supplies the editor with its draft text and the caret at the end of the text. It guards the commit so that it runs once, and it binds <kbd>Enter</kbd>, <kbd>Escape</kbd>, and blur. The demo passes it a `toDraft` and a `toValue` function.
 - `Cell` and `Editor` receive the column `options` with the type `CurrencyOptions`, so reading `options.currency` needs no cast.
 - The demo keeps one `Intl.NumberFormat` for each locale and currency pair, so a cell reuses a formatter.

@@ -30,9 +30,7 @@ import {
   DataGridProvider,
   DataGridRoot,
   defineColumns,
-  useDataGridActions,
-  useDataGridActiveCell,
-  useDataGridSelection,
+  useDataGridApi,
 } from "@/components/data-grid/data-grid";
 import {
   useDataGridState,
@@ -52,29 +50,14 @@ const rows: Row[] = [
 ];
 
 function MoveDownButton() {
-  const actions = useDataGridActions();
-  const activeCell = useDataGridActiveCell();
-  const checked = useDataGridSelection().rows;
-  const hasChecked = checked.length > 0;
-  // Read the indexes on click: a render-time toArray() copies every checked row.
-  const moveDown = () =>
-    actions.moveRowsBy(
-      hasChecked ? checked.toArray() : activeCell ? [activeCell.row] : [],
-      1,
-    );
-
+  const api = useDataGridApi();
   return (
-    <Button
-      disabled={!hasChecked && !activeCell}
-      onClick={moveDown}
-    >
-      Move down
-    </Button>
+    <Button onClick={() => api.runShortcut("moveRowsDown")}>Move down</Button>
   );
 }
 
 function Playlist() {
-  const grid = useDataGridState(rows, { getRowId: (row) => row.id });
+  const grid = useDataGridState(rows);
 
   return (
     <DataGridProvider
@@ -113,7 +96,7 @@ function Playlist() {
 `reorderRows` and `moveRowsBy` return `false` and change nothing in these cases:
 
 - The grid is `readOnly`.
-- A client sort or filter is active.
+- A sort is active, on the client or with `sortMode="server"`, or a client filter is active. The next fetch returns a moved row to the server order.
 - The grid holds unloaded rows in scroll mode.
 - The move leaves the rows where they are.
 - The list is empty, an index is outside the grid, or `to` leaves no room for the rows.

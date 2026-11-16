@@ -10,8 +10,8 @@ Before you start, [pick a code route](/docs/custom-code-path/pick-code-route) an
 ## Decide five things [#decide-five-things]
 
 1. **The stored value.** Store a serializable primitive, such as a number or an ISO date string. Do not store a class instance.
-2. **The text form.** `toText` turns the value into plain text. `fromText` parses typed, pasted, and imported text back. `toText` must round-trip through `fromText`. `fromText` never throws, and it returns `clearValue()` for text it cannot parse.
-3. **The empty value.** `isEmpty` says which values count as empty. Here `0` is a real rating, so `isEmpty` returns `true` for `null` only.
+2. **The text form.** `toText` turns the value into plain text. `fromText` parses typed, pasted, and imported text back. `toText` must round-trip through `fromText`. A built-in type refuses text it cannot parse, and the cell keeps its value. Call `rejectText()` in `fromText` for the same result. Return `clearValue()` only to empty the cell on purpose.
+3. **The empty value.** `isEmpty` says which values count as empty. In the rating type below, `0` is a real rating, so `isEmpty` returns `true` for `null` only.
 4. **The display.** `Cell` draws the value. If print, column autosize, and the header filter need formatted text, add `toDisplayText`.
 5. **The editor.** Build a text editor on `useCellEditor`. It owns the draft, the focus, and the commit on Enter and on blur.
 
@@ -26,6 +26,7 @@ This type stores a rating from 0 to the `max` option, or `null`:
 
 import {
   defineCellType,
+  rejectText,
   useCellEditor,
   type CellEditorProps,
   type CellRenderProps,
@@ -65,7 +66,8 @@ export const ratingCellType = defineCellType("rating", {
   Cell,
   Editor,
   toText: (value) => (value === null ? "" : String(value)),
-  fromText: parseRating,
+  fromText: (text, options) =>
+    text.trim() === "" ? null : (parseRating(text, options) ?? rejectText()),
   clearValue: () => null,
   isEmpty: (value) => value === null,
   align: "end",
@@ -76,7 +78,7 @@ Register the type under the name that a column uses in `type`, with `cellTypes={
 
 ## Result
 
-You hold a typed plan with every required member filled. With `max: 10`, a paste of `7` stores `7`, a paste of `abc` stores `null`, and a copy gives the plain number.
+You hold a typed plan with every required member filled. With `max: 10`, a paste of `7` stores `7`, a paste of `abc` leaves the cell unchanged, and a copy gives the plain number.
 
 Next: [Plan a plugin](/docs/custom-code-path/plan-plugin), or write the type in [Write a cell type](/docs/recipes-custom-code/write-cell-type).
 

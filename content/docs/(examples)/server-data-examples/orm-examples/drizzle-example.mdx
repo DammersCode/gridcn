@@ -16,7 +16,9 @@ import {
   isFilterGroup,
   type FilterNode,
 } from "@/components/data-grid/data-grid";
-import { parseServerSpec } from "@/components/data-grid-server/data-grid-server";
+import {
+  parseServerSpec,
+} from "@/components/data-grid-server/data-grid-server";
 import {
   and, asc, count, desc, eq, gt, gte, ilike, inArray, lt, lte, ne,
   notIlike, notInArray, or, sql, type SQL,
@@ -31,7 +33,6 @@ const escapeLike = (text: string) => text.replace(/[\\%_]/g, "\\$&");
 const infix = (value: string) => `%${escapeLike(value)}%`;
 const lower = (c: PgColumn) => sql`lower(${c})`;
 const lowered = (v: string[]) => v.map((x) => x.toLowerCase());
-
 const OPERATORS: Record<string, (c: PgColumn, v: any) => SQL> = {
   contains: (c, v) => ilike(c, infix(v)),
   notContains: (c, v) => notIlike(c, infix(v)),
@@ -100,21 +101,17 @@ export async function POST(request: Request) {
 
 About the sample:
 
-- The grid sends every value as text. A numeric column needs `Number(value)`.
-- `isFilterGroup(node)` is true for a group and false for a filter row.
-- The grid compares text without case. The sample uses `ilike` and `lower(column)`.
-- `parseServerSpec` checks the column ids, the operators, the value shapes, and the tree size. Its default caps are 64 sorts, 500 search characters, 64 filters, 16 groups, and 1,000 list values. A request over a cap gets status 400.
+- The grid sends every value as text, so a numeric column needs `Number(value)`.
+- The sample compares text without case with `ilike` and `lower(column)`.
+- `parseServerSpec` checks the column ids, the operators, the value shapes, and the tree size. Its default caps are 64 sorts, 500 search characters, 64 filters, 16 groups, 1,000 characters per value, and 1,000 list values. A request over a cap gets status 400.
 - A number or date column also gets `isBetween`, a `[min, max]` pair. The sample refuses it.
 - The grid's `empty` also matches a null cell. A nullable column needs an `IS NULL` test.
-- The route caps a page at 500 rows. A larger page returns fewer rows than the grid asked for.
-
-<Callout type="warn">
-  Cap the request body size at the framework or proxy. The limits of `parseServerSpec` do not bound a large JSON text.
-</Callout>
+- The route caps a page at 500 rows, so a larger page returns fewer rows than the grid asked for.
+- Cap the request body size at the framework or proxy. The limits of `parseServerSpec` do not bound a large JSON text.
 
 ## The client [#the-client]
 
-The grid posts the spec and the range to the route. `fetchRows` returns the JSON as the answer:
+`fetchRows` posts the spec and the range to the route and returns the JSON:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
@@ -158,7 +155,7 @@ export function UsersGrid() {
 
 ## Shareable state [#shareable-state]
 
-To restore the sort, the filters, the search text, the page, and the page size from the URL, spread `useDataGridUrlPagination()` into the hook options. Mount `DataGridUrlState` in the provider and spread `server.providerProps` and `server.rootProps`. The first request carries the restored spec, so the route stays as it is:
+Spread `useDataGridUrlPagination()` into the hook options to restore the sort, the filters, the search text, the page, and the page size from the URL. Mount `DataGridUrlState` in the provider with `server.providerProps` and `server.rootProps`. The route stays as it is:
 
 ```tsx fragment="renders under NuqsAdapter"
 import {
@@ -167,7 +164,9 @@ import {
   DataGridProvider,
   DataGridRoot,
 } from "@/components/data-grid/data-grid";
-import { DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
+import {
+  DataGridPaginationBar,
+} from "@/components/data-grid-pagination/data-grid-pagination";
 import {
   useDataGridServerRows,
 } from "@/components/data-grid-server/data-grid-server";

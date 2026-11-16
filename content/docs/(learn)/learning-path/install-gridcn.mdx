@@ -14,7 +14,6 @@ Your project needs these before you install:
 
 - React 19 and Tailwind CSS 4.
 - shadcn/ui, set up with `npx shadcn init`. If `components.json` is missing, run that command first. The CLI reads the file to place the gridcn files.
-
 - In the Next.js App Router, a client component that renders the grid. The next steps do this, because `data-grid.tsx` starts with `"use client"`.
 - In a Vite app, the `@` alias in `vite.config.ts` and `tsconfig.app.json` matches `components.json`. See [Fix imports that do not resolve](/docs/terms-help/fix-install-problems#non-default-aliases).
 - Node.js and TypeScript versions that meet the [framework floors](/docs/support-upgrades/browser-framework-support#framework-floors).
@@ -62,7 +61,7 @@ An add-on is an optional item with its own folder, such as `components/data-grid
 
 The learning path uses the toolbar and undo and redo. The CLI also installs the npm packages and the other gridcn items that an add-on needs. Each add-on adds the shadcn/ui components it uses.
 
-An add-on install fetches the core from GitHub, so it needs `git` or access to the GitHub API. The table lists the rest:
+The table lists the npm packages and the items that each add-on installs:
 
 | Add-on | npm packages | Also installs |
 |---|---|---|

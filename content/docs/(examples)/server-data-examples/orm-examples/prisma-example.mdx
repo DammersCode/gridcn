@@ -16,7 +16,9 @@ import {
   isFilterGroup,
   type FilterNode,
 } from "@/components/data-grid/data-grid";
-import { parseServerSpec } from "@/components/data-grid-server/data-grid-server";
+import {
+  parseServerSpec,
+} from "@/components/data-grid-server/data-grid-server";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "~/lib/prisma";
 
@@ -28,6 +30,9 @@ const text = (
 ): Prisma.UserWhereInput => ({
   [id]: { [op]: value, mode: "insensitive" as const },
 });
+
+const anyOf = (id: string, values: string[]) =>
+  values.map((value) => text(id, "equals", value));
 
 type Build = (id: string, v: any) => Prisma.UserWhereInput;
 
@@ -44,8 +49,8 @@ const OPERATORS: Record<string, Build> = {
   lte: (id, v) => ({ [id]: { lte: v } }),
   empty: (id) => ({ [id]: "" }),
   notEmpty: (id) => ({ NOT: { [id]: "" } }),
-  isAnyOf: (id, v) => ({ [id]: { in: v } }),
-  isNoneOf: (id, v) => ({ [id]: { notIn: v } }),
+  isAnyOf: (id, v) => ({ OR: anyOf(id, v) }),
+  isNoneOf: (id, v) => ({ NOT: { OR: anyOf(id, v) } }),
 };
 
 const columnRules = Object.fromEntries(
@@ -110,8 +115,8 @@ About the sample:
 
 - `isFilterGroup(node)` is true for a group and false for a filter row.
 - The grid sends every value as text. A numeric field needs `Number(value)` in its operator.
-- The grid compares text without case. The sample sets `mode: "insensitive"` on the text operators, which Prisma supports on PostgreSQL, CockroachDB, and MongoDB. On other databases, remove `mode`. `in` and `notIn` compare with case.
-- `parseServerSpec` checks the column ids, the operators, the value shapes, and the tree size. Its default caps are 64 sorts, 500 search characters, 64 filters, 16 groups, and 1,000 list values. A request over a cap gets status 400.
+- The grid compares text without case. The sample sets `mode: "insensitive"` on the text operators, which Prisma supports on PostgreSQL, CockroachDB, and MongoDB. On other databases, remove `mode`.
+- `parseServerSpec` checks the column ids, the operators, the value shapes, and the tree size. Its default caps are 64 sorts, 500 search characters, 64 filters, 16 groups, 1,000 characters per value, and 1,000 list values. A request over a cap gets status 400.
 - Number and date columns also get `isBetween`, with a `[min, max]` pair in which either bound can be `""`. The sample refuses it. Map it before you add such a column.
 - The grid's `empty` also matches a null cell. The sample compares with `""`, so a nullable column needs an `IS NULL` test too.
 - The route caps a page at 500 rows. Keep the page size at or below 500. A larger page returns fewer rows than the grid asked for.
@@ -121,7 +126,7 @@ About the sample:
   Cap the request body size at the framework or proxy. The limits of `parseServerSpec` do not bound a large JSON text.
 </Callout>
 
-The client is the one in the [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example#the-client), and the same section covers [shareable state](/docs/server-data-examples/orm-examples/drizzle-example#shareable-state). Edits go through `onSave` and a `prisma.user.update` call.
+The client is the one in the [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example#the-client), and the same section covers [shareable state](/docs/server-data-examples/orm-examples/drizzle-example#shareable-state). Edits go through `onSave`. [Save edits](/docs/save-server/save-edits) shows the round trip.
 
 ## Related
 
