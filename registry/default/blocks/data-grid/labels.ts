@@ -725,8 +725,8 @@ function buildDefaultLabels(locale: string): DataGridLabels {
       limit: "The limit of 50 views is reached.",
       overLimit: (part) =>
         ({
-          sorts: "The sorts are over the view limit of 16. Remove one to save the view.",
-          filters: "The filters are over a view limit: 64 filters, 16 groups, 1,000 characters in a value, or 1,000 entries in a value list. Remove or shorten them to save the view.",
+          sorts: "The sorts are over the view limit of 64. Remove one to save the view.",
+          filters: "The filters are over a view limit: 64 filters, 16 groups, 1,000 characters in a value, or 1,000 entries in a value list. A filter value that does not fit its operator also counts. Remove or shorten them to save the view.",
           search: "The search text is over the view limit of 500 characters. Shorten it to save the view.",
           layout: "The column layout is over a view limit: a column wider than 10,000 px or a layout list over 1,000 entries. Reset the layout to save the view.",
         })[part],

@@ -64,7 +64,7 @@ export type UseDataGridViewsResult = {
   modified: boolean;
   /**
    * The part of the grid state that exceeds a view limit, or `false`. `saveView` returns `null` and `updateView` returns `false` while it is set.
-   * Limits: `"sorts"` 16 sorts; `"filters"` 64 filters, 16 groups, 1,000 characters per value, 1,000 entries per value list; `"search"` 500 characters; `"layout"` a column width over 10,000 px, 1,000 entries per layout list. State of a column the grid lacks is not a limit. A column id `__proto__` and a filter value of the wrong shape for its operator are over the limit of their part.
+   * Limits: `"sorts"` 64 sorts; `"filters"` 64 filters, 16 groups, 1,000 characters per value, 1,000 entries per value list; `"search"` 500 characters; `"layout"` a column width over 10,000 px, 1,000 entries per layout list. State of a column the grid lacks is not a limit. A filter value of the wrong shape for its operator, such as a list on `contains`, is over the `"filters"` limit.
    */
   overLimit: false | OverLimitPart;
   defaultViewId: string | null;
@@ -282,6 +282,30 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
     })();
     return () => controller.abort();
   }, [storageKey, loadAttempt, storeApi, readState, applyState, setActive, notify, reportError, clearError]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    const controller = new AbortController();
+    const unsubscribe = storage.subscribe?.(() => {
+      if (savingRef.current || pendingSaveRef.current) return;
+      void (async () => {
+        try {
+          const raw = await storageRef.current.load({ signal: controller.signal });
+          if (controller.signal.aborted || savingRef.current || pendingSaveRef.current) return;
+          const parsed = raw == null ? emptyViewsDocument() : parseViewDocument(raw);
+          if (!parsed) return;
+          documentRef.current = parsed;
+          setDocument(parsed);
+        } catch (cause) {
+          if (!controller.signal.aborted) reportError("load", cause);
+        }
+      })();
+    });
+    return () => {
+      controller.abort();
+      unsubscribe?.();
+    };
+  }, [loaded, storage, reportError]);
 
   useEffect(() => {
     if (!loaded || appliedIdRef.current === activeViewId) return;

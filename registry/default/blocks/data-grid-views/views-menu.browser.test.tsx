@@ -2,7 +2,8 @@ import axe from "axe-core";
 import { page, userEvent } from "vitest/browser";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
-import { DataGridBody, DataGridHeader, DataGridProvider, DataGridRoot, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
+import { useEffect } from "react";
+import { DataGridBody, DataGridHeader, DataGridProvider, DataGridRoot, defineColumns, useDataGridActions } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridViews } from "./views-menu";
 import { createMemoryViewsStorage } from "./view-storage";
 import { emptyViewState, type DataGridViewsDocument } from "./view-state";
@@ -42,7 +43,32 @@ async function violations() {
   return results.violations.map((v) => `${v.id}: ${v.help}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`);
 }
 
+function OverLimitFilter() {
+  const actions = useDataGridActions();
+  useEffect(() => {
+    actions.setFilters([{ columnId: "name", operator: "contains", value: "x".repeat(1001) }]);
+  }, [actions]);
+  return null;
+}
+
 describe("DataGridViews in a browser", () => {
+  it("shows the over-limit line in the popover and turns Save off", async () => {
+    await render(
+      <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
+        <OverLimitFilter />
+        <DataGridViews storage={createMemoryViewsStorage(doc())} />
+        <DataGridRoot className="h-40">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await page.getByRole("button", { name: /Alpha|Views/ }).click();
+    await expect.element(page.getByText(/The filters are over a view limit/)).toBeVisible();
+    await expect.element(page.getByRole("button", { name: "Save as new view" })).toBeDisabled();
+  });
+
+
   it("opens from the keyboard, applies the default view, and has no axe violations", async () => {
     await renderViews();
     await expect.element(page.getByRole("button", { name: "Alpha" })).toBeInTheDocument();

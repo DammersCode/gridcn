@@ -344,19 +344,29 @@ describe("a long column id", () => {
     expect(overLimitPart({ ...empty, filters })).toBe(false);
     expect(savableViewState({ ...empty, filters })).not.toBeNull();
   });
-  it("cannot save a column named __proto__", () => {
+  it("saves a column named __proto__ without touching the prototype", () => {
     const sorts = [{ columnId: "__proto__", direction: "asc" as const }];
-    expect(overLimitPart({ ...empty, sorts })).toBe("sorts");
+    expect(overLimitPart({ ...empty, sorts })).toBe(false);
+    expect(savableViewState({ ...empty, sorts })?.sorts).toEqual(sorts);
     expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
+  });
+  it("is not over a limit for a filter without a value on a scalar operator", () => {
+    const filters = [{ columnId: "a", operator: "equals" }] as DataGridViewState["filters"];
+    expect(overLimitPart({ ...empty, filters })).toBe(false);
+    expect(savableViewState({ ...empty, filters })?.filters).toEqual(filters);
   });
   it.each([
     ["a list on contains", { columnId: "a", operator: "contains", value: ["x"] }],
-    ["no value on equals", { columnId: "a", operator: "equals" }],
+    ["a list on startsWith", { columnId: "a", operator: "startsWith", value: ["x"] }],
   ])("reports %s as over the filters limit", (_name, filter) => {
     expect(overLimitPart({ ...empty, filters: [filter] } as DataGridViewState)).toBe("filters");
   });
   it("is still reported for a part over a real limit", () => {
-    const sorts = Array.from({ length: 17 }, (_, i) => ({ columnId: `c${i}`, direction: "asc" as const }));
+    const sorts = Array.from({ length: 65 }, (_, i) => ({ columnId: `c${i}`, direction: "asc" as const }));
     expect(overLimitPart({ ...empty, sorts })).toBe("sorts");
+  });
+  it("saves 64 sorts", () => {
+    const sorts = Array.from({ length: 64 }, (_, i) => ({ columnId: `c${i}`, direction: "asc" as const }));
+    expect(overLimitPart({ ...empty, sorts })).toBe(false);
   });
 });
