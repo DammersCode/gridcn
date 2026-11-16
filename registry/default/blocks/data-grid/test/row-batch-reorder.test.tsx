@@ -221,3 +221,25 @@ describe("skipped row moves report through onRowActionSkipped", () => {
     expect(onRowActionSkipped).not.toHaveBeenCalled();
   });
 });
+
+describe("reorderRows development warnings", () => {
+  it("warns once per grid while a sort owns the view order", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { result } = setup(4, { sortState: [{ columnId: "name", direction: "desc" }] });
+    act(() => void result.current.actions.reorderRows([0], 2));
+    act(() => void result.current.actions.reorderRows([1], 3));
+    expect(warn.mock.calls.filter(([message]) => String(message).includes("sort or filter is active"))).toHaveLength(1);
+    warn.mockRestore();
+  });
+
+  it("warns once per grid while rows are unloaded", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const sparse = makeRows(4);
+    delete (sparse as (Row | undefined)[])[3];
+    const { result } = setup(4, { data: sparse });
+    act(() => void result.current.actions.reorderRows([0], 1));
+    act(() => void result.current.actions.reorderRows([1], 2));
+    expect(warn.mock.calls.filter(([message]) => String(message).includes("still unloaded"))).toHaveLength(1);
+    warn.mockRestore();
+  });
+});

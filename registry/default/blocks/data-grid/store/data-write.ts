@@ -1079,10 +1079,11 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       },
     );
   };
+  const warnMoveOnce = createWarnOnce();
   const moveBlockedReason = (s: DataGridStoreState): RowActionSkipReason | null => {
     if (s.readOnly) return "readOnly";
     if (viewSorts(s.sortMode, s.sortState).length > 0 || viewFilters(s.filterMode, s.filterState).length > 0) {
-      warnDev("reorderRows is a no-op while a sort or filter is active (the view order is owned by them)");
+      warnMoveOnce("view-ordered", "reorderRows is a no-op while a sort or filter is active (the view order is owned by them)");
       return "view-ordered";
     }
     return null;
@@ -1121,7 +1122,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     for (let i = 0; i < data.length; i++) {
       // Indexed access sees sparse holes; a reorder would shift scroll mode's in-flight block bookkeeping.
       if (data[i] === undefined) {
-        warnDev("reorderRows is a no-op while rows are still unloaded (scroll mode): load the range first");
+        warnMoveOnce("unloaded-rows", "reorderRows is a no-op while rows are still unloaded (scroll mode): load the range first");
         return skippedBy("moveRows", "unloaded-rows").ok;
       }
     }
