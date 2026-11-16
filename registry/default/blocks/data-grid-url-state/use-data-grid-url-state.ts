@@ -9,7 +9,7 @@ import {
   useDataGridSearchText,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { MAX_SPEC_SEARCH_LENGTH, isDev, isFilterGroup, pruneFilterSpecs, resolveCustomFilterOperators, resolveSelectChoices, useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { MAX_SPEC_SEARCH_LENGTH, isDev, isFilterGroup, pruneFilterSpecs, resolveCustomFilterOperators, setFilterValuesOf, useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { ColumnLayout, FilterOperatorInput } from "@/registry/default/blocks/data-grid/data-grid";
 import { serializeSortState, parseSortState } from "./sort-param";
 import { parseLayoutPart, serializeLayoutPart, type UrlLayoutPart } from "./layout-param";
@@ -34,16 +34,6 @@ function choiceBoundsOf(columns: readonly { id: string; options?: unknown }[]): 
       return [c.id, Array.isArray(choices) && choices.length > 0 ? Math.max(choices.length, MIN_CHOICE_BOUND) : undefined];
     }),
   );
-}
-
-/** The choice values of each column with a non-empty `choices` list; a column whose choices have not loaded yet checks nothing. */
-function choiceValuesOf(columns: readonly { id: string; options?: unknown }[]): Map<string, ReadonlySet<string>> {
-  const values = new Map<string, ReadonlySet<string>>();
-  for (const column of columns) {
-    const choices = (column.options as { choices?: Parameters<typeof resolveSelectChoices>[0] } | undefined)?.choices;
-    if (Array.isArray(choices) && choices.length > 0) values.set(column.id, new Set(resolveSelectChoices(choices).map((choice) => choice.value)));
-  }
-  return values;
 }
 
 const DEFAULT_LAYOUT_PARTS: readonly UrlLayoutPart[] = ["order", "hidden"];
@@ -124,6 +114,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   const actions = useDataGridActions();
   const storeApi = useDataGridStoreApi();
   const allColumns = useDataGridAllColumns();
+  const warnedChoiceColumns = useRef(new Set<string>());
   const operatorInput = useCallback(
     (columnId: string, operator: string): FilterOperatorInput | undefined => {
       const column = allColumns.find((c) => c.id === columnId);
@@ -216,13 +207,18 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
       return false;
     });
     const choiceBounds = choiceBoundsOf(allColumns);
-    const choiceValues = choiceValuesOf(allColumns);
+    const unknownChoices = new Map<string, number>();
     const parsedFilters = parseFilterState(params.filter, {
       maxChoices: (columnId) => choiceBounds.get(columnId),
       operatorInput,
-      choiceValues: (columnId) => choiceValues.get(columnId),
-      onUnknownChoices: (columnId, count) => warnDev(`dropped ${count} URL filter values outside the column choices of "${columnId}"`),
+      choiceValues: setFilterValuesOf(storeApi.getState()),
+      onUnknownChoices: (columnId, count) => unknownChoices.set(columnId, (unknownChoices.get(columnId) ?? 0) + count),
     });
+    for (const [columnId, count] of unknownChoices) {
+      if (warnedChoiceColumns.current.has(columnId)) continue;
+      warnedChoiceColumns.current.add(columnId);
+      warnDev(`dropped ${count} URL filter values outside the column choices and data values of "${columnId}"`);
+    }
     const legacyOr = parsedFilters.length > 0 && parseLegacyJoin(params.join) === "or" && !parsedFilters.some(isFilterGroup);
     const filters = pruneFilterSpecs(legacyOr ? [{ join: "or", filters: parsedFilters }] : parsedFilters, (spec) => {
       if (filterableIds.has(spec.columnId)) return true;

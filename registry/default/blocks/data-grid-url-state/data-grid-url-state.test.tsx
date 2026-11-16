@@ -137,7 +137,7 @@ describe("DataGridUrlState isAnyOf bound", () => {
 });
 
 describe("DataGridUrlState choice values", () => {
-  function restoredFilter(searchParams: string, serverMode = false): unknown {
+  function restoredFilter(searchParams: string, serverMode = false, data: StatusRow[] = [{ id: "r0", status: "new" }, { id: "r1", status: "legacy" }]): unknown {
     let filter: unknown;
     const Probe = () => {
       filter = useDataGridFilterState();
@@ -145,12 +145,7 @@ describe("DataGridUrlState choice values", () => {
     };
     render(
       <NuqsTestingAdapter searchParams={searchParams}>
-        <DataGridProvider
-          data={[{ id: "r0", status: "new" }]}
-          columns={statusColumns}
-          getRowId={(r) => r.id}
-          {...(serverMode ? { sortMode: "server", filterMode: "server" } : {})}
-        >
+        <DataGridProvider data={data} columns={statusColumns} getRowId={(r) => r.id} {...(serverMode ? { sortMode: "server", filterMode: "server" } : {})}>
           <DataGridUrlState />
           <Probe />
         </DataGridProvider>
@@ -159,18 +154,37 @@ describe("DataGridUrlState choice values", () => {
     return filter;
   }
 
-  it.each([false, true])("drops list values outside the column choices (server mode %s)", (serverMode) => {
+  it("drops list values that match no choice and no data value", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(restoredFilter("?filter=status%3AisAnyOf%3Anew%7Cbogus%7C%25", serverMode)).toEqual([
+    expect(restoredFilter("?filter=status%3AisAnyOf%3Anew%7Cbogus%7Cother%7C%25")).toEqual([
       { filterId: expect.any(String), columnId: "status", operator: "isAnyOf", value: ["new", ""] },
     ]);
-    expect(warn.mock.calls.some(([message]) => String(message).includes("outside the column choices"))).toBe(true);
+    expect(warn.mock.calls.filter(([message]) => String(message).includes("outside the column choices"))).toHaveLength(1);
     warn.mockRestore();
   });
 
-  it.each([false, true])("drops a list filter whose values are all outside the choices (server mode %s)", (serverMode) => {
+  it("drops a list filter whose values all match no choice and no data value", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(restoredFilter("?filter=status%3AisNoneOf%3Abogus%7Cother", serverMode)).toEqual([]);
+    expect(restoredFilter("?filter=status%3AisNoneOf%3Abogus%7Cother")).toEqual([]);
+    warn.mockRestore();
+  });
+
+  it("restores a data value outside the choices, as the header filter writes it", () => {
+    expect(restoredFilter("?filter=status%3AisAnyOf%3Alegacy")).toEqual([{ filterId: expect.any(String), columnId: "status", operator: "isAnyOf", value: ["legacy"] }]);
+  });
+
+  it("matches choices and data values without regard to case, as isAnyOf does", () => {
+    expect(restoredFilter("?filter=status%3AisAnyOf%3ANew%7CLEGACY")).toEqual([{ filterId: expect.any(String), columnId: "status", operator: "isAnyOf", value: ["New", "LEGACY"] }]);
+  });
+
+  it("checks nothing while the data has not loaded", () => {
+    expect(restoredFilter("?filter=status%3AisAnyOf%3Alegacy", false, [])).toEqual([{ filterId: expect.any(String), columnId: "status", operator: "isAnyOf", value: ["legacy"] }]);
+  });
+
+  it("keeps every list value in server filter mode, where the server evaluates them", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(restoredFilter("?filter=status%3AisAnyOf%3Anew%7Cbogus", true, [])).toEqual([{ filterId: expect.any(String), columnId: "status", operator: "isAnyOf", value: ["new", "bogus"] }]);
+    expect(warn.mock.calls.some(([message]) => String(message).includes("outside the column choices"))).toBe(false);
     warn.mockRestore();
   });
 

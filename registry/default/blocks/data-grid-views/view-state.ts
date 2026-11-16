@@ -32,7 +32,7 @@ export type DataGridView = { id: string; name: string; state: DataGridViewState 
 export type DataGridViewsDocument = { version: 1; views: DataGridView[]; defaultViewId: string | null };
 
 /** The live columns a view is checked against; `undefined` checks structure and limits only, so any column id passes. */
-export type ViewColumns = ReadonlyMap<string, { sortable?: boolean; filterable?: boolean; operators?: ReadonlyMap<string, FilterOperatorInput>; choices?: ReadonlySet<string> }>;
+export type ViewColumns = ReadonlyMap<string, { sortable?: boolean; filterable?: boolean; operators?: ReadonlyMap<string, FilterOperatorInput>; choices?: () => ReadonlySet<string> | undefined }>;
 
 export type ViewFileResult = { ok: true; name: string; state: DataGridViewState; dropped: number } | { ok: false; reason: "too-large" | "invalid" };
 
@@ -232,10 +232,12 @@ function sanitizeOperatorValue(operator: unknown, columnId: unknown, raw: unknow
   return input ? sanitizeCustomValue(input, raw) : { ok: false };
 }
 
-/** The blank entry and the list entries that `choices` holds; `null` when none of a non-empty list is left. */
-function knownChoices(operator: unknown, value: FilterSpec["value"], choices: ReadonlySet<string> | undefined, tally: Tally): FilterSpec["value"] | null {
-  if (!choices || (operator !== "isAnyOf" && operator !== "isNoneOf") || !Array.isArray(value)) return value;
-  const kept = value.filter((entry) => entry === "" || choices.has(entry));
+/** The blank entry and the list entries whose lowercased text `choices` holds; `null` when none of a non-empty list is left. */
+function knownChoices(operator: unknown, value: FilterSpec["value"], readChoices: (() => ReadonlySet<string> | undefined) | undefined, tally: Tally): FilterSpec["value"] | null {
+  if ((operator !== "isAnyOf" && operator !== "isNoneOf") || !Array.isArray(value)) return value;
+  const choices = readChoices?.();
+  if (!choices) return value;
+  const kept = value.filter((entry) => entry === "" || choices.has(entry.toLowerCase()));
   tally.dropped += value.length - kept.length;
   return kept.length === 0 && value.length > 0 ? null : kept;
 }

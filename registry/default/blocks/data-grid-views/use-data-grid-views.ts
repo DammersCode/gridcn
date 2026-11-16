@@ -8,7 +8,7 @@ import {
   useDataGridSearchText,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { resolveCustomFilterOperators, resolveSelectChoices, useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { resolveCustomFilterOperators, setFilterValuesOf, useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
   MAX_DOCUMENT_LENGTH,
   MAX_VIEW_FILE_LENGTH,
@@ -31,12 +31,6 @@ import {
   type OverLimitPart,
 } from "./view-state";
 import { createLocalStorageViewsStorage, type DataGridViewsStorage } from "./view-storage";
-
-/** The choice values of a column with a non-empty `choices` list; a column whose choices have not loaded yet checks nothing. */
-function choiceValues(column: { options?: unknown }): ReadonlySet<string> | undefined {
-  const choices = (column.options as { choices?: Parameters<typeof resolveSelectChoices>[0] } | undefined)?.choices;
-  return Array.isArray(choices) && choices.length > 0 ? new Set(resolveSelectChoices(choices).map((choice) => choice.value)) : undefined;
-}
 
 /** Options for {@link useDataGridViews}. */
 export type UseDataGridViewsOptions = {
@@ -141,9 +135,10 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
     (column: (typeof allColumns)[number]) => new Map([...resolveCustomFilterOperators(column, column.type ? cellTypes[column.type] : undefined)].map(([id, op]) => [id, op.input ?? "single"] as const)),
     [cellTypes],
   );
-  const columnMap: ViewColumns = useMemo(() => new Map(allColumns.map((c) => [c.id, { sortable: c.sortable, filterable: c.filterable, operators: registeredOperators(c), choices: choiceValues(c) }])), [allColumns, registeredOperators]);
+  const choiceValues = useCallback((columnId: string) => () => setFilterValuesOf(storeApi.getState())(columnId), [storeApi]);
+  const columnMap: ViewColumns = useMemo(() => new Map(allColumns.map((c) => [c.id, { sortable: c.sortable, filterable: c.filterable, operators: registeredOperators(c), choices: choiceValues(c.id) }])), [allColumns, registeredOperators, choiceValues]);
   // opting a column out of sort or filter UI does not stop programmatic specs, so applying a saved view skips those flags
-  const knownColumns: ViewColumns = useMemo(() => new Map(allColumns.map((c) => [c.id, { operators: registeredOperators(c), choices: choiceValues(c) }])), [allColumns, registeredOperators]);
+  const knownColumns: ViewColumns = useMemo(() => new Map(allColumns.map((c) => [c.id, { operators: registeredOperators(c), choices: choiceValues(c.id) }])), [allColumns, registeredOperators, choiceValues]);
   const latest = useRef({ columnMap, knownColumns, onValueChange, onError, value, enableDefaultView, defaultValue });
   useLayoutEffect(() => {
     latest.current = { columnMap, knownColumns, onValueChange, onError, value, enableDefaultView, defaultValue };
