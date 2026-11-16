@@ -24,7 +24,13 @@ export function PrintLetterButton() {
 }
 ```
 
-Place the button inside `DataGridProvider`, usually in the toolbar. `pageSize` is `"A4"` (default), `"A3"`, `"Letter"`, or `"Legal"`. `title` prints as a heading and sets the document title.
+Place the button inside `DataGridProvider`, for example in `DataGridToolbar`. `pageSize` is `"A4"` (default), `"A3"`, `"Letter"`, or `"Legal"`. `title` prints as a heading and sets the document title.
+
+## What the demo shows [#whats-in-the-demo]
+
+- The printed table follows the view: the current sort, filters, and visible column order.
+- The page is landscape when the grid shows more than 6 columns, and portrait otherwise.
+- The table prints at most 10,000 rows by default.
 
 ## Related
 

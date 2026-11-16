@@ -14,14 +14,36 @@ A custom `currency` type stores a plain `number | null`, shows it through `Intl.
 ## What the demo shows [#whats-in-the-demo]
 
 - The `CellType` object sets `Cell`, `Editor`, `toText`, `toDisplayText`, `fromText`, `clearValue`, `isEmpty`, `compare`, and `align`. `toText` returns the unformatted number for copy and export. `toDisplayText` returns the formatted text.
-- `fromText` must never throw. It strips every character except digits, `.`, `,`, and `-`, and returns `null` for text that is not a number. With both `.` and `,`, the last one is the decimal separator, so `1.234,56 EUR` stores `1234.56`. A single separator that matches the decimal separator of the column `locale` is the decimal separator. Another single separator groups thousands when exactly three digits end the text after it, so `$1,234` stores `1234`. Otherwise it is the decimal separator.
-- `useCellEditor` supplies the editor with its draft text and the caret at the end of the text. It also supplies a commit that runs once, and the <kbd>Enter</kbd>, <kbd>Escape</kbd>, and blur bindings. The demo passes it a `toDraft` and a `toValue` function.
+- `fromText` must never throw. It strips every character except digits, `.`, `,`, and `-`, and returns `null` for text that is not a number. The table below lists the separator rules.
+- `useCellEditor` supplies the editor with its draft text and the caret at the end of the text. It guards the commit so that it runs once, and it binds <kbd>Enter</kbd>, <kbd>Escape</kbd>, and blur. The demo passes it a `toDraft` and a `toValue` function.
 - `Cell` and `Editor` receive the column `options` with the type `CurrencyOptions`, so reading `options.currency` needs no cast.
 - The demo keeps one `Intl.NumberFormat` for each locale and currency pair, so a cell reuses a formatter.
 - `cellTypes={{ currency: currencyCellType }}` on `DataGridProvider` merges over the built-in types. The `text` column of the demo keeps working.
 - One type serves two columns through `options`: `{ currency: "USD" }` and `{ currency: "EUR", locale: "de-DE" }`. A column with no `locale` uses `en-US`.
 
-The demo types its columns as `ColumnDef` because `currency` is not a key of `GridCellTypes`. To make `defineColumns` check `type: "currency"` and its options, add the key to `GridCellTypes`.
+## Separator rules [#separator-rules]
+
+`fromText` reads the separators `.` and `,` with these rules:
+
+| Input | Stored | Rule |
+| --- | --- | --- |
+| `1.234,56 EUR` | `1234.56` | With both separators, the last one is the decimal separator. |
+| `$1,234` | `1234` | One separator followed by exactly three final digits groups thousands. |
+| `1,5` | `1.5` | Any other single separator is the decimal separator. |
+
+A single separator that matches the decimal separator of the column `locale` is always the decimal separator, so `1,234` in `de-DE` stores `1.234`. A repeated separator groups thousands, so `1,234,567` stores `1234567`.
+
+## Check the type in `defineColumns` [#check-the-type]
+
+The demo types its columns as `ColumnDef` because `currency` is not a key of `GridCellTypes`. To make `defineColumns` check `type: "currency"` and its options, add the key to `GridCellTypes`:
+
+```ts
+declare module "@/components/data-grid/types" {
+  interface GridCellTypes {
+    currency: { value: number | null; options: { currency: string } };
+  }
+}
+```
 
 ## Related
 
