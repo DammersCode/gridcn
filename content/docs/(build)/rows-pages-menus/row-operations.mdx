@@ -45,7 +45,7 @@ function MyGrid() {
 | `duplicateRow` | `(row: TData, index: number, ctx: { signal: AbortSignal }) => TData \| Promise<TData>` | none |
 | `onBeforeDeleteRows` | `(ctx: { rowIds: readonly string[]; hiddenCount: number; signal: AbortSignal }) => boolean \| Promise<boolean>` | none |
 
-Without a factory, the operation does nothing, the context menu hides its item, and a programmatic call warns in development. `useDataGridRowOps()` from `data-grid-context-menu` returns `canCreateRow` and `canDuplicateRow`. See [Context menu options](/docs/add-options/rows-pages-menus/context-menu-options#usedatagridrowops).
+Without a factory, the operation does nothing, the context menu hides its item, and a programmatic call warns in development. `useDataGridRowOps()` from `data-grid-context-menu` returns `canCreateRow` and `canDuplicateRow`.
 
 `createRow` receives the data index of the new row. `duplicateRow` receives the source row and the data index of the copy. Give the copy a new id.
 
@@ -106,7 +106,7 @@ Remap or remove these `DEFAULT_KEYMAP` keys through the `keymap` prop, as [Short
 
 A bulk delete button calls `deleteRows`, so this check runs too. [Run bulk actions](/docs/recipes-custom-code/run-bulk-actions) builds the bar.
 
-The grid ships no dialog. This sample resolves a promise from the buttons of a dialog:
+This sample resolves a promise from the buttons of a dialog:
 
 ```tsx
 import { useState } from "react";
