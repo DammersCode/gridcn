@@ -33,6 +33,19 @@ Hooks that reach the grid from code.
 | <a id="usedatagridscrolltocellat"></a>`useDataGridScrollToCellAt` | `(coord: ViewCoord) => void` | The same scroll for a view coordinate. |
 | <a id="usedatagridclipboard"></a>`useDataGridClipboard` | `UseDataGridClipboardResult` | Returns `copy`, `cut`, and `pasteFromClipboard`. `copy` and `cut` resolve `"ok"`, `"fallback"`, `"failed"`, or `"no-selection"`. `pasteFromClipboard` resolves a `PasteFromClipboardResult`: `"ok"`, `"permission-denied"`, `"empty"` (the clipboard holds no text), or `"refused"` (the grid started no paste, as [Clipboard](/docs/clipboard-undo/clipboard) lists). The hook takes an optional `{ sanitizeFormulas }`. Its default is the `sanitizeClipboardFormulas` prop. |
 
+These actions have no feature page:
+
+- `setActiveCellAt` sets the active cell at a `ViewCoord`, or clears it with `null`.
+- `extendToAt` extends the selection to the cell at a `ViewCoord`.
+- `extendSelection` grows the selection by one cell in a direction (`"up"`, `"down"`, `"left"`, `"right"`), or to the edge with `{ toEdge: true }`. It does nothing when `enableRangeSelection` is `false`.
+- `pushRangeAt` adds a range to the cell at a `ViewCoord`, like a Ctrl/Cmd+click. Without `enableMultiRange`, it selects the cell like a click.
+- `checkRowRange` checks or unchecks the rows from the anchor row to a view row index. It does nothing when `enableRowSelection` is `false`.
+- `clearCellSelection` clears the cell range and the selected columns and keeps the checked rows.
+- `commitCellEdit` validates and commits the value of the open edit, then moves the active cell by an optional `{ dx, dy }`. A rejected value keeps the edit open and sets the editing error.
+- `commitCellValueAt` validates and writes a value at a `ViewCoord` without an edit session, like a checkbox click.
+- `deleteSelection` clears every writable cell of the selection to the empty value of its cell type, as one change.
+- `applyCellUpdates` writes a list of `{ viewRowIndex, columnId, value }` updates as one change with a `source`. It skips read-only cells and unchanged values.
+
 ## Rows and addresses [#rows]
 
 Hooks that read rows. [State and view index](/docs/concepts/state-view-index) explains the addresses.
