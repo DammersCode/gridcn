@@ -294,8 +294,12 @@ function keyboardShortcuts() {
   for (const addOnKeymap of ["data-grid-history/history-keymap.ts", "data-grid-fill/fill-keymap.ts"]) {
     for (const m of read(`${BLOCKS}/${addOnKeymap}`).matchAll(/^\s*(\w+): \[(.*?)\],/gm)) bindings.set(m[1], [...m[2].matchAll(/"([^"]*)"/g)].map((b) => b[1]));
   }
-  bindings.set("openFindReplace", ["ctrl+h"]);
-  bindings.set("openFind", ["mod+f"]);
+  const findKeymap = /keymap: \{ openFindReplace: \["([^"]+)"\], openFind: \["([^"]+)"\] \}/.exec(read(`${BLOCKS}/data-grid-find-replace/use-data-grid-find-replace.tsx`));
+  if (!findKeymap) problems.push("keyboard shortcuts: the find-replace keymap line changed");
+  bindings.set("openFindReplace", [findKeymap?.[1] ?? ""]);
+  bindings.set("openFind", [findKeymap?.[2] ?? ""]);
+  const openKeybindings = /keymap: \{ openKeybindings: \["([^"]+)"\] \}/.exec(read(`${BLOCKS}/data-grid-keybindings/use-data-grid-keybindings.tsx`))?.[1];
+  if (!openKeybindings) problems.push("keyboard shortcuts: the keybindings keymap line changed");
   for (const action of [...bindings.keys(), "typeToReplace"]) {
     const group = groups.get(action);
     if (!group || group === "other") problems.push(`keyboard shortcuts: action ${action} has no category in action-groups.ts`);
@@ -312,8 +316,8 @@ function keyboardShortcuts() {
   const rowPage = { focusSearch: "/docs/sort-filter-search/quick-search", insertRowBelow: "/docs/rows-pages-menus/row-operations", insertRowAbove: "/docs/rows-pages-menus/row-operations", duplicateRow: "/docs/rows-pages-menus/row-operations", deleteRows: "/docs/rows-pages-menus/row-operations", moveRowsUp: "/docs/rows-pages-menus/row-order", moveRowsDown: "/docs/rows-pages-menus/row-order", openLink: "/docs/editing-cells/built-cell-types", openColumnMenu: "/docs/columns/column-headers-groups", openColumnFilter: "/docs/sort-filter-search/header-filter", toggleRow: "/docs/selection-shortcuts/checked-rows", toggleAllRows: "/docs/selection-shortcuts/checked-rows", openFind: "/docs/sort-filter-search/find-replace", openFindReplace: "/docs/sort-filter-search/find-replace", extendRowsToStart: "/docs/selection-shortcuts/checked-rows", extendRowsToEnd: "/docs/selection-shortcuts/checked-rows", extendRowsPageUp: "/docs/selection-shortcuts/checked-rows", extendRowsPageDown: "/docs/selection-shortcuts/checked-rows" };
   const keyName = (part) => (part === " " ? "Space" : part === "mod" ? "Mod" : part.length === 1 ? part.toUpperCase() : part[0].toUpperCase() + part.slice(1));
   const chord = (binding) => (binding === " " ? "Space" : binding.endsWith("+ ") ? `${binding.slice(0, -2).split("+").map(keyName).join("+")}+Space` : binding.split("+").map(keyName).join("+"));
-  const addOnOf = { openFind: "data-grid-find-replace", openFindReplace: "data-grid-find-replace", undo: "data-grid-history", redo: "data-grid-history", fillDown: "data-grid-fill", fillRight: "data-grid-fill" };
-  const COMMON = ["moveDown", "extendDown", "selectAll", "edit", "commitDown", "cancel", "clearContents", "undo", "redo", "fillDown"];
+  const addOnOf = { openFind: "data-grid-find-replace", openFindReplace: "data-grid-find-replace", focusSearch: "DataGridSearch", undo: "data-grid-history", redo: "data-grid-history", fillDown: "data-grid-fill", fillRight: "data-grid-fill" };
+  const COMMON = ["moveDown", "extendDown", "selectAll", "edit", "cancel", "clearContents", "undo", "redo", "fillDown"];
   const commonRows = COMMON.map((action) => {
     if (!bindings.has(action)) problems.push(`keyboard shortcuts: common action ${action} is not in the keymap`);
     return [cell(labels.get(action) ?? action), (bindings.get(action) ?? []).map((k) => code(chord(k))).join(", "), code(action)];
@@ -339,9 +343,9 @@ function keyboardShortcuts() {
     frontmatter({ title: "Keyboard shortcuts", description: "Look up the default key of every grid action, and the keymap name that rebinds it.", type: "cheatsheet", icon: "Keyboard", aliases: ["key bindings", "default keys", "shortcut list"] }),
     MARKER,
     "",
-    "`Mod` is the Cmd key on macOS and the Ctrl key elsewhere. The `ctrl` keys are the physical Ctrl key on every platform. Rebind a key with the `keymap` prop on the keymap name in the third column. The built-in editors handle their keys themselves, so a `keymap` entry for `commitDown`, `commitUp`, `commitRight`, or `commitLeft` changes no editor key. Outside an edit, `Escape` clears the selection and the checked rows.",
+    "`Mod` is the Cmd key on macOS and the Ctrl key elsewhere. The `ctrl` keys are the physical Ctrl key on every platform. Rebind a key with the `keymap` prop on the keymap name in the third column. The built-in editors handle their keys themselves, and bind no keymap name to Enter, Shift+Enter, Tab, or Shift+Tab. Outside an edit, `Escape` clears the selection and the checked rows.",
     "",
-    "On Windows and Linux, `Ctrl+Shift+E` opens DevTools in Firefox and Edge, so rebind `toggleAllRows` there. Some browsers reserve `Ctrl+H` for the history, so rebind `openFindReplace` there.",
+    "On macOS, `Ctrl+Space` (`selectColumn`) can switch the input source, so rebind `selectColumn` when that shortcut is on.",
     "",
     "## Common keys [#common-keys]",
     "",
@@ -353,10 +357,11 @@ function keyboardShortcuts() {
     ...sections,
     "## Other keys [#other-keys]",
     "",
-    table(["Action", "Keys", "Page"], [
-      ["Open the shortcuts dialog", `${code("?")} with ${code("useDataGridKeybindings")} in ${code("plugins")}`, link("/docs/selection-shortcuts/shortcut-remapping")],
-      ["Open the cell menu", `${code("Shift+F10")} with ${code("DataGridContextMenu")} mounted, on Windows and Linux`, link("/docs/rows-pages-menus/context-menu#cell-surface-row-operation-items")],
-      ["Focus the toolbar search", `${code("Mod+F")} with ${code("DataGridSearch")} mounted, while focus is in the grid or its toolbar. With ${code("data-grid-find-replace")} mounted, ${code("Mod+F")} in the grid opens Find. On macOS, both ${code("Cmd+F")} and ${code("Ctrl+F")} match`, link("/docs/sort-filter-search/quick-search")],
+    table(["Action", "Keys", "Keymap name", "Page"], [
+      ["Open the shortcuts dialog", `${code(openKeybindings ?? "")} with ${code("useDataGridKeybindings")} in ${code("plugins")}`, code("openKeybindings"), link("/docs/selection-shortcuts/shortcut-remapping")],
+      ["Open the cell menu", `${code("Shift+F10")} with ${code("DataGridContextMenu")} mounted, on Windows and Linux`, "none", link("/docs/rows-pages-menus/context-menu#cell-surface-row-operation-items")],
+      ["Focus the toolbar search", `${code("Mod+F")} with ${code("DataGridSearch")} mounted, while focus is in the grid or its toolbar. With ${code("data-grid-find-replace")} mounted, ${code("Mod+F")} in the grid opens Find, and the toolbar search loses ${code("Mod+F")}. Set ${code("focusSearch")} in ${code("keymap")} to bind another key to the search`, code("focusSearch"), link("/docs/sort-filter-search/quick-search")],
+      ["Use the find panel", `${code("Mod+F")} focuses the find field. ${code("Enter")} goes to the next match and ${code("Shift+Enter")} to the previous one. ${code("Mod+Enter")} in the replace field replaces every match. ${code("Escape")} closes the panel`, "none", link("/docs/sort-filter-search/find-replace")],
     ]),
     related(["/docs/selection-shortcuts/shortcut-remapping", "change the keys"], ["/docs/selection-shortcuts/global-shortcuts", "keys outside the grid"], ["/docs/plugins/plugin-commands-shortcuts", "keys from a plugin"]),
   ].join("\n");
@@ -420,8 +425,11 @@ function tableIndex() {
   return index;
 }
 
-function jsdocOf(file, name) {
-  const text = read(file);
+/** The first sentence of the JSDoc of member `name` inside the body of type `typeName`. */
+export function jsdocOf(file, typeName, name, source = read(file)) {
+  const start = source.search(new RegExp(`(?:type|interface) ${typeName}\\b`));
+  const end = start < 0 ? -1 : source.indexOf("\n}", start);
+  const text = start < 0 ? source : source.slice(start, end < 0 ? undefined : end);
   const m = new RegExp(`/\\*\\*((?:(?!\\*/)[\\s\\S])*?)\\*/\\s*(?:readonly\\s+)?${name}\\??\\s*[:(]`).exec(text);
   if (!m) return "";
   return sentence(m[1].replace(/^\s*\*\s?/gm, "").replace(/\{@link\s+([^}\s]+)[^}]*\}/g, "$1"));
@@ -476,13 +484,14 @@ const PURPOSE = {
   "DataGridSyncProps.enableColumnPinning": "Enables pin/unpin actions grid-wide. Default `true`. `false` makes `setColumnPin` do nothing.",
   "DataGridSyncProps.enableRowSelection": "Turns on whole-row selection by a row marker click and Shift+Space. Default `true`.",
   "DataGridSyncProps.labels": "Overrides the UI text. The grid deep-merges it over `DEFAULT_LABELS`.",
+  "DataGridSyncProps.onRowActionSkipped": "Fires when a row action (`insertRows`, `duplicateRows`, `deleteRows`, `moveRows`) does nothing, with its name and the reason. The insert, duplicate, and delete actions also return `{ ok: false, reason }`. `reorderRows` and `moveRowsBy` (both report as `moveRows`) return `false`.",
   "DataGridSyncProps.commands": "Your own keyboard commands, keyed by name. A keymap binding that names no built-in action runs one.",
 };
 
 function describe(src, name, entry) {
   const override = PURPOSE[`${src.type}.${name}`];
-  const raw = override ?? (entry?.desc ? sentence(entry.desc) : jsdocOf(src.file, name));
-  const text = cell(override ? override : tidy(raw));
+  const raw = override ?? (entry?.desc ? sentence(entry.desc) : jsdocOf(src.file, src.type, name));
+  const text = cell(override ? override : tidy(raw)).replace(/\bDefault (true|false|-?\d+)(?=[.,;]|$)/g, "Default `$1`");
   if (!text || text === ".") problems.push(`props: no purpose for ${src.type}.${name}`);
   checkCell(`props: ${src.type}.${name}`, text);
   return text;
@@ -582,7 +591,7 @@ const ACTION_PURPOSE = {
   autosizeColumns: "Sizes columns to their content over the view and returns the measured widths. On a paged grid, it measures the shown page.",
   resetColumnWidth: "Drops the width override of a column, so the column gets its `width` from the definition again.",
   setColumnOrder: "Moves a column, or a column group, before or after another column.",
-  setColumnPin: "Pins a column with `\"left\"` or `\"right\"`, or unpins it with `null`.",
+  setColumnPin: "Pins a column to `\"start\"` or `\"end\"`, or unpins it with `null`.",
   setColumnHidden: "Shows or hides a column.",
   setColumnLayout: "Applies a partial `ColumnLayout` as one commit. Omitted parts keep their value.",
   toggleSort: "Steps the sort of a column to the next direction or to no sort, as a header click does. `{ additive: true }` keeps the other sorts.",
@@ -597,12 +606,13 @@ const ACTION_PURPOSE = {
   deleteSelection: "Clears every editable cell of the selection to its empty value, as one change.",
   applyCellUpdates: "Writes values at view coordinates as one change with the given `source`, and selects the touched cells.",
   updateCells: "Writes cell patches by row id in one write, without a view rebuild. Default `source` is `\"stream\"`.",
-  insertRow: "Inserts one row from `createRow` above or below a view index.",
-  insertRows: "Inserts `count` rows from `createRow` above or below a view index, as one change.",
-  deleteRows: "Deletes the rows with the given ids, as one change. The grid skips an id that matches no row.",
-  deleteRowsAt: "Deletes the rows at the given view indexes, as one change.",
-  duplicateRows: "Duplicates the rows with the given ids through `duplicateRow`, as one change.",
-  duplicateRowsAt: "Duplicates the rows at the given view indexes through `duplicateRow`, as one change.",
+  insertRow: "Inserts one row from `createRow` above or below a view index. Returns a `RowActionResult`.",
+  editRows: "Writes whole-row patches as a user edit: `source: \"edit\"`, one undo entry, and one `onSave`. The `readOnly`, read-only column, and `validate` checks apply.",
+  insertRows: "Inserts `count` rows from `createRow` above or below a view index, as one change. Returns a `RowActionResult`.",
+  deleteRows: "Deletes the rows with the given ids, as one change. The grid skips an id that matches no row. Returns a `RowActionResult`.",
+  deleteRowsAt: "Deletes the rows at the given view indexes, as one change. Returns a `RowActionResult`.",
+  duplicateRows: "Duplicates the rows with the given ids through `duplicateRow`, as one change. Returns a `RowActionResult`.",
+  duplicateRowsAt: "Duplicates the rows at the given view indexes through `duplicateRow`, as one change. Returns a `RowActionResult`.",
   reorderRows: "Moves rows as one block to a view index. Returns whether rows moved.",
   moveRowsBy: "Shifts rows by `delta` and keeps the gaps between them. Returns whether rows moved.",
   commitChange: "Applies a whole `DataChange` in one write and fires `onDataChange` once.",
