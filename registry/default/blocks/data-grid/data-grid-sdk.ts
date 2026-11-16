@@ -6,11 +6,13 @@
  * imports of this file are rewritten to the registry alias by scripts/fix-registry-imports.mjs at registry build.
  */
 
-import { useCallback, useEffect } from "react";
+import { use, useCallback, useEffect } from "react";
 import { useDataGridInternalActions, useDataGridStoreApi as useDataGridStoreApiRaw } from "./store";
 import { gridStoreWrapper, setServerReshapeHandler } from "./store/api";
 import { nextAnnouncement } from "./store/announcements";
 import type { GateTracker } from "./store/gate-signal";
+import { DataGridStoreContext } from "./store/store-context";
+import { gateTrackerOf } from "./store/internal-actions";
 import type { CellErrorEntry, LiveAnnouncementKind } from "./store/types";
 
 export { setServerReshapeHandler };
@@ -147,6 +149,12 @@ export function useDataGridGateTracker(): GateTracker {
   return useDataGridInternalActions()._gates();
 }
 
+/** The enclosing grid's gate tracker, or `null` outside a `DataGridProvider`; for a gate of an add-on that also works without a grid. */
+export function useOptionalDataGridGateTracker(): GateTracker | null {
+  const store = use(DataGridStoreContext);
+  return (store && gateTrackerOf(store)) ?? null;
+}
+
 /** Returns a stable function that sets the grid's live-region announcement; `partial` marks a count over loaded rows only. */
 export function useDataGridAnnounce(): (kind: LiveAnnouncementKind, count: number, partial?: boolean) => void {
   const store = useDataGridStoreApiRaw();
@@ -161,7 +169,7 @@ export { columnLabelText } from "./columns/column-format-helpers";
 export { createHistory, type History, type HistoryOptions } from "./interaction/history";
 export { buildRollback, rebaseOntoCurrent } from "./interaction/rollback";
 export { mergeLabelLayers } from "./labels";
-export { useOptionalDataGridColumnSource, useOptionalDataGridGateTimeout, useOptionalDataGridLabels } from "./store";
+export { useOptionalDataGridColumnSource, useOptionalDataGridLabels } from "./store";
 export type { DataGridFilterOperatorLabels } from "./labels";
 export { deepMergeLabels } from "./labels";
 export { GRID_ATTR, gridAttrSelector, type GridAttrName, type GridAttr, type GridAttrValue } from "./data-attributes";

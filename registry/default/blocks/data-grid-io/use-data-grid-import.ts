@@ -17,7 +17,7 @@ import {
 import { resolveImportMapping, type ImportTargetColumn, type ImportDefaults } from "./match-import-column";
 import { buildImportedRows, IMPORT_CANCELLED_MESSAGE, type BuildImportedRowsOptions, type BuildImportedRowsResult, type ImportColumnMapping } from "./build-imported-rows";
 import { DEFAULT_LABELS, type AnyCellType } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev, isThenable, useOptionalDataGridColumnSource, useOptionalDataGridGateTimeout, useOptionalDataGridLabels } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { isDev, isThenable, useOptionalDataGridColumnSource, useOptionalDataGridGateTracker, useOptionalDataGridLabels, type GateTracker } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 export type { ImportTargetColumn, ImportDefaults };
 
@@ -176,26 +176,13 @@ export type BuildImportOptions<TData> = Omit<BuildImportedRowsOptions<TData>, "d
 
 type MappingGate = { signal: AbortSignal; arm: () => void; stop: () => void };
 
-/** The `mapColumn` signal: aborts with `signal`, or `timeoutMs` after {@link MappingGate.arm}, then reports the timeout. */
-function mappingGate(signal: AbortSignal, timeoutMs: number | undefined, onTimeout: () => void): MappingGate {
-  const controller = new AbortController();
-  const abort = () => controller.abort(signal.reason);
-  if (signal.aborted) abort();
-  else signal.addEventListener("abort", abort, { once: true });
-  let timer: ReturnType<typeof setTimeout> | undefined;
+/** The `mapColumn` signal: aborts with `signal`, or through the grid's gate run (`gateTimeoutMs.mapColumn`) once {@link MappingGate.arm} holds it. */
+function mappingGate(signal: AbortSignal, gates: GateTracker | null): MappingGate {
+  const run = gates?.begin("mapColumn");
   return {
-    signal: controller.signal,
-    arm: () => {
-      if (timeoutMs === undefined || !(timeoutMs > 0) || controller.signal.aborted) return;
-      timer = setTimeout(() => {
-        controller.abort(new DOMException("mapColumn timed out", "TimeoutError"));
-        onTimeout();
-      }, timeoutMs);
-    },
-    stop: () => {
-      clearTimeout(timer);
-      signal.removeEventListener("abort", abort);
-    },
+    signal: run ? AbortSignal.any([signal, run.signal]) : signal,
+    arm: () => run && gates!.hold(run),
+    stop: () => run && gates!.settle(run),
   };
 }
 
@@ -226,18 +213,8 @@ async function settleMapping(
 export function useDataGridImportPreview(options: UseDataGridImportPreviewOptions = {}): UseDataGridImportPreviewResult {
   const gridLabels = useOptionalDataGridLabels();
   const grid = useOptionalDataGridColumnSource();
-  const { timeoutMs: mapTimeoutMs, onGateAborted } = useOptionalDataGridGateTimeout("mapColumn");
-  const mapGate = useCallback(
-    (signal: AbortSignal) =>
-      mappingGate(signal, mapTimeoutMs, () => {
-        try {
-          onGateAborted?.({ gate: "mapColumn", reason: "timeout" });
-        } catch (error) {
-          if (isDev()) console.error("[data-grid-io] onGateAborted threw", error);
-        }
-      }),
-    [mapTimeoutMs, onGateAborted],
-  );
+  const gates = useOptionalDataGridGateTracker();
+  const mapGate = useCallback((signal: AbortSignal) => mappingGate(signal, gates), [gates]);
   const gridColumns = grid?.columns;
   const gridCellTypes = grid?.cellTypes;
   const labelsIo = (gridLabels ?? DEFAULT_LABELS).io;
