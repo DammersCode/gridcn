@@ -17,6 +17,7 @@ Why does a grid with 100,000 rows scroll smoothly, and what slows it down? The g
 - If a horizontal scroll changes the rendered columns, marker cells do not render again.
 - A selection move renders again only the cells whose own state changes.
 - An editor mounts only in the cell that you edit.
+- A live update with `reorder: "immediate"` moves only the patched rows. A batch of more than 256 rows, or a sort or filter change in the same tick, rebuilds the whole order. See [Stream updates](/docs/rows-live-data/stream-updates).
 
 ## Keep references stable [#keep-references-stable]
 
