@@ -10,7 +10,7 @@ import { MAX_ROW_COUNT, readAnswer, type ReadAnswer, type ServerRowsAnswer, type
 import { useScrollBlocks, type UseDataGridServerRowsScrollOptions, type UseDataGridServerRowsScrollResult } from "./scroll-blocks";
 import { GUARD_MISSING_MESSAGE, keepProtectedRows, pruneIds, trackDeletes, unionIds, useRefreshGuard, type ProtectedRows } from "./refresh-guard";
 import { useSaveRefresh, type SaveRefreshOptions, type SaveRefreshPolicy } from "./save-refresh";
-import { isolate, useControlled, useMountedPlugins, useReshape, useRevalidation, useServerSpec } from "./server-state";
+import { isolate, scheduleFrame, useControlled, useMountedPlugins, useReshape, useRevalidation, useServerSpec } from "./server-state";
 
 export type { DataSourceState } from "./server-state";
 export type { ServerRowsAnswer, ServerRowsPageRequest, ServerRowsRequest } from "./read-answer";
@@ -97,8 +97,8 @@ export type UseDataGridServerRowsResult<TData> = {
   retry: () => void;
   /**
    * Fetches the current page again and keeps the rows on screen until the answer lands. A row with a pending edit, delete, or in-flight save keeps its local state.
-   * A pending insert stays at the end of the page, so the page can exceed `pageSize` until its save settles.
-   * The hook calls it after saves settle by `refreshAfterSave`; call it yourself with `refreshAfterSave: false` or a void `onSave`.
+   * A pending insert stays at the end of the page, so the page can exceed `pageSize` until its save settles; when the last pending insert or delete settles, the hook calls it once, whatever `refreshAfterSave` says.
+   * The hook also calls it after saves settle by `refreshAfterSave`; call it yourself with `refreshAfterSave: false` or a void `onSave`.
    */
   refresh: () => void;
   /** Asks the server to place the pushed rows again: one `refresh()` on the next frame, or after `reshapeDelayMs` when it is set. Calls in one frame join. */
@@ -219,7 +219,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   const awaitingChain = !cursorSource && settled.cursorSource;
   const page = cursorSource ? Math.min(wantedPage, settled.furthestPage) : awaitingChain ? 1 : wantedPage;
   const [tick, setTick] = useState(0);
-  const { setSaveCheckListener, plugins: guardPlugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, savingRows, setSaveStartListener, setSavesSettledListener, setReshapeListener } = useRefreshGuard();
+  const { setSaveCheckListener, plugins: guardPlugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, savingRows, setSaveStartListener, setSavesSettledListener, setReshapeListener, setSettleListener } = useRefreshGuard();
   const [landed, setLanded] = useState<Landed<TData, TCursor> | null>(null);
 
   const specKey = serverSpecKey(spec);
@@ -488,6 +488,26 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   useLayoutEffect(() => {
     refreshRef.current = refresh;
   }, [refresh]);
+  const keyRef = useRef(key);
+  useLayoutEffect(() => {
+    keyRef.current = key;
+  }, [key]);
+  // A settled insert or delete moves rows between pages; one frame later the page loads again, unless a request of its own already ran.
+  useEffect(() => {
+    let cancel: (() => void) | null = null;
+    setSettleListener(() => {
+      if (cancel !== null) return;
+      const keyAtSettle = keyRef.current;
+      cancel = scheduleFrame(() => {
+        cancel = null;
+        if (keyRef.current === keyAtSettle) refreshRef.current();
+      });
+    });
+    return () => {
+      setSettleListener(null);
+      cancel?.();
+    };
+  }, [setSettleListener]);
   const restartClock = useRevalidation({ interval: options.revalidateIntervalMs, onTick: () => refreshRef.current(), busy: loading, resetKey: specKey });
   useLayoutEffect(() => {
     restartClockRef.current = restartClock;

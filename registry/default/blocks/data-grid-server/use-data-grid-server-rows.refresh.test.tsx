@@ -222,6 +222,57 @@ describe("refresh in place, pages mode", () => {
   });
 });
 
+describe("pages mode after a row operation settles", () => {
+  function setupPages(refreshAfterSave?: false) {
+    const fetchRows = vi.fn(async ({ start, end }: ServerRowsPageRequest): Promise<ServerRowsAnswer<Row>> => ({ rows: rowsOf(start, end - start, ""), totalRowCount: 100 }));
+    const saves: Array<() => void> = [];
+    const onSave = (_change: DataChange<Row>) => new Promise<void>((resolve) => saves.push(resolve));
+    let server!: UseDataGridServerRowsResult<Row>;
+    let store!: StoreApi<DataGridStoreState>;
+    function Probe() {
+      store = useDataGridStoreApi() as unknown as StoreApi<DataGridStoreState>;
+      return null;
+    }
+    function Harness() {
+      server = useDataGridServerRows<Row>({ getRowId: (r) => r.id, fetchRows, defaultPageSize: 10, pageSizeOptions: [10], onSave, ...(refreshAfterSave === false ? { refreshAfterSave } : {}) });
+      return (
+        <DataGridProvider {...server.gridProps} columns={columns}>
+          <DataGridRoot>
+            <Probe />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+    render(<Harness />);
+    const wait = () => act(async () => void (await new Promise((resolve) => setTimeout(resolve, 100))));
+    return { fetchRows, saves, wait, state: () => store.getState(), ready: () => waitFor(() => expect(server.loading).toBe(false)) };
+  }
+
+  it("refreshes once when the last pending delete settles, also with refreshAfterSave false", async () => {
+    const t = setupPages(false);
+    await t.ready();
+    act(() => t.state().actions.deleteRows(["r1"]));
+    await t.wait();
+    const before = t.fetchRows.mock.calls.length;
+    await act(async () => t.saves.splice(0).forEach((resolve) => resolve()));
+    await t.wait();
+    await t.ready();
+    expect(t.fetchRows.mock.calls.length - before).toBe(1);
+  });
+
+  it("sends one request when the save policy refreshes too", async () => {
+    const t = setupPages();
+    await t.ready();
+    act(() => t.state().actions.deleteRows(["r1"]));
+    await t.wait();
+    const before = t.fetchRows.mock.calls.length;
+    await act(async () => t.saves.splice(0).forEach((resolve) => resolve()));
+    await t.wait();
+    await t.ready();
+    expect(t.fetchRows.mock.calls.length - before).toBe(1);
+  });
+});
+
 describe("refresh without the guard plugin mounted", () => {
   const counted = async ({ start, end }: ServerRowsRequest): Promise<ServerRowsAnswer<Row>> => ({ rows: rowsOf(start, Math.min(end, 100) - start, ""), totalRowCount: 100 });
 
