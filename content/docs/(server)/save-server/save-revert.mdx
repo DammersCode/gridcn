@@ -79,14 +79,16 @@ export function opsToRequests(ops: DataOp<Order>[]) {
     }
   });
   const moves = ops.flatMap((op) =>
-    op.type === "move" ? [{ rowId: op.rowId, to: op.to }] : [],
+    op.type === "move"
+      ? [{ rowId: op.rowId, to: op.to, beforeRowId: op.beforeRowId, afterRowId: op.afterRowId }]
+      : [],
   );
   if (moves.length > 0) requests.push(api.orders.reorder(moves));
   return requests;
 }
 ```
 
-A cell edit, paste, or fill carries `op.cells`. A whole-row update has no `cells`. Send all moves of one change in one request. Each `to` is the final index of the row after the whole batch. The server removes every moved row, then inserts the rows in ascending `to` order. Moves applied one at a time end in the wrong order.
+A cell edit, paste, or fill carries `op.cells`. A whole-row update has no `cells`. Send all moves of one change in one request. Each `to` is the final index of the row after the whole batch, counted in the loaded rows. On a paged grid it counts from the first loaded row, not from the page. The server removes every moved row, then inserts the rows in ascending `to` order. Moves applied one at a time end in the wrong order. Each move also carries `afterRowId` and `beforeRowId`, the ids of the rows around it after the batch. A server that holds more rows than the grid places the row next to those ids. A move that undo or redo produces carries no ids.
 
 ## Strategy A: roll back on failure [#strategy-a-optimistic-roll-back-on-failure]
 
