@@ -19,59 +19,59 @@ Props of DataGrid, DataGridProvider.
 
 | Prop | Purpose | Page |
 | --- | --- | --- |
-| `announceResults` | Announces the view's row count through the grid's live region after a filter, sort, or filter-group change. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `autosizeOnMount` | Fits the column widths once after mount, when the view first has rows. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `cellTypes` | Custom cell types keyed by `ColumnDef.type`. Built-in types that you do not name keep working. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `checkedRowsLifetime` | How long the checked rows last. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `columnGroups` | Shared headers above runs of columns, by column id. Groups nest. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `announceResults` | Announces the view's row count through the grid's live region after a filter, sort, or filter-group change. | [Live region messages](/docs/accessibility/live-region-messages) |
+| `autosizeOnMount` | Fits the column widths once after mount, when the view first has rows. | [Column sizing](/docs/columns/column-sizing) |
+| `cellTypes` | Custom cell types keyed by `ColumnDef.type`. Built-in types that you do not name keep working. | [CellType contract](/docs/contracts/cell-type-contract) |
+| `checkedRowsLifetime` | How long the checked rows last. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
+| `columnGroups` | Shared headers above runs of columns, by column id. Groups nest. | [Column headers and groups](/docs/columns/column-headers-groups) |
 | `columnLayout` | The layout that your code controls. | [Column and viewport events](/docs/events-state/column-viewport-events) |
-| `columns` | The column definitions of the grid. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `commands` | Your own keyboard commands, keyed by name. A keymap binding that names no built-in action runs one. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `createRow` | Builds a new row for `insertRow` (`index` is the data index at request time). Absent makes `insertRow` a dev-warning no-op. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `columns` | The column definitions of the grid. | [Define columns](/docs/learning-path/define-columns) |
+| `commands` | Your own keyboard commands, keyed by name. A keymap binding that names no built-in action runs one. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |
+| `createRow` | Builds the new row for `insertRow` and `insertRows`. Without it, both return the reason `"no-factory"`. | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `data` | The rows, controlled by your code. | [Data change events](/docs/events-state/data-change-events) |
 | `defaultColumnLayout` | The layout, seeded once at mount. | [Column and viewport events](/docs/events-state/column-viewport-events) |
 | `defaultData` | The rows, seeded once and then owned by the grid. | [Data change events](/docs/events-state/data-change-events) |
 | `defaultFilterState` | The filters, seeded once. | [Sort and filter events](/docs/events-state/sort-filter-events) |
-| `defaultPage` | Seeds the page of a paged grid once. Default `1`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `defaultPageSize` | Seeds the page size once and turns paging on. The grid keeps all of `data` and shows one page of the view. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `defaultPage` | Seeds the page of a paged grid once. Default `1`. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
+| `defaultPageSize` | Seeds the page size once and turns paging on. The grid keeps all of `data` and shows one page of the view. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | `defaultSearchText` | The quick search text, seeded once. | [Sort and filter events](/docs/events-state/sort-filter-events) |
 | `defaultSelection` | The selection, seeded once. | [Selection and cell events](/docs/events-state/selection-cell-events) |
 | `defaultSortState` | The sort, seeded once. | [Sort and filter events](/docs/events-state/sort-filter-events) |
-| `duplicateRow` | Builds the new row for `duplicateRows` from the source row and its new data index. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `enableColumnPinning` | Enables pin/unpin actions grid-wide. Default `true`. `false` makes `setColumnPin` do nothing. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `enableColumnReorder` | Enables drag-to-reorder columns grid-wide. Default `true`. `false` makes `setColumnOrder` do nothing. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `enableColumnResize` | Enables the header resize handle grid-wide. Default `true`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `enableColumnSelection` | Turns on whole-column selection by a header click. Default `true`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `enableMultiRange` | Turns on several ranges by Ctrl or Cmd click. Default `true`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `enableRangeSelection` | Turns on range selection by shift-click, drag, and shift+arrow keys. Default `true`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `enableRowSelection` | Turns on whole-row selection by a row marker click and Shift+Space. Default `true`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `fetchFilterValues` | Supplies the values of the header filter popover and the `isAnyOf` input from a backend, one list per search. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `duplicateRow` | Builds the new row for `duplicateRows` from the source row and its new data index. | [Row operations](/docs/rows-pages-menus/row-operations) |
+| `enableColumnPinning` | Turns on pinning grid-wide. Default `true`. `false` makes `setColumnPin` do nothing. | [Column order and pinning](/docs/columns/column-order-pinning) |
+| `enableColumnReorder` | Enables drag-to-reorder columns grid-wide. Default `true`. `false` makes `setColumnOrder` do nothing. | [Column order and pinning](/docs/columns/column-order-pinning) |
+| `enableColumnResize` | Enables the header resize handle grid-wide. Default `true`. | [Column sizing](/docs/columns/column-sizing) |
+| `enableColumnSelection` | Turns on whole-column selection by a header click. Default `true`. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
+| `enableMultiRange` | Turns on several ranges by Ctrl or Cmd click. Default `true`. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
+| `enableRangeSelection` | Turns on range selection by shift-click, drag, and shift+arrow keys. Default `true`. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
+| `enableRowSelection` | Turns on whole-row selection by a row marker click and Shift+Space. Default `true`. | [Row markers](/docs/rows-pages-menus/row-markers) |
+| `fetchFilterValues` | Supplies the values of the header filter popover and the `isAnyOf` input from a backend, one list per search. | [Header filter](/docs/sort-filter-search/header-filter) |
 | `filterMode` | Who filters: `"client"` filters `data`, `"server"` only tracks the filters. Default `"server"` with `totalRowCount`, else `"client"`. | [Sort and filter events](/docs/events-state/sort-filter-events) |
 | `filterState` | The filter tree, controlled by your code. | [Sort and filter events](/docs/events-state/sort-filter-events) |
-| `gateTimeoutMs` | Aborts an async gate that has not settled after this many ms. Default: off. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `getRowId` | Stable, unique id of a row. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `headerClickBehavior` | How a plain header click behaves. Default 'select'. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `inputDebounceMs` | Sets the wait in ms before a text input commits. It covers the toolbar search, the filter value inputs, the set-filter search, find and replace, and the lookup editor. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `keymap` | Merges over `DEFAULT_KEYMAP` per action. An action mapped to `[]` has no binding. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `labels` | Overrides the UI text. The grid deep-merges it over `DEFAULT_LABELS`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `locale` | BCP 47 language tag, such as `"de-DE"`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `page` | The current page, 1-based. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `pageSize` | Shows `pageSize` rows of the sorted and filtered view at a time. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `plugins` | Installs plugins: overlay layers, row bands, data-change observers, commands, keymap bindings, and root mounts. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `processCellForClipboard` | Overrides a cell's clipboard-copy text. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `processCellFromClipboard` | Overrides parsing pasted text into a cell value. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `processPaste` | Runs on the parsed paste grid before it is applied. Returning `false` (or a promise of `false`) vetoes the paste entirely. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `readOnly` | Blocks edits, paste, fill, cut, clear, row operations, id swaps, undo, and redo in the whole grid. A `source: "stream"` push still writes. Default `false`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `resolveSaveConflict` | Decides what a refused row becomes when the server sent its current row (`SaveRejection.current`). | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `rowMarkers` | Marker column mode. Default 'none'. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `sanitizeClipboardFormulas` | Prefixes formula-like copied cells with `'` in the clipboard text and HTML. Default `false`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `gateTimeoutMs` | Aborts an async gate that has not settled after this many ms. Default: off. | [Cancel async gates](/docs/editing-cells/cancel-async-gates#gate-timeout) |
+| `getRowId` | Stable, unique id of a row. | [DataGrid props](/docs/components-props/data-grid-props#rows-and-ids) |
+| `headerClickBehavior` | Sets what a plain header click does. Default `"select"`. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
+| `inputDebounceMs` | Sets the wait in ms before a text input commits. It covers the toolbar search, the filter value inputs, the set-filter search, find and replace, and the lookup editor. | [Quick search](/docs/sort-filter-search/quick-search) |
+| `keymap` | Merges over `DEFAULT_KEYMAP` per action. An action mapped to `[]` has no binding. | [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) |
+| `labels` | Overrides the UI text. The grid deep-merges it over `DEFAULT_LABELS`. | [Labels and i18n](/docs/theme-style-language/labels-i18n) |
+| `locale` | BCP 47 language tag, such as `"de-DE"`. | [Labels and i18n](/docs/theme-style-language/labels-i18n) |
+| `page` | The current page, 1-based. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
+| `pageSize` | Shows `pageSize` rows of the sorted and filtered view at a time. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
+| `plugins` | Installs plugins: overlay layers, row bands, data-change observers, commands, keymap bindings, and root mounts. | [Plugin model](/docs/plugins/plugin-shape) |
+| `processCellForClipboard` | Overrides a cell's clipboard-copy text. | [Change copy and paste](/docs/clipboard-undo/change-copy-paste) |
+| `processCellFromClipboard` | Overrides parsing pasted text into a cell value. | [Change copy and paste](/docs/clipboard-undo/change-copy-paste) |
+| `processPaste` | Runs on the parsed paste grid before it is applied. Returning `false` (or a promise of `false`) vetoes the paste entirely. | [Change copy and paste](/docs/clipboard-undo/change-copy-paste) |
+| `readOnly` | Blocks edits, paste, fill, cut, clear, row operations, id swaps, undo, and redo in the whole grid. A `source: "stream"` push still writes. Default `false`. | [Editable columns](/docs/editing-cells/editable-columns) |
+| `resolveSaveConflict` | Decides what a refused row becomes when the server sent its current row (`SaveRejection.current`). | [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict) |
+| `rowMarkers` | Sets the mode of the marker column. Default `"none"`. | [Row markers](/docs/rows-pages-menus/row-markers) |
+| `sanitizeClipboardFormulas` | Prefixes formula-like copied cells with `'` in the clipboard text and HTML. Default `false`. | [Clipboard](/docs/clipboard-undo/clipboard) |
 | `searchText` | The quick search text, controlled by your code. | [Sort and filter events](/docs/events-state/sort-filter-events) |
 | `selection` | The selection, controlled by your code. | [Selection and cell events](/docs/events-state/selection-cell-events) |
 | `sortLocale` | The language tag for text compares in a client sort, text range filters, and the filter value lists. | [Sort and filter events](/docs/events-state/sort-filter-events) |
 | `sortMode` | Who sorts: `"client"` sorts `data`, `"server"` only tracks the sort. Default `"server"` with `totalRowCount`, else `"client"`. | [Sort and filter events](/docs/events-state/sort-filter-events) |
 | `sortState` | The sort, controlled by your code. | [Sort and filter events](/docs/events-state/sort-filter-events) |
-| `totalRowCount` | Declares that `data` is a window of a larger result of this many rows. `null` means the size is unknown. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `validateRow` | Validates a whole row once after a write gesture commits. The row already has every cell of the gesture applied. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `totalRowCount` | Declares that `data` is a window of a larger result of this many rows. `null` means the size is unknown. | [Server rows contract](/docs/contracts/server-rows-contract) |
+| `validateRow` | Validates a whole row once after a write gesture commits. The row already has every cell of the gesture applied. | [Validate rows and async checks](/docs/editing-cells/validate-rows-cross-field) |
 
 ## Root props [#root-props]
 

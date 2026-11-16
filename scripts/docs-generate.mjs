@@ -8,7 +8,7 @@ import { pathToFileURL } from "node:url";
 import { frontField, pageIndex, readLf, splitFrontmatter, urlOfPage } from "./docs-verify-lib.mjs";
 import { parseTypes } from "./verify-docs-props.mjs";
 import { MESSAGES, OMITTED } from "./docs-generate-messages.mjs";
-import { FINDER, FEATURES, FEATURE_SINCE, ADDONS, TERM_PAGES, ACTION_PAGES, HOOK_GROUPS, OPTION_GROUPS } from "./docs-generate-data.mjs";
+import { FINDER, FEATURES, FEATURE_SINCE, ADDONS, TERM_PAGES, ACTION_PAGES, PROP_PAGES, HOOK_GROUPS, OPTION_GROUPS } from "./docs-generate-data.mjs";
 
 const root = process.cwd();
 const BLOCKS = "registry/default/blocks";
@@ -488,7 +488,10 @@ const PURPOSE = {
   "DataGridSyncProps.sortMode": "Who sorts: `\"client\"` sorts `data`, `\"server\"` only tracks the sort. Default `\"server\"` with `totalRowCount`, else `\"client\"`.",
   "DataGridSyncProps.filterMode": "Who filters: `\"client\"` filters `data`, `\"server\"` only tracks the filters. Default `\"server\"` with `totalRowCount`, else `\"client\"`.",
   "DataGridSyncProps.enableColumnReorder": "Enables drag-to-reorder columns grid-wide. Default `true`. `false` makes `setColumnOrder` do nothing.",
-  "DataGridSyncProps.enableColumnPinning": "Enables pin/unpin actions grid-wide. Default `true`. `false` makes `setColumnPin` do nothing.",
+  "DataGridSyncProps.enableColumnPinning": "Turns on pinning grid-wide. Default `true`. `false` makes `setColumnPin` do nothing.",
+  "DataGridSyncProps.createRow": "Builds the new row for `insertRow` and `insertRows`. Without it, both return the reason `\"no-factory\"`.",
+  "DataGridSyncProps.headerClickBehavior": "Sets what a plain header click does. Default `\"select\"`.",
+  "DataGridSyncProps.rowMarkers": "Sets the mode of the marker column. Default `\"none\"`.",
   "DataGridSyncProps.enableRowSelection": "Turns on whole-row selection by a row marker click and Shift+Space. Default `true`.",
   "DataGridSyncProps.labels": "Overrides the UI text. The grid deep-merges it over `DEFAULT_LABELS`.",
   "DataGridSyncProps.onRowActionSkipped": "Fires when a row action (`insertRows`, `duplicateRows`, `deleteRows`, `moveRows`) does nothing, with its name and the reason. The insert, duplicate, and delete actions also return `{ ok: false, reason }`. `reorderRows` and `moveRowsBy` (both report as `moveRows`) return `false`.",
@@ -506,7 +509,9 @@ function describe(src, name, entry) {
 
 function propRow(src, name, index) {
   const entry = (index.get(name) ?? []).find(src.accept);
-  const target = entry ? `${entry.url}${entry.anchor ? `#${entry.anchor}` : ""}` : src.fallback;
+  const featurePage = src.id === "provider-props" ? PROP_PAGES[name] : undefined;
+  if (featurePage && !entry && !new RegExp(`(?<![A-Za-z])${name}(?![A-Za-z])`).test(pages.get(featurePage.split("#")[0])?.body ?? "")) problems.push(`props: ${featurePage} never names ${name}`);
+  const target = entry ? `${entry.url}${entry.anchor ? `#${entry.anchor}` : ""}` : featurePage ?? src.fallback;
   return { entry, target };
 }
 
@@ -598,7 +603,7 @@ const ACTION_PURPOSE = {
   autosizeColumns: "Sizes columns to their content over the view and returns the measured widths. On a paged grid, it measures the shown page.",
   resetColumnWidth: "Drops the width override of a column, so the column gets its `width` from the definition again.",
   setColumnOrder: "Moves a column, or a column group, before or after another column. Returns `{ ok: true }`, or `{ ok: false, reason }` when the order stays.",
-  canSetColumnOrder: "Returns the result `setColumnOrder` would return for the same arguments, without the move.",
+  canSetColumnOrder: "Returns the result that `setColumnOrder` returns for the same arguments, without the move.",
   setColumnPin: "Pins a column to `\"start\"` or `\"end\"`, or unpins it with `null`.",
   setColumnHidden: "Shows or hides a column.",
   setColumnLayout: "Applies a partial `ColumnLayout` as one commit. Omitted parts keep their value.",
@@ -641,6 +646,8 @@ function actionDocs() {
 
 const isInternal = (doc) => /@internal\b/.test(doc);
 
+const ACTION_REFERENCE = "/docs/types-hooks/store-hooks#handle";
+
 function actionsZ() {
   const docs = actionDocs();
   const rows = [];
@@ -651,6 +658,7 @@ function actionsZ() {
       problems.push(`actions: no page for DataGridActions.${name} in ACTION_PAGES`);
       continue;
     }
+    if (target !== ACTION_REFERENCE && !new RegExp(`(?<![A-Za-z])${name}(?![A-Za-z])`).test(pages.get(target.split("#")[0])?.body ?? "")) problems.push(`actions: ${target} never names ${name}; link a page that names it or ${ACTION_REFERENCE}`);
     const base = name.endsWith("At") && docs.has(name.slice(0, -2)) ? name.slice(0, -2) : null;
     const fromDoc = doc ? tidy(sentence(doc.replace(/\{@link\s+(?:\w+\.)?(\w+)\}/g, "`$1`"))) : "";
     const text = cell(ACTION_PURPOSE[name] ?? (base ? `Takes a \`ViewCoord\` in place of the \`CellRef\` of \`${base}\`.` : fromDoc));
