@@ -45,9 +45,9 @@ export type UseDataGridClipboardResult = {
    * clamp that moves the active cell collapses the selection onto another record and cancels it.
    * The cells are captured by row and column id at copy time, so a sort, filter, or data change
    * during the write clears the copied rows wherever they moved; a row that left the view stays.
-   * A failed write keeps the selection intact.
+   * A failed write keeps the selection intact. Resolves `'refused'` and does nothing while a cell editor is open.
    */
-  cut: () => Promise<"ok" | "fallback" | "failed" | "no-selection">;
+  cut: () => Promise<"ok" | "fallback" | "failed" | "no-selection" | "refused">;
   /**
    * Reads `navigator.clipboard.readText()` and applies it through the same parse -> writes ->
    * applyCellUpdates pipeline as a native paste. Resolves `'permission-denied'` when the read is
@@ -103,8 +103,8 @@ function execCommandCopyFallback(text: string): boolean {
 /**
  * Public clipboard triggers for use outside native clipboard events (e.g. a context menu's
  * Copy/Cut/Paste items). Runs the same copy scope, serializer, and paste pipeline as
- * {@link useGridClipboard}. Unlike the native events, `copy()` and `cut()` also run while a cell
- * editor is open.
+ * {@link useGridClipboard}. Unlike the native events, `copy()` also runs while a cell editor is
+ * open; `cut()` and `pasteFromClipboard()` refuse.
  *
  * Copy and paste address the displayed rows. On a paged grid that is the shown page: a column
  * selection copies the rows of the page, and a paste stops at the page's last row.
@@ -124,8 +124,10 @@ export function useDataGridClipboard(options: UseDataGridClipboardOptions = {}):
     return writeToClipboard(text, html);
   }, [storeApi, sanitizeFormulas]);
 
-  const cut = useCallback(async (): Promise<"ok" | "fallback" | "failed" | "no-selection"> => {
+  const cut = useCallback(async (): Promise<"ok" | "fallback" | "failed" | "no-selection" | "refused"> => {
     const s = storeApi.getState();
+    // the open editor would commit its draft over the cleared cell
+    if (s.editing) return "refused";
     const scope = resolveCopyScope(s);
     if (!scope) return "no-selection";
     const { text, html } = serializeCells(serializeCopyScope(s, scope), { sanitizeFormulas: sanitizeFormulas ?? s.sanitizeClipboardFormulas });

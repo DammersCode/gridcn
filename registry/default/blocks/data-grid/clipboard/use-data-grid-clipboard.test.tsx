@@ -274,6 +274,23 @@ describe("useDataGridClipboard.cut on a readOnly grid", () => {
   });
 });
 
+describe("useDataGridClipboard.cut while a cell editor is open", () => {
+  it("resolves 'refused', writes nothing to the clipboard, and clears no cell", async () => {
+    const write = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { clipboard: { write } });
+    vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
+    const onDataChange = vi.fn();
+    const result = setUpGrid(makeWrapper({ onDataChange }));
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
+
+    const outcome = await act(async () => result.current.clipboard.cut());
+
+    expect(outcome).toBe("refused");
+    expect(write).not.toHaveBeenCalled();
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+});
+
 describe("sanitizeClipboardFormulas grid prop", () => {
   /** Captures the text/plain and text/html blobs of the one ClipboardItem the copy writes. */
   function captureClipboardItem() {
