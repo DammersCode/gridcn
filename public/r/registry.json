@@ -553,6 +553,11 @@
           "target": "components/data-grid/sort-filter/keyed-sort.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/sort-filter/untyped-sort.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/sort-filter/untyped-sort.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/sort-filter/default-compare-text.ts",
           "type": "registry:component",
           "target": "components/data-grid/sort-filter/default-compare-text.ts"
