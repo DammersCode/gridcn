@@ -6,7 +6,7 @@ type: feature
 aliases: ["keybindings", "rebind keys", "remap shortcuts", "shortcuts dialog", "hotkey editor", "change keyboard shortcut"]
 ---
 
-The `keymap` prop on `DataGridProvider` changes the key bindings of the grid. The `data-grid-keybindings` add-on renders them. `useDataGridKeybindings` mounts a dialog that lists the effective keymap with your overrides. It leaves out actions that do nothing on this grid, such as Undo without the history add-on. `BindingChips` renders one binding as keycaps for your own UI. The `commands` prop binds keys to your own functions.
+The `keymap` prop on `DataGridProvider` changes the key bindings of the grid. The `data-grid-keybindings` add-on renders them. `useDataGridKeybindings` mounts a dialog that lists the effective keymap with your overrides. It leaves out actions that do nothing on this grid, such as Undo without the history add-on. The `commands` prop binds keys to your own functions.
 
 <ComponentPreview name="data-grid-keybindings-demo" />
 
@@ -177,7 +177,7 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
 
 `run` receives a `GridCommandCtx` with `api`, `cell`, `viewRowIndex`, `viewColumnIndex`, `row`, and `readOnly`. The grid calls `preventDefault` before `run`, so `mod+s` opens no browser save dialog. When `when` returns `false`, the grid ignores the key and the browser runs its own action. [Shortcut remapping options](/docs/add-options/selection-shortcuts/shortcut-remapping-options#custom-commands) lists every field of `GridCommand` and `GridCommandCtx`.
 
-On an unloaded row of a lazy grid, `cell` is a placeholder ref that `api` cannot resolve.
+On a hole of a scroll-mode grid, `cell` is a placeholder ref that `api` cannot resolve.
 
 `scope` selects the moment of dispatch. `"grid"` runs while no edit session is open. `"editing"` runs during an edit session, also in editors without a text input, such as the select list. `"always"` runs in both. An `"editing"` command never takes over a grid binding outside an edit session.
 

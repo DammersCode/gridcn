@@ -38,13 +38,13 @@ A focused header button takes only <kbd>Enter</kbd> and <kbd>Space</kbd>, with o
 - <kbd>Alt</kbd>+<kbd>Enter</kbd> opens the link of a link cell in a new tab.
 - <kbd>Shift</kbd>+<kbd>F10</kbd> opens the [cell menu](/docs/rows-pages-menus/context-menu#cell-surface-row-operation-items) of the active cell on Windows and Linux. It needs `DataGridContextMenu`.
 
-## Moving rows [#moving-rows]
+## Row move keys [#moving-rows]
 
 <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageUp</kbd> (`moveRowsUp`) and <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> (`moveRowsDown`) move rows one place. They move the checked rows. Without checked rows, they move the rows of every selected range, or the active row.
 
 They need a `reorder` family `rowMarkers` mode. A read-only grid ignores them. See [Row order](/docs/rows-pages-menus/row-order).
 
-## Opening the column filter [#opening-the-column-filter]
+## Column filter and menu keys [#opening-the-column-filter]
 
 <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowUp</kbd> (`openColumnFilter`) opens the header filter of the focused header button's column, or else the active cell's column. It needs a `renderHeaderFilter` slot on the root and a column that offers a set filter. Otherwise it does nothing.
 
