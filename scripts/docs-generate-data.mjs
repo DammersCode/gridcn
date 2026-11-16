@@ -553,6 +553,7 @@ export const PROP_PAGES = {
 
 // Purpose of an option whose type carries no usable JSDoc sentence, keyed "owner.option".
 export const OPTION_PURPOSE = {
+  "buildImportedRows.processCellFromText": "Parses one cell in place of `cellType.fromText`. Can return a promise, which makes the build asynchronous.",
   "DataGridToolbar.children": "Renders the toolbar controls inside the bar.",
   "DataGridSortList.className": "Adds a class name to the sort list.",
   "DataGridPrintButton.className": "Adds a class name to the print button.",
