@@ -319,9 +319,19 @@ describe("sanitizeClipboardFormulas grid prop", () => {
     expect(html).toContain(`>'=HYPERLINK("x")</td>`);
   });
 
-  it("keeps the menu copy raw by default", async () => {
+  it("neutralizes the menu copy by default", async () => {
     const read = captureClipboardItem();
     const wrapper = makeWrapper({ data: [{ id: "1", name: "=1+1" }] });
+    const result = setUpGrid(wrapper);
+
+    await act(async () => result.current.clipboard.copy());
+
+    expect((await read()).text).toBe("'=1+1");
+  });
+
+  it("keeps the menu copy raw when the grid prop is false", async () => {
+    const read = captureClipboardItem();
+    const wrapper = makeWrapper({ data: [{ id: "1", name: "=1+1" }], sanitizeClipboardFormulas: false });
     const result = setUpGrid(wrapper);
 
     await act(async () => result.current.clipboard.copy());

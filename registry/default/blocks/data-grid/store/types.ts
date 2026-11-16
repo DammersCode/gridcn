@@ -171,7 +171,7 @@ export type DataGridSyncProps<TData = unknown> = {
   /**
    * Prefixes formula-like copied cells (leading `=`, `+`, `-`, `@`, TAB, or CR; plain numbers
    * exempt) with `'` in the clipboard text and HTML, for Ctrl+C/Ctrl+X and the context menu's
-   * Copy/Cut. A paste back into gridcn still restores the raw value. Default `false`.
+   * Copy/Cut. A paste back into gridcn still restores the raw value. Default `true`; `false` copies raw text.
    */
   sanitizeClipboardFormulas?: boolean;
   /** Marker column mode; default 'none'. See {@link RowMarkersMode}. */
