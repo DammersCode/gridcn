@@ -1028,15 +1028,15 @@ export interface GridCellTypes {
   };
 }
 
+/** Which inline side a pinned column sticks to; `"start"` and `"end"` flip in a right-to-left page. */
+export type ColumnPin = "start" | "end";
+
 /**
  * Plain JSON-serializable snapshot of a grid's column layout (widths/order/pins/hidden) — the save
  * payload for `onColumnLayoutChange`/`defaultColumnLayout`. `widths`
  * holds only columns the user has actually resized (a def's own `width` isn't duplicated in here);
  * `order` is always the full current column-id order, not just the moved one.
  */
-/** Which inline side a pinned column sticks to; `"start"` and `"end"` flip in a right-to-left page. */
-export type ColumnPin = "start" | "end";
-
 export type ColumnLayout = {
   widths: Record<string, number>;
   order: string[];

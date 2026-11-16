@@ -36,7 +36,7 @@ export type { GridDirection } from "./virtualization/direction";
 export type { DataGridPlugin, PluginRowBands, DataGridPluginCtx, DataGridReadState, DataGridStoreWrapper } from "./types";
 export { type RowBandRenderCtx } from "./layout-context";
 /** The custom row-marker render slots (`DataGridRootProps.renderMarker`/`renderMarkerHeader`) and their ctx types. */
-export { type HeaderMenuRenderer, type MarkerCellRenderCtx, type MarkerHeaderRenderCtx, type MarkerCellRenderer, type MarkerHeaderRenderer } from "./layout-context";
+export { type HeaderFilterRenderer, type HeaderMenuRenderer, type MarkerCellRenderCtx, type MarkerHeaderRenderCtx, type MarkerCellRenderer, type MarkerHeaderRenderer } from "./layout-context";
 
 export {
   cellErrorKey,
@@ -222,6 +222,7 @@ export type {
   ColumnGroupDef,
   ColumnLayout,
   ColumnPin,
+  StandardSchemaV1,
   GetRowClassName,
   GetCellClassName,
   CellClassNameCtx,
@@ -234,6 +235,7 @@ export type {
   GridValidationErrorEvent,
 } from "./types";
 export { createFilterMatcher, type SearchMatch } from "./sort-filter";
+export { isFilterGroup } from "./sort-filter/filter-tree";
 
 /** Props for {@link DataGrid}: the sync props (the store's home) plus the root's render/layout props — a prop lives on exactly one surface, so nothing is hand-forwarded. */
 export type DataGridProps<TData> = (ExternalStoreProps | OwnedStoreProps<TData>) &
