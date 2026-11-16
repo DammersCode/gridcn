@@ -145,25 +145,27 @@ export function checkDevGuardrails(
   }
 }
 
-/** Flags for the cells of `update` and `insert` operations that a `validationMode: "warn"` column's sync validator rejects: one validator call per such cell. */
-export function warnFlagsForOps(s: DataGridStoreState, ops: readonly DataOp<unknown>[]): CellErrorEntry[] {
+/** Flags for the cells of `update` and `insert` operations that a `validationMode: "warn"` column's sync validator rejects: one validator call per such cell, with one validate context per column for the whole change over `nextData`. */
+export function warnFlagsForOps(s: DataGridStoreState, ops: readonly DataOp<unknown>[], nextData: readonly unknown[]): CellErrorEntry[] {
   const flags: CellErrorEntry[] = [];
   const warnColumns = s.columns.filter((column) => column.validationMode === "warn");
   if (warnColumns.length === 0) return flags;
-  const check = (rowId: string, row: unknown, column: AnyColumnDef, value: unknown): void => {
-    const result = runValidateSync(resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]), value, row, validateContextsFor(s.data, s.columns, [{ columnId: column.id, row, value }]).get(column.id));
-    if ("error" in result && !result.thrown) flags.push({ rowId, columnId: column.id, message: result.error });
-  };
   const byId = new Map(warnColumns.map((column) => [column.id, column] as const));
+  const cells: { rowId: string; column: AnyColumnDef; columnId: string; row: unknown; value: unknown }[] = [];
   for (const op of ops) {
     if (op.type === "insert") {
-      for (const column of warnColumns) check(op.rowId, op.row, column, getCellValue(op.row, column));
+      for (const column of warnColumns) cells.push({ rowId: op.rowId, column, columnId: column.id, row: op.row, value: getCellValue(op.row, column) });
     } else if (op.type === "update" && op.cells) {
       for (const cell of op.cells) {
         const column = byId.get(cell.columnId);
-        if (column) check(op.rowId, op.row, column, cell.value);
+        if (column) cells.push({ rowId: op.rowId, column, columnId: column.id, row: op.row, value: cell.value });
       }
     }
+  }
+  const contexts = validateContextsFor(nextData, s.columns, cells);
+  for (const { rowId, column, row, value } of cells) {
+    const result = runValidateSync(resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]), value, row, contexts.get(column.id));
+    if ("error" in result && !result.thrown) flags.push({ rowId, columnId: column.id, message: result.error });
   }
   return flags;
 }
