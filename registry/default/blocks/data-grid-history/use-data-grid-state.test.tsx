@@ -228,3 +228,16 @@ describe("useDataGridState", () => {
     expect(h.grid().history.canUndo).toBe(true);
   });
 });
+
+describe("useDataGridState plugins option", () => {
+  it("merges the given plugins before the history plugin and keeps the array stable for equal entries", () => {
+    const extra = { name: "extra" };
+    const { result, rerender } = renderHook(() => useDataGridState(defaultRows, { plugins: [extra] }));
+    const first = result.current.plugins;
+    expect(first).toHaveLength(2);
+    expect(first[0]).toBe(extra);
+    expect(first[1]!.name).toBe("history");
+    rerender();
+    expect(result.current.plugins).toBe(first);
+  });
+});

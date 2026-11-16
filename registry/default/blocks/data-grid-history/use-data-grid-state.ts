@@ -1,13 +1,15 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { type DataChange, type DataGridPlugin } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridHistory, type RecordedChange, type UseDataGridHistoryOptions } from "./use-data-grid-history";
 
-/** Options for {@link useDataGridState}: every `useDataGridHistory` option, plus `getRowId`. */
+/** Options for {@link useDataGridState}: every `useDataGridHistory` option, plus `getRowId` and `plugins`. */
 export type UseDataGridStateOptions<TData> = UseDataGridHistoryOptions<TData> & {
   /** Row identity; defaults to the row's `id` field, like `DataGrid`'s `getRowId`. */
   getRowId?: (row: TData, index: number) => string;
+  /** Other plugins of the grid. The returned `plugins` holds them, then the history plugin, so the spread stays complete. An inline array is fine: equal entries keep the identity. */
+  plugins?: readonly DataGridPlugin<TData>[];
 };
 
 /** Return value of {@link useDataGridState}, spreadable straight onto `<DataGrid {...grid} />`. */
@@ -16,7 +18,7 @@ export type UseDataGridStateResult<TData> = {
   getRowId?: (row: TData, index: number) => string;
   /** Writes the grid's next array back into the hook-owned state — the controlled-data echo the undo/redo flow relies on. */
   onDataChange: (next: readonly TData[], change: DataChange<TData>) => void;
-  /** The grid's `plugins` prop: the history plugin (observer + `undo`/`redo` commands + api stash). Combine with other plugins explicitly after the spread, e.g. `plugins={[fillPlugin, ...grid.plugins]}`. */
+  /** The grid's `plugins` prop: the `plugins` option, then the history plugin (observer + `undo`/`redo` commands + api stash). */
   plugins: readonly DataGridPlugin<TData>[];
   /**
    * For a toolbar's undo/redo buttons, outside the spreadable `DataGrid` props. `clear` empties
@@ -43,6 +45,15 @@ export type UseDataGridStateResult<TData> = {
   };
 };
 
+const NO_PLUGINS: readonly never[] = [];
+
+function useStableEntries<T>(entries: readonly T[]): readonly T[] {
+  const [held, setHeld] = useState(entries);
+  if (held.length === entries.length && held.every((entry, i) => entry === entries[i])) return held;
+  setHeld(entries);
+  return entries;
+}
+
 /**
  * Quick-start grid state with undo/redo: wires `useState` + {@link useDataGridHistory}
  * into one spreadable object.
@@ -61,7 +72,7 @@ export function useDataGridState<TData>(
   defaultRows: readonly TData[],
   opts: UseDataGridStateOptions<TData> = {},
 ): UseDataGridStateResult<TData> {
-  const { getRowId, ...historyOptions } = opts;
+  const { getRowId, plugins: extraPlugins = NO_PLUGINS, ...historyOptions } = opts;
   const [data, setData] = useState<readonly TData[]>(defaultRows);
   const history = useDataGridHistory<TData>(historyOptions);
   // stable identity: useDataGridRowIdToViewRow keys its O(n) Map build on getRowId identity.
@@ -73,9 +84,8 @@ export function useDataGridState<TData>(
   }, []);
 
   const historyPlugin = history.plugin;
-  // a fresh `[historyPlugin]` per render is entry-equal (no re-resolution), but the config phase
-  // keys its sync on array identity — a stable reference skips the store set entirely
-  const plugins = useMemo(() => [historyPlugin], [historyPlugin]);
+  // the config phase keys its sync on array identity, so equal entries keep the last array
+  const plugins = useStableEntries([...extraPlugins, historyPlugin]);
 
   return {
     data,
