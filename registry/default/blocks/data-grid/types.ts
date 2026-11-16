@@ -440,10 +440,9 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   /** The quick-search text for a stored value; the default is `toText`. select declares the choice label. */
   toSearchText?(value: TValue, options?: TOptions): string;
   /**
-   * Validation for every column of this type; same shape as {@link ColumnDef.validate}. Every
-   * validation path (single-cell commit, paste, fill, updateCells, import) runs the function form
-   * first, then the column's own `validate`; beside a Standard Schema column `validate`, it receives
-   * no row. A Standard Schema type `validate` applies only to a column without its own.
+   * Validation for every column of this type; same shape as {@link ColumnDef.validate}. Every validation path (commit, paste, fill,
+   * updateCells, import) runs the function form first, then the column's own `validate` (beside a column Standard Schema, it receives
+   * no row). A Standard Schema type `validate` applies only to a column without its own.
    */
   validate?: ((value: TValue, row: TData, options?: TOptions) => string | null) | StandardSchemaV1<TValue>;
   /**
