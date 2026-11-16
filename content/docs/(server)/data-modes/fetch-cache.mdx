@@ -56,15 +56,17 @@ export function OrdersGrid() {
 
 The grid shows each change at once, and `onDataChange` keeps the cache in step. If the request fails, the grid reverts the change and calls `onDataChange` again with the reverted rows. See [Revert or refetch after a save](/docs/save-server/save-revert).
 
+Edits are server state. `onSave` sends each change, and `onDataChange` writes the cache. The invalidation then shows what the server holds. With SWR, call the `mutate` that `useSWR` returns in place of `invalidateQueries`.
+
 A socket or a poll can push values many times per second. Write such values with `updateCells`, not with a new `data` array. See [Stream updates](/docs/rows-live-data/stream-updates).
 
 ## Cache scroll blocks [#wiring-a-fetchcache-library-react-query]
 
-1. Call `queryClient.fetchQuery` inside `fetchRows`.
-2. Key the query by `serverSpecKey(spec)`, `start`, and `end`.
-3. Resolve `queryFn` with `{ rows, totalRowCount }`.
+- Call `queryClient.fetchQuery` inside `fetchRows`.
+- Key the query by `serverSpecKey(spec)`, `start`, and `end`.
+- Resolve `queryFn` with `{ rows, totalRowCount }`.
 
-`fetchRows` is a plain function that returns a promise. A cache pays off for blocks that the grid unloads and the user scrolls back to, such as a row range you evict yourself.
+`fetchRows` is a plain function that returns a promise. A cache pays off for blocks that the grid unloads and the user scrolls back to. The hook unloads the blocks viewed longest ago above `maxLoadedRows`, and every block outside the rendered rows on `refresh()`. You can evict a row range yourself too.
 
 ### Key each block [#the-seam]
 
@@ -116,7 +118,9 @@ export function OrdersGrid() {
 
 `queryFn` uses the `signal` of TanStack Query, not the `signal` of the request. A spec change aborts the request `signal`, but the fetch runs on and fills the cache. The hook ignores its late answer.
 
-`server.refresh()` calls `fetchRows` again. In random access, the result has a row count. The hook also refreshes by itself when saves settle (`refreshAfterSave`, default `"settled"`), in pages and in scroll mode, once `onSave` returns promises. In random access it also refreshes after a row operation and after the last pending insert or delete save settles. Those refreshes go through `fetchQuery` too, so they get the cached blocks while those are fresh. Call `queryClient.invalidateQueries({ queryKey: ["orders"] })` in `onSave` before its promise settles, and before a manual `refresh()`. The refreshes then reach the server.
+`fetchRows` runs again on `server.refresh()`. A scroll-mode `refresh()` fetches the rendered rows and drops every other loaded row. The hook also refreshes by itself when saves settle (`refreshAfterSave`, default `"settled"`), in pages and in scroll mode, once `onSave` returns promises. In random access it also refreshes after a row operation and after the last pending insert or delete save settles.
+
+Those refreshes go through `fetchQuery` too, so they get the cached blocks while those are fresh. To reach the server, call `queryClient.invalidateQueries({ queryKey: ["orders"] })` in `onSave` before its promise settles, and before a manual `refresh()`.
 
 With SWR, call `preload(key, fetcher)` from `swr` in place of `fetchQuery`. `preload` keeps each block, loaded or failed, until a `useSWR` call with the same key reads it. It has no `staleTime`. A global `mutate(key)` clears the entry of a block. Until you call it, `refresh()` and `retry()` get the same answer again. Every fetched block stays in memory. For scroll mode, prefer a cache with `staleTime` and invalidation.
 
@@ -157,7 +161,7 @@ export function OrdersGrid() {
   const { pager } = useDataGridServerPager({
     page,
     pageSize,
-    totalRowCount: query.data?.total ?? 0,
+    totalRowCount: query.data?.total ?? null,
     onPageChange: setPage,
     onPageSizeChange: (next) => {
       setPageSize(next);
@@ -170,6 +174,7 @@ export function OrdersGrid() {
         data={query.data?.rows ?? []}
         columns={columns}
         getRowId={(row) => row.id}
+        totalRowCount={query.data?.total ?? null}
       />
       <DataGridPaginationBar {...pager} />
     </>
@@ -177,7 +182,7 @@ export function OrdersGrid() {
 }
 ```
 
-When your server applies the sort, filter, and search text, add them to the key.
+`totalRowCount` makes the grid leave the sort and filter to your server. Add the sort, filter, and search text to the key and to the request. [Load rows by page](/docs/server-pagination/load-rows-page#own-fetch) shows the controlled `filterState`.
 
 With SWR, replace `useQuery` with `useSWR`. The fetcher receives the key itself, so the key is a tuple:
 
@@ -191,10 +196,6 @@ const { data } = useSWR<{ rows: Order[]; total: number }>(
 ```
 
 A `useSWR` call revalidates on window focus and on reconnect by default. Set `revalidateOnFocus: false` and `revalidateOnReconnect: false` to stop them.
-
-### Write edits through [#the-edit-story]
-
-Edits are server state. Send each change from `onSave`, and keep `onDataChange` for the cache write. Then call `queryClient.invalidateQueries({ queryKey: ["orders"] })`, so the refetch shows what the server holds. With SWR, call the `mutate` that `useSWR` returns. It revalidates the current key, and every `useSWR` call with that key shows the result.
 
 ## Related
 

@@ -11,7 +11,9 @@ A data mode is one way the grid gets its rows. The mode also decides who applies
 | Your data | Data mode | Start here |
 | --- | --- | --- |
 | The browser holds every row. | Local array | [Compare data modes](/docs/server-path/compare-data-modes) |
+| The browser holds every row and shows one page at a time. | Client pagination | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | Your API returns one page for each request. | Pages mode | [Load rows by page](/docs/server-pagination/load-rows-page) |
+| You fetch the pages yourself, for example with a cache. | Own fetch with `useDataGridServerPager` | [Fetch the pages yourself](/docs/server-pagination/load-rows-page#own-fetch) |
 | Your API reads rows by offset and returns the row count. | Scroll mode, random access | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
 | Your API returns a next cursor and no row count. | Scroll mode, sequential source | [Load without row count](/docs/scroll-mode/load-without-row-count) |
 

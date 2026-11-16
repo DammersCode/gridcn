@@ -6,53 +6,56 @@ type: task
 aliases: ["server rows not loading", "wrong page count", "server grid problem"]
 ---
 
-Find your symptom, read the cause, and apply the fix. In a development build, the grid logs a warning for several of these causes. The warning starts with `[data-grid]` or with the name of the add-on, such as `[data-grid-server]`, `[data-grid-url-state]`, or `[data-grid-presence]`. Read the browser console first.
+Find your symptom below. In a development build, the grid logs a warning for several of these causes. It starts with `[data-grid]` or the add-on name, such as `[data-grid-server]`. Read the console first.
 
 ## Rows are wrong or missing [#rows]
 
-- **A header click selects the column and does not sort.** `headerClickBehavior` is `"select"` by default. Set `headerClickBehavior="sort"`.
-- **The grid sorts or filters the rows again.** Without `useDataGridServerRows`, the grid sorts and filters its `data`. Set `sortMode="server"` and `filterMode="server"` to stop it. The hook sets both.
-- **`status` is `"error"` and the grid shows the last good rows.** `fetchRows` rejected, threw, or resolved without a `rows` array. Make `fetchRows` resolve with `{ rows, totalRowCount }`. After you fix the cause, call `server.retry()` or select Retry in the error bar.
-- **A page shows fewer rows than `pageSize`.** The answer repeats a row id. The hook keeps the first row of an id and drops the later copies. Make the sort total, for example with the row id as the last sort key.
-- **Rows at the end of an answer do not show.** The answer holds more than `end - start` rows. The hook uses the first `end - start` rows. Make your server honor the limit.
-- **A slow answer replaces a newer page.** This happens only with your own fetch. Drop the answer of a replaced request, as the `stale` flag does on [Load rows by page](/docs/server-pagination/load-rows-page#own-fetch). The hook drops it for you. Pass `signal` to `fetch` so that the hook can also cancel the request.
+- **A header click selects the column and does not sort.** Without `server.gridProps`, `headerClickBehavior` is `"select"`. Set `headerClickBehavior="sort"`.
+- **The grid sorts or filters the rows again.** Without `useDataGridServerRows`, the grid sorts and filters its `data`. Set `sortMode="server"` and `filterMode="server"`.
+- **`status` is `"error"` and the grid shows the last good rows.** `fetchRows` rejected, threw, or resolved without a `rows` array. Fix the cause, then call `server.retry()` or select Retry in the error bar.
+- **A page shows fewer rows than `pageSize`.** The answer repeats a row id, and the hook drops the later copies. [Make the sort order unique](/docs/data-modes/query-server-rows#sorting-a-scroll-grid).
+- **Your route answers 400 with a `ServerSpecError` message.** `parseServerSpec` rejected the body, and the message names the part, for example `filters[2].value`. Fix the value that the client sends, or your `columns` and `limits`. See [Check the spec on your server](/docs/data-modes/query-server-rows#parse-the-spec).
+- **A number or date filter matches the wrong rows.** Every filter value is text, such as `"5"`. Convert it on your server for number and date columns. See [Operators](/docs/sort-filter-search/filtering#operators).
+- **A pushed row stays in its old place.** With a server sort or filter, the grid marks a pushed row stale and never moves it. Call `server.reshape()`, or set `reshapeDelayMs`. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
+- **Rows at the end of an answer do not show.** The answer holds more than `end - start` rows, and the hook uses the first `end - start`. Make your server honor the limit.
+- **A slow answer replaces a newer page.** With your own fetch, abort the request of a replaced page, as [Load rows by page](/docs/server-pagination/load-rows-page#own-fetch) does. The hook does it for you when `fetchRows` passes `signal` to `fetch`.
 
 ## The pager and the count [#pager]
 
 - **The footer shows "Page 3" in place of a range, and Last stays disabled.** The count is unknown. The first answer omitted `totalRowCount`, sent `null`, or sent a value that is not a non-negative integer. Send the count of the filtered result.
-- **The count stays unknown although the server sends `total` or `hasNextPage`.** The hook reads `totalRowCount` and `hasMore` only. Rename them to `totalRowCount` and `hasMore`. Development builds warn.
-- **The count stops at 10,000,000.** The hook clamps a larger count to that value.
-- **The page goes back to page 1.** Nothing needs a fix. The pages hold other rows after a change from the page-size select, the sort, the filter, or the search text. The hook resets the page.
-- **The page-size select does nothing.** With `useDataGridServerPager`, pass `onPageSizeChange`. Without it, the bar hides the page-size select.
+- **The count stays unknown although the server sends `total` or `hasNextPage`.** The hook reads `totalRowCount` and `hasMore` only. Rename the fields. Development builds warn.
+- **The count stops at 10,000,000.** The hook clamps a larger count.
+- **The page goes back to page 1.** Nothing needs a fix. A change of the page size, the sort, the filter, or the search text gives other pages, so the hook resets the page.
+- **The page-size select is missing.** With `useDataGridServerPager`, pass `onPageSizeChange`.
 
 ## Edits and saves [#saves]
 
-- **An edit disappears at the next page or refresh.** You replaced `onDataChange` after the spread of `server.gridProps`. The hook's merge keeps the edit in its rows, and a spread override drops the merge. Pass your handler as the `onDataChange` option of the hook.
-- **A warning says that the refresh guard never mounted.** You replaced `plugins` after the spread. Pass your plugins in the `plugins` option of the hook instead. Without the guard, `refresh` cannot keep a row with a pending save or an open edit.
-- **A failed save does not revert the edit.** Your `onSave` returns no promise and does not throw, or the grid is `readOnly` at the refusal. A `readOnly` grid keeps the refused value and warns in development builds. Return a promise that rejects or resolves with `{ rejected }`. See [Save edits](/docs/save-server/save-edits).
-- **A row stays marked `failed`.** The mark clears at the next save of the row or with `actions.clearSaveStatus()`.
-- **Two users edit the same row, and the later save overwrites the first.** Your server accepts every write. Compare `prev` with the stored row, and refuse the row with `current`. Then `resolveSaveConflict` picks the row that wins. See [Handle refused saves](/docs/save-server/handle-refused-saves#detect-a-conflict).
+- **An edit disappears at the next page or refresh.** You replaced `onDataChange` after the spread of `server.gridProps`, which drops the hook's merge. Pass your handler as the `onDataChange` option of the hook.
+- **A warning says that the refresh guard never mounted.** You replaced `plugins` after the spread. Pass your plugins in the `plugins` option of the hook. Without the guard, `refresh` cannot keep a row with a pending save or an open edit.
+- **A failed save does not revert the edit.** Your `onSave` returns no promise and does not throw. Or the grid is `readOnly` at the refusal and keeps the refused value. Return a promise that rejects or resolves with `{ rejected }`. See [Save edits](/docs/save-server/save-edits).
+- **A row stays marked `failed`.** The mark clears at the next save of the row, or with `actions.clearSaveStatus()`.
+- **Two users edit the same row, and the later save overwrites the first.** Your server accepts every write. Compare `prev` with the stored row and refuse the row. See [Handle refused saves](/docs/save-server/handle-refused-saves#detect-a-conflict).
 - **A new row keeps its client id after the save.** Call `actions.replaceRowId(oldId, row)` with the server row. See [Save edits](/docs/save-server/save-edits#id-swap).
 
 ## Scroll mode [#scroll-mode]
 
-- **Rows show skeletons for a moment after a scroll.** A block starts after it stays in the wanted range for `loadDelayMs` milliseconds (default 100). Pass `loadDelayMs: 0` to start at once.
-- **Rows that you scrolled past load again.** `maxLoadedRows` (default 10,000) unloads the blocks that the user viewed longest ago. Raise it, or pass `Infinity`. See [Tune row retention](/docs/scroll-mode/tune-row-retention).
-- **The scroll height grows in steps.** The source sends no row count, so the blocks load in order, one at a time. See [Load without row count](/docs/scroll-mode/load-without-row-count).
-- **One block fails while the others load.** The grid keeps the loaded rows and shows an error state. Call `server.retry()` after you fix the cause. See [Recover from load errors](/docs/scroll-mode/recover-load-errors).
+- **Rows show skeletons for a moment after a scroll.** A block starts after it stays in the wanted range for `loadDelayMs` (default 100). Pass `loadDelayMs: 0` to start at once.
+- **Rows that you scrolled past load again.** `maxLoadedRows` (default 10,000) unloads the blocks viewed longest ago. Raise it, or pass `Infinity`. See [Tune row retention](/docs/scroll-mode/tune-row-retention).
+- **The scroll height grows in steps.** The source sends no row count, so blocks load one at a time, in order. See [Load without row count](/docs/scroll-mode/load-without-row-count).
+- **One block fails while the others load.** The grid keeps the loaded rows and shows an error state. Fix the cause, then call `server.retry()`. See [Recover from load errors](/docs/scroll-mode/recover-load-errors).
 
 ## Selection [#selection]
 
-Checked rows vanish on a page change, or select all matching does nothing. Both need `totalRowCount` and `checkedRowsLifetime="across-filters"`, the default with `totalRowCount`. An explicit `checkedRowsLifetime` overrides it. The hook passes both. With your own fetch, pass it to the grid. If one is missing, `actions.selectAllMatching()` warns in development builds.
+**Checked rows vanish on a page change, or select all matching does nothing.** Both need `totalRowCount` and `checkedRowsLifetime="across-filters"`, the default with `totalRowCount`. The hook passes both. With your own fetch, pass `totalRowCount` to the grid. `actions.selectAllMatching()` warns in development builds when one is missing.
 
 ## The hook setup [#setup]
 
-A warning says that the mode changed. The hook cannot switch `mode` after mount. A change makes React report a changed hook order. To switch between pages and scroll, remount the component with a new `key`.
+**A warning says that the mode changed.** The hook cannot switch `mode` after mount, and React reports a changed hook order. To switch between pages and scroll mode, remount the component with a new `key`.
 
 ## Related
 
-- [Server rows options](/docs/add-options/server/server-rows-options): the request, the answer, and the checks
-- [Server rows contract](/docs/contracts/server-rows-contract): what the grid sends and what your backend returns
-- [Load rows by page](/docs/server-pagination/load-rows-page): the pages mode step by step
+- [Server rows options](/docs/add-options/server/server-rows-options): the request, the answer, the checks
+- [Server rows contract](/docs/contracts/server-rows-contract): what your backend returns
+- [Load rows by page](/docs/server-pagination/load-rows-page): pages mode
 - [Save edits](/docs/save-server/save-edits): `onSave` and the save status
-- [Recover from load errors](/docs/scroll-mode/recover-load-errors): retry a failed block in scroll mode
+- [Recover from load errors](/docs/scroll-mode/recover-load-errors): retry a failed block
