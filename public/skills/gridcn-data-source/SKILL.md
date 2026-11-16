@@ -15,7 +15,7 @@ Answer in order, stop at the first match:
 
 1. The whole dataset fits in one payload? Pass plain `data` to `DataGridProvider`/`DataGrid`. No add-on.
 2. The user needs bookmarkable, bounded pages (page 2 in the URL, a fixed page size)? Use `data-grid-pagination`.
-3. Otherwise (one continuous dataset, too large to fetch up front, infinite-scroll feel): use `data-grid-server` in scroll mode (`useDataGridServerRows({ mode: "scroll" })`).
+3. Otherwise (one continuous result, too large to fetch up front, scrolled without pages): use `data-grid-server` in scroll mode (`useDataGridServerRows({ mode: "scroll" })`).
 
 Live value ticks (prices, statuses) are a separate question: streaming (`updateCells`/`updateRows`) layers on top of whichever base the tree picked. It never replaces it.
 
@@ -26,12 +26,63 @@ Record which strategy was picked and why (one sentence) before writing code — 
 ## 2. Wire the chosen strategy
 
 - Plain data: pass `data`/`onDataChange` as usual. No further steps here.
-- `data-grid-server`: for a paged server grid, `useDataGridServerRows({ fetchRows: ({ spec, page, pageSize, start, end, signal }) => ... })` (resolve `{ rows, totalRowCount }` or `{ rows, hasMore }`) owns the spec, page, and page size unless you control them (`spec`/`onSpecChange`, `page`/`onPageChange`, `pageSize`/`onPageSizeChange`; a `useDataGridUrlPagination()` result spreads in); put your `onDataChange` in its options, and `getRowId` only when the row id is not the `id` field (that is the default); spread `server.gridProps` onto `DataGrid` and `server.pager` onto `DataGridPaginationBar`. It aborts stale requests, goes to page 1 on a spec change, keeps the last rows on error, and returns `status`, `loading`, `error`, `retry()`, `refresh()`. It does not set `headerClickBehavior`; pass `"sort"` yourself. `DataGridRoot` shows the error state (`error`, `onRetry`, `errorState`). For a counted result that scrolls, pass `mode: "scroll"`: `fetchRows({ spec, start, end, signal })` resolves `{ rows, totalRowCount }`, the first request is block 0 (`[0, blockSize)`), the hook fetches `blockSize` blocks (default 50) around the rendered rows, spread `server.gridProps` (it carries `onRenderedRowsChange`, the error bar, and Retry), and it also returns `unloadedCount`, `getLoadedRanges()`, `evict(range)`; `retry()` repeats failed blocks only and `refresh()` refetches the rendered blocks in place. A block starts after it stays in view for `loadDelayMs` ms (default 100; `0` starts at once), at most `maxConcurrentFetches` (default 3) requests run, a request aborts when its block leaves the rendered rows by more than `overscan` plus one block, and `maxLoadedRows` (default 10,000; `Infinity` keeps every row) unloads the least recently viewed blocks (rows with an open edit, a pending save, or an unsaved change stay). `revalidateIntervalMs` (ms, at least 1000) refreshes on a timer in both modes, and `prefetchNextPage: true` loads the next page in pages mode. The grid warns in development when a client sort or filter changes over unloaded rows.
+- `data-grid-server` in pages mode: `useDataGridServerRows({ fetchRows })`, where `fetchRows({ spec, page, pageSize, start, end, signal })` resolves `{ rows, totalRowCount }` or `{ rows, hasMore }`.
+  - The hook owns the spec, the page, and the page size unless you control them with `spec`/`onSpecChange`, `page`/`onPageChange`, or `pageSize`/`onPageSizeChange`. A `useDataGridUrlPagination()` result spreads in.
+  - Put your `onDataChange` in its options. Add `getRowId` only when the row id is not the `id` field.
+  - Spread `server.gridProps` onto `DataGrid` and `server.pager` onto `DataGridPaginationBar`.
+  - The hook aborts stale requests, goes to page 1 on a spec change, and keeps the last rows on error. It returns `status`, `loading`, `error`, `retry()`, and `refresh()`.
+  - It sets `headerClickBehavior="sort"`. Override it after the spread. `DataGridRoot` shows the error state (`error`, `onRetry`, `errorState`).
+  - `prefetchNextPage: true` loads the next page ahead of the click.
+- `data-grid-server` in scroll mode: `useDataGridServerRows({ mode: "scroll", fetchRows })`, where `fetchRows({ spec, start, end, signal })` resolves `{ rows, totalRowCount }`.
+  - The first request is block 0 (`[0, blockSize)`). The hook fetches `blockSize` blocks (default 50) around the rendered rows.
+  - Spread `server.gridProps`. It carries `onRenderedRowsChange`, the error bar, and Retry.
+  - The hook also returns `unloadedCount`, `getLoadedRanges()`, and `evict(range)`. `retry()` repeats failed blocks only. `refresh()` refetches the rendered blocks in place.
+  - The grid warns in development when a client sort or filter changes over unloaded rows.
+
+  | Scroll option | Default | Effect |
+  | --- | --- | --- |
+  | `loadDelayMs` | `100` | A block starts after it stays in view this long. `0` starts at once. |
+  | `maxConcurrentFetches` | `3` | The most requests that run at once. |
+  | `overscan` | `30` | Rows fetched beyond the rendered rows on each side. A request aborts when its block leaves the rendered rows by more than `overscan` plus one block. |
+  | `maxLoadedRows` | `10,000` | Unloads the least recently viewed blocks. `Infinity` keeps every row. Rows with an open edit, a pending save, or an unsaved change stay. |
+  | `revalidateIntervalMs` | off | Refreshes on a timer, in both modes. At least `1000`. |
 - Scroll mode with a next cursor and no row count (keyset, "has more"): `useDataGridServerRows({ mode: "scroll", fetchRows: ({ cursor, start, end, signal }) => ... })` resolves `{ rows, nextCursor }` (or `{ rows, hasMore }` without a cursor); `nextCursor: null` ends the source, and a spec change restarts it by itself. Send `end - start` as the page size: rows past it are dropped and the next cursor skips them. The first answer picks the fetch order; `source: "random"` or `source: "sequential"` fixes it.
 - Server spec on your endpoint: parse the request body with `parseServerSpec(body, { columns, limits })` from `data-grid-server`; it throws `ServerSpecError` for a spec it refuses. Never trust the spec unparsed. The defaults (64 sorts, 500 characters) accept what URL state and saved views restore; `limits` lowers or raises them.
 - Placeholder rows: in scroll mode an unloaded row has a placeholder id; test it with `isPlaceholderRowId(id)` from `data-grid`, never by prefix. Install per https://gridcn.vercel.app/docs/scroll-mode/load-without-row-count.md.
 - `data-grid-pagination`: install per https://gridcn.vercel.app/docs/server-pagination/load-rows-page.md. Decide client mode (`<DataGridProvider defaultPageSize={25}>` plus `<DataGridPaginationBar />` inside it; the grid keeps all rows and pages the view) vs. server mode (`useDataGridServerPager({ page, pageSize, totalRowCount, onPageChange })` fully controlled, you fetch; pass `totalRowCount: null` with `hasMore` when the server sends no count).
 - Streaming on top of either: wire `useDataGridActions().updateCells`/`updateRows` per https://gridcn.vercel.app/docs/rows-live-data/stream-updates.md. Skip this step if nothing needs live value pushes. On a server grid, a push into a sort, filter, or search column marks the row `data-row-stale`; see `references/server-mode.md` for `reshapeDelayMs` and `reshape()`.
+
+A complete pages-mode grid, with the request your endpoint receives:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import { DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
+
+type Order = { id: string; customer: string; total: number };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+  { id: "total", header: "Total", accessorKey: "total", type: "number" },
+]);
+
+function OrdersGrid() {
+  const server = useDataGridServerRows<Order>({
+    fetchRows: async ({ spec, page, pageSize, signal }) => {
+      const response = await fetch("/api/orders", { method: "POST", body: JSON.stringify({ spec, page, pageSize }), signal });
+      const answer = (await response.json()) as { rows: Order[]; total: number };
+      return { rows: answer.rows, totalRowCount: answer.total };
+    },
+  });
+
+  return (
+    <>
+      <DataGrid {...server.gridProps} columns={columns} className="h-96" />
+      <DataGridPaginationBar {...server.pager} />
+    </>
+  );
+}
+```
 
 Completion for this step: the grid renders and the chosen hook's `gridProps`/`pager` are spread onto the provider/root exactly as the relevant doc's usage example shows.
 
@@ -41,7 +92,7 @@ A scroll grid or a server-paged grid without `totalRowCount` has an uncontrolled
 
 Decide per gesture, for the chosen strategy:
 
-- **Full dataset must be searchable/sortable/filterable** → move that gesture server-side: hold the spec in your own state, send it to your fetch call, set `sortMode="server"` plus `onSortChange` and `filterMode="server"` plus `onFilterChange`, in scroll and paged server mode alike, and set `headerClickBehavior="sort"` so header clicks reach `onSortChange`. Full wiring, including the exact controlled-prop rules and reset-on-spec-change requirement, is in `references/server-mode.md` — read it before writing this code.
+- **Full dataset must be searchable/sortable/filterable** → move that gesture server-side: hold the spec in your own state, send it to your fetch call, set `sortMode="server"` plus `onSortChange` and `filterMode="server"` plus `onFilterChange`, in scroll and paged server mode alike, and set `headerClickBehavior="sort"` so header clicks reach `onSortChange` (`useDataGridServerRows` sets it). Full wiring, including the exact controlled-prop rules and reset-on-spec-change requirement, is in `references/server-mode.md` — read it before writing this code.
 - **Page-local or range-local result is acceptable and disclosed to the user** → leave it uncontrolled, but say so in the completion record (step 5) rather than leaving it undecided.
 
 `useDataGridServerRows` sets both server modes and owns the spec, so its grids take this path by default. A hand-wired grid with a sparse `data` array gets a one-time development warning from the core when a client sort or filter changes over unloaded rows; it does not block the gesture or fix production behavior.
