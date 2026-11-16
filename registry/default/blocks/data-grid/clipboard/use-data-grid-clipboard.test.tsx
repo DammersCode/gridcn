@@ -289,6 +289,23 @@ describe("useDataGridClipboard.cut while a cell editor is open", () => {
     expect(write).not.toHaveBeenCalled();
     expect(onDataChange).not.toHaveBeenCalled();
   });
+
+  it("resolves 'refused' and clears no cell when an editor opens during the clipboard write", async () => {
+    let finishWrite = () => {};
+    const write = vi.fn(() => new Promise<void>((resolve) => (finishWrite = resolve)));
+    vi.stubGlobal("navigator", { clipboard: { write } });
+    vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
+    const onDataChange = vi.fn();
+    const result = setUpGrid(makeWrapper({ onDataChange }));
+
+    const pending = result.current.clipboard.cut();
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
+    finishWrite();
+    const outcome = await act(async () => pending);
+
+    expect(outcome).toBe("refused");
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
 });
 
 describe("sanitizeClipboardFormulas grid prop", () => {

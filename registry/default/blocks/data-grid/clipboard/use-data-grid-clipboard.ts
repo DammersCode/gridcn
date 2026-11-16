@@ -45,7 +45,7 @@ export type UseDataGridClipboardResult = {
    * clamp that moves the active cell collapses the selection onto another record and cancels it.
    * The cells are captured by row and column id at copy time, so a sort, filter, or data change
    * during the write clears the copied rows wherever they moved; a row that left the view stays.
-   * A failed write keeps the selection intact. Resolves `'refused'` and does nothing while a cell editor is open.
+   * A failed write keeps the selection intact. Resolves `'refused'` and does nothing while a cell editor is open; an editor that opens during the write keeps the copied text and clears no cell.
    */
   cut: () => Promise<"ok" | "fallback" | "failed" | "no-selection" | "refused">;
   /**
@@ -135,6 +135,7 @@ export function useDataGridClipboard(options: UseDataGridClipboardOptions = {}):
     const result = await writeToClipboard(text, html);
     // A view rebuild keeps, drops, or collapses the range; a new or cleared range from the user cancels the delete.
     const latest = storeApi.getState();
+    if (latest.editing) return "refused";
     const current = latest.selection.current;
     const rebuilt = latest.viewIndex !== s.viewIndex || latest.visibleColumns !== s.visibleColumns;
     const selectionKept = current === s.selection.current || (rebuilt && (current === null || selectionFollowedRebuild(s, latest)));
