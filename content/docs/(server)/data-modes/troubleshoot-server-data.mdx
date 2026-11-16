@@ -30,8 +30,8 @@ Find your symptom below. In a development build, the grid logs a warning for sev
 
 ## Edits and saves [#saves]
 
-- **An edit disappears at the next page or refresh.** You replaced `onDataChange` after the spread of `server.gridProps`, which drops the hook's merge. Pass your handler as the `onDataChange` option of the hook.
-- **A warning says that the refresh guard never mounted.** You replaced `plugins` after the spread. Pass your plugins in the `plugins` option of the hook. Without the guard, `refresh` cannot keep a row with a pending save or an open edit.
+- **Scroll mode loads no more blocks, and a warning names `onRenderedRowsChange`.** An `onRenderedRowsChange` prop after the spread of `server.gridProps` replaces the handler of the hook. Pass it as the `onRenderedRowsChange` option of the hook. An `onDataChange` prop after the spread runs next to the merge of the hook.
+- **A warning says that the refresh guard never mounted.** A `plugins` prop after the spread replaced the guard. Pass your plugins in the `plugins` option of the hook. Without the guard, `refresh` cannot keep a row with a pending save or an open edit.
 - **A failed save does not revert the edit.** Your `onSave` returns no promise and does not throw. Or the grid is `readOnly` at the refusal and keeps the refused value. Return a promise that rejects or resolves with `{ rejected }`. See [Save edits](/docs/save-server/save-edits).
 - **A row stays marked `failed`.** The mark clears at the next save of the row, or with `actions.clearSaveStatus()`.
 - **Two users edit the same row, and the later save overwrites the first.** Your server accepts every write. Compare `prev` with the stored row and refuse the row. See [Handle refused saves](/docs/save-server/handle-refused-saves#detect-a-conflict).
@@ -46,11 +46,11 @@ Find your symptom below. In a development build, the grid logs a warning for sev
 
 ## Selection [#selection]
 
-**Checked rows vanish on a page change, or select all matching does nothing.** Both need `totalRowCount` and `checkedRowsLifetime="across-filters"`, the default with `totalRowCount`. The hook passes both. With your own fetch, pass `totalRowCount` to the grid. `actions.selectAllMatching()` warns in development builds when one is missing.
+- **Checked rows vanish on a page change, or select all matching does nothing.** Both need `totalRowCount` and `checkedRowsLifetime="across-filters"`, the default with `totalRowCount`. The hook passes both. With your own fetch, pass `totalRowCount` to the grid. `actions.selectAllMatching()` warns in development builds when one is missing.
 
 ## The hook setup [#setup]
 
-**A warning says that the mode changed.** The hook cannot switch `mode` after mount, and React reports a changed hook order. To switch between pages and scroll mode, remount the component with a new `key`.
+- **A warning says that the mode changed.** The hook cannot switch `mode` after mount, and React reports a changed hook order. To switch between pages and scroll mode, remount the component with a new `key`.
 
 ## Related
 
