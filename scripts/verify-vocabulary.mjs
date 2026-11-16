@@ -16,6 +16,7 @@ const BANNED = [
   [/\bgrips?\b/, "write 'drag handle'"],
   [/[Ee]scape hatch/, "write 'override'"],
   [/[Vv]iew[- ]space/, "write 'view index'"],
+  [/[Ff]ilter builder/, "write 'filter menu'"],
 ];
 
 // Path prefix -> banned labels that stay allowed there. Keep this empty unless a file has a real reason.
@@ -39,7 +40,7 @@ function* files() {
   }
 }
 
-const prose = (line) => line.split(/(`[^`]*`)/).filter((_, i) => i % 2 === 0).join(" ");
+const prose = (line) => line.replace(/<span id="[^"]*" \/>/g, "").split(/(`[^`]*`)/).filter((_, i) => i % 2 === 0).join(" ");
 
 function* proseLines(file, text) {
   const lines = text.split(/\r?\n/);
