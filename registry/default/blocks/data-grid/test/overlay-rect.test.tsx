@@ -15,10 +15,10 @@ beforeAll(() => {
 afterEach(cleanup);
 
 function tint(y: number): DataGridPlugin {
-  return { name: "tint", Overlay: (ctx: OverlayPluginCtx) => <OverlayRect ctx={ctx} rect={{ x: 0, y, width: ctx.colCount, height: 1 }} className="tint bg-primary/10" /> };
+  return { name: "tint", Overlay: (ctx: OverlayPluginCtx) => <OverlayRect ctx={ctx} rect={{ x: 0, y, width: ctx.colCount, height: 1 }} className="bg-accent/40" /> };
 }
 
-const parts = () => [...document.querySelectorAll<HTMLElement>(".tint")];
+const parts = () => [...document.querySelectorAll<HTMLElement>('[class~="bg-accent/40"]')];
 
 describe("OverlayRect", () => {
   it("places one hidden, click-through part on the grid lines of the row", () => {
