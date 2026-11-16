@@ -89,7 +89,7 @@ export type LoadingStateRenderer = (ctx: { reason: LoadingStateReason }) => Reac
 /** Props for {@link DataGridRoot}. `TData` (default `unknown`) types the callback props below — annotate explicitly (e.g. `DataGridRoot<Person>`), there's no `data` prop here to infer it from. */
 export type DataGridRootProps<TData = unknown> = {
   className?: string;
-  /** Accessible name of the grid. Set it, or `aria-labelledby`, unless a labelled ancestor names the grid. */
+  /** Accessible name of the grid. Set it, or `aria-labelledby`: a grid takes no name from a labelled ancestor. */
   "aria-label"?: string;
   /** Id of the element that names the grid. */
   "aria-labelledby"?: string;
@@ -364,9 +364,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   const warnedNameRef = useRef(false);
   useEffect(() => {
     if (!isDev() || warnedNameRef.current || ariaLabel || ariaLabelledBy) return;
-    if (scrollRef.current?.parentElement?.closest("[aria-label], [aria-labelledby]")) return;
     warnedNameRef.current = true;
-    console.warn("[data-grid] The grid has no accessible name. Set aria-label or aria-labelledby on it, or put it inside a labelled element.");
+    console.warn("[data-grid] The grid has no accessible name. Set aria-label or aria-labelledby on the grid.");
   }, [ariaLabel, ariaLabelledBy]);
 
   useEffect(() => {

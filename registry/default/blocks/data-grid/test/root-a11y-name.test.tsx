@@ -24,14 +24,19 @@ describe("grid accessible name", () => {
     expect(nameWarnings(warn)).toHaveLength(0);
   });
 
-  it("does not warn inside a labelled ancestor or with aria-labelledby", () => {
+  it("does not warn with aria-labelledby", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render(<DataGrid data={data} columns={columns} getRowId={(r) => r.id} aria-labelledby="title" />);
+    expect(nameWarnings(warn)).toHaveLength(0);
+  });
+
+  it("warns inside a labelled ancestor, because a grid takes no name from an ancestor", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     render(
       <section aria-label="People">
         <DataGrid data={data} columns={columns} getRowId={(r) => r.id} />
       </section>,
     );
-    render(<DataGrid data={data} columns={columns} getRowId={(r) => r.id} aria-labelledby="title" />);
-    expect(nameWarnings(warn)).toHaveLength(0);
+    expect(nameWarnings(warn)).toHaveLength(1);
   });
 });
