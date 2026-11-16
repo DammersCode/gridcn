@@ -613,6 +613,11 @@
                 "target": "components/data-grid/store/create-store.ts"
              },
              {
+                "path": "registry/default/blocks/data-grid/store/row-validation.ts",
+                "type": "registry:component",
+                "target": "components/data-grid/store/row-validation.ts"
+             },
+             {
                 "path": "registry/default/blocks/data-grid/store/announcements.ts",
                 "type": "registry:component",
                 "target": "components/data-grid/store/announcements.ts"

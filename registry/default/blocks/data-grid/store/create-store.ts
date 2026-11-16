@@ -1,5 +1,5 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
-import { viewIndex, type CellRef, type ColumnLayout, type ColumnPin, type CompactSelectionLike, type DataGridPlugin, type GridCommand, type GridRect, type GridSelection, type SelectionState, type ViewCoord, type CellType, type DataOp, type FilterNode, type Keymap, type SortSpec } from "../types";
+import { viewIndex, type CellRef, type ColumnLayout, type ColumnPin, type CompactSelectionLike, type DataGridPlugin, type GridCommand, type GridRect, type GridSelection, type SelectionState, type ViewCoord, type CellType, type FilterNode, type Keymap, type SortSpec } from "../types";
 import { BUILTIN_ACTIONS, keymapContentEqual, validateKeymap, validateSharedBindings } from "../keyboard";
 import { readColumnPin } from "../columns/column-pin";
 import { CompactSelection } from "../selection/compact-selection";
@@ -87,6 +87,7 @@ import {
 import { resolveEditTarget } from "./commit";
 import { apiHandleOf } from "./api";
 import { isThenable } from "./async-gate";
+import { createRowValidation } from "./row-validation";
 import { createGateTracker, EMPTY_GATES_PENDING, type GateRun } from "./gate-signal";
 import { EMPTY_SAVE_STATUS } from "./write-ack";
 import { createDataWriteActions, createDataWriteContext, emitAfterWrites, emitFromListener, forgetDeferredRows, resetDeferredRows, resolveRefOrWarn, warnViewIndexIds } from "./data-write";
@@ -558,154 +559,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       ...(allMatching === s.allMatching ? {} : { allMatching }),
     };
   };
-  // cellErrors keys of each row's last validateRow verdict, so a re-run clears only its own messages.
-  const rowValidationKeys = new Map<string, string[]>();
-  // An unpruned entry for a deleted rowId lets the next validateRow wipe a reused row's consumer errors.
-  const pruneRowValidationKeys = (data: readonly unknown[], getRowId: (row: unknown, index: number) => string): void => {
-    if (rowValidationKeys.size === 0) return;
-    const live = new Set<string>();
-    for (let i = 0; i < data.length; i++) live.add(getRowId(data[i], i));
-    for (const rowId of rowValidationKeys.keys()) if (!live.has(rowId)) rowValidationKeys.delete(rowId);
-  };
-  const foldRowVerdict = (
-    current: () => ReadonlyMap<string, string>,
-    ensure: () => Map<string, string>,
-    rowId: string,
-    verdict: Record<string, string> | null,
-  ): void => {
-    const prevKeys = rowValidationKeys.get(rowId);
-    if (prevKeys) for (const key of prevKeys) if (current().has(key)) ensure().delete(key);
-    const entries = verdict ? Object.entries(verdict) : [];
-    if (entries.length === 0) {
-      rowValidationKeys.delete(rowId);
-      return;
-    }
-    const keys: string[] = [];
-    for (const [columnId, message] of entries) {
-      const key = cellErrorKey(rowId, columnId);
-      if (current().get(key) !== message) ensure().set(key, message);
-      keys.push(key);
-    }
-    rowValidationKeys.set(rowId, keys);
-  };
-  // rowId -> its newest pending async verdict; a newer run for the row supersedes and aborts the older one.
-  const pendingRowVerdicts = new Map<string, GateRun>();
-  // Verdicts that settled in this tick and wait for their write; a newer run for the row drops its entry.
-  const settledVerdicts = new Map<string, Record<string, string> | null>();
-  const supersedeRowVerdict = (rowId: string): void => {
-    settledVerdicts.delete(rowId);
-    const older = pendingRowVerdicts.get(rowId);
-    if (!older) return;
-    pendingRowVerdicts.delete(rowId);
-    gates.abortRun(older);
-  };
-  let unwatchRowVerdicts: (() => void) | null = null;
-  const watchRowVerdicts = (): void => {
-    if (unwatchRowVerdicts) return;
-    unwatchRowVerdicts = store.subscribe((now, prev) => {
-      if (pendingRowVerdicts.size === 0) {
-        unwatchRowVerdicts?.();
-        unwatchRowVerdicts = null;
-        return;
-      }
-      if (now.data === prev.data) return;
-      const index = rowIndexCache.resolve(now.data, now.getRowId);
-      for (const rowId of Array.from(pendingRowVerdicts.keys())) if (!index.has(rowId)) supersedeRowVerdict(rowId);
-    });
-  };
-  const renameRowKeys = (oldId: string, newId: string): void => {
-    const keys = rowValidationKeys.get(oldId);
-    if (keys) {
-      rowValidationKeys.delete(oldId);
-      rowValidationKeys.set(newId, keys.map((key) => cellErrorKey(newId, key.slice(oldId.length + 1))));
-    }
-    supersedeRowVerdict(oldId);
-  };
   const warnGateOnce = createWarnOnce();
-  // Verdicts that settle in the same tick merge into cellErrors with one copy and one write.
-  const flushSettledVerdicts = (): void => {
-    const batch = Array.from(settledVerdicts);
-    settledVerdicts.clear();
-    const s = store.getState();
-    const index = rowIndexCache.resolve(s.data, s.getRowId);
-    let next: Map<string, string> | null = null;
-    for (const [rowId, verdict] of batch) {
-      if (!index.has(rowId)) continue;
-      foldRowVerdict(
-        () => next ?? s.cellErrors,
-        () => next ?? (next = new Map(s.cellErrors)),
-        rowId,
-        verdict,
-      );
-    }
-    const merged = next as Map<string, string> | null;
-    if (merged) store.setState({ cellErrors: merged });
-  };
-  const holdRowVerdict = (rowId: string, run: GateRun, verdict: PromiseLike<Record<string, string> | null>): void => {
-    supersedeRowVerdict(rowId);
-    pendingRowVerdicts.set(rowId, run);
-    gates.hold(run);
-    watchRowVerdicts();
-    const release = (): boolean => {
-      gates.settle(run);
-      if (run.aborted || pendingRowVerdicts.get(rowId) !== run) return false;
-      pendingRowVerdicts.delete(rowId);
-      return true;
-    };
-    verdict.then(
-      (resolved) => {
-        if (!release()) return;
-        settledVerdicts.set(rowId, resolved);
-        if (settledVerdicts.size === 1) queueMicrotask(flushSettledVerdicts);
-      },
-      (error: unknown) => {
-        if (release()) warnGateOnce("validateRow rejected", () => `validateRow rejected, so the row gets no verdict: ${toSafeText(error)}`);
-      },
-    );
-  };
-  /**
-   * Runs `validateRow` once per touched row of a committed write gesture, AFTER `clearErrorsForOps`
-   * — the row in `nextData` already has every cell of the gesture applied, which is the whole
-   * point: the verdict cannot depend on column order inside a paste. Returns the same map identity
-   * when the prop is absent or nothing changed.
-   */
-  const applyRowValidation = (
-    s: DataGridStoreState,
-    cellErrors: ReadonlyMap<string, string>,
-    nextData: readonly unknown[],
-    ops: readonly DataOp<unknown>[],
-  ): ReadonlyMap<string, string> => {
-    const validateRow = s.validateRow;
-    if (!validateRow) return cellErrors;
-    const touched = new Set<string>();
-    for (const op of ops) if (op.type === "update") touched.add(op.rowId);
-    if (touched.size === 0) return cellErrors;
-    const rowIndex = rowIndexCache.resolve(nextData, s.getRowId);
-    let next: Map<string, string> | null = null;
-    const ensure = () => next ?? (next = new Map(cellErrors));
-    const current = () => next ?? cellErrors;
-    for (const rowId of touched) {
-      const dataRowIndex = rowIndex.get(rowId);
-      if (dataRowIndex === undefined) continue;
-      const row = nextData[dataRowIndex];
-      const run = gates.begin("validateRow");
-      let verdict: Record<string, string> | null | PromiseLike<Record<string, string> | null>;
-      try {
-        verdict = validateRow(row, rowId, { get signal() { return run.signal; } });
-      } catch (error) {
-        if (pendingRowVerdicts.size > 0 || settledVerdicts.size > 0) supersedeRowVerdict(rowId);
-        warnGateOnce("validateRow threw", () => `validateRow threw, so the row gets no verdict: ${toSafeText(error)}`);
-        continue;
-      }
-      if (isThenable<Record<string, string> | null>(verdict)) {
-        holdRowVerdict(rowId, run, verdict);
-        continue;
-      }
-      if (pendingRowVerdicts.size > 0 || settledVerdicts.size > 0) supersedeRowVerdict(rowId);
-      foldRowVerdict(current, ensure, rowId, verdict);
-    }
-    return next ?? cellErrors;
-  };
+  const rowValidation = createRowValidation({ getStore: () => store, rowIndexCache, gates, warnOnce: warnGateOnce });
   let editStartRun: GateRun | null = null;
   const cursorLeft = (now: DataGridStoreState, ref: CellRef, askedActive: ViewCoord | null): boolean => {
     if (now.readOnly) return true;
@@ -928,13 +783,13 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     }
     const dataWriteActions = createDataWriteActions(set, get, {
       ctx: dataWrite,
-      applyRowValidation,
-      pruneRowValidationKeys,
+      applyRowValidation: rowValidation.apply,
+      pruneRowValidationKeys: rowValidation.prune,
       followView,
       carryRows,
       remapEditing,
       endEditSession,
-      renameRowKeys,
+      renameRowKeys: rowValidation.renameRow,
     });
     const { _deleteCellsById, _commitCellEdit, _commitChange, _skipRowAction, _commitActivation, ...otherWriteActions } = dataWriteActions;
     const publicWriteActions = { ...otherWriteActions, commitCellEdit: (value: unknown, movement?: { dx: number; dy: number }) => _commitCellEdit(value, movement) };
@@ -1176,7 +1031,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           if (foreignData) {
             rowIndexCache.invalidate();
             forgetDeferredRows(dataWrite);
-            pruneRowValidationKeys(nextData, props.getRowId);
+            rowValidation.prune(nextData, props.getRowId);
           }
           const propsColumnsChanged = props.columns !== lastPropsColumns;
           const previousPropsColumns = lastPropsColumns;
