@@ -15,7 +15,7 @@ export function createStreamQueue(apply: (patches: readonly CellPatch[], options
       if (skip.reason !== "saving") continue;
       const patch = patches[skip.patchIndex]!;
       let cells = held.get(patch.rowId);
-      if (!cells) held.set(patch.rowId, (cells = new Map()));
+      if (!cells) held.set(patch.rowId, (cells = new Map<string, HeldPatch>()));
       cells.delete(patch.columnId);
       cells.set(patch.columnId, { patch, options });
     }
