@@ -256,6 +256,25 @@ describe("DataGrid programmatic styling API", () => {
     expect(rows[1]!.className).not.toContain("bg-red-500");
   });
 
+  it("a new getRowClassName and getCellClassName identity with other classes updates the rendered classes", () => {
+    const grid = (tag: string) => (
+      <DataGrid
+        data={makeRows(2)}
+        columns={columns}
+        getRowId={(r) => r.id}
+        getRowClassName={() => `row-${tag}`}
+        getCellClassName={() => `cell-${tag}`}
+      />
+    );
+    const { rerender } = render(grid("a"));
+    const rowClasses = () => screen.getAllByRole("row").filter((r) => r.getAttribute("aria-rowindex")).map((r) => r.className);
+    expect(rowClasses().every((c) => c.includes("row-a"))).toBe(true);
+    expect(screen.getAllByRole("gridcell")[0]!.className).toContain("cell-a");
+    rerender(grid("b"));
+    expect(rowClasses().every((c) => c.includes("row-b") && !c.includes("row-a"))).toBe(true);
+    expect(screen.getAllByRole("gridcell")[0]!.className).toContain("cell-b");
+  });
+
   it("passes (row, viewRowIndex) to getRowClassName", () => {
     const seen: Array<{ id: string; viewRowIndex: number }> = [];
     render(

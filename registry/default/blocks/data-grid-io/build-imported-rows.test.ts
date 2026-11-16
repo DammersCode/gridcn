@@ -52,6 +52,37 @@ function makeRow(index: number): Row {
   return { id: `row-${index}`, name: "", age: null };
 }
 
+describe("buildImportedRows with a throwing processCellFromText", () => {
+  const nullProto = Object.assign(Object.create(null), { a: 1 });
+  const hooks: [string, (text: string, ctx: { fromText: (raw: string) => unknown }) => unknown][] = [
+    ["ctx.fromText on rejected text", (text, ctx) => ctx.fromText(text === "bad" ? "abc" : text)],
+    ["a string", (text, ctx) => { if (text === "bad") throw "boom"; return ctx.fromText(text); }],
+    ["an Error", (text, ctx) => { if (text === "bad") throw new Error("boom"); return ctx.fromText(text); }],
+    ["a null-prototype object", (text, ctx) => { if (text === "bad") throw nullProto; return ctx.fromText(text); }],
+    ["a Symbol", (text, ctx) => { if (text === "bad") throw Symbol("boom"); return ctx.fromText(text); }],
+    ["a rejected promise", (text, ctx) => (text === "bad" ? Promise.reject(new Error("boom")) : ctx.fromText(text))],
+  ];
+  const strictNumber: CellType<Row, number | null> = {
+    ...numberCellType,
+    fromText: (text) => {
+      if (!/^[0-9]+$/.test(text)) throw new Error("not a number");
+      return Number(text);
+    },
+  };
+  it.each(hooks)("rejects only the bad cell when the hook throws %s", async (_label, hook) => {
+    const result = await buildImportedRowsRaw({
+      dataRows: [["Alice", "30"], ["Bob", "bad"], ["Cy", "50"]],
+      mapping: [{ importColumnIndex: 0, gridColumnId: "name" }, { importColumnIndex: 1, gridColumnId: "age" }],
+      columns: makeColumns(),
+      cellTypes: { text: textCellType, number: strictNumber } as never,
+      createRow: makeRow,
+      processCellFromText: hook as never,
+    });
+    expect(result.rows.map((row) => row.age)).toEqual([30, null, 50]);
+    expect(result.rejected.map((cell) => [cell.rowIndex, cell.gridColumnId])).toEqual([[1, "age"]]);
+  });
+});
+
 describe("buildImportedRows", () => {
   it("lists a cell whose fromText throws in `rejected` and still builds the row", async () => {
     const throwing: CellType<Row, number | null> = { ...numberCellType, fromText: () => { throw new Error("boom"); } };

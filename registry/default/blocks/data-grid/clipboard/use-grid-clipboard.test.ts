@@ -90,6 +90,26 @@ describe("buildPasteWrites with a throwing fromText", () => {
   });
 });
 
+describe("buildPasteWrites with a throwing processCellFromClipboard", () => {
+  const nullProto = Object.assign(Object.create(null), { a: 1 });
+  const thrown: [string, () => unknown][] = [
+    ["ctx.fromText on text the number type rejects", () => "abc"],
+    ["a string", () => { throw "boom"; }],
+    ["an Error", () => { throw new Error("boom"); }],
+    ["a null-prototype object", () => { throw nullProto; }],
+    ["a Symbol", () => { throw Symbol("boom"); }],
+    ["a rejected promise", () => Promise.reject(new Error("boom"))],
+  ];
+  it.each(thrown)("rejects only that cell when the hook throws %s", async (label, thrower) => {
+    const processCellFromClipboard = (text: string, ctx: { fromText: (t: string) => unknown }) =>
+      text === "bad" ? (label.startsWith("ctx.") ? ctx.fromText("abc") : thrower()) : ctx.fromText(text);
+    const s = fakeState({ processCellFromClipboard } as Partial<DataGridStoreState>);
+    const resolution = await buildPasteWritesRaw(s, [["x", "9"], ["y", "bad"], ["z", "7"]], { col: 0, row: 0 });
+    expect(resolution.writes.map((w) => w.value)).toEqual(["x", 9, "y", "z", 7]);
+    expect(resolution.rejected.map((cell) => [cell.viewRowIndex, cell.columnId])).toEqual([[1, "qty"]]);
+  });
+});
+
 describe("buildPasteWrites with a column maxLength", () => {
   it("a paste over the column maxLength is rejected", () => {
     const longColumns: readonly ColumnDef<Row, unknown>[] = [{ id: "name", header: "Name", accessorKey: "name", type: "longText", options: { maxLength: 3 } }];

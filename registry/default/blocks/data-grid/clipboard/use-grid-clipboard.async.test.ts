@@ -237,13 +237,13 @@ describe("processCellFromClipboard async", () => {
     expect(m.names()).toEqual(["A", "B", "C"]);
   });
 
-  it("one rejected cell cancels the whole paste and leaves the pipeline usable", async () => {
+  it("one rejected cell is rejected alone and the rest of the paste lands", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const m = mount({ processCellFromClipboard: (text) => (text === "bad" ? Promise.reject(new Error("down")) : Promise.resolve(text)) });
     m.paste("good\nbad");
     await settle();
-    expect(m.names()).toEqual(["A", "B", "C"]);
-    expect(warn.mock.calls.some(([message]) => String(message).includes("processCellFromClipboard rejected"))).toBe(true);
+    expect(m.names()).toEqual(["good", "B", "C"]);
+    expect(warn.mock.calls.some(([message]) => String(message).includes("processCellFromClipboard threw for a cell"))).toBe(true);
     m.paste("fine");
     await settle();
     expect(m.names()).toEqual(["fine", "B", "C"]);

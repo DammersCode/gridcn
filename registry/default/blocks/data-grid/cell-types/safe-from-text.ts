@@ -1,4 +1,6 @@
 import { isDev } from "../is-dev";
+import { createWarnOnce, isThenable } from "../store/async-gate";
+import { toSafeText } from "./safe-text";
 import type { CellValidate } from "../validation/validate-cell";
 import type { CellType } from "../types";
 
@@ -38,4 +40,27 @@ export function safeFromText(
 /** True when {@link safeFromText} caught a throw for this cell. */
 export function isUnparseable(parsed: ParsedCellText): boolean {
   return parsed.validate === rejectUnparseable;
+}
+
+const HOOK_FAILED = Symbol("hookFailed");
+
+/**
+ * Runs a consumer parse hook (`processCellFromClipboard`, `processCellFromText`) for one cell. A sync throw or a
+ * rejected promise rejects that cell like unparseable text and the batch goes on. Settle async values with {@link settleHookFailure}.
+ */
+export function parseWithHook(hookName: string, run: () => unknown, validate: CellValidate, warnOnce: ReturnType<typeof createWarnOnce>): ParsedCellText {
+  const fail = (error: unknown) => warnOnce(hookName, () => `${hookName} threw for a cell, so that cell is rejected: ${toSafeText(error)}`);
+  try {
+    const value = run();
+    if (!isThenable(value)) return { value, validate };
+    return { value: Promise.resolve(value).then(undefined, (error: unknown) => (fail(error), HOOK_FAILED)), validate };
+  } catch (error) {
+    fail(error);
+    return { value: undefined, validate: rejectUnparseable };
+  }
+}
+
+/** Turns the settled value of a failed async hook into a rejected cell. */
+export function settleHookFailure<T extends { value: unknown; validate: unknown }>(item: T): T {
+  return item.value === HOOK_FAILED ? { ...item, value: undefined, validate: rejectUnparseable } : item;
 }

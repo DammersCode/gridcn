@@ -81,7 +81,7 @@ export { makeFilterPredicate } from "./sort-filter/incremental-view-index";
 export { MAX_FILTER_GROUP_DEPTH, MAX_SPEC_SEARCH_LENGTH, MAX_SPEC_SORTS, countFilterSpecs, forEachFilterSpec, groupChildren, isFilterGroup, pruneFilterSpecs } from "./sort-filter/filter-tree";
 export { resolveSelectChoices } from "./cell-types/select";
 export { toSafeText } from "./cell-types/safe-text";
-export { safeFromText, isUnparseable, type ParsedCellText } from "./cell-types/safe-from-text";
+export { safeFromText, isUnparseable, parseWithHook, settleHookFailure, type ParsedCellText } from "./cell-types/safe-from-text";
 export {
   useBulkGeneration,
   snapshotBulkBatch,
@@ -96,7 +96,7 @@ export { holeRowId, isColumnReadOnly, rowIdAtViewRow, viewRowsMoved, visibleColu
 export { measureColumnAutosizeWidth } from "./columns/measure-column-text";
 export { groupPathOf, type ColumnGroupModel } from "./columns/column-groups";
 export { isDev } from "./is-dev";
-export { isThenable } from "./store/async-gate";
+export { createWarnOnce, isThenable } from "./store/async-gate";
 export { keepsCheckedRows } from "./store/hidden-checked-rows";
 export { isComposingKey } from "./interaction/is-composing-key";
 export { createTextMatcher } from "./sort-filter";

@@ -1,6 +1,6 @@
 import type { AnyColumnDef, CellType, ColumnDef, GateContext } from "@/registry/default/blocks/data-grid/data-grid";
 import type { ValidateBatchItem, ValidateResult } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { isDev, isThenable, resolveColumnValidate, runValidateBatch, safeFromText, setCellValue } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { createWarnOnce, isDev, isThenable, parseWithHook, resolveColumnValidate, runValidateBatch, safeFromText, settleHookFailure, setCellValue } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** One import-column -> grid-column mapping entry; `null` skips the import column. */
 export type ImportColumnMapping = { importColumnIndex: number; gridColumnId: string | null };
@@ -174,7 +174,7 @@ function buildCellsForRange<TData>(
       // as never: validate is typed against this column's own TData/TValue, which TS can't unify with the generic TData/unknown here — safe since column and row/value are all this same import's TData.
       const columnValidate = resolveColumnValidate(column as AnyColumnDef, cellType);
       const parsed = processCellFromText
-        ? { value: processCellFromText(text, { row: rows[rowIndex] as TData, column, source: "import", signal, fromText: (raw) => cellType.fromText(raw, column.options) }), validate: columnValidate }
+        ? parseWithHook("processCellFromText", () => processCellFromText(text, { row: rows[rowIndex] as TData, column, source: "import", signal, fromText: (raw) => cellType.fromText(raw, column.options) }), columnValidate, warnOnceFor(processCellFromText))
         : safeFromText(cellType, text, column.options, columnValidate);
       items.push({ validate: parsed.validate as never, value: parsed.value, row: rows[rowIndex] });
       cells.push({ rowIndex, importColumnIndex, column, clearedValue: cellType.clearValue(column.options), warn: column.validationMode === "warn" });
@@ -183,13 +183,21 @@ function buildCellsForRange<TData>(
   return { items, cells };
 }
 
+const hookWarnings = new WeakMap<object, ReturnType<typeof createWarnOnce>>();
+
+function warnOnceFor(hook: object): ReturnType<typeof createWarnOnce> {
+  let warnOnce = hookWarnings.get(hook);
+  if (!warnOnce) hookWarnings.set(hook, (warnOnce = createWarnOnce()));
+  return warnOnce;
+}
+
 const NEVER_ABORTED = new AbortController().signal;
 
 /** Awaits every item whose value a `processCellFromText` hook returned as a promise. */
 async function settleItemValues(items: ValidateBatchItem[]): Promise<void> {
   const pending: Promise<void>[] = [];
   items.forEach((item, index) => {
-    if (isThenable(item.value)) pending.push(Promise.resolve(item.value).then((value) => void (items[index]!.value = value)));
+    if (isThenable(item.value)) pending.push(Promise.resolve(item.value).then((value) => void (items[index] = settleHookFailure({ ...items[index]!, value }))));
   });
   if (pending.length > 0) await Promise.all(pending);
 }
