@@ -66,7 +66,9 @@ const columns = defineColumns<Row>()([
   { id: "name", header: "Name", accessorKey: "name" },
 ]);
 
-export function FetchingGrid({ rows, loading }: { rows: Row[]; loading: boolean }) {
+type Props = { rows: Row[]; loading: boolean };
+
+export function FetchingGrid({ rows, loading }: Props) {
   return (
     <DataGrid
       className="h-80"
@@ -172,7 +174,7 @@ In scroll mode, `loading` is true while any block request runs. Rows that are no
 | --- | --- | --- |
 | `loading` | `boolean` | `false` |
 | `loadingState` | `ReactNode | ErrorStateRenderer`\| LoadingStateRenderer` | none |
-| `emptyState` | `ReactNode | ErrorStateRenderer`\| EmptyStateRenderer` | `labels.grid.emptyState`, or `labels.grid.noResults` for `"filtered"` |
+| `emptyState` | `ReactNode \| EmptyStateRenderer` | `labels.grid.emptyState`, or `labels.grid.noResults` for `"filtered"` |
 | `error` | `unknown` | none |
 | `onRetry` | `() => void` | none |
 | `errorState` | `ReactNode \| ErrorStateRenderer` | none |

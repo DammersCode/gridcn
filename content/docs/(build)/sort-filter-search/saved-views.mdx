@@ -136,7 +136,7 @@ The default adapter listens to the `storage` event, so a save in one tab reloads
 - A built-in operator with a value of the wrong shape goes away. An operator that a column or its cell type registers in `filter.operators` keeps a value of the shape its `input` names. Any other shape drops the filter.
 - An `isAnyOf` list is cut to 1,000 entries. An `isNoneOf` list or a custom operator list over 1,000 entries drops the filter.
 - A view keeps at most 64 sorts, 64 filters, and 16 filter groups. A filter value over 1,000 characters drops the filter.
-- A view name is cut to 80 characters. A stored view with an id over 64 characters is skipped.
+- The name of a view has at most 80 characters, and a stored view needs an id of at most 64 characters.
 - A column id has no length limit. A stored view keeps the ids of columns that the grid lacks, and applying the view skips them. A column width over 10,000 px goes away. Each of `order`, `hidden`, `widths`, and `pins` in a layout is cut to 1,000 entries. The search text is cut to 500 characters. The document keeps at most 50 views.
 
 ## Use the hook [#use-the-hook]
@@ -157,11 +157,11 @@ export function SaveViewButton() {
 
 ### Limits [#limits]
 
-A save never cuts a view. `overLimit` names the part that is over a limit. It is `"sorts"`, `"filters"`, `"search"`, or `"layout"`. These are the values of `OverLimitPart`. A sort, filter, or layout entry for a column that the grid lacks is not over a limit.
+A save never cuts a view. `overLimit` names the part that is over a limit. It is `"sorts"`, `"filters"`, `"search"`, or `"layout"`. A sort, filter, or layout entry for a column that the grid lacks is not over a limit.
 
 One case is over a limit although no count is. A filter whose value does not fit its operator is over the `"filters"` limit, such as a list on `contains`. Only code builds such a filter: `setFilters`, `filterState`, or `defaultFilterState`. A filter without a value on an operator that takes one, such as `equals`, is not over a limit.
 
-"Save as new view" and "Update" are off with a line for that part. `saveView` returns `null` and `updateView` returns `false`. Remove a sort or a filter, shorten the search text, or reset the column layout to save. The limits are listed under [Share a view as text](#share-a-view-as-text).
+"Save as new view" and "Update" are off with a line for that part. `saveView` returns `null` and `updateView` returns `false`. Remove a sort or a filter, shorten the search text, or reset the column layout to save.
 
 ## Server mode [#server-mode]
 

@@ -179,7 +179,7 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
 
 On an unloaded row of a lazy grid, `cell` is a placeholder ref that `api` cannot resolve.
 
-`scope` selects the moment of dispatch: `"grid"` while no edit session is open, `"editing"` during an edit session (also in editors without a text input, such as the select list), `"always"` in both. An `"editing"` command never takes over a grid binding outside an edit session.
+`scope` selects the moment of dispatch. `"grid"` runs while no edit session is open. `"editing"` runs during an edit session, also in editors without a text input, such as the select list. `"always"` runs in both. An `"editing"` command never takes over a grid binding outside an edit session.
 
 Three more rules apply:
 

@@ -20,11 +20,9 @@ aliases: ["query string", "bookmark view", "share view", "persist sort and filte
 
 <InstallCommand item="data-grid-url-state" manual manualSlot={<ManualInstall item="data-grid-url-state" />} />
 
-The sample below also uses the [toolbar add-on](/docs/sort-filter-search/toolbar) for the search box and the filter menu. Install it as well.
-
 ## Usage
 
-Mount `<DataGridUrlState>` once inside `<DataGridProvider>`. Put a `NuqsAdapter` for your framework somewhere above it in the tree:
+Mount `<DataGridUrlState>` once inside `<DataGridProvider>`. The sample uses the [toolbar add-on](/docs/sort-filter-search/toolbar) for the search box and the filter menu:
 
 ```tsx
 "use client";
@@ -71,20 +69,14 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
 }
 ```
 
-Render one `NuqsAdapter` near the root of the app. This layout uses the Next.js App Router adapter:
+Render one `NuqsAdapter` near the root of the app. This wrapper uses the Next.js App Router adapter:
 
 ```tsx
 import type { ReactNode } from "react";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 
-export default function RootLayout({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en">
-      <body>
-        <NuqsAdapter>{children}</NuqsAdapter>
-      </body>
-    </html>
-  );
+export function Providers({ children }: { children: ReactNode }) {
+  return <NuqsAdapter>{children}</NuqsAdapter>;
 }
 ```
 
@@ -115,7 +107,7 @@ A link can carry a legacy `join=or` param. The grid reads it once: when the `fil
 - `spec` lists the synced parts: `"sort"`, `"filter"`, and `"search"` (default all three). `spec={["sort"]}` keeps filter values and search text out of the URL.
 - Every write uses `history: "replace"`, so changes never add browser history entries.
 - Sort and filter writes are immediate. The search input waits for the typing to pause (`inputDebounceMs`) before the store changes.
-- The grid drops a sort or filter for a removed or hidden column. It drops a sort for a `sortable: false` column, and a filter for a `filterable: false` column. In development, a warning names each dropped column. The grid also drops a layout entry for a removed column, with one warning that counts them.
+- The grid drops a sort or filter for a removed or hidden column. It drops a sort for a `sortable: false` column, and a filter for a `filterable: false` column. In development, a warning names each dropped column.
 
 A hand-edited URL cannot express an unbounded view. These bounds apply:
 

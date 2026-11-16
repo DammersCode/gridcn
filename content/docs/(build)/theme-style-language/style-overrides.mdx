@@ -99,7 +99,7 @@ Result: archived rows fade, and negative balances turn red.
 
 A `select` cell holds the `value` of its choice, not the `label`. To color a status column, compare `value` with the choice value. A `date` cell holds an ISO `yyyy-mm-dd` string, and ISO dates compare correctly as text. So `typeof value === "string" && value < today` marks an overdue date, where `today` is the current date in the same format. Compute `today` once outside the callback, from local date parts. `toISOString()` returns the UTC date, which differs from the local date near midnight.
 
-`getRowClassName` and `getCellClassName` may be inline functions. Rows and cells re-render only when the function returns different classes for the rendered rows.
+`getRowClassName` and `getCellClassName` can be inline functions. Rows and cells re-render only when the function returns different classes for the rendered rows.
 
 ### Style a whole column [#styling-a-whole-column]
 
@@ -202,7 +202,9 @@ export function ChangedRows({ rows }: { rows: Row[] }) {
       defaultData={rows}
       columns={columns}
       onDataChange={onDataChange}
-      getRowClassName={(row) => (changed.has(row) ? "bg-primary/10" : undefined)}
+      getRowClassName={(row) =>
+        changed.has(row) ? "bg-primary/10" : undefined
+      }
     />
   );
 }

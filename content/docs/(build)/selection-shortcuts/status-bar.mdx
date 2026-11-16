@@ -60,7 +60,7 @@ A cell counts as numeric if its raw value is a finite `number`. Detection reads 
 
 The aggregates show once the selection covers two cells whose value is not `undefined`. A `null` cell or an empty-text cell has a value, so it counts toward the two cells. `count` shows with the others. `sum`, `avg`, `min`, and `max` show only with a numeric cell in the selection.
 
-When every numeric cell comes from one column, the `toDisplayText` of that column formats `sum`, `avg`, `min`, and `max`. A `number` column with a `format` option uses that format, for example currency or percent. A `number` column with `decimals` and no `format` rounds to `decimals` and groups digits by `locale`. A `number` column with neither falls back to the format of the bar, like numeric cells that span several columns: `Intl.NumberFormat` with `maximumFractionDigits: 4` in the `locale` of the grid. `formatValue` overrides all of these.
+When every numeric cell comes from one column, the `toDisplayText` of that column formats `sum`, `avg`, `min`, and `max`. A `number` column with a `format` option uses that format, for example currency or percent. A `number` column with `decimals` and no `format` rounds to `decimals` and groups digits by `locale`. A `number` column with neither uses the format of the bar, like numeric cells that span several columns. That format is `Intl.NumberFormat` with `maximumFractionDigits: 4` in the `locale` of the grid. `formatValue` overrides all of these.
 
 The bar also shows the count of [hidden checked rows](/docs/selection-shortcuts/checked-rows#hidden-checked-rows) as `(+3 hidden)`, and the select-all banner of a [server grid](/docs/rows-live-data/select-server-rows). With nothing to show and no `children`, it renders nothing.
 
