@@ -12,7 +12,7 @@ Users fix the same typo in many cells without editing each cell. `data-grid-find
 
 <InstallCommand item="data-grid-find-replace" manual manualSlot={<ManualInstall item="data-grid-find-replace" />} />
 
-Pass the plugin to the grid. `findReplace.open(mode)` opens the panel from your own button. `mode` is `"replace"` by default, or `"find"` to hide the Replace field. `findReplace.close()` closes it:
+Pass the plugin to the grid. `findReplace.open()` opens the panel from your own button, with the Replace field hidden, as <kbd>Mod</kbd>+<kbd>F</kbd> does. `findReplace.open("replace")` shows the Replace field. `findReplace.close()` closes it:
 
 ```tsx
 "use client";
@@ -24,7 +24,9 @@ import {
   DataGridRoot,
   defineColumns,
 } from "@/components/data-grid/data-grid";
-import { useDataGridFindReplace } from "@/components/data-grid-find-replace/data-grid-find-replace";
+import {
+  useDataGridFindReplace,
+} from "@/components/data-grid-find-replace/data-grid-find-replace";
 
 type Person = { id: string; name: string };
 
@@ -39,10 +41,9 @@ export function PeopleGrid({ rows }: { rows: Person[] }) {
     <DataGridProvider
       defaultData={rows}
       columns={columns}
-      getRowId={(row) => row.id}
       plugins={[findReplace.plugin]}
     >
-      <button onClick={() => findReplace.open("find")}>Find</button>
+      <button onClick={() => findReplace.open()}>Find</button>
       <DataGridRoot className="h-96">
         <DataGridHeader />
         <DataGridBody />
@@ -71,7 +72,7 @@ The Find field waits for the `inputDebounceMs` prop of the grid (default 200 ms)
 
 ## Replace
 
-Replace swaps the Find text in that text and converts the result with `fromText`.
+Replace swaps each occurrence of the Find text in the search text of the cell, then converts the result with `fromText`.
 
 - **Replace** changes the current match and moves to the next one. After the last match, it moves to the first. When the active cell is a match, Replace changes that cell. When the new text still matches the Find text, the active cell still moves on.
 - **Replace all** changes every matching cell in the view.
@@ -93,7 +94,7 @@ Replace covers the visible columns of the rows in the view, on every page of a p
 
 One Replace all changes at most `replaceAllLimit` cells. When more cells match, the status line says so, and the next click continues. That click skips the cells the earlier one changed, even when the replacement contains the find text. A change to the find text, the replacement, or an option starts over.
 
-The chevron button at the start of the Find row shows and hides the Replace field. Every open sets it: <kbd>Mod</kbd>+<kbd>F</kbd> and `open("find")` hide it, and <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>Enter</kbd> and `open("replace")` show it. In a `readOnly` grid, the Find field works, the chevron is hidden, and Replace stays disabled. While a cell editor is open, Replace does nothing.
+The chevron button at the start of the Find row shows and hides the Replace field. Every open sets it: <kbd>Mod</kbd>+<kbd>F</kbd>, `open()`, and `open("find")` hide it, and <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>Enter</kbd> and `open("replace")` show it. In a `readOnly` grid, the Find field works, the chevron is hidden, and Replace stays disabled. While a cell editor is open, Replace does nothing.
 
 A sort or filter on a replaced column does not move rows while the panel is open. The view reconciles on the next sort or filter change.
 
@@ -102,7 +103,9 @@ A sort or filter on a replaced column does not move rows while the panel is open
 `processReplace` runs after the panel builds the list of changes and before it writes them. It gets the `plan` and a `signal`. Return the plan to write, or `false` to cancel:
 
 ```tsx
-import { useDataGridFindReplace } from "@/components/data-grid-find-replace/data-grid-find-replace";
+import {
+  useDataGridFindReplace,
+} from "@/components/data-grid-find-replace/data-grid-find-replace";
 
 export function useCheckedFindReplace() {
   return useDataGridFindReplace({
@@ -118,7 +121,7 @@ export function useCheckedFindReplace() {
 }
 ```
 
-The hook can drop, add, or change patches. A patch holds the new value of one cell. The grid writes that value as given, with no `fromText`, and runs the column's `validate` on it. A patch for a hidden column is written too, so check what the hook adds.
+The hook can drop, add, or change patches. A patch holds the new value of one cell. The grid writes that value as given, with no `fromText`, and runs the column's `validate` on it. The panel skips a returned patch on a hidden column with the reason `"hidden"`.
 
 The replace is cancelled, and the status line says `Replace cancelled`, when:
 
@@ -166,7 +169,7 @@ Replace writes through the same path as an edit. `onDataChange` and `onSave` rec
 
 ### planReplace
 
-`planReplace(state, find, replacement, options)` is the pure function behind the buttons. It returns `{ patches, skipped, remaining }` and writes nothing. Pass `patches` to `actions.updateCells(patches, { source: "replace" })` to write them. Each entry of `skipped` has a `reason`: `"readonly"`, `"unparseable"`, `"too-long"`, or `"no-occurrence"`. Find and replacement text longer than 1,000 characters is cut.
+`planReplace(state, find, replacement, options)` is the pure function behind the buttons. It returns `{ patches, skipped, remaining }` and writes nothing. Pass `patches` to `actions.updateCells(patches, { source: "replace" })` to write them. Each entry of `skipped` has a `reason`: `"readonly"`, `"unparseable"`, `"too-long"`, `"no-occurrence"`, or `"hidden"`. The panel adds `"hidden"` for a `processReplace` patch on a hidden column. Find and replacement text longer than 1,000 characters is cut.
 
 ### Labels
 

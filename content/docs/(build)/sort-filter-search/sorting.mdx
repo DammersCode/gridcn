@@ -26,8 +26,12 @@ import {
   DataGridRoot,
   defineColumns,
 } from "@/components/data-grid/data-grid";
-import { DataGridSortList } from "@/components/data-grid-sort-list/data-grid-sort-list";
-import { DataGridToolbar } from "@/components/data-grid-toolbar/data-grid-toolbar";
+import {
+  DataGridSortList,
+} from "@/components/data-grid-sort-list/data-grid-sort-list";
+import {
+  DataGridToolbar,
+} from "@/components/data-grid-toolbar/data-grid-toolbar";
 
 type Person = { id: string; name: string; age: number };
 
@@ -41,7 +45,6 @@ export function PeopleGrid({ rows }: { rows: Person[] }) {
     <DataGridProvider
       defaultData={rows}
       columns={columns}
-      getRowId={(row) => row.id}
       headerClickBehavior="sort"
       defaultSortState={[{ columnId: "age", direction: "desc" }]}
     >
@@ -73,9 +76,9 @@ A column compares two rows with the first of these that applies:
 
 1. The column `sortCompare(rowA, rowB)`. A result of `0`, `NaN`, or a thrown error passes the pair to the text compare.
 2. The `compare` of the column's declared cell type. Numbers sort by value, dates in date order, and `select` columns by choice label. The `text`, `longText`, and `url` types use the text compare of the next step.
-3. A text compare that ignores case and accents and reads digit runs as numbers, so `item2` comes before `item10`. A column that omits `type` uses it too.
+3. A text compare that ignores case and accents and reads digit runs as numbers, so `item2` comes before `item10`. A column that omits `type` uses it for text. It orders finite numbers by value and puts them before any text.
 
-For numbers, set `type: "number"`. The text compare reads `1.5` as 1 and 5, and it puts negative numbers backwards.
+A column without `type` sorts numbers by value and puts them before any text. In development, a column that holds both numbers and text warns once. Set `type: "number"` to also get the number editor, alignment, and filters.
 
 The direction applies to all three. Empty cells sort last in both directions.
 
