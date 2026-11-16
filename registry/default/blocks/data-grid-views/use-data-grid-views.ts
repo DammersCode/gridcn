@@ -289,16 +289,18 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
     const unsubscribe = storage.subscribe?.(() => {
       if (savingRef.current || pendingSaveRef.current) return;
       void (async () => {
+        let raw: unknown;
         try {
-          const raw = await storageRef.current.load({ signal: controller.signal });
-          if (controller.signal.aborted || savingRef.current || pendingSaveRef.current) return;
-          const parsed = raw == null ? emptyViewsDocument() : parseViewDocument(raw);
-          if (!parsed) return;
-          documentRef.current = parsed;
-          setDocument(parsed);
+          raw = await storageRef.current.load({ signal: controller.signal });
         } catch (cause) {
           if (!controller.signal.aborted) reportError("load", cause);
+          return;
         }
+        if (controller.signal.aborted || savingRef.current || pendingSaveRef.current) return;
+        const parsed = raw == null ? emptyViewsDocument() : parseViewDocument(raw);
+        if (!parsed) return;
+        documentRef.current = parsed;
+        setDocument(parsed);
       })();
     });
     return () => {
