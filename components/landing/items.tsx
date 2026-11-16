@@ -33,7 +33,7 @@ import {
 export const kitTiles: { icon: LucideIcon; title: string; text: string; href: string }[] = [
   { icon: MousePointer2, title: "Range selection", text: "Drag a rectangular range. Select rows and columns with the pointer.", href: "/docs/selection-shortcuts/pointer-selection" },
   { icon: Clipboard, title: "Clipboard", text: "Copy, cut and paste with Ctrl+C, Ctrl+X and Ctrl+V. Reads HTML and tab-separated text from Excel, Sheets and Numbers.", href: "/docs/clipboard-undo/clipboard" },
-  { icon: PaintBucket, title: "Fill handle", text: "Drag to tile a selection. A series continues: Item 1 becomes Item 2.", href: "/docs/clipboard-undo/fill-handle" },
+  { icon: PaintBucket, title: "Fill handle", text: "Drag the corner to copy a selection. Two cells that form a series continue it: Item 1, Item 2 becomes Item 3, Item 4.", href: "/docs/clipboard-undo/fill-handle" },
   { icon: Keyboard, title: "Typed columns", text: "defineColumns infers the value type of each column.", href: "/docs/learning-path/define-columns" },
   { icon: LayoutGrid, title: "Virtualized DOM", text: "Real DOM cells. The grid draws only the rows and columns in view.", href: "/docs/performance/virtualization" },
   { icon: Palette, title: "shadcn tokens", text: "The grid takes your theme colors and radius, in light and dark mode.", href: "/docs/theme-style-language/colors-radius" },
@@ -41,7 +41,7 @@ export const kitTiles: { icon: LucideIcon; title: string; text: string; href: st
   { icon: Languages, title: "Labels and RTL", text: "One typed labels object translates the grid. Right-to-left layout has browser tests.", href: "/docs/theme-style-language/labels-i18n" },
   { icon: ShieldCheck, title: "Validation", text: "A function or schema checks a cell before it commits. Soft rules only flag it.", href: "/docs/editing-cells/validation" },
   { icon: ListFilter, title: "Sorting and filtering", text: "Sort by several columns. Filter per column in and/or groups, from a menu or from code.", href: "/docs/sort-filter-search/filtering" },
-  { icon: Compass, title: "Keyboard navigation", text: "Move, extend, edit and select with the keyboard. Remap any shortcut.", href: "/docs/selection-shortcuts/keyboard-navigation" },
+  { icon: Compass, title: "Keyboard navigation", text: "Move, extend, edit and select with the keyboard. The keymap prop remaps the grid's shortcuts.", href: "/docs/selection-shortcuts/keyboard-navigation" },
   { icon: ArrowLeftRight, title: "Column order and pinning", text: "Drag columns into a new order. Pin columns to the start or end edge.", href: "/docs/columns/column-order-pinning" },
 ];
 
