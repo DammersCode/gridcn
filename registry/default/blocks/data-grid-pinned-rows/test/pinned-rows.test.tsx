@@ -65,15 +65,13 @@ describe("pinned rows — inline source identity", () => {
   });
 
   it("inline aggregateRow with different specs rebuilds the plugin", () => {
-    let spec: "sum" | "avg" = "sum";
     const plugins: unknown[] = [];
-    function Probe() {
+    function Probe({ spec }: { spec: "sum" | "avg" }) {
       plugins.push(useDataGridPinnedRows({ bottomRows: [aggregateRow({ qty: spec })] }).plugin);
       return null;
     }
-    const view = render(<Probe />);
-    spec = "avg";
-    view.rerender(<Probe />);
+    const view = render(<Probe spec="sum" />);
+    view.rerender(<Probe spec="avg" />);
     expect(plugins[1]).not.toBe(plugins[0]);
   });
 
