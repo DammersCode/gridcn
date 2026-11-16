@@ -676,7 +676,7 @@ function actionsZ() {
     frontmatter({ title: "Actions A to Z", description: "Find a store action by name, read what it does, and open the page that explains its feature.", type: "cheatsheet", icon: "SquareFunction", aliases: ["store actions", "api.actions", "useDataGridActions"] }),
     MARKER,
     "",
-    "Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actions` return the same object. An action with a `CellRef` takes a row id and a column id. A variant that ends in `At` takes a `ViewCoord`, a position in view indexes.",
+    "Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actions` return the same object. An action with a `CellRef` takes a row id and a column id. A cell action that ends in `At` takes a `ViewCoord`, a position in view indexes. A row action that ends in `At` (`setRowCheckedAt`, `deleteRowsAt`, `duplicateRowsAt`) takes view row numbers: one number, or a `number[]`.",
     "",
     table(["Action", "Purpose", "Page"], rows),
     related(["/docs/types-hooks/store-hooks#usedatagridactions", "the hook that returns the actions"], ["/docs/concepts/state-view-index", "row ids and view indexes"], ["/docs/cheatsheets-messages/hooks-z", "hooks by name"]),
@@ -750,10 +750,10 @@ function ownerText(owner) {
 function optionPurpose(row, name) {
   const override = OPTION_PURPOSE[`${row.owners[0]}.${name}`];
   if (override) return override;
-  const owner = row.owners[0].toLowerCase().replace(/[^a-z]/g, "");
+  const owner = optionOwnerKey(row.owners[0].split(" ")[0]);
   const declared = [...(pages.get(row.page.split("#")[0])?.body ?? "").matchAll(/<AutoTypeTable path="([^"]+)" name="(\w+)"/g)].map((m) => ({ file: m[1].replace(/^\.\//, ""), type: m[2] }));
-  declared.sort((a, b) => Number(b.type.toLowerCase().startsWith(owner)) - Number(a.type.toLowerCase().startsWith(owner)));
-  for (const { file, type } of declared) {
+  const own = declared.filter(({ file, type }) => optionTypeMatchesOwner(type, owner) && members(file, type).includes(name));
+  for (const { file, type } of own.length ? own : declared) {
     const text = jsdocOf(file, type, name);
     if (text) return cell(tidy(text));
   }
@@ -764,6 +764,7 @@ function optionPurpose(row, name) {
 const optionOwnerKey = (name) => name.toLowerCase().replace(/(props|options)$/, "").replace(/^use/, "").replace(/[^a-z]/g, "");
 const OPTION_TYPE_OWNER = { UseDataGridPaginationServerOptions: "useDataGridServerPager", ReplaceOptions: "planReplace" };
 const RETURNED_PROPS = /(Provider|Root)Props$/;
+const optionTypeMatchesOwner = (type, ownerKey) => { const k = optionOwnerKey(OPTION_TYPE_OWNER[type] ?? type); return k === ownerKey || k.startsWith(ownerKey) || ownerKey.startsWith(k); };
 
 /** Member names of an Options or Props type that no row of a matching owner in `groups` lists. */
 export function missingOptionNames(typeName, memberNames, groups = OPTION_GROUPS) {

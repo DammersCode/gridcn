@@ -227,3 +227,19 @@ describe("docs-generate write mode", { timeout: GENERATOR_TIMEOUT_MS }, () => {
     }
   });
 });
+
+describe("options and actions pages", () => {
+  const options = () => page("(reference)/cheatsheets-messages/options-z");
+  const classNameRow = (owner: string) => options().split("\n").find((l) => l.includes(`id="classname-${owner.toLowerCase()}"`)) ?? "";
+
+  it("describes each className with the element its own component styles", () => {
+    expect(classNameRow("DataGridToolbar")).toContain("toolbar bar");
+    expect(classNameRow("DataGridSearch")).toContain("search box wrapper");
+    expect(classNameRow("DataGridContextMenu")).toContain("wraps the grid");
+    expect(classNameRow("DataGridImportButton")).toContain("import button");
+  });
+
+  it("gives a row action that ends in At view row numbers, not a ViewCoord", () => {
+    expect(page("(reference)/cheatsheets-messages/actions-z")).toMatch(/row action that ends in `At`[^.]*view row numbers/);
+  });
+});
