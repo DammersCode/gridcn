@@ -95,8 +95,8 @@ These rules keep the combination safe:
 - Pass a custom `getRowId` to the hook, never to the grid, and pass `server.gridProps` to the grid. The grid runs `getRowId` on every element, holes included, and a plain `(row) => row.id` throws on a hole. The hook's own option sees loaded rows only, and `gridProps.getRowId` gives each hole a placeholder id.
 - An entry whose rows left the loaded rows applies nothing, stays on its stack, and calls `onSkip` with `"rows-not-loaded"`. Load the rows, then undo again.
 - `server.refresh()` drops every loaded row outside the rendered rows. A change of `spec` starts the blocks over. A row operation in a source with a row count runs that refresh.
-- A refresh, a row operation, and a tick of `revalidateIntervalMs` refetch the same dataset, so the stacks stay. An undo writes only the cells of its entry onto the refetched row, so a value that the server changed in another column stays.
-- `datasetKey` clears the stacks when it changes. Pass a key that changes with the dataset, as `serverSpecKey(server.spec)` does. Without a key, call `clear()` in the handler that swaps the dataset.
+- A refresh, a row operation, and a tick of `revalidateIntervalMs` refetch the same result, so the stacks stay. An undo writes only the cells of its entry onto the refetched row, so a value that the server changed in another column stays.
+- `datasetKey` clears the stacks when it changes. Pass a key that changes with the result, as `serverSpecKey(server.spec)` does. Without a key, call `clear()` in the handler that loads a new result.
 
 When `undo` needs a row that a hole hides, it warns once in development. An `undo` whose rows are all loaded does not warn.
 

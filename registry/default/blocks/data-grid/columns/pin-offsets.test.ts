@@ -7,7 +7,7 @@ describe("pinRightOffsets", () => {
   });
 
   it("accumulates inset-inline-end offsets right-to-left for pinned-right columns", () => {
-    // columns 1 and 2 (from the right) are pinned right; column 0 sits before both
+    // columns 1 and 2 (from the right) are end-pinned; column 0 sits before both
     expect(pinRightOffsets([100, 80, 60], [undefined, "end", "end"])).toEqual([140, 60, 0]);
   });
 });

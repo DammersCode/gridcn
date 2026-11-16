@@ -58,7 +58,7 @@ const AVERAGES = aggregateRow<DemoRow>({ age: "avg", score: "avg" }, { cells: { 
 const TOTALS = aggregateRow<DemoRow>({ name: (_values, rows) => `${rows.length} rows`, age: "sum", score: "sum" }, { cells: { id: "totals" } });
 
 /**
- * All four pin zones at once: Name pinned left, Score pinned right, an averages row pinned to
+ * All four pin zones at once: Name start-pinned, Score end-pinned, an averages row pinned to
  * the top band, and a totals row pinned to the bottom band (`data-grid-pinned-rows` add-on).
  * Enough columns overflow the ~900px viewport to scroll horizontally, and 200 rows fill the
  * fixed-height viewport to scroll vertically, so both pinned column bands and both pinned row

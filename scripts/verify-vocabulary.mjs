@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Fails when prose or comments use a word that GLOSSARY.md replaces. Fix: use the glossary word.
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join, dirname, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -26,8 +26,6 @@ const BANNED = [
 const ALLOW = new Map([]);
 
 const DOCS = "content/docs/";
-const ALLOWLIST_FILE = join(root, "scripts/vocabulary-allowlist.txt");
-const ALLOWLIST = new Set(existsSync(ALLOWLIST_FILE) ? readFileSync(ALLOWLIST_FILE, "utf8").split(/\r?\n/).filter(Boolean) : []);
 
 function* walk(path) {
   const stat = readdirSync(path, { withFileTypes: true, recursive: false });
@@ -47,7 +45,8 @@ function* files() {
   }
 }
 
-const prose = (line) => line.replace(/<span id="[^"]*" \/>/g, "").split(/(`[^`]*`)/).filter((_, i) => i % 2 === 0).join(" ");
+// Anchor ids are fixed at creation, so a renamed heading keeps its old `[#slug]`.
+const prose = (line) => line.replace(/<span id="[^"]*" \/>/g, "").replace(/\[#[\w-]+\]\s*$/, "").split(/(`[^`]*`)/).filter((_, i) => i % 2 === 0).join(" ");
 
 function* proseLines(file, text) {
   const lines = text.split(/\r?\n/);
@@ -55,7 +54,8 @@ function* proseLines(file, text) {
     let fence = false;
     for (const [i, line] of lines.entries()) {
       if (/^\s*(```|~~~)/.test(line)) fence = !fence;
-      else if (!fence) yield [i + 1, prose(line)];
+      // Frontmatter aliases are the reader's search words, not ours.
+      else if (!fence && !line.startsWith("aliases:")) yield [i + 1, prose(line)];
     }
     return;
   }
@@ -76,7 +76,6 @@ for (const file of files()) {
     for (const [pattern, advice, scope] of BANNED) {
       if (allowed.includes(advice) || !pattern.test(line)) continue;
       if (scope === "docs" && !rel.startsWith(DOCS)) continue;
-      if (ALLOWLIST.has(`${rel}:${line.trim().slice(0, 120)}`)) continue;
       problems.push(`${rel}:${lineNo} — ${advice}: ${line.trim().slice(0, 120)}`);
     }
   }

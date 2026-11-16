@@ -1,6 +1,6 @@
 ---
 title: Undo for code changes
-description: Make changes that your code applies undoable with record or a change source, pick which sources the history keeps, and reset it for a new dataset.
+description: Make changes that your code applies undoable with record or a change source, pick which sources the history keeps, and reset it when you swap the data.
 type: feature
 aliases: ["programmatic undo", "undo api"]
 icon: Clock
@@ -105,9 +105,9 @@ export function useHistoryWithStream() {
 }
 ```
 
-## Dataset changes [#dataset-changes]
+## Data swaps [#dataset-changes]
 
-After you swap the data, the entries still describe the old rows, and an undo can insert them back. Pass the identity of the dataset as `datasetKey`. When the key changes between renders, the hook clears both stacks. The first render clears nothing. This component swaps datasets:
+After you swap the data, the entries still describe the old rows, and an undo can insert them back. Pass an identity of the data as `datasetKey`. When the key changes between renders, the hook clears both stacks. The first render clears nothing. This component swaps the data:
 
 ```tsx
 import { useState } from "react";
@@ -148,7 +148,7 @@ function MyGrid() {
 }
 ```
 
-A dataset id and a version counter both work. The key only has to differ between datasets. For a reset without a key, such as a reset button, call `clear()`.
+An id of the data and a version counter both work. The key only has to change when the data changes. For a reset without a key, such as a reset button, call `clear()`.
 
 ## Related
 

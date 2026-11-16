@@ -54,7 +54,7 @@ describe("column UX actions (resize/reorder/pin/visibility)", () => {
       const wrapper = makeConfigWrapper({ columns: cols });
       const { result } = renderHook(useColumnProbe, { wrapper });
 
-      // "id" (pinned left) is already display-first; dragging it next to "age" (unpinned) must not move.
+      // "id" (start-pinned) is already display-first; dragging it next to "age" (unpinned) must not move.
       act(() => result.current.actions.setColumnOrder("id", "age", "after"));
       expect(result.current.visibleIds).toEqual(["id", "name", "age"]);
     });
@@ -496,7 +496,7 @@ describe("defaultColumnLayout", () => {
       },
     });
     const { result } = renderHook(useColumnProbe, { wrapper });
-    // "id" is pinned left (front), "age" is hidden, "name" keeps its seeded order slot.
+    // "id" is start-pinned (front), "age" is hidden, "name" keeps its seeded order slot.
     expect(result.current.visibleIds).toEqual(["id", "name"]);
   });
 

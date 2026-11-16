@@ -95,7 +95,7 @@ function ReorderControls(): ReactNode {
 
 /**
  * Column drag & drop: `enableColumnReorder` lets a header drag within its pin zone (Name opts
- * out via `reorderable: false`, Score is pinned right and moves only with the pinned zone), and
+ * out via `reorderable: false`, Score is end-pinned and moves only with the pinned zone), and
  * the picker + buttons show the programmatic `setColumnOrder(id, targetId, position)` path.
  */
 export default function DataGridColumnDragDemo(): ReactNode {

@@ -50,7 +50,7 @@ const columnGroups: readonly ColumnGroupDef[] = [
 /**
  * Column groups: Contact, Work (with a nested History group), and Standing sit above their
  * columns. Click a group header to select its columns. Drag a group header to move the block, or
- * drag a column inside its group. Name is pinned left, so the Contact header splits at the pin
+ * drag a column inside its group. Name is start-pinned, so the Contact header splits at the pin
  * edge. The columns menu lists each group's members under its heading.
  */
 export default function DataGridColumnGroupsDemo(): ReactNode {
