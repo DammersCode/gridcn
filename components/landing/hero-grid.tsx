@@ -1,15 +1,20 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 const HeroGridLive = dynamic(() => import("./hero-grid-live"), { ssr: false });
 
 export function HeroGrid(): ReactNode {
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    const id = requestIdleCallback(() => setArmed(true), { timeout: 1500 });
+    return () => cancelIdleCallback(id);
+  }, []);
   return (
     <div className="flex min-w-0 flex-col gap-2">
-      <div className="h-60 overflow-hidden rounded-lg border bg-background sm:h-72">
-        <HeroGridLive />
+      <div className="h-60 overflow-hidden rounded-lg border bg-background sm:h-72" onPointerEnter={() => setArmed(true)} onFocusCapture={() => setArmed(true)}>
+        {armed && <HeroGridLive />}
       </div>
       <p className="text-sm text-muted-foreground">
         <span className="pointer-coarse:hidden">

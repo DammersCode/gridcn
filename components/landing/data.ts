@@ -1,4 +1,4 @@
-export const HEADLINE = "A React data grid you own, with spreadsheet-style editing";
+export const HEADLINE = "A React data grid you own";
 export const SUBLINE = "Range selection, paste from Excel, a fill handle and undo, free under Apache‑2.0. One shadcn command copies the source into your app.";
 
 export const perfStats = [
@@ -12,7 +12,7 @@ export const perfStats = [
   {
     value: "4 to 7 ms",
     title: "Client sort of a number column",
-    detail: "Measured on 100,000 unsorted rows on one development machine with scripts/bench-sort.mjs. A text column took 5 to 93 ms.",
+    detail: "scripts/bench-sort.mjs sorted 100,000 unsorted rows on one machine. A text column took 5 to 93 ms.",
     source: "Benchmark results: sort speed",
     href: "/docs/performance/benchmark-results#sort-speed",
   },
