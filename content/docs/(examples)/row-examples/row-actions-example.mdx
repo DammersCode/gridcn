@@ -21,7 +21,7 @@ The demo shows both. Two icon buttons run Edit and Delete, and a dropdown holds 
 
 ## How it is wired [#how-its-wired]
 
-`renderCell` receives `rowId` and `viewRowIndex`, the position of the row in the view. `duplicateRows` and `deleteRows` take row ids, and `startEditingAt` takes the view position. Call `useDataGridActions` in a component that `renderCell` renders:
+`renderCell` receives `rowId`. `startEditing`, `duplicateRows`, and `deleteRows` take the row id. Call `useDataGridActions` in a component that `renderCell` renders:
 
 ```tsx
 import {
@@ -33,13 +33,7 @@ import { Button } from "@/components/ui/button";
 
 type Row = { id: string; name: string };
 
-function RowActions({
-  rowId,
-  viewRowIndex,
-}: {
-  rowId: string;
-  viewRowIndex: number;
-}) {
+function RowActions({ rowId }: { rowId: string }) {
   const actions = useDataGridActions();
 
   return (
@@ -47,7 +41,7 @@ function RowActions({
       <Button
         size="sm"
         variant="ghost"
-        onClick={() => actions.startEditingAt({ row: viewRowIndex, col: 0 })}
+        onClick={() => actions.startEditing({ rowId, columnId: "name" })}
       >
         Edit
       </Button>
@@ -78,9 +72,7 @@ const columns = defineColumns<Row>()([
     pin: "end",
     readOnly: true,
     width: 220,
-    renderCell: ({ rowId, viewRowIndex }) => (
-      <RowActions rowId={rowId} viewRowIndex={viewRowIndex} />
-    ),
+    renderCell: ({ rowId }) => <RowActions rowId={rowId} />,
   },
 ]);
 
@@ -98,9 +90,9 @@ function ActionsGrid() {
 }
 ```
 
-`startEditingAt` starts an edit in the cell at a view row and a column position. Here, column 0 is Name. Without a `duplicateRow` prop, `duplicateRows` does nothing and warns in development.
+`startEditing` starts an edit in the cell that the row id and the column id name. Without a `duplicateRow` prop, `duplicateRows` does nothing and warns in development.
 
-`startEditing` takes a `{ rowId, columnId }` cell ref. `duplicateRowsAt` and `deleteRowsAt` take view indexes.
+`duplicateRowsAt` and `deleteRowsAt` take view indexes. `renderCell` also receives `viewRowIndex`, the position of the row in the view.
 
 ## Related
 

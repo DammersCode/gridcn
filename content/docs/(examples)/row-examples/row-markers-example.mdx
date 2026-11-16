@@ -20,10 +20,19 @@ The marker column sits at the start of the grid, outside your `columns`. This gr
 
 ## Custom markers [#custom-markers]
 
-`renderMarker` receives `rowId`, `viewRowIndex`, `isRowChannelSelected`, and `isCellSelected`. `isRowChannelSelected` is true for a checked row. A cell click sets `isCellSelected` and never sets `isRowChannelSelected`. With `checkedRowsLifetime="until-click"` (the default without `totalRowCount`), it clears the checked rows. `renderMarkerHeader` receives `allSelected`. The header renderer runs inside the provider, so it can call `useDataGridActions`. Define both renderers at module scope:
+`renderMarker` receives `rowId`, `viewRowIndex`, `isChecked`, and `isCellSelected`. `isChecked` is true for a checked row. A cell selection never checks a row.
+
+A cell click sets `isCellSelected`. With `checkedRowsLifetime="until-click"` (the default without `totalRowCount`), a cell click also clears the checked rows. `renderMarkerHeader` receives `allSelected`. The header renderer runs inside the provider, so it can call `useDataGridActions`. Define both renderers at module scope:
 
 ```tsx
-import { Check, Circle, List, ListChecks, ListMinus, Minus } from "lucide-react";
+import {
+  Check,
+  Circle,
+  List,
+  ListChecks,
+  ListMinus,
+  Minus,
+} from "lucide-react";
 import {
   DataGrid,
   defineColumns,
@@ -42,11 +51,8 @@ const columns = defineColumns<Row>()([
 
 const rows: Row[] = [{ id: "1", name: "Ada" }];
 
-const renderMarker: MarkerCellRenderer = ({
-  isRowChannelSelected,
-  isCellSelected,
-}) =>
-  isRowChannelSelected ? (
+const renderMarker: MarkerCellRenderer = ({ isChecked, isCellSelected }) =>
+  isChecked ? (
     <Check className="size-3.5" aria-hidden="true" />
   ) : isCellSelected ? (
     <Minus className="size-3.5" aria-hidden="true" />

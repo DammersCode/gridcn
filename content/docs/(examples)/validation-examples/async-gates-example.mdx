@@ -72,8 +72,9 @@ type SkuApi = {
 | `duplicateRow` | the duplicate, until every copy settles | a second duplicate does nothing | the duplicate does not happen |
 | `validateRow` | nothing: the write commits first | a newer verdict for the row replaces it | the row gets no verdict |
 | `onBeforeDeleteRows` | the delete | the grid ignores a second delete | the delete does not happen |
+| `processReplace` | the write of a find-and-replace plan | the replace does not write yet | the replace does not happen |
 
-`mapColumn` and the `createRow` of the import also accept a promise, and the import dialog waits for it. See [Import](/docs/import-export/import). A function that returns a plain value acts in the same call. `processPaste` returns `false` and `onBeforeEditStart` returns `false` to cancel.
+The `import` gate holds the import dialog while it parses or validates. `mapColumn` and the `createRow` of the import also accept a promise, and the import dialog waits for it. See [Import](/docs/import-export/import). A function that returns a plain value acts in the same call. `processPaste` returns `false` and `onBeforeEditStart` returns `false` to cancel.
 
 The grid reads its state again when the promise settles. It discards the result without an error in these cases:
 

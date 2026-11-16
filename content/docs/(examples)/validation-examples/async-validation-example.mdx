@@ -56,12 +56,10 @@ Each of these paths holds the batch while the schema resolves, and so does impor
 - The grid runs at most 32 validations at the same time. A paste of 10,000 cells makes 32 calls at a time.
 - Nothing changes until every verdict is in. The accepted cells then commit together as one `onDataChange` batch.
 - A rejected cell drops, and the other cells still commit. `onValidationError` reports the rejected cells. Its sources are paste, fill, Delete or Cut, find and replace, `updateCells`, and the toggle of an `activate` cell.
-- While a schema holds a paste, a second paste replaces the first. A held batch also drops when a sort or filter changes, or when a target row leaves the data.
+- A held batch drops when a sort or filter changes, or when a target row leaves the data.
 - The import dialog keeps its Import button disabled while it validates.
 
-<Callout type="warn" title="A slow schema makes a slow batch">
-  At 200 ms per cell, 10,000 cells take about 60 seconds at 32 calls at a time, and the grid shows no progress. To check a large paste against a remote service, validate the whole block once in the `processPaste` override of [Change copy and paste](/docs/clipboard-undo/change-copy-paste).
-</Callout>
+While the schema runs, `useDataGridGatePending()` holds `"validate"` and the grid root carries `data-gate-pending="validate"`. A newer paste replaces the held paste. At 200 ms per cell, 10,000 cells take about 60 seconds at 32 calls at a time. To check a large paste against a remote service, validate the whole block once in the `processPaste` override of [Change copy and paste](/docs/clipboard-undo/change-copy-paste).
 
 To skip validation for values that your server already checked, call `actions.updateCells(patches, { skipValidation: true })`.
 

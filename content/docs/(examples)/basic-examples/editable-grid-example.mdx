@@ -19,6 +19,40 @@ Press <kbd>Enter</kbd> or <kbd>F2</kbd> on a cell to edit it. Drag over cells to
 - `useDataGridFill` returns `{ plugin }`. The demo passes `plugin` in the `plugins` prop of `DataGridProvider`. The plugin renders its own mount inside `DataGridRoot`, so the demo adds no child for it.
 - Range selection and the clipboard belong to the core. They need no add-on.
 
+The provider with the fill add-on:
+
+```tsx
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
+import { useDataGridFill } from "@/components/data-grid-fill/data-grid-fill";
+
+type Row = { id: string; name: string; age: number };
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+  { id: "age", header: "Age", accessorKey: "age", type: "number" },
+]);
+
+const rows: Row[] = [{ id: "1", name: "Ada", age: 36 }];
+
+export function FillGrid() {
+  const { plugin } = useDataGridFill();
+  return (
+    <DataGridProvider defaultData={rows} columns={columns} plugins={[plugin]}>
+      <DataGridRoot className="h-60">
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
 ## Related
 
 - [Fill handle](/docs/clipboard-undo/fill-handle): the add-on that this demo wires

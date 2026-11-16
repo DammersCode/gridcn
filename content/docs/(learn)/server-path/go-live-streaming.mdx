@@ -89,9 +89,9 @@ One call is one batch. The grid applies all patches together and calls `onDataCh
 
 ## What the grid skips [#what-the-grid-skips]
 
-`updateCells` returns a verdict. `applied` counts the cells it wrote. `skipped` lists a patch that the grid checked and left out, with a reason. A patch for a row that the grid has not loaded gets the reason `"unknown-row"`. A push to a row whose save is in flight gets `"saving"`: push the value again after the save settles. A call with more than 100,000 patches skips the extra patches with `"limit"`. See [Read the push verdict](/docs/rows-live-data/read-push-verdict) for every reason.
+`updateCells` returns a verdict. `applied` counts the cells it wrote. `skipped` lists a patch that the grid checked and left out, with a reason. A patch for a row that the grid has not loaded gets the reason `"unknown-row"`. A push to a row whose save is in flight gets `"saving"`: the grid holds it and applies it once the save settles. A call with more than 100,000 patches skips the extra patches with `"limit"`. See [Read the push verdict](/docs/rows-live-data/read-push-verdict) for every reason.
 
-A push writes into a `readOnly` grid too. With `{ source: "edit" }`, a `readOnly` grid writes no cell and returns an empty `skipped` list.
+A push writes into a `readOnly` grid too. A `"readonly"` patch is a patch for a read-only grid, column, or row with a source other than `"stream"`. With `{ source: "edit" }`, a `readOnly` grid writes no cell and skips every patch with `"readonly"`.
 
 A batch has the source `"stream"`. `onSave` never receives that source, so a pushed value does not go back to your server. Pass `{ source: "edit" }` to a call to send it to `onSave`.
 

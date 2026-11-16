@@ -23,8 +23,7 @@ To pin a tag, branch, or commit, append `#<ref>` to the item name. Install the c
 A `registries` entry in `components.json` maps a namespace to a URL, and it wins over the hosted `@gridcn` registry. To serve gridcn from your own host:
 
 1. Copy the `public/r/*.json` files of a gridcn release to your host.
-2. In each file, replace the `DammersCode/gridcn/` prefix in `registryDependencies` with `@gridcn/`. Without this step, the CLI still fetches the gridcn dependencies of an add-on from GitHub.
-3. Add the namespace to `components.json`:
+2. Add the namespace to `components.json`:
 
 ```json title="components.json"
 {

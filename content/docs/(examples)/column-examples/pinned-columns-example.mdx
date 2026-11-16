@@ -21,6 +21,40 @@ The demo pins Name to the start edge and Score to the end edge. Scroll the grid 
 
 Pin, resize, and reorder are on for every column. Set `pinnable`, `resizable`, or `reorderable` to `false` on a column to turn one off. Set `enableColumnPinning`, `enableColumnResize`, or `enableColumnReorder` to `false` to turn one off for the grid. To pin rows as well, see the [pinned rows example](/docs/row-examples/pinned-rows-example).
 
+The column options of the demo, shortened:
+
+```tsx
+import { defineColumns } from "@/components/data-grid/data-grid";
+
+type Person = {
+  id: string;
+  name: string;
+  email: string;
+  bio: string;
+  score: number;
+};
+
+export const columns = defineColumns<Person>()([
+  { id: "name", header: "Name", accessorKey: "name", width: 160, pin: "start" },
+  {
+    id: "email",
+    header: "Email",
+    accessorKey: "email",
+    width: 200,
+    resizable: false,
+  },
+  { id: "bio", header: "Bio", accessorKey: "bio", width: 140, flex: 1 },
+  {
+    id: "score",
+    header: "Score",
+    accessorKey: "score",
+    type: "number",
+    width: 90,
+    pin: "end",
+  },
+]);
+```
+
 ## Related
 
 - [Column order and pinning](/docs/columns/column-order-pinning#pin-startend): the pin rules and the pin indicator

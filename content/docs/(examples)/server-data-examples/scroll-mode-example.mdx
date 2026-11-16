@@ -11,7 +11,7 @@ In scroll mode, `useDataGridServerRows` owns the sparse row array and the block 
 
 <InstallCommand item="data-grid-lazy-demo" />
 
-The status line shows the loaded rows, the 2,000-row cap (`maxLoadedRows`), and the requests started and aborted. The buttons try the failure paths. A failed fetch fails once. A permanent failure fails until you press Fix backend. Evict loaded rows removes every loaded row until it scrolls into view again.
+The status line shows the loaded rows, the 2,000-row cap (`maxLoadedRows`), and the requests started and aborted. The buttons try the failure paths. A permanent failure lasts until you press Fix backend. Evict loaded rows removes every loaded row until it scrolls into view again.
 
 ## Write the fetcher [#the-seam]
 
@@ -55,7 +55,7 @@ Call `queryClient.fetchQuery` inside `fetchRows` and use the block as the query 
 
 <InstallCommand item="data-grid-lazy-react-query-demo" />
 
-Call this hook under a `QueryClientProvider`. If the user can sort or filter, send the spec and put `serverSpecKey(spec)` in the key:
+If the user can sort or filter, send the spec and put `serverSpecKey(spec)` in the key:
 
 ```tsx
 import { useQueryClient } from "@tanstack/react-query";
@@ -80,8 +80,7 @@ export function useCachedPeople() {
           const body = JSON.stringify({ spec, start, end });
           const init = { method: "POST", body, signal };
           const response = await fetch("/api/people", init);
-          // The server answers { rows, total } for the spec.
-          const answer = await response.json();
+            const answer = await response.json();
           return { rows: answer.rows, totalRowCount: answer.total };
         },
       }),
@@ -93,7 +92,7 @@ export function useCachedPeople() {
 
 ## Cache the blocks with SWR [#swr]
 
-SWR has no `fetchQuery`. Its `preload(key, fetcher)` runs the fetcher and keeps the result in the global cache. A `useSWR` call with the same key reads it there.
+SWR has no `fetchQuery`. `preload(key, fetcher)` keeps the result in the global cache, where a `useSWR` call with the same key reads it.
 
 <ComponentPreview name="data-grid-lazy-swr-demo" />
 
@@ -102,36 +101,37 @@ SWR has no `fetchQuery`. Its `preload(key, fetcher)` runs the fetcher and keeps 
 The key is a tuple of the spec key and the block, so each sort, filter, and block gets its own entry:
 
 ```tsx
-import { preload } from "swr";
+import { mutate, preload } from "swr";
 import { serverSpecKey } from "@/components/data-grid/data-grid";
 import {
   useDataGridServerRows,
 } from "@/components/data-grid-server/data-grid-server";
 
 type Person = { id: string; name: string };
-
 type Block = { rows: Person[]; totalRowCount: number };
 
 export function useSwrPeople() {
   return useDataGridServerRows<Person>({
     mode: "scroll",
-    fetchRows: ({ spec, start, end }) =>
-      preload(
-        ["people", serverSpecKey(spec), start, end] as const,
-        async (): Promise<Block> => {
-          const body = JSON.stringify({ spec, start, end });
-          const init = { method: "POST", body };
-          const response = await fetch("/api/people", init);
-          // The server answers { rows, total } for the spec.
-          const answer = await response.json();
-          return { rows: answer.rows, totalRowCount: answer.total };
-        },
-      ),
+    fetchRows: ({ spec, start, end }) => {
+      const key = ["people", serverSpecKey(spec), start, end] as const;
+      const fetcher = async (): Promise<Block> => {
+        const body = JSON.stringify({ spec, start, end });
+        const init = { method: "POST", body };
+        const response = await fetch("/api/people", init);
+        const answer = await response.json();
+        return { rows: answer.rows, totalRowCount: answer.total };
+      };
+      return preload(key, fetcher).catch((error: unknown) => {
+        void mutate(key, undefined, { revalidate: false });
+        throw error;
+      });
+    },
   });
 }
 ```
 
-Do not pass the request `signal` to the fetcher. `preload` caches the promise, so an aborted block stays as a rejection and fails again when it scrolls back. `preload` has no `staleTime`. A block that failed stays cached, so `retry()` gets the same rejection until `mutate(key)` clears the entry. See [Fetch with a cache](/docs/data-modes/fetch-cache#wiring-a-fetchcache-library-react-query) for the limits of each cache.
+Do not pass the request `signal` to the fetcher. `preload` caches the promise, so an abort stays as a rejection and fail again when the block scrolls back. The `catch` clears the entry of a failed block with `mutate(key)`, so `retry()` fetches it again. See [Fetch with a cache](/docs/data-modes/fetch-cache#wiring-a-fetchcache-library-react-query) for the limits of each cache.
 
 ## Related
 

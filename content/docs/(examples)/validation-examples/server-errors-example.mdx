@@ -19,11 +19,37 @@ A `validate` rule runs before a value commits. A server can still refuse a value
 import { useRef } from "react";
 import {
   DataGrid,
+  defineColumns,
+  type CellErrorEntry,
   type DataChange,
   type DataGridApi,
 } from "@/components/data-grid/data-grid";
-import { columns, type Order } from "./orders";
-import { saveOrders, parseFieldErrors } from "./api";
+
+type Order = { id: string; item: string; quantity: number };
+
+const columns = defineColumns<Order>()([
+  { id: "item", header: "Item", accessorKey: "item" },
+  {
+    id: "quantity",
+    header: "Quantity",
+    accessorKey: "quantity",
+    type: "number",
+  },
+]);
+
+async function saveOrders(ops: DataChange<Order>["ops"]): Promise<void> {
+  const response = await fetch("/api/orders", {
+    method: "POST",
+    body: JSON.stringify(ops),
+  });
+  if (!response.ok) throw new Error(await response.text());
+}
+
+function parseFieldErrors(error: unknown): CellErrorEntry[] {
+  const rowId = "1";
+  const message = error instanceof Error ? error.message : "Refused";
+  return [{ rowId, columnId: "quantity", message }];
+}
 
 export function OrdersGrid({ orders }: { orders: Order[] }) {
   const gridRef = useRef<DataGridApi<Order>>(null);
@@ -48,7 +74,7 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
 }
 ```
 
-`saveOrders` and `parseFieldErrors` are your own functions. `saveOrders` rejects when the server refuses a value, and `parseFieldErrors` turns that error into the entries to mark.
+`saveOrders` rejects when the server refuses a value, and `parseFieldErrors` turns that error into the entries to mark. The stubs in the sample mark one fixed cell. Read the row id and the column id from your server answer.
 
 ## Mark the cell or revert the value [#mark-or-revert]
 

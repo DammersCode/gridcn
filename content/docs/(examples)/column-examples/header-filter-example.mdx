@@ -27,7 +27,7 @@ Apply picks the operator from the counts:
 
 On a tie, Apply keeps the operator of the current set filter, or uses `isAnyOf` if there is none. The filter menu writes the same shape.
 
-This `defaultFilterState` starts a grid with the filter that checking Admin and Editor writes on a `role` column:
+A `role` column has five values: Admin, User, Editor, Viewer, and Manager. Checking Admin and Editor writes this filter, which `defaultFilterState` can start a grid with:
 
 ```tsx
 import type { FilterNode } from "@/components/data-grid/data-grid";

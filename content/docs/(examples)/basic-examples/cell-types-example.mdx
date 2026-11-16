@@ -23,6 +23,27 @@ The grid has one column for each built-in cell type. Extra columns show a read-o
 - `longText` opens a multi-line editor in a popover. <kbd>Shift</kbd>+<kbd>Enter</kbd> inserts a line break.
 - `renderCell` on a `number` column draws a progress bar. The `number` type still handles editing, paste, and sort. [Display override](/docs/editing-cells/display-override) shows the code.
 
+The column list of the demo, shortened:
+
+```tsx
+import { defineColumns } from "@/components/data-grid/data-grid";
+
+type Person = { id: string; name: string; email: string; level: number };
+
+export const columns = defineColumns<Person>()([
+  { id: "name", header: "Text", accessorKey: "name" },
+  { id: "email", header: "Read-only", accessorKey: "email", readOnly: true },
+  {
+    id: "level",
+    header: "Clamped",
+    accessorKey: "level",
+    type: "number",
+    options: { min: 18, max: 100 },
+    renderCell: ({ value }) => <progress max={100} value={value ?? 0} />,
+  },
+]);
+```
+
 ## Related
 
 - [Built-in cell types](/docs/editing-cells/built-cell-types): every type and its options

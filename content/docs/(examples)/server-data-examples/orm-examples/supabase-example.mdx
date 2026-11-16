@@ -16,7 +16,9 @@ import {
   isFilterGroup,
   type FilterNode,
 } from "@/components/data-grid/data-grid";
-import { parseServerSpec } from "@/components/data-grid-server/data-grid-server";
+import {
+  parseServerSpec,
+} from "@/components/data-grid-server/data-grid-server";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -30,23 +32,27 @@ const COLUMNS = new Set<string>(["name", "email", "role"]);
 const quote = (value: string) =>
   `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 const escapeLike = (text: string) => text.replace(/[\\%_]/g, "\\$&");
-const list = (values: string[]) => `(${values.map(quote).join(",")})`;
+const same = (v: string) => `ilike.${quote(escapeLike(v))}`;
+const group = (c: string, values: string[], not: string) =>
+  values.map((v) => `${c}.${not}${same(v)}`).join(",");
 
 const CLAUSES: Record<string, (c: string, v: any) => string> = {
   contains: (c, v) => `${c}.ilike.${quote(`%${escapeLike(v)}%`)}`,
   notContains: (c, v) => `${c}.not.ilike.${quote(`%${escapeLike(v)}%`)}`,
   startsWith: (c, v) => `${c}.ilike.${quote(`${escapeLike(v)}%`)}`,
   endsWith: (c, v) => `${c}.ilike.${quote(`%${escapeLike(v)}`)}`,
-  equals: (c, v) => `${c}.eq.${quote(v)}`,
-  notEquals: (c, v) => `${c}.neq.${quote(v)}`,
+  equals: (c, v) => `${c}.${same(v)}`,
+  notEquals: (c, v) => `${c}.not.${same(v)}`,
   gt: (c, v) => `${c}.gt.${quote(v)}`,
   gte: (c, v) => `${c}.gte.${quote(v)}`,
   lt: (c, v) => `${c}.lt.${quote(v)}`,
   lte: (c, v) => `${c}.lte.${quote(v)}`,
   empty: (c) => `${c}.eq.""`,
   notEmpty: (c) => `${c}.neq.""`,
-  isAnyOf: (c, v) => `${c}.in.${list(v)}`,
-  isNoneOf: (c, v) => `${c}.not.in.${list(v)}`,
+  isAnyOf: (c, v) =>
+    v.length ? `or(${group(c, v, "")})` : `${c}.in.()`,
+  isNoneOf: (c, v) =>
+    v.length ? `and(${group(c, v, "not.")})` : `${c}.not.in.()`,
 };
 
 const columnRules = Object.fromEntries(
@@ -110,9 +116,9 @@ About the sample:
 
 - `range(from, to)` includes both ends, hence the `- 1`.
 - `isFilterGroup(node)` is true for a group and false for a filter row.
-- The grid compares text without case. The sample uses `ilike` for the pattern operators only.
+- The grid compares text without case. The sample uses `ilike` for every text operator, with the value escaped and no wildcard for the equality operators.
 - `escapeLike` stops `%`, `_`, and `\` in the user text from acting as wildcards. PostgREST also reads `*` in an `ilike` pattern as a wildcard, and no escape removes that.
-- `parseServerSpec` checks the column ids, the operators, the value shapes, and the tree size. Its default caps are 64 sorts, 500 search characters, 64 filters, 16 groups, and 1,000 list values. A request over a cap gets status 400.
+- `parseServerSpec` checks the column ids, the operators, the value shapes, and the tree size. Its default caps are 64 sorts, 500 search characters, 64 filters, 16 groups, 1,000 characters per value, and 1,000 list values. A request over a cap gets status 400.
 - Number and date columns also get `isBetween`, with a `[min, max]` pair in which either bound can be `""`. The sample refuses it. Map it before you add such a column.
 - The grid's `empty` also matches a null cell. The sample compares with `""`, so a nullable column needs an `IS NULL` test too.
 - The route caps a page at 500 rows. Keep the page size at or below 500. A larger page returns fewer rows than the grid asked for.
@@ -121,7 +127,7 @@ About the sample:
 The service role key bypasses row-level security, so read it only in the route. Cap the body size at the framework or proxy, because the tree limits do not bound a large JSON text.
 </Callout>
 
-The client is the one in the [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example#the-client), and the same section covers [shareable state](/docs/server-data-examples/orm-examples/drizzle-example#shareable-state). Edits go through `onSave` and a `supabase.from("users").update(...)` call.
+The client is the one in the [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example#the-client), and the same section covers [shareable state](/docs/server-data-examples/orm-examples/drizzle-example#shareable-state). Edits go through `onSave`. [Save edits](/docs/save-server/save-edits) shows the round trip.
 
 ## Related
 

@@ -16,13 +16,16 @@ type: example
 - `headerClickBehavior="sort"` makes a header click sort the column up, then down, then clear the sort.
 - `header` on Name and Score is a node. A node header renders as it is and owns its display, so the grid adds no sort arrow to it.
 - `SortStateIcon` calls `useDataGridSortState()` to read the sort list and picks an icon from the entry of its column.
-- No demo column sets `headerText`. The plain-text label of a node header is the text of the node, or the column id when the node has no text. Set `headerText` to give the label directly.
+- No demo column sets `headerText`. The plain-text label of a node header is the text of its HTML elements, or the column id when they hold no text. A component inside the node adds no text. Set `headerText` to give the label directly.
 - Email keeps a string header. The grid appends the built-in sort arrow to it.
 
 To keep the built-in arrow in a node header, render `DataGridSortIndicator` inside it:
 
 ```tsx
-import { DataGridSortIndicator, defineColumns } from "@/components/data-grid/data-grid";
+import {
+  DataGridSortIndicator,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
 
 type Row = { id: string; score: number };
 

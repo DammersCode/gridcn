@@ -13,8 +13,8 @@ A toolbar and the context menu run the same row operations. A side panel prints 
 
 ## What the demo shows [#whats-in-the-demo]
 
-- The toolbar buttons call `insertRows(anchor, 1, "above")`, `insertRows(anchor, 1, "below")`, `runShortcut("duplicateRow")`, and `runShortcut("deleteRows")`. `runShortcut` runs the key action on the selected rows, or on the active row.
-- The toolbar acts on the checked rows. If no row is checked, it acts on the row of the active cell.
+- The toolbar buttons call `insertRows(anchor, 1, "above")`, `insertRows(anchor, 1, "below")`, `runShortcut("duplicateRow")`, and `runShortcut("deleteRows")`. `runShortcut` runs the key action on the rows that the selection covers (checked rows and the rows of a range), or on the active row.
+- The toolbar acts on the rows that the selection covers (checked rows and the rows of a range), or on the active row.
 - A right-click on a row opens the context menu with Insert, Duplicate, and Delete items. Insert works at the clicked row. Duplicate and Delete act on the rows that the selection covers, or on the clicked row if the selection is empty.
 - The `createRow` and `duplicateRow` props enable Insert and Duplicate. Without them, the menu hides those items.
 - The Read-only switch sets `readOnly`. The toolbar buttons and the menu items that change data turn off.
@@ -22,7 +22,7 @@ A toolbar and the context menu run the same row operations. A side panel prints 
 
 ## Wire the operations
 
-The grid in this sample has a Delete button and the context menu. The button targets the selected rows, or the active row:
+The grid in this sample has a Delete button and the context menu. The button targets the rows that the selection covers (checked rows and the rows of a range), or the active row:
 
 ```tsx
 import {

@@ -21,16 +21,64 @@ type: example
 
 ## The snapshot [#the-snapshot-shape]
 
-`onColumnLayoutChange` receives the whole layout after each change:
+`onColumnLayoutChange` receives the whole layout after each change. `widths` lists only the columns that the user resized. `order` lists every column id. `pins` maps a column id to `"start"` or `"end"`, and `hidden` lists the hidden column ids. This grid saves the layout and restores it after mount:
 
-```ts
-type ColumnLayout = {
-  widths: Record<string, number>; // only columns the user resized
-  order: string[]; // the full current column-id order
-  pins: Record<string, "start" | "end">;
-  hidden: string[];
-};
+```tsx
+"use client";
+
+import { useEffect, useState } from "react";
+import {
+  DataGrid,
+  defineColumns,
+  type ColumnLayout,
+} from "@/components/data-grid/data-grid";
+
+type Person = { id: string; name: string; age: number };
+
+const columns = defineColumns<Person>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+  { id: "age", header: "Age", accessorKey: "age", type: "number" },
+]);
+
+const rows: Person[] = [{ id: "1", name: "Ada", age: 36 }];
+
+const STORAGE_KEY = "people-grid-layout";
+
+function readLayout(): ColumnLayout | undefined {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as ColumnLayout) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function saveLayout(layout: ColumnLayout) {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
+  } catch {
+    return;
+  }
+}
+
+export function PeopleGrid() {
+  const [layout, setLayout] = useState<ColumnLayout | undefined | null>(null);
+  useEffect(() => setLayout(readLayout()), []);
+  if (layout === null) return null;
+
+  return (
+    <DataGrid
+      defaultData={rows}
+      columns={columns}
+      className="h-60"
+      defaultColumnLayout={layout}
+      onColumnLayoutChange={saveLayout}
+    />
+  );
+}
 ```
+
+To reset without a remount, pass `columnLayout` with `onColumnLayoutChange`.
 
 ## Related
 

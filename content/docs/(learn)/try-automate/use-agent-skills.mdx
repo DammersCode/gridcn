@@ -43,7 +43,7 @@ The skill works through a checklist, cheapest check first:
 
 Most identity traps show only as a development console warning. The skill gives the agent the exact warning text to search for.
 
-**It is working if** the development console shows no warning that starts with `[data-grid` or `gridcn:` while you scroll and edit. The React DevTools Profiler then shows renders only for the rows that enter the viewport.
+**It is working if** the development console shows no warning while you scroll and edit. Every grid message starts with `[data-grid` (`[data-grid]` or `[data-grid-<add-on>]`). The React DevTools Profiler then shows renders only for the rows that enter the viewport.
 
 ## gridcn-custom-cell-type
 
@@ -51,10 +51,10 @@ The skill builds a cell type in order. First the value pipeline: `toText`, `from
 
 - A `cellTypes` entry merges over the built-in types. An entry set to `null` removes that type.
 - A `type` key that matches no entry renders the column as plain text.
-- A `fromText` that throws rejects that cell, and the paste continues. Return `clearValue()` for text that does not parse.
+- Call `rejectText()` in `fromText` for text that does not parse. The cell keeps its value, and the grid reports the text, as the built-in types do. A `fromText` that throws another error rejects that cell too, and the paste continues. Return `clearValue()` only to empty the cell on purpose.
 - A portaled editor without `data-grid-cell-editor` closes on the first click.
 
-**It is working if** `fromText(toText(value))` returns the value, pasted garbage clears the cell, Enter commits and moves down, and Escape keeps the original value.
+**It is working if** `fromText(toText(value))` returns the value, pasted garbage leaves the cell unchanged, Enter commits and moves down, and Escape keeps the original value.
 
 ## gridcn-data-source
 
@@ -76,7 +76,7 @@ It also checks the rules for combined add-ons. The app needs one `NuqsAdapter`, 
 
 ## gridcn-upgrade
 
-gridcn is source that you own. In a Git project, the skill asks which branch to use. It pins a commit, reads the [changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) for breaking entries, and runs `--dry-run`. It checks `git log` for your edits. It overwrites the files that you did not edit and merges your edits into the others. Then it checks barrel imports, aliases, and new dependencies.
+gridcn is source that you own. In a Git project, the skill asks which branch to use. It pins a commit, reads the [changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) and the [2.0 breaking changes](/docs/support-upgrades/breaking-changes-2-0) for breaking entries, and runs `--dry-run`. It checks `git log` for your edits. It overwrites the files that you did not edit and merges your edits into the others. Then it checks barrel imports, aliases, and new dependencies.
 
 **It is working if** your type check and build pass, the skill applied every breaking entry, and the smoke test from [Verify the install](/docs/terms-help/fix-install-problems#verify) passes.
 

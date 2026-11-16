@@ -54,9 +54,18 @@ export function OrdersGrid() {
 
 `change.ops` holds one operation (`ops`) for each touched row. Key each request by `rowId`, because a sort or a filter moves the [view index](/docs/concepts/state-view-index).
 
-Pass `onSave` to the hook. An `onSave` on `DataGrid` after `{...server.gridProps}` replaces the hook one, so `refreshAfterSave` stops, and the grid warns in development. While the promise is pending, the row has the save status `"saving"`, and a refresh keeps the local value of a saving row. After the promise resolves, the status clears. After a refusal, it is `"failed"`.
+Where `onSave` goes:
 
-The `refreshAfterSave` option of the hook defaults to `"settled"`. When every save in flight has settled, the hook calls `refresh()` once. If a save is still in flight 10 seconds after the first one started, the hook refreshes for the saves that settled. The refresh brings in the server values. See [Save options](/docs/add-options/server/server-rows-options#save-options) for the other policies.
+- Pass `onSave` to the hook. The hook runs it and then refreshes the rows by the `refreshAfterSave` policy.
+- An `onSave` on `DataGrid` after `{...server.gridProps}` replaces the one of the hook. Then `refreshAfterSave` stops, and the grid warns in development.
+
+The save status of a row:
+
+- `"saving"` while the promise is pending. A refresh keeps the local value of a saving row.
+- Cleared after the promise resolves.
+- `"failed"` after a refusal.
+
+The `refreshAfterSave` option of the hook defaults to `"settled"`. When every save in flight has settled, the hook calls `refresh()` once. If a save is still in flight 10 seconds after the first one started, the hook refreshes for the saves that settled by then. It skips that refresh when no save has settled. The refresh brings in the server values. See [Save options](/docs/add-options/server/server-rows-options#save-options) for the other policies.
 
 `onSave` never receives the revert, which has the source `"rollback"`. It never receives a server push, which has the source `"stream"`.
 
