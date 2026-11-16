@@ -36,6 +36,7 @@ import { resolveCustomFilterOperators } from "../cell-types/capabilities";
 import { toSafeText } from "../cell-types/safe-text";
 import { moveGroupBlock, moveWithinGroups, repairGroupOrder, type ColumnGroupModel } from "../columns/column-groups";
 import { readColumnPin, withLogicalPin } from "../columns/column-pin";
+import type { createWarnOnce } from "./async-gate";
 import { warnLegacyFilterKeys, withLogicalFilter } from "../columns/legacy-filter-keys";
 import { isDev } from "../is-dev";
 import type {
@@ -345,6 +346,8 @@ export function memoizedMergeLabels(): (override: DeepPartialLabels | undefined,
 /** The locale of a grid without a `locale` prop; pinned so the server and the browser format alike. */
 export const DEFAULT_LOCALE = "en-US";
 
+type WarnOnce = ReturnType<typeof createWarnOnce>;
+
 const GRID_LOCALE = Symbol("gridLocale");
 type LocaleOptions = { locale?: string; [GRID_LOCALE]?: true };
 const LOCALE_TYPES = new Set(["number", "date"]);
@@ -354,10 +357,10 @@ const columnsByLocale = new WeakMap<AnyColumnDef, { locale: string; resolved: An
  * `columns` with the grid `locale` merged into the `options` of `number` and `date` columns that set no `locale`
  * themselves. The default locale changes nothing. A column resolved earlier is resolved again from its own `options`.
  */
-export function withGridLocale(columns: readonly AnyColumnDef[], locale: string): readonly AnyColumnDef[] {
+export function withGridLocale(columns: readonly AnyColumnDef[], locale: string, warnOnce?: WarnOnce): readonly AnyColumnDef[] {
   let resolved: AnyColumnDef[] | null = null;
   columns.forEach((column, index) => {
-    const next = resolveColumnLocale(column, locale);
+    const next = resolveColumnLocale(column, locale, warnOnce);
     if (next === column) return;
     resolved ??= [...columns];
     resolved[index] = next;
@@ -365,9 +368,9 @@ export function withGridLocale(columns: readonly AnyColumnDef[], locale: string)
   return resolved ?? columns;
 }
 
-function resolveColumnLocale(source: AnyColumnDef, locale: string): AnyColumnDef {
-  warnLegacyFilterKeys(source);
-  const column = withLogicalFilter(withLogicalPin(source));
+function resolveColumnLocale(source: AnyColumnDef, locale: string, warnOnce?: WarnOnce): AnyColumnDef {
+  warnLegacyFilterKeys(source, warnOnce);
+  const column = withLogicalFilter(withLogicalPin(source, warnOnce));
   const options = column.options as LocaleOptions | undefined;
   const injected = options?.[GRID_LOCALE] === true;
   if (!column.type || !LOCALE_TYPES.has(column.type) || (options?.locale !== undefined && !injected)) return column;
@@ -716,6 +719,7 @@ export function normalizeColumnLayout(
   parts: ColumnLayoutParts,
   hiddenColumns: string[],
   groups?: ColumnGroupModel | null,
+  warnOnce?: WarnOnce,
 ): { columns: readonly AnyColumnDef[]; columnWidths: Record<string, number>; columnOrder: string[] | null; hiddenColumns: string[] } {
   const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
   const stringList = (value: unknown): string[] | null => (Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : null);
@@ -723,7 +727,7 @@ export function normalizeColumnLayout(
   const nextColumns = pins
     ? columns.map((c) => {
         if (!columnFlag(c, "pinnable")) return c;
-        const pin = readColumnPin(pins[c.id]);
+        const pin = readColumnPin(pins[c.id], warnOnce);
         // The given pins map is authoritative: a column it does not pin drops a stale pin.
         return pin === "start" || pin === "end" ? { ...c, pin } : c.pin ? { ...c, pin: undefined } : c;
       })

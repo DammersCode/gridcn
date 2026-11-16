@@ -1,18 +1,16 @@
-import { isDev } from "../is-dev";
+import { createWarnOnce } from "../store/async-gate";
 import type { AnyColumnDef } from "../store/types";
 
 const MEMBERS = { filterOperators: "operators", filterMatch: "match", filterCompare: "compare" } as const;
 const migrated = new WeakMap<AnyColumnDef, AnyColumnDef>();
 const REPLACEMENTS = { filterOperators: "filter.operators", filterMatch: "filter.match", filterCompare: "filter.compare" } as const;
-const warned = new Set<string>();
+const warnPageOnce = createWarnOnce();
 
-/** Warns once per key in development when a column still spells a filter member flat; the flat key still works when `filter` lacks that member. */
-export function warnLegacyFilterKeys(column: AnyColumnDef): void {
-  if (!isDev()) return;
+/** Warns once per key and per `warnOnce` (one per grid) in development when a column still spells a filter member flat; the flat key still works when `filter` lacks that member. */
+export function warnLegacyFilterKeys(column: AnyColumnDef, warnOnce: ReturnType<typeof createWarnOnce> = warnPageOnce): void {
   for (const [oldKey, replacement] of Object.entries(REPLACEMENTS)) {
-    if (!(oldKey in column) || warned.has(oldKey)) continue;
-    warned.add(oldKey);
-    console.warn(`[data-grid] column "${column.id}": \`${oldKey}\` moved to \`${replacement}\` (\`filter: { ${replacement.slice(7)} }\`); the flat key is still read, rename it`);
+    if (!(oldKey in column)) continue;
+    warnOnce(oldKey, `column "${column.id}": \`${oldKey}\` moved to \`${replacement}\` (\`filter: { ${replacement.slice(7)} }\`); the flat key is still read, rename it`);
   }
 }
 

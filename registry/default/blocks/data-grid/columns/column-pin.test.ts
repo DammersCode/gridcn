@@ -49,3 +49,14 @@ describe("setColumnPin", () => {
     expect(store.getState().columns[0]!.pin).toBe("start");
   });
 });
+
+describe("legacy pin warning per grid", () => {
+  it("warns once for each grid that reads a legacy pin", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const columns = [{ id: "a", header: "A", accessorKey: "a", pin: "left" }];
+    const create = () => createDataGridStore({ data: [], columns, getRowId: () => "x" } as unknown as InternalSyncProps);
+    create();
+    create();
+    expect(warn.mock.calls.filter(([message]) => String(message).includes("is now"))).toHaveLength(2);
+  });
+});

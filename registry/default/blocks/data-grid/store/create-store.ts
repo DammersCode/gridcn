@@ -190,7 +190,8 @@ const MOVED_COMMAND_NAMES = ["undo", "redo", "fillDown", "fillRight", "openFind"
  */
 export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridStoreState> {
   const initLocale = init.locale ?? DEFAULT_LOCALE;
-  const initColumns = withGridLocale(init.columns, initLocale);
+  const warnLegacyOnce = createWarnOnce();
+  const initColumns = withGridLocale(init.columns, initLocale, warnLegacyOnce);
   let groupModel: ColumnGroupModel | null = buildColumnGroupModel(init.columnGroups, init.columns.map((c) => c.id));
   const warnedGroupIssues = new Set<string>();
   const warnGroupIssues = (model: ColumnGroupModel | null): void => {
@@ -209,7 +210,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     computeColumnLayoutBase(columns, order, widths, hidden, groupModel);
   const computeVisibleColumns = (columns: readonly AnyColumnDef[], order: string[] | null, hidden: readonly string[]) =>
     computeVisibleColumnsBase(columns, order, hidden, groupModel);
-  const normalizeColumnLayout = (columns: readonly AnyColumnDef[], parts: ColumnLayoutParts, hidden: string[]) => normalizeColumnLayoutBase(columns, parts, hidden, groupModel);
+  const normalizeColumnLayout = (columns: readonly AnyColumnDef[], parts: ColumnLayoutParts, hidden: string[]) => normalizeColumnLayoutBase(columns, parts, hidden, groupModel, warnLegacyOnce);
   const reorderColumnIds = (ids: readonly string[], columns: readonly AnyColumnDef[], id: string, targetId: string, position: "before" | "after") =>
     reorderColumnIdsBase(ids, columns, id, targetId, position, groupModel);
   const defHidden = defHiddenColumnIds(initColumns);
@@ -1132,7 +1133,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const nextLocale = props.locale ?? DEFAULT_LOCALE;
           const localeChanged = nextLocale !== lastColumnsLocale;
           lastColumnsLocale = nextLocale;
-          const nextColumns = knownColumns ? withGridLocale(carryRuntimePins(props.columns, knownColumns), nextLocale) : localeChanged ? withGridLocale(s.columns, nextLocale) : s.columns;
+          const nextColumns = knownColumns ? withGridLocale(carryRuntimePins(props.columns, knownColumns), nextLocale, warnLegacyOnce) : localeChanged ? withGridLocale(s.columns, nextLocale, warnLegacyOnce) : s.columns;
           const reseededHidden = knownColumns ? defHiddenColumnIds(props.columns.filter((c) => !knownColumns.has(c.id))) : [];
           const nextHiddenColumns = reseededHidden.length > 0 ? [...s.hiddenColumns, ...reseededHidden] : s.hiddenColumns;
           // An inline `columnGroups` literal rebuilds the model; the old model stays while structure and headers are equal.
@@ -1778,7 +1779,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       setColumnPin(id, requestedPin) {
         const s = get();
         if (!s.enableColumnPinning) return;
-        const pin = requestedPin === null ? null : (readColumnPin(requestedPin) ?? null);
+        const pin = requestedPin === null ? null : (readColumnPin(requestedPin, warnLegacyOnce) ?? null);
         const column = s.columns.find((c) => c.id === id);
         if (!column || !columnFlag(column, "pinnable") || (column.pin ?? null) === pin) return;
         const nextColumns = s.columns.map((c) => (c.id === id ? { ...c, pin: pin ?? undefined } : c));
