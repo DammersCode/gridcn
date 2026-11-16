@@ -2,12 +2,12 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { InstallCommand } from "@/components/install-command";
 import { gitConfig } from "@/lib/shared";
-import { CLIENT_CODE, HEADLINE, newInTwo, SERVER_CODE, SUBLINE } from "./data";
+import { CLIENT_CODE, HEADLINE, SERVER_CODE, SUBLINE } from "./data";
 import { Code } from "./code";
 import { HeroGrid } from "./hero-grid";
-import { addOnTiles, agentSkills, COMPARISON_DATE, comparison, FEATURE_MATRIX_HREF, kitTiles } from "./items";
+import { addOnTiles, COMPARISON_DATE, comparison, FEATURE_MATRIX_HREF, kitTiles } from "./items";
 import { HeroActions, ReleaseBadge } from "./hero";
-import { DataModesLink, focus, PerfStats, ServerHighlights, SiteLink } from "./parts";
+import { DataModesLink, Faq, focus, PerfStats, ServerHighlights, SiteLink } from "./parts";
 
 const tile = `flex h-full flex-col gap-1 p-3 transition-colors hover:bg-muted ${focus}`;
 const repo = `https://github.com/${gitConfig.user}/${gitConfig.repo}`;
@@ -63,7 +63,7 @@ function Hero() {
 
 function KitPanel() {
   return (
-    <Panel id="kit" title="What you get" intro={<>Range selection, paste from Excel and a fill handle cost a paid tier in AG Grid and MUI X. In gridcn they are free.</>}>
+    <Panel id="kit" title="What you get" intro="Everything below ships free, in the core or as an add-on.">
       <TileGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {kitTiles.map(({ icon: Icon, title, text, href }) => (
           <li key={title} className="bg-card">
@@ -75,28 +75,6 @@ function KitPanel() {
           </li>
         ))}
       </TileGrid>
-      <Link href="/docs/support-upgrades/license-credits" className="inline-flex min-h-10 items-center text-sm underline underline-offset-4">
-        Free under the Apache License 2.0
-      </Link>
-    </Panel>
-  );
-}
-
-function NewPanel() {
-  return (
-    <Panel id="new" title="What is new in 2.0">
-      <ul className="grid gap-1 text-sm">
-        {newInTwo.map(({ text, href }) => (
-          <li key={href + text}>
-            <Link href={href} className={`flex min-h-10 items-center border px-3 py-2 transition-colors hover:bg-muted ${focus}`}>
-              {text}
-            </Link>
-          </li>
-        ))}
-      </ul>
-      <SiteLink href={`${repo}/blob/${gitConfig.branch}/CHANGELOG.md`} className="inline-flex min-h-10 items-center text-sm underline underline-offset-4">
-        Every change is in the changelog
-      </SiteLink>
     </Panel>
   );
 }
@@ -218,24 +196,16 @@ function AgentsPanel() {
       <div className={`w-full max-w-md ${installFit}`}>
         <InstallCommand command="skills add DammersCode/gridcn" />
       </div>
-      <TileGrid className="grid-cols-1">
-        {agentSkills.map(({ icon: Icon, title, text }) => (
-          <li key={title} className="bg-card">
-            <Link href={`/docs/try-automate/use-agent-skills#${title}`} className={tile}>
-              <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
-              <h3 className="font-mono text-sm font-medium">{title}</h3>
-              <span className="text-sm leading-relaxed text-muted-foreground">{text}</span>
-            </Link>
-          </li>
-        ))}
-      </TileGrid>
+      <Link href="/docs/try-automate/use-agent-skills" className="inline-flex min-h-10 items-center text-sm underline underline-offset-4">
+        What each skill does
+      </Link>
     </Panel>
   );
 }
 
 function AddOnsPanel() {
   return (
-    <Panel id="addons" title="Modular by design" intro="Each add-on is a separate registry item. Install only the ones you want.">
+    <Panel id="addons" title="Modular by design" intro="Each tile is a separate registry item. Install only the ones you want.">
       <TileGrid className="grid-cols-2 sm:grid-cols-3 xl:grid-cols-6">
         {addOnTiles.map(({ icon: Icon, title, href }) => (
           <li key={title} className="bg-card">
@@ -252,6 +222,14 @@ function AddOnsPanel() {
       <Link href="/docs/fit-features/add-ons-a-z" className="inline-flex min-h-10 items-center text-sm underline underline-offset-4">
         Every add-on, A to Z
       </Link>
+    </Panel>
+  );
+}
+
+function FaqPanel() {
+  return (
+    <Panel id="faq" title="Questions">
+      <Faq />
     </Panel>
   );
 }
@@ -281,14 +259,14 @@ export function LandingPage() {
   return (
     <div className="relative z-10 flex w-full max-w-5xl flex-col gap-4 px-4 pb-12 pt-6 sm:px-6">
       <Hero />
-      <KitPanel />
-      <StartPanel />
-      <NewPanel />
-      <PerfPanel />
-      <ServerPanel />
       <ComparePanel />
-      <AgentsPanel />
+      <KitPanel />
+      <PerfPanel />
+      <StartPanel />
+      <ServerPanel />
       <AddOnsPanel />
+      <AgentsPanel />
+      <FaqPanel />
       <FooterLinks />
     </div>
   );

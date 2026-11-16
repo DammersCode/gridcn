@@ -62,7 +62,7 @@ Default off (a gate waits as before). `gateTimeoutMs` aborts the signal, cancels
 ### F15 (done, reviewed)
 - Design: `onSave` + `refreshAfterSave` (`"settled"` default | `"each"` | `false` | function of `{saved, rejected, failed}`); `refresh()` always available; `gridProps.onSave` exists only when the hook got one. A reviewer (Opus) challenged it; changes taken: a void-returning `onSave` never refreshes (the grid cannot know when the server has it), a 10 s max wait so one stuck save cannot starve the refresh, no refresh when every save failed (outage), cursor scroll sources skip a refresh beyond the revalidate bound, docs fixed.
 - Done since: the policy report carries `pending` and `changes` (`save-refresh.ts`), and a dev warning names an own `onSave` after `{...gridProps}` (`useSaveRefresh`).
-- Non-goals for 2.0, tracked for 2.1: F15-a drive "settled" from the guard's `onSavesSettled` signal (an async `resolveSaveConflict` can outlive the 10 s wait, so the refresh then runs once per late save); F15-b merge the save refresh with the structural-settle refresh in counted scroll mode.
+- Not part of 2.0: (a) driving `"settled"` from the guard's `onSavesSettled` signal. A `resolveSaveConflict` that outlives the 10 s wait refreshes once per late save, as the docs state. (b) Merging the save refresh with the structural-settle refresh in counted scroll mode. Neither returns wrong data.
 
 ### F20 (done)
 The sort arrow shows for any active sort (URL sorts are visible); the context-menu callout is a sentence (the provider hook already throws an error that names the fix). The `NuqsAdapter` nesting note stays: nuqs owns that behavior.

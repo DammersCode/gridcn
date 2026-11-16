@@ -3,13 +3,11 @@ import {
   ArrowUpDown,
   BookmarkCheck,
   Blocks,
-  Bot,
   Clipboard,
   Command,
   Compass,
   Database,
   FileSpreadsheet,
-  Gauge,
   Grid3x3,
   Keyboard,
   Languages,
@@ -22,11 +20,8 @@ import {
   PanelBottom,
   Palette,
   Pin,
-  Puzzle,
   Radio,
-  RefreshCw,
   Search,
-  Shapes,
   ShieldCheck,
   TextSearch,
   Undo2,
@@ -46,7 +41,7 @@ export const kitTiles: { icon: LucideIcon; title: string; text: string; href: st
   { icon: Languages, title: "Labels and RTL", text: "One typed labels object translates the grid. Right-to-left layout has browser tests.", href: "/docs/theme-style-language/labels-i18n" },
   { icon: ShieldCheck, title: "Validation", text: "A function or schema checks a cell before it commits. Soft rules only flag it.", href: "/docs/editing-cells/validation" },
   { icon: ListFilter, title: "Sorting and filtering", text: "Sort by several columns. Filter per column in and/or groups, from a menu or from code.", href: "/docs/sort-filter-search/filtering" },
-  { icon: Compass, title: "Keyboard navigation", text: "Move, extend, edit and select with the keyboard. Every key is remappable.", href: "/docs/selection-shortcuts/keyboard-navigation" },
+  { icon: Compass, title: "Keyboard navigation", text: "Move, extend, edit and select with the keyboard. Remap any shortcut.", href: "/docs/selection-shortcuts/keyboard-navigation" },
   { icon: ArrowLeftRight, title: "Column order and pinning", text: "Drag columns into a new order. Pin columns to the start or end edge.", href: "/docs/columns/column-order-pinning" },
 ];
 
@@ -72,16 +67,6 @@ export const addOnTiles: AddOnTile[] = [
   { block: "data-grid-server", icon: Database, title: "Server rows", href: "/docs/data-modes/query-server-rows" },
   { block: "data-grid-lookup", icon: Search, title: "Lookup cell", href: "/docs/editing-cells/lookup-cell" },
 ];
-
-export const agentSkills = [
-  { icon: Gauge, title: "gridcn-performance", text: "Audits a slow grid against the memoization and virtualization traps, in order." },
-  { icon: Shapes, title: "gridcn-custom-cell-type", text: "Builds a cell type that pastes, sorts and edits like the built-ins." },
-  { icon: Database, title: "gridcn-data-source", text: "Picks plain data, server pages, scroll loading or streaming and wires server sort and filter." },
-  { icon: Puzzle, title: "gridcn-addons", text: "Wires several add-ons into one grid, each output in the right place." },
-  { icon: RefreshCw, title: "gridcn-upgrade", text: "Pulls upstream fixes into copied source and keeps your local edits." },
-];
-
-export const AgentIcon = Bot;
 
 export const COMPARISON_DATE = "2026-11-16";
 export const FEATURE_MATRIX_HREF = "/docs/fit-features/feature-matrix";

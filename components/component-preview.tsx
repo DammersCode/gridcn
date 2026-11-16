@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { highlight } from "fumadocs-core/highlight";
 import { CodeBlock, Pre } from "fumadocs-ui/components/codeblock";
 import { getRegistryExample, type RegistryExampleName } from "@/components/registry-examples";
+import { CODE_THEMES } from "@/lib/code-themes";
 import { PreviewTabs } from "@/components/preview-tabs";
 import { readExampleSource } from "@/lib/read-example-source";
 
@@ -21,6 +22,8 @@ export async function ComponentPreview({ name }: ComponentPreviewProps): Promise
   // CodeBlock (not bare Pre) supplies the scroll viewport, padding, and copy button.
   const highlighted = await highlight(source, {
     lang: "tsx",
+    themes: CODE_THEMES,
+    defaultColor: false,
     components: {
       pre: (props) => (
         <CodeBlock {...props}>
