@@ -42,11 +42,20 @@ function cellNodeToText(cell: Element): string {
   return out;
 }
 
+const MAX_COL_SPAN = 1000;
+const MAX_ROW_SPAN = 65534;
+
+/** A cell's `colspan` or `rowspan` as an integer in 1..max; a missing or malformed value is 1. */
+function readSpan(cell: Element, attribute: string, max: number): number {
+  const parsed = Math.trunc(Number(cell.getAttribute(attribute)));
+  return Number.isFinite(parsed) && parsed > 1 ? Math.min(parsed, max) : 1;
+}
+
 /**
  * Parses a clipboard `text/html` payload into a 2D string grid using the first `<table>` found.
  * Prefers each cell's `data-gridcn-raw` attribute — trusted only when it is the grid's own
  * serialization of the cell (it renders back to the cell's exact innerHTML) — falling back to
- * text content with `<br>` treated as a newline. With `maxCells`, parsing stops once the cell total passes it. Returns null when no table is present.
+ * text content with `<br>` treated as a newline. A cell with `colspan` or `rowspan` gives its text to its first position and leaves the positions it covers empty. With `maxCells`, parsing stops once the cell total passes it. Returns null when no table is present.
  */
 export function parseClipboardHtml(html: string, maxCells?: number): string[][] | null {
   const doc = new DOMParser().parseFromString(html, "text/html");
@@ -54,13 +63,28 @@ export function parseClipboardHtml(html: string, maxCells?: number): string[][] 
   if (!table) return null;
 
   const rows: string[][] = [];
+  const rowsStillCovered: number[] = [];
   let cellCount = 0;
   for (const tableRow of Array.from(table.rows)) {
     const cells: string[] = [];
+    const overCap = () => maxCells !== undefined && cellCount + cells.length > maxCells;
+    const skipCovered = () => {
+      while (rowsStillCovered[cells.length]! > 0 && !overCap()) {
+        rowsStillCovered[cells.length]!--;
+        cells.push("");
+      }
+    };
     for (const cell of Array.from(tableRow.cells)) {
-      cells.push(cellNodeToText(cell));
-      if (maxCells !== undefined && cellCount + cells.length > maxCells) break;
+      skipCovered();
+      const colSpan = readSpan(cell, "colspan", MAX_COL_SPAN);
+      const rowSpan = readSpan(cell, "rowspan", MAX_ROW_SPAN);
+      for (let offset = 0; offset < colSpan && !overCap(); offset++) {
+        if (rowSpan > 1) rowsStillCovered[cells.length] = rowSpan - 1;
+        cells.push(offset === 0 ? cellNodeToText(cell) : "");
+      }
+      if (overCap()) break;
     }
+    skipCovered();
     rows.push(cells);
     cellCount += cells.length;
     if (maxCells !== undefined && cellCount > maxCells) break;
