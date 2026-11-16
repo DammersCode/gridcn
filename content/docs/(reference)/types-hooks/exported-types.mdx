@@ -6,21 +6,37 @@ type: reference
 aliases: ["typescript types", "type definitions", "cell ref", "view coord", "grid rect"]
 ---
 
-The `data-grid` module exports these types next to the components and hooks. Import them from `@/components/data-grid/data-grid`. Each table gives the shape and the meaning of a type, and most link the page that uses it. The types of columns, cell types, cell callbacks, and saves live on their own pages: [ColumnDef](/docs/components-props/column-def), [CellType contract](/docs/contracts/cell-type-contract), and [Event shapes](/docs/events-state/event-shapes).
+The `data-grid` module exports these types next to the components and hooks. Import them from `@/components/data-grid/data-grid`. Each table gives the shape and the meaning of a type, and most link the page that uses it. The types of columns, cell types, and cell callbacks live on [ColumnDef](/docs/components-props/column-def), the [CellType contract](/docs/contracts/cell-type-contract), and [Event shapes](/docs/events-state/event-shapes). [Layout and display types](/docs/types-hooks/layout-display-types) covers `ColumnLayout`, the marker modes, and the display states.
 
 ## Addresses [#addresses]
 
 | Type | Shape | Meaning |
 | --- | --- | --- |
-| `CellRef` | `{ rowId, columnId }` | The stable identity of a cell: the row id from `getRowId` plus the column id. A sort, a filter, or a reorder never changes it. The actions `setActiveCell`, `selectCell`, `extendTo`, `pushRange`, `startEditing`, and `commitCellValue` take a `CellRef`. Each has an `*At` variant, such as `selectCellAt`, that takes a `ViewCoord`. A ref whose row or column is not in the view does nothing, and development mode warns once. |
+| `CellRef` | `{ rowId, columnId }` | The stable identity of a cell: the row id from `getRowId` plus the column id. A sort, a filter, or a reorder never changes it. Cell actions such as `selectCell` and `startEditing` take a `CellRef`. Each has an `*At` variant, such as `selectCellAt`, that takes a `ViewCoord`. A ref whose row or column is not in the view does nothing, and development mode warns once. |
 | `ViewCoord` | `{ col, row }` | A cell position in view index. `row` is the position in the sorted and filtered list. `col` is the position among the visible columns, without the marker column. When the view changes, the position moves. Store a `CellRef` instead. |
 | `ViewCellRef` | `CellRef & { viewRowIndex, viewColumnIndex }` | A `CellRef` plus the view position of the cell at the time of the event. `onActiveCellChange`, `onBeforeEditStart`, and `onEditEnd` deliver it. |
 | `GridRect` | `{ x, y, width, height }` | A rectangle of cells. It covers the columns `x` to `x + width - 1` and the rows `y` to `y + height - 1`. |
-| `ViewIndex` | A branded `number` | A row position in the current view. The `At` actions take it, so a plain number cannot pass for a row id. `viewIndex(index)` builds one, and `viewIndexes(list)` builds a list. |
+| `ViewIndex` | A branded `number` | A row position in the current view. The `At` actions take view row numbers, so a plain number cannot pass for a row id. `viewIndex(index)` and `viewIndexes(list)` brand them. |
 | `CellErrorTarget` | `{ rowId, columnId }` | A cell that `clearCellErrors` names. |
 | `CellErrorEntry` | `CellErrorTarget & { message }` | A cell and its error message for `setCellErrors`. |
 
-[Data grid props](/docs/components-props/data-grid-props#imperative-handle) lists the handle members that take a `CellRef`, such as `scrollTo`.
+[Data grid props](/docs/components-props/data-grid-props#imperative-handle) lists the handle members that take a `CellRef`, such as `scrollTo`. This sample keeps a `CellRef` across a sort and deletes the top two view rows through `viewIndexes`:
+
+```ts
+import {
+  viewIndexes,
+  type CellRef,
+  type DataGridActions,
+} from "@/components/data-grid/data-grid";
+
+export function restoreCell(actions: DataGridActions, saved: CellRef) {
+  actions.selectCell(saved);
+}
+
+export function deleteTopTwo(actions: DataGridActions) {
+  return actions.deleteRowsAt(viewIndexes([0, 1]));
+}
+```
 
 ## Selection [#selection]
 
@@ -48,15 +64,15 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 
 | Type | Shape | Meaning |
 | --- | --- | --- |
-| `GateName` | A union of the gate names | `processPaste`, `validateRow`, `onBeforeEditStart`, `createRow`, `duplicateRow`, `onBeforeDeleteRows`, `import`, and `processReplace`. |
+| `GateName` | A union of the gate names | `processPaste`, `processCellFromClipboard`, `validateRow`, `onBeforeEditStart`, `createRow`, `duplicateRow`, `onBeforeDeleteRows`, `import`, `mapColumn`, `processReplace`, and `validate`. |
 | `GateContext` | `{ signal }` | The argument of an async gate. `signal` aborts when the grid stops waiting. |
 | `RowActionSkipReason` | A union of the skip reasons | Why a row action did nothing: `readOnly`, `unloaded-rows`, `gate-pending`, `no-factory`, `gate-declined`, `gate-threw`, `nothing-to-do`, `view-ordered`, `disabled`, `all-matching`, or `hidden-rows-only`. |
 | `RowActionResult` | `{ ok: true } \| { ok: false, reason }` | What the insert, duplicate, and delete actions return: `ok` once the action ran or an async gate started, else the `RowActionSkipReason`. |
 | `ColumnOrderSkipReason` | A union of the skip reasons | Why `setColumnOrder` did not move: `disabled`, `unknown-column`, `not-reorderable`, `pin-zone`, or `nothing-to-do`. |
 | `ColumnOrderResult` | `{ ok: true } \| { ok: false, reason }` | What `setColumnOrder` and `canSetColumnOrder` return: `ok` when the move changes the order, else the `ColumnOrderSkipReason`. |
-| `CellValidateContext` | `{ rows, batch, valueOf }` | The third argument of a function `validate`: the rows before the write, the cells of the column that the write sets, and the value reader of the column. |
+| `CellValidateContext` | `{ rows, batch, valueOf }` | The third argument of a function `validate`. It holds the rows before the write, the cells of the column that the write sets, and the value reader of the column. |
 | `UniqueOptions` | `{ message?, ignoreCase? }` | The options of `unique()`. |
-| `SaveResolution` | `"theirs" \| "mine" \| { row } \| void` | The answer of `resolveSaveConflict`: take the server row, keep the grid row, or save a merged row. |
+| `SaveResolution` | `"theirs" \| "mine" \| { row } \| void` | The answer of `resolveSaveConflict`: take the server row, keep the grid row, or save a merged row. Nothing (`void`) takes the server row. |
 
 ## Sort and filter [#sort-and-filter]
 
@@ -124,35 +140,11 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | --- | --- | --- |
 | `GridEditEndEvent` | `ViewCellRef & { result }` | The payload of `onEditEnd`. `result` is `"commit"`, `"cancel"`, or `"rejected"`. |
 | `GridBulkValidationError` | `{ rowId, columnId, viewRowIndex, value, message }` | One cell that a bulk write refused. |
-| `GridValidationErrorEvent` | `{ source, rejected }` | The payload of `onValidationError`. `source` is `"paste"`, `"fill"`, `"stream"`, `"replace"`, `"delete"`, or `"edit"`. |
+| `GridValidationErrorEvent` | `{ source, rejected }` | The payload of `onValidationError`. `source` is `"paste"`, `"fill"`, `"stream"`, `"replace"`, `"delete"`, `"cut"`, or `"edit"`. |
 | `ClipboardProcessCtx<TData>` | `{ row, column }` | The row and the column that `processCellForClipboard` and `processCellFromClipboard` share. |
 | `UseDataGridClipboardOptions` | `{ sanitizeFormulas? }` | The options of `useDataGridClipboard`. `sanitizeFormulas` prefixes formula-like cells with `'` in the copied text. |
 
 [Edit and validation events](/docs/events-state/edit-validation-events) lists the moment each one fires.
-
-## Layout and display [#layout-and-display]
-
-| Type | Shape | Meaning |
-| --- | --- | --- |
-| `ColumnLayout` | `{ widths, order, pins, hidden }` | A snapshot of the column layout. It is the payload of `onColumnLayoutChange`. The `columnLayout` and `defaultColumnLayout` props take it in `Partial` form. |
-| `RowMarkersMode` | `"none"`, `"number"`, `"checkbox"`, `"both"`, `"reorder"`, or `"reorder-"` plus a content name | What the marker column shows. |
-| `CheckedRowsLifetime` | `"until-click" \| "until-cleared" \| "across-filters"` | How long checked rows stay checked. It is the type of the `checkedRowsLifetime` prop. |
-| `HeaderClickBehavior` | `"select" \| "sort" \| "none"` | What a header click does. |
-| `RowMarkersContent` | `"number" \| "checkbox" \| "both"` | The content of the marker column. |
-| `GridDirection` | `"ltr" \| "rtl"` | The text direction of the grid. |
-| `EmptyStateReason` | `"no-data" \| "filtered"` | Why the view is empty: no rows at all, or none in view. An empty answer to a server filter or search is `"filtered"`. The function form of `emptyState` receives it as `reason`. |
-| `LoadingStateReason` | `"no-data" \| "rows-present"` | Which loading view the function form of `loadingState` replaces, as `reason`: the skeleton (`"no-data"`) or the header bar (`"rows-present"`). |
-| `ErrorStateContext` | `{ error, retry }` | The argument of the function form of `errorState`. `error` is the failure. `retry` is a function, or `undefined` when the grid has no retry. |
-| `DensityMode` | `"compact" \| "default" \| "comfortable"` | A row height preset. |
-| `ColumnPin` | `"start" \| "end"` | The inline side that a pinned column sticks to. The sides flip in a right-to-left page. |
-| `HeaderFilterRenderer` | `({ column, index }) => ReactNode` | The function that `renderHeaderFilter` takes to draw the filter control of a column header. |
-| `DataGridSortIndicatorProps` | `{ columnId, sortState?, className? }` | The props of `DataGridSortIndicator`. |
-| `DataGridCellProps` | The props of one rendered cell | The props of `DataGridCell`. |
-| `KeysMatching<T, V>` | A union of keys | The keys of `T` whose value extends `V`. A nullable `V` also matches the non-null key type. |
-| `AccessorLike<TData>` | `{ id, accessorKey?, accessorFn?, setValue? }` | The accessor fields of a column literal that `defineColumns` reads. |
-| `InferredValue<TData, TCol>` | The value type of a column | The result type of `accessorFn`, else `TData[accessorKey]`, else `unknown`. |
-
-[DataGrid props](/docs/components-props/data-grid-props) lists the props that take the layout and display types.
 
 ## Related
 
