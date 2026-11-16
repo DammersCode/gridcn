@@ -163,7 +163,7 @@ describe("exported types coverage", { timeout: GENERATOR_TIMEOUT_MS }, () => {
   });
 
   it("names every exported type of the data-grid barrel on a docs page", () => {
-    const types = page("(reference)/types-hooks/exported-types");
+    const types = page("(reference)/types-hooks/exported-types") + page("(reference)/types-hooks/layout-display-types");
     for (const name of ["ColumnPin", "ViewIndex", "CellPatch", "RowActionResult", "HeaderFilterRenderer"]) expect(types, name).toContain("`" + name);
   });
 });
