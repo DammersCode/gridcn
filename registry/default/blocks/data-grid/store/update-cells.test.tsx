@@ -1379,9 +1379,15 @@ describe("updateCells — verdict", () => {
     });
   });
 
-  it("applies a stream batch in a grid-level readOnly grid", () => {
+  it("applies a stream batch in a grid-level readOnly grid, and asks once in development to name the source", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { result } = renderHarness({ readOnly: true });
     expect(result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 1 }])).toEqual({ applied: 1, skipped: [], pending: false });
+    act(() => void result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 2 }], { source: "stream" }));
+    const readOnlyWarnings = warn.mock.calls.filter(([message]) => String(message).includes("the grid is readOnly"));
+    expect(readOnlyWarnings).toHaveLength(1);
+    expect(String(readOnlyWarnings[0]![0])).toContain('Pass source: "stream" to confirm the push, or source: "edit" to keep the readOnly check');
+    warn.mockRestore();
   });
 
   it("skips patches aimed at an unloaded lazy hole", () => {

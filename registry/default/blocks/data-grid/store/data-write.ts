@@ -1181,7 +1181,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     const s = get();
     if (patches.length === 0 || (s.readOnly && (options?.source ?? "stream") !== "stream")) return { applied: 0, skipped: [], pending: false };
     if (s.readOnly && options?.source === undefined) {
-      warnGateOnce("readOnly stream write", 'the grid is readOnly and this call has no source, so it defaults to source "stream" and writes anyway. Pass source: "edit" to keep the readOnly check');
+      warnGateOnce("readOnly stream write", 'the grid is readOnly and this call has no source, so it defaults to source "stream" and writes anyway. Pass source: "stream" to confirm the push, or source: "edit" to keep the readOnly check');
     }
     if (patches.length > MAX_STREAM_PATCHES && (options?.source ?? "stream") === "stream") {
       warnGateOnce("stream patch limit", `a "stream" call takes at most ${MAX_STREAM_PATCHES} patches; the ${patches.length - MAX_STREAM_PATCHES} after them skip with reason "limit". Send smaller batches`);
