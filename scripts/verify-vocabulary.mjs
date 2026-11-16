@@ -16,6 +16,7 @@ const BANNED = [
   [/\bgrips?\b/, "write 'drag handle'"],
   [/[Ee]scape hatch/, "write 'override'"],
   [/[Vv]iew[- ]space/, "write 'view index'"],
+  [/[Ff]ilter builder/, "write 'filter menu'"],
 ];
 
 // Path prefix -> banned labels that stay allowed there. Keep this empty unless a file has a real reason.
