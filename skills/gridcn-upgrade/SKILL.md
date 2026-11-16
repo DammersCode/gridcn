@@ -29,7 +29,7 @@ Done when the user answered and the working branch is the one they picked, or th
 Pick the commit you are upgrading to and pin it (a SHA) before anything else: the hosted `@gridcn`
 registry serves the current deploy of `main`, so an unpinned install can differ from the changelog
 you read. Read gridcn's changelog at that commit
-(`https://raw.githubusercontent.com/DammersCode/gridcn/<sha>/CHANGELOG.md`) top to bottom. For an install from `main`, also read the `## Unreleased` section of that file. If you
+(`https://raw.githubusercontent.com/DammersCode/gridcn/<sha>/CHANGELOG.md`) top to bottom. For an install from `main`, also read the `## Unreleased` section of that file and every `CHANGELOG-*.md` file at that commit. If you
 don't know which version is installed, there is no version file to check — compare against
 `git log` on your installed files instead (`git log -- components/data-grid`), find the commit of
 your last install, and match its date to the changelog's entries. Note every `**Breaking:**` entry
@@ -58,6 +58,8 @@ first: the next steps overwrite files. Sort the output into two piles:
 - **Locally edited** (`overwrite` with such a commit, or uncommitted changes in `git status`): needs
   reconciliation, not a blind overwrite. `overwrite` only means the file differs from upstream.
   Without Git, ask the user which files they edited.
+
+If an installed item no longer exists (`data-grid-lazy` in 2.0), follow `https://gridcn.vercel.app/docs/support-upgrades/migrate-2-0.md#server-rows`, then delete its folder.
 
 Done when every file the dry-run lists has a pile.
 

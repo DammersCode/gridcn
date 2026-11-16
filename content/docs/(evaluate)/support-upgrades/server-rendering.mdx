@@ -1,5 +1,5 @@
 ---
-title: Server rendering and hydration
+title: Render the grid on the server
 icon: Server
 description: See what the server HTML of a grid holds, and keep the first browser render equal to it, so that hydration succeeds.
 type: task
@@ -26,6 +26,16 @@ A grid that mounts in the browser only, for example after a client navigation, r
 1. Fetch the rows in a Server Component.
 2. Pass them as a prop to a client component.
 3. In the client component, pass them to `data` or `defaultData`.
+
+`orders-db.ts` stands for your data access:
+
+```ts
+type Order = { id: string; customer: string; total: number };
+
+export async function loadOrders(): Promise<Order[]> {
+  return [{ id: "1", customer: "Ada", total: 12 }];
+}
+```
 
 This page loads the orders on the server:
 
@@ -64,7 +74,7 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
 }
 ```
 
-`useDataGridServerRows` fetches in the browser, after mount, and takes no first answer. A grid on the hook shows its loading state in the server HTML and in the first browser paint.
+Pass the first page as `initialAnswer`, for example from a Server Component. The server HTML then holds the rows, and the hook sends no request until the state changes. Scroll mode takes no first answer.
 
 ## Keep the first render equal [#hydration-rules]
 

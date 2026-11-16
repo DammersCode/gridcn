@@ -13,7 +13,7 @@ The grid has one `role="status"` live region with `aria-live="polite"`.
 A live region cannot sit inside `role="grid"`, so the grid places it in `<body>`. These changes read in the region:
 
 - A row move, for example "Row 3 moved to position 4 of 8" (`labels.markers.reorderAnnouncement`).
-- The number of checked rows after a check, an uncheck, Escape, or Ctrl/Cmd+A, for example "3 rows checked" (`labels.grid.rowsChecked`). The count includes hidden checked rows. Under "all matching", it counts the result minus the unchecked rows.
+- The number of checked rows after a check, an uncheck, or Escape, and after Ctrl/Cmd+A clears them, for example "3 rows checked" (`labels.grid.rowsChecked`). The count includes hidden checked rows. Under "all matching", it counts the result minus the unchecked rows.
 - "All matching rows checked" after select all matching on a result of unknown size (`labels.grid.allMatchingChecked`).
 
 The region waits 500 ms after the last change. A marker range drag gets one reading, with its final count. A repeated change reads its text again.

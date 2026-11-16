@@ -24,10 +24,10 @@ npx shadcn add @gridcn/<item>
 |---|---|---|
 | Fill handle | `data-grid-fill` | none |
 | Pinned rows | `data-grid-pinned-rows` | none |
-| Lookup cell | `data-grid-lookup` | none |
+| Lookup cell | `data-grid-lookup` (installs `use-debounce` too) | none |
 | Presence | `data-grid-presence` | none |
 | Undo & redo | `data-grid-history` | none |
-| Toolbar | `data-grid-toolbar` | `@dnd-kit/react`, `@dnd-kit/dom` |
+| Toolbar | `data-grid-toolbar` (installs `use-debounce` too) | `@dnd-kit/react`, `@dnd-kit/dom` |
 | Context menu | `data-grid-context-menu` | none |
 | Keybindings dialog | `data-grid-keybindings` | none |
 | Sort list | `data-grid-sort-list` | `@dnd-kit/react`, `@dnd-kit/dom` |
@@ -36,7 +36,8 @@ npx shadcn add @gridcn/<item>
 | Import / export | `data-grid-io` (installs `dropzone` too) | `hucre` (lazy-loaded), `papaparse`; dev: `@types/papaparse` |
 | Server rows (pages or scroll) | `data-grid-server` (installs `data-grid-pagination` too) | none |
 | Pagination | `data-grid-pagination` | none |
-| Find & replace | `data-grid-find-replace` | none |
+| Find & replace | `data-grid-find-replace` (installs `use-debounce` too) | none |
+| Status bar | `data-grid-status-bar` | none |
 
 The `@gridcn` registry serves the current deploy of the public repository `DammersCode/gridcn`;
 the same items install from its GitHub registry path (`DammersCode/gridcn/<item>`), the source
@@ -70,8 +71,10 @@ Everything else mounts as a plain child component, inside the provider:
 | Context menu | `DataGridContextMenu` (wraps `DataGridRoot`), `DataGridHeaderDropdown` (passed to `DataGridRoot`'s `renderHeaderMenu`) | inside the provider; `DataGridContextMenu` throws if mounted outside it |
 | Keybindings dialog (custom placement) | `DataGridKeybindingsDialog` (controlled `open`, own trigger) | inside the provider; `useDataGridKeybindings` is the default wiring |
 | Sort list | `DataGridSortList` | inside `DataGridToolbar` |
-| URL state | `DataGridUrlState` (option `spec` lists the synced `"sort"`, `"filter"`, `"search"` parts, default all; option `layout` syncs column order, hidden columns, and with `"widths"` and `"pins"` more; `[]` turns it off) | inside the provider, under an app-level `NuqsAdapter` |
-| Saved views | `DataGridViews` (or `useDataGridViews()` for your own UI; options `storage` (a `localStorage` key or a storage object), `value`/`onValueChange`; mount `DataGridUrlState` beside it and a URL with params wins over the default view) | inside the provider, e.g. in `DataGridToolbar` |
+| URL state | `DataGridUrlState` (option `spec` lists the synced parts `"sort"`, `"filter"`, and `"search"`; the default is `["sort"]`, and `[]` turns it off) | inside the provider, under an app-level `NuqsAdapter` |
+| URL state, column layout | `DataGridUrlState` option `layout` | syncs column order and hidden columns; `"widths"` and `"pins"` add more |
+| Saved views | `DataGridViews`, or `useDataGridViews()` for your own UI | inside the provider, e.g. in `DataGridToolbar` |
+| Saved views, options | `storage` (a `localStorage` key or a storage object), `value`/`onValueChange` | mount `DataGridUrlState` beside it, and a URL with params wins over the default view |
 | Import/export | `DataGridImportButton`, `DataGridExportButton` | inside `DataGridToolbar` |
 | Server rows (scroll mode) | `useDataGridServerRows({ mode: "scroll" })` (owns `data`) | hook above the provider; spread `server.gridProps` |
 | Pagination, client | `defaultPageSize` on the provider + `DataGridPaginationBar` | the bar reads the pager from the provider; `useDataGridPager()` returns `{ pager }` for your own controls |
@@ -106,8 +109,8 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
   ```
   An inline array literal is fine: the grid compares the list entry-wise (same length, same `name`,
   every member identity-equal), so a fresh array with stable members re-resolves nothing.
-  `useDataGridState` returns its own `plugins` (the history plugin) — combine explicitly after the
-  spread, e.g. `plugins={[...grid.plugins, fill.plugin]}`.
+  `useDataGridState` takes a `plugins` option, and its returned `plugins` holds them, then the
+  history plugin: `useDataGridState(rows, { getRowId, plugins: [fill.plugin] })`, then spread the result.
 - **Toolbar child order** (the gridcn convention — matters for consistency, not correctness):
   `DataGridSearch` → `DataGridFilterMenu` → `DataGridSortList` → `DataGridColumnsMenu` →
   `DataGridImportButton` → `DataGridExportButton` → your own utility buttons, in that order.
@@ -133,7 +136,7 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
   skip the add-on. Own the array via your own state, or let the grid own it with `defaultData`? Use `useDataGridHistory` — its
   plugin observes the grid's changes (your `onDataChange` echo stays the single write target) and
   `undo`/`redo` apply the inverted batch through the grid's `commitChange`; an update with `cells` writes only those cells onto the current row.
-- **Undo over missing rows**: an undo or redo that needs a row missing from `data` applies nothing. Rows not loaded yet (holes) keep the entry and report `"rows-not-loaded"` to `onSkip`. Rows that are gone drop the entry and report `"rows-gone"`. An `onSave` refusal of an undo puts the entry back. Pass `datasetKey` to clear the stacks on a dataset swap.
+- **Undo over missing rows**: an undo or redo that needs a row missing from `data` applies nothing. Rows not loaded yet (holes, or rows of another server page) keep the entry and report `"rows-not-loaded"` to `onSkip`. Rows that are gone drop the entry and report `"rows-gone"`. An `onSave` refusal of an undo puts the entry back. Pass `datasetKey` to clear the stacks on a dataset swap.
 
 ## Async gates
 
@@ -211,7 +214,7 @@ Each add-on's full reference (props, edge cases, worked examples) is at the page
 ## Do not
 
 - Do not put `format` in `DataGridExportButton`'s `options`. The type omits it. Pass `formats` (default `["xlsx", "csv"]`); with one format, such as `formats={["csv"]}`, a click exports at once.
-- Do not pass view indexes to `deleteRows`, `duplicateRows`, or `setRowChecked`. They take stable row ids. A name that ends in `At` (`deleteRowsAt`, `duplicateRowsAt`, `setRowCheckedAt`) takes `viewIndexes([...])`.
+- Do not pass view indexes to `deleteRows`, `duplicateRows`, or `setRowChecked`. They take stable row ids. The `At` actions (`deleteRowsAt`, `duplicateRowsAt`, `setRowCheckedAt`) take view row numbers; `viewIndex(n)` and `viewIndexes([...])` brand them.
 - Do not mount `DataGridUrlState` on a scroll-mode grid without both server modes, or nest a second `NuqsAdapter`.
 - Do not call `useDataGridPresence()` twice for one grid.
 - Do not create `aggregateRow`/`serverAggregateRow` inside a component body without `useMemo`.

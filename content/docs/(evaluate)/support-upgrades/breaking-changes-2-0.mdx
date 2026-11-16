@@ -72,7 +72,7 @@ The props of 1.3 map to `checkedRowsLifetime` like this:
 | <span id="cut-source" />Cut source | `source: "delete"` | `source: "cut"` | Check `"cut"` next to `"delete"`. Add it to a custom `recordSources`. |
 | <span id="clipboard-formulas" />`sanitizeClipboardFormulas` | Default `false`: a copy keeps `=SUM(A1)` | Default `true`: a copy writes `'=SUM(A1)` | To copy raw text, set `sanitizeClipboardFormulas={false}`. |
 | <span id="clipboard-labels" />Clipboard failure labels | `pasteBlocked` and `clipboardFailed` are strings | A string or a function of the modifier name | Handle both forms where you read them. |
-| <span id="can-undo-readonly" />`canUndo`, `canRedo` | `true` on a `readOnly` grid with entries | `false` while `readOnly` | Delete a `readOnly ||` guard. |
+| <span id="can-undo-readonly" />`canUndo`, `canRedo` | `true` on a `readOnly` grid with entries | `false` while `readOnly` | Delete a `readOnly \|\|` guard. |
 | <span id="api-writes" />`DataGridApi` writes | `api.startEditing`, `api.stopEditing`, `api.setSelection` | `api.actions.startEditing`, `api.actions.cancelEditing`, `api.actions.setSelection` | Call the writes through `api.actions`. |
 
 ## Columns and styling [#columns-styling]
@@ -83,7 +83,7 @@ The props of 1.3 map to `checkedRowsLifetime` like this:
 | <span id="pin-shadow" />Pin shadow hooks | `data-grid-pin-shadow="left"`, `data-scrolled-left`, `--grid-pin-shadow-left-x` | `"start"`, `data-scrolled-start`, `--grid-pin-shadow-start-x`, and the `end` forms | Rename the CSS selectors. |
 | <span id="pin-hidden-seed" />Def `pin` and `hidden` | Each `columns` array applies them again | They apply at the first appearance of the column id. A later change warns in development. | Use `setColumnPin`, `setColumnHidden`, or `columnLayout`. |
 | <span id="set-column-width" />Width actions | `setColumnWidth` (drag write), `commitColumnWidth` | `previewColumnWidth` (drag write), `setColumnWidth` (commit) | Rename both calls. |
-| <span id="align" />Cell alignment | `align: "left" \| "right" \| "center"`, `<CellSpan align>` | `align: "start" | "center" | "end"`. `CellSpan` inherits it. |\| "center" \| "end"`; `CellSpan` inherits it | Use the logical values. Delete the `CellSpan` prop. |
+| <span id="align" />Cell alignment | `align: "left" \| "right" \| "center"`, `<CellSpan align>` | `align: "start" \| "center" \| "end"`. `CellSpan` inherits it. | Use the logical values. Delete the `CellSpan` prop. |
 | <span id="cell-z-index" />Cell `z-index` | An unpinned cell has none, so a `z-*` class stacks it | Every body cell has an integer `z-index` | Render content that covers other cells in a portal. |
 | <span id="text-placeholder" />`text` `placeholder` | An option that nothing read | Removed. `longText` keeps it. | Delete it from `text` columns. |
 | <span id="locale-prop" />Number and date language | `options.locale` on each column, status bar `locale` | `locale` on `DataGrid` or `DataGridProvider` | Set `locale` once on the grid. |
