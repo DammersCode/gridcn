@@ -49,7 +49,7 @@ Out of scope:
 
 gridcn pins `hucre` to an exact version. The other packages install from a version range.
 
-Untrusted input means imported CSV, XLSX, and XLS files, clipboard content, URL state, cell values shown as text or links, and CSV export. The spec your server receives is untrusted too. [Check the spec on your server](/docs/data-modes/query-server-rows#parse-the-spec) bounds it.
+Untrusted input means imported CSV, XLSX, and XLS files, clipboard content, and URL state. It also means saved-view files, stored view documents, cell values shown as text or links, and CSV export. The request bodies that `parseServerSpec` reads are untrusted too. [Check the spec on your server](/docs/data-modes/query-server-rows#parse-the-spec) bounds them.
 
 ## How gridcn handles untrusted input
 

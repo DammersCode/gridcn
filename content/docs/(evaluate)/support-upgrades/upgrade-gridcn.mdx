@@ -12,6 +12,8 @@ A coding agent can run these steps with the [`gridcn-upgrade` skill](/docs/try-a
 
 Before you start, commit your work. A clean working tree makes every upgrade change visible in `git diff`.
 
+Use one install path in every command below. For a pinned release, write `DammersCode/gridcn/<item>#<ref>` in place of `@gridcn/<item>`.
+
 ## Steps [#updating-installed-code]
 
 1. Find the release you installed. The installed files carry no version. List the commits that changed them, and find the commit of your last install:
@@ -24,7 +26,7 @@ Before you start, commit your work. A clean working tree makes every upgrade cha
 
 2. Collect every **Breaking:** entry in the [changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) from your version to the target. For an install without a ref, also read the `Unreleased` section and [`CHANGELOG-2.0.md`](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG-2.0.md).
 
-3. Use the same path in steps 3, 4, and 5. For a pinned release, write `DammersCode/gridcn/<item>#<ref>` in place of `@gridcn/<item>` in each command. Preview the install of each item you use. The command lists each file as `create`, `overwrite`, or `skip` and writes nothing. `overwrite` marks a file that differs. Step 5 asks before it overwrites it:
+3. Preview the install of each item you use. The command lists each file as `create`, `overwrite`, or `skip` and writes nothing. `overwrite` marks a file that differs. Step 5 asks before it overwrites it:
 
    <InstallCommand command="shadcn add @gridcn/data-grid --dry-run" />
 
