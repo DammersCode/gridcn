@@ -31,7 +31,7 @@ Without `store`, `columns` is the only required prop. `data` and `defaultData` a
 
 Pass one of them. If you pass both, `data` wins and a development build warns once.
 
-Row ids that start with `__` are reserved for the grid. <NewBadge />
+Row ids that start with `__` are reserved for the grid.
 
 `getRowId(row, index)` returns the row id of a row. A row id is a string that is unique and stable. Without `getRowId`, the grid reads the `id` field of the row, a string or a number. A row without that field throws an error. A number `id` becomes a string, so row `1` has the row id `"1"`. If two rows share a row id, the grid uses the first one. If the id lives elsewhere, pass `getRowId`:
 
