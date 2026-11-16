@@ -46,14 +46,14 @@ export const columns = defineColumns<Product>()([
 
 [Built-in cell types](/docs/editing-cells/built-cell-types) lists every type and its options.
 
-## Write a cell type [#write-a-cell-type]
+## Define a custom type [#write-a-cell-type]
 
 If the stored value, the editor, or the text round trip differs from every built-in, write your own type. The sample builds a `money` type that stores a plain `number | null`, shows a formatted amount, and reads a pasted `$1,234.56` as `1234.56`.
 
 1. Declare the key in `GridCellTypes`, so `defineColumns` types the column value and options.
 2. Write `toText` for copy and export. Keep it plain and parseable.
 3. Write `toDisplayText` for the formatted text. Print, column autosize, and the set values of the header filter use it, and use `toText` without it. When the numbers of a selection come from one column, the status bar formats its sum, average, minimum, and maximum with it. `Cell` decides what the cell itself shows.
-4. Write `fromText` for paste and typing. For text it cannot parse, return `clearValue()`.
+4. Write `fromText` for paste and typing. For text it cannot parse, call `rejectText()`. The cell keeps its value, and the grid reports the text. Return `clearValue()` only to empty the cell on purpose.
 5. Write `Cell` and `Editor`. Start the editor from `useCellEditor`. It owns the draft and the focus, commits on Enter and on blur, and cancels on Escape.
 6. Register the type in `cellTypes` under the name that a column uses in `type`.
 
@@ -66,6 +66,7 @@ import {
   DataGrid,
   defineCellType,
   defineColumns,
+  rejectText,
   useCellEditor,
   type CellEditorProps,
   type CellRenderProps,
@@ -105,6 +106,10 @@ function parse(text: string): number | null {
 
 type Value = number | null;
 
+function fromText(text: string): Value {
+  return text.trim() === "" ? null : (parse(text) ?? rejectText());
+}
+
 function Cell({ value, options }: CellRenderProps<unknown, Value, Options>) {
   return (
     <span className="block truncate tabular-nums">
@@ -126,7 +131,7 @@ const moneyCellType = defineCellType("money", {
   Editor,
   toText: (value) => (value === null ? "" : String(value)),
   toDisplayText: format,
-  fromText: parse,
+  fromText,
   clearValue: () => null,
   isEmpty: (value) => value === null,
   compare: (a, b) => (a ?? 0) - (b ?? 0),
@@ -161,23 +166,21 @@ The `cellTypes` prop merges over the built-ins, so the `text` column keeps worki
 
 The sample keeps these rules:
 
-- It stores a serializable primitive, a number, and not a class instance.
-- It caches the `Intl.NumberFormat` by currency, so scrolling does not build a new formatter for every cell.
+- It caches the `Intl.NumberFormat` by currency, so scrolling builds no formatter per cell.
 - It pins the locale to `"en-US"`. A default locale can differ between server and browser, which causes a hydration mismatch.
-- It treats only `null` as empty, because `0` is a real amount.
 
 ## Result
 
-The Price column shows `€1,234.56` for the value `1234.56`. A paste of `$1,234.56` stores `1234.56`, and a copy gives `1234.56`. Without a point, a comma before exactly three digits groups thousands, so `$1,234` stores `1234`. Any other comma is the decimal separator, so `1,5` stores `1.5`. Adapt `parse` to the number format of your users.
+The Price column shows `€1,234.56` for the value `1234.56`. A paste of `$1,234.56` stores `1234.56`, and a copy gives `1234.56`. Without a point, a comma before exactly three digits groups thousands, so `$1,234` stores `1234`. Any other comma is the decimal separator, so `1,5` stores `1.5`.
 
 ## Test the type [#testing-your-cell-type]
 
-`toText`, `fromText`, `isEmpty`, and `compare` are plain functions. Test them without rendering: `fromText("$1,234.56")` gives `1234.56`, and `fromText("not a price")` gives `null`. Render the editor once to test that Enter commits and Escape cancels.
+`toText`, `fromText`, `isEmpty`, and `compare` are plain functions. Test them without rendering: `fromText("$1,234.56")` gives `1234.56`, and `fromText("not a price")` rejects the text.
 
 ## Related
 
 - [Cell type model](/docs/concepts/cell-type-model): how the grid uses each member of a cell type.
 - [Cell type contract](/docs/contracts/cell-type-contract): every member, option, and editor rule.
 - [Built-in cell types](/docs/editing-cells/built-cell-types): the types that ship with the grid.
-- [Custom cell type example](/docs/basic-examples/custom-cell-type-example): the currency type as a live demo.
+- [Custom cell type example](/docs/basic-examples/custom-cell-type-example): the currency type as a live demo with `data-grid-custom-cell-demo`.
 - [Plan a cell type](/docs/custom-code-path/plan-cell-type): choose the members before you write one.

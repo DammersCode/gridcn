@@ -17,6 +17,8 @@ A pager gives the user a numbered page, a page size, and a "21-40 of 240" label.
 Pass the whole array as `data` and set `defaultPageSize` on the provider. The grid keeps every row and shows one page of the sorted and filtered view. `DataGridPaginationBar` with no props reads the pager from the provider:
 
 ```tsx
+"use client";
+
 import {
   DataGridBody,
   DataGridHeader,
@@ -76,7 +78,7 @@ The grid holds every row. Only the rows on screen are one page. The footer shows
 - **Find and replace** searches every page. "Replace all" covers every page.
 - **Row order.** `reorderRows` and `moveRowsBy` take page rows, and a move stays inside the shown page. The checked rows and the active cell follow their rows. A sort or filter still blocks them.
 - **Edits, inserts, and deletes** reach `onDataChange` with the whole array. Store it as it is.
-- **Selection** follows row ids. A page change clears the active cell. It also drops the checks and the cell range of rows that left the page. Search and find and replace still select the match they jump to. To keep the checks, pass `checkedRowsLifetime="across-filters"`. The grid remembers each check by row id and restores it on a return to the page. The header checkbox, <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> (`toggleAllRows`), and `setAllRowsChecked` check the rows of the shown page only.
+- **Selection** follows row ids. A page change clears the active cell. It also drops the checks and the cell range of rows that left the page. Search and find and replace still select the match they jump to. To keep the checks, pass `checkedRowsLifetime="across-filters"`. The grid remembers each check by row id and restores it on a return to the page. The header checkbox, <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>Enter</kbd> (`toggleAllRows`), and `setAllRowsChecked` check the rows of the shown page only.
 - **Copy, paste, fill, and Delete** act on the shown page. A column selection covers the rows of the shown page, and a paste stops at the page's last row.
 - **Streaming patches** reach every row, also rows on other pages.
 - **Totals** from [pinned rows](/docs/rows-pages-menus/pinned-rows) cover every page. Pass `scope: "page"` to `aggregateRow` to total the shown page only.
@@ -90,6 +92,8 @@ Read the pager from your own components with `const { pager } = useDataGridPager
 `useDataGridPagination` slices an array for a list that is not a grid. It returns `pageData`, the rows of the current page, and `pager` for the footer:
 
 ```tsx
+"use client";
+
 import {
   DataGridPaginationBar,
   useDataGridPagination,

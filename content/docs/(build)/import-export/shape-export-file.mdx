@@ -14,11 +14,13 @@ Two options shape the file, and one option decides where it goes. They apply to 
 
 Install `data-grid-io`. See [Export](/docs/import-export/export).
 
-## Steps
+## Options
 
-1. Set `columns` to the column ids to write, in order. A hidden column is allowed. An unknown id throws a `RangeError` before anything is fetched. A `source` gets the same list as `ctx.columnIds`, so your server can select only those columns.
-2. Set `formatCell` to return the value of one cell.
-3. Set `output` to receive the finished file.
+Set only the options you need:
+
+- Set `columns` to the column ids to write, in order. A hidden column is allowed. An unknown id throws a `RangeError` before anything is fetched. A `source` gets the same list as `ctx.columnIds`, so your server can select only those columns.
+- Set `formatCell` to return the value of one cell.
+- Set `output` to receive the finished file.
 
 This example sends the file to your server and downloads nothing:
 

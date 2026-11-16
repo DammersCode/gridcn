@@ -78,7 +78,7 @@ export function CustomersAndOrders({ customers, orders }: Props) {
 
 The order grid shows the orders of the customer in the active cell. It shows no rows while no cell is active. Each grid keeps its own sort, filter, and selection.
 
-Set a different `prefix` on each grid that uses `data-grid-url-state`. Two grids on one prefix share the keys `sort`, `filter`, and `q`, and a development warning names the clash. See [URL state](/docs/sort-filter-search/url-state#prefix).
+Set a different `prefix` on each grid that uses `data-grid-url-state`. Two grids on one prefix share every URL key, such as `sort`, `filter`, and `q`, and a development warning names the clash. See [URL state](/docs/sort-filter-search/url-state#prefix).
 
 ## Related
 

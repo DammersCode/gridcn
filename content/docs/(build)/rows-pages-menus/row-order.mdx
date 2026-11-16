@@ -93,7 +93,7 @@ These calls return `false`, change nothing, and report through [`onRowActionSkip
 | Reason | When |
 | --- | --- |
 | `"readOnly"` | The grid is `readOnly`. |
-| `"view-ordered"` | A client sort or filter is active, because the sort or filter owns the view order. |
+| `"view-ordered"` | A sort is active, also with `sortMode="server"`, or a client filter is active. The sort or filter owns the view order. |
 | `"unloaded-rows"` | The grid holds unloaded rows in scroll mode. |
 | `"nothing-to-do"` | The drop leaves the rows where they are. The list is empty. An index or `to` is outside the grid. `moveRowsBy` shifts a row out of the grid. |
 
@@ -101,13 +101,13 @@ In development, the grid also warns for `"view-ordered"` and `"unloaded-rows"`.
 
 After a move, the checked rows and the active cell follow their rows. An open editor follows its row too. If the rows of a selected range end up next to each other, the range stays. Otherwise it collapses onto the active cell. The grid announces each move in its live region through `labels.markers.reorderAnnouncement` for one row and `labels.markers.reorderRowsAnnouncement` for several rows. Under client pagination, the announced positions count the rows of the shown page, like the row numbers.
 
-The grid does not recompute search matches after a move. They point at other rows until the next view rebuild, such as a new search text. Presence highlights in the view-index range form go stale the same way. The row-id range form follows its rows. See [Show presence](/docs/rows-live-data/show-presence).
+Presence highlights in the view-index range form go stale after a move. The row-id range form follows its rows. See [Show presence](/docs/rows-live-data/show-presence).
 
 ## Server mode
 
 A move is one change with `source: "row-operation"`. It reaches `onDataChange` and `onSave`. `change.ops` holds one `move` operation per moved row. In each operation, `from` is the index before the whole batch and `to` is the index after it. Apply the operations together with `applyChange`. A server that applies them one at a time ends with the wrong order.
 
-With `sortMode="server"`, the grid does not sort, so the sort block does not apply. Scroll mode blocks a move while the grid holds unloaded rows.
+With `sortMode="server"`, an active sort still blocks a move with the reason `"view-ordered"`. Scroll mode blocks a move while the grid holds unloaded rows.
 
 ## Related
 

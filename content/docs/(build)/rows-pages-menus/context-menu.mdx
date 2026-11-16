@@ -91,7 +91,7 @@ These rules gate the row items:
 
 An item that has a keymap action shows its key as a hint. The fill and header items show none. [Row operations](/docs/rows-pages-menus/row-operations) owns what each operation does.
 
-If a Cut or Copy write fails, the next menu opens with both items turned off and the `labels.contextMenu.clipboardFailed` tooltip. After that menu closes, both items work again.
+If a Cut or Copy write fails, the next menu opens with both items turned off and the `labels.contextMenu.clipboardFailed` tooltip.
 
 Row markers, the empty space below the last row, the scrollbar gutter, pinned rows, and unloaded rows have no menu. A right-click on them opens the browser menu.
 
@@ -183,21 +183,23 @@ function GridWithExtraItem() {
 }
 ```
 
-<Callout type="warn" title="Do not call hooks in a resolver">
-  A resolver is a plain function that runs while the open menu renders. Read grid state from `ctx`. Read other hook values in the enclosing component and close over them.
-</Callout>
+A resolver is a plain function. Read grid state from `ctx`. Read hook values in your component and use them in the resolver.
+
+## Server mode
+
+On a server grid, **All matching** turns off Duplicate and Delete. A row item on unloaded rows does nothing, with the reason `"unloaded-rows"`. See [Row operations](/docs/rows-pages-menus/row-operations#server-mode).
 
 ## Touch
 
-Long-press a cell or a header for 500 ms to open its menu. The grid raises one `contextmenu` event, so `onCellContextMenu` fires as it does for a right-click. The browser's own touch menu stays closed. While the fill add-on runs, the cell menu of a touch selection also lists **Fill down** and **Fill right**. Their text comes from `labels.contextMenu.fillDown` and `labels.contextMenu.fillRight`.
+Long-press a cell or a header for 500 ms to open its menu. The grid raises one `contextmenu` event, so `onCellContextMenu` fires as it does for a right-click. While the fill add-on runs, the cell menu of a touch selection also lists **Fill down** and **Fill right**. Their text comes from `labels.contextMenu.fillDown` and `labels.contextMenu.fillRight`. The click that follows a long press does nothing.
 
 ## Paste permission
 
-The Paste item reads the system clipboard, which needs the `clipboard-read` permission. If the browser denies it, the item turns disabled and shows the `labels.contextMenu.pasteBlocked` hint, which points to <kbd>Ctrl</kbd>+<kbd>V</kbd>, or <kbd>Cmd</kbd>+<kbd>V</kbd> on macOS. The hint stays for later menus of the same wrapper. The paste formats are on [Clipboard](/docs/clipboard-undo/clipboard).
+The Paste item reads the system clipboard, which needs the `clipboard-read` permission. If the browser denies it, the item turns disabled and shows the `labels.contextMenu.pasteBlocked` hint, which points to <kbd>Ctrl</kbd>+<kbd>V</kbd>, or <kbd>Cmd</kbd>+<kbd>V</kbd> on macOS. 
 
 ## Labels [#internationalization]
 
-Every item text comes from `labels.contextMenu`. The right-click menu and the header dropdown share the same keys. See [Labels](/docs/components-props/labels).
+Every item text comes from `labels.contextMenu`. See [Labels](/docs/components-props/labels).
 
 ## Related
 

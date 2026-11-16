@@ -10,25 +10,31 @@ Write a plugin to paint on the grid, observe data changes, or add a command. Thi
 
 ## Before you start
 
-- Mount a grid with `columns` and `data`.
-- Know that a plugin object attaches to one grid. Create one object per grid.
-- Know the coordinates. A view index is a row position in the sorted and filtered order. A rect is `{ x, y, width, height }`: `x` is a visible column index and `y` is a view index. A pin zone is the pinned-left, unpinned, or pinned-right part of the grid.
-- Pick the part. `Overlay` paints, `rowBands` adds rows, and `onDataChange` observes writes. `commands` adds commands. `keymap` binds keys to the commands of the plugin. A key that another action holds stays with that action. The grid renders `Mount` inside the grid root.
+Mount a grid with `columns` and `data`.
+
+## Coordinates
+
+A view index is a row position in the sorted and filtered order. A rect is `{ x, y, width, height }`: `x` is a visible column index and `y` is a view index. A pin zone is the start side, the unpinned middle, or the end side of the grid.
+
+A plugin object attaches to one grid, so create one object per grid. Pick the part you need:
+
+- `Overlay` paints.
+- `rowBands` adds rows.
+- `onDataChange` observes writes.
+- `commands` adds commands, and `keymap` binds keys to them. A key that another action holds stays with that action.
+
+The grid renders `Mount` inside the grid root.
 
 ## Steps
 
 1. Write a component that takes the overlay `ctx` and returns the band. The grid renders it after the selection fills and before the active-cell ring.
-2. Build a rect. Use `ctx.clampRowStart` and `ctx.clampRowEnd` for the rows.
-3. Call `ctx.clampRectToWindow(rect, clampRowStart, clampRowEnd, colCount)`. If the rect lies outside the rendered rows, it returns `null`.
-4. Check `hasAnyPin(ctx.pinTrack)`. If it is true, call `ctx.splitRectByPinZones(clamped, ctx.pinTrack)`. It returns one segment for each pin zone that the rect crosses, up to three.
-5. Spread the `pinStyle` of a pinned segment into its style. Set `zIndex: GRID_LAYER.pinnedOverlaySegment`, so the band paints above the pinned cells.
-6. Place every segment on the grid lines. Add `ctx.colOffset` to `rect.x` for columns, and use `rect.y - ctx.windowStart + 1` for rows. `windowStart` is the grid line origin of the rows canvas. Set `position: "relative"`. Cells have a position, so a static band paints below them.
-7. Read the column from React context and not from a closure. A new `Overlay` function remounts the overlay and logs a warning in development.
-8. Return `{ name, Overlay }` from a factory and pass the result in `plugins`.
+2. Return `OverlayRect` with the `ctx` and a rect. It clamps the rect to the rendered rows, splits it at pinned columns, and places each part on the grid lines. Style it with `className`.
+3. Read the column from React context and not from a closure. A new `Overlay` function remounts the overlay and logs a warning in development.
+4. Return `{ name, Overlay }` from a factory and pass the result in `plugins`.
 
 ## Paint a column
 
-The sample below does all eight steps. `./orders` stands for your own module of `columns` and `orders` rows. Create the plugin once per grid with `useState`:
+The sample below does all four steps. `./orders` stands for your own module of `columns` and `orders` rows. Create the plugin once per grid with `useState`:
 
 ```tsx
 "use client";
@@ -37,56 +43,23 @@ import { createContext, useContext, useState } from "react";
 import {
   DataGrid,
   type DataGridPlugin,
-  type GridRect,
   type OverlayPluginCtx,
 } from "@/components/data-grid/data-grid";
-import { GRID_LAYER, hasAnyPin } from "@/components/data-grid/data-grid-sdk";
+import { OverlayRect } from "@/components/data-grid/data-grid-sdk";
 import { columns, orders } from "./orders";
 
 const HighlightedColumn = createContext<number | null>(null);
 
-type BandProps = { column: number; ctx: OverlayPluginCtx };
-
-function ColumnBand({ column, ctx }: BandProps) {
-  const { clampRowStart, clampRowEnd, colCount } = ctx;
-  const { colOffset, windowStart } = ctx;
-  const rect: GridRect = {
-    x: column,
-    y: clampRowStart,
-    width: 1,
-    height: clampRowEnd - clampRowStart,
-  };
-  const clamped = ctx.clampRectToWindow(
-    rect,
-    clampRowStart,
-    clampRowEnd,
-    colCount,
-  );
-  if (!clamped) return null;
-  const segments = hasAnyPin(ctx.pinTrack)
-    ? ctx.splitRectByPinZones(clamped, ctx.pinTrack)
-    : [{ rect: clamped, pinStyle: undefined }];
-  return segments.map(({ rect: part, pinStyle }, index) => (
-    <div
-      key={index}
-      aria-hidden="true"
-      className="pointer-events-none bg-primary/10"
-      style={{
-        position: "relative",
-        gridColumnStart: part.x + colOffset,
-        gridColumnEnd: part.x + part.width + colOffset,
-        gridRowStart: part.y - windowStart + 1,
-        gridRowEnd: part.y + part.height - windowStart + 1,
-        ...pinStyle,
-        ...(pinStyle ? { zIndex: GRID_LAYER.pinnedOverlaySegment } : {}),
-      }}
-    />
-  ));
-}
-
 function ColumnOverlay(ctx: OverlayPluginCtx) {
   const column = useContext(HighlightedColumn);
-  return column === null ? null : <ColumnBand column={column} ctx={ctx} />;
+  if (column === null) return null;
+  const rect = {
+    x: column,
+    y: ctx.clampRowStart,
+    width: 1,
+    height: ctx.clampRowEnd - ctx.clampRowStart,
+  };
+  return <OverlayRect ctx={ctx} rect={rect} className="bg-primary/10" />;
 }
 
 function createColumnHighlight(): DataGridPlugin {
