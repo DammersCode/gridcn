@@ -62,6 +62,7 @@ The props of 1.3 map to `checkedRowsLifetime` like this:
 | <span id="number-rejects" />Number text | `abc` clears the cell. `1,234` stores 1.234. | The cell keeps its value, and the grid reports the text. | Clean the text before a paste or an import. |
 | <span id="select-rejects" />Select text | Text that matches no choice empties the cell | The cell keeps its value, and the grid reports the text | To empty the cell, return `null` for the text from `processCellFromClipboard`. |
 | <span id="validate-compose" />Column `validate` with a type `validate` | The column rule replaces the type rule | The type rule runs first, then the column rule | To allow longer `longText`, raise `options.maxLength`. |
+| <span id="locale-implies-format" />Column `locale` without a format | No effect, plus a development warning | Grouped digits for `number`, the medium date style for `date` | To keep the raw display, remove `locale`. |
 | <span id="process-fill" />Fill gate | `onFill({ target, preventDefault })` | `processFill({ target, cells })` returns the cells or `false` | Return `false` to cancel. Return `cells` to write. |
 | <span id="paste-refused" />`pasteFromClipboard` result | `"empty"` for a paste that does not start | `"refused"`. `"empty"` means no text. | Handle `"refused"`. |
 | <span id="clipboard-labels" />Clipboard failure labels | `pasteBlocked` and `clipboardFailed` are strings | A string or a function of the modifier name | Handle both forms where you read them. |

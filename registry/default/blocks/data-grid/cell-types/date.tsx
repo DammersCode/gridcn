@@ -1,6 +1,8 @@
 import { cn } from "@/lib/utils";
 import { toSafeText } from "./safe-text";
-import { createFormatterCache, formatKey, warnLocaleWithoutFormat } from "./formatter-cache";
+import { createFormatterCache, formatKey } from "./formatter-cache";
+
+const IMPLIED_DATE_FORMAT: Intl.DateTimeFormatOptions = { dateStyle: "medium" };
 import { use, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import { useStore } from "zustand";
 import { CalendarIcon } from "lucide-react";
@@ -103,12 +105,13 @@ function getDateFormatter(locale: string, format: Intl.DateTimeFormatOptions): I
 /** Formats an ISO date part per the column's `displayFormat`/`locale`, falling back to the raw ISO text. */
 function formatDateDisplay(value: string | null, options?: GridCellTypes["date"]["options"]): string {
   const text = toSafeText(value);
-  if (options?.locale && !options.displayFormat) warnLocaleWithoutFormat("date", options.locale);
-  if (!options?.displayFormat) return text;
+  // a locale alone implies the medium date style
+  const displayFormat = options?.displayFormat ?? (options?.locale ? IMPLIED_DATE_FORMAT : undefined);
+  if (!displayFormat) return text;
   const date = isoDatePartToLocalDate(text);
   if (!date) return text;
   // pinned default: server and browser Intl defaults can differ -> SSR hydration mismatch
-  const formatter = getDateFormatter(options.locale ?? "en-US", options.displayFormat);
+  const formatter = getDateFormatter(options?.locale ?? "en-US", displayFormat);
   return formatter ? formatter.format(date) : text;
 }
 
