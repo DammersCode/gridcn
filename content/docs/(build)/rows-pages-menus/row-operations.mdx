@@ -45,7 +45,7 @@ function MyGrid() {
 | `duplicateRow` | `(row: TData, index: number, ctx: { signal: AbortSignal }) => TData \| Promise<TData>` | none |
 | `onBeforeDeleteRows` | `(ctx: { rowIds: readonly string[]; hiddenCount: number; signal: AbortSignal }) => boolean \| Promise<boolean>` | none |
 
-Without a factory, the operation does nothing, the context menu hides its item, and a programmatic call warns in development. `useDataGridRowOps()` returns `canCreateRow` and `canDuplicateRow`. See [Context menu options](/docs/add-options/rows-pages-menus/context-menu-options#usedatagridrowops).
+Without a factory, the operation does nothing, the context menu hides its item, and a programmatic call warns in development. `useDataGridRowOps()` from `data-grid-context-menu` returns `canCreateRow` and `canDuplicateRow`. See [Context menu options](/docs/add-options/rows-pages-menus/context-menu-options#usedatagridrowops).
 
 `createRow` receives the data index of the new row. `duplicateRow` receives the source row and the data index of the copy. Give the copy a new id.
 

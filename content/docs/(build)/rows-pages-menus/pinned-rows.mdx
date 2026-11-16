@@ -14,7 +14,7 @@ A totals or averages row must stay in sight while the data rows scroll. `useData
 
 ## Pin rows [#wiring-it-up]
 
-The hook returns one plugin. Pass the plugin to the grid through `plugins`. Each band takes its own array of rows. The arrays do not index into `data`:
+The hook returns one plugin. Pass the plugin to the grid through `plugins`. Each band takes its own array of rows, separate from `data`:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
@@ -166,7 +166,7 @@ For anything else, compute the band rows yourself in a `useMemo`, as the first s
 
 ## Geometry [#geometry]
 
-The top band shrinks the space above the data rows, like the header. The bottom band shrinks the bottom of the viewport. Both work with row virtualization and with `useDataGridScrollToCell`, so keyboard navigation never scrolls a data row under a band. A pinned-left or pinned-right column stays fixed inside a band.
+The top band shrinks the space above the data rows, like the header. The bottom band shrinks the bottom of the viewport. Both work with row virtualization and with `useDataGridScrollToCell`, so keyboard navigation never scrolls a data row under a band. A column pinned to the start side or the end side stays fixed inside a band.
 
 Each band casts a soft shadow on the edge that faces the data rows. The shadow appears only after a data row scrolls beneath the band. It uses the `--grid-pin-shadow` token.
 
