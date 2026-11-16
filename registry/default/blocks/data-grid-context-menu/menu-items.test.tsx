@@ -2,11 +2,12 @@ import { useEffect } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { DataGridProvider, DataGridRoot, defineColumns, useDataGridActions } from "../data-grid/data-grid";
-import { useDataGridStoreApi } from "../data-grid/data-grid-sdk";
+import { useDataGridStoreApi, type DataGridStoreState } from "../data-grid/data-grid-sdk";
 import {
   useDefaultCellMenuItems,
   useDefaultHeaderMenuItems,
   type GridMenuItemSpec,
+  COLUMN_WIDTH_STEP,
 } from "./menu-items";
 import { viewIndex } from "@/registry/default/blocks/data-grid/types";
 
@@ -190,7 +191,7 @@ describe("useDefaultHeaderMenuItems", () => {
   it("builds the full built-in set for a sortable, pinnable, resizable column", () => {
     let header: GridMenuItemSpec[] = [];
     renderProbe({ onSpecs: (_c, h) => { header = h; } });
-    expect(ids(header)).toEqual(["sort-asc", "sort-desc", "sep-sort", "pin-start", "pin-end", "hide-column", "sep-autosize", "autosize", "autosize-all"]);
+    expect(ids(header)).toEqual(["sort-asc", "sort-desc", "sep-sort", "pin-start", "pin-end", "hide-column", "sep-move", "move-toward-start", "move-toward-end", "sep-autosize", "widen-column", "narrow-column", "autosize", "autosize-all"]);
     expect(item(header, "unpin")).toBeUndefined();
     // `disabled: !pinnable` is explicit; only `true` renders inert
     expect(item(header, "pin-start")?.disabled).toBe(false);
@@ -206,7 +207,64 @@ describe("useDefaultHeaderMenuItems", () => {
   it("adds the unpin entry for a pinned column", () => {
     let header: GridMenuItemSpec[] = [];
     renderProbe({ pin: "start", onSpecs: (_c, h) => { header = h; } });
-    expect(ids(header)).toEqual(["sort-asc", "sort-desc", "sep-sort", "pin-start", "pin-end", "unpin", "hide-column", "sep-autosize", "autosize", "autosize-all"]);
+    expect(ids(header)).toEqual(["sort-asc", "sort-desc", "sep-sort", "pin-start", "pin-end", "unpin", "hide-column", "sep-move", "move-toward-start", "move-toward-end", "sep-autosize", "widen-column", "narrow-column", "autosize", "autosize-all"]);
+  });
+
+  it("moves the column one place within its pin zone, and disables a move off the zone's edge", () => {
+    let header: GridMenuItemSpec[] = [];
+    let state: (() => DataGridStoreState) | null = null;
+    function StateProbe() {
+      const api = useDataGridStoreApi();
+      state = () => api.getState();
+      return null;
+    }
+    render(
+      <DataGridProvider data={rows} columns={columns} getRowId={(row) => row.id}>
+        <DataGridRoot>
+          <StateProbe />
+          <Probe headerColumnId="name" onSpecs={(_c, h) => { header = h; }} />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    expect(item(header, "move-toward-start")?.disabled).toBe(true);
+    expect(item(header, "move-toward-end")?.disabled).toBe(false);
+
+    act(() => item(header, "move-toward-end")!.onClick!());
+    expect(state!().visibleColumns.map((column) => column.id)).toEqual(["score", "name"]);
+    expect(item(header, "move-toward-end")?.disabled).toBe(true);
+
+    act(() => item(header, "move-toward-start")!.onClick!());
+    expect(state!().visibleColumns.map((column) => column.id)).toEqual(["name", "score"]);
+  });
+
+  it("disables both moves for a pinned column alone in its zone", () => {
+    let header: GridMenuItemSpec[] = [];
+    renderProbe({ pin: "start", onSpecs: (_c, h) => { header = h; } });
+    expect(item(header, "move-toward-start")?.disabled).toBe(true);
+    expect(item(header, "move-toward-end")?.disabled).toBe(true);
+  });
+
+  it("widens and narrows the column by one step", () => {
+    let header: GridMenuItemSpec[] = [];
+    let state: (() => DataGridStoreState) | null = null;
+    function StateProbe() {
+      const api = useDataGridStoreApi();
+      state = () => api.getState();
+      return null;
+    }
+    render(
+      <DataGridProvider data={rows} columns={columns} getRowId={(row) => row.id}>
+        <DataGridRoot>
+          <StateProbe />
+          <Probe headerColumnId="name" onSpecs={(_c, h) => { header = h; }} />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    act(() => item(header, "widen-column")!.onClick!());
+    expect(state!().columnWidths.name).toBe(120 + COLUMN_WIDTH_STEP);
+    act(() => item(header, "narrow-column")!.onClick!());
+    act(() => item(header, "narrow-column")!.onClick!());
+    expect(state!().columnWidths.name).toBe(120 - COLUMN_WIDTH_STEP);
   });
 
   it("returns no items for an unknown column id", () => {

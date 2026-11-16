@@ -8,6 +8,8 @@ import {
 } from "react";
 import {
   ArrowDown,
+  ArrowLeftToLine,
+  ArrowRightToLine,
   ArrowUp,
   Clipboard,
   Copy,
@@ -15,6 +17,7 @@ import {
   Eraser,
   EyeOff,
   Maximize2,
+  Minus,
   MoveHorizontal,
   Pin,
   PinOff,
@@ -39,7 +42,9 @@ import {
   useDataGridLabels,
   useDataGridReadOnly,
   useDataGridSelection,
+  useDataGridColumnWidth,
   useDataGridSortState,
+  useDataGridVisibleColumns,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { rowOperationTargets, useDataGridStoreApi, useDataGridCommands, useDataGridSelector, useDataGridSelectionConfig, useDataGridSelectionPointer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MenuShortcut } from "./menu-shortcut";
@@ -248,13 +253,18 @@ export function useDefaultCellMenuItems(args: {
   return specs;
 }
 
+/** Pixels one "Widen column" or "Narrow column" step adds or removes; the store clamps to the column's limits. */
+export const COLUMN_WIDTH_STEP = 16;
+
 /** The built-in header-surface set as specs, resolved for the current grid state (sort, pin/resize flags, labels). */
 export function useDefaultHeaderMenuItems(args: { columnId: string; scrollRoot: HTMLElement | null }): GridMenuItemSpec[] {
-  const { columnId } = args;
+  const { columnId, scrollRoot } = args;
   const actions = useDataGridActions();
   const sortState = useDataGridSortState();
   const columns = useDataGridAllColumns();
-  const { enableColumnPinning, enableColumnResize } = useDataGridColumnFeatureFlags();
+  const visibleColumns = useDataGridVisibleColumns();
+  const savedWidth = useDataGridColumnWidth(columnId);
+  const { enableColumnPinning, enableColumnResize, enableColumnReorder } = useDataGridColumnFeatureFlags();
   const labels = useDataGridLabels();
 
   const column = columns.find((c) => c.id === columnId);
@@ -288,9 +298,28 @@ export function useDefaultHeaderMenuItems(args: { columnId: string; scrollRoot: 
   if (column.hideable !== false) {
     specs.push({ id: "hide-column", label: labels.contextMenu.hideColumn, icon: <EyeOff className="size-4 text-muted-foreground" />, onClick: () => actions.setColumnHidden(columnId, true) });
   }
+  // The drag-free path to reorder and resize, for the keyboard (Shift+Alt+ArrowDown opens this menu) and single pointers.
+  const position = visibleColumns.findIndex((c) => c.id === columnId);
+  const neighbor = (step: -1 | 1) => {
+    const other = position === -1 ? undefined : visibleColumns[position + step];
+    return other && (other.pin ?? null) === (column.pin ?? null) && other.reorderable !== false ? other : undefined;
+  };
+  const before = neighbor(-1);
+  const after = neighbor(1);
+  if (enableColumnReorder && column.reorderable !== false && position !== -1) {
+    specs.push(
+      { id: "sep-move", separator: true },
+      { id: "move-toward-start", label: labels.contextMenu.moveTowardStart, icon: <ArrowLeftToLine className="size-4 text-muted-foreground rtl:-scale-x-100" />, disabled: !before, onClick: () => before && actions.setColumnOrder(columnId, before.id, "before") },
+      { id: "move-toward-end", label: labels.contextMenu.moveTowardEnd, icon: <ArrowRightToLine className="size-4 text-muted-foreground rtl:-scale-x-100" />, disabled: !after, onClick: () => after && actions.setColumnOrder(columnId, after.id, "after") },
+    );
+  }
   if (resizable) {
+    // The rendered header width includes flex growth, which the saved width and the def do not hold.
+    const currentWidth = () => scrollRoot?.querySelector(`[role="columnheader"][data-column-id="${CSS.escape(columnId)}"]`)?.getBoundingClientRect().width || savedWidth || column.width || 150;
     specs.push(
       { id: "sep-autosize", separator: true },
+      { id: "widen-column", label: labels.contextMenu.widenColumn, icon: <Plus className="size-4 text-muted-foreground" />, onClick: () => actions.setColumnWidth(columnId, currentWidth() + COLUMN_WIDTH_STEP) },
+      { id: "narrow-column", label: labels.contextMenu.narrowColumn, icon: <Minus className="size-4 text-muted-foreground" />, onClick: () => actions.setColumnWidth(columnId, currentWidth() - COLUMN_WIDTH_STEP) },
       { id: "autosize", label: labels.contextMenu.autosize, icon: <MoveHorizontal className="size-4 text-muted-foreground" />, onClick: () => actions.autosizeColumns({ columnIds: [columnId] }) },
       { id: "autosize-all", label: labels.contextMenu.autosizeAll, icon: <Maximize2 className="size-4 text-muted-foreground" />, onClick: () => actions.autosizeColumns() },
     );
