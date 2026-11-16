@@ -30,30 +30,32 @@ This plugin reports the source and the row ids of every change:
 ```tsx
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import type { DataGridPlugin } from "@/components/data-grid/data-grid";
 
 export function useAuditLog(
   report: (source: string, rowIds: string[]) => void,
 ): { plugin: DataGridPlugin } {
+  const reportRef = useRef(report);
+  reportRef.current = report;
   return useMemo(
     () => ({
       plugin: {
         name: "audit-log",
         onDataChange: (_next, change) => {
-          report(
+          reportRef.current(
             change.source,
             change.ops.map((op) => op.rowId),
           );
         },
       },
     }),
-    [report],
+    [],
   );
 }
 ```
 
-Pass a `report` function with a stable identity. A new function rebuilds the plugin, and the grid resolves its plugins again.
+The plugin reads `report` through a ref, so a new `report` function does not rebuild the plugin.
 
 ## Errors in observers
 
