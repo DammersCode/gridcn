@@ -39,7 +39,9 @@ import {
   DataGridHeader,
   defineColumns,
 } from "@/components/data-grid/data-grid";
-import { useDataGridState } from "@/components/data-grid-history/data-grid-history";
+import {
+  useDataGridState,
+} from "@/components/data-grid-history/data-grid-history";
 
 type Order = { id: string; customer: string };
 
@@ -48,7 +50,7 @@ const columns = defineColumns<Order>()([
 ] as const);
 
 export function OrdersGrid({ orders }: { orders: Order[] }) {
-  const grid = useDataGridState(orders, { getRowId: (order) => order.id });
+  const grid = useDataGridState(orders);
 
   return (
     <>

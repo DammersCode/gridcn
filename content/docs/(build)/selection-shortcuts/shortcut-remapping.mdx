@@ -24,7 +24,9 @@ import {
   DataGridRoot,
   defineColumns,
 } from "@/components/data-grid/data-grid";
-import { useDataGridKeybindings } from "@/components/data-grid-keybindings/data-grid-keybindings";
+import {
+  useDataGridKeybindings,
+} from "@/components/data-grid-keybindings/data-grid-keybindings";
 
 type Order = { id: string; customer: string };
 
@@ -39,7 +41,6 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
     <DataGridProvider
       data={orders}
       columns={columns}
-      getRowId={(order) => order.id}
       plugins={[keys.plugin]}
     >
       <button type="button" onClick={keys.open}>Shortcuts</button>
@@ -64,30 +65,19 @@ The <kbd>?</kbd> key is a normal keymap binding. With the grid focused and no ce
 
 ## Shortcut labels for your own UI [#shortcut-labels-for-your-own-ui]
 
-`formatShortcut(binding)` returns the display tokens of a binding. `isMacPlatform()` reports the platform check that the labels use. Both come from the `data-grid` entry point:
+`useShortcutLabel(binding)` returns the key labels of a binding as a list. It renders word names on the server and switches to glyphs on macOS after hydration. It comes from the `data-grid` entry point:
 
 ```tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import { formatShortcut, isMacPlatform } from "@/components/data-grid/data-grid";
-
-const KEY = "mod+shift+z";
+import { useShortcutLabel } from "@/components/data-grid/data-grid";
 
 export function RedoHint() {
-  const [tokens, setTokens] = useState(() => formatShortcut(KEY, false));
-
-  useEffect(() => {
-    setTokens(formatShortcut(KEY, isMacPlatform()));
-  }, []);
-
-  return <span>{tokens.join(" ")}</span>;
+  return <span>{useShortcutLabel("mod+shift+z").join(" ")}</span>;
 }
 ```
 
-The tokens are `["⌘", "⇧", "Z"]` on macOS and `["Ctrl", "Shift", "Z"]` elsewhere. `ctrl` always renders as `Ctrl`.
-
-During server rendering, the labels render as words. `BindingChips` switches to glyphs after hydration. Compute your own labels after mount.
+The labels are `["⌘", "⇧", "Z"]` on macOS and `["Ctrl", "Shift", "Z"]` elsewhere. `ctrl` always renders as `Ctrl`. `BindingChips` follows the same rule. `formatShortcut(binding, isMac)` returns the labels for a platform that you choose, and `isMacPlatform()` reports the platform check.
 
 ## Remapping [#remapping]
 
@@ -107,7 +97,6 @@ export function Tasks({ tasks }: { tasks: Task[] }) {
     <DataGrid
       data={tasks}
       columns={columns}
-      getRowId={(task) => task.id}
       keymap={{
         // keep mod+a and add a second binding that the browsers leave free
         selectAll: ["mod+a", "F8"],
@@ -129,9 +118,7 @@ The type-to-replace trigger (`typeToReplace`) has no default binding. Any unboun
 
 ### Reserved chords [#reserved-chords]
 
-The OS or the browser owns some key combinations. A binding on one of them never fires, or the browser acts on the key too. Do not bind these chords:
-
-[Shortcut remapping options](/docs/add-options/selection-shortcuts/shortcut-remapping-options#reserved-chords) lists the chords to avoid.
+The OS or the browser owns some key combinations. A binding on one of them never fires, or the browser acts on the key too. [Shortcut remapping options](/docs/add-options/selection-shortcuts/shortcut-remapping-options#reserved-chords) lists them.
 
 Two default bindings meet a reserved chord. With the [fill add-on](/docs/clipboard-undo/fill-handle) mounted, `fillDown` (`mod+d`) and `fillRight` (`mod+r`) take their keys while the grid has focus, and the grid calls `preventDefault` on them. Without the add-on, the browser keeps the keys.
 
@@ -140,7 +127,11 @@ Two default bindings meet a reserved chord. With the [fill add-on](/docs/clipboa
 A `keymap` binding for a name that is no built-in action runs the matching `commands` entry. Each entry is a `GridCommand`:
 
 ```tsx
-import { DataGridProvider, DataGridRoot, defineColumns } from "@/components/data-grid/data-grid";
+import {
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
 import type { GridCommand, Keymap } from "@/components/data-grid/data-grid";
 
 type Order = { id: string; customer: string };
@@ -165,7 +156,6 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
     <DataGridProvider
       data={orders}
       columns={columns}
-      getRowId={(order) => order.id}
       keymap={keymap}
       commands={commands}
     >

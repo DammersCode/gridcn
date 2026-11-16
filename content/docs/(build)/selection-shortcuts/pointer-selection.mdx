@@ -40,7 +40,7 @@ A touch screen scrolls natively. The grid reads the input type of each press. A 
 | Tap a column header | Selects the column. With `headerClickBehavior="sort"`, it sorts the column. |
 | Tap the number of a row marker | Checks only this row. |
 | Tap the checkbox of a row marker | Toggles this row and keeps the other checks. |
-| Long-press (500 ms) a cell or a header | Fires a `contextmenu` event. The [context menu](/docs/rows-pages-menus/context-menu) add-on opens its menu. |
+| Long-press (500 ms) a cell or a header | Fires a `contextmenu` event, with every `headerClickBehavior`. The [context menu](/docs/rows-pages-menus/context-menu) add-on opens its menu. The click after a long press does nothing. |
 | Drag a selection handle | Extends the range from the opposite corner. The grid scrolls at the edges. |
 
 After a touch selection, two selection handles appear at the top-start and bottom-end corners of the range. A key press other than a modifier hides them, and so does an open editor. A press that moves more than 10 px counts as a pan, not a tap.
@@ -76,7 +76,6 @@ export function People({ rows }: { rows: Person[] }) {
     <DataGrid
       data={rows}
       columns={columns}
-      getRowId={(row) => row.id}
       headerClickBehavior="sort"
     />
   );
