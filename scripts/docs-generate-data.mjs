@@ -21,7 +21,7 @@ export const FINDER = [
   {
     id: "editing--access",
     title: "Editing and access",
-    pages: [["/docs/editing-cells/editable-columns", "Make a column editable or read-only"], ["/docs/editing-cells/edit-rows-forms", "Edit a whole row in a form"], ["/docs/editing-cells/validation", "Validate cell values"], ["/docs/editing-cells/validate-rows-cross-field", "Validate a row across fields"], ["/docs/editing-cells/lock-cells-role", "Lock cells by user role"], ["/docs/editing-cells/lookup-cell", "Search options on a server while the user types"], ["/docs/editing-cells/built-cell-types", "Use date, select, and other cell types"]],
+    pages: [["/docs/editing-cells/editable-columns", "Make a column editable or read-only"], ["/docs/editing-cells/edit-rows-forms", "Edit a whole row in a form"], ["/docs/editing-cells/validation", "Validate cells and whole rows"], ["/docs/editing-cells/lock-cells-role", "Lock cells by user role"], ["/docs/editing-cells/lookup-cell", "Search options on a server while the user types"], ["/docs/editing-cells/built-cell-types", "Use date, select, and other cell types"]],
   },
   {
     id: "ui-patterns",
@@ -31,7 +31,7 @@ export const FINDER = [
   {
     id: "select-copy-undo",
     title: "Select, copy, and undo",
-    pages: [["/docs/clipboard-undo/clipboard", "Copy and paste cells"], ["/docs/clipboard-undo/change-copy-paste", "Change how cells copy and paste"], ["/docs/clipboard-undo/fill-handle", "Fill cells by dragging"], ["/docs/clipboard-undo/undo-redo", "Undo and redo edits"], ["/docs/selection-shortcuts/checked-rows", "Check rows and act on them"], ["/docs/rows-live-data/select-server-rows", "Select every row of a server result"], ["/docs/selection-shortcuts/keyboard-navigation", "Move around the grid with the keyboard"]],
+    pages: [["/docs/clipboard-undo/clipboard", "Copy and paste cells"], ["/docs/clipboard-undo/change-copy-paste", "Change how cells copy and paste"], ["/docs/clipboard-undo/fill-handle", "Fill cells by dragging"], ["/docs/clipboard-undo/undo-redo", "Undo and redo edits"], ["/docs/selection-shortcuts/status-bar", "Show totals of the selected cells"], ["/docs/selection-shortcuts/checked-rows", "Check rows and act on them"], ["/docs/rows-live-data/select-server-rows", "Select every row of a server result"], ["/docs/selection-shortcuts/keyboard-navigation", "Move around the grid with the keyboard"]],
   },
   {
     id: "columns-rows",
