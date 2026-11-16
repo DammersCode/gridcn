@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { DataGridProvider, DataGridRoot, defineColumns, useDataGridActions } from "../data-grid/data-grid";
-import { useDataGridStoreApi, type DataGridStoreState } from "../data-grid/data-grid-sdk";
+import { useDataGridStoreApi, type DataGridReadState } from "../data-grid/data-grid-sdk";
 import {
   useDefaultCellMenuItems,
   useDefaultHeaderMenuItems,
@@ -212,7 +212,7 @@ describe("useDefaultHeaderMenuItems", () => {
 
   it("moves the column one place within its pin zone, and disables a move off the zone's edge", () => {
     let header: GridMenuItemSpec[] = [];
-    let state: (() => DataGridStoreState) | null = null;
+    let state: (() => DataGridReadState) | null = null;
     function StateProbe() {
       const api = useDataGridStoreApi();
       state = () => api.getState();
@@ -246,7 +246,7 @@ describe("useDefaultHeaderMenuItems", () => {
 
   it("widens and narrows the column by one step", () => {
     let header: GridMenuItemSpec[] = [];
-    let state: (() => DataGridStoreState) | null = null;
+    let state: (() => DataGridReadState) | null = null;
     function StateProbe() {
       const api = useDataGridStoreApi();
       state = () => api.getState();
@@ -261,10 +261,10 @@ describe("useDefaultHeaderMenuItems", () => {
       </DataGridProvider>,
     );
     act(() => item(header, "widen-column")!.onClick!());
-    expect(state!().columnWidths.name).toBe(120 + COLUMN_WIDTH_STEP);
+    expect(state!().columnWidths["name"]).toBe(120 + COLUMN_WIDTH_STEP);
     act(() => item(header, "narrow-column")!.onClick!());
     act(() => item(header, "narrow-column")!.onClick!());
-    expect(state!().columnWidths.name).toBe(120 - COLUMN_WIDTH_STEP);
+    expect(state!().columnWidths["name"]).toBe(120 - COLUMN_WIDTH_STEP);
   });
 
   it("returns no items for an unknown column id", () => {
