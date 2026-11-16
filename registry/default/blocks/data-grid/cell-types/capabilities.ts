@@ -85,6 +85,8 @@ export function resolveFilterValueInput<TData = unknown, TValue = unknown, TOpti
   return "text";
 }
 
+const boundTypeValidates = new WeakMap<AnyColumnDef, { source: unknown; bound: CellValidate }>();
+
 /**
  * `column.validate ?? cellType.validate` — the single resolution every validation path uses.
  * Generic over the cell type's params so a specialized `CellType<TData, TValue, TOptions>`
@@ -94,6 +96,13 @@ export function resolveColumnValidate<TData = unknown, TValue = unknown, TOption
   column: AnyColumnDef,
   cellType?: CellType<TData, TValue, TOptions>,
 ): CellValidate {
-  // the TValue-narrowed function is safe to treat as the unknown-input CellValidate — validation always receives the cell's own value
-  return column.validate ?? (cellType?.validate as CellValidate);
+  if (column.validate) return column.validate;
+  const typeValidate = cellType?.validate;
+  if (typeof typeValidate !== "function") return typeValidate as CellValidate;
+  const cached = boundTypeValidates.get(column);
+  if (cached?.source === typeValidate) return cached.bound;
+  // validation always receives the cell's own value, so the TValue-narrowed function takes the unknown-input form
+  const bound: CellValidate = (value, row) => (typeValidate as (value: unknown, row: unknown, options: unknown) => string | null)(value, row, column.options);
+  boundTypeValidates.set(column, { source: typeValidate, bound });
+  return bound;
 }

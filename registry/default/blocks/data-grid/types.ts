@@ -441,7 +441,7 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
    * own; same shape as {@link ColumnDef.validate}. Every validation path resolves
    * `column.validate ?? cellType.validate` (single-cell commit, paste, fill, updateCells, import).
    */
-  validate?: ((value: TValue, row: TData) => string | null) | StandardSchemaV1<TValue>;
+  validate?: ((value: TValue, row: TData, options?: TOptions) => string | null) | StandardSchemaV1<TValue>;
   /**
    * The edit gestures ACTIVATE this cell in place instead of opening an editor: Enter/F2, a
    * stationary click, and double-click commit `activate(value, options)` through `commitCellValue`
@@ -1021,7 +1021,7 @@ export interface GridCellTypes {
   longText: {
     value: string;
     options: {
-      /** The editor textarea's `maxLength`; default 100,000. Paste, fill, and import stay bounded by the type's `validate` at 100,000; declare a column `validate` for a smaller bound there. */
+      /** The editor textarea's `maxLength`; default 100,000. Editor, paste, fill, and import all enforce it. */
       maxLength?: number;
       placeholder?: string;
     };
