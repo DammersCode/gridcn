@@ -399,3 +399,90 @@ export const HOOK_GROUPS = [
     ],
   },
 ];
+
+// Hand-kept rows of the Options A to Z page: { names, owners, page }. A row lists the options that one hook, component, or function takes.
+export const OPTION_GROUPS = [
+  {
+    title: "Sort, filter, and search",
+    intro: "Options of the sort, filter, search, saved views, and URL add-ons.",
+    rows: [
+      { names: ["allColumns"], owners: ["DataGridSortList","DataGridFilterMenu"], page: "/docs/add-options/sort-filter-search/sort-list-options#allcolumns" },
+      { names: ["debounceMs","placeholder","className"], owners: ["DataGridSearch"], page: "/docs/add-options/sort-filter-search/toolbar-options#datagridsearch" },
+      { names: ["className"], owners: ["DataGridFilterMenu"], page: "/docs/add-options/sort-filter-search/toolbar-options" },
+      { names: ["column","index","className"], owners: ["DataGridHeaderFilter"], page: "/docs/add-options/sort-filter-search/toolbar-options#datagridheaderfilter" },
+      { names: ["scope","replaceAllLimit","processReplace"], owners: ["useDataGridFindReplace","planReplace"], page: "/docs/add-options/sort-filter-search/find-replace-options#usedatagridfindreplace" },
+      { names: ["matchCase","wholeCell","only","skip"], owners: ["planReplace"], page: "/docs/add-options/sort-filter-search/find-replace-options#planreplace" },
+      { names: ["storage","value","defaultValue","onValueChange","enableDefaultView","onError"], owners: ["useDataGridViews","DataGridViews"], page: "/docs/add-options/sort-filter-search/saved-views-options#options" },
+      { names: ["className","labels"], owners: ["DataGridViews"], page: "/docs/add-options/sort-filter-search/saved-views-options#options" },
+      { names: ["prefix","spec","layout"], owners: ["DataGridUrlState","useDataGridUrlState"], page: "/docs/add-options/sort-filter-search/url-state-options#usedatagridurlstate" },
+      { names: ["prefix","defaultPageSize","pageSizeOptions"], owners: ["useDataGridUrlPagination"], page: "/docs/add-options/sort-filter-search/url-state-options#usedatagridurlpagination" },
+    ],
+  },
+  {
+    title: "Clipboard and undo",
+    intro: "Options of the fill handle and the history add-ons.",
+    rows: [
+      { names: ["disabled","processFill","detectSeries"], owners: ["useDataGridFill"], page: "/docs/add-options/clipboard-undo/fill-handle-options" },
+      { names: ["getRowId","capacity","datasetKey"], owners: ["useDataGridState"], page: "/docs/add-options/clipboard-undo/undo-redo-options" },
+      { names: ["capacity","datasetKey","recordSources","onSkip"], owners: ["useDataGridHistory"], page: "/docs/add-options/clipboard-undo/undo-redo-options" },
+    ],
+  },
+  {
+    title: "Editing cells",
+    intro: "Options of the lookup cell type. A `lookup` column takes them in its `options` field.",
+    rows: [
+      { names: ["fetchOptions","debounceMs","minQueryLength","maxResults","unresolvedPaste","labels"], owners: ["lookup cell type"], page: "/docs/add-options/editing-cells/lookup-options#lookupoptions" },
+    ],
+  },
+  {
+    title: "Import, export, and print",
+    intro: "Options of the file add-ons.",
+    rows: [
+      { names: ["formats","options","onError","className"], owners: ["DataGridExportButton"], page: "/docs/add-options/import-export/export-options" },
+      { names: ["format","scope","includeHeaders","csvDelimiter","csvBom","sanitizeFormulas","fileName","sheetName","maxRows"], owners: ["exportGrid"], page: "/docs/add-options/import-export/export-options#exportgridoptions" },
+      { names: ["columns","formatCell","output"], owners: ["exportGrid"], page: "/docs/add-options/import-export/export-options#shape-output" },
+      { names: ["source","maxBytes","signal","onProgress"], owners: ["exportGrid"], page: "/docs/add-options/import-export/export-options#exportgridoptions" },
+      { names: ["scope","title","includeHeaders","pageSize","orientation","maxRows"], owners: ["printGrid"], page: "/docs/add-options/import-export/export-options#printgridoptions" },
+      { names: ["createRow","onImport","importDefaults","importLimits"], owners: ["DataGridImportButton"], page: "/docs/add-options/import-export/import-options#datagridimportdialogprops" },
+      { names: ["onImportError","parseFile","accept","csvEncoding","processImportRows","processCellFromText","file"], owners: ["DataGridImportButton"], page: "/docs/add-options/import-export/import-options#datagridimportdialogprops" },
+      { names: ["columnFallback","defaults","limits","parseFile","csvEncoding"], owners: ["useDataGridImportPreview"], page: "/docs/add-options/import-export/import-options#usedatagridimportpreview" },
+    ],
+  },
+  {
+    title: "Rows, pages, and menus",
+    intro: "Options of the pagination, pinned rows, and menu add-ons.",
+    props: "UseDataGridPagerOptions, DataGridServerAggregateReporterProps, UseDataGridAggregateOptions, AggregateRowOptions, ServerAggregateRowOptions",
+    rows: [
+      { names: ["data","defaultPageSize","pageSize","pageSizeOptions","defaultPage","page","onPageChange","onPageSizeChange"], owners: ["useDataGridPagination"], page: "/docs/add-options/rows-pages-menus/client-pagination-options" },
+      { names: ["page","pageSize","totalRowCount","hasMore","onPageChange","pageSizeOptions","onPageSizeChange"], owners: ["useDataGridServerPager"], page: "/docs/add-options/rows-pages-menus/client-pagination-options" },
+      { names: ["pageSizeOptions"], owners: ["useDataGridPager"], page: "/docs/add-options/rows-pages-menus/client-pagination-options#grid-pager" },
+      { names: ["className","labels","windowSize","children","pageSizeOptions","the fields of the pager"], owners: ["DataGridPaginationBar"], page: "/docs/add-options/rows-pages-menus/client-pagination-options" },
+      { names: ["getCellMenuItems","getHeaderMenuItems","className","children"], owners: ["DataGridContextMenu"], page: "/docs/add-options/rows-pages-menus/context-menu-options" },
+      { names: ["topRows","bottomRows","status"], owners: ["useDataGridPinnedRows"], page: "/docs/add-options/rows-pages-menus/pinned-rows-options#usedatagridpinnedrowsoptions" },
+      { names: ["fetchAggregates","columnIds","debounceMs","refreshAfterSave","onError"], owners: ["useDataGridServerAggregate","DataGridServerAggregateReporter"], page: "/docs/add-options/rows-pages-menus/pinned-rows-options#usedatagridserveraggregateoptions" },
+      { names: ["onChange"], owners: ["DataGridServerAggregateReporter"], page: "/docs/add-options/rows-pages-menus/pinned-rows-options#usedatagridserveraggregateoptions" },
+      { names: ["scope","cells"], owners: ["aggregateRow"], page: "/docs/add-options/rows-pages-menus/pinned-rows-options#aggregaterow" },
+      { names: ["fetchAggregates","columnIds","debounceMs","onError","cells","refreshAfterSave"], owners: ["serverAggregateRow"], page: "/docs/add-options/rows-pages-menus/pinned-rows-options#serveraggregaterow" },
+      { names: ["scope"], owners: ["useDataGridAggregate"], page: "/docs/add-options/rows-pages-menus/pinned-rows-options" },
+    ],
+  },
+  {
+    title: "Selection and shortcuts",
+    intro: "Options of the status bar and the key dialog.",
+    rows: [
+      { names: ["aggregates","formatValue","labels","className","children"], owners: ["DataGridStatusBar"], page: "/docs/add-options/selection-shortcuts/status-bar-options" },
+      { names: ["open","onOpenChange","defaultOpen","trigger","className"], owners: ["DataGridKeybindingsDialog"], page: "/docs/add-options/selection-shortcuts/shortcut-remapping-options" },
+    ],
+  },
+  {
+    title: "Server",
+    intro: "Options of the server rows and presence add-ons.",
+    rows: [
+      { names: ["mode","getRowId","fetchRows","defaultSpec","spec","onSpecChange","onError","onLoaded","onDataChange","revalidateIntervalMs","reshapeDelayMs"], owners: ["useDataGridServerRows"], page: "/docs/add-options/server/server-rows-options" },
+      { names: ["onSave","refreshAfterSave"], owners: ["useDataGridServerRows"], page: "/docs/add-options/server/server-rows-options#save-options" },
+      { names: ["page","defaultPage","pageSize","defaultPageSize","pageSizeOptions","onPageChange","onPageSizeChange","prefetchNextPage"], owners: ["useDataGridServerRows pages mode"], page: "/docs/add-options/server/server-rows-options#server-mode" },
+      { names: ["source","blockSize","overscan","loadDelayMs","maxConcurrentFetches","maxLoadedRows"], owners: ["useDataGridServerRows scroll mode"], page: "/docs/add-options/server/server-rows-options#usedatagridserverrowsscrolloptions" },
+      { names: ["maxRects","onExcessRects"], owners: ["useDataGridPresence"], page: "/docs/add-options/server/presence-options" },
+    ],
+  },
+];

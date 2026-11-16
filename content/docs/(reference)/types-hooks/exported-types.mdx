@@ -51,7 +51,6 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | `GateName` | A union of 7 gate names | For example `processPaste`, `validateRow`, `onBeforeEditStart`, and `import`. |
 | `GateContext` | `{ signal }` | The argument of an async gate. `signal` aborts when the grid stops waiting. |
 | `RowActionSkipReason` | A union of 10 reasons | Why a row action did nothing, such as `readOnly`, `gate-pending`, and `nothing-to-do`. |
-| `RowActionName` | `"insertRows"`, `"duplicateRows"`, `"deleteRows"`, or `"moveRows"` | The action that `onRowActionSkipped` names. `deleteRowsAt` reports as `deleteRows`, and `reorderRows` and `moveRowsBy` report as `moveRows`. |
 | `RowActionResult` | `{ ok: true } \| { ok: false, reason }` | What the insert, duplicate, and delete actions return: `ok` once the action ran or an async gate started, else the `RowActionSkipReason`. |
 | `SaveResolution` | `"theirs" \| "mine" \| { row } \| void` | The answer of `resolveSaveConflict`: take the server row, keep the grid row, or save a merged row. |
 
@@ -143,16 +142,11 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | `HeaderFilterRenderer` | `({ column, index }) => ReactNode` | The function that `renderHeaderFilter` takes to draw the filter control of a column header. |
 | `DataGridSortIndicatorProps` | `{ columnId, sortState?, className? }` | The props of `DataGridSortIndicator`. |
 | `DataGridCellProps` | The props of one rendered cell | The props of `DataGridCell`. |
-
-[DataGrid props](/docs/components-props/data-grid-props) lists the props that take the layout and display types.
-
-## Column helpers [#column-helpers]
-
-| Type | Shape | Meaning |
-| --- | --- | --- |
 | `KeysMatching<T, V>` | A union of keys | The keys of `T` whose value extends `V`. A nullable `V` also matches the non-null key type. |
 | `AccessorLike<TData>` | `{ id, accessorKey?, accessorFn?, setValue? }` | The accessor fields of a column literal that `defineColumns` reads. |
 | `InferredValue<TData, TCol>` | The value type of a column | The result type of `accessorFn`, else `TData[accessorKey]`, else `unknown`. |
+
+[DataGrid props](/docs/components-props/data-grid-props) lists the props that take the layout and display types.
 
 ## Related
 

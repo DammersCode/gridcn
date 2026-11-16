@@ -8,7 +8,7 @@ import { pathToFileURL } from "node:url";
 import { frontField, pageIndex, readLf, splitFrontmatter, urlOfPage } from "./docs-verify-lib.mjs";
 import { parseTypes } from "./verify-docs-props.mjs";
 import { MESSAGES, OMITTED } from "./docs-generate-messages.mjs";
-import { FINDER, FEATURES, FEATURE_SINCE, ADDONS, TERM_PAGES, ACTION_PAGES, HOOK_GROUPS } from "./docs-generate-data.mjs";
+import { FINDER, FEATURES, FEATURE_SINCE, ADDONS, TERM_PAGES, ACTION_PAGES, HOOK_GROUPS, OPTION_GROUPS } from "./docs-generate-data.mjs";
 
 const root = process.cwd();
 const BLOCKS = "registry/default/blocks";
@@ -717,6 +717,50 @@ function hooksZ() {
   ].join("\n");
 }
 
+// ---------------------------------------------------------------- options
+const OPTION_NAME = /^[A-Za-z_$][\w$]*$/;
+
+function optionsZ() {
+  const taken = new Set();
+  const optionRows = [];
+  for (const group of OPTION_GROUPS) {
+    for (const row of group.rows) {
+      const owners = row.owners.map(code).join(", ");
+      const target = link(row.page);
+      for (const name of row.names.filter((n) => OPTION_NAME.test(n))) optionRows.push({ name, owners, target, key: `${name}-${row.owners[0]}` });
+    }
+  }
+  optionRows.sort((a, b) => a.name.localeCompare(b.name) || a.owners.localeCompare(b.owners));
+  const byName = table(["Option", "Used by", "Page"], optionRows.map((r) => {
+    let id = r.key.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    for (let n = 2; taken.has(id); n++) id = `${id}-${n}`;
+    taken.add(id);
+    return [`<span id="${id}" />${code(r.name)}`, r.owners, r.target];
+  }));
+  const grouped = OPTION_GROUPS.flatMap((group) => [
+    `### ${group.title}`,
+    "",
+    group.intro,
+    "",
+    ...(group.props ? [`{/* props: ${group.props} */}`, ""] : []),
+    table(["Options", "Used by", "Page"], group.rows.map((row) => [row.names.map((n) => (OPTION_NAME.test(n) ? code(n) : n)).join(", "), row.owners.map(code).join(", "), link(row.page)])),
+  ]);
+  return [
+    frontmatter({ title: "Options A to Z", description: "Find the add-on option you need by name, see which hook or component takes it, and open its reference page.", type: "cheatsheet", icon: "Settings2", aliases: ["add-on options", "option names"] }),
+    MARKER,
+    "",
+    "The first table has one row for each option. The Used by column names the hook, component, or function that takes it. Each row links to the reference page of that add-on. The second table set groups the options by add-on.",
+    "",
+    "## By name [#by-name]",
+    "",
+    byName,
+    "## By add-on [#by-add-on]",
+    "",
+    ...grouped,
+    related(["/docs/cheatsheets-messages/props-z", ""], ["/docs/cheatsheets-messages/hooks-z", ""], ["/docs/cheatsheets-messages/events-z", ""], ["/docs/fit-features/add-ons-a-z", ""]),
+  ].join("\n");
+}
+
 // ---------------------------------------------------------------- messages
 const MESSAGE_CALL = /\b(console\.(?:warn|error)|warnDev|warnOnce|warnGateOnce|pluginWarnOnce|warn|new (?:Type|Range)?Error)\(|\bissues\.push\(|\{ kind: "\w+", message:/;
 
@@ -822,6 +866,7 @@ const OUTPUTS = [
   ["content/docs/(reference)/cheatsheets-messages/keyboard-shortcuts.mdx", keyboardShortcuts],
   ["content/docs/(reference)/cheatsheets-messages/props-z.mdx", propsZ],
   ["content/docs/(reference)/cheatsheets-messages/hooks-z.mdx", hooksZ],
+  ["content/docs/(reference)/cheatsheets-messages/options-z.mdx", optionsZ],
   ["content/docs/(reference)/cheatsheets-messages/events-z.mdx", eventsZ],
   ["content/docs/(reference)/cheatsheets-messages/actions-z.mdx", actionsZ],
   ["content/docs/(reference)/cheatsheets-messages/messages.mdx", messages],
