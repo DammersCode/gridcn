@@ -336,6 +336,7 @@ export const HOOK_GROUPS = [
       ["useDataGridViewIndex", "Returns the view index array.", "/docs/types-hooks/store-hooks#usedatagridviewindex"],
       ["useDataGridViewStale", "Returns whether rows keep an old view index.", "/docs/types-hooks/store-hooks#usedatagridviewstale"],
       ["useDataGridVisibleColumns", "Returns the visible columns.", "/docs/types-hooks/store-hooks#usedatagridvisiblecolumns"],
+      ["useShortcutLabel", "Returns the key labels of a binding: word names during server rendering, glyphs on macOS after hydration.", "/docs/selection-shortcuts/shortcut-remapping"],
     ],
   },
   {
