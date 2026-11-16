@@ -17,7 +17,7 @@ Before you start, pick pages mode or scroll mode on [Compare data modes](/docs/s
 1. Put the rows behind an API that takes the spec and a page or a row range. [Server rows contract](/docs/contracts/server-rows-contract) has the request and the answer.
 2. Remove `data`, `defaultData`, and `onDataChange` from the grid.
 3. Pass `fetchRows` to `useDataGridServerRows`. Move `getRowId` into the hook options too, unless the row id is in the `id` field.
-4. Move `onSave` into the hook options. Move your own `onDataChange` there too. A handler that you spread after `gridProps` replaces the handler of the hook.
+4. Move `onSave` into the hook options. Move your own `onDataChange` there too.
 5. Spread `server.gridProps` onto `DataGrid`. Keep `columns` and your other props.
 
 This grid fetches blocks of orders in place of a local `data` array:
@@ -25,7 +25,11 @@ This grid fetches blocks of orders in place of a local `data` array:
 ```tsx
 "use client";
 
-import { DataGrid, defineColumns, type DataChange } from "@/components/data-grid/data-grid";
+import {
+  DataGrid,
+  defineColumns,
+  type DataChange,
+} from "@/components/data-grid/data-grid";
 import {
   useDataGridServerRows,
 } from "@/components/data-grid-server/data-grid-server";
@@ -82,8 +86,8 @@ The hook sets `sortMode="server"`, `filterMode="server"`, `totalRowCount`, and `
 | [Saves](/docs/save-server/save-edits#server-source) | `onSave` on the grid. | `onSave` in the hook options. The hook fetches again after the saves settle. |
 | [Undo and redo](/docs/save-server/undo-server-data) | Writes the old values to `data`. | An undo is one more change that `onSave` sends. |
 | [Row operations](/docs/rows-live-data/change-server-rows) | Change `data`. | Send each `insert`, `delete`, and `move` to your API. |
-| [Live pushes](/docs/rows-live-data/push-server-ordered-view) | `updateCells` moves the row to its sorted place. | The row keeps its place and turns stale. The hook reshapes the view with a `refresh()`. |
-| [URL state](/docs/sort-filter-search/url-state#server-mode) | The grid restores the sort and filter from the link. | The hook restores the spec, and the first request carries it. Your server applies it. |
+| [Live pushes](/docs/rows-live-data/push-server-ordered-view) | `updateCells` keeps the row in place and sets `viewStale`. `reconcileView()` or `reorder: "immediate"` moves it. | The row keeps its place and turns stale. The hook reshapes the view with a `refresh()`. |
+| [URL state](/docs/sort-filter-search/url-state#server-mode) | `<DataGridUrlState>` restores the sort, and the filter and search text when its `spec` lists them. | `<DataGridUrlState>` restores the spec, and the first request of the hook carries it. Your server applies it. |
 
 ## Check the server [#check-the-server]
 

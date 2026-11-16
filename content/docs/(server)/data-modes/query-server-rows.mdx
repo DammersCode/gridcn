@@ -60,7 +60,7 @@ export function OrdersGrid() {
 
 The hook sets `sortMode="server"`, `filterMode="server"`, and `headerClickBehavior="sort"`. The grid tracks the spec and never sorts or filters `data` itself. Treat the spec as untrusted input. Pass it through `parseServerSpec` before you build a query. See [Check the spec](#parse-the-spec) and the ORM examples, such as the [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example).
 
-A client sort or filter cannot see rows the grid never fetched. Use the hook, or set `sortMode="server"` and `filterMode="server"` yourself. The grid warns once in development when a client sort or filter applies while `data` holds fewer rows than the result.
+A client sort or filter cannot see rows the grid never fetched. Use the hook, or set `sortMode="server"` and `filterMode="server"` yourself. The grid warns once in development when a client sort or filter changes while `data` holds unloaded rows or fewer rows than `totalRowCount`.
 
 Pages mode takes the same spec. A spec change there goes back to page 1 and fetches again. In scroll mode it starts the blocks over.
 
@@ -71,10 +71,14 @@ Pages mode takes the same spec. A spec change there goes back to page 1 and fetc
 It drops every key it does not know and builds no query. It does not read `start` and `end`. Your server bounds them, as this sample does:
 
 ```ts fragment="queryOrders is your query layer"
-import { parseServerSpec, ServerSpecError } from "@/components/data-grid-server/data-grid-server";
+import {
+  parseServerSpec,
+  ServerSpecError,
+} from "@/components/data-grid-server/data-grid-server";
 
 // The blockSize of the hook: one request asks for at most one block.
 const MAX_ROWS = 50;
+const MAX_BODY_BYTES = 64 * 1024;
 
 const toIndex = (value: unknown) => {
   const index = Math.floor(Number(value));
@@ -82,15 +86,19 @@ const toIndex = (value: unknown) => {
 };
 
 export async function POST(request: Request) {
-  const body = await request.json();
+  const text = await request.text();
+  if (text.length > MAX_BODY_BYTES) {
+    return Response.json({ error: "Body too large" }, { status: 413 });
+  }
   try {
+    const body = JSON.parse(text);
     const spec = parseServerSpec(body.spec, { columns: ["customer", "total"] });
     // map spec.sorts, spec.filters, and spec.searchText to your query layer
     const start = toIndex(body.start);
     const end = Math.max(start, Math.min(toIndex(body.end), start + MAX_ROWS));
     return Response.json(await queryOrders(spec, start, end));
   } catch (error) {
-    if (error instanceof ServerSpecError) {
+    if (error instanceof ServerSpecError || error instanceof SyntaxError) {
       return Response.json({ error: error.message }, { status: 400 });
     }
     throw error;
@@ -124,10 +132,9 @@ The quick-search box highlights and navigates matches in the rows the grid holds
 
 ## Control the spec [#controlled-mode-server-side-sortfilter]
 
-The hook owns the spec. Seed it with `defaultSpec`. Control it with `spec` and `onSpecChange`. A change of the spec content starts the requests over. In pagination mode, the change also goes back to page 1, unless no answer has landed yet.
+The hook owns the spec. Seed it with `defaultSpec`. Control it with `spec` and `onSpecChange`. A change of the spec content starts the requests over. In pages mode, the change also goes back to page 1, unless no answer has landed yet.
 
 `serverSpecKey(spec)` returns the spec as a string without the generated filter ids. Use it as a query key or an effect dependency. `ServerSpec` and `serverSpecKey` import from the `data-grid` barrel.
-
 
 ## Related
 
