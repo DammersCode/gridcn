@@ -18,8 +18,12 @@ aliases: ["sort popover"]
 Import it from `@/components/data-grid-sort-list/data-grid-sort-list` and place it inside `DataGridToolbar`, inside `DataGridProvider`:
 
 ```tsx
-import { DataGridToolbar } from "@/components/data-grid-toolbar/data-grid-toolbar";
-import { DataGridSortList } from "@/components/data-grid-sort-list/data-grid-sort-list";
+import {
+  DataGridToolbar,
+} from "@/components/data-grid-toolbar/data-grid-toolbar";
+import {
+  DataGridSortList,
+} from "@/components/data-grid-sort-list/data-grid-sort-list";
 
 export function SortToolbar() {
   return (
@@ -56,7 +60,7 @@ Every move announces the new position through a polite live region. Set the text
 
 ## Server mode
 
-With `sortMode="server"`, the popover changes the sort state and the grid does not reorder the rows. Your `onSortChange` handler fetches the rows for the new sort.
+With `sortMode="server"`, the popover changes the sort state and the grid does not reorder the rows. Your `onSortChange` handler fetches the rows for the new sort. With `useDataGridServerRows`, the hook fetches by itself, and the sorts travel in the `spec` of the request. See [Server rows options](/docs/add-options/server/server-rows-options#serverrowsrequest).
 
 ## Related
 

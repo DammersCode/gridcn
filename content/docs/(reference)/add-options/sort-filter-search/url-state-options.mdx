@@ -18,7 +18,7 @@ Filter values and search text go into the URL. The browser history, server logs,
 
 ## DataGridUrlState [#datagridurlstate]
 
-The component renders nothing. Mount it once inside `DataGridProvider`. Its props, `DataGridUrlStateProps`, are the options of `useDataGridUrlState`. Render it inside `DataGridProvider`:
+The component renders nothing. Its props, `DataGridUrlStateProps`, are the options of `useDataGridUrlState`. This sample mounts it once:
 
 ```tsx
 import { NuqsAdapter } from "nuqs/adapters/react";
@@ -29,25 +29,23 @@ import {
   DataGridRoot,
   type ColumnDef,
 } from "@/components/data-grid/data-grid";
-import { DataGridUrlState } from "@/components/data-grid-url-state/data-grid-url-state";
+import {
+  DataGridUrlState,
+} from "@/components/data-grid-url-state/data-grid-url-state";
 
 type Person = { id: string; name: string };
 
-const data: Person[] = [{ id: "1", name: "Ada" }];
+const people: Person[] = [{ id: "1", name: "Ada" }];
 const columns: ColumnDef<Person>[] = [
   { id: "name", accessorKey: "name", header: "Name" },
 ];
 
-export function OrdersGrid() {
+export function PeopleGrid() {
   return (
     <NuqsAdapter>
-      <DataGridProvider
-        data={data}
-        columns={columns}
-        getRowId={(row) => row.id}
-      >
+      <DataGridProvider defaultData={people} columns={columns}>
         <DataGridUrlState
-          prefix="orders"
+          prefix="people"
           layout={["order", "hidden", "widths"]}
         />
         <DataGridRoot>
@@ -60,13 +58,15 @@ export function OrdersGrid() {
 }
 ```
 
+Mount `DataGridUrlState` inside `DataGridProvider`.
+
 ## useDataGridUrlState [#usedatagridurlstate]
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-url-state/use-data-grid-url-state.ts" name="UseDataGridUrlStateOptions" />
 
 ### prefix [#prefix]
 
-The prefix and an underscore start every key of the grid. `prefix="orders"` gives `orders_sort`, `orders_filter`, `orders_q`, `orders_join`, and `orders_cols`. The pagination hook uses the same rule for `page` and `pageSize`.
+The prefix and an underscore start every key of the grid. `prefix="people"` gives `people_sort`, `people_filter`, `people_q`, `people_join`, and `people_cols`. The pagination hook uses the same rule for `page` and `pageSize`.
 
 ### spec [#spec]
 
@@ -75,7 +75,7 @@ The option picks which parts of the view spec go into the URL. The default is `[
 | Part | Keys |
 | --- | --- |
 | `sort` | `sort` |
-| `filter` | `filter`, and the legacy `join` |
+| `filter` | `filter`, and `join`, which the add-on reads once and removes |
 | `search` | `q` |
 
 A part that is not listed is neither read on mount, written on change, nor reset by `applyFromUrl()`.
@@ -118,11 +118,11 @@ A hand-edited URL cannot grow the view state without bound. Every write uses `hi
 - `pageSize`: a value outside `pageSizeOptions` reads as `defaultPageSize`.
 - `page`: An integer from 1 to 1,000,000. Anything else reads as 1.
 
-A sort or filter row for a removed, hidden, or unsortable, or unfilterable column drops from the URL state. Ids that match no column drop from the layout.
+A sort row for a missing, hidden, or unsortable column drops from the URL state. A filter row for a missing, hidden, or unfilterable column does the same. Ids that match no column drop from the layout.
 
 ## Server mode
 
-On a scroll-mode grid, set `sortMode="server"` and `filterMode="server"`. The store then holds the restored spec and your fetch applies it. `useDataGridServerRows` sets both modes, and a grid with `totalRowCount` gets them by default. Without both modes, the add-on sorts and filters the partial `data` on the client. In server filter mode, the `choices` of a column can hold fewer values than your server lists. The [Limits](#limits) bound still applies: a longer `isAnyOf` list keeps its first entries, and a longer `isNoneOf` list drops the segment. See [Data mode support](/docs/data-modes/data-mode-support).
+When `data` holds part of the result, as with server pages or scroll mode, set `sortMode="server"` and `filterMode="server"`. The store then holds the restored spec and your fetch applies it. `useDataGridServerRows` sets both modes, and a grid with `totalRowCount` gets them by default. Without both modes, the grid sorts and filters only the loaded rows. In server filter mode, the `choices` of a column can hold fewer values than your server lists. The [Limits](#limits) bound still applies: a longer `isAnyOf` list keeps its first entries, and a longer `isNoneOf` list drops the segment. See [Data mode support](/docs/data-modes/data-mode-support).
 
 ## Related
 

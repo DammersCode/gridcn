@@ -15,7 +15,7 @@ A plugin is a plain object of type `DataGridPlugin<TData>`. The `plugins` prop o
 | [`rowBands`](#rowbands) | `PluginRowBands` | Adds rows to the top band, the bottom band, or both. |
 | [`onDataChange`](#ondatachange) | `(next, change, ctx) => void` | Observes every data change. |
 | [`commands`](#commands) | `Record<string, GridCommand<TData>>` | Adds named commands. |
-| [`keymap`](#keymap) | `Keymap` | Binds keys to the commands of the plugin. |
+| [`keymap`](#keymap) | `Partial<Record<string, KeyBinding[]>>` | Binds keys to the commands of the plugin. |
 | [`Mount`](#mount) | `ComponentType` | Runs engine work inside `DataGridRoot`. |
 
 A plugin needs only `name`. [Plugin model](/docs/plugins/plugin-shape) explains the model, and [Write a plugin](/docs/recipes-custom-code/write-plugin) builds one.
@@ -51,7 +51,9 @@ The grid calls `onDataChange(next, change, ctx)` after the store write, your `on
 
 ### keymap [#keymap]
 
-`keymap` binds keys to commands of the same plugin. The grid drops an entry that names a core action, or a command that the plugin does not define. The entry is the full binding list of its action and replaces its bindings, like the same entry in your `keymap` prop. The grid drops a key that another action already holds. The first owner of a key keeps it. See [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts#a-plugins-own-keymap-entries).
+`keymap` binds keys to commands of the same plugin. A command name needs no entry in `GridActions`. The grid drops an entry that names a core action, or a command that the plugin does not define. The entry is the full binding list of its action and replaces its bindings, like the same entry in your `keymap` prop.
+
+The grid drops a key that another action already holds. Your `keymap` prop keeps its keys. Among plugins, the earlier plugin keeps a key. One exception: when your `keymap` leaves out `focusSearch`, a plugin binding takes its key from the default `focusSearch` binding with no warning. See [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts#a-plugins-own-keymap-entries).
 
 ### Mount [#mount]
 
@@ -81,6 +83,8 @@ The grid calls `onDataChange(next, change, ctx)` after the store write, your `on
 
 `DataGridGlobalShortcuts` enables an action through a boolean flag of the same name. `undo` and `redo` default to `true`. Every other flag defaults to `false`. The flags form `GlobalShortcutsConfig`, which is the type `DataGridGlobalShortcutsProps`. `GlobalShortcutAction` is `GridAction`. A plugin that backs a `GridAction` offers its flag by augmenting `DataGridGlobalShortcutActions`. The history add-on does this for `undo` and `redo`, and the fill add-on for `fillDown` and `fillRight`.
 
+Two rules apply to an added action. Every binding of the action starts with `mod`. The action makes sense without grid focus. An `openFind` flag takes <kbd>Mod</kbd>+<kbd>F</kbd> from the browser on the whole page.
+
 Put this block in a file that has an import or an export:
 
 ```ts fragment="module augmentation of an installed item"
@@ -88,7 +92,7 @@ export {};
 
 declare module "@/components/data-grid/keyboard/global-shortcuts" {
   interface DataGridGlobalShortcutActions {
-    openFind: true;
+    openFind: boolean;
   }
 }
 ```

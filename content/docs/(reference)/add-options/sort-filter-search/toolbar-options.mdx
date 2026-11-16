@@ -16,7 +16,7 @@ The toolbar add-on exports five components. `DataGridToolbar` is the frame. `Dat
 | [`DataGridColumnsMenu`](#datagridcolumnsmenu) | Shows and hides columns | [Toolbar](/docs/sort-filter-search/toolbar) |
 | [`DataGridHeaderFilter`](#datagridheaderfilter) | Value list in a column header | [Header filter](/docs/sort-filter-search/header-filter) |
 
-`DataGridToolbar`, `DataGridSearch`, `DataGridFilterMenu`, `DataGridColumnsMenu`, and `DataGridHeaderFilter` accept `className`. `DataGridHeaderFilter` merges it into its button. Import the components from `@/components/data-grid-toolbar/data-grid-toolbar`:
+Every component accepts `className`. `DataGridHeaderFilter` merges it into its button. This sample mounts all five:
 
 ```tsx
 import {
@@ -36,14 +36,14 @@ import {
 
 type Person = { id: string; name: string };
 
-const data: Person[] = [{ id: "1", name: "Ada" }];
+const people: Person[] = [{ id: "1", name: "Ada" }];
 const columns: ColumnDef<Person>[] = [
   { id: "name", accessorKey: "name", header: "Name" },
 ];
 
 export function PeopleGrid() {
   return (
-    <DataGridProvider data={data} columns={columns} getRowId={(row) => row.id}>
+    <DataGridProvider defaultData={people} columns={columns}>
       <DataGridToolbar>
         <DataGridSearch debounceMs={300} />
         <DataGridFilterMenu allColumns />
@@ -60,6 +60,8 @@ export function PeopleGrid() {
 }
 ```
 
+Import the components from `@/components/data-grid-toolbar/data-grid-toolbar`.
+
 ## DataGridToolbar [#datagridtoolbar]
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-toolbar/toolbar.tsx" name="DataGridToolbarProps" />
@@ -72,7 +74,7 @@ Place it inside `DataGridProvider`, above `DataGridRoot`. Its children share the
 
 ### focusSearch [#focussearch]
 
-The `focusSearch` action of the `keymap` prop binds <kbd>Mod</kbd>+<kbd>F</kbd> by default. While focus is inside this grid or its toolbar, the key focuses the input and leaves the browser find bar closed. On macOS, <kbd>Cmd</kbd>+<kbd>F</kbd> and <kbd>Ctrl</kbd>+<kbd>F</kbd> both do this. Focus anywhere else keeps the browser behavior. The handler skips a key press that another handler already handled. `keymap={{ focusSearch: [] }}` leaves the key to the browser.
+The `focusSearch` action of the `keymap` prop binds <kbd>Mod</kbd>+<kbd>F</kbd> by default. While focus is inside this grid or its toolbar, the key focuses the input and leaves the browser find bar closed. Focus anywhere else keeps the browser behavior. The handler skips a key press that another handler already handled. `keymap={{ focusSearch: [] }}` leaves the key to the browser. With the find and replace add-on, <kbd>Mod</kbd>+<kbd>F</kbd> opens its Find panel, and `focusSearch` loses the key.
 
 ## DataGridFilterMenu [#datagridfiltermenu]
 
@@ -100,7 +102,7 @@ The menu shows and hides columns. It has no pin controls.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-toolbar/header-filter.tsx" name="DataGridHeaderFilterProps" />
 
-Spread the context of the `renderHeaderFilter` slot into the component. The slot passes `column` and `index`. `className` adds classes to the trigger button. For example, a darker trigger:
+Spread the context of the `renderHeaderFilter` slot into the component. The slot passes `column` and `index`. `className` adds classes to the trigger button. This slot renders a darker trigger:
 
 ```tsx fragment="one prop of DataGrid"
 renderHeaderFilter={(ctx) => (

@@ -6,7 +6,7 @@ type: concept
 aliases: ["plugin members", "extension point", "plugin object type", "plugin identity"]
 ---
 
-A plugin is a plain object that reaches into the grid. The `plugins` prop of `DataGridProvider` takes an array of plugins. Many first-party add-ons install one plugin: fill, find and replace, history, pinned rows, presence, and server rows. Your own code passes its plugins through the same prop.
+A plugin is a plain object that reaches into the grid. The `plugins` prop of `DataGridProvider` takes an array of plugins. Many first-party add-ons install one plugin: fill, find and replace, history, the keyboard shortcuts dialog, pinned rows, presence, and server rows. Your own code passes its plugins through the same prop.
 
 ## The plugin shape
 
@@ -20,7 +20,7 @@ A plugin needs only `name`. Every other member is optional, and a plugin holds t
 - `keymap` binds keys to the commands of the plugin. A core action takes its keys from your `keymap` prop. The [add-on actions](/docs/plugins/plugin-commands-shortcuts#add-on-actions) take theirs from the plugin of the add-on.
 - `Mount` is a component that runs engine work inside the grid.
 
-The array order is the precedence order. Overlays paint in array order, bands stack in array order, and observers run in array order. A later plugin wins a command conflict.
+The array order is the precedence order. Overlays paint in array order, bands stack in array order, and observers run in array order. A later plugin wins a command conflict. Your `commands` prop wins over every plugin, with no warning.
 
 This plugin logs the source of every data change:
 
@@ -73,7 +73,7 @@ export function PeopleGrid({ rows }: { rows: Person[] }) {
 }
 ```
 
-## Engine work
+### Engine work
 
 `Mount` is a component that `DataGridRoot` renders after its children. It takes no props. It reads the grid through `useDataGridApi`.
 
@@ -102,7 +102,7 @@ Two changes force a re-resolution:
 
 A plugin object attaches to one grid. When you pass it to a second grid, the second grid drops it, keeps the rest of its list, and logs a development warning.
 
-### Server rendering [#ssr]
+## Server rendering [#ssr]
 
 The grid renders row bands during server rendering, and the server markup carries the band heights. Write a plugin component so that it renders the same text on the server and on the client. Pin any locale-dependent formatting, and read no browser-only global, such as `window`, while it renders.
 

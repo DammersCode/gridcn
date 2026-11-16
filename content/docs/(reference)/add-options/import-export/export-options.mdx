@@ -8,6 +8,26 @@ aliases: ["csv options", "xlsx options", "print options", "export button props"]
 
 The `data-grid-io` add-on exports the rows of the grid to a CSV or XLSX file and prints them as a paged table. `exportGrid` and `printGrid` take the read state of the grid and an optional options object. The read state is `useDataGridStoreApi().getState()`, from `@/components/data-grid/data-grid-sdk`. `useDataGridApi().store.getState()` returns the same state (see [External store](/docs/components-props/data-grid-provider#store-external-store-ownership)). The hooks `useDataGridExport` and `useDataGridPrint` bind that state for you. [Export](/docs/import-export/export) explains the behavior.
 
+This sample adds the export button and the print button:
+
+```tsx
+import {
+  DataGridExportButton,
+  DataGridPrintButton,
+} from "@/components/data-grid-io/data-grid-io";
+
+export function IoButtons() {
+  return (
+    <>
+      <DataGridExportButton />
+      <DataGridPrintButton />
+    </>
+  );
+}
+```
+
+Render the buttons inside `DataGridProvider`, for example in `DataGridToolbar`.
+
 ## Functions [#functions]
 
 | Function | Returns | What it does |
@@ -22,7 +42,9 @@ The `data-grid-io` add-on exports the rows of the grid to a CSV or XLSX file and
 This sample downloads `orders.csv` with semicolons, no byte order mark, the selected rows, and at most 1,000 data rows:
 
 ```tsx
-import { useDataGridExport } from "@/components/data-grid-io/data-grid-io";
+import {
+  useDataGridExport,
+} from "@/components/data-grid-io/data-grid-io";
 
 export function ExportSelectionButton() {
   const { exportGrid } = useDataGridExport();
@@ -45,13 +67,13 @@ export function ExportSelectionButton() {
 }
 ```
 
-Render the button under the grid provider.
+Render the button inside `DataGridProvider`.
 
 ## ExportGridOptions [#exportgridoptions]
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-io/export-grid.ts" name="ExportGridOptions" />
 
-Without a `source`, every scope covers the rows the grid holds. That is all pages of a client grid that pages its view, the current page of server pages, and the loaded rows in scroll mode. `scope: "page"` covers the shown page. With a `source`, `scope` does not apply. See [Export: server mode](/docs/import-export/export#server-mode) and [Export the whole result](/docs/import-export/export-whole-result). `csvDelimiter` takes a `CsvDelimiter`: `","`, `";"`, `"|"`, or a tab.
+Without a `source`, `scope: "view"` and `scope: "all"` cover the rows the grid holds. That is all pages of a client grid that pages its view, the current page of server pages, and the loaded rows in scroll mode. `scope: "page"` covers the shown page. `scope: "selection"` covers the selected rows. With a `source`, `scope` does not apply. See [Export: server mode](/docs/import-export/export#server-mode) and [Export the whole result](/docs/import-export/export-whole-result). `csvDelimiter` takes a `CsvDelimiter`: `","`, `";"`, `"|"`, or a tab.
 
 ## Shape and output [#shape-output]
 
@@ -59,9 +81,9 @@ Without a `source`, every scope covers the rows the grid holds. That is all page
 
 ### Types [#types]
 
-- `ExportOutput` receives the finished `Blob` and `{ fileName, format, signal }`. Use it to send the file somewhere other than the download.
+- `ExportOutput` receives the finished `Blob` and `{ fileName, format, signal }`. It replaces the browser download.
 - `ExportCellContext` is what `formatCell` receives: `value`, `text`, `row`, and `column`.
-- `FormatExportCell` is the `formatCell` function. It returns an `ExportCellValue`: a string, a number, a boolean, a `Date`, `null`, or `undefined`.
+- `FormatExportCell` is the type of `formatCell`.
 - `ExportRowsOptions` are the limits and callbacks of an export from a source.
 - `ExportProgress` is `{ rowCount, byteCount }`, the argument of the progress callback.
 - `ExportResult` is `{ rowCount, truncated }`. `truncated` is `true` when `maxRows` or `maxBytes` ended the export.

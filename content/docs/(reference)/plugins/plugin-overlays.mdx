@@ -35,11 +35,58 @@ The grid renders every `Overlay` with the `OverlayPluginCtx` values as its props
 - `colCount` is the number of visible columns. It counts real column indexes, not the scrolled column window.
 - `colOffset` is the offset to add to the `x` of every rectangle. When a row marker column takes the first track, it is `2`. Otherwise it is `1`.
 - `pinTrack` holds the pin and track data per column. The grid always passes it. With a pinned column, `hasAnyPin(pinTrack)` from `@/components/data-grid/data-grid-sdk` returns `true`.
-- `selectionPointer` names the input that wrote the current selection. A touch selection shows handles at the range corners.
+- `selectionPointer` names the input that wrote the current selection: `"touch"`, `"mouse"`, `"pen"`, or `"keyboard"`. A touch selection shows handles at the range corners.
 - `clampRectToWindow(rect, rowStart, rowEnd, colCount)` clamps a rectangle to the row range and to the columns. It returns `null` for a rectangle outside the range.
-- `splitRectByPinZones(rect, pinTrack)` splits a rectangle into up to three segments: pinned left, unpinned, and pinned right.
+- `splitRectByPinZones(rect, pinTrack)` splits a rectangle into up to three segments: the start zone, the unpinned zone, and the end zone. Each segment is `{ rect, pin, pinStyle }`. `pin` and `pinStyle` are unset in the unpinned zone.
 
 Call `clampRectToWindow` first. When `hasAnyPin(pinTrack)` returns `true` and the rectangle can cross a pinned column, call `splitRectByPinZones` on the result. A pinned segment carries a `pinStyle`. Spread it into the element style. Set `position: "relative"`, because cells have a position and a static band paints below them. Give pinned segments `zIndex: GRID_LAYER.pinnedOverlaySegment`, so they paint above pinned cells.
+
+This plugin tints one row, found by its row id:
+
+```tsx
+import {
+  useDataGridRowIdToViewRow,
+  type DataGridPlugin,
+  type OverlayPluginCtx,
+} from "@/components/data-grid/data-grid";
+import { GRID_LAYER, hasAnyPin } from "@/components/data-grid/data-grid-sdk";
+
+export function createRowTint(rowId: string): DataGridPlugin {
+  function RowTint(ctx: OverlayPluginCtx) {
+    const viewRow = useDataGridRowIdToViewRow().get(rowId);
+    if (viewRow === undefined) return null;
+    const rect = ctx.clampRectToWindow(
+      { x: 0, y: viewRow, width: ctx.colCount, height: 1 },
+      ctx.clampRowStart,
+      ctx.clampRowEnd,
+      ctx.colCount,
+    );
+    if (!rect) return null;
+    const segments = hasAnyPin(ctx.pinTrack)
+      ? ctx.splitRectByPinZones(rect, ctx.pinTrack)
+      : [{ rect, pinStyle: undefined }];
+    return segments.map(({ rect: part, pinStyle }, index) => (
+      <div
+        key={index}
+        aria-hidden="true"
+        className="pointer-events-none bg-primary/10"
+        style={{
+          position: "relative",
+          gridColumnStart: part.x + ctx.colOffset,
+          gridColumnEnd: part.x + part.width + ctx.colOffset,
+          gridRowStart: part.y - ctx.windowStart + 1,
+          gridRowEnd: part.y + part.height - ctx.windowStart + 1,
+          ...pinStyle,
+          ...(pinStyle ? { zIndex: GRID_LAYER.pinnedOverlaySegment } : {}),
+        }}
+      />
+    ));
+  }
+  return { name: "row-tint", Overlay: RowTint };
+}
+```
+
+Call `createRowTint` once for each grid, and pass the result in `plugins`.
 
 `DataGridOverlays` is the layer that `DataGridBody` renders. Its props type is `DataGridOverlaysProps`. A plugin does not render it.
 

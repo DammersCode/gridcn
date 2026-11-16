@@ -23,17 +23,29 @@ aliases: ["replace all", "replace in cells"]
 Pass the `plugin` to the grid:
 
 ```tsx
-import { DataGrid } from "@/components/data-grid/data-grid";
-import { useDataGridFindReplace } from "@/components/data-grid-find-replace/data-grid-find-replace";
+import {
+  DataGrid,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
+import {
+  useDataGridFindReplace,
+} from "@/components/data-grid-find-replace/data-grid-find-replace";
+
+type Person = { id: string; name: string };
+
+const people: Person[] = [{ id: "1", name: "Ada" }];
+
+const columns = defineColumns<Person>()([
+  { id: "name", accessorKey: "name", header: "Name" },
+]);
 
 export function PeopleGrid() {
   const findReplace = useDataGridFindReplace({ replaceAllLimit: 500 });
 
   return (
     <DataGrid
-      data={[{ id: "1", name: "Ada" }]}
-      columns={[{ id: "name", accessorKey: "name", header: "Name" }]}
-      getRowId={(row) => row.id}
+      defaultData={people}
+      columns={columns}
       plugins={[findReplace.plugin]}
     />
   );
@@ -44,7 +56,7 @@ export function PeopleGrid() {
 
 ### processReplace [#processreplace]
 
-Runs after the panel builds the plan and before it writes. It gets `{ plan, signal }` and returns the plan to write, or `false` to cancel. A plan longer than `replaceAllLimit`, a value that is not a plan, or a rejection cancels the replace. So does a patched row that changes or goes away, a `readOnly` grid, or an open cell editor. A change of the find text, the replacement, or an option aborts `signal` and drops a late answer.
+Runs after the panel builds the plan and before it writes. It gets `{ plan, signal }` and returns the plan to write, or `false` to cancel. The grid writes each returned patch value as given, with no `fromText`, and the column `validate` still runs. A plan longer than `replaceAllLimit`, a value that is not a plan, or a rejection cancels the replace. So does a patched row that changes or goes away, a `readOnly` grid, or an open cell editor. A change of the find text, the replacement, or an option aborts `signal` and drops a late answer.
 
 ### scope [#scope]
 
@@ -76,16 +88,18 @@ The plugin registers two commands. Remap them with the `keymap` prop of the grid
 
 | Command | Default key | Result |
 | --- | --- | --- |
-| `openFindReplace` | <kbd>Ctrl</kbd>+<kbd>H</kbd> | Opens the panel with Replace. In a `readOnly` grid, it opens Find only |
+| `openFindReplace` | <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>Enter</kbd> | Opens the panel with Replace. In a `readOnly` grid, it opens Find only |
 | `openFind` | <kbd>Mod</kbd>+<kbd>F</kbd> | Opens the panel with Find only |
 
 ## planReplace [#planreplace]
 
-`planReplace(state, find, replacement, options)` takes a `ReplaceState` and returns a `ReplacePlan`: `{ patches, skipped, remaining }`. It reads the grid state and writes nothing. Render the button inside `DataGridProvider`. It passes `patches` to `updateCells` to write them:
+`planReplace(state, find, replacement, options)` takes a `ReplaceState` and returns a `ReplacePlan`: `{ patches, skipped, remaining }`. It reads the grid state and writes nothing. This button passes `patches` to `updateCells` to write them:
 
 ```tsx
 import { useDataGridApi } from "@/components/data-grid/data-grid";
-import { planReplace } from "@/components/data-grid-find-replace/data-grid-find-replace";
+import {
+  planReplace,
+} from "@/components/data-grid-find-replace/data-grid-find-replace";
 
 export function ReplaceButton() {
   const api = useDataGridApi();
@@ -104,7 +118,7 @@ export function ReplaceButton() {
 }
 ```
 
-`planReplace` cuts the find text and the replacement to 1,000 characters. It trims spaces at both ends of the find text.
+Render the button inside `DataGridProvider`. `planReplace` cuts the find text and the replacement to 1,000 characters. It trims spaces at both ends of the find text.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-find-replace/plan-replace.ts" name="ReplaceOptions" />
 

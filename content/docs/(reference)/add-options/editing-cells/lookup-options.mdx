@@ -78,9 +78,14 @@ The editor drops an answer that arrives after its signal aborted.
 This sample asks for three characters before a search and sets the labels in German:
 
 ```tsx
-import type { LookupOptions } from "@/components/data-grid-lookup/data-grid-lookup";
+import { DataGrid, type ColumnDef } from "@/components/data-grid/data-grid";
+import {
+  lookupCellType,
+  type LookupOptions,
+  type LookupValue,
+} from "@/components/data-grid-lookup/data-grid-lookup";
 
-export const customerOptions: LookupOptions = {
+const customerOptions: LookupOptions = {
   fetchOptions: async ({ query, signal }) => {
     const url = `/api/customers?q=${encodeURIComponent(query)}`;
     const res = await fetch(url, { signal });
@@ -91,9 +96,33 @@ export const customerOptions: LookupOptions = {
   labels: {
     searching: "Suche…",
     noResults: "Keine Treffer",
+    error: "Optionen konnten nicht geladen werden",
+    retry: "Erneut versuchen",
     typeMore: (missing) => `Noch ${missing} Zeichen`,
   },
 };
+
+type Order = { id: string; customer: LookupValue };
+
+const columns: ColumnDef<Order, unknown>[] = [
+  {
+    id: "customer",
+    header: "Kunde",
+    accessorKey: "customer",
+    type: "lookup",
+    options: customerOptions,
+  },
+];
+
+export function Orders({ orders }: { orders: Order[] }) {
+  return (
+    <DataGrid
+      defaultData={orders}
+      cellTypes={{ lookup: lookupCellType }}
+      columns={columns}
+    />
+  );
+}
 ```
 
 ## Related

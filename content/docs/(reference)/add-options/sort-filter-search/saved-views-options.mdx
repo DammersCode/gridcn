@@ -8,6 +8,47 @@ aliases: ["views options", "useDataGridViews", "view storage", "DataGridViewsSto
 
 `useDataGridViews` keeps the saved views of a grid and returns the state and the actions. `DataGridViews` renders the toolbar button on top of it. The behavior is on [Saved views](/docs/sort-filter-search/saved-views).
 
+| Symbol | Purpose | Guide |
+| --- | --- | --- |
+| [`useDataGridViews`](#options) | Keeps the views and returns the state and the actions | [Saved views](/docs/sort-filter-search/saved-views) |
+| [`DataGridViews`](#options) | Renders the toolbar button | [Saved views](/docs/sort-filter-search/saved-views) |
+| [`labels`](#labels) | Replaces the strings of the menu | [Saved views](/docs/sort-filter-search/saved-views) |
+| [`DataGridViewsStorage`](#storage) | Persists the views | [Saved views](/docs/sort-filter-search/saved-views) |
+
+`DataGridViews` is the ready button. `useDataGridViews` drives a control of your own, such as this select:
+
+```tsx
+import {
+  DataGridViews,
+  useDataGridViews,
+} from "@/components/data-grid-views/data-grid-views";
+
+export function ViewsButton() {
+  return <DataGridViews storage="orders-views" />;
+}
+
+export function ViewsSelect() {
+  const { views, activeViewId, selectView } = useDataGridViews({
+    storage: "orders-views",
+  });
+  return (
+    <select
+      value={activeViewId ?? ""}
+      onChange={(event) => selectView(event.target.value || null)}
+    >
+      <option value="">No view</option>
+      {views.map((view) => (
+        <option key={view.id} value={view.id}>
+          {view.name}
+        </option>
+      ))}
+    </select>
+  );
+}
+```
+
+Render each one inside `DataGridProvider`.
+
 ## Options [#options]
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-views/use-data-grid-views.ts" name="UseDataGridViewsOptions" />
@@ -15,8 +56,6 @@ aliases: ["views options", "useDataGridViews", "view storage", "DataGridViewsSto
 `DataGridViews` takes these options and two more props:
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-views/views-menu.tsx" name="DataGridViewsProps" />
-
-
 
 ## Labels [#labels]
 
@@ -58,7 +97,6 @@ aliases: ["views options", "useDataGridViews", "view storage", "DataGridViewsSto
 | `exported` | Exported the active view as JSON below | none |
 | `exportTooLarge` | This view is too large to export as text. | none |
 | `importFailed` | An import message for each reason | `reason`: `"too-large"`, `"limit"`, `"loading"`, or `"invalid"` |
-
 
 ## Result [#result]
 

@@ -8,6 +8,15 @@ aliases: ["key binding syntax", "custom commands", "keybindings dialog props"]
 
 The `keymap` and `commands` props of `DataGridProvider` set the key bindings of a grid. The `data-grid-keybindings` add-on shows them. The steps and the behavior are on [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping).
 
+| Symbol | Purpose | Guide |
+| --- | --- | --- |
+| [Binding strings](#binding-strings) | The syntax of one binding | [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) |
+| [`keymap`](#keymap) | Maps actions to bindings | [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) |
+| [`commands`](#custom-commands) | Adds a command or replaces a built-in | [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping#custom-commands) |
+| [`useDataGridKeybindings`](#usedatagridkeybindings) | Mounts the shortcuts dialog | [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) |
+| [`DataGridKeybindingsDialog`](#datagridkeybindingsdialogprops) | The dialog with the effective keymap | [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) |
+| [`BindingChips`](#bindingchips) | Renders one binding as keycaps | [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) |
+
 ## Binding strings [#binding-strings]
 
 A binding is a string of modifiers and one key, joined with `+`, for example `"mod+shift+ArrowUp"`. A `keymap` entry maps an action to an array of bindings.
@@ -34,7 +43,7 @@ The modifiers of the key event must equal the modifiers of the binding. The exce
 
 ## Custom commands
 
-A `keymap` name runs the entry of the same name in `commands`. An entry named like a built-in action replaces the built-in.
+A `keymap` name runs the entry of the same name in `commands`. An entry named like a built-in action replaces the built-in, and development mode warns about it.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid/types.ts" name="GridCommand" />
 
@@ -68,9 +77,14 @@ The dialog lists the effective keymap, so it shows your overrides. Mount it insi
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-keybindings/keybindings-dialog.tsx" name="DataGridKeybindingsDialogProps" />
 
-## BindingChips
+## BindingChips [#bindingchips]
 
-`BindingChips` takes a `binding` string and renders one keycap for each token. On the server it renders word names. On macOS, iOS, and iPadOS it switches to glyphs after hydration.
+`BindingChips` renders one keycap for each token of a binding. On the server it renders word names. On macOS, iOS, and iPadOS it switches to glyphs after hydration.
+
+| Prop | Type | Default | What it does |
+| --- | --- | --- | --- |
+| `binding` | `string` | required | Sets the binding to render, such as `"mod+c"`. |
+| `className` | `string` | none | Merges into the class list of the keycap group. |
 
 ## Example
 
@@ -84,7 +98,9 @@ import {
   DataGridRoot,
   defineColumns,
 } from "@/components/data-grid/data-grid";
-import { useDataGridKeybindings } from "@/components/data-grid-keybindings/data-grid-keybindings";
+import {
+  useDataGridKeybindings,
+} from "@/components/data-grid-keybindings/data-grid-keybindings";
 
 type Row = { id: string; name: string };
 

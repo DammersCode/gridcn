@@ -6,7 +6,15 @@ type: reference
 aliases: ["presence highlight", "remote cursors", "collaborator selection"]
 ---
 
-`useDataGridPresence` returns a plugin that paints the selections of remote users into the grid, and the functions that set the highlights. Call it once for each grid, above the grid (`DataGrid` or `DataGridProvider`). A second call creates a second store that no plugin reads. The steps are on [Show presence](/docs/rows-live-data/show-presence).
+`useDataGridPresence` returns a plugin that paints the selections of remote users into the grid, and the functions that set the highlights. Call it once for each grid, above the grid (`DataGrid` or `DataGridProvider`). Each call creates its own highlight store and plugin. Pass the `plugin` of that call to the grid. The functions of another call paint nothing. The steps are on [Show presence](/docs/rows-live-data/show-presence).
+
+| Symbol | Purpose | Guide |
+| --- | --- | --- |
+| [`useDataGridPresence`](#usedatagridpresenceoptions) | Returns the plugin and the functions that set highlights | [Show presence](/docs/rows-live-data/show-presence) |
+| [`setPresenceHighlights`](#usedatagridpresenceresult) | Replaces the whole list of highlights | [Show presence](/docs/rows-live-data/show-presence) |
+| [`removePresenceHighlight`](#usedatagridpresenceresult) | Removes one highlight by `id` | [Show presence](/docs/rows-live-data/show-presence) |
+| [`clearPresenceHighlights`](#usedatagridpresenceresult) | Removes every highlight | [Show presence](/docs/rows-live-data/show-presence) |
+| [Highlight shapes](#highlight-shapes) | The cell, row-id range, and view range entries | [Show presence](/docs/rows-live-data/show-presence) |
 
 ## Options [#usedatagridpresenceoptions]
 
@@ -81,7 +89,9 @@ This sample paints one remote cell and one remote range:
 ```tsx
 import { useEffect } from "react";
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
-import { useDataGridPresence } from "@/components/data-grid-presence/data-grid-presence";
+import {
+  useDataGridPresence,
+} from "@/components/data-grid-presence/data-grid-presence";
 
 type Row = { id: string; name: string; city: string };
 
