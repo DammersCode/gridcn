@@ -32,8 +32,8 @@ export type CellAccessor = {
    * without it sorts through `compare`.
    */
   sortKeys?(columnId: string): SortKeyReader | undefined;
-  /** The column's `filter.match` predicate, if the column declares one. */
-  filterMatch?(columnId: string): ((value: unknown, filter: FilterSpec) => boolean) | undefined;
+  /** The column's `filter.match` predicate for `operator`, if one evaluates it. */
+  filterMatch?(columnId: string, operator: FilterSpec["operator"]): ((value: unknown, filter: FilterSpec) => boolean) | undefined;
   /** The column's `filter.compare`, ordering text against a filter bound. */
   filterCompare?(columnId: string): ((text: string, bound: string) => number) | undefined;
   /** The `match` of the custom operator `operator` registered on the column, if any. */
@@ -50,7 +50,7 @@ const warnedUnwiredOperators = new Set<string>();
  * incremental path build through this so a custom predicate can never desync between them.
  */
 export function makeFilterTest(accessor: CellAccessor, filter: FilterSpec): (row: number) => boolean {
-  const custom = accessor.filterMatch?.(filter.columnId);
+  const custom = accessor.filterMatch?.(filter.columnId, filter.operator);
   const getValue = accessor.getValue;
   if (custom && getValue && isBuiltInOperator(filter.operator)) {
     // a thrown predicate fails the row rather than the view build

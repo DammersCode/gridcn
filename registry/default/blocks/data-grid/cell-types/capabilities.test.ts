@@ -121,10 +121,11 @@ describe("resolveFilterOperators", () => {
 describe("set operators with a custom filter.match", () => {
   const match = () => true;
 
-  it("drops the set operators of the default list", () => {
+  it("keeps the set operators of the default list", () => {
     const column = { ...noopColumn, type: "text", filter: { match } } as AnyColumnDef;
-    expect(resolveFilterOperators(column, cellTypes.text)).toEqual(TEXT_FILTER_OPERATORS);
-    expect(offersSetFilter(column, cellTypes.text as unknown as CellType)).toBe(false);
+    expect(resolveFilterOperators(column, cellTypes.text)).toEqual([...TEXT_FILTER_OPERATORS, ...SET_FILTER_OPERATORS]);
+    expect(offersSetFilter(column, cellTypes.text as unknown as CellType)).toBe(true);
+    expect(offersSetFilter({ ...noopColumn, filter: { match } } as AnyColumnDef, undefined)).toBe(true);
   });
 
   it("keeps explicitly declared operators", () => {

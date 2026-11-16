@@ -31,6 +31,7 @@ Each row is one **Breaking:** entry of the [changelog](https://github.com/Dammer
 | <span id="no-results" />Filtered empty grid | `labels.grid.emptyState` ("No rows") | `labels.grid.noResults` ("No results") | To keep "No rows", set `labels.grid.noResults`. |
 | <span id="operators-for-column" />`operatorsForColumn` | A `DataGridFilterMenu` prop | Removed | Set `filter.operators` on the column. |
 | <span id="toggle-sort" />`toggleSort` | `toggleSort(id, true)` | `toggleSort(id, { additive: true })` | Pass an options object. |
+| <span id="set-filter-match" />Set operators with `filter.match` | A `text` or untyped column drops `isAnyOf`, `isNoneOf`, and the header filter. On `number`, `date`, and `select`, `match` receives them. | Every column keeps them, and the built-in set match runs them. `match` runs them only when its own `filter` lists them in `operators`. | To run your `match` for them, list `isAnyOf` and `isNoneOf` in `filter.operators`. |
 
 ## Selection and row actions [#selection-rows]
 

@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 import type { AnyColumnDef } from "../store/types";
-import type { BuiltInFilterOperator, CellType, CellTypeValueInput, CustomFilterOperator, FilterOperator, FilterOperatorInput, FilterValueInputProps } from "../types";
+import type { BuiltInFilterOperator, CellType, CellTypeValueInput, CustomFilterOperator, FilterOperator, FilterOperatorInput, FilterSpec, FilterValueInputProps } from "../types";
 import { isBuiltInOperator } from "../sort-filter/matches-filter";
 import type { CellValidate } from "../validation/validate-cell";
 
@@ -33,16 +33,30 @@ export function operatorsForColumnType(columnType: string | undefined): BuiltInF
   return [...TEXT_FILTER_OPERATORS];
 }
 
-/** `column.filter.operators ?? cellType.filter.operators ??` the type-name default, without set operators when a custom `filter.match` cannot evaluate them. */
+/** `column.filter.operators ?? cellType.filter.operators ??` the type-name default. */
 export function resolveFilterOperators<TData = unknown, TValue = unknown, TOptions = unknown>(
   column: AnyColumnDef,
   cellType: CellType<TData, TValue, TOptions> | undefined,
 ): readonly FilterOperator[] {
   const declared = column.filter?.operators ?? cellType?.filter?.operators;
   if (declared) return declared.every((operator) => typeof operator === "string") ? (declared as readonly FilterOperator[]) : declared.map((operator) => (typeof operator === "string" ? operator : operator.id));
-  const defaults = operatorsForColumnType(column.type);
-  const hasCustomMatcher = Boolean(column.filter?.match ?? cellType?.filter?.match);
-  return hasCustomMatcher ? defaults.filter((operator) => !SET_FILTER_OPERATORS.includes(operator)) : defaults;
+  return operatorsForColumnType(column.type);
+}
+
+/**
+ * The `filter.match` that evaluates `operator`: the column's, else its cell type's. A `match` sees
+ * `isAnyOf` and `isNoneOf` only when its own `filter` lists them in `operators`; otherwise the built-in
+ * set match evaluates them on the cell text, the same text the header filter lists.
+ */
+export function resolveFilterMatch<TData = unknown, TValue = unknown, TOptions = unknown>(
+  column: AnyColumnDef,
+  cellType: CellType<TData, TValue, TOptions> | undefined,
+  operator: FilterOperator,
+): ((value: unknown, filter: FilterSpec) => boolean) | undefined {
+  const owner = column.filter?.match ? column.filter : cellType?.filter;
+  if (!owner?.match) return undefined;
+  if (SET_FILTER_OPERATORS.includes(operator as BuiltInFilterOperator) && !owner.operators?.includes(operator as BuiltInFilterOperator)) return undefined;
+  return owner.match;
 }
 
 /** The custom operators a column registers in `filter.operators` (or its cell type does), by id; a built-in id never shadows. */

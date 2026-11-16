@@ -32,7 +32,7 @@ import { clampColumnWidth } from "../columns/resolve-column-width";
 import { selectCell } from "../selection/selection-ops";
 import { keepsCheckedRows } from "./hidden-checked-rows";
 import { CompactSelection, forEachMember } from "../selection/compact-selection";
-import { resolveCustomFilterOperators } from "../cell-types/capabilities";
+import { resolveCustomFilterOperators, resolveFilterMatch } from "../cell-types/capabilities";
 import { toSafeText } from "../cell-types/safe-text";
 import { moveGroupBlock, moveWithinGroups, repairGroupOrder, type ColumnGroupModel } from "../columns/column-groups";
 import { readColumnPin, withLogicalPin } from "../columns/column-pin";
@@ -511,11 +511,10 @@ export function textAccessorFor(
       if (!column || row === undefined) return undefined;
       return rawCellValue(column, row);
     },
-    filterMatch(columnId) {
+    filterMatch(columnId, operator) {
       const column = byId.get(columnId);
       if (!column) return undefined;
-      const cellType = column.type ? cellTypes?.[column.type] : undefined;
-      return column.filter?.match ?? cellType?.filter?.match;
+      return resolveFilterMatch(column, column.type ? cellTypes?.[column.type] : undefined, operator);
     },
     filterCompare(columnId) {
       const column = byId.get(columnId);
@@ -1016,7 +1015,7 @@ export function computeSearchMatches(
     getText: (viewRow, columnId) => dataAccessor.getText(searched[viewRow]!, columnId),
     getSearchText: (viewRow, columnId) => readSearchText(searched[viewRow]!, columnId),
     getValue: (viewRow, columnId) => dataAccessor.getValue?.(searched[viewRow]!, columnId),
-    filterMatch: (columnId) => dataAccessor.filterMatch?.(columnId),
+    filterMatch: (columnId, operator) => dataAccessor.filterMatch?.(columnId, operator),
   };
   const scanned = findSearchMatches(
     searched.length,
