@@ -10,15 +10,29 @@ A push (`updateCells`, `updateRows`, or `deleteRows` with `source: "stream"`) wr
 
 This page applies with `sortMode="server"` or `filterMode="server"`. Your server orders and filters the rows. The grid never tests a pushed row against the sort or filter.
 
+<ComponentPreview name="data-grid-server-side-demo" />
+
+## Mark stale rows [#mark-stale]
+
 A push that changes a column the server reads leaves the row where it is. The grid marks the row as a stale row and sets `viewStale`. The server reads these columns:
 
 - With `sortMode="server"`: the columns of the active sort.
 - With `filterMode="server"`: the columns of the filter. While the search text is not empty, every column.
 
-A stale row carries the attribute `data-row-stale`. The grid ships no style for it. Style it from the grid root:
+A stale row carries the attribute `data-row-stale`. The grid ships no style for it. This grid pushes prices from a socket, dims stale rows, and reshapes one second after a push:
 
 ```tsx
-import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+"use client";
+
+import { useEffect } from "react";
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+  useDataGridActions,
+} from "@/components/data-grid/data-grid";
 import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
 
 type Order = { id: string; price: number };
@@ -27,16 +41,46 @@ const columns = defineColumns<Order>()([
   { id: "price", header: "Price", accessorKey: "price", type: "number" },
 ]);
 
-function OrdersGrid() {
+function PriceFeed() {
+  const actions = useDataGridActions();
+  useEffect(() => {
+    const socket = new WebSocket("wss://api.example.com/prices");
+    socket.onmessage = (event: MessageEvent<string>) => {
+      const { id, price } = JSON.parse(event.data) as Order;
+      actions.updateCells([{ rowId: id, columnId: "price", value: price }]);
+    };
+    return () => socket.close();
+  }, [actions]);
+  return null;
+}
+
+export function OrdersGrid() {
   const server = useDataGridServerRows<Order>({
-    fetchRows: async () => ({ rows: [], totalRowCount: 0 }),
+    mode: "scroll",
+    reshapeDelayMs: 1000,
+    fetchRows: async ({ spec, start, end, signal }) => {
+      const response = await fetch("/api/orders/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ spec, start, end }),
+        signal,
+      });
+      const answer = await response.json();
+      return { rows: answer.rows, totalRowCount: answer.total };
+    },
   });
+
   return (
-    <DataGrid
-      {...server.gridProps}
-      columns={columns}
-      className="[&_[data-row-stale]]:text-muted-foreground"
-    />
+    <DataGridProvider {...server.providerProps} columns={columns}>
+      <PriceFeed />
+      <DataGridRoot
+        {...server.rootProps}
+        className="h-96 [&_[data-row-stale]]:text-muted-foreground"
+      >
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
   );
 }
 ```
@@ -55,13 +99,17 @@ A row stops being stale when:
 - Its id leaves `data`, for example by a page change, an eviction, or a delete.
 - The sort, filter, or search text changes.
 
+## Reshape the view [#reshape]
+
 `reconcileView()` asks `useDataGridServerRows` to reshape and keeps the marks until the answer delivers the rows again. A sequential source sends no request while the rendered rows plus `overscan` end beyond 10 blocks. The marks then stay until `refresh()` or a spec change. Without the hook, it clears the marks. When the view turns stale, the live region reads `labels.grid.viewStale` once, at most once every 30 seconds, in every data mode.
 
 A reshape is a `refresh()` that the hook runs, so the server places the rows again. Set `reshapeDelayMs` (milliseconds, at least 250, off by default) on the hook to reshape on its own after a push. A stale row then starts one throttled `refresh()` after the delay. A push delete and `server.reshape()` refresh on the next frame, or after the delay when it is set. A sequential source skips that refresh while the rendered rows plus `overscan` end beyond 10 blocks. Call `server.refresh()` there. Without `reshapeDelayMs`, a stale row waits for `reshape()`, `refresh()`, or a spec change.
 
+## Delete and insert rows [#push-delete]
+
 To remove a row that the server deleted, push a delete:
 
-```tsx
+```tsx fragment="inside the feed component, where actions comes from useDataGridActions"
 actions.deleteRows(["AAPL"], { source: "stream" });
 ```
 
@@ -71,13 +119,10 @@ The grid cannot place an inserted row, because it does not know the position. Wh
 
 A push to a row that is not loaded is skipped with reason `unknown-row`, and the next block brings the server value. A push made while a request is open stays: the cells that the push wrote stay on the row that the answer delivers.
 
-## Try it [#demo]
-
-The demo on [Server rows example](/docs/server-data-examples/server-rows-example) pushes score changes every 500 ms. Its switch starts and stops the feed. A button pushes a delete with `deleteRows(ids, { source: "stream" })`. A select sets `reshapeDelayMs` to off or to one second.
-
 ## Related
 
 - [Stream updates](/docs/rows-live-data/stream-updates): push values into cells
 - [Query server rows](/docs/data-modes/query-server-rows): the spec your server reads
 - [Tune row retention](/docs/scroll-mode/tune-row-retention): `reshapeDelayMs` and `revalidateIntervalMs`
+- [Server rows example](/docs/server-data-examples/server-rows-example): the demo as a full page
 - [Data mode support](/docs/data-modes/data-mode-support): pushes per data mode

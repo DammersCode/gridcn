@@ -2,9 +2,5 @@
 #   <page>#<n> fix-pending WP-nn
 # n is the 1-based position among the page's ts/tsx/js code blocks; WP-nn is the docs package that fixes the page.
 # The fixing package removes the line in the same commit. scripts/verify-docs-code.mjs fails on a stale line and on a new failing sample.
-content/docs/(server)/rows-live-data/broadcast-your-selection.mdx#1 fix-pending WP-14
-content/docs/(server)/rows-live-data/push-server-ordered-view.mdx#2 fix-pending WP-14
-content/docs/(server)/rows-live-data/show-presence.mdx#1 fix-pending WP-14
-content/docs/(server)/rows-live-data/show-presence.mdx#2 fix-pending WP-14
 content/docs/(server)/save-server/save-revert.mdx#1 fix-pending WP-14
 content/docs/(examples)/validation-examples/server-errors-example.mdx#1 fix-pending WP-15

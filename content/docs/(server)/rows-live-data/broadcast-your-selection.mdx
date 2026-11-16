@@ -18,12 +18,17 @@ Send the row ids and the column ids between the two corners of the range:
 "use client";
 
 import { useEffect, useRef } from "react";
-import { DataGrid } from "@/components/data-grid/data-grid";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
 import {
   useDataGridPresence,
   type PresenceHighlightEntry,
 } from "@/components/data-grid-presence/data-grid-presence";
-import { columns, type Row } from "./rows";
+
+type Row = { id: string; name: string };
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
 
 type Props = { rows: Row[]; roomId: string; userId: string; color: string };
 
@@ -54,7 +59,7 @@ export function SharedGrid({ rows, roomId, userId, color }: Props) {
     return () => socket.close();
   }, [roomId, userId, setPresenceHighlights]);
 
-  const columnIds = columns.map((column) => column.id);
+  const columnIds: string[] = columns.map((column) => column.id);
 
   return (
     <DataGrid
@@ -103,13 +108,15 @@ In scroll mode, `getRowIds()` skips unloaded rows. A peer paints only the loaded
 
 The sample sends the columns of the main range only. It sends only selections with a range. A selection of checked rows or whole columns has no `range`, so the sample reports it as a leave.
 
-`getRowIds()` lists the rows of every range and the checked rows together. For several ranges, build the row ids of each range from its corners and the view order (`getViewRowIds()` on the grid ref). Send one entry per range. `getViewRowIds()` gives an unloaded row a placeholder id. Drop the ids for which `isPlaceholderRowId(id)` from `data-grid` returns `true`.
+`getRowIds()` lists the rows of every range and the checked rows together. For several ranges, build the row ids of each range from its corners and the view order. `getViewRowIds({ loaded: true })` on the grid ref lists the loaded rows in view order. Send one entry per range.
+
+Throttle the send, because a drag fires one change for each step.
 
 Treat every incoming message as untrusted input. The add-on drops malformed entries and repairs a bad `label` or `color`: [Presence options](/docs/add-options/server/presence-options) lists each rule. The add-on renders a `label` as text.
 
 ## Related
 
-- [Show presence](/docs/rows-live-data/show-presence)
-- [Presence options](/docs/add-options/server/presence-options)
-- [Selection and cell events](/docs/events-state/selection-cell-events)
-- [Selection model](/docs/concepts/selection-model)
+- [Show presence](/docs/rows-live-data/show-presence): paint the selections of peers
+- [Presence options](/docs/add-options/server/presence-options): every option of the add-on
+- [Selection and cell events](/docs/events-state/selection-cell-events): the events behind `onSelectionChange`
+- [Selection model](/docs/concepts/selection-model): how the grid stores a selection

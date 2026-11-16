@@ -8,30 +8,57 @@ aliases: ["server row operations", "save new row", "insert on server", "id from 
 
 Row operations change the rows of the grid. Each one reaches `onDataChange` and `onSave` as an `insert`, `delete`, or `move` operation with a row id. On a server grid, send those operations to your API and let a refusal revert them.
 
-`useDataGridServerRows` sets `checkedRowsLifetime="across-filters"`. If any row is checked, the operations act on the checked rows only.
+`useDataGridServerRows` sets `checkedRowsLifetime="across-filters"`. A checked row stays checked after a page change or a filter hides it. If any row is checked, the operations act on the checked rows that the view shows and leave the hidden checked rows alone. `onBeforeDeleteRows` gets their number as `hiddenCount`.
 
 ## Enable the operations [#enable-the-operations]
 
-Insert needs `createRow`. Duplicate needs `duplicateRow`. Delete needs nothing. Give each new row an id that the server accepts. The sample shows the callbacks on a local array. `useDataGridServerRows` takes the same `onSave`:
+Insert needs `createRow`. Duplicate needs `duplicateRow`. Delete needs nothing. Give each new row an id that the server accepts. `createRow` and `duplicateRow` are props of the grid, and `onSave` is an option of the hook:
 
 ```tsx
-import { DataGrid, type DataChange } from "@/components/data-grid/data-grid";
-import { columns, type Order } from "./orders";
-import { opsToRequests } from "./ops-to-requests";
+"use client";
 
-export function OrdersGrid({ rows }: { rows: Order[] }) {
-  async function onSave(change: DataChange<Order>) {
-    await Promise.all(opsToRequests(change.ops));
-  }
+import { DataGrid, defineColumns, type DataChange } from "@/components/data-grid/data-grid";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
+
+type Order = { id: string; customer: string; total: number };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+  { id: "total", header: "Total", accessorKey: "total", type: "number" },
+]);
+
+async function save(change: DataChange<Order>) {
+  const response = await fetch("/api/orders/changes", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(change.ops),
+  });
+  if (!response.ok) throw new Error(`Save failed: ${response.status}`);
+}
+
+export function OrdersGrid() {
+  const server = useDataGridServerRows<Order>({
+    mode: "scroll",
+    fetchRows: async ({ start, end, spec, signal }) => {
+      const response = await fetch("/api/orders/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ spec, start, end }),
+        signal,
+      });
+      const answer = await response.json();
+      return { rows: answer.rows, totalRowCount: answer.total };
+    },
+    onSave: save,
+  });
 
   return (
     <DataGrid
-      defaultData={rows}
+      {...server.gridProps}
       columns={columns}
-      getRowId={(row) => row.id}
       createRow={() => ({ id: crypto.randomUUID(), customer: "", total: 0 })}
       duplicateRow={(row) => ({ ...row, id: crypto.randomUUID() })}
-      onSave={onSave}
+      className="h-96"
     />
   );
 }
@@ -41,7 +68,7 @@ Without `createRow` or `duplicateRow`, the matching operation does nothing and w
 
 ## Send the operations [#send-the-operations]
 
-`opsToRequests` from [Revert or refetch after a save](/docs/save-server/save-revert#translate-operations-into-api-calls) maps `insert` to a create request, `delete` to a remove request, and `update` to a patch. It sends all `move` operations of one change in one request, because the server must apply them as a batch.
+`change.ops` holds one operation per row. [Revert or refetch after a save](/docs/save-server/save-revert#translate-operations-into-api-calls) maps `insert` to a create request, `delete` to a remove request, and `update` to a patch. It sends all `move` operations of one change in one request, because the server must apply them as a batch.
 
 If the server refuses an `insert`, the grid removes the row. If it refuses a `delete`, the grid brings the row back. See [Handle refused saves](/docs/save-server/handle-refused-saves).
 
@@ -67,20 +94,7 @@ A scroll-mode grid holds unloaded rows as holes. If their target touches a hole,
 
 `isPlaceholderRowId(id)` tells a placeholder from a real id. `reorderRows` does nothing while any row is unloaded.
 
-Select all in a scroll-mode grid checks the holes too. To delete rows that you know, pass their ids to `deleteRows`. Render the button inside `DataGridProvider`, next to `DataGridRoot`:
-
-```tsx
-import { useDataGridActions } from "@/components/data-grid/data-grid";
-
-export function DeleteKnownRows() {
-  const actions = useDataGridActions();
-  return (
-    <button onClick={() => actions.deleteRows(["o-17", "o-18"])}>
-      Delete
-    </button>
-  );
-}
-```
+Select all in a scroll-mode grid checks the holes too. To delete rows that you know, pass their ids, as in `actions.deleteRows(["o-17", "o-18"])`. Get `actions` from `useDataGridActions()` in a component inside `DataGridProvider`, next to `DataGridRoot`.
 
 To delete every row of a filtered server result, call your own endpoint and run `server.refresh()`.
 
@@ -104,8 +118,8 @@ When "select all matching" is on, the Delete, Duplicate, and Move shortcuts do n
 
 ## Related
 
-- [Handle row action results](/docs/rows-live-data/handle-row-action-results)
-- [Row operations](/docs/rows-pages-menus/row-operations)
-- [Revert or refetch after a save](/docs/save-server/save-revert)
-- [Handle refused saves](/docs/save-server/handle-refused-saves)
-- [Data change events](/docs/events-state/data-change-events)
+- [Handle row action results](/docs/rows-live-data/handle-row-action-results): why a row action did nothing
+- [Row operations](/docs/rows-pages-menus/row-operations): the gates and the factories
+- [Revert or refetch after a save](/docs/save-server/save-revert): roll a failed save back, or fetch the rows again
+- [Handle refused saves](/docs/save-server/handle-refused-saves): revert only the rows the server refused
+- [Data change events](/docs/events-state/data-change-events): the operations that a change reports
