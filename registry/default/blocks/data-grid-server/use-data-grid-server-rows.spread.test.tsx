@@ -4,12 +4,13 @@ import type { StoreApi } from "zustand/vanilla";
 import { DataGridProvider, DataGridRoot, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { DataGridStoreState } from "@/registry/default/blocks/data-grid/store";
-import { useDataGridServerRows, type ServerRowsAnswer, type ServerRowsRequest, type UseDataGridServerRowsResult, type UseDataGridServerRowsScrollResult } from "./use-data-grid-server-rows";
+import { useDataGridServerRows, type ServerRowsAnswer, type ServerRowsPageRequest, type ServerRowsRequest, type UseDataGridServerRowsResult, type UseDataGridServerRowsScrollResult } from "./use-data-grid-server-rows";
 
 type Row = { id: string; name: string };
 const columns = defineColumns<Row>()([{ id: "name", header: "Name", accessorKey: "name", type: "text" }] as const);
 const rowsOf = (start: number, end: number): Row[] => Array.from({ length: end - start }, (_, i) => ({ id: `r${start + i}`, name: `Person ${start + i}` }));
 const fetchRows = async ({ start, end }: ServerRowsRequest<number>): Promise<ServerRowsAnswer<Row, number>> => ({ rows: rowsOf(start, Math.min(end, 40)), totalRowCount: 40 });
+const fetchPage = async ({ start, end }: ServerRowsPageRequest): Promise<ServerRowsAnswer<Row>> => ({ rows: rowsOf(start, Math.min(end, 40)), totalRowCount: 40 });
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -23,7 +24,7 @@ function mount(mode: "pages" | "scroll", after: { onDataChange?: () => void; onR
   function Harness() {
     server =
       mode === "pages"
-        ? useDataGridServerRows<Row>({ getRowId: (r) => r.id, fetchRows, defaultPageSize: 10, pageSizeOptions: [10] })
+        ? useDataGridServerRows<Row>({ getRowId: (r) => r.id, fetchRows: fetchPage, defaultPageSize: 10, pageSizeOptions: [10] })
         : useDataGridServerRows<Row, number>({ mode: "scroll", loadDelayMs: 0, blockSize: 10, overscan: 0, getRowId: (r) => r.id, fetchRows });
     return (
       <DataGridProvider {...server.gridProps} columns={columns} {...after}>

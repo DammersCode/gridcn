@@ -64,6 +64,10 @@ function setSaveCheckOn(holder: Holder, listener: (() => void) | null) {
   holder.onSaveStartedCheck = listener;
 }
 
+function setHandlersOn(holder: Holder, handlers: GuardHandlers) {
+  holder.handlers = handlers;
+}
+
 function setSettledListenerOn(holder: Holder, listener: (() => void) | null) {
   holder.onSavesSettled = listener;
 }
@@ -273,7 +277,7 @@ export function useRefreshGuard({ trackUnacknowledged = false }: RefreshGuardOpt
     },
     [holder],
   );
-  const setHandlers = useCallback((handlers: GuardHandlers) => void (holder.handlers = handlers), [holder]);
+  const setHandlers = useCallback((handlers: GuardHandlers) => setHandlersOn(holder, handlers), [holder]);
   return { setHandlers, setSaveCheckListener, plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, setSettleListener, setSaveStartListener, setSavesSettledListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows };
 }
 
