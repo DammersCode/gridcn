@@ -127,7 +127,7 @@ export function inlineDistanceFromEnd(edge: number, rect: { left: number; right:
 
 /**
  * Reads the resolved layout direction of an element from the DOM, following inherited `dir` and
- * the document default. Used once at mount to default the `direction` prop, so a grid inside an
+ * the document default. Defaults the `direction` prop, so a grid inside an
  * `<html dir="rtl">` page is correct without the consumer passing anything.
  */
 export function readResolvedDirection(element: Element | null): GridDirection {

@@ -251,13 +251,15 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // selection back to (0,0). Any pointerdown anywhere in the grid (captured phase, fires before
   // the resulting focus event in the same tick) marks the next focus as pointer-originated.
   const pointerInteractionRef = useRef(false);
-  // DOM-inherited default: `ltr` until the scroll element exists, then the real computed direction.
-  // Only an explicit prop skips the measurement entirely, so an `ltr` page (the overwhelmingly
-  // common case) settles on the same value it started with and never re-renders for this.
+  // `ltr` until the parent is measured. The root sets its own `dir`, so the inherited direction is read from the parent.
   const [domDirection, setDomDirection] = useState<GridDirection>("ltr");
   useLayoutEffect(() => {
     if (directionProp !== undefined) return;
-    setDomDirection(readResolvedDirection(scrollRef.current));
+    const read = () => setDomDirection(readResolvedDirection(scrollRef.current?.parentElement ?? null));
+    read();
+    const observer = new MutationObserver(read);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["dir"], subtree: true });
+    return () => observer.disconnect();
   }, [directionProp]);
   const direction = directionProp ?? domDirection;
   const isRtl = direction === "rtl";
