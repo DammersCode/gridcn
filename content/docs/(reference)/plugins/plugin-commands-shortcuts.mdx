@@ -15,7 +15,7 @@ A plugin adds named commands with its `commands` member. Its `keymap` member bin
 | A plugin command has the name of a built-in action | The grid drops the command and warns in development. |
 | A plugin `keymap` names a core action, or a command that the plugin does not define | The grid drops the entry and warns in development. |
 | A plugin binds a key that the default keymap, your `keymap`, or an earlier plugin already binds to an action | The grid drops that binding and warns in development. |
-| A plugin binds a key of the default `focusSearch`, and your `keymap` leaves `focusSearch` out | The plugin takes the key with no warning. `focusSearch` loses it. |
+| A plugin binds a key of the default `focusSearch`, and your `keymap` leaves `focusSearch` out | The plugin takes the key. `focusSearch` loses it. A development warning names the plugin, unless it is find and replace. |
 | A plugin `keymap` lists the keys of one of its commands | The list replaces the bindings of that action, like your `keymap` prop. List every key the action keeps. |
 
 ## Commands and keymaps [#commands-and-keymaps]
@@ -61,7 +61,7 @@ An entry in the `keymap` of a plugin needs two things. The plugin must define a 
 
 The entry is the full binding list of its action, like the same entry in your `keymap` prop. The list replaces the bindings of that action, so list every key the action keeps. Keys that differ only in letter case count once. An empty list or `undefined` unbinds the action.
 
-The grid drops a binding that another action already holds, and warns in development. Your `keymap` prop keeps its keys. Among plugins, the earlier plugin keeps a key. The default `focusSearch` binding is the exception. When your `keymap` leaves out `focusSearch`, a plugin takes its key with no warning.
+The grid drops a binding that another action already holds, and warns in development. Your `keymap` prop keeps its keys. Among plugins, the earlier plugin keeps a key. The default `focusSearch` binding is the exception. When your `keymap` leaves out `focusSearch`, a plugin takes its key, and a development warning names the plugin. The find and replace add-on takes the key with no warning. Set `keymap.focusSearch` to keep a search key, or to `[]` to hand the key over.
 
 The keymap resolves in this order, and a later step wins:
 
@@ -71,9 +71,9 @@ The keymap resolves in this order, and a later step wins:
 
 Inside `DataGridProvider`, `useDataGridKeymap()` returns the merged keymap without bindings that never match, for a surface outside `DataGridRoot` such as a shortcut list.
 
-When a plugin entry for `fillDown` leaves out <kbd>Mod</kbd>+<kbd>D</kbd>, the key has no binding, and the browser default of the key runs.
+When your `keymap` entry for `fillDown` leaves out <kbd>Mod</kbd>+<kbd>D</kbd>, the key has no binding, and the browser default of the key runs.
 
-This plugin defines `openSearchPanel` and binds it to <kbd>Mod</kbd>+<kbd>F</kbd>:
+This plugin defines `openSearchPanel` and binds it to <kbd>Mod</kbd>+<kbd>/</kbd>:
 
 ```tsx
 import type { DataGridPlugin } from "@/components/data-grid/data-grid";
@@ -82,12 +82,12 @@ export function createSearchPanelPlugin(open: () => void): DataGridPlugin {
   return {
     name: "my-search-panel",
     commands: { openSearchPanel: { run: () => open() } },
-    keymap: { openSearchPanel: ["mod+f"] },
+    keymap: { openSearchPanel: ["mod+/"] },
   };
 }
 ```
 
-After this plugin loads, <kbd>Mod</kbd>+<kbd>F</kbd> inside the grid runs `open`, and the browser find bar stays closed. `focusSearch` loses the key, so <kbd>Mod</kbd>+<kbd>F</kbd> does not focus the toolbar search. A plugin object attaches to one grid, so call `createSearchPanelPlugin()` once per grid.
+After this plugin loads, <kbd>Mod</kbd>+<kbd>/</kbd> inside the grid runs `open`. A plugin object attaches to one grid, so call `createSearchPanelPlugin()` once per grid.
 
 ## Related
 

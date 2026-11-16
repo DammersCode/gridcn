@@ -4,8 +4,8 @@
   "pages": [
     "plugin-contract",
     "plugin-commands-shortcuts",
+    "plugin-events",
     "plugin-shape",
-    "plugin-overlays",
-    "plugin-events"
+    "plugin-overlays"
   ]
 }

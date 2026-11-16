@@ -20,7 +20,7 @@ A plugin needs only `name`. Every other member is optional, and a plugin holds t
 - `keymap` binds keys to the commands of the plugin. A core action takes its keys from your `keymap` prop. The [add-on actions](/docs/plugins/plugin-commands-shortcuts#add-on-actions) take theirs from the plugin of the add-on.
 - `Mount` is a component that runs engine work inside the grid.
 
-The array order is the precedence order. Overlays paint in array order, bands stack in array order, and observers run in array order. A later plugin wins a command conflict. Your `commands` prop wins over every plugin, with no warning.
+The array order is the precedence order. Overlays paint in array order, bands stack in array order, and observers run in array order. A later plugin wins a command conflict. Your `commands` prop wins over every plugin, with no warning. For keys the earlier plugin wins: a later plugin that binds a taken key loses that binding, with a development warning.
 
 This plugin logs the source of every data change:
 
@@ -84,7 +84,7 @@ Keep an `Overlay` paint-only. When a plugin needs pointer work, listeners, or ti
 An observer and a command receive `api`, the imperative handle of the grid. It reads every state value and writes only through actions:
 
 - `api.store` is a read-only view of the store. It has `getState()`, `getInitialState()`, and `subscribe()`. It has no `setState`.
-- `api.store.getState()` returns the live state objects, without the internal slots and without most `on*` callbacks of your props. `onSave`, `onSaveRejected`, `onBeforeDeleteRows`, `onRowActionSkipped`, `onGateAborted`, `onPageChange`, and `onPageSizeChange` stay in the state. Never mutate the state objects.
+- `api.store.getState()` returns the live state objects. Its type, `DataGridReadState`, leaves out the internal slots and most `on*` callbacks of your props. Do not read or call the left-out values. `onSave`, `onSaveRejected`, `onBeforeDeleteRows`, `onRowActionSkipped`, `onGateAborted`, `onPageChange`, and `onPageSizeChange` stay in the state. Never mutate the state objects.
 - `api.actions` holds the public actions. A plugin writes data only through them.
 
 A plugin that needs a value the context does not carry subscribes to the store with `api.store.subscribe((state, prev) => ...)`.
