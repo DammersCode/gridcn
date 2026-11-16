@@ -142,6 +142,13 @@ export function useOptionalDataGridColumnSource(): { columns: readonly AnyColumn
   return columns && cellTypes ? { columns, cellTypes } : null;
 }
 
+/** The enclosing grid's `gateTimeoutMs` entry for `gate` and its `onGateAborted`, or neither outside a `DataGridProvider`; for a gate an add-on runs itself. */
+export function useOptionalDataGridGateTimeout(gate: GateName): { timeoutMs: number | undefined; onGateAborted: DataGridStoreState["onGateAborted"] } {
+  const timeoutMs = useOptionalDataGridStore((s) => (typeof s.gateTimeoutMs === "object" ? (s.gateTimeoutMs as Partial<Record<GateName, number>>)[gate] : s.gateTimeoutMs)) ?? undefined;
+  const onGateAborted = useOptionalDataGridStore((s) => s.onGateAborted) ?? undefined;
+  return { timeoutMs, onGateAborted };
+}
+
 /** The polite live-region text of the latest row move. */
 export function useDataGridRowMoveAnnouncement(): string {
   return useDataGridStore((s) => s.rowMoveAnnouncement);

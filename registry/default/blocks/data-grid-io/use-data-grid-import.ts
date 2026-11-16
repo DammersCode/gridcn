@@ -17,7 +17,7 @@ import {
 import { resolveImportMapping, type ImportTargetColumn, type ImportDefaults } from "./match-import-column";
 import { buildImportedRows, IMPORT_CANCELLED_MESSAGE, type BuildImportedRowsOptions, type BuildImportedRowsResult, type ImportColumnMapping } from "./build-imported-rows";
 import { DEFAULT_LABELS, type AnyCellType } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev, isThenable, useOptionalDataGridColumnSource, useOptionalDataGridLabels } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { isDev, isThenable, useOptionalDataGridColumnSource, useOptionalDataGridGateTimeout, useOptionalDataGridLabels } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 export type { ImportTargetColumn, ImportDefaults };
 
@@ -174,17 +174,46 @@ export type BuildImportOptions<TData> = Omit<BuildImportedRowsOptions<TData>, "d
   processImportRows?: ProcessImportRows;
 };
 
-/** Awaits a promised mapping; a rejected `mapColumn` falls back to the built-in match so the dialog still opens. */
+type MappingGate = { signal: AbortSignal; arm: () => void; stop: () => void };
+
+/** The `mapColumn` signal: aborts with `signal`, or `timeoutMs` after {@link MappingGate.arm}, then reports the timeout. */
+function mappingGate(signal: AbortSignal, timeoutMs: number | undefined, onTimeout: () => void): MappingGate {
+  const controller = new AbortController();
+  const abort = () => controller.abort(signal.reason);
+  if (signal.aborted) abort();
+  else signal.addEventListener("abort", abort, { once: true });
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  return {
+    signal: controller.signal,
+    arm: () => {
+      if (timeoutMs === undefined || !(timeoutMs > 0) || controller.signal.aborted) return;
+      timer = setTimeout(() => {
+        controller.abort(new DOMException("mapColumn timed out", "TimeoutError"));
+        onTimeout();
+      }, timeoutMs);
+    },
+    stop: () => {
+      clearTimeout(timer);
+      signal.removeEventListener("abort", abort);
+    },
+  };
+}
+
+/** Awaits a promised mapping until it settles or `gate` aborts; a rejected or timed-out `mapColumn` falls back to the built-in match so the dialog still opens. */
 async function settleMapping(
   mapped: Promise<(string | null)[]>,
   fallback: () => (string | null)[],
-  signal: AbortSignal,
+  gate: MappingGate,
 ): Promise<(string | null)[]> {
+  gate.arm();
+  const aborted = new Promise<never>((_, reject) => gate.signal.addEventListener("abort", () => reject(gate.signal.reason), { once: true }));
   try {
-    return await mapped;
+    return await Promise.race([mapped, aborted]);
   } catch (error) {
-    if (isDev() && !signal.aborted) console.warn("[data-grid-io] mapColumn rejected, so the built-in column match is used", error);
+    if (isDev() && !gate.signal.aborted) console.warn("[data-grid-io] mapColumn rejected, so the built-in column match is used", error);
     return fallback();
+  } finally {
+    gate.stop();
   }
 }
 
@@ -197,6 +226,18 @@ async function settleMapping(
 export function useDataGridImportPreview(options: UseDataGridImportPreviewOptions = {}): UseDataGridImportPreviewResult {
   const gridLabels = useOptionalDataGridLabels();
   const grid = useOptionalDataGridColumnSource();
+  const { timeoutMs: mapTimeoutMs, onGateAborted } = useOptionalDataGridGateTimeout("mapColumn");
+  const mapGate = useCallback(
+    (signal: AbortSignal) =>
+      mappingGate(signal, mapTimeoutMs, () => {
+        try {
+          onGateAborted?.({ gate: "mapColumn", reason: "timeout" });
+        } catch (error) {
+          if (isDev()) console.error("[data-grid-io] onGateAborted threw", error);
+        }
+      }),
+    [mapTimeoutMs, onGateAborted],
+  );
   const gridColumns = grid?.columns;
   const gridCellTypes = grid?.cellTypes;
   const labelsIo = (gridLabels ?? DEFAULT_LABELS).io;
@@ -296,10 +337,11 @@ export function useDataGridImportPreview(options: UseDataGridImportPreviewOption
       const hasHeaderRow = initialHasHeaderRow;
       hasHeaderRowRef.current = hasHeaderRow;
       const importHeaders = computeImportHeaders(parsed.rows, hasHeaderRow, columnFallback);
-      const mapped = resolveImportMapping(importHeaders, gridColumns, { defaultSkipColumns, mapColumn, signal: controller.signal });
+      const gate = mapGate(controller.signal);
+      const mapped = resolveImportMapping(importHeaders, gridColumns, { defaultSkipColumns, mapColumn, signal: gate.signal });
       const matched = isThenable(mapped)
-        ? await settleMapping(mapped, () => resolveImportMapping(importHeaders, gridColumns, { defaultSkipColumns }) as (string | null)[], controller.signal)
-        : mapped;
+        ? await settleMapping(mapped, () => resolveImportMapping(importHeaders, gridColumns, { defaultSkipColumns }) as (string | null)[], gate)
+        : (gate.stop(), mapped);
       if (generation !== parseGenerationRef.current) return; // superseded while mapColumn was pending
       setPreview({
         fileName: file.name,
@@ -321,17 +363,18 @@ export function useDataGridImportPreview(options: UseDataGridImportPreviewOption
       if (parseControllerRef.current === controller) setIsParsing(false);
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- destructured option fields are the real deps; `defaults` itself may be a fresh object each render.
-  }, [columnFallback, initialHasHeaderRow, defaultSkipColumns, mapColumn, parse, startParse]);
+  }, [columnFallback, initialHasHeaderRow, defaultSkipColumns, mapColumn, mapGate, parse, startParse]);
 
   const mapForReparse = useCallback(
     (importHeaders: readonly string[], signal: AbortSignal): (string | null)[] | Promise<(string | null)[]> => {
       const gridColumns = gridColumnsRef.current;
-      const mapped = resolveImportMapping(importHeaders, gridColumns, { defaultSkipColumns, mapColumn, signal });
+      const gate = mapGate(signal);
+      const mapped = resolveImportMapping(importHeaders, gridColumns, { defaultSkipColumns, mapColumn, signal: gate.signal });
       return isThenable(mapped)
-        ? settleMapping(mapped, () => resolveImportMapping(importHeaders, gridColumns, { defaultSkipColumns }) as (string | null)[], signal)
-        : mapped;
+        ? settleMapping(mapped, () => resolveImportMapping(importHeaders, gridColumns, { defaultSkipColumns }) as (string | null)[], gate)
+        : (gate.stop(), mapped);
     },
-    [defaultSkipColumns, mapColumn],
+    [defaultSkipColumns, mapColumn, mapGate],
   );
 
   const setHasHeaderRow = useCallback(

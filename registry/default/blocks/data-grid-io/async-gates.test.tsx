@@ -1,5 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { ReactNode } from "react";
+import { DataGridProvider } from "@/registry/default/blocks/data-grid/data-grid";
 import type { CellType, ColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
 import { buildImportedRows, IMPORT_CANCELLED_MESSAGE, IMPORT_CHUNK_THRESHOLD_ROWS } from "./build-imported-rows";
 import { resolveImportMapping as applyImportOptions, type ImportTargetColumn } from "./match-import-column";
@@ -83,6 +85,25 @@ describe("mapColumn async", () => {
     expect(result.current.preview?.mapping).toEqual([{ importColumnIndex: 0, gridColumnId: "name" }]);
     expect(result.current.isParsing).toBe(false);
     expect(warn.mock.calls.some(([message]) => String(message).includes("mapColumn rejected"))).toBe(true);
+  });
+
+  it("gateTimeoutMs.mapColumn aborts a pending mapColumn and falls back to the built-in match", async () => {
+    vi.mocked(parseImportFile).mockResolvedValue({ rows: [["Name"], ["x"]], delimiter: "," });
+    const onGateAborted = vi.fn();
+    let signal: AbortSignal | undefined;
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <DataGridProvider data={[]} columns={columns} gateTimeoutMs={{ mapColumn: 20 }} onGateAborted={onGateAborted}>
+        {children}
+      </DataGridProvider>
+    );
+    const mapColumn = (_header: string, _index: number, ctx: { signal: AbortSignal }) => ((signal = ctx.signal), new Promise<string>(() => {}));
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (i) => `Column ${i}`, defaults: { mapColumn } }), { wrapper });
+    await act(async () => {
+      await result.current.loadFile(FILE, TARGETS);
+    });
+    expect(result.current.preview?.mapping).toEqual([{ importColumnIndex: 0, gridColumnId: "name" }]);
+    expect(signal?.aborted).toBe(true);
+    expect(onGateAborted).toHaveBeenCalledWith({ gate: "mapColumn", reason: "timeout" });
   });
 
   it("a newer file load supersedes a pending mapColumn", async () => {

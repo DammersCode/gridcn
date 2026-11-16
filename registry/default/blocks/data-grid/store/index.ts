@@ -45,6 +45,7 @@ export {
   useDataGridSelectionPointer,
   useDataGridLabels,
   useOptionalDataGridColumnSource,
+  useOptionalDataGridGateTimeout,
   useOptionalDataGridLabels,
   useDataGridRowMoveAnnouncement,
   useDataGridLiveAnnouncement,

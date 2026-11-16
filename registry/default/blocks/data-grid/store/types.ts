@@ -157,7 +157,7 @@ export type DataGridSyncProps<TData = unknown> = {
   processCellForClipboard?: (value: unknown, ctx: ClipboardCopyCtx<TData>) => string;
   /**
    * Overrides parsing pasted text into a cell value. `ctx.fromText` is the column's own parser, for the cells you do not change.
-   * A promise holds the paste until every cell settles. A pending promise blocks a second paste.
+   * A promise holds the paste until every cell settles. A pending promise blocks a second paste until it settles or `ctx.signal` aborts.
    * A rejection cancels the paste.
    */
   processCellFromClipboard?: (text: string, ctx: ClipboardPasteCtx<TData>) => NonNullable<unknown> | null | undefined | Promise<unknown>;
@@ -209,7 +209,7 @@ export type DataGridSyncProps<TData = unknown> = {
   defaultPage?: number;
   onPageChange?: (page: number) => void;
   /**
-   * Aborts an async gate (`onBeforeDeleteRows`, `validateRow`, `onBeforeEditStart`, `createRow`, `duplicateRow`, `processPaste`, `processReplace`) whose promise
+   * Aborts an async gate (`onBeforeDeleteRows`, `validateRow`, `onBeforeEditStart`, `createRow`, `duplicateRow`, `processPaste`, `processCellFromClipboard`, `processReplace`, the import `mapColumn`) whose promise
    * has not settled after this many ms (one number for every gate, or a number per gate name): its `signal` aborts, the action is cancelled, and the next action may start. Default: off
    * (a gate waits for its promise).
    */
@@ -556,7 +556,7 @@ export type ClipboardCopyCtx<TData> = ClipboardProcessCtx<TData> & {
 };
 
 /** `processCellFromClipboard`'s context. */
-export type ClipboardPasteCtx<TData> = ClipboardProcessCtx<TData> & {
+export type ClipboardPasteCtx<TData> = ClipboardProcessCtx<TData> & GateContext & {
   /** The column's own parser (the cell type's `fromText` with the column options). */
   fromText: (text: string) => unknown;
 };

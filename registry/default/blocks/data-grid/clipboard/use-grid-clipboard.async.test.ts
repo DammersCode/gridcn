@@ -275,6 +275,29 @@ describe("processCellFromClipboard async", () => {
     expect(m3.names()).toEqual(["B", "C"]);
   });
 
+  it("marks the gate pending, passes a signal, and gateTimeoutMs aborts it and frees the next paste", async () => {
+    vi.useFakeTimers();
+    try {
+      const onGateAborted = vi.fn();
+      const signals: AbortSignal[] = [];
+      const m = mount({
+        gateTimeoutMs: { processCellFromClipboard: 100 },
+        onGateAborted,
+        processCellFromClipboard: (text, ctx) => (signals.push(ctx.signal), text === "x" ? new Promise(() => {}) : text),
+      });
+      expect(m.paste("x")).toBe(true);
+      expect([...m.store.getState().gatesPending]).toEqual(["processCellFromClipboard"]);
+      await vi.advanceTimersByTimeAsync(100);
+      expect(signals[0]!.aborted).toBe(true);
+      expect(onGateAborted).toHaveBeenCalledWith({ gate: "processCellFromClipboard", reason: "timeout" });
+      expect(m.store.getState().gatesPending.size).toBe(0);
+      expect(m.paste("y")).toBe(true);
+      expect(m.names()[0]).toBe("y");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("an async parser composes with an async processPaste into one write", async () => {
     const onDataChange = vi.fn();
     const m = mount({

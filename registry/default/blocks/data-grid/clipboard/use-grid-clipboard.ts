@@ -261,7 +261,7 @@ async function settleCandidateValues(candidates: BulkCandidate[]): Promise<BulkC
 
 const pageWarnOnce = createWarnOnce();
 
-function collectPasteCandidates(s: DataGridStoreState, cells: string[][], target: ViewCoord, warnOnce = pageWarnOnce): { candidates: BulkCandidate[]; pending: number } {
+function collectPasteCandidates(s: DataGridStoreState, cells: string[][], target: ViewCoord, warnOnce = pageWarnOnce, run = new GateRun("processCellFromClipboard")): { candidates: BulkCandidate[]; pending: number } {
   const candidates: BulkCandidate[] = [];
   let pending = 0;
   const rowCount = s.viewIndex.length;
@@ -291,7 +291,7 @@ function collectPasteCandidates(s: DataGridStoreState, cells: string[][], target
       const columnValidate = resolveColumnValidate(column, cellType);
       const { processCellFromClipboard } = s;
       const { value, validate } = processCellFromClipboard
-        ? parseWithHook("processCellFromClipboard", () => processCellFromClipboard(text, { row, column, fromText: (raw) => cellType.fromText(raw, column.options) }), columnValidate, warnOnce)
+        ? parseWithHook("processCellFromClipboard", () => processCellFromClipboard(text, { row, column, get signal() { return run.signal; }, fromText: (raw) => cellType.fromText(raw, column.options) }), columnValidate, warnOnce)
         : safeFromText(cellType, text, column.options, columnValidate);
 
       if (isThenable(value)) pending++;
@@ -448,21 +448,33 @@ function runPaste(
     console.warn(`gridcn: paste truncated to ${cappedCells.length} of ${finalCells.length} rows (MAX_PASTE_CELLS)`);
   }
 
-  const { candidates, pending } = collectPasteCandidates(s, cappedCells, target, latch.warnOnce);
+  const run = new GateRun("processCellFromClipboard", (now) => now.readOnly || now.editing !== null);
+  const { candidates, pending } = collectPasteCandidates(s, cappedCells, target, latch.warnOnce, run);
   if (pending > 0) {
+    const gates = storeApi ? gateTrackerOf(storeApi) : undefined;
     latch.gate = "processCellFromClipboard";
+    latch.run = run;
+    gates?.hold(run);
+    const finish = (): boolean => {
+      gates?.settle(run);
+      if (latch.run === run) {
+        latch.gate = null;
+        latch.run = null;
+      }
+      return !run.aborted;
+    };
     const token = gateToken ?? guard?.begin();
     const snapshot = snapshotBulkBatch(s, candidateRowIds(s, candidates));
     void settleCandidateValues(candidates).then(
       (settled) => {
-        latch.gate = null;
+        if (!finish()) return;
         const current = storeApi?.getState() ?? s;
         if (current.readOnly || current.editing) return;
         if (guard && token !== undefined && !guard.isCurrent(token, current, snapshot)) return;
         applyResolution(current, actions, settled, guard, storeApi, token, true);
       },
       (error: unknown) => {
-        latch.gate = null;
+        if (!finish()) return;
         latch.warnOnce("cell rejected", () => `processCellFromClipboard rejected, so the paste is cancelled: ${toSafeText(error)}`);
       },
     );

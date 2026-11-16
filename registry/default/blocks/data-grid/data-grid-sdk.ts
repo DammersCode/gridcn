@@ -161,7 +161,7 @@ export { columnLabelText } from "./columns/column-format-helpers";
 export { createHistory, type History, type HistoryOptions } from "./interaction/history";
 export { buildRollback, rebaseOntoCurrent } from "./interaction/rollback";
 export { mergeLabelLayers } from "./labels";
-export { useOptionalDataGridColumnSource, useOptionalDataGridLabels } from "./store";
+export { useOptionalDataGridColumnSource, useOptionalDataGridGateTimeout, useOptionalDataGridLabels } from "./store";
 export type { DataGridFilterOperatorLabels } from "./labels";
 export { deepMergeLabels } from "./labels";
 export { GRID_ATTR, gridAttrSelector, type GridAttrName, type GridAttr, type GridAttrValue } from "./data-attributes";
