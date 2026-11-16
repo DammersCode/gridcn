@@ -670,7 +670,7 @@ export type UpdateCellsSkip = {
    * row, via `readOnly(row)`) is read-only for a batch with a `source` other than `"stream"`, or a
    * `"stream"` patch met a column with no write path (no `accessorKey` and no `setValue`); `"invalid"` — the column's `validate` rejected the
    * value; `"no-op"` — the value is `Object.is`-equal to the current one; `"saving"` — a
-   * `"stream"` batch met a row whose save is in flight, so push the value again after the save settles;
+   * `"stream"` batch met a row whose save is in flight; the grid holds the patch and applies it once the save settles (after the acknowledgement or the rollback), and a later push to the same cell replaces the held value;
    * `"limit"` — a `"stream"` call carried more than 100,000 patches, and this one came after them.
    */
   reason: "unknown-row" | "unknown-column" | "hole" | "readonly" | "invalid" | "no-op" | "saving" | "limit";

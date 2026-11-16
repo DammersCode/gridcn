@@ -303,7 +303,7 @@ export function computeRowEditsBatch(
  * to write a column the user has hidden). Unknown rows, unknown columns, unloaded rows (`"hole"`),
  * read-only cells, and `Object.is`-equal no-op writes are dropped. Under `source: "stream"` only a
  * column with no `accessorKey` and no `setValue` counts as read-only, and a row whose save is in
- * flight skips as `"saving"`. Duplicate patches to one cell dedupe last-write-wins with `prev` held
+ * flight is held with reason `"saving"`. Duplicate patches to one cell dedupe last-write-wins with `prev` held
  * at the pre-batch value.
  *
  * `skipValidation` bypasses the per-column `validate` a 200-cell tick would otherwise re-run for a
