@@ -19,6 +19,6 @@ version, security policy, and templates. Nothing is pushed or tagged yet.
 
 Not part of 1.0:
 
-- Issues #62 to #71 (W6-06 to W6-15) are post-1.0 roadmap.
+- Issues #62 to #71 (W6-06 to W6-15) are post-1.0 work.
 - The manual NVDA and VoiceOver passes are pending. The docs state this.
 - Firefox and Safari have no automated gate. The docs state this.
