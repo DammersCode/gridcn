@@ -51,32 +51,25 @@ export function OrdersGrid() {
       const answer = await response.json();
       return { rows: answer.rows, totalRowCount: answer.total };
     },
+    onRenderedRowsChange: (range) => {
+      const behind = range.start - MIN_DISTANCE;
+      const ahead = range.end + MIN_DISTANCE;
+      server.evict({
+        start: 0,
+        end: Math.floor(behind / BLOCK_SIZE) * BLOCK_SIZE,
+      });
+      server.evict({
+        start: Math.ceil(ahead / BLOCK_SIZE) * BLOCK_SIZE,
+        end: Number.MAX_SAFE_INTEGER,
+      });
+    },
   });
 
-  return (
-    <DataGrid
-      {...server.gridProps}
-      columns={columns}
-      className="h-96"
-      onRenderedRowsChange={(range) => {
-        server.gridProps.onRenderedRowsChange(range);
-        const behind = range.start - MIN_DISTANCE;
-        const ahead = range.end + MIN_DISTANCE;
-        server.evict({
-          start: 0,
-          end: Math.floor(behind / BLOCK_SIZE) * BLOCK_SIZE,
-        });
-        server.evict({
-          start: Math.ceil(ahead / BLOCK_SIZE) * BLOCK_SIZE,
-          end: Number.MAX_SAFE_INTEGER,
-        });
-      }}
-    />
-  );
+  return <DataGrid {...server.gridProps} columns={columns} className="h-96" />;
 }
 ```
 
-Call the hook's own `onRenderedRowsChange` first. A prop after the spread replaces it, and the hook needs the rendered row range to fetch blocks.
+The `onRenderedRowsChange` option <NewBadge /> runs after the hook has read the rendered row range, so blocks keep loading.
 
 Two behaviors matter for a policy of your own:
 
@@ -93,7 +86,7 @@ A pending insert or delete is one whose `onSave` promise has not settled. A refr
 
 If the answer lacks a pending insert and no answer row sits in its slot, the insert returns to that slot. If an answer row sits there, the insert stays hidden. A result with a row count refreshes again once no pending insert or delete remains. A refresh of a sequential source that ends before a pending insert can drop it until its save settles.
 
-`gridProps.plugins` mounts the guard that applies these rules. A `plugins` prop of your own replaces the guard. Put the hook's plugins first, as in `plugins={[...server.gridProps.plugins, myPlugin]}`. When an edit happened and the guard never mounted, `refresh()` warns once in development.
+`gridProps.plugins` mounts the guard that applies these rules, then the plugins of the `plugins` option. A `plugins` prop of your own after the spread replaces the guard. When an edit happened and the guard never mounted, `refresh()` warns once in development.
 
 Call `refresh()` <NewBadge /> after your `onSave` promise settles to pick up fields that the server computes. The hook can do it for you. See [Save edits](/docs/save-server/save-edits).
 

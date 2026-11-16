@@ -286,7 +286,7 @@ export function rowOfStreamUpdate<TData>(change: DataChange<TData>, columns: rea
 }
 
 export const GUARD_MISSING_MESSAGE =
-  "refresh cannot protect rows with a pending save or an open edit because the refresh guard plugin never mounted; if you pass your own `plugins` prop to the provider, put ...gridProps.plugins first in it";
+  "refresh cannot protect rows with a pending save or an open edit because the refresh guard plugin never mounted; pass your own plugins through the `plugins` option of useDataGridServerRows instead of a `plugins` prop after the gridProps spread";
 
 /** Applies the rule to an incoming page: a deleted row is dropped, a protected row keeps its local value by id, and a protected row the page lacks stays at the end. */
 export function keepProtectedRows<TData>(

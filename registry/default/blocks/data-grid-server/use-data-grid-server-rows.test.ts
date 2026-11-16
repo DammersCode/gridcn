@@ -16,9 +16,40 @@ function server(total = 95) {
   });
 }
 
-const make = (fetchRows: Fetch, extra: Partial<UseDataGridServerRowsOptions<Row>> = {}) => renderHook(() => useDataGridServerRows<Row>({ getRowId: (r) => r.id, fetchRows, defaultPageSize: 10, ...extra }));
+const useServer = (fetchRows: Fetch, extra: Partial<UseDataGridServerRowsOptions<Row>>) => useDataGridServerRows<Row>({ getRowId: (r) => r.id, fetchRows, defaultPageSize: 10, ...extra });
+const make = (fetchRows: Fetch, extra: Partial<UseDataGridServerRowsOptions<Row>> = {}) =>
+  renderHook(() => {
+    const hook = useServer(fetchRows, extra);
+    void hook.pager;
+    return hook;
+  });
 
 afterEach(() => vi.restoreAllMocks());
+
+describe("useDataGridServerRows options.plugins and the pager warning", () => {
+  it("mounts options.plugins after the refresh guard", async () => {
+    const { result } = make(server(), { plugins: [{ name: "mine" }] });
+    await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
+    const names = result.current.gridProps.plugins.map((plugin) => plugin.name);
+    expect(names).toHaveLength(2);
+    expect(names[1]).toBe("mine");
+  });
+
+  it("warns once when pages mode lands more rows than a page and no pager is read", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { result, rerender } = renderHook(() => useServer(server(), {}));
+    await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
+    rerender();
+    expect(warn.mock.calls.filter(([message]) => String(message).includes("pager"))).toHaveLength(1);
+  });
+
+  it("stays silent when the render reads the pager", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { result } = make(server());
+    await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
+    expect(warn.mock.calls.filter(([message]) => String(message).includes("pager"))).toHaveLength(0);
+  });
+});
 
 describe("useDataGridServerRows", () => {
   it("fetches page 1 on mount, shows loading until it lands, then the rows and the count", async () => {
@@ -33,7 +64,7 @@ describe("useDataGridServerRows", () => {
     expect(result.current.gridProps.totalRowCount).toBe(95);
     expect(result.current.pager).toMatchObject({ page: 1, pageSize: 10, totalRowCount: 95, pageCount: 10 });
     expect(result.current.gridProps).toMatchObject({ sortMode: "server", filterMode: "server", checkedRowsLifetime: "across-filters" });
-    expect("headerClickBehavior" in result.current.gridProps).toBe(false);
+    expect(result.current.gridProps.headerClickBehavior).toBe("sort");
   });
 
   it("a page change fetches that page and keeps the old rows until it lands", async () => {

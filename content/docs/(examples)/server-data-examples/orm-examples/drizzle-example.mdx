@@ -111,6 +111,7 @@ The grid posts the spec and the range to the route. `fetchRows` returns the JSON
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import { DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
 import {
   useDataGridServerRows,
   type UseDataGridServerRowsOptions,
@@ -137,7 +138,12 @@ const fetchRows: UseDataGridServerRowsOptions<User>["fetchRows"] = async ({
 
 export function UsersGrid() {
   const server = useDataGridServerRows<User>({ fetchRows });
-  return <DataGrid {...server.gridProps} columns={columns} />;
+  return (
+    <>
+      <DataGrid {...server.gridProps} columns={columns} />
+      <DataGridPaginationBar {...server.pager} />
+    </>
+  );
 }
 ```
 
@@ -154,6 +160,7 @@ import {
   DataGridProvider,
   DataGridRoot,
 } from "@/components/data-grid/data-grid";
+import { DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
 import {
   DataGridUrlState,
   useDataGridUrlPagination,
@@ -172,6 +179,7 @@ return (
       <DataGridHeader />
       <DataGridBody />
     </DataGridRoot>
+    <DataGridPaginationBar {...server.pager} />
   </DataGridProvider>
 );
 ```

@@ -10,7 +10,7 @@ import { MAX_ROW_COUNT, readAnswer, type ReadAnswer, type ServerRowsAnswer, type
 import { useScrollBlocks, type UseDataGridServerRowsScrollOptions, type UseDataGridServerRowsScrollResult } from "./scroll-blocks";
 import { GUARD_MISSING_MESSAGE, keepProtectedRows, pruneIds, trackDeletes, unionIds, useRefreshGuard, type ProtectedRows } from "./refresh-guard";
 import { useSaveRefresh, type SaveRefreshOptions, type SaveRefreshPolicy } from "./save-refresh";
-import { isolate, useControlled, useReshape, useRevalidation, useServerSpec } from "./server-state";
+import { isolate, useControlled, useMountedPlugins, useReshape, useRevalidation, useServerSpec } from "./server-state";
 
 export type { DataSourceState } from "./server-state";
 export type { ServerRowsAnswer, ServerRowsPageRequest, ServerRowsRequest } from "./read-answer";
@@ -69,6 +69,8 @@ export type UseDataGridServerRowsOptions<TData, TCursor = never> = {
   onSave?: SaveRefreshOptions<TData>["onSave"];
   /** When the hook calls `refresh()` after `onSave` settles: `"settled"` once after every save in flight (default), `"each"` after saves settle without waiting for the saves in flight, `false` never, or a function that gets the counts and returns whether to refresh. */
   refreshAfterSave?: SaveRefreshPolicy;
+  /** Plugins the hook mounts after its refresh guard, through `gridProps.plugins`. */
+  plugins?: readonly DataGridPlugin<unknown>[];
 };
 
 /** Return value of {@link useDataGridServerRows}. */
@@ -123,8 +125,10 @@ export type UseDataGridServerRowsProviderProps<TData> = {
   totalRowCount: number | null;
   /** Keeps checks by row id across pages and server sorts and filters. */
   checkedRowsLifetime: "across-filters";
-  /** Mounts the guard that keeps a refresh from overwriting a row with a pending save or an open edit. Put your own plugins after it. */
+  /** The refresh guard that keeps a refresh from overwriting a row with a pending save or an open edit, then the `plugins` option. */
   plugins: readonly DataGridPlugin<unknown>[];
+  /** Sorts on a header click. Override it after the spread. */
+  headerClickBehavior: "sort";
 };
 
 /** Props of {@link UseDataGridServerRowsResult.gridProps} that belong to `DataGridRoot`. */
@@ -193,11 +197,12 @@ export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGr
   // The mode never changes for a mounted hook, so each render calls the same hooks in the same order.
   // eslint-disable-next-line react-hooks/rules-of-hooks
   // oxlint-disable-next-line react-hooks/rules-of-hooks
+  const [pagerWatch] = useState(() => new PagerWatch());
   const resolved = options.getRowId ? options : { ...options, getRowId: defaultGetRowId };
-  return resolved.mode === "scroll" ? useScrollBlocks(resolved as WithRowId<UseDataGridServerRowsScrollOptions<TData, TCursor>, TData>) : usePagesRows(resolved as WithRowId<UseDataGridServerRowsOptions<TData, TCursor>, TData>);
+  return resolved.mode === "scroll" ? useScrollBlocks(resolved as WithRowId<UseDataGridServerRowsScrollOptions<TData, TCursor>, TData>) : pagerWatch.attach(usePagesRows(resolved as WithRowId<UseDataGridServerRowsOptions<TData, TCursor>, TData>, pagerWatch));
 }
 
-function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOptions<TData, TCursor>, TData>): UseDataGridServerRowsResult<TData> {
+function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOptions<TData, TCursor>, TData>, pagerWatch: PagerWatch): UseDataGridServerRowsResult<TData> {
   const { pageSizeOptions = DEFAULT_PAGE_SIZES } = options;
   const [pageSize, setPageSize] = useControlled(options.pageSize, () => options.defaultPageSize ?? pageSizeOptions[0] ?? DEFAULT_PAGE_SIZES[0], options.onPageSizeChange);
   const [rawPage, setPage] = useControlled(options.page, () => options.defaultPage ?? 1, options.onPageChange);
@@ -214,7 +219,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   const awaitingChain = !cursorSource && settled.cursorSource;
   const page = cursorSource ? Math.min(wantedPage, settled.furthestPage) : awaitingChain ? 1 : wantedPage;
   const [tick, setTick] = useState(0);
-  const { setSaveCheckListener, plugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, savingRows, setSaveStartListener, setSavesSettledListener, setReshapeListener } = useRefreshGuard();
+  const { setSaveCheckListener, plugins: guardPlugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, savingRows, setSaveStartListener, setSavesSettledListener, setReshapeListener } = useRefreshGuard();
   const [landed, setLanded] = useState<Landed<TData, TCursor> | null>(null);
 
   const specKey = serverSpecKey(spec);
@@ -444,6 +449,10 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   );
 
   const status = error !== null ? "error" : loading ? "loading" : "ready";
+  const pagerNeeded = options.page === undefined && settled.key !== "" && (cursorSource ? settled.hasMore : settled.totalRowCount !== null && settled.totalRowCount > pageSize);
+  useEffect(() => {
+    if (pagerNeeded && !pagerWatch.seen) warn("pager", "pages mode has more rows than one page, but nothing read `pager`; spread `server.pager` onto DataGridPaginationBar or control `page`");
+  }, [pagerNeeded, pagerWatch, warn]);
   useLayoutEffect(() => {
     if (page !== wantedPage) setPage(page);
   }, [page, wantedPage, setPage]);
@@ -517,6 +526,8 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
 
   const onSave = useSaveRefresh(options, refresh, setSaveCheckListener);
 
+  const plugins = useMountedPlugins(guardPlugins, options.plugins);
+
   const providerProps = useMemo<UseDataGridServerRowsProviderProps<TData>>(
     () => ({
       data: shown.rows,
@@ -533,6 +544,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
       onSearchTextChange,
       totalRowCount: shown.totalRowCount,
       checkedRowsLifetime: "across-filters",
+      headerClickBehavior: "sort",
       plugins,
     }),
     [shown.rows, shown.totalRowCount, spec, getRowId, onDataChange, onSave, onSortChange, onFilterChange, onSearchTextChange, plugins],
@@ -541,6 +553,25 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   const gridProps = useMemo(() => ({ ...providerProps, ...rootProps }), [providerProps, rootProps]);
 
   return { gridProps, providerProps, rootProps, spec, totalRowCount: shown.totalRowCount, pager, status, loading, error, retry, refresh, reshape };
+}
+
+/** Records whether the consumer read `pager`, so the hook can warn about a pager that nothing reads. */
+class PagerWatch {
+  seen = false;
+
+  attach<T extends { pager: DataGridPaginationControls }>(result: T): T {
+    const { pager } = result;
+    const markSeen = () => {
+      this.seen = true;
+    };
+    return {
+      ...result,
+      get pager() {
+        markSeen();
+        return pager;
+      },
+    };
+  }
 }
 
 const EMPTY_LIVE_SPEC: ServerSpec = { sorts: [], filters: [], searchText: "" };

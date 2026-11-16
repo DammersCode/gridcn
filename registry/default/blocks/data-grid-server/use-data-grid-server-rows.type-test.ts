@@ -66,3 +66,10 @@ export function defaultRowId() {
   useDataGridServerRows<Row>({ fetchRows: async () => ({ rows: [] as Row[], totalRowCount: 0 }) });
   useDataGridServerRows<Row>({ mode: "scroll", fetchRows: async () => ({ rows: [] as Row[], totalRowCount: 0 }) });
 }
+
+export function ownPluginsAndRenderedRows() {
+  const pages = useDataGridServerRows<Row>({ getRowId, fetchRows: async () => ({ rows: [] as Row[] }), plugins: [{ name: "mine" }] });
+  const scroll = useDataGridServerRows<Row>({ mode: "scroll", getRowId, fetchRows: async () => ({ rows: [] as Row[] }), plugins: [{ name: "mine" }], onRenderedRowsChange: (range) => void range.start });
+  pages.gridProps.headerClickBehavior satisfies "sort";
+  scroll.gridProps.headerClickBehavior satisfies "sort";
+}
