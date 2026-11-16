@@ -22,7 +22,7 @@ const build = (processCellFromText: ProcessCellFromText<Order>) =>
 
 describe("control-import sample", () => {
   it("parses total as a number and trims the other cells", async () => {
-    const result = await build((text, { column }) => (column.id === "total" ? Number.parseFloat(text) : text.trim()));
+    const result = await build((text, { column }) => (column.id === "total" ? (text.trim() === "" ? null : Number.parseFloat(text)) : text.trim()));
     expect(result.rows[0]).toMatchObject({ customer: "Ada", total: 12.5 });
   });
 
