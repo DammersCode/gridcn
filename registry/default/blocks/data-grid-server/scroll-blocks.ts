@@ -54,7 +54,8 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
    * Most rows kept loaded on a random access source. When more are loaded, the least recently viewed blocks outside the rendered rows
    * plus overscan plus one block unload. Rows with an open edit, a pending save, or an unsaved change, and the row under the active cell, stay in `data`
    * but stop counting as loaded, so the next window fetches their block whole.
-   * `Infinity` keeps every row. Default 10,000; a value below `blockSize` counts as `blockSize`.
+   * `Infinity` keeps every row. Default 10,000; a value below `blockSize` counts as `blockSize`. A sequential source cannot fetch a block again,
+   * so it keeps every loaded row by default; a finite `maxLoadedRows` ends its chain once that many rows loaded (dev-warned once).
    */
   maxLoadedRows?: number;
   /**
@@ -477,7 +478,8 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       const written = incoming.length;
       const position = at + written;
       const serverPosition = range.start + serverLength;
-      const step = stepSequence({ read, sentCursor, loaded: serverPosition, count: seq.sentCount, seenCursors: seq.seen });
+      const capped = Number.isFinite(live.current.options.maxLoadedRows ?? Infinity) ? limits().maxLoadedRows : undefined;
+      const step = stepSequence({ read, sentCursor, loaded: serverPosition, count: seq.sentCount, seenCursors: seq.seen, maxRows: capped });
       if (step.warning) warn(step.warning.kind, step.warning.message);
       for (const [key, failure] of core.failed) {
         if (failure.range.start === range.start) core.failed.delete(key);
@@ -519,8 +521,6 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       if (core.kind === "unknown") {
         const declared = live.current.options.source;
         core.kind = declared === "sequential" ? "sequence" : declared === "random" ? "random" : startsSequence(read) ? "sequence" : "random";
-        const passed: unknown = live.current.options.maxLoadedRows;
-        if (core.kind === "sequence" && typeof passed === "number" && Number.isFinite(passed)) warn("sequential-cap", "maxLoadedRows has no effect on a sequential source: a cursor chain cannot fetch an arbitrary block again, so every loaded row stays");
       }
       if (core.kind === "sequence") {
         landSequence(range, read, sentCursor, guard);

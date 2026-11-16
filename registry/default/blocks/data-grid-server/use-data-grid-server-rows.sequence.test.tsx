@@ -505,3 +505,32 @@ describe("scroll mode, declared source", () => {
     expect(result.current.gridProps.data).toHaveLength(10);
   });
 });
+
+describe("scroll mode, sequential: maxLoadedRows", () => {
+  it("ends the chain once a finite maxLoadedRows loaded, and warns once", async () => {
+    const warn = spyWarn();
+    const fetchRows = keyset(1000);
+    const { result } = mount(fetchRows, { maxLoadedRows: 20 });
+    await settled(result);
+    report(result, view(10));
+    await settled(result);
+    report(result, view(20));
+    await settled(result);
+    report(result, view(30));
+    await settled(result);
+    expect(result.current.getLoadedRanges()).toEqual([{ start: 0, end: 20 }]);
+    expect(result.current.gridProps.data).toHaveLength(20);
+    expect(warningsAbout(warn, "maxLoadedRows")).toHaveLength(1);
+  });
+
+  it("keeps loading without maxLoadedRows", async () => {
+    const fetchRows = keyset(1000);
+    const { result } = mount(fetchRows);
+    await settled(result);
+    report(result, view(10));
+    await settled(result);
+    report(result, view(20));
+    await settled(result);
+    expect(result.current.getLoadedRanges()[0]!.end).toBeGreaterThan(20);
+  });
+});

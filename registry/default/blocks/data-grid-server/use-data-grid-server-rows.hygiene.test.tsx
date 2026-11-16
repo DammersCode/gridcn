@@ -713,19 +713,6 @@ describe("sequential source", () => {
     expect(t.requests[1]!.signal.aborted).toBe(false);
   });
 
-  it("keeps every loaded row and warns once for a maxLoadedRows that cannot apply", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const t = setupSequence({ loadDelayMs: 0, maxLoadedRows: 20 });
-    await t.advance(0);
-    await t.land(0);
-    for (let end = 10; end <= 60; end += 10) {
-      await t.report(0, end);
-      await t.land(end);
-    }
-    expect(t.view.result.current.getLoadedRanges()).toEqual([{ start: 0, end: 70 }]);
-    expect(warn.mock.calls.filter((call) => String(call[0]).includes("sequential source"))).toHaveLength(1);
-  });
-
   it("does not warn when maxLoadedRows is not passed", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const t = setupSequence({ loadDelayMs: 0 });
