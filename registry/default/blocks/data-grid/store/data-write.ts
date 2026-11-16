@@ -1124,7 +1124,21 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     }
     const nextData = new Array<unknown>(data.length);
     for (let i = 0; i < data.length; i++) nextData[newIndexOf[i]!] = data[i];
-    const ops = plan.sources.map<DataOp<unknown>>((from, i) => ({ type: "move", rowId: getRowId(data[from]!, from), row: data[from]!, from, to: plan.targets[i]! }));
+    const neighborId = (index: number): string | undefined => (nextData[index] === undefined ? undefined : getRowId(nextData[index], index));
+    const ops = plan.sources.map<DataOp<unknown>>((from, i) => {
+      const to = plan.targets[i]!;
+      const beforeRowId = neighborId(to + 1);
+      const afterRowId = neighborId(to - 1);
+      return {
+        type: "move",
+        rowId: getRowId(data[from]!, from),
+        row: data[from]!,
+        from,
+        to,
+        ...(beforeRowId !== undefined && { beforeRowId }),
+        ...(afterRowId !== undefined && { afterRowId }),
+      };
+    });
     ctx.rowIndexCache.invalidate();
     forgetDeferredRows(ctx);
     ctx.lastEmittedData = nextData;

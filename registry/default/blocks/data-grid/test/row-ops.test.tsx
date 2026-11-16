@@ -442,7 +442,17 @@ describe("reorderRows", () => {
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(next.map((r) => r.id)).toEqual(["2", "3", "1"]);
     expect(change.source).toBe("row-operation");
-    expect(change.ops).toEqual([{ type: "move", rowId: "1", row: rows()[0], from: 0, to: 2 }]);
+    expect(change.ops).toEqual([{ type: "move", rowId: "1", row: rows()[0], from: 0, to: 2, afterRowId: "3" }]);
+  });
+
+  it("a move op carries the ids of both neighbors after the batch", () => {
+    const onDataChange = vi.fn();
+    const wrapper = makeWrapper(onDataChange, {}, [...rows(), { id: "4", name: "Dana", age: 20 }]);
+    const { result } = renderHook(() => useDataGridInternalActions(), { wrapper });
+    act(() => result.current.reorderRows(3, 1));
+    const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
+    expect(next.map((r) => r.id)).toEqual(["1", "4", "2", "3"]);
+    expect(change.ops).toEqual([expect.objectContaining({ rowId: "4", from: 3, to: 1, beforeRowId: "2", afterRowId: "1" })]);
   });
 
   it("moves a row up", () => {
@@ -454,7 +464,7 @@ describe("reorderRows", () => {
 
     const [next, change] = onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>];
     expect(next.map((r) => r.id)).toEqual(["3", "1", "2"]);
-    expect(change.ops).toEqual([{ type: "move", rowId: "3", row: rows()[2], from: 2, to: 0 }]);
+    expect(change.ops).toEqual([{ type: "move", rowId: "3", row: rows()[2], from: 2, to: 0, beforeRowId: "1" }]);
   });
 
   it("one slot down is a real move, not a no-op", () => {

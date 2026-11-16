@@ -212,8 +212,12 @@ export type DataOp<TData> =
       row: TData;
       /** The row's position before the move. */
       from: number;
-      /** The row's position after the move (final index; `applyChange` deletes by id and places the row at output slot `to`, `invertChange` swaps `from`/`to`). */
+      /** The row's position after the move (final index; `applyChange` deletes by id and places the row at output slot `to`, `invertChange` swaps `from`/`to`). `from` and `to` index the loaded `data`, so on a paged grid they count from the first loaded row, not from the page. */
       to: number;
+      /** The id of the row that follows the moved row in `data` after the whole batch; absent when the row ends last. A server places the row with this id, which does not depend on what the server has loaded. Absent on a move that undo or redo produces. */
+      beforeRowId?: string;
+      /** The id of the row that precedes the moved row in `data` after the whole batch; absent when the row ends first. Absent on a move that undo or redo produces. */
+      afterRowId?: string;
     };
 
 /** One user gesture = one batch (a paste, a fill, a delete-range is a single entry). */
