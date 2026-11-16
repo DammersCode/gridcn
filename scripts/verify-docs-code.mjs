@@ -1,10 +1,13 @@
 // Fails when a ts/tsx code block in content/docs does not type-check against the registry source.
 // A block that is not a full sample carries `fragment="reason"` in its fence info: ```tsx fragment="JSX only".
 // A block that imports packages the repo lacks carries `fragment="needs <pkg> [<pkg>...]"`; it compiles in full with each package as an untyped module.
-// The first sample of a page is checked alone, without placeholder names; later blocks may use `data`, `columns` and similar free names.
+// The first sample of a page is checked alone; later blocks may also use `data`, `columns`, `rows`, `grid`, `api`, `setRows` and `Row`. Any other free name fails.
+// Every sample compiles under `strict`, noImplicitAny included.
+// scripts/docs-code-pending.txt lists samples that fail today: `<page>#<n> fix-pending WP-nn`, where n is the 1-based position among the page's ts/tsx/js code blocks.
+// A pending sample that fails stays green. One that passes, or no longer exists, is a stale entry and fails the run.
 // Usage: node scripts/verify-docs-code.mjs [--root <dir>] [--files a.mdx,b.mdx]
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -37,6 +40,22 @@ export function exportedNames(root) {
   return names;
 }
 
+const PENDING_ENTRY = /^(\S+)#(\d+)\s+fix-pending\s+(WP-\d+)$/;
+
+/** Parses the pending list; a line is `<page>#<n> fix-pending WP-nn`, and `#` at line start opens a comment. */
+export function parsePending(text) {
+  const entries = new Map();
+  const problems = [];
+  text.split(/\r?\n/).forEach((raw, i) => {
+    const line = raw.trim();
+    if (!line || line.startsWith("#")) return;
+    const m = PENDING_ENTRY.exec(line);
+    if (m) entries.set(`${m[1]}#${m[2]}`, m[3]);
+    else problems.push(`scripts/docs-code-pending.txt:${i + 1}: write "<page>#<n> fix-pending WP-nn"`);
+  });
+  return { entries, problems };
+}
+
 /** `fragment="reason"` -> reason; bare `fragment` -> ""; absent -> undefined. */
 export function fragmentReason(meta) {
   const match = /\bfragment(?:=(?:"([^"]*)"|'([^']*)'))?/.exec(meta);
@@ -56,7 +75,7 @@ function writeProject(dir, up, ambient) {
         noEmit: true,
         plugins: [],
         noUnusedLocals: false,
-        noImplicitAny: false,
+        noImplicitAny: true,
         noPropertyAccessFromIndexSignature: false,
         noUncheckedIndexedAccess: false,
         paths: { "@/components/gridcn/*": [to("registry/default/hooks/*"), to("registry/default/lib/*")], "@/components/ui/*": [to("components/ui/*")], "@/components/*": [to("registry/default/blocks/*")], "@/lib/*": [to("lib/*")], "@/*": [to("*")] },
@@ -85,21 +104,27 @@ function tscErrors(root, dir) {
   return { byBlock, syntactic };
 }
 
-export function run({ root = process.cwd(), files } = {}) {
+export function run({ root = process.cwd(), files, pendingText } = {}) {
   const contentDir = join(root, "content/docs");
   const pageFiles = files ? files.map((f) => join(root, f)) : walk(contentDir, [".mdx"]);
   const blocks = [];
   const failures = [];
   const externalModules = new Set();
   let fragments = 0;
+  const pendingFile = join(root, "scripts/docs-code-pending.txt");
+  const pendingList = parsePending(pendingText ?? (existsSync(pendingFile) ? readFileSync(pendingFile, "utf8") : ""));
+  failures.push(...pendingList.problems);
   for (const file of pageFiles) {
     const { body, bodyOffset } = splitFrontmatter(readLf(file));
     const path = rel(root, file);
     let total = 0;
+    let ordinal = 0;
     let fragmentsHere = 0;
     for (const block of codeBlocks(body)) {
       if (!CHECKED_LANGS.has(block.lang)) continue;
       total++;
+      ordinal++;
+      const key = `${path}#${ordinal}`;
       const reason = fragmentReason(block.meta);
       const start = block.line + bodyOffset;
       const lang = block.lang.startsWith("j") ? "tsx" : block.lang === "typescript" ? "ts" : block.lang;
@@ -117,7 +142,7 @@ export function run({ root = process.cwd(), files } = {}) {
           }
           const externalNames = [...block.code.matchAll(/^import\s+([\s\S]*?)\s+from\s+["']([^"']+)["']/gm)].filter((m) => fromPkg(m[2])).flatMap((m) => m[1].match(/[A-Za-z_$][\w$]*/g) ?? []);
           total--;
-          blocks.push({ ...block, lang, file, path, start, first: !blocks.some((b) => b.file === file && b.first), externalNames, externalPkgs: pkgs });
+          blocks.push({ ...block, lang, file, path, start, key, first: !blocks.some((b) => b.file === file && b.first), externalNames, externalPkgs: pkgs });
           continue;
         }
         fragments++;
@@ -127,7 +152,7 @@ export function run({ root = process.cwd(), files } = {}) {
         continue;
       }
       if (/^\s*declare\s+(?:function|const|let|var|class)\b/m.test(block.code)) failures.push(`${path}:${start}: a declare statement is a placeholder that throws when pasted; write the real code or mark the block as a fragment`);
-      blocks.push({ ...block, lang, file, path, start, first: !blocks.some((b) => b.file === file && b.first) });
+      blocks.push({ ...block, lang, file, path, start, key, first: !blocks.some((b) => b.file === file && b.first) });
     }
     if (fragmentsHere > 1 && fragmentsHere / total > MAX_FRAGMENT_SHARE) failures.push(`${path}: ${fragmentsHere} of ${total} code blocks are fragments; the limit is ${MAX_FRAGMENT_SHARE * 100}%`);
   }
@@ -151,6 +176,7 @@ export function run({ root = process.cwd(), files } = {}) {
   });
 
   let errorsByBlock = new Map();
+  const unknownApi = new Map();
   if (blocks.length > 0) {
     // tsc reports no semantic errors while any file has a syntax error, so syntax failures leave the program first.
     const pass1 = tscErrors(root, mainDir);
@@ -159,19 +185,13 @@ export function run({ root = process.cwd(), files } = {}) {
       rmSync(join(mainDir, name));
       rmSync(join(firstDir, name), { force: true });
     }
-    // Free names are declared as any so that a later block still checks the API it does use.
-    const pass2 = tscErrors(root, mainDir);
-    for (const [name, errors] of pass2.byBlock) {
+    errorsByBlock = tscErrors(root, mainDir).byBlock;
+    for (const [name, errors] of errorsByBlock) {
       const block = byName.get(name);
       if (block.first) continue;
-      const free = [...new Set(errors.filter((e) => FREE_NAME_CODES.has(e.code)).map((e) => /'([^']+)'/.exec(e.message)?.[1]).filter(Boolean))];
-      if (free.length === 0) continue;
-      const unknownApi = free.filter((n) => API_NAME.test(n) && !exported.has(n));
-      for (const n of unknownApi) failures.push(`${block.path}:${block.start}: ${n} is not exported by the registry source`);
-      const preface = free.filter((n) => !unknownApi.includes(n)).map((n) => `declare const ${n}: any; type ${n} = any;`).join(" ");
-      writeFileSync(join(mainDir, name), `export {}; ${preface}\n${block.code}\n`);
+      const free = new Set(errors.filter((e) => FREE_NAME_CODES.has(e.code)).map((e) => /'([^']+)'/.exec(e.message)?.[1]));
+      for (const n of free) if (n && API_NAME.test(n) && !exported.has(n)) unknownApi.set(name, [...(unknownApi.get(name) ?? []), `${block.path}:${block.start}: ${n} is not exported by the registry source`]);
     }
-    errorsByBlock = tscErrors(root, mainDir).byBlock;
     for (const [name, errors] of syntaxErrors) errorsByBlock.set(name, errors);
     if ([...byName.values()].some((b) => b.first)) {
       const firstErrors = tscErrors(root, firstDir);
@@ -187,8 +207,24 @@ export function run({ root = process.cwd(), files } = {}) {
 
   let failing = 0;
   let external = 0;
+  let pendingCount = 0;
+  const pendingSeen = new Set();
+  const reportBlock = (block, messages, isExternal = false) => {
+    if (pendingList.entries.has(block.key)) {
+      pendingSeen.add(block.key);
+      pendingCount++;
+      return;
+    }
+    failures.push(...messages.map((m) => `${m} [${block.key}]`));
+    if (isExternal) external++;
+    else failing++;
+  };
   for (const [name, allErrors] of errorsByBlock) {
     const block = byName.get(name);
+    if (unknownApi.has(name)) {
+      reportBlock(block, unknownApi.get(name));
+      continue;
+    }
     // An untyped module has no type members, so a type use of its names is not the sample's fault.
     const shimTypeError = (e) => SHIM_TYPE_CODES.has(e.code) && ((block.externalNames ?? []).some((n) => e.message.includes(`'${n}'`)) || (block.externalPkgs ?? []).some((p) => e.message.includes(`"${p}`)));
     const errors = allErrors.filter((e) => !shimTypeError(e));
@@ -196,15 +232,17 @@ export function run({ root = process.cwd(), files } = {}) {
     const isRelative = (e) => /Cannot find module '(?:\.{1,2}|~)\//.test(e.message);
     if (errors.every((e) => e.code === "TS2307" && isRelative(e))) continue;
     if (errors.every((e) => e.code === "TS2307" && !/'@\//.test(e.message))) {
-      external++;
-      failures.push(`${block.path}:${block.start}: external package not installed in the repo; mark the block fragment="needs <package>" (${errors[0].message})`);
+      reportBlock(block, [`${block.path}:${block.start}: external package not installed in the repo; mark the block fragment="needs <package>" (${errors[0].message})`], true);
       continue;
     }
-    failing++;
     const first = errors.find((e) => !(e.code === "TS2307" && isRelative(e))) ?? errors[0];
-    failures.push(`${block.path}:${block.start + first.line - 2}: ${first.code} ${first.message}`);
+    reportBlock(block, [`${block.path}:${block.start + first.line - 2}: ${first.code} ${first.message}`]);
   }
-  return { name: "code", checked: blocks.length, fragments, failing, external, failures, warnings: [] };
+  const checkedPages = new Set(pageFiles.map((f) => rel(root, f)));
+  for (const key of pendingList.entries.keys()) {
+    if (!pendingSeen.has(key) && checkedPages.has(key.replace(/#\d+$/, ""))) failures.push(`${key}: stale pending entry, the sample compiles or no longer exists; remove the line from scripts/docs-code-pending.txt`);
+  }
+  return { name: "code", checked: blocks.length, fragments, failing, external, pending: pendingCount, failures, warnings: [] };
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
@@ -214,5 +252,5 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
     console.error(`docs code: ${result.failing} fail to compile, ${result.external} need an external package, of ${result.checked} blocks (${result.fragments} fragments)\n${capped(result.failures).map((f) => `  ${f}`).join("\n")}`);
     process.exit(1);
   }
-  console.log(`docs code: ${result.checked} blocks compile (${result.fragments} fragments)`);
+  console.log(`docs code: ${result.checked} blocks compile (${result.fragments} fragments, ${result.pending} pending a docs fix)`);
 }

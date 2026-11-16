@@ -1,0 +1,35 @@
+---
+title: Strict fixture
+description: Fixture for the strict sample compile.
+---
+
+A first block that compiles:
+
+```ts
+export const total: number = 1;
+```
+
+A block with an implicit any parameter:
+
+```ts
+const doubled = [1, 2].map((n) => n * 2);
+export const names = ["a"].map((c) => c.length);
+export function hello(user) {
+  return user;
+}
+void doubled;
+```
+
+A block that uses a name nothing declares:
+
+```ts
+const result = queryOrders();
+void result;
+```
+
+A block that compiles with the shared names:
+
+```ts
+const count: number = data.length + rows.length;
+void count;
+```

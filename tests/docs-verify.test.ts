@@ -332,3 +332,28 @@ describe("verify-docs-code", () => {
     expect(failures).toEqual([expect.stringMatching(/code-needs\.mdx:\d+: TS2304 Cannot find name 'helperThatDoesNotExist'/)]);
   }, 60_000);
 });
+
+describe("verify-docs-code, strict compile and pending list", () => {
+  const files = ["tests/fixtures/docs-verify/code-strict.mdx"];
+  const page = "tests/fixtures/docs-verify/code-strict.mdx";
+
+  it("fails an implicit any and a free name, and passes the shared names", () => {
+    const failures = runCode({ files, pendingText: "" }).failures;
+    expect(failures).toEqual([expect.stringMatching(/code-strict\.mdx:\d+: TS7006 Parameter 'user' implicitly has an 'any' type/), expect.stringMatching(/code-strict\.mdx:\d+: TS2304 Cannot find name 'queryOrders'/)]);
+  }, 60_000);
+
+  it("keeps a pending sample green, counts it, and still fails a new one", () => {
+    const result = runCode({ files, pendingText: `# comment\n${page}#2 fix-pending WP-11\n` });
+    expect(result.failures).toEqual([expect.stringContaining("queryOrders")]);
+    expect(result.pending).toBe(1);
+  }, 60_000);
+
+  it("fails a stale pending entry for a sample that compiles or is gone", () => {
+    const text = `${page}#2 fix-pending WP-11\n${page}#3 fix-pending WP-11\n${page}#4 fix-pending WP-12\n${page}#9 fix-pending WP-12\n`;
+    expect(runCode({ files, pendingText: text }).failures.filter((f: string) => f.includes("stale pending"))).toEqual([expect.stringContaining("#4"), expect.stringContaining("#9")]);
+  }, 60_000);
+
+  it("rejects a pending line without the fix-pending reason", () => {
+    expect(runCode({ files, pendingText: `${page}#2 later\n` }).failures[0]).toContain("docs-code-pending.txt:1");
+  }, 60_000);
+});
