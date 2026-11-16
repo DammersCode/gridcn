@@ -618,6 +618,11 @@
           "target": "components/data-grid/store/row-validation.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/store/sync-props.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/store/sync-props.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/store/announcements.ts",
           "type": "registry:component",
           "target": "components/data-grid/store/announcements.ts"
