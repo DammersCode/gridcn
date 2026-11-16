@@ -56,6 +56,7 @@ function setup(historyOpts: UseDataGridHistoryOptions<Row> = {}, gridOpts: Parti
           data = next;
         }}
         onSave={gridOpts.onSave as never}
+        totalRowCount={gridOpts.totalRowCount}
       >
         <DataGridRoot>
           <Capture />
@@ -158,6 +159,25 @@ describe("undo over rows that are not loaded", () => {
     expect(() => act(() => h.history().undo())).not.toThrow();
     expect(h.announcement()).toMatchObject({ kind: "historyBlocked" });
     error.mockRestore();
+  });
+});
+
+describe("undo and redo over a server page", () => {
+  it("keeps the entry of a row on another page as rows-not-loaded, then undoes it on its page", () => {
+    const onSkip = vi.fn();
+    const h = setup({ onSkip }, { totalRowCount: 10 });
+    const prev = initialRows[1]!;
+    h.commit(editChange("b", { ...prev, name: "Bobby" }, prev));
+    const page1 = h.data();
+    h.swapData([{ id: "x", name: "Xena", age: 1 }]);
+
+    act(() => h.history().undo());
+    expect(onSkip).toHaveBeenCalledWith({ direction: "undo", reason: "rows-not-loaded", rowIds: ["b"] });
+    expect(h.history().canUndo).toBe(true);
+
+    h.swapData(page1);
+    act(() => h.history().undo());
+    expect(h.data()[1]!.name).toBe("Bob");
   });
 });
 

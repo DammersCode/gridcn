@@ -30,8 +30,9 @@ export type UseDataGridHistoryOptions<TData> = {
   recordSources?: RecordSources<TData>;
   /**
    * Called when `undo` or `redo` finds a row its change needs missing from `data`, and applies nothing.
-   * `"rows-not-loaded"`: `data` has holes (lazy rows); the entry stays, so the same call works after the rows load.
-   * `"rows-gone"`: `data` is dense and lacks the rows; the entry is dropped. The live region announces both.
+   * `"rows-not-loaded"`: `data` has holes (scroll mode) or holds part of the result (`totalRowCount` above its length, such as one
+   * server page); the entry stays, so the same call works after the rows load.
+   * `"rows-gone"`: `data` holds the whole result and lacks the rows; the entry is dropped. The live region announces both.
    * A throw is logged and does not stop the grid.
    */
   onSkip?: (ctx: HistorySkip) => void;
@@ -177,8 +178,10 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
       const rebase = (entry: DataChange<TData>) => rebaseOntoCurrent(entry, state);
       const change = direction === "undo" ? history.undo(rebase) : history.redo(rebase);
       if (!change) return;
-      const { missing, hasHoles } = findMissingRows(change, state.data, state.getRowId);
-      if (!warnedSparseData.current && hasHoles && missing.length > 0 && isDev()) {
+      const { missing, hasHoles: holes } = findMissingRows(change, state.data, state.getRowId);
+      // a row count above the loaded rows means `data` holds a part of the result, such as one server page
+      const hasHoles = holes || (typeof state.totalRowCount === "number" && state.totalRowCount > state.data.length);
+      if (!warnedSparseData.current && holes && missing.length > 0 && isDev()) {
         warnedSparseData.current = true;
         console.warn(
           "[data-grid-history] undo ran over a sparse (lazy) data array: unloaded rows are holes, so an undo that needs them is blocked and keeps its entry. Use a hole-tolerant getRowId and pass a datasetKey (or call clear()) when server.refresh() replaces the rows or the dataset changes.",
