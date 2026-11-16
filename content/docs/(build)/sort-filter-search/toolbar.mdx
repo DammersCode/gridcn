@@ -42,11 +42,7 @@ const columns = defineColumns<Person>()([
 
 export function PeopleGrid({ rows }: { rows: Person[] }) {
   return (
-    <DataGridProvider
-      defaultData={rows}
-      columns={columns}
-      getRowId={(row) => row.id}
-    >
+    <DataGridProvider defaultData={rows} columns={columns}>
       <DataGridToolbar>
         <DataGridSearch />
         <DataGridFilterMenu />

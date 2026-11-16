@@ -28,7 +28,7 @@ A focused header button takes only <kbd>Enter</kbd> and <kbd>Space</kbd>, with o
 
 ## Move and edit
 
-- Arrow keys move the active cell. In a right-to-left grid, <kbd>ArrowRight</kbd> moves to the next column on the screen.
+- Arrow keys move the active cell. In a right-to-left grid, <kbd>ArrowRight</kbd> moves one column to the right on the screen.
 - <kbd>Alt</kbd>+<kbd>Arrow</kbd> moves the active cell and keeps the selection.
 - <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Arrow</kbd> jumps along the row or column. From a non-empty cell whose neighbor is non-empty, it stops at the last non-empty cell of the run. From an empty cell, or from a non-empty cell whose neighbor is empty, it stops at the next non-empty cell. If there is none, it stops at the grid edge. With <kbd>Shift</kbd>, it scans from the far end of the selection and extends the selection to that cell.
 - <kbd>PageUp</kbd> and <kbd>PageDown</kbd> move by the visible rows minus four.
@@ -54,9 +54,9 @@ They need a `reorder` family `rowMarkers` mode. A read-only grid ignores them. S
 
 The first <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> selects the data region around the active cell: the rectangle of adjacent rows and columns that hold values. When the active cell is empty, the region is that cell. Press the keys again to select the whole grid. On a paged grid, the whole grid is the shown page. When the data fills the whole grid, the first press selects everything.
 
-<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> selects cells and never checks rows. It unchecks the checked rows, also with `'until-cleared'` and `'across-filters'`. It also clears the remembered checks of hidden rows and ends "all matching". The header checkbox and the marker checkboxes show checked rows only, so a range over every row leaves them unchecked. With `enableRangeSelection={false}`, the keys do nothing.
+<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> selects cells and never checks rows. It unchecks the checked rows, also with `'until-cleared'` and `'across-filters'`. It also clears the hidden checked rows and ends "all matching". The header checkbox and the marker checkboxes show checked rows only, so a range over every row leaves them unchecked. With `enableRangeSelection={false}`, the keys do nothing.
 
-## Escape clears the selection
+## Escape key [#escape-clears-the-selection]
 
 With no editor open, <kbd>Esc</kbd> (`cancel`) clears the whole selection: the cell range and its stack, the checked rows, and the selected columns. To keep a selection across <kbd>Esc</kbd>, unbind `cancel`. The built-in text editors still cancel an edit on <kbd>Esc</kbd>.
 
@@ -76,7 +76,6 @@ export function Tasks({ tasks }: { tasks: Task[] }) {
     <DataGrid
       data={tasks}
       columns={columns}
-      getRowId={(task) => task.id}
       keymap={{ cancel: [] }}
     />
   );

@@ -8,21 +8,13 @@ aliases: ["query string", "bookmark view", "share view", "persist sort and filte
 
 `data-grid-url-state` syncs the sort, filter, search, column layout, and page of the grid with the URL through [nuqs](https://nuqs.dev). A reload or a shared link then restores the view. Install it, put a `NuqsAdapter` above the grid, and mount `<DataGridUrlState>` inside `<DataGridProvider>`.
 
-| To | Read |
-| --- | --- |
-| Rename the keys, or put two grids on one page | [Keys and prefix](#prefix) |
-| Bound what a link holds | [Behavior](#behavior) |
-| Keep the column layout or the page | [Column layout](#column-layout), [Pagination](#pagination) |
-| Restore the spec of a server grid | [Server mode](#server-mode) |
-| Add saved views | [With saved views](#with-saved-views) |
-
 <ComponentPreview name="data-grid-url-state-demo" />
 
 <InstallCommand item="data-grid-url-state" manual manualSlot={<ManualInstall item="data-grid-url-state" />} />
 
 ## Usage
 
-Mount `<DataGridUrlState>` once inside `<DataGridProvider>`. The sample uses the [toolbar add-on](/docs/sort-filter-search/toolbar) for the search box and the filter menu:
+Mount `<DataGridUrlState>` once inside `<DataGridProvider>`. It syncs only the sort until you list `filter` and `search` in `spec`. The sample uses the [toolbar add-on](/docs/sort-filter-search/toolbar) for the search box and the filter menu:
 
 ```tsx
 "use client";
@@ -39,7 +31,9 @@ import {
   DataGridSearch,
   DataGridToolbar,
 } from "@/components/data-grid-toolbar/data-grid-toolbar";
-import { DataGridUrlState } from "@/components/data-grid-url-state/data-grid-url-state";
+import {
+  DataGridUrlState,
+} from "@/components/data-grid-url-state/data-grid-url-state";
 
 type Order = { id: string; customer: string; total: number };
 
@@ -50,12 +44,11 @@ const columns = defineColumns<Order>()([
 
 export function OrdersGrid({ rows }: { rows: Order[] }) {
   return (
-    <DataGridProvider
-      defaultData={rows}
-      columns={columns}
-      getRowId={(row) => row.id}
-    >
-      <DataGridUrlState prefix="orders" />
+    <DataGridProvider defaultData={rows} columns={columns}>
+      <DataGridUrlState
+        prefix="orders"
+        spec={["sort", "filter", "search"]}
+      />
       <DataGridToolbar>
         <DataGridSearch />
         <DataGridFilterMenu />
@@ -83,7 +76,7 @@ export function Providers({ children }: { children: ReactNode }) {
 The [nuqs adapter docs](https://nuqs.dev/docs/adapters) list the adapters for other routers.
 
 <Callout type="warn" title="Suspense for the hooks when prerendering">
-  `DataGridUrlState` brings its own `<Suspense>` boundary. A prerendered Next.js page needs one around the component that calls `useDataGridUrlPagination` or `useDataGridUrlState()`.
+  `useDataGridUrlState` and `useDataGridUrlPagination` read the URL in the component that calls them. On a page that prerenders, wrap that component in `<Suspense>`. `<DataGridUrlState>` has its own boundary.
 </Callout>
 
 ## Keys and prefix [#prefix]
@@ -98,18 +91,18 @@ A filter group is a segment `[or` or `[and`, then its rows, then a `]` segment:
 
 The characters `[` and `]` are always percent-encoded inside ids and values, so a value cannot imitate a group. A group holds one more group at most. A deeper group drops with the filter rows in it. The parser skips a stray `]`, closes a group left open at the end, and drops an empty group.
 
-A link can carry a legacy `join=or` param. The grid reads it once: when the `filter` param has no group, the rows wrap in one `or` group. Every filter write removes the param. With a `prefix`, the grid reads `<prefix>_join` the same way.
+A link with a `join=or` param is read once: when the `filter` param has no group, the rows wrap in one `or` group. Every filter write removes the param. With a `prefix`, the grid reads `<prefix>_join` the same way.
 
 ## Behavior
 
 - URL params apply to the store on mount and on back and forward navigation. `enableNavigationSync` (default `true`) controls the navigation apply. A missing param keeps the initial state on mount. After navigation it clears the sort, filter, or search, and resets the layout part.
 - `useDataGridUrlState()` returns `applyFromUrl()`, the manual form of the navigation apply. Call it when the URL changed in another way, such as a framework `setSearchParams`. It reads the params of the current render, so call it after your router has updated them.
-- `spec` lists the synced parts: `"sort"`, `"filter"`, and `"search"` (default all three). `spec={["sort"]}` keeps filter values and search text out of the URL.
-- Every write uses `history: "replace"`, so changes never add browser history entries.
+- `spec` lists the synced parts: `"sort"`, `"filter"`, and `"search"`. The default is `["sort"]`, which keeps filter values and search text out of the URL.
+- Writes use `history: "replace"` and add no history entries.
 - Sort and filter writes are immediate. The search input waits for the typing to pause (`inputDebounceMs`) before the store changes.
 - The grid drops a sort or filter for a removed or hidden column. It drops a sort for a `sortable: false` column, and a filter for a `filterable: false` column. In development, a warning names each dropped column.
 
-A hand-edited URL cannot express an unbounded view. These bounds apply:
+A hand-edited URL cannot express an unbounded view. [URL state options](/docs/add-options/sort-filter-search/url-state-options#limits) lists every bound. The main ones:
 
 - The `filter` param reads at most 256 segments and keeps at most 64 rows and 16 groups.
 - An `isAnyOf` list keeps at most `max(number of choices, 64)` values for a column with `choices`, else 1,000.
@@ -118,11 +111,9 @@ A hand-edited URL cannot express an unbounded view. These bounds apply:
 - The `q` param is cut to 500 characters.
 - The `sort` param reads at most 256 segments and keeps at most 64 sorts, one per column, so the first segment of a column wins.
 
-The URL writes a blank list entry as a lone `%`.
+A sort from the URL (`?sort=name:asc`) shows its arrow in a string header. Set `headerClickBehavior="sort"` to let a header click change it, or add the sort list.
 
-A sort from the URL (`?sort=name:asc`) shows its arrow in a string header whatever `headerClickBehavior` says. Set `headerClickBehavior="sort"` to let a header click change or clear it. Or install `data-grid-sort-list` for a toolbar sort list.
-
-On a column with `choices`, a set filter from the URL keeps only the blank entry and the values in `choices`.
+In client filter mode, a column with `choices` keeps the blank entry and the set filter values that match a choice or a loaded value. The match ignores case. In server filter mode, every value stays.
 
 ## Column layout
 
@@ -145,9 +136,18 @@ The `layout` option picks which parts of the column layout go into the URL. The 
 `useDataGridUrlPagination` syncs `page` and `pageSize` with the URL, apart from `<DataGridUrlState>`. It returns the controlled pair `page`, `pageSize`, `onPageChange`, and `onPageSizeChange`, plus the resolved `pageSizeOptions`. Take `pageSizeOptions` out of the result, spread the rest onto `DataGridProvider`, and pass `pageSizeOptions` to `DataGridPaginationBar`:
 
 ```tsx
-import { DataGridProvider } from "@/components/data-grid/data-grid";
-import { DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
-import { useDataGridUrlPagination } from "@/components/data-grid-url-state/data-grid-url-state";
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+} from "@/components/data-grid/data-grid";
+import {
+  DataGridPaginationBar,
+} from "@/components/data-grid-pagination/data-grid-pagination";
+import {
+  useDataGridUrlPagination,
+} from "@/components/data-grid-url-state/data-grid-url-state";
 
 type Order = { id: string };
 const columns = [{ id: "id", header: "Order", accessorKey: "id" }] as const;
@@ -157,6 +157,10 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
 
   return (
     <DataGridProvider data={rows} columns={columns} {...pagination}>
+      <DataGridRoot className="h-96">
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
       <DataGridPaginationBar pageSizeOptions={pageSizeOptions} />
     </DataGridProvider>
   );
@@ -165,9 +169,7 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
 
 For a server grid, pass the same result into `useDataGridServerRows` or `useDataGridServerPager`. See [Keep pages in URL](/docs/server-pagination/keep-pages-url).
 
-`page` is 1-based and leaves the URL at 1. A `page` beyond 1,000,000 falls back to 1. `pageSize` leaves the URL when it equals `defaultPageSize` (default: the first of `pageSizeOptions`, 10). A `pageSize` outside `pageSizeOptions` falls back to the default. Without `pageSizeOptions`, the pager list 10, 25, 50, 100 is the gate. The pager clamps an out-of-range `page` and writes it to the URL. A change of `pageSize` resets the URL `page` to 1.
-
-The grid's own `setPageSize` keeps the first visible row on a page-size change. The URL hook resets to page 1 instead, because a page number is valid only for the size it was chosen at.
+`page` is 1-based and leaves the URL at 1. A `page` beyond 1,000,000 falls back to 1. `pageSize` leaves the URL when it equals `defaultPageSize` (default: the first of `pageSizeOptions`, 10). A `pageSize` outside `pageSizeOptions` falls back to the default. Without `pageSizeOptions`, the pager list 10, 25, 50, 100 is the gate. The pager clamps an out-of-range `page` and writes it to the URL. A change of `pageSize` resets the URL `page` to 1, because a page number fits only the size it was chosen at.
 
 ## Server mode
 
@@ -175,9 +177,7 @@ The add-on restores sorts, filters, and search text through the store actions. T
 
 A grid that declares a `totalRowCount` holds the restored spec and never sorts or filters the partial `data`. Fetch the rows for the restored spec on mount. For page numbers in the URL, see [Keep pages in URL](/docs/server-pagination/keep-pages-url).
 
-A set filter value outside `choices` drops in server filter mode too, so list every value that your server filters by in `choices`.
-
-A link holds up to 64 sorts. The default `parseServerSpec` limits accept them.
+A link holds up to 64 sorts. The default `parseServerSpec` limits accept them. In server filter mode, every set filter value stays, and your server checks the values.
 
 ## With saved views
 

@@ -26,7 +26,9 @@ import {
   DataGridRoot,
   defineColumns,
 } from "@/components/data-grid/data-grid";
-import { DataGridHeaderFilter } from "@/components/data-grid-toolbar/data-grid-toolbar";
+import {
+  DataGridHeaderFilter,
+} from "@/components/data-grid-toolbar/data-grid-toolbar";
 
 type Person = { id: string; name: string; country: string };
 
@@ -37,11 +39,7 @@ const columns = defineColumns<Person>()([
 
 export function PeopleGrid({ rows }: { rows: Person[] }) {
   return (
-    <DataGridProvider
-      defaultData={rows}
-      columns={columns}
-      getRowId={(row) => row.id}
-    >
+    <DataGridProvider defaultData={rows} columns={columns}>
       <DataGridRoot
         className="h-96"
         renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />}
@@ -66,19 +64,29 @@ The button shows on each column that offers `isAnyOf` or `isNoneOf` and is not `
 
 ## The popover
 
-- The list holds one entry per distinct value, with the number of rows that have it. Values that differ only in case form one entry, and Apply writes the first spelling it meets. An empty value shows as "(Blanks)".
+- The list holds one entry per distinct value, with the number of rows that have it. Values that differ only in case merge into one entry, unless the column sets `filter.matchCase`. Apply writes the first spelling it meets. An empty value shows as "(Blanks)".
 - The popover opens with focus in the search box, which narrows the list.
-- "Select all" is a checkbox at the start of the search field. It checks or unchecks the values that match the typed text. It comes before the search input in the Tab order, and <kbd>Space</kbd> toggles it. The box is empty when none of those values is checked, indeterminate when some are, and checked when all are.
+- "Select all" is a checkbox at the start of the search field. It checks or unchecks the values that match the typed text. The box is empty when none of those values is checked, indeterminate when some are, and checked when all are.
+- "Select all" comes before the search input in the Tab order, and <kbd>Space</kbd> toggles it.
 - The status line reads "N of M selected" for the values the search shows. Set the text with `labels.toolbar.headerFilterSelectedCount`.
 - The counts include only the rows that pass every other top-level filter. The column's own top-level set filter never hides its own values. A set filter of the column inside a group counts like any other filter.
-- Apply writes the set filter of the column:
-  - If the user checks fewer values than they leave unchecked, Apply writes `isAnyOf` with the checked values. Otherwise it writes `isNoneOf` with the unchecked values.
-  - On a tie, it keeps the operator of the column's current set filter, or uses `isAnyOf` if there is none.
-  - Checking every listed value removes the set filter, apart from values the list does not show. A value that enters the data later passes `isNoneOf`.
-  - Apply keeps every other filter, including condition filters on the same column. It reads and writes only the top-level set filter of the column. Set filters inside a group belong to the filter menu, and a line under the list tells the user that the column has some.
-- Apply stays off while the user checks no value, except on a server list that holds an `isNoneOf` entry. There, no checked value writes `isNoneOf` with every listed value. If the stored list needs more than 1,000 entries, Apply also stays off, and a message explains why.
 - Clear removes every filter of the column at every level, and removes the groups this leaves empty. <kbd>Escape</kbd> or a press outside the popover discards the selection.
 - The list reads at most 100,000 distinct values. Past that limit it shows the first values and a message.
+
+### Apply [#apply]
+
+Apply writes the set filter of the column from the checks:
+
+| The user checks | Apply writes |
+|---|---|
+| Fewer values than the unchecked ones | `isAnyOf` with the checked values |
+| More values than the unchecked ones | `isNoneOf` with the unchecked values |
+| As many as the unchecked ones | The operator of the current set filter of the column, or `isAnyOf` if there is none |
+| Every listed value | No set filter. Values outside the list that the filter held stay in an `isAnyOf` filter. |
+
+Apply keeps every other filter, including condition filters on the same column. It reads and writes only the top-level set filter of the column. Set filters inside a group belong to the filter menu, and a line under the list tells the user that the column has some.
+
+Apply stays off while the user checks no value, except on a server list that holds an `isNoneOf` entry. There, no checked value writes `isNoneOf` with every listed value. If the stored list needs more than 1,000 entries, Apply also stays off, and a message explains why.
 
 The filter works in a read-only grid, because filtering writes no data.
 
@@ -121,7 +129,7 @@ Each value has a `value` and an optional `label`. The filter stores `value`, so 
 
 The popover shows one loading line on the first request. A new search keeps the previous list until the answer arrives. A rejected request, or an answer without a `values` array, shows one error line, and the next open asks again. Set the texts with `labels.toolbar.headerFilterLoading` and `labels.toolbar.headerFilterError`.
 
-A column with `options.choices` keeps its declared list and never calls the function. The grid reads at most 1,000 values from an answer, cuts each text at 1,000 characters, and renders it as text. Values that differ only in letter case count as one value, and the first one stays. A list from the server stores the checked `value` entries with `isAnyOf`. If the column already holds one `isNoneOf` entry, the list stores the unchecked values with `isNoneOf`. Checked values stay checked when a search hides them.
+A column with `options.choices` keeps its declared list and never calls the function. The grid reads at most 1,000 values from an answer, cuts each text at 1,000 characters, and renders it as text. Values that differ only in letter case count as one value, and the first one stays, unless the column sets `filter.matchCase`. A list from the server stores the checked `value` entries with `isAnyOf`. If the column already holds one `isNoneOf` entry, the list stores the unchecked values with `isNoneOf`. Checked values stay checked when a search hides them.
 
 ## Server mode
 

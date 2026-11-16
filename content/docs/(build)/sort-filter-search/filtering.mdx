@@ -54,11 +54,7 @@ function ApplyButton() {
 
 export function OrdersGrid({ rows }: { rows: Order[] }) {
   return (
-    <DataGridProvider
-      defaultData={rows}
-      columns={columns}
-      getRowId={(row) => row.id}
-    >
+    <DataGridProvider defaultData={rows} columns={columns}>
       <ApplyButton />
       <DataGridRoot className="h-96">
         <DataGridHeader />
@@ -79,19 +75,21 @@ By default, every column offers the text operators: `contains`, `notContains`, `
 
 | Operator | `value` | Matches a row when |
 |---|---|---|
-| Text operators | `string` | The cell text compares to the value. Case does not matter. |
+| Text operators | `string` | The cell text compares to the value. |
 | `gt`, `gte`, `lt`, `lte` | `string` | The cell is not blank and compares to the value. |
 | `isBetween` | `[from, to]` | The cell is not blank and lies between both bounds, inclusive. An empty bound is open. |
-| `isAnyOf` | `string[]` | The cell text equals one entry. Case does not matter. An empty list matches no row. |
-| `isNoneOf` | `string[]` | The cell text equals no entry. Case does not matter. An empty list matches every row. |
+| `isAnyOf` | `string[]` | The cell text equals one entry. An empty list matches no row. |
+| `isNoneOf` | `string[]` | The cell text equals no entry. An empty list matches every row. |
 | `empty`, `notEmpty` | none | The cell text is empty, or is not. |
 
-Every value is text, even for number and date columns, such as `"5"`. A comparison reads both sides as numbers when both parse. Otherwise it compares them as text.
+Case does not matter, unless the column sets `filter.matchCase`. Every value is text, even for number and date columns, such as `"5"`. A comparison reads both sides as numbers when both parse. Otherwise it compares them as text.
 
 The `filter` object of a column changes this behavior for that column:
 
 - `filter.operators` replaces the list of operators the filter menu offers.
-- `filter.match(value, filter)` replaces the built-in test. It receives the raw cell value and returns whether the row passes. A thrown error fails the row. A `text` or untyped column with `filter.match` has no `isAnyOf`, `isNoneOf`, or header filter button, unless `filter.operators` lists them. A cell type with `filter.match` and no `filter.operators` does the same. `number`, `date`, and `select` keep them.
+- `filter.match(value, filter)` replaces the built-in test. It receives the raw cell value and returns whether the row passes. A thrown error fails the row.
+- A `text` or untyped column with `filter.match` offers no `isAnyOf`, `isNoneOf`, or header filter button. List them in `filter.operators` to keep them. `isAnyOf` and `isNoneOf` use the built-in set match on the cell text. Your `match` receives them only when `filter.operators` lists them. A cell type with `filter.match` does the same. `number`, `date`, and `select` keep them.
+- `filter.matchCase: true` makes the text and set operators and the header filter list respect case.
 - `filterable: false` keeps the column out of the filter menu and the header filter.
 - `filter.compare(text, bound)` orders the cells of a column for `gt`, `gte`, `lt`, `lte`, and `isBetween`. Use it for ranks or versions. A result of `NaN` or a thrown error falls back to the default order. A column with `filter.match` ignores `filter.compare` for built-in operators.
 

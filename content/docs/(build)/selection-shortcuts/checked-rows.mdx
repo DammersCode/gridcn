@@ -66,7 +66,7 @@ After a click on a cell, <kbd>Shift</kbd>+<kbd>Arrow</kbd> extends the cell rang
 
 To check separate rows, move with <kbd>Alt</kbd>+<kbd>Arrow</kbd>, which keeps the selection. Then press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> on each row.
 
-A check or uncheck reads the checked-row count in the live region. <kbd>Esc</kbd> and <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> read the drop too. The count includes hidden checked rows, not the rows of a cell range. `labels.grid.rowsChecked` sets the text.
+A check or uncheck reads the checked-row count in the live region. <kbd>Esc</kbd> and <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd> also announce the new count. The count includes hidden checked rows, not the rows of a cell range. `labels.grid.rowsChecked` sets the text.
 
 ## Choose how long checks last [#checked-rows]
 
@@ -82,7 +82,7 @@ A click outside the grid, or in its empty space, clears the cell range and the c
 
 Set `'until-cleared'` to keep the checks across cell selections.
 
-With `'until-cleared'` and `'across-filters'`, a cell click, a header click, an arrow key, and a <kbd>Shift</kbd> or <kbd>Ctrl</kbd> click leave the checks alone. Row operations act only on the checked rows, never on the range. This covers Delete rows, Duplicate row, Move rows, and the row items of the cell context menu. With no checked row, they use the range. Copy and cut read the cell range when one exists, and the checked rows when it does not.
+With `'until-cleared'` and `'across-filters'`, row operations act only on the checked rows, never on the range. This covers Delete rows, Duplicate row, Move rows, and the row items of the cell context menu. With no checked row, they use the range. Copy and cut read the cell range when one exists, and the checked rows when it does not.
 
 ### Read the checked rows [#read-the-checked-rows]
 
@@ -125,7 +125,7 @@ export function Orders({ orders }: { orders: Order[] }) {
 
 `onSelectionChange` fires at each step of a drag. Read the ids in the click handler, and keep only a count in the callback.
 
-To act on checks that a filter hides, read `useDataGridSelectedRows()` inside the grid. It returns `{ mode: "ids", ids, count }` with the visible and the remembered ids. After select all matching, it returns `{ mode: "allMatching", excludedIds, count }`. The remembered ids need `checkedRowsLifetime="across-filters"`. Select all matching needs that and `totalRowCount`. This component sits inside `DataGridProvider` and shows the count:
+To act on checks that a filter hides, read `useDataGridSelectedRows()` inside the grid. It returns `{ mode: "ids", ids, count }` with the visible and the remembered ids. After select all matching, it returns `{ mode: "allMatching", excludedIds, count, spec }`. The remembered ids need `checkedRowsLifetime="across-filters"`. Select all matching needs that and `totalRowCount`. This component sits inside `DataGridProvider` and shows the count:
 
 ```tsx
 import { useDataGridSelectedRows } from "@/components/data-grid/data-grid";
@@ -144,7 +144,7 @@ A filter or a page change removes the checked rows it hides. Set `checkedRowsLif
 
 Hidden checked rows stay out of the controlled `selection` and select all. Row operations, the export scope `'selection'`, and the clipboard read only the visible checked rows. When every checked row is hidden, Delete rows, Duplicate row, and Move rows do nothing, and the Duplicate and Delete menu items turn off.
 
-<kbd>Esc</kbd>, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd>, `clearSelection()`, `setSelection(null)`, an empty controlled `selection`, and an unchecked header checkbox clear the hidden checks too. A non-empty `setSelection` value keeps them, and so does a click on a row number. Switching to `sortMode="server"` or `filterMode="server"` without `totalRowCount` clears them.
+The clears of the table above remove the hidden checks too, as do `setSelection(null)`, an empty controlled `selection`, and an unchecked header checkbox. A non-empty `setSelection` value keeps them, and so does a click on a row number. Switching to `sortMode="server"` or `filterMode="server"` without `totalRowCount` clears them.
 
 `useDataGridHiddenCheckedCount()` returns their number. [`DataGridStatusBar`](/docs/selection-shortcuts/status-bar) shows it as `(+3 hidden)` beside the selection stats. With fewer than two non-`undefined` cells selected, it shows `3 hidden checked rows`.
 
@@ -174,5 +174,5 @@ A server grid defaults to `checkedRowsLifetime="across-filters"` when it sets `t
 - [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation): the full keymap
 - [Row markers](/docs/rows-pages-menus/row-markers): the checkbox and number column
 - [Select server rows](/docs/rows-live-data/select-server-rows): checks across pages
-- [Run bulk actions](/docs/recipes-custom-code/run-bulk-actions): update, delete, or export the checked rows
 - [Selection model](/docs/concepts/selection-model): how the channels relate
+- [DataGrid props](/docs/components-props/data-grid-props): every prop of the grid

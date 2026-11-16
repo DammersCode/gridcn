@@ -24,8 +24,12 @@ import {
   DataGridRoot,
   defineColumns,
 } from "@/components/data-grid/data-grid";
-import { DataGridToolbar } from "@/components/data-grid-toolbar/data-grid-toolbar";
-import { DataGridViews } from "@/components/data-grid-views/data-grid-views";
+import {
+  DataGridToolbar,
+} from "@/components/data-grid-toolbar/data-grid-toolbar";
+import {
+  DataGridViews,
+} from "@/components/data-grid-views/data-grid-views";
 
 type Order = { id: string; customer: string };
 
@@ -35,7 +39,7 @@ const columns = defineColumns<Order>()([
 
 function OrdersGrid({ rows }: { rows: Order[] }) {
   return (
-    <DataGridProvider data={rows} columns={columns} getRowId={(row) => row.id}>
+    <DataGridProvider data={rows} columns={columns}>
       <DataGridToolbar>
         <DataGridViews storage="orders-views" />
       </DataGridToolbar>
@@ -48,7 +52,7 @@ function OrdersGrid({ rows }: { rows: Order[] }) {
 }
 ```
 
-With no props, views persist in `localStorage` under `gridcn-views`. Every grid on the same origin shares that key, so give each grid its own `storage` key. If `localStorage` is blocked or full, the views stay in memory for the page. The popover shows a save error with a Retry button.
+With no props, views persist in `localStorage` under `gridcn-views`. Every grid on the same origin shares that key, so give each grid its own `storage` key. Two mounted grids with other columns on one key warn in development. If `localStorage` is blocked or full, the views stay in memory for the page.
 
 ## What a view holds [#what-a-view-holds]
 
@@ -65,7 +69,7 @@ The button shows the name of the active view. A "Modified" badge appears when th
 - a name field and "Save as new view"
 - a text area with "Export active view" and "Import view"
 
-Opening the active view again reverts the changes. Every control is a native button or text field in the tab order of the popover. The default star is a toggle button with `aria-pressed`, and the active view has `aria-current`. Renaming accepts <kbd>Enter</kbd> to save and <kbd>Esc</kbd> to cancel. A polite status message announces each action, and a load or save failure shows as an alert with a Retry button.
+Opening the active view again reverts the changes. Every control sits in the tab order of the popover. <kbd>Enter</kbd> saves a rename and <kbd>Esc</kbd> cancels it. A polite status message announces each action, and a failure shows as an alert with a Retry button.
 
 ## Default view [#default-view]
 
@@ -98,12 +102,14 @@ When `value` changes, the hook opens that view. A pick only calls `onValueChange
 
 A storage adapter has two functions. `load` returns the stored document, or `undefined` for none. `save` receives the whole document. Both can be async. `load` gets a signal that aborts on unmount. The hook checks everything that `load` returns, so a hand-edited document cannot break the grid.
 
-Throw from `load` when the store cannot be read. The popover then shows a Retry button and runs no save, so the stored views stay safe. A document with an unknown `version` counts as a read failure. A document over 1,000,000 characters is never saved.
+Throw from `load` when the store cannot be read. The popover then shows a Retry button and runs no save, so the stored views stay safe. A document with an unknown `version` counts as a read failure. The grid never saves a document over 1,000,000 characters.
 
 This adapter keeps the views on your server:
 
 ```ts
-import type { DataGridViewsStorage } from "@/components/data-grid-views/data-grid-views";
+import type {
+  DataGridViewsStorage,
+} from "@/components/data-grid-views/data-grid-views";
 
 const serverViews: DataGridViewsStorage = {
   load: async ({ signal }) => {
@@ -134,7 +140,7 @@ The default adapter listens to the `storage` event, so a save in one tab reloads
 - Import refuses text over 100,000 characters, and anything but a gridcn view file.
 - A sort, filter, or layout entry for a column that does not exist, or that opted out with `sortable: false` or `filterable: false`, goes away. A sort or filter on a column that the file hides goes away too. The status message reports how many entries it left out.
 - A built-in operator with a value of the wrong shape goes away. An operator that a column or its cell type registers in `filter.operators` keeps a value of the shape its `input` names. Any other shape drops the filter.
-- A set filter keeps only the blank entry and the values in the `choices` of its column.
+- In client filter mode, a column with `choices` keeps the blank entry and the set filter values that match a choice or a loaded value. The match ignores case. In server filter mode, every value stays.
 - An `isAnyOf` list is cut to 1,000 entries. An `isNoneOf` list or a custom operator list over 1,000 entries drops the filter.
 - A view keeps at most 64 sorts, 64 filters, and 16 filter groups. A filter value over 1,000 characters drops the filter.
 - The name of a view has at most 80 characters, and a stored view needs an id of at most 64 characters.
@@ -142,7 +148,7 @@ The default adapter listens to the `storage` event, so a save in one tab reloads
 
 ## Use the hook [#use-the-hook]
 
-`useDataGridViews(options)` takes the same options as the button and returns the state and the actions for your own UI. Call it inside the provider. The full lists are on [Saved views options](/docs/add-options/sort-filter-search/saved-views-options):
+`useDataGridViews(options)` takes the options of the button and returns the state and the actions for your own UI. Call it inside the provider. The full lists are on [Saved views options](/docs/add-options/sort-filter-search/saved-views-options):
 
 ```tsx
 "use client";
@@ -160,16 +166,16 @@ export function SaveViewButton() {
 
 A save never cuts a view. `overLimit` names the part that is over a limit. It is `"sorts"`, `"filters"`, `"search"`, or `"layout"`. A sort, filter, or layout entry for a column that the grid lacks is not over a limit.
 
-One case is over a limit although no count is. A filter whose value does not fit its operator is over the `"filters"` limit, such as a list on `contains`. Only code builds such a filter: `setFilters`, `filterState`, or `defaultFilterState`. A filter without a value on an operator that takes one, such as `equals`, is not over a limit.
+A filter whose value does not fit its operator, such as a list on `contains`, also counts as over the `"filters"` limit. Only code builds such a filter: `setFilters`, `filterState`, or `defaultFilterState`. A filter without a value on an operator that takes one, such as `equals`, is not over a limit.
 
-"Save as new view" and "Update" are off with a line for that part. `saveView` returns `null` and `updateView` returns `false`. Remove a sort or a filter, shorten the search text, or reset the column layout to save.
+"Save as new view" and "Update" are off with a line for that part. `saveView` returns `null` and `updateView` returns `false`.
 
 ## Server mode [#server-mode]
 
 A view stores the grid state only, so it works in every data mode:
 
 - **Local array and client pagination.** Opening a view sorts and filters the local rows again.
-- **Server pagination and scroll mode** with `sortMode="server"` or `filterMode="server"`. Opening a view calls `onSortChange`, `onFilterChange`, and `onSearchTextChange` for the parts that differ, and `useDataGridServerRows` sends the new spec. A set filter value outside `choices` drops here too, so list every value that your server filters by in `choices`.
+- **Server pagination and scroll mode** with `sortMode="server"` or `filterMode="server"`. Opening a view calls `onSortChange`, `onFilterChange`, and `onSearchTextChange` for the parts that differ, and `useDataGridServerRows` sends the new spec. Every set filter value stays, and your server checks the values.
 - **Controlled state.** Your props receive the change callbacks.
 
 A view saves no page number. A view that changes the sort, the filters, or the search text sends server rows back to page 1. A view that changes only the layout keeps the page.

@@ -153,19 +153,12 @@ Result: the codes move to the end of their cells, and the quantities center.
 
 ### Mark changed rows [#mark-changed-rows]
 
-The grid keeps no flag for a row that the user changed. When `onSave` returns a promise, the grid marks the save only: a row carries `data-save-status="saving"` while its save is pending, and `"failed"` after a refusal. `useDataGridRowSaveStatus(rowId)` reads the same status. The [Style contract](/docs/contracts/style-contract) lists the attribute.
+When `onSave` returns a promise, a row carries `data-save-status="saving"` while its save is pending, and `"failed"` after a refusal. `useDataGridRowSaveStatus(rowId)` reads the same status. The [Style contract](/docs/contracts/style-contract) lists the attribute.
 
-To mark every row that the user changed, keep the changed row objects in a `WeakSet` and fill it in `onDataChange`. A write gives the row a new object, so the row renders again and `getRowClassName` reads the mark:
+A row that the user changed carries `data-row-changed` until an undo, a push, or new `data` writes it again. A class on the grid selects it:
 
 ```tsx
-"use client";
-
-import { useCallback, useState } from "react";
-import {
-  DataGrid,
-  defineColumns,
-  type DataChange,
-} from "@/components/data-grid/data-grid";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
 
 type Row = { id: string; name: string; qty: number };
 
@@ -174,43 +167,18 @@ const columns = defineColumns<Row>()([
   { id: "qty", header: "Qty", accessorKey: "qty", type: "number" },
 ]);
 
-type Source = DataChange<Row>["source"];
-const USER_SOURCES = new Set<Source>([
-  "edit",
-  "paste",
-  "fill",
-  "delete",
-  "replace",
-]);
-
 export function ChangedRows({ rows }: { rows: Row[] }) {
-  const [changed] = useState(() => new WeakSet<Row>());
-
-  const onDataChange = useCallback(
-    (_next: readonly Row[], change: DataChange<Row>) => {
-      if (!USER_SOURCES.has(change.source)) return;
-      for (const op of change.ops) {
-        if (op.type === "update") changed.add(op.row);
-      }
-    },
-    [changed],
-  );
-
   return (
     <DataGrid
-      className="h-80"
+      className="h-80 [&_[data-row-changed]]:bg-primary/10"
       defaultData={rows}
       columns={columns}
-      onDataChange={onDataChange}
-      getRowClassName={(row) =>
-        changed.has(row) ? "bg-primary/10" : undefined
-      }
     />
   );
 }
 ```
 
-Result: an edited, pasted, filled, cleared, or replaced row gets a tint. An undo writes a new row object that the set lacks, so the tint goes away. A row that `refresh()` replaces with the server copy has no tint either.
+Result: an edited, pasted, filled, cleared, cut, replaced, or imported row gets a tint.
 
 ## Style by state with CSS [#styling-by-state-with-css-only]
 
@@ -222,6 +190,7 @@ The grid keeps these data attributes up to date. Scope each selector to the grid
 | `data-editing` | a cell in edit mode |
 | `data-pinned="start"` or `"end"` | header and body cells of a pinned column |
 | `data-row-selected` | the marker cell of a selected row |
+| `data-row-changed` | a row that the user changed |
 | `data-search-match` | a cell that matches the quick search |
 | `data-invalid` | a cell with a validation error |
 | `data-filtered` | a header cell of a filtered column |
@@ -242,7 +211,7 @@ These rules outline the active cell and border an end-pinned cell:
 
 ## Related
 
-- [Colors and radius](/docs/theme-style-language/colors-radius)
-- [Density and small screens](/docs/theme-style-language/density-small-screens)
-- [Style contract](/docs/contracts/style-contract)
-- [Styling model](/docs/concepts/styling-model)
+- [Colors and radius](/docs/theme-style-language/colors-radius): theme tokens and the frame radius
+- [Density and small screens](/docs/theme-style-language/density-small-screens): row height and scroll shadows
+- [Style contract](/docs/contracts/style-contract): every class and data attribute the grid sets
+- [Styling model](/docs/concepts/styling-model): how the layers of style fit together

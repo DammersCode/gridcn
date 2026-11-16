@@ -162,7 +162,7 @@ export function OrdersGrid({
 
 ## Server mode
 
-The hooks for server rows return `loading`, `error`, and `onRetry` in `gridProps`. Spread `gridProps` and the states work with no more code. `loading` is true while a request of the current spec runs. `error` holds the failure of that request, and `onRetry` repeats it.
+The hooks for server rows return `loading`, `error`, and `onRetry` in `gridProps`. Spread `gridProps` on `DataGrid` and the states work with no more code. In the split form, spread `providerProps` on `DataGridProvider` and `rootProps` on `DataGridRoot`. `loading` is true while a request of the current spec runs. `error` holds the failure of that request, and `onRetry` repeats it.
 
 In scroll mode, `loading` is true while any block request runs. Rows that are not loaded yet also show a skeleton in their cells. `onError` and `onLoaded` of the hook fire after a request fails or lands. [Server rows options](/docs/add-options/server/server-rows-options) lists them.
 
@@ -181,7 +181,7 @@ In scroll mode, `loading` is true while any block request runs. Rows that are no
 
 ## Related
 
-- [Loading state example](/docs/style-examples/loading-state-example)
-- [Labels and i18n](/docs/theme-style-language/labels-i18n)
-- [Server rows options](/docs/add-options/server/server-rows-options)
-- [DataGrid props](/docs/components-props/data-grid-props)
+- [Loading state example](/docs/style-examples/loading-state-example): the three states in a demo
+- [Labels and i18n](/docs/theme-style-language/labels-i18n): the texts of the empty, loading, and error states
+- [Server rows options](/docs/add-options/server/server-rows-options): `onError`, `onLoaded`, and the other hook options
+- [DataGrid props](/docs/components-props/data-grid-props): every prop of the grid

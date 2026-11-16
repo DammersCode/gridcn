@@ -22,7 +22,9 @@ import {
   DataGridRoot,
   defineColumns,
 } from "@/components/data-grid/data-grid";
-import { DataGridStatusBar } from "@/components/data-grid-status-bar/data-grid-status-bar";
+import {
+  DataGridStatusBar,
+} from "@/components/data-grid-status-bar/data-grid-status-bar";
 
 type Sale = { id: string; region: string; amount: number };
 
@@ -33,11 +35,7 @@ const columns = defineColumns<Sale>()([
 
 export function SalesGrid({ sales }: { sales: Sale[] }) {
   return (
-    <DataGridProvider
-      data={sales}
-      columns={columns}
-      getRowId={(sale) => sale.id}
-    >
+    <DataGridProvider data={sales} columns={columns}>
       <DataGridRoot className="h-80">
         <DataGridHeader />
         <DataGridBody />
@@ -81,7 +79,9 @@ A walk stops at 200,000 cells (`MAX_STATUS_CELLS`). Above the cap, every value g
 `useDataGridSelectionStats()` returns the numbers for your own UI. Call it inside `DataGridProvider`:
 
 ```tsx
-import { useDataGridSelectionStats } from "@/components/data-grid-status-bar/data-grid-status-bar";
+import {
+  useDataGridSelectionStats,
+} from "@/components/data-grid-status-bar/data-grid-status-bar";
 
 export function SelectionSum() {
   const { sum, approximate } = useDataGridSelectionStats();
