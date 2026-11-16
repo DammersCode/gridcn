@@ -74,7 +74,7 @@ async function search(find: string, replacement: string) {
 describe("useDataGridFindReplace", () => {
   it("opens the panel and shows the match position", async () => {
     const harness = setup();
-    act(() => harness.findReplace().open());
+    act(() => harness.findReplace().open("replace"));
     expect(screen.getByRole("dialog", { name: "Find and replace" })).toBeTruthy();
     await search("foo", "x");
     expect(screen.getByRole("status").textContent).toBe("1 of 2 cells");
@@ -82,7 +82,7 @@ describe("useDataGridFindReplace", () => {
 
   it("Ctrl+F inside the panel cancels the browser find bar and selects the Find field", () => {
     const harness = setup();
-    act(() => harness.findReplace().open());
+    act(() => harness.findReplace().open("replace"));
     const find = screen.getByLabelText("Find") as HTMLInputElement;
     const replace = screen.getByLabelText("Replace with");
     replace.focus();
@@ -94,7 +94,7 @@ describe("useDataGridFindReplace", () => {
   it("a hanging processReplace is a tracked gate: gateTimeoutMs aborts it and onGateAborted reports it", async () => {
     const onGateAborted = vi.fn();
     const harness = setup({ processReplace: () => new Promise<never>(() => {}), gateTimeoutMs: 30, onGateAborted });
-    act(() => harness.findReplace().open());
+    act(() => harness.findReplace().open("replace"));
     await search("foo", "x");
     fireEvent.click(screen.getByRole("button", { name: "Replace all" }));
     await waitFor(() => expect(onGateAborted).toHaveBeenCalledWith({ gate: "processReplace", reason: "timeout" }));
@@ -104,7 +104,7 @@ describe("useDataGridFindReplace", () => {
 
   it("Replace all writes one change with source replace and one undo entry", async () => {
     const harness = setup();
-    act(() => harness.findReplace().open());
+    act(() => harness.findReplace().open("replace"));
     await search("foo", "x");
     fireEvent.click(screen.getByRole("button", { name: "Replace all" }));
     expect(harness.data().map((r) => r.name)).toEqual(["x one", "two", "x three"]);
@@ -118,7 +118,7 @@ describe("useDataGridFindReplace", () => {
 
   it("Replace changes the current match only", async () => {
     const harness = setup();
-    act(() => harness.findReplace().open());
+    act(() => harness.findReplace().open("replace"));
     await search("foo", "x");
     fireEvent.click(screen.getByRole("button", { name: "Replace" }));
     expect(harness.data().map((r) => r.name)).toEqual(["x one", "two", "Foo three"]);
@@ -127,7 +127,7 @@ describe("useDataGridFindReplace", () => {
 
   it("Replace on a clicked match moves the active cell to the next match", async () => {
     const harness = setup({ rows: ["a", "b", "c", "d"].map((id) => ({ id, name: `foo ${id}` })) });
-    act(() => harness.findReplace().open());
+    act(() => harness.findReplace().open("replace"));
     await search("foo", "x");
     act(() => harness.actions().setActiveCellAt({ col: 0, row: 2 }));
     fireEvent.click(screen.getByRole("button", { name: "Replace" }));
@@ -137,7 +137,7 @@ describe("useDataGridFindReplace", () => {
 
   it("Replace on the last match wraps the active cell to the first match", async () => {
     const harness = setup({ rows: ["a", "b", "c", "d"].map((id) => ({ id, name: `foo ${id}` })) });
-    act(() => harness.findReplace().open());
+    act(() => harness.findReplace().open("replace"));
     await search("foo", "x");
     act(() => harness.actions().setActiveCellAt({ col: 0, row: 3 }));
     fireEvent.click(screen.getByRole("button", { name: "Replace" }));
@@ -147,7 +147,7 @@ describe("useDataGridFindReplace", () => {
 
   it("Replace with text that still matches moves past the replaced cell", async () => {
     const harness = setup({ rows: ["a", "b", "c", "d"].map((id) => ({ id, name: `foo ${id}` })) });
-    act(() => harness.findReplace().open());
+    act(() => harness.findReplace().open("replace"));
     await search("foo", "FOO");
     act(() => harness.actions().setActiveCellAt({ col: 0, row: 1 }));
     fireEvent.click(screen.getByRole("button", { name: "Replace" }));
@@ -163,7 +163,7 @@ describe("useDataGridFindReplace", () => {
       rows: ["a", "b", "c", "d", "e"].map((id) => ({ id, name: `foo ${id}` })),
       processReplace: ({ plan }) => ({ ...plan, patches: [...plan.patches, { rowId: "a", columnId: "name", value: "x a" }] }),
     });
-    act(() => harness.findReplace().open());
+    act(() => harness.findReplace().open("replace"));
     await search("foo", "x");
     act(() => harness.actions().setActiveCellAt({ col: 0, row: 2 }));
     fireEvent.click(screen.getByRole("button", { name: "Replace" }));
@@ -181,7 +181,7 @@ describe("useDataGridFindReplace", () => {
         return plan;
       },
     });
-    act(() => harness.findReplace().open());
+    act(() => harness.findReplace().open("replace"));
     await search("foo", "x");
     act(() => harness.actions().setActiveCellAt({ col: 0, row: 0 }));
     fireEvent.click(screen.getByRole("button", { name: "Replace" }));
@@ -193,7 +193,7 @@ describe("useDataGridFindReplace", () => {
 
   it("disables Replace in a read-only grid and writes nothing", async () => {
     const harness = setup({ readOnly: true });
-    act(() => harness.findReplace().open());
+    act(() => harness.findReplace().open("replace"));
     await search("foo", "x");
     expect((screen.getByRole("button", { name: "Replace all" }) as HTMLButtonElement).disabled).toBe(true);
     expect(harness.changes).toHaveLength(0);
@@ -202,7 +202,7 @@ describe("useDataGridFindReplace", () => {
   it("reports validator rejections through onValidationError with source replace", async () => {
     const onValidationError = vi.fn();
     const harness = setup({ onValidationError });
-    act(() => harness.findReplace().open());
+    act(() => harness.findReplace().open("replace"));
     await search("foo", "bad");
     fireEvent.click(screen.getByRole("button", { name: "Replace all" }));
     expect(harness.changes).toHaveLength(0);
@@ -213,7 +213,7 @@ describe("useDataGridFindReplace", () => {
 
   it("Escape closes the panel", () => {
     const harness = setup();
-    act(() => harness.findReplace().open());
+    act(() => harness.findReplace().open("replace"));
     fireEvent.keyDown(screen.getByLabelText("Find"), { key: "Escape" });
     expect(screen.queryByRole("dialog")).toBeNull();
   });
@@ -236,7 +236,7 @@ describe("useDataGridFindReplace", () => {
 
   it("clears Validating when the Replace field changes while processReplace is pending", async () => {
     const harness = setup({ processReplace: () => new Promise(() => {}) });
-    act(() => harness.findReplace().open());
+    act(() => harness.findReplace().open("replace"));
     await search("foo", "x");
     fireEvent.click(screen.getByRole("button", { name: "Replace all" }));
     await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Validating…"));
@@ -250,7 +250,7 @@ describe("useDataGridFindReplace", () => {
     };
     const asyncColumns = [{ id: "name", header: "Name", accessorKey: "name", validate: rejectAll }] as unknown as readonly ColumnDef<Row, unknown>[];
     const harness = setup({ columns: asyncColumns });
-    act(() => harness.findReplace().open());
+    act(() => harness.findReplace().open("replace"));
     await search("foo", "x");
     fireEvent.click(screen.getByRole("button", { name: "Replace all" }));
     await waitFor(() => expect(screen.getByRole("status").textContent).not.toBe("Validating…"));
@@ -271,7 +271,7 @@ describe("useDataGridFindReplace", () => {
     };
     const asyncColumns = [{ id: "name", header: "Name", accessorKey: "name", validate: throwing }] as unknown as readonly ColumnDef<Row, unknown>[];
     const harness = setup({ columns: asyncColumns });
-    act(() => harness.findReplace().open());
+    act(() => harness.findReplace().open("replace"));
     await search("foo", "x");
     fireEvent.click(screen.getByRole("button", { name: "Replace all" }));
     await waitFor(() => expect(screen.getByRole("status").textContent).not.toBe("Validating…"));
@@ -285,7 +285,7 @@ describe("useDataGridFindReplace", () => {
 
   it("continues Replace all past the limit when the replacement contains the find text", async () => {
     const harness = setup({ replaceAllLimit: 1 });
-    act(() => harness.findReplace().open());
+    act(() => harness.findReplace().open("replace"));
     await search("foo", "foobar");
     fireEvent.click(screen.getByRole("button", { name: "Replace all" }));
     expect(harness.data().map((r) => r.name)).toEqual(["foobar one", "two", "Foo three"]);

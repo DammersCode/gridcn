@@ -1,31 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { numberCellType } from "./number";
+import { dateCellType } from "./date";
 
 describe("locale without a format", () => {
   beforeEach(() => {
-    vi.resetModules();
     vi.spyOn(console, "warn").mockImplementation(() => {});
   });
   afterEach(() => vi.restoreAllMocks());
 
-  it("a number column with a locale and no format dev-warns once", async () => {
-    const { numberCellType } = await import("./number");
-    expect(numberCellType.toDisplayText!(1234.5, { locale: "de-DE" })).toBe("1234.5");
-    numberCellType.toDisplayText!(1234.5, { locale: "de-DE" });
-    expect(console.warn).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(console.warn).mock.calls[0]![0]).toContain("without format");
-  });
-
-  it("a number column with a locale and a format does not warn", async () => {
-    const { numberCellType } = await import("./number");
-    numberCellType.toDisplayText!(1234.5, { locale: "de-DE", format: {} });
+  it("a number column with a locale and no format shows grouped digits in that locale", () => {
+    expect(numberCellType.toDisplayText!(1234.5, { locale: "de-DE" })).toBe("1.234,5");
+    expect(numberCellType.toText(1234.5, { locale: "de-DE" })).toBe("1234.5");
     expect(console.warn).not.toHaveBeenCalled();
   });
 
-  it("a date column with a locale and no displayFormat dev-warns once", async () => {
-    const { dateCellType } = await import("./date");
-    dateCellType.toDisplayText!("2024-03-05", { locale: "de-DE" });
-    dateCellType.toDisplayText!("2024-03-05", { locale: "de-DE" });
-    expect(console.warn).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(console.warn).mock.calls[0]![0]).toContain("without displayFormat");
+  it("an explicit format still wins over the implied one", () => {
+    expect(numberCellType.toDisplayText!(1234.5, { locale: "de-DE", format: { useGrouping: false } })).toBe("1234,5");
+  });
+
+  it("a date column with a locale and no displayFormat shows the medium date style in that locale", () => {
+    expect(dateCellType.toDisplayText!("2024-03-05", { locale: "de-DE" })).toBe("05.03.2024");
+    expect(dateCellType.toText("2024-03-05", { locale: "de-DE" })).toBe("2024-03-05");
+    expect(console.warn).not.toHaveBeenCalled();
   });
 });

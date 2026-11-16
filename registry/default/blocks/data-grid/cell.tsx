@@ -297,6 +297,13 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
     (movement?: { dx: number; dy: number }) => asyncValidate.commit(pendingValueRef.current, movement),
     [asyncValidate],
   );
+  const commitValue = useCallback(
+    (nextValue: unknown, movement?: { dx: number; dy: number }) => {
+      pendingValueRef.current = nextValue;
+      asyncValidate.commit(nextValue, movement);
+    },
+    [asyncValidate],
+  );
   const cancel = useCallback(() => {
     asyncValidate.cancelPending();
     actions.cancelEditing();
@@ -319,6 +326,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       options: unknown;
       onChange: (v: unknown) => void;
       commit: (movement?: { dx: number; dy: number }) => void;
+      commitValue: (value: unknown, movement?: { dx: number; dy: number }) => void;
       cancel: () => void;
       pending?: boolean;
       rejectionCount?: number;
@@ -335,6 +343,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         options={column.options}
         onChange={onChange}
         commit={commit}
+        commitValue={commitValue}
         cancel={cancel}
         pending={asyncValidate.pending}
         rejectionCount={editingRejectionCount}

@@ -780,7 +780,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const fresh = resolveEditTarget(now, at);
           if (!fresh) return;
           const value = getCellValue<unknown, typeof fresh.column>(fresh.row, fresh.column);
-          _commitActivation(at, activate(value, fresh.column.options));
+          const committed = _commitActivation(at, activate(value, fresh.column.options));
+          const onEditEnd = now.onEditEnd;
+          if (committed === null || !onEditEnd) return;
+          const ended = { rowId: now.getRowId(fresh.row, fresh.dataRowIndex), columnId: fresh.column.id, viewRowIndex: at.row, viewColumnIndex: at.col };
+          emitAfterWrites(dataWrite, () => onEditEnd({ ...ended, result: committed ? "commit" : "rejected" }));
         });
       },
       _armRowDragAnchor(index) {

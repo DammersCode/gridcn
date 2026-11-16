@@ -2,7 +2,7 @@ import type { ComponentType } from "react";
 import type { AnyColumnDef } from "../store/types";
 import type { BuiltInFilterOperator, CellType, CellTypeValueInput, CustomFilterOperator, FilterOperator, FilterOperatorInput, FilterSpec, FilterValueInputProps } from "../types";
 import { isBuiltInOperator } from "../sort-filter/matches-filter";
-import type { CellValidate } from "../validation/validate-cell";
+import { composeValidate, type CellValidate } from "../validation/validate-cell";
 
 /** Text/general operators offered for every column type. */
 export const TEXT_FILTER_OPERATORS: readonly BuiltInFilterOperator[] = [
@@ -107,10 +107,12 @@ export function resolveFilterValueInput<TData = unknown, TValue = unknown, TOpti
   return "text";
 }
 
-const boundTypeValidates = new WeakMap<AnyColumnDef, { source: unknown; bound: CellValidate }>();
+const boundTypeValidates = new WeakMap<AnyColumnDef, { source: unknown; columnSource: unknown; bound: CellValidate }>();
 
 /**
- * `column.validate ?? cellType.validate` — the single resolution every validation path uses.
+ * The validator every validation path uses: a function-form type `validate` runs first, then the
+ * column's own `validate`, so a column rule keeps the type's bound (the `longText` `maxLength`).
+ * A Standard Schema type `validate` applies only to a column without its own.
  * Generic over the cell type's params so a specialized `CellType<TData, TValue, TOptions>`
  * is accepted without an erasure cast.
  */
@@ -118,13 +120,13 @@ export function resolveColumnValidate<TData = unknown, TValue = unknown, TOption
   column: AnyColumnDef,
   cellType?: CellType<TData, TValue, TOptions>,
 ): CellValidate {
-  if (column.validate) return column.validate;
   const typeValidate = cellType?.validate;
-  if (typeof typeValidate !== "function") return typeValidate as CellValidate;
+  if (typeof typeValidate !== "function") return column.validate ?? (typeValidate as CellValidate);
   const cached = boundTypeValidates.get(column);
-  if (cached?.source === typeValidate) return cached.bound;
+  if (cached?.source === typeValidate && cached.columnSource === column.validate) return cached.bound;
   // validation always receives the cell's own value, so the TValue-narrowed function takes the unknown-input form
-  const bound: CellValidate = (value, row) => (typeValidate as (value: unknown, row: unknown, options: unknown) => string | null)(value, row, column.options);
-  boundTypeValidates.set(column, { source: typeValidate, bound });
+  const typeBound = (value: unknown, row: unknown) => (typeValidate as (value: unknown, row: unknown, options: unknown) => string | null)(value, row, column.options);
+  const bound = column.validate ? composeValidate(typeBound, column.validate) : typeBound;
+  boundTypeValidates.set(column, { source: typeValidate, columnSource: column.validate, bound });
   return bound;
 }

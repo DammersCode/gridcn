@@ -331,7 +331,7 @@ assertEqual<boolean | undefined, GlobalShortcutsConfig["deleteRows"]>(true);
 import type { StandardSchemaV1 as OfficialStandardSchemaV1 } from "@standard-schema/spec";
 import type { StandardSchemaV1 } from "./types";
 import { type GRID_ATTR } from "./data-grid-sdk";
-import { viewIndexes, type ViewCellRef, type ViewCoord } from "./types";
+import { viewIndex, viewIndexes, type ViewCellRef, type ViewCoord } from "./types";
 
 function assertVendoredMatchesOfficial<Input, Output>(
   _vendoredToOfficial: (v: StandardSchemaV1<Input, Output>) => OfficialStandardSchemaV1<Input, Output>,
@@ -371,6 +371,12 @@ void withSchemaValidate;
 // @ts-expect-error - a string-input schema doesn't match this column's number TValue
 const badSchemaValidate: NumberColumnValidate = mockSchema<string>(() => true, "n/a");
 void badSchemaValidate;
+
+// The committed value is the schema output, so a transform to another type does not compile.
+declare const transformingSchema: StandardSchemaV1<number, string>;
+// @ts-expect-error - a number-to-string transform would store a string in a number column
+const transformingValidate: NumberColumnValidate = transformingSchema;
+void transformingValidate;
 
 // The function form is untouched (still assignable, still bivariant per column-helpers.type-test.ts).
 const withFnValidate: NumberColumnValidate = (value) => (value !== null && value < 0 ? "must be >= 0" : null);
@@ -597,8 +603,8 @@ void asyncGateProps;
 
 publicActions.deleteRowsAt([4]);
 publicActions.duplicateRowsAt([4]);
-// @ts-expect-error - setRowCheckedAt takes a ViewIndex
 publicActions.setRowCheckedAt(4, true);
+publicActions.setRowCheckedAt(viewIndex(4), true);
 // @ts-expect-error - deleteRows takes stable row ids, not view indexes
 publicActions.deleteRows([4]);
 publicActions.deleteRowsAt(viewIndexes([4]));

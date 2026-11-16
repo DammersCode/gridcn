@@ -79,6 +79,7 @@ describe("currencyCellType.Editor focus", () => {
         options={{ currency: "USD" }}
         onChange={onChange}
         commit={commit}
+        commitValue={vi.fn()}
         cancel={cancel}
       />,
     );

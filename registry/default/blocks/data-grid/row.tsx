@@ -2,7 +2,8 @@
 
 import { memo, useState, type PointerEvent as ReactPointerEvent, type Ref } from "react";
 import { cn } from "@/lib/utils";
-import { useDataGridIsRowChannelSelected, useDataGridRow, useDataGridRowCellState } from "./store";
+import { useDataGridIsRowChannelSelected, useDataGridRow, useDataGridRowCellState, useDataGridStoreApi } from "./store";
+import { isRowChanged } from "./store/changed-rows";
 import { GRID_ATTR } from "./data-attributes";
 import { markerContent } from "./rows/marker-width";
 import { colRangesContain } from "./selection/selected-col-ranges-for-row";
@@ -70,6 +71,8 @@ export const DataGridRow = memo(function DataGridRow({
 }: DataGridRowProps) {
   const [initialGridLine] = useState(() => getGridLine(viewRowIndex));
   const row = useDataGridRow(viewRowIndex);
+  // context only, no store subscription: the mark changes with the row object, which already re-renders the row
+  const storeApi = useDataGridStoreApi();
   // ONE subscription for the whole row's interactive cell state (not one per cell). Referentially
   // stable across ticks that don't touch this row (see useDataGridRowCellState's comparator), so
   // this memoized row only re-renders when its own active/editing/search/selection state changed.
@@ -95,6 +98,7 @@ export const DataGridRow = memo(function DataGridRow({
       aria-busy={isSkeleton || cellState.saveStatus === "saving" || undefined}
       {...(cellState.saveStatus === undefined ? undefined : { [GRID_ATTR.saveStatus]: cellState.saveStatus })}
       {...(cellState.stale ? { [GRID_ATTR.rowStale]: "" } : undefined)}
+      {...(isRowChanged(storeApi.getState().actions, row) ? { [GRID_ATTR.rowChanged]: "" } : undefined)}
       aria-selected={isChecked ? true : hasCheckboxMarker ? false : undefined}
       // Named group: pinned and marker cells follow the row hover via CSS only, never React state.
       className={cn("group/row data-hovered:bg-muted/50 data-[save-status=saving]:text-muted-foreground data-[save-status=failed]:bg-destructive/10", row === undefined ? undefined : getRowClassName?.(row, viewRowIndex, classNameRevision ?? 0))}

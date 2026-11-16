@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { render } from "@testing-library/react";
+import { UnparseableTextError } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { lookupCellType } from "../lookup-cell-type";
 import type { LookupOption, LookupOptions } from "../lookup-model";
 
@@ -23,12 +26,19 @@ describe("lookupCellType value pipeline", () => {
     expect(lookupCellType.fromText("c1", options)).toEqual(acme);
   });
 
-  it("clears an unresolved paste by default and keeps it on request", () => {
-    expect(lookupCellType.fromText("Nobody", makeOptions())).toBeNull();
+  it("rejects an unresolved paste by default, so the cell keeps its value; clears or keeps it on request", () => {
+    expect(() => lookupCellType.fromText("Nobody", makeOptions())).toThrow(UnparseableTextError);
+    expect(lookupCellType.fromText("Nobody", makeOptions({ unresolvedPaste: "clear" }))).toBeNull();
     expect(lookupCellType.fromText("Nobody", makeOptions({ unresolvedPaste: "keep" }))).toEqual({ value: "Nobody", label: "" });
   });
 
-  it("fromText never throws and bounds hostile text", () => {
+  it("resolves a label that a cell only rendered", () => {
+    const options = makeOptions();
+    render(createElement(lookupCellType.Cell, { value: globex, options } as never));
+    expect(lookupCellType.fromText("globex", options)).toEqual(globex);
+  });
+
+  it("fromText bounds hostile text and reads blank text as empty", () => {
     expect(lookupCellType.fromText("", makeOptions())).toBeNull();
     expect(lookupCellType.fromText("   ")).toBeNull();
     const kept = lookupCellType.fromText("x".repeat(100_000), makeOptions({ unresolvedPaste: "keep" }));

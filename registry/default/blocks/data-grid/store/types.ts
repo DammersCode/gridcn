@@ -5,7 +5,6 @@ import type {
   CellRef,
   ViewCellRef,
   ViewCoord,
-  ViewIndex,
   AutosizeOptions,
   CellType,
   ColumnDef,
@@ -157,7 +156,7 @@ export type DataGridSyncProps<TData = unknown> = {
   processCellForClipboard?: (value: unknown, ctx: ClipboardCopyCtx<TData>) => string;
   /**
    * Overrides parsing pasted text into a cell value. `ctx.fromText` is the column's own parser, for the cells you do not change.
-   * A promise holds the paste until every cell settles. A pending promise blocks a second paste.
+   * A promise holds the paste until every cell settles. A pending promise blocks a second paste until it settles or `ctx.signal` aborts.
    * A rejection cancels the paste.
    */
   processCellFromClipboard?: (text: string, ctx: ClipboardPasteCtx<TData>) => NonNullable<unknown> | null | undefined | Promise<unknown>;
@@ -171,7 +170,7 @@ export type DataGridSyncProps<TData = unknown> = {
   /**
    * Prefixes formula-like copied cells (leading `=`, `+`, `-`, `@`, TAB, or CR; plain numbers
    * exempt) with `'` in the clipboard text and HTML, for Ctrl+C/Ctrl+X and the context menu's
-   * Copy/Cut. A paste back into gridcn still restores the raw value. Default `false`.
+   * Copy/Cut. A paste back into gridcn still restores the raw value. Default `true`; `false` copies raw text.
    */
   sanitizeClipboardFormulas?: boolean;
   /** Marker column mode; default 'none'. See {@link RowMarkersMode}. */
@@ -209,7 +208,7 @@ export type DataGridSyncProps<TData = unknown> = {
   defaultPage?: number;
   onPageChange?: (page: number) => void;
   /**
-   * Aborts an async gate (`onBeforeDeleteRows`, `validateRow`, `onBeforeEditStart`, `createRow`, `duplicateRow`, `processPaste`, `processReplace`) whose promise
+   * Aborts an async gate (`onBeforeDeleteRows`, `validateRow`, `onBeforeEditStart`, `createRow`, `duplicateRow`, `processPaste`, `processCellFromClipboard`, `processReplace`, the import `mapColumn`) whose promise
    * has not settled after this many ms (one number for every gate, or a number per gate name): its `signal` aborts, the action is cancelled, and the next action may start. Default: off
    * (a gate waits for its promise).
    */
@@ -556,7 +555,7 @@ export type ClipboardCopyCtx<TData> = ClipboardProcessCtx<TData> & {
 };
 
 /** `processCellFromClipboard`'s context. */
-export type ClipboardPasteCtx<TData> = ClipboardProcessCtx<TData> & {
+export type ClipboardPasteCtx<TData> = ClipboardProcessCtx<TData> & GateContext & {
   /** The column's own parser (the cell type's `fromText` with the column options). */
   fromText: (text: string) => unknown;
 };
@@ -996,8 +995,8 @@ export type DataGridActions = {
   selectAll(): void;
   /** Sets one row's checked state absolutely — never a toggle — independent of the last-highlighted/range mechanics `selectRow` uses for click gestures. Checking adds the row to the rows channel; unchecking removes it from the rows channel and from every cell range that covers it. A `rowId` that is not in the view does nothing. No-op when `enableRowSelection` is false. */
   setRowChecked(rowId: string, checked: boolean): void;
-  /** View-index variant of {@link DataGridActions.setRowChecked} for callers that hold a {@link ViewIndex}. */
-  setRowCheckedAt(index: ViewIndex, checked: boolean): void;
+  /** View-index variant of {@link DataGridActions.setRowChecked}; like every `At` action, it takes a view row number or a `ViewIndex`. */
+  setRowCheckedAt(index: number, checked: boolean): void;
   /**
    * Checks (or unchecks) the span from the gesture's anchor to `target`, replacing the previous span of the same gesture.
    * Without a live gesture the anchor is the former anchor row, else the active row, else `target`.
@@ -1246,7 +1245,7 @@ export type DataGridActions = {
 
 /** @internal The `_`-prefixed store actions that the core and add-on wiring call; `useDataGridActions` never returns them. */
 export type DataGridInternalActions = {
-  /** @internal Asks `onBeforeEditStart` for an `activate` cell (a checkbox), then commits `activate(value, options)`; a validator rejection reaches `onValidationError` with source `"edit"`. */
+  /** @internal Asks `onBeforeEditStart` for an `activate` cell (a checkbox), then commits `activate(value, options)`; a validator rejection reaches `onValidationError` with source `"edit"`, then `onEditEnd` reports `commit` or `rejected`. */
   _activateCellAt(coord: ViewCoord): void;
   /** @internal Arms a row range gesture at `index` without writing the rows channel, so a checkbox press can turn into a range drag while a stationary click keeps its own toggle. No-op when `enableRowSelection` is false. */
   _armRowDragAnchor(index: number): void;

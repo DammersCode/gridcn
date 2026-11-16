@@ -53,6 +53,14 @@ describe("onValidationError for updateCells", () => {
     });
   });
 
+  it("reports an editRows form save with source edit", () => {
+    const { store, onValidationError } = makeStore(nonNegative);
+
+    store.getState().actions.editRows([{ rowId: "a", changes: { price: -1 } }]);
+
+    expect(onValidationError).toHaveBeenCalledWith(expect.objectContaining({ source: "edit" }));
+  });
+
   it("does not fire when every patch passes", () => {
     const { store, onValidationError } = makeStore(nonNegative);
 

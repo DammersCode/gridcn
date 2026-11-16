@@ -21,6 +21,7 @@ export type ImportDefaults = {
    * built-in matcher, null to skip. Wins over `defaultSkipColumns`. A promise holds the mapping
    * until it settles; a rejection falls back to the built-in matcher. `signal` aborts when a newer
    * parse of the dialog supersedes this one or the dialog unmounts; an aborted mapping is dropped.
+   * Inside a grid, `gateTimeoutMs.mapColumn` aborts a pending mapping and falls back to the built-in matcher.
    */
   mapColumn?: (header: string, index: number, ctx: GateContext) => string | null | undefined | Promise<string | null | undefined>;
 };

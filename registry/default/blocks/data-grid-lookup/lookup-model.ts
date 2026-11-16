@@ -32,7 +32,7 @@ export type LookupLabels = {
 
 /** Column `options` of the `lookup` cell type. `TData` is the row type of the grid; it types `request.row`. */
 export type LookupOptions<TData = unknown> = {
-  /** Resolves the options that match `query`. Keep its identity stable: pasted labels resolve through a cache keyed on it. */
+  /** Resolves the options that match `query`. The labels it lists, and the labels the cells show, paste back to their keys. */
   fetchOptions: (request: LookupFetchRequest<TData>) => Promise<readonly LookupOption[]>;
   /** Wait after the last keystroke before a request starts. Default: the grid's `inputDebounceMs`. */
   debounceMs?: number;
@@ -40,8 +40,8 @@ export type LookupOptions<TData = unknown> = {
   minQueryLength?: number;
   /** Most options shown; extra options are dropped. Default `50`, at most `200`. */
   maxResults?: number;
-  /** A pasted or imported text that matches no known option: `"clear"` empties the cell, `"keep"` stores the trimmed text as `{ value: text, label: "" }`, shown as unresolved. Default `"clear"`. */
-  unresolvedPaste?: "clear" | "keep";
+  /** A pasted or imported text that matches no known option: `"reject"` keeps the cell value and reports the text to `onValidationError`, `"clear"` empties the cell, `"keep"` stores the trimmed text as `{ value: text, label: "" }`, shown as unresolved. Default `"reject"`. */
+  unresolvedPaste?: "reject" | "clear" | "keep";
   labels?: Partial<LookupLabels>;
 };
 

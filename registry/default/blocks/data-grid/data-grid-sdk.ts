@@ -6,11 +6,13 @@
  * imports of this file are rewritten to the registry alias by scripts/fix-registry-imports.mjs at registry build.
  */
 
-import { useCallback, useEffect } from "react";
+import { use, useCallback, useEffect } from "react";
 import { useDataGridInternalActions, useDataGridStoreApi as useDataGridStoreApiRaw } from "./store";
 import { gridStoreWrapper, setServerReshapeHandler } from "./store/api";
 import { nextAnnouncement } from "./store/announcements";
 import type { GateTracker } from "./store/gate-signal";
+import { DataGridStoreContext } from "./store/store-context";
+import { gateTrackerOf } from "./store/internal-actions";
 import type { CellErrorEntry, LiveAnnouncementKind } from "./store/types";
 
 export { setServerReshapeHandler };
@@ -81,7 +83,7 @@ export { makeFilterPredicate } from "./sort-filter/incremental-view-index";
 export { MAX_FILTER_GROUP_DEPTH, MAX_SPEC_SEARCH_LENGTH, MAX_SPEC_SORTS, countFilterSpecs, forEachFilterSpec, groupChildren, isFilterGroup, pruneFilterSpecs } from "./sort-filter/filter-tree";
 export { resolveSelectChoices } from "./cell-types/select";
 export { toSafeText } from "./cell-types/safe-text";
-export { safeFromText, isUnparseable, parseWithHook, settleHookFailure, type ParsedCellText } from "./cell-types/safe-from-text";
+export { safeFromText, isRejectedText, isUnparseable, UnparseableTextError, parseWithHook, settleHookFailure, type ParsedCellText } from "./cell-types/safe-from-text";
 export {
   useBulkGeneration,
   snapshotBulkBatch,
@@ -145,6 +147,12 @@ export type { GateAbortReason, GateRun, GateTracker } from "./store/gate-signal"
 /** The grid's gate tracker: an add-on that runs a consumer hook of its own holds a {@link GateRun} on it, so `gateTimeoutMs`, `onGateAborted`, and `useDataGridGatePending` cover that hook. */
 export function useDataGridGateTracker(): GateTracker {
   return useDataGridInternalActions()._gates();
+}
+
+/** The enclosing grid's gate tracker, or `null` outside a `DataGridProvider`; for a gate of an add-on that also works without a grid. */
+export function useOptionalDataGridGateTracker(): GateTracker | null {
+  const store = use(DataGridStoreContext);
+  return (store && gateTrackerOf(store)) ?? null;
 }
 
 /** Returns a stable function that sets the grid's live-region announcement; `partial` marks a count over loaded rows only. */

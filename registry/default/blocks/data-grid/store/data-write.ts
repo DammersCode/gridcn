@@ -56,8 +56,10 @@ import {
 } from "../selection";
 import { forEachMember } from "../selection/compact-selection";
 import { viewIndexes, type CellRef, type CompactSelectionLike, type DataChange, type DataGridApi, type DataOp, type GridBulkValidationError, type GridValidationErrorEvent, type ViewCoord } from "../types";
-import { resolveColumnValidate } from "../cell-types/capabilities";
-import { runValidateSync } from "../validation/validate-cell";
+import type { BulkResolution } from "../validation/validate-batch";
+import { candidateRowIds, isBulkBatchCurrent, reresolveBulkWrites, snapshotBulkBatch } from "../validation/bulk-generation";
+import { resolveClearWrites, type ClearWrite } from "./clear-writes";
+import { markChangedRows } from "./changed-rows";
 import { nextAnnouncement } from "./announcements";
 import { clearStaleRows, followStaleRows, markStaleRows, pruneStaleRows, requestReshape, staleStateAfterPrune } from "./server-stale";
 import type { AnyColumnDef, CellErrorEntry, CellPatch, DataGridActions, DataGridInternalActions, DataGridStoreState, UpdateCellsSkip, RowActionName, RowActionResult, RowActionSkipReason, UpdateCellsVerdict } from "./types";
@@ -138,7 +140,7 @@ export function warnViewIndexIds(ctx: DataWriteContext, rowIds: readonly unknown
   if (ctx.warnedViewIndexIds) return;
   if (!rowIds.some((id) => typeof id === "number")) return;
   ctx.warnedViewIndexIds = true;
-  warnDev(`${action} takes stable row ids, and a number here is not a row id. To address rows by view index, call ${action}At with viewIndexes([...])`);
+  warnDev(`${action} takes stable row ids, and a number here is not a row id. To address rows by view index, call ${action}At`);
 }
 
 /**
@@ -156,6 +158,7 @@ export function writeThenEmit(
   write: () => void,
 ): void {
   followStaleRows(ctx, change.ops);
+  markChangedRows(s.actions, change, (rowId) => next[ctx.rowIndexCache.resolve(next, s.getRowId).get(rowId) ?? -1]);
   if (s.dataControlled && !s.onDataChange && !s.onSave && change.source !== "rollback" && !ctx.warnedUnreceivedWrite) {
     ctx.warnedUnreceivedWrite = true;
     warnDev("data is controlled and no onDataChange receives this change, so the grid drops it on the next render. Pass onDataChange, use defaultData, or set readOnly.");
@@ -436,7 +439,7 @@ export type DataWriteActions = Pick<
   _commitChange: DataGridInternalActions["_commitChange"];
   _skipRowAction: DataGridInternalActions["_skipRowAction"];
   /** Commits an `activate` result like `commitCellValueAt`, and reports a validator rejection through `onValidationError`. */
-  _commitActivation: (coord: ViewCoord, value: unknown) => void;
+  _commitActivation: (coord: ViewCoord, value: unknown) => boolean | null;
 };
 
 export function createDataWriteActions(set: SetState, get: GetState, deps: DataWriteDeps): DataWriteActions {
@@ -764,7 +767,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       });
     }
     const event: GridValidationErrorEvent = {
-      source: batchSource === "replace" ? "replace" : "stream",
+      source: batchSource === "replace" || batchSource === "edit" ? batchSource : "stream",
       rejected: rejected.map(({ patchIndex, message }) => {
         const { rowId, columnId, value } = patches[patchIndex]!;
         const dataRowIndex = rowIndex.get(rowId);
@@ -784,43 +787,28 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     emitAfterWrites(ctx, () => onValidationError({ source: source as GridValidationErrorEvent["source"], rejected: [...rejected] }));
   };
 
-  /** Commits clear-to-clearValue() `writes` as one `delete` batch; shared by both delete actions. */
-  /** Runs each column's sync `validate` on the cleared value: a rejected cell stays, except in a `validationMode: "warn"` column, which clears and flags it. */
-  const validateClearWrites = (s: DataGridStoreState, writes: { viewRowIndex: number; columnId: string; value: unknown }[]) => {
-    const columns = new Map(s.columns.map((c) => [c.id, c] as const));
-    const accepted: typeof writes = [];
-    const rejected: GridBulkValidationError[] = [];
-    const warnings: CellErrorEntry[] = [];
-    for (const write of writes) {
-      const column = columns.get(write.columnId);
-      const dataRowIndex = s.viewIndex[write.viewRowIndex];
-      const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
-      const validate = column && resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]);
-      if (!validate || row === undefined) {
-        accepted.push(write);
-        continue;
-      }
-      const result = runValidateSync(validate, write.value, row);
-      const rowId = s.getRowId(row, dataRowIndex!);
-      if (!("error" in result)) accepted.push({ ...write, value: result.value });
-      else if (column.validationMode === "warn" && !result.thrown) {
-        warnings.push({ rowId, columnId: write.columnId, message: result.error });
-        accepted.push(write);
-      } else rejected.push({ rowId, columnId: write.columnId, viewRowIndex: write.viewRowIndex, value: write.value, message: result.error });
-    }
-    return { accepted, rejected, warnings };
+  let clearGeneration = 0;
+  /** Commits clear-to-clearValue() `writes` as one `delete` batch once their validators settle; shared by both delete actions. */
+  const commitClearWrites = (s: DataGridStoreState, requested: ClearWrite[], source: "delete" | "cut"): void => {
+    const token = ++clearGeneration;
+    const resolution = resolveClearWrites(s, requested);
+    if (!(resolution instanceof Promise)) return writeClears(s, resolution, source);
+    const snapshot = snapshotBulkBatch(s, candidateRowIds(s, requested));
+    void resolution.then((resolved) => {
+      const now = get();
+      if (token === clearGeneration && !now.readOnly && isBulkBatchCurrent(now, snapshot)) writeClears(now, { ...resolved, writes: reresolveBulkWrites(now, resolved.writes) }, source);
+    });
   };
 
-  const commitClearWrites = (s: DataGridStoreState, requested: { viewRowIndex: number; columnId: string; value: unknown }[]): void => {
-    const { accepted, rejected, warnings } = validateClearWrites(s, requested);
-    const batch = computeRowEditsBatch(s, accepted);
+  const writeClears = (s: DataGridStoreState, { writes, rejected, warnings }: BulkResolution, source: "delete" | "cut"): void => {
+    const batch = computeRowEditsBatch(s, writes);
     if (batch) {
       ctx.rowIndexCache.rebase(batch.nextData);
       forgetDeferredRows(ctx);
       ctx.lastEmittedData = batch.nextData;
       const validated = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), batch.nextData, batch.ops);
       const cellErrors = mergeCellErrors(validated, warnings);
-      writeThenEmit(ctx, s, batch.nextData, { source: "delete", ops: batch.ops }, () =>
+      writeThenEmit(ctx, s, batch.nextData, { source, ops: batch.ops }, () =>
         set({
           data: batch.nextData,
           cellErrors,
@@ -828,7 +816,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         }),
       );
     }
-    emitBulkRejections("delete", rejected);
+    emitBulkRejections(source, rejected);
   };
 
   const hiddenAfterDelete = (s: DataGridStoreState, ops: readonly DataOp<unknown>[]): Partial<DataGridStoreState> => {
@@ -1337,18 +1325,19 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     );
   };
 
-  const commitValueAt = (coord: ViewCoord, value: unknown, reportRejection: boolean): void => {
+  /** Returns whether the value committed (a no-op counts), or `null` on a `readOnly` grid. */
+  const commitValueAt = (coord: ViewCoord, value: unknown, reportRejection: boolean): boolean | null => {
     const s = get();
-    if (s.readOnly) return;
+    if (s.readOnly) return null;
     const result = computeCommit(s, coord, value);
     if ("error" in result) {
       const target = reportRejection ? resolveEditTarget(s, coord) : undefined;
       if (target) emitBulkRejections("edit", [{ rowId: s.getRowId(target.row, target.dataRowIndex), columnId: target.column.id, viewRowIndex: coord.row, value, message: result.error }]);
-      return;
+      return false;
     }
     if ("noop" in result) {
       if (result.warnings) set({ cellErrors: mergeCellErrors(s.cellErrors, result.warnings) });
-      return;
+      return true;
     }
     ctx.rowIndexCache.rebase(result.data);
     forgetDeferredRows(ctx);
@@ -1361,7 +1350,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         ...reconcileAfterWrite(s, result.data, result.change.ops),
       }),
     );
-
+    return true;
   };
 
   return {
@@ -1440,9 +1429,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     commitCellValueAt(coord, value) {
       commitValueAt(coord, value, false);
     },
-    _commitActivation(coord, value) {
-      commitValueAt(coord, value, true);
-    },
+    _commitActivation: (coord, value) => commitValueAt(coord, value, true),
     deleteSelection() {
       const s = get();
       if (s.readOnly) return;
@@ -1453,7 +1440,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         const cellType = s.cellTypes[column.type ?? "text"];
         return cellType ? { columnId: column.id, value: cellType.clearValue(column.options) } : null;
       });
-      const writes: { viewRowIndex: number; columnId: string; value: unknown }[] = [];
+      const writes: ClearWrite[] = [];
       for (const rect of rects) {
         for (let viewRow = rect.y; viewRow < rect.y + rect.height; viewRow++) {
           for (let col = rect.x; col < rect.x + rect.width; col++) {
@@ -1463,7 +1450,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           }
         }
       }
-      commitClearWrites(s, writes);
+      commitClearWrites(s, writes, "delete");
     },
     _skipRowAction(action, reason) {
       skippedBy(action, reason);
@@ -1482,13 +1469,13 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         const dataRowIndex = rowIndex.get(rowId);
         if (dataRowIndex !== undefined) dataRows.add(dataRowIndex);
       }
-      const writes: { viewRowIndex: number; columnId: string; value: unknown }[] = [];
+      const writes: ClearWrite[] = [];
       // a row or column that left the view since the copy stays untouched, like any hidden cell
       s.viewIndex.forEach((dataRowIndex, viewRowIndex) => {
         if (!dataRows.has(dataRowIndex)) return;
         for (const { columnId, value } of cleared) writes.push({ viewRowIndex, columnId, value });
       });
-      commitClearWrites(s, writes);
+      commitClearWrites(s, writes, "cut");
     },
     applyCellUpdates(updates, source, rejected, warnings) {
       const s = get();

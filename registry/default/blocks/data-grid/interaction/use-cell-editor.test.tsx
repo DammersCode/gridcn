@@ -32,9 +32,10 @@ function makeProps(overrides: Partial<Props> = {}): Props {
     column,
     onChange: vi.fn(),
     commit: vi.fn(),
+    commitValue: vi.fn(),
     cancel: vi.fn(),
     ...overrides,
-  };
+  } as Props;
 }
 
 describe("useCellEditor", () => {
@@ -53,7 +54,7 @@ describe("useCellEditor", () => {
   it("Enter parses the draft through the codec and commits with a down movement", async () => {
     const user = userEvent.setup();
     const { onChange, commit, cancel } = makeProps();
-    render(<ProbeEditor {...{ onChange, commit, cancel, value: null, row: {}, rowId: "r", columnId: "col", column: { id: "col", header: "Col" } }} />);
+    render(<ProbeEditor {...{ onChange, commit, commitValue: vi.fn(), cancel, value: null, row: {}, rowId: "r", columnId: "col", column: { id: "col", header: "Col" } }} />);
     const input = screen.getByRole("textbox");
     await user.type(input, "42");
     await user.keyboard("{Enter}");
@@ -72,7 +73,7 @@ describe("useCellEditor", () => {
   it("garbage input commits the codec's clearValue result (null), never throws", async () => {
     const user = userEvent.setup();
     const { onChange, commit } = makeProps();
-    render(<ProbeEditor {...{ onChange, commit, cancel: vi.fn(), value: null, row: {}, rowId: "r", columnId: "col", column: { id: "col", header: "Col" } }} />);
+    render(<ProbeEditor {...{ onChange, commit, commitValue: vi.fn(), cancel: vi.fn(), value: null, row: {}, rowId: "r", columnId: "col", column: { id: "col", header: "Col" } }} />);
     const input = screen.getByRole("textbox");
     await user.type(input, "abc");
     await user.keyboard("{Enter}");
@@ -83,7 +84,7 @@ describe("useCellEditor", () => {
   it("Escape cancels without calling onChange or commit", async () => {
     const user = userEvent.setup();
     const { onChange, commit, cancel } = makeProps();
-    render(<ProbeEditor {...{ onChange, commit, cancel, value: null, row: {}, rowId: "r", columnId: "col", column: { id: "col", header: "Col" } }} />);
+    render(<ProbeEditor {...{ onChange, commit, commitValue: vi.fn(), cancel, value: null, row: {}, rowId: "r", columnId: "col", column: { id: "col", header: "Col" } }} />);
     const input = screen.getByRole("textbox");
     await user.type(input, "42");
     await user.keyboard("{Escape}");
@@ -94,7 +95,7 @@ describe("useCellEditor", () => {
 
   it("blur commits the current parse with no movement", () => {
     const { onChange, commit, cancel } = makeProps();
-    render(<ProbeEditor {...{ onChange, commit, cancel, value: null, row: {}, rowId: "r", columnId: "col", column: { id: "col", header: "Col" } }} />);
+    render(<ProbeEditor {...{ onChange, commit, commitValue: vi.fn(), cancel, value: null, row: {}, rowId: "r", columnId: "col", column: { id: "col", header: "Col" } }} />);
     const input = screen.getByRole("textbox");
     fireEvent.change(input, { target: { value: "7" } });
     fireEvent.blur(input);
@@ -105,7 +106,7 @@ describe("useCellEditor", () => {
   it("blur after an Enter commit does not commit a second time", async () => {
     const user = userEvent.setup();
     const { onChange, commit } = makeProps();
-    render(<ProbeEditor {...{ onChange, commit, cancel: vi.fn(), value: null, row: {}, rowId: "r", columnId: "col", column: { id: "col", header: "Col" } }} />);
+    render(<ProbeEditor {...{ onChange, commit, commitValue: vi.fn(), cancel: vi.fn(), value: null, row: {}, rowId: "r", columnId: "col", column: { id: "col", header: "Col" } }} />);
     const input = screen.getByRole("textbox");
     await user.type(input, "42");
     await user.keyboard("{Enter}");
@@ -117,7 +118,7 @@ describe("useCellEditor", () => {
   it("re-arms the one-shot guard when rejectionCount rises, so a retry after a rejected async commit still lands", async () => {
     const user = userEvent.setup();
     const { onChange, commit } = makeProps();
-    const { rerender } = render(<ProbeEditor {...{ onChange, commit, cancel: vi.fn(), value: null, row: {}, rowId: "r", columnId: "col", column: { id: "col", header: "Col" } }} />);
+    const { rerender } = render(<ProbeEditor {...{ onChange, commit, commitValue: vi.fn(), cancel: vi.fn(), value: null, row: {}, rowId: "r", columnId: "col", column: { id: "col", header: "Col" } }} />);
     const input = screen.getByRole("textbox");
     await user.type(input, "42");
     await user.keyboard("{Enter}");
@@ -125,7 +126,7 @@ describe("useCellEditor", () => {
     expect(commit).toHaveBeenCalledTimes(1);
     // the grid rejected the commit (async validation), editing stays open, rejectionCount 0 -> 1
     rerender(
-      <ProbeEditor {...{ onChange, commit, cancel: vi.fn(), value: null, row: {}, rowId: "r", columnId: "col", column: { id: "col", header: "Col" }, rejectionCount: 1 }} />,
+      <ProbeEditor {...{ onChange, commit, commitValue: vi.fn(), cancel: vi.fn(), value: null, row: {}, rowId: "r", columnId: "col", column: { id: "col", header: "Col" }, rejectionCount: 1 }} />,
     );
     await user.type(input, "7");
     await user.keyboard("{Enter}");

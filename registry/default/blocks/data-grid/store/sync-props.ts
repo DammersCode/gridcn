@@ -252,7 +252,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           processCellForClipboard: props.processCellForClipboard,
           processCellFromClipboard: props.processCellFromClipboard,
           processPaste: props.processPaste,
-          sanitizeClipboardFormulas: props.sanitizeClipboardFormulas,
+          sanitizeClipboardFormulas: props.sanitizeClipboardFormulas ?? true,
           createRow: props.createRow,
           duplicateRow: props.duplicateRow,
           onSortChange: props.onSortChange,

@@ -351,7 +351,10 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
             setStatus({ kind: "cancelled" });
             return;
           }
-          run({ patches: result.patches, skipped: Array.isArray(result.skipped) ? result.skipped : [], remaining: result.remaining === true });
+          const visible = new Set(latest.visibleColumns.map((column) => column.id));
+          const hidden = result.patches.filter((patch) => !visible.has(patch.columnId));
+          const skipped = [...(Array.isArray(result.skipped) ? result.skipped : []), ...hidden.map(({ rowId, columnId }) => ({ ref: { rowId, columnId }, reason: "hidden" as const }))];
+          run({ patches: hidden.length > 0 ? result.patches.filter((patch) => visible.has(patch.columnId)) : result.patches, skipped, remaining: result.remaining === true });
         },
         (error: unknown) => {
           gates.settle(hookRun);

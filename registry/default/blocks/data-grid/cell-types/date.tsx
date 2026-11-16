@@ -1,13 +1,12 @@
 import { cn } from "@/lib/utils";
 import { toSafeText } from "./safe-text";
-import { createFormatterCache, formatKey, warnLocaleWithoutFormat } from "./formatter-cache";
-import { use, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import { createFormatterCache, formatKey } from "./formatter-cache";
+import { lazy, Suspense, use, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import { useStore } from "zustand";
 import { CalendarIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import type { CellEditorProps, CellRenderProps, CellType, GridCellTypes } from "../types";
 import { CellSpan } from "./cell-span";
 import { COMPARISON_FILTER_OPERATORS, SET_FILTER_OPERATORS, TEXT_FILTER_OPERATORS } from "./capabilities";
@@ -17,6 +16,10 @@ import { useCellTextInsets } from "../interaction/use-cell-editor";
 import { isComposingKey } from "../interaction/is-composing-key";
 import { DataGridStoreContext } from "../store/store-context";
 import { columnLabelText } from "../columns/column-format-helpers";
+
+const IMPLIED_DATE_FORMAT: Intl.DateTimeFormatOptions = { dateStyle: "medium" };
+// react-day-picker and date-fns load on the first calendar open, not with every grid
+const Calendar = lazy(() => import("@/components/ui/calendar").then((module) => ({ default: module.Calendar })));
 
 /** Calendar-validity probe for an ISO-shaped `yyyy-mm-dd`: UTC so no time-zone can shift a day; `setUTCFullYear` (unlike the `Date.UTC` constructor) maps 0-99 to themselves, so `0026-01-01` stays 0026. */
 function isRealIsoDate(iso: string): boolean {
@@ -103,12 +106,13 @@ function getDateFormatter(locale: string, format: Intl.DateTimeFormatOptions): I
 /** Formats an ISO date part per the column's `displayFormat`/`locale`, falling back to the raw ISO text. */
 function formatDateDisplay(value: string | null, options?: GridCellTypes["date"]["options"]): string {
   const text = toSafeText(value);
-  if (options?.locale && !options.displayFormat) warnLocaleWithoutFormat("date", options.locale);
-  if (!options?.displayFormat) return text;
+  // a locale alone implies the medium date style
+  const displayFormat = options?.displayFormat ?? (options?.locale ? IMPLIED_DATE_FORMAT : undefined);
+  if (!displayFormat) return text;
   const date = isoDatePartToLocalDate(text);
   if (!date) return text;
   // pinned default: server and browser Intl defaults can differ -> SSR hydration mismatch
-  const formatter = getDateFormatter(options.locale ?? "en-US", options.displayFormat);
+  const formatter = getDateFormatter(options?.locale ?? "en-US", displayFormat);
   return formatter ? formatter.format(date) : text;
 }
 
@@ -228,15 +232,17 @@ function DateEditor({
           )}
         </div>
         {calendarOpen && (
-          <Calendar
-            mode="single"
-            selected={isoDatePartToLocalDate(value)}
-            defaultMonth={isoDatePartToLocalDate(value)}
-            onSelect={(date) => {
-              if (!date) return;
-              commitValue(localDateToIsoDatePart(date), { dx: 0, dy: 0 });
-            }}
-          />
+          <Suspense fallback={<div aria-busy="true" className="h-72 w-64" />}>
+            <Calendar
+              mode="single"
+              selected={isoDatePartToLocalDate(value)}
+              defaultMonth={isoDatePartToLocalDate(value)}
+              onSelect={(date) => {
+                if (!date) return;
+                commitValue(localDateToIsoDatePart(date), { dx: 0, dy: 0 });
+              }}
+            />
+          </Suspense>
         )}
       </PopoverContent>
     </Popover>

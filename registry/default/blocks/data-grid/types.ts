@@ -235,7 +235,7 @@ export type DataChange<TData> = {
    * `"id-swap"` tags `replaceRowId`, which swaps a row's id for the server's.
    * `onSave` never receives a `"rollback"`, a `"stream"` or an `"id-swap"` change.
    */
-  source: "edit" | "paste" | "fill" | "delete" | "row-operation" | "import" | "history" | "rollback" | "merge" | "id-swap" | "stream" | "replace" | "app";
+  source: "edit" | "paste" | "fill" | "delete" | "cut" | "row-operation" | "import" | "history" | "rollback" | "merge" | "id-swap" | "stream" | "replace" | "app";
   /** Optional human-readable label for this entry (e.g. "Batch save rollback"); carried through the undo/redo stack as-is. */
   label?: string;
   /** On a `source: "rollback"` or `"merge"` change: the change this one reverts. */
@@ -329,12 +329,12 @@ export type GridEditEndEvent = ViewCellRef & { result: "commit" | "cancel" | "re
 export type GridBulkValidationError = { rowId: string; columnId: string; viewRowIndex: number; value: unknown; message: string };
 
 /**
- * Fired by `onValidationError` after a bulk paste, a fill, a Delete or Cut clear (`"delete"`), or an `updateCells` call (`"stream"`, or `"replace"` for a find-and-replace batch)
+ * Fired by `onValidationError` after a bulk paste, a fill, a Delete clear (`"delete"`), a Cut (`"cut"`), an `updateCells` call (`"stream"`, or `"replace"` for a find-and-replace batch), or an `editRows` save or a checkbox toggle (`"edit"`)
  * settles, ONLY when at least one cell was rejected — the accepted cells are already applied
  * (their `onDataChange`/`onSelectionChange` fire first). `rejected` lists every refused cell with
  * its validator's message.
  */
-export type GridValidationErrorEvent = { source: "paste" | "fill" | "stream" | "replace" | "delete" | "edit"; rejected: GridBulkValidationError[] };
+export type GridValidationErrorEvent = { source: "paste" | "fill" | "stream" | "replace" | "delete" | "cut" | "edit"; rejected: GridBulkValidationError[] };
 
 /** Fired on a double-click on any non-pinned, non-skeleton cell — a pure notification in the {@link OnCellClick} sense (no veto), fired regardless of readOnly. */
 export type OnCellDoubleClick<TData> = (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;
@@ -353,14 +353,9 @@ export type OnCellContextMenu<TData> = (ctx: CellClickCtx<TData, unknown>, event
 type CellClassNameFnHolder<TData, TValue> = { fn(ctx: CellClassNameCtx<TData, TValue>): string | undefined };
 
 /**
- * Editor contract, in order: the editor holds its own draft text; `onChange(value)` stashes the
- * CURRENT draft into the grid (this is the only way a value reaches the store); `commit()`
- * validates and applies whatever `onChange` last stashed, then closes the editor and moves the
- * active cell. Calling `commit()` without an `onChange` since the editor opened commits the OLD
- * value (the stash is seeded from it at editor-open, never from your local state); calling
- * `onChange` and never `commit` leaves the edit stranded. `cancel()` discards everything. The
- * built-in editors' `commitText(movement)` helper shows the canonical order: guard, `onChange`,
- * `commit`.
+ * Editor contract: the editor holds its own draft. `commitValue(value, movement?)` validates and applies a value, closes the
+ * editor, and moves the active cell. `onChange(value)` stashes a draft that a later `commit(movement?)` applies; a `commit()`
+ * with no `onChange` since the editor opened applies the opening value. `cancel()` discards everything.
  */
 export type CellEditorProps<TData, TValue, TOptions = unknown> = {
   /** The last-COMMITTED value, as it was when the editor opened (seed for your initial draft). NOT your in-progress draft — that lives in your editor's local state. */
@@ -382,6 +377,8 @@ export type CellEditorProps<TData, TValue, TOptions = unknown> = {
   onChange: (value: TValue) => void;
   /** Validate and apply the last stashed value, close the editor, and move the active cell by the given delta (Enter = {0,1}, blur/click-away = {0,0}). */
   commit: (movement?: { dx: number; dy: number }) => void;
+  /** `onChange(value)` and `commit(movement)` in one call. */
+  commitValue: (value: TValue, movement?: { dx: number; dy: number }) => void;
   /** Discard the edit without emitting a change. */
   cancel: () => void;
   /**
@@ -440,15 +437,15 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   /** The quick-search text for a stored value; the default is `toText`. select declares the choice label. */
   toSearchText?(value: TValue, options?: TOptions): string;
   /**
-   * Default validation for columns of this type when the column declares no `validate` of its
-   * own; same shape as {@link ColumnDef.validate}. Every validation path resolves
-   * `column.validate ?? cellType.validate` (single-cell commit, paste, fill, updateCells, import).
+   * Validation for every column of this type; same shape as {@link ColumnDef.validate}. Every validation path (commit, paste, fill,
+   * updateCells, import) runs the function form first, then the column's own `validate` (beside a column Standard Schema, it receives
+   * no row). A Standard Schema type `validate` applies only to a column without its own.
    */
   validate?: ((value: TValue, row: TData, options?: TOptions) => string | null) | StandardSchemaV1<TValue>;
   /**
    * The edit gestures ACTIVATE this cell in place instead of opening an editor: Enter/F2, a
    * stationary click, and double-click commit `activate(value, options)` through `commitCellValue`
-   * (no edit session, so `onBeforeEditStart`/`onEditEnd` never fire). checkbox declares
+   * (no edit session: `onBeforeEditStart` asks first, and `onEditEnd` reports `commit` or `rejected`). checkbox declares
    * `(value) => !value`. Absent, the gestures open the editor.
    */
   activate?: (value: TValue, options?: TOptions) => TValue;
@@ -982,7 +979,7 @@ export interface GridCellTypes {
       decimals?: number;
       /** Display-only locale format (currency, percent, compact); `toText`, copy, export, and the editor stay on the raw value. */
       format?: Intl.NumberFormatOptions;
-      /** Language of `format` (`format: {}` groups the digits by it); default `"en-US"` — an explicit default keeps SSR and client HTML identical. */
+      /** Language of `format`; alone it implies `format: {}` (digits grouped by it). Default `"en-US"` — an explicit default keeps SSR and client HTML identical. */
       locale?: string;
     };
   };
@@ -1001,7 +998,7 @@ export interface GridCellTypes {
   };
   date: {
     value: string | null;
-    /** `locale` sets the language of `displayFormat` and defaults to `"en-US"` — an explicit default keeps SSR and client HTML identical. */
+    /** `locale` sets the language of `displayFormat`; alone it implies `displayFormat: { dateStyle: "medium" }`. Default `"en-US"` — an explicit default keeps SSR and client HTML identical. */
     options: {
       min?: string;
       max?: string;

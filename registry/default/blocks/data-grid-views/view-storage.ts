@@ -35,13 +35,15 @@ function readStorage(): Storage | undefined {
 
 const memoryByKey = new Map<string, DataGridViewsDocument>();
 
+export const DEFAULT_VIEWS_KEY = "gridcn-views";
+
 /**
  * Stores views as one JSON entry in `localStorage`. A save in another tab reloads the views here through the `storage` event. When the browser blocks or fills the store,
  * `save` keeps the document in memory for this page and throws, so the hook reports the failure; `load`
  * returns the memory copy until a save succeeds. Malformed text counts as no document; text over the size limit throws.
  * `key` defaults to `"gridcn-views"`.
  */
-export function createLocalStorageViewsStorage(key = "gridcn-views"): DataGridViewsStorage {
+export function createLocalStorageViewsStorage(key = DEFAULT_VIEWS_KEY): DataGridViewsStorage {
   return {
     load: () => {
       const unsaved = memoryByKey.get(key);

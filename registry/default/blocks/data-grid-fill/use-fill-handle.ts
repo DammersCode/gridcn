@@ -15,6 +15,7 @@ import {
   resolveBulkWrites,
   resolveColumnValidate,
   safeFromText,
+  isRejectedText,
   isUnparseable,
   type ParsedCellText,
   snapshotBulkBatch,
@@ -183,7 +184,7 @@ export function buildFillCandidatesFromText(s: DataGridReadState, strip: GridRec
       if (text === undefined) continue;
       const parsed = safeFromText(cellType, text, column.options, resolveColumnValidate(column, cellType));
       if (plain && text !== plain.tiled[row]?.[col]) seriesRuns.add(runOf(row, col));
-      if (plain && text !== "" && !isUnparseable(parsed) && cellType.isEmpty(parsed.value)) rejectedRuns.add(runOf(row, col));
+      if (plain && text !== "" && (isRejectedText(parsed) || (!isUnparseable(parsed) && cellType.isEmpty(parsed.value)))) rejectedRuns.add(runOf(row, col));
       entries.push({ row, col, viewRow, column, cellType, dataRow, rowId, parsed });
     }
   }

@@ -69,10 +69,10 @@ type AppendBlock = "importNeedsOnImport" | "importReadOnly";
 const appendBlockOf = (state: { readOnly: boolean; totalRowCount?: number | null }): AppendBlock | null =>
   state.readOnly ? "importReadOnly" : state.totalRowCount !== undefined ? "importNeedsOnImport" : null;
 
-/** The label key that explains why import is unavailable: the default append needs a client grid that accepts writes, so a grid without `onImport` that is read-only or holds a server result gets one. */
+/** The label key that explains why import is unavailable: a read-only grid takes no import, and the default append needs a client grid, so a grid without `onImport` that holds a server result gets one. */
 export function useImportBlock(onImport: unknown): AppendBlock | null {
   const block = useDataGridSelector<unknown, AppendBlock | null>(appendBlockOf);
-  return onImport ? null : block;
+  return onImport && block !== "importReadOnly" ? null : block;
 }
 
 /** Props for {@link DataGridImportDialog}. */

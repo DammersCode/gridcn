@@ -11,18 +11,34 @@ import {
   TEXT_FILTER_OPERATORS,
 } from "./capabilities";
 import type { AnyColumnDef } from "../store/types";
+import { runValidatePending, runValidateSync } from "../validation/validate-cell";
 
 const noopColumn: AnyColumnDef = { id: "col", header: "Col" };
 
 describe("resolveColumnValidate", () => {
-  it("prefers the column's own validate over the type's", () => {
-    const columnValidate = (value: unknown) => (value ? "column" : null);
-    const typeValidate = (value: unknown) => (value ? "type" : null);
+  it("runs the type's validate first, then the column's own", () => {
+    const columnValidate = vi.fn((value: unknown) => (value === "bad" ? "column" : null));
+    const typeValidate = (value: unknown) => (String(value).length > 3 ? "type" : null);
     const column = { ...noopColumn, validate: columnValidate } as AnyColumnDef;
     const cellType = { ...cellTypes.text, validate: typeValidate };
 
     const resolved = resolveColumnValidate(column, cellType);
-    expect(resolved).toBe(columnValidate);
+    const run = (value: unknown) => runValidateSync(resolved, value, { id: "1" });
+    expect(run("toolong")).toEqual({ error: "type" });
+    expect(columnValidate).not.toHaveBeenCalled();
+    expect(run("bad")).toEqual({ error: "column" });
+    expect(columnValidate).toHaveBeenLastCalledWith("bad", { id: "1" });
+    expect(run("ok")).toEqual({ value: "ok" });
+    expect(resolveColumnValidate(column, cellType)).toBe(resolved);
+  });
+
+  it("keeps the longText maxLength bound beside a column Standard Schema", async () => {
+    const schema = { "~standard": { version: 1 as const, vendor: "test", validate: async (value: unknown) => (value === "" ? { issues: [{ message: "Required" }] } : { value: String(value).trim() }) } };
+    const column = { ...noopColumn, type: "longText", options: { maxLength: 3 }, validate: schema } as AnyColumnDef;
+
+    const resolved = resolveColumnValidate(column, cellTypes.longText);
+    expect(runValidateSync(resolved, "abcd", {})).toEqual({ error: "Too long: max 3 characters" });
+    expect(await runValidatePending(resolved, " a ", {})).toEqual({ value: "a" });
   });
 
   it("falls back to the type's validate when the column declares none", () => {

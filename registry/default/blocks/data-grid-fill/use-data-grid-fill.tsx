@@ -39,11 +39,11 @@ export function useDataGridFill(options: UseDataGridFillOptions = {}): UseDataGr
       Mount: createFillMount(fillStore),
       commands: {
         fillDown: {
-          when: (ctx) => !ctx.readOnly,
+          when: (ctx) => !ctx.readOnly && fillStore.getState().options.disabled !== true,
           run: () => fillStore.getState().fillDown?.(),
         },
         fillRight: {
-          when: (ctx) => !ctx.readOnly,
+          when: (ctx) => !ctx.readOnly && fillStore.getState().options.disabled !== true,
           run: () => fillStore.getState().fillRight?.(),
         },
       },

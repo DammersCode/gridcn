@@ -13,6 +13,7 @@ import {
   dateCellType,
 } from "./cell-types";
 import type { ColumnDef, GridCellTypes } from "../types";
+import { UnparseableTextError } from "./safe-from-text";
 
 afterEach(cleanup);
 
@@ -203,10 +204,11 @@ describe("selectCellType value pipeline", () => {
     expect(selectCellType.fromText("BETA", selectOptions)).toBe("b");
   });
 
-  it("fromText returns null for unknown text, never throws", () => {
-    expect(selectCellType.fromText("nope", selectOptions)).toBeNull();
+  it("fromText rejects unknown text so a paste keeps the old value, and reads blank text as empty", () => {
+    expect(() => selectCellType.fromText("nope", selectOptions)).toThrow(UnparseableTextError);
+    expect(() => selectCellType.fromText("anything")).toThrow(UnparseableTextError);
     expect(selectCellType.fromText("", selectOptions)).toBeNull();
-    expect(selectCellType.fromText("anything")).toBeNull();
+    expect(selectCellType.fromText("  ", selectOptions)).toBeNull();
   });
 
   it("toText renders the option's label", () => {
@@ -246,7 +248,7 @@ describe("selectCellType plain-string choices", () => {
   it("a string is a choice whose value and label are equal", () => {
     expect(selectCellType.toText("Open", plain)).toBe("Open");
     expect(selectCellType.fromText("open", plain)).toBe("Open");
-    expect(selectCellType.fromText("nope", plain)).toBeNull();
+    expect(() => selectCellType.fromText("nope", plain)).toThrow(UnparseableTextError);
   });
 
   it("strings and objects mix in one array", () => {
@@ -388,12 +390,12 @@ describe("dateCellType value pipeline", () => {
 
 /** Builds a fresh onChange/commit/cancel spy set for editor lifecycle tests. */
 function editorSpies() {
-  return { onChange: vi.fn(), commit: vi.fn(), cancel: vi.fn() };
+  return { onChange: vi.fn(), commit: vi.fn(), commitValue: vi.fn(), cancel: vi.fn() };
 }
 
 describe("textCellType.Editor lifecycle", () => {
   it("seeds from toText(value) when no initialText, with caret at the end — never select-all", async () => {
-    const { onChange, commit, cancel } = editorSpies();
+    const { onChange, commit, commitValue, cancel } = editorSpies();
     render(
       <textCellType.Editor
         value="hello"
@@ -403,6 +405,7 @@ describe("textCellType.Editor lifecycle", () => {
         column={noopColumnOf<string>()}
         onChange={onChange}
         commit={commit}
+        commitValue={commitValue}
         cancel={cancel}
       />,
     );
@@ -413,7 +416,7 @@ describe("textCellType.Editor lifecycle", () => {
   });
 
   it("seeds from initialText (type-to-replace) with cursor at the end", () => {
-    const { onChange, commit, cancel } = editorSpies();
+    const { onChange, commit, commitValue, cancel } = editorSpies();
     render(
       <textCellType.Editor
         value="hello"
@@ -424,6 +427,7 @@ describe("textCellType.Editor lifecycle", () => {
         column={noopColumnOf<string>()}
         onChange={onChange}
         commit={commit}
+        commitValue={commitValue}
         cancel={cancel}
       />,
     );
@@ -433,7 +437,7 @@ describe("textCellType.Editor lifecycle", () => {
 
   it("Enter parses, calls onChange, then commits with a down movement", async () => {
     const user = userEvent.setup();
-    const { onChange, commit, cancel } = editorSpies();
+    const { onChange, commit, commitValue, cancel } = editorSpies();
     render(
       <textCellType.Editor
         value="hello"
@@ -444,6 +448,7 @@ describe("textCellType.Editor lifecycle", () => {
         column={noopColumnOf<string>()}
         onChange={onChange}
         commit={commit}
+        commitValue={commitValue}
         cancel={cancel}
       />,
     );
@@ -457,7 +462,7 @@ describe("textCellType.Editor lifecycle", () => {
 
   it("Escape cancels without calling onChange", async () => {
     const user = userEvent.setup();
-    const { onChange, commit, cancel } = editorSpies();
+    const { onChange, commit, commitValue, cancel } = editorSpies();
     render(
       <textCellType.Editor
         value="hello"
@@ -468,6 +473,7 @@ describe("textCellType.Editor lifecycle", () => {
         column={noopColumnOf<string>()}
         onChange={onChange}
         commit={commit}
+        commitValue={commitValue}
         cancel={cancel}
       />,
     );
@@ -480,7 +486,7 @@ describe("textCellType.Editor lifecycle", () => {
   });
 
   it("blur commits the current parse with no movement", () => {
-    const { onChange, commit, cancel } = editorSpies();
+    const { onChange, commit, commitValue, cancel } = editorSpies();
     render(
       <textCellType.Editor
         value="hello"
@@ -491,6 +497,7 @@ describe("textCellType.Editor lifecycle", () => {
         column={noopColumnOf<string>()}
         onChange={onChange}
         commit={commit}
+        commitValue={commitValue}
         cancel={cancel}
       />,
     );
@@ -503,7 +510,7 @@ describe("textCellType.Editor lifecycle", () => {
 
   it("blur after an Enter commit does not commit a second time", async () => {
     const user = userEvent.setup();
-    const { onChange, commit, cancel } = editorSpies();
+    const { onChange, commit, commitValue, cancel } = editorSpies();
     render(
       <textCellType.Editor
         value="hello"
@@ -514,6 +521,7 @@ describe("textCellType.Editor lifecycle", () => {
         column={noopColumnOf<string>()}
         onChange={onChange}
         commit={commit}
+        commitValue={commitValue}
         cancel={cancel}
       />,
     );
@@ -528,7 +536,7 @@ describe("textCellType.Editor lifecycle", () => {
 
 describe("numberCellType.Editor lifecycle", () => {
   it("seeds the draft from toText(value, options), matching what the cell displays", () => {
-    const { onChange, commit, cancel } = editorSpies();
+    const { onChange, commit, commitValue, cancel } = editorSpies();
     const column = { ...noopColumnOf<number | null>(), options: { decimals: 2 } };
     render(
       <numberCellType.Editor
@@ -540,6 +548,7 @@ describe("numberCellType.Editor lifecycle", () => {
         options={{ decimals: 2 }}
         onChange={onChange}
         commit={commit}
+        commitValue={commitValue}
         cancel={cancel}
       />,
     );
@@ -549,7 +558,7 @@ describe("numberCellType.Editor lifecycle", () => {
 
   it("Enter parses comma decimals, clamps via options, and commits down", async () => {
     const user = userEvent.setup();
-    const { onChange, commit, cancel } = editorSpies();
+    const { onChange, commit, commitValue, cancel } = editorSpies();
     const column = { ...noopColumnOf<number | null>(), options: { min: 0, max: 10 } };
     render(
       <numberCellType.Editor
@@ -562,6 +571,7 @@ describe("numberCellType.Editor lifecycle", () => {
         options={{ min: 0, max: 10 }}
         onChange={onChange}
         commit={commit}
+        commitValue={commitValue}
         cancel={cancel}
       />,
     );
@@ -574,7 +584,7 @@ describe("numberCellType.Editor lifecycle", () => {
 
   it("Escape cancels without calling onChange", async () => {
     const user = userEvent.setup();
-    const { onChange, commit, cancel } = editorSpies();
+    const { onChange, commit, commitValue, cancel } = editorSpies();
     render(
       <numberCellType.Editor
         value={null}
@@ -585,6 +595,7 @@ describe("numberCellType.Editor lifecycle", () => {
         column={noopColumnOf<number | null>()}
         onChange={onChange}
         commit={commit}
+        commitValue={commitValue}
         cancel={cancel}
       />,
     );
@@ -597,7 +608,7 @@ describe("numberCellType.Editor lifecycle", () => {
 
   it("garbage input keeps the editor open and commits nothing", async () => {
     const user = userEvent.setup();
-    const { onChange, commit, cancel } = editorSpies();
+    const { onChange, commit, commitValue, cancel } = editorSpies();
     render(
       <numberCellType.Editor
         value={null}
@@ -608,6 +619,7 @@ describe("numberCellType.Editor lifecycle", () => {
         column={noopColumnOf<number | null>()}
         onChange={onChange}
         commit={commit}
+        commitValue={commitValue}
         cancel={cancel}
       />,
     );
@@ -620,7 +632,7 @@ describe("numberCellType.Editor lifecycle", () => {
 
   it("blur after an Enter commit does not commit a second time", async () => {
     const user = userEvent.setup();
-    const { onChange, commit, cancel } = editorSpies();
+    const { onChange, commit, commitValue, cancel } = editorSpies();
     render(
       <numberCellType.Editor
         value={null}
@@ -631,6 +643,7 @@ describe("numberCellType.Editor lifecycle", () => {
         column={noopColumnOf<number | null>()}
         onChange={onChange}
         commit={commit}
+        commitValue={commitValue}
         cancel={cancel}
       />,
     );
@@ -658,7 +671,7 @@ function DateEditorProvider({ children }: { children: ReactNode }) {
 
 describe("dateCellType.Editor lifecycle", () => {
   it("opens a popover with a typed-input and a calendar", async () => {
-    const { onChange, commit, cancel } = editorSpies();
+    const { onChange, commit, commitValue, cancel } = editorSpies();
     render(
       <DateEditorProvider>
         <dateCellType.Editor
@@ -669,6 +682,7 @@ describe("dateCellType.Editor lifecycle", () => {
           column={noopColumnOf<string | null>()}
           onChange={onChange}
           commit={commit}
+        commitValue={commitValue}
           cancel={cancel}
         />
       </DateEditorProvider>,
@@ -679,7 +693,7 @@ describe("dateCellType.Editor lifecycle", () => {
 
   it("Enter in the typed-input normalizes to ISO date and commits with no movement (commit-and-stay)", async () => {
     const user = userEvent.setup();
-    const { onChange, commit, cancel } = editorSpies();
+    const { onChange, commit, commitValue, cancel } = editorSpies();
     render(
       <DateEditorProvider>
         <dateCellType.Editor
@@ -690,6 +704,7 @@ describe("dateCellType.Editor lifecycle", () => {
           column={noopColumnOf<string | null>()}
           onChange={onChange}
           commit={commit}
+        commitValue={commitValue}
           cancel={cancel}
         />
       </DateEditorProvider>,
@@ -704,7 +719,7 @@ describe("dateCellType.Editor lifecycle", () => {
 
   it("Escape cancels without calling onChange", async () => {
     const user = userEvent.setup();
-    const { onChange, commit, cancel } = editorSpies();
+    const { onChange, commit, commitValue, cancel } = editorSpies();
     render(
       <DateEditorProvider>
         <dateCellType.Editor
@@ -715,6 +730,7 @@ describe("dateCellType.Editor lifecycle", () => {
           column={noopColumnOf<string | null>()}
           onChange={onChange}
           commit={commit}
+        commitValue={commitValue}
           cancel={cancel}
         />
       </DateEditorProvider>,
@@ -729,7 +745,7 @@ describe("dateCellType.Editor lifecycle", () => {
 
   it("picking a day in the calendar commits the ISO date with no movement (commit-and-stay)", async () => {
     const user = userEvent.setup();
-    const { onChange, commit, cancel } = editorSpies();
+    const { onChange, commit, commitValue, cancel } = editorSpies();
     render(
       <DateEditorProvider>
         <dateCellType.Editor
@@ -740,6 +756,7 @@ describe("dateCellType.Editor lifecycle", () => {
           column={noopColumnOf<string | null>()}
           onChange={onChange}
           commit={commit}
+        commitValue={commitValue}
           cancel={cancel}
         />
       </DateEditorProvider>,
@@ -756,7 +773,7 @@ describe("checkboxCellType.Editor lifecycle", () => {
   // checkbox has no edit mode: startEditing skips `activate` types, so this editor mounts only
   // for a session opened directly through the store, and cancels it without writing anything.
   it("renders nothing and cancels immediately without calling onChange/commit", () => {
-    const { onChange, commit, cancel } = editorSpies();
+    const { onChange, commit, commitValue, cancel } = editorSpies();
     const { container } = render(
       <checkboxCellType.Editor
         value={false}
@@ -766,6 +783,7 @@ describe("checkboxCellType.Editor lifecycle", () => {
         column={noopColumnOf<boolean>()}
         onChange={onChange}
         commit={commit}
+        commitValue={commitValue}
         cancel={cancel}
       />,
     );
@@ -776,7 +794,7 @@ describe("checkboxCellType.Editor lifecycle", () => {
   });
 
   it("under StrictMode's mount->cleanup->mount double-invoke, cancel still fires exactly once", () => {
-    const { onChange, commit, cancel } = editorSpies();
+    const { onChange, commit, commitValue, cancel } = editorSpies();
     render(
       <StrictMode>
         <checkboxCellType.Editor
@@ -787,6 +805,7 @@ describe("checkboxCellType.Editor lifecycle", () => {
           column={noopColumnOf<boolean>()}
           onChange={onChange}
           commit={commit}
+        commitValue={commitValue}
           cancel={cancel}
         />
       </StrictMode>,
@@ -855,7 +874,7 @@ describe("dateCellType display formatting", () => {
 describe("selectCellType.Editor lifecycle", () => {
   it("opens on mount and picking an option commits with no movement", async () => {
     const user = userEvent.setup();
-    const { onChange, commit, cancel } = editorSpies();
+    const { onChange, commit, commitValue, cancel } = editorSpies();
     render(
       <selectCellType.Editor
         value={null}
@@ -866,6 +885,7 @@ describe("selectCellType.Editor lifecycle", () => {
         options={selectColumn().options as GridCellTypes["select"]["options"]}
         onChange={onChange}
         commit={commit}
+        commitValue={commitValue}
         cancel={cancel}
       />,
     );
@@ -878,7 +898,7 @@ describe("selectCellType.Editor lifecycle", () => {
 
   it("Escape closes and cancels without calling onChange", async () => {
     const user = userEvent.setup();
-    const { onChange, commit, cancel } = editorSpies();
+    const { onChange, commit, commitValue, cancel } = editorSpies();
     render(
       <selectCellType.Editor
         value={null}
@@ -889,6 +909,7 @@ describe("selectCellType.Editor lifecycle", () => {
         options={selectColumn().options as GridCellTypes["select"]["options"]}
         onChange={onChange}
         commit={commit}
+        commitValue={commitValue}
         cancel={cancel}
       />,
     );

@@ -274,6 +274,23 @@ describe("useDataGridClipboard.cut on a readOnly grid", () => {
   });
 });
 
+describe("useDataGridClipboard.cut while a cell editor is open", () => {
+  it("resolves 'refused', writes nothing to the clipboard, and clears no cell", async () => {
+    const write = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { clipboard: { write } });
+    vi.stubGlobal("ClipboardItem", class {} as unknown as typeof ClipboardItem);
+    const onDataChange = vi.fn();
+    const result = setUpGrid(makeWrapper({ onDataChange }));
+    act(() => result.current.actions.startEditingAt({ col: 0, row: 0 }));
+
+    const outcome = await act(async () => result.current.clipboard.cut());
+
+    expect(outcome).toBe("refused");
+    expect(write).not.toHaveBeenCalled();
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+});
+
 describe("sanitizeClipboardFormulas grid prop", () => {
   /** Captures the text/plain and text/html blobs of the one ClipboardItem the copy writes. */
   function captureClipboardItem() {
@@ -302,9 +319,19 @@ describe("sanitizeClipboardFormulas grid prop", () => {
     expect(html).toContain(`>'=HYPERLINK("x")</td>`);
   });
 
-  it("keeps the menu copy raw by default", async () => {
+  it("neutralizes the menu copy by default", async () => {
     const read = captureClipboardItem();
     const wrapper = makeWrapper({ data: [{ id: "1", name: "=1+1" }] });
+    const result = setUpGrid(wrapper);
+
+    await act(async () => result.current.clipboard.copy());
+
+    expect((await read()).text).toBe("'=1+1");
+  });
+
+  it("keeps the menu copy raw when the grid prop is false", async () => {
+    const read = captureClipboardItem();
+    const wrapper = makeWrapper({ data: [{ id: "1", name: "=1+1" }], sanitizeClipboardFormulas: false });
     const result = setUpGrid(wrapper);
 
     await act(async () => result.current.clipboard.copy());
@@ -352,7 +379,7 @@ describe("useDataGridClipboard.copy/cut outcomes", () => {
     const outcome = await act(async () => result.current.clipboard.cut());
     expect(outcome).toBe("ok");
     expect(onDataChange).toHaveBeenCalledTimes(1);
-    expect((onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>])[1].source).toBe("delete");
+    expect((onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>])[1].source).toBe("cut");
   });
 
   it("resolves 'no-selection' for copy and cut when nothing is selected", async () => {
@@ -414,7 +441,7 @@ describe("useDataGridClipboard.copy/cut outcomes", () => {
     const outcome = await act(async () => result.current.clipboard.cut());
     expect(outcome).toBe("fallback");
     expect(onDataChange).toHaveBeenCalledTimes(1);
-    expect((onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>])[1].source).toBe("delete");
+    expect((onDataChange.mock.calls[0] as [readonly Row[], DataChange<Row>])[1].source).toBe("cut");
   });
 
   it("cut still clears a whole-column range when a sort during the write keeps its records", async () => {

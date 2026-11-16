@@ -12,7 +12,7 @@ import {
   type RefObject,
 } from "react";
 import { type ViewCoord, type GridAction } from "../types";
-import type { SelectionPointer } from "../store/types";
+import type { DataGridStoreState, SelectionPointer } from "../store/types";
 import { isMacPlatform, isPrintableKey, matchKeymap, type KeymapEvent } from "../keyboard";
 import type { Keymap } from "../types";
 import { safeSetPointerCapture } from "./safe-set-pointer-capture";
@@ -39,6 +39,13 @@ const MODIFIER_KEYS: ReadonlySet<string> = new Set(["Shift", "Control", "Alt", "
 
 const isActivationKey = (event: ReactKeyboardEvent<HTMLElement>) =>
   (event.key === "Enter" || event.key === " ") && !event.ctrlKey && !event.metaKey && !event.altKey;
+
+/** A Tab bound to a move at the first or last column leaves the grid, so a remapped Tab never traps the keyboard. */
+function leavesGridOnTab(action: GridAction, key: string, state: DataGridStoreState): boolean {
+  if (key !== "Tab" || !state.activeCell) return false;
+  const col = state.activeCell.col;
+  return (action === "moveRight" || action === "moveRightKeepSelection") ? col >= state.visibleColumns.length - 1 : (action === "moveLeft" || action === "moveLeftKeepSelection") && col <= 0;
+}
 
 const KEEP_RANGE_SURFACES = (["cellEditor", "headerFilterPopup", "headerMenuPopup", "findReplacePanel", "contextMenu"] as const).map((name) => gridAttrSelector(name)).join(", ");
 /** Options for {@link useGridInteraction}. */
@@ -400,6 +407,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       };
 
       const dispatch = (action: GridAction) =>
+        leavesGridOnTab(action, event.key, storeApi.getState()) ||
         dispatchGridAction({
           action,
           actions,

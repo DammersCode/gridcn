@@ -10,6 +10,21 @@ export type CellValidate = ((value: unknown, row: unknown) => string | null) | S
  */
 export type ValidateResult = { error: string; thrown?: true } | { value: unknown };
 
+/** `first`, then `then` when `first` passes. Beside a Standard Schema, `first` runs inside the schema and receives no row. */
+export function composeValidate(first: (value: unknown, row: unknown) => string | null, then: NonNullable<CellValidate>): CellValidate {
+  if (!isStandardSchema(then)) return (value, row) => first(value, row) ?? then(value, row);
+  const standard = then["~standard"];
+  return {
+    "~standard": {
+      ...standard,
+      validate: (value: unknown) => {
+        const error = first(value, undefined);
+        return error ? { issues: [{ message: error }] } : standard.validate(value);
+      },
+    },
+  };
+}
+
 /** Structural detection per the spec — never `instanceof`, so any library's schema object qualifies. */
 export function isStandardSchema(validate: unknown): validate is StandardSchemaV1 {
   return typeof validate === "object" && validate !== null && "~standard" in validate;

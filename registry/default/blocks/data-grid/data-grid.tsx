@@ -118,7 +118,7 @@ export {
   type GlobalShortcutsConfig,
   type DataGridGlobalShortcutActions,
 } from "./keyboard/global-shortcuts";
-export { isMacPlatform, formatShortcut } from "./keyboard";
+export { isMacPlatform, formatShortcut, useShortcutLabel } from "./keyboard";
 export { serverSpecKey, type RowRange, type ServerSpec } from "./server-spec";
 export { isPlaceholderRowId } from "./store/compute";
 
