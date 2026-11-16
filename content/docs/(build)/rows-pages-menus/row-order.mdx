@@ -59,7 +59,7 @@ A press on the handle of a checked row drags every checked row. They land togeth
 
 <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageUp</kbd> (`moveRowsUp`) and <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> (`moveRowsDown`) move rows one place. They act on the checked rows. With no checked row, they act on the rows of the selected range, then on the active row. The gaps between rows stay.
 
-A row at the edge blocks the whole move. The keys need a reorder marker mode, and do nothing in a `readOnly` grid or while a cell editor is open. With `'until-cleared'` or `'across-filters'`, they move the checked rows only. With `'across-filters'`, they do nothing when every checked row is hidden or while "all matching" is on. With `'until-click'`, they move the range or the active row. Each press is one change and one undo step. Remap the keys through the `keymap` prop.
+A row at the edge blocks the whole move. The keys need a reorder marker mode, and do nothing in a `readOnly` grid or while a cell editor is open. With `'across-filters'`, they do nothing when every checked row is hidden or while "all matching" is on. Each press is one change. With the [history add-on](/docs/clipboard-undo/undo-redo), it is one undo step. Remap the keys through the `keymap` prop.
 
 ## Move rows from code
 
@@ -88,14 +88,16 @@ function MoveTools() {
 
 Under client pagination, `reorderRows` and `moveRowsBy` take page rows, and a move stays inside the shown page. A row, a `to`, or a shift that leaves the page counts as outside the grid, so the call returns `false`. `from` and `to` in `change.ops` are indices of the whole data array.
 
-These calls return `false`, change nothing, and report through [`onRowActionSkipped`](/docs/rows-live-data/handle-row-action-results) with `action: "moveRows"`. The reasons are `"readOnly"`, `"view-ordered"`, `"unloaded-rows"`, and `"nothing-to-do"`. For an active sort or filter and for unloaded rows, the grid also warns in development:
+These calls return `false`, change nothing, and report through [`onRowActionSkipped`](/docs/rows-live-data/handle-row-action-results) with `action: "moveRows"`. The reason tells why:
 
-- The grid is `readOnly`.
-- A client sort or filter is active, because the sort or filter owns the view order.
-- The grid holds unloaded rows in scroll mode.
-- The drop leaves the rows where they are.
-- The list is empty, or an index or `to` is outside the grid.
-- For `moveRowsBy`, a row leaves the grid.
+| Reason | When |
+| --- | --- |
+| `"readOnly"` | The grid is `readOnly`. |
+| `"view-ordered"` | A client sort or filter is active, because the sort or filter owns the view order. |
+| `"unloaded-rows"` | The grid holds unloaded rows in scroll mode. |
+| `"nothing-to-do"` | The drop leaves the rows where they are. The list is empty. An index or `to` is outside the grid. `moveRowsBy` shifts a row out of the grid. |
+
+In development, the grid also warns for `"view-ordered"` and `"unloaded-rows"`.
 
 After a move, the checked rows and the active cell follow their rows. An open editor follows its row too. If the rows of a selected range end up next to each other, the range stays. Otherwise it collapses onto the active cell. The grid announces each move in its live region through `labels.markers.reorderAnnouncement` for one row and `labels.markers.reorderRowsAnnouncement` for several rows. Under client pagination, the announced positions count the rows of the shown page, like the row numbers.
 

@@ -70,9 +70,11 @@ The built-in checkboxes take their aria-labels from `labels.markers.selectRow` a
 | `renderMarkerHeader` | `MarkerHeaderRenderer` | built-in select-all checkbox |
 | `markerWidth` | `number` | width of the mode |
 
-`renderMarker` receives `rowId`, the 0-based `viewRowIndex`, and two flags. If the row channel holds the row, `isRowChannelSelected` is true. If the selection covers at least one cell of the row, `isCellSelected` is true. A cell click sets the second flag and never sets the first. With `checkedRowsLifetime="until-click"` (the default without `totalRowCount`), it clears the row selection. `renderMarkerHeader` receives `allSelected`, which is `"checked"`, `"indeterminate"`, or `"unchecked"`. In modes without a checkbox, the header is blank, so the renderer fills the blank cell.
+`renderMarker` receives `rowId`, the 0-based `viewRowIndex`, and two flags. If the row channel holds the row, `isRowChannelSelected` is true. If the selection covers at least one cell of the row, `isCellSelected` is true. A cell click sets the second flag and never sets the first. With `'until-click'` (the default without `totalRowCount`), a cell click also clears the checked rows.
 
-The mode sets the width in px. `markerWidth` overrides it, for a wide row number or wide custom content. With `"none"`, the grid renders no marker column and calls neither function. In the other modes, a press or drag on a custom marker cell still selects rows. In `"reorder-number"`, `"reorder-checkbox"`, and `"reorder-both"`, `renderMarker` replaces the drag handle too, so users cannot drag the rows. In `"reorder"`, the whole cell stays the drag handle zone. Define both functions at module scope, because a new function on every render re-renders every marker cell:
+In a mode of the `reorder` family, `renderMarker` also receives `reorderHandleProps`. Spread it onto an element of the marker to make that element the drag handle. `renderMarkerHeader` receives `allSelected`, which is `"checked"`, `"indeterminate"`, or `"unchecked"`. In modes without a checkbox, the header is blank, so the renderer fills the blank cell.
+
+The mode sets the width in px. `markerWidth` overrides it, for a wide row number or wide custom content. With `"none"`, the grid renders no marker column and calls neither function. In the other modes, a press or drag on a custom marker cell still selects rows. In `"reorder-number"`, `"reorder-checkbox"`, and `"reorder-both"`, `renderMarker` replaces the drag handle too, so a marker without `reorderHandleProps` has no handle. In `"reorder"`, the whole cell stays the drag handle zone. Define both functions at module scope, because a new function on every render re-renders every marker cell:
 
 ```tsx
 import { Check, Circle } from "lucide-react";
