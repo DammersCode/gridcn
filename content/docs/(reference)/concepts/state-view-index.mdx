@@ -13,7 +13,7 @@ A row has three addresses, and the grid APIs mix them. A call that takes the wro
 | Address | Meaning | Where you meet it |
 | --- | --- | --- |
 | Data index | The position in your `data` array. | The second argument of `getRowId`. |
-| View index | The position in the sorted and filtered list that the user sees. On a paged grid, the position on the shown page. | `ViewCoord`, `insertRow`, `insertRows`, and the `At` actions `deleteRowsAt`, `duplicateRowsAt`, and `setRowCheckedAt`. `viewIndexes([…])` marks numbers as view indexes. |
+| View index | The position in the sorted and filtered list that the user sees. On a paged grid, the position on the shown page. | `ViewCoord`, `insertRow`, `insertRows`, and the `At` actions `deleteRowsAt`, `duplicateRowsAt`, and `setRowCheckedAt`. The `At` actions take view row numbers. `viewIndex(n)` and `viewIndexes([…])` brand them. |
 | Row id | The stable id that `getRowId` returns. | `CellRef`, `deleteRows`, `duplicateRows`, `setRowChecked`, and the operations of a `DataChange`. |
 
 [Data grid props](/docs/components-props/data-grid-props#rows-and-ids) covers the default of `getRowId`.

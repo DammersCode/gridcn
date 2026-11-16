@@ -77,7 +77,7 @@ The callback receives the whole filter tree as `FilterNode[]`. A node is a filte
 A `FilterSpec` holds `columnId`, `operator`, and `value`. The `value` is a string for most operators. Numbers and dates are text, such as `"30"` and `"2025-01-31"`. These operators differ:
 
 - `isBetween` takes an inclusive `[min, max]` pair. An empty string leaves that bound open.
-- `isAnyOf` and `isNoneOf` take a `string[]`. An empty `isNoneOf` list matches every row.
+- `isAnyOf` and `isNoneOf` take a `string[]`. An empty `isAnyOf` list matches no row. An empty `isNoneOf` list matches every row.
 - `empty` and `notEmpty` take no value.
 
 The callback fires for the filter menu, header filters, and `setFilters`, with or without a `filterState` prop. `setFilters` with the current tree does nothing. With `filterMode="server"`, the grid tracks the filters and never filters `data`. Fetch the matching rows, for example with `useDataGridServerRows`.
@@ -90,7 +90,7 @@ The callback receives the new text. If the text equals the current text, it does
 
 The callback runs after the grid writes the text. If it throws, the text stays, and the grid rethrows the error. See [Callback timing and errors](/docs/events-state/event-shapes#callback-errors).
 
-The toolbar search waits `inputDebounceMs` after the last keystroke before it commits. The default is `200`. `0` commits each keystroke. The setting also delays the filter value inputs, the set filter search, find and replace, and the lookup editor. The `debounceMs` prop of `DataGridSearch` wins for that search box.
+The toolbar search waits for typing to pause before it commits. [Quick search](/docs/sort-filter-search/quick-search#typing-delay) describes the wait and the `inputDebounceMs` prop.
 
 ## Related
 

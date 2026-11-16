@@ -43,9 +43,9 @@ function Grid({ rows }: { rows: Row[] }) {
 }
 ```
 
-The second argument is a `GateContext`. Its `signal` aborts when the cursor moves, the edit is cancelled, the grid becomes `readOnly`, or the grid unmounts.
+The second argument is a `GateContext`. Its `signal` aborts when the active cell moves to another cell, the edit is cancelled, the grid becomes `readOnly`, or the grid unmounts.
 
-The callback also fires for the `startEditing` action. It does not fire on a `readOnly` grid. It does not fire for a cell that its column makes read-only for that row. It does not fire for a cell whose type declares `activate`, such as a checkbox, because that cell toggles in place.
+The callback also fires for the `startEditing` action. It does not fire on a `readOnly` grid. It does not fire for a cell that its column makes read-only for that row. For a cell whose type declares `activate`, such as a checkbox, it fires before the toggle. `false` or a pending promise holds the toggle.
 
 Return a promise to decide later. The editor opens after the promise settles. Three cases open no editor: the promise resolves to `false`, the user moved to another cell, or the grid became `readOnly`. A pending promise blocks a second edit start. A rejection cancels the edit start.
 
@@ -73,7 +73,7 @@ A sort that only moves the edited row fires nothing.
 
 If the edited cell leaves the view, the grid also clears the active cell. Other rows can stay in the view.
 
-A commit that moves the active cell fires `onActiveCellChange` and `onSelectionChange`, then `onDataChange`, then `onEditEnd`. With an async Standard Schema, the editor stays open and `pending` is true until the schema settles.
+A commit that moves the active cell fires `onActiveCellChange` and `onSelectionChange`, then `onDataChange`, then `onEditEnd`. With an async Standard Schema, the editor stays open, and its `pending` prop is `true` until the schema settles ([Editor](/docs/contracts/cell-type-contract#editor)).
 
 The callback runs after the grid writes the change. If it throws, the commit or the cancel stays, and the grid rethrows the error after the other callbacks ran. When a view change ends the edit, a throw goes to the console as `[data-grid] onEditEnd threw:` instead. See [Callback timing and errors](/docs/events-state/event-shapes#callback-errors).
 
@@ -81,7 +81,7 @@ The callback runs after the grid writes the change. If it throws, the commit or 
 
 The callback fires after a paste, a fill, a delete, a cut, an `updateCells` call, or a toggle of an `activate` cell settles. If validation refused no cell, it does not fire. The grid applies the accepted cells first, so their `onDataChange` fires before this event.
 
-The payload is `{ source, rejected }`. `source` is `"paste"`, `"fill"`, `"stream"`, `"replace"`, `"delete"`, or `"edit"`. `updateCells` and `updateRows` report `"stream"`. A find and replace batch reports `"replace"`. The Delete key and Cut report `"delete"`. A validator that refuses the toggle of an `activate` cell, such as a checkbox, reports `"edit"`. Each entry of `rejected` has these fields:
+The payload is `{ source, rejected }`. `source` is `"paste"`, `"fill"`, `"stream"`, `"replace"`, `"delete"`, `"cut"`, or `"edit"`. `updateCells` and `updateRows` report `"stream"`. A find and replace batch reports `"replace"`. The Delete key reports `"delete"`, and Cut reports `"cut"`. A validator that refuses the toggle of an `activate` cell, such as a checkbox, reports `"edit"`. Each entry of `rejected` has these fields:
 
 {/* props: GridBulkValidationError */}
 | Field | Meaning |

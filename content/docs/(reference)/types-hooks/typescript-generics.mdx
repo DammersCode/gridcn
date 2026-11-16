@@ -12,7 +12,7 @@ The row type, `TData`, flows from your rows through the columns, the grid, and t
 | --- | --- | --- |
 | Type the columns | `defineColumns<TData>()(columns)` | [Inferred types](#inferred) |
 | Type a server source | `useDataGridServerRows<TData, TCursor>` | [Inferred types](#inferred) |
-| Read rows inside the grid | `useDataGridRow<TData>`, `useDataGridApi<TData>` | [Store hooks](#store-hooks) |
+| Read rows inside the grid | `useDataGridRow<TData>`, `useDataGridApi<TData>`, `createDataGridHooks<TData>()` | [Store hooks](#store-hooks) |
 | Add a cell type or a keymap action | `GridCellTypes`, `GridActions` | [Augmentation](#augmentation) |
 
 ## Inferred types [#inferred]
@@ -36,7 +36,9 @@ A hook that reads the store cannot see the row type of its provider. Pass the ty
 | `useDataGridVisibleColumns<TData>()`, `useDataGridAllColumns<TData>()` | `readonly ColumnDefOf<TData>[]` |
 | `createDataGridSelector<TData>()` | A hook whose selector reads `data` as `readonly TData[]` |
 
-Without the argument, the hooks return `unknown` rows. TypeScript does not compare the argument with the rows of the provider, so pass the same type that the grid has. [Store hooks](/docs/types-hooks/store-hooks) lists every hook.
+Without the argument, the hooks return `unknown` rows. TypeScript does not compare the argument with the rows of the provider, so pass the same type that the grid has.
+
+Declare the hooks once for your row type: `export const { useDataGridRow, useDataGridApi, useDataGridSelector } = createDataGridHooks<Order>();`. Each hook then reads `Order` rows without a type argument. [Store hooks](/docs/types-hooks/store-hooks) lists every hook.
 
 ## Augmentation [#augmentation]
 

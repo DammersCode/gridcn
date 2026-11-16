@@ -119,7 +119,9 @@ Keep the `columns` array stable: define it outside the component or memoize it. 
 - `sortCompare` receives two whole rows. A result of zero, a non-finite number such as `NaN`, or a thrown error defers that pair to the default text compare. The `SortSpec` direction still applies, and empty cells still sort last.
 - `filterable: false` hides the column from the filter column picker. Filters that already target the column keep applying.
 - `filter.match` receives the raw cell value and the filter. A thrown error fails the row for that filter.
-- `filter.operators` wins over the `filter.operators` of the cell type and the defaults. A `text` or untyped column with `filter.match`, or a cell type with `filter.match`, loses the set operators `isAnyOf` and `isNoneOf`. This holds only without `filter.operators` on the column and on the cell type. The `number`, `date`, and `select` types declare `filter.operators`, so they keep the set operators.
+- `filter.operators` wins over the `filter.operators` of the cell type and the defaults.
+- `isAnyOf` and `isNoneOf` use the built-in set match on the cell text. Your `filter.match` receives them only when the same `filter` lists them in `operators`.
+- `filter.matchCase` (default `false`) makes the built-in text and set operators and the header filter list respect letter case.
 - `filter.compare` orders cell text against a filter bound for `gt`, `gte`, `lt`, `lte`, and `isBetween`. A `NaN` result or a throw falls back to the default order. See [Filtering](/docs/sort-filter-search/filtering).
 - `filter.valueInput` picks the value widget of the filter row. It takes a built-in name or a component.
 - With `sortMode="server"`, the server orders the rows and `sortCompare` does not run. With `filterMode="server"`, the server filters and `filter.match` does not run. `filter.operators` sets the operators of the filter menu in both modes.

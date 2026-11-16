@@ -18,7 +18,7 @@ The type takes three parameters: the row type, the value type, and the options t
 | `Cell` | Yes | Draws the value in read mode |
 | `Editor` | Yes | Draws the editor in edit mode |
 | `toText` | Yes | Turns a value into its canonical text |
-| `fromText` | Yes | Turns text into a value |
+| `fromText` | Yes | Turns text into a value. Call `rejectText()` for text it cannot parse |
 | `clearValue` | Yes | The empty value of the type |
 | `isEmpty` | Yes | Says whether a value counts as empty |
 | `toDisplayText` | No | A formatted text for display only |
@@ -66,20 +66,20 @@ const compare = (a: string, b: string) => sortCollator().compare(a, b);
 
 - `value` is the last committed value. If the user starts the edit by typing, `initialText` holds the typed text.
 - `onChange(value)` stashes the draft. It writes nothing. `commit(movement)` validates and applies the last stashed value, closes the editor, and moves the active cell by `{ dx, dy }`. Enter is `{ dx: 0, dy: 1 }`. A blur is `{ dx: 0, dy: 0 }`.
-- `commit()` with no earlier `onChange` commits the old value.
+- `commitValue(value, movement)` is `onChange(value)` and `commit(movement)` in one call. `commit()` without an earlier `onChange` applies the opening value.
 - `cancel()` discards the draft and emits no change.
 - `pending` is true while an async Standard Schema validates the commit. Set the input to `readOnly`, never `disabled`, so that Escape and blur still work.
 - `rejectionCount` rises on each refused commit attempt. A new session resets it. If it rises, re-arm a commit guard.
 
-Content that the editor portals out of the cell, such as a popover, carries `data-grid-cell-editor`. Without it, a click in that content counts as a click away and ends the edit.
+Content that the editor portals out of the cell, such as a popover, carries `data-grid-cell-editor`. Without the marker, a press in portaled content outside the grid clears the cell range. After the commit, the focus stays where it went and does not return to the cell. An editor that commits on blur also commits when the focus moves into its portaled content.
 
 ### toText, fromText, clearValue, and isEmpty [#totext-fromtext-clearvalue-and-isempty]
 
-`fromText` parses typed, pasted, and imported text. For text it cannot parse, return the result of `clearValue`. If `fromText` throws, the grid rejects that cell. Paste and fill leave it unchanged and report it through `onValidationError`. Import lists it in `rejected`, and replace skips it.
+`fromText` parses typed, pasted, and imported text. Call `rejectText()` for text that `fromText` cannot parse. The cell keeps its value, and the grid reports the text, as the built-in types do. Return `clearValue()` only to empty the cell on purpose. If `fromText` throws another error, the grid rejects that cell and a development build warns. Paste and fill leave it unchanged and report it through `onValidationError`. Import lists it in `rejected`, and replace skips it.
 
 `toText` must round-trip through `fromText` for every value the type can hold.
 
-`clearValue` is the value that Delete writes into a cleared cell. It is also the value that `fromText` returns for text it cannot parse.
+`clearValue` is the value that Delete writes into a cleared cell.
 
 `isEmpty` decides how Select All and the Ctrl or Cmd plus Arrow jump read a blank cell. For a type or column with a comparator, it also decides which values sort last. It also sets the status bar `count`. It also sets which text the Replace skip treats as unparseable.
 
@@ -99,12 +99,15 @@ A type with `activate` has no editor session. Enter, F2, Space, a stationary cli
 
 ### filter [#filter]
 
-`filter` holds four optional members. Each falls back to the default for the type name.
+`filter` holds five optional members. Each falls back to the default for the type name.
 
 - `operators` replaces the operator list of the filter menu.
 - `match(value, filter)` is a predicate over the raw value. It replaces the text matcher.
 - `compare(text, bound)` orders cell text against a filter bound for `gt`, `gte`, `lt`, `lte`, and `isBetween`. A `NaN` result or a throw falls back to the default order.
-- `valueInput` picks the value widget: `"text"`, `"number"`, `"date"`, `"boolean"`, `"choices"`, or a component. A component receives `FilterValueInputProps`: `column`, `operator`, `value`, and `onValueChange`. It renders for every operator that takes a value. `value` is a string, a `[from, to]` pair for `isBetween`, or a `string[]` for `isAnyOf` and `isNoneOf`. A custom type offers no set operators by default. List `isAnyOf` and `isNoneOf` in `filter.operators` to add them. Your `match` then receives them.
+- `valueInput` picks the value widget: `"text"`, `"number"`, `"date"`, `"boolean"`, `"choices"`, or a component. A component receives `FilterValueInputProps`: `column`, `operator`, `value`, and `onValueChange`. It renders for every operator that takes a value. `value` is a string, a `[from, to]` pair for `isBetween`, or a `string[]` for `isAnyOf` and `isNoneOf`.
+- `matchCase` (default `false`) makes the built-in text and set operators respect letter case.
+
+A custom type offers no set operators by default. List `isAnyOf` and `isNoneOf` in `filter.operators` to add them. Your `match` then receives them.
 
 ## Example [#example]
 

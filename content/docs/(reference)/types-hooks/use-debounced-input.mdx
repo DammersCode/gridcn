@@ -6,7 +6,7 @@ type: reference
 aliases: ["debounced input", "debounce text field", "commit on pause"]
 ---
 
-`useDebouncedInput` drives a text input. The input shows each keystroke at once. `onCommit` runs once with the text of the input, after the typing pauses. The toolbar search, the filter value inputs, and find and replace use the hook.
+`useDebouncedInput` drives a text input. The input shows each keystroke at once. `onCommit` runs once with the text of the input, after the typing pauses. The toolbar search, the filter value inputs, find and replace, and the lookup editor use the hook.
 
 <InstallCommand item="use-debounce" />
 
@@ -43,11 +43,10 @@ To run your own handler too, spread `getInputProps({ onKeyDown })` in place of `
 
 {/* props: UseDebouncedInputOptions */}
 
-| Option | Type | Default |
-| --- | --- | --- |
-| `delayMs` | `number` | `300` |
-
-A `delayMs` of `0` calls `onCommit` on each keystroke.
+| Option | Type | Description | Default |
+| --- | --- | --- | --- |
+| `delayMs` | `number` | Wait after the last keystroke before `onCommit` runs. `0` calls `onCommit` on each keystroke. | `300` |
+| `applyTimeoutMs` | `number` | Wait after the last commit for `value` to reach a committed text. Then the input shows `value` again. `Infinity` keeps the typed text. | `1000` |
 
 ## Result [#result]
 
@@ -75,11 +74,8 @@ A `delayMs` of `0` calls `onCommit` on each keystroke.
 - While text is pending, the input keeps the text. When nothing is pending, a change of `value` from outside shows in the input.
 - A committed text is a text that `onCommit` received. After `onCommit` runs, the input keeps the typed text until the parent applies the committed texts. When `value` changes to a text that `onCommit` did not receive, the input shows `value`.
 - If the user types a committed text again, the echoes in between can show for a moment. The input ends on the typed text.
+- If `value` reaches no committed text within `applyTimeoutMs`, the input shows `value`.
 - The hook remembers the last 64 committed texts that the parent has not applied. A late echo of one of them does not replace newer typing. The echo of an older text counts as a change from outside.
-
-<Callout type="warn">
-If the parent never applies a text, the input shows text that the parent does not hold. The text stays until <kbd>Escape</kbd> or until `value` changes to a text that `onCommit` did not receive.
-</Callout>
 
 ## Related
 
