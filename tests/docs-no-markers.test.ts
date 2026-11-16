@@ -15,7 +15,7 @@ describe("docs carry no new or updated markers", () => {
 
   it("keeps docs-changes out of the lint chain and the scripts", () => {
     const { scripts } = JSON.parse(readFileSync("package.json", "utf8")) as { scripts: Record<string, string> };
-    expect(scripts.lint).not.toContain("docs-changes");
+    expect(scripts["lint"]).not.toContain("docs-changes");
     expect(scripts["docs:changes"]).toBeUndefined();
   });
 });
