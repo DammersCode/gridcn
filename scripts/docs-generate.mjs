@@ -888,17 +888,21 @@ function main() {
     process.exit(1);
   }
   const stale = [];
+  let written = 0;
   for (const [file, text] of rendered) {
     const path = join(root, file);
-    if (check) {
-      if (!existsSync(path) || readFileSync(path, "utf8").replace(/\r\n/g, "\n") !== text) stale.push(`${file} is stale; run node scripts/docs-generate.mjs`);
-    } else writeFileSync(path, text);
+    if (existsSync(path) && readFileSync(path, "utf8").replace(/\r\n/g, "\n") === text) continue;
+    if (check) stale.push(`${file} is stale; run node scripts/docs-generate.mjs`);
+    else {
+      writeFileSync(path, text);
+      written++;
+    }
   }
   if (stale.length) {
     console.error(stale.join("\n"));
     process.exit(1);
   }
-  console.log(`docs-generate: ${check ? "up to date" : "wrote"} ${rendered.length} pages`);
+  console.log(`docs-generate: ${check ? `up to date ${rendered.length}` : `wrote ${written} of ${rendered.length}`} pages`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();

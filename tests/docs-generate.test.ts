@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const page = (path: string) => readFileSync(`content/docs/${path}.mdx`, "utf8").replace(/\r\n/g, "\n");
@@ -200,5 +200,20 @@ describe("options page", () => {
   it("keeps the view grouped by add-on", () => {
     expect(options()).toContain("## By add-on [#by-add-on]");
     expect(options()).toContain("### Server");
+  });
+});
+
+describe("docs-generate write mode", () => {
+  it("leaves current pages untouched, including CRLF checkouts", () => {
+    const file = "content/docs/(reference)/cheatsheets-messages/messages.mdx";
+    const original = readFileSync(file);
+    const crlf = Buffer.from(original.toString("utf8").replace(/\r\n/g, "\n").replace(/\n/g, "\r\n"));
+    writeFileSync(file, crlf);
+    try {
+      execFileSync("node", ["scripts/docs-generate.mjs"], { stdio: "pipe" });
+      expect(readFileSync(file).equals(crlf)).toBe(true);
+    } finally {
+      writeFileSync(file, original);
+    }
   });
 });
