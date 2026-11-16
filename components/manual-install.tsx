@@ -9,6 +9,7 @@ import { GRIDCN_REGISTRY, readRegistryItem } from "@/lib/read-registry-item";
 import { CodeCollapsible } from "@/components/code-collapsible";
 import { InstallCommand } from "@/components/install-command";
 import { DOCS_LINK } from "@/components/docs-tabs";
+import { CODE_THEMES } from "@/lib/code-themes";
 import { cn } from "@/lib/utils";
 import { ManualInstallDeps } from "@/components/manual-install-deps";
 import { gitConfig } from "@/lib/shared";
@@ -119,6 +120,8 @@ export async function ManualInstall({ item, tree = false }: ManualInstallProps):
           code: file.content,
           highlighted: await highlight(file.content, {
             lang: langFromTarget(file.target),
+            themes: CODE_THEMES,
+            defaultColor: false,
             components: {
               pre: (props) => (
                 <CodeBlock allowCopy={false} {...props}>
