@@ -232,6 +232,8 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
         "group relative flex items-center border-b border-border bg-muted px-2 font-medium select-none",
         COLUMN_BORDER,
         isDragging && "opacity-50",
+        // the coarse resize handle is fingertip wide; keep the end controls clear of it
+        columnResizable && "pointer-coarse:pe-6",
         column.headerClassName,
       )}
       style={style}

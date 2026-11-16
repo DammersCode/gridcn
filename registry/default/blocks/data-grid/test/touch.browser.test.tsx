@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { cdp } from "vitest/browser";
+import { afterEach, describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { DataGrid } from "../data-grid";
 import { gridAttrSelector } from "../data-grid-sdk";
@@ -177,5 +178,53 @@ describe("column grip on touch", () => {
     await renderReorderable();
     await dragGrip("id", "email", "pointercancel");
     expect(headerIds()).toEqual(["id", "name", "email", "age"]);
+  });
+});
+
+describe("column resize handle under a coarse pointer", () => {
+  const headerEl = (columnId: string) => document.querySelector<HTMLElement>(`[role="columnheader"][data-column-id="${columnId}"]`)!;
+
+  afterEach(async () => {
+    await cdp().send("Emulation.setTouchEmulationEnabled", { enabled: false });
+  });
+
+  it("gives the handle a hit area of at least 24 px and resizes with a touch drag", async () => {
+    await cdp().send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
+    expect(matchMedia("(pointer: coarse)").matches).toBe(true);
+    await renderGrid();
+    const header = headerEl("name");
+    const handle = header.querySelector<HTMLElement>("[data-grid-resize-handle]")!;
+    const rect = handle.getBoundingClientRect();
+    expect(rect.width).toBeGreaterThanOrEqual(24);
+    expect(rect.height).toBeGreaterThanOrEqual(24);
+    const headerRect = header.getBoundingClientRect();
+    expect(document.elementFromPoint(headerRect.right - 22, rect.top + rect.height / 2)).toBe(handle);
+    const start = { x: headerRect.right - 12, y: rect.top + rect.height / 2 };
+    const widthBefore = headerRect.width;
+    touch(handle, "pointerdown", start);
+    for (let i = 1; i <= 3; i++) {
+      touch(document, "pointermove", { x: start.x + 20 * i, y: start.y });
+      await nextFrames();
+    }
+    touch(document, "pointerup", { x: start.x + 60, y: start.y });
+    await nextFrames();
+    expect(headerEl("name").getBoundingClientRect().width).toBeGreaterThan(widthBefore + 40);
+  });
+
+  it("leaves the header menu trigger and the reorder grip outside the handle", async () => {
+    await cdp().send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
+    await render(
+      <div style={{ height: 360, width: 700 }}>
+        <DataGrid data={rows} columns={columns} getRowId={(r) => r.id} className="h-90 w-175" enableColumnReorder renderHeaderMenu={({ trigger }) => trigger} />
+      </div>,
+    );
+    const header = headerEl("name");
+    const handle = header.querySelector<HTMLElement>("[data-grid-resize-handle]")!.getBoundingClientRect();
+    for (const control of [header.querySelector<HTMLElement>("[data-grid-header-menu-trigger]")!, header.querySelector<HTMLElement>(gridAttrSelector("columnReorderHandle"))!]) {
+      const rect = control.getBoundingClientRect();
+      expect(rect.right).toBeLessThanOrEqual(handle.left);
+      const point = center(control);
+      expect(control.contains(document.elementFromPoint(point.x, point.y))).toBe(true);
+    }
   });
 });
