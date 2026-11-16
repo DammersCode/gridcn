@@ -1986,6 +1986,7 @@
         "overscan",
         "spec",
         "defaultSpec",
+        "onRenderedRowsChange",
         "onSpecChange"
       ],
       "cells": {
