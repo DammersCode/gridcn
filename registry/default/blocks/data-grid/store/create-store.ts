@@ -149,6 +149,11 @@ function filterSpecKey(filters: readonly unknown[]): string {
   return JSON.stringify(filters, (key, value: unknown) => (key === "filterId" ? undefined : value));
 }
 
+/** A sort list compared by content: a controlled prop re-creates an equal array on every render. */
+function sortSpecKey(sorts: readonly unknown[]): string {
+  return JSON.stringify(sorts);
+}
+
 /** The patch that ends "all matching" with the old result: the rows are unchecked and the exclusions forgotten. */
 function endAllMatching(selection: GridSelection): Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "allMatching"> {
   return { selection: { ...selection, rows: CompactSelection.empty() }, ...NO_REMEMBERED_ROWS };
@@ -863,6 +868,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       emitAfterWrites(dataWrite, () => s.onColumnLayoutChange?.(snapshot));
     };
     const commitSorts = (s: DataGridStoreState, sorts: DataGridStoreState["sortState"]): void => {
+      if (!s.viewStale && sortSpecKey(sorts) === sortSpecKey(s.sortState)) return;
       // Controlled: _syncProps writes the consumer's next `sortState` prop.
       if (!s.sortControlled) {
         set((s2) => {
@@ -1084,12 +1090,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       _syncProps(props) {
         set((s) => {
           // A defined controlled prop is the source of truth; otherwise the store keeps its own state.
-          const nextSortState = props.sortState ?? s.sortState;
+          const nextSortState = props.sortState === undefined || sortSpecKey(props.sortState) === sortSpecKey(s.sortState) ? s.sortState : props.sortState;
           // A controlled filterState may omit filterId; the same prop reference reuses s.filterState.
           const propsFilterStateChanged = props.filterState !== lastPropsFilterState;
           lastPropsFilterState = props.filterState;
           const nextFilterState =
-            props.filterState === undefined || !propsFilterStateChanged ? s.filterState : withFilterIds(props.filterState);
+            props.filterState === undefined || !propsFilterStateChanged || filterSpecKey(props.filterState) === filterSpecKey(s.filterState) ? s.filterState : withFilterIds(props.filterState);
           const nextSortMode = resolveSortMode(props);
           const nextSortLocale = resolveSortLocale(props);
           const nextFilterMode = resolveFilterMode(props);
@@ -1856,6 +1862,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const s = get();
         // backfills a filterId for any row the caller added without one (e.g. hand-built controlled updates).
         const withIds = withFilterIds(filters);
+        if (!s.viewStale && filterSpecKey(withIds) === filterSpecKey(s.filterState)) return;
         const resetPage = s.pageSize !== null && s.page !== 1 && filterSpecKey(withIds) !== filterSpecKey(s.filterState);
         if (!s.filterControlled) {
           set((s2) => {
