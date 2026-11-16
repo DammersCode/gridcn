@@ -44,8 +44,8 @@ describe("gate abort reasons", () => {
     expect(onGateAborted).toHaveBeenCalledWith({ gate: "onBeforeEditStart", reason: "changed" });
   });
 
-  it("an onGateAborted that throws a value without a string form does not break the abort", async () => {
-    vi.spyOn(console, "warn").mockImplementation(() => {});
+  it("an onGateAborted that throws a value without a string form does not break the abort, and logs a console error", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const m = mount({
       onGateAborted: () => {
         throw Object.create(null);
@@ -56,6 +56,7 @@ describe("gate abort reasons", () => {
     act(() => m.state().actions.startEditingAt({ row: 0, col: 0 }));
     expect(() => act(() => m.state().actions.selectCellAt({ row: 1, col: 0 }))).not.toThrow();
     await flush();
+    expect(error).toHaveBeenCalledWith("[data-grid] onGateAborted threw:", expect.anything());
   });
 
   it("a second startEditing while onBeforeEditStart is pending starts no newer run", () => {

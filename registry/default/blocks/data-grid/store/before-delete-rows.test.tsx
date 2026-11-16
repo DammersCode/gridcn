@@ -201,8 +201,8 @@ describe("onBeforeDeleteRows", () => {
     expect(rejecting.dataIds()).toEqual(["a", "b", "c", "d", "e"]);
   });
 
-  it("returns the skip when onRowActionSkipped throws a value without a string form", () => {
-    vi.spyOn(console, "warn").mockImplementation(() => {});
+  it("returns the skip and logs a console error when onRowActionSkipped throws a value without a string form", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
     const m = mount(undefined, {
       readOnly: true,
       onRowActionSkipped: () => {
@@ -212,6 +212,7 @@ describe("onBeforeDeleteRows", () => {
     let result: unknown;
     expect(() => act(() => void (result = m.state().actions.deleteRows(["a"])))).not.toThrow();
     expect(result).toMatchObject({ ok: false, reason: "readOnly" });
+    expect(error).toHaveBeenCalledWith("[data-grid] onRowActionSkipped threw:", expect.anything());
   });
 
   it("does not run for a readOnly grid", () => {
