@@ -443,8 +443,8 @@ export type DataGridSyncProps<TData = unknown> = {
    /**
     * Fired when an edit session is about to start (Enter/F2, type-to-replace, double-click) with
     * the target cell's ids and view position. Return `false` to VETO the edit — `startEditing`
-    * then makes no state change at all (no session, no cursor move). Checkbox cells never start an
-    * edit session, so the veto never applies to them. A promise holds the editor: it opens when
+    * then makes no state change at all (no session, no cursor move). A checkbox cell opens no editor;
+    * the veto holds or blocks its toggle instead. A promise holds the editor: it opens when
     * the promise settles, unless the promise is `false`, the user moved to another cell, or the
     * grid went read-only. A pending promise ignores a second edit start, so keys typed meanwhile add no text. A rejection cancels.
     * `signal` aborts when the cursor moves to another cell, the edit is cancelled (Escape), the grid
