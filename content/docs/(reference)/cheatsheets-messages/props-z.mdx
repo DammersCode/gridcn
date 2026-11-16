@@ -32,7 +32,7 @@ Props of DataGrid, DataGridProvider.
 | `defaultColumnLayout` | The layout, seeded once at mount. | [Column and viewport events](/docs/events-state/column-viewport-events) |
 | `defaultData` | The rows, seeded once and then owned by the grid. | [Data change events](/docs/events-state/data-change-events) |
 | `defaultFilterState` | The filters, seeded once. | [Sort and filter events](/docs/events-state/sort-filter-events) |
-| `defaultPage` | Seeds the page of a paged grid once. Default 1. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `defaultPage` | Seeds the page of a paged grid once. Default `1`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `defaultPageSize` | Seeds the page size once and turns paging on. The grid keeps all of `data` and shows one page of the view. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `defaultSearchText` | The quick search text, seeded once. | [Sort and filter events](/docs/events-state/sort-filter-events) |
 | `defaultSelection` | The selection, seeded once. | [Selection and cell events](/docs/events-state/selection-cell-events) |
@@ -40,7 +40,7 @@ Props of DataGrid, DataGridProvider.
 | `duplicateRow` | Builds the new row for `duplicateRows` from the source row and its new data index. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `enableColumnPinning` | Enables pin/unpin actions grid-wide. Default `true`. `false` makes `setColumnPin` do nothing. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `enableColumnReorder` | Enables drag-to-reorder columns grid-wide. Default `true`. `false` makes `setColumnOrder` do nothing. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
-| `enableColumnResize` | Enables the header resize handle grid-wide. Default true. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `enableColumnResize` | Enables the header resize handle grid-wide. Default `true`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `enableColumnSelection` | Turns on whole-column selection by a header click. Default `true`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `enableMultiRange` | Turns on several ranges by Ctrl or Cmd click. Default `true`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `enableRangeSelection` | Turns on range selection by shift-click, drag, and shift+arrow keys. Default `true`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
@@ -67,7 +67,7 @@ Props of DataGrid, DataGridProvider.
 | `sanitizeClipboardFormulas` | Prefixes formula-like copied cells with `'` in the clipboard text and HTML. Default `false`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `searchText` | The quick search text, controlled by your code. | [Sort and filter events](/docs/events-state/sort-filter-events) |
 | `selection` | The selection, controlled by your code. | [Selection and cell events](/docs/events-state/selection-cell-events) |
-| `sortLocale` | BCP 47 tag that decides the client text sort, the text range filters, and the filter value lists. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `sortLocale` | The language tag for text compares in a client sort, text range filters, and the filter value lists. | [Sort and filter events](/docs/events-state/sort-filter-events) |
 | `sortMode` | Who sorts: `"client"` sorts `data`, `"server"` only tracks the sort. Default `"server"` with `totalRowCount`, else `"client"`. | [Sort and filter events](/docs/events-state/sort-filter-events) |
 | `sortState` | The sort, controlled by your code. | [Sort and filter events](/docs/events-state/sort-filter-events) |
 | `totalRowCount` | Declares that `data` is a window of a larger result of this many rows. `null` means the size is unknown. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
@@ -114,14 +114,14 @@ Props of ColumnDef.
 | `accessorFn` | Computes the value from the row. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `accessorKey` | Row field that holds the value. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `cellClassName` | Adds classes to every cell of the column. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `filter` | Filter capabilities for this type. Each member falls back to the name-derived default when absent. | [ColumnDef](/docs/components-props/column-def#fields) |
+| `filter` | Sets the filter capabilities of this column. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `filterable` | `false` removes the column from the filter column picker and the header filter. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `flex` | Share of the free width of the grid. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `header` | A string header shows a sort arrow while the column is sorted, unless the column has `sortable: false`. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `headerClassName` | Adds classes to the header cell. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `headerText` | Plain-text header when `header` is a ReactNode: names the column in export, import matching, autosize, menus, and assistive technology. | [ColumnDef](/docs/components-props/column-def#fields) |
+| `headerText` | Plain-text name for a node header. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `hidden` | `true` hides the column when its id first appears. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `hideable` | `false` keeps the column visible in the columns menu and the header menu. Default true. | [ColumnDef](/docs/components-props/column-def#fields) |
+| `hideable` | `false` turns off the column row in the columns menu while the column is visible and removes "Hide column" from the header menu. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `id` | Stable identity of the column. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `maxWidth` | Largest width in px. | [ColumnDef](/docs/components-props/column-def#fields) |
 | `minWidth` | Smallest width in px. | [ColumnDef](/docs/components-props/column-def#fields) |

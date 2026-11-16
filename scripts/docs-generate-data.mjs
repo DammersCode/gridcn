@@ -271,6 +271,7 @@ export const ACTION_PAGES = {
   applyCellUpdates: "/docs/events-state/data-change-events",
   updateCells: "/docs/rows-live-data/stream-updates",
   updateRows: "/docs/rows-live-data/stream-updates",
+  editRows: "/docs/editing-cells/edit-rows-forms",
   reconcileView: "/docs/rows-live-data/stream-updates",
   insertRow: "/docs/rows-pages-menus/row-operations",
   insertRows: "/docs/rows-pages-menus/row-operations",
