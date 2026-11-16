@@ -14,7 +14,7 @@ Every color of the grid resolves to a shadcn token. Change the token in your the
 
 | Token | Surfaces |
 |---|---|
-| `background` | The grid fill, the cell fill, and the marker cells |
+| `background` | The grid fill and the fill of pinned cells, pinned-row band cells, and marker cells |
 | `border` | The grid frame, the bottom border of cells and headers, and the column lines |
 | `muted` | Header cells, the row hover tint, the pinned-row band tint, and the loading skeleton |
 | `muted-foreground` | The empty state text, the row numbers, the sort indicator, and the column menu trigger |
@@ -43,7 +43,7 @@ Set a variable on the grid or on any ancestor.
 
 The CLI install adds `--grid-pin-shadow` and `--search-highlight` to your CSS for light and dark mode. `--color-search-highlight` also works. If both exist, `--search-highlight` wins.
 
-The grid writes `--grid-row-height` itself, from the `rowHeight` prop or the `density` preset: 28 pixels for `compact`, 36 for `default`, 44 for `comfortable`. `rowHeight` wins over `density`. The `headerHeight` prop sets the height of a header row. The default is 36. Pass heights as props, because the grid needs the numbers to compute the rendered rows. The variables `--grid-scroll-left`, `--grid-dir`, `--grid-viewport-width`, `--grid-content-width`, `--grid-pin-shadow-left-x`, `--grid-pin-shadow-right-x`, `--grid-flash-base`, `--grid-search-color`, and `--grid-search-fallback` are internal and read-only.
+The grid writes `--grid-row-height` itself, from the `rowHeight` prop or the `density` preset: 28 pixels for `compact`, 36 for `default`, 44 for `comfortable`. `rowHeight` wins over `density`. The `headerHeight` prop sets the height of a header row. The default is 36. Pass heights as props, because the grid needs the numbers to compute the rendered rows. The variables `--grid-scroll-left`, `--grid-dir`, `--grid-viewport-width`, `--grid-content-width`, `--grid-flash-base`, and `--grid-search-color` are internal and read-only.
 
 ## Built-in classes [#the-built-in-class-surface]
 
@@ -53,7 +53,7 @@ These are the classes that the grid renders and the place where you override the
 |---|---|---|
 | Grid root, `[role="grid"]` | `relative touch-manipulation select-none overflow-auto rounded-md border border-border bg-background text-sm` | `className` on `DataGridRoot` or `DataGrid` |
 | Header cell | `group relative flex items-center border-b border-border bg-muted px-2 font-medium select-none`, plus the column line | `headerClassName` on the column |
-| Data cell | `relative flex items-center overflow-hidden border-b border-border px-2 outline-none`, plus the column line | `getCellClassName`, then `cellClassName` on the column. Every body cell carries an integer `z-index`, so a `z-*` class from `cellClassName` or `getCellClassName` does not change its stacking. A non-portalled `z-index` inside a custom cell stays inside that cell |
+| Data cell | `relative flex items-center border-b border-border px-2 outline-none`, plus the column line, and `overflow-hidden` except while the cell is in edit | `getCellClassName`, then `cellClassName` on the column. Every body cell carries an integer `z-index`, so a `z-*` class from `cellClassName` or `getCellClassName` does not change its stacking. A non-portalled `z-index` inside a custom cell stays inside that cell |
 | Row | `group/row data-hovered:bg-muted/50 data-[save-status=saving]:text-muted-foreground data-[save-status=failed]:bg-destructive/10` | `getRowClassName`. Pinned and marker cells stay opaque and do not show a row background |
 | Marker cell | `group flex items-center border-b border-border bg-background`, plus the column line | `renderMarker` replaces the content |
 | Marker header | `flex items-center justify-center border-b border-border bg-muted`, plus the column line | None |

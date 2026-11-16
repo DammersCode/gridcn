@@ -47,7 +47,7 @@ Each feature reads the value through its own member. One override does not reach
 
 A custom `toText` changes copy, export, and search. It does not change what a filter matches. A column with no declared type searches `String(value)`.
 
-A text `compare` calls `sortCollator().compare` from `data-grid-sdk`, so it follows `sortLocale`. `localeCompare` follows the language of the runtime, so a server and a browser order rows differently. Call it synchronously. The scope ends at the first `await`, and outside a scope the collator uses `"en-US"`. The sample compares two texts:
+In a text `compare`, call `sortCollator().compare` from `data-grid-sdk`, so the order follows `sortLocale`. `localeCompare` follows the language of the runtime, so a server and a browser order rows differently. Call it synchronously. The scope ends at the first `await`, and outside a scope the collator uses `"en-US"`. The sample compares two texts:
 
 ```ts
 import { sortCollator } from "@/components/data-grid/data-grid-sdk";
@@ -81,7 +81,9 @@ Content that the editor portals out of the cell, such as a popover, carries `dat
 
 `clearValue` is the value that Delete writes into a cleared cell. It is also the value that `fromText` returns for text it cannot parse.
 
-`isEmpty` decides how Select All and the Ctrl or Cmd plus Arrow jump read a blank cell. For a type or column with a comparator, it also decides which values sort last. It also sets the status bar `count` and the Replace skip for unparseable text. The built-in types differ: `""` is empty for `text`. For `number` and `checkbox`, only `null` and `undefined` are empty, so `0` and `false` are values. With a comparator, empty values sort last in both directions, and `compare` never receives one. A fill writes no series to a column or row when `fromText` returns an empty value for a generated text that is not blank.
+`isEmpty` decides how Select All and the Ctrl or Cmd plus Arrow jump read a blank cell. For a type or column with a comparator, it also decides which values sort last. It also sets the status bar `count`. It also sets which text the Replace skip treats as unparseable.
+
+The built-in types differ: `""` is empty for `text`. For `number` and `checkbox`, only `null` and `undefined` are empty, so `0` and `false` are values. With a comparator, empty values sort last in both directions, and `compare` never receives one. A fill writes no series to a column or row when `fromText` returns an empty value for a generated text that is not blank.
 
 ### validate [#validate]
 
@@ -102,19 +104,21 @@ A type with `activate` has no editor session. Enter, F2, Space, a stationary cli
 - `operators` replaces the operator list of the filter menu.
 - `match(value, filter)` is a predicate over the raw value. It replaces the text matcher.
 - `compare(text, bound)` orders cell text against a filter bound for `gt`, `gte`, `lt`, `lte`, and `isBetween`. A `NaN` result or a throw falls back to the default order.
-- `valueInput` picks the value widget: `"text"`, `"number"`, `"date"`, `"boolean"`, `"choices"`, or a component. A component receives `FilterValueInputProps`: `column`, `operator`, `value`, and `onValueChange`. It renders for every operator that takes a value. `value` is a string, a `[from, to]` pair for `isBetween`, or a `string[]` for `isAnyOf` and `isNoneOf`. For a custom type, add `isNoneOf` to `filter.operators`. A `filter.match` predicate sees that operator after you do.
+- `valueInput` picks the value widget: `"text"`, `"number"`, `"date"`, `"boolean"`, `"choices"`, or a component. A component receives `FilterValueInputProps`: `column`, `operator`, `value`, and `onValueChange`. It renders for every operator that takes a value. `value` is a string, a `[from, to]` pair for `isBetween`, or a `string[]` for `isAnyOf` and `isNoneOf`. A custom type offers no set operators by default. List `isAnyOf` and `isNoneOf` in `filter.operators` to add them. Your `match` then receives them.
 
 ## Example [#example]
 
-This type stores a plain `number | null` and shows a currency format:
+This type stores a plain `number | null` and shows a currency format. The last lines register it under the key `currency` and use it in a column:
 
 ```tsx
 import {
   CellSpan,
+  DataGrid,
   useCellEditor,
   type CellEditorProps,
   type CellRenderProps,
   type CellType,
+  type ColumnDefOf,
 } from "@/components/data-grid/data-grid";
 import { Input } from "@/components/ui/input";
 
@@ -156,6 +160,19 @@ export const currencyCellType: CellType<unknown, number | null> = {
   align: "end",
   numeric: true,
 };
+
+type Order = { id: string; total: number | null };
+
+const cellTypes = { currency: currencyCellType };
+const columns: ColumnDefOf<Order>[] = [
+  { id: "total", header: "Total", accessorKey: "total", type: "currency" },
+];
+
+export function Orders({ rows }: { rows: Order[] }) {
+  return (
+    <DataGrid defaultData={rows} columns={columns} cellTypes={cellTypes} />
+  );
+}
 ```
 
 ## useCellEditor [#usecelleditorprops-codec]
@@ -178,7 +195,7 @@ A column whose `type` resolves to nothing renders as `text`. The grid drops its 
 
 ### GridCellTypes [#gridcelltypes]
 
-`GridCellTypes` maps each type key to its value type and options type. Augment it for every custom key that a `defineColumns` column names. A plain `ColumnDef` takes any `type` string. `CellTypeKey`, `CellValueOf<K>`, and `CellOptionsOf<K>` read the map. This sample adds a `currency` key:
+`GridCellTypes` maps each type key to its value type and options type. Augment it for every custom key that a `defineColumns` column names. `CellTypeKey`, `CellValueOf<K>`, and `CellOptionsOf<K>` read the map. This sample adds a `currency` key:
 
 ```ts
 export {};
@@ -194,7 +211,7 @@ Set the module path to where `components.json` installs `types.ts`.
 
 ### defineCellType [#definecelltypekey-type]
 
-`defineCellType(key, type)` checks at the definition that `key` is a key of `GridCellTypes` and that the type matches the value and options of that key. It returns the type unchanged. This sample defines the type of the example above:
+`defineCellType(key, type)` returns the type unchanged and ties it to the `GridCellTypes` key. This sample defines the type of the example above:
 
 ```ts fragment="imports the type from the example above"
 import { defineCellType } from "@/components/data-grid/data-grid";

@@ -1,14 +1,15 @@
 ---
 title: "Server rows contract"
-description: Run sort, filter, search, and paging in your backend and show the response in the grid.
+description: Run sort, filter, search, and paging in your backend and show the answer in the grid.
 icon: Server
 type: reference
+aliases: ["server contract", "server rows", "backend contract", "fetchrows answer"]
 ---
 
 A server grid shows the rows your backend returns. The grid tracks what the user chose, which is
-the *spec*: sort, filter, and search text. You send the spec to your API, together with the page or the row range. The response becomes
+the *spec*: sort, filter, and search text. You send the spec to your API, together with the page or the row range. The answer becomes
 `data`. Two provider props, `sortMode="server"` and `filterMode="server"`, stop the grid from
-sorting and filtering the response a second time. The [Server rows example](/docs/server-data-examples/server-rows-example) runs this contract.
+sorting and filtering the answer a second time. The [Server rows example](/docs/server-data-examples/server-rows-example) runs this contract.
 
 | Concern | Rule |
 | --- | --- |
@@ -18,18 +19,54 @@ sorting and filtering the response a second time. The [Server rows example](/doc
 | [Counts](#row-count-and-unknown-totals) | Pass the filtered `totalRowCount`, or `null`. |
 | [Saves](#saving-and-refusals) | `onSave` resolves with the refused rows. |
 | [Races](#races-and-row-identity) | Drop the answer of a replaced request. |
+| [Request check](#parse-server-spec) | Run `parseServerSpec` on every request body. |
 
-## One hook for pages
+## One hook for server rows
 
-For a paged grid, `useDataGridServerRows` does steps 1 to 4 below and the race guard. It returns `gridProps`, `providerProps`, `rootProps`, `spec`, `totalRowCount`, `pager`, `status`, `loading`, `error`, `retry`, `refresh`, and `reshape`. The [Server rows example](/docs/server-data-examples/server-rows-example) shows it.
+`useDataGridServerRows` does steps 1 to 3 below and the race guard. It returns `gridProps`, `providerProps`, `rootProps`, `spec`, `totalRowCount`, `pager`, `status`, `loading`, `error`, `retry`, `refresh`, and `reshape`. This sample fetches one page for each spec and renders the pager:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import { DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+export function OrdersGrid() {
+  const server = useDataGridServerRows<Order>({
+    fetchRows: async ({ start, end, spec, signal }) => {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ start, end, spec }),
+        signal,
+      });
+      const body = await res.json();
+      return { rows: body.rows, totalRowCount: body.total };
+    },
+  });
+
+  return (
+    <>
+      <DataGrid {...server.gridProps} columns={columns} className="h-96" />
+      <DataGridPaginationBar {...server.pager} />
+    </>
+  );
+}
+```
+
+The [Server rows example](/docs/server-data-examples/server-rows-example) shows the full flow.
 
 ## The contract
 
-1. Pass `totalRowCount` (step 4). It makes `sortMode` and `filterMode` default to `"server"`, so a spec restored at mount never sorts or filters the window on the client. Set `sortMode="client"` or `filterMode="client"` to override one. A grid without `totalRowCount` keeps the `"client"` default, so set both props to `"server"` there.
-2. Read the spec from the grid. Use the store hooks (`useDataGridSortState`,
+1. Read the spec from the grid. Use the store hooks (`useDataGridSortState`,
    `useDataGridFilterState`) or the controlled pairs (`sortState` and `onSortChange`).
-3. Send the spec to your API. Make one request for each view state.
-4. Pass the response as `data`. Pass `totalRowCount` to the pager, and pass the same count to the provider as `totalRowCount` (`null` when the server sends none).
+2. Send the spec to your API. Make one request for each view state.
+3. Pass the answer as `data`. Pass the count to the pager as `totalRowCount`, and pass the same count to the provider as `totalRowCount` (`null` when the server sends none). A `totalRowCount` makes `sortMode` and `filterMode` default to `"server"`, so a spec restored at mount never sorts or filters the window on the client. Set `sortMode="client"` or `filterMode="client"` to override one. A grid without `totalRowCount` keeps the `"client"` default, so set both props to `"server"` there.
 
 Set `headerClickBehavior="sort"` so that a header click sorts. The default, `"select"`, makes a
 header click select the column and sort nothing.
@@ -37,7 +74,7 @@ header click select the column and sort nothing.
 ### Sort
 
 The grid shows the sort indicator and `aria-sort`, and it calls `onSortChange`. It never reorders
-`data`. The order of your response is the displayed order. When the spec changes, refetch:
+`data`. The order of your answer is the displayed order. When the spec changes, refetch:
 
 ```tsx
 import { useState } from "react";
@@ -58,14 +95,14 @@ const columns = defineColumns<Order>()([
 ]);
 
 export function OrdersGrid({ first }: { first: Order[] }) {
-  const [rows, setRows] = useState(first);
+  const [rows, setRows] = useState<readonly Order[]>(first);
   const [sorts, setSorts] = useState<SortSpec[]>([]);
   const [filters, setFilters] = useState<FilterNode[]>([]);
-  // Fetch with sorts and filters, then call setRows(response).
+  // Fetch with sorts and filters, then call setRows(answer).
   return (
     <DataGridProvider
       data={rows}
-      onDataChange={(next) => setRows(next as Order[])}
+      onDataChange={setRows}
       columns={columns}
       getRowId={(row) => row.id}
       sortMode="server"
@@ -90,12 +127,18 @@ new order.
 
 The grid tracks the filter tree: the filter menu, the header filters, and the `data-filtered`
 indicator all show it. It never removes rows from `data`. Your backend applies the tree, and the
-response holds the matching rows. The tree is untrusted input. Pass the request through `parseServerSpec` before
+answer holds the matching rows. The tree is untrusted input. Pass the request through `parseServerSpec` before
 you build a query. It checks the depth, the size, the column ids, the operators, and the value shapes (the ORM examples, such as the [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example), call it). See [Query server rows](/docs/data-modes/query-server-rows#parse-the-spec).
 
 The header filter popover and the `isAnyOf` input of the filter menu list the values of the
 loaded rows. Pass `fetchFilterValues` to list the values of the whole column from your backend. See
 [Server values](/docs/sort-filter-search/header-filter#server-values).
+
+#### Check the request on your server [#parse-server-spec]
+
+`parseServerSpec(input, options)` checks a request body against `ParseServerSpecOptions`. Its `columns` option lists the ids a request can name, or maps each id to its `ServerSpecColumnRules`: `sortable`, `filterable`, `operators`, and custom operators. Its `limits` option is a `ServerSpecLimits`: `maxSorts` (64), `maxFilters` (64), `maxGroups` (16), `maxValueLength` (1000), `maxListLength` (1000), and `maxSearchLength` (500).
+
+URL state drops a filter value over 1,000 characters and cuts the search text to 500 characters. `maxValueLength` and `maxSearchLength` bound them on the server.
 
 #### Custom operators [#custom-operators]
 
@@ -118,8 +161,8 @@ export function regionFilters(body: { spec: unknown }) {
 ### Search
 
 The quick-search box highlights and navigates matches in the loaded rows. It never narrows the
-view, in any mode. To search the whole dataset, send `searchText` to your fetch. Read it with
-`useDataGridSearchText`, or use the `searchText` and `onSearchTextChange` pair. Your response
+view, in any mode. To search the whole result, send `searchText` to your fetch. Read it with
+`useDataGridSearchText`, or use the `searchText` and `onSearchTextChange` pair. Your answer
 holds the matching rows, and the box then highlights them.
 
 ## Pages or scroll mode
@@ -130,12 +173,12 @@ Both modes of `useDataGridServerRows` take the same spec. They differ in how row
 |---|---|---|
 | The grid shows | One page at a time | One continuous list of `totalRowCount` rows |
 | You send | `page`, `pageSize`, `start`, `end`, a `cursor` on a cursor source, and the spec | `start`, `end`, a `cursor` on a cursor source, and the spec |
-| The answer holds | The rows of one page, and the filtered `totalRowCount` or `hasMore` | The rows of one block, and `totalRowCount` or `nextCursor` |
+| The answer holds | The rows of one page, and the filtered `totalRowCount`, `hasMore`, or `nextCursor` | The rows of one block, and `totalRowCount` or `nextCursor` |
 | After a spec change | Go to page 1 and refetch | Reset the loaded rows and refetch |
 | Stale requests | `fetchRows` receives an `AbortSignal` that aborts a replaced request | The same `AbortSignal` |
 
 Set `totalRowCount` to the filtered count on each filter change. When a smaller count puts `page` past the last page, the pager
-calls your `onPageChange` once with the clamped page. It skips this while `totalRowCount` is `0` ([Pager options](/docs/add-options/server/server-rows-options#pager-options)). In scroll mode, a changed spec or `totalRowCount` resets the hook and drops every fetched block. See
+calls your `onPageChange` once with the clamped page. It skips this while `totalRowCount` is `0` ([Pager options](/docs/add-options/server/server-rows-options#pager-options)). In scroll mode, a changed spec resets the hook and drops every fetched block. On a random access source, a changed `totalRowCount` does the same. See
 [Sorting a scroll grid](/docs/data-modes/query-server-rows#sorting-a-scroll-grid) and
 [Filtering a scroll grid](/docs/data-modes/query-server-rows#filtering-a-scroll-grid).
 
@@ -158,7 +201,7 @@ marks `data` as a window of a larger result. A server that sends no count works 
 
 ## Selection and bulk actions
 
-Set `totalRowCount` (`useDataGridServerRows` sets it). With `checkedRowsLifetime="across-filters"` (the hook sets it), checks survive page changes, evictions, and server sort
+Set `totalRowCount` (`useDataGridServerRows` sets it). With `totalRowCount`, `checkedRowsLifetime` defaults to `"across-filters"`. Checks then survive page changes, evictions, and server sort
 or filter changes, and `actions.selectAllMatching()` selects the whole result. Render this button inside the `DataGridProvider`:
 
 ```tsx
@@ -209,11 +252,11 @@ type SavedProps = {
 };
 
 export function SavedOrders({ first, save, notify }: SavedProps) {
-  const [rows, setRows] = useState(first);
+  const [rows, setRows] = useState<readonly Order[]>(first);
   return (
     <DataGridProvider
       data={rows}
-      onDataChange={(next) => setRows(next as Order[])}
+      onDataChange={setRows}
       columns={columns}
       getRowId={(row) => row.id}
       onSave={async (change) => ({ rejected: await save(change.ops) })}
@@ -232,9 +275,7 @@ export function SavedOrders({ first, save, notify }: SavedProps) {
 
 `onSave` never receives the revert (`source: "rollback"`), a server push (`source: "stream"`), or an id swap (`source: "id-swap"`). With `useDataGridServerRows`, pass `onSave` to the hook and it fetches again after the saves settle (`refreshAfterSave`).
 
-Pass `resolveSaveConflict` to merge a refused row with the server row. See [Save edits](/docs/save-server/save-edits#server-source) and [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict). See
-[Handle refused saves](/docs/save-server/handle-refused-saves#acknowledge-each-change)
-and [Fetch with a cache](/docs/data-modes/fetch-cache).
+Pass `resolveSaveConflict` to merge a refused row with the server row. See [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict), [Save edits](/docs/save-server/save-edits#server-source), and [Fetch with a cache](/docs/data-modes/fetch-cache).
 
 ## Async gates
 
@@ -257,8 +298,8 @@ duplicate until the first one settles.
 
 ## Races and row identity
 
-When the spec changes twice fast, the older response can arrive last. Cancel the first request,
-or ignore the older response:
+When the spec changes twice fast, the older answer can arrive last. Cancel the first request,
+or ignore the older answer:
 
 ```tsx
 import { useEffect } from "react";
@@ -289,18 +330,12 @@ Keep `getRowId` stable across fetches. Selection, edit state, and row operations
 
 [`DataGridUrlState`](/docs/sort-filter-search/url-state) writes the spec from the URL into the grid store on
 mount. With both modes set to `"server"`, the store keeps the spec and never sorts or filters the
-response. Your fetch reads the restored spec and loads the rows. With pagination, add
+answer. Your fetch reads the restored spec and loads the rows. With pagination, add
 `useDataGridUrlPagination` for `page` and `pageSize`.
 
 Without `totalRowCount` and without both modes set to `"server"`, a URL-restored spec sorts and
 filters partial data in the browser. With `totalRowCount`, the grid warns once in development when
 a client sort or filter runs over fewer rows than `totalRowCount`.
-
-### Check the request on your server [#parse-server-spec]
-
-`parseServerSpec(input, options)` checks a request body against `ParseServerSpecOptions`. Its `columns` option lists the ids a request can name, or maps each id to its `ServerSpecColumnRules`: `sortable`, `filterable`, `operators`, and custom operators. Its `limits` option is a `ServerSpecLimits`: `maxSorts` (64), `maxFilters` (64), `maxGroups` (16), `maxValueLength` (1000), `maxListLength` (1000), and `maxSearchLength` (500).
-
-URL state drops a filter value over 1,000 characters and cuts the search text to 500 characters. `maxValueLength` and `maxSearchLength` bound them on the server.
 
 ## Related
 
