@@ -65,7 +65,7 @@ mirror the change there.
 | Use | Meaning | Do not use |
 |---|---|---|
 | virtualization | Draw only the rows and columns in view, plus overscan. | windowing, windowed, row window |
-| rendered rows | The rows currently in the DOM. `onRenderedRowsChange` reports their range. | visible window |
+| rendered rows | The rows currently in the DOM. `onRenderedRowsChange` reports their range. The identifiers `windowStart` and `clampRectToWindow` call this range the window. | visible window |
 | overscan | Extra rows or columns drawn beyond the viewport edge. | |
 | grid origin | The row that anchors the rows canvas. It trails the first rendered row and moves only when the rendered rows drift far from it. | |
 | jump | A scroll of more than the viewport height plus 1,600 px in one scroll tick. After a jump, the grid mounts only the base overscan. | |

@@ -72,7 +72,7 @@ A term row links to the page that explains it.
 | push verdict | The `UpdateCellsVerdict` that `updateCells` and `updateRows` return: the count of cells the call wrote, and the patches it skipped with a reason. | [Read a push verdict](/docs/rows-live-data/read-push-verdict) |
 | quick search | The toolbar search that highlights matches and never filters rows. | [Quick search](/docs/sort-filter-search/quick-search) |
 | range | A rectangle of selected cells. | [Selection model](/docs/concepts/selection-model) |
-| rendered rows | The rows in the DOM. `onRenderedRowsChange` reports their range. | [Column and viewport events](/docs/events-state/column-viewport-events#onrenderedrowschange) |
+| rendered rows | The rows in the DOM. `onRenderedRowsChange` reports their range. The identifiers `windowStart` and `clampRectToWindow` call this range the window. | [Column and viewport events](/docs/events-state/column-viewport-events#onrenderedrowschange) |
 | request, answer | What `fetchRows` receives (`spec`, `start`, `end`, `cursor`, `signal`, plus `page` and `pageSize` in pages mode) and what it resolves (`rows`, `totalRowCount`, `hasMore`, `nextCursor`). The hook validates every answer. | [Server rows contract](/docs/contracts/server-rows-contract) |
 | reshape | A `refresh()` that `useDataGridServerRows` runs after a push, so the server places the rows again. `reshapeDelayMs` and `reshape()` control it. | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
 | result | Every row that matches the spec on the server. `data` holds the loaded rows of it. | [Data mode guide](/docs/data-modes) |

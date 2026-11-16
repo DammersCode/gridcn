@@ -31,7 +31,7 @@ export const FINDER = [
   {
     id: "select-copy-undo",
     title: "Select, copy, and undo",
-    pages: [["/docs/clipboard-undo/clipboard", "Copy and paste cells"], ["/docs/clipboard-undo/fill-handle", "Fill cells by dragging"], ["/docs/clipboard-undo/undo-redo", "Undo and redo edits"], ["/docs/selection-shortcuts/checked-rows", "Check rows and act on them"], ["/docs/rows-live-data/select-server-rows", "Select every row of a server result"], ["/docs/selection-shortcuts/status-bar", "Show totals of the selected cells"], ["/docs/selection-shortcuts/keyboard-navigation", "Move around the grid with the keyboard"]],
+    pages: [["/docs/clipboard-undo/clipboard", "Copy and paste cells"], ["/docs/clipboard-undo/change-copy-paste", "Change how cells copy and paste"], ["/docs/clipboard-undo/fill-handle", "Fill cells by dragging"], ["/docs/clipboard-undo/undo-redo", "Undo and redo edits"], ["/docs/selection-shortcuts/checked-rows", "Check rows and act on them"], ["/docs/rows-live-data/select-server-rows", "Select every row of a server result"], ["/docs/selection-shortcuts/keyboard-navigation", "Move around the grid with the keyboard"]],
   },
   {
     id: "columns-rows",
@@ -258,7 +258,7 @@ export const ACTION_PAGES = {
   setColumnOrder: "/docs/columns/column-order-pinning",
   setColumnPin: "/docs/columns/column-order-pinning",
   setColumnHidden: "/docs/columns/column-visibility",
-  setColumnLayout: "/docs/columns/column-visibility",
+  setColumnLayout: "/docs/columns/column-layout",
   toggleSort: "/docs/sort-filter-search/sorting",
   setSorts: "/docs/sort-filter-search/sorting",
   setFilters: "/docs/sort-filter-search/filtering",
@@ -271,7 +271,7 @@ export const ACTION_PAGES = {
   commitCellValueAt: "/docs/concepts/cell-type-model",
   setCellErrors: "/docs/save-server/show-errors-cells",
   clearCellErrors: "/docs/save-server/show-errors-cells",
-  flashCells: "/docs/rows-live-data/read-push-verdict#flash-cells",
+  flashCells: "/docs/rows-live-data/stream-updates#flash-cells",
   deleteSelection: "/docs/selection-shortcuts/global-shortcuts",
   applyCellUpdates: "/docs/events-state/data-change-events",
   updateCells: "/docs/rows-live-data/stream-updates",
