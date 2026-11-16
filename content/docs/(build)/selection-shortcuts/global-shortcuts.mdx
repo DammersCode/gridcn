@@ -72,7 +72,7 @@ export function Shortcuts() {
 }
 ```
 
-`<DataGridGlobalShortcuts selectAll undo={false} redo={false} />` enables only select all. <NewBadge />
+`<DataGridGlobalShortcuts selectAll undo={false} redo={false} />` enables only select all.
 
 | Flag | Enables | Needs |
 |---|---|---|
@@ -88,7 +88,7 @@ export function Shortcuts() {
 
 Each flagged action runs the same dispatch as its in-grid binding, with the same guards. For example, `insertRowBelow` does nothing without `createRow`, and the row actions do nothing in a read-only grid. The listener reads the effective keymap, so a remapped binding applies to the global layer too. See [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping#remapping).
 
-The layer fires a binding only when the key press carries <kbd>Ctrl</kbd> or <kbd>Cmd</kbd>. <NewBadge /> A flagged action with a bare key binding, such as `deleteRows: ["Delete"]`, stays in the grid. In development, the grid warns once about such a binding. To act on a bare key page-wide, add your own `window` listener that calls `api.actions`.
+The layer fires a binding only when the key press carries <kbd>Ctrl</kbd> or <kbd>Cmd</kbd>. A flagged action with a bare key binding, such as `deleteRows: ["Delete"]`, stays in the grid. In development, the grid warns once about such a binding. To act on a bare key page-wide, add your own `window` listener that calls `api.actions`.
 
 ## Multiple grids [#multiple-grids]
 

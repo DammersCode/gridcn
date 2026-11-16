@@ -21,7 +21,7 @@ A binding is a string of modifiers and one key, joined with `+`, for example `"m
 
 The key is a letter, a digit, a function key `F1` to `F24`, a named key, or a printable character. The typed named keys are `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`, `Home`, `End`, `PageUp`, `PageDown`, `Enter`, `Escape`, `Tab`, `Backspace`, and `Delete`. Other stable key names, such as `Insert` or `MediaPlayPause`, bind the same way, in exact case. Write a letter in lowercase, and it matches in either case. Write the space bar as a literal space. The last `+` separates the key, so the plus key cannot bind.
 
-The modifiers of the key event must equal the modifiers of the binding. The exception is a punctuation key such as `?` or `/`: without `shift` in the binding, <kbd>Shift</kbd> is ignored. A binding that names `shift` requires it, and wins over a binding without it. <NewBadge /> A binding with an unknown modifier never matches. A binding with an unknown modifier or key name warns in the browser console in development.
+The modifiers of the key event must equal the modifiers of the binding. The exception is a punctuation key such as `?` or `/`: without `shift` in the binding, <kbd>Shift</kbd> is ignored. A binding that names `shift` requires it, and wins over a binding without it. A binding with an unknown modifier never matches. A binding with an unknown modifier or key name warns in the browser console in development.
 
 ## Keymap
 
@@ -43,8 +43,6 @@ A `keymap` name runs the entry of the same name in `commands`. An entry named li
 <AutoTypeTable path="./registry/default/blocks/data-grid/types.ts" name="GridCommandCtx" />
 
 ## useDataGridKeybindings [#usedatagridkeybindings]
-
-<NewBadge />
 
 The hook returns `{ plugin, open, close }`. Put `plugin` in `plugins`. `open()` and `close()` drive the dialog from your own UI. The plugin defines the `openKeybindings` command and binds it to <kbd>?</kbd>.
 

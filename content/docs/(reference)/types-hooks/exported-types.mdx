@@ -57,7 +57,7 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | `SortSpec` | `{ columnId, direction }` | One sort. `direction` is `"asc"` or `"desc"`. |
 | `FilterSpec` | `{ filterId?, columnId, operator, value? }` | One filter row. `value` is a string, a pair, or a list, by operator. |
 | `FilterOperator` | `BuiltInFilterOperator \| string` | A built-in operator, or the `id` of a custom operator. |
-| `BuiltInFilterOperator` <NewBadge /> | A union of 15 operator names | The built-in operators, for example `contains`, `gt`, `isBetween`, and `isAnyOf`. |
+| `BuiltInFilterOperator` | A union of 15 operator names | The built-in operators, for example `contains`, `gt`, `isBetween`, and `isAnyOf`. |
 | `FilterNode` | `FilterSpec \| FilterGroup` | One entry of `filterState`. |
 | `FilterGroup` | `{ filterId?, join, filters }` | Filters that match together. `join` is a `FilterJoinOperator`, `"and"` or `"or"`. |
 | `FilterOperatorInput` | `"none" \| "single" \| "range" \| "list"` | The value shape that a filter operator takes. |
@@ -122,7 +122,7 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | --- | --- | --- |
 | `ColumnLayout` | `{ widths, order, pins, hidden }` | A snapshot of the column layout. It is the payload of `onColumnLayoutChange`. The `columnLayout` and `defaultColumnLayout` props take it in `Partial` form. |
 | `RowMarkersMode` | `"none"`, `"number"`, `"checkbox"`, `"both"`, `"reorder"`, or `"reorder-"` plus a content name | What the marker column shows. |
-| `CheckedRowsLifetime` <NewBadge /> | `"until-click" \| "until-cleared" \| "across-filters"` | How long checked rows stay checked. It is the type of the `checkedRowsLifetime` prop. |
+| `CheckedRowsLifetime` | `"until-click" \| "until-cleared" \| "across-filters"` | How long checked rows stay checked. It is the type of the `checkedRowsLifetime` prop. |
 | `HeaderClickBehavior` | `"select" \| "sort" \| "none"` | What a header click does. |
 | `RowMarkersContent` | `"number" \| "checkbox" \| "both"` | The content of the marker column. |
 | `GridDirection` | `"ltr" \| "rtl"` | The text direction of the grid. |

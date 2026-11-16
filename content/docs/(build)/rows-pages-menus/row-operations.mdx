@@ -51,7 +51,7 @@ Without a factory, the operation does nothing, a development warning appears, an
 
 Both factories can return a promise. The grid waits until every row settles and then writes one change. While a promise is pending, a second insert or duplicate does nothing. A rejection cancels it. The grid drops a late result when it became `readOnly` or the anchor or source row is gone.
 
-`ctx.signal` <NewBadge /> aborts in those cases and when the grid unmounts.
+`ctx.signal` aborts in those cases and when the grid unmounts.
 
 If a cell editor is open during an operation, the editor follows its row. An operation that removes the edited row cancels the edit and calls `onEditEnd` with `result: "cancel"`.
 
@@ -83,9 +83,9 @@ function RowTools() {
 - `insertRows(viewRowIndex, count, position)` inserts `count` rows as one change. `createRow` runs once per row. A `count` of 0 or less does nothing.
 - `duplicateRows(rowIds)` puts each copy directly after its own source row. `duplicateRowsAt(viewIndexes)` takes view row numbers.
 - `deleteRowsAt(viewIndexes)` deletes the rows at these view row numbers as one change.
-- `deleteRows(rowIds, options?)` <NewBadge /> deletes the rows with these ids as one change. The grid skips an id that matches no row. `{ source: "stream" }` deletes rows that the server removed. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
+- `deleteRows(rowIds, options?)` deletes the rows with these ids as one change. The grid skips an id that matches no row. `{ source: "stream" }` deletes rows that the server removed. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
 
-`api.runShortcut(action)` <NewBadge /> from `useDataGridApi` runs what the key of a keymap action runs, on the same rows as the key. A toolbar button needs no target code.
+`api.runShortcut(action)` from `useDataGridApi` runs what the key of a keymap action runs, on the same rows as the key. A toolbar button needs no target code.
 
 Insert and duplicate shift the selection around the new rows. Under a sort, a new row lands in its sorted position. Under a sort, a filter, or paging, the range collapses onto the active cell. Delete clears the selection, the active cell, and ["all matching"](/docs/rows-live-data/select-server-rows#what-ends-all-matching), but remembered checks of hidden rows stay.
 
@@ -104,9 +104,9 @@ Remap or remove these `DEFAULT_KEYMAP` keys through the `keymap` prop, as [Short
 
 ## Confirm a delete
 
-`onBeforeDeleteRows` <NewBadge /> runs before every delete the grid starts: the shortcut, the context menu item, `deleteRows`, and `deleteRowsAt` without `source: "stream"`. It receives `rowIds`, the ids that go, and `hiddenCount`, the number of hidden checked rows that stay. It also receives `signal`, an `AbortSignal` that aborts when the rows change or the grid unmounts. Return `false` or a promise of `false` to cancel. Without the prop, a delete runs at once.
+`onBeforeDeleteRows` runs before every delete the grid starts: the shortcut, the context menu item, `deleteRows`, and `deleteRowsAt` without `source: "stream"`. It receives `rowIds`, the ids that go, and `hiddenCount`, the number of hidden checked rows that stay. It also receives `signal`, an `AbortSignal` that aborts when the rows change or the grid unmounts. Return `false` or a promise of `false` to cancel. Without the prop, a delete runs at once.
 
-A bulk delete button <NewBadge /> calls `deleteRows`, so this check runs too. [Run bulk actions](/docs/recipes-custom-code/run-bulk-actions) builds the bar.
+A bulk delete button calls `deleteRows`, so this check runs too. [Run bulk actions](/docs/recipes-custom-code/run-bulk-actions) builds the bar.
 
 The grid ships no dialog. This sample resolves a promise from the buttons of a dialog:
 

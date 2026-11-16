@@ -71,7 +71,7 @@ export function ExportAllButton() {
 `scope` picks the rows:
 
 - `view` (default) writes the rows of the current view, in sort order and after the filters. A grid that pages its view writes every page. Quick search does not narrow the view, so it does not narrow the export.
-- `page` <NewBadge /> writes the rows of the shown page. A grid without paging treats it as `view`.
+- `page` writes the rows of the shown page. A grid without paging treats it as `view`.
 - `all` writes every row of `data` in data order, whatever the sort and the filters.
 - `selection` writes the rows that a cell range or a checked row marker covers, in view order. With `'until-cleared'` or `'across-filters'`, one checked row limits the export to the checked rows. [Run bulk actions](/docs/recipes-custom-code/run-bulk-actions) exports the checked rows from a button.
 
@@ -91,7 +91,7 @@ A cell that starts with `=`, `+`, `-`, `@`, a tab, or a carriage return gets a l
 
 ## Write an XLSX file
 
-An XLSX file holds one compressed sheet. A `number` column writes number cells <NewBadge />. A `date` column writes date cells, and a `checkbox` column writes boolean cells. Excel can sum and sort them. Every other cell is a text cell with its `toText` string. A string never runs as a formula there. To write other typed cells, or to write a built-in column as text, return the value from [`formatCell`](/docs/import-export/shape-export-file#result).
+An XLSX file holds one compressed sheet. A `number` column writes number cells. A `date` column writes date cells, and a `checkbox` column writes boolean cells. Excel can sum and sort them. Every other cell is a text cell with its `toText` string. A string never runs as a formula there. To write other typed cells, or to write a built-in column as text, return the value from [`formatCell`](/docs/import-export/shape-export-file#result).
 
 `sheetName` names the sheet (`Sheet1` by default). An export rejects a name that Excel does not allow:
 
@@ -124,13 +124,13 @@ export function useUploadWorkbook() {
 
 `printGrid(state, options)` fills a hidden frame with a plain table of the rows and opens the browser print dialog. The dialog's "Save as PDF" creates a PDF. Call `useDataGridPrint()` inside the provider, or place `DataGridPrintButton` in the toolbar. The [Print example](/docs/basic-examples/print-example) shows the button with a page size picker.
 
-Print takes the same `scope` as export. It prints visible columns in view order. Each cell shows the display text of its cell type (`toDisplayText`, else `toText`), so a formatted value prints as it reads on screen. A cell aligns with the `align` of its cell type, in reading direction, so an end-aligned number stays at the end in a right-to-left page. A `cellClassName` does not reach the printed table. <NewBadge /> A call while a print frame is open replaces that frame. Print does nothing during server rendering.
+Print takes the same `scope` as export. It prints visible columns in view order. Each cell shows the display text of its cell type (`toDisplayText`, else `toText`), so a formatted value prints as it reads on screen. A cell aligns with the `align` of its cell type, in reading direction, so an end-aligned number stays at the end in a right-to-left page. A `cellClassName` does not reach the printed table. A call while a print frame is open replaces that frame. Print does nothing during server rendering.
 
 - `title` prints as a heading and sets the document title.
 - `orientation` defaults to `landscape` above 6 visible columns, else `portrait`.
 - `pageSize` is `"A4"` (default), `"A3"`, `"Letter"`, or `"Legal"`.
-- `maxRows` defaults to 10,000. A 500,000-cell ceiling cuts it further. `NaN` reads as the default, and a negative value counts as 0. <NewBadge /> A cut table ends with a note such as "Printed 10000 of 25000 rows".
-- `direction` <NewBadge /> is `"ltr"` or `"rtl"`. It defaults to the reading direction of the page that prints.
+- `maxRows` defaults to 10,000. A 500,000-cell ceiling cuts it further. `NaN` reads as the default, and a negative value counts as 0. A cut table ends with a note such as "Printed 10000 of 25000 rows".
+- `direction` is `"ltr"` or `"rtl"`. It defaults to the reading direction of the page that prints.
 - A cell text over 32,767 characters is cut, as in XLSX.
 - `DataGridPrintButton` passes its `options` prop to `printGrid`.
 
@@ -145,7 +145,7 @@ Without a `source`, export covers the rows the grid holds. It never asks the ser
 - With `sortMode="server"`, the `view` scope keeps the order of `data`. With `filterMode="server"`, it applies no filter.
 - With controlled `sortState` and `filterState`, export follows the view like a local grid.
 
-A `source` <NewBadge /> writes the whole server result. See [Export the whole result](/docs/import-export/export-whole-result).
+A `source` writes the whole server result. See [Export the whole result](/docs/import-export/export-whole-result).
 
 Print covers the rows the grid holds, in the same way. A grid fed by `useDataGridServerRows` prints its current page, or the loaded blocks in scroll mode, not the rest of the server result. To print the whole result, use a CSV or XLSX export of the whole result.
 

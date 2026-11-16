@@ -70,8 +70,6 @@ The prefix and an underscore start every key of the grid. `prefix="orders"` give
 
 ### spec [#spec]
 
-<NewBadge />
-
 The option picks which parts of the view spec go into the URL. The default is `["sort", "filter", "search"]`. `spec={[]}` turns spec sync off. `spec={["sort"]}` keeps the sort in the URL and leaves the filter values and the search text out.
 
 | Part | Keys |
@@ -113,8 +111,8 @@ A hand-edited URL cannot grow the view state without bound. Every write uses `hi
 
 - `filter`: 64 rows, 16 groups, 256 segments.
 - `filter` list values: A column with `choices` allows the larger of its choice count and 64. Other columns allow 1,000. A longer `isAnyOf` list keeps its first entries. A longer `isNoneOf` list drops the segment.
-- `filter` value length: A value, a choice, or a range bound over 1,000 characters drops the segment. <NewBadge />
-- `q`: The grid cuts the search text to 500 characters. <NewBadge />
+- `filter` value length: A value, a choice, or a range bound over 1,000 characters drops the segment.
+- `q`: The grid cuts the search text to 500 characters.
 - `sort`: 64 sorts, 256 segments, one direction for each column.
 - `cols`, `hide`, `widths`, `pins`: 1,024 entries. The grid ignores a key over 16,384 characters.
 - `pageSize`: a value outside `pageSizeOptions` reads as `defaultPageSize`.

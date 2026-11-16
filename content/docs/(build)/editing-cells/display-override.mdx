@@ -47,8 +47,6 @@ Render the value as React text. Never pass a cell value to `dangerouslySetInnerH
 
 ## Show an image [#image]
 
-<NewBadge />
-
 Pass an image URL from the data through `safeHref` first. It returns `null` for every protocol except `http`, `https`, and `mailto`. This column shows a photo:
 
 ```tsx
@@ -89,7 +87,7 @@ The cell type stays `text`, so copy, paste, and export use the URL.
 - `columnId`: the column id.
 - `viewRowIndex`: the position in the sorted and filtered view. The position moves with the view, so identify a row by `rowId`.
 - `column`: the column definition.
-- `options` <NewBadge />: the column `options`.
+- `options`: the column `options`.
 - `isActive`: `true` while the cell is the active cell.
 
 ## When a cell re-renders [#re-render]

@@ -63,7 +63,7 @@ Keep the `columns` array stable: define it outside the component or memoize it. 
 | --- | --- | --- | --- |
 | `id` | `string` | Required | Stable identity of the column. Duplicate ids trigger a development warning. |
 | `header` | `string \| ReactNode` | Required | A string header shows a sort arrow while the column is sorted, unless the column has `sortable: false`. A node renders as given, with no sort arrow. |
-| `headerText` <NewBadge /> | `string` | text of a node `header` | Plain-text name for a node header. The screen reader label, the menus, export, import matching, and autosize read it. Without it, they read the text of the elements in the node, or the column id when the node has no text. |
+| `headerText` | `string` | text of a node `header` | Plain-text name for a node header. The screen reader label, the menus, export, import matching, and autosize read it. Without it, they read the text of the elements in the node, or the column id when the node has no text. |
 | `accessorKey` | `keyof TData` (string keys) | none | Row field that holds the value. |
 | `accessorFn` | `(row) => TValue` | none | Computes the value from the row. |
 | `setValue` | `(row, value) => TData` | spread of `accessorKey` | Returns a new row with the value written. |
@@ -79,13 +79,13 @@ Keep the `columns` array stable: define it outside the component or memoize it. 
 | `pin` | `"start" \| "end"` | none | Starting pin side, applied when the column id first appears. `"start"` and `"end"` follow the inline axis, so both flip in a right-to-left page. |
 | `sortable` | `boolean` | `true` | `false` removes the column from header-click sorting, the sort list, and the sort items of the header menu. |
 | `filterable` | `boolean` | `true` | `false` removes the column from the filter column picker and the header filter. |
-| `filter` <NewBadge /> | `ColumnFilter` | from `type` | Sets the filter capabilities of this column. Each member beats the same member of the cell type. See the table below. |
+| `filter` | `ColumnFilter` | from `type` | Sets the filter capabilities of this column. Each member beats the same member of the cell type. See the table below. |
 | `sortCompare` | `(a, b) => number` | none | Compares two rows for sorting. |
 | `hidden` | `boolean` | none | `true` hides the column when its id first appears. `setColumnHidden` and the columns menu change it later. |
 | `resizable` | `boolean` | `true` | `false` removes the resize handle and leaves the column out of autosize. |
 | `reorderable` | `boolean` | `true` | `false` stops the drag of this column. `setColumnOrder` ignores the column. |
 | `pinnable` | `boolean` | `true` | `false` turns off pin and unpin. `setColumnPin` and the pins of a layout leave the column alone. It keeps its `pin`. |
-| `hideable` <NewBadge /> | `boolean` | `true` | `false` turns off the column row in the columns menu while the column is visible and removes "Hide column" from the header menu. `setColumnHidden` still hides the column. |
+| `hideable` | `boolean` | `true` | `false` turns off the column row in the columns menu while the column is visible and removes "Hide column" from the header menu. `setColumnHidden` still hides the column. |
 | `renderCell` | `(props) => ReactNode` | none | Replaces how the cell looks. |
 | `cellClassName` | `string \| (ctx) => string` | none | Adds classes to every cell of the column. A text alignment class aligns the cells. See [Align a column](/docs/theme-style-language/style-overrides#align-a-column). |
 | `headerClassName` | `string` | none | Adds classes to the header cell. |
@@ -132,7 +132,7 @@ Keep the `columns` array stable: define it outside the component or memoize it. 
 
 `TypedColumnDef<TData, K>` is the column type for cell type `K`. `defineColumns` checks each literal against `AnyTypedColumn<TData>`, the union of these types. `TypedTextColumnDef<TData>` is its `text` branch, where `type` is optional.
 
-[TypeScript generics](/docs/types-hooks/typescript-generics) <NewBadge /> lists the type arguments of the hooks and the interfaces that you extend.
+[TypeScript generics](/docs/types-hooks/typescript-generics) lists the type arguments of the hooks and the interfaces that you extend.
 
 ## Related
 

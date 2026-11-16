@@ -61,9 +61,9 @@ Import them from `@/components/data-grid/data-grid-sdk`.
 | Export | Purpose | Page |
 | --- | --- | --- |
 | `useDataGridStoreApi` | Returns the read-only store view for `exportGrid` and the import helpers. | [Export options](/docs/add-options/import-export/export-options) |
-| `useOptionalDataGridLabels` <NewBadge /> | Returns the labels of the enclosing `DataGridProvider`, or `null` outside one. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridlabels) |
-| `sortCollator` <NewBadge /> | Returns the collator of the `sortLocale` in scope, or the `"en-US"` collator outside a scope. A custom text `compare` calls it synchronously. | [Cell type contract](/docs/contracts/cell-type-contract) |
-| `withSortLocale` <NewBadge /> | Runs a synchronous function with a `sortLocale` in scope. A function that returns a promise leaves the scope at its first `await`, with one development warning. Wrap a sort or text compare that runs outside the view build. | [Sorting](/docs/sort-filter-search/sorting#sort-order) |
+| `useOptionalDataGridLabels` | Returns the labels of the enclosing `DataGridProvider`, or `null` outside one. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridlabels) |
+| `sortCollator` | Returns the collator of the `sortLocale` in scope, or the `"en-US"` collator outside a scope. A custom text `compare` calls it synchronously. | [Cell type contract](/docs/contracts/cell-type-contract) |
+| `withSortLocale` | Runs a synchronous function with a `sortLocale` in scope. A function that returns a promise leaves the scope at its first `await`, with one development warning. Wrap a sort or text compare that runs outside the view build. | [Sorting](/docs/sort-filter-search/sorting#sort-order) |
 
 ## Cell editor hooks
 
@@ -77,8 +77,8 @@ Import them from `@/components/data-grid/data-grid-sdk`.
 
 | Hook | Purpose | Page |
 | --- | --- | --- |
-| `aggregateRow` <NewBadge /> | Declares a totals row for `useDataGridPinnedRows`. | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options#aggregaterow) |
-| `serverAggregateRow` <NewBadge /> | Declares a totals row that your server computes. | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options#serveraggregaterow) |
+| `aggregateRow` | Declares a totals row for `useDataGridPinnedRows`. | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options#aggregaterow) |
+| `serverAggregateRow` | Declares a totals row that your server computes. | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options#serveraggregaterow) |
 | `useDataGridAggregate` | Reads an aggregate inside the provider. | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options) |
 | `useDataGridExport` | Exports the grid to a file. | [Export options](/docs/add-options/import-export/export-options) |
 | `useDataGridFill` | Mounts the fill handle plugin. | [Fill handle](/docs/clipboard-undo/fill-handle) |

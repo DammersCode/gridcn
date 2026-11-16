@@ -46,11 +46,11 @@ export function TickerFeed({ url }: { url: string }) {
 
 One call is one batch. The grid applies all patches together and calls `onDataChange` once, with one `update` operation per touched row. Rows you do not patch keep their object identity and do not render again. The grid skips a patch for an unknown row id. To add a row, pass a new `data` array.
 
-A call with `source: "stream"` <NewBadge /> (the default) takes at most 100,000 patches. The grid skips the patches after the limit. A stream `deleteRows` call takes at most 100,000 ids under the same rule.
+A call with `source: "stream"` (the default) takes at most 100,000 patches. The grid skips the patches after the limit. A stream `deleteRows` call takes at most 100,000 ids under the same rule.
 
 A hidden column takes patches like a visible one.
 
-A call with `source: "stream"` <NewBadge /> writes into a `readOnly` grid and into read-only columns and rows. A call with another `source`, for example `"edit"`, keeps every read-only check.
+A call with `source: "stream"` writes into a `readOnly` grid and into read-only columns and rows. A call with another `source`, for example `"edit"`, keeps every read-only check.
 
 ## Patch whole rows [#whole-rows]
 
@@ -88,7 +88,7 @@ If no patched column feeds the active sort or filter, `"defer"` acts as `"never"
 
 `"immediate"` finds each patched row and keeps the order when every row still sits between its neighbors. Otherwise it removes the patched rows, tests them against the filter again, and puts them back at the positions a full sort gives them. A batch that cannot change a sort or filter value skips this work. The grid rebuilds the whole order when this batch and the earlier deferred batches touch more than 256 rows. After an edit, paste, fill, cell clear, undo, redo, rollback, row operation, or data swap, the next batch also rebuilds once.
 
-With `sortMode="server"` <NewBadge /> or `filterMode="server"`, the server orders the rows. A push marks the row stale and the hook can refetch. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
+With `sortMode="server"` or `filterMode="server"`, the server orders the rows. A push marks the row stale and the hook can refetch. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
 
 ## Control the data yourself [#controlled-mode]
 
@@ -96,7 +96,7 @@ In controlled mode, store the array that `onDataChange` gives you in state, and 
 
 ## Undo and save [#undo-history]
 
-A batch <NewBadge /> carries `source: "stream"`. The history add-on does not record it, and `onSave` never receives it. Undo writes only the cells of its edit, so values pushed into other cells stay. A push into a row with a save in flight is skipped with reason `saving`. Push it again after the save settles.
+A batch carries `source: "stream"`. The history add-on does not record it, and `onSave` never receives it. Undo writes only the cells of its edit, so values pushed into other cells stay. A push into a row with a save in flight is skipped with reason `saving`. Push it again after the save settles.
 
 To make one batch undoable, pass `{ source: "edit" }` to `updateCells`. An `"edit"` batch reaches `onSave`. To record streams without that, add the source to the defaults of the history add-on:
 

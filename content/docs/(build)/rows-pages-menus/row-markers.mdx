@@ -68,7 +68,7 @@ The built-in checkboxes take their aria-labels from `labels.markers.selectRow` a
 | --- | --- | --- |
 | `renderMarker` | `MarkerCellRenderer` | built-in number and checkbox |
 | `renderMarkerHeader` | `MarkerHeaderRenderer` | built-in select-all checkbox |
-| `markerWidth` <NewBadge /> | `number` | width of the mode |
+| `markerWidth` | `number` | width of the mode |
 
 `renderMarker` receives `rowId`, the 0-based `viewRowIndex`, and two flags. If the row channel holds the row, `isRowChannelSelected` is true. If the selection covers at least one cell of the row, `isCellSelected` is true. A cell click sets the second flag and never sets the first. With `checkedRowsLifetime="until-click"` (the default without `totalRowCount`), it clears the row selection. `renderMarkerHeader` receives `allSelected`, which is `"checked"`, `"indeterminate"`, or `"unchecked"`. In modes without a checkbox, the header is blank, so the renderer fills the blank cell.
 

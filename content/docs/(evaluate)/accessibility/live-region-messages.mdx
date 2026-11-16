@@ -32,7 +32,7 @@ A load ends when `loading` goes from `true` to `false`. With `announceResults`, 
 
 - The server-evaluated filters, sort, search, or `totalRowCount` changed since the last load ended.
 - The load before it failed.
-- The load began with zero rows and the result count changed. <NewBadge /> A refetch of an unchanged empty result stays quiet.
+- The load began with zero rows and the result count changed. A refetch of an unchanged empty result stays quiet.
 
 A block fill in scroll mode and a page change with the same count stay quiet. A server grid reads `totalRowCount` when it is a number, for example "1,234 rows". Otherwise it reads the loaded rows. When the view also holds unloaded rows, the text says so, for example "40 loaded rows" (`labels.grid.resultsCountLoaded`). Without unloaded rows, a count of 0 reads "No results" (`labels.grid.noResults`).
 

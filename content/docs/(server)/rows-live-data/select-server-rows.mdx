@@ -19,7 +19,7 @@ Set `totalRowCount` to the size of the whole result, or `null` when the size is 
 | Prop | Description | Default |
 | --- | --- | --- |
 | `totalRowCount` | The size of the result. A negative or non-finite number counts as `null`. | none |
-| `checkedRowsLifetime` <NewBadge /> | With `'across-filters'`, a checked row stays checked by row id when it leaves `data`, and a cell selection keeps the checks. Row operations then act on the checked rows only. | `'across-filters'` with `totalRowCount`, else `'until-click'` |
+| `checkedRowsLifetime` | With `'across-filters'`, a checked row stays checked by row id when it leaves `data`, and a cell selection keeps the checks. Row operations then act on the checked rows only. | `'across-filters'` with `totalRowCount`, else `'until-click'` |
 
 With `totalRowCount` and `checkedRowsLifetime="across-filters"` in effect:
 

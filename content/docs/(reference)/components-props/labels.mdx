@@ -53,7 +53,7 @@ The empty grid shows "Keine Zeilen". With the toolbar add-on, its search shows "
 - A string, a function, or an array that you set replaces the default as a whole.
 - The grid compares `labels` by content, so a literal object of strings needs no `useMemo`. A label that is a function counts as changed when its identity changes.
 - A key that you set to `undefined` keeps the default. To blank a string label, set it to `""`.
-- A component with its own `labels` prop merges three layers: the default, then the `labels.<group>` of the grid, then the `labels` prop of the component. These components are `DataGridPaginationBar`, `DataGridStatusBar`, and `DataGridViews`. <NewBadge />
+- A component with its own `labels` prop merges three layers: the default, then the `labels.<group>` of the grid, then the `labels` prop of the component. These components are `DataGridPaginationBar`, `DataGridStatusBar`, and `DataGridViews`.
 - `useDataGridLabels()` returns the merged result under the provider.
 
 ## DataGridLabels [#datagridlabels]
@@ -78,7 +78,7 @@ Each group below is one key of `DataGridLabels`.
 
 ### keybindings [#keybindings]
 
-In the keybindings dialog, a custom command shows its `label`. Without `label` and without an entry in `keybindings.actions`, the dialog shows the action name as words: `exportCsv` shows as "Export csv". `keybindings.actions.openKeybindings` <NewBadge /> names the action that opens the dialog.
+In the keybindings dialog, a custom command shows its `label`. Without `label` and without an entry in `keybindings.actions`, the dialog shows the action name as words: `exportCsv` shows as "Export csv". `keybindings.actions.openKeybindings` names the action that opens the dialog.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid/labels.ts" name="DataGridKeybindingsLabels" />
 
@@ -103,8 +103,6 @@ In the keybindings dialog, a custom command shows its `label`. Without `label` a
 <AutoTypeTable path="./registry/default/blocks/data-grid/labels.ts" name="DataGridStatusBarLabels" />
 
 ### views [#views]
-
-<NewBadge />
 
 <AutoTypeTable path="./registry/default/blocks/data-grid/labels.ts" name="DataGridViewsLabels" />
 

@@ -56,7 +56,7 @@ A `delayMs` of `0` calls `onCommit` on each keystroke.
 | Member | Type | Meaning |
 | --- | --- | --- |
 | `inputProps` | `DebouncedInputProps` | The props to spread: `value`, `onChange`, `onBlur`, `onKeyDown`, `onCompositionStart`, and `onCompositionEnd`. |
-| `getInputProps` <NewBadge /> | `(own?) => DebouncedInputProps` | `inputProps` with the handlers in `own` chained. Each handler in `own` runs first, then the one of the hook. Other props in `own`, such as `className`, pass through. |
+| `getInputProps` | `(own?) => DebouncedInputProps` | `inputProps` with the handlers in `own` chained. Each handler in `own` runs first, then the one of the hook. Other props in `own`, such as `className`, pass through. |
 | `inputValue` | `string` | The text in the input. It equals `inputProps.value`. |
 | `flush` | `() => void` | Calls `onCommit` with a pending value at once. |
 | `cancel` | `() => void` | Drops a pending value and shows `value` again. |

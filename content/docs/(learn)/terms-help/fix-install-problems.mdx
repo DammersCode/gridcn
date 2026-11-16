@@ -20,8 +20,6 @@ To pin a tag, branch, or commit, append `#<ref>` to the item name. The CLI fetch
 
 ### Mirror the registry [#mirror-the-registry]
 
-<NewBadge />
-
 A `registries` entry in `components.json` maps a namespace to a URL, and it wins over the hosted `@gridcn` registry. To serve gridcn from your own host:
 
 1. Copy the `public/r/*.json` files of a gridcn release to your host.
@@ -39,8 +37,6 @@ A `registries` entry in `components.json` maps a namespace to a URL, and it wins
 The URL must contain `{name}`. Plain names such as `popover` in `registryDependencies` still come from the shadcn registry.
 
 ## Install in a monorepo [#monorepo]
-
-<NewBadge />
 
 Run the CLI for the app that renders the grid. Pass its folder with `-c`, for example `npx shadcn add @gridcn/data-grid -c apps/web`. The CLI reads the `components.json` of that folder. The gridcn files land under its `aliases.components`, and their imports use its `aliases`. If the shadcn primitives live in a shared package, point `aliases.ui` and `aliases.utils` at the import paths that the app resolves for that package.
 

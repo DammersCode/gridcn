@@ -20,7 +20,7 @@ A view index is a position in the current sorted and filtered order. A selection
 
 `useDataGridSelection()` reads the selection as a `GridSelection`. The row and column channels are `CompactSelectionLike` sets, and the exported `CompactSelection` class implements them.
 
-`runs()` <NewBadge /> returns the members as sorted `[start, end)` runs. It costs less than `toArray()` for a large selection, such as 100,000 checked rows. The type `SelectionConfig` describes the four props under Configurability.
+`runs()` returns the members as sorted `[start, end)` runs. It costs less than `toArray()` for a large selection, such as 100,000 checked rows. The type `SelectionConfig` describes the four props under Configurability.
 
 ## Selection follows records
 
@@ -30,7 +30,7 @@ A sort, a filter, a new `data` array, and a column move, hide, or pin all rebuil
 - The column channel follows column ids. A column that leaves the view leaves the channel.
 - The active cell follows its record and its column.
 - When the record or the column of the active cell leaves the view, the active cell keeps its view position, clamped into the view.
-- A page change <NewBadge /> of a paged grid clears the active cell and drops the checks and the range of the rows that left the page. `checkedRowsLifetime="across-filters"` keeps the checks by row id. A column selection stays.
+- A page change of a paged grid clears the active cell and drops the checks and the range of the rows that left the page. `checkedRowsLifetime="across-filters"` keeps the checks by row id. A column selection stays.
 - When the rebuild puts other records or other columns under the range, the grid collapses the range onto the active cell. A clamp that moves the active cell collapses the selection onto it. A clamp that leaves the cell in place drops the range.
 
 A row operation therefore never reaches a record that nobody selected. Delete rows after a sort deletes the same records you selected before the sort.

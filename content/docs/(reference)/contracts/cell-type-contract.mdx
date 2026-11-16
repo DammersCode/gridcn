@@ -47,7 +47,7 @@ Each feature reads the value through its own member. One override does not reach
 
 A custom `toText` changes copy, export, and search. It does not change what a filter matches. A column with no declared type searches `String(value)`.
 
-A text `compare` <NewBadge /> calls `sortCollator().compare` from `data-grid-sdk`, so it follows `sortLocale`. `localeCompare` follows the language of the runtime, so a server and a browser order rows differently. Call it synchronously. The scope ends at the first `await`, and outside a scope the collator uses `"en-US"`. The sample compares two texts:
+A text `compare` calls `sortCollator().compare` from `data-grid-sdk`, so it follows `sortLocale`. `localeCompare` follows the language of the runtime, so a server and a browser order rows differently. Call it synchronously. The scope ends at the first `await`, and outside a scope the collator uses `"en-US"`. The sample compares two texts:
 
 ```ts
 import { sortCollator } from "@/components/data-grid/data-grid-sdk";
@@ -75,7 +75,7 @@ Content that the editor portals out of the cell, such as a popover, carries `dat
 
 ### toText, fromText, clearValue, and isEmpty [#totext-fromtext-clearvalue-and-isempty]
 
-`fromText` <NewBadge /> parses typed, pasted, and imported text. For text it cannot parse, return the result of `clearValue`. If `fromText` throws, the grid rejects that cell. Paste and fill leave it unchanged and report it through `onValidationError`. Import lists it in `rejected`, and replace skips it.
+`fromText` parses typed, pasted, and imported text. For text it cannot parse, return the result of `clearValue`. If `fromText` throws, the grid rejects that cell. Paste and fill leave it unchanged and report it through `onValidationError`. Import lists it in `rejected`, and replace skips it.
 
 `toText` must round-trip through `fromText` for every value the type can hold.
 

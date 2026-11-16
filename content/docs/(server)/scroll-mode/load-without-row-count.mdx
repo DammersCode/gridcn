@@ -63,8 +63,6 @@ At the end the skeleton rows go away and `totalRowCount` holds the final row cou
 
 ## Fix the fetch order [#source]
 
-<NewBadge />
-
 The first answer picks the order. To fix it, pass `source: "random"` for random access or `source: "sequential"` for a sequential source. A random source that answers without `totalRowCount` warns in development.
 
 ## How the source advances
@@ -74,7 +72,7 @@ When the rendered rows come within `overscan` rows of the loaded end, the next b
 - A failed block sets `error`, calls `onError`, and stops the source. `retry()` repeats the block, and so does the next report of the rendered rows.
 - A change of the sort, filter, or search text drops the loaded rows and the cursor. The source starts again at block 0.
 - `refresh()` fetches again from the first block and keeps the loaded rows on screen until the answers land.
-- `evict` <NewBadge /> does nothing, because a sequential source cannot refetch an arbitrary range. `maxLoadedRows` does not apply either. Loaded rows stay until a spec change or a `refresh()`. When the list must not grow without bound, stop returning a cursor.
+- `evict` does nothing, because a sequential source cannot refetch an arbitrary range. `maxLoadedRows` does not apply either. Loaded rows stay until a spec change or a `refresh()`. When the list must not grow without bound, stop returning a cursor.
 
 ## Select rows without a row count
 

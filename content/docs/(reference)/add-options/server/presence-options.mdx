@@ -12,7 +12,7 @@ aliases: ["presence highlight", "remote cursors", "collaborator selection"]
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-presence/use-data-grid-presence.ts" name="UseDataGridPresenceOptions" />
 
-`maxRects` defaults to `MAX_RESOLVED_RECTS`, which is 1024. It caps the rectangles that one `RowIdRangePresenceHighlight` entry paints, one for each contiguous fragment. The overlay drops the excess. After the overlay commits, it calls `onExcessRects({ entry, kept, total })` once each time the `kept` and `total` of an entry change. <NewBadge /> The argument has the type `ExcessRectsContext`. The call runs outside the render, so it can set React state. Development builds also warn once for each entry.
+`maxRects` defaults to `MAX_RESOLVED_RECTS`, which is 1024. It caps the rectangles that one `RowIdRangePresenceHighlight` entry paints, one for each contiguous fragment. The overlay drops the excess. After the overlay commits, it calls `onExcessRects({ entry, kept, total })` once each time the `kept` and `total` of an entry change. The argument has the type `ExcessRectsContext`. The call runs outside the render, so it can set React state. Development builds also warn once for each entry.
 
 ## Result [#usedatagridpresenceresult]
 
@@ -30,7 +30,7 @@ aliases: ["presence highlight", "remote cursors", "collaborator selection"]
 - An entry whose `id` is missing, not a string, or longer than 256 characters.
 - An entry past the first 1000.
 
-A payload <NewBadge /> that is not an array clears every highlight. An id list of more than 10,000 ids keeps the first 10,000.
+A payload that is not an array clears every highlight. An id list of more than 10,000 ids keeps the first 10,000.
 
 The hook repairs two fields. A `label` that is no string is removed, and a label of more than 64 characters is cut. A `color` that is no string, or longer than 128 characters, paints as `var(--color-primary)`.
 

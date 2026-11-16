@@ -41,8 +41,6 @@ A grid taller than a browser allows has no full scroll range. [Row limits](/docs
 
 ### Grid in a hidden tab or panel [#hidden-container]
 
-<NewBadge />
-
 A grid can mount in a container with no size, such as a closed tab, a collapsed accordion, or a parent with `display: none`. While the container has no size, the grid renders its header and at most one data row. It needs no `key` and no remount. The grid watches the size of its scroll area. When the container shows, the grid reads the new size and renders the rows in view.
 
 A tab component that unmounts a closed panel unmounts the grid too. The grid then starts fresh when the panel opens: uncontrolled sorts, filters, and the scroll position reset. To keep them, keep the panel mounted. To keep only sorts and filters, control them with `sortState` and `filterState`.

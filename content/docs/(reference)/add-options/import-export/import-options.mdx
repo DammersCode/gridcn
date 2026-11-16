@@ -47,7 +47,7 @@ The user can change every default in the open dialog.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-io/parse-import-file.ts" name="ImportLimits" />
 
-An XLSX part has a cap of `maxDecompressedBytes` bytes after unpacking. <NewBadge /> Without `maxDecompressedBytes`, the cap is `maxCells * 10 + 1 MiB`.
+An XLSX part has a cap of `maxDecompressedBytes` bytes after unpacking. Without `maxDecompressedBytes`, the cap is `maxCells * 10 + 1 MiB`.
 
 ## DataGridImportButtonProps [#datagridimportbuttonprops]
 
@@ -98,9 +98,9 @@ The result lists each cleared cell:
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-io/build-imported-rows.ts" name="BuildImportedRowsResult" />
 
-The function always returns a promise. <NewBadge /> If `signal` aborts, a build over 5,000 data rows, or one with `processCellFromText`, rejects between chunks with `"import-cancelled"`, which the add-on exports as `IMPORT_CANCELLED_MESSAGE`. A smaller build checks `signal` once, after an async `createRow` settles, and rejects with the same message. `signal` has no effect on a small build with synchronous hooks. If two entries of `mapping` name one grid column, the later entry wins, and development mode warns once for that column.
+The function always returns a promise. If `signal` aborts, a build over 5,000 data rows, or one with `processCellFromText`, rejects between chunks with `"import-cancelled"`, which the add-on exports as `IMPORT_CANCELLED_MESSAGE`. A smaller build checks `signal` once, after an async `createRow` settles, and rejects with the same message. `signal` has no effect on a small build with synchronous hooks. If two entries of `mapping` name one grid column, the later entry wins, and development mode warns once for that column.
 
-`mapping` is a list of `ImportColumnMapping` entries: `{ importColumnIndex, gridColumnId }`, with `null` as `gridColumnId` for a skipped column. `rejected` lists `ImportRejectedCell` entries for cleared cells. `flagged` <NewBadge /> lists the cells of `validationMode: "warn"` columns that keep their value.
+`mapping` is a list of `ImportColumnMapping` entries: `{ importColumnIndex, gridColumnId }`, with `null` as `gridColumnId` for a skipped column. `rejected` lists `ImportRejectedCell` entries for cleared cells. `flagged` lists the cells of `validationMode: "warn"` columns that keep their value.
 
 ## useDataGridImportPreview [#usedatagridimportpreview]
 
@@ -132,8 +132,8 @@ The hook runs the file, header, and mapping steps of the dialog and leaves the U
 | `children` | `ReactNode` | `DropzoneEmptyState` and `DropzoneContent` | Replaces the default content. |
 | `className` | `string` | none | Merges after the built-in classes. |
 | `aria-label` | `string` | none | Names the drop surface. |
-| `accessibleDescription` <NewBadge /> | `string` | The accepted types and the size limit, in English | Replaces the screen reader description of the accepted files. `DataGridImportDialog` sets it from `labels.io.dropzoneDescription`. |
-| `aria-labelledby` <NewBadge /> | `string` | none | Names the drop surface by the element with this id. It wins over `aria-label`. |
+| `accessibleDescription` | `string` | The accepted types and the size limit, in English | Replaces the screen reader description of the accepted files. `DataGridImportDialog` sets it from `labels.io.dropzoneDescription`. |
+| `aria-labelledby` | `string` | none | Names the drop surface by the element with this id. It wins over `aria-label`. |
 
 A `DropzoneRejection` is `{ file, reasons }`. Each reason is `accept`, `maxSize`, `minSize`, or `maxFiles`. `filterFiles(files, options)` applies the same rules and returns a `FilterFilesResult`: `accepted` holds the accepted files, and `rejections` holds the rejections. `matchesAccept(file, accept)` tests one file. `DropzoneEmptyState` takes a `title` and a `description`. `DropzoneContent` shows its `children` in place of the file list.
 

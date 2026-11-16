@@ -12,7 +12,7 @@ aliases: ["right-click menu", "header menu items", "menu ids", "custom menu item
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-context-menu/context-menu.tsx" name="DataGridContextMenuProps" />
 
-The wrapper leaves a right-click in a text field to the browser, for example in the Find field, a filter popover, or a cell editor. <NewBadge /> It also leaves a right-click anywhere in a popup outside the grid, such as a button of the Find panel, to the browser.
+The wrapper leaves a right-click in a text field to the browser, for example in the Find field, a filter popover, or a cell editor. It also leaves a right-click anywhere in a popup outside the grid, such as a button of the Find panel, to the browser.
 
 A resolver runs while the menu renders. Do not call hooks in it. Read grid state and run grid actions through `ctx`, and close over other hook values from the component that renders the menu.
 
@@ -39,8 +39,6 @@ Each resolver receives a context and the built-in items as `defaults`.
 <AutoTypeTable path="./registry/default/blocks/data-grid-context-menu/menu-items.tsx" name="HeaderMenuItemsCtx" />
 
 ## useDataGridRowOps [#usedatagridrowops]
-
-<NewBadge />
 
 `useDataGridRowOps()` returns `{ canCreateRow, canDuplicateRow }`. `canCreateRow` is true when the grid has a `createRow` prop, and `canDuplicateRow` is true when it has a `duplicateRow` prop. The built-in menu reads the same flags. Call it below `DataGridProvider`, for example to disable a custom duplicate button:
 

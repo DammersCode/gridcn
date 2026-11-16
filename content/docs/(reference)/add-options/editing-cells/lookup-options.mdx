@@ -45,9 +45,9 @@ The editor treats the answer of `fetchOptions` as untrusted input:
 | --- | --- | --- |
 | `query` | `string` | The text that the user typed. `""` asks for the default list. The search box holds at most 256 characters. |
 | `signal` | `AbortSignal` | If the user types again, closes the editor, or the cell unmounts, the signal aborts. Pass it to `fetch`. |
-| `row` <NewBadge /> | `TData` | The row that the user edits. A dependent lookup reads it, such as a city list for the country of the row. `TData` is the row type that you pass to `LookupOptions<TData>`. It defaults to `unknown`. |
-| `rowId` <NewBadge /> | `string` | The id of that row. |
-| `columnId` <NewBadge /> | `string` | The id of the lookup column. |
+| `row` | `TData` | The row that the user edits. A dependent lookup reads it, such as a city list for the country of the row. `TData` is the row type that you pass to `LookupOptions<TData>`. It defaults to `unknown`. |
+| `rowId` | `string` | The id of that row. |
+| `columnId` | `string` | The id of the lookup column. |
 
 The request does not repeat when a push changes the row during the edit.
 

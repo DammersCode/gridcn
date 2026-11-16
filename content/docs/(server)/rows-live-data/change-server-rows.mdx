@@ -49,7 +49,7 @@ If the server refuses an `insert`, the grid removes the row. If it refuses a `de
 
 The grid keeps the id that `createRow` returns until you swap it.
 
-After the server answers, call `actions.replaceRowId(oldId, row)` <NewBadge /> with the server row. See [Save edits](/docs/save-server/save-edits#id-swap). Or let `createRow` return a promise that creates the row first. `duplicateRow` can return a promise too. The grid holds the operation until the promise resolves, and a rejection cancels it.
+After the server answers, call `actions.replaceRowId(oldId, row)` with the server row. See [Save edits](/docs/save-server/save-edits#id-swap). Or let `createRow` return a promise that creates the row first. `duplicateRow` can return a promise too. The grid holds the operation until the promise resolves, and a rejection cancels it.
 
 In this demo, a new row gets a client id, and the mock server answers with its own id. The log shows the `"id-swap"` change:
 
@@ -65,7 +65,7 @@ A scroll-mode grid holds unloaded rows as holes. If their target touches a hole,
 
 `deleteRows` skips an id that matches no row and deletes the rest. A placeholder id matches a hole, so it cancels the whole request. Drop those ids before you call it.
 
-`isPlaceholderRowId(id)` <NewBadge /> tells a placeholder from a real id. `reorderRows` does nothing while any row is unloaded.
+`isPlaceholderRowId(id)` tells a placeholder from a real id. `reorderRows` does nothing while any row is unloaded.
 
 Select all in a scroll-mode grid checks the holes too. To delete rows that you know, pass their ids to `deleteRows`. Render the button inside `DataGridProvider`, next to `DataGridRoot`:
 
@@ -90,7 +90,7 @@ After a row operation in a scroll-mode source with a row count, the hook refresh
 
 In server pagination, the operations act on the current page.
 
-Pass `onSave` <NewBadge /> to `useDataGridServerRows` and the hook refreshes after the saves settle (`refreshAfterSave`, default `"settled"`). Or call `server.refresh()` after the `onSave` promise settles to pick up server-computed values. A refresh keeps a pending insert, so the page can hold more than `pageSize` rows until the save settles.
+Pass `onSave` to `useDataGridServerRows` and the hook refreshes after the saves settle (`refreshAfterSave`, default `"settled"`). Or call `server.refresh()` after the `onSave` promise settles to pick up server-computed values. A refresh keeps a pending insert, so the page can hold more than `pageSize` rows until the save settles.
 
 ## Confirm a delete [#confirm-a-delete]
 

@@ -20,7 +20,7 @@ aliases: ["views options", "useDataGridViews", "view storage", "DataGridViewsSto
 
 ## Labels [#labels]
 
-`labels` takes a partial `DataGridViewsLabels`. It merges over the `labels.views` of the grid, which merges over the defaults. <NewBadge /> A function field receives the argument shown.
+`labels` takes a partial `DataGridViewsLabels`. It merges over the `labels.views` of the grid, which merges over the defaults. A function field receives the argument shown.
 
 {/* props: DataGridViewsLabels */}
 
@@ -33,7 +33,7 @@ aliases: ["views options", "useDataGridViews", "view storage", "DataGridViewsSto
 | `loadFailed` | `Saved views could not be loaded.` | none |
 | `saveFailed` | `Your last change could not be saved.` | none |
 | `limit` | The limit of 50 views is reached. | none |
-| `overLimit` <NewBadge /> | A line for the `OverLimitPart` that is over a limit, such as `The sorts are over the view limit of 64. Remove one to save the view.` | `part` |
+| `overLimit` | A line for the `OverLimitPart` that is over a limit, such as `The sorts are over the view limit of 64. Remove one to save the view.` | `part` |
 | `importedName` | Imported view | none |
 | `retry` | Retry | none |
 | `setDefault` | Use `{name}` as the default view | `name` |
@@ -68,7 +68,7 @@ The result reads and changes the views:
 
 - `activeViewId` and `activeView` name the open view, or are `null`.
 - `modified` is `true` when the grid differs from the active view.
-- `overLimit` <NewBadge /> names the part of the grid state that exceeds a view limit, and is `false` when none does. The limits are 64 sorts, 64 filters, 16 filter groups, 1,000 characters in a filter value, and 1,000 entries in a value list. A search text holds up to 500 characters. The layout limits are a width of 10,000 px and 1,000 entries in a list. State of a column that the grid lacks is not a limit. `saveView` then returns `null` and `updateView` returns `false`. See [Limits](/docs/sort-filter-search/saved-views#limits).
+- `overLimit` names the part of the grid state that exceeds a view limit, and is `false` when none does. The limits are 64 sorts, 64 filters, 16 filter groups, 1,000 characters in a filter value, and 1,000 entries in a value list. A search text holds up to 500 characters. The layout limits are a width of 10,000 px and 1,000 entries in a list. State of a column that the grid lacks is not a limit. `saveView` then returns `null` and `updateView` returns `false`. See [Limits](/docs/sort-filter-search/saved-views#limits).
 - `defaultViewId` names the view that opens first.
 - `selectView(id)` opens a view, and `selectView(null)` clears the active view. `saveView(name)` saves the grid state under a name. `updateView(id)` replaces a view with the grid state. Without an `id`, `updateView` and `exportView` use the active view. `renameView(id, name)` and `deleteView(id)` edit the list. `setDefaultView(id)` picks the default view.
 

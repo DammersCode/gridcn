@@ -46,7 +46,7 @@ The grid drops an aborted gate result. A rejection after an abort adds no warnin
 | `createRow` | `(index, { signal })` |
 | `duplicateRow` | `(row, index, { signal })` |
 | `onBeforeDeleteRows` | `({ rowIds, hiddenCount, signal })` |
-| `processReplace` <NewBadge /> | `({ plan, signal })` |
+| `processReplace` | `({ plan, signal })` |
 | `mapColumn` | `(header, index, { signal })` |
 
 `gateTimeoutMs` covers the first seven gates in the table. `mapColumn` receives a `signal` and has no timeout. A gate that ignores the extra argument keeps working. `processCellFromClipboard` can return a promise, but it receives no `signal`, has no `gateTimeoutMs` timeout, and is not in the pending set.

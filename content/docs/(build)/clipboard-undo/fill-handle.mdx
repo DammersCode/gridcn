@@ -80,8 +80,6 @@ A fill writes only to cells that accept a write:
 
 ## Server mode
 
-<NewBadge />
-
 A fill works on the rows that the grid holds in memory. It never asks the server for rows. Fill follows the displayed order, so a sorted grid fills in the order that you see.
 
 A fill is one change. The grid applies it, then calls `onDataChange` and `onSave` with the same change. `change.source` is `"fill"`. `change.ops` holds one `update` operation per written row, and each operation lists the changed `cells`. Your `onSave` sends these updates to the server.
@@ -110,7 +108,7 @@ Pass these options to `useDataGridFill`. Every option is optional:
 
 ### processFill
 
-`processFill` <NewBadge /> runs on drag release and on both keyboard commands, before the grid applies the fill. It is synchronous: it returns the text grid to write, or `false` to cancel the fill, and never a promise. The grid parses the returned text with the `fromText` of each column and validates it, like a paste. After `false`, the grid writes nothing and the selection does not expand. This option cancels large fills:
+`processFill` runs on drag release and on both keyboard commands, before the grid applies the fill. It is synchronous: it returns the text grid to write, or `false` to cancel the fill, and never a promise. The grid parses the returned text with the `fromText` of each column and validates it, like a paste. After `false`, the grid writes nothing and the selection does not expand. This option cancels large fills:
 
 ```tsx
 import { useDataGridFill } from "@/components/data-grid-fill/data-grid-fill";

@@ -16,19 +16,13 @@ The result is `{ plugin }`, typed `UseDataGridPinnedRowsResult`. Pass the plugin
 
 ## useDataGridPinnedRows status [#status]
 
-<NewBadge />
-
 `status` marks both bands while server values load, go stale, or fail. The bands dim and set `data-status`. They set `aria-busy` only while values load or go stale. The default is the status of the `serverAggregateRow` entries of the band, else `"ready"`.
 
 ## Totals rows [#totals-rows]
 
-<NewBadge />
-
 `aggregateRow` and `serverAggregateRow` declare a totals row for `topRows` or `bottomRows`.
 
 ### aggregateRow [#aggregaterow]
-
-<NewBadge />
 
 `aggregateRow(specs, options)` returns a pinned row that reduces `specs` over the grid rows. Put it in `topRows` or `bottomRows`. The band reads each value by column id, so a column needs no `accessorKey` that equals its `id`. A reducer function that you define inline has a new identity on each render, which rebuilds the band. A spec such as `"sum"` has none.
 
@@ -36,15 +30,11 @@ The result is `{ plugin }`, typed `UseDataGridPinnedRowsResult`. Pass the plugin
 
 ### serverAggregateRow [#serveraggregaterow]
 
-<NewBadge />
-
 `serverAggregateRow(options)` returns a pinned row whose values come from your server. It takes the options of `useDataGridServerAggregate` and sets the `status` of the bands. After the last pending save settles, it fetches again. A `serverAggregateRow` pinned in two places fetches twice, and development builds warn once.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-pinned-rows/pinned-row-source.ts" name="ServerAggregateRowOptions" />
 
 ## useDataGridServerAggregate [#usedatagridserveraggregateoptions]
-
-<NewBadge />
 
 `useDataGridServerAggregate(options)` and `DataGridServerAggregateReporter` (the same options plus `onChange`) show totals that your server computes. The steps are on [Show totals from a server](/docs/data-modes/show-server-totals).
 
@@ -66,13 +56,13 @@ A reducer has the type `AggregateReducer`: a name or a function.
 
 | Reducer | Result |
 | --- | --- |
-| `"sum"`, `"avg"`, `"min"`, `"max"` <NewBadge /> | The reducer uses finite numbers only. It skips numeric strings, `NaN`, dates, `null`, and `undefined`. With no number left, the result is `undefined`. |
+| `"sum"`, `"avg"`, `"min"`, `"max"` | The reducer uses finite numbers only. It skips numeric strings, `NaN`, dates, `null`, and `undefined`. With no number left, the result is `undefined`. |
 | `"count"` | The number of values that are not `null` or `undefined` |
 | `(values, rows) => unknown` | Your result. `values` holds every resolved value, empty ones included. `rows` holds the source rows. |
 
 The grid resolves values through `accessorKey` or `accessorFn`, so a computed column aggregates correctly. The result uses column ids as keys. `aggregateRow` shows it in the band. See [Computing a totals row](/docs/rows-pages-menus/pinned-rows#computing-a-totals-row). The hook ignores a key of `specs` that matches no column id, and development builds warn once. `scope: "view"` (default) covers every row that the sort and filter leave, all pages of a client-paged grid.
 
-`scope: "page"` <NewBadge /> covers the shown page only. With server pagination, the grid holds one page, so the aggregate covers that page. In scroll mode, the reducers skip unloaded rows, and development builds warn once. Take totals for the whole dataset from your server.
+`scope: "page"` covers the shown page only. With server pagination, the grid holds one page, so the aggregate covers that page. In scroll mode, the reducers skip unloaded rows, and development builds warn once. Take totals for the whole dataset from your server.
 
 ## DataGridAggregateReporter [#datagridaggregatereporterprops]
 

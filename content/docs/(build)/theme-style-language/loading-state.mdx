@@ -68,8 +68,6 @@ export function LoadingGrid({ rows }: { rows: Row[] }) {
 
 ## Empty state [#empty-state]
 
-<NewBadge />
-
 A grid with no rows in view shows the empty state. The text is `labels.grid.emptyState` ("No rows"). When a filter or a server search leaves no row, the text is `labels.grid.noResults` ("No results"). To change only the words, set those labels. See [Labels and i18n](/docs/theme-style-language/labels-i18n).
 
 `emptyState` replaces the message. It takes a node, or a function that receives `{ reason }`. `reason` is `"filtered"` when a filter or a server search leaves no row, and `"no-data"` otherwise:
@@ -104,7 +102,7 @@ In scroll mode, `loading` is true while any block request runs. Rows that are no
 | --- | --- | --- |
 | `loading` | `boolean` | `false` |
 | `loadingState` | `ReactNode \| LoadingStateRenderer` | none |
-| `emptyState` <NewBadge /> | `ReactNode \| EmptyStateRenderer` | `labels.grid.emptyState`, or `labels.grid.noResults` for `"filtered"` |
+| `emptyState` | `ReactNode \| EmptyStateRenderer` | `labels.grid.emptyState`, or `labels.grid.noResults` for `"filtered"` |
 | `error` | `unknown` | none |
 | `onRetry` | `() => void` | none |
 | `errorState` | `ReactNode \| ((ctx) => ReactNode)` | none |

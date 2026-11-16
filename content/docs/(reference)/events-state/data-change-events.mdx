@@ -58,7 +58,7 @@ With `data`, you own the array and pass `next` back. Store `next` as it is: a co
 | `source` | What caused the change |
 | `label` | A name for the history entry, such as `"Add row"` |
 | `reverts` | On a `"rollback"` or `"merge"` change, the change it undoes |
-| `serverRowIds` <NewBadge /> | On a change that took server content, the ids of those rows |
+| `serverRowIds` | On a change that took server content, the ids of those rows |
 
 Each operation addresses a row by `rowId`, because row ids survive sorts and filters and view indexes do not.
 
@@ -85,8 +85,8 @@ An insert `index` past the end puts the row last. Apply the operations of one ch
 | `import` | A change you apply with `commitChange` and tag as an import |
 | `history` | An undo or a redo |
 | `rollback` | The revert of a refused save |
-| `merge` <NewBadge /> | The change that `resolveSaveConflict` commits on top of the server row. `onSave` receives it, and history does not record it |
-| `id-swap` <NewBadge /> | `actions.replaceRowId` or `actions.replaceRowIds`. `onSave` does not receive it, and history does not record it |
+| `merge` | The change that `resolveSaveConflict` commits on top of the server row. `onSave` receives it, and history does not record it |
+| `id-swap` | `actions.replaceRowId` or `actions.replaceRowIds`. `onSave` does not receive it, and history does not record it |
 | `stream` | A batch from `updateCells` or `updateRows`, or a `deleteRows` call with `source: "stream"` |
 | `replace` | A batch from find and replace |
 | `app` | A change you apply with the history `record` function |
@@ -95,7 +95,7 @@ An insert `index` past the end puts the row last. Apply the operations of one ch
 
 - Inside the handler, a write action such as `updateCells` starts from `next`. With `data`, call `setData(next)` first.
 - A write that another callback makes during a grid write emits its own `onDataChange` after the outer one.
-- `onDataChange` <NewBadge /> runs after the write. If it throws, the change stays written, and `onSave` and the plugin observers still run. Then the grid rethrows the error.
+- `onDataChange` runs after the write. If it throws, the change stays written, and `onSave` and the plugin observers still run. Then the grid rethrows the error.
 - A row delete clears the checked rows of the view, the cell range, and the active cell. If an open edit survives the delete, the selection moves to the edited cell. A row insert and a duplicate keep the active cell on its row.
 
 ## onSave [#onsave]
@@ -125,7 +125,7 @@ async function save(change: DataChange<Row>) {
 
 `resolveSaveConflict({ rowId, mine, theirs, change, message, signal })` decides what a refused row becomes when the server sent `current`. See [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict).
 
-`actions.replaceRowId(oldId, row)` <NewBadge /> swaps a client id for the server id. See [Save edits](/docs/save-server/save-edits#id-swap).
+`actions.replaceRowId(oldId, row)` swaps a client id for the server id. See [Save edits](/docs/save-server/save-edits#id-swap).
 
 ### onSaveRejected [#onsaverejected]
 

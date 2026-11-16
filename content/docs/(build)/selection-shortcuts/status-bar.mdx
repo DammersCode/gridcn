@@ -63,11 +63,9 @@ The aggregates show once the selection covers two cells whose value is not `unde
 When every numeric cell comes from one column, the `toDisplayText` of that column formats `sum`, `avg`, `min`, and `max`. A `number` column with a `format` option uses that format, for example currency or percent. A `number` column with `decimals` and no `format` uses `Intl.NumberFormat(locale, { maximumFractionDigits: decimals })`, which rounds to `decimals` and groups digits by `locale`. A `number` column with neither does not count. The bar then uses `Intl.NumberFormat` with `maximumFractionDigits: 4` in the `locale` of the grid, as it does when the numeric cells span several columns.
  `formatValue` overrides both.
 
-The bar also shows the count of [hidden checked rows](/docs/selection-shortcuts/checked-rows#hidden-checked-rows) as `(+3 hidden)`, and the select-all banner of a [server grid](/docs/rows-live-data/select-server-rows). With nothing to show and no `children` <NewBadge />, it renders nothing.
+The bar also shows the count of [hidden checked rows](/docs/selection-shortcuts/checked-rows#hidden-checked-rows) as `(+3 hidden)`, and the select-all banner of a [server grid](/docs/rows-live-data/select-server-rows). With nothing to show and no `children`, it renders nothing.
 
 ## Select-all banner [#select-all-banner]
-
-<NewBadge />
 
 A grid with `totalRowCount` shows a banner when every row of the page is checked and the result is larger. The banner needs `checkedRowsLifetime="across-filters"`, which is the default with `totalRowCount`. The banner offers "Select all 237 matching", or "Select all matching" when the size is `null`. After the click, it reads "All 237 selected." with a "Clear selection" button. `selectAllMatching()` announces the real count in the live region, or "All matching rows checked" when the size is `null`.
 

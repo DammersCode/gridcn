@@ -59,7 +59,7 @@ export function ImportOrders({ refresh }: { refresh: () => void }) {
 | `importDefaults.defaultHeaderRow` | after the parse | A number is the 0-based index of the header row. The dialog drops the rows above it. |
 | `importDefaults.mapColumn` | for each file header | Receives `(header, index, { signal })`. The `signal` aborts when a newer parse replaces the run or the dialog unmounts. The dialog ignores an aborted result. |
 | `processImportRows` | on confirm, before the column mapping | Returns the rows to import, or `false` to cancel. It gets `rows` (header excluded), `headers`, `mapping`, and `signal`. |
-| `processCellFromText` | for each mapped cell | Returns the cell value instead of the column's `fromText`. The context holds `fromText` <NewBadge />, the column's own parser. |
+| `processCellFromText` | for each mapped cell | Returns the cell value instead of the column's `fromText`. The context holds `fromText`, the column's own parser. |
 | `onImport` | after the build | Gets `rows` and `{ signal, rejected, flagged, fileName, sheetName, mapping }`. |
 | `onImportError` | when `onImport` rejects | Gets the rejection. The dialog stays open. |
 
@@ -77,7 +77,7 @@ When `onImport` rejects, the dialog shows `The import failed: <message>` if the 
 
 ## Load a file from code
 
-Pass `file` to `DataGridImportDialog` to load a file you already hold, such as one you fetched or one the user dropped on the page. The dialog loads it when it opens. For a custom dialog under the provider, `useDataGridImportPreview()` returns `build()`, which runs `processImportRows` and the row build for the current preview. <NewBadge /> It reads `columns` and `cellTypes` from the grid. Pass `columns` or `cellTypes` to build for other ones:
+Pass `file` to `DataGridImportDialog` to load a file you already hold, such as one you fetched or one the user dropped on the page. The dialog loads it when it opens. For a custom dialog under the provider, `useDataGridImportPreview()` returns `build()`, which runs `processImportRows` and the row build for the current preview. It reads `columns` and `cellTypes` from the grid. Pass `columns` or `cellTypes` to build for other ones:
 
 ```tsx
 const built = await preview.build({ createRow, signal });
