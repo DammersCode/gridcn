@@ -5,7 +5,7 @@ icon: ServerCrash
 type: example
 ---
 
-A `validate` rule runs before a value commits. A server can still refuse a value after it committed, for example with a 422 that names the field. `actions.setCellErrors` marks that cell. In this grid, a fake `saveOrders` call rejects a Quantity above 100 after about 600 ms. Set Quantity to 150 and press <kbd>Enter</kbd>. The cell gets an error ring. Hover the cell to read the message.
+A `validate` rule runs before a value commits. A server can still refuse a value after it committed, for example with a 422 that names the field. `actions.setCellErrors` marks that cell. In this grid, the `onSave` handler calls a fake `saveOrders` that rejects a Quantity above 100 after about 600 ms. Set Quantity to 150 and press <kbd>Enter</kbd>. The cell gets an error ring. Hover the cell to read the message.
 
 <ComponentPreview name="data-grid-cell-errors-demo" />
 
@@ -13,7 +13,7 @@ A `validate` rule runs before a value commits. A server can still refuse a value
 
 ## How the demo is wired [#wiring]
 
-`onDataChange` sends `change.ops` to the server. When the call fails, the handler maps each failure to a `{ rowId, columnId, message }` entry and calls `setCellErrors`. The rejection arrives long after the grid mounted, so the handler reaches the actions through a `ref`:
+`onSave` sends `change.ops` to the server. When the call fails, its `catch` block maps each failure to a `{ rowId, columnId, message }` entry and calls `setCellErrors`. The rejection arrives long after the grid mounted, so the handler reaches the actions through a `ref`:
 
 ```tsx
 import { useRef } from "react";
@@ -28,10 +28,12 @@ import { saveOrders, parseFieldErrors } from "./api";
 export function OrdersGrid({ orders }: { orders: Order[] }) {
   const gridRef = useRef<DataGridApi<Order>>(null);
 
-  function handleDataChange(_: readonly Order[], change: DataChange<Order>) {
-    saveOrders(change.ops).catch((error) => {
+  async function handleSave(change: DataChange<Order>) {
+    try {
+      await saveOrders(change.ops);
+    } catch (error) {
       gridRef.current?.actions.setCellErrors(parseFieldErrors(error));
-    });
+    }
   }
 
   return (
@@ -40,13 +42,17 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
       defaultData={orders}
       columns={columns}
       getRowId={(row) => row.id}
-      onDataChange={handleDataChange}
+      onSave={handleSave}
     />
   );
 }
 ```
 
 `saveOrders` and `parseFieldErrors` are your own functions. `saveOrders` rejects when the server refuses a value, and `parseFieldErrors` turns that error into the entries to mark.
+
+## Mark the cell or revert the value [#mark-or-revert]
+
+Because the `catch` block returns normally, the `onSave` promise resolves. The grid keeps the value and `setCellErrors` marks the cell. If `onSave` rejects or returns a refusal in a `SaveAck`, the grid reverts the value instead. See [Handle refused saves](/docs/save-server/handle-refused-saves).
 
 ## What to expect [#the-api]
 

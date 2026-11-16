@@ -8,4 +8,3 @@ content/docs/(server)/rows-live-data/push-server-ordered-view.mdx#2 fix-pending 
 content/docs/(server)/rows-live-data/show-presence.mdx#1 fix-pending WP-14
 content/docs/(server)/rows-live-data/show-presence.mdx#2 fix-pending WP-14
 content/docs/(server)/save-server/save-revert.mdx#1 fix-pending WP-14
-content/docs/(examples)/validation-examples/server-errors-example.mdx#1 fix-pending WP-15
