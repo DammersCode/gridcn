@@ -8,6 +8,17 @@ aliases: ["blocksize", "usedatagridserverrows", "server rows options", "request 
 
 `useDataGridServerRows` owns the sort, filter, search text, and rows of one server source. You write `fetchRows`. The hook calls it, aborts a request that a newer one replaces, and keeps the last good rows on screen. `mode` picks how rows reach the grid. The steps and the contract are on [Server rows contract](/docs/contracts/server-rows-contract).
 
+| Symbol | Purpose | Guide |
+| --- | --- | --- |
+| [Pages mode](#server-mode) | Fetches one page for each state | [Load rows by page](/docs/server-pagination/load-rows-page) |
+| [Scroll mode](#scroll-mode) | Fetches blocks as the rendered rows move | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
+| [`useDataGridServerPager`](#pager-options) | Builds the pager for rows you fetch yourself | [Load rows by page](/docs/server-pagination/load-rows-page) |
+| [`onSave` and `refreshAfterSave`](#save-options) | Sends a change to your server and refreshes after it | [Save edits](/docs/save-server/save-edits) |
+| [`ServerRowsRequest`](#serverrowsrequest) | The request that `fetchRows` receives | [Server rows contract](/docs/contracts/server-rows-contract) |
+| [`ServerRowsAnswer`](#serverrowsanswer) | The answer that `fetchRows` returns | [Server rows contract](/docs/contracts/server-rows-contract) |
+
+The hook sets `sortMode` and `filterMode` to `"server"` in both modes. A grid with `totalRowCount` defaults both to `"server"`. A sort or filter in the browser covers only the loaded rows and gives a wrong result. Set `sortMode="client"` or `filterMode="client"` to sort or filter the loaded rows locally.
+
 ## Pages mode [#server-mode]
 
 The default mode fetches one page for each state. If the sort, the filter, the search text, or the page size changes, the grid returns to page 1.
@@ -18,7 +29,7 @@ The hook keeps `page` between 1 and the last page of 10,000,000 rows at the curr
 
 ### Result
 
-Both modes return the request state as `DataSourceState`: `status`, `loading`, `error`, `retry`, and `refresh`.
+Both modes return the request state as `DataSourceState`: `status`, `loading`, `error`, `retry`, `refresh`, and `reshape`.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-server/use-data-grid-server-rows.ts" name="UseDataGridServerRowsResult" />
 
@@ -47,7 +58,7 @@ A server that sends no count answers `totalRowCount: null` and `hasMore`. The pa
 - The footer shows "Page 3" in place of a range.
 - Next stays enabled while `hasMore` is `true`, and Last stays disabled.
 - The page count is the current page, plus 1 while `hasMore` is `true`.
-- The hook lifts a page below 1. It caps the page at the last page of 10,000,000 rows. The pager itself leaves the upper end open when the count is unknown.
+- `useDataGridServerPager` lifts a page below 1. It caps the page at the last page of 10,000,000 rows. The pager itself leaves the upper end open when the count is unknown.
 
 ## Scroll mode [#scroll-mode]
 
@@ -56,8 +67,6 @@ Set `mode: "scroll"` to fetch fixed-size blocks as the rendered rows move. The f
 Set `source: "random"` or `source: "sequential"` to fix the order. A random source that answers without `totalRowCount` warns in development.
 
 `getRowId` is optional in both modes. It defaults to the `id` field of the row, the same default as `DataGridProvider`. A row without a string or number `id` throws.
-
-The hook sets `sortMode` and `filterMode` to `"server"`. A grid with `totalRowCount` defaults both to `"server"`, because a window of a result cannot be sorted or filtered in the browser without being wrong. Set `sortMode="client"` or `filterMode="client"` to sort or filter the window locally.
 
 ### Scroll options [#usedatagridserverrowsscrolloptions]
 
@@ -71,7 +80,7 @@ The hook sets `sortMode` and `filterMode` to `"server"`. A grid with `totalRowCo
 | --- | --- | --- |
 | `loadDelayMs` | `100` | Milliseconds a block stays in the wanted range before its request starts. At most 2000. `0` starts at once. |
 | `maxConcurrentFetches` | `3` | Most block requests in flight on a random access source. At most 16. |
-| `maxLoadedRows` | `10000` | Most rows kept loaded. A value below `blockSize` counts as `blockSize`. `Infinity` keeps every row. |
+| `maxLoadedRows` | `10000` | Most rows kept loaded. Random access only: a sequential source keeps every row. A value below `blockSize` counts as `blockSize`. `Infinity` keeps every row. |
 | `revalidateIntervalMs` | off | Milliseconds between timed `refresh()` calls while the page is visible. At least 1000. A sequential source skips a tick while the rendered rows plus `overscan` end beyond 10 blocks. |
 | `reshapeDelayMs` | off | Milliseconds after a push marked a row stale before one `refresh()`. At least 250. A sequential source skips it while the rendered rows plus `overscan` end beyond 10 blocks. |
 
@@ -94,7 +103,14 @@ Both modes take `onSave` and `refreshAfterSave`. `gridProps.onSave` runs your ha
 | Option | Default | Effect |
 | --- | --- | --- |
 | `onSave` | none | Sends a change to your server. Behaves as the `DataGridProvider` prop of the same name. |
-| `refreshAfterSave` | `"settled"` | `"settled"` refreshes once after every save in flight has settled, or after 10 seconds when at least one save has settled by then. After the 10 seconds, each save still in flight refreshes when it settles. `"each"` refreshes after saves settle, without waiting for the saves still in flight. `false` never refreshes. A function of the save report returns whether to refresh, once after every save in flight has settled or after the same 10 seconds. A sequential source skips the refresh while the rendered rows plus `overscan` end beyond 10 blocks, so call `server.refresh()` there. Only an `onSave` that returns a promise triggers a refresh. |
+| `refreshAfterSave` | `"settled"` | The refresh policy after a save. See the list below. |
+
+- `"settled"` refreshes once after every save in flight has settled, or after 10 seconds when at least one save has settled by then. After the 10 seconds, each save still in flight refreshes when it settles.
+- `"each"` refreshes after saves settle, without waiting for the saves still in flight.
+- `false` never refreshes.
+- A function of the save report returns whether to refresh. It runs once after every save in flight has settled, or after the same 10 seconds.
+- A sequential source skips the refresh while the rendered rows plus `overscan` end beyond 10 blocks. Call `server.refresh()` there.
+- Only an `onSave` that returns a promise triggers a refresh.
 
 `refresh()` stays available. See [Save edits](/docs/save-server/save-edits).
 
@@ -130,8 +146,12 @@ This sample loads orders by page from an API:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
-import { DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
-import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
+import {
+  DataGridPaginationBar,
+} from "@/components/data-grid-pagination/data-grid-pagination";
+import {
+  useDataGridServerRows,
+} from "@/components/data-grid-server/data-grid-server";
 
 type Order = { id: string; customer: string };
 
