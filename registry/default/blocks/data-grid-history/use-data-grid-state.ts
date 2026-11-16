@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { type DataChange, type DataGridPlugin } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridHistory, type UseDataGridHistoryOptions } from "./use-data-grid-history";
+import { useDataGridHistory, type RecordedChange, type UseDataGridHistoryOptions } from "./use-data-grid-history";
 
 /** Options for {@link useDataGridState}: every `useDataGridHistory` option, plus `getRowId`. */
 export type UseDataGridStateOptions<TData> = UseDataGridHistoryOptions<TData> & {
@@ -37,7 +37,7 @@ export type UseDataGridStateResult<TData> = {
      * one undo entry — one `commitChange` write, recorded by the history plugin's observer.
      * Returns the same result as `useDataGridHistory`'s `record`.
      */
-    record: (change: DataChange<TData>, label?: string) => boolean;
+    record: (change: RecordedChange<TData>, label?: string) => boolean;
     /** Reverts a change whose save failed; see `useDataGridHistory`'s `rollback`. */
     rollback: (change: DataChange<TData>) => void;
   };
@@ -47,11 +47,10 @@ export type UseDataGridStateResult<TData> = {
  * Quick-start grid state with undo/redo: wires `useState` + {@link useDataGridHistory}
  * into one spreadable object.
  *
- * "Uncontrolled" here means the consumer does not own the array between renders — the hook does —
- * NOT the core's `defaultData` semantics. It spreads a CONTROLLED `data` prop into the grid and
- * re-feeds it every render; undo/redo work precisely because of that echo. Never treat it like
- * `defaultData` (set once, grid-owned afterwards) and pass it alongside your own data.
- * `defaultRows` seeds the state once; later changes to it are ignored.
+ * The hook owns the array between renders and spreads it into the grid as a controlled `data` prop.
+ * Do not pass `defaultData` or your own `data` alongside the spread. `useDataGridHistory` alone
+ * also gives undo/redo to a grid that owns `defaultData`. `defaultRows` seeds the state once; later
+ * changes to it are ignored.
  *
  * ```tsx
  * const grid = useDataGridState(rows, { getRowId: (r) => r.id });

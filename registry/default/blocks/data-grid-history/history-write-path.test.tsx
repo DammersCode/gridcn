@@ -385,9 +385,7 @@ describe("sparse data warning", () => {
       const h = setup({}, { getRowId: holeTolerantRowId as never });
       const prev = initialRows[2]!;
       h.commit(editChange("c", { ...prev, name: "Changed" }, prev));
-      const sparse = sparseWithout(1);
-      sparse[2] = { ...prev, name: "Changed" };
-      h.swapData(sparse);
+      h.swapData(sparseWithout(2));
       act(() => h.history().undo());
       return h;
     };

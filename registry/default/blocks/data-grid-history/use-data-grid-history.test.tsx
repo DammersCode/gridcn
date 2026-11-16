@@ -364,7 +364,65 @@ describe("useDataGridHistory", () => {
     expect(h.history().canUndo).toBe(true);
   });
 
-  it("dev-warns once when undo runs over a sparse (lazy) data array", () => {
+  it("record() without a source stores the entry as app", () => {
+    const h = setupHarness();
+    const prev = initialRows[0]!;
+    const next = { ...prev, name: "Recorded" };
+    const sources: string[] = [];
+    h.setGridOpts({ onDataChange: (_next, change) => sources.push(change.source) });
+    act(() => {
+      h.history().record({ ops: [{ type: "update", rowId: "a", row: next, prev }] });
+    });
+    expect(sources).toEqual(["app"]);
+    expect(h.history().canUndo).toBe(true);
+  });
+
+  it("warns once in development when undo runs and the history plugin never mounted", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let history!: UseDataGridHistoryResult<Row>;
+    function Unplugged() {
+      history = useDataGridHistory<Row>();
+      return (
+        <DataGridProvider data={initialRows} columns={columns} getRowId={getRowId}>
+          <DataGridRoot />
+        </DataGridProvider>
+      );
+    }
+    render(<Unplugged />);
+    act(() => history.undo());
+    act(() => history.undo());
+    act(() => {
+      history.record({ ops: [] });
+    });
+    const notMounted = warn.mock.calls.filter((c) => String(c[0]).includes("before the history plugin mounted"));
+    warn.mockRestore();
+    expect(notMounted).toHaveLength(1);
+  });
+
+  it("scroll mode with datasetKey: an undo whose rows are loaded logs no warning", () => {
+    const warn = vi.spyOn(console, "warn");
+    const sparse = (rowC: Row) => {
+      const arr = new Array<Row | undefined>(3);
+      arr[0] = initialRows[0]!;
+      arr[2] = rowC;
+      return arr;
+    };
+    const h = setupHarness(
+      { datasetKey: "orders" },
+      { getRowId: ((row: Row | undefined, index: number) => (row ? row.id : `hole-${index}`)) as never },
+    );
+    h.consumerSwap(sparse(initialRows[2]!) as Row[]);
+    const prev = initialRows[2]!;
+    const next = { ...prev, name: "Changed" };
+    h.commit(editChange("c", next, prev));
+    h.consumerSwap(sparse(next) as Row[]);
+    act(() => h.history().undo());
+    expect(h.data()[2]!.name).toBe("Cara");
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes("sparse"))).toHaveLength(0);
+    warn.mockRestore();
+  });
+
+  it("dev-warns once when undo needs a row that a hole hides", () => {
     const warn = vi.spyOn(console, "warn");
     // a hole at index 1, the shape of scroll-mode data with one unloaded range
     // (a real hole, not an undefined slot: array literals with `undefined` are dense)
@@ -387,17 +445,17 @@ describe("useDataGridHistory", () => {
 
     // the grid's own write densified the hole into an explicit undefined; undo reads the store's
     // data at run time, so re-feed the consumer's sparse array (the lazy page the consumer owns)
-    h.consumerSwap(sparse(next) as Row[]);
+    const hidden = () => {
+      const arr = new Array<Row | undefined>(3);
+      arr[0] = initialRows[0]!;
+      return arr;
+    };
+    h.consumerSwap(hidden() as Row[]);
     act(() => h.history().undo());
     // the swap also trips the core's data-identity dev-warn; only the sparse-data one counts here
     const sparseWarns = () => warn.mock.calls.filter((c) => String(c[0]).includes("sparse")).length;
     expect(sparseWarns()).toBe(1);
-    expect(h.data()[2]!.name).toBe("Cara"); // the undo landed across the hole
 
-    const prev2 = h.data()[2]!;
-    const next2 = { ...prev2, name: "Again" };
-    h.commit(editChange("c", next2, prev2));
-    h.consumerSwap(sparse(next2) as Row[]);
     act(() => h.history().undo());
     // the once-per-app flag holds the second warn back
     expect(sparseWarns()).toBe(1);

@@ -96,7 +96,7 @@ Three rules keep the combination safe:
 - An entry whose rows left the loaded rows <NewBadge /> applies nothing, stays on its stack, and calls `onSkip` with `"rows-not-loaded"`. Load the rows, then undo again.
 - A change of `spec` starts the blocks over, and `server.refresh()` drops every loaded row outside the rendered rows. A row operation in a source with a row count runs that refresh. A tick of `revalidateIntervalMs` refetches the same dataset, so it needs no `clear()`. An undo writes only the cells of its entry onto the refetched row, so a value that the server changed in another column stays. Pass a key that changes with the dataset as `datasetKey`, so the stacks clear. Without a stable key, call `clear()` in the handler that swaps the dataset or calls `refresh()`.
 
-When `undo` runs over a sparse array, it warns once in development.
+When `undo` needs a row that a hole hides, it warns once in development. An `undo` whose rows are all loaded does not warn.
 
 ## Related
 
