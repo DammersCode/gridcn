@@ -143,7 +143,7 @@ const columns = defineColumns<Contact>()([
 
 ## Report rejected cells [#onvalidationerror]
 
-After a paste, a fill, a Delete or Cut clear, or an `updateCells` call settles with at least one rejected cell, or when a checkbox toggle is rejected, `onValidationError` fires. The grid has applied the accepted cells by then. `updateCells` also lists each rejected patch in its return value. Import reports its rejected cells through `rejected` in `onImport`, not here. See [Control the import](/docs/import-export/control-import).
+`onValidationError` fires when a paste, a fill, a Delete or Cut clear, or an `updateCells` call settles with a rejected cell. It also fires when a checkbox toggle is rejected. The grid has applied the accepted cells by then. `updateCells` also lists each rejected patch in its return value. Import reports its rejected cells through `rejected` in `onImport`, not here. See [Control the import](/docs/import-export/control-import).
 
 Delete and Cut validate the empty value of the cell type. A column that rejects it keeps its value, and `onValidationError` reports the cell with `source: "delete"`. A `validationMode: "warn"` column clears the cell and flags it. Delete and Cut run a sync `validate` only, so an async schema lets the empty value through.
 
