@@ -22,11 +22,11 @@ Give every row a stable `id`. If rows have no `id` field, pass `getRowId`. A num
 4. Set `rowId` from `onActiveCellChange`. With no active cell, the event passes `null`.
 5. Look the row up by id in your own data. The event carries the cell reference and not the row.
 6. Declare an `openRow` command in `GridActions`, define it in `commands`, and bind it in `keymap`.
-7. Close the panel on Escape inside the `aside`, then focus the grid again.
+7. Close the panel on Escape inside the `aside`, then call `focus()` on the grid API from a ref. It focuses the active cell and does nothing during an edit.
 
 ## Wire the panel, the click, and the key
 
-Enter, F2, Space, and a double-click edit the cell, so the open gesture needs its own key. The default keymap binds `mod+Enter` to `scrollActiveIntoView`, so the sample binds `mod+shift+Enter`. `mod` is `Cmd` on macOS and `Ctrl` elsewhere.
+Enter, F2, Space, and a double-click edit the cell, so the open gesture needs its own key. The default keymap binds `mod+Enter` to `scrollActiveIntoView` and `mod+shift+Enter` to `toggleAllRows`, so the sample binds `shift+Enter`.
 
 `onCellClick` fires for a click on any data cell, and a checkbox column fires it too. The sample skips the `active` column. The `data-[open=false]` classes slide the closed panel out of view:
 
@@ -38,6 +38,7 @@ import { Button } from "@/components/ui/button";
 import {
   DataGrid,
   defineColumns,
+  type DataGridApi,
   type GridCommand,
 } from "@/components/data-grid/data-grid";
 
@@ -54,20 +55,18 @@ const columns = defineColumns<Order>()([
   { id: "active", header: "Active", accessorKey: "active", type: "checkbox" },
 ] as const);
 
-const keymap = { openRow: ["mod+shift+Enter"] };
+const keymap = { openRow: ["shift+Enter"] };
 
 export function OrdersWithPanel({ orders }: { orders: Order[] }) {
   const [open, setOpen] = useState(false);
   const [rowId, setRowId] = useState<string | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<DataGridApi<Order> | null>(null);
   const [rows, setRows] = useState<readonly Order[]>(orders);
   const order = rows.find((item) => item.id === rowId);
 
   const close = () => {
     setOpen(false);
-    containerRef.current
-      ?.querySelector<HTMLElement>('[role="grid"]')
-      ?.focus();
+    gridRef.current?.focus();
   };
 
   const commands = useMemo<Record<string, GridCommand<Order>>>(
@@ -82,8 +81,9 @@ export function OrdersWithPanel({ orders }: { orders: Order[] }) {
   );
 
   return (
-    <div ref={containerRef} className="relative overflow-hidden">
+    <div className="relative overflow-hidden">
       <DataGrid
+        ref={gridRef}
         className="h-[400px]"
         data={rows}
         onDataChange={setRows}
@@ -126,7 +126,7 @@ export function OrdersWithPanel({ orders }: { orders: Order[] }) {
 
 ## Result
 
-A click on a cell, or `Ctrl+Shift+Enter` (`Cmd+Shift+Enter` on macOS) on the active cell, opens the panel. The panel shows the active row and changes as you move with the arrow keys. Escape inside the panel, or the close button, closes it and returns focus to the grid.
+A click on a cell, or `Shift+Enter` on the active cell, opens the panel. The panel shows the active row and changes as you move with the arrow keys. Escape inside the panel, or the close button, closes it and returns focus to the grid.
 
 ## Related
 

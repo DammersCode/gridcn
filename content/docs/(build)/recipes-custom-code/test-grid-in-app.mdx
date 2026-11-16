@@ -24,12 +24,12 @@ The grid renders real DOM elements with ARIA roles, so Testing Library finds its
 
 ## Test in jsdom
 
-This test stubs the height, renders three rows, and reads the roles and the ref:
+This test stubs the height, renders three rows, reads the roles, and sorts through the ref:
 
 ```tsx
 import { createRef } from "react";
 import { afterEach, beforeAll, expect, it } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import {
   DataGrid,
   defineColumns,
@@ -66,6 +66,13 @@ it("renders the orders", () => {
   expect(grid.getAttribute("aria-rowcount")).toBe("4");
   expect(screen.getAllByRole("gridcell")[0]?.textContent).toBe("Ada");
   expect(api.current?.getViewRowIds()).toEqual(["1", "2", "3"]);
+
+  act(() => {
+    api.current?.actions.setSorts([
+      { columnId: "customer", direction: "desc" },
+    ]);
+  });
+  expect(api.current?.getViewRowIds()).toEqual(["3", "2", "1"]);
 });
 ```
 

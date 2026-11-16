@@ -12,21 +12,23 @@ Write a plugin to paint on the grid, observe data changes, or add a command. Thi
 
 - Mount a grid with `columns` and `data`.
 - Know that a plugin object attaches to one grid. Create one object per grid.
+- Know the coordinates. A view index is a row position in the sorted and filtered order. A rect is `{ x, y, width, height }`: `x` is a visible column index and `y` is a view index. A pin zone is the pinned-left, unpinned, or pinned-right part of the grid.
 - Pick the part. `Overlay` paints, `rowBands` adds rows, and `onDataChange` observes writes. `commands` adds commands. `keymap` binds keys to the commands of the plugin. A key that another action holds stays with that action. The grid renders `Mount` inside the grid root.
 
 ## Steps
 
 1. Write a component that takes the overlay `ctx` and returns the band. The grid renders it after the selection fills and before the active-cell ring.
-2. Build a rect in view coordinates. Use `ctx.clampRowStart` and `ctx.clampRowEnd` for the rows. The rect is `{ x, y, width, height }`, where `x` is a visible column index and `y` is a view index.
+2. Build a rect. Use `ctx.clampRowStart` and `ctx.clampRowEnd` for the rows.
 3. Call `ctx.clampRectToWindow(rect, clampRowStart, clampRowEnd, colCount)`. If the rect lies outside the rendered rows, it returns `null`.
-4. If `hasAnyPin(ctx.pinTrack)` is true, call `ctx.splitRectByPinZones`. It returns one segment for each pin zone that the rect crosses, up to three, and a pinned segment carries a `pinStyle`. Spread it, and set `zIndex: GRID_LAYER.pinnedOverlaySegment`, so the band paints above the pinned cells.
-5. Place every segment by grid lines: `rect.x + colOffset` for columns and `rect.y - windowStart + 1` for rows. Set `position: "relative"`. Cells have a position, so a static band paints below them.
-6. Read the column from React context and not from a closure. A new `Overlay` function remounts the overlay and logs a warning in development.
-7. Return `{ name, Overlay }` from a factory and pass the result in `plugins`.
+4. Check `hasAnyPin(ctx.pinTrack)`. If it is true, call `ctx.splitRectByPinZones(clamped, ctx.pinTrack)`. It returns one segment for each pin zone that the rect crosses, up to three.
+5. Spread the `pinStyle` of a pinned segment into its style. Set `zIndex: GRID_LAYER.pinnedOverlaySegment`, so the band paints above the pinned cells.
+6. Place every segment on the grid lines. Add `ctx.colOffset` to `rect.x` for columns, and use `rect.y - ctx.windowStart + 1` for rows. `windowStart` is the grid line origin of the rows canvas. Set `position: "relative"`. Cells have a position, so a static band paints below them.
+7. Read the column from React context and not from a closure. A new `Overlay` function remounts the overlay and logs a warning in development.
+8. Return `{ name, Overlay }` from a factory and pass the result in `plugins`.
 
 ## Paint a column
 
-The sample below does all seven steps. `./orders` stands for your own module of `columns` and `orders` rows. Create the plugin once per grid with `useState`:
+The sample below does all eight steps. `./orders` stands for your own module of `columns` and `orders` rows. Create the plugin once per grid with `useState`:
 
 ```tsx
 "use client";
@@ -110,7 +112,7 @@ export function OrdersGrid() {
 
 ## Result
 
-A click on the button tints the second column across the rendered rows. The band lives in the scrolling canvas, so it moves with the cells. It splits at pinned columns. In an unpinned column the active-cell ring stays above it. In a pinned column the segment `zIndex` puts the band above the ring, so keep the band translucent.
+A click on the button tints the second column across the rendered rows. The band lives in the scrolling canvas, so it moves with the cells. It splits at pinned columns. The active-cell ring stays above it.
 
 An inline `plugins={[plugin]}` array is safe while the plugin object keeps its identity. A new object with the same `name` and a changed member makes the grid resolve the plugins again.
 

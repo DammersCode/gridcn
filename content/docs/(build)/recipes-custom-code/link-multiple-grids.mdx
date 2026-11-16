@@ -6,7 +6,7 @@ type: task
 aliases: ["sync grids", "linked grids", "master detail grids"]
 ---
 
-Without a `store` prop, every `DataGrid` and every `DataGridProvider` creates its own store. No module-level store exists, so several grids work on one page with no setup. Sort, filter, selection, edits, and focus stay apart. To link two grids, pass state through React: a callback of one grid sets state, and the other grid reads it.
+Without a `store` prop, every `DataGrid` and every `DataGridProvider` creates its own store. No module-level store exists, so several grids work on one page with no setup. Sort, filter, selection, edits, and focus stay apart. To make two grids share one state, create a store with `useDataGridStoreProps` and pass it as `store` to both. [External store](/docs/components-props/data-grid-provider#store-external-store-ownership) shows how. To link two grids that keep their own state, pass state through React. A callback of one grid sets state, and the other grid reads it.
 
 ## Before you start
 
