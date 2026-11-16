@@ -389,7 +389,7 @@ describe("GridAction coverage", () => {
   // GridAction members that are intentionally never bound/dispatched via the keymap — an explicit
   // allowlist so a genuinely un-wired action (like insertRowBelow/duplicateRow used to be) can't
   // hide behind this exemption.
-  const CONSUMER_ONLY_ACTIONS: readonly GridAction[] = [];
+  const CONSUMER_ONLY_ACTIONS: readonly GridAction[] = ["moveColumnTowardStart", "moveColumnTowardEnd", "widenColumn", "narrowColumn"];
 
   // Actions with a dispatch handler but no DEFAULT_KEYMAP binding: triggered through the implicit
   // printable-key fallback in use-grid-interaction unless the consumer's keymap defines the action
@@ -420,6 +420,7 @@ describe("GridAction coverage", () => {
     fillDown: true, fillRight: true,
     insertRowBelow: true, insertRowAbove: true, duplicateRow: true, deleteRows: true,
     moveRowsUp: true, moveRowsDown: true,
+    moveColumnTowardStart: true, moveColumnTowardEnd: true, widenColumn: true, narrowColumn: true,
     openLink: true,
     openFindReplace: true,
     openFind: true,

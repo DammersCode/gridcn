@@ -79,6 +79,10 @@ export const ACTION_CATEGORY: Partial<Record<GridAction | (string & {}), Keybind
   deleteRows: "editing",
   moveRowsUp: "editing",
   moveRowsDown: "editing",
+  moveColumnTowardStart: "editing",
+  moveColumnTowardEnd: "editing",
+  widenColumn: "editing",
+  narrowColumn: "editing",
   openLink: "editing",
 
   fillDown: "clipboardFill",

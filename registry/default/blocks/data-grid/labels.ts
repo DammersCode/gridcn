@@ -596,7 +596,6 @@ function buildDefaultLabels(locale: string): DataGridLabels {
         focusSearch: "Search",
         openFindReplace: "Find and replace",
         openKeybindings: "Show keyboard shortcuts",
-
         edit: "Edit cell",
         typeToReplace: "Type to replace",
         cancel: "Cancel edit",
@@ -607,13 +606,14 @@ function buildDefaultLabels(locale: string): DataGridLabels {
         deleteRows: "Delete row(s)",
         moveRowsUp: "Move rows up",
         moveRowsDown: "Move rows down",
-
+        moveColumnTowardStart: "Move column toward start",
+        moveColumnTowardEnd: "Move column toward end",
+        widenColumn: "Widen column",
+        narrowColumn: "Narrow column",
         fillDown: "Fill down",
         fillRight: "Fill right",
-
         undo: "Undo",
         redo: "Redo",
-
         openLink: "Open link",
       },
     },

@@ -768,6 +768,8 @@ export interface GridActions {
   deleteRows: true;
   moveRowsUp: true;
   moveRowsDown: true;
+  moveColumnTowardStart: true; moveColumnTowardEnd: true;
+  widenColumn: true; narrowColumn: true;
   openLink: true;
   focusSearch: true;
 }

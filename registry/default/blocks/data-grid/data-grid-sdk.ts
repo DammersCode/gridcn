@@ -168,6 +168,7 @@ export function useDataGridAnnounce(): (kind: LiveAnnouncementKind, count: numbe
 export { setCellValue } from "./columns/column-helpers";
 export { applyChangeWith, type ApplyChangeOptions } from "./interaction/history";
 export { columnLabelText } from "./columns/column-format-helpers";
+export { COLUMN_WIDTH_STEP, shownColumnWidth } from "./columns/column-step";
 export { createHistory, type History, type HistoryOptions } from "./interaction/history";
 export { buildRollback, rebaseOntoCurrent } from "./interaction/rollback";
 export { mergeLabelLayers } from "./labels";

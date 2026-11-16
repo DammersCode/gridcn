@@ -68,6 +68,11 @@ export const DEFAULT_KEYMAP: Keymap = {
   // shift+alt+Arrow opens the header menu and filter; PageUp/PageDown with shift+alt is unbound in the browsers and OSes, and Alt alone never forms AltGr
   moveRowsUp: ["shift+alt+PageUp"],
   moveRowsDown: ["shift+alt+PageDown"],
+  // The keyboard path to reorder and resize columns; unbound, since every free chord collides somewhere.
+  moveColumnTowardStart: [],
+  moveColumnTowardEnd: [],
+  widenColumn: [],
+  narrowColumn: [],
   // Enter is edit; alt+Enter was free
   openLink: ["alt+Enter"],
 };

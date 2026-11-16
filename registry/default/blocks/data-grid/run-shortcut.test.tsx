@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render } from "@testing-library/react";
 import { createRef } from "react";
 import { DataGridProvider, DataGridRoot, defineColumns, type DataGridApi } from "./data-grid";
+import { COLUMN_WIDTH_STEP } from "./data-grid-sdk";
 
 afterEach(cleanup);
 
@@ -82,5 +83,49 @@ describe("api.runShortcut", () => {
     act(() => m.api().runShortcut("moveRowsUp"));
     expect(onRowActionSkipped).toHaveBeenCalledWith({ action: "moveRows", reason: "disabled" });
     expect(m.onDataChange).not.toHaveBeenCalled();
+  });
+
+});
+
+describe("column move and resize actions", () => {
+  type Wide = { id: string; a: string; b: string; c: string };
+  const wideColumns = defineColumns<Wide>()([
+    { id: "a", header: "A", accessorKey: "a", width: 100 },
+    { id: "b", header: "B", accessorKey: "b", width: 100 },
+    { id: "c", header: "C", accessorKey: "c", width: 100, reorderable: false },
+  ] as const);
+
+  function mountWide(props: Record<string, unknown> = {}) {
+    const ref = createRef<DataGridApi<Wide>>();
+    render(
+      <DataGridProvider ref={ref} data={[{ id: "r", a: "1", b: "2", c: "3" }]} columns={wideColumns} getRowId={(row) => row.id} {...props}>
+        <DataGridRoot />
+      </DataGridProvider>,
+    );
+    return () => ref.current!;
+  }
+  const order = (api: DataGridApi<Wide>) => api.store.getState().visibleColumns.map((column) => column.id);
+
+  it("moves the active column one step toward the end and the start, and has no default keys", () => {
+    const api = mountWide();
+    act(() => api().actions.selectCellAt({ col: 0, row: 0 }));
+    act(() => api().runShortcut("moveColumnTowardEnd"));
+    expect(order(api())).toEqual(["b", "a", "c"]);
+    expect(api().store.getState().activeCell?.col).toBe(1);
+    act(() => api().runShortcut("moveColumnTowardEnd"));
+    expect(order(api())).toEqual(["b", "a", "c"]);
+    act(() => api().runShortcut("moveColumnTowardStart"));
+    expect(order(api())).toEqual(["a", "b", "c"]);
+    expect(api().store.getState().keymap.moveColumnTowardEnd).toEqual([]);
+  });
+
+  it("widens and narrows the active column by the width step", () => {
+    const api = mountWide();
+    act(() => api().actions.selectCellAt({ col: 1, row: 0 }));
+    act(() => api().runShortcut("widenColumn"));
+    expect(api().store.getState().columnWidths["b"]).toBe(100 + COLUMN_WIDTH_STEP);
+    act(() => api().runShortcut("narrowColumn"));
+    act(() => api().runShortcut("narrowColumn"));
+    expect(api().store.getState().columnWidths["b"]).toBe(100 - COLUMN_WIDTH_STEP);
   });
 });

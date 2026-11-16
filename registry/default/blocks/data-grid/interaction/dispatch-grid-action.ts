@@ -14,6 +14,7 @@ import { apiHandleOf } from "../store/api";
 import { getInternalActions } from "../store/internal-actions";
 import { holeRowId } from "../store/compute";
 import { reportRowActionSkipped } from "../store/row-action-skip";
+import { COLUMN_WIDTH_STEP, shownColumnWidth } from "../columns/column-step";
 import { rowOperationTargets } from "../store/row-operation-targets";
 import { isReorderMarkerMode } from "../rows/marker-width";
 
@@ -58,6 +59,9 @@ export function dispatchGridAction(args: {
   const state = storeApi.getState();
   const rowCount = state.viewIndex.length;
   const colCount = state.visibleColumns.length;
+
+  const targetColumnIndex = (): number =>
+    headerColumnId === undefined ? (state.activeCell?.col ?? -1) : state.visibleColumns.findIndex((column) => column.id === headerColumnId);
 
   // A command name shadowing a built-in action wins; callers check the command's scope.
   const command = state.commands?.[action];
@@ -374,6 +378,27 @@ export function dispatchGridAction(args: {
     case "deleteRows": {
       preventDefault();
       runRowOperation("deleteRows", (rows) => actions.deleteRowsAt(viewIndexes(rows)));
+      break;
+    }
+    case "moveColumnTowardStart":
+    case "moveColumnTowardEnd": {
+      preventDefault();
+      const index = targetColumnIndex();
+      const step = action === "moveColumnTowardStart" ? -1 : 1;
+      const column = state.visibleColumns[index];
+      const neighbor = state.visibleColumns[index + step];
+      if (!column || !neighbor || !actions.setColumnOrder(column.id, neighbor.id, step === -1 ? "before" : "after").ok) break;
+      const active = storeApi.getState().activeCell;
+      if (active) scrollCellIntoView(active);
+      break;
+    }
+    case "widenColumn":
+    case "narrowColumn": {
+      preventDefault();
+      const column = state.visibleColumns[targetColumnIndex()];
+      if (!column || column.resizable === false) break;
+      const width = shownColumnWidth(scrollRef.current, column, state.columnWidths);
+      actions.setColumnWidth(column.id, width + (action === "widenColumn" ? COLUMN_WIDTH_STEP : -COLUMN_WIDTH_STEP));
       break;
     }
     case "openLink": {

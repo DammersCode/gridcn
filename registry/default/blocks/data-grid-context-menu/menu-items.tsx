@@ -48,7 +48,7 @@ import {
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { rowOperationTargets, useDataGridStoreApi, useDataGridCommands, useDataGridSelector, useDataGridSelectionConfig, useDataGridSelectionPointer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MenuShortcut } from "./menu-shortcut";
-import { useDataGridColumnFeatureFlags } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { COLUMN_WIDTH_STEP, shownColumnWidth, useDataGridColumnFeatureFlags } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Ids of the built-in menu items. */
 export type BuiltInMenuItemId =
@@ -254,7 +254,7 @@ export function useDefaultCellMenuItems(args: {
 }
 
 /** Pixels one "Widen column" or "Narrow column" step adds or removes; the store clamps to the column's limits. */
-export const COLUMN_WIDTH_STEP = 16;
+export { COLUMN_WIDTH_STEP };
 
 /** The built-in header-surface set as specs, resolved for the current grid state (sort, pin/resize flags, labels). */
 export function useDefaultHeaderMenuItems(args: { columnId: string; scrollRoot: HTMLElement | null }): GridMenuItemSpec[] {
@@ -315,7 +315,7 @@ export function useDefaultHeaderMenuItems(args: { columnId: string; scrollRoot: 
   }
   if (resizable) {
     // The rendered header width includes flex growth, which the saved width and the def do not hold.
-    const currentWidth = () => scrollRoot?.querySelector(`[role="columnheader"][data-column-id="${CSS.escape(columnId)}"]`)?.getBoundingClientRect().width || savedWidth || column.width || 150;
+    const currentWidth = () => shownColumnWidth(scrollRoot, column, savedWidth === undefined ? {} : { [columnId]: savedWidth });
     specs.push(
       { id: "sep-autosize", separator: true },
       { id: "widen-column", label: labels.contextMenu.widenColumn, icon: <Plus className="size-4 text-muted-foreground" />, onClick: () => actions.setColumnWidth(columnId, currentWidth() + COLUMN_WIDTH_STEP) },
