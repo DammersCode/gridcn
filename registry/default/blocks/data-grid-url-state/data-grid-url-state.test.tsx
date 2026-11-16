@@ -491,6 +491,35 @@ describe("DataGridUrlState back and forward", () => {
     expect(onSortChange).toHaveBeenCalledWith([{ columnId: "age", direction: "desc" }]);
   });
 
+  it("ignores a popstate that leaves the query unchanged, such as a hash-only navigation", async () => {
+    const probe: { sort: unknown }[] = [];
+    let actions: ReturnType<typeof useDataGridActions> | undefined;
+    render(
+      <NuqsTestingAdapter searchParams="?sort=name%3Aasc" hasMemory>
+        <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
+          <UrlStateProbe onResult={() => {}} />
+          <ActionsProbe onActions={(a) => (actions = a)} />
+          <StateProbe onState={(s) => probe.push(s)} />
+        </DataGridProvider>
+      </NuqsTestingAdapter>,
+    );
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 700));
+    });
+    window.history.replaceState({}, "", "/?sort=age%3Adesc");
+    await act(async () => {
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    expect(probe.at(-1)!.sort).toEqual([{ columnId: "age", direction: "desc" }]);
+    act(() => actions!.setSorts([{ columnId: "name", direction: "desc" }]));
+    window.history.replaceState({}, "", "/?sort=age%3Adesc#notes");
+    await act(async () => {
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    window.history.replaceState({}, "", "/");
+    expect(probe.at(-1)!.sort).toEqual([{ columnId: "name", direction: "desc" }]);
+  });
+
   it("leaves the grid alone on popstate when enableNavigationSync is false", async () => {
     const state = await mountAndNavigate(false);
     expect(state.sort).toEqual([{ columnId: "name", direction: "asc" }]);

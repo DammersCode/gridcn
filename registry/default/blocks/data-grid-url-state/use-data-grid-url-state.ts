@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { useQueryState } from "nuqs";
 import {
   useDataGridActions,
@@ -168,15 +168,13 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   // refs keep a live handle to the latest setter so the effects only re-run when the STORE state
   // (the actual source of truth) changes.
   const setSortParamRef = useRef(setSortParam);
-  setSortParamRef.current = setSortParam;
   const setFilterParamRef = useRef(setFilterParam);
-  setFilterParamRef.current = setFilterParam;
   const setJoinParamRef = useRef(setJoinParam);
-  setJoinParamRef.current = setJoinParam;
   const setSearchParamRef = useRef(setSearchParam);
-  setSearchParamRef.current = setSearchParam;
   const layoutSettersRef = useRef({ order: setOrderParam, hidden: setHiddenParam, widths: setWidthsParam, pins: setPinsParam });
-  layoutSettersRef.current = { order: setOrderParam, hidden: setHiddenParam, widths: setWidthsParam, pins: setPinsParam };
+  // The query of the last popstate or of the last write: a popstate with the same query (a hash-only navigation) changes nothing.
+  const seenSearchRef = useRef<string | null>(null);
+  const noteWrite = (written: Promise<unknown>) => void written.then(() => (seenSearchRef.current = window.location.search), () => {});
 
   // Reads the current URL params and applies them to the store. Runs once on mount (via the
   // appliedRef guard below) and is exposed as applyFromUrl so a consumer can re-apply after an
@@ -234,9 +232,16 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
     if (Object.keys(layoutPatch).length > 0) actions.setColumnLayout(layoutPatch);
   }, [actions, allColumns, operatorInput, storeApi, syncSort, syncFilter, syncSearch, layoutParts]);
   const applyUrlRef = useRef(applyUrl);
-  applyUrlRef.current = applyUrl;
   const currentParamsRef = useRef(currentParams);
-  currentParamsRef.current = currentParams;
+  useLayoutEffect(() => {
+    setSortParamRef.current = setSortParam;
+    setFilterParamRef.current = setFilterParam;
+    setJoinParamRef.current = setJoinParam;
+    setSearchParamRef.current = setSearchParam;
+    layoutSettersRef.current = { order: setOrderParam, hidden: setHiddenParam, widths: setWidthsParam, pins: setPinsParam };
+    applyUrlRef.current = applyUrl;
+    currentParamsRef.current = currentParams;
+  });
   const applyFromUrl = useCallback(() => applyUrlRef.current(false, currentParamsRef.current), []);
 
   // apply URL -> store exactly once on mount; afterwards the store is the source of truth and
@@ -251,22 +256,27 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
 
   useEffect(() => {
     if (!enableNavigationSync) return;
-    const onPopState = () => applyUrlRef.current(false, readUrlParams(prefix));
+    seenSearchRef.current ??= window.location.search;
+    const onPopState = () => {
+      if (window.location.search === seenSearchRef.current) return;
+      seenSearchRef.current = window.location.search;
+      applyUrlRef.current(false, readUrlParams(prefix));
+    };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, [enableNavigationSync, prefix]);
 
   useEffect(() => {
     if (!appliedRef.current || !syncSort) return;
-    void setSortParamRef.current(serializeSortState(sortState) || null);
+    noteWrite(setSortParamRef.current(serializeSortState(sortState) || null));
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [sortState]);
 
   useEffect(() => {
     if (!appliedRef.current || !syncFilter) return;
     const choiceBounds = choiceBoundsOf(allColumns);
-    void setFilterParamRef.current(serializeFilterState(filterState, { operatorInput, maxChoices: (columnId) => choiceBounds.get(columnId) }) || null);
-    void setJoinParamRef.current(null);
+    noteWrite(setFilterParamRef.current(serializeFilterState(filterState, { operatorInput, maxChoices: (columnId) => choiceBounds.get(columnId) }) || null));
+    noteWrite(setJoinParamRef.current(null));
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [filterState]);
 
@@ -279,7 +289,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
     for (const part of layoutParts ? (layoutParts.split(",") as UrlLayoutPart[]) : []) {
       const value = serializeLayoutPart(part, columnLayout);
       next[part] = value === serializeLayoutPart(part, initialLayout) ? "" : value;
-      if (previous && part in previous && previous[part] !== next[part]) void layoutSettersRef.current[part](next[part] || null);
+      if (previous && part in previous && previous[part] !== next[part]) noteWrite(layoutSettersRef.current[part](next[part] || null));
     }
     lastWrittenLayoutRef.current = next;
     // oxlint-disable-next-line react-hooks/exhaustive-deps
@@ -288,7 +298,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   // The search text is already debounced by the input; the adapter coalesces the writes, so none is waited for here.
   useEffect(() => {
     if (!appliedRef.current || !syncSearch) return;
-    void setSearchParamRef.current(searchText.slice(0, MAX_SPEC_SEARCH_LENGTH) || null);
+    noteWrite(setSearchParamRef.current(searchText.slice(0, MAX_SPEC_SEARCH_LENGTH) || null));
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [searchText]);
 
