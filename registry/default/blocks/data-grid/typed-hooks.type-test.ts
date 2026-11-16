@@ -8,12 +8,12 @@ export function useTypedReads() {
   const row = useDataGridRow(0);
   const total: number | undefined = row?.total;
   // @ts-expect-error -- the row type comes from the factory
-  const missing = row?.name;
+  row?.name;
   const columns = useDataGridVisibleColumns();
   const all = useDataGridAllColumns();
   const ids = useDataGridSelector((state) => state.data.map((order) => order.id));
   const idList: string[] = ids;
   const api = useDataGridApi();
   const first: Order | undefined = api.getRow(0);
-  return { total, missing, columns, all, idList, first };
+  return { total, columns, all, idList, first };
 }

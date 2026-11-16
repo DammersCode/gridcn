@@ -1,6 +1,7 @@
 import type { StoreApi } from "zustand/vanilla";
 import { toSafeText } from "../cell-types/safe-text";
 import { warnDev } from "../is-dev";
+import type { FilterNode, SortSpec } from "../types";
 import type { DataGridStoreState, InternalSyncProps } from "./types";
 
 /** A seed prop's value, or nothing for a function seed: the store starts empty and {@link applyFunctionSeeds} fills it after mount. */
@@ -20,9 +21,9 @@ function readSeed(name: string, seed: unknown): unknown {
 export function applyFunctionSeeds(store: StoreApi<DataGridStoreState>, init: InternalSyncProps): void {
   const { actions } = store.getState();
   const sorts = init.sortState === undefined ? readSeed("defaultSortState", init.defaultSortState) : undefined;
-  if (Array.isArray(sorts)) actions.setSorts(sorts);
+  if (Array.isArray(sorts)) actions.setSorts(sorts as SortSpec[]);
   const filters = init.filterState === undefined ? readSeed("defaultFilterState", init.defaultFilterState) : undefined;
-  if (Array.isArray(filters)) actions.setFilters(filters);
+  if (Array.isArray(filters)) actions.setFilters(filters as FilterNode[]);
   const search = init.searchText === undefined ? readSeed("defaultSearchText", init.defaultSearchText) : undefined;
   if (typeof search === "string") actions.setSearch(search);
   const layout = init.columnLayout === undefined ? readSeed("defaultColumnLayout", init.defaultColumnLayout) : undefined;
