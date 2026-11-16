@@ -162,7 +162,7 @@ export const currencyCellType: CellType<unknown, number | null> = {
 
 `useCellEditor(props, codec)` builds a text-input editor. It owns the draft state, the end-caret focus, and a one-shot commit guard. It binds Enter, Escape, and blur. Enter commits and moves down. Escape cancels. A blur commits in place. It skips keys during IME composition.
 
-The `codec` is a `CellEditorCodec`. It holds `toDraft(value)` and `toValue(draft)`. `toValue` must never throw. The hook returns `ref`, `value`, `onChange`, `onKeyDown`, `onBlur`, `readOnly`, `aria-label`, `aria-busy`, and `dir`. Spread the result onto an input.
+The `codec` is a `CellEditorCodec`. It holds `toDraft(value)` and `toValue(draft)`. If `toValue` throws, the editor stays open with the draft unchanged, and the next commit runs again. The hook returns `ref`, `value`, `onChange`, `onKeyDown`, `onBlur`, `readOnly`, `aria-label`, `aria-busy`, and `dir`. Spread the result onto an input.
 
 For an editor that is not a text input, import `useCommitGuard` and `useSeedFocus` from the same entry point. `tryCommit()` returns `true` once. `reset()` re-arms it.
 

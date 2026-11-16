@@ -31,7 +31,7 @@ export function useCellTextInsets() {
 export type CellEditorCodec<TValue> = {
   /** Initial draft text for the committed `value`. */
   toDraft(value: TValue): string;
-  /** Parse a draft into the type's value. Never throw — return the type's `clearValue` result for garbage. */
+  /** Parse a draft into the type's value. Throwing keeps the editor open with the draft unchanged. */
   toValue(draft: string): TValue;
 };
 
@@ -53,7 +53,14 @@ export function useCellEditorDraft<TValue>(props: CellEditorProps<unknown, TValu
 
   const commitText = (movement?: { dx: number; dy: number }) => {
     if (!guard.tryCommit()) return;
-    props.onChange(codec.toValue(text));
+    let value: TValue;
+    try {
+      value = codec.toValue(text);
+    } catch {
+      guard.reset();
+      return;
+    }
+    props.onChange(value);
     props.commit(movement);
   };
 
