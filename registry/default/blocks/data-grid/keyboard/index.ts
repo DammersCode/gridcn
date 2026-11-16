@@ -4,6 +4,7 @@ export { matchKeymap, parseBinding, type KeymapEvent, type ParsedBinding } from 
 export { isPrintableKey } from "./is-printable-key";
 export { isMacPlatform } from "./platform";
 export { formatShortcut, formatShortcutToken } from "./shortcut-label";
+export { useShortcutLabel } from "./use-shortcut-label";
 export {
   sharedKeymapBindings,
   validateKeyBinding,
