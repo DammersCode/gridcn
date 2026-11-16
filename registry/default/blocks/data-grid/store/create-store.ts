@@ -254,12 +254,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const dataControlled = init.data !== undefined;
   const initData: readonly unknown[] = init.data ?? init.defaultData ?? [];
   // Seeded at init, so the first real sync has a previous value to compare against.
-  const dropUnknownSorts = (sorts: readonly SortSpec[], columns: readonly AnyColumnDef[]): readonly SortSpec[] => {
+  const dropUnknownSorts = (sorts: SortSpec[], columns: readonly AnyColumnDef[]): SortSpec[] => {
     const kept = keepKnownSorts(sorts, columns);
     if (kept !== sorts) warnStoreOnce("unknown column", UNKNOWN_COLUMN_MESSAGE);
     return kept;
   };
-  const dropUnknownFilters = (nodes: readonly FilterNode[], columns: readonly AnyColumnDef[]): readonly FilterNode[] => {
+  const dropUnknownFilters = (nodes: FilterNode[], columns: readonly AnyColumnDef[]): FilterNode[] => {
     const kept = keepKnownFilters(nodes, columns);
     if (kept !== nodes) warnStoreOnce("unknown column", UNKNOWN_COLUMN_MESSAGE);
     return kept;

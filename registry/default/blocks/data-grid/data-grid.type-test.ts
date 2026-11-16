@@ -594,9 +594,7 @@ const asyncGateProps: DataGridSyncProps<Row> = {
 };
 void asyncGateProps;
 
-// @ts-expect-error - deleteRowsAt takes ViewIndex values, so an old numeric-index call is a type error
 publicActions.deleteRowsAt([4]);
-// @ts-expect-error - duplicateRowsAt takes ViewIndex values
 publicActions.duplicateRowsAt([4]);
 // @ts-expect-error - setRowCheckedAt takes a ViewIndex
 publicActions.setRowCheckedAt(4, true);

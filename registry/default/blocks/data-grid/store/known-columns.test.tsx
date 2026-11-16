@@ -9,7 +9,7 @@ const data: Row[] = [{ id: "a", name: "Alice" }, { id: "b", name: "Bob" }];
 const ghostFilter = { columnId: "ghost", operator: "contains", value: "x" } as FilterSpec;
 const nameFilter = { columnId: "name", operator: "contains", value: "A" } as FilterSpec;
 const create = (extra: object = {}) => createDataGridStore({ data, columns, getRowId: (row: Row) => row.id, ...extra } as unknown as InternalSyncProps);
-const warnings = (warn: ReturnType<typeof vi.spyOn>) => warn.mock.calls.filter(([m]) => String(m).includes("unknown column"));
+const warnings = (warn: { mock: { calls: unknown[][] } }) => warn.mock.calls.filter(([m]) => String(m).includes("unknown column"));
 
 afterEach(() => vi.restoreAllMocks());
 

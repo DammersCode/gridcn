@@ -1204,7 +1204,7 @@ export type DataGridActions = {
    */
   insertRows(viewRowIndex: number, count: number, position?: "above" | "below"): RowActionResult;
   /** View-index variant of {@link DataGridActions.deleteRows}: deletes the rows at `viewRowIndexes` as one `{source: 'row-operation'}` DataChange with row-id-based `delete` operations. */
-  deleteRowsAt(viewRowIndexes: readonly ViewIndex[]): RowActionResult;
+  deleteRowsAt(viewRowIndexes: readonly number[]): RowActionResult;
   /**
    * Deletes the rows with the given ids (the shape `getRowIds()` returns) as one `{source: 'row-operation'}` DataChange; ids that match no row are skipped.
    * With `{ source: "stream" }` the delete is a push: it skips `onBeforeDeleteRows` and `onSave`, takes at most 100,000 ids, and unchecks the rows. The other checked rows and the cursor follow their rows: a range collapses onto the cursor, and the cursor clears when its row is deleted.
@@ -1223,7 +1223,7 @@ export type DataGridActions = {
    * every duplicated row gets a distinct id, never colliding with its source's React key — and
    * `"readOnly"`, `"gate-pending"`, `"unloaded-rows"`, or `"nothing-to-do"` when it does nothing else.
    */
-  duplicateRowsAt(viewRowIndexes: readonly ViewIndex[]): RowActionResult;
+  duplicateRowsAt(viewRowIndexes: readonly number[]): RowActionResult;
   /**
    * Moves the rows at view indices `rows` (a number or a list) as one block: they keep their
    * relative order and land contiguous, the first at view index `to` (final position — arrayMove
