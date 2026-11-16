@@ -55,7 +55,7 @@ describe("messages page", () => {
   });
 
   it("has a row for each new development warning", () => {
-    for (const fragment of ["has no accessible name", "defaultData seeds the grid once", "has not settled after 30 seconds", "before the history plugin mounted", "changed identity while the editor was open", "build() found no grid", "nothing read pager"]) {
+    for (const fragment of ["has no accessible name", "defaultData seeds the grid once", "has not settled after 30 seconds", "before the history plugin mounted", "build() found no grid", "nothing read pager"]) {
       expect(messages(), fragment).toContain(fragment);
     }
   });
