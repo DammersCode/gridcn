@@ -44,7 +44,7 @@ If the source cells form a series, the fill continues the series instead:
 - **Zero-padded numbers.** `001, 002` continues as `003, 004` and keeps the width.
 - **Text with a trailing number.** `Item 1, Item 2` continues as `Item 3, Item 4`.
 
-A series needs two source cells, because one value has no step. The grid finds a series per source column for a vertical fill and per source row for a horizontal fill. An integer with more than 15 digits is an identifier, so the fill copies it. Dates have no series of their own: the fill copies ISO dates such as `2026-01-30, 2026-01-31`. A custom detector below continues real dates.
+A series needs two source cells, because one value has no step. An integer with more than 15 digits is an identifier, so the fill copies it. Dates have no series of their own: the fill copies ISO dates such as `2026-01-30, 2026-01-31`. A custom detector below continues real dates.
 
 A vertical fill checks the series per column. A horizontal fill checks it per row. The series applies to a column or row only when its cells accept every generated value. A `select` column accepts a value that names a choice. A `date` column accepts a valid date inside `min` and `max`, so it rejects a date after `max`. If one generated value fails, the fill repeats the source in that column or row instead:
 
@@ -59,12 +59,12 @@ To force a plain copy, even over a series, hold <kbd>Alt</kbd> (<kbd>Option</kbd
 
 ## Keyboard fill [#keyboard-fill]
 
-The handle has no keyboard equivalent and is hidden from screen readers. These keys give the same result:
+The handle is pointer-only and hidden from screen readers. These keys fill from the keyboard:
 
 - <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>D</kbd> fills down. It copies the top row of the selection into every row below it.
 - <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>R</kbd> fills right. It copies the left column into every column to its right.
 
-Both keys use the same copy and series logic as a drag. The source of each key is one row or one column, so the built-in detector always copies. The add-on binds both keys. In a writable grid, outside an edit, <kbd>Ctrl</kbd>+<kbd>R</kbd> fills right and the page does not reload. The `fillDown` and `fillRight` flags of the [global shortcuts](/docs/selection-shortcuts/global-shortcuts) extend them to the whole window. Without this add-on, both keys do nothing. See [Add-on actions](/docs/plugins/plugin-commands-shortcuts#add-on-actions).
+Both keys use the same copy and series logic as a drag. The source of each key is one row or one column, so the built-in detector always copies. The add-on binds both keys. In a writable grid, outside an edit, <kbd>Ctrl</kbd>+<kbd>R</kbd> fills right and the page does not reload. The `fillDown` and `fillRight` flags of the [global shortcuts](/docs/selection-shortcuts/global-shortcuts) extend them to the whole window. Without this add-on, the grid leaves both keys to the browser. See [Add-on actions](/docs/plugins/plugin-commands-shortcuts#add-on-actions).
 
 ### Touch [#touch]
 
@@ -111,8 +111,18 @@ Pass these options to `useDataGridFill`. Every option is optional:
 `processFill` runs on drag release and on both keyboard commands, before the grid applies the fill. It is synchronous: it returns the text grid to write, or `false` to cancel the fill, and never a promise. The grid parses the returned text with the `fromText` of each column and validates it, like a paste. After `false`, the grid writes nothing and the selection does not expand. This option cancels large fills:
 
 ```tsx
-import { useDataGridFill } from "@/components/data-grid-fill/data-grid-fill";
-import type { ProcessFillContext } from "@/components/data-grid-fill/data-grid-fill";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import {
+  useDataGridFill,
+  type ProcessFillContext,
+} from "@/components/data-grid-fill/data-grid-fill";
+
+type Row = { id: string; name: string };
+
+const rows: Row[] = [{ id: "1", name: "Item 1" }];
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
 
 function processFill({ target, cells }: ProcessFillContext) {
   return target.height > 100 ? false : cells;
@@ -120,7 +130,7 @@ function processFill({ target, cells }: ProcessFillContext) {
 
 function MyGrid() {
   const { plugin } = useDataGridFill({ processFill });
-  // render the grid with plugins={[plugin]}
+  return <DataGrid defaultData={rows} columns={columns} plugins={[plugin]} />;
 }
 ```
 
@@ -131,8 +141,18 @@ function MyGrid() {
 `detectSeries` replaces the built-in detector. It receives the source cell texts along the fill axis, in source order. It returns a `SeriesDescriptor` with an `extrapolate(index)` function, or `null` to copy. `index` counts from the first source cell: `0` is the first source cell, and an up or left fill passes negative indexes. This detector adds date series:
 
 ```tsx
-import { useDataGridFill } from "@/components/data-grid-fill/data-grid-fill";
-import type { SeriesDescriptor } from "@/components/data-grid-fill/data-grid-fill";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import {
+  useDataGridFill,
+  type SeriesDescriptor,
+} from "@/components/data-grid-fill/data-grid-fill";
+
+type Row = { id: string; name: string };
+
+const rows: Row[] = [{ id: "1", name: "2026-01-30" }];
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Date", accessorKey: "name" },
+]);
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -152,7 +172,7 @@ const detectDates = (values: readonly string[]): SeriesDescriptor | null => {
 
 function MyGrid() {
   const { plugin } = useDataGridFill({ detectSeries: detectDates });
-  // render the grid with plugins={[plugin]}
+  return <DataGrid defaultData={rows} columns={columns} plugins={[plugin]} />;
 }
 ```
 
