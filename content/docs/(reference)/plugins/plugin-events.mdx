@@ -30,14 +30,16 @@ This plugin reports the source and the row ids of every change:
 ```tsx
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { DataGridPlugin } from "@/components/data-grid/data-grid";
 
 export function useAuditLog(
   report: (source: string, rowIds: string[]) => void,
 ): { plugin: DataGridPlugin } {
   const reportRef = useRef(report);
-  reportRef.current = report;
+  useEffect(() => {
+    reportRef.current = report;
+  }, [report]);
   return useMemo(
     () => ({
       plugin: {

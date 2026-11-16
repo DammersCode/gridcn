@@ -17,7 +17,9 @@ aliases: ["blocksize", "usedatagridserverrows", "server rows options", "request 
 | [`ServerRowsRequest`](#serverrowsrequest) | The request that `fetchRows` receives | [Server rows contract](/docs/contracts/server-rows-contract) |
 | [`ServerRowsAnswer`](#serverrowsanswer) | The answer that `fetchRows` returns | [Server rows contract](/docs/contracts/server-rows-contract) |
 
-The hook sets `sortMode` and `filterMode` to `"server"` in both modes. A grid with `totalRowCount` defaults both to `"server"`. A sort or filter in the browser covers only the loaded rows and gives a wrong result. Set `sortMode="client"` or `filterMode="client"` to sort or filter the loaded rows locally.
+Both modes set `sortMode` and `filterMode` to `"server"`. To sort or filter the loaded rows in the browser, set `sortMode="client"` or `filterMode="client"`.
+
+Pass `onSave`, `onRenderedRowsChange`, and `plugins` to the hook, not as props after the `gridProps` spread. A prop after the spread replaces the hook wiring.
 
 ## Pages mode [#server-mode]
 
@@ -26,6 +28,8 @@ The default mode fetches one page for each state. If the sort, the filter, the s
 <AutoTypeTable path="./registry/default/blocks/data-grid-server/use-data-grid-server-rows.ts" name="UseDataGridServerRowsOptions" />
 
 The hook keeps `page` between 1 and the last page of 10,000,000 rows at the current page size. A `page` that is not a positive integer becomes 1. At mount, it waits one timer tick before the first request, so a spec that your URL state restores replaces that request before it leaves. If `onError` or `onLoaded` throws, the hook logs the error and carries on.
+
+`initialAnswer` is the answer for the first state. The hook shows it without a request, so the server HTML holds the rows. `onLoaded` does not fire for it, and the next state fetches as usual.
 
 ### Result
 
@@ -58,7 +62,7 @@ A server that sends no count answers `totalRowCount: null` and `hasMore`. The pa
 - The footer shows "Page 3" in place of a range.
 - Next stays enabled while `hasMore` is `true`, and Last stays disabled.
 - The page count is the current page, plus 1 while `hasMore` is `true`.
-- `useDataGridServerPager` lifts a page below 1. It caps the page at the last page of 10,000,000 rows. The pager itself leaves the upper end open when the count is unknown.
+- `useDataGridServerPager` raises a page below 1 to 1. It caps the page at the last page of 10,000,000 rows. The pager itself leaves the upper end open when the count is unknown.
 
 ## Scroll mode [#scroll-mode]
 
@@ -111,6 +115,7 @@ Both modes take `onSave` and `refreshAfterSave`. `gridProps.onSave` runs your ha
 - A function of the save report returns whether to refresh. It runs once after every save in flight has settled, or after the same 10 seconds.
 - A sequential source skips the refresh while the rendered rows plus `overscan` end beyond 10 blocks. Call `server.refresh()` there.
 - Only an `onSave` that returns a promise triggers a refresh.
+- When every save failed, no refresh runs.
 
 `refresh()` stays available. See [Save edits](/docs/save-server/save-edits).
 

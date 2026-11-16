@@ -10,17 +10,17 @@ aliases: ["replace all", "replace in cells"]
 
 | Symbol | Purpose | Guide |
 | --- | --- | --- |
-| `scope` | Picks the cells that Replace covers | [Find and replace](/docs/sort-filter-search/find-replace) |
-| `replaceAllLimit` | Caps the cells one Replace all changes | [Find and replace](/docs/sort-filter-search/find-replace) |
-| `processReplace` | Checks or changes the plan before it writes | [Find and replace](/docs/sort-filter-search/find-replace#check-a-replace-before-it-runs) |
-| `className` | Adds classes to the panel root | [Find and replace](/docs/sort-filter-search/find-replace) |
-| `open` | Opens the panel | [Find and replace](/docs/sort-filter-search/find-replace) |
-| `close` | Closes the panel | [Find and replace](/docs/sort-filter-search/find-replace) |
-| `planReplace` | Plans the changes and writes nothing | [Find and replace](/docs/sort-filter-search/find-replace) |
+| [`scope`](#scope) | Picks the cells that Replace covers | [Find and replace](/docs/sort-filter-search/find-replace) |
+| [`replaceAllLimit`](#replacealllimit) | Caps the cells one Replace all changes | [Find and replace](/docs/sort-filter-search/find-replace) |
+| [`processReplace`](#processreplace) | Checks or changes the plan before it writes | [Find and replace](/docs/sort-filter-search/find-replace#check-a-replace-before-it-runs) |
+| [`className`](#classname) | Adds classes to the panel root | [Find and replace](/docs/sort-filter-search/find-replace) |
+| [`open`](#open) | Opens the panel | [Find and replace](/docs/sort-filter-search/find-replace) |
+| [`close`](#close) | Closes the panel | [Find and replace](/docs/sort-filter-search/find-replace) |
+| [`planReplace`](#planreplace) | Plans the changes and writes nothing | [Find and replace](/docs/sort-filter-search/find-replace) |
 
 ## useDataGridFindReplace [#usedatagridfindreplace]
 
-Pass the `plugin` to the grid:
+This sample passes the `plugin` to the grid:
 
 ```tsx
 import {
@@ -60,7 +60,7 @@ Runs after the panel builds the plan and before it writes. It gets `{ plan, sign
 
 ### scope [#scope]
 
-`"view"` covers every visible column of the rows in the view. On a client-paged grid, it covers every page. `"selection"` covers only the selected cells.
+`"view"` covers every visible column of the rows in the view. On a client-paged grid, it covers every page. In pages mode of a server grid, it covers the shown page. In scroll mode, it covers the loaded rows. See [Find and replace: Server mode](/docs/sort-filter-search/find-replace#server-mode). `"selection"` covers only the selected cells.
 
 ### replaceAllLimit [#replacealllimit]
 
@@ -93,7 +93,7 @@ The plugin registers two commands. Remap them with the `keymap` prop of the grid
 
 ## planReplace [#planreplace]
 
-`planReplace(state, find, replacement, options)` takes a `ReplaceState` and returns a `ReplacePlan`: `{ patches, skipped, remaining }`. It reads the grid state and writes nothing. This button passes `patches` to `updateCells` to write them:
+`planReplace(state, find, replacement, options?)` takes a `ReplaceState` and returns a `ReplacePlan`: `{ patches, skipped, remaining }`. It reads the grid state and writes nothing. This button passes `patches` to `updateCells` to write them:
 
 ```tsx
 import { useDataGridApi } from "@/components/data-grid/data-grid";

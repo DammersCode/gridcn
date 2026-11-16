@@ -63,9 +63,7 @@ An XLSX part has a cap of `maxDecompressedBytes` bytes after unpacking. Without 
 
 ## Excel files [#excel-files]
 
-The parser reads the bytes of an `.xlsx` or `.xls` file, not its name. A zip file reads as XLSX, and an OLE2 file (the container of Excel 97-2003 files) reads as XLS.
-
-The dialog reads the bytes of an `.xlsx` or `.xls` file, not its name. A zip file reads as XLSX, and an OLE2 file (the container of Excel 97-2003 files) reads as XLS.
+A file with an `.xlsx` or `.xls` name goes to the Excel parser. The parser then reads the bytes: a zip file reads as XLSX, and an OLE2 file (the container of Excel 97-2003 files) reads as XLS.
 
 - An XLSX cell comes in as the text that Excel shows, so a date, a currency, or a percentage follows its number format. A number without a format keeps 15 significant digits, so `0.1 + 0.2` comes in as `0.3`.
 - A boolean comes in as `TRUE` or `FALSE`. An error cell comes in as its code, such as `#DIV/0!`.

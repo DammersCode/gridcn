@@ -51,7 +51,7 @@ export function PagedGrid({ rows }: { rows: Person[] }) {
 }
 ```
 
-`useDataGridPager({ pageSizeOptions })` returns `{ pager }` for a grid that pages its view. Call it under `DataGridProvider`. `DataGridPaginationBar` with no props calls it for you. Its options type is `UseDataGridPagerOptions`.
+`useDataGridPager({ pageSizeOptions })` returns `{ pager }` for a grid that pages its view. Call it under `DataGridProvider`. `DataGridPaginationBar` with no props calls it for you. Its options type is `UseDataGridPagerOptions`. A grid without `pageSize` reads as one page that holds every row, so the bar shows one page.
 
 ## DataGridPaginationBar [#datagridpaginationbarprops]
 

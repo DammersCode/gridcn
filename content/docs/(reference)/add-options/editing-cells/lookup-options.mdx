@@ -15,6 +15,44 @@ A `lookup` column takes a `LookupOptions` object in its `options` field. You mus
 | [`LookupLabels`](#lookuplabels) | The text of the editor. |
 | [`LookupOption`, `LookupValue`](#lookupvalue) | One option, and the value a cell stores. |
 
+This sample passes `fetchOptions` and no other option:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import {
+  lookupCellType,
+  type LookupValue,
+} from "@/components/data-grid-lookup/data-grid-lookup";
+
+type Order = { id: string; customer: LookupValue };
+
+const columns = defineColumns<Order>()([
+  {
+    id: "customer",
+    header: "Customer",
+    accessorKey: "customer",
+    type: "lookup",
+    options: {
+      fetchOptions: async ({ query, signal }) => {
+        const url = `/api/customers?q=${encodeURIComponent(query)}`;
+        const res = await fetch(url, { signal });
+        return res.json();
+      },
+    },
+  },
+]);
+
+export function Orders({ orders }: { orders: Order[] }) {
+  return (
+    <DataGrid
+      defaultData={orders}
+      cellTypes={{ lookup: lookupCellType }}
+      columns={columns}
+    />
+  );
+}
+```
+
 ## LookupOptions [#lookupoptions]
 
 {/* props: LookupOptions */}
@@ -73,9 +111,9 @@ The editor drops an answer that arrives after its signal aborted.
 
 `LookupValue` is the value that a cell stores: a `LookupOption`, a bare key string without a label, or `null`. A bare key, or an option with an empty `label`, shows in muted text with a `data-unresolved` attribute until the user picks an option.
 
-## Example
+## Example with limits and labels [#example]
 
-This sample asks for three characters before a search and sets the labels in German:
+This sample asks for three characters before a search and sets every label in German:
 
 ```tsx
 import { DataGrid, type ColumnDef } from "@/components/data-grid/data-grid";
