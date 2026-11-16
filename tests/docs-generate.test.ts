@@ -191,7 +191,7 @@ describe("hooks page", () => {
 describe("options page", () => {
   it("reports a declared option that no row lists", async () => {
     const { missingOptionNames } = await import("../scripts/docs-generate.mjs");
-    const groups = [{ rows: [{ names: ["a"], owners: ["useThing"] }] }];
+    const groups = [{ title: "", intro: "", rows: [{ names: ["a"], owners: ["useThing"], page: "" }] }];
     expect(missingOptionNames("UseThingOptions", ["a", "b"], groups)).toEqual(["b"]);
     expect(missingOptionNames("OtherProps", ["a"], groups)).toEqual(["a"]);
   });
