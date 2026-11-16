@@ -6,7 +6,7 @@ type: task
 aliases: ["conflict", "refused save", "partial save", "two people", "edit conflict"]
 ---
 
-When a server refuses some rows of a change, return those rows from `onSave`. The grid marks the rows `saving` while the promise is pending. It reverts only the refused rows and keeps everything the server accepted.
+When a server refuses some rows of a change, return those rows from `onSave`. The grid reverts only the refused rows and keeps the rest.
 
 ## Acknowledge each change [#acknowledge-each-change]
 
@@ -44,7 +44,7 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
 }
 ```
 
-`sendOp` sends one request per operation, so each refusal maps to one row. Send `move` operations together, as in [Translate operations into API calls](/docs/save-server/save-revert#translate-operations-into-api-calls), and refuse every moved row when that request fails.
+`sendOp` sends one request per operation, so each refusal maps to one row. To send `move` operations in one request, see [Translate operations into API calls](/docs/save-server/save-revert#translate-operations-into-api-calls). Refuse every moved row when that request fails.
 
 ## What the answer means
 
@@ -63,13 +63,13 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
 
 ## Put the server row in place [#current]
 
-If you pass `current`, the revert writes that row in place of the old local row. A refused delete restores `current` without `resolveSaveConflict`. See [Resolve a conflict](#resolve-a-conflict). A refused insert removes the row and ignores `current`. A refused move reverts its position. A rejection with `current` looks like `{ rowId: "o-17", message: "Locked by another user", current: { id: "o-17", customer: "Acme", total: 120 } }`.
+If you pass `current`, the revert writes that row in place of the old local row. A refused delete restores `current` without `resolveSaveConflict`. See [Resolve a conflict](#resolve-a-conflict). A refused insert removes the row and ignores `current`. A refused move reverts its position.
 
-If a newer write to the row is pending or has settled, the grid ignores `current`. If `getRowId(current)` throws or differs from `rowId`, the grid ignores `current` and warns once in development.
+The grid ignores `current` when a newer write to the row exists. It also ignores `current`, and warns once in development, when `getRowId(current)` throws or differs from `rowId`.
 
 ## Detect a conflict on the server [#detect-a-conflict]
 
-An `update` operation carries `prev`, the row before the edit, and its edited `cells`. If a stored field of an edited cell differs from `prev`, another user changed it: refuse the row with `current`. Otherwise write only the edited cells. This handler assumes that each column id names a row field:
+An `update` operation carries `prev`, the row before the edit, and its edited `cells`. If a stored field of an edited cell differs from `prev`, another user changed it. Refuse the row with `current`. Otherwise write only the edited cells. This handler assumes that each column id names a row field:
 
 ```ts
 import type {
@@ -120,7 +120,7 @@ onSave={async (change) => {
 
 ## Resolve a conflict [#resolve-a-conflict]
 
-When a refusal carries `current`, the revert takes the server row. To decide per row, pass `resolveSaveConflict` to the provider. It receives a `SaveConflictContext`, `{ rowId, mine, theirs, change, message, signal }`, for each refused row with a usable `current`, except on a `readOnly` grid. `mine` is the row in the grid, and `theirs` is `current`. Return one of these:
+When a refusal carries `current`, the revert takes the server row. To decide per row, pass `resolveSaveConflict` to the provider. It receives `{ rowId, mine, theirs, change, message, signal }` for each refused row with a usable `current`. It does not run on a `readOnly` grid. `mine` is the row in the grid, and `theirs` is `current`. Return one of these:
 
 | Return | Result |
 | --- | --- |
@@ -132,21 +132,21 @@ In this demo, you pick one of the three answers:
 
 <ComponentPreview name="data-grid-save-conflict-demo" />
 
-`"mine"` and `{ row }` commit one change with `source: "merge"` on top of the server row. `onSave` receives it, and history does not record it. A promise keeps the row `saving` until it settles. `signal` aborts when a newer write to the row starts or the grid unmounts.
+`"mine"` and `{ row }` commit one change with `source: "merge"` on top of the server row. `onSave` receives it, and history does not record it. A returned promise keeps the row `saving` until it settles. `signal` aborts when a newer write to the row starts or the grid unmounts.
 
 This handler keeps the user's `customer` and takes the server's other fields: `({ mine, theirs }) => ({ row: { ...theirs, customer: mine.customer } })`.
 
-A change that took server content has `DataChange.serverRowIds`. `useDataGridHistory` drops the older undo steps for those rows.
+A change that took server content has `DataChange.serverRowIds`. `useDataGridHistory` drops older undo steps for those rows.
 
 ## React to a refusal [#react-to-a-refusal]
 
 - The revert is one `onDataChange` call with `source: "rollback"`. The `reverts` field names the refused change. `onSave` never receives that call.
 - `onSaveRejected({ change, rejected, error })` runs once per refused change, after the revert. If the promise resolved with `{ rejected }`, `error` is `null`. Otherwise `error` is the rejection reason.
-- The row element carries `data-save-status="saving"` while the promise is pending, and `failed` after a refusal. See [Save edits](/docs/save-server/save-edits#read-the-save-status).
-- When the revert writes, `useDataGridHistory` removes the whole refused entry from its undo stack. Rows that the server accepted lose their undo step too.
+- The row element carries `data-save-status="failed"` after a refusal. See [Save edits](/docs/save-server/save-edits#read-the-save-status).
+- When the revert writes, `useDataGridHistory` removes the whole refused entry from its undo stack, also for rows the server accepted.
 - A `readOnly` grid skips the revert, warns once in development, and still calls `onSaveRejected`.
-- If you replace the data before the answer, a refused update of a row that left reverts nothing. A refused delete puts the row back. Reload the rows in `onSaveRejected` when that matters.
-- After a refusal, the rollback `onDataChange` runs, then `onSaveRejected`. A throw in one callback does not stop the next.
+- If you replace the data before the answer, a refused update of a row that left reverts nothing. A refused delete puts the row back.
+- A throw in one callback does not stop the next.
 
 ## Related
 
