@@ -10,9 +10,9 @@ import { cn } from "@/lib/utils";
 import { isComposingKey } from "../interaction/is-composing-key";
 import { displayText } from "./display-text";
 import { createFormatterCache, formatKey } from "./formatter-cache";
+import { compareNumbers } from "../sort-filter/builtin-compare";
 
 const IMPLIED_NUMBER_FORMAT: Intl.NumberFormatOptions = {};
-import { compareNumbers } from "../sort-filter/builtin-compare";
 
 const DECIMAL_NUMBER = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i;
 
