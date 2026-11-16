@@ -7,7 +7,7 @@ type: task
 
 When you change the grid or want numbers for your hardware, run the benchmark. You clone the gridcn repository, run Chromium tests that drive a 100,000-row grid, and read the logged output.
 
-You need the repository with dependencies installed and Playwright Chromium. [Benchmark results](/docs/performance/benchmark-results) lists what each suite enforces.
+You need the repository with dependencies installed and Playwright Chromium. Install the browser with `npx playwright install chromium`. [Benchmark results](/docs/performance/benchmark-results) lists what each suite enforces.
 
 ## Run the scroll suites [#scroll-suites]
 
@@ -15,17 +15,17 @@ Run one browser suite at a time. Two runs at once share the machine, and their f
 
 1. Run the blank-row, render-count, mounted-row, and keyboard checks:
 
-```bash
-npx vitest run --project=browser \
-  registry/default/blocks/data-grid/test/scroll-drag.browser.test.tsx
-```
+   ```bash
+   npx vitest run --project=browser \
+     registry/default/blocks/data-grid/test/scroll-drag.browser.test.tsx
+   ```
 
 2. Run the full-swap ratio, the long-task budget, and the jump sequence:
 
-```bash
-npx vitest run --project=browser --reporter=verbose \
-  registry/default/blocks/data-grid/test/perf.browser.test.tsx
-```
+   ```bash
+   npx vitest run --project=browser --reporter=verbose \
+     registry/default/blocks/data-grid/test/perf.browser.test.tsx
+   ```
 
 3. Read the result. Each file prints its own test count, and a pass has no failed test. A passing `perf.browser.test.tsx` run ends with `Tests  3 passed (3)`. It logs `perf ratio` and `perf long-tasks`. The `jump-sequence` line appears with `--reporter=verbose`. A warning on a passing run is not a failure.
 
@@ -37,16 +37,16 @@ Use this script to compare two builds on the same machine.
 
 1. Start the dev server:
 
-```bash
-pnpm dev
-```
+   ```bash
+   pnpm dev
+   ```
 
 2. In a second terminal, run the script against the benchmark page:
 
-```bash
-node scripts/perf-scroll.mjs --runs 5 \
-  --url http://localhost:3000/dev/bench
-```
+   ```bash
+   node scripts/perf-scroll.mjs --runs 5 \
+     --url http://localhost:3000/dev/bench
+   ```
 
 3. Save the result with `--out before.json`. Change the code. Run again with `--baseline before.json`.
 
@@ -58,9 +58,9 @@ A production build returns 404 for the `/dev` routes unless `GRIDCN_DEV_PAGES=1`
 
 With the dev server running, time a sort of 100,000 rows:
 
-```bash
-node scripts/perf-sort.mjs --runs 5
-```
+   ```bash
+   node scripts/perf-sort.mjs --runs 5
+   ```
 
 The script clicks the `Name` header and measures the time until the first row shows the sorted order. Pass `--column` to sort another column.
 

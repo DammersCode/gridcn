@@ -1,12 +1,61 @@
 ---
 title: Live region messages
-description: Look up the messages that the grid live region reads for a stale view, a refused save, a failed undo, and the result of a load.
+description: Look up what the grid live region reads and the label that sets each message, from row moves and checks to stale views, refused saves, and load results.
 icon: Megaphone
 type: reference
 aliases: ["announcements", "saveRejected", "noResults announcement"]
 ---
 
-The grid has one `role="status"` live region. [Screen reader support](/docs/accessibility/screen-reader-support#live-regions) lists the row moves, the checked row counts, and the result counts. This page lists the messages for stale views, refused saves, failed undo, and finished loads. Set the text of each message with the `labels.grid` entry in the table.
+The grid has one `role="status"` live region with `aria-live="polite"`.
+
+## Row moves, checked rows, and result counts [#live-regions]
+
+A live region cannot sit inside `role="grid"`, so the grid places it in `<body>`. These changes read in the region:
+
+- A row move, for example "Row 3 moved to position 4 of 8" (`labels.markers.reorderAnnouncement`).
+- The number of checked rows after a check, an uncheck, Escape, or Ctrl/Cmd+A, for example "3 rows checked" (`labels.grid.rowsChecked`). The count includes hidden checked rows. Under "all matching", it counts the result minus the unchecked rows.
+- "All matching rows checked" after select all matching on a result of unknown size (`labels.grid.allMatchingChecked`).
+
+The region waits 500 ms after the last change. A marker range drag gets one reading, with its final count. A repeated change reads its text again.
+
+With `announceResults`, the region also reads the number of rows of the view after a client filter or sort change, for example "42 rows" (`labels.grid.resultsCount`). A filter change that keeps the same rows in the same order stays quiet. Every sort change announces. A mount stays quiet. In scroll mode, while some rows have not arrived, the region counts the loaded rows only, for example "42 loaded rows" (`labels.grid.resultsCountLoaded`). With client pagination, the count covers every page, like the footer.
+
+A server sort or filter change announces nothing. With `announceResults`, the region reads the result when the next load ends. A load that began with zero rows also reads its result count. See [Load result](#load-result). A client filter announces under `sortMode="server"`. With `announceResults` in a server grid, a new numeric `totalRowCount` becomes the result count.
+
+`announceResults` is a `boolean` grid prop with the default `false`. [Checked rows](/docs/selection-shortcuts/checked-rows) lists it.
+
+## Messages with a label [#messages]
+
+The table lists each message and its `labels.grid` entry. Set the text of a message in the `labels` prop:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Task = { id: string; title: string };
+
+const columns = defineColumns<Task>()([
+  { id: "title", header: "Title", accessorKey: "title" },
+] as const);
+
+const getRowId = (task: Task) => task.id;
+
+const labels = {
+  grid: {
+    saveRejected: (count: number) => `Could not save ${count} rows`,
+  },
+};
+
+export function Tasks({ tasks }: { tasks: Task[] }) {
+  return (
+    <DataGrid
+      data={tasks}
+      columns={columns}
+      getRowId={getRowId}
+      labels={labels}
+    />
+  );
+}
+```
 
 | Message | Label | Reads when |
 |---|---|---|
@@ -38,8 +87,17 @@ A block fill in scroll mode and a page change with the same count stay quiet. A 
 
 A load that ends with an `error` stays silent here, because the error bar has `role="alert"`. The region waits 500 ms for the last announcement, so a run of fast refreshes while the user types is read once.
 
+## Add-on live regions [#addon-regions]
+
+Add-ons bring their own live regions:
+
+- The toolbar search reads its match count.
+- The filter menu and the sort list read each reorder, for example "Name filter moved to position 2 of 3" (`labels.toolbar.filterReorderAnnouncement`, `labels.sort.sortReorderAnnouncement`).
+- The find and replace panel and the status bar read their status text.
+- The header filter and the value list of an `isAnyOf` filter read their status text.
+
 ## Related
 
-- [Screen reader support](/docs/accessibility/screen-reader-support): roles, counts, focus rules, and the other live region messages
+- [Screen reader support](/docs/accessibility/screen-reader-support): roles, counts, and focus rules
 - [Labels and i18n](/docs/theme-style-language/labels-i18n): translate the messages
 - [Stream updates](/docs/rows-live-data/stream-updates): the pushes that make a view stale

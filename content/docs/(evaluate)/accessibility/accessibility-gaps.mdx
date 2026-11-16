@@ -12,7 +12,7 @@ This page lists known gaps in accessibility and in the tests. Use the workaround
 
 The grid brings its roles, focus, and live regions. Your page adds these parts:
 
-- Set `aria-label` or `aria-labelledby` on the grid, so the grid has a name.
+- Set `aria-label` or `aria-labelledby` on the grid, so the grid has a name. In development, the grid warns once when it has no `aria-label`, no `aria-labelledby`, and no labelled ancestor.
 - Wrap the grid in a labeled `<section>` or another landmark. See [Place the grid in a landmark](#landmark).
 - Place that section inside `<main>` or another landmark.
 - Check the colors of your theme with a contrast tool. See [Color contrast](#color-contrast).
@@ -27,6 +27,7 @@ The grid brings its roles, focus, and live regions. Your page adds these parts:
 | Pinned rows are outside navigation | A pinned row is never the active cell. It has no `tabindex` and no `aria-selected`. | Do not put a task that needs the keyboard in a pinned row. |
 | Column reorder and resize are pointer-only | The keyboard cannot move a column or set its width. | Offer your own controls that call `setColumnOrder` and `setColumnWidth`. With the context menu add-on, the header menu (Shift+Alt+ArrowDown) offers Autosize. |
 | The grid has no page landmark | Region navigation cannot place the grid in a labeled region, and the axe-core `region` rule reports it. | Place the grid inside `<main>` or a labeled `<section>`. |
+| A cell error text depends on `aria-description` | The cell carries its error message in `aria-description`. Screen readers differ in how they read this attribute. | Show the error text in your own page as well, for example in a list next to the grid. |
 | Color contrast has no test | The axe-core suite turns off the `color-contrast` rule. | Check your theme colors with a contrast tool. |
 | No screen reader test | The repository records no manual pass with a screen reader. | Test your grid with the screen readers that your users run. |
 | Announcement timing has no test | Tests assert the announcement text and the `aria-live` structure. They do not assert what a screen reader says or when. | Listen to your flows with a screen reader. |

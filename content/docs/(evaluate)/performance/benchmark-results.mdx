@@ -46,9 +46,9 @@ On CI, the sort, the `isAnyOf` and `isNoneOf`, and the combined limits are twice
 
 ## Sort speed [#sort-speed]
 
-The client sort turns each sort column into one integer key per row and sorts the keys. `scripts/bench-sort.mjs` measured the sort step on one development machine at 100,000 rows. On unsorted input, a number column took 4 to 7 ms, 7.7 to 15 times faster than the comparator sort. A text column took 5 to 93 ms, 2 to 9 times faster. A text column with mostly unique strings gains the least.
+The client sort turns each sort column into one integer key per row and sorts the keys. `scripts/bench-sort.mjs` measured the sort step on one development machine at 100,000 rows. On unsorted input, a number column took 4 to 7 ms. That is 7.7 to 15 times faster than the comparator sort (a sort that calls a compare function for each pair of rows). A text column took 5 to 93 ms, 2 to 9 times faster. A text column with mostly unique strings gains the least.
 
-On input that is already sorted or reversed, a number column took 9 ms, 1.9 times faster. A text column took 21 to 22 ms, 1.2 to 1.5 times faster. The full run is in `research/perf-sort-1m.md`. Your hardware changes these numbers.
+On input that is already sorted or reversed, a number column took 9 ms, 1.9 times faster. A text column took 21 to 22 ms, 1.2 to 1.5 times faster. The full run is in [`research/perf-sort-1m.md`](https://github.com/DammersCode/gridcn/blob/main/research/perf-sort-1m.md). Your hardware changes these numbers.
 
 Some columns still use the slower comparator sort. They are a column with `sortCompare` and a cell type with its own `compare`. A number column with `NaN`, infinite values, values above 1e300, or text uses it too. So does a text column with values that are not strings. A view of fewer than 256 rows uses it too.
 

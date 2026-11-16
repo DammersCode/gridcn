@@ -34,7 +34,7 @@ The grid takes an array of rows and a list of column definitions. It has no tabl
 | A custom cell render | `renderCell`. See [Display override](/docs/editing-cells/display-override). |
 | A fixed width | `width` in pixels |
 
-Every column needs a unique `id`. `defineColumns<Row>()` checks each `accessorKey` against your row type. This sample keeps the fetch and the sort state of the page:
+Every column needs a unique `id`. `defineColumns<Row>()` checks each `accessorKey` against your row type. This sample keeps the fetch, the sort state, and the filter state of the page:
 
 ```tsx
 "use client";
@@ -43,6 +43,7 @@ import { useState } from "react";
 import {
   DataGrid,
   defineColumns,
+  type FilterNode,
   type SortSpec,
 } from "@/components/data-grid/data-grid";
 
@@ -56,6 +57,7 @@ const columns = defineColumns<Order>()([
 export function OrdersTable({ orders }: { orders: Order[] }) {
   const [rows, setRows] = useState<readonly Order[]>(orders);
   const [sorts, setSorts] = useState<SortSpec[]>([]);
+  const [filters, setFilters] = useState<FilterNode[]>([]);
   return (
     <DataGrid
       data={rows}
@@ -63,6 +65,8 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
       columns={columns}
       sortState={sorts}
       onSortChange={setSorts}
+      filterState={filters}
+      onFilterChange={setFilters}
       className="h-96"
     />
   );
@@ -71,7 +75,7 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
 
 ## Result
 
-The new grid shows the same rows and columns as the old table, and your state still drives the sort. The other tables of the app run as before.
+The new grid shows the same rows and columns as the old table, and your state still drives the sort and the filters. The other tables of the app run as before.
 
 ## Related
 
