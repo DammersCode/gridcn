@@ -57,7 +57,7 @@ function DataGridUrlStateDemoInner(): ReactNode {
       <div className="flex h-[420px] flex-col overflow-hidden rounded-md border border-border">
         {/* headerClickBehavior="sort" so the URL-synced sortState is actually reachable in this demo */}
         <DataGridProvider defaultData={rows} columns={columns} headerClickBehavior="sort" {...url}>
-          <DataGridUrlState prefix="demo" layout={["order", "hidden", "widths", "pins"]} />
+          <DataGridUrlState prefix="demo" spec={["sort", "filter", "search"]} layout={["order", "hidden", "widths", "pins"]} />
           <DataGridToolbar>
             <DataGridSearch />
             <DataGridFilterMenu />

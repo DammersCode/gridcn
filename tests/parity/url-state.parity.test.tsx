@@ -26,7 +26,7 @@ function LazyGrid() {
   });
   return (
     <DataGridProvider columns={columns} {...server.providerProps}>
-      <DataGridUrlState />
+      <DataGridUrlState spec={["sort", "filter", "search"]} />
       <Capture />
     </DataGridProvider>
   );
@@ -51,7 +51,7 @@ describe("URL state in mode SS (sortMode server)", () => {
     render(
       <NuqsTestingAdapter searchParams="?sort=n%3Adesc">
         <DataGridProvider columns={columns} defaultData={makeRows()} getRowId={(r: Row) => r.id} sortMode="server">
-          <DataGridUrlState />
+          <DataGridUrlState spec={["sort", "filter", "search"]} />
           <Capture />
         </DataGridProvider>
       </NuqsTestingAdapter>,
@@ -68,7 +68,7 @@ describe("URL state in mode API (write-through with onDataChange)", () => {
     render(
       <NuqsTestingAdapter onUrlUpdate={onUrlUpdate}>
         <DataGridProvider columns={columns} defaultData={makeRows()} getRowId={(r: Row) => r.id} onDataChange={onDataChange}>
-          <DataGridUrlState />
+          <DataGridUrlState spec={["sort", "filter", "search"]} />
           <Capture />
         </DataGridProvider>
       </NuqsTestingAdapter>,

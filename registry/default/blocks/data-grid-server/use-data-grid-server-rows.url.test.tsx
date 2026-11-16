@@ -23,7 +23,7 @@ function mount(searchParams: string) {
     status = server.status;
     return (
       <DataGridProvider columns={columns} {...server.providerProps}>
-        <DataGridUrlState />
+        <DataGridUrlState spec={["sort", "filter", "search"]} />
         <DataGridRoot {...server.rootProps} />
       </DataGridProvider>
     );

@@ -102,6 +102,7 @@ The props of 1.3 map to `checkedRowsLifetime` like this:
 | <span id="stream-readonly" />Stream writes | Skip read-only grids, columns, and rows | Write into them. A call without `source` is a stream call. | Pass `source: "edit"` to keep the checks. |
 | <span id="server-pager" />Server pages | `useDataGridPagination` server mode | `useDataGridServerPager` | Move the call. Its options type is `UseDataGridServerPagerOptions`. |
 | <span id="pagination-shape" />Pagination result | `{ pageData, controls }`, `total`, `reconcilePage` | `{ pageData, pager }`, `totalRowCount`, a pager that clamps | Rename. Spread `pager` into `DataGridPaginationBar`. |
+| <span id="url-state-spec" />URL state parts | Sort, filters, and search text | Sort only | To keep filters and search text in the URL, pass `spec={["sort", "filter", "search"]}`. |
 | <span id="url-page-size" />URL page size | 25 | The first of `pageSizeOptions` (10) | To keep 25, pass `defaultPageSize: 25`. |
 | <span id="url-pagination-total" />URL pagination count | The `total` option | No count option. The pager clamps. | Delete `total`. |
 

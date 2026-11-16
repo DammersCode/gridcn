@@ -25,7 +25,8 @@ type UrlSpecPart = "sort" | "filter" | "search";
 
 type UrlParams = Record<"sort" | "filter" | "join" | "q" | UrlLayoutPart, string>;
 
-const DEFAULT_SPEC_PARTS: readonly UrlSpecPart[] = ["sort", "filter", "search"];
+// Filter values and search text can hold personal data; a URL leaks them into history, logs, and Referer, so they sync only on request.
+const DEFAULT_SPEC_PARTS: readonly UrlSpecPart[] = ["sort"];
 
 function choiceBoundsOf(columns: readonly { id: string; options?: unknown }[]): Map<string, number | undefined> {
   return new Map(
@@ -62,7 +63,7 @@ export type UseDataGridUrlStateOptions = {
   prefix?: string;
   /**
    * View-spec parts synced to the URL: `sort` (`sort`), `filter` (`filter` and the legacy `join`), and `search` (`q`).
-   * `[]` turns spec sync off. Default `["sort", "filter", "search"]`.
+   * `[]` turns spec sync off. Default `["sort"]`: filter values and search text reach the URL, browser history, server logs, and `Referer` only when you list `"filter"` and `"search"`.
    */
   spec?: readonly UrlSpecPart[];
   /**
