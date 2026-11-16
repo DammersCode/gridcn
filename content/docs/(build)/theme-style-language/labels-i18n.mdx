@@ -204,7 +204,7 @@ export function LocaleGrid({ locale }: { locale: keyof typeof TRANSLATIONS }) {
 }
 ```
 
-Without `direction`, the grid reads the direction it inherits from the page once, at mount. A grid inside `<html dir="rtl">` is right-to-left with no prop. Pass `direction` to force one direction. If the direction changes at run time, pass `direction` too. With server rendering, pass `direction`: the server HTML is left-to-right until the grid mounts. See [Server rendering](/docs/support-upgrades/server-rendering#hydration-rules).
+Without `direction`, the grid reads the direction it inherits from the page at mount, and again when a `dir` attribute in the document changes. A grid inside `<html dir="rtl">` is right-to-left with no prop. Pass `direction` to force one direction. With server rendering, pass `direction`: the server HTML is left-to-right until the grid mounts. See [Server rendering](/docs/support-upgrades/server-rendering#hydration-rules).
 
 ### What mirrors [#what-mirrors]
 

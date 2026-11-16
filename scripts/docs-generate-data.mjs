@@ -120,6 +120,7 @@ export const FEATURES = {
   "keybindings-dialog": F(["/docs/selection-shortcuts/shortcut-remapping"], ["/docs/add-options/selection-shortcuts/shortcut-remapping-options"], "data-grid-keybindings"),
   "touch": F(["/docs/selection-shortcuts/pointer-selection#touch-gestures"], ["/docs/components-props/data-grid-props"]),
   "row-reorder": F(["/docs/rows-pages-menus/row-order"], ["/docs/components-props/data-grid-props"]),
+  "rtl": F(["/docs/theme-style-language/labels-i18n#rtl-layout"], ["/docs/components-props/data-grid-props"]),
   "mode-neutral": F(["/docs/selection-shortcuts/shortcut-remapping"], ["/docs/components-props/labels"]),
   "unknown-total": F(["/docs/scroll-mode/load-without-row-count"], ["/docs/add-options/server/server-rows-options"], "data-grid-server"),
   "server-rows": F(["/docs/data-modes/query-server-rows"], ["/docs/add-options/server/server-rows-options"], "data-grid-server"),

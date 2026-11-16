@@ -2825,6 +2825,72 @@
       "doc": "/docs/rows-pages-menus/row-order"
     },
     {
+      "id": "rtl",
+      "feature": "Right-to-left layout",
+      "options": [],
+      "note": "Mode-neutral.",
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/theme-style-language/labels-i18n.mdx",
+            "registry/default/blocks/data-grid/test/rtl.browser.test.tsx"
+          ]
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/theme-style-language/labels-i18n.mdx",
+            "registry/default/blocks/data-grid/test/rtl.browser.test.tsx"
+          ]
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/theme-style-language/labels-i18n.mdx",
+            "registry/default/blocks/data-grid/test/rtl.browser.test.tsx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/theme-style-language/labels-i18n.mdx",
+            "registry/default/blocks/data-grid/test/rtl.browser.test.tsx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/theme-style-language/labels-i18n.mdx",
+            "registry/default/blocks/data-grid/test/rtl.browser.test.tsx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/theme-style-language/labels-i18n.mdx",
+            "registry/default/blocks/data-grid/test/rtl.browser.test.tsx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/theme-style-language/labels-i18n.mdx",
+            "registry/default/blocks/data-grid/test/rtl.browser.test.tsx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(build)/theme-style-language/labels-i18n.mdx",
+            "registry/default/blocks/data-grid/test/rtl.browser.test.tsx"
+          ]
+        }
+      },
+      "modeNeutral": true,
+      "doc": "/docs/theme-style-language/labels-i18n#rtl-layout"
+    },
+    {
       "id": "unknown-total",
       "feature": "Unknown total and cursor paging",
       "options": [
