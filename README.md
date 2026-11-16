@@ -20,7 +20,7 @@
 
 ---
 
-Range selection, spreadsheet clipboard, typed cell editors, validation, and virtualized rendering at 100k+ rows. The code lands in your project, so you own every line. The core grid is the engine; every other feature is an add-on that depends on the core. A few also install another gridcn item.
+Range selection, spreadsheet clipboard, typed cell editors, validation, and virtualized rendering at 100,000 rows. The code lands in your project, so you own every line. The core grid is the engine; every other feature is an add-on that depends on the core. A few also install another gridcn item.
 
 ## Features
 
@@ -98,7 +98,7 @@ The [quick start](https://gridcn.vercel.app/docs/learning-path/render-your-first
 
 ## Add-ons
 
-Each add-on is a separate registry item that depends on the core `data-grid`, except the `use-debounce` and `is-composing-key` utilities. A few also install another gridcn item (`data-grid-pagination`, `use-debounce`, or `dropzone`) or the shadcn/ui components they use:
+Each add-on is a separate registry item that depends on the core `data-grid`, except the `use-debounce`, `is-composing-key`, and `dropzone` utilities. A few also install another gridcn item (`data-grid-pagination`, `use-debounce`, or `dropzone`) or the shadcn/ui components they use:
 
 | Item | Adds | Docs |
 | --- | --- | --- |
@@ -119,6 +119,7 @@ Each add-on is a separate registry item that depends on the core `data-grid`, ex
 | `data-grid-views` | Saved views of sort, filters, search, and column layout | [Saved views](https://gridcn.vercel.app/docs/sort-filter-search/saved-views) |
 | `use-debounce` | The `useDebounce` and `useDebouncedInput` hooks that the toolbar, find and replace, and lookup use | [useDebounce](https://gridcn.vercel.app/docs/types-hooks/use-debounce) |
 | `is-composing-key` | `isComposingKey(event)`: tells a key of an IME composition from a plain key, for Enter and Escape handlers | [isComposingKey](https://gridcn.vercel.app/docs/types-hooks/is-composing-key) |
+| `dropzone` | A file drop zone that the import dialog of `data-grid-io` uses | [Import](https://gridcn.vercel.app/docs/import-export/import) |
 | `data-grid-status-bar` | Status bar: row count, selection summary, the select-all-matching banner of a server grid, and custom segments | [Status bar](https://gridcn.vercel.app/docs/selection-shortcuts/status-bar) |
 
 ## Agent skills
