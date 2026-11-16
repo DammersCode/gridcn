@@ -758,7 +758,30 @@ function optionPurpose(row, name) {
   return "";
 }
 
+const optionOwnerKey = (name) => name.toLowerCase().replace(/(props|options)$/, "").replace(/^use/, "").replace(/[^a-z]/g, "");
+const OPTION_TYPE_OWNER = { UseDataGridPaginationServerOptions: "useDataGridServerPager", ReplaceOptions: "planReplace" };
+const RETURNED_PROPS = /(Provider|Root)Props$/;
+
+/** Member names of an Options or Props type that no row of a matching owner in `groups` lists. */
+export function missingOptionNames(typeName, memberNames, groups = OPTION_GROUPS) {
+  const key = optionOwnerKey(OPTION_TYPE_OWNER[typeName] ?? typeName);
+  const listed = new Set(groups.flatMap((g) => g.rows).filter((r) => r.owners.some((o) => { const k = optionOwnerKey(o.split(" ")[0]); return k === key || k.startsWith(key) || key.startsWith(k); })).flatMap((r) => r.names));
+  return memberNames.filter((n) => !listed.has(n));
+}
+
+function checkOptionCoverage() {
+  for (const [url, page] of pages) {
+    if (!url.startsWith("/docs/add-options/")) continue;
+    for (const m of page.body.matchAll(/<AutoTypeTable path="([^"]+)" name="(\w+(?:Props|Options))"/g)) {
+      if (RETURNED_PROPS.test(m[2])) continue;
+      const missing = missingOptionNames(m[2], members(m[1].replace(/^\.\//, ""), m[2]));
+      if (missing.length) problems.push(`options: ${m[2]} (${url}) has no options-z row for ${missing.join(", ")}; add them to OPTION_GROUPS`);
+    }
+  }
+}
+
 function optionsZ() {
+  checkOptionCoverage();
   const taken = new Set();
   const optionRows = [];
   for (const group of OPTION_GROUPS) {

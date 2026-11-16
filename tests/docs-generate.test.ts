@@ -189,6 +189,13 @@ describe("hooks page", () => {
 });
 
 describe("options page", () => {
+  it("reports a declared option that no row lists", async () => {
+    const { missingOptionNames } = await import("../scripts/docs-generate.mjs");
+    const groups = [{ rows: [{ names: ["a"], owners: ["useThing"] }] }];
+    expect(missingOptionNames("UseThingOptions", ["a", "b"], groups)).toEqual(["b"]);
+    expect(missingOptionNames("OtherProps", ["a"], groups)).toEqual(["a"]);
+  });
+
   const options = () => page("(reference)/cheatsheets-messages/options-z");
 
   it("is generated and lists one row per option from A to Z", () => {
