@@ -35,16 +35,16 @@ Installed files are your source. [Upgrade gridcn](/docs/support-upgrades/upgrade
 - The top section, `Unreleased`, lists changes that no tag has shipped. An install without a ref already gets them.
 - Each release has a heading with its number and date.
 - An entry that breaks a public prop, hook, export, or behavior carries the **Breaking:** marker. It names the replacement or describes the new behavior.
-- A release can open with a list of its breaking entries, grouped by area.
+- [2.0 breaking changes](/docs/support-upgrades/breaking-changes-2-0) lists the breaking entries of release 2.0 by area, with the 1.3 form and the 2.0 form.
 - The `Unreleased` section keeps the breaking entries and a short list of highlights. [`CHANGELOG-2.0.md`](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG-2.0.md) lists every other entry of release 2.0, grouped by area.
 
 ### Removed exports
 
 Release 2.0 removes these names from the barrels:
 
-Twelve names leave the `data-grid` barrel: `useDataGridRowCount`, `useDataGridHasActiveCell`, `useDataGridIsSearchMatch`, `useDataGridIsRowSelected`, `useDataGridIsRowChannelSelected`, `useDataGridIsRowCellSelected`, `useDataGridAllRowsSelected`, `useDataGridHeaderClickBehavior`, `useDataGridRowMarkers`, `useDataGridSelectionConfig`, `deepMergeLabels`, and `measureTextWidths`. A [`createDataGridSelector`](/docs/types-hooks/store-hooks#createdatagridselector) hook reads the same values. An add-on imports `useDataGridSelectionConfig` from `data-grid-sdk`.
+Twelve names leave the `data-grid` barrel: `useDataGridRowCount`, `useDataGridHasActiveCell`, `useDataGridIsSearchMatch`, `useDataGridIsRowSelected`, `useDataGridIsRowChannelSelected`, `useDataGridIsRowCellSelected`, `useDataGridAllRowsSelected`, `useDataGridHeaderClickBehavior`, `useDataGridRowMarkers`, `useDataGridSelectionConfig`, `deepMergeLabels`, and `measureTextWidths`. A [`createDataGridSelector`](/docs/types-hooks/store-hooks#createdatagridselector) hook reads the store values of the hooks. `useDataGridSelectionConfig` and `deepMergeLabels` import from `data-grid-sdk`. `measureTextWidths` has no public replacement.
 
-The `data-grid-pagination` barrel drops `pageCount`, `clampPage`, `pageRange`, `pageWindow`, and `DEFAULT_PAGE_SIZES`. The toolbar, io, and keybindings barrels drop `operatorLabel`, `operatorsForColumnType`, `operatorHasValue`, `downloadBlob`, `buildExportHeaders`, `quoteCsvField`, `IMPORT_PREVIEW_ROW_COUNT`, `KEYBINDING_CATEGORIES`, `ACTION_CATEGORY`, `categoryForAction`, `categoryLabel`, `KeybindingCategory`, and `labelForAction`.
+The `data-grid-pagination` barrel drops `pageCount`, `clampPage`, `pageRange`, `pageWindow`, `DEFAULT_PAGE_SIZES`, and `UseDataGridPaginationServerOptions`. The fill barrel drops `FillArgs`. The pinned rows barrel drops `DataGridPinnedRow`, `DataGridPinnedRowProps`, `DataGridPinnedRowBand`, and `DataGridPinnedRowBandProps`. The `data-grid-lazy` item is gone with its barrel. The toolbar, io, and keybindings barrels drop `operatorLabel`, `operatorsForColumnType`, `operatorHasValue`, `buildXlsx`, `BuildXlsxOptions`, `downloadBlob`, `buildExportHeaders`, `quoteCsvField`, `IMPORT_PREVIEW_ROW_COUNT`, `DataGridKeybindingsShortcut`, `DataGridKeybindingsShortcutProps`, `KEYBINDING_CATEGORIES`, `ACTION_CATEGORY`, `categoryForAction`, `categoryLabel`, `KeybindingCategory`, and `labelForAction`.
 
 ## Pin a release [#pinned-installs]
 

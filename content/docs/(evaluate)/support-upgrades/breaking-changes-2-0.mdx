@@ -1,0 +1,139 @@
+---
+title: 2.0 breaking changes
+icon: TriangleAlert
+description: Each breaking change from 1.3 to 2.0 with the 1.3 form, the 2.0 form, and the change to make in your code.
+type: reference
+aliases: ["2.0 breaking changes", "renamed in 2.0", "removed in 2.0"]
+---
+
+Each row is one **Breaking:** entry of the [changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md). The changelog entry holds the full rule and a sample. [Migrate to 2.0](/docs/support-upgrades/migrate-2-0) gives the order of the steps.
+
+| Area | Rows |
+|---|---|
+| [Sorting and filtering](#sorting-filtering) | Sort language and order, filter keys, callbacks |
+| [Selection and row actions](#selection-rows) | Checked rows, row ids, row reorder |
+| [Editing and validation](#editing) | Gates, validation, paste, fill, undo |
+| [Columns and styling](#columns-styling) | Pins, widths, alignment, `locale` |
+| [Keyboard](#keyboard) | Add-on actions, default keys, shortcuts dialog |
+| [Server data and pagination](#server-pagination) | Scroll rows, pushes, pagers |
+| [Import and export](#import-export) | Delimiters, limits, XLSX, `Dropzone` |
+| [Exports and add-ons](#exports-add-ons) | Barrels, labels, presence, context menu |
+
+## Sorting and filtering [#sorting-filtering]
+
+| Area | 1.3 | 2.0 | What to change |
+|---|---|---|---|
+| <span id="sort-locale" />Text sort language | The runtime language | The `locale` prop, then `"en-US"`. `sortLocale` sets it apart. | Pass `locale` or `sortLocale`. A custom text `compare` calls `sortCollator().compare`. |
+| <span id="text-collator" />`text`, `longText`, and `url` order | `localeCompare`: `item10` before `item2` | Numeric and case-insensitive: `item2` before `item10` | For the old order, set `sortCompare` with `localeCompare`. |
+| <span id="callback-timing" />Sort, filter, and search callbacks | Fire before the write. A throw stops the write. | Fire after the write. A throw keeps the write. | Keep your own copy of the old value. |
+| <span id="filter-operator" />`FilterOperator` | A closed union | A built-in operator or any string | Give a `switch` a default branch. `BuiltInFilterOperator` is the closed set. |
+| <span id="column-filter" />Column filter keys | `filterOperators`, `filterMatch` | `filter: { operators, match }` | Move the keys into `filter`. |
+| <span id="no-results" />Filtered empty grid | `labels.grid.emptyState` ("No rows") | `labels.grid.noResults` ("No results") | To keep "No rows", set `labels.grid.noResults`. |
+| <span id="operators-for-column" />`operatorsForColumn` | A `DataGridFilterMenu` prop | Removed | Set `filter.operators` on the column. |
+| <span id="toggle-sort" />`toggleSort` | `toggleSort(id, true)` | `toggleSort(id, { additive: true })` | Pass an options object. |
+
+## Selection and row actions [#selection-rows]
+
+| Area | 1.3 | 2.0 | What to change |
+|---|---|---|---|
+| <span id="checked-rows-lifetime" />Checked row memory | `keepCheckedRows`, `keepHiddenCheckedRows` | `checkedRowsLifetime` | Map the props with the table below. |
+| <span id="checked-rows-only" />Checkbox state | A cell range, such as Ctrl+A, checks the markers. | The checkboxes, `aria-selected`, and the count read the checked rows. Ctrl+A selects cells. | Call `setAllRowsChecked(true)` to check every row. A `CompactSelectionLike` implements `runs()`. |
+| <span id="row-actions-ids" />Row action arguments | `deleteRows([4])`, `duplicateRows([4])`, `deleteRowsById(ids)`, `setRowSelected(4, true)`, `setAllRowsSelected` | `deleteRowsAt([4])`, `duplicateRowsAt([4])`, `deleteRows(ids)`, `setRowCheckedAt(viewIndex(4), true)`, `setAllRowsChecked` | Rename the calls. `setRowChecked(rowId, checked)` takes a row id. |
+| <span id="row-ops-unloaded" />Row actions over unloaded rows | Run over the holes | Do nothing in a scroll-mode grid | Delete known rows with `deleteRows(ids)`. |
+| <span id="enable-row-reorder" />`enableRowReorder` | Turns off the row drag | Removed. A `reorder` family `rowMarkers` mode arms the drag. | Use a plain mode, such as `rowMarkers="checkbox"`. |
+
+The props of 1.3 map to `checkedRowsLifetime` like this:
+
+| 1.3 props | 2.0 prop |
+|---|---|
+| neither | the default: `'until-click'`, or `'across-filters'` with `totalRowCount` |
+| `keepCheckedRows` | `checkedRowsLifetime="until-cleared"` |
+| `keepCheckedRows` and `keepHiddenCheckedRows` | `checkedRowsLifetime="across-filters"` |
+| `keepHiddenCheckedRows` alone | Delete it. It had no effect. |
+
+## Editing and validation [#editing]
+
+| Area | 1.3 | 2.0 | What to change |
+|---|---|---|---|
+| <span id="before-edit-start" />Edit gate | `onEditStart(cell)` | `onBeforeEditStart(cell, { signal })` | Rename the prop. |
+| <span id="validation-mode" />Soft validation | `onInvalid: "warn"` | `validationMode: "warn"` | Rename the column option. |
+| <span id="warn-bulk" />Bulk writes on `"warn"` columns | Paste, fill, and import drop invalid values | They keep the values and flag them in `cellErrors` | To drop them, use `"block"` or `processPaste`. |
+| <span id="delete-validates" />Delete and Cut | Empties a required cell | Run `validate` on the empty value under `"block"` | To allow it, accept the empty value in `validate`. |
+| <span id="number-rejects" />Number text | `abc` clears the cell. `1,234` stores 1.234. | The cell keeps its value, and the grid reports the text. | Clean the text before a paste or an import. |
+| <span id="process-fill" />Fill gate | `onFill({ target, preventDefault })` | `processFill({ target, cells })` returns the cells or `false` | Return `false` to cancel. Return `cells` to write. |
+| <span id="paste-refused" />`pasteFromClipboard` result | `"empty"` for a paste that does not start | `"refused"`. `"empty"` means no text. | Handle `"refused"`. |
+| <span id="clipboard-labels" />Clipboard failure labels | `pasteBlocked` and `clipboardFailed` are strings | A string or a function of the modifier name | Handle both forms where you read them. |
+| <span id="can-undo-readonly" />`canUndo`, `canRedo` | `true` on a `readOnly` grid with entries | `false` while `readOnly` | Delete a `readOnly ||` guard. |
+| <span id="api-writes" />`DataGridApi` writes | `api.startEditing`, `api.stopEditing`, `api.setSelection` | `api.actions.startEditing`, `api.actions.cancelEditing`, `api.actions.setSelection` | Call the writes through `api.actions`. |
+
+## Columns and styling [#columns-styling]
+
+| Area | 1.3 | 2.0 | What to change |
+|---|---|---|---|
+| <span id="pin-start-end" />Pin values | `"left"`, `"right"`, `pin-left`, `data-pinned="left"` | `"start"`, `"end"`, `pin-start`, `data-pinned="start"` | Rename. Saved layouts with the old values still load. |
+| <span id="pin-shadow" />Pin shadow hooks | `data-grid-pin-shadow="left"`, `data-scrolled-left`, `--grid-pin-shadow-left-x` | `"start"`, `data-scrolled-start`, `--grid-pin-shadow-start-x`, and the `end` forms | Rename the CSS selectors. |
+| <span id="pin-hidden-seed" />Def `pin` and `hidden` | Each `columns` array applies them again | They apply at the first appearance of the column id. A later change warns in development. | Use `setColumnPin`, `setColumnHidden`, or `columnLayout`. |
+| <span id="set-column-width" />Width actions | `setColumnWidth` (drag write), `commitColumnWidth` | `previewColumnWidth` (drag write), `setColumnWidth` (commit) | Rename both calls. |
+| <span id="align" />Cell alignment | `align: "left" \| "right" \| "center"`, `<CellSpan align>` | `align: "start" | "center" | "end"`. `CellSpan` inherits it. |\| "center" \| "end"`; `CellSpan` inherits it | Use the logical values. Delete the `CellSpan` prop. |
+| <span id="cell-z-index" />Cell `z-index` | An unpinned cell has none, so a `z-*` class stacks it | Every body cell has an integer `z-index` | Render content that covers other cells in a portal. |
+| <span id="text-placeholder" />`text` `placeholder` | An option that nothing read | Removed. `longText` keeps it. | Delete it from `text` columns. |
+| <span id="locale-prop" />Number and date language | `options.locale` on each column, status bar `locale` | `locale` on `DataGrid` or `DataGridProvider` | Set `locale` once on the grid. |
+
+## Keyboard [#keyboard]
+
+| Area | 1.3 | 2.0 | What to change |
+|---|---|---|---|
+| <span id="addon-actions" />Add-on actions | `undo`, `redo`, `fillDown`, `fillRight`, `openFind`, `openFindReplace` in the core | Each add-on declares and binds its own actions | For your own command, [declare the name](/docs/plugins/plugin-commands-shortcuts#add-on-actions). |
+| <span id="commit-actions" />`commitDown` and siblings | Keymap names that change no key | Removed | Delete them from `keymap`. |
+| <span id="default-chords" />Default chords | `toggleAllRows`: `mod+shift+e`. `openFindReplace`: `ctrl+h`. | `mod+shift+Enter` and `shift+alt+Enter` | To keep an old chord, bind it in `keymap`. |
+| <span id="global-shortcuts" />`DataGridGlobalShortcuts` flags | A flag replaces the default set | A flag adds to undo and redo | For select all alone, add `undo={false} redo={false}`. |
+| <span id="capture-find" />`captureFindShortcut` | A `DataGridSearch` prop | The `focusSearch` keymap action | Write `keymap={{ focusSearch: [] }}` to leave Mod+F to the browser. |
+| <span id="keybindings-plugin" />Shortcuts dialog | `DataGridKeybindingsShortcut` and your dialog state | `useDataGridKeybindings()` returns `{ plugin, open, close }` | Pass `plugins={[keys.plugin]}`. Call `keys.open()` from a button. |
+
+## Server data and pagination [#server-pagination]
+
+| Area | 1.3 | 2.0 | What to change |
+|---|---|---|---|
+| <span id="lazy-removed" />Scroll rows | `useDataGridLazyRows`, `DataGridLazyGuard` | `useDataGridServerRows({ mode: "scroll" })` | Follow [Move the lazy rows](/docs/support-upgrades/migrate-2-0#server-rows). |
+| <span id="row-range" />Row range type | `Range` from `data-grid-lazy` | `RowRange` from `data-grid` | Rename the import. |
+| <span id="load-delay" />Block request start | At once | After `loadDelayMs` (100 ms) | For the 1.3 timing, pass `loadDelayMs: 0`. |
+| <span id="max-loaded-rows" />Loaded rows | Every row stays | At most `maxLoadedRows` (10,000) | To keep every row, pass `maxLoadedRows: Infinity`. |
+| <span id="stream-limit" />Stream batch size | No limit | 100,000 patches. The rest skip as `"limit"`. | Split a bigger batch. |
+| <span id="stream-readonly" />Stream writes | Skip read-only grids, columns, and rows | Write into them. A call without `source` is a stream call. | Pass `source: "edit"` to keep the checks. |
+| <span id="server-pager" />Server pages | `useDataGridPagination` server mode | `useDataGridServerPager` | Move the call. Its options type is `UseDataGridServerPagerOptions`. |
+| <span id="pagination-shape" />Pagination result | `{ pageData, controls }`, `total`, `reconcilePage` | `{ pageData, pager }`, `totalRowCount`, a pager that clamps | Rename. Spread `pager` into `DataGridPaginationBar`. |
+| <span id="url-page-size" />URL page size | 25 | The first of `pageSizeOptions` (10) | To keep 25, pass `defaultPageSize: 25`. |
+| <span id="url-pagination-total" />URL pagination count | The `total` option | No count option. The pager clamps. | Delete `total`. |
+
+## Import and export [#import-export]
+
+| Area | 1.3 | 2.0 | What to change |
+|---|---|---|---|
+| <span id="csv-control-chars" />CSV delimiter detection | U+001E and U+001F too | Comma, semicolon, tab, or pipe | Parse such a file in `parseFile`. |
+| <span id="auto-detect-delimiter" />`autoDetectDelimiter` | `autoDetectDelimiter: false` | Removed | Set `defaultDelimiter`. |
+| <span id="parse-import-signal" />`parseImportFile` signal | `parseImportFile(file, options, signal)` | `parseImportFile(file, { ...options, signal })` | Move `signal` into the options. |
+| <span id="max-decompressed" />XLSX part cap | The lower of `maxDecompressedBytes` and the `maxCells` cap | `maxDecompressedBytes` as given | Check a high value that you set. |
+| <span id="imported-rows-promise" />`buildImportedRows` result | A value or a Promise | Always a Promise | Use `await` on it and on `build()`. |
+| <span id="dropzone" />`Dropzone` props | `src`, `onError` | `files`. A throw from `onDrop` propagates. | Rename `src`. Catch errors in `onDrop`. |
+| <span id="dropzone-caption" />Empty drop zone caption | `labels.io.noFileChosen` | `labels.io.emptyDropzoneCaption(maxSize)` | Override `emptyDropzoneCaption`. |
+| <span id="sheet-name" />XLSX sheet name | `workbookName` | `sheetName` | Rename the option. |
+| <span id="build-xlsx" />`buildXlsx` | Returns the XLSX `Blob` | Removed. The `output` option of `exportGrid` receives the `Blob`. | Call `exportGrid` with `format: "xlsx"` and `output`. |
+| <span id="rows-to-csv" />`rowsToCsv` arguments | `rowsToCsv(rows, ";", false)` | `rowsToCsv(rows, { delimiter: ";", sanitizeFormulas: false })` | Pass an options object. |
+| <span id="xlsx-typed" />XLSX cell types | Every cell is text | `number`, `date`, and `checkbox` columns write typed cells | For text, set `formatCell: ({ text }) => text`. |
+
+## Exports and add-ons [#exports-add-ons]
+
+| Area | 1.3 | 2.0 | What to change |
+|---|---|---|---|
+| <span id="core-exports" />`data-grid` barrel | Twelve hooks and helpers | Removed from the barrel | Use the [replacements](/docs/support-upgrades/version-policy-changelog#removed-exports). |
+| <span id="barrel-helpers" />Toolbar, io, and keybindings helpers | Exported | Removed from the barrels | Delete the imports. [Removed exports](/docs/support-upgrades/version-policy-changelog#removed-exports) lists the names. |
+| <span id="pinned-row-exports" />Pinned row components | `DataGridPinnedRow`, `DataGridPinnedRowBand` in the barrel | Module files only | Let `useDataGridPinnedRows` render them. |
+| <span id="excess-rects" />Presence `onExcessRects` | `(entry, kept, total)` in render | `({ entry, kept, total })` after the commit | Take one object. |
+| <span id="label-undefined" />`undefined` label | Removes the label | Keeps the default | Set `""` to blank a string label. |
+| <span id="right-click-blank" />Right-click on a blank area | No menu | The browser menu | Nothing. |
+
+## Related
+
+- [Migrate to 2.0](/docs/support-upgrades/migrate-2-0)
+- [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn)
+- [Version policy and changelog](/docs/support-upgrades/version-policy-changelog)
