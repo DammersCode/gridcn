@@ -34,7 +34,7 @@ for (const entry of entries) visit(entry, []);
 
 const seen = new Set();
 const unique = cycles.filter((c) => {
-  const key = [...c.slice(0, -1)].sort().join("|");
+  const key = c.slice(0, -1).sort().join("|");
   return seen.has(key) ? false : (seen.add(key), true);
 });
 if (unique.length) {
