@@ -276,3 +276,15 @@ describe("defaultColumnLayout restored from older or malformed storage", () => {
     expect(store().getState().columnWidths).toEqual({});
   });
 });
+
+describe("a columnLayout that is not an object", () => {
+  it("ignores a null columnLayout on mount, on sync, and in setColumnLayout", () => {
+    const { store, rerender } = mount({ columnLayout: null as never });
+    expect(visibleIds(store())).toEqual(["a", "b"]);
+
+    rerender({ columnLayout: null as never });
+    act(() => store().getState().actions.setColumnLayout(null as never));
+
+    expect(visibleIds(store())).toEqual(["a", "b"]);
+  });
+});

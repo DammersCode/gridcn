@@ -34,6 +34,7 @@ import {
 } from "../selection";
 import {
   applyDefaultColumnLayout as applyDefaultColumnLayoutBase,
+  isColumnLayoutObject,
   cellErrorKey,
   clampIndex,
   type ColumnLayoutParts,
@@ -197,7 +198,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // parts fall back to the seeded values (there is no store state yet).
   const seededPins = pinsOf(seeded.columns);
   const effectiveLayout =
-    init.columnLayout !== undefined
+    isColumnLayoutObject(init.columnLayout)
       ? normalizeColumnLayout(
           initColumns,
           {
@@ -671,6 +672,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
      * through here (previewColumnWidth).
      */
     const commitLayout = (changedParts: Partial<ColumnLayout>): void => {
+      if (!isColumnLayoutObject(changedParts)) return;
       const s = get();
       const pins = pinsOf(s.columns);
       const merged: ColumnLayoutParts = {

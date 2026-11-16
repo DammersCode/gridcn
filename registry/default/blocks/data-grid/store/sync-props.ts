@@ -29,6 +29,7 @@ import {
   defHiddenColumnIds,
   DEFAULT_LOCALE,
   withGridLocale,
+  isColumnLayoutObject,
   layoutSnapshotsEqual,
   memoizedMergeLabels,
   normalizeColumnLayout as normalizeColumnLayoutBase,
@@ -382,9 +383,9 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
         // Controlled columnLayout (decision 8): the same echo/structural-equal rule as selection,
         // merged over the incoming column state; a new `columns` array re-applies the controlled
         // parts over the new defs (normalize re-seeds def-hidden and ignores pins on `pinnable: false` columns).
-        if (props.columnLayout === undefined) memory.layoutEchoQueue = [];
+        if (!isColumnLayoutObject(props.columnLayout)) memory.layoutEchoQueue = [];
         let layoutApply: Partial<DataGridStoreState> | null = null;
-        if (props.columnLayout !== undefined) {
+        if (isColumnLayoutObject(props.columnLayout)) {
           const echoIndex = memory.layoutEchoQueue.indexOf(props.columnLayout);
           if (echoIndex !== -1) {
             // The echo and every older entry leave the queue (decision 4); newer entries stay.

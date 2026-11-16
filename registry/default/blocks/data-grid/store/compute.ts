@@ -765,6 +765,9 @@ export function normalizeColumnLayout(
   };
 }
 
+/** A stored layout is untrusted: `null` or a primitive from `JSON.parse` counts as no layout. */
+export const isColumnLayoutObject = (layout: unknown): layout is Partial<ColumnLayout> => layout !== null && typeof layout === "object";
+
 /**
  * Seeds `columnWidths`/`columnOrder`/`hiddenColumns`/per-column `pin` from `defaultColumnLayout` at
  * store-creation time only (never re-applied - see the sync prop's doc comment). Partial layouts
@@ -776,7 +779,7 @@ export function applyDefaultColumnLayout(
   layout: Partial<ColumnLayout> | undefined,
   groups?: ColumnGroupModel | null,
 ): { columns: readonly AnyColumnDef[]; columnWidths: Record<string, number>; columnOrder: string[] | null; hiddenColumns: string[] } {
-  if (!layout || typeof layout !== "object") return { columns, columnWidths: {}, columnOrder: null, hiddenColumns };
+  if (!isColumnLayoutObject(layout)) return { columns, columnWidths: {}, columnOrder: null, hiddenColumns };
   return normalizeColumnLayout(columns, layout, hiddenColumns, groups);
 }
 
