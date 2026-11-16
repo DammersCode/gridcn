@@ -7,6 +7,7 @@ import { createFillStore, useFillOnPointerDown, useFillPreview, type FillStoreAp
 import { renderFillOverlay } from "./fill-overlay";
 import { FillMount } from "./fill-mount";
 import { FILL_KEYMAP } from "./fill-keymap";
+import { detectSeries as detectSeriesBuiltIn } from "./detect-series";
 import type { ProcessFillContext, UseFillHandleOptions } from "./use-fill-handle";
 
 /** Options for {@link useDataGridFill} — the parts of `useFillHandle`'s options that don't need `scrollRef`/`layout` (only available inside `DataGridRoot`'s own subtree, where the plugin's `Mount` reads them). */
@@ -61,9 +62,9 @@ function createFillOverlay(fillStore: FillStoreApi): ComponentType<OverlayPlugin
     const onPointerDown = useFillOnPointerDown(fillStore);
     const selection = useDataGridSelection();
     const editing = useDataGridEditing();
-    const options = useStore(fillStore, (s) => s.options);
+    const optionsDisabled = useStore(fillStore, (s) => s.options.disabled === true);
     // either disable source vetoes the fill, so the handle must vanish with it
-    const disabled = useDataGridReadOnly() || options.disabled === true;
+    const disabled = useDataGridReadOnly() || optionsDisabled;
     const state = { fillPreview, onPointerDown, primaryRange: selection.current?.range ?? null, editing: editing !== null, disabled };
     return renderFillOverlay(state, ctx);
   }
@@ -72,9 +73,14 @@ function createFillOverlay(fillStore: FillStoreApi): ComponentType<OverlayPlugin
 
 /** The plugin's mount component: a fixed-identity wrapper over {@link FillMount} that reads the live options from the fill store. */
 function createFillMount(fillStore: FillStoreApi): ComponentType {
+  // stable callbacks that call the latest options, so an inline processFill does not re-render the mount
+  const processFill: NonNullable<UseDataGridFillOptions["processFill"]> = (ctx) => fillStore.getState().options.processFill?.(ctx) ?? ctx.cells;
+  const detectSeries: NonNullable<UseDataGridFillOptions["detectSeries"]> = (values) => (fillStore.getState().options.detectSeries ?? detectSeriesBuiltIn)(values);
   function FillMountComponent(): ReactNode {
-    const { disabled, processFill, detectSeries } = useStore(fillStore, (s) => s.options);
-    return <FillMount fillStore={fillStore} disabled={disabled} processFill={processFill} detectSeries={detectSeries} />;
+    const disabled = useStore(fillStore, (s) => s.options.disabled);
+    const hasProcessFill = useStore(fillStore, (s) => s.options.processFill !== undefined);
+    const hasDetectSeries = useStore(fillStore, (s) => s.options.detectSeries !== undefined);
+    return <FillMount fillStore={fillStore} disabled={disabled} processFill={hasProcessFill ? processFill : undefined} detectSeries={hasDetectSeries ? detectSeries : undefined} />;
   }
   return FillMountComponent;
 }
