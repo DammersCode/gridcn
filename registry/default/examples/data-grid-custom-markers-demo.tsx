@@ -21,15 +21,15 @@ const columns = defineColumns<DemoRow>()([
 ] as const);
 
 /**
- * A module-scope (stable-identity) `renderMarker` with three states: the row selected (check),
- * only cells of the row selected (minus), or neither (circle). `isRowChannelSelected` is the rows
+ * A module-scope (stable-identity) `renderMarker` with three states: the row checked (check),
+ * only cells of the row selected (minus), or neither (circle). `isChecked` is the rows
  * channel only: a plain cell click opens the cell channel and clears the rows channel, so a check
  * falls back to circle/minus, while the marker cell's own press/drag gesture (on the wrapper, not
  * on this node) selects the row.
  */
-const renderMarker = ({ isRowChannelSelected, isCellSelected }: MarkerCellRenderCtx): ReactNode => (
+const renderMarker = ({ isChecked, isCellSelected }: MarkerCellRenderCtx): ReactNode => (
   <span data-testid="custom-row-marker" className="flex size-5 items-center justify-center">
-    {isRowChannelSelected ? (
+    {isChecked ? (
       <Check className="size-3.5 text-muted-foreground" aria-hidden="true" />
     ) : isCellSelected ? (
       <Minus className="size-3.5 text-muted-foreground" aria-hidden="true" />

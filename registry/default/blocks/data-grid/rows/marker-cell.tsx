@@ -116,7 +116,7 @@ export const DataGridMarkerCell = memo(function DataGridMarkerCell(props: DataGr
       }}
     >
       {renderMarker ? (
-        renderMarker({ rowId, viewRowIndex, isRowChannelSelected, isCellSelected, reorderHandleProps: showGrip ? REORDER_HANDLE_PROPS : undefined })
+        renderMarker({ rowId, viewRowIndex, isChecked: isRowChannelSelected, isRowChannelSelected, isCellSelected, reorderHandleProps: showGrip ? REORDER_HANDLE_PROPS : undefined })
       ) : (
         <>
           {showGrip && (

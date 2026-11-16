@@ -38,11 +38,12 @@ beforeAll(() => {
 });
 
 /** A stable-identity test marker: presentational content that records the ctx it was called with. */
-const renderMarker = ({ viewRowIndex, isRowChannelSelected, isCellSelected }: MarkerCellRenderCtx): ReactNode => (
+const renderMarker = ({ viewRowIndex, isChecked, isRowChannelSelected, isCellSelected }: MarkerCellRenderCtx): ReactNode => (
   <span
     data-testid="custom-row-marker"
     data-row={viewRowIndex}
-    data-marker-selected={isRowChannelSelected ? "true" : undefined}
+    data-marker-selected={isChecked ? "true" : undefined}
+    data-marker-deprecated-checked={isRowChannelSelected === isChecked ? "same" : "differs"}
     data-marker-cell-selected={isCellSelected ? "true" : undefined}
   />
 );
@@ -127,7 +128,7 @@ describe("renderMarker (custom row marker cell content)", () => {
     expect(markers[2]).toHaveAttribute("data-row-id", "2");
   });
 
-  it("reflects isRowChannelSelected in the ctx as the row selection changes", () => {
+  it("reflects isChecked in the ctx as the row selection changes", () => {
     render(<DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} rowMarkers="checkbox" renderMarker={renderMarker} />);
 
     const markers = markerCells();
@@ -138,11 +139,12 @@ describe("renderMarker (custom row marker cell content)", () => {
     expect(markerCells()[1]).toHaveAttribute(GRID_ATTR.selected, "true");
     expect(screen.getAllByTestId("custom-row-marker")[1]).toHaveAttribute("data-marker-selected", "true");
     expect(screen.getAllByTestId("custom-row-marker")[0]).not.toHaveAttribute("data-marker-selected");
+    expect(screen.getAllByTestId("custom-row-marker")[1]).toHaveAttribute("data-marker-deprecated-checked", "same");
     // a marker press opens the ROWS channel only: isCellSelected must not flip.
     expect(screen.getAllByTestId("custom-row-marker")[1]).not.toHaveAttribute("data-marker-cell-selected");
   });
 
-  it("a cell selection flips isCellSelected but NOT isRowChannelSelected (rows channel only)", () => {
+  it("a cell selection flips isCellSelected but NOT isChecked (rows channel only)", () => {
     render(<DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} rowMarkers="checkbox" renderMarker={renderMarker} />);
 
     // press a data cell in row 2: the cell channel opens on that row, the rows channel stays empty

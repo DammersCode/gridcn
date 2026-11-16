@@ -146,11 +146,11 @@ const ICON_VALIDATION_COLUMNS = withIconHeaders(VALIDATION_COLUMNS);
 // Custom marker renderers for the "Custom marker" toggle: module scope for stable identity (the
 // same rule as withIconHeaders above). The row icon is presentational; the marker cell's own
 // press/drag gesture on the wrapper still selects rows. Three states: the row selected (check),
-// only cells of the row selected (minus), or neither (circle) — the ctx's isRowChannelSelected is
+// only cells of the row selected (minus), or neither (circle) — the ctx's isChecked is
 // the rows channel only, so a cell click never flips it.
-const customMarkerRenderMarker = ({ isRowChannelSelected, isCellSelected }: MarkerCellRenderCtx): ReactNode => (
+const customMarkerRenderMarker = ({ isChecked, isCellSelected }: MarkerCellRenderCtx): ReactNode => (
   <span className="flex size-5 items-center justify-center">
-    {isRowChannelSelected ? (
+    {isChecked ? (
       <Check className="size-3.5 text-muted-foreground" aria-hidden="true" />
     ) : isCellSelected ? (
       <Minus className="size-3.5 text-muted-foreground" aria-hidden="true" />

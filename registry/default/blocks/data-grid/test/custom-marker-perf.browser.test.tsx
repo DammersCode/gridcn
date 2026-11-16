@@ -11,9 +11,9 @@ import "@/app/global.css";
 // Trivially cheap (icon only) renderers, module scope for stable identity: the measurement is meant
 // to isolate the render-slot PLUMBING cost (one root-context read + one renderer call per marker
 // cell, per row-window commit) against the built-in checkbox path on the same grid.
-const customRenderMarker = ({ isRowChannelSelected }: MarkerCellRenderCtx): ReactNode => (
+const customRenderMarker = ({ isChecked }: MarkerCellRenderCtx): ReactNode => (
   <span className="flex size-5 items-center justify-center">
-    {isRowChannelSelected ? <Check className="size-3.5 text-primary" aria-hidden="true" /> : <Circle className="size-3.5 text-muted-foreground" aria-hidden="true" />}
+    {isChecked ? <Check className="size-3.5 text-primary" aria-hidden="true" /> : <Circle className="size-3.5 text-muted-foreground" aria-hidden="true" />}
   </span>
 );
 

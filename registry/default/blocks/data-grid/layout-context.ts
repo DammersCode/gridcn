@@ -133,9 +133,11 @@ export type MarkerCellRenderCtx = {
   rowId: string;
   /** 0-based view row index (the marker column's own numbering space, minus one). */
   viewRowIndex: number;
-  /** The ROWS channel only: this row is selected as a whole (marker press/drag, Shift+Space). Cell or column selection never flips it. */
+  /** The row is checked (marker press or drag, Shift+Space, the checkbox). A cell or column selection never checks it. */
+  isChecked: boolean;
+  /** @deprecated Use `isChecked`; the same value. */
   isRowChannelSelected: boolean;
-  /** The CELL or COLUMN channel covers at least one cell of this row. Independent of `isRowChannelSelected`, so a renderer can tell "this row is selected" apart from "cells in this row are selected". */
+  /** The CELL or COLUMN channel covers at least one cell of this row. Independent of `isChecked`, so a renderer can tell "this row is checked" apart from "cells in this row are selected". */
   isCellSelected: boolean;
   /** Spread onto an element of the marker to make it the row's drag handle. Set only in a `reorder` family `rowMarkers` mode. */
   reorderHandleProps?: { "data-grid-reorder-handle": ""; style: CSSProperties };
