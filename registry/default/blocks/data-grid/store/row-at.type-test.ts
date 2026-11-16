@@ -9,3 +9,4 @@ actions.deleteRowsAt([viewRowIndex]);
 actions.duplicateRowsAt([viewRowIndex]);
 actions.deleteRowsAt(viewIndexes([1, 2]));
 actions.duplicateRowsAt(viewIndexes([1, 2]));
+actions.setRowCheckedAt(viewRowIndex, true);

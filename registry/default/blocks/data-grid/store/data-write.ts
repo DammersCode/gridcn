@@ -140,7 +140,7 @@ export function warnViewIndexIds(ctx: DataWriteContext, rowIds: readonly unknown
   if (ctx.warnedViewIndexIds) return;
   if (!rowIds.some((id) => typeof id === "number")) return;
   ctx.warnedViewIndexIds = true;
-  warnDev(`${action} takes stable row ids, and a number here is not a row id. To address rows by view index, call ${action}At with viewIndexes([...])`);
+  warnDev(`${action} takes stable row ids, and a number here is not a row id. To address rows by view index, call ${action}At`);
 }
 
 /**
