@@ -15,7 +15,7 @@ import type { RowIndexCache } from "./row-index";
 import { viewRowOfDataIndex } from "./row-index";
 import { holeRowId, holeRowIndex } from "./compute";
 import { isDev } from "../is-dev";
-import { warnDev } from "./commit";
+import { warnDev } from "../is-dev";
 
 /** The fields derivation and resolution read off the store. */
 type SelectionStateSource = {

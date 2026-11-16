@@ -31,11 +31,11 @@ import {
   warnFlagsForOps,
   type PatchRejection,
   type PrevalidatedPatches,
-  warnDev,
   resolveEditTarget,
 } from "./commit";
 import { toSafeText } from "../cell-types/safe-text";
-import { createWarnOnce, isThenable } from "./async-gate";
+import { createWarnOnce, warnDev } from "../is-dev";
+import { isThenable } from "./async-gate";
 import { reportRowActionSkipped } from "./row-action-skip";
 import type { GateRun, GateTracker } from "./gate-signal";
 import { buildRollback } from "../interaction/rollback";

@@ -1,6 +1,6 @@
 import type { StoreApi } from "zustand/vanilla";
 import { isDev } from "../is-dev";
-import { warnDev } from "./commit";
+import { warnDev } from "../is-dev";
 import type { DataGridStoreState } from "./types";
 
 function hasHole(data: readonly unknown[]): boolean {

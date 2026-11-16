@@ -10,3 +10,17 @@ export function isDev(): boolean {
     return true;
   }
 }
+
+export function warnDev(message: string): void {
+  if (isDev()) console.warn(`[data-grid] ${message}`);
+}
+
+/** A dev warning that fires once per key for the lifetime of the returned function. */
+export function createWarnOnce(): (key: string, message: string | (() => string)) => void {
+  const warned = new Set<string>();
+  return (key, message) => {
+    if (warned.has(key)) return;
+    warned.add(key);
+    warnDev(typeof message === "function" ? message() : message);
+  };
+}

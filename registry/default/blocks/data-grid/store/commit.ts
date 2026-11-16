@@ -1,16 +1,12 @@
 import type { ViewCoord, CellType, DataChange, DataOp } from "../types";
 import { getCellValue, setCellValue } from "../columns/column-helpers";
-import { isDev } from "../is-dev";
+import { isDev, warnDev } from "../is-dev";
 import { isStandardSchema, runValidateSync, type ValidateResult } from "../validation/validate-cell";
 import { runValidateBatch, type ValidateBatchItem } from "../validation/validate-batch";
 import { cellErrorKey, isColumnReadOnly } from "./compute";
 import { resolveColumnValidate } from "../cell-types/capabilities";
 import type { GateContext } from "./gate-signal";
 import type { AnyColumnDef, CellErrorEntry, CellPatch, CommitResult, DataGridStoreState, InternalSyncProps, RowEdit, UpdateCellsSkip } from "./types";
-
-export function warnDev(message: string): void {
-  if (isDev()) console.warn(`[data-grid] ${message}`);
-}
 
 /**
  * Warns once per instance (per passed Set) for every column whose `type` resolves to nothing in

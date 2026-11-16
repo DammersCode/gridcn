@@ -1,4 +1,4 @@
-import { createWarnOnce } from "../store/async-gate";
+import { createWarnOnce } from "../is-dev";
 import type { AnyColumnDef } from "../store/types";
 
 const MEMBERS = { filterOperators: "operators", filterMatch: "match", filterCompare: "compare" } as const;

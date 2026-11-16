@@ -1,4 +1,4 @@
-import { createWarnOnce } from "../store/async-gate";
+import { createWarnOnce } from "../is-dev";
 import type { ColumnPin } from "../types";
 import type { AnyColumnDef } from "../store/types";
 

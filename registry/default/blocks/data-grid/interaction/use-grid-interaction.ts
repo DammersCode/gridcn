@@ -39,7 +39,7 @@ import {
 import { GRID_ATTR, gridAttrSelector } from "../data-attributes";
 import { isRowRangeLive, selectionIsCursorOnly, type RowRangeGesture } from "../selection/row-range-gesture";
 import { offersSetFilter } from "../cell-types/capabilities";
-import { warnDev } from "../store/commit";
+import { warnDev } from "../is-dev";
 import { allRowsSelectedState } from "../store/hooks";
 import { apiHandleOf } from "../store/api";
 import { getInternalActions } from "../store/internal-actions";

@@ -74,7 +74,7 @@ import {
   EMPTY_FLASHING_CELLS,
 } from "./compute";
 import { toSafeText } from "../cell-types/safe-text";
-import { isDev } from "../is-dev";
+import { createWarnOnce, isDev, warnDev } from "../is-dev";
 import {
   MAX_HIDDEN_CHECKED_ROWS,
   NO_HIDDEN_CHECKED_ROWS,
@@ -84,9 +84,9 @@ import {
   carryCheckedRows,
   hiddenCheckedRowsActive,
 } from "./hidden-checked-rows";
-import { resolveEditTarget, warnDev } from "./commit";
+import { resolveEditTarget } from "./commit";
 import { apiHandleOf } from "./api";
-import { createWarnOnce, isThenable } from "./async-gate";
+import { isThenable } from "./async-gate";
 import { createGateTracker, EMPTY_GATES_PENDING, type GateRun } from "./gate-signal";
 import { EMPTY_SAVE_STATUS } from "./write-ack";
 import { createDataWriteActions, createDataWriteContext, emitAfterWrites, emitFromListener, forgetDeferredRows, resetDeferredRows, resolveRefOrWarn, warnViewIndexIds } from "./data-write";

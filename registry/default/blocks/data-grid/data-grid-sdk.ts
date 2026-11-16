@@ -96,7 +96,8 @@ export { holeRowId, isColumnReadOnly, rowIdAtViewRow, viewRowsMoved, visibleColu
 export { measureColumnAutosizeWidth } from "./columns/measure-column-text";
 export { groupPathOf, type ColumnGroupModel } from "./columns/column-groups";
 export { isDev } from "./is-dev";
-export { createWarnOnce, isThenable } from "./store/async-gate";
+export { createWarnOnce } from "./is-dev";
+export { isThenable } from "./store/async-gate";
 export { keepsCheckedRows } from "./store/hidden-checked-rows";
 export { isComposingKey } from "./interaction/is-composing-key";
 export { createTextMatcher } from "./sort-filter";

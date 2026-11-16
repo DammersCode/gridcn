@@ -1,6 +1,6 @@
 import type { GridAction, Keymap } from "../types";
 import { isDev } from "../is-dev";
-import { warnDev } from "../store/commit";
+import { warnDev } from "../is-dev";
 import { bindingSignature, isDefaultBinding } from "./match-keymap";
 import { isMacPlatform } from "./platform";
 

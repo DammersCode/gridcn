@@ -1,5 +1,6 @@
 import { isDev } from "../is-dev";
-import { createWarnOnce, isThenable } from "../store/async-gate";
+import { createWarnOnce } from "../is-dev";
+import { isThenable } from "../store/async-gate";
 import { toSafeText } from "./safe-text";
 import type { CellValidate } from "../validation/validate-cell";
 import type { CellType } from "../types";

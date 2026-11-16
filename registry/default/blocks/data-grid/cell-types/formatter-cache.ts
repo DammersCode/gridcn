@@ -1,4 +1,4 @@
-import { warnDev } from "../store/commit";
+import { warnDev } from "../is-dev";
 
 const MAX_FORMATTERS = 1000;
 const MAX_WARNINGS = 100;
