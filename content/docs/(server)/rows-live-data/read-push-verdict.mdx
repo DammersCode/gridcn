@@ -6,7 +6,7 @@ type: task
 aliases: ["UpdateCellsVerdict", "skipped patches", "skip reason", "updateCells result"]
 ---
 
-`updateCells` and `updateRows` check every patch. The verdict tells you what the grid wrote and what it skipped. See [Stream updates](/docs/rows-live-data/stream-updates) for the call.
+`updateCells` and `updateRows` check every patch. The verdict tells you what the grid wrote and what it skipped. See [Push live values](/docs/rows-live-data/stream-updates) for the call.
 
 `updateCells` and `updateRows` return an `UpdateCellsVerdict`:
 
@@ -57,7 +57,7 @@ export function usePush() {
 
 ## Related
 
-- [Stream updates](/docs/rows-live-data/stream-updates): write patches, and flash changed cells
+- [Push live values](/docs/rows-live-data/stream-updates): write patches, and flash changed cells
 - [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view): stale rows
 - [Validation](/docs/editing-cells/validation): the `validate` that rejects a value
 - [Data change events](/docs/events-state/data-change-events): the operations that a push reports

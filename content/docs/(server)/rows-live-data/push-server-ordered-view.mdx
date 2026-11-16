@@ -6,7 +6,7 @@ type: task
 aliases: ["stale row", "viewStale", "reshape", "data-row-stale", "push delete"]
 ---
 
-A push (`updateCells`, `updateRows`, or `deleteRows` with `source: "stream"`) writes a value into a grid whose order your server decides. The grid cannot move the row. It marks the row stale and lets the hook refetch. See [Stream updates](/docs/rows-live-data/stream-updates) for the push itself.
+A push (`updateCells`, `updateRows`, or `deleteRows` with `source: "stream"`) writes a value into a grid whose order your server decides. The grid cannot move the row. It marks the row stale and lets the hook refetch. See [Push live values](/docs/rows-live-data/stream-updates) for the push itself.
 
 This page applies with `sortMode="server"` or `filterMode="server"`. Your server orders and filters the rows. The grid never tests a pushed row against the sort or filter.
 
@@ -121,7 +121,7 @@ A push to a row that is not loaded is skipped with reason `unknown-row`, and the
 
 ## Related
 
-- [Stream updates](/docs/rows-live-data/stream-updates): push values into cells
+- [Push live values](/docs/rows-live-data/stream-updates): push values into cells
 - [Query server rows](/docs/data-modes/query-server-rows): the spec your server reads
 - [Refresh server rows](/docs/scroll-mode/refresh-server-rows#revalidate): `revalidateIntervalMs` and the timer
 - [Server rows example](/docs/server-data-examples/server-rows-example): the demo as a full page

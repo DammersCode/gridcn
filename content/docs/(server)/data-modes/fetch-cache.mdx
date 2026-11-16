@@ -58,7 +58,7 @@ The grid shows each change at once, and `onDataChange` keeps the cache in step. 
 
 Edits are server state. `onSave` sends each change, and `onDataChange` writes the cache. The invalidation then shows what the server holds. With SWR, call the `mutate` that `useSWR` returns in place of `invalidateQueries`.
 
-A socket or a poll can push values many times per second. Write such values with `updateCells`, not with a new `data` array. See [Stream updates](/docs/rows-live-data/stream-updates).
+A socket or a poll can push values many times per second. Write such values with `updateCells`, not with a new `data` array. See [Push live values](/docs/rows-live-data/stream-updates).
 
 ## Cache scroll blocks [#wiring-a-fetchcache-library-react-query]
 
