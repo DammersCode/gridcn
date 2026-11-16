@@ -68,14 +68,14 @@ These props set the look and the states of the grid. When you compose the parts 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `className` | `string` | none | Classes for the scroll root. Set the height here. |
-| `aria-label` | `string` | none | Accessible name of the grid. |
+| `aria-label` | `string` | none | Accessible name of the grid. Without `aria-label` and `aria-labelledby`, the grid has no name unless a labelled ancestor names it. In development, the grid then warns once. |
 | `aria-labelledby` | `string` | none | Id of the element that names the grid. |
 | `rowHeight` | `number` | none | Row height in px. It overrides `density`. |
 | `markerWidth` | `number` | width of the `rowMarkers` mode | Marker track width in px. `rowMarkers="none"` ignores it. |
 | `density` | `"compact" \| "default" \| "comfortable"` | `"default"` | Row height preset: 28, 36, or 44 px. |
 | `headerHeight` | `number` | `36` | Height of one header row in px. Density does not change it. |
 | `columnOverscan` | `number` | `1` | Unpinned columns that render past each side of the view. |
-| `direction` | `GridDirection` (`"ltr" \| "rtl"`) | inherited | Layout direction. |
+| `direction` | `GridDirection` (`"ltr" \| "rtl"`) | inherited | Layout direction. Without it, the grid follows the inherited `dir` and updates when a `dir` attribute on the page changes. `direction` overrides it. |
 | `emptyState` | `ReactNode \| EmptyStateRenderer` | `labels.grid.emptyState` | Content for a view with no rows. The default text is "No rows", or `labels.grid.noResults` ("No results") when a filter or a server search hides every row. |
 | `loading` | `boolean` | `false` | Shows the loading skeleton or the loading bar. |
 | `loadingState` | `ReactNode \| LoadingStateRenderer` | none | Replaces the built-in loading display. |
@@ -83,14 +83,14 @@ These props set the look and the states of the grid. When you compose the parts 
 | `onRetry` | `() => void` | none | Runs on a press of the Retry button. |
 | `errorState` | `ReactNode \| (ctx) => ReactNode` | none | Replaces the built-in error state. A function receives `{ error, retry }`. |
 | `renderHeaderMenu` | `HeaderMenuRenderer` | none | Renders a menu trigger in each header cell. |
-| `renderHeaderFilter` | `(ctx) => ReactNode` | none | Renders the header filter in each column that offers a set filter (`isAnyOf` or `isNoneOf`) and is not `filterable: false`. |
+| `renderHeaderFilter` | `HeaderFilterRenderer` | none | Renders the header filter in each column that offers a set filter (`isAnyOf` or `isNoneOf`) and is not `filterable: false`. |
 | `renderMarker` | `MarkerCellRenderer` | none | Replaces the content of a row marker cell. A function receives `MarkerCellRenderCtx`. Needs a `rowMarkers` mode other than `"none"`. |
 | `renderMarkerHeader` | `MarkerHeaderRenderer` | none | Replaces the select-all checkbox of the marker header. A function receives `MarkerHeaderRenderCtx`. |
 | `getRowClassName` | `GetRowClassName<TData>` | none | Adds classes to a row. |
 | `getCellClassName` | `GetCellClassName<TData>` | none | Adds classes to a cell. |
 | `children` | `ReactNode` | header and body (`DataGrid` only) | The parts inside the root. |
 
-Pass a stable function to `renderMarker`, `renderMarkerHeader`, `getRowClassName`, and `getCellClassName`. A new `getRowClassName` or `getCellClassName` function on each render logs a development warning. See [Keep references stable](/docs/performance/performance-guidance#keep-references-stable).
+Pass a stable function to `renderMarker` and `renderMarkerHeader`. `getRowClassName` and `getCellClassName` can be inline functions. Rows and cells re-render only when the function returns different classes for the rendered rows.
 
 ### Render slot arguments [#render-slots]
 
@@ -103,7 +103,7 @@ Pass a stable function to `renderMarker`, `renderMarkerHeader`, `getRowClassName
 
 ### Direction [#direction]
 
-Without `direction`, the grid reads the direction of the page once at mount. A grid inside `<html dir="rtl">` runs right to left with no prop. Pass `direction` to force one direction.
+Without `direction`, the grid follows the direction that it inherits from the page. A grid inside `<html dir="rtl">` runs right to left with no prop. A change of a `dir` attribute on the page updates the grid. Pass `direction` to force one direction.
 
 ### Empty, loading, and error states [#states]
 
@@ -165,13 +165,14 @@ export function OrderGrid() {
 | `store` | A `DataGridStoreWrapper`: `getState`, `getInitialState`, and `subscribe`. The state (`DataGridReadState`) omits most event callbacks, such as `onDataChange` and `onSelectionChange`. It keeps `onSave`, `onSaveRejected`, `onBeforeDeleteRows`, `onRowActionSkipped`, `onGateAborted`, `onPageChange`, and `onPageSizeChange`. |
 | `scrollTo()` | Takes a cell by `rowId` and `columnId` and scrolls it into view. A cell whose row left the data or the view, or whose column is hidden, does nothing, and a development build warns once. |
 | `focus()` | Scrolls the active cell into view and focuses it. With no active cell, it focuses the grid, and the first cell becomes active. It does nothing during an edit. |
+| `runShortcut(action)` | Runs what the key bound to a keymap action runs, whether or not a key is bound. A `commands` entry runs with its `when` and `scope`. Otherwise the built-in action runs with its guards. It does nothing before the grid mounts. |
 | `getSelection()` | Returns the selection as a snapshot. |
 | `getRow()` | Takes a view index and returns the row there, or `undefined`. |
 | `getViewRowIds()` | Returns the row id of every view row, in view order. With `pageSize`, it returns the rows of the shown page only. `getViewRowIds({ loaded: true })` leaves the placeholder ids out. |
 
 - `getSelection`, `getRow`, and `getViewRowIds` read at call time. They never re-render the caller.
-- `getViewRowIds()[i]` is the id of view row `i`. In scroll mode, an unloaded row gets the placeholder id `__lazy-unloaded-<n>`, where `n` is its data index. `useDataGridRowIds(viewRowIndices)` returns the same ids for the view rows that you pass. `isPlaceholderRowId(id)` tells a placeholder id from a real id, so no code matches an id prefix.
-- `scrollTo` and `focus` do nothing until a `DataGridRoot` mounts.
+- `getViewRowIds()[i]` is the id of view row `i`. In scroll mode, an unloaded row gets the placeholder id `__lazy-unloaded-<n>`, where `n` is its data index. `useDataGridRowIds(viewRowIndices)` returns the same ids for the view rows that you pass. `isPlaceholderRowId(id)` tells a placeholder id from a real id, so your code needs no prefix match.
+- `scrollTo`, `focus`, and `runShortcut` do nothing until a `DataGridRoot` mounts.
 
 ## All provider props [#all-props]
 

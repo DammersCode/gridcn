@@ -18,7 +18,7 @@ A `ColumnDef` describes one column. It names the column, says how to read and wr
 | Sort and filter | `sortable`, `sortCompare`, `filterable`, `filter` | [Sort and filter](#sort-and-filter) |
 | Layout | `pin`, `pinnable`, `reorderable`, `hidden`, `hideable` | [Fields](#fields) |
 
-`defineColumns` checks each literal. The `type` key sets the value type and the `options` type of the column. A column without `type` is a `text` column. `accessorKey` must name a row field of that value type, and `accessorFn` must return it:
+`defineColumns<TData>()` returns the column array unchanged. The `type` key of each column sets its value type and `options` type. A column without `type` is a `text` column. This sample defines three columns:
 
 ```tsx
 import { defineColumns } from "@/components/data-grid/data-grid";
@@ -63,7 +63,7 @@ Keep the `columns` array stable: define it outside the component or memoize it. 
 | --- | --- | --- | --- |
 | `id` | `string` | Required | Stable identity of the column. Duplicate ids trigger a development warning. |
 | `header` | `string \| ReactNode` | Required | A string header shows a sort arrow while the column is sorted, unless the column has `sortable: false`. A node renders as given, with no sort arrow. |
-| `headerText` | `string` | text of a node `header` | Plain-text name for a node header. The screen reader label, the menus, export, import matching, and autosize read it. Without it, they read the text of the elements in the node, or the column id when the node has no text. |
+| `headerText` | `string` | text of a node `header` | Plain-text name for a node header. The screen reader label, the menus, export, import matching, and autosize read it. Without it, they read the text of the elements in the node. When the node has no text, the screen reader label, the menus, export, and import matching read the column id, and autosize measures no header. |
 | `accessorKey` | `keyof TData` (string keys) | none | Row field that holds the value. |
 | `accessorFn` | `(row) => TValue` | none | Computes the value from the row. |
 | `setValue` | `(row, value) => TData` | spread of `accessorKey` | Returns a new row with the value written. |
@@ -79,7 +79,7 @@ Keep the `columns` array stable: define it outside the component or memoize it. 
 | `pin` | `"start" \| "end"` | none | Starting pin side, applied when the column id first appears. `"start"` and `"end"` follow the inline axis, so both flip in a right-to-left page. |
 | `sortable` | `boolean` | `true` | `false` removes the column from header-click sorting, the sort list, and the sort items of the header menu. |
 | `filterable` | `boolean` | `true` | `false` removes the column from the filter column picker and the header filter. |
-| `filter` | `ColumnFilter` | from `type` | Sets the filter capabilities of this column. Each member beats the same member of the cell type. See the table below. |
+| `filter` | `ColumnFilter` | from `type` | Sets the filter capabilities of this column. Each member beats the same member of the cell type. See [Sort and filter](#sort-and-filter). |
 | `sortCompare` | `(a, b) => number` | none | Compares two rows for sorting. |
 | `hidden` | `boolean` | none | `true` hides the column when its id first appears. `setColumnHidden` and the columns menu change it later. |
 | `resizable` | `boolean` | `true` | `false` removes the resize handle and leaves the column out of autosize. |
@@ -128,9 +128,9 @@ Keep the `columns` array stable: define it outside the component or memoize it. 
 
 `ColumnDef<TData, TValue, TValidate>` has `TValidate` set to `TValue` by default. `AnyColumnDef` is `ColumnDef<unknown, unknown, any>`: a column of any row type. `useDataGridVisibleColumns()` and `useDataGridAllColumns()` return arrays of it. Pass a row type, such as `useDataGridVisibleColumns<Order>()`, to get `ColumnDefOf<Order>` instead. With `defineColumns`, you never set `TValidate` yourself.
 
-`ColumnDefOf<TData>` is `ColumnDef<TData, unknown, any>`, the column type of the `columns` prop. Import `StandardSchemaV1` from `@/components/data-grid/types`. `StandardSchemaV1.InferInput<S>` and `StandardSchemaV1.InferOutput<S>` give the input and output types of a schema.
+`ColumnDefOf<TData>` is `ColumnDef<TData, unknown, any>`, the column type of the `columns` prop. Import `StandardSchemaV1` from `@/components/data-grid/data-grid`. `StandardSchemaV1.InferInput<S>` and `StandardSchemaV1.InferOutput<S>` give the input and output types of a schema.
 
-`TypedColumnDef<TData, K>` is the column type for cell type `K`. `defineColumns` checks each literal against `AnyTypedColumn<TData>`, the union of these types. `TypedTextColumnDef<TData>` is its `text` branch, where `type` is optional.
+`TypedColumnDef<TData, K>` is the column type for cell type `K`. `AnyTypedColumn<TData>` is the union of these types. It is the element type that `defineColumns` takes. `TypedTextColumnDef<TData>` is its `text` branch, where `type` is optional.
 
 [TypeScript generics](/docs/types-hooks/typescript-generics) lists the type arguments of the hooks and the interfaces that you extend.
 
