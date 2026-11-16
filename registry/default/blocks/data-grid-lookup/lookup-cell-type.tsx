@@ -3,13 +3,15 @@
 import { CellSpan, type CellRenderProps, type CellType } from "@/registry/default/blocks/data-grid/data-grid";
 import { createFilterMatcher } from "@/registry/default/blocks/data-grid/data-grid";
 import type { FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { TEXT_FILTER_OPERATORS, sortCollator } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { TEXT_FILTER_OPERATORS, sortCollator, UnparseableTextError } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { LookupEditor } from "./lookup-editor";
 import { isUnresolved, MAX_LOOKUP_TEXT, readLookup, recallOption, rememberOption, type LookupOptions, type LookupValue } from "./lookup-model";
 
-function LookupCell({ value }: CellRenderProps<unknown, LookupValue, LookupOptions>) {
+function LookupCell({ value, options }: CellRenderProps<unknown, LookupValue, LookupOptions>) {
   const option = readLookup(value);
   if (!option) return <CellSpan text="" />;
+  // a shown label pastes back to its key, also from outside the grid
+  if (options?.fetchOptions && !isUnresolved(value)) rememberOption(options.fetchOptions, option);
   if (isUnresolved(value)) {
     return (
       <span data-unresolved="" className="block w-full truncate text-muted-foreground">
@@ -38,7 +40,7 @@ function labelOf(value: unknown): string {
 /**
  * `lookup`: the stored value is `{ value, label }` (the key and the text the user sees). `toText`
  * copies the label; `fromText` resolves a pasted label or key against the options the editor
- * listed or `toText` wrote (copy, export, print, fill source, autosize, filter value list), else follows `unresolvedPaste`. Sort, quick search, and the text filter operators
+ * listed, a cell showed, or `toText` wrote (copy, export, print, fill source, autosize, filter value list), else follows `unresolvedPaste`. Sort, quick search, and the text filter operators
  * read the label.
  */
 export const lookupCellType: CellType<unknown, LookupValue, LookupOptions> = {
@@ -55,7 +57,9 @@ export const lookupCellType: CellType<unknown, LookupValue, LookupOptions> = {
     if (trimmed === "") return null;
     const hit = options?.fetchOptions ? recallOption(options.fetchOptions, trimmed) : undefined;
     if (hit) return hit;
-    return options?.unresolvedPaste === "keep" ? { value: trimmed, label: "" } : null;
+    if (options?.unresolvedPaste === "keep") return { value: trimmed, label: "" };
+    if (options?.unresolvedPaste === "clear") return null;
+    throw new UnparseableTextError("no known option");
   },
   clearValue: () => null,
   isEmpty: (value) => readLookup(value) === null,

@@ -320,10 +320,10 @@ describe("buildFillWrites applies a series only when every generated value fits 
       ]);
     });
 
-    it("does not write the option of one lookup column into another lookup column", () => {
+    it("rejects the option of one lookup column in another lookup column and keeps that cell", () => {
       const supplier: ColumnDef<GridRow, unknown> = { id: "supplier", header: "Supplier", accessorKey: "supplier", type: "lookup", options: { fetchOptions: async () => [] } };
       const s = stateOf([lookupColumn(), supplier], [{ id: "1", store: s1, supplier: null }], types);
-      expect(values(s, { x: 0, y: 0, width: 1, height: 1 }, { x: 1, y: 0, width: 1, height: 1 })).toEqual([null]);
+      expect(values(s, { x: 0, y: 0, width: 1, height: 1 }, { x: 1, y: 0, width: 1, height: 1 })).toEqual([]);
     });
   });
 });
