@@ -39,7 +39,12 @@ export function extractOptionNames(source, name) {
   return [...body.matchAll(/^ {2}(\w+)\??\s*:/gm)].map((m) => m[1]);
 }
 
-/** Every problem in the matrix; an empty list means the guard passes. */
+/**
+ * Every problem in the matrix; an empty list means the guard passes.
+ * `docsOnlyBaseline` lists `feature:mode` cells that may still cite only docs; `pageUrls` checks each row's `doc`.
+ * @param {any} matrix
+ * @param {{ optionNames: string[], root: string, docsOnlyBaseline?: string[], pageUrls?: Set<string> }} options
+ */
 export function checkParity(matrix, { optionNames, root: base, docsOnlyBaseline = [], pageUrls }) {
   const problems = [];
   const modeIds = new Set(matrix.modes.map((m) => m.id));

@@ -13,7 +13,7 @@ import * as proseMod from "../scripts/verify-docs-prose.mjs";
 import * as structureMod from "../scripts/verify-docs-structure.mjs";
 import * as symbolsMod from "../scripts/verify-docs-symbols.mjs";
 
-type Run = { failures: string[]; warnings: string[]; checked?: number; fragments?: number };
+type Run = { failures: string[]; warnings: string[]; checked?: number; fragments?: number; pending?: number };
 type Opts = Record<string, unknown>;
 const runCode = codeMod.run as (o: Opts) => Run;
 const fragmentReason = codeMod.fragmentReason as (meta: string) => string | undefined;
