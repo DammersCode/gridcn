@@ -95,20 +95,14 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   getRowId?: (row: TData, index: number) => string;
   /**
-   * Disables editing and delete grid-wide, independent of any per-column `readOnly`. The store is
-   * the home of this flag: it is seeded from these init props (so SSR and the first client paint
-   * already see it) and kept in sync by the provider's config phase — `DataGridRoot`,
-   * interaction, and clipboard read `state.readOnly` at event/render time, so a flip to `true`
-   * blocks the next keydown before any passive effect runs and cancels an open edit session.
+   * Disables every user write grid-wide, independent of any per-column `readOnly`: editing, delete, paste, fill, cut,
+   * row operations, row id swaps, undo, and redo. Setting it to `true` cancels an open edit session.
    * A `"stream"` push (`updateCells`, `updateRows`, `deleteRows`) still writes. Default `false`.
    */
   readOnly?: boolean;
   /**
-   * Merged over `DEFAULT_KEYMAP` at the store (per-action bindings here take precedence; an
-   * action mapped to `[]` unbinds it). `state.keymap` holds the merged result and keeps its
-   * reference while this prop's entries are content-equal, so an inline `keymap={{ … }}` literal
-   * does not churn the interaction memos. Surfaces outside `DataGridRoot` (the keybindings dialog)
-   * read `state.keymap` via {@link useDataGridKeymap}.
+   * Merged over `DEFAULT_KEYMAP`: per-action bindings here take precedence, and an action mapped to `[]` is unbound.
+   * An inline object literal is fine.
    */
   keymap?: Keymap;
   /** Fired once per change (a user gesture, an action, or a `"stream"` push) with the next data array and a row-id-based delta batch, after the grid stores that array. */
@@ -166,7 +160,7 @@ export type DataGridSyncProps<TData = unknown> = {
    * A promise holds the paste until every cell settles. A pending promise blocks a second paste.
    * A rejection cancels the paste.
    */
-  processCellFromClipboard?: (text: string, ctx: ClipboardPasteCtx<TData>) => unknown;
+  processCellFromClipboard?: (text: string, ctx: ClipboardPasteCtx<TData>) => NonNullable<unknown> | null | undefined | Promise<unknown>;
   /**
    * Runs on the parsed paste grid before it's applied; returning `false` (or a promise of `false`)
    * vetoes the paste entirely. A pending promise blocks a second paste. A rejection cancels the
@@ -303,12 +297,9 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   commands?: Record<string, GridCommand<TData>>;
   /**
-   * Controlled multi-sort spec. Standard controlled-input
-   * semantics: omitted (undefined) keeps the grid uncontrolled — the store owns
-   * `sortState`. Provided (even `[]`) makes this prop the source of truth every `_syncProps` sync
-   * writes into the store; `onSortChange` still fires on every user-driven change (header click,
-   * `setSorts`) either way, but in controlled mode the displayed order only moves once the prop
-   * itself changes — a controlled grid whose consumer ignores the callback stays visually fixed.
+   * Controlled multi-sort spec. Omitted (undefined), the grid owns the sort. Provided (even `[]`), this prop is the
+   * source of truth: `onSortChange` still fires on every user-driven change (header click, `setSorts`), but the
+   * displayed order moves only when the prop changes.
    */
   sortState?: SortSpec[];
   /**
@@ -360,14 +351,10 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   plugins?: readonly DataGridPlugin<unknown>[];
   /**
-   * Seeds `columnWidths`/`columnOrder`/`hiddenColumns`/per-column `pin` ONCE at store creation,
-   * over the `columns` prop's own def defaults (`resolveColumnWidth` precedence: layout beats def).
-   * Deliberately NOT a controlled prop — later changes to this value are ignored (uncontrolled
-   * with events); pair it with `onColumnLayoutChange` to save/restore
-   * a user's layout (e.g. to localStorage) without a fully-controlled overlay fighting the defs.
-   * Partial layouts are normalized the same way `columnLayout` is: unknown column ids are dropped,
-   * `order` gets missing ids appended in def order, widths are clamped, and pins on
-   * `pinnable: false` columns are ignored.
+   * Seeds column widths, order, hidden columns, and pins once, over the `columns` prop's own defaults; the layout wins
+   * over a column's `width` and `pin`. Later changes to this value are ignored. Pair it with `onColumnLayoutChange` to
+   * save and restore a user's layout. A partial layout is normalized like `columnLayout`: unknown column ids are dropped,
+   * `order` gets missing ids appended in column order, widths are clamped, and pins on `pinnable: false` columns are ignored.
    */
   defaultColumnLayout?: Partial<ColumnLayout>;
   /**
@@ -423,14 +410,10 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   defaultSelection?: SelectionState;
   /**
-   * Fires on every committed selection change (click, extend step, range push, row/column/all
-   * selection, clear) with the current selection in stable {@link SelectionState} terms plus a
-   * lazy `details.getValues()` accessor. Fires only when the derived `SelectionState` differs
-   * structurally from the grid's last known value, so a view rebuild that re-projects the same
-   * records (a sort that keeps the selection's rows) fires nothing. A drag-extend gesture fires
-   * once per step (intended - the presence/broadcast use case wants live updates, not just the
-   * final drop) - `getValues()` is a function, not a materialized array, specifically so that
-   * hot path never pays for building a value matrix on steps nobody reads.
+   * Fires on every committed selection change (click, extend step, range push, row/column/all selection, clear)
+   * with the current selection in stable {@link SelectionState} terms plus a lazy `details.getValues()` accessor.
+   * Fires only when the selection differs structurally from the last one, so a sort that keeps the selection's rows
+   * fires nothing. A drag fires once per step. `getValues()` reads the values only when you call it.
    */
   onSelectionChange?: (next: SelectionState, details: SelectionChangeDetails) => void;
    /**
@@ -468,10 +451,7 @@ export type DataGridSyncProps<TData = unknown> = {
    /** Fired when the user right-clicks any non-pinned, non-skeleton cell — pure notification. See {@link OnCellContextMenu}. */
    onCellContextMenu?: OnCellContextMenu<TData>;
     /**
-     * Fired on a plain click on any cell — see {@link OnCellClick}. Fired from the cell's own
-     * existing click handler (no new subscription); the cell reads it from the store at click
-     * time, so an identity change re-renders no cell. Pass a stable identity (e.g. `useCallback`)
-     * to keep the store's config sync from running once per render with a new callback.
+     * Fired on a plain click on any cell — see {@link OnCellClick}. An inline function is fine.
      */
     onCellClick?: OnCellClick<TData>;
     /**

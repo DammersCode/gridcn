@@ -606,3 +606,6 @@ publicActions.deleteRowsAt(viewIndexes([4]));
 export const gateTimeoutPerGate: DataGridProviderProps<{ id: string }>["gateTimeoutMs"] = { onBeforeDeleteRows: 5000 };
 // @ts-expect-error - the import gate has no timeout
 export const gateTimeoutImport: DataGridProviderProps<{ id: string }>["gateTimeoutMs"] = { import: 5000 };
+
+export const asyncPasteParser: DataGridProviderProps<{ id: string }>["processCellFromClipboard"] = async (text) => text.trim();
+export const syncPasteParser: DataGridProviderProps<{ id: string }>["processCellFromClipboard"] = (text) => (text === "" ? null : Number(text));
