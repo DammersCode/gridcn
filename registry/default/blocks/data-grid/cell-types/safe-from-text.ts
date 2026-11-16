@@ -16,6 +16,7 @@ export type ParsedCellText = { value: unknown; validate: CellValidate };
 export class UnparseableTextError extends Error {}
 
 const rejectUnparseable = (): string => UNPARSEABLE_MESSAGE;
+const rejectFaulty = (): string => UNPARSEABLE_MESSAGE;
 
 /**
  * Runs `cellType.fromText` so a throw becomes a rejected cell instead of an aborted write.
@@ -34,12 +35,17 @@ export function safeFromText(
       warnedTypes.add(cellType);
       console.warn("[data-grid] a cell type's fromText threw; the cell is rejected. fromText must return a value for any text.");
     }
-    return { value: undefined, validate: rejectUnparseable };
+    return { value: undefined, validate: error instanceof UnparseableTextError ? rejectUnparseable : rejectFaulty };
   }
 }
 
 /** True when {@link safeFromText} caught a throw for this cell. */
 export function isUnparseable(parsed: ParsedCellText): boolean {
+  return parsed.validate === rejectUnparseable || parsed.validate === rejectFaulty;
+}
+
+/** True when the cell type rejected the text on purpose with {@link UnparseableTextError}. */
+export function isRejectedText(parsed: ParsedCellText): boolean {
   return parsed.validate === rejectUnparseable;
 }
 
@@ -56,12 +62,13 @@ export function parseWithHook(hookName: string, run: () => unknown, validate: Ce
     if (!isThenable(value)) return { value, validate };
     return { value: Promise.resolve(value).then(undefined, (error: unknown) => (fail(error), HOOK_FAILED)), validate };
   } catch (error) {
+    if (error instanceof UnparseableTextError) return { value: undefined, validate: rejectUnparseable };
     fail(error);
-    return { value: undefined, validate: rejectUnparseable };
+    return { value: undefined, validate: rejectFaulty };
   }
 }
 
 /** Turns the settled value of a failed async hook into a rejected cell. */
 export function settleHookFailure<T extends { value: unknown; validate: unknown }>(item: T): T {
-  return item.value === HOOK_FAILED ? { ...item, value: undefined, validate: rejectUnparseable } : item;
+  return item.value === HOOK_FAILED ? { ...item, value: undefined, validate: rejectFaulty } : item;
 }

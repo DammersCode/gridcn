@@ -13,6 +13,7 @@ import {
   dateCellType,
 } from "./cell-types";
 import type { ColumnDef, GridCellTypes } from "../types";
+import { UnparseableTextError } from "./safe-from-text";
 
 afterEach(cleanup);
 
@@ -203,10 +204,11 @@ describe("selectCellType value pipeline", () => {
     expect(selectCellType.fromText("BETA", selectOptions)).toBe("b");
   });
 
-  it("fromText returns null for unknown text, never throws", () => {
-    expect(selectCellType.fromText("nope", selectOptions)).toBeNull();
+  it("fromText rejects unknown text so a paste keeps the old value, and reads blank text as empty", () => {
+    expect(() => selectCellType.fromText("nope", selectOptions)).toThrow(UnparseableTextError);
+    expect(() => selectCellType.fromText("anything")).toThrow(UnparseableTextError);
     expect(selectCellType.fromText("", selectOptions)).toBeNull();
-    expect(selectCellType.fromText("anything")).toBeNull();
+    expect(selectCellType.fromText("  ", selectOptions)).toBeNull();
   });
 
   it("toText renders the option's label", () => {
@@ -246,7 +248,7 @@ describe("selectCellType plain-string choices", () => {
   it("a string is a choice whose value and label are equal", () => {
     expect(selectCellType.toText("Open", plain)).toBe("Open");
     expect(selectCellType.fromText("open", plain)).toBe("Open");
-    expect(selectCellType.fromText("nope", plain)).toBeNull();
+    expect(() => selectCellType.fromText("nope", plain)).toThrow(UnparseableTextError);
   });
 
   it("strings and objects mix in one array", () => {

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toSafeText } from "./safe-text";
+import { UnparseableTextError } from "./safe-from-text";
 import {
   Select,
   SelectContent,
@@ -124,7 +125,7 @@ function SelectEditor({ value, options, onChange, commit, cancel, column, reject
   );
 }
 
-/** `select`: fromText resolves pasted option values first, then labels (case-insensitive) so pasted labels round-trip. */
+/** `select`: fromText resolves pasted option values first, then labels (case-insensitive) so pasted labels round-trip; other text is rejected. */
 export const selectCellType: CellType<unknown, string | null, GridCellTypes["select"]["options"]> = {
   Cell: SelectCell,
   Editor: SelectEditor,
@@ -144,7 +145,8 @@ export const selectCellType: CellType<unknown, string | null, GridCellTypes["sel
     const trimmed = text.trim();
     if (trimmed === "") return null;
     const choice = findChoice(options?.choices, trimmed);
-    return choice?.value ?? null;
+    if (!choice) throw new UnparseableTextError("not a choice");
+    return choice.value;
   },
   clearValue: () => null,
   isEmpty: (value) => value == null,

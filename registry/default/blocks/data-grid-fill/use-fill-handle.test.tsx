@@ -275,11 +275,11 @@ describe("buildFillWrites applies a series only when every generated value fits 
     expect(values(s, stripAt(0, 2, 0, 2), stripAt(2, 2, 0, 2))).toEqual(["Item 3", 3, "Item 4", 4]);
   });
 
-  it("does not copy a select value into another select column that lacks the choice", () => {
+  it("rejects a select label in another select column that lacks the choice and keeps that cell", () => {
     const status = (id: string, choices: { value: string; label: string }[]): ColumnDef<GridRow, unknown> => ({ id, header: id, accessorKey: id, type: "select", options: { choices } });
     const cols = [status("a", [{ value: "open", label: "Open" }]), status("b", [{ value: "low", label: "Low" }]), status("c", [{ value: "c-open", label: "Open" }])];
     const s = stateOf(cols, [{ id: "1", a: "open", b: null, c: null }]);
-    expect(values(s, { x: 0, y: 0, width: 1, height: 1 }, { x: 1, y: 0, width: 2, height: 1 })).toEqual([null, "c-open"]);
+    expect(values(s, { x: 0, y: 0, width: 1, height: 1 }, { x: 1, y: 0, width: 2, height: 1 })).toEqual(["c-open"]);
   });
 
   describe("lookup column", () => {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { isUnparseable, safeFromText } from "./safe-from-text";
+import { isRejectedText, isUnparseable, parseWithHook, safeFromText, UnparseableTextError } from "./safe-from-text";
 import { runValidateSync } from "../validation/validate-cell";
 import type { CellType } from "../types";
 
@@ -29,5 +29,21 @@ describe("safeFromText", () => {
     safeFromText(type, "a", undefined, undefined);
     safeFromText(type, "b", undefined, undefined);
     expect(warn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("parseWithHook", () => {
+  it("rejects a cell without a warning when the hook passes on a deliberate fromText rejection", () => {
+    const warnOnce = vi.fn();
+    const parsed = parseWithHook("processCellFromClipboard", () => { throw new UnparseableTextError("not a choice"); }, undefined, warnOnce);
+    expect(isRejectedText(parsed)).toBe(true);
+    expect(warnOnce).not.toHaveBeenCalled();
+  });
+
+  it("warns and rejects when the hook itself throws", () => {
+    const warnOnce = vi.fn();
+    const parsed = parseWithHook("processCellFromClipboard", () => { throw new Error("boom"); }, undefined, warnOnce);
+    expect(isUnparseable(parsed) && !isRejectedText(parsed)).toBe(true);
+    expect(warnOnce).toHaveBeenCalledOnce();
   });
 });
