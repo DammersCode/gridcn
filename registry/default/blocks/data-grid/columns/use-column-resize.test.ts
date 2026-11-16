@@ -135,4 +135,24 @@ describe("useColumnResize document listener lifecycle", () => {
     expect(hook.result.current.isResizing).toBe(false);
     hook.unmount();
   });
+
+  it.each(["pointercancel", "blur"])("%s restores the start width and fires no layout change", (kind) => {
+    const previewColumnWidth = vi.fn();
+    const setColumnWidth = vi.fn();
+    const hook = renderHook(() => useColumnResize({ column: COLUMN, currentWidth: 100, previewColumnWidth, setColumnWidth, autosizeColumns: vi.fn() }));
+    act(() => {
+      hook.result.current.onPointerDown(pointerDown(document.createElement("div"), 1));
+    });
+    act(() => {
+      document.dispatchEvent(new PointerEvent("pointermove", { pointerId: 1, clientX: 160 }));
+    });
+    expect(previewColumnWidth).toHaveBeenLastCalledWith("c1", 160);
+    act(() => {
+      if (kind === "blur") window.dispatchEvent(new Event("blur"));
+      else document.dispatchEvent(new PointerEvent("pointercancel", { pointerId: 1 }));
+    });
+    expect(previewColumnWidth).toHaveBeenLastCalledWith("c1", 100);
+    expect(setColumnWidth).not.toHaveBeenCalled();
+    hook.unmount();
+  });
 });
