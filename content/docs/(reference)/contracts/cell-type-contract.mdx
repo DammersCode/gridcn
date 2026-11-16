@@ -85,7 +85,7 @@ Content that the editor portals out of the cell, such as a popover, carries `dat
 
 ### validate [#validate]
 
-`validate` takes a function `(value, row) => string | null` or a Standard Schema. Every validation path resolves `column.validate ?? cellType.validate`: a cell commit, a paste, a fill, `updateCells`, and an import.
+`validate` takes a function `(value, row, options) => string | null` or a Standard Schema. `options` holds the `options` of the column, so the `longText` type reads `maxLength` from it. Every validation path resolves `column.validate ?? cellType.validate`: a cell commit, a paste, a fill, `updateCells`, and an import.
 
 ### activate [#activate]
 

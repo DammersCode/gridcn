@@ -163,7 +163,7 @@ The built-in cell types do not wrap text. All rows have the same height, and a c
 
 <kbd>Enter</kbd> commits and moves down. <kbd>Shift</kbd>+<kbd>Enter</kbd> and <kbd>Alt</kbd>+<kbd>Enter</kbd> insert a line break. <kbd>Escape</kbd> cancels, and a click outside commits the draft.
 
-`maxLength` defaults to 100,000. The textarea enforces it while typing. The type's own `validate` rejects pasted, filled, or imported text over 100,000 characters. A column with a smaller `maxLength` needs its own `validate` to reject the same text on those paths.
+`maxLength` defaults to 100,000. The textarea enforces it while typing. Paste, fill, and import reject text over `maxLength` with a message.
 
 ## Related
 
