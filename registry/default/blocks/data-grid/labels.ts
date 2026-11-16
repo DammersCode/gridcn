@@ -592,11 +592,6 @@ function buildDefaultLabels(locale: string): DataGridLabels {
 
         edit: "Edit cell",
         typeToReplace: "Type to replace",
-        // The built-in editors handle these keys themselves and ignore the keymap; Shift+Enter commits and moves down.
-        commitDown: "Commit and move down (editor)",
-        commitUp: "Commit and move down (editor, Shift+Enter)",
-        commitRight: "Leave the grid forward (Tab)",
-        commitLeft: "Leave the grid backward (Shift+Tab)",
         cancel: "Cancel edit",
         clearContents: "Delete contents",
         insertRowBelow: "Insert row below",

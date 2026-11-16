@@ -760,10 +760,6 @@ export interface GridActions {
   openColumnFilter: true;
   edit: true;
   typeToReplace: true;
-  commitDown: true;
-  commitUp: true;
-  commitRight: true;
-  commitLeft: true;
   cancel: true;
   clearContents: true;
   insertRowBelow: true;

@@ -387,10 +387,6 @@ export function dispatchGridAction(args: {
       if (active) scrollCellIntoView(active);
       break;
     }
-    // ARIA grid practice: outside an edit Tab leaves the grid. Bind Tab to moveRight/moveLeft to navigate cells with it.
-    case "commitRight":
-    case "commitLeft":
-      break;
     case "extendUp":
     case "extendDown":
     case "extendLeft":

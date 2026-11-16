@@ -73,8 +73,7 @@ function matchesBinding(event: KeymapEvent, binding: ParsedBinding, isMac: boole
  * Resolves a keyboard event to a `GridAction` using `keymap`, or null if unbound. `include`
  * limits the candidates to the actions it accepts. When several actions share a combo, the most
  * modifier-specific binding wins; on a tie a keymap binding that is not one of the action's
- * defaults beats a default, and a tie between two defaults keeps the earlier entry (Enter: `edit`
- * before `commitDown`).
+ * defaults beats a default, and a tie between two defaults keeps the earlier entry.
  */
 export function matchKeymap(
   event: KeymapEvent,

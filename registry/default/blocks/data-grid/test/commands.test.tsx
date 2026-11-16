@@ -198,7 +198,7 @@ describe("custom keymap commands through <DataGrid commands keymap>", () => {
   });
 
   it("a keymap entry repeating a default binding keeps the default tie order (Enter still edits)", () => {
-    const { grid, focusCell, press } = renderGrid({ keymap: { commitDown: ["Enter"] } as Keymap });
+    const { grid, focusCell, press } = renderGrid({ keymap: { edit: ["Enter"] } as Keymap });
     focusCell(0);
     press(grid, { key: "Enter" });
     expect(screen.getByRole("textbox")).toBeInTheDocument();
