@@ -286,7 +286,7 @@ Rewrite the pages of ONE batch (one to ten pages, same steps for each) of the gr
 Slots the orchestrator fills: `{{ROW}}` (the work-list row: slug, title, type, words, aliases, action, parity ids, sources, carried demos), `{{TARGET_FILES}}`, `{{TEMPLATE}}`, `{{SERVER_RULE}}`, `{{FILES_CSV}}`.
 
 ## Files
-You may edit only `{{TARGET_FILES}}`. Inbound links in other pages that your heading changes break are the integrator's job: list them in your report. Do not move or rename files. Do not edit `meta.json`, `registry/**`, `components/registry-examples.tsx`, `lib/llms-tasks.ts`, `skills/**`, `README.md`, `CHANGELOG.md`, `content/docs-changes.json`, `next.config.mjs`. Put the change you need in those files into your report.
+You may edit only `{{TARGET_FILES}}`. Inbound links in other pages that your heading changes break are the integrator's job: list them in your report. Do not move or rename files. Do not edit `meta.json`, `registry/**`, `components/registry-examples.tsx`, `lib/llms-tasks.ts`, `skills/**`, `README.md`, `CHANGELOG.md`, `next.config.mjs`. Put the change you need in those files into your report.
 
 ## Read first
 1. `AGENTS.md`, section "Docs (content/docs/**)".
