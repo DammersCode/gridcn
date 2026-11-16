@@ -187,7 +187,7 @@ export type DataGridSyncProps<TData = unknown> = {
    * - `'across-filters'`: like `'until-cleared'`, and a checked row is remembered by id when it leaves the view (a page change, a window
    *   move, a filter that hides it) and checked again when it returns. Remembered rows stay out of every row action, the controlled
    *   `selection`, and select all; `useDataGridHiddenCheckedCount` reads their number, and `actions.selectAllMatching()` needs it with
-   *   `totalRowCount`. A server-sorted or server-filtered grid without `totalRowCount`, and a lazy grid without `totalRowCount`, behave like `'until-cleared'`.
+   *   `totalRowCount`. A server-sorted or server-filtered grid without `totalRowCount`, and a scroll-mode grid without `totalRowCount`, behave like `'until-cleared'`.
    */
   checkedRowsLifetime?: CheckedRowsLifetime;
   /**
@@ -223,7 +223,7 @@ export type DataGridSyncProps<TData = unknown> = {
   onGateAborted?: (ctx: { gate: GateName; reason: GateAbortReason }) => void;
   /**
    * Declares that `data` is a window of a larger result of this many rows (`null`: the size is unknown),
-   * such as the current server page, the loaded part of a lazy source, or a server-filtered window. With
+   * such as the current server page, the loaded part of a scroll-mode source, or a server-filtered window. With
    * `checkedRowsLifetime="across-filters"`, a checked row that leaves `data` is remembered by row id in every mode and checked
    * again when it returns, and `actions.selectAllMatching()` can check the whole result.
    * Setting it, even to `null`, makes `checkedRowsLifetime` default to `'across-filters'` and `sortMode` and `filterMode` default to `"server"`.
@@ -234,7 +234,7 @@ export type DataGridSyncProps<TData = unknown> = {
    * Announces the view's row count through the grid's live region after a filter, sort, or
    * filter-group change. A server sort or filter commit stays quiet; the count is read when the load
    * ends, and a changed numeric `totalRowCount` is read as the count. A client filter still announces
-   * under `sortMode="server"`. A lazy source counts its loaded rows only. Default `false`.
+   * under `sortMode="server"`. A scroll-mode source counts its loaded rows only. Default `false`.
    */
   announceResults?: boolean;
   /**
@@ -378,7 +378,7 @@ export type DataGridSyncProps<TData = unknown> = {
   columnGroups?: readonly ColumnGroupDef[];
   /**
    * Runs one {@link DataGridActions.autosizeColumns} pass after mount, when the view first has
-   * rows (a lazy grid waits for its first page); it runs once per mount. Columns with a saved
+   * rows (a scroll-mode grid waits for its first block); it runs once per mount. Columns with a saved
    * width (`columnWidths`) keep it — a saved layout wins. `true` uses the action's defaults;
    * an options object narrows the pass.
    */
