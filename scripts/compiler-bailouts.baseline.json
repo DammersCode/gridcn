@@ -14,11 +14,6 @@
       "Refs: Cannot access refs during render"
     ]
   },
-  "registry/default/blocks/data-grid-fill/use-data-grid-fill.tsx": {
-    "useDataGridFill": [
-      "Refs: Cannot access refs during render"
-    ]
-  },
   "registry/default/blocks/data-grid-fill/use-fill-handle.ts": {
     "useFillHandle": [
       "Immutability: Cannot access variable before it is declared"
