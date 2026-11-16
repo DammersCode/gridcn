@@ -56,7 +56,7 @@ A request that fails reverts the whole change. After the revert, `onSaveRejected
 
 ## What onSave receives [#what-onsave-receives]
 
-- A row with a save in flight <NewBadge /> carries `aria-busy="true"`. A refused save reads through the live region, for example "2 rows not saved" (`labels.grid.saveRejected`).
+- A row with a save in flight carries `aria-busy="true"`. A refused save reads through the live region, for example "2 rows not saved" (`labels.grid.saveRejected`).
 - The `source` of a change names its origin: an edit, a paste, a fill, a conflict merge (`source: "merge"`), or an import. Other origins are a delete, a row operation, a find and replace, a programmatic `record()`, and an undo or redo.
 - `onSave` never receives a change with `source: "rollback"`, `source: "stream"`, or `source: "id-swap"`. These changes do not go back to the server.
 - A `readOnly` grid writes nothing for a cell edit, so `onSave` does not run.
@@ -71,7 +71,7 @@ While the promise is pending, each row of the change is `saving`. The row elemen
 
 Call both hooks under `DataGridProvider`. The CSS rule `[data-save-status="saving"] { opacity: 0.6; }` dims a saving row.
 
-The grid <NewBadge /> sets no time limit on a save. Pass `signal: AbortSignal.timeout(15_000)` to `fetch`, so a hung request rejects and reverts.
+The grid sets no time limit on a save. Pass `signal: AbortSignal.timeout(15_000)` to `fetch`, so a hung request rejects and reverts.
 
 ## Save rows from a server source [#server-source]
 
@@ -114,22 +114,20 @@ export function OrdersGrid() {
 }
 ```
 
-`refreshAfterSave` <NewBadge /> takes one of these values:
+`refreshAfterSave` takes one of these values:
 
 | Value | Refresh |
 | --- | --- |
 | `"settled"` (default) | Once, after every save in flight has settled, or after 10 seconds. After that, each save still in flight refreshes when it settles. |
 | `"each"` | After saves settle, without waiting for the saves in flight. Saves that settle in the same task share one refresh. |
 | `false` | Never. Call `server.refresh()` yourself. |
-| a function <NewBadge /> | When it returns `true`, at the times `"settled"` refreshes. It receives the `saved`, `rejected`, and `failed` counts, the `changes` of those saves (at most 100), and the `pending` saves. |
+| a function | When it returns `true`, at the times `"settled"` refreshes. It receives the `saved`, `rejected`, and `failed` counts, the `changes` of those saves (at most 100), and the `pending` saves. |
 
 Beyond 10 blocks of rendered rows plus `overscan`, a [sequential source](/docs/add-options/server/server-rows-options#scroll-mode) skips the refresh: call `server.refresh()`.
 
 A refresh needs at least one `onSave` promise that resolved, with nothing or with `{ rejected }`. A hook without `onSave` leaves a provider `onSave` of your own in place.
 
 ## Swap a client id for the server id [#id-swap]
-
-<NewBadge />
 
 A row that the user creates carries a client id. After the server saves it, call `actions.replaceRowId(oldId, row)` with the server row. The `ref` of `DataGrid` gives `onSave` its actions:
 

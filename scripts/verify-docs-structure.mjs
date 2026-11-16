@@ -1,6 +1,5 @@
 // Frontmatter and page-shape checks of the docs rules (AGENTS.md Docs, docs navigation ruleset).
-// Usage: node scripts/verify-docs-structure.mjs [--root <dir>] [--require-type] [--worklist research/docs-rewrite-worklist.json] [--base origin/release/2.0]
-import { execFileSync } from "node:child_process";
+// Usage: node scripts/verify-docs-structure.mjs [--root <dir>] [--require-type] [--worklist research/docs-rewrite-worklist.json]
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -36,7 +35,7 @@ function proseExpressions(body) {
   return found;
 }
 
-export function run({ root = process.cwd(), requireType = false, requireRelated = false, worklist, base = "origin/release/2.0" } = {}) {
+export function run({ root = process.cwd(), requireType = false, requireRelated = false, worklist } = {}) {
   const contentDir = join(root, "content/docs");
   const failures = [];
   const warnings = [];
@@ -92,7 +91,6 @@ export function run({ root = process.cwd(), requireType = false, requireRelated 
     else if (description.length > MAX_DESCRIPTION) failures.push(`${here}: description is ${description.length} characters, limit ${MAX_DESCRIPTION}`);
     if (type && !PAGE_TYPES.includes(type)) failures.push(`${here}: unknown type "${type}"`);
     if (requireType && !type) failures.push(`${here}: no type in the frontmatter`);
-    if (/^status:/m.test(front)) failures.push(`${here}: remove the status: line (content/docs-changes.json holds page status)`);
     pageAliases.set(urlOfPage(contentDir, file), { here, aliases: aliasesOf(front).map((a) => a.toLowerCase()) });
     for (const alias of aliasesOf(front)) {
       const owner = aliasOwner.get(alias.toLowerCase());
@@ -113,7 +111,6 @@ export function run({ root = process.cwd(), requireType = false, requireRelated 
     const h2 = [];
     lines.forEach((line, i) => {
       if (fenced.has(i + 1)) return;
-      if (/^#{1,6}\s.*<NewBadge/.test(line)) failures.push(`${here}:${i + 1 + bodyOffset}: <NewBadge /> sits in a heading; put it on its own line under the heading`);
       const heading = /^##\s+(.*)$/.exec(line);
       if (heading) h2.push({ title: heading[1].replace(/`/g, "").trim(), line: i });
     });
@@ -149,14 +146,6 @@ export function run({ root = process.cwd(), requireType = false, requireRelated 
       const found = pageAliases.get(row.url);
       if (!found) failures.push(`work list: ${row.slug} has no page at ${row.url}`);
       else for (const alias of row.aliases ?? []) if (!found.aliases.includes(alias.toLowerCase())) failures.push(`${found.here}: alias "${alias}" from the work list is missing`);
-    }
-  }
-  if (existsSync(join(root, ".git")) || existsSync(join(root, "..", ".git"))) {
-    try {
-      execFileSync("git", ["diff", "--quiet", base, "--", "content/docs-changes.json"], { cwd: root, stdio: "pipe" });
-    } catch (error) {
-      if (error.status === 1) failures.push(`content/docs-changes.json differs from ${base}; only the release command may change it`);
-      else (requireRelated ? failures : warnings).push(`cannot compare content/docs-changes.json with ${base}`);
     }
   }
   failures.push(...sectionSwitcherFailures(root));
@@ -240,7 +229,7 @@ export function sidebarIconFailures(root) {
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const arg = (name) => process.argv[process.argv.indexOf(name) + 1];
   const has = (name) => process.argv.includes(name);
-  const result = run({ root: has("--root") ? arg("--root") : process.cwd(), requireType: has("--require-type"), worklist: has("--worklist") ? arg("--worklist") : undefined, base: has("--base") ? arg("--base") : undefined });
+  const result = run({ root: has("--root") ? arg("--root") : process.cwd(), requireType: has("--require-type"), worklist: has("--worklist") ? arg("--worklist") : undefined });
   for (const w of capped(result.warnings, 3)) console.warn(`warn  ${w}`);
   if (result.failures.length) {
     console.error(`docs structure: ${result.failures.length} failures in ${result.checked} pages (${result.stats.noRelated} without Related)\n${capped(result.failures).map((f) => `  ${f}`).join("\n")}`);

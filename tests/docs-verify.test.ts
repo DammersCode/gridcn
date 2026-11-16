@@ -118,7 +118,7 @@ export type Pager = { size: number } & ToolbarOptions;
   });
 
   it("reads a props table and its marker", () => {
-    const [table] = propsTables("{/* props: ToolbarOptions */}\n\n| Prop | Type | Default |\n|---|---|---|\n| `a` | x | `1` |\n| `b` <NewBadge /> | x | none |\n| `c()` | x | none |\n");
+    const [table] = propsTables("{/* props: ToolbarOptions */}\n\n| Prop | Type | Default |\n|---|---|---|\n| `a` | x | `1` |\n| `b` | x | none |\n| `c()` | x | none |\n");
     expect(table?.marker).toEqual(["ToolbarOptions"]);
     expect(table?.rows.map((r: { name: string }) => r.name)).toEqual(["a", "b", "c"]);
   });
@@ -247,15 +247,15 @@ describe("verify-docs-prose", () => {
 });
 
 describe("verify-docs-structure", () => {
-  it("fails a status line, a badge in a heading, a duplicate title, an unknown type, and a Related with too many links", () => {
+  it("fails a duplicate title, an unknown type, and a Related with too many links", () => {
     const related = "## Related\n\n" + Array.from({ length: 6 }, (_, i) => `- [p${i}](/docs/a)`).join("\n");
     const root = fixture({
-      "content/docs/a.mdx": page("Same", `## Heading <NewBadge />\n\n${related}`, "status: new\ntype: weird\n"),
+      "content/docs/a.mdx": page("Same", `## Heading\n\n${related}`, "type: weird\n"),
       "content/docs/b.mdx": page("Same", "## Related\n\n- [a](/docs/a)"),
     });
-    const result: Run = runStructure({ root, base: "HEAD" });
+    const result: Run = runStructure({ root });
     expect(result.failures.map((f) => f.replace(/^.*?: /, ""))).toEqual(
-      expect.arrayContaining(['unknown type "weird"', "remove the status: line (content/docs-changes.json holds page status)", expect.stringContaining("<NewBadge /> sits in a heading"), "Related has 6 docs links, expected 1 to 5", expect.stringContaining('title "Same" is also')]),
+      expect.arrayContaining(['unknown type "weird"', "Related has 6 docs links, expected 1 to 5", expect.stringContaining('title "Same" is also')]),
     );
   });
 
@@ -264,7 +264,7 @@ describe("verify-docs-structure", () => {
       "content/docs/sorting.mdx": page("Sorting", "## Related\n\n- [x](/docs/sorting)"),
       "list.json": JSON.stringify({ pages: [{ url: "/docs/sorting", parity: ["sort"] }] }),
     });
-    expect(runStructure({ root, worklist: "list.json", base: "HEAD" }).failures.join("\n")).toContain('need a "Server mode" H2');
+    expect(runStructure({ root, worklist: "list.json" }).failures.join("\n")).toContain('need a "Server mode" H2');
   });
 
   it("fails a page titled like its folder and a landing that is only an intro plus cards", () => {
@@ -273,7 +273,7 @@ describe("verify-docs-structure", () => {
       "content/docs/(build)/columns/index.mdx": page("Columns", '<Cards>\n  <Card title="Sizing" href="/docs/columns/sizing" />\n</Cards>', "type: landing\n"),
       "content/docs/(build)/columns/sizing.mdx": page("Column sizing", "## Related\n\n- [a](/docs/columns/sizing)"),
     });
-    const failures = runStructure({ root, base: "HEAD" }).failures.join("\n");
+    const failures = runStructure({ root }).failures.join("\n");
     expect(failures).toContain('title "Columns" repeats the folder title');
     expect(failures).toContain("a landing page holds content that no child page has");
     expect(failures).not.toContain("sizing.mdx");
@@ -298,7 +298,7 @@ describe("verify-docs-structure", () => {
       "content/docs/bad.mdx": page("Bad", "The label reads {name} here."),
       "content/docs/good.mdx": page("Good", "{/* props: X */}\n\nThe label reads `{name}` here.\n\n```ts\nconst a = { name };\n```"),
     });
-    const failures = runStructure({ root, base: "HEAD" }).failures.filter((f) => f.includes("MDX expression"));
+    const failures = runStructure({ root }).failures.filter((f) => f.includes("MDX expression"));
     expect(failures).toEqual([expect.stringMatching(/^content\/docs\/bad\.mdx.*\{name\}; put it in code ticks$/)]);
   });
 

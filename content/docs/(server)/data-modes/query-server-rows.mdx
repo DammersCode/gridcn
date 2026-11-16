@@ -66,8 +66,6 @@ Pages mode takes the same spec. A spec change there goes back to page 1 and fetc
 
 ## Check the spec on your server [#parse-the-spec]
 
-<NewBadge />
-
 `parseServerSpec(body, { columns, limits })` from `data-grid-server` turns an untrusted request body into a bounded, typed `ServerSpec`. It throws a `ServerSpecError` with the `path` of the bad part, for example `filters[2].value`. It checks the column ids and the operators of each column. It checks the value shapes, the depth of the filter tree, and the number of sorts, filters, and groups. It checks the length of every value.
 
 It drops every key it does not know and builds no query. It does not read `start` and `end`. Your server bounds them, as this sample does:

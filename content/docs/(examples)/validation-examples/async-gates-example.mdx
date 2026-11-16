@@ -71,7 +71,7 @@ type SkuApi = {
 | `createRow` | the insert, until every row settles | a second insert does nothing | the insert does not happen |
 | `duplicateRow` | the duplicate, until every copy settles | a second duplicate does nothing | the duplicate does not happen |
 | `validateRow` | nothing: the write commits first | a newer verdict for the row replaces it | the row gets no verdict |
-| `onBeforeDeleteRows` <NewBadge /> | the delete | the grid ignores a second delete | the delete does not happen |
+| `onBeforeDeleteRows` | the delete | the grid ignores a second delete | the delete does not happen |
 
 `mapColumn` and the `createRow` of the import also accept a promise, and the import dialog waits for it. See [Import](/docs/import-export/import). A function that returns a plain value acts in the same call. `processPaste` returns `false` and `onBeforeEditStart` returns `false` to cancel.
 

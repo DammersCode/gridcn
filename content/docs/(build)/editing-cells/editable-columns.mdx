@@ -72,7 +72,7 @@ A locked cell rejects typed edits, paste, fill, and clear. Cells in pinned rows 
 
 `onBeforeEditStart` runs before an editor opens on an editable cell, and before a checkbox toggle. Return `false` to refuse the edit or the toggle. A returned promise holds the editor until it settles, and a promise that rejects cancels the edit.
 
-`ctx.signal` <NewBadge /> aborts when the cursor moves to another cell, the edit is cancelled with Escape, the grid turns `readOnly`, or the grid unmounts.
+`ctx.signal` aborts when the cursor moves to another cell, the edit is cancelled with Escape, the grid turns `readOnly`, or the grid unmounts.
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";

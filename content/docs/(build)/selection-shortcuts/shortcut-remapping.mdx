@@ -6,7 +6,7 @@ type: feature
 aliases: ["keybindings", "rebind keys", "remap shortcuts", "shortcuts dialog", "hotkey editor", "change keyboard shortcut"]
 ---
 
-The `keymap` prop on `DataGridProvider` changes the key bindings of the grid. The `data-grid-keybindings` add-on renders them. `useDataGridKeybindings` mounts a dialog that lists the effective keymap with your overrides. It leaves out actions that do nothing on this grid, such as Undo without the history add-on. <NewBadge /> A `commands` entry for an action such as `undo` lists it. `BindingChips` renders one binding as keycaps for your own UI. The `commands` prop binds keys to your own functions.
+The `keymap` prop on `DataGridProvider` changes the key bindings of the grid. The `data-grid-keybindings` add-on renders them. `useDataGridKeybindings` mounts a dialog that lists the effective keymap with your overrides. It leaves out actions that do nothing on this grid, such as Undo without the history add-on. A `commands` entry for an action such as `undo` lists it. `BindingChips` renders one binding as keycaps for your own UI. The `commands` prop binds keys to your own functions.
 
 <ComponentPreview name="data-grid-keybindings-demo" />
 
@@ -14,7 +14,7 @@ The `keymap` prop on `DataGridProvider` changes the key bindings of the grid. Th
 
 ## The dialog [#the-dialog]
 
-`useDataGridKeybindings`<NewBadge /> returns `{ plugin, open, close }`. Pass `plugin` in `plugins`. The plugin mounts the dialog and binds the `openKeybindings` command to <kbd>?</kbd>. Call `open()` from your own button:
+`useDataGridKeybindings` returns `{ plugin, open, close }`. Pass `plugin` in `plugins`. The plugin mounts the dialog and binds the `openKeybindings` command to <kbd>?</kbd>. Call `open()` from your own button:
 
 ```tsx
 import {
@@ -60,7 +60,7 @@ The <kbd>?</kbd> key is a normal keymap binding. With the grid focused and no ce
 
 ## Binding chips [#binding-chips]
 
-`BindingChips` renders one binding string as a row of keycaps, the same tokens the dialog uses. Pass the binding as a prop, for example `<BindingChips binding="mod+z" />`. `className` <NewBadge /> adds classes to the row.
+`BindingChips` renders one binding string as a row of keycaps, the same tokens the dialog uses. Pass the binding as a prop, for example `<BindingChips binding="mod+z" />`. `className` adds classes to the row.
 
 ## Shortcut labels for your own UI [#shortcut-labels-for-your-own-ui]
 
@@ -130,15 +130,13 @@ The key is one of these:
 - Any single printable character.
 - The space bar, written as a literal space, as in `"shift+ "`.
 
-The plus key cannot be bound, because the last `+` separates the modifiers from the key. A binding with an unknown modifier, such as `Mod+z` (modifiers are lowercase), never matches. A binding with an unknown modifier or an unknown key name also warns in the browser console in development. A punctuation binding without `shift` matches with or without <kbd>Shift</kbd>, so `"?"` and `"mod+/"` work on every layout. Write `shift+` to require it: `"shift+?"`. <NewBadge />
+The plus key cannot be bound, because the last `+` separates the modifiers from the key. A binding with an unknown modifier, such as `Mod+z` (modifiers are lowercase), never matches. A binding with an unknown modifier or an unknown key name also warns in the browser console in development. A punctuation binding without `shift` matches with or without <kbd>Shift</kbd>, so `"?"` and `"mod+/"` work on every layout. Write `shift+` to require it: `"shift+?"`.
 
 When two actions share a key combination, the most specific binding wins. On a tie, a `keymap` binding beats a default binding. A `keymap` entry that repeats a default binding counts as the default. Development mode warns once per shared combination that includes a `keymap` binding.
 
 The type-to-replace trigger (`typeToReplace`) has no default binding. Any unbound printable key on the active cell starts an edit seeded with the typed character. A `keymap` entry for `typeToReplace` takes the action over. `["F3"]` starts a plain edit on <kbd>F3</kbd> only. `["a"]` seeds the edit with `a`. `[]` disables it.
 
 ### Reserved chords [#reserved-chords]
-
-<NewBadge />
 
 The OS or the browser owns some key combinations. A binding on one of them never fires, or the browser acts on the key too. Do not bind these chords:
 

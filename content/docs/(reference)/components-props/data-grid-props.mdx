@@ -20,7 +20,7 @@ aliases: ["getrowid", "row id", "props"]
 | Clipboard | `processCellForClipboard`, `processPaste` | [Clipboard](/docs/clipboard-undo/clipboard) |
 | Keys | `keymap`, `commands` | [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) |
 | Add-ons | `plugins` | [Plugin model](/docs/plugins/plugin-shape) |
-| Text and numbers | `labels`, `locale` <NewBadge /> | [Labels](/docs/components-props/labels) |
+| Text and numbers | `labels`, `locale` | [Labels](/docs/components-props/labels) |
 
 ## Rows and ids [#rows-and-ids]
 
@@ -66,10 +66,10 @@ These props set the look and the states of the grid. When you compose the parts 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `className` | `string` | none | Classes for the scroll root. Set the height here. |
-| `aria-label` <NewBadge /> | `string` | none | Accessible name of the grid. |
-| `aria-labelledby` <NewBadge /> | `string` | none | Id of the element that names the grid. |
+| `aria-label` | `string` | none | Accessible name of the grid. |
+| `aria-labelledby` | `string` | none | Id of the element that names the grid. |
 | `rowHeight` | `number` | none | Row height in px. It overrides `density`. |
-| `markerWidth` <NewBadge /> | `number` | width of the `rowMarkers` mode | Marker track width in px. `rowMarkers="none"` ignores it. |
+| `markerWidth` | `number` | width of the `rowMarkers` mode | Marker track width in px. `rowMarkers="none"` ignores it. |
 | `density` | `"compact" \| "default" \| "comfortable"` | `"default"` | Row height preset: 28, 36, or 44 px. |
 | `headerHeight` | `number` | `36` | Height of one header row in px. Density does not change it. |
 | `columnOverscan` | `number` | `1` | Unpinned columns that render past each side of the view. |
@@ -165,10 +165,10 @@ export function OrderGrid() {
 | `focus()` | Scrolls the active cell into view and focuses it. With no active cell, it focuses the grid, and the first cell becomes active. It does nothing during an edit. |
 | `getSelection()` | Returns the selection as a snapshot. |
 | `getRow()` | Takes a view index and returns the row there, or `undefined`. |
-| `getViewRowIds()` <NewBadge /> | Returns the row id of every view row, in view order. With `pageSize`, it returns the rows of the shown page only. `getViewRowIds({ loaded: true })` leaves the placeholder ids out. |
+| `getViewRowIds()` | Returns the row id of every view row, in view order. With `pageSize`, it returns the rows of the shown page only. `getViewRowIds({ loaded: true })` leaves the placeholder ids out. |
 
 - `getSelection`, `getRow`, and `getViewRowIds` read at call time. They never re-render the caller.
-- `getViewRowIds()[i]` <NewBadge /> is the id of view row `i`. In scroll mode, an unloaded row gets the placeholder id `__lazy-unloaded-<n>`, where `n` is its data index. `useDataGridRowIds(viewRowIndices)` returns the same ids for the view rows that you pass. `isPlaceholderRowId(id)` tells a placeholder id from a real id, so no code matches an id prefix.
+- `getViewRowIds()[i]` is the id of view row `i`. In scroll mode, an unloaded row gets the placeholder id `__lazy-unloaded-<n>`, where `n` is its data index. `useDataGridRowIds(viewRowIndices)` returns the same ids for the view rows that you pass. `isPlaceholderRowId(id)` tells a placeholder id from a real id, so no code matches an id prefix.
 - `scrollTo` and `focus` do nothing until a `DataGridRoot` mounts.
 
 ## All provider props [#all-props]

@@ -45,11 +45,11 @@ function OrdersGrid({ rows }: { rows: Order[] }) {
 }
 ```
 
-The provider keeps the page and the page size in its own state. `defaultPage` and `defaultPageSize` seed them once. To control a value, pass `page` with `onPageChange`, or `pageSize` with `onPageSizeChange`. `actions.setPage(page)` and `actions.setPageSize(size)` change them from code. `actions.setPageSize(null)` turns paging off and calls `onPageChange(1)` when the page was not 1. A controlled `pageSize` of `null` shows every row, and `onPageSizeChange` receives `null` when paging turns off. <NewBadge />
+The provider keeps the page and the page size in its own state. `defaultPage` and `defaultPageSize` seed them once. To control a value, pass `page` with `onPageChange`, or `pageSize` with `onPageSizeChange`. `actions.setPage(page)` and `actions.setPageSize(size)` change them from code. `actions.setPageSize(null)` turns paging off and calls `onPageChange(1)` when the page was not 1. A controlled `pageSize` of `null` shows every row, and `onPageSizeChange` receives `null` when paging turns off.
 
-If the data shrinks, the grid <NewBadge /> shows the last page. A page-size change keeps the first visible row on screen. A filter change goes back to page 1 and calls `onPageChange(1)`, also when the filter comes from props.
+If the data shrinks, the grid shows the last page. A page-size change keeps the first visible row on screen. A filter change goes back to page 1 and calls `onPageChange(1)`, also when the filter comes from props.
 
-`onPageChange` <NewBadge /> and `onPageSizeChange` run after the grid writes the page or the size. If one throws, the change stays, and a size change still fires `onPageChange`. Then the grid rethrows the error. See [Callback timing and errors](/docs/events-state/event-shapes#callback-errors).
+`onPageChange` and `onPageSizeChange` run after the grid writes the page or the size. If one throws, the change stays, and a size change still fires `onPageChange`. Then the grid rethrows the error. See [Callback timing and errors](/docs/events-state/event-shapes#callback-errors).
 
 {/* props: DataGridSyncProps */}
 
@@ -64,27 +64,23 @@ If the data shrinks, the grid <NewBadge /> shows the last page. A page-size chan
 
 ## The whole array stays in the grid [#client-slice-vs-server-mode]
 
-<NewBadge />
-
 The grid holds every row. Only the rows on screen are one page. The footer shows the count of the rows that the sort and filter leave.
 
 - **Sort and filter** cover every row, not the page. A header click sorts the whole array.
-- **Quick search** <NewBadge /> counts the matches on every page, marks the ones on the shown page, and never filters. Next and previous match jump to the page of the match.
-- **Find and replace** <NewBadge /> searches every page. "Replace all" covers every page.
-- **Row order.** <NewBadge /> `reorderRows` and `moveRowsBy` take page rows, and a move stays inside the shown page. The checked rows and the active cell follow their rows. A sort or filter still blocks them.
+- **Quick search** counts the matches on every page, marks the ones on the shown page, and never filters. Next and previous match jump to the page of the match.
+- **Find and replace** searches every page. "Replace all" covers every page.
+- **Row order.** `reorderRows` and `moveRowsBy` take page rows, and a move stays inside the shown page. The checked rows and the active cell follow their rows. A sort or filter still blocks them.
 - **Edits, inserts, and deletes** reach `onDataChange` with the whole array. Store it as it is.
-- **Selection** <NewBadge /> follows row ids. A page change clears the active cell. It also drops the checks and the cell range of rows that left the page. Search and find and replace still select the match they jump to. To keep the checks, pass `checkedRowsLifetime="across-filters"`. The grid remembers each check by row id and restores it on a return to the page. The header checkbox, <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> (`toggleAllRows`), and `setAllRowsChecked` check the rows of the shown page only.
-- **Copy, paste, fill, and Delete** <NewBadge /> act on the shown page. A column selection covers the rows of the shown page, and a paste stops at the page's last row.
+- **Selection** follows row ids. A page change clears the active cell. It also drops the checks and the cell range of rows that left the page. Search and find and replace still select the match they jump to. To keep the checks, pass `checkedRowsLifetime="across-filters"`. The grid remembers each check by row id and restores it on a return to the page. The header checkbox, <kbd>Mod</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> (`toggleAllRows`), and `setAllRowsChecked` check the rows of the shown page only.
+- **Copy, paste, fill, and Delete** act on the shown page. A column selection covers the rows of the shown page, and a paste stops at the page's last row.
 - **Streaming patches** reach every row, also rows on other pages.
 - **Totals** from [pinned rows](/docs/rows-pages-menus/pinned-rows) cover every page. Pass `scope: "page"` to `aggregateRow` to total the shown page only.
 - **Export and print** cover every page. Pass `scope: "page"` to `exportGrid` or `printGrid` to write the shown page only.
-- **Announcements** <NewBadge /> from `announceResults` count the rows of every page.
+- **Announcements** from `announceResults` count the rows of every page.
 
-Read the pager from your own components with `const { pager } = useDataGridPager()` <NewBadge /> under the provider. It returns the same controls that the bar uses. `useDataGridPager({ pageSizeOptions })` sets the sizes of the select.
+Read the pager from your own components with `const { pager } = useDataGridPager()` under the provider. It returns the same controls that the bar uses. `useDataGridPager({ pageSizeOptions })` sets the sizes of the select.
 
 ## Page a list outside the grid [#slice-hook]
-
-<NewBadge />
 
 `useDataGridPagination` slices an array for a list that is not a grid. It returns `pageData`, the rows of the current page, and `pager` for the footer:
 

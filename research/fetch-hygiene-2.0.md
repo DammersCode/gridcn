@@ -225,7 +225,7 @@ most `maxLoadedRows` after a second drag pass with `maxLoadedRows: 2000`.
 
 ## 8. Docs, changelog, parity, demo
 
-- `content/docs/lazy-loading.mdx`: options rows with `<NewBadge />` (`loadDelay`, `maxConcurrentFetches`, `maxLoadedRows`,
+- `content/docs/lazy-loading.mdx`: options rows (`loadDelay`, `maxConcurrentFetches`, `maxLoadedRows`,
   `revalidateInterval`); behavior bullets for delay, abort, cap; rewrite "Memory & retention" around `maxLoadedRows`
   and the protection rule, keep `evict` for a custom policy, drop the in-flight quirk bullet; sequential section: delay
   yes, eviction no, revalidation depth.

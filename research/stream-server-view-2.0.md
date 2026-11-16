@@ -224,8 +224,8 @@ Browser: `data-grid-server-side-demo` shows `data-row-stale` on a pushed row and
 
 - `GLOSSARY.md` first: **push** (a change your code writes from the server: `updateCells`, `updateRows`, or
   `deleteRowsById` with `source: "stream"`), **stale row**, **reshape**.
-- `content/docs/streaming-updates.mdx`: a section "Server-sorted and filtered views" under its heading with
-  `<NewBadge />`; verdict list rows `saving` and `limit`; the read-only paragraph; the frame buffer sample.
+- `content/docs/streaming-updates.mdx`: a section "Server-sorted and filtered views" under its heading;
+  verdict list rows `saving` and `limit`; the read-only paragraph; the frame buffer sample.
 - Server rows pages (`lazy-loading.mdx`, `examples/data/server-side.mdx`): rows `reshapeDelay` and `reshape` in the
   props tables; a "Pushes" section with the trigger table. `row-operations.mdx`: `deleteRowsById` options row.
 - `CHANGELOG.md` `## Unreleased`:

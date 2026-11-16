@@ -46,7 +46,7 @@ function OrdersGrid({ rows }: { rows: Order[] }) {
 }
 ```
 
-With no props, views persist in `localStorage` under `gridcn-views`. Every grid on the same origin shares that key, so give each grid its own `storage` key. <NewBadge /> If `localStorage` is blocked or full, the views stay in memory for the page. The popover shows a save error with a Retry button.
+With no props, views persist in `localStorage` under `gridcn-views`. Every grid on the same origin shares that key, so give each grid its own `storage` key. If `localStorage` is blocked or full, the views stay in memory for the page. The popover shows a save error with a Retry button.
 
 ## What a view holds [#what-a-view-holds]
 
@@ -140,8 +140,6 @@ const views = useDataGridViews({ storage: serverViews });
 ```
 
 ### Limits [#limits]
-
-<NewBadge />
 
 A save never cuts a view. `overLimit` names the part that is over a limit. It is `"sorts"`, `"filters"`, `"search"`, or `"layout"`. These are the values of `OverLimitPart`. A sort, filter, or layout entry for a column that the grid lacks is not over a limit.
 

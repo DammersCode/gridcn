@@ -26,13 +26,9 @@ The hook slices `data` into pages for a list that is not a grid. To page a grid,
 
 ## Server pager
 
-<NewBadge />
-
 `useDataGridServerPager({ page, pageSize, totalRowCount, hasMore, onPageChange, pageSizeOptions, onPageSizeChange })` returns `{ pager }` for rows that you fetch yourself. `totalRowCount` is a number, or `null` for an unknown size. `hasMore` is read only while `totalRowCount` is `null`. Without `onPageSizeChange`, the bar hides the page-size select. Its other options are on [Server rows options](/docs/add-options/server/server-rows-options#pager-options). Its options type is `UseDataGridServerPagerOptions`.
 
 ## Grid pager
-
-<NewBadge />
 
 `useDataGridPager({ pageSizeOptions })` returns `{ pager }` for a grid that pages its view. Call it under `DataGridProvider`. `DataGridPaginationBar` with no props calls it for you. Its options type is `UseDataGridPagerOptions`.
 

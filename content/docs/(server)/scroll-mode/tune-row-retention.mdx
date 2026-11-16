@@ -10,8 +10,6 @@ Loaded rows stay in the sparse `data` array. A long scroll through a large resul
 
 ## Cap the loaded rows [#max-loaded-rows]
 
-<NewBadge />
-
 Scroll mode keeps at most `maxLoadedRows` rows loaded on a random access source (default 10,000). When more are loaded, the hook unloads the blocks that the user viewed longest ago outside the rendered rows plus `overscan` plus one block. Rows with an open edit, a pending save, or an unsaved change, and the row under the active cell, stay in `data`. They stop counting as loaded, so the next window fetches their block whole. Pass `maxLoadedRows: Infinity` to keep every row.
 
 ## Memory and retention [#memory--retention]
@@ -69,7 +67,7 @@ export function OrdersGrid() {
 }
 ```
 
-The `onRenderedRowsChange` option <NewBadge /> runs after the hook has read the rendered row range, so blocks keep loading.
+The `onRenderedRowsChange` option runs after the hook has read the rendered row range, so blocks keep loading.
 
 Two behaviors matter for a policy of your own:
 
@@ -88,11 +86,9 @@ If the answer lacks a pending insert and no answer row sits in its slot, the ins
 
 `gridProps.plugins` mounts the guard that applies these rules, then the plugins of the `plugins` option. A `plugins` prop of your own after the spread replaces the guard. When an edit happened and the guard never mounted, `refresh()` warns once in development.
 
-Call `refresh()` <NewBadge /> after your `onSave` promise settles to pick up fields that the server computes. The hook can do it for you. See [Save edits](/docs/save-server/save-edits).
+Call `refresh()` after your `onSave` promise settles to pick up fields that the server computes. The hook can do it for you. See [Save edits](/docs/save-server/save-edits).
 
 ## Refresh on a timer [#revalidate]
-
-<NewBadge />
 
 Set `revalidateIntervalMs` (milliseconds, at least 1000) to call `refresh()` on a timer while the page is visible. A tick waits for a request in flight, and every refresh restarts the clock. A sequential source skips a tick while the rendered rows plus `overscan` end beyond 10 blocks. The default is off. Pages mode takes the same option.
 
@@ -101,8 +97,6 @@ When live pushes leave rows out of order for the server's sort, set `reshapeDela
 Undo and redo compose with the `onDataChange` of the hook. See [Run history with scroll mode](/docs/save-server/undo-server-data#with-scroll-mode).
 
 ## Limits with server state [#modes]
-
-<NewBadge />
 
 The limits, the timer, and `evict` follow the spec of the hook in every setup:
 

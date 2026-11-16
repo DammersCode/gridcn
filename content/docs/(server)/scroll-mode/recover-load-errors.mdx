@@ -8,7 +8,7 @@ aliases: ["retry failed fetch", "block failed", "rate limit", "429"]
 
 A scroll-mode grid loads many blocks. One block can fail while the others load. The grid keeps the loaded rows, shows an error state, and lets the user retry the failed block.
 
-The demo <NewBadge /> has two failure buttons. The first one fails the next request once. The second one fails every request until you press "Fix backend". Scroll to unloaded rows to start a request:
+The demo has two failure buttons. The first one fails the next request once. The second one fails every request until you press "Fix backend". Scroll to unloaded rows to start a request:
 
 <ComponentPreview name="data-grid-lazy-demo" />
 
@@ -75,7 +75,7 @@ Leave out `errorState` to keep the built-in error state. With rows, it is a bar 
 - The next report of the rendered rows that covers the block requests it again. Scroll away and back to trigger it.
 - Until block 0 lands, the hook requests no other block, on mount and after a spec change. Call `retry()` or `refresh()` to load it.
 - An aborted request is no failure and fires no `onError`. The hook aborts a request on a spec change, a changed row count, `refresh()`, `evict()`, or an unmount. It also aborts a block outside the keep range (rendered rows, `overscan`, one block). The first three also clear `error`.
-- A failed block that leaves the same range <NewBadge /> stops counting as an error.
+- A failed block that leaves the same range stops counting as an error.
 - A throw inside `onError` or `onLoaded` does not break the hook. The hook logs it to the console.
 
 ## When a block fails for good [#when-a-block-fails-permanently]
@@ -87,8 +87,6 @@ The error bar shows each failure, so the user sees that the block keeps failing.
 A sequential source stops at a failed block. `retry()` repeats that block, and so does the next report of the rendered rows.
 
 ## Retry after a delay [#retry-with-backoff]
-
-<NewBadge />
 
 The hook does not retry on its own. To ride out a short outage, retry inside `fetchRows`. Wait longer after each attempt. If `signal` aborts, stop. A request with a `cursor` repeats the same cursor, so a sequential source keeps its place.
 

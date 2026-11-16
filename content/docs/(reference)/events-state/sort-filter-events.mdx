@@ -14,7 +14,7 @@ Sort, filters, and quick search text each have a controlled prop. The callback r
 | `sortState` | The sort, controlled by your code | none |
 | `defaultSortState` | The sort, seeded once | none |
 | `sortMode` | `"client"` sorts `data`. `"server"` only tracks the sort | `"client"`, or `"server"` with `totalRowCount` |
-| `sortLocale` <NewBadge /> | The language tag for text compares in a client sort, text range filters, and the filter value lists | the `locale` prop, then `"en-US"` |
+| `sortLocale` | The language tag for text compares in a client sort, text range filters, and the filter value lists | the `locale` prop, then `"en-US"` |
 | `onSortChange` | Fires with the next sort | none |
 | `filterState` | The filter tree, controlled by your code | none |
 | `defaultFilterState` | The filters, seeded once | none |
@@ -61,8 +61,6 @@ With `sortMode="server"`, the grid tracks the spec and never reorders `data`. Wh
 
 ### Timing and errors [#onsortchange-timing]
 
-<NewBadge />
-
 The callback runs synchronously, after the grid applies the sort. Inside the callback, the store holds the new sort. With a controlled `sortState`, the grid writes nothing, and the callback receives the next sort. These rules apply:
 
 - The sort list, the context menu sort items, URL state, and saved views call `setSorts`, so the callback fires for them too.
@@ -84,13 +82,13 @@ A `FilterSpec` holds `columnId`, `operator`, and `value`. The `value` is a strin
 
 The callback fires for the filter menu, header filters, and `setFilters`, with or without a `filterState` prop. `setFilters` with the current tree does nothing. With `filterMode="server"`, the grid tracks the filters and never filters `data`. Fetch the matching rows, for example with `useDataGridServerRows`.
 
-The callback <NewBadge /> runs after the grid writes the filters. If it throws, the filters stay applied, and the reset to page 1 of a paged grid still fires `onPageChange`. Then the grid rethrows the error. See [Callback timing and errors](/docs/events-state/event-shapes#callback-errors).
+The callback runs after the grid writes the filters. If it throws, the filters stay applied, and the reset to page 1 of a paged grid still fires `onPageChange`. Then the grid rethrows the error. See [Callback timing and errors](/docs/events-state/event-shapes#callback-errors).
 
 ## onSearchTextChange [#onsearchtextchange]
 
 The callback receives the new text. If the text equals the current text, it does not fire. Quick search highlights matches and moves between them. It never filters the rows.
 
-The callback <NewBadge /> runs after the grid writes the text. If it throws, the text stays, and the grid rethrows the error. See [Callback timing and errors](/docs/events-state/event-shapes#callback-errors).
+The callback runs after the grid writes the text. If it throws, the text stays, and the grid rethrows the error. See [Callback timing and errors](/docs/events-state/event-shapes#callback-errors).
 
 The toolbar search waits `inputDebounceMs` after the last keystroke before it commits. The default is `200`. `0` commits each keystroke. The setting also delays the filter value inputs, the set filter search, find and replace, and the lookup editor. The `debounceMs` prop of `DataGridSearch` wins for that search box.
 

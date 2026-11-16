@@ -21,13 +21,11 @@ sorting and filtering the response a second time. The [Server rows example](/doc
 
 ## One hook for pages
 
-<NewBadge />
-
 For a paged grid, `useDataGridServerRows` does steps 1 to 4 below and the race guard. It returns `gridProps`, `providerProps`, `rootProps`, `spec`, `totalRowCount`, `pager`, `status`, `loading`, `error`, `retry`, `refresh`, and `reshape`. The [Server rows example](/docs/server-data-examples/server-rows-example) shows it.
 
 ## The contract
 
-1. Pass `totalRowCount` <NewBadge /> (step 4). It makes `sortMode` and `filterMode` default to `"server"`, so a spec restored at mount never sorts or filters the window on the client. Set `sortMode="client"` or `filterMode="client"` to override one. A grid without `totalRowCount` keeps the `"client"` default, so set both props to `"server"` there.
+1. Pass `totalRowCount` (step 4). It makes `sortMode` and `filterMode` default to `"server"`, so a spec restored at mount never sorts or filters the window on the client. Set `sortMode="client"` or `filterMode="client"` to override one. A grid without `totalRowCount` keeps the `"client"` default, so set both props to `"server"` there.
 2. Read the spec from the grid. Use the store hooks (`useDataGridSortState`,
    `useDataGridFilterState`) or the controlled pairs (`sortState` and `onSortChange`).
 3. Send the spec to your API. Make one request for each view state.
@@ -92,7 +90,7 @@ new order.
 
 The grid tracks the filter tree: the filter menu, the header filters, and the `data-filtered`
 indicator all show it. It never removes rows from `data`. Your backend applies the tree, and the
-response holds the matching rows. The tree is untrusted input. Pass the request through `parseServerSpec` <NewBadge /> before
+response holds the matching rows. The tree is untrusted input. Pass the request through `parseServerSpec` before
 you build a query. It checks the depth, the size, the column ids, the operators, and the value shapes (the ORM examples, such as the [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example), call it). See [Query server rows](/docs/data-modes/query-server-rows#parse-the-spec).
 
 The header filter popover and the `isAnyOf` input of the filter menu list the values of the
@@ -100,8 +98,6 @@ loaded rows. Pass `fetchFilterValues` to list the values of the whole column fro
 [Server values](/docs/sort-filter-search/header-filter#server-values).
 
 #### Custom operators [#custom-operators]
-
-<NewBadge />
 
 A [custom operator](/docs/sort-filter-search/filtering#custom-operators) reaches the spec as a filter with its `id` in `operator`. List the `id` with its value shape, then map it to your query, as this sample shows:
 
@@ -151,8 +147,6 @@ remembers the check by row id and checks the row again when it returns. See
 
 ## Row count and unknown totals
 
-<NewBadge />
-
 Pass the filtered row count to the provider as `totalRowCount`. It sizes the "select all" count and
 marks `data` as a window of a larger result. A server that sends no count works in both modes:
 
@@ -163,8 +157,6 @@ marks `data` as a window of a larger result. A server that sends no count works 
   [A source with no total](/docs/scroll-mode/load-without-row-count#a-source-with-no-total). When the source sends no count, `gridProps` carries `totalRowCount: null` until the source ends.
 
 ## Selection and bulk actions
-
-<NewBadge />
 
 Set `totalRowCount` (`useDataGridServerRows` sets it). With `checkedRowsLifetime="across-filters"` (the hook sets it), checks survive page changes, evictions, and server sort
 or filter changes, and `actions.selectAllMatching()` selects the whole result. Render this button inside the `DataGridProvider`:
@@ -190,8 +182,6 @@ Send `selected.spec`, the spec the selection was made under, with the ids. The s
 [Selection over a server result](/docs/rows-live-data/select-server-rows#selection-over-a-server-result).
 
 ## Saving and refusals
-
-<NewBadge />
 
 Send an edit to your API from `onSave(change)`. Return a promise that resolves with the rows the server
 refused. The grid marks the rows `saving`, reverts only the refused ones, and calls `onSaveRejected`:
@@ -242,7 +232,7 @@ export function SavedOrders({ first, save, notify }: SavedProps) {
 
 `onSave` never receives the revert (`source: "rollback"`), a server push (`source: "stream"`), or an id swap (`source: "id-swap"`). With `useDataGridServerRows`, pass `onSave` to the hook and it fetches again after the saves settle (`refreshAfterSave`).
 
-Pass `resolveSaveConflict` <NewBadge /> to merge a refused row with the server row. See [Save edits](/docs/save-server/save-edits#server-source) and [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict). See
+Pass `resolveSaveConflict` to merge a refused row with the server row. See [Save edits](/docs/save-server/save-edits#server-source) and [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict). See
 [Handle refused saves](/docs/save-server/handle-refused-saves#acknowledge-each-change)
 and [Fetch with a cache](/docs/data-modes/fetch-cache).
 
@@ -259,7 +249,7 @@ until your API answers. The grid drops the answer of a gate, with no error, in t
 
 Every gate receives an `AbortSignal` that aborts when the result cannot apply.
 
-`gateTimeoutMs` <NewBadge /> aborts a gate that never settles, and `onGateAborted` reports it. Show a busy state with
+`gateTimeoutMs` aborts a gate that never settles, and `onGateAborted` reports it. Show a busy state with
 `useDataGridGatePending()` while a gate is pending. The grid ignores a second paste, edit start, insert, or
 duplicate until the first one settles.
 

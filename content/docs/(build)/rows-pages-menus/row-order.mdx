@@ -86,9 +86,9 @@ function MoveTools() {
 
 `rows` is one view index or a list. `to` is the final index of the first row. Moving row 0 to index 3 shifts rows 1 to 3 up. A list moves as one block: the rows keep their order and land next to each other. A repeated index counts once. `to` must leave room for the whole block. `moveRowsBy` shifts every listed row by `delta` and keeps the gaps.
 
-Under client pagination <NewBadge />, `reorderRows` and `moveRowsBy` take page rows, and a move stays inside the shown page. A row, a `to`, or a shift that leaves the page counts as outside the grid, so the call returns `false`. `from` and `to` in `change.ops` are indices of the whole data array.
+Under client pagination, `reorderRows` and `moveRowsBy` take page rows, and a move stays inside the shown page. A row, a `to`, or a shift that leaves the page counts as outside the grid, so the call returns `false`. `from` and `to` in `change.ops` are indices of the whole data array.
 
-These calls return `false`, change nothing, and report through [`onRowActionSkipped`](/docs/rows-live-data/handle-row-action-results) <NewBadge /> with `action: "moveRows"`. The reasons are `"readOnly"`, `"view-ordered"`, `"unloaded-rows"`, and `"nothing-to-do"`. For an active sort or filter and for unloaded rows, the grid also warns in development:
+These calls return `false`, change nothing, and report through [`onRowActionSkipped`](/docs/rows-live-data/handle-row-action-results) with `action: "moveRows"`. The reasons are `"readOnly"`, `"view-ordered"`, `"unloaded-rows"`, and `"nothing-to-do"`. For an active sort or filter and for unloaded rows, the grid also warns in development:
 
 - The grid is `readOnly`.
 - A client sort or filter is active, because the sort or filter owns the view order.
@@ -105,7 +105,7 @@ The grid does not recompute search matches after a move. They point at other row
 
 A move is one change with `source: "row-operation"`. It reaches `onDataChange` and `onSave`. `change.ops` holds one `move` operation per moved row. In each operation, `from` is the index before the whole batch and `to` is the index after it. Apply the operations together with `applyChange`. A server that applies them one at a time ends with the wrong order.
 
-With `sortMode="server"` <NewBadge />, the grid does not sort, so the sort block does not apply. Scroll mode blocks a move while the grid holds unloaded rows.
+With `sortMode="server"`, the grid does not sort, so the sort block does not apply. Scroll mode blocks a move while the grid holds unloaded rows.
 
 ## Related
 

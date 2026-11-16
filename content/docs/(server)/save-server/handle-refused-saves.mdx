@@ -86,8 +86,6 @@ If a newer write to the row is pending or has settled, the grid ignores `current
 
 ## Detect a conflict on the server [#detect-a-conflict]
 
-<NewBadge />
-
 An `update` operation carries `prev`, the row before the edit, and its edited `cells`. When a stored field of an edited cell differs from `prev`, another user changed it: refuse the row with `current`. This handler assumes that each column id names a row field:
 
 ```ts
@@ -120,8 +118,6 @@ export async function POST(request: Request) {
 Validate the body first, and run the check and the write in one transaction.
 
 ## Resolve a conflict [#resolve-a-conflict]
-
-<NewBadge />
 
 When a refusal carries `current`, the revert takes the server row. To decide per row, pass `resolveSaveConflict` to the provider. It receives `{ rowId, mine, theirs, change, message, signal }` for each refused row with a usable `current`, except on a `readOnly` grid. `mine` is the row in the grid, and `theirs` is `current`. Return one of these:
 

@@ -111,7 +111,7 @@ About the sample:
 - `range(from, to)` includes both ends, hence the `- 1`.
 - The grid compares text without case. The sample uses `ilike` for the pattern operators only.
 - In `ilike` patterns, `%`, `_`, and `*` in the user text act as wildcards.
-- `parseServerSpec` <NewBadge /> checks the spec: the column ids, the operators, the value shapes, and the size of the tree. Its default caps are 64 sorts, 500 characters of search text, 64 filters, 16 groups, and 1,000 list values. A request over a cap gets status 400.
+- `parseServerSpec` checks the spec: the column ids, the operators, the value shapes, and the size of the tree. Its default caps are 64 sorts, 500 characters of search text, 64 filters, 16 groups, and 1,000 list values. A request over a cap gets status 400.
 - Number and date columns also get `isBetween`, with a `[min, max]` pair in which either bound can be `""`. The sample refuses it. Map it before you add such a column.
 - The grid's `empty` also matches a null cell. The sample compares with `""`, so a nullable column needs an `IS NULL` test too.
 - The route caps a page at 500 rows. Keep the page size at or below 500. A larger page returns fewer rows than the grid asked for.

@@ -16,7 +16,7 @@ The grid has one column for each built-in cell type. Extra columns show a read-o
 - `text` is the type of a column that sets no `type`.
 - `readOnly: true` on a column refuses edits, pastes, and fills for its cells.
 - `number` with `options: { min: 18, max: 100 }` clamps a typed or pasted value into that range. The Clamped column shows it.
-- `validate` <NewBadge /> on a `number` column refuses a value and shows its message. The Validated column refuses an age under 18. The clamp runs before `validate`, so a typed or pasted value below `min` never reaches it.
+- `validate` on a `number` column refuses a value and shows its message. The Validated column refuses an age under 18. The clamp runs before `validate`, so a typed or pasted value below `min` never reaches it.
 - `number` with `options.format` shows `style: "currency"` text. Copy, export, and the editor keep the raw number.
 - `checkbox`, `select` with `choices`, and `date` with `displayFormat` use the other built-in editors.
 - `url` renders a link. The link opens on <kbd>Alt</kbd>+<kbd>Enter</kbd>. The demo rows with a `javascript:` value render as plain text.

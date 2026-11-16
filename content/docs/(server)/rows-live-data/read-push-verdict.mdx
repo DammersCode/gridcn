@@ -20,14 +20,12 @@ aliases: ["UpdateCellsVerdict", "skipped patches", "skip reason", "updateCells r
 | `unknown-column` | The column id is not a known column. |
 | `hole` | The id is the placeholder id of an unloaded scroll-mode row. A push by the real id of a row that is not loaded gets `unknown-row`. |
 | `readonly` | For a call with a `source` other than `"stream"`: the column is read-only, or the row is read-only through `readOnly(row)`. A `"stream"` call gets this reason for a column with no write path (`accessorFn` without `setValue`). |
-| `saving` <NewBadge /> | A stream call: the row has a save in flight. Push the value again after the save settles. |
-| `limit` <NewBadge /> | A stream call: the call carried more than 100,000 patches, and this patch came after them. |
+| `saving` | A stream call: the row has a save in flight. Push the value again after the save settles. |
+| `limit` | A stream call: the call carried more than 100,000 patches, and this patch came after them. |
 | `invalid` | The column's `validate` rejected the value. |
 | `no-op` | The value equals the current value. |
 
 ## Flash changed cells [#flash-cells]
-
-<NewBadge />
 
 The grid flashes cells on its own only after a fill. A push does not flash. To flash the cells that a push wrote, pass `{ flash: true }` to `updateCells` or `updateRows`. The call flashes the cells it applied at once. A held batch flashes after `settled`. Cells of hidden columns do not flash:
 

@@ -63,7 +63,7 @@ Every review round checks these, beyond the surface of the diff, with `file:line
 - API and DX against `AGENTS.md`: zero-arg common case, naming, defaults, callbacks after the outermost write and isolated, controlled pairs.
 - shadcn styling rules: semantic tokens, radius, `className`, presets.
 - Tests: do they fail without the fix, cover both paths, and run deterministically?
-- Docs, skills, changelog, glossary, parity matrix, and payloads stay in sync; simple English; no phantom contrasts; `<NewBadge />`.
+- Docs, skills, changelog, glossary, parity matrix, and payloads stay in sync; simple English; no phantom contrasts.
 
 ## Escalation
 

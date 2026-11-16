@@ -97,7 +97,7 @@ export function Accounts({ rows }: { rows: Row[] }) {
 
 Result: archived rows fade, and negative balances turn red.
 
-A `select` <NewBadge /> cell holds the `value` of its choice, not the `label`. To color a status column, compare `value` with the choice value. A `date` <NewBadge /> cell holds an ISO `yyyy-mm-dd` string, and ISO dates compare correctly as text. So `typeof value === "string" && value < today` marks an overdue date, where `today` is the current date in the same format. Compute `today` once outside the callback, from local date parts. `toISOString()` returns the UTC date, which differs from the local date near midnight.
+A `select` cell holds the `value` of its choice, not the `label`. To color a status column, compare `value` with the choice value. A `date` cell holds an ISO `yyyy-mm-dd` string, and ISO dates compare correctly as text. So `typeof value === "string" && value < today` marks an overdue date, where `today` is the current date in the same format. Compute `today` once outside the callback, from local date parts. `toISOString()` returns the UTC date, which differs from the local date near midnight.
 
 <Callout type="warn" title="Pass a stable function">
   Define `getRowClassName` and `getCellClassName` at module scope, or memoize them. A new function on every render re-renders every row and cell. A changed identity makes the grid log a warning in development.
@@ -127,8 +127,6 @@ If the same rule also reads `value` or `row`, use `getCellClassName`.
 
 ### Align a column [#align-a-column]
 
-<NewBadge />
-
 The cell type sets the alignment of a cell. `number` and `date` cells align to the end, which is the right in a left-to-right grid. `checkbox` cells center, and the other types align to the start. `ColumnDef` has no alignment field. To align a column, add a text alignment class in `cellClassName`. The class works for every cell type:
 
 ```tsx
@@ -156,8 +154,6 @@ const columns = defineColumns<Item>()([
 Result: the codes move to the end of their cells, and the quantities center.
 
 ### Mark changed rows [#mark-changed-rows]
-
-<NewBadge />
 
 The grid keeps no flag for a row that the user changed. When `onSave` returns a promise, the grid marks the save only: a row carries `data-save-status="saving"` while its save is pending, and `"failed"` after a refusal. `useDataGridRowSaveStatus(rowId)` reads the same status. The [Style contract](/docs/contracts/style-contract) lists the attribute.
 

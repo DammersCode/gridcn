@@ -229,7 +229,7 @@ export function propsTables(body, { small = false } = {}) {
     if (NAME_HEADERS.has(headers[0])) {
       const rows = [];
       for (let r = i + 2; r < end; r++) {
-        const name = /^`([A-Za-z_$][\w$]*)(?:\?|\(\))?`(?:\s*<NewBadge \/>)?$/.exec(raw[r].trim().startsWith("|") ? splitRow(raw[r])[0] : "")?.[1];
+        const name = /^`([A-Za-z_$][\w$]*)(?:\?|\(\))?`$/.exec(raw[r].trim().startsWith("|") ? splitRow(raw[r])[0] : "")?.[1];
         if (name) rows.push({ name, cells: splitRow(raw[r]), line: r + 1 });
       }
       let m = i - 1;

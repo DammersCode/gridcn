@@ -46,15 +46,13 @@ export function Lines({ lines }: { lines: Line[] }) {
 
 `validateRow` does not run on a row insert or duplicate, because a fresh default row is incomplete. It does not run on a row delete, or after you replace the `data` array.
 
-`validateRow` <NewBadge /> also runs for the rows that `actions.commitChange` inserts or updates, for every change source except `"stream"`. An import that replaces the data with `delete` and `insert` operations validates each imported row, and does not validate the deleted rows. An undo, a redo, and a rollback validate the rows they restore, so a cross-field error that the undone edit caused goes away. A newer change that touches the row cancels its pending verdict.
+`validateRow` also runs for the rows that `actions.commitChange` inserts or updates, for every change source except `"stream"`. An import that replaces the data with `delete` and `insert` operations validates each imported row, and does not validate the deleted rows. An undo, a redo, and a rollback validate the rows they restore, so a cross-field error that the undone edit caused goes away. A newer change that touches the row cancels its pending verdict.
 
-`validateRow` can return a promise. The write commits first. The verdict merges after the promise settles. A newer verdict for the same row replaces a pending one. The grid drops a verdict for a row that is gone. A rejected promise or a thrown error adds no error and keeps the write. <NewBadge />
+`validateRow` can return a promise. The write commits first. The verdict merges after the promise settles. A newer verdict for the same row replaces a pending one. The grid drops a verdict for a row that is gone. A rejected promise or a thrown error adds no error and keeps the write.
 
-`validateRow` <NewBadge /> receives `{ signal }` as its third argument. The signal aborts when a newer verdict for the same row replaces this one, when the row is gone, and when the grid unmounts. The grid drops an aborted verdict.
+`validateRow` receives `{ signal }` as its third argument. The signal aborts when a newer verdict for the same row replaces this one, when the row is gone, and when the grid unmounts. The grid drops an aborted verdict.
 
 ### Schema refine rules [#schema-refine-rules]
-
-<NewBadge />
 
 A column schema receives only the cell value, so its `refine` checks one value. Put a rule that compares fields in `validateRow`. In a paste or a fill, the `row` of a column `validate` holds only the earlier cells of the gesture. To use an object schema, parse the row and map each issue to its column:
 
@@ -80,8 +78,6 @@ export function validateLine(row: unknown) {
 Pass `validateRow={validateLine}`. For an async `refine`, return the promise of `safeParseAsync`.
 
 ## Check for duplicate values [#duplicate-values]
-
-<NewBadge />
 
 A column `validate` receives the value and its row, but not the other rows. To refuse a value that another row holds, keep the rows in a ref that `onDataChange` updates:
 

@@ -29,8 +29,6 @@ The thresholds sit below a healthy run. They catch a collapse, not a small slowd
 
 ## View rebuild thresholds [#view-rebuild]
 
-<NewBadge />
-
 A unit test builds the view of 100,000 rows in Node, with no rendering. It times each sort and filter step:
 
 | Step | Pass when |
@@ -47,8 +45,6 @@ A unit test builds the view of 100,000 rows in Node, with no rendering. It times
 On CI, the sort, the `isAnyOf` and `isNoneOf`, and the combined limits are twice as high. No test pins the mount time of the grid.
 
 ## Sort speed [#sort-speed]
-
-<NewBadge />
 
 The client sort turns each sort column into one integer key per row and sorts the keys. `scripts/bench-sort.mjs` measured the sort step on one development machine at 100,000 rows. On unsorted input, a number column took 4 to 7 ms, 7.7 to 15 times faster than the comparator sort. A text column took 5 to 93 ms, 2 to 9 times faster. A text column with mostly unique strings gains the least.
 

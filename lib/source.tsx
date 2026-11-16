@@ -1,5 +1,4 @@
 import { docs } from 'collections/server';
-import changes from '../content/docs-changes.json';
 import { loader } from 'fumadocs-core/source';
 import { lucideIconsPlugin } from 'fumadocs-core/source/lucide-icons';
 import { toAgentMarkdown, type LlmsMarkdownResolvers } from './llms-markdown';
@@ -27,17 +26,6 @@ export const source = loader({
       },
     },
     lucideIconsPlugin(),
-    {
-      name: 'gridcn:page-status',
-      transformPageTree: {
-        file(node, filePath) {
-          const key = filePath?.replace(/\\/g, '/').replace(/^(\.\/)?(content\/docs\/)?/, '');
-          const status = key ? (changes.pages as Record<string, string>)[key] : undefined;
-          if (status) (node as { status?: string }).status = status;
-          return node;
-        },
-      },
-    },
   ],
 });
 

@@ -39,8 +39,6 @@ A paste back into gridcn reads that attribute, so tabs and runs of spaces surviv
 
 ### Copy to Excel or Sheets [#copy-to-excel-or-sheets]
 
-<NewBadge />
-
 Select a range, press <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>C</kbd>, and paste into a cell of the spreadsheet. The spreadsheet reads the `text/html` table, so each grid cell lands in its own spreadsheet cell. The spreadsheet reads each text with its own locale rules. The copy follows these rules:
 
 - The rows come in view order, after the sort and the filters.
@@ -135,11 +133,11 @@ function MyGrid() {
 }
 ```
 
-- `processCellForClipboard(value, { row, column, text })` returns the text of one copied cell. `text` <NewBadge /> is the `toText` of the cell type. Without the prop, `text` is copied.
-- `processCellFromClipboard(text, { row, column, fromText })` returns the value of one pasted cell. `fromText` <NewBadge /> parses `text` with the parser of the column. Without the prop, that parser decides.
-- `processPaste({ cells, target, signal })` <NewBadge /> receives the text grid after single-row tiling and before the paste cap. `target` is the top-left cell of the paste. `signal` is an `AbortSignal` that aborts when the grid turns `readOnly`, an edit starts, `gateTimeoutMs` runs out, or the grid unmounts. Return the grid to write, or `false` to veto the whole paste. See [Async gates](/docs/editing-cells/cancel-async-gates#cancel-a-request-with-the-signal).
+- `processCellForClipboard(value, { row, column, text })` returns the text of one copied cell. `text` is the `toText` of the cell type. Without the prop, `text` is copied.
+- `processCellFromClipboard(text, { row, column, fromText })` returns the value of one pasted cell. `fromText` parses `text` with the parser of the column. Without the prop, that parser decides.
+- `processPaste({ cells, target, signal })` receives the text grid after single-row tiling and before the paste cap. `target` is the top-left cell of the paste. `signal` is an `AbortSignal` that aborts when the grid turns `readOnly`, an edit starts, `gateTimeoutMs` runs out, or the grid unmounts. Return the grid to write, or `false` to veto the whole paste. See [Async gates](/docs/editing-cells/cancel-async-gates#cancel-a-request-with-the-signal).
 
-`processPaste` <NewBadge /> and `processCellFromClipboard` also accept a promise:
+`processPaste` and `processCellFromClipboard` also accept a promise:
 
 ```tsx
 async function processPaste({
@@ -191,7 +189,7 @@ function CopyButton() {
 }
 ```
 
-`copy` and `cut` resolve `"ok"`, `"fallback"` (plain text only), `"failed"`, or `"no-selection"`. `pasteFromClipboard` resolves `"ok"`, `"permission-denied"`, `"empty"` (no text on the clipboard), or `"refused"` <NewBadge />. No paste started. Causes: a `readOnly` grid or an open editor (checked before any read), no target, a sync `processPaste` veto, a pending gate, or no cells. A paste through this hook carries no HTML.
+`copy` and `cut` resolve `"ok"`, `"fallback"` (plain text only), `"failed"`, or `"no-selection"`. `pasteFromClipboard` resolves `"ok"`, `"permission-denied"`, `"empty"` (no text on the clipboard), or `"refused"`. No paste started. Causes: a `readOnly` grid or an open editor (checked before any read), no target, a sync `processPaste` veto, a pending gate, or no cells. A paste through this hook carries no HTML.
 
 ### Context menu paste [#context-menu-paste]
 

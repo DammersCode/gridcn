@@ -159,4 +159,4 @@ Run in order. Each batch touches a distinct file set from the next, so batches c
 6. **Interaction and row operations.** #14, #22, #24, #23, then #21. Files: `store/api.ts`, `interaction/use-grid-interaction.ts`, `store/hidden-checked-rows.ts`, `store/data-write.ts`, `data-grid-context-menu/menu-items.tsx`, `data-grid-keybindings/*` global-shortcuts hook, `gate-signal.ts`.
 7. **M and contested items, after owner decisions.** #8 B, #13, #25, #26, #27, #53. Files: store types and actions, `data-grid-views/*`, keymap and plugin files, validation, many tests and demos.
 
-Every batch ends with its changelog entries (**Breaking:** where marked), docs updates (`<NewBadge />` rules), `research/parity-matrix.json` rows for client and server modes, a registry rebuild, and the gates in `AGENTS.md`.
+Every batch ends with its changelog entries (**Breaking:** where marked), docs updates, `research/parity-matrix.json` rows for client and server modes, a registry rebuild, and the gates in `AGENTS.md`.

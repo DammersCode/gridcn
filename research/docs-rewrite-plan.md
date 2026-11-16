@@ -53,7 +53,7 @@ pages (generated from the types with `<AutoTypeTable>`).
   the last split from it is accepted.
 - The integrator, not a writer, owns inbound link fixes in other pages, dropped-anchor entries in the anchor map, `meta.json`,
   `components/registry-examples.tsx`, `lib/llms-tasks.ts`, `next.config.mjs`, `skills/**`, `public/skills/**`, `README.md`,
-  `CHANGELOG.md`, and `content/docs-changes.json`. A writer lists the change it needs in its report.
+  and `CHANGELOG.md`. A writer lists the change it needs in its report.
 - Writers share one worktree (the branch of this plan): batches write disjoint files, validators use their own temp
   directories, and the integrator commits per batch with explicit paths. A failure that names another batch's page is not
   the writer's.
@@ -91,7 +91,7 @@ has zero failures. For one page: `pnpm docs:verify --final --files content/docs/
 | D9 | No wall of text | `prose` rule `long-paragraph` (110 words, 7 sentences, table cells included) and the verifier | 0 hits; no run of prose over 250 words without a heading, list, table, code, or callout |
 | D10 | Simple English | `--only prose`, then the `simple-english` self-check by the verifier | Hard rules 0: sentence over 25 words, code line over 80 characters, banned modals, contractions, `;`, filler. Passive at most 3 per page. Late condition and `-ing` clause are soft; the verifier applies the self-check to the three longest sentences and every `if` or `when` sentence |
 | D11 | Terms | `pnpm lint` (`verify-vocabulary`), verifier | Words match `GLOSSARY.md`; every uncommon term is defined at first use or links Terms; Terms lists only uncommon terms |
-| D12 | AGENTS.md docs rules | `prose` (`timeless`, `toolchain`, `omission-dots`, `intro-colon`, `one-item-list` for numbered and bullet lists, `lint-ok-reason`), `structure` | 0 hits; no `status:` line; `<NewBadge />` never in a heading; `content/docs-changes.json` equals the base branch (an unreadable base ref fails in `--final`); the verifier reviews phantom contrasts and every `lint-ok` |
+| D12 | AGENTS.md docs rules | `prose` (`timeless`, `toolchain`, `omission-dots`, `intro-colon`, `one-item-list` for numbered and bullet lists, `lint-ok-reason`), `structure` | 0 hits; the verifier reviews phantom contrasts and every `lint-ok` |
 | D13 | Client and server parity | `--final` with `research/docs-rewrite-worklist.json` plus verifier | Every Build Feature page with `parity` ids has an H2 "Server mode". The worklist names the owner page of the other matrix features (`parityOwnerOf`); the verifier proves each non-`n/a` cell on the owner page; `gap` cells read as gaps. Features without a page (`grouping`, `counts`, `row-ids`) are an open question |
 | D14 | Frontmatter | `structure` | `title` at most 60 characters and unique; `description` at most 160; Related is the last section with 1 to 5 docs links (landings exempt); aliases have one owner each |
 | D15 | Search | `docs-nav-audit.mjs --queries research/docs-navigation/reader-queries.txt <candidate>`, and a test of the built index | Every query returns its page in the first 3 results. Navigation deliverable: `app/api/search/route.ts` indexes `aliases` (it does not today) and the index test exists (it does not today) |
@@ -114,7 +114,7 @@ All live in `scripts/`, share `docs-verify-lib.mjs`, and print at most 5 failure
 | `verify-docs-symbols.mjs` | D5 | Every inline-code name that looks like a gridcn symbol must appear in the registry source. |
 | `verify-docs-demos.mjs` | D6, D7 | Cross-checks `components/registry-examples.tsx`, `registry.json`, and the embeds. |
 | `verify-docs-prose.mjs` | D9, D10, D12 | Mechanical subset of the `simple-english` rules and of the AGENTS.md docs rules. `{/* lint-ok: reason */}` above a paragraph skips it (for quoted API text). |
-| `verify-docs-structure.mjs` | D13, D14 | Frontmatter, Related, aliases, duplicate titles, the Server mode H2 per work list, `docs-changes.json`. |
+| `verify-docs-structure.mjs` | D13, D14 | Frontmatter, Related, aliases, duplicate titles, the Server mode H2 per work list. |
 | `docs-rewrite-worklist.mjs` | Work list | Candidate plus content map to JSON and a table. Not part of `docs:verify`. |
 | `docs-nav-audit.mjs` | D8, D15 | Belongs to the navigation branch. `docs:verify` runs it when the file exists. |
 
@@ -267,8 +267,6 @@ What is ready now: the validators, the work-list generator, the briefs, and the 
    when it is a whole file in an App Router project, and never in fragments. Decide, then the briefs say so.
 8. **Frontmatter keys** `type`, `aliases`, `finder`, `kind`, `modes`, `stability`, `since`, `demos` need the page schema in
    `source.config.ts`. `demos: compare` and `demos: none` are new keys of this plan. Fold them into the navigation change?
-9. **`<NewBadge />` on moved pages.** The plan lets writers badge only new sections of pages that exist at the last release tag;
-   the release command prunes the rest. Accept?
 10. **Persona run cost.** One beginner and two senior runs on the finished site. Accept the cost, or run one senior?
 11. **Content-map gaps.** 70 target pages have no source text (new). 89 old anchors have no target yet
     (`anchors-needing-review.txt`). Who assigns them: the split writers or the navigation session?
@@ -288,7 +286,7 @@ Rewrite the pages of ONE batch (one to ten pages, same steps for each) of the gr
 Slots the orchestrator fills: `{{ROW}}` (the work-list row: slug, title, type, words, aliases, action, parity ids, sources, carried demos), `{{TARGET_FILES}}`, `{{TEMPLATE}}`, `{{SERVER_RULE}}`, `{{FILES_CSV}}`.
 
 ## Files
-You may edit only `{{TARGET_FILES}}`. Inbound links in other pages that your heading changes break are the integrator's job: list them in your report. Do not move or rename files. Do not edit `meta.json`, `registry/**`, `components/registry-examples.tsx`, `lib/llms-tasks.ts`, `skills/**`, `README.md`, `CHANGELOG.md`, `content/docs-changes.json`, `next.config.mjs`. Put the change you need in those files into your report.
+You may edit only `{{TARGET_FILES}}`. Inbound links in other pages that your heading changes break are the integrator's job: list them in your report. Do not move or rename files. Do not edit `meta.json`, `registry/**`, `components/registry-examples.tsx`, `lib/llms-tasks.ts`, `skills/**`, `README.md`, `CHANGELOG.md`, `next.config.mjs`. Put the change you need in those files into your report.
 
 ## Read first
 1. `AGENTS.md`, section "Docs (content/docs/**)".
@@ -313,7 +311,6 @@ You may edit only `{{TARGET_FILES}}`. Inbound links in other pages that your hea
 - Demo: the row's demo field is a start, the demo rule decides. A demo only where a behavior cannot be understood from a code sample (visual, interactive, timing). None for a trivial hook, a single option, a reference or concept page. At most one `<ComponentPreview>`. A demo you drop stays registered: say so in the report so the integrator embeds it elsewhere or lists it as internal.
 - `## Related` at the end: 1 to 5 links to existing `/docs/...` pages and anchors. Task and Reference pages link the concept page; a Feature page links its Reference (P10).
 - Server mode: `{{SERVER_RULE}}`
-- `<NewBadge />` only for a section that is new on a page that exists at the last release tag. Never in a heading.
 - Keep the id of every old heading you rewrite with `[#old-id]` when its section still exists. If a section goes away or merges, list each dropped anchor with the page that now holds the content (the integrator maps it). `--baseline` finds them.
 
 ## Check yourself before you report

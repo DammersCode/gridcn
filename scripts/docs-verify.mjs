@@ -2,7 +2,7 @@
 // Usage: node scripts/docs-verify.mjs [--only links,code,props,symbols,demos,prose,structure,coverage,audit]
 //   [--files content/docs/a.mdx,content/docs/b.mdx]   limit the report (and the slow checks) to these pages
 //   [--final]  the definition-of-done run: strict props, a type on every page, Related on every page, the work list, demo warnings as failures
-//   [--warnings] [--all] [--strict] [--require-type] [--worklist <json>] [--audit <docs-nav-audit.mjs>] [--migration <dir>] [--baseline <git ref>] [--base <git ref>] [--json]
+//   [--warnings] [--all] [--strict] [--require-type] [--worklist <json>] [--audit <docs-nav-audit.mjs>] [--migration <dir>] [--baseline <git ref>] [--json]
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
@@ -42,7 +42,7 @@ const checks = {
   symbols: () => runSymbols({ root }),
   demos: () => runDemos({ root, strictRules: final }),
   prose: () => runProse({ root, files }),
-  structure: () => runStructure({ root, requireType: final || has("--require-type"), requireRelated: final, worklist, base: has("--base") ? arg("--base") : undefined }),
+  structure: () => runStructure({ root, requireType: final || has("--require-type"), requireRelated: final, worklist }),
   coverage: () => {
     const result = runCoverage({ root });
     if (!final) return { ...result, failures: [], warnings: result.failures };
@@ -53,7 +53,7 @@ const checks = {
 
 const contentDir = join(root, "content/docs");
 const pageUrl = (file) => urlOfPage(contentDir, join(root, file));
-const isGlobal = (f) => /^(baseline:|migration:|work list .* not found|content\/docs-changes\.json|scripts\/docs-nav-audit|the audit failed|cannot compare|next\.config\.mjs:)/.test(f);
+const isGlobal = (f) => /^(baseline:|migration:|work list .* not found|scripts\/docs-nav-audit|the audit failed|next\.config\.mjs:)/.test(f);
 const results = [];
 for (const name of only) {
   const result = await checks[name]();

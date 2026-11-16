@@ -88,7 +88,7 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
 
 The add-on writes the keys `sort`, `filter`, `q`, `cols`, `hide`, `widths`, and `pins`. `prefix` namespaces them, so several grids can share one page. `<DataGridUrlState prefix="orders" />` writes `orders_sort`, `orders_filter`, and `orders_q`.
 
-A filter group <NewBadge /> is a segment `[or` or `[and`, then its rows, then a `]` segment:
+A filter group is a segment `[or` or `[and`, then its rows, then a `]` segment:
 
 ```txt
 ?filter=country:equals:X,[or,name:contains:A,name:contains:B,]
@@ -100,16 +100,16 @@ An older link can carry a `join=or` param. The grid reads it once: when the `fil
 
 ## Behavior
 
-- URL params apply to the store on mount and on back and forward navigation. <NewBadge /> `enableNavigationSync` (default `true`) controls the navigation apply. A missing param keeps the initial state on mount. After navigation it clears the sort, filter, or search, and resets the layout part.
+- URL params apply to the store on mount and on back and forward navigation. `enableNavigationSync` (default `true`) controls the navigation apply. A missing param keeps the initial state on mount. After navigation it clears the sort, filter, or search, and resets the layout part.
 - `useDataGridUrlState()` returns `applyFromUrl()`, the manual form of the navigation apply. Call it when the URL changed in another way, such as a framework `setSearchParams`. It reads the params of the current render, so call it after your router has updated them.
-- `spec` <NewBadge /> lists the synced parts: `"sort"`, `"filter"`, and `"search"` (default all three). `spec={["sort"]}` keeps filter values and search text out of the URL.
+- `spec` lists the synced parts: `"sort"`, `"filter"`, and `"search"` (default all three). `spec={["sort"]}` keeps filter values and search text out of the URL.
 - Every write uses `history: "replace"`, so changes never add browser history entries.
 - Sort and filter writes are immediate. The search input waits for the typing to pause (`inputDebounceMs`) before the store changes.
 - The grid drops a sort or filter for a removed or hidden column. It drops a sort for a `sortable: false` column, and a filter for a `filterable: false` column. In development, a warning names each dropped column. The grid also drops a layout entry for a removed column, with one warning that counts them.
 
-A hand-edited URL cannot express an unbounded view. The `filter` param reads at most 256 segments and keeps at most 64 rows and 16 groups. An `isAnyOf` list keeps at most `max(number of choices, 64)` values for a column with `choices`, else 1,000. An `isNoneOf` list over the bound drops the segment, and so does a value, choice, or range bound over 1,000 characters. <NewBadge /> The `q` param is cut to 500 characters. The URL writes a blank list entry as a lone `%`. The `sort` param reads at most 256 segments and keeps at most 64 sorts, one per column, so the first segment of a column wins.
+A hand-edited URL cannot express an unbounded view. The `filter` param reads at most 256 segments and keeps at most 64 rows and 16 groups. An `isAnyOf` list keeps at most `max(number of choices, 64)` values for a column with `choices`, else 1,000. An `isNoneOf` list over the bound drops the segment, and so does a value, choice, or range bound over 1,000 characters. The `q` param is cut to 500 characters. The URL writes a blank list entry as a lone `%`. The `sort` param reads at most 256 segments and keeps at most 64 sorts, one per column, so the first segment of a column wins.
 
-A sort from the URL (`?sort=name:asc`) <NewBadge /> shows its arrow in a string header whatever `headerClickBehavior` says. Set `headerClickBehavior="sort"` to let a header click change or clear it. Or install `data-grid-sort-list` for a toolbar sort list.
+A sort from the URL (`?sort=name:asc`) shows its arrow in a string header whatever `headerClickBehavior` says. Set `headerClickBehavior="sort"` to let a header click change or clear it. Or install `data-grid-sort-list` for a toolbar sort list.
 
 The add-on checks every URL value against the live columns: their ids, their visibility, the `sortable` and `filterable` flags, and the `choices`. A spec for a column that is gone never reaches the view.
 
@@ -162,15 +162,13 @@ The grid's own `setPageSize` keeps the first visible row on a page-size change. 
 
 The add-on restores sorts, filters, and search text through the store actions. Those actions call `onSortChange`, `onFilterChange`, and `onSearchTextChange` as any change does. With `sortMode="server"` and `filterMode="server"`, a link restores the spec and the grid never reorders or hides the rows you load. `useDataGridServerRows` sets both modes. Without the hook, set both modes on a scroll-mode grid. Otherwise the add-on sorts and filters the partial `data` on the client.
 
-A grid that declares a `totalRowCount` <NewBadge /> holds the restored spec and never sorts or filters the partial `data`. Fetch the rows for the restored spec on mount. For page numbers in the URL, see [Keep pages in URL](/docs/server-pagination/keep-pages-url).
+A grid that declares a `totalRowCount` holds the restored spec and never sorts or filters the partial `data`. Fetch the rows for the restored spec on mount. For page numbers in the URL, see [Keep pages in URL](/docs/server-pagination/keep-pages-url).
 
 On a column with `choices`, a restored `isAnyOf` or `isNoneOf` list keeps at most `max(number of choices, 64)` values.
 
-A link <NewBadge /> holds up to 64 sorts. The default `parseServerSpec` limits accept them.
+A link holds up to 64 sorts. The default `parseServerSpec` limits accept them.
 
 ## With saved views
-
-<NewBadge />
 
 Mount `<DataGridUrlState>` beside the saved views add-on (`data-grid-views`). The URL sets the first state, and a link with a sort, filter, search, or column layout param wins over the default view. Opening a view writes its state to the URL. When you call `applyFromUrl()` on back or forward, the active view stays active and shows as modified.
 

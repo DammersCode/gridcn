@@ -66,9 +66,9 @@ Search keeps at most 1,000 matches. Past that cap the counter reads the current 
 
 ## Navigate matches
 
-The counter <NewBadge /> shows `current/total`, and `0/0` when nothing matches. The next and previous buttons wrap around. A jump moves the active cell to the match and scrolls it into view. In a client grid that pages its view, the counter covers every page. The highlight marks the matches on the shown page. A jump to a match on another page changes the page.
+The counter shows `current/total`, and `0/0` when nothing matches. The next and previous buttons wrap around. A jump moves the active cell to the match and scrolls it into view. In a client grid that pages its view, the counter covers every page. The highlight marks the matches on the shown page. A jump to a match on another page changes the page.
 
-Focus stays <NewBadge /> in the search field while Enter steps through the matches, so the next Enter goes to the next match. To move focus into the grid, call `api.focus()` on the grid ref.
+Focus stays in the search field while Enter steps through the matches, so the next Enter goes to the next match. To move focus into the grid, call `api.focus()` on the grid ref.
 
 | Key | Action |
 |---|---|
@@ -79,15 +79,15 @@ Focus stays <NewBadge /> in the search field while Enter steps through the match
 
 <kbd>Mod</kbd>+<kbd>F</kbd> works while focus is inside the grid or its toolbar. Anywhere else on the page, the browser's own find opens. Several grids on one page each take the key when they hold focus. When a toolbar you build yourself carries the `data-grid-toolbar` attribute and contains the `DataGridSearch`, it counts as part of the grid. Native find cannot see rows that virtualization has not rendered, so the grid takes the key.
 
-The key is the `focusSearch`<NewBadge /> action of the `keymap`. To keep the browser's find in the grid, set `keymap={{ focusSearch: [] }}`. To use another key, set `keymap={{ focusSearch: ["mod+j"] }}`. Without a `DataGridSearch` on screen, the browser keeps the key.
+The key is the `focusSearch` action of the `keymap`. To keep the browser's find in the grid, set `keymap={{ focusSearch: [] }}`. To use another key, set `keymap={{ focusSearch: ["mod+j"] }}`. Without a `DataGridSearch` on screen, the browser keeps the key.
 
 With the find and replace add-on mounted, <kbd>Mod</kbd>+<kbd>F</kbd> opens its panel instead, and `focusSearch` has no default key. Bind `focusSearch` in your `keymap` to focus the toolbar input with another key. Both show the same search text.
 
 ## Typing delay
 
-The input waits `inputDebounceMs` <NewBadge /> after the last keystroke before it searches. The provider prop defaults to 200. `0` searches on each keystroke. The wait also applies to the filter value inputs, the header filter search, the find and replace field, and the lookup editor. `debounceMs` on `DataGridSearch` overrides it for one box.
+The input waits `inputDebounceMs` after the last keystroke before it searches. The provider prop defaults to 200. `0` searches on each keystroke. The wait also applies to the filter value inputs, the header filter search, the find and replace field, and the lookup editor. `debounceMs` on `DataGridSearch` overrides it for one box.
 
-Typed text <NewBadge /> is not lost. Blur, <kbd>Enter</kbd>, and unmount commit text that is still waiting. While an IME composes, the wait does not run. Blur and unmount commit the text so far, and the composed text commits when the composition ends. See [useDebouncedInput](/docs/types-hooks/use-debounced-input).
+Typed text is not lost. Blur, <kbd>Enter</kbd>, and unmount commit text that is still waiting. While an IME composes, the wait does not run. Blur and unmount commit the text so far, and the composed text commits when the composition ends. See [useDebouncedInput](/docs/types-hooks/use-debounced-input).
 
 {/* props: DataGridSearchProps */}
 

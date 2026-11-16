@@ -75,13 +75,13 @@ function ClearFiltersButton() {
 | `io` | export, import dialog, print | `data-grid-io` |
 | `pagination` | page buttons, page size, range text | `data-grid-pagination` |
 | `statusBar` | count, sum, average, minimum, maximum, selection text | `data-grid-status-bar` |
-| `views` <NewBadge /> | the saved views button and menu | `data-grid-views` |
+| `views` | the saved views button and menu | `data-grid-views` |
 | `findReplace` | panel fields, buttons, status lines | `data-grid-find-replace` |
 | `options.labels` of a lookup column | the lookup editor | `data-grid-lookup`, [lookup cell](/docs/editing-cells/lookup-cell) |
 
 [Labels reference](/docs/components-props/labels) lists every field of every group.
 
-The `grid` group <NewBadge /> also holds `noResults`, which shows when a filter or a server search leaves zero rows. It holds `viewStale` and `saveRejected`, a function of the row count. It holds the undo and redo notices `historyRowsNotLoaded` and `historyRowsGone`. The `statusBar` group holds the select-all banner text, and `labels.statusBar.allSelected` and `selectAllMatching` take `null` for an unknown result size. The `findReplace` group holds `scopeLoadedRows` and `replaceCancelled`.
+The `grid` group also holds `noResults`, which shows when a filter or a server search leaves zero rows. It holds `viewStale` and `saveRejected`, a function of the row count. It holds the undo and redo notices `historyRowsNotLoaded` and `historyRowsGone`. The `statusBar` group holds the select-all banner text, and `labels.statusBar.allSelected` and `selectAllMatching` take `null` for an unknown result size. The `findReplace` group holds `scopeLoadedRows` and `replaceCancelled`.
 
 `keybindings.actions` maps an action to its name. The defaults name the built-in actions. A custom action from `commands` that the map leaves out gets a name made from its own id.
 
@@ -143,11 +143,11 @@ export function OrdersGrid({ t }: { t: (key: string) => string }) {
 
 `t` stands for the translate function of your i18n library.
 
-The grid compares `labels` <NewBadge /> by content, so a literal object of strings needs no `useMemo`. A label that is a function, such as `pasteBlocked`, counts as changed unless it keeps its identity. Wrap such a label, or build the object with `useMemo` keyed on your active locale.
+The grid compares `labels` by content, so a literal object of strings needs no `useMemo`. A label that is a function, such as `pasteBlocked`, counts as changed unless it keeps its identity. Wrap such a label, or build the object with `useMemo` keyed on your active locale.
 
 ## RTL layout
 
-`labels` translates strings. The `locale` prop of the provider is a BCP 47 tag such as `"de-DE"`. <NewBadge /> It sets the language of numbers and dates in the `number` and `date` columns, the status bar, and the default labels. It also sets the sort language unless you pass `sortLocale`. It defaults to `"en-US"`, so the server and the browser render the same text.
+`labels` translates strings. The `locale` prop of the provider is a BCP 47 tag such as `"de-DE"`. It sets the language of numbers and dates in the `number` and `date` columns, the status bar, and the default labels. It also sets the sort language unless you pass `sortLocale`. It defaults to `"en-US"`, so the server and the browser render the same text.
 
 `options.locale` of a column and `formatValue` of the status bar win over `locale`. `options.locale` sets the language of `options.format` on a `number` column and of `options.displayFormat` on a `date` column. Without a format, a `number` cell shows the plain number and a `date` cell shows the ISO text.
  See [Built-in cell types](/docs/editing-cells/built-cell-types). `labels` does not flip the layout. `direction` flips the layout and does not translate. Most apps derive both from one active locale:

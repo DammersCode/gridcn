@@ -53,19 +53,17 @@ A server that sends no count answers `totalRowCount: null` and `hasMore`. The pa
 
 Set `mode: "scroll"` to fetch fixed-size blocks as the rendered rows move. The first answer picks the fetch order. A `totalRowCount` without `nextCursor` gives random access. A `nextCursor`, or neither, gives a sequential source.
 
-Set `source: "random"` <NewBadge /> or `source: "sequential"` to fix the order. A random source that answers without `totalRowCount` warns in development.
+Set `source: "random"` or `source: "sequential"` to fix the order. A random source that answers without `totalRowCount` warns in development.
 
-`getRowId` <NewBadge /> is optional in both modes. It defaults to the `id` field of the row, the same default as `DataGridProvider`. A row without a string or number `id` throws.
+`getRowId` is optional in both modes. It defaults to the `id` field of the row, the same default as `DataGridProvider`. A row without a string or number `id` throws.
 
-The hook <NewBadge /> sets `sortMode` and `filterMode` to `"server"`. A grid with `totalRowCount` defaults both to `"server"`, because a window of a result cannot be sorted or filtered in the browser without being wrong. Set `sortMode="client"` or `filterMode="client"` to sort or filter the window locally.
+The hook sets `sortMode` and `filterMode` to `"server"`. A grid with `totalRowCount` defaults both to `"server"`, because a window of a result cannot be sorted or filtered in the browser without being wrong. Set `sortMode="client"` or `filterMode="client"` to sort or filter the window locally.
 
 ### Scroll options [#usedatagridserverrowsscrolloptions]
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-server/scroll-blocks.ts" name="UseDataGridServerRowsScrollOptions" />
 
 ### Fetch limits [#fetch-limits]
-
-<NewBadge />
 
 {/* props: UseDataGridServerRowsScrollOptions */}
 
@@ -88,8 +86,6 @@ In scroll mode, `providerProps` holds:
 <AutoTypeTable path="./registry/default/blocks/data-grid-server/scroll-blocks.ts" name="UseDataGridServerRowsScrollProviderProps" />
 
 ## Save options [#save-options]
-
-<NewBadge />
 
 Both modes take `onSave` and `refreshAfterSave`. `gridProps.onSave` runs your handler and then refreshes by the policy:
 
@@ -170,7 +166,7 @@ Your API reads `start` and `end` as the row range and returns the rows with the 
 ## Save policy types [#save-policy]
 
 - `SaveRefreshPolicy` is the value of `refreshAfterSave`: `false`, `"each"`, `"settled"`, or a function of a `SaveRefreshReport`.
-- `SaveRefreshReport` <NewBadge /> describes the saves of one batch. It holds the `saved`, `rejected`, and `failed` counts. It holds the `changes` of those saves, oldest first, at most 100. It holds `pending`, the saves still in flight. `pending` is above 0 only when the 10 second wait forced the decision.
+- `SaveRefreshReport` describes the saves of one batch. It holds the `saved`, `rejected`, and `failed` counts. It holds the `changes` of those saves, oldest first, at most 100. It holds `pending`, the saves still in flight. `pending` is above 0 only when the 10 second wait forced the decision.
 
 ## Related
 

@@ -44,7 +44,7 @@ const columns = defineColumns<Person>()([
 ]);
 ```
 
-In a left-to-right page, start means left. In a right-to-left page, start means right. `pin` sets the first state of a column id. A new `columns` array keeps the pins that `setColumnPin`, the context menu, and the user set, and seeds the pin of a new id. <NewBadge />
+In a left-to-right page, start means left. In a right-to-left page, start means right. `pin` sets the first state of a column id. A new `columns` array keeps the pins that `setColumnPin`, the context menu, and the user set, and seeds the pin of a new id.
 
 The grid draws start-pinned columns first, then unpinned columns, then end-pinned columns. The order of `columns` does not change that.
 

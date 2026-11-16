@@ -35,11 +35,11 @@ export function ImportOrders() {
 
 `createRow` can return a promise. A rejection imports nothing. Cancel stops a pending import.
 
-Without `onImport`, <NewBadge /> a confirm appends the rows to `data` with one `commitChange` of the `"import"` source. That is one undo entry. The change reaches `onDataChange`, `onSave`, and `validateRow` like any other write. Replacing `data` does none of this. A grid with a `totalRowCount` or a `readOnly` grid has no default. Its import button is disabled, and its `title` gives the reason (`labels.io.importNeedsOnImport` or `labels.io.importReadOnly`). Pass `onImport` on a server grid.
+Without `onImport`, a confirm appends the rows to `data` with one `commitChange` of the `"import"` source. That is one undo entry. The change reaches `onDataChange`, `onSave`, and `validateRow` like any other write. Replacing `data` does none of this. A grid with a `totalRowCount` or a `readOnly` grid has no default. Its import button is disabled, and its `title` gives the reason (`labels.io.importNeedsOnImport` or `labels.io.importReadOnly`). Pass `onImport` on a server grid.
 
 `onImport(rows)` replaces the default and decides where the rows land: replace, merge, or send to a server. It can return a promise, which the dialog awaits. If it rejects, the dialog stays open with an error, and the user can retry. If it resolves, the dialog clears the grid selection. If the build cleared cells, it stays open (see [Confirm](#confirm)). Otherwise it closes. On a `readOnly` grid, `commitChange` writes nothing, and the dialog still closes.
 
-A `commitChange` <NewBadge /> runs the grid's `validateRow` for each inserted row, so imported rows show the same cross-field errors as edited rows. You need no extra validation call after the commit. See [Cross-field rules](/docs/editing-cells/validate-rows-cross-field#cross-field-rules-validaterow).
+A `commitChange` runs the grid's `validateRow` for each inserted row, so imported rows show the same cross-field errors as edited rows. You need no extra validation call after the commit. See [Cross-field rules](/docs/editing-cells/validate-rows-cross-field#cross-field-rules-validaterow).
 
 ## Walk through the dialog
 
@@ -121,7 +121,7 @@ The dialog's drop target is the `dropzone` item, which `data-grid-io` installs. 
 
 ## Server mode
 
-Import <NewBadge /> reads no sort, filter, page, or server state. A grid with a `totalRowCount` or unloaded rows cannot take appended rows, so it needs `onImport`. Send the rows to your API there, and call `server.refresh()`. See [Import into a server grid](/docs/import-export/import-server-grid).
+Import reads no sort, filter, page, or server state. A grid with a `totalRowCount` or unloaded rows cannot take appended rows, so it needs `onImport`. Send the rows to your API there, and call `server.refresh()`. See [Import into a server grid](/docs/import-export/import-server-grid).
 
 ## Related
 

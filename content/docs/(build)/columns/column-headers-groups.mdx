@@ -14,7 +14,7 @@ The header row stays fixed at the top of the grid while the rows scroll under it
 
 `header` takes a string or a React node. The grid truncates a string. A node renders as it is and owns its display. A node can be a component that reads grid state, for example the sort direction.
 
-A string header shows the built-in arrow on every sorted column that is not `sortable: false`, and a node does not. `headerClickBehavior="sort"` only adds the click that cycles the sort of the column. Place `<DataGridSortIndicator columnId="score" />` inside the node to add the arrow. It reads the sort of the grid and renders nothing for an unsorted column. The optional `sortState` prop overrides the sort it reads, and `className` <NewBadge /> adds classes to the indicator. This sample builds its own three-state icon:
+A string header shows the built-in arrow on every sorted column that is not `sortable: false`, and a node does not. `headerClickBehavior="sort"` only adds the click that cycles the sort of the column. Place `<DataGridSortIndicator columnId="score" />` inside the node to add the arrow. It reads the sort of the grid and renders nothing for an unsorted column. The optional `sortState` prop overrides the sort it reads, and `className` adds classes to the indicator. This sample builds its own three-state icon:
 
 ```tsx
 import type { ReactNode } from "react";
@@ -60,7 +60,7 @@ export function Scores({ rows }: { rows: Row[] }) {
 }
 ```
 
-If `header` <NewBadge /> is a node, the screen reader label, the header menu, the export, and the import matching read its text. In `<span><User /> Name</span>`, that text is `Name`. A component inside the node adds no text. Set `headerText` when the label comes from a component or when it differs from the visible text. <NewBadge /> `headerClassName` adds classes to the header cell.
+If `header` is a node, the screen reader label, the header menu, the export, and the import matching read its text. In `<span><User /> Name</span>`, that text is `Name`. A component inside the node adds no text. Set `headerText` when the label comes from a component or when it differs from the visible text. `headerClassName` adds classes to the header cell.
 
 ## Replace the header cell content [#header-cell-contents]
 

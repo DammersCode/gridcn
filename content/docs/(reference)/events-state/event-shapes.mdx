@@ -33,8 +33,8 @@ Every callback on these pages except `processFill` and `processReplace` is a pro
 | Read or control the page and the page size | `onPageChange`, `onPageSizeChange` | [Client pagination](/docs/rows-pages-menus/client-pagination#client-mode) |
 | Know why a row insert, duplicate, or delete did nothing | `onRowActionSkipped` | [Handle row action results](/docs/rows-live-data/handle-row-action-results#action-results) |
 | Know that the grid stopped waiting for a gate | `onGateAborted` | [Cancel async gates](/docs/editing-cells/cancel-async-gates#gate-timeout) |
-| Pick the row that wins a save conflict <NewBadge /> | `resolveSaveConflict` | [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict) |
-| Load the values of a header filter from a server <NewBadge /> | `fetchFilterValues` | [Header filter](/docs/sort-filter-search/header-filter#server-values) |
+| Pick the row that wins a save conflict | `resolveSaveConflict` | [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict) |
+| Load the values of a header filter from a server | `fetchFilterValues` | [Header filter](/docs/sort-filter-search/header-filter#server-values) |
 
 The grid has no copy event and no scroll-position callback. A paste reports through `onDataChange` with `source: "paste"`. `onRenderedRowsChange` reports the rendered rows. A new function identity for `onCellClick`, `onCellDoubleClick`, or `onCellContextMenu` re-renders no cell.
 
@@ -77,15 +77,13 @@ A gate runs before the grid acts and can stop the action:
 - `onBeforeDeleteRows` returns `false` to stop a row delete.
 - `processFill` returns `false` to stop a fill. It can also return a rewritten text grid.
 - `processPaste` returns `false` to stop a paste.
-- `processReplace` <NewBadge /> returns `false` to stop a find and replace. It can also return a rewritten plan.
+- `processReplace` returns `false` to stop a find and replace. It can also return a rewritten plan.
 
 `onSave` is a save acknowledgement. It is neither a reporting callback nor a gate: see [onSave](/docs/events-state/data-change-events#onsave).
 
 `onBeforeEditStart`, `onBeforeDeleteRows`, `processPaste`, `processCellFromClipboard`, `createRow`, and `duplicateRow` also accept a promise. A pending promise blocks a second request of the same kind. A rejection cancels the action. `validateRow` also accepts a promise. When it rejects, the row gets no verdict.
 
 ## Callback timing and errors [#callback-errors]
-
-<NewBadge />
 
 A callback runs synchronously, after the grid writes the change. Inside the callback, the store holds the new state. One exception: when a filter prop resets a paged grid to page 1, `onPageChange(1)` runs in a microtask after the sync. With a controlled value prop, the grid writes nothing, and the callback receives the next value.
 
@@ -107,4 +105,4 @@ These callbacks log: `onSelectionChange`, `onActiveCellChange`, and the `onEditE
 - [Selection and cell events](/docs/events-state/selection-cell-events)
 - [DataGridProvider](/docs/components-props/data-grid-provider)
 - [Events A to Z](/docs/cheatsheets-messages/events-z)
-- [Event log example](/docs/basic-examples/event-log-example) <NewBadge />: a live log of every callback payload
+- [Event log example](/docs/basic-examples/event-log-example): a live log of every callback payload
