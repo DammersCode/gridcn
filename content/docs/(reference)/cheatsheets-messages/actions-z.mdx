@@ -16,6 +16,7 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `applyCellUpdates` | Writes values at view coordinates as one change with the given `source`, and selects the touched cells. | [Data change events](/docs/events-state/data-change-events) |
 | `autosizeColumns` | Sizes columns to their content over the view and returns the measured widths. On a paged grid, it measures the shown page. | [Column sizing](/docs/columns/column-sizing) |
 | `cancelEditing` | Discards the open edit. It writes nothing. | [Edit and validation events](/docs/events-state/edit-validation-events) |
+| `canSetColumnOrder` | Returns the result `setColumnOrder` would return for the same arguments, without the move. | [Column order and pinning](/docs/columns/column-order-pinning) |
 | `checkRowRange` | Checks or unchecks the rows from the anchor row to a target view index. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | `clearCellErrors` | Clears the cell errors of `targets`. Without `targets`, it clears every cell error. | [Show errors on cells](/docs/save-server/show-errors-cells) |
 | `clearCellSelection` | Clears the cell ranges and the column selection, and keeps the checked rows. | [Selection model](/docs/concepts/selection-model) |
@@ -58,7 +59,7 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `setCellErrors` | Merges server errors into the cell errors. It is not a data change. | [Show errors on cells](/docs/save-server/show-errors-cells) |
 | `setColumnHidden` | Shows or hides a column. | [Column visibility](/docs/columns/column-visibility) |
 | `setColumnLayout` | Applies a partial `ColumnLayout` as one commit. Omitted parts keep their value. | [Save a column layout](/docs/columns/column-layout) |
-| `setColumnOrder` | Moves a column, or a column group, before or after another column. | [Column order and pinning](/docs/columns/column-order-pinning) |
+| `setColumnOrder` | Moves a column, or a column group, before or after another column. Returns `{ ok: true }`, or `{ ok: false, reason }` when the order stays. | [Column order and pinning](/docs/columns/column-order-pinning) |
 | `setColumnPin` | Pins a column to `"start"` or `"end"`, or unpins it with `null`. | [Column order and pinning](/docs/columns/column-order-pinning) |
 | `setColumnWidth` | Sets a column width and fires `onColumnLayoutChange` once, as a resize release does. | [Column sizing](/docs/columns/column-sizing) |
 | `setFilters` | Replaces the filter tree. | [Filtering](/docs/sort-filter-search/filtering) |

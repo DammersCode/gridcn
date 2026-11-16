@@ -257,6 +257,7 @@ export const ACTION_PAGES = {
   autosizeColumns: "/docs/columns/column-sizing",
   resetColumnWidth: "/docs/columns/column-sizing",
   setColumnOrder: "/docs/columns/column-order-pinning",
+  canSetColumnOrder: "/docs/columns/column-order-pinning",
   setColumnPin: "/docs/columns/column-order-pinning",
   setColumnHidden: "/docs/columns/column-visibility",
   setColumnLayout: "/docs/columns/column-layout",
