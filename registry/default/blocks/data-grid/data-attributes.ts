@@ -88,6 +88,8 @@ export const GRID_ATTR = {
   pinShadow: "data-grid-pin-shadow",
   /** cell-types/date.tsx, cell-types/select.tsx: a cell-type's own editor popup/portal content — `use-grid-interaction.ts` ignores pointer/click events that land inside one. */
   cellEditor: "data-grid-cell-editor",
+  /** root.tsx: present (`""`) on the grid root once its first commit settled; cells mounted before that never take focus. */
+  settled: "data-grid-settled",
   /** search.tsx, find-replace-panel.tsx: a control group whose focus survives the active cell moving (match stepping). */
   keepFocus: "data-grid-keep-focus",
   /** overlays.tsx: the selection-range overlay(s). */

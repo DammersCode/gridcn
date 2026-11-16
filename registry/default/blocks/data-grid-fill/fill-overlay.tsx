@@ -50,7 +50,7 @@ function FillHandle({
       aria-hidden="true"
       // grid-placed on the cell holding the range's bottom-right corner, self-aligned into that
       // cell's own corner so it reads as sitting "on" the selection edge rather than centered in it.
-      className="pointer-events-auto z-20 size-2 place-self-end cursor-crosshair border border-background bg-primary"
+      className="pointer-events-auto relative z-20 size-2 place-self-end cursor-crosshair border border-background bg-primary before:absolute before:left-1/2 before:top-1/2 before:size-6 before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']"
       style={{
         gridColumnStart: rect.x + rect.width + colOffset - 1,
         gridColumnEnd: rect.x + rect.width + colOffset,

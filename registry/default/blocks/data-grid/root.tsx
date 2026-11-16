@@ -361,6 +361,10 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     return () => internalActions._registerScrollToCell(null);
   }, [internalActions, interaction.scrollCellIntoView]);
 
+  useEffect(() => {
+    scrollRef.current?.setAttribute(GRID_ATTR.settled, "");
+  }, []);
+
   const warnedNameRef = useRef(false);
   useEffect(() => {
     if (!isDev() || warnedNameRef.current || ariaLabel || ariaLabelledBy) return;
