@@ -33,6 +33,7 @@ export {
 export { rowOperationTargets } from "./store/row-operation-targets";
 export { GRID_LAYER, cellLayer, type GridLayer } from "./layers";
 export { hasAnyPin } from "./overlays";
+export { OverlayRect, type OverlayRectProps } from "./overlay-rect";
 
 export { safeSetPointerCapture } from "./interaction/safe-set-pointer-capture";
 export { pointerToCoord, type InteractionLayout } from "./interaction/use-grid-interaction";
