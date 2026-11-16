@@ -455,6 +455,7 @@ void rowPatch;
 declare const _actions: DataGridActions;
 assertEqual<(patches: readonly CellPatch[], options?: UpdateCellsOptions) => UpdateCellsVerdict, typeof _actions.updateCells>(true);
 assertEqual<(updates: readonly RowPatch[], options?: UpdateCellsOptions) => UpdateCellsVerdict, typeof _actions.updateRows>(true);
+assertEqual<(updates: readonly RowPatch[], options?: Omit<UpdateCellsOptions, "source" | "reorder">) => UpdateCellsVerdict, typeof _actions.editRows>(true);
 assertEqual<() => void, typeof _actions.reconcileView>(true);
 
 // The public actions hook carries no internal `_` actions.

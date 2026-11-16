@@ -1185,6 +1185,8 @@ export type DataGridActions = {
   updateCells(patches: readonly CellPatch[], options?: UpdateCellsOptions): UpdateCellsVerdict;
   /** {@link updateCells} keyed by whole row: each {@link RowPatch}'s `changes` expands to one patch per column id. */
   updateRows(updates: readonly RowPatch[], options?: UpdateCellsOptions): UpdateCellsVerdict;
+  /** {@link updateRows} as a user edit: `source: "edit"` and `reorder: "immediate"`. One undo entry, one `onSave`, and the `readOnly`, read-only column, and `validate` checks apply. `options` takes the rest of {@link UpdateCellsOptions}, such as `flash`. */
+  editRows(updates: readonly RowPatch[], options?: Omit<UpdateCellsOptions, "source" | "reorder">): UpdateCellsVerdict;
   /** Rebuilds the view index that a deferred `updateCells` postponed, and clears `viewStale`. With `useDataGridServerRows` it asks for a reshape instead, and `viewStale` stays `true` until the answer delivers the stale rows again. No-op when the view is not stale. */
   reconcileView(): void;
   /**

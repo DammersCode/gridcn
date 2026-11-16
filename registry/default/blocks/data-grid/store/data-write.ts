@@ -414,6 +414,7 @@ export type DataWriteActions = Pick<
   | "applyCellUpdates"
   | "updateCells"
   | "updateRows"
+  | "editRows"
   | "reconcileView"
   | "insertRow"
   | "insertRows"
@@ -1517,6 +1518,9 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         }
       }
       return get().actions.updateCells(patches, options);
+    },
+    editRows(updates, options) {
+      return get().actions.updateRows(updates, { ...options, source: "edit", reorder: "immediate" });
     },
     reconcileView() {
       const s = get();
