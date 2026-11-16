@@ -457,6 +457,34 @@ describe("data-grid-fill add-on", () => {
     expect(onDataChange).toHaveBeenCalledTimes(1);
   });
 
+  it("a runtime processFill swap runs the latest callback", async () => {
+    const onDataChange = mockDataChangeFn();
+    const data = makeFillRows(4);
+    function Harness(props: { tag: string }) {
+      const { plugin } = useDataGridFill({ processFill: ({ cells }) => cells.map((row) => row.map((cell) => (cell === "" ? cell : props.tag))) });
+      return (
+        <DataGridProvider data={data} columns={fillColumns} getRowId={(r) => r.id} onDataChange={onDataChange} plugins={[plugin]}>
+          <DataGridRoot className="h-[600px]">
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+    const tree = (tag: string) => (
+      <div style={{ height: 600 }}>
+        <Harness tag={tag} />
+      </div>
+    );
+    const view = await render(tree("11"));
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    await selectValueColumn(4);
+    await view.rerender(tree("22"));
+    await userEvent.keyboard("{Control>}d{/Control}");
+    expect(onDataChange).toHaveBeenCalledTimes(1);
+    expect(onDataChange.mock.calls[0]![0].slice(1).map((row) => row.value)).toEqual([22, 22, 22]);
+  });
+
   it("mod+D fills the selection's top row downward across the range", async () => {
     const onDataChange = mockDataChangeFn();
     const data = makeFillRows(4);
