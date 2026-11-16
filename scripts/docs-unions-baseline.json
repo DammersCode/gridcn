@@ -1,0 +1,47 @@
+[
+  {
+    "id": "menu-item-ids",
+    "page": "content/docs/(reference)/add-options/rows-pages-menus/context-menu-options.mdx",
+    "missing": [
+      "sep-move",
+      "move-toward-start",
+      "move-toward-end",
+      "widen-column",
+      "narrow-column"
+    ],
+    "unknown": []
+  },
+  {
+    "id": "gate-name-table",
+    "page": "content/docs/(build)/editing-cells/cancel-async-gates.mdx",
+    "missing": [
+      "import",
+      "validate"
+    ],
+    "unknown": []
+  },
+  {
+    "id": "replace-skip-reason",
+    "page": "content/docs/(reference)/add-options/sort-filter-search/find-replace-options.mdx",
+    "missing": [
+      "hidden"
+    ],
+    "unknown": []
+  },
+  {
+    "id": "data-change-source-plugin-events",
+    "page": "content/docs/(reference)/plugins/plugin-events.mdx",
+    "missing": [
+      "cut"
+    ],
+    "unknown": []
+  },
+  {
+    "id": "record-sources-options",
+    "page": "content/docs/(reference)/add-options/clipboard-undo/undo-redo-options.mdx",
+    "missing": [
+      "cut"
+    ],
+    "unknown": []
+  }
+]
