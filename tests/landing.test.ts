@@ -70,7 +70,7 @@ describe("landing comparison", () => {
   it("dates the check and links every vendor cell to a vendor page", () => {
     expect(COMPARISON_DATE).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     for (const row of comparison.rows) {
-      for (const cell of row.cells.slice(1)) expect(cell.href, `${row.feature}: ${cell.value}`).toMatch(/^https:\/\/(www\.ag-grid\.com|mui\.com|tanstack\.com)\//);
+      for (const cell of row.cells.slice(1)) expect(cell.href, `${row.feature}: ${cell.value}`).toMatch(/^https:\/\/(www\.ag-grid\.com|mui\.com)\//);
     }
   });
 
@@ -85,17 +85,6 @@ describe("landing comparison", () => {
     const cell = (feature: string, column: number) => comparison.rows.find((r) => r.feature === feature)!.cells[column]!;
     expect(cell("Row grouping", 1).href).toBe("https://www.ag-grid.com/react-data-grid/grouping/");
     expect(cell("Fill handle", 2).href).toBe("https://mui.com/x/react-data-grid/clipboard/#drag-to-fill");
-  });
-
-  it("labels TanStack cells as headless only where its overview lists the feature", () => {
-    const labels = Object.fromEntries(comparison.rows.map((r) => [r.feature, r.cells[3].value]));
-    expect(labels).toMatchObject({
-      "Range selection": "Headless, you build the UI",
-      "Clipboard paste": "Not listed",
-      "Fill handle": "Not listed",
-      "Undo and redo": "Not listed",
-      Pivoting: "Not listed",
-    });
   });
 
   it("has no install-command row", () => {
@@ -147,5 +136,17 @@ describe("landing copy", () => {
   it("keeps the first-grid sample bounded in height and marked as a client component", () => {
     expect(CLIENT_CODE).toContain('"use client"');
     expect(CLIENT_CODE).toMatch(/className="h-\d+/);
+  });
+});
+
+describe("landing code block", () => {
+  it("highlights with the dual theme variables of the docs code blocks", async () => {
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const { Code } = await import("../components/landing/code");
+    const html = renderToStaticMarkup(await Code({ code: "const a = 1;", label: "Sample" }));
+    expect(html).toContain("--shiki-light");
+    expect(html).toContain("--shiki-dark");
+    expect(html).not.toMatch(/background-color:\s*#|bg-card/);
+    expect(html).toContain('aria-label="Sample"');
   });
 });
