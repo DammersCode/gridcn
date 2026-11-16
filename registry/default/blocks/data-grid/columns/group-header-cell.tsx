@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import type { ColumnGroupDef, HeaderClickBehavior } from "../types";
 import type { HeaderSegment } from "./column-groups";
 import { COLUMN_BORDER } from "./column-border";
+import { columnLabelText } from "./column-format-helpers";
 import { pinnedInsetStyle } from "./pinned-inset-style";
 
 const MIN_VISIBLE_LABEL_PX = 128;
@@ -60,7 +61,7 @@ export function DataGridGroupHeaderCell({ segment, group, gridColOffset, width, 
       role="columnheader"
       aria-colindex={start + 1}
       aria-colspan={end - start}
-      aria-label={typeof group.header === "string" ? undefined : group.headerText}
+      aria-label={typeof group.header === "string" ? undefined : columnLabelText(group)}
       data-grid-group-header=""
       data-group-id={group.id}
       data-pinned={pin || undefined}
