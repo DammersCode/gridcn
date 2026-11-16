@@ -72,16 +72,20 @@ import {
   DataGridToolbar,
 } from "@/components/data-grid-toolbar/data-grid-toolbar";
 
-<DataGridToolbar className="flex-wrap">
-  <DataGridSearch />
-  <DataGridFilterMenu />
-</DataGridToolbar>
+export function Toolbar() {
+  return (
+    <DataGridToolbar className="flex-wrap">
+      <DataGridSearch />
+      <DataGridFilterMenu />
+    </DataGridToolbar>
+  );
+}
 ```
 
 On a touch screen, the grid adapts:
 
 - The resize handle of a header is wider.
-- Each header shows a drag handle for column reorder.
+- With column reorder on, which is the default, each header shows a drag handle.
 - The header menu button and the header filter button stay visible. With a mouse or a pen, they show on hover.
 
 ## Scroll shadows [#scroll-shadows]
@@ -120,8 +124,8 @@ In a right-to-left grid, the `start` shadow sits on the right edge and the `end`
 
 ## Related
 
-- [Style overrides](/docs/theme-style-language/style-overrides)
-- [Column sizing](/docs/columns/column-sizing)
-- [Column order and pinning](/docs/columns/column-order-pinning)
-- [Colors and radius](/docs/theme-style-language/colors-radius)
-- [DataGrid props](/docs/components-props/data-grid-props)
+- [Style overrides](/docs/theme-style-language/style-overrides): restyle one surface of the grid
+- [Column sizing](/docs/columns/column-sizing): widths, flex, and autosize
+- [Column order and pinning](/docs/columns/column-order-pinning): the pinned zones that move the shadows
+- [Colors and radius](/docs/theme-style-language/colors-radius): theme tokens and the frame radius
+- [DataGrid props](/docs/components-props/data-grid-props): every prop of the grid

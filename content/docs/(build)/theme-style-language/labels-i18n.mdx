@@ -15,7 +15,10 @@ Every user-facing string lives in one typed `DataGridLabels` object with English
 Pass `labels` to `DataGridProvider` or `DataGrid`. The grid deep-merges it over `DEFAULT_LABELS`. Only the keys you set change, and the rest stay English:
 
 ```tsx
-import { DataGrid, type DeepPartialLabels } from "@/components/data-grid/data-grid";
+import {
+  DataGrid,
+  type DeepPartialLabels,
+} from "@/components/data-grid/data-grid";
 
 const labels: DeepPartialLabels = {
   toolbar: { searchPlaceholder: "Rechercher…" },
@@ -127,7 +130,10 @@ const de: DeepPartialLabels = {
 `labels` is a plain object, so it works with any i18n library. Build it from your translate function:
 
 ```tsx
-import { DataGrid, type DeepPartialLabels } from "@/components/data-grid/data-grid";
+import {
+  DataGrid,
+  type DeepPartialLabels,
+} from "@/components/data-grid/data-grid";
 
 export function OrdersGrid({ t }: { t: (key: string) => string }) {
   const labels: DeepPartialLabels = {
@@ -219,7 +225,7 @@ Direction mirrors the column order, pinned zones, row marker column, pin shadows
 
 ## Related
 
-- [I18n and RTL example](/docs/style-examples/right-left-example)
-- [Labels reference](/docs/components-props/labels)
-- [Messages cheatsheet](/docs/cheatsheets-messages/messages)
-- [Loading state](/docs/theme-style-language/loading-state)
+- [I18n and RTL example](/docs/style-examples/right-left-example): a grid in two languages and two directions
+- [Labels reference](/docs/components-props/labels): every field of every group
+- [Messages cheatsheet](/docs/cheatsheets-messages/messages): the warnings and texts the grid prints
+- [Loading state](/docs/theme-style-language/loading-state): the texts of the loading, empty, and error states
