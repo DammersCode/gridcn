@@ -148,6 +148,7 @@ import {
 
 type Order = { id: string; customer: string };
 type Spec = { sorts: SortSpec[]; filters: FilterNode[]; searchText: string };
+const NO_SPEC: Spec = { sorts: [], filters: [], searchText: "" };
 const columns = defineColumns<Order>()([
   { id: "customer", header: "Customer", accessorKey: "customer" },
 ]);
@@ -155,7 +156,7 @@ const columns = defineColumns<Order>()([
 export function OrdersGrid() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
-  const [spec, setSpec] = useState<Spec>({ sorts: [], filters: [], searchText: "" });
+  const [spec, setSpec] = useState<Spec>(NO_SPEC);
   const query = useQuery<{ rows: Order[]; total: number }>({
     queryKey: ["orders", page, pageSize, spec],
     queryFn: async ({ signal }) => {

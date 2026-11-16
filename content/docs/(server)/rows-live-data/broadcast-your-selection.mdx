@@ -41,7 +41,8 @@ export function SharedGrid({ rows, roomId, userId, color }: Props) {
     clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       const socket = socketRef.current;
-      if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
+      if (socket?.readyState !== WebSocket.OPEN) return;
+      socket.send(JSON.stringify(message));
     }, 100);
   }
 
@@ -115,7 +116,8 @@ socket.on("message", (data) => {
   const message = JSON.parse(String(data));
   if (message.type === "leave") peers.delete(message.id);
   else peers.set(message.id, message);
-  for (const client of server.clients) client.send(JSON.stringify([...peers.values()]));
+  const snapshot = JSON.stringify([...peers.values()]);
+  for (const client of server.clients) client.send(snapshot);
 });
 ```
 
