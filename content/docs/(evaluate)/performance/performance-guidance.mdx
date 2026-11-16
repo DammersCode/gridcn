@@ -25,8 +25,6 @@ A row skips rendering while its props keep the same identity. If the component t
 
 - `columns`
 - `data` in a controlled grid
-- `getRowClassName`
-- `getCellClassName`
 - Render props such as `renderMarker`, `renderMarkerHeader`, and `renderHeaderCell` (on `DataGridHeader`)
 - The `topRows` and `bottomRows` arrays of [pinned rows](/docs/rows-pages-menus/pinned-rows)
 
@@ -38,40 +36,13 @@ If an identity changes between renders, a development build logs a warning:
 |---|---|
 | `columns` | A new array holds the same columns as the old array. |
 | `data` | A new array has the same length and no new row. Controlled grids only. |
-| `getRowClassName` | The function identity differs from the last render. |
-| `getCellClassName` | The function identity differs from the last render. |
 | A plugin `Overlay` or `Mount` | The component identity differs. The overlay remounts and loses its state. |
 
 An inline `getRowId` function costs nothing. If the new function returns the same ids as the old one for the same `data` array, the grid keeps the old function. A function that returns other ids takes effect. Pass it with a new `data` array.
 
-The warning for a class function reads `getRowClassName identity changed since the last render`. The `columns` warning reads `columns array identity changed since the last render`. The `data` warning reads `data array identity changed with no row changes`.
+The `columns` warning reads `columns array identity changed since the last render`. The `data` warning reads `data array identity changed with no row changes`.
 
-The next sample defines the class function once, outside the component:
-
-```tsx
-import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
-
-type Task = { id: string; title: string; done: boolean };
-
-const columns = defineColumns<Task>()([
-  { id: "title", header: "Title", accessorKey: "title" },
-] as const);
-
-const getRowClassName = (task: Task) =>
-  task.done ? "opacity-60" : undefined;
-
-export function Tasks({ tasks }: { tasks: Task[] }) {
-  return (
-    <DataGrid
-      data={tasks}
-      columns={columns}
-      getRowClassName={getRowClassName}
-    />
-  );
-}
-```
-
-If the function reads component state, wrap it in `useCallback` with a stable dependency list.
+`getRowClassName` and `getCellClassName` can be inline functions. Rows and cells re-render only when the function returns different classes for the rendered rows.
 
 Custom cells render for each row that scrolls into view. Keep `renderCell` cheap.
 
