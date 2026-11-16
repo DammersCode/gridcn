@@ -14,7 +14,7 @@ A column's `validate` rejects a value before it enters `data`. It takes a functi
 `validate` takes one of two forms:
 
 - A function `(value, row) => string | null`. Return a message to reject the value, or `null` to accept it.
-- Any [Standard Schema](https://standardschema.dev) for the value, such as Zod, Valibot, ArkType, or Joi. The grid detects a schema by its `"~standard"` key, so the schema needs no adapter.
+- Any [Standard Schema](https://standardschema.dev) for the value, such as Zod, Valibot, or ArkType. The grid reads any schema with a `"~standard"` key.
 
 A schema message joins its issues with `"; "` and prefixes an issue path as `a.b: message`.
 
@@ -77,10 +77,7 @@ const columns = defineColumns<Contact>()([
 
 A schema works too, for example `validate: z.email()` with Zod 4. Your server checks the address again, because the grid only checks the format.
 
-<Callout type="warn" title="A rejected edit stays open">
-  The editor stays open on a rejected value and shows the message. The value never enters `data`.
-  A soft rule is the exception. A rejected checkbox toggle has no editor: the cell keeps its old value, and `onValidationError` reports it with the source `"edit"`.
-</Callout>
+The editor stays open on a rejected value and shows the message. The value never enters `data`. A rejected checkbox toggle has no editor: the cell keeps its old value, and `onValidationError` reports it with the source `"edit"`.
 
 The message shows as an error line next to the open editor. The line escapes the cell and widens to its text, up to 16rem. It flips above the cell at the bottom edge of the grid. At the side edges, it anchors to the end side of the cell. An editing cell does not clip its content, so a custom `Editor` wider than its cell spills over the neighbors.
 
@@ -160,14 +157,14 @@ Delete and Cut validate the empty value of the cell type. A column that rejects 
 
 | Prop | Type | Default |
 |---|---|---|
-| `validate` | `(value, row) => string \| null` or Standard Schema | - |
+| `validate` | `(value, row) => string \| null` or Standard Schema | none |
 | `validationMode` | `"block" \| "warn"` | `"block"` |
 
 {/* props: DataGridSyncProps */}
 
 | Prop | Type | Default |
 |---|---|---|
-| `onValidationError` | `(event) => void` | - |
+| `onValidationError` | `(event) => void` | none |
 
 ## Server mode
 

@@ -2,7 +2,7 @@
 title: Cancel async gates
 description: Abort the request of a slow gate with its signal, set a timeout for every gate, and show the pending state while a gate waits.
 icon: Timer
-type: feature
+type: task
 demos: none
 aliases: ["abort signal", "gate timeout", "cancel paste request"]
 ---
@@ -53,10 +53,31 @@ The grid drops an aborted gate result. A rejection after an abort adds no warnin
 
 ## Stop waiting for a slow gate [#gate-timeout]
 
-A gate waits for its promise. Set `gateTimeoutMs` to abort a gate whose promise has not settled in time. The signal aborts, the grid cancels the action, and the next action can start. Pass one number for every gate, or an object with a number for each gate name. Pass the value as the `gateTimeoutMs` prop of `DataGridProvider`:
+A gate waits for its promise. Set `gateTimeoutMs` to abort a gate whose promise has not settled in time. The signal aborts, the grid cancels the action, and the next action can start. Pass one number for every gate, or an object with a number for each gate name. Pass the value as the `gateTimeoutMs` prop of `DataGridProvider`. This grid aborts a paste gate after 10 seconds and an edit gate after 3 seconds, and logs each abort:
 
 ```tsx
-const gateTimeoutMs = { processPaste: 10_000, onBeforeEditStart: 3_000 };
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+} from "@/components/data-grid/data-grid";
+
+export function TimedGrid() {
+  return (
+    <DataGridProvider
+      defaultData={rows}
+      columns={columns}
+      gateTimeoutMs={{ processPaste: 10_000, onBeforeEditStart: 3_000 }}
+      onGateAborted={({ gate, reason }) => console.warn(gate, reason)}
+    >
+      <DataGridRoot className="h-80">
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
 ```
 
 `onGateAborted({ gate, reason })` fires once for every gate that the grid stopped waiting for. `reason` is one of these:
@@ -69,11 +90,11 @@ const gateTimeoutMs = { processPaste: 10_000, onBeforeEditStart: 3_000 };
 | `"cancelled"` | The user pressed <kbd>Escape</kbd>. |
 | `"reset"` | The grid reset or unmounted. |
 
-Both props are off by default.
+`gateTimeoutMs` is off by default, so a gate waits for its promise.
 
 ## Show the pending state [#show-the-pending-state]
 
-`useDataGridGatePending()` returns the set of gate names whose promise has not settled. The set can hold `"import"` while the import dialog parses or validates, and `"processReplace"` while that hook runs. No timeout applies to that gate. Call it inside the provider:
+`useDataGridGatePending()` returns the set of gate names whose promise has not settled. The set can hold `"import"` while the import dialog parses or validates, and `"processReplace"` while that hook runs. `gateTimeoutMs` does not cover `import`. Call the hook inside the provider:
 
 ```tsx
 import { useDataGridGatePending } from "@/components/data-grid/data-grid";

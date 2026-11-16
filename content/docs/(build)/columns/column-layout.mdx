@@ -1,0 +1,103 @@
+---
+title: Save a column layout
+icon: Save
+description: Store the widths, order, pins, and hidden columns of a user, and restore them on the next visit.
+type: task
+demos: none
+aliases: ["persist column layout", "save column widths", "remember column order"]
+---
+
+A user resizes, reorders, pins, and hides columns. Store that layout when it changes, and give it back to the grid on the next visit. `onColumnLayoutChange` reports the layout, and `columnLayout` or `defaultColumnLayout` restores it.
+
+A `ColumnLayout` holds four parts:
+
+- `widths` maps column ids to px, for resized columns only.
+- `order` lists the ids of all columns in column order, hidden ones included. Pins do not move a column in this list.
+- `pins` maps column ids to `"start"` or `"end"`.
+- `hidden` lists the ids of hidden columns.
+
+{/* props: DataGridSyncProps */}
+
+| Prop | Type | Default |
+| --- | --- | --- |
+| `defaultColumnLayout` | `Partial<ColumnLayout>` | none |
+| `columnLayout` | `Partial<ColumnLayout>` | none |
+| `onColumnLayoutChange` | `(next: ColumnLayout) => void` | none |
+
+## Steps
+
+1. Pass `onColumnLayoutChange`. It receives a `ColumnLayout` snapshot after every committed change. Store the snapshot.
+2. Load the stored snapshot on the next visit.
+3. Give it to the grid. If the first render already has the layout, for example from a cookie, pass it as `defaultColumnLayout`. The grid reads that prop once, at mount.
+4. If the layout loads after the first render, pass it as `columnLayout`.
+
+`localStorage` does not exist on the server, so a layout from it is unknown at the first render in Next.js. Load it in an effect. The grid shows the default layout first, then the saved one:
+
+```tsx
+"use client";
+
+import { useEffect, useState } from "react";
+import {
+  DataGrid,
+  defineColumns,
+  type ColumnLayout,
+} from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string; email: string };
+
+const rows: Row[] = [{ id: "1", name: "Ada", email: "ada@example.com" }];
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+  { id: "email", header: "Email", accessorKey: "email" },
+]);
+
+const LAYOUT_KEY = "my-grid-layout";
+
+export function SavedLayoutGrid() {
+  const [layout, setLayout] = useState<Partial<ColumnLayout>>();
+
+  useEffect(() => {
+    const saved = localStorage.getItem(LAYOUT_KEY);
+    if (saved) setLayout(JSON.parse(saved) as ColumnLayout);
+  }, []);
+
+  return (
+    <DataGrid
+      defaultData={rows}
+      columns={columns}
+      className="h-80"
+      columnLayout={layout}
+      onColumnLayoutChange={(next) => {
+        setLayout(next);
+        localStorage.setItem(LAYOUT_KEY, JSON.stringify(next));
+      }}
+    />
+  );
+}
+```
+
+## Result
+
+The grid restores the saved widths, order, pins, and hidden columns after a reload. The layout stays in the browser in every data mode. The grid sends no part of it to `fetchRows` or `onSave`.
+
+`onColumnLayoutChange` fires once for each committed change. That covers a resize release, an autosize, a width reset, a reorder drop, a pin or unpin, and a hide or show. It does not fire on each frame of a drag, and it does not fire for a change that alters nothing. [Column and viewport events](/docs/events-state/column-viewport-events) lists the payloads.
+
+Each part of `columnLayout` replaces that part. An omitted part stays under the control of the grid. So `columnLayout={{ widths }}` controls widths, and a user reorder survives.
+
+The grid cleans a layout before it applies it:
+
+- It drops ids that match no column.
+- It adds columns that `order` does not list after the listed ones, in `columns` order. A `hidden: true` column that `order` does not list stays hidden.
+- It clamps each width to `minWidth` and `maxWidth`.
+- It ignores the pins of a `pinnable: false` column. That column keeps the `pin` of its definition. For every other column, when `pins` is present, a column that it does not list loses its own `pin`.
+- It ignores a part with the wrong shape, so a damaged saved layout does not break the grid.
+
+To keep order and hidden columns in a shareable link, use the [URL state add-on](/docs/sort-filter-search/url-state#column-layout).
+
+## Related
+
+- [Column visibility](/docs/columns/column-visibility)
+- [Column sizing](/docs/columns/column-sizing)
+- [Column order and pinning](/docs/columns/column-order-pinning)
+- [Column layout example](/docs/column-examples/column-layout-example)
+- [Remember filters and layout](/docs/recipes-custom-code/remember-filters-layout): keep filters and layout across visits

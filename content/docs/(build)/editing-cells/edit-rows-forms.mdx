@@ -6,7 +6,7 @@ type: task
 aliases: ["form", "edit form", "row form", "multi-field edit", "edit row in dialog"]
 ---
 
-Inline editors change one cell. A form changes several fields of one row. Call `actions.updateRows` with the form values to write them as one grid change. The keys of `changes` are column ids. Each column's `validate` runs, `validateRow` runs on the row, `onDataChange` fires once, and with `source: "edit"` undo records one entry.
+Inline editors change one cell. A form changes several fields of one row. Call `actions.editRows` with the form values to write them as one grid change. The keys of `changes` are column ids. Each column's `validate` runs, `validateRow` runs on the row, `onDataChange` and `onSave` fire once, and undo records one entry.
 
 Before you start:
 
@@ -81,7 +81,7 @@ Before you start:
    }
    ```
 
-3. Call `updateRows` from the submit handler. Pass `source: "edit"`. This file is `orders.tsx`:
+3. Call `editRows` from the submit handler. This file is `orders.tsx`:
 
    ```tsx
    "use client";
@@ -110,11 +110,10 @@ Before you start:
            <OrderForm
              key={active.id}
              order={active}
-             onSave={(changes) =>
-               gridRef.current?.actions.updateRows(
-                 [{ rowId: active.id, changes }],
-                 { source: "edit", reorder: "immediate" },
-               )
+             onSave={(changes: Partial<Order>) =>
+               gridRef.current?.actions.editRows([
+                 { rowId: active.id, changes },
+               ])
              }
            />
          )}
@@ -125,14 +124,14 @@ Before you start:
 
 ## Result
 
-Submit writes every accepted field in one change. The default `source` is `"stream"`, which the history add-on does not record and `onSave` skips. With `source: "edit"`, undo reverts the whole form save, and [`onSave`](/docs/save-server/save-edits) sees it like an inline edit. `reorder: "immediate"` moves the row to its sorted position at once.
+Submit writes every accepted field in one change. `editRows` writes as a user edit: undo reverts the whole form save, and [`onSave`](/docs/save-server/save-edits) sees it like an inline edit. The row moves to its sorted position at once.
 
 A field that fails its column `validate` is not written. The grid applies the other fields and keeps the old value in the failed one. The returned verdict lists each skipped field with a reason, such as `"invalid"` or `"readonly"`, and `onValidationError` reports each refused cell. If a column has an async schema, the call returns `pending: true` and a `settled` promise.
 
 ## Related
 
 - [Validation](/docs/editing-cells/validation): `validate` and `validateRow`.
-- [Undo and redo](/docs/clipboard-undo/undo-redo): one entry per `updateRows` call with `source: "edit"`.
+- [Undo and redo](/docs/clipboard-undo/undo-redo): one entry per `editRows` call.
 - [State and view index](/docs/concepts/state-view-index): why `updateRows` addresses rows by row id.
 - [Stream updates](/docs/rows-live-data/stream-updates): the full `updateRows` verdict and options.
 - [Open a detail panel](/docs/recipes-custom-code/open-detail-panel): put the form in a side sheet.

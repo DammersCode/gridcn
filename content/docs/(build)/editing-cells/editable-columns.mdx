@@ -61,7 +61,7 @@ export function Orders({ orders }: { orders: Order[] }) {
 }
 ```
 
-A locked cell rejects typed edits, paste, fill, and clear. Cells in pinned rows never edit. A column with `readOnly: false` removes only their `data-readonly` attribute, unless the column has no `accessorKey` and no `setValue`. A column that has `accessorFn` but no `accessorKey` or `setValue` locks itself. Add `setValue` to make a computed value writable. To derive the lock from a user role, see [Lock cells by role](/docs/editing-cells/lock-cells-role).
+A locked cell rejects typed edits, paste, fill, and clear. Cells in pinned rows never edit, whatever `readOnly` says. See [Pinned rows](/docs/rows-pages-menus/pinned-rows). A column that has `accessorFn` but no `accessorKey` or `setValue` locks itself. Add `setValue` to make a computed value writable. To derive the lock from a user role, see [Lock cells by role](/docs/editing-cells/lock-cells-role).
 
 <Callout title="Grid-wide read-only wins">
   `readOnly` on `<DataGrid>` (`<DataGridProvider readOnly>` in a composed grid) disables editing
@@ -70,9 +70,11 @@ A locked cell rejects typed edits, paste, fill, and clear. Cells in pinned rows 
 
 ## Veto an edit [#veto-edit]
 
-`onBeforeEditStart` runs before an editor opens on an editable cell, and before a checkbox toggle. Return `false` to refuse the edit or the toggle. A returned promise holds the editor until it settles, and a promise that rejects cancels the edit.
+`onBeforeEditStart` runs before an editor opens on an editable cell, and before a checkbox toggle. Return `false` to refuse the edit or the toggle. A returned promise holds the editor until it settles, and a promise that rejects cancels the edit. While the promise is pending, the grid ignores a second edit start. `gateTimeoutMs` ends a wait that takes too long: see [Cancel async gates](/docs/editing-cells/cancel-async-gates).
 
-`ctx.signal` aborts when the cursor moves to another cell, the edit is cancelled with Escape, the grid turns `readOnly`, or the grid unmounts.
+A checkbox toggle opens no editor, so `onEditEnd` does not fire for it. Use `readOnly` to lock a checkbox.
+
+`ctx.signal` aborts when the cursor moves to another cell, the edit is cancelled with Escape, the grid turns `readOnly`, or the grid unmounts. This sample refuses the edit of a fixed set of rows:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
@@ -95,7 +97,37 @@ export function Tasks({ tasks }: { tasks: Task[] }) {
 }
 ```
 
+This sample asks your server and passes `ctx.signal` to the request. A request that the signal aborts rejects, and the edit does not start:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Task = { id: string; title: string };
+
+const columns = defineColumns<Task>()([
+  { id: "title", header: "Title", accessorKey: "title" },
+]);
+
+export function LockedTasks({ tasks }: { tasks: Task[] }) {
+  return (
+    <DataGrid
+      defaultData={tasks}
+      columns={columns}
+      onBeforeEditStart={async ({ rowId }, { signal }) => {
+        const response = await fetch(`/api/tasks/${rowId}/lock`, { signal });
+        const { locked } = (await response.json()) as { locked: boolean };
+        return !locked;
+      }}
+    />
+  );
+}
+```
+
 When an edit ends, `onEditEnd` reports `commit` or `cancel`. For each refused commit, it reports `rejected`, and the editor stays open. See [Edit and validation events](/docs/events-state/edit-validation-events).
+
+## Server mode [#server-mode]
+
+An edit reaches `onDataChange` and `onSave` with `source: "edit"`. `readOnly` and `onBeforeEditStart` run in the browser only, so enforce the same rule on your server. [Save edits](/docs/save-server/save-edits) shows how to send the change.
 
 ## Props [#props]
 
@@ -104,19 +136,19 @@ When an edit ends, `onEditEnd` reports `commit` or `cancel`. For each refused co
 | Prop | Type | Default |
 |---|---|---|
 | `type` | `string` | `"text"` |
-| `options` | `unknown` | - |
-| `readOnly` | `boolean \| ((row) => boolean)` | - |
-| `accessorFn` | `(row) => value` | - |
-| `setValue` | `(row, value) => row` | - |
+| `options` | `unknown` | none |
+| `readOnly` | `boolean \| ((row) => boolean)` | none |
+| `accessorFn` | `(row) => value` | none |
+| `setValue` | `(row, value) => row` | none |
 
 {/* props: DataGridSyncProps */}
 
 | Prop | Type | Default |
 |---|---|---|
 | `readOnly` | `boolean` | `false` |
-| `onBeforeEditStart` | `(cell, ctx: { signal: AbortSignal }) => boolean \| void \| Promise<boolean \| void>` | - |
-| `onEditEnd` | `(event) => void` | - |
-| `keymap` | `Keymap` | - |
+| `onBeforeEditStart` | `(cell, ctx: { signal: AbortSignal }) => boolean \| void \| Promise<boolean \| void>` | none |
+| `onEditEnd` | `(event) => void` | none |
+| `keymap` | `Keymap` | none |
 
 [Column definition](/docs/components-props/column-def) and [DataGrid props](/docs/components-props/data-grid-props) list every prop.
 

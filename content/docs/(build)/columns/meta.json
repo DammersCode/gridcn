@@ -5,6 +5,7 @@
     "column-sizing",
     "column-order-pinning",
     "column-headers-groups",
-    "column-visibility"
+    "column-visibility",
+    "column-layout"
   ]
 }

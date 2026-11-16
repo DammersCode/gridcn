@@ -1,21 +1,21 @@
 ---
 title: Column visibility
 icon: EyeOff
-description: Hide and show columns, read column state in your own UI, and save or restore widths, order, pins, and hidden columns.
+description: Hide and show columns from code, a menu, or a column definition, and read column state in your own UI.
 type: feature
 demos: none
 aliases: ["hide columns", "show columns"]
 ---
 
-Users hide the columns they do not need. `hidden: true` starts a column hidden. `setColumnHidden` toggles a column from code. `DataGridColumnsMenu` gives users a checkbox for each column. The same page covers saving the whole column layout, so it survives a reload.
+Users hide the columns they do not need. `hidden: true` starts a column hidden. `setColumnHidden` toggles a column from code. `DataGridColumnsMenu` gives users a checkbox for each column.
 
 ## Hide and show columns [#visibility]
 
 `hidden: true` in a `ColumnDef` sets the first state. `setColumnHidden(id, hidden)` and the columns menu override it. The flag applies once for each column id, when the id first appears. A new `columns` array keeps the visibility of the columns it already has and seeds only new ids.
 
-`DataGridColumnsMenu` ships with the [toolbar add-on](/docs/sort-filter-search/toolbar). It is a dropdown with a checked row for each column. The menu shows and hides. It does not pin. The header menu of the [context menu add-on](/docs/rows-pages-menus/context-menu#header-surface) has a "Hide column" item.
+`DataGridColumnsMenu` ships with the [toolbar add-on](/docs/sort-filter-search/toolbar). It is a dropdown with a checked row for each column. The header menu of the [context menu add-on](/docs/rows-pages-menus/context-menu#header-surface) has a "Hide column" item.
 
-`hideable: false` protects a key column. The columns menu shows its row checked and turned off while the column is visible. If code hid the column, the row is unchecked and a click shows the column again. The header menu has no "Hide column" item. `setColumnHidden`, URL state, saved views, and `hidden` still apply to the column.
+`hideable: false` protects a key column. The columns menu shows its row checked and turned off while the column is visible. If code hid the column, the row is unchecked and a click shows the column again. The header menu has no "Hide column" item. `setColumnHidden`, URL state, saved views, and `hidden` still apply to the column. This sample sets `hideable: false` on the name column:
 
 ```tsx
 import {
@@ -34,7 +34,7 @@ type Row = { id: string; name: string; email: string };
 
 const rows: Row[] = [{ id: "1", name: "Ada", email: "ada@example.com" }];
 const columns = defineColumns<Row>()([
-  { id: "name", header: "Name", accessorKey: "name" },
+  { id: "name", header: "Name", accessorKey: "name", hideable: false },
   { id: "email", header: "Email", accessorKey: "email", hidden: true },
 ]);
 
@@ -53,7 +53,7 @@ export function ColumnsGrid() {
 }
 ```
 
-Result: the grid starts with the Name column, and the menu shows Email unchecked.
+Result: the grid starts with the Name column. The menu shows Name checked and turned off, and Email unchecked.
 
 ## Read column state [#reading-column-state]
 
@@ -101,90 +101,18 @@ function RestoreBar() {
 }
 ```
 
-## Persist a user's layout [#persisting-a-users-layout]
+## Save the layout [#persisting-a-users-layout]
 
-`onColumnLayoutChange` receives a `ColumnLayout` snapshot after every committed change. Store the snapshot, and feed it back on the next visit.
+[Save a column layout](/docs/columns/column-layout) stores hidden columns with widths, order, and pins.
 
-A `ColumnLayout` holds four parts:
+## Server mode
 
-- `widths` maps column ids to px, for resized columns only.
-- `order` lists the ids of all columns in column order, hidden ones included. Pins do not move a column in this list.
-- `pins` maps column ids to `"start"` or `"end"`.
-- `hidden` lists the ids of hidden columns.
-
-{/* props: DataGridSyncProps */}
-
-| Prop | Type | Default |
-| --- | --- | --- |
-| `defaultColumnLayout` | `Partial<ColumnLayout>` | none |
-| `columnLayout` | `Partial<ColumnLayout>` | none |
-| `onColumnLayoutChange` | `(next: ColumnLayout) => void` | none |
-
-`defaultColumnLayout` seeds the layout once, at mount. The grid ignores later changes. If the first render already has the saved layout, for example from a cookie, seed it here.
-
-`localStorage` does not exist on the server, so a layout from it is unknown at the first render in Next.js. Use `columnLayout` and load the value in an effect. The grid shows the default layout first, then the saved one:
-
-```tsx
-"use client";
-
-import { useEffect, useState } from "react";
-import {
-  DataGrid,
-  defineColumns,
-  type ColumnLayout,
-} from "@/components/data-grid/data-grid";
-
-type Row = { id: string; name: string; email: string };
-
-const rows: Row[] = [{ id: "1", name: "Ada", email: "ada@example.com" }];
-const columns = defineColumns<Row>()([
-  { id: "name", header: "Name", accessorKey: "name" },
-  { id: "email", header: "Email", accessorKey: "email" },
-]);
-
-const LAYOUT_KEY = "my-grid-layout";
-
-export function SavedLayoutGrid() {
-  const [layout, setLayout] = useState<Partial<ColumnLayout>>();
-
-  useEffect(() => {
-    const saved = localStorage.getItem(LAYOUT_KEY);
-    if (saved) setLayout(JSON.parse(saved) as ColumnLayout);
-  }, []);
-
-  return (
-    <DataGrid
-      defaultData={rows}
-      columns={columns}
-      className="h-80"
-      columnLayout={layout}
-      onColumnLayoutChange={(next) => {
-        setLayout(next);
-        localStorage.setItem(LAYOUT_KEY, JSON.stringify(next));
-      }}
-    />
-  );
-}
-```
-
-`onColumnLayoutChange` fires once for each committed change. That covers a resize release, an autosize, a width reset, a reorder drop, a pin or unpin, and a hide or show. It does not fire on each frame of a drag, and it does not fire for a change that alters nothing. [Column and viewport events](/docs/events-state/column-viewport-events) lists the payloads.
-
-Each part of `columnLayout` replaces that part. An omitted part stays under the control of the grid. So `columnLayout={{ widths }}` controls widths, and a user reorder survives.
-
-The grid cleans a layout before it applies it:
-
-- It drops ids that match no column.
-- It adds columns that `order` does not list after the listed ones, in `columns` order. A `hidden: true` column that `order` does not list stays hidden.
-- It clamps each width to `minWidth` and `maxWidth`.
-- It ignores the pins of a `pinnable: false` column. That column keeps the `pin` of its definition. For every other column, when `pins` is present, a column that it does not list loses its own `pin`.
-- It ignores a part with the wrong shape, so a damaged saved layout does not break the grid.
-
-To keep order and hidden columns in a shareable link, use the [URL state add-on](/docs/sort-filter-search/url-state#column-layout).
+The layout is browser state in every data mode. `fetchRows` gets no list of hidden columns. A hidden column still loads its data. To keep a field from the browser, leave it out of the server response: see [Lock cells by role](/docs/editing-cells/lock-cells-role).
 
 ## Related
 
 - [Column order and pinning](/docs/columns/column-order-pinning)
-- [Column layout example](/docs/column-examples/column-layout-example)
+- [Save a column layout](/docs/columns/column-layout)
 - [Remember filters and layout](/docs/recipes-custom-code/remember-filters-layout): keep hidden columns across visits
 - [Lock cells by role](/docs/editing-cells/lock-cells-role): remove columns that a role must not see
 - [ColumnDef reference](/docs/components-props/column-def)

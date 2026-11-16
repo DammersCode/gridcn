@@ -17,22 +17,27 @@ Register the type and give the column its options:
 ```tsx
 import {
   lookupCellType,
+  type LookupOption,
   type LookupOptions,
   type LookupValue,
 } from "@/components/data-grid-lookup/data-grid-lookup";
-import { DataGrid, type ColumnDef } from "@/components/data-grid/data-grid";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
 
-const customerOptions: LookupOptions = {
+type Order = { id: string; customer: LookupValue };
+type Customer = { id: string; name: string };
+
+const customerOptions: LookupOptions<Order> = {
   fetchOptions: async ({ query, signal }) => {
     const url = `/api/customers?q=${encodeURIComponent(query)}`;
     const res = await fetch(url, { signal });
-    return (await res.json()).map((c) => ({ value: c.id, label: c.name }));
+    const customers = (await res.json()) as Customer[];
+    return customers.map(
+      (c): LookupOption => ({ value: c.id, label: c.name }),
+    );
   },
 };
 
-type Order = { id: string; customer: LookupValue };
-
-const columns: ColumnDef<Order, unknown>[] = [
+const columns = defineColumns<Order>()([
   {
     id: "customer",
     header: "Customer",
@@ -40,7 +45,7 @@ const columns: ColumnDef<Order, unknown>[] = [
     type: "lookup",
     options: customerOptions,
   },
-];
+]);
 
 export function Orders({ orders }: { orders: Order[] }) {
   return (
@@ -59,7 +64,7 @@ Keep `fetchOptions` and the `options` object outside the render, or memoize them
 
 A cell holds `{ value, label }` or `null`. `value` is the key your server uses. `label` is the text the grid shows, copies, sorts, searches, and filters.
 
-A row can also hold a bare key, for example `"c9"`. The cell shows a bare key in muted text with a `data-unresolved` attribute until the user picks an option. An option with an empty `label` shows the same way.
+A row can also hold a bare key, for example `"c9"`. The cell shows a bare key in muted text with a `data-unresolved` attribute until the user picks an option. A stored value with an empty `label`, for example from `unresolvedPaste: "keep"`, shows the same way. A fetched option with an empty `label` shows its key.
 
 ## Editing
 
@@ -81,14 +86,14 @@ A new request aborts the one before it through `signal`. The editor drops a late
 
 {/* props: LookupOptions */}
 
-| Option | Default | Effect |
+| Option | Effect | Default |
 | --- | --- | --- |
-| `fetchOptions` | required | Resolves `{ value, label }[]` for `{ query, signal, row, rowId, columnId }`. |
-| `debounceMs` | the grid's `inputDebounceMs` | Wait after the last keystroke before a request starts. |
-| `minQueryLength` | `0` | Fewest typed characters that start a request. |
-| `maxResults` | `50` | Most options shown. The limit is `200`. |
-| `unresolvedPaste` | `"clear"` | A pasted text that matches no known option empties the cell. With `"keep"`, the grid stores `{ value: text, label: "" }`, with the pasted text trimmed, and shows it as unresolved. |
-| `labels` | English | Text for `searching`, `noResults`, `error`, `retry`, and `typeMore`. |
+| `fetchOptions` | Resolves `{ value, label }[]` for `{ query, signal, row, rowId, columnId }`. | required |
+| `debounceMs` | Wait after the last keystroke before a request starts. | the `inputDebounceMs` of the grid |
+| `minQueryLength` | Fewest typed characters that start a request. | `0` |
+| `maxResults` | Most options shown. The limit is `200`. | `50` |
+| `unresolvedPaste` | A pasted text that matches no known option empties the cell. With `"keep"`, the grid stores `{ value: text, label: "" }` with the pasted text trimmed, and shows it as unresolved. | `"clear"` |
+| `labels` | Text for `searching`, `noResults`, `error`, `retry`, and `typeMore`. | English |
 
 [Lookup options](/docs/add-options/editing-cells/lookup-options) lists every option, the request fields, and the label defaults.
 
@@ -108,17 +113,28 @@ const cityOptions: LookupOptions<Order> = {
 ## Clipboard, fill, import, and export
 
 - Copy and export write the label.
-- Paste and import turn a label or a key back into the option when the editor listed it or the grid wrote it as text. Copy, export, print, the source cells of a fill, autosize, and the filter value list write text. Any other text follows `unresolvedPaste`.
-- A plain fill inside the lookup column copies the stored `{ value, label }`, also a bare key and a label that two options share. A fill that continues a series of labels resolves each label like a paste. If one label resolves to no option, a vertical fill copies the stored values instead. A horizontal fill repeats the source text of that row. With `unresolvedPaste: "keep"` every label is accepted, so the series stores each new label as a bare key, such as `Store 3`. A fill into another lookup column resolves each label like a paste into that column.
-- Clear and <kbd>Delete</kbd> store `null`.
+- Paste and import turn a label or a key back into the option that the editor listed or the grid wrote as text. The grid remembers up to 5,000 labels for each `fetchOptions` function, and the oldest leave first. Any other text follows `unresolvedPaste`.
+- Copy, export, print, the source cells of a fill, autosize, and the filter value list write text, and the grid remembers it.
+- A fill inside the lookup column follows this table:
+
+| Fill | Result |
+| --- | --- |
+| Plain fill | Copies the stored `{ value, label }`, also a bare key and a label that two options share. |
+| Series of labels that all resolve | Resolves each label like a paste. |
+| Vertical series with a label that resolves to no option | Copies the stored values. |
+| Horizontal series with a label that resolves to no option | Repeats the source text of that row. |
+
+With `unresolvedPaste: "keep"`, every label resolves. A series then stores each new label as `{ value: "Store 3", label: "" }`. A fill into another lookup column resolves each label like a paste into that column.
+
+Clear and <kbd>Delete</kbd> store `null`.
 
 ## Sort, search, and filter
 
-Sort, quick search, and the filter menu use the label. A filter value is the label text. A server that filters a lookup column compares labels.
+Sort, quick search, and the filter menu use the label. A filter value is the label text.
 
-## Client and server modes
+## Server mode
 
-The cell calls your `fetchOptions` in every data mode, because the options live on your server and not in the grid rows. Local data, pagination, scroll mode, and a server-sorted grid all use the same column definition.
+The cell calls your `fetchOptions` in every data mode, because the options live on your server and not in the grid rows. It receives `{ query, signal, row, rowId, columnId }` and resolves `{ value, label }[]`. A filter on a lookup column sends the label text as its value, so a server that filters a lookup column compares labels. Local data, pagination, scroll mode, and a server-sorted grid all use the same column definition.
 
 ## Types [#types]
 
@@ -128,35 +144,7 @@ The cell calls your `fetchOptions` in every data mode, because the options live 
 - `LookupOptions<TData>` takes the same row type.
 - `LookupLabels` holds the strings of the editor: `searching`, `noResults`, `error`, `retry`, and `typeMore`.
 
-`defineColumns` checks a `lookup` column. The add-on registers the type in `GridCellTypes`, so you add no declaration. `defineColumns` checks `accessorKey` against `LookupValue` and `options` against `LookupOptions`:
-
-```ts
-import { defineColumns } from "@/components/data-grid/data-grid";
-import type {
-  LookupOptions,
-  LookupValue,
-} from "@/components/data-grid-lookup/data-grid-lookup";
-
-type Order = { id: string; customer: LookupValue };
-
-const customerOptions: LookupOptions<Order> = {
-  fetchOptions: async ({ query, signal }) => {
-    const url = `/api/customers?q=${encodeURIComponent(query)}`;
-    const response = await fetch(url, { signal });
-    return response.json();
-  },
-};
-
-export const columns = defineColumns<Order>()([
-  {
-    id: "customer",
-    header: "Customer",
-    accessorKey: "customer",
-    type: "lookup",
-    options: customerOptions,
-  },
-]);
-```
+Type the column with `defineColumns`. `accessorKey` takes `LookupValue`, and `options` takes `LookupOptions<Row>`.
 
 ## Related
 
