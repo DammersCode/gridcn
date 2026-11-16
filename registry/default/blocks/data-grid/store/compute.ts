@@ -350,14 +350,12 @@ type WarnOnce = ReturnType<typeof createWarnOnce>;
 
 const GRID_LOCALE = Symbol("gridLocale");
 type LocaleOptions = { locale?: string; format?: unknown; displayFormat?: unknown; [GRID_LOCALE]?: true };
-const LOCALE_TYPES = new Set(["number", "date"]);
-const hasLocaleFormat = (type: string, options: LocaleOptions | undefined): boolean =>
-  (type === "number" ? options?.format : options?.displayFormat) !== undefined;
+const LOCALE_FORMAT_KEYS = new Map<string, "format" | "displayFormat">([["number", "format"], ["date", "displayFormat"]]);
 const columnsByLocale = new WeakMap<AnyColumnDef, { locale: string; resolved: AnyColumnDef }>();
 
 /**
  * `columns` with the grid `locale` merged into the `options` of `number` columns with `format` and `date` columns
- * with `displayFormat` that set no `locale` themselves. The default locale changes nothing. A column resolved earlier is resolved again from its own `options`.
+ * with `displayFormat` that set no `locale` themselves; without that option the locale has no effect. The default locale changes nothing. A column resolved earlier is resolved again from its own `options`.
  */
 export function withGridLocale(columns: readonly AnyColumnDef[], locale: string, warnOnce?: WarnOnce): readonly AnyColumnDef[] {
   let resolved: AnyColumnDef[] | null = null;
@@ -375,10 +373,8 @@ function resolveColumnLocale(source: AnyColumnDef, locale: string, warnOnce?: Wa
   const column = withLogicalFilter(withLogicalPin(source, warnOnce));
   const options = column.options as LocaleOptions | undefined;
   const injected = options?.[GRID_LOCALE] === true;
-  if (!column.type || !LOCALE_TYPES.has(column.type) || (options?.locale !== undefined && !injected)) return column;
-  if (injected ? options.locale === locale : locale === DEFAULT_LOCALE) return column;
-  // without its format option the locale has no effect and only raises the locale-without-format warning
-  if (!injected && !hasLocaleFormat(column.type, options)) return column;
+  if (!column.type || !LOCALE_FORMAT_KEYS.has(column.type) || (options?.locale !== undefined && !injected)) return column;
+  if (injected ? options.locale === locale : locale === DEFAULT_LOCALE || options?.[LOCALE_FORMAT_KEYS.get(column.type)!] === undefined) return column;
   const cached = columnsByLocale.get(column);
   if (cached?.locale === locale) return cached.resolved;
   const own: LocaleOptions = { ...options };

@@ -535,8 +535,7 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
    * `"~standard" in validate`. A schema's `validate` may resolve async: the single-cell editor
    * commit waits for it with the editor open, and a bulk write (paste, fill, `updateCells`) holds
    * the batch until every cell settles (at most 32 validations run at once).
-   * On success the COMMITTED value is `result.value` (schemas may transform).
-   * A schema's output type is its input type, the column value type, so a transform to another type does not type-check.
+   * On success the COMMITTED value is `result.value`: a schema may transform, but its output type is its input type, so a transform to another type does not type-check.
    * `TValidate` (not `TValue` directly): a union of a function type and a non-callable schema
    * object, as a plain property, is checked contravariantly as a WHOLE — unlike a pure
    * method-shorthand function, TS can't special-case just the function branch bivariant anymore.
