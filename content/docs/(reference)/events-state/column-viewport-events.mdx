@@ -44,7 +44,14 @@ The callback runs after the grid writes the layout. If it throws, the layout sta
 
 ### Save and restore [#save-and-restore]
 
-`defaultColumnLayout` seeds the widths, order, pins, and hidden columns once at mount. It layers over the column definitions, so a saved width beats the `width` of a column. The grid ignores later changes to the value. It drops unknown column ids and clamps widths. It ignores pins on columns with `pinnable: false`. It appends columns that the saved `order` lacks. It moves the columns of a group next to each other again:
+`defaultColumnLayout` seeds the widths, order, pins, and hidden columns once at mount. It layers over the column definitions, so a saved width beats the `width` of a column. The grid ignores later changes to the value. It cleans the saved layout:
+
+- It drops unknown column ids and clamps widths.
+- It ignores pins on columns with `pinnable: false`.
+- It appends columns that the saved `order` lacks.
+- It moves the columns of a group next to each other again.
+
+The sample reads the saved layout and writes each change back:
 
 ```tsx
 import {
@@ -59,14 +66,21 @@ const columns = defineColumns<Row>()([
   { id: "name", header: "Name", accessorKey: "name" },
 ]);
 
-type Props = { rows: Row[]; saved?: Partial<ColumnLayout> };
+function readSavedLayout(): Partial<ColumnLayout> | undefined {
+  try {
+    const text = localStorage.getItem("layout");
+    return text ? (JSON.parse(text) as Partial<ColumnLayout>) : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
-function Grid({ rows, saved }: Props) {
+function Grid({ rows }: { rows: Row[] }) {
   return (
     <DataGrid
       data={rows}
       columns={columns}
-      defaultColumnLayout={saved}
+      defaultColumnLayout={readSavedLayout()}
       onColumnLayoutChange={(layout) => {
         localStorage.setItem("layout", JSON.stringify(layout));
       }}
@@ -91,7 +105,7 @@ The callback receives `{ columnId, width }`. It fires on every live width write 
 
 The callback receives `{ start, end }`. It is the range of view rows that the grid has rendered. `start` is inclusive and `end` is exclusive. It fires once after the first measured render. After that, a move of the range fires it. A scroll tick inside the overscan buffer does not fire it.
 
-The range maps to rows of `data` only while no client-side sort or filter is active. A grid with `sortMode="server"` and `filterMode="server"` keeps that mapping. `useDataGridServerRows` in scroll mode uses this callback to load the rows that scroll into view.
+The range maps to rows of `data` only while no client-side sort or filter is active and the grid has no `pageSize`. A grid with `sortMode="server"` and `filterMode="server"` keeps that mapping. `useDataGridServerRows` in scroll mode uses this callback to load the rows that scroll into view.
 
 ## Related
 

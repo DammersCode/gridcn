@@ -61,7 +61,7 @@ With `sortMode="server"`, the grid tracks the spec and never reorders `data`. Wh
 
 ### Timing and errors [#onsortchange-timing]
 
-The callback runs synchronously, after the grid applies the sort. Inside the callback, the store holds the new sort. With a controlled `sortState`, the grid writes nothing, and the callback receives the next sort. These rules apply:
+The callback runs synchronously. Without a `sortState` prop, the grid applies the sort first, and the store holds the new sort inside the callback. With a controlled `sortState`, the grid writes nothing, the store keeps the old sort inside the callback, and the callback receives the next sort. These rules apply:
 
 - The sort list, the context menu sort items, URL state, and saved views call `setSorts`, so the callback fires for them too.
 - `setSorts` with the current spec does nothing. The callback does not fire. A stale view is the exception: the call rebuilds it and fires the callback.

@@ -38,7 +38,7 @@ Every callback on these pages except `processFill` and `processReplace` is a pro
 
 The grid has no copy event and no scroll-position callback. A paste reports through `onDataChange` with `source: "paste"`. `onRenderedRowsChange` reports the rendered rows. A new function identity for `onCellClick`, `onCellDoubleClick`, or `onCellContextMenu` re-renders no cell.
 
-The complete list of props is the `DataGridSyncProps` type. The [DataGridProvider](/docs/components-props/data-grid-provider) page lists every prop.
+The complete list of props is the `DataGridSyncProps` type. The [DataGrid props](/docs/components-props/data-grid-props#all-props) page lists every prop.
 
 ## Three shapes [#the-three-shapes-an-event-follows]
 
@@ -59,9 +59,9 @@ Omit the value prop and the grid owns the state. The callback still fires.
 
 Three update rules apply:
 
-- You answer first: `sortState`, `filterState`, and `searchText`. With the value prop, the grid writes nothing, and the callback receives the next value. When you pass the new value, the view changes. Without the value prop, the grid writes the change, then fires the callback.
+- Controlled, you write first: `sortState`, `filterState`, and `searchText`. With the value prop, the grid writes nothing, and the callback receives the next value. When you pass the new value, the view changes. Without the value prop, the grid writes the change, then fires the callback.
 - `data`: the grid applies the change at once and reports it. The next time the grid reads your `data`, it replaces its rows with that array, so pass `next` back.
-- The grid answers first: `selection` and `columnLayout`. The grid applies the gesture and fires the callback at once. A value you pass back that equals the fired value changes nothing. Any other value applies without firing the callback.
+- Controlled, the grid writes first: `selection` and `columnLayout`. The grid applies the gesture and fires the callback at once. A value you pass back that equals the fired value changes nothing. Any other value applies without firing the callback.
 
 For `columnLayout`, you control each part (`widths`, `order`, `pins`, `hidden`) on its own. An omitted part stays with the grid.
 
@@ -75,13 +75,16 @@ A gate runs before the grid acts and can stop the action:
 
 - `onBeforeEditStart` returns `false` to stop an edit.
 - `onBeforeDeleteRows` returns `false` to stop a row delete.
-- `processFill` returns `false` to stop a fill. It can also return a rewritten text grid.
+- `processFill` returns `false` to stop a fill. It can also return a rewritten text grid. It is synchronous.
 - `processPaste` returns `false` to stop a paste.
 - `processReplace` returns `false` to stop a find and replace. It can also return a rewritten plan.
+- `createRow` returns the row for an insert. A rejected promise cancels the insert.
+- `duplicateRow` returns the row for a duplicate. A rejected promise cancels the duplicate.
+- `processCellFromClipboard` returns the value of a pasted cell. A rejected promise cancels the paste.
 
 `onSave` is a save acknowledgement. It is neither a reporting callback nor a gate: see [onSave](/docs/events-state/data-change-events#onsave).
 
-`onBeforeEditStart`, `onBeforeDeleteRows`, `processPaste`, `processCellFromClipboard`, `createRow`, and `duplicateRow` also accept a promise. A pending promise blocks a second request of the same kind. A rejection cancels the action. `validateRow` also accepts a promise. When it rejects, the row gets no verdict.
+`onBeforeEditStart`, `onBeforeDeleteRows`, `processPaste`, `processCellFromClipboard`, `createRow`, and `duplicateRow` accept a promise. A pending promise blocks a second request of the same kind. A rejection cancels the action. `validateRow` also accepts a promise. When it rejects, the row gets no verdict.
 
 ## Callback timing and errors [#callback-errors]
 

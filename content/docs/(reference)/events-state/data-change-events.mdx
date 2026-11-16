@@ -82,7 +82,7 @@ An insert `index` past the end puts the row last. Apply the operations of one ch
 | `fill` | A fill |
 | `delete` | The delete of the cell contents in a range |
 | `row-operation` | A row insert, delete, duplicate, or move |
-| `import` | A change you apply with `commitChange` and tag as an import |
+| `import` | The import dialog's append, or a change you apply with `commitChange` and tag as an import |
 | `history` | An undo or a redo |
 | `rollback` | The revert of a refused save |
 | `merge` | The change that `resolveSaveConflict` commits on top of the server row. `onSave` receives it, and history does not record it |
@@ -96,7 +96,7 @@ An insert `index` past the end puts the row last. Apply the operations of one ch
 - Inside the handler, a write action such as `updateCells` starts from `next`. With `data`, call `setData(next)` first.
 - A write that another callback makes during a grid write emits its own `onDataChange` after the outer one.
 - `onDataChange` runs after the write. If it throws, the change stays written, and `onSave` and the plugin observers still run. Then the grid rethrows the error.
-- A row delete clears the checked rows of the view, the cell range, and the active cell. If an open edit survives the delete, the selection moves to the edited cell. A row insert and a duplicate keep the active cell on its row.
+- A row delete from a gesture or an action clears the checked rows of the view, the cell range, and the active cell. If an open edit survives the delete, the selection moves to the edited cell. A row insert and a duplicate keep the active cell on its row.
 
 ## onSave [#onsave]
 
@@ -133,7 +133,7 @@ The callback fires once per refused change, after the revert. It receives a `Sav
 
 ## onBeforeDeleteRows [#onbeforedeleterows]
 
-The callback runs before every row delete that the grid starts: the delete shortcut, the context menu item, `deleteRows`, and `deleteRowsAt`. It receives `{ rowIds, hiddenCount, signal }`. `rowIds` are the rows that go. `hiddenCount` counts the hidden checked rows that stay. Return `false`, or a promise of `false`, to cancel.
+The callback runs before every row delete that the grid starts: the delete shortcut, the context menu item, `deleteRows`, and `deleteRowsAt`. It does not run for `deleteRows` with `source: "stream"`. It receives `{ rowIds, hiddenCount, signal }`. `rowIds` are the rows that go. `hiddenCount` counts the hidden checked rows that stay. Return `false`, or a promise of `false`, to cancel.
 
 A pending promise blocks a second delete. A throw or a rejection cancels the delete. If the grid became `readOnly`, or the rows or the checked rows changed while the promise was pending, the grid drops a confirmed delete.
 
