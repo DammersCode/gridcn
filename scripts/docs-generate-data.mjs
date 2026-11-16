@@ -344,7 +344,7 @@ export const HOOK_GROUPS = [
     rows: [
       ["useDataGridStoreApi", "Returns the read-only store view for `exportGrid` and the import helpers.", "/docs/add-options/import-export/export-options"],
       ["useOptionalDataGridLabels", "Returns the labels of the enclosing `DataGridProvider`, or `null` outside one.", "/docs/types-hooks/store-hooks#usedatagridlabels"],
-      ["sortCollator", "Returns the collator of the `sortLocale` in scope, or the `\"en-US\"` collator outside a scope. A custom text `compare` calls it synchronously.", "/docs/contracts/cell-type-contract"],
+      ["sortCollator", "Returns the collator of `locale`, or of the `sortLocale` in scope when `locale` is omitted, or the `\"en-US\"` collator outside a scope. A custom text `compare` calls it synchronously.", "/docs/contracts/cell-type-contract"],
       ["withSortLocale", "Runs a synchronous function with a `sortLocale` in scope. A function that returns a promise leaves the scope at its first `await`, with one development warning. Wrap a sort or text compare that runs outside the view build.", "/docs/sort-filter-search/sorting#sort-order"],
     ],
   },

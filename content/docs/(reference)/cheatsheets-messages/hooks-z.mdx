@@ -63,7 +63,7 @@ Import them from `@/components/data-grid/data-grid-sdk`.
 
 | Export | Purpose | Page |
 | --- | --- | --- |
-| `sortCollator` | Returns the collator of the `sortLocale` in scope, or the `"en-US"` collator outside a scope. A custom text `compare` calls it synchronously. | [CellType contract](/docs/contracts/cell-type-contract) |
+| `sortCollator` | Returns the collator of `locale`, or of the `sortLocale` in scope when `locale` is omitted, or the `"en-US"` collator outside a scope. A custom text `compare` calls it synchronously. | [CellType contract](/docs/contracts/cell-type-contract) |
 | `useDataGridStoreApi` | Returns the read-only store view for `exportGrid` and the import helpers. | [Export options](/docs/add-options/import-export/export-options) |
 | `useOptionalDataGridLabels` | Returns the labels of the enclosing `DataGridProvider`, or `null` outside one. | [Store hooks](/docs/types-hooks/store-hooks#usedatagridlabels) |
 | `withSortLocale` | Runs a synchronous function with a `sortLocale` in scope. A function that returns a promise leaves the scope at its first `await`, with one development warning. Wrap a sort or text compare that runs outside the view build. | [Sorting](/docs/sort-filter-search/sorting#sort-order) |
