@@ -30,10 +30,8 @@ function assertEqual<Expected, Actual>(_check: Equal<Expected, Actual>): void {}
 
 const numberOptions: CellOptionsOf<"number"> = { min: 0, max: 100, step: 1, decimals: 2 };
 const selectOptions: CellOptionsOf<"select"> = { choices: [{ value: "a", label: "A" }] };
-const textOptions: CellOptionsOf<"text"> = { placeholder: "type here" };
 void numberOptions;
 void selectOptions;
-void textOptions;
 
 const columns = defineColumns<Row>()([
   { id: "name", header: "Name", accessorKey: "name" }, // type omitted = 'text'
@@ -217,3 +215,8 @@ const commonElementColumns: readonly ColumnDef<Row, unknown, any>[] = withNarrow
 void commonElementColumns;
 
 export {};
+
+export const textWithOptions = defineColumns<Row>()([
+  // @ts-expect-error - the text cell type reads no options
+  { id: "text-with-options", header: "Name", accessorKey: "name", type: "text", options: { placeholder: "x" } },
+]);

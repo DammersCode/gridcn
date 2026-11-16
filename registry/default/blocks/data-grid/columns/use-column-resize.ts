@@ -18,8 +18,8 @@ export type ColumnResizeHandlers = {
 /**
  * Pointer-capture column resize: drag the handle to live-update the column's
  * width via `previewColumnWidth`, clamped to `[max(32, minWidth), maxWidth ?? Infinity]`; commits on
- * `pointerup`, and `pointercancel`, `lostpointercapture`, or a window blur end the drag without a
- * commit. Double-click sizes this column to its content through the store's `autosizeColumns`
+ * `pointerup`, and `pointercancel`, `lostpointercapture`, or a window blur end the drag, restore the
+ * width the drag started at, and commit nothing. Double-click sizes this column to its content through the store's `autosizeColumns`
  * action, which samples the view (one commit, one `onColumnLayoutChange`).
  */
 export function useColumnResize(args: {
@@ -76,28 +76,34 @@ export function useColumnResize(args: {
         document.removeEventListener("pointerup", handleEnd);
         document.removeEventListener("pointercancel", handleEnd);
         target.removeEventListener("lostpointercapture", handleEnd);
-        window.removeEventListener("blur", handleBlur);
+        window.removeEventListener("blur", cancelDrag);
         cleanupRef.current = null;
       };
-      const handleBlur = () => {
+      const cancelDrag = () => {
+        const drag = dragRef.current;
         dragRef.current = null;
         setIsResizing(false);
         cleanup();
+        if (drag && lastWidth !== drag.startWidth) argsRef.current.previewColumnWidth(column.id, drag.startWidth);
       };
       const handleEnd = (e: PointerEvent) => {
         if (e.pointerId !== pointerId) return;
+        if (e.type !== "pointerup") {
+          cancelDrag();
+          return;
+        }
         dragRef.current = null;
         setIsResizing(false);
         cleanup();
         // drag-release commit point for onColumnLayoutChange — fires once here, not per handleMove frame.
-        if (e.type === "pointerup") argsRef.current.setColumnWidth(column.id, lastWidth);
+        argsRef.current.setColumnWidth(column.id, lastWidth);
       };
       // lostpointercapture fires even when pointerup is missed (alt-tab); the document fallbacks cover environments without capture semantics
       document.addEventListener("pointermove", handleMove);
       document.addEventListener("pointerup", handleEnd);
       document.addEventListener("pointercancel", handleEnd);
       target.addEventListener("lostpointercapture", handleEnd);
-      window.addEventListener("blur", handleBlur);
+      window.addEventListener("blur", cancelDrag);
       cleanupRef.current = cleanup;
     },
     [clamp, column.id],

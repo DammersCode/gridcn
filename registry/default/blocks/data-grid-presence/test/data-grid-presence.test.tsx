@@ -175,7 +175,7 @@ describe("multiplayer presence: setPresenceHighlights renders ONLY the highlight
       setPresenceHighlights = setHighlights;
       return (
         <DataGridProvider data={makeRows(3)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
-          <DataGridRoot>
+          <DataGridRoot aria-label="Test">
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>
@@ -216,7 +216,7 @@ describe("multiplayer presence: setPresenceHighlights renders ONLY the highlight
       setPresenceHighlights = setHighlights;
       return (
         <DataGridProvider data={makeRows(3)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
-          <DataGridRoot>
+          <DataGridRoot aria-label="Test">
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>
@@ -250,7 +250,7 @@ describe("multiplayer presence: rowId-native highlight resolution", () => {
       setPresenceHighlights = setHighlights;
       return (
         <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
-          <DataGridRoot>
+          <DataGridRoot aria-label="Test">
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>
@@ -278,7 +278,7 @@ describe("multiplayer presence: rowId-native highlight resolution", () => {
       return (
         <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
           <ActionsCapture onReady={(actions) => (actionsRef = actions)} />
-          <DataGridRoot>
+          <DataGridRoot aria-label="Test">
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>
@@ -305,7 +305,7 @@ describe("multiplayer presence: rowId-native highlight resolution", () => {
       setPresenceHighlights = setHighlights;
       return (
         <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
-          <DataGridRoot>
+          <DataGridRoot aria-label="Test">
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>
@@ -333,7 +333,7 @@ describe("multiplayer presence: rowId-native range highlight resolution", () => 
       setPresenceHighlights = setHighlights;
       return (
         <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
-          <DataGridRoot>
+          <DataGridRoot aria-label="Test">
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>
@@ -362,7 +362,7 @@ describe("multiplayer presence: rowId-native range highlight resolution", () => 
       setPresenceHighlights = setHighlights;
       return (
         <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
-          <DataGridRoot>
+          <DataGridRoot aria-label="Test">
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>
@@ -390,7 +390,7 @@ describe("multiplayer presence: rowId-native range highlight resolution", () => 
       return (
         <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
           <ActionsCapture onReady={(actions) => (actionsRef = actions)} />
-          <DataGridRoot>
+          <DataGridRoot aria-label="Test">
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>
@@ -418,7 +418,7 @@ describe("multiplayer presence: rowId-native range highlight resolution", () => 
       setPresenceHighlights = setHighlights;
       return (
         <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
-          <DataGridRoot>
+          <DataGridRoot aria-label="Test">
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>
@@ -448,7 +448,7 @@ describe("multiplayer presence: rowId-native range highlight resolution", () => 
       setPresenceHighlights = setHighlights;
       return (
         <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
-          <DataGridRoot>
+          <DataGridRoot aria-label="Test">
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>
@@ -572,7 +572,7 @@ describe("multiplayer presence: rowId-native range highlight resolution", () => 
       setPresenceHighlights = setHighlights;
       return (
         <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
-          <DataGridRoot>
+          <DataGridRoot aria-label="Test">
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>
@@ -599,7 +599,7 @@ describe("multiplayer presence: entry hardening", () => {
       setPresenceHighlights = setHighlights;
       return (
         <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
-          <DataGridRoot>
+          <DataGridRoot aria-label="Test">
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>
@@ -680,7 +680,7 @@ describe("multiplayer presence: entry hardening", () => {
       return (
         <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
           <ActionsCapture onReady={(actions) => (actionsRef = actions)} />
-          <DataGridRoot>
+          <DataGridRoot aria-label="Test">
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>
@@ -844,7 +844,7 @@ describe("multiplayer presence: rect budget (maxRects / onExcessRects)", () => {
       setPresenceHighlights = setHighlights;
       return (
         <DataGridProvider data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
-          <DataGridRoot>
+          <DataGridRoot aria-label="Test">
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>
@@ -891,7 +891,7 @@ describe("stale view-space entry warning (plugin Mount)", () => {
     setPresenceHighlights = presence.setPresenceHighlights;
     return (
       <DataGridProvider data={data} onDataChange={() => {}} columns={columns} getRowId={(r) => r.id} plugins={[presence.plugin]}>
-        <DataGridRoot>
+        <DataGridRoot aria-label="Test">
           <DataGridHeader />
           <DataGridBody />
         </DataGridRoot>
@@ -961,7 +961,7 @@ describe("stale view-space entry warning (plugin Mount)", () => {
       setPresenceHighlights = presence.setPresenceHighlights;
       return (
         <DataGridProvider data={data as Row[]} columns={columns} getRowId={lazyId as never} plugins={[presence.plugin]}>
-          <DataGridRoot>
+          <DataGridRoot aria-label="Test">
             <DataGridHeader />
             <DataGridBody />
             <ActionsCapture onReady={(a) => (actions = a)} />
@@ -1077,7 +1077,7 @@ describe("stale view-space entry warning (plugin Mount)", () => {
       setPresenceHighlights = presence.setPresenceHighlights;
       return (
         <DataGridProvider data={makeRows(3)} columns={cols} getRowId={(r) => r.id} plugins={[presence.plugin]}>
-          <DataGridRoot>
+          <DataGridRoot aria-label="Test">
             <DataGridHeader />
             <DataGridBody />
             <ActionsCapture onReady={(a) => (actions = a)} />

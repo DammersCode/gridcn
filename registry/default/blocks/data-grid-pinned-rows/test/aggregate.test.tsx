@@ -33,7 +33,7 @@ function Capture(props: {
 }) {
   const { data, specs, options, onResult, onActions } = props;
   return (
-    <DataGrid data={data} columns={columns} getRowId={(r) => r.id}>
+    <DataGrid aria-label="Test" data={data} columns={columns} getRowId={(r) => r.id}>
       <Inner specs={specs} options={options} onResult={onResult} onActions={onActions} />
     </DataGrid>
   );
@@ -111,7 +111,7 @@ describe("useDataGridAggregate — custom reducer", () => {
       return null;
     }
     render(
-      <DataGrid data={makeRows([1, 9, 3])} columns={columns} getRowId={(r) => r.id}>
+      <DataGrid aria-label="Test" data={makeRows([1, 9, 3])} columns={columns} getRowId={(r) => r.id}>
         <TypedInner />
       </DataGrid>,
     );
@@ -165,7 +165,7 @@ describe("useDataGridAggregate — empty-value skipping", () => {
     const data: NullableRow[] = [{ id: "a", amount: 10 }, { id: "b", amount: null }, { id: "c", amount: 20 }];
     const results: Record<string, unknown>[] = [];
     render(
-      <DataGrid data={data} columns={nullableColumns} getRowId={(r) => r.id}>
+      <DataGrid aria-label="Test" data={data} columns={nullableColumns} getRowId={(r) => r.id}>
         <NullableInner onResult={(r) => results.push(r)} />
       </DataGrid>,
     );
@@ -191,7 +191,7 @@ describe("useDataGridAggregate — values that are not finite numbers", () => {
       return null;
     }
     render(
-      <DataGrid data={mixed} columns={mixedColumns} getRowId={(r) => r.id}>
+      <DataGrid aria-label="Test" data={mixed} columns={mixedColumns} getRowId={(r) => r.id}>
         <Probe />
       </DataGrid>,
     );
@@ -269,7 +269,7 @@ describe("DataGridAggregateReporter — effect stability", () => {
       // produces a new object. With the effect keyed on `onChange`, this re-fires forever.
       // `specs` and `data` keep module identity so only the `onChange` identity churns.
       return (
-        <DataGrid data={DATA} columns={columns} getRowId={(r) => r.id}>
+        <DataGrid aria-label="Test" data={DATA} columns={columns} getRowId={(r) => r.id}>
           <DataGridAggregateReporter
             specs={STABLE_SPECS}
             onChange={(row) => {
@@ -306,7 +306,7 @@ describe("useDataGridAggregate — sparse (lazy) data", () => {
       return null;
     }
     render(
-      <DataGrid data={sparseRows()} columns={columns} getRowId={(r) => r.id}>
+      <DataGrid aria-label="Test" data={sparseRows()} columns={columns} getRowId={(r) => r.id}>
         <Inner />
       </DataGrid>,
     );
@@ -323,7 +323,7 @@ describe("useDataGridAggregate — sparse (lazy) data", () => {
       return null;
     }
     render(
-      <DataGrid data={sparseRows()} columns={columns} getRowId={(r) => r.id}>
+      <DataGrid aria-label="Test" data={sparseRows()} columns={columns} getRowId={(r) => r.id}>
         <AllInner />
       </DataGrid>,
     );

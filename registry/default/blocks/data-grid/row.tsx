@@ -35,8 +35,10 @@ export type DataGridRowProps = {
   getGridLine: (viewRowIndex: number) => number;
   /** Rows above the data rows beyond the first header row (extra header rows plus the pinned-top band) — shifts `aria-rowindex`; 0 with one header row and no band. */
   ariaRowIndexOffset: number;
-  /** Row class hook; stable identity (root's dev guardrail) so this memoized row's props stay shallow-equal across ticks. */
+  /** Row class hook; a stable function (it reads the consumer's latest callback), so this memoized row's props stay shallow-equal across ticks. */
   getRowClassName?: GetRowClassName<unknown>;
+  /** Changes when the class hooks return different classes for the rendered rows; re-renders the row and its cells. */
+  classNameRevision?: number;
   /** Forwarded to each cell; see {@link DataGridRowProps.getRowClassName}. */
   getCellClassName?: GetCellClassName<unknown>;
 };
@@ -63,6 +65,7 @@ export const DataGridRow = memo(function DataGridRow({
   ariaRowIndexOffset,
   getRowClassName,
   getCellClassName,
+  classNameRevision,
 }: DataGridRowProps) {
   const [initialGridLine] = useState(() => getGridLine(viewRowIndex));
   const row = useDataGridRow(viewRowIndex);
@@ -129,6 +132,7 @@ export const DataGridRow = memo(function DataGridRow({
             gridColOffset={markerColOffset}
             gridReadOnly={readOnly}
             getCellClassName={getCellClassName}
+            classNameRevision={classNameRevision}
             isActive={isActive}
             isEditing={isEditing}
             initialText={isEditing ? cellState.editingInitialText : undefined}

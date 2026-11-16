@@ -284,13 +284,12 @@ export type CellClassNameCtx<TData, TValue> = {
 
 /**
  * Grid-level row class callback; merged via `cn()` after the
- * built-in row classes. `viewRowIndex` is the display (sorted/filtered) position. Pass a stable
- * function identity (module scope, or memoized) — like `columns`/`data`, its identity is a dev-mode
- * guardrail (unstable identity defeats row memoization) rather than a fresh per-render prop.
+ * built-in row classes. `viewRowIndex` is the display (sorted/filtered) position. An inline function
+ * is fine: rows re-render only when the function returns different classes for the rendered rows.
  */
 export type GetRowClassName<TData> = (row: TData, viewRowIndex: number) => string | undefined;
 
-/** Grid-level cell class callback; same stable-identity guidance as {@link GetRowClassName}. */
+/** Grid-level cell class callback; same re-render rule as {@link GetRowClassName}. */
 export type GetCellClassName<TData> = (ctx: CellClassNameCtx<TData, unknown>) => string | undefined;
 
 /** Context passed to `onCellClick`. Same shape as {@link CellClassNameCtx} plus the column's real index (not just its view row). */
@@ -972,7 +971,7 @@ export type Keymap = Partial<Record<GridAction | (string & {}), KeyBinding[]>>;
  * with a new key never breaks that file's compile.
  */
 export interface GridCellTypes {
-  text: { value: string; options: { placeholder?: string } };
+  text: { value: string; options: Record<string, never> };
   number: {
     value: number | null;
     options: {
@@ -1029,15 +1028,15 @@ export interface GridCellTypes {
   };
 }
 
+/** Which inline side a pinned column sticks to; `"start"` and `"end"` flip in a right-to-left page. */
+export type ColumnPin = "start" | "end";
+
 /**
  * Plain JSON-serializable snapshot of a grid's column layout (widths/order/pins/hidden) — the save
  * payload for `onColumnLayoutChange`/`defaultColumnLayout`. `widths`
  * holds only columns the user has actually resized (a def's own `width` isn't duplicated in here);
  * `order` is always the full current column-id order, not just the moved one.
  */
-/** Which inline side a pinned column sticks to; `"start"` and `"end"` flip in a right-to-left page. */
-export type ColumnPin = "start" | "end";
-
 export type ColumnLayout = {
   widths: Record<string, number>;
   order: string[];

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createElement, type ReactNode } from "react";
 import type { ColumnGroupDef } from "../types";
 import { MAX_GROUP_DEPTH, buildColumnGroupModel, columnGroupModelsEqual, computeHeaderRows, groupPathOf, moveGroupBlock, moveWithinGroups, repairGroupOrder } from "./column-groups";
 
@@ -97,6 +98,14 @@ describe("columnGroupModelsEqual", () => {
     expect(columnGroupModelsEqual(a, buildColumnGroupModel(defs("H"), ids("a", "b")))).toBe(false);
     expect(columnGroupModelsEqual(a, null)).toBe(false);
     expect(columnGroupModelsEqual(null, null)).toBe(true);
+  });
+
+  it("an inline node header with equal content keeps the model", () => {
+    const withNode = (node: ReactNode): ColumnGroupDef[] => [{ id: "g", header: node, headerText: "G", children: ["a"] }];
+    const element = (className: string) => createElement("b", { className }, "G", createElement("i", null, "!"));
+    const a = buildColumnGroupModel(withNode(element("x")), ids("a", "b"));
+    expect(columnGroupModelsEqual(a, buildColumnGroupModel(withNode(element("x")), ids("a", "b")))).toBe(true);
+    expect(columnGroupModelsEqual(a, buildColumnGroupModel(withNode(element("y")), ids("a", "b")))).toBe(false);
   });
 });
 

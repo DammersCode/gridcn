@@ -192,6 +192,15 @@ describe("renderMarker (custom row marker cell content)", () => {
     expect(markers[0]).toHaveAttribute("data-marker-cell-selected", "true");
   });
 
+  it("hands a reorder handle to a custom marker in a reorder mode only", () => {
+    const handleMarker = ({ reorderHandleProps }: MarkerCellRenderCtx): ReactNode => <span data-testid="custom-handle" {...reorderHandleProps} />;
+    render(<DataGrid data={makeRows(3)} columns={columns} getRowId={(r) => r.id} rowMarkers="reorder" renderMarker={handleMarker} />);
+    expect(markerCells()[0]!.querySelector(gridAttrSelector("reorderHandle"))).toBe(screen.getAllByTestId("custom-handle")[0]);
+    cleanup();
+    render(<DataGrid data={makeRows(3)} columns={columns} getRowId={(r) => r.id} rowMarkers="number" renderMarker={handleMarker} />);
+    expect(markerCells()[0]!.querySelector(gridAttrSelector("reorderHandle"))).toBeNull();
+  });
+
   it("renders the built-in checkbox when no renderMarker is passed (regression guard)", () => {
     render(<DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} rowMarkers="checkbox" />);
     const markers = markerCells();

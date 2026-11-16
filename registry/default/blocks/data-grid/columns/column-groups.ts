@@ -1,3 +1,4 @@
+import { isValidElement } from "react";
 import type { ColumnGroupDef, ColumnPin } from "../types";
 
 /** Deepest nesting a group tree keeps; a deeper group is dropped with an issue. */
@@ -101,6 +102,16 @@ export function buildColumnGroupModel(defs: readonly ColumnGroupDef[] | undefine
   return { groups, paths, depth, issues };
 }
 
+function headerContentEqual(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((item, i) => headerContentEqual(item, b[i]));
+  if (!isValidElement(a) || !isValidElement(b) || a.type !== b.type || a.key !== b.key) return false;
+  const propsA = a.props as Record<string, unknown>;
+  const propsB = b.props as Record<string, unknown>;
+  const keys = Object.keys(propsA);
+  return keys.length === Object.keys(propsB).length && keys.every((key) => key in propsB && headerContentEqual(propsA[key], propsB[key]));
+}
+
 /** Whether two models hold the same structure and the same header content (the store keeps the old model when so). */
 export function columnGroupModelsEqual(a: ColumnGroupModel | null, b: ColumnGroupModel | null): boolean {
   if (a === b) return true;
@@ -109,7 +120,7 @@ export function columnGroupModelsEqual(a: ColumnGroupModel | null, b: ColumnGrou
   for (const [id, node] of a.groups) {
     const other = b.groups.get(id);
     if (!other || other.parentId !== node.parentId) return false;
-    if (other.def.header !== node.def.header || other.def.headerText !== node.def.headerText || other.def.headerClassName !== node.def.headerClassName) return false;
+    if (!headerContentEqual(other.def.header, node.def.header) || other.def.headerText !== node.def.headerText || other.def.headerClassName !== node.def.headerClassName) return false;
   }
   for (const [id, path] of a.paths) {
     const other = b.paths.get(id);

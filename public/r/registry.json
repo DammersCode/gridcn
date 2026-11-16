@@ -433,6 +433,11 @@
           "target": "components/data-grid/rows/marker-header.tsx"
         },
         {
+          "path": "registry/default/blocks/data-grid/rows/use-class-name-revision.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/rows/use-class-name-revision.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/rows/marker-width.ts",
           "type": "registry:component",
           "target": "components/data-grid/rows/marker-width.ts"

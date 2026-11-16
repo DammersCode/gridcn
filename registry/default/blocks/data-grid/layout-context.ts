@@ -1,4 +1,4 @@
-import { createContext, use, useMemo, type ReactElement, type ReactNode, type RefObject } from "react";
+import { createContext, use, useMemo, type CSSProperties, type ReactElement, type ReactNode, type RefObject } from "react";
 import type { GetCellClassName, GetRowClassName } from "./types";
 import { useDataGridColumnWidths, useDataGridRowMarkers, type AnyColumnDef } from "./store";
 import { resolveColumnWidth, distributeFlexWidths } from "./columns/resolve-column-width";
@@ -8,6 +8,7 @@ import type { ColumnGroupModel, HeaderSegment } from "./columns/column-groups";
 import { markerWidth } from "./rows/marker-width";
 import type { GridInteractionHandlers } from "./interaction/use-grid-interaction";
 import type { GridDirection } from "./virtualization/direction";
+import type { RenderedRows } from "./rows/use-class-name-revision";
 
 /** Cumulative left edge (px) of each column's track within the full grid template. */
 function trackLefts(widths: number[]): number[] {
@@ -136,6 +137,8 @@ export type MarkerCellRenderCtx = {
   isRowChannelSelected: boolean;
   /** The CELL or COLUMN channel covers at least one cell of this row. Independent of `isRowChannelSelected`, so a renderer can tell "this row is selected" apart from "cells in this row are selected". */
   isCellSelected: boolean;
+  /** Spread onto an element of the marker to make it the row's drag handle. Set only in a `reorder` family `rowMarkers` mode. */
+  reorderHandleProps?: { "data-grid-reorder-handle": ""; style: CSSProperties };
 };
 
 /** Context passed to {@link MarkerHeaderRenderer} for the marker column's header cell. */
@@ -192,17 +195,13 @@ export type DataGridRootContextValue = {
   renderMarker?: MarkerCellRenderer;
   /** Optional custom marker-header renderer; undefined renders the built-in select-all checkbox. */
   renderMarkerHeader?: MarkerHeaderRenderer;
-  /**
-   * Programmatic row/cell class hooks, routed through this context rather than a
-   * per-row/per-cell prop. `DataGridRoot` DOES re-render on active-cell moves (the activeColumn
-   * subscription, root.tsx) as well as scroll/window-shift ticks, but its context value is
-   * `useMemo`'d on real deps (root.tsx) — a render that doesn't change any field here (e.g. an
-   * active-cell move within the same column window) hands out the identical value reference, so
-   * `cell.tsx`'s direct `useDataGridRootContext()` read doesn't re-render either, keeping this off
-   * the memoized `DataGridRow`/`DataGridCell` hot path the wasted-render regression test guards.
-   */
+  /** Stable readers of the consumer's latest `getRowClassName` and `getCellClassName`; the context value stays unchanged when the consumer passes a new function. */
   getRowClassName?: GetRowClassName<unknown>;
   getCellClassName?: GetCellClassName<unknown>;
+  /** Changes when the class hooks return different classes for the rendered rows; rows and cells re-render. */
+  classNameRevision: number;
+  /** The body writes the rows it renders here so the root can compare class hook results. */
+  renderedRowsRef: RefObject<RenderedRows | null>;
 };
 
 export const DataGridRootContext = createContext<DataGridRootContextValue | null>(null);

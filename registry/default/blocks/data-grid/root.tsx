@@ -54,6 +54,7 @@ import { useLoadAnnouncement } from "./use-load-announcement";
 import { DataGridLoadingSkeleton, DataGridLoadingBar, DataGridLoadingProgress } from "./rows/loading-skeleton";
 import { Button } from "@/components/ui/button";
 import { isDev } from "./is-dev";
+import { useClassNameRevision, type RenderedRows } from "./rows/use-class-name-revision";
 import { GRID_ATTR, gridAttrSelector } from "./data-attributes";
 import { closestGridRoot } from "./interaction/closest-grid-root";
 
@@ -65,6 +66,7 @@ const PIN_SHADOW = "var(--grid-pin-shadow, oklch(0 0 0 / 10%))";
 const SCROLL_SHADOW = `var(--grid-scroll-shadow, ${PIN_SHADOW})`;
 const SHADOW_SIZE = "var(--grid-shadow-size, 8px)";
 const shadowColor = (pinned: boolean) => (pinned ? PIN_SHADOW : SCROLL_SHADOW);
+const shadowVar = (color: string) => ({ "--grid-shadow-color": color }) as CSSProperties;
 
 /** Why the empty state shows: no rows in the data at all, or rows exist but none are in view (a server filter or search that returned no rows counts as `"filtered"`). */
 export type EmptyStateReason = "no-data" | "filtered";
@@ -166,9 +168,9 @@ export type DataGridRootProps<TData = unknown> = {
   renderMarker?: MarkerCellRenderer;
   /** Custom marker-header renderer: replaces the built-in select-all checkbox; same track and width. See {@link MarkerHeaderRenderer}. Pass a stable identity. */
   renderMarkerHeader?: MarkerHeaderRenderer;
-  /** Row class hook, merged via `cn()` after the built-in row classes. Pass a stable identity — see {@link GetRowClassName}. */
+  /** Row class hook, merged via `cn()` after the built-in row classes. An inline function is fine — see {@link GetRowClassName}. */
   getRowClassName?: GetRowClassName<TData>;
-  /** Cell class hook, merged via `cn()` after the built-in cell classes. Pass a stable identity — see {@link GetCellClassName}. */
+  /** Cell class hook, merged via `cn()` after the built-in cell classes. An inline function is fine — see {@link GetCellClassName}. */
   getCellClassName?: GetCellClassName<TData>;
   /** Composition parts: header + body, or your own. The `DataGrid` wrapper defaults to header + body when omitted. */
   children?: ReactNode;
@@ -251,16 +253,17 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // selection back to (0,0). Any pointerdown anywhere in the grid (captured phase, fires before
   // the resulting focus event in the same tick) marks the next focus as pointer-originated.
   const pointerInteractionRef = useRef(false);
-  // DOM-inherited default: `ltr` until the scroll element exists, then the real computed direction.
-  // Only an explicit prop skips the measurement entirely, so an `ltr` page (the overwhelmingly
-  // common case) settles on the same value it started with and never re-renders for this.
+  // `ltr` until the parent is measured. The root sets its own `dir`, so the inherited direction is read from the parent.
   const [domDirection, setDomDirection] = useState<GridDirection>("ltr");
   useLayoutEffect(() => {
     if (directionProp !== undefined) return;
-    setDomDirection(readResolvedDirection(scrollRef.current));
+    const read = () => setDomDirection(readResolvedDirection(scrollRef.current?.parentElement ?? null));
+    read();
+    const observer = new MutationObserver(read);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["dir"], subtree: true });
+    return () => observer.disconnect();
   }, [directionProp]);
   const direction = directionProp ?? domDirection;
-  const isRtl = direction === "rtl";
   const visibleColumns = useDataGridVisibleColumns();
   const columnGroupModel = useDataGridColumnGroupModel();
   const headerRows = useMemo(() => computeHeaderRows(visibleColumns, columnGroupModel), [visibleColumns, columnGroupModel]);
@@ -358,6 +361,14 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     return () => internalActions._registerScrollToCell(null);
   }, [internalActions, interaction.scrollCellIntoView]);
 
+  const warnedNameRef = useRef(false);
+  useEffect(() => {
+    if (!isDev() || warnedNameRef.current || ariaLabel || ariaLabelledBy) return;
+    if (scrollRef.current?.parentElement?.closest("[aria-label], [aria-labelledby]")) return;
+    warnedNameRef.current = true;
+    console.warn("[data-grid] The grid has no accessible name. Set aria-label or aria-labelledby on it, or put it inside a labelled element.");
+  }, [ariaLabel, ariaLabelledBy]);
+
   useEffect(() => {
     internalActions._registerFocus(() => {
       const root = scrollRef.current;
@@ -426,26 +437,6 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // layout signature, not just pins: adding a marker column MOVES the pinned header sideways
   // without resizing it or the viewport, so the ResizeObserver never fires for it.
   usePinShadowEdges(viewportRef, hasPinnedLeft, hasPinnedRight, direction, `${pins.join(",")}|${layout.markerWidth}|${widths.join(",")}`);
-
-  // Dev-only guardrail: getRowClassName/getCellClassName reach
-  // row.tsx/cell.tsx through this root's context value rather than a per-row prop specifically so a
-  // DataGridRoot re-render (rare — structural only, see the useElementDimensions comment above) doesn't
-  // reach the memoized row/cell hot path; an unstable identity here would still bust the CONTEXT
-  // consumers on every DataGridRoot render, same anti-pattern as unstable `columns`/`data`.
-  const prevGetRowClassName = useRef(getRowClassName);
-  const prevGetCellClassName = useRef(getCellClassName);
-  useEffect(() => {
-    if (isDev()) {
-      if (prevGetRowClassName.current !== undefined && prevGetRowClassName.current !== getRowClassName) {
-        console.warn("[data-grid] getRowClassName identity changed since the last render; pass a stable reference (e.g. useCallback) or every row re-renders");
-      }
-      if (prevGetCellClassName.current !== undefined && prevGetCellClassName.current !== getCellClassName) {
-        console.warn("[data-grid] getCellClassName identity changed since the last render; pass a stable reference (e.g. useCallback) or every cell re-renders");
-      }
-    }
-    prevGetRowClassName.current = getRowClassName;
-    prevGetCellClassName.current = getCellClassName;
-  }, [getRowClassName, getCellClassName]);
 
   const { indices: columnWindowIndices } = useColumnWindow(scrollRef, {
     widths,
@@ -534,6 +525,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     [columnIndices, visibleColumns],
   );
 
+  const renderedRowsRef = useRef<RenderedRows | null>(null);
+  const classNames = useClassNameRevision({ getRowClassName: getRowClassName as GetRowClassName<unknown> | undefined, getCellClassName: getCellClassName as GetCellClassName<unknown> | undefined }, renderedRowsRef);
   // Stable context value on real deps (mustFix): DataGridRoot re-renders when the active
   // cell leaves the rendered column window, and cell.tsx/header.tsx read this context directly —
   // a fresh object literal here would bust every context consumer (all virtualized cells, header
@@ -564,8 +557,10 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       // Erasure boundary: DataGridRootContextValue is one shared non-generic context for every
       // DataGridRoot<TData>, so a typed caller's callbacks widen to <unknown> here — safe because
       // every row they ever receive at runtime came from this same subtree's DataGridProvider.
-      getRowClassName: getRowClassName as GetRowClassName<unknown> | undefined,
-      getCellClassName: getCellClassName as GetCellClassName<unknown> | undefined,
+      getRowClassName: classNames.getRowClassName,
+      getCellClassName: classNames.getCellClassName,
+      classNameRevision: classNames.revision,
+      renderedRowsRef,
     }),
     [
       scrollRef,
@@ -589,8 +584,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       renderHeaderFilter,
       renderMarker,
       renderMarkerHeader,
-      getRowClassName,
-      getCellClassName,
+      classNames,
     ],
   );
 
@@ -747,7 +741,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 data-grid-pin-shadow="start"
                 data-pinned={hasPinnedLeft ? "" : undefined}
                 aria-hidden="true"
-                className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-start:opacity-100"
+                className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-start:opacity-100 from-(--grid-shadow-color) to-transparent bg-linear-to-r/srgb rtl:bg-linear-to-l/srgb"
                 style={{
                   insetInlineStart: `var(--grid-pin-shadow-start-x, ${interactionLayout.pinnedLeftWidth}px)`,
                   insetBlockStart: effectiveHeaderHeight,
@@ -757,8 +751,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                   // pixels well outside this element's own box, floating the visible shadow off the
                   // pinned cell's edge — a gradient anchored at inset-inline-start:0 (the edge itself)
                   // guarantees the darkest pixel sits exactly on the boundary this element is measured to.
-                  // Gradient direction keywords are physical, so the fade is mirrored explicitly here.
-                  backgroundImage: `linear-gradient(to ${isRtl ? "left" : "right"}, ${shadowColor(hasPinnedLeft)}, transparent)`,
+                  // The gradient is a utility class (not inline) so a plain rule can restyle it.
+                  ...shadowVar(shadowColor(hasPinnedLeft)),
                   zIndex: GRID_LAYER.pinShadow,
                 }}
               />
@@ -766,13 +760,13 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 data-grid-pin-shadow="end"
                 data-pinned={hasPinnedRight ? "" : undefined}
                 aria-hidden="true"
-                className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-end:opacity-100"
+                className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-end:opacity-100 from-(--grid-shadow-color) to-transparent bg-linear-to-l/srgb rtl:bg-linear-to-r/srgb"
                 style={{
                   insetInlineEnd: `var(--grid-pin-shadow-end-x, ${interactionLayout.pinnedRightWidth}px)`,
                   insetBlockStart: effectiveHeaderHeight,
                   insetBlockEnd: pinnedBottomHeight,
                   width: SHADOW_SIZE,
-                  backgroundImage: `linear-gradient(to ${isRtl ? "right" : "left"}, ${shadowColor(hasPinnedRight)}, transparent)`,
+                  ...shadowVar(shadowColor(hasPinnedRight)),
                   zIndex: GRID_LAYER.pinShadow,
                 }}
               />
@@ -780,13 +774,13 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 data-grid-pin-shadow="top"
                 data-pinned={topBandRowCount > 0 ? "" : undefined}
                 aria-hidden="true"
-                className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-top:opacity-100"
+                className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-top:opacity-100 from-(--grid-shadow-color) to-transparent bg-linear-to-b/srgb"
                 style={{
                   insetBlockStart: effectiveHeaderHeight,
                   insetInlineStart: `var(--grid-pin-shadow-start-x, ${interactionLayout.pinnedLeftWidth}px)`,
                   insetInlineEnd: `var(--grid-pin-shadow-end-x, ${interactionLayout.pinnedRightWidth}px)`,
                   height: SHADOW_SIZE,
-                  backgroundImage: `linear-gradient(to bottom, ${shadowColor(topBandRowCount > 0)}, transparent)`,
+                  ...shadowVar(shadowColor(topBandRowCount > 0)),
                   zIndex: GRID_LAYER.pinShadow,
                 }}
               />
@@ -794,13 +788,13 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 data-grid-pin-shadow="bottom"
                 data-pinned={bottomBandRowCount > 0 ? "" : undefined}
                 aria-hidden="true"
-                className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-bottom:opacity-100"
+                className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-bottom:opacity-100 from-(--grid-shadow-color) to-transparent bg-linear-to-t/srgb"
                 style={{
                   insetBlockEnd: pinnedBottomHeight,
                   insetInlineStart: `var(--grid-pin-shadow-start-x, ${interactionLayout.pinnedLeftWidth}px)`,
                   insetInlineEnd: `var(--grid-pin-shadow-end-x, ${interactionLayout.pinnedRightWidth}px)`,
                   height: SHADOW_SIZE,
-                  backgroundImage: `linear-gradient(to top, ${shadowColor(bottomBandRowCount > 0)}, transparent)`,
+                  ...shadowVar(shadowColor(bottomBandRowCount > 0)),
                   zIndex: GRID_LAYER.pinShadow,
                 }}
               />

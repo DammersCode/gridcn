@@ -19,6 +19,8 @@ import {
 } from "../store";
 
 /** Props for {@link DataGridMarkerCell}. */
+const REORDER_HANDLE_PROPS = { "data-grid-reorder-handle": "", style: { touchAction: "none" } } as const;
+
 export type DataGridMarkerCellProps = {
   mode: RowMarkersMode;
   viewRowIndex: number;
@@ -114,7 +116,7 @@ export const DataGridMarkerCell = memo(function DataGridMarkerCell(props: DataGr
       }}
     >
       {renderMarker ? (
-        renderMarker({ rowId, viewRowIndex, isRowChannelSelected, isCellSelected })
+        renderMarker({ rowId, viewRowIndex, isRowChannelSelected, isCellSelected, reorderHandleProps: showGrip ? REORDER_HANDLE_PROPS : undefined })
       ) : (
         <>
           {showGrip && (
