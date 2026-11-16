@@ -5,7 +5,7 @@ icon: Languages
 type: example
 ---
 
-The demo has three locales: English, Deutsch, and Arabic. Each locale sets the `labels` and the `locale` of the grid, the column headers, a hint text, and a text direction. Pick a language. The strings change, and the Arabic locale flips the grid to right-to-left.
+The demo has three locales: English, German, and Arabic. Each locale sets the `labels` and the `locale` of the grid, the column headers, a hint text, and a text direction. Pick a language. The strings change, and the Arabic locale flips the grid to right-to-left.
 
 <ComponentPreview name="data-grid-i18n-demo" />
 
@@ -13,13 +13,13 @@ The demo has three locales: English, Deutsch, and Arabic. Each locale sets the `
 
 ## The labels prop [#the-labels-prop]
 
-The grid keeps nearly every user-facing string in one `DataGridLabels` object with English defaults. The `labels` prop of `DataGridProvider` and `DataGrid` deep-merges over it. Only the keys you set change. A label that holds a value, such as `searchMatches`, is a function that receives the values.
+The grid keeps every built-in string in one `DataGridLabels` object with English defaults. The `labels` prop of `DataGridProvider` and `DataGrid` deep-merges over it. Only the keys you set change. A label that holds a value, such as `searchMatches`, is a function that receives the values.
 
 Column headers are not labels. They belong to the column definitions, so build the columns from the locale and memoize them.
 
 ## RTL [#rtl]
 
-`direction` is `"ltr"` or `"rtl"`. Take it from the same locale record as the labels. The demo also sets `dir` on the element around the grid, so the page around the grid mirrors with it:
+`direction` is `"ltr"` or `"rtl"`. `locale` is a BCP 47 language tag. It sets the language of number and date formats and the sort order. Take both from the same locale record as the labels. The demo also sets `dir` on the element around the grid, so the page around the grid mirrors with it:
 
 ```tsx
 import {
@@ -37,11 +37,19 @@ type Row = { id: string; name: string };
 
 const TRANSLATIONS: Record<
   Locale,
-  { dir: GridDirection; labels: DeepPartialLabels }
+  { locale: string; dir: GridDirection; labels: DeepPartialLabels }
 > = {
-  en: { dir: "ltr", labels: {} },
-  de: { dir: "ltr", labels: { grid: { emptyState: "Keine Zeilen" } } },
-  ar: { dir: "rtl", labels: { grid: { emptyState: "لا صفوف" } } },
+  en: { locale: "en-US", dir: "ltr", labels: {} },
+  de: {
+    locale: "de-DE",
+    dir: "ltr",
+    labels: { grid: { emptyState: "Keine Zeilen" } },
+  },
+  ar: {
+    locale: "ar-EG",
+    dir: "rtl",
+    labels: { grid: { emptyState: "لا صفوف" } },
+  },
 };
 
 const columns = defineColumns<Row>()([
@@ -49,10 +57,15 @@ const columns = defineColumns<Row>()([
 ]);
 
 export function LocaleGrid({ locale }: { locale: Locale }) {
-  const { dir, labels } = TRANSLATIONS[locale];
+  const { dir, labels, locale: tag } = TRANSLATIONS[locale];
   return (
     <div dir={dir}>
-      <DataGridProvider defaultData={[]} columns={columns} labels={labels}>
+      <DataGridProvider
+        defaultData={[]}
+        columns={columns}
+        labels={labels}
+        locale={tag}
+      >
         <DataGridRoot className="h-48" direction={dir}>
           <DataGridHeader />
           <DataGridBody />
@@ -63,7 +76,7 @@ export function LocaleGrid({ locale }: { locale: Locale }) {
 }
 ```
 
-With no rows, the grid shows the empty-state text of the locale. In `rtl`, the grid mirrors the column order, the pinned bands, the pointer math, and the placement of popups. The arrow keys move visually, so <kbd>ArrowRight</kbd> goes to the column on the right of the screen. If you omit `direction`, the grid reads the direction it inherits from the page once, at mount. A locale switch changes the direction at run time, so pass `direction`.
+With no rows, the grid shows the empty-state text of the locale. In `rtl`, the grid mirrors the column order, the pinned bands, the pointer math, and the placement of popups. The arrow keys move visually, so <kbd>ArrowRight</kbd> goes to the column on the right of the screen. If you omit `direction`, the grid follows the `dir` that it inherits from the page and updates when a `dir` attribute on the page changes. `direction` overrides the inherited value.
 
 ## Related
 

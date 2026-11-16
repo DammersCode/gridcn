@@ -38,7 +38,7 @@ const DEALS: Deal[] = [
 // Module-scope so the identity is stable across renders (row/cell memoization + dev guardrail).
 const getRowClassName: GetRowClassName<Deal> = (row) =>
   row.stage === "at-risk"
-    ? "border-l-2 border-l-destructive bg-destructive/5 text-destructive"
+    ? "border-s-2 border-s-destructive bg-destructive/5 text-destructive"
     : undefined;
 
 const columns = defineColumns<Deal>()([
@@ -53,8 +53,8 @@ const columns = defineColumns<Deal>()([
     // Full-column treatment via the per-column string form: background tint, bold header, and a
     // right border to visually separate this "brand" column from the rest of the row — constant
     // across every cell/header in the column, no value-dependent logic needed.
-    cellClassName: "bg-primary/5 border-r border-r-primary/30 font-medium",
-    headerClassName: "bg-primary/10 border-r border-r-primary/30 font-semibold text-primary",
+    cellClassName: "bg-primary/5 border-e border-e-primary/30 font-medium",
+    headerClassName: "bg-primary/10 border-e border-e-primary/30 font-semibold text-primary",
   },
   { id: "owner", header: "Owner", accessorKey: "owner", type: "text", width: 85, flex: 1 },
   {
