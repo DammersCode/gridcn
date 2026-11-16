@@ -1,7 +1,7 @@
 // Shared helpers for the docs validators (verify-docs-*.mjs and docs-verify.mjs).
 import { readdirSync, readFileSync, existsSync, statSync } from "node:fs";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
 
 export const FAILURE_CAP = 8;
 
@@ -157,4 +157,4 @@ export async function importTs(path) {
   }
 }
 
-export const { rowIdOf } = await importTs(fileURLToPath(new URL("../lib/rehype-row-ids.ts", import.meta.url)));
+export const { rowIdOf } = await importTs(join(import.meta.dirname, "..", "lib", "rehype-row-ids.ts"));
