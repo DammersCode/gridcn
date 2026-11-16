@@ -92,6 +92,41 @@ describe("useDataGridClipboard.pasteFromClipboard", () => {
   });
 });
 
+describe("useDataGridClipboard.pasteFromClipboard with grouped numbers", () => {
+  type Qty = { id: string; qty: number | null };
+  const qtyColumns: readonly ColumnDef<Qty, unknown>[] = [{ id: "qty", header: "Qty", accessorKey: "qty", type: "number" }];
+
+  function setUpQty(onDataChange: ReturnType<typeof vi.fn>) {
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <DataGridProvider data={[{ id: "1", qty: 5 }]} columns={qtyColumns} getRowId={(r: Qty) => r.id} onDataChange={onDataChange}>
+          {children}
+        </DataGridProvider>
+      );
+    }
+    const { result } = renderHook(() => ({ actions: useDataGridActions(), clipboard: useDataGridClipboard() }), { wrapper: Wrapper });
+    act(() => result.current.actions.selectCellAt({ col: 0, row: 0 }));
+    return result;
+  }
+
+  it("a pasted 1,234.50 reaches onDataChange as 1234.5", async () => {
+    vi.stubGlobal("navigator", { clipboard: { readText: vi.fn().mockResolvedValue("1,234.50") } });
+    const onDataChange = vi.fn();
+    const result = setUpQty(onDataChange);
+    await act(() => result.current.clipboard.pasteFromClipboard());
+    const [rows] = onDataChange.mock.calls[0] as [readonly Qty[]];
+    expect(rows[0]!.qty).toBe(1234.5);
+  });
+
+  it("a pasted ambiguous 1,234 leaves the cell unchanged", async () => {
+    vi.stubGlobal("navigator", { clipboard: { readText: vi.fn().mockResolvedValue("1,234") } });
+    const onDataChange = vi.fn();
+    const result = setUpQty(onDataChange);
+    await act(() => result.current.clipboard.pasteFromClipboard());
+    expect(onDataChange).not.toHaveBeenCalled();
+  });
+});
+
 describe("useDataGridClipboard.pasteFromClipboard with an async schema", () => {
   const asyncName = {
     "~standard": {

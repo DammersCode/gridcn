@@ -87,9 +87,28 @@ describe("number fromText input validation", () => {
   it.each(["Infinity", "-Infinity", "1e999", "-1e999", "0x10", "0b11", "0o7", "1_000", "NaN", "1e", "--1", "."])(
     "rejects %s",
     (text) => {
-      expect(fromText(text, undefined)).toBeNull();
+      expect(() => fromText(text, undefined)).toThrow();
     },
   );
+
+  it.each([
+    ["1,234.50", 1234.5],
+    ["1,234,567", 1234567],
+    ["-1,234.5", -1234.5],
+    ["1.234,50", 1234.5],
+    ["1.234.567,5", 1234567.5],
+  ])("reads the grouped number %s", (text, expected) => {
+    expect(fromText(text, undefined)).toBe(expected);
+  });
+
+  it("rejects 1,234 as ambiguous instead of storing 1.234", () => {
+    expect(() => fromText("1,234", undefined)).toThrow();
+  });
+
+  it("rejects abc instead of clearing the cell", () => {
+    expect(() => fromText("abc", undefined)).toThrow();
+    expect(fromText("  ", undefined)).toBeNull();
+  });
 
   it.each([
     ["42", 42],
@@ -106,7 +125,7 @@ describe("number fromText input validation", () => {
 
   it("rejects a long digit run with a trailing letter in linear time", () => {
     const start = performance.now();
-    expect(fromText(`${"1".repeat(200_000)}x`, undefined)).toBeNull();
+    expect(() => fromText(`${"1".repeat(200_000)}x`, undefined)).toThrow();
     expect(performance.now() - start).toBeLessThan(500);
   });
 });

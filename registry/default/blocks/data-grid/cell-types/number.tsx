@@ -1,4 +1,5 @@
 import { toSafeText } from "./safe-text";
+import { UnparseableTextError } from "./safe-from-text";
 import type { KeyboardEvent } from "react";
 import { Input } from "@/components/ui/input";
 import type { CellEditorProps, CellRenderProps, CellType, GridCellTypes } from "../types";
@@ -13,9 +14,17 @@ import { compareNumbers } from "../sort-filter/builtin-compare";
 
 const DECIMAL_NUMBER = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i;
 
-/** Normalizes a comma decimal separator to a dot so `Number()` can parse locales pasted verbatim. */
+const COMMA_GROUPS = /^[+-]?\d{1,3}(?:,\d{3})+(?:\.\d+)?$/;
+const DOT_GROUPS_COMMA_DECIMAL = /^[+-]?\d{1,3}(?:\.\d{3})+,\d+$/;
+const SINGLE_GROUP_AMBIGUOUS = /^[+-]?\d{1,3},\d{3}$/;
+
+/** Reads a pasted number to the text `Number()` parses; throws for text that could mean two numbers or none. */
 function normalizeNumberText(text: string): string {
-  return text.trim().replace(",", ".");
+  const trimmed = text.trim();
+  if (SINGLE_GROUP_AMBIGUOUS.test(trimmed)) throw new UnparseableTextError(`"${trimmed}" is ambiguous`);
+  if (COMMA_GROUPS.test(trimmed)) return trimmed.replaceAll(",", "");
+  if (DOT_GROUPS_COMMA_DECIMAL.test(trimmed)) return trimmed.replaceAll(".", "").replace(",", ".");
+  return trimmed.replace(",", ".");
 }
 
 /** Clamps a parsed number into the column's configured min/max, if any. */
@@ -79,6 +88,14 @@ function NumberCell({ value, options }: CellRenderProps<unknown, number | null, 
   return <CellSpan text={displayText(numberCellType, value, options)} />;
 }
 
+function parseDraft(draft: string, options: GridCellTypes["number"]["options"]): number | null {
+  try {
+    return numberCellType.fromText(draft, options);
+  } catch {
+    return null;
+  }
+}
+
 function NumberEditor(props: CellEditorProps<unknown, number | null, GridCellTypes["number"]["options"]>) {
   const { value, options, pending } = props;
   // seed with `toText` so `decimals` rounding matches; `format` stays display-only
@@ -100,7 +117,7 @@ function NumberEditor(props: CellEditorProps<unknown, number | null, GridCellTyp
         if (pending || isComposingKey(e)) return;
         // step the draft; a cleared draft falls back to the committed value, so an empty
         // cell with a null value has no step base and stays untouched
-        const base = numberCellType.fromText(rest.value, options) ?? value;
+        const base = parseDraft(rest.value, options) ?? value;
         if (base === null) return;
         e.preventDefault();
         const configuredStep = options?.step ?? 1;
@@ -121,7 +138,7 @@ function NumberEditor(props: CellEditorProps<unknown, number | null, GridCellTyp
   );
 }
 
-/** `number`: comma-decimal-tolerant parse, min/max clamp, decimals rounding, plain `String()` serialization; `options.format` renders display-only locale formatting — copy, export, and the editor keep the raw value. */
+/** `number`: comma-decimal and grouped-thousands parse that rejects ambiguous or non-numeric text, min/max clamp, decimals rounding, plain `String()` serialization; `options.format` renders display-only locale formatting — copy, export, and the editor keep the raw value. */
 export const numberCellType: CellType<unknown, number | null, GridCellTypes["number"]["options"]> = {
   Cell: NumberCell,
   Editor: NumberEditor,
@@ -141,9 +158,8 @@ export const numberCellType: CellType<unknown, number | null, GridCellTypes["num
   fromText: (text, options) => {
     const normalized = normalizeNumberText(text);
     if (normalized === "") return null;
-    if (!DECIMAL_NUMBER.test(normalized)) return null;
-    const parsed = Number(normalized);
-    if (!Number.isFinite(parsed)) return null;
+    const parsed = DECIMAL_NUMBER.test(normalized) ? Number(normalized) : Number.NaN;
+    if (!Number.isFinite(parsed)) throw new UnparseableTextError(`"${text}" is not a number`);
     if (options?.decimals !== undefined) return clampToDecimals(roundToDecimals(parsed, options), options, options.decimals);
     return clampNumber(parsed, options);
   },

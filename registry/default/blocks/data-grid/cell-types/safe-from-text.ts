@@ -9,6 +9,9 @@ const UNPARSEABLE_MESSAGE = "The text could not be parsed";
 /** A parsed cell: the value, plus the validator that decides it (a rejecting one when `fromText` threw). */
 export type ParsedCellText = { value: unknown; validate: CellValidate };
 
+/** Thrown by a built-in `fromText` for text it deliberately rejects; the cell reports a rejection without the development warning for a faulty type. */
+export class UnparseableTextError extends Error {}
+
 const rejectUnparseable = (): string => UNPARSEABLE_MESSAGE;
 
 /**
@@ -23,8 +26,8 @@ export function safeFromText(
 ): ParsedCellText {
   try {
     return { value: cellType.fromText(text, options), validate };
-  } catch {
-    if (isDev() && !warnedTypes.has(cellType)) {
+  } catch (error) {
+    if (!(error instanceof UnparseableTextError) && isDev() && !warnedTypes.has(cellType)) {
       warnedTypes.add(cellType);
       console.warn("[data-grid] a cell type's fromText threw; the cell is rejected. fromText must return a value for any text.");
     }
