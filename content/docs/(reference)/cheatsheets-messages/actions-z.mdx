@@ -71,7 +71,7 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `setSelection` | Applies a whole `SelectionState` in `CellRef` terms. `null` clears the selection. | [Selection and cell events](/docs/events-state/selection-cell-events) |
 | `setSorts` | Replaces the active sorts. | [Sorting](/docs/sort-filter-search/sorting) |
 | `startEditing` | Opens an editor at a `CellRef`, with optional first text. | [Edit and validation events](/docs/events-state/edit-validation-events) |
-| `startEditingAt` | Takes a `ViewCoord` in place of the `CellRef` of `startEditing`. | [Row actions example](/docs/row-examples/row-actions-example) |
+| `startEditingAt` | Takes a `ViewCoord` in place of the `CellRef` of `startEditing`. | [Store hooks](/docs/types-hooks/store-hooks#handle) |
 | `toggleSort` | Steps the sort of a column to the next direction or to no sort, as a header click does. `{ additive: true }` keeps the other sorts. | [Sort and filter events](/docs/events-state/sort-filter-events) |
 | `updateCells` | Writes cell patches by row id in one write, without a view rebuild. Default `source` is `"stream"`. | [Push live values](/docs/rows-live-data/stream-updates) |
 | `updateRows` | Writes whole-row patches by row id. Each `RowPatch` expands to one cell patch per column, as in `updateCells`. | [Push live values](/docs/rows-live-data/stream-updates) |

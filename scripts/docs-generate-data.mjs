@@ -267,7 +267,7 @@ export const ACTION_PAGES = {
   setFilters: "/docs/sort-filter-search/filtering",
   setSearch: "/docs/sort-filter-search/quick-search",
   startEditing: "/docs/events-state/edit-validation-events",
-  startEditingAt: "/docs/row-examples/row-actions-example",
+  startEditingAt: "/docs/types-hooks/store-hooks#handle",
   cancelEditing: "/docs/events-state/edit-validation-events",
   commitCellEdit: "/docs/types-hooks/store-hooks#handle",
   commitCellValue: "/docs/types-hooks/store-hooks#handle",
