@@ -48,9 +48,9 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 
 | Type | Shape | Meaning |
 | --- | --- | --- |
-| `GateName` | A union of 7 gate names | For example `processPaste`, `validateRow`, `onBeforeEditStart`, and `import`. |
+| `GateName` | A union of the gate names | `processPaste`, `validateRow`, `onBeforeEditStart`, `createRow`, `duplicateRow`, `onBeforeDeleteRows`, `import`, and `processReplace`. |
 | `GateContext` | `{ signal }` | The argument of an async gate. `signal` aborts when the grid stops waiting. |
-| `RowActionSkipReason` | A union of 10 reasons | Why a row action did nothing, such as `readOnly`, `gate-pending`, and `nothing-to-do`. |
+| `RowActionSkipReason` | A union of the skip reasons | Why a row action did nothing: `readOnly`, `unloaded-rows`, `gate-pending`, `no-factory`, `gate-declined`, `gate-threw`, `nothing-to-do`, `view-ordered`, `all-matching`, or `hidden-rows-only`. |
 | `RowActionResult` | `{ ok: true } \| { ok: false, reason }` | What the insert, duplicate, and delete actions return: `ok` once the action ran or an async gate started, else the `RowActionSkipReason`. |
 | `SaveResolution` | `"theirs" \| "mine" \| { row } \| void` | The answer of `resolveSaveConflict`: take the server row, keep the grid row, or save a merged row. |
 
@@ -68,11 +68,11 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | `FilterValue` | `{ value, label?, count? }` | One value that `fetchFilterValues` offers to a set filter. |
 | `SearchOptions` | `{ matchCase?, wholeCell? }` | The options of the quick search. |
 | `SearchMatch` | `{ row, columnId }` | One quick-search hit. `row` is the position in the whole sorted and filtered view, also on a paged grid. |
-| `CellTypeFilter` | `{ operators?, match?, valueInput? }` | The filter capabilities of a cell type. |
+| `CellTypeFilter` | `{ operators?, match?, compare?, valueInput? }` | The filter capabilities of a cell type. `compare(text, bound)` orders cell text against a bound for `gt`, `gte`, `lt`, `lte`, and `isBetween`. |
 | `CellTypeValueInput` | `"text" \| "number" \| "date" \| "boolean" \| "choices"` | The built-in widget of a filter value. |
 | `FilterValueInputProps` | `{ column, operator, value, onValueChange }` | The props of a custom `valueInput` component. |
 
-`createFilterMatcher(filter)` parses the bounds of a `FilterSpec` once. It returns a `(text: string) => boolean` matcher. The grid's built-in text filter uses the same matcher. A column or a cell type with `filter.match` filters with that function instead. [CellType contract](/docs/contracts/cell-type-contract) covers the filter members.
+`createFilterMatcher(filter, options?)` parses the bounds of a `FilterSpec` once. It returns a `(text: string) => boolean` matcher. `options.compare` orders text against a bound. `options.custom` evaluates a custom operator. The grid's built-in text filter uses the same matcher. A column or a cell type with `filter.match` filters with that function instead. [CellType contract](/docs/contracts/cell-type-contract) covers the filter members.
 
 ## Commands and keys [#commands-and-keys]
 
@@ -91,7 +91,7 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 
 | Type | Shape | Meaning |
 | --- | --- | --- |
-| `DataGridApi<TData>` | `{ actions, store, scrollTo, focus, getSelection, getRow, getViewRowIds }` | The handle that `ref` and `useDataGridApi` give. |
+| `DataGridApi<TData>` | `{ actions, store, scrollTo, focus, runShortcut, getSelection, getRow, getViewRowIds }` | The handle that `ref` and `useDataGridApi` give. |
 | `DataGridActions` | The mutations of one grid | The `actions` member of `DataGridApi`. `useDataGridActions` returns the same object. [Actions A to Z](/docs/cheatsheets-messages/actions-z) lists its methods. |
 | `DataGridStoreWrapper` | `{ getState, getInitialState, subscribe }` | The `store` member of `DataGridApi`. |
 | `DataGridStore` | The state of one grid | The state that `store.getState()` returns, with `data` typed as `readonly unknown[]`. |
@@ -120,7 +120,7 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | --- | --- | --- |
 | `GridEditEndEvent` | `ViewCellRef & { result }` | The payload of `onEditEnd`. `result` is `"commit"`, `"cancel"`, or `"rejected"`. |
 | `GridBulkValidationError` | `{ rowId, columnId, viewRowIndex, value, message }` | One cell that a bulk write refused. |
-| `GridValidationErrorEvent` | `{ source, rejected }` | The payload of `onValidationError`. `source` is `"paste"`, `"fill"`, `"stream"`, or `"replace"`. |
+| `GridValidationErrorEvent` | `{ source, rejected }` | The payload of `onValidationError`. `source` is `"paste"`, `"fill"`, `"stream"`, `"replace"`, `"delete"`, or `"edit"`. |
 | `ClipboardProcessCtx<TData>` | `{ row, column }` | The row and the column that `processCellForClipboard` and `processCellFromClipboard` share. |
 | `UseDataGridClipboardOptions` | `{ sanitizeFormulas? }` | The options of `useDataGridClipboard`. `sanitizeFormulas` prefixes formula-like cells with `'` in the copied text. |
 

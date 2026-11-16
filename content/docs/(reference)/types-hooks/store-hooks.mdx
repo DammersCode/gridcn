@@ -57,7 +57,7 @@ Hooks that read the active cell and the edit session.
 | <a id="usedatagridediting"></a>`useDataGridEditing` | The open edit or `null` | The edit in progress, with its row id and column id. |
 | <a id="usedatagridcelleditingerror"></a>`useDataGridCellEditingError` | `string \| null` | The live validation error of the cell at a `ViewCoord` while that cell is in edit. Every other cell gets `null`. |
 | <a id="usedatagridcellstate"></a>`useDataGridCellState` | `DataGridCellState` | One subscription for one cell: `isActive`, `isSelected`, `isEditing`, `initialText`, `editSession`, `isSearchMatch`, and `cellError`. |
-| <a id="usedatagridrowcellstate"></a>`useDataGridRowCellState` | `DataGridRowCellState` | One subscription for one view row. It covers the active and editing columns of the row, its `saveStatus`, and its search match, error, and flashing columns. |
+| <a id="usedatagridrowcellstate"></a>`useDataGridRowCellState` | `DataGridRowCellState` | One subscription for one view row. It covers the active and editing columns of the row, its `selectedColRanges`, its `saveStatus`, its `stale` flag, and its search match, error, and flashing columns. |
 | <a id="usedatagridcelltypes"></a>`useDataGridCellTypes` | `Record<string, CellType>` | The resolved cell type registry: the built-in cell types merged with your `cellTypes` prop. A `null` entry removes a built-in type. |
 
 Show the active cell and the read-only flag in a status line:
@@ -97,7 +97,7 @@ Hooks that read column state. [Column visibility](/docs/columns/column-visibilit
 
 | Hook | Returns | Meaning |
 | --- | --- | --- |
-| <a id="usedatagridvisiblecolumns"></a>`useDataGridVisibleColumns` | `readonly ColumnDefOf<TData>[]` | The visible columns in display order: pinned left, unpinned, pinned right. |
+| <a id="usedatagridvisiblecolumns"></a>`useDataGridVisibleColumns` | `readonly ColumnDefOf<TData>[]` | The visible columns in display order: start-pinned, unpinned, end-pinned. |
 | <a id="usedatagridallcolumns"></a>`useDataGridAllColumns` | `readonly ColumnDefOf<TData>[]` | Every column, hidden ones included, in column order. |
 | <a id="usedatagridiscolumnhidden"></a>`useDataGridIsColumnHidden` | `boolean` | Whether a column id is hidden. |
 | <a id="usedatagridcolumnwidth"></a>`useDataGridColumnWidth` | `number \| undefined` | The width override of a column in pixels, or `undefined`. |
@@ -121,7 +121,7 @@ Hooks for text, keys, and server results.
 | --- | --- | --- |
 | <a id="usedatagridlabels"></a>`useDataGridLabels` | `DataGridLabels` | The labels: the defaults merged with your `labels` prop. |
 | <a id="usedatagridkeymap"></a>`useDataGridKeymap` | `Keymap` | The effective keymap: defaults, plugin keymaps, then your `keymap` prop. It leaves out a binding that never matches: an unknown modifier, an unknown key name, or an empty key. An action with no live binding reads `[]`. |
-| <a id="usedatagridcellerrors"></a>`useDataGridCellErrors` | `ReadonlyMap<string, string>` | The map of cell errors, keyed `"rowId:columnId"`. The server sets them with `setCellErrors`, and a column with `onInvalid: "warn"` sets them on a rejected commit. A cell renders its own error through `useDataGridCellState`. |
+| <a id="usedatagridcellerrors"></a>`useDataGridCellErrors` | `ReadonlyMap<string, string>` | The map of cell errors, keyed `"rowId:columnId"`. The server sets them with `setCellErrors`, and a column with `validationMode: "warn"` sets them on a value it accepts with a warning. A cell renders its own error through `useDataGridCellState`. |
 | <a id="usedatagridrowsavestatus"></a>`useDataGridRowSaveStatus` | `RowSaveStatus \| undefined` | `"saving"` while the `onSave` promise of the row is pending, `"failed"` after a refusal, else `undefined`. |
 | <a id="usedatagridpendingsavecount"></a>`useDataGridPendingSaveCount` | `number` | The count of `onSave` promises that have not settled. |
 | <a id="usedatagridgatepending"></a>`useDataGridGatePending` | `ReadonlySet<GateName>` | The names of the gates whose promise has not settled. See [Cancel async gates](/docs/editing-cells/cancel-async-gates). |
