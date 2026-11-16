@@ -1,4 +1,4 @@
-import { createContext, use, useMemo, type ReactElement, type ReactNode, type RefObject } from "react";
+import { createContext, use, useMemo, type CSSProperties, type ReactElement, type ReactNode, type RefObject } from "react";
 import type { GetCellClassName, GetRowClassName } from "./types";
 import { useDataGridColumnWidths, useDataGridRowMarkers, type AnyColumnDef } from "./store";
 import { resolveColumnWidth, distributeFlexWidths } from "./columns/resolve-column-width";
@@ -137,6 +137,8 @@ export type MarkerCellRenderCtx = {
   isRowChannelSelected: boolean;
   /** The CELL or COLUMN channel covers at least one cell of this row. Independent of `isRowChannelSelected`, so a renderer can tell "this row is selected" apart from "cells in this row are selected". */
   isCellSelected: boolean;
+  /** Spread onto an element of the marker to make it the row's drag handle. Set only in a `reorder` family `rowMarkers` mode. */
+  reorderHandleProps?: { "data-grid-reorder-handle": ""; style: CSSProperties };
 };
 
 /** Context passed to {@link MarkerHeaderRenderer} for the marker column's header cell. */
