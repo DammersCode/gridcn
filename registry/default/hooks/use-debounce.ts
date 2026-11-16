@@ -21,6 +21,7 @@ function settleTyped(typed: TypedText | null, value: string): TypedText | null {
 }
 
 const DEFAULT_DELAY_MS = 300;
+const DEFAULT_APPLY_TIMEOUT_MS = 1000;
 /** Commits remembered while the parent has not applied them yet. The echo of an older commit counts as an outside change. */
 const MAX_QUEUED = 64;
 
@@ -40,6 +41,11 @@ export function useDebounce<T>(value: T, delayMs: number = DEFAULT_DELAY_MS): T 
 export type UseDebouncedInputOptions = {
   /** Wait between the last keystroke and the commit. `0` commits each keystroke. Default 300. */
   delayMs?: number;
+  /**
+   * Wait after the last commit for `value` to reach a committed text. When it does not, and nothing is pending, the
+   * input shows `value` again. `Infinity` keeps the typed text until `value` changes. Default 1000.
+   */
+  applyTimeoutMs?: number;
 };
 
 /** The props of the input that {@link useDebouncedInput} drives. Spread them: `<input {...input.inputProps} />`. */
@@ -77,10 +83,11 @@ const isComposingKey = (event: { nativeEvent: { isComposing?: boolean; keyCode?:
  * A text input that shows each keystroke at once and calls `onCommit` once the typing pauses. `value` is the
  * committed text; when it changes from outside and nothing is pending, the input shows it. A pending value is
  * never lost: it commits on blur, on Enter, and on unmount. An IME composition commits when it ends. After a commit the
- * input keeps the typed text until `value` reaches it or moves to a text that is not a queued commit, then shows `value`.
+ * input keeps the typed text until `value` reaches it, moves to a text that is not a queued commit, or stays away from
+ * the commits for `applyTimeoutMs`, then shows `value`.
  */
 export function useDebouncedInput(value: string, onCommit: (next: string) => void, options: UseDebouncedInputOptions = {}): UseDebouncedInputResult {
-  const { delayMs = DEFAULT_DELAY_MS } = options;
+  const { delayMs = DEFAULT_DELAY_MS, applyTimeoutMs = DEFAULT_APPLY_TIMEOUT_MS } = options;
   // The input shows the typed text while it is pending, and after the commit until the parent has applied the commits:
   // a parent that applies a commit later never flashes the old text, and a late echo of an older commit never
   // overwrites what the user types.
@@ -92,6 +99,7 @@ export function useDebouncedInput(value: string, onCommit: (next: string) => voi
     valueRef.current = value;
   });
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const applyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRef = useRef<string | null>(null);
   const composingRef = useRef(false);
 
@@ -107,7 +115,9 @@ export function useDebouncedInput(value: string, onCommit: (next: string) => voi
     if (next === null) return;
     setTyped((prev) => (prev === null ? prev : { ...prev, pending: false, queue: [...prev.queue, next].slice(-MAX_QUEUED) }));
     onCommitRef.current(next);
-  }, [clearTimer]);
+    if (applyTimerRef.current !== null) clearTimeout(applyTimerRef.current);
+    applyTimerRef.current = Number.isFinite(applyTimeoutMs) ? setTimeout(() => setTyped((prev) => (prev === null || prev.pending ? prev : null)), applyTimeoutMs) : null;
+  }, [applyTimeoutMs, clearTimer]);
 
   const cancel = useCallback(() => {
     clearTimer();
@@ -130,6 +140,12 @@ export function useDebouncedInput(value: string, onCommit: (next: string) => voi
   );
 
   useEffect(() => flush, [flush]);
+  useEffect(
+    () => () => {
+      if (applyTimerRef.current !== null) clearTimeout(applyTimerRef.current);
+    },
+    [],
+  );
 
   const onChange = useCallback(
     (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

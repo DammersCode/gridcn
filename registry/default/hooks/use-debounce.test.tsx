@@ -441,6 +441,43 @@ describe("useDebouncedInput with a parent that applies the commit a render later
   });
 });
 
+describe("useDebouncedInput with a parent that does not apply the commit", () => {
+  function Rejecting(props: { applyTimeoutMs?: number }) {
+    const input = useDebouncedInput("fixed", () => {}, props.applyTimeoutMs === undefined ? {} : { applyTimeoutMs: props.applyTimeoutMs });
+    return <input aria-label="rejecting" {...input.inputProps} />;
+  }
+
+  it("shows value again 1000 ms after the last commit", () => {
+    const view = render(<Rejecting />);
+    const input = view.getByLabelText("rejecting") as HTMLInputElement;
+    type(input, "typed");
+    act(() => void vi.advanceTimersByTime(300));
+    expect(input.value).toBe("typed");
+    act(() => void vi.advanceTimersByTime(999));
+    expect(input.value).toBe("typed");
+    act(() => void vi.advanceTimersByTime(1));
+    expect(input.value).toBe("fixed");
+  });
+
+  it("keeps the typed text while the user types again", () => {
+    const view = render(<Rejecting />);
+    const input = view.getByLabelText("rejecting") as HTMLInputElement;
+    type(input, "typed");
+    act(() => void vi.advanceTimersByTime(1200));
+    type(input, "again");
+    act(() => void vi.advanceTimersByTime(200));
+    expect(input.value).toBe("again");
+  });
+
+  it("keeps the typed text with applyTimeoutMs: Infinity", () => {
+    const view = render(<Rejecting applyTimeoutMs={Infinity} />);
+    const input = view.getByLabelText("rejecting") as HTMLInputElement;
+    type(input, "typed");
+    act(() => void vi.advanceTimersByTime(60_000));
+    expect(input.value).toBe("typed");
+  });
+});
+
 describe("useDebouncedInput getInputProps", () => {
   function OwnHandlerField({ onCommit, onOwnChange }: { onCommit: (next: string) => void; onOwnChange: () => void }) {
     const input = useDebouncedInput("", onCommit, { delayMs: 100 });
