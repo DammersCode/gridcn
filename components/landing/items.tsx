@@ -80,16 +80,13 @@ export const FEATURE_MATRIX_HREF = "/docs/fit-features/feature-matrix";
 
 const AG = "https://www.ag-grid.com/react-data-grid";
 const MUI = "https://mui.com/x/react-data-grid";
-const TANSTACK = "https://tanstack.com/table/latest/docs/overview";
-const HEADLESS = "Headless, you build the UI";
-const NOT_LISTED = "Not listed";
 const NOT_BUILT = "Not built";
 
 type Cell = { value: string; href: string };
-type Row = { feature: string; cells: [Cell, Cell, Cell, Cell] };
+type Row = { feature: string; cells: [Cell, Cell, Cell] };
 
 export const comparison: { columns: string[]; rows: Row[] } = {
-  columns: ["gridcn", "AG Grid", "MUI X", "TanStack Table"],
+  columns: ["gridcn", "AG Grid", "MUI X"],
   rows: [
     {
       feature: "Range selection",
@@ -97,7 +94,6 @@ export const comparison: { columns: string[]; rows: Row[] } = {
         { value: "Free, core", href: "/docs/selection-shortcuts/pointer-selection" },
         { value: "Enterprise", href: `${AG}/cell-selection/` },
         { value: "Premium", href: `${MUI}/cell-selection/` },
-        { value: HEADLESS, href: TANSTACK },
       ],
     },
     {
@@ -106,7 +102,6 @@ export const comparison: { columns: string[]; rows: Row[] } = {
         { value: "Free, core", href: "/docs/clipboard-undo/clipboard" },
         { value: "Enterprise", href: `${AG}/clipboard/` },
         { value: "Premium", href: `${MUI}/clipboard/` },
-        { value: NOT_LISTED, href: TANSTACK },
       ],
     },
     {
@@ -115,7 +110,6 @@ export const comparison: { columns: string[]; rows: Row[] } = {
         { value: "Free, add-on", href: "/docs/clipboard-undo/fill-handle" },
         { value: "Enterprise", href: `${AG}/cell-selection-fill-handle/` },
         { value: "Premium", href: `${MUI}/clipboard/#drag-to-fill` },
-        { value: NOT_LISTED, href: TANSTACK },
       ],
     },
     {
@@ -124,7 +118,6 @@ export const comparison: { columns: string[]; rows: Row[] } = {
         { value: "Free, add-on", href: "/docs/clipboard-undo/undo-redo" },
         { value: "Community", href: `${AG}/undo-redo-edits/` },
         { value: "Premium", href: `${MUI}/undo-redo/` },
-        { value: NOT_LISTED, href: TANSTACK },
       ],
     },
     {
@@ -133,7 +126,6 @@ export const comparison: { columns: string[]; rows: Row[] } = {
         { value: NOT_BUILT, href: FEATURE_MATRIX_HREF },
         { value: "Enterprise", href: `${AG}/grouping/` },
         { value: "Premium", href: `${MUI}/row-grouping/` },
-        { value: HEADLESS, href: TANSTACK },
       ],
     },
     {
@@ -142,7 +134,6 @@ export const comparison: { columns: string[]; rows: Row[] } = {
         { value: NOT_BUILT, href: FEATURE_MATRIX_HREF },
         { value: "Enterprise", href: `${AG}/tree-data/` },
         { value: "Pro", href: `${MUI}/tree-data/` },
-        { value: HEADLESS, href: TANSTACK },
       ],
     },
     {
@@ -151,7 +142,6 @@ export const comparison: { columns: string[]; rows: Row[] } = {
         { value: NOT_BUILT, href: FEATURE_MATRIX_HREF },
         { value: "Enterprise", href: `${AG}/pivoting/` },
         { value: "Premium", href: `${MUI}/pivoting/` },
-        { value: NOT_LISTED, href: TANSTACK },
       ],
     },
     {
@@ -160,7 +150,6 @@ export const comparison: { columns: string[]; rows: Row[] } = {
         { value: NOT_BUILT, href: FEATURE_MATRIX_HREF },
         { value: "Enterprise", href: `${AG}/master-detail/` },
         { value: "Pro", href: `${MUI}/master-detail/` },
-        { value: HEADLESS, href: TANSTACK },
       ],
     },
   ],

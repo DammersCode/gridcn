@@ -173,7 +173,7 @@ function CompareTable() {
         {comparison.rows.map(({ feature, cells }) => (
           <li key={feature} className="border p-3 text-sm">
             <p className="font-medium">{feature}</p>
-            <ul className="mt-1 grid grid-cols-2 gap-x-3 text-xs">
+            <ul className="mt-1 grid grid-cols-3 gap-x-2 text-xs">
               {cells.map((cell, i) => (
                 <li key={comparison.columns[i]}>
                   <SiteLink
@@ -203,7 +203,7 @@ function ComparePanel() {
     >
       <CompareTable />
       <p className="text-xs text-muted-foreground">
-        Checked on {COMPARISON_DATE} against the vendors&apos; public documentation pages. TanStack Table is headless: it ships state and logic, not UI. Headless means the overview lists the feature and you build the UI; Not listed means the overview does not name it. Vendors change tiers: check the linked page.{" "}
+        Checked on {COMPARISON_DATE} against the vendors&apos; public documentation pages. Vendors change tiers: check the linked page.{" "}
         <Link href={FEATURE_MATRIX_HREF} className="inline-flex min-h-10 items-center underline underline-offset-4">
           Feature matrix of gridcn
         </Link>
