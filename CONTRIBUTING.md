@@ -41,6 +41,15 @@ pnpm registry:verify  # payload-content + manifest gates
 
 Commit the regenerated `public/r/` payloads together with the source change.
 
+## Before you commit
+
+A change carries its duties in the same commit:
+
+- A user-facing change to the registry or to the docs examples gets an entry under `## Unreleased` in `CHANGELOG.md`.
+- A feature that touches a data mode updates its row in `research/parity-matrix.json`. Then run `node scripts/verify-parity.mjs --write`.
+- A new demo gets an entry in `components/registry-examples.tsx`.
+- The gates in the `Workflow` section of `AGENTS.md` are green.
+
 ## Repository structure & file granularity
 
 These rules govern every block under `registry/default/blocks/`. They exist so a block stays
@@ -69,10 +78,9 @@ actually find their way around in.
    All of the merged file's exports are preserved; nothing that was previously importable stops
    being importable, it just moves to a new path.
 6. **A domain folder that other domains import gets an `index.ts` barrel.** The block-root barrel
-   (e.g. `data-grid-toolbar.ts`) remains the **only** public entry point — docs, consumer code, and
-   other registry items must never deep-import a domain's internals directly. If you need a
-   symbol from inside a domain, it must be re-exported from the block-root barrel (add it there
-   if it's missing).
+   (e.g. `data-grid-toolbar.ts`) is the consumer's import surface. Export from it only what the
+   docs teach the reader to call (see "Registry exports" in `AGENTS.md`). Add-ons import the
+   core's internals from `data-grid-sdk`. Inside a block, import from the domain's `index.ts`.
 
    The one exception is server/client boundary hygiene: a Server Component that only needs a
    leaf value (e.g. a plain constant with no React dependency) may import that leaf file directly
