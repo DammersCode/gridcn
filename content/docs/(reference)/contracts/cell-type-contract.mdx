@@ -202,7 +202,7 @@ export {};
 
 declare module "@/components/data-grid/types" {
   interface GridCellTypes {
-    currency: { value: number | null; options: { currency: string } };
+    currency: { value: number | null; options: { currency: string; locale?: string } };
   }
 }
 ```
