@@ -719,7 +719,7 @@ export function useDataGridPendingSaveCount(): number {
   return useDataGridStore((s) => s.pendingSaveCount);
 }
 
-/** The consumer hooks whose promise has not settled (`processPaste`, `validateRow`, `onBeforeEditStart`, `createRow`, `duplicateRow`, `onBeforeDeleteRows`, `import`, `processReplace`); the same empty set while none is pending. */
+/** The consumer hooks whose promise has not settled (`processPaste`, `processCellFromClipboard`, `validateRow`, `onBeforeEditStart`, `createRow`, `duplicateRow`, `onBeforeDeleteRows`, `import`, `mapColumn`, `processReplace`, and `validate` while an async column `validate` holds a paste, fill, or clear); the same empty set while none is pending. */
 export function useDataGridGatePending(): ReadonlySet<GateName> {
   return useDataGridStore((s) => s.gatesPending);
 }

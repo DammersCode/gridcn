@@ -21,7 +21,9 @@ import {
   snapshotBulkBatch,
   useBulkGeneration,
   useDataGridStoreApi,
+  useDataGridGateTracker,
   type BulkCandidate,
+  type GateRun,
   type BulkResolution,
   type InteractionLayout,
   type DataGridReadState,
@@ -266,6 +268,8 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
   const storeApi = useDataGridStoreApi();
   // One counter for this add-on's fill surface: a newer fill supersedes a still-validating one.
   const guard = useBulkGeneration();
+  const gates = useDataGridGateTracker();
+  const heldRun = useRef<GateRun | null>(null);
 
   const layoutRef = useRef(layout);
   layoutRef.current = layout;
@@ -335,16 +339,24 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
       if (resolution instanceof Promise) {
         const token = guard.begin();
         const snapshot = snapshotBulkBatch(s, candidateRowIds(s, candidates));
+        if (heldRun.current && !heldRun.current.aborted) gates.abortRun(heldRun.current, "superseded");
+        const run = (heldRun.current = gates.begin("validate", (now) => now.readOnly));
+        gates.hold(run);
+        const settle = () => {
+          gates.settle(run);
+          if (heldRun.current === run) heldRun.current = null;
+          return !run.aborted;
+        };
         void resolution.then((resolved) => {
           const current = storeApi.getState();
-          if (current.readOnly || !guard.isCurrent(token, current, snapshot)) return;
+          if (!settle() || current.readOnly || !guard.isCurrent(token, current, snapshot)) return;
           const applied = guard.reresolve(current, resolved.writes);
           const flashed = flashCellsFor(current, applied);
           // rejected cells are reported by the write itself (same source, after the write's emit)
           actions.applyCellUpdates(applied, "fill", resolved.rejected, resolved.warnings);
           // Pulse the cells that actually landed — the re-resolved batch, not the held one.
           actions.flashCells(flashed);
-        });
+        }, settle);
       } else {
         const flashed = flashCellsFor(storeApi.getState(), resolution.writes);
         actions.applyCellUpdates(resolution.writes, "fill", resolution.rejected, resolution.warnings);
@@ -357,7 +369,7 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
       actions.selectCellAt({ col: combined.x, row: combined.y });
       actions.extendToAt({ col: combined.x + combined.width - 1, row: combined.y + combined.height - 1 });
     },
-    [actions, guard, storeApi],
+    [actions, gates, guard, storeApi],
   );
 
   /** Releases pointer capture and clears all drag refs/listeners/rAF loop; returns the drag that was active, if any. */

@@ -16,6 +16,7 @@ import { createWarnOnce } from "../is-dev";
 import { isThenable } from "../store/async-gate";
 import { GateRun } from "../store/gate-signal";
 import { gateTrackerOf } from "../store/internal-actions";
+import { holdValidateGate, settleValidateGate } from "../store/validate-gate";
 import { exportText } from "../cell-types/display-text";
 import { toSafeText } from "../cell-types/safe-text";
 import { resolveColumnValidate } from "../cell-types/capabilities";
@@ -319,8 +320,8 @@ export function buildPasteWrites(
  * The paste application core (parse -> tile -> processPaste -> writes -> applyCellUpdates),
  * shared by the native `paste` event handler and {@link pasteText} so
  * both funnel through one pipeline. `cells` is already parsed (HTML-table or TSV); returns `false`
- * when there was nothing to paste (empty parse, no target, `processPaste` vetoed it, or an earlier
- * paste gate is still pending) so callers can distinguish "nothing happened" from a successful write.
+ * when there was nothing to paste (empty parse, no target, or `processPaste` vetoed it) so callers can
+ * distinguish "nothing happened" from a successful write. It aborts an earlier paste that is still pending.
  *
  * A touched column with an ASYNC schema makes the write list a Promise: the batch is held, and the
  * single `applyCellUpdates` runs on resolution — still one commit, one DataChange; the rejected
@@ -339,9 +340,13 @@ function applyParsedPaste(
   const target = resolvePasteTarget(s);
   if (!target) return false;
   const latch = pasteLatchOf(actions);
-  if (latch.gate && !latch.run?.aborted) {
-    latch.warnOnce("pending", `a paste was requested while the promise of ${latch.gate} is still pending, so it is ignored; the promise must settle`);
-    return false;
+  // The newest paste wins: it aborts a paste whose gate or schema is still pending.
+  if (latch.run && !latch.run.aborted) {
+    const gates = storeApi ? gateTrackerOf(storeApi) : undefined;
+    if (gates) gates.abortRun(latch.run, "superseded");
+    else latch.run.cancel();
+    latch.gate = null;
+    latch.run = null;
   }
 
   const tiled = tileToHeight(cells, targetHeight(s));
@@ -384,10 +389,10 @@ function applyParsedPaste(
   return true;
 }
 
-type PasteLatch = { gate: "processPaste" | "processCellFromClipboard" | null; run: GateRun | null; warnOnce: ReturnType<typeof createWarnOnce> };
+type PasteLatch = { gate: "processPaste" | "processCellFromClipboard" | "validate" | null; run: GateRun | null; warnOnce: ReturnType<typeof createWarnOnce> };
 const pasteLatches = new WeakMap<object, PasteLatch>();
 
-/** One latch per grid: the pending gate blocks a second paste, whatever surface it comes from. */
+/** One latch per grid: the pending paste, whatever surface it comes from; a newer paste aborts it. */
 function pasteLatchOf(actions: DataGridActions): PasteLatch {
   let latch = pasteLatches.get(actions);
   if (!latch) {
@@ -502,12 +507,27 @@ function applyResolution(
 
   const token = heldToken ?? guard?.begin();
   const snapshot = snapshotBulkBatch(s, candidateRowIds(s, candidates));
-  void resolution.then((resolved) => {
-    const current = storeApi?.getState() ?? s;
-    if (current.readOnly) return;
-    if (guard && token !== undefined && !guard.isCurrent(token, current, snapshot)) return;
-    actions.applyCellUpdates(reresolveBulkWrites(current, resolved.writes), "paste", resolved.rejected, resolved.warnings);
-  });
+  const latch = pasteLatchOf(actions);
+  const run = holdValidateGate(storeApi, (now) => now.readOnly);
+  latch.gate = "validate";
+  latch.run = run;
+  const finish = (): boolean => {
+    if (latch.run === run) {
+      latch.gate = null;
+      latch.run = null;
+    }
+    return settleValidateGate(storeApi, run);
+  };
+  void resolution.then(
+    (resolved) => {
+      if (!finish()) return;
+      const current = storeApi?.getState() ?? s;
+      if (current.readOnly) return;
+      if (guard && token !== undefined && !guard.isCurrent(token, current, snapshot)) return;
+      actions.applyCellUpdates(reresolveBulkWrites(current, resolved.writes), "paste", resolved.rejected, resolved.warnings);
+    },
+    () => void finish(),
+  );
   return true;
 }
 
@@ -516,8 +536,8 @@ function applyResolution(
  * -> processPaste -> writes -> applyCellUpdates), for triggers outside a native ClipboardEvent
  * (context-menu Paste, programmatic paste). Text-only — no HTML-table fidelity, since there's no
  * `text/html` payload to prefer; parity with a plain-text native paste. Returns whether a paste
- * started (false while editing, on a `readOnly` grid, with no paste target, after a sync `processPaste` veto, or while an earlier async
- * gate is still pending); with an async gate or schema the cells commit once it resolves.
+ * started (false while editing, on a `readOnly` grid, with no paste target, or after a sync `processPaste` veto); with an
+ * async gate or schema the cells commit once it resolves, unless a newer paste supersedes it.
  */
 export function pasteText(
   s: DataGridStoreState,

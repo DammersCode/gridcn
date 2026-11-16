@@ -788,16 +788,28 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   };
 
   let clearGeneration = 0;
+  const heldClear: { run: GateRun | null } = { run: null };
   /** Commits clear-to-clearValue() `writes` as one `delete` batch once their validators settle; shared by both delete actions. */
   const commitClearWrites = (s: DataGridStoreState, requested: ClearWrite[], source: "delete" | "cut"): void => {
     const token = ++clearGeneration;
     const resolution = resolveClearWrites(s, requested);
     if (!(resolution instanceof Promise)) return writeClears(s, resolution, source);
     const snapshot = snapshotBulkBatch(s, candidateRowIds(s, requested));
-    void resolution.then((resolved) => {
-      const now = get();
-      if (token === clearGeneration && !now.readOnly && isBulkBatchCurrent(now, snapshot)) writeClears(now, { ...resolved, writes: reresolveBulkWrites(now, resolved.writes) }, source);
-    });
+    if (heldClear.run && !heldClear.run.aborted) ctx.gates.abortRun(heldClear.run, "superseded");
+    const run = (heldClear.run = ctx.gates.begin("validate", (now) => now.readOnly));
+    ctx.gates.hold(run);
+    const settle = () => {
+      ctx.gates.settle(run);
+      if (heldClear.run === run) heldClear.run = null;
+      return !run.aborted;
+    };
+    void resolution.then(
+      (resolved) => {
+        const now = get();
+        if (settle() && token === clearGeneration && !now.readOnly && isBulkBatchCurrent(now, snapshot)) writeClears(now, { ...resolved, writes: reresolveBulkWrites(now, resolved.writes) }, source);
+      },
+      settle,
+    );
   };
 
   const writeClears = (s: DataGridStoreState, { writes, rejected, warnings }: BulkResolution, source: "delete" | "cut"): void => {

@@ -90,19 +90,21 @@ describe("processPaste async", () => {
     expect(m.names()[MAX_PASTE_CELLS]).toBe(`R${MAX_PASTE_CELLS}`);
   });
 
-  it("a pending promise blocks a second paste and warns once", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const d = deferred<string[][]>();
-    const processPaste = vi.fn(() => d.promise);
-    const m = mount({ processPaste });
+  it("a newer paste supersedes a pending one: its signal aborts and only the newer paste lands", async () => {
+    const first = deferred<string[][]>();
+    const second = deferred<string[][]>();
+    const signals: AbortSignal[] = [];
+    const pending = [first.promise, second.promise];
+    const onGateAborted = vi.fn();
+    const m = mount({ processPaste: ({ signal }) => (signals.push(signal), pending.shift()!), onGateAborted });
     expect(m.paste("one")).toBe(true);
-    expect(m.paste("two")).toBe(false);
-    expect(m.paste("three")).toBe(false);
-    expect(processPaste).toHaveBeenCalledTimes(1);
-    expect(warn.mock.calls.filter(([message]) => String(message).includes("processPaste"))).toHaveLength(1);
-    d.resolve([["one"]]);
+    expect(m.paste("two")).toBe(true);
+    expect(signals[0]!.aborted).toBe(true);
+    expect(onGateAborted).toHaveBeenCalledWith({ gate: "processPaste", reason: "superseded" });
+    first.resolve([["one"]]);
+    second.resolve([["two"]]);
     await settle();
-    expect(m.names()).toEqual(["one", "B", "C"]);
+    expect(m.names()).toEqual(["two", "B", "C"]);
   });
 
   it("a processPaste rejection without a string form cancels the paste", async () => {
@@ -214,19 +216,17 @@ describe("processCellFromClipboard async", () => {
     expect(m.names()).toEqual(["sync", "async", "C"]);
   });
 
-  it("a pending promise blocks a second paste and warns once", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const d = deferred<string>();
-    const parse = vi.fn(() => d.promise);
-    const m = mount({ processCellFromClipboard: parse });
+  it("a newer paste supersedes a pending one, like a paste held by an async schema", async () => {
+    const first = deferred<string>();
+    const pending = [first.promise, Promise.resolve("two")];
+    const onGateAborted = vi.fn();
+    const m = mount({ processCellFromClipboard: () => pending.shift()!, onGateAborted });
     expect(m.paste("one")).toBe(true);
-    expect(m.paste("two")).toBe(false);
-    expect(m.paste("three")).toBe(false);
-    expect(parse).toHaveBeenCalledTimes(1);
-    expect(warn.mock.calls.filter(([message]) => String(message).includes("processCellFromClipboard"))).toHaveLength(1);
-    d.resolve("done");
+    expect(m.paste("two")).toBe(true);
+    expect(onGateAborted).toHaveBeenCalledWith({ gate: "processCellFromClipboard", reason: "superseded" });
+    first.resolve("one");
     await settle();
-    expect(m.names()).toEqual(["done", "B", "C"]);
+    expect(m.names()).toEqual(["two", "B", "C"]);
   });
 
   it("a processCellFromClipboard rejection without a string form cancels the paste", async () => {
@@ -309,5 +309,34 @@ describe("processCellFromClipboard async", () => {
     await settle();
     expect(m.names()).toEqual(["X!", "B", "C"]);
     expect(onDataChange).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("a paste held by an async schema", () => {
+  const asyncSchema = (gate: Promise<void>) => ({
+    "~standard": { version: 1, vendor: "test", validate: async (value: unknown) => (await gate, { value }) },
+  });
+
+  it('marks the "validate" gate pending until the schema settles, and gateTimeoutMs.validate drops the batch', async () => {
+    const held = deferred<void>();
+    const m = mount({ columns: [{ ...columns[0]!, validate: asyncSchema(held.promise) as never }, columns[1]!] });
+    m.paste("one");
+    expect([...m.store.getState().gatesPending]).toEqual(["validate"]);
+    held.resolve();
+    await settle();
+    expect(m.store.getState().gatesPending.size).toBe(0);
+    expect(m.names()).toEqual(["one", "B", "C"]);
+
+    vi.useFakeTimers();
+    try {
+      const onGateAborted = vi.fn();
+      const stuck = mount({ columns: [{ ...columns[0]!, validate: asyncSchema(new Promise(() => {})) as never }, columns[1]!], gateTimeoutMs: { validate: 50 }, onGateAborted });
+      stuck.paste("late");
+      vi.advanceTimersByTime(60);
+      expect(onGateAborted).toHaveBeenCalledWith({ gate: "validate", reason: "timeout" });
+      expect(stuck.store.getState().gatesPending.size).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

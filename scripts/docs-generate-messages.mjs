@@ -132,7 +132,6 @@ export const MESSAGES = [
       dev("processPaste rejected, so the paste is cancelled: <error>", "clipboard/use-grid-clipboard.ts", "rejected, so the paste is cancelled", "Fix the error in `processPaste`, or catch it inside the function.", "/docs/clipboard-undo/clipboard"),
       dev("processCellFromClipboard rejected, so the paste is cancelled: <error>", "clipboard/use-grid-clipboard.ts", "processCellFromClipboard rejected, so the paste is cancelled", "Fix the error in `processCellFromClipboard`, or catch it inside the function.", "/docs/clipboard-undo/clipboard"),
       dev("processCellFromClipboard threw, so the paste is cancelled: <error>", "clipboard/use-grid-clipboard.ts", "threw, so the paste is cancelled", "Fix the error in `processCellFromClipboard`.", "/docs/clipboard-undo/clipboard"),
-      dev("a paste was requested while the promise of <gate> is still pending, so it is ignored; the promise must settle", "clipboard/use-grid-clipboard.ts", "is still pending, so it is ignored", "Make the promise of the gate settle.", "/docs/clipboard-undo/clipboard"),
     ],
   },
   {

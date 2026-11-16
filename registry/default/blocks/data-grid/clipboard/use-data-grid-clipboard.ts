@@ -54,8 +54,8 @@ export type UseDataGridClipboardResult = {
    * rejected (no `clipboard-read` permission — the context-menu add-on falls back to a
    * "press Ctrl+V" hint), else `'ok'` when a paste started. Resolves `'empty'` when the clipboard held no
    * text, and `'refused'` when no paste started: the grid is `readOnly`, a cell editor is open, there is no paste target,
-   * a sync `processPaste` vetoed it, an earlier async gate is still pending, or the text parses to no cells.
-   * An async `processPaste` decides after `'ok'`.
+   * a sync `processPaste` vetoed it, or the text parses to no cells. An async `processPaste` decides after `'ok'`.
+   * A paste aborts an earlier paste whose gate or async schema is still pending (`onGateAborted` reason `"superseded"`).
    */
   pasteFromClipboard: () => Promise<PasteFromClipboardResult>;
 };

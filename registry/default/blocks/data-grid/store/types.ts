@@ -209,7 +209,7 @@ export type DataGridSyncProps<TData = unknown> = {
   defaultPage?: number;
   onPageChange?: (page: number) => void;
   /**
-   * Aborts an async gate (`onBeforeDeleteRows`, `validateRow`, `onBeforeEditStart`, `createRow`, `duplicateRow`, `processPaste`, `processCellFromClipboard`, `processReplace`, the import `mapColumn`) whose promise
+   * Aborts an async gate (`onBeforeDeleteRows`, `validateRow`, `onBeforeEditStart`, `createRow`, `duplicateRow`, `processPaste`, `processCellFromClipboard`, `processReplace`, the import `mapColumn`, an async `validate` holding a paste, fill, or clear) whose promise
    * has not settled after this many ms (one number for every gate, or a number per gate name): its `signal` aborts, the action is cancelled, and the next action may start. Default: off
    * (a gate waits for its promise).
    */
