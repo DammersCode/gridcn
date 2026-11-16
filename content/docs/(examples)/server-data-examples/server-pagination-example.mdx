@@ -5,7 +5,7 @@ icon: Files
 type: example
 ---
 
-`useDataGridServerPager` only does the page math. You own `page`, `pageSize`, and `totalRowCount`, and you fetch each page. A fetch library fits in the one place where you fetch. Both grids below load 25 rows per page from a fake server with about 300 ms of latency. Both write an edit to that server.
+`useDataGridServerPager` only does the page math. You own `page`, `pageSize`, and `totalRowCount`, and you fetch each page. A fetch library fits in the one place where you fetch. Both grids below load 25 rows per page from a fake server with about 300 ms of latency. Both write an edit to that server. The grids get the rows of one page and no `totalRowCount`, so a header sort or filter changes only the shown page. To send the sort and the filter to the server, use [Load rows by page](/docs/server-pagination/load-rows-page) with `useDataGridServerRows`.
 
 ## TanStack Query [#tanstack-query]
 

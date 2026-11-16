@@ -16,11 +16,12 @@ One grid uses all four pin zones. Name sits in the start band and Score sits in 
 - `pin: "start"` on Name and `pin: "end"` on Score pin the column bands.
 - `useDataGridPinnedRows` takes `topRows` and `bottomRows`. The top band holds the averages row. The bottom band holds the totals row.
 - `aggregateRow` declares both rows. The band computes them from the rows that pass the filter (the `scope` defaults to `"view"`).
+- The totals row sets the Name cell with a function reducer, `(values, rows) => ...`, that shows the row count.
 - The grid has nine columns and 200 rows. Scroll it in both directions.
 
 ## Wire the zones
 
-Declare each computed row with `aggregateRow` and pass it to the hook. The `cells` option sets the fixed cells by column id:
+Declare each computed row with `aggregateRow` and pass it to the hook. A function reducer defined inline has a new identity on each render and rebuilds the band, so declare such a row once at module scope. The `cells` option sets the fixed cells by column id:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
