@@ -313,17 +313,24 @@ describe("custom keymap commands through <DataGrid commands keymap>", () => {
     warn.mockRestore();
   });
 
+  it("dev-warns for an openKeybindings command with no key, like the other add-on command names", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render(<DataGrid data={rows()} columns={columns} getRowId={(r) => r.id} commands={{ openKeybindings: { run: vi.fn() } }} />);
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes('keymap={{ openKeybindings: ["?"] }}'))).toHaveLength(1);
+    warn.mockRestore();
+  });
+
   it("does not warn a moved command name the consumer keymap rebinds or unbinds", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     render(<DataGrid data={rows()} columns={columns} getRowId={(r) => r.id} commands={{ undo: { run: vi.fn() } }} keymap={{ undo: [] } as Keymap} />);
-    expect(warn.mock.calls.some((c) => String(c[0]).includes("no longer run from a built-in key"))).toBe(false);
+    expect(warn.mock.calls.some((c) => String(c[0]).includes("have no key"))).toBe(false);
     warn.mockRestore();
   });
 
   it("does not warn a moved command name that the keymap binds", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     render(<DataGrid data={rows()} columns={columns} getRowId={(r) => r.id} commands={{ undo: { run: vi.fn() } }} keymap={{ undo: ["mod+z"] } as Keymap} />);
-    expect(warn.mock.calls.some((c) => String(c[0]).includes("no longer run from a built-in key"))).toBe(false);
+    expect(warn.mock.calls.some((c) => String(c[0]).includes("have no key"))).toBe(false);
     warn.mockRestore();
   });
 });

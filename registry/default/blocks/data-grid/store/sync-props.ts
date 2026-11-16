@@ -109,7 +109,8 @@ export function resolveSortLocale(props: { sortLocale?: string; locale?: string 
 }
 
 
-export const MOVED_COMMAND_NAMES = ["undo", "redo", "fillDown", "fillRight", "openFind", "openFindReplace"] as const;
+/** The add-on command names and the key each add-on binds: a `commands` entry for one of them has no key unless the add-on or the keymap binds it. */
+export const ADDON_COMMAND_KEYS = { undo: "mod+z", redo: "mod+shift+z", fillDown: "mod+d", fillRight: "mod+r", openFind: "mod+f", openFindReplace: "shift+alt+Enter", openKeybindings: "?" } as const;
 
 
 /** The patch that ends "all matching" with the old result: the rows are unchecked and the exclusions forgotten. */
@@ -210,10 +211,10 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
       }
       if (props.commands && !memory.warnedMovedCommands && isDev()) {
         const keymap = (nextKeymap ?? get().keymap) as Record<string, readonly unknown[] | undefined>;
-        const unbound = MOVED_COMMAND_NAMES.filter((name) => props.commands && name in props.commands && !props.keymap?.[name as keyof Keymap] && !keymap[name]?.length);
+        const unbound = (Object.keys(ADDON_COMMAND_KEYS) as (keyof typeof ADDON_COMMAND_KEYS)[]).filter((name) => props.commands && name in props.commands && !props.keymap?.[name as keyof Keymap] && !keymap[name]?.length);
         if (unbound.length > 0) {
           memory.warnedMovedCommands = true;
-          warnDev(`commands ${unbound.join(", ")} no longer run from a built-in key; bind the action in the keymap, for example keymap={{ ${unbound[0]}: ["mod+z"] }}`);
+          warnDev(`commands ${unbound.join(", ")} have no key: the add-on that binds the key is not mounted; bind the action in the keymap, for example keymap={{ ${unbound[0]}: ["${ADDON_COMMAND_KEYS[unbound[0]!]}"] }}`);
         }
       }
       set((s) => {
