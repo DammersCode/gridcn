@@ -1,5 +1,5 @@
 import { createContext, use, useMemo, type CSSProperties, type ReactElement, type ReactNode, type RefObject } from "react";
-import type { GetCellClassName, GetRowClassName } from "./types";
+import type { CellClassNameReader, RowClassNameReader } from "./rows/use-class-name-revision";
 import { useDataGridColumnWidths, useDataGridRowMarkers, type AnyColumnDef } from "./store";
 import { resolveColumnWidth, distributeFlexWidths } from "./columns/resolve-column-width";
 import { encodeTemplate } from "./columns/column-format-helpers";
@@ -196,8 +196,8 @@ export type DataGridRootContextValue = {
   /** Optional custom marker-header renderer; undefined renders the built-in select-all checkbox. */
   renderMarkerHeader?: MarkerHeaderRenderer;
   /** Stable readers of the consumer's latest `getRowClassName` and `getCellClassName`; the context value stays unchanged when the consumer passes a new function. */
-  getRowClassName?: GetRowClassName<unknown>;
-  getCellClassName?: GetCellClassName<unknown>;
+  getRowClassName?: RowClassNameReader;
+  getCellClassName?: CellClassNameReader;
   /** Changes when the class hooks return different classes for the rendered rows; rows and cells re-render. */
   classNameRevision: number;
   /** The body writes the rows it renders here so the root can compare class hook results. */

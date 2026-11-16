@@ -15,7 +15,8 @@ import {
 import { cn } from "@/lib/utils";
 import { COLUMN_BORDER } from "./columns/column-border";
 import { gridAttrSelector } from "./data-attributes";
-import type { CellType, GetCellClassName } from "./types";
+import type { CellType } from "./types";
+import type { CellClassNameReader } from "./rows/use-class-name-revision";
 import { getCellValue } from "./columns/column-helpers";
 import { useDataGridCellTypes, useDataGridStoreApi, type AnyColumnDef } from "./store";
 import { getInternalActions } from "./store/internal-actions";
@@ -53,7 +54,7 @@ export type DataGridCellProps = {
   /** 1-based `gridColumnStart` offset added to `viewColumnIndex`; 2 when a marker column occupies track 1, else 1. Presentation-only — never affects `coord`/`aria-colindex`. */
   gridColOffset?: number;
   /** Forwarded from row.tsx (a stable function) rather than read from context here, so this memoized cell's props stay shallow-equal across ticks. */
-  getCellClassName?: GetCellClassName<unknown>;
+  getCellClassName?: CellClassNameReader;
   /** Changes when the class hooks return different classes; re-renders this memoized cell. */
   classNameRevision?: number;
   /**
@@ -142,6 +143,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
     gridReadOnly,
     gridColOffset = 1,
     getCellClassName,
+    classNameRevision,
     pinnedRow: isPinnedRow,
     isActive = false,
     isSelected = false,
@@ -262,7 +264,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   // Grid-level hook first, then the column's own override — later cn() args win on conflicting
   // utilities, so a per-column override can still beat a grid-wide default.
   const classNameCtx = { value, row, column, rowId, columnId: column.id, viewRowIndex: viewRowIndex };
-  const gridCellClassName = row === undefined ? undefined : getCellClassName?.(classNameCtx);
+  const gridCellClassName = row === undefined ? undefined : getCellClassName?.(classNameCtx, classNameRevision ?? 0);
   const columnCellClassName =
     typeof column.cellClassName === "function"
       ? row === undefined

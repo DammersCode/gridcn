@@ -9,7 +9,8 @@ import { colRangesContain } from "./selection/selected-col-ranges-for-row";
 import { DataGridCell } from "./cell";
 import { DataGridMarkerCell } from "./rows/marker-cell";
 import type { ColumnLayout, MarkerCellRenderer, RenderedColumn } from "./layout-context";
-import type { GetCellClassName, GetRowClassName, RowMarkersMode } from "./types";
+import type { RowMarkersMode } from "./types";
+import type { CellClassNameReader, RowClassNameReader } from "./rows/use-class-name-revision";
 
 export type DataGridRowProps = {
   viewRowIndex: number;
@@ -36,11 +37,11 @@ export type DataGridRowProps = {
   /** Rows above the data rows beyond the first header row (extra header rows plus the pinned-top band) — shifts `aria-rowindex`; 0 with one header row and no band. */
   ariaRowIndexOffset: number;
   /** Row class hook; a stable function (it reads the consumer's latest callback), so this memoized row's props stay shallow-equal across ticks. */
-  getRowClassName?: GetRowClassName<unknown>;
+  getRowClassName?: RowClassNameReader;
   /** Changes when the class hooks return different classes for the rendered rows; re-renders the row and its cells. */
   classNameRevision?: number;
   /** Forwarded to each cell; see {@link DataGridRowProps.getRowClassName}. */
-  getCellClassName?: GetCellClassName<unknown>;
+  getCellClassName?: CellClassNameReader;
 };
 
 /**
@@ -96,7 +97,7 @@ export const DataGridRow = memo(function DataGridRow({
       {...(cellState.stale ? { [GRID_ATTR.rowStale]: "" } : undefined)}
       aria-selected={isChecked ? true : hasCheckboxMarker ? false : undefined}
       // Named group: pinned and marker cells follow the row hover via CSS only, never React state.
-      className={cn("group/row data-hovered:bg-muted/50 data-[save-status=saving]:text-muted-foreground data-[save-status=failed]:bg-destructive/10", row === undefined ? undefined : getRowClassName?.(row, viewRowIndex))}
+      className={cn("group/row data-hovered:bg-muted/50 data-[save-status=saving]:text-muted-foreground data-[save-status=failed]:bg-destructive/10", row === undefined ? undefined : getRowClassName?.(row, viewRowIndex, classNameRevision ?? 0))}
       style={{
         display: "grid",
         gridTemplateColumns: "subgrid",

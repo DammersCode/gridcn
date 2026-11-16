@@ -11,6 +11,9 @@ type ClassNameHooks = {
   getCellClassName: GetCellClassName<unknown> | undefined;
 };
 
+export type RowClassNameReader = (row: unknown, viewRowIndex: number, revision: number) => string | undefined;
+export type CellClassNameReader = (ctx: Parameters<GetCellClassName<unknown>>[0], revision: number) => string | undefined;
+
 export type RenderedRows = { viewRowIndices: readonly number[]; rowIds: readonly (string | undefined)[]; columns: readonly AnyColumnDef[] };
 
 function classNameSignature(
@@ -57,8 +60,8 @@ export function useClassNameRevision(hooks: ClassNameHooks, renderedRef: RefObje
     if (changed) setRevision((r) => r + 1);
   }, [hooks, renderedRef, storeApi]);
 
-  const getRowClassName = useCallback<GetRowClassName<unknown>>((row, viewRowIndex) => latest.current.getRowClassName?.(row, viewRowIndex), []);
-  const getCellClassName = useCallback<GetCellClassName<unknown>>((ctx) => latest.current.getCellClassName?.(ctx), []);
+  const getRowClassName = useCallback<RowClassNameReader>((row, viewRowIndex) => latest.current.getRowClassName?.(row, viewRowIndex), []);
+  const getCellClassName = useCallback<CellClassNameReader>((ctx) => latest.current.getCellClassName?.(ctx), []);
   const hasRowHook = hooks.getRowClassName !== undefined;
   const hasCellHook = hooks.getCellClassName !== undefined;
   return useMemo(
