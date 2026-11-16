@@ -180,7 +180,7 @@ describe("find-replace plugin bindings in the dialog", () => {
     expect(find?.textContent).not.toContain("Open find");
     expect(replace?.textContent).toContain("Find and replace");
     expect(chipLabels("openFind")).toContain("F");
-    expect(chipLabels("openFindReplace")).toContain("H");
+    expect(chipLabels("openFindReplace")).toContain("Enter");
     expect(find?.closest('[data-keybindings-category="selection"]')).not.toBeNull();
     expect(replace?.closest('[data-keybindings-category="selection"]')).not.toBeNull();
     expect(document.querySelector('[data-keybindings-category="other"]')).toBeNull();
