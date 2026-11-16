@@ -9,7 +9,6 @@
   "registry/default/blocks/data-grid/store/update-cells.test.tsx": 1604,
   "registry/default/blocks/data-grid/test/data-grid.browser.test.tsx": 2375,
   "registry/default/blocks/data-grid/test/data-grid.test.tsx": 1821,
-  "registry/default/blocks/data-grid/test/store.test.tsx": 3864,
   "registry/default/blocks/data-grid/types.ts": 1078,
   "registry/default/blocks/data-grid-server/scroll-blocks.ts": 1142
 }
