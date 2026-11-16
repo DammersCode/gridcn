@@ -122,7 +122,7 @@ The URL writes a blank list entry as a lone `%`.
 
 A sort from the URL (`?sort=name:asc`) shows its arrow in a string header whatever `headerClickBehavior` says. Set `headerClickBehavior="sort"` to let a header click change or clear it. Or install `data-grid-sort-list` for a toolbar sort list.
 
-The add-on checks every URL value against the live columns: their ids, their visibility, and the `sortable` and `filterable` flags. On a column with `choices`, the number of choices bounds the length of a list. A spec for a column that is gone never reaches the view.
+On a column with `choices`, a set filter from the URL keeps only the blank entry and the values in `choices`.
 
 ## Column layout
 
@@ -175,7 +175,7 @@ The add-on restores sorts, filters, and search text through the store actions. T
 
 A grid that declares a `totalRowCount` holds the restored spec and never sorts or filters the partial `data`. Fetch the rows for the restored spec on mount. For page numbers in the URL, see [Keep pages in URL](/docs/server-pagination/keep-pages-url).
 
-On a column with `choices`, a restored `isAnyOf` or `isNoneOf` list keeps at most `max(number of choices, 64)` values.
+A set filter value outside `choices` drops in server filter mode too, so list every value that your server filters by in `choices`.
 
 A link holds up to 64 sorts. The default `parseServerSpec` limits accept them.
 

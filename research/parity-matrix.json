@@ -1519,7 +1519,7 @@
         "FS": {
           "status": "gap",
           "track": "N2",
-          "note": "A deep-linked set-filter list keeps up to the larger of 64 and the number of static `choices` of the column. A column without static `choices` keeps up to 1,000 values. The grid drops the values past that bound, and an `isNoneOf` list past it drops the whole filter."
+          "note": "A deep-linked set-filter list keeps only the blank entry and the static `choices` of the column, as in client mode. A list with no value left drops its filter. It keeps up to the larger of 64 and the number of those choices. A column without static `choices` keeps up to 1,000 values. The grid drops the values past that bound, and an `isNoneOf` list past it drops the whole filter."
         },
         "API": {
           "status": "supported",
