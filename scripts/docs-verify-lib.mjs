@@ -87,7 +87,9 @@ const slugText = (text) =>
     .replace(/[^\p{L}\p{N}\s_-]/gu, "")
     .replace(/\s/g, "-");
 
-/** Anchor ids of a page body: heading slugs (with the -1 suffix for repeats), explicit `[#id]`, and `id="..."` attributes. */
+const ROW_NAME = /^\|\s*`([A-Za-z_$][\w$]*)`\s*\|/;
+
+/** Anchor ids of a page body: row ids of tables, heading slugs (with the -1 suffix for repeats), explicit `[#id]`, and `id="..."` attributes. */
 export function anchorsOf(body) {
   const anchors = new Set();
   const seen = new Map();
@@ -108,6 +110,8 @@ export function anchorsOf(body) {
       }
     }
     for (const id of line.matchAll(/\bid=["']([^"']+)["']/g)) anchors.add(id[1]);
+    const row = ROW_NAME.exec(line);
+    if (row) anchors.add(rowIdOf(row[1]));
   }
   return anchors;
 }
@@ -152,3 +156,5 @@ export async function importTs(path) {
     process.emitWarning = emit;
   }
 }
+
+export const { rowIdOf } = await importTs(join(import.meta.dirname, "..", "lib", "rehype-row-ids.ts"));

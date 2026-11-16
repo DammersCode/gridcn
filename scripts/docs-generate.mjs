@@ -5,7 +5,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { pathToFileURL } from "node:url";
-import { frontField, pageIndex, readLf, splitFrontmatter, urlOfPage } from "./docs-verify-lib.mjs";
+import { frontField, pageIndex, readLf, rowIdOf, splitFrontmatter, urlOfPage } from "./docs-verify-lib.mjs";
 import { parseTypes } from "./verify-docs-props.mjs";
 import { MESSAGES, OMITTED } from "./docs-generate-messages.mjs";
 import { FINDER, FEATURES, FEATURE_SINCE, ADDONS, TERM_PAGES, ACTION_PAGES, PROP_PAGES, HOOK_GROUPS, OPTION_GROUPS, OPTION_PURPOSE } from "./docs-generate-data.mjs";
@@ -399,13 +399,14 @@ function splitRow(line) {
 const REFERENCE_PAGES = /^\/docs\/(components-props|events-state|contracts|plugins|types-hooks)/;
 const PAGE_RANK = (url) => (/events-state/.test(url) ? 0 : /components-props/.test(url) ? 1 : 2);
 
-/** name -> list of { url, anchor, desc } for table rows whose first cell is one backticked name. */
+/** name -> list of { url, section, anchor, desc } for table rows whose first cell is one backticked name. */
 function tableIndex() {
   const index = new Map();
   const urls = [...pages.keys()].filter((u) => REFERENCE_PAGES.test(u)).sort((a, b) => PAGE_RANK(a) - PAGE_RANK(b));
   for (const url of urls) {
     const lines = pages.get(url).body.split("\n");
     let anchor = "";
+    const rowsSeen = new Set();
     let head = [];
     let fence = false;
     for (const [i, line] of lines.entries()) {
@@ -427,7 +428,9 @@ function tableIndex() {
       if (!m) continue;
       const di = head.findIndex((c) => /^(description|purpose|meaning|fires when|cause|effect)/.test(c));
       const desc = di > 0 ? cells[di] : head.length === 2 ? cells[1] : "";
-      index.set(m[1], [...(index.get(m[1]) ?? []), { url, anchor, desc: desc ?? "" }]);
+      const firstRow = !rowsSeen.has(m[1]);
+      rowsSeen.add(m[1]);
+      index.set(m[1], [...(index.get(m[1]) ?? []), { url, section: anchor, anchor: firstRow ? rowIdOf(m[1]) : anchor, desc: desc ?? "" }]);
     }
   }
   return index;
@@ -455,8 +458,8 @@ function members(file, typeName) {
 const GRID_PROPS = "/docs/components-props/data-grid-props";
 const COLUMN_DEF = "/docs/components-props/column-def";
 const PROP_SOURCES = [
-  { title: "Provider props", id: "provider-props", file: `${BLOCKS}/data-grid/store/types.ts`, type: "DataGridSyncProps", fallback: `${GRID_PROPS}#all-props`, used: "DataGrid, DataGridProvider", accept: (e) => e.url !== COLUMN_DEF && !(e.url === GRID_PROPS && ["root-props", "imperative-handle"].includes(e.anchor)) },
-  { title: "Root props", id: "root-props", file: `${BLOCKS}/data-grid/root.tsx`, type: "DataGridRootProps", fallback: `${GRID_PROPS}#root-props`, used: "DataGrid, DataGridRoot", accept: (e) => e.url === GRID_PROPS && e.anchor === "root-props" },
+  { title: "Provider props", id: "provider-props", file: `${BLOCKS}/data-grid/store/types.ts`, type: "DataGridSyncProps", fallback: `${GRID_PROPS}#all-props`, used: "DataGrid, DataGridProvider", accept: (e) => e.url !== COLUMN_DEF && !(e.url === GRID_PROPS && ["root-props", "imperative-handle"].includes(e.section)) },
+  { title: "Root props", id: "root-props", file: `${BLOCKS}/data-grid/root.tsx`, type: "DataGridRootProps", fallback: `${GRID_PROPS}#root-props`, used: "DataGrid, DataGridRoot", accept: (e) => e.url === GRID_PROPS && e.section === "root-props" },
   { title: "Column fields", id: "column-fields", file: `${BLOCKS}/data-grid/types.ts`, type: "ColumnDef", fallback: `${COLUMN_DEF}#fields`, used: "ColumnDef", accept: (e) => e.url === COLUMN_DEF },
 ];
 
@@ -758,7 +761,30 @@ function optionPurpose(row, name) {
   return "";
 }
 
+const optionOwnerKey = (name) => name.toLowerCase().replace(/(props|options)$/, "").replace(/^use/, "").replace(/[^a-z]/g, "");
+const OPTION_TYPE_OWNER = { UseDataGridPaginationServerOptions: "useDataGridServerPager", ReplaceOptions: "planReplace" };
+const RETURNED_PROPS = /(Provider|Root)Props$/;
+
+/** Member names of an Options or Props type that no row of a matching owner in `groups` lists. */
+export function missingOptionNames(typeName, memberNames, groups = OPTION_GROUPS) {
+  const key = optionOwnerKey(OPTION_TYPE_OWNER[typeName] ?? typeName);
+  const listed = new Set(groups.flatMap((g) => g.rows).filter((r) => r.owners.some((o) => { const k = optionOwnerKey(o.split(" ")[0]); return k === key || k.startsWith(key) || key.startsWith(k); })).flatMap((r) => r.names));
+  return memberNames.filter((n) => !listed.has(n));
+}
+
+function checkOptionCoverage() {
+  for (const [url, page] of pages) {
+    if (!url.startsWith("/docs/add-options/")) continue;
+    for (const m of page.body.matchAll(/<AutoTypeTable path="([^"]+)" name="(\w+(?:Props|Options))"/g)) {
+      if (RETURNED_PROPS.test(m[2])) continue;
+      const missing = missingOptionNames(m[2], members(m[1].replace(/^\.\//, ""), m[2]));
+      if (missing.length) problems.push(`options: ${m[2]} (${url}) has no options-z row for ${missing.join(", ")}; add them to OPTION_GROUPS`);
+    }
+  }
+}
+
 function optionsZ() {
+  checkOptionCoverage();
   const taken = new Set();
   const optionRows = [];
   for (const group of OPTION_GROUPS) {

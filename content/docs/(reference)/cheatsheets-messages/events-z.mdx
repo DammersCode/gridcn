@@ -28,7 +28,7 @@ Each row is a callback prop of the grid. Add-on callbacks are on [Options A to Z
 | `onPageChange` | Fires with the new page after a page change, and with 1 after a filter change. | [Client pagination](/docs/rows-pages-menus/client-pagination#client-mode) |
 | `onPageSizeChange` | Fires with the new page size after a change of the page size. | [Client pagination](/docs/rows-pages-menus/client-pagination#client-mode) |
 | `onRenderedRowsChange` | Fires with the range of rendered view rows. | [Column and viewport events](/docs/events-state/column-viewport-events#onrenderedrowschange) |
-| `onRetry` | Runs on a press of the Retry button. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
+| `onRetry` | Runs on a press of the Retry button. | [DataGrid props](/docs/components-props/data-grid-props#prop-onretry) |
 | `onRowActionSkipped` | Fires when a row action (`insertRows`, `duplicateRows`, `deleteRows`, `moveRows`) does nothing, with its name and the reason. The insert, duplicate, and delete actions also return `{ ok: false, reason }`. `reorderRows` and `moveRowsBy` (both report as `moveRows`) return `false`. | [Handle row action results](/docs/rows-live-data/handle-row-action-results#action-results) |
 | `onSave` | Sends a change to a server. | [Data change events](/docs/events-state/data-change-events#onsave) |
 | `onSaveRejected` | Fires after the grid reverted a refused change. | [Data change events](/docs/events-state/data-change-events#onsaverejected) |

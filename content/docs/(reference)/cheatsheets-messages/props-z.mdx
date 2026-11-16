@@ -24,19 +24,19 @@ Props of DataGrid, DataGridProvider.
 | `cellTypes` | Custom cell types keyed by `ColumnDef.type`. Built-in types that you do not name keep working. | [CellType contract](/docs/contracts/cell-type-contract) |
 | `checkedRowsLifetime` | How long the checked rows last. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | `columnGroups` | Shared headers above runs of columns, by column id. Groups nest. | [Column headers and groups](/docs/columns/column-headers-groups) |
-| `columnLayout` | The layout that your code controls. | [Column and viewport events](/docs/events-state/column-viewport-events) |
+| `columnLayout` | The layout that your code controls. | [Column and viewport events](/docs/events-state/column-viewport-events#prop-columnlayout) |
 | `columns` | The column definitions of the grid. | [Define columns](/docs/learning-path/define-columns) |
 | `commands` | Your own keyboard commands, keyed by name. A keymap binding that names no built-in action runs one. | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |
 | `createRow` | Builds the new row for `insertRow` and `insertRows`. Without it, both return the reason `"no-factory"`. | [Row operations](/docs/rows-pages-menus/row-operations) |
-| `data` | The rows, controlled by your code. | [Data change events](/docs/events-state/data-change-events) |
-| `defaultColumnLayout` | The layout, seeded once at mount. | [Column and viewport events](/docs/events-state/column-viewport-events) |
-| `defaultData` | The rows, seeded once and then owned by the grid. | [Data change events](/docs/events-state/data-change-events) |
-| `defaultFilterState` | The filters, seeded once. | [Sort and filter events](/docs/events-state/sort-filter-events) |
+| `data` | The rows, controlled by your code. | [Data change events](/docs/events-state/data-change-events#prop-data) |
+| `defaultColumnLayout` | The layout, seeded once at mount. | [Column and viewport events](/docs/events-state/column-viewport-events#prop-defaultcolumnlayout) |
+| `defaultData` | The rows, seeded once and then owned by the grid. | [Data change events](/docs/events-state/data-change-events#prop-defaultdata) |
+| `defaultFilterState` | The filters, seeded once. | [Sort and filter events](/docs/events-state/sort-filter-events#prop-defaultfilterstate) |
 | `defaultPage` | Seeds the page of a paged grid once. Default `1`. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | `defaultPageSize` | Seeds the page size once and turns paging on. The grid keeps all of `data` and shows one page of the view. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
-| `defaultSearchText` | The quick search text, seeded once. | [Sort and filter events](/docs/events-state/sort-filter-events) |
-| `defaultSelection` | The selection, seeded once. | [Selection and cell events](/docs/events-state/selection-cell-events) |
-| `defaultSortState` | The sort, seeded once. | [Sort and filter events](/docs/events-state/sort-filter-events) |
+| `defaultSearchText` | The quick search text, seeded once. | [Sort and filter events](/docs/events-state/sort-filter-events#prop-defaultsearchtext) |
+| `defaultSelection` | The selection, seeded once. | [Selection and cell events](/docs/events-state/selection-cell-events#prop-defaultselection) |
+| `defaultSortState` | The sort, seeded once. | [Sort and filter events](/docs/events-state/sort-filter-events#prop-defaultsortstate) |
 | `duplicateRow` | Builds the new row for `duplicateRows` from the source row and its new data index. | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `enableColumnPinning` | Turns on pinning grid-wide. Default `true`. `false` makes `setColumnPin` do nothing. | [Column order and pinning](/docs/columns/column-order-pinning) |
 | `enableColumnReorder` | Enables drag-to-reorder columns grid-wide. Default `true`. `false` makes `setColumnOrder` do nothing. | [Column order and pinning](/docs/columns/column-order-pinning) |
@@ -46,8 +46,8 @@ Props of DataGrid, DataGridProvider.
 | `enableRangeSelection` | Turns on range selection by shift-click, drag, and shift+arrow keys. Default `true`. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
 | `enableRowSelection` | Turns on whole-row selection by a row marker click and Shift+Space. Default `true`. | [Row markers](/docs/rows-pages-menus/row-markers) |
 | `fetchFilterValues` | Supplies the values of the header filter popover and the `isAnyOf` input from a backend, one list per search. | [Header filter](/docs/sort-filter-search/header-filter) |
-| `filterMode` | Who filters: `"client"` filters `data`, `"server"` only tracks the filters. Default `"server"` with `totalRowCount`, else `"client"`. | [Sort and filter events](/docs/events-state/sort-filter-events) |
-| `filterState` | The filter tree, controlled by your code. | [Sort and filter events](/docs/events-state/sort-filter-events) |
+| `filterMode` | Who filters: `"client"` filters `data`, `"server"` only tracks the filters. Default `"server"` with `totalRowCount`, else `"client"`. | [Sort and filter events](/docs/events-state/sort-filter-events#prop-filtermode) |
+| `filterState` | The filter tree, controlled by your code. | [Sort and filter events](/docs/events-state/sort-filter-events#prop-filterstate) |
 | `gateTimeoutMs` | Aborts an async gate that has not settled after this many ms. Default: off. | [Cancel async gates](/docs/editing-cells/cancel-async-gates#gate-timeout) |
 | `getRowId` | Stable, unique id of a row. | [DataGrid props](/docs/components-props/data-grid-props#rows-and-ids) |
 | `headerClickBehavior` | Sets what a plain header click does. Default `"select"`. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
@@ -65,11 +65,11 @@ Props of DataGrid, DataGridProvider.
 | `resolveSaveConflict` | Decides what a refused row becomes when the server sent its current row (`SaveRejection.current`). | [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict) |
 | `rowMarkers` | Sets the mode of the marker column. Default `"none"`. | [Row markers](/docs/rows-pages-menus/row-markers) |
 | `sanitizeClipboardFormulas` | Prefixes formula-like copied cells with `'` in the clipboard text and HTML. Default `true`. `false` copies raw text. | [Clipboard](/docs/clipboard-undo/clipboard) |
-| `searchText` | The quick search text, controlled by your code. | [Sort and filter events](/docs/events-state/sort-filter-events) |
-| `selection` | The selection, controlled by your code. | [Selection and cell events](/docs/events-state/selection-cell-events) |
-| `sortLocale` | The language tag for text compares in a client sort, text range filters, and the filter value lists. | [Sort and filter events](/docs/events-state/sort-filter-events) |
-| `sortMode` | Who sorts: `"client"` sorts `data`, `"server"` only tracks the sort. Default `"server"` with `totalRowCount`, else `"client"`. | [Sort and filter events](/docs/events-state/sort-filter-events) |
-| `sortState` | The sort, controlled by your code. | [Sort and filter events](/docs/events-state/sort-filter-events) |
+| `searchText` | The quick search text, controlled by your code. | [Sort and filter events](/docs/events-state/sort-filter-events#prop-searchtext) |
+| `selection` | The selection, controlled by your code. | [Selection and cell events](/docs/events-state/selection-cell-events#prop-selection) |
+| `sortLocale` | The language tag for text compares in a client sort, text range filters, and the filter value lists. | [Sort and filter events](/docs/events-state/sort-filter-events#prop-sortlocale) |
+| `sortMode` | Who sorts: `"client"` sorts `data`, `"server"` only tracks the sort. Default `"server"` with `totalRowCount`, else `"client"`. | [Sort and filter events](/docs/events-state/sort-filter-events#prop-sortmode) |
+| `sortState` | The sort, controlled by your code. | [Sort and filter events](/docs/events-state/sort-filter-events#prop-sortstate) |
 | `totalRowCount` | Declares that `data` is a window of a larger result of this many rows. `null` means the size is unknown. | [Server rows contract](/docs/contracts/server-rows-contract) |
 | `validateRow` | Validates a whole row once after a write gesture commits. The row already has every cell of the gesture applied. | [Validate rows and async checks](/docs/editing-cells/validate-rows-cross-field) |
 
@@ -83,25 +83,25 @@ Props of DataGrid, DataGridRoot.
 | --- | --- | --- |
 | `aria-label` | Accessible name of the grid. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
 | `aria-labelledby` | Id of the element that names the grid. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
-| `children` | The parts inside the root. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
-| `className` | Classes for the scroll root. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
-| `columnOverscan` | Unpinned columns that render past each side of the view. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
-| `density` | Row height preset: 28, 36, or 44 px. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
-| `direction` | Layout direction. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
-| `emptyState` | Content for a view with no rows. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
-| `error` | Any value except `undefined` and `null` shows the error state. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
-| `errorState` | Replaces the built-in error state. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
-| `getCellClassName` | Adds classes to a cell. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
-| `getRowClassName` | Adds classes to a row. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
-| `headerHeight` | Height of one header row in px. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
-| `loading` | Shows the loading skeleton or the loading bar. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
-| `loadingState` | Replaces the built-in loading display. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
-| `markerWidth` | Marker track width in px. It overrides the width of the `rowMarkers` mode. `rowMarkers="none"` ignores it. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
-| `renderHeaderFilter` | Renders the header filter in each column that offers a set filter (`isAnyOf` or `isNoneOf`) and is not `filterable: false`. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
-| `renderHeaderMenu` | Renders a menu trigger in each header cell. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
-| `renderMarker` | Replaces the content of a row marker cell. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
-| `renderMarkerHeader` | Replaces the select-all checkbox of the marker header. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
-| `rowHeight` | Row height in px. | [DataGrid props](/docs/components-props/data-grid-props#root-props) |
+| `children` | The parts inside the root. | [DataGrid props](/docs/components-props/data-grid-props#prop-children) |
+| `className` | Classes for the scroll root. | [DataGrid props](/docs/components-props/data-grid-props#prop-classname) |
+| `columnOverscan` | Unpinned columns that render past each side of the view. | [DataGrid props](/docs/components-props/data-grid-props#prop-columnoverscan) |
+| `density` | Row height preset: 28, 36, or 44 px. | [DataGrid props](/docs/components-props/data-grid-props#prop-density) |
+| `direction` | Layout direction. | [DataGrid props](/docs/components-props/data-grid-props#prop-direction) |
+| `emptyState` | Content for a view with no rows. | [DataGrid props](/docs/components-props/data-grid-props#prop-emptystate) |
+| `error` | Any value except `undefined` and `null` shows the error state. | [DataGrid props](/docs/components-props/data-grid-props#prop-error) |
+| `errorState` | Replaces the built-in error state. | [DataGrid props](/docs/components-props/data-grid-props#prop-errorstate) |
+| `getCellClassName` | Adds classes to a cell. | [DataGrid props](/docs/components-props/data-grid-props#prop-getcellclassname) |
+| `getRowClassName` | Adds classes to a row. | [DataGrid props](/docs/components-props/data-grid-props#prop-getrowclassname) |
+| `headerHeight` | Height of one header row in px. | [DataGrid props](/docs/components-props/data-grid-props#prop-headerheight) |
+| `loading` | Shows the loading skeleton or the loading bar. | [DataGrid props](/docs/components-props/data-grid-props#prop-loading) |
+| `loadingState` | Replaces the built-in loading display. | [DataGrid props](/docs/components-props/data-grid-props#prop-loadingstate) |
+| `markerWidth` | Marker track width in px. It overrides the width of the `rowMarkers` mode. `rowMarkers="none"` ignores it. | [DataGrid props](/docs/components-props/data-grid-props#prop-markerwidth) |
+| `renderHeaderFilter` | Renders the header filter in each column that offers a set filter (`isAnyOf` or `isNoneOf`) and is not `filterable: false`. | [DataGrid props](/docs/components-props/data-grid-props#prop-renderheaderfilter) |
+| `renderHeaderMenu` | Renders a menu trigger in each header cell. | [DataGrid props](/docs/components-props/data-grid-props#prop-renderheadermenu) |
+| `renderMarker` | Replaces the content of a row marker cell. | [DataGrid props](/docs/components-props/data-grid-props#prop-rendermarker) |
+| `renderMarkerHeader` | Replaces the select-all checkbox of the marker header. | [DataGrid props](/docs/components-props/data-grid-props#prop-rendermarkerheader) |
+| `rowHeight` | Row height in px. | [DataGrid props](/docs/components-props/data-grid-props#prop-rowheight) |
 
 ## Column fields [#column-fields]
 
@@ -111,34 +111,34 @@ Props of ColumnDef.
 
 | Prop | Purpose | Page |
 | --- | --- | --- |
-| `accessorFn` | Computes the value from the row. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `accessorKey` | Row field that holds the value. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `cellClassName` | Adds classes to every cell of the column. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `filter` | Sets the filter capabilities of this column. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `filterable` | `false` removes the column from the filter column picker and the header filter. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `flex` | Share of the free width of the grid. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `header` | A string header shows a sort arrow while the column is sorted, unless the column has `sortable: false`. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `headerClassName` | Adds classes to the header cell. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `headerText` | Plain-text name for a node header. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `hidden` | `true` hides the column when its id first appears. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `hideable` | `false` turns off the column row in the columns menu while the column is visible and removes "Hide column" from the header menu. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `id` | Stable identity of the column. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `maxWidth` | Largest width in px. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `minWidth` | Smallest width in px. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `options` | Settings for the cell type, such as the choices of a select. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `pin` | Starting pin side, applied when the column id first appears. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `pinnable` | `false` turns off pin and unpin. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `readOnly` | Blocks edits. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `renderCell` | Replaces how the cell looks. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `reorderable` | `false` stops the drag of this column. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `resizable` | `false` removes the resize handle and leaves the column out of autosize. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `setValue` | Returns a new row with the value written. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `sortable` | `false` removes the column from header-click sorting, the sort list, and the sort items of the header menu. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `sortCompare` | Compares two rows for sorting. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `type` | Key of the cell type. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `validate` | Rejects a value. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `validationMode` | What a rejection does to a commit: a single-cell edit, a paste, a fill, `updateCells`, and an import. | [ColumnDef](/docs/components-props/column-def#fields) |
-| `width` | Width in px. | [ColumnDef](/docs/components-props/column-def#fields) |
+| `accessorFn` | Computes the value from the row. | [ColumnDef](/docs/components-props/column-def#prop-accessorfn) |
+| `accessorKey` | Row field that holds the value. | [ColumnDef](/docs/components-props/column-def#prop-accessorkey) |
+| `cellClassName` | Adds classes to every cell of the column. | [ColumnDef](/docs/components-props/column-def#prop-cellclassname) |
+| `filter` | Sets the filter capabilities of this column. | [ColumnDef](/docs/components-props/column-def#prop-filter) |
+| `filterable` | `false` removes the column from the filter column picker and the header filter. | [ColumnDef](/docs/components-props/column-def#prop-filterable) |
+| `flex` | Share of the free width of the grid. | [ColumnDef](/docs/components-props/column-def#prop-flex) |
+| `header` | A string header shows a sort arrow while the column is sorted, unless the column has `sortable: false`. | [ColumnDef](/docs/components-props/column-def#prop-header) |
+| `headerClassName` | Adds classes to the header cell. | [ColumnDef](/docs/components-props/column-def#prop-headerclassname) |
+| `headerText` | Plain-text name for a node header. | [ColumnDef](/docs/components-props/column-def#prop-headertext) |
+| `hidden` | `true` hides the column when its id first appears. | [ColumnDef](/docs/components-props/column-def#prop-hidden) |
+| `hideable` | `false` turns off the column row in the columns menu while the column is visible and removes "Hide column" from the header menu. | [ColumnDef](/docs/components-props/column-def#prop-hideable) |
+| `id` | Stable identity of the column. | [ColumnDef](/docs/components-props/column-def#prop-id) |
+| `maxWidth` | Largest width in px. | [ColumnDef](/docs/components-props/column-def#prop-maxwidth) |
+| `minWidth` | Smallest width in px. | [ColumnDef](/docs/components-props/column-def#prop-minwidth) |
+| `options` | Settings for the cell type, such as the choices of a select. | [ColumnDef](/docs/components-props/column-def#prop-options) |
+| `pin` | Starting pin side, applied when the column id first appears. | [ColumnDef](/docs/components-props/column-def#prop-pin) |
+| `pinnable` | `false` turns off pin and unpin. | [ColumnDef](/docs/components-props/column-def#prop-pinnable) |
+| `readOnly` | Blocks edits. | [ColumnDef](/docs/components-props/column-def#prop-readonly) |
+| `renderCell` | Replaces how the cell looks. | [ColumnDef](/docs/components-props/column-def#prop-rendercell) |
+| `reorderable` | `false` stops the drag of this column. | [ColumnDef](/docs/components-props/column-def#prop-reorderable) |
+| `resizable` | `false` removes the resize handle and leaves the column out of autosize. | [ColumnDef](/docs/components-props/column-def#prop-resizable) |
+| `setValue` | Returns a new row with the value written. | [ColumnDef](/docs/components-props/column-def#prop-setvalue) |
+| `sortable` | `false` removes the column from header-click sorting, the sort list, and the sort items of the header menu. | [ColumnDef](/docs/components-props/column-def#prop-sortable) |
+| `sortCompare` | Compares two rows for sorting. | [ColumnDef](/docs/components-props/column-def#prop-sortcompare) |
+| `type` | Key of the cell type. | [ColumnDef](/docs/components-props/column-def#prop-type) |
+| `validate` | Rejects a value. | [ColumnDef](/docs/components-props/column-def#prop-validate) |
+| `validationMode` | What a rejection does to a commit: a single-cell edit, a paste, a fill, `updateCells`, and an import. | [ColumnDef](/docs/components-props/column-def#prop-validationmode) |
+| `width` | Width in px. | [ColumnDef](/docs/components-props/column-def#prop-width) |
 
 ## Related
 

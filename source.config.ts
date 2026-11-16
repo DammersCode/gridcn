@@ -3,6 +3,7 @@ import { metaSchema, pageSchema } from 'fumadocs-core/source/schema';
 import { z } from 'zod';
 import { rehypeCodeDefaultOptions } from 'fumadocs-core/mdx-plugins';
 import { CODE_THEMES } from './lib/code-themes';
+import { rehypeRowIds } from './lib/rehype-row-ids';
 
 // You can customize Zod schemas for frontmatter and `meta.json` here
 // see https://fumadocs.dev/docs/mdx/collections
@@ -35,6 +36,7 @@ export const docs = defineDocs({
 
 export default defineConfig({
   mdxOptions: {
+    rehypePlugins: (plugins) => [...plugins, rehypeRowIds],
     rehypeCodeOptions: {
       themes: CODE_THEMES,
       transformers: [
