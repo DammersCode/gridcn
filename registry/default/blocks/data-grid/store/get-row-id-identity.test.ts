@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ColumnDef } from "../types";
 import { createDataGridStore } from "./create-store";
 import { getInternalActions } from "./internal-actions";
@@ -39,5 +39,24 @@ describe("syncing an inline getRowId", () => {
     getInternalActions(store)._syncProps({ data: [...data], columns, getRowId: next } as InternalSyncProps);
 
     expect(store.getState().getRowId).toBe(next);
+  });
+});
+
+describe("the getRowId swap warning", () => {
+  const swapWarning = (init: object) => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const store = createDataGridStore({ columns, getRowId: (row: Row) => row.id, ...init } as InternalSyncProps);
+    getInternalActions(store)._syncProps({ ...init, columns, getRowId: (row: Row) => row.key } as InternalSyncProps);
+    const message = warn.mock.calls.map(([m]) => String(m)).find((m) => m.includes("getRowId returns other ids"));
+    warn.mockRestore();
+    return message;
+  };
+
+  it("tells a controlled grid to pass a new data array", () => {
+    expect(swapWarning({ data })).toContain("pass a new data array");
+  });
+
+  it("an uncontrolled getRowId swap warns with the remount advice", () => {
+    expect(swapWarning({ defaultData: data })).toContain("remount the grid with a new `key`");
   });
 });

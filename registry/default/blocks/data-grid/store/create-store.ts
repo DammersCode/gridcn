@@ -1120,7 +1120,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const nextGetRowId = foreignData || idsSwapped ? props.getRowId : s.getRowId;
           if (idsSwapped && !warnedGetRowIdSwap && isDev()) {
             warnedGetRowIdSwap = true;
-            warnDev("getRowId returns other ids but data kept its array; pass a new data array together with a new getRowId");
+            warnDev(
+              s.dataControlled
+                ? "getRowId returns other ids but data kept its array; pass a new data array together with a new getRowId"
+                : "getRowId returns other ids but the grid keeps its seeded rows; remount the grid with a new `key` to apply a new getRowId",
+            );
           }
           // A foreign array may move or drop rows, so prune errors and rebuild the id map; our own echo keeps both.
           const nextCellErrors = foreignData ? pruneCellErrors(s.cellErrors, nextData, props.getRowId) : s.cellErrors;
@@ -1133,7 +1137,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const previousPropsColumns = lastPropsColumns;
           lastPropsColumns = props.columns;
           if (propsColumnsChanged && !warnedSeedChange && props.columnLayout === undefined && isDev()) {
-            const changed = firstChangedSeedField(previousPropsColumns, props.columns);
+            const changed = firstChangedSeedField(previousPropsColumns, props.columns, s);
             if (changed) {
               warnedSeedChange = true;
               const action = changed.field === "pin" ? "setColumnPin" : "setColumnHidden";

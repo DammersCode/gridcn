@@ -609,14 +609,24 @@ export function defHiddenColumnIds(columns: readonly AnyColumnDef[]): string[] {
   return columns.filter((c) => c.hidden).map((c) => c.id);
 }
 
-/** The first column id whose def `pin` or `hidden` differs between two `columns` arrays, with the field that differs. */
-export function firstChangedSeedField(previous: readonly AnyColumnDef[], next: readonly AnyColumnDef[]): { id: string; field: "pin" | "hidden" } | null {
+const readPinSilently = (pin: unknown) => readColumnPin(pin, () => {});
+
+/** The first column id whose def `pin` or `hidden` differs between two `columns` arrays and from the runtime value, with the field that differs. */
+export function firstChangedSeedField(
+  previous: readonly AnyColumnDef[],
+  next: readonly AnyColumnDef[],
+  runtime: { columns: readonly AnyColumnDef[]; hiddenColumns: readonly string[] },
+): { id: string; field: "pin" | "hidden" } | null {
   const before = new Map(previous.map((c) => [c.id, c]));
+  const runtimePins = new Map(runtime.columns.map((c) => [c.id, c.pin]));
+  const runtimeHidden = new Set(runtime.hiddenColumns);
   for (const def of next) {
     const old = before.get(def.id);
     if (!old) continue;
-    if (old.pin !== def.pin) return { id: def.id, field: "pin" };
-    if (Boolean(old.hidden) !== Boolean(def.hidden)) return { id: def.id, field: "hidden" };
+    const pin = readPinSilently(def.pin);
+    if (readPinSilently(old.pin) !== pin && pin !== runtimePins.get(def.id)) return { id: def.id, field: "pin" };
+    const hidden = Boolean(def.hidden);
+    if (Boolean(old.hidden) !== hidden && hidden !== runtimeHidden.has(def.id)) return { id: def.id, field: "hidden" };
   }
   return null;
 }

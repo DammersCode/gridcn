@@ -59,4 +59,24 @@ describe("a changed def pin or hidden on a known column id", () => {
     expect(seedWarnings()).toHaveLength(1);
     expect(String(seedWarnings()[0]![0])).toContain("setColumnHidden");
   });
+
+  it("stays silent when the def mirrors setColumnPin", () => {
+    const { store, sync, seedWarnings } = setup(columns({ pin: "start" }));
+    store.getState().actions.setColumnPin("name", "end");
+    sync(columns({ pin: "end" }));
+    expect(seedWarnings()).toHaveLength(0);
+  });
+
+  it("stays silent when the def mirrors setColumnHidden", () => {
+    const { store, sync, seedWarnings } = setup(columns({ hidden: true }));
+    store.getState().actions.setColumnHidden("name", false);
+    sync(columns({ hidden: false }));
+    expect(seedWarnings()).toHaveLength(0);
+  });
+
+  it("stays silent when a def moves from left to start", () => {
+    const { sync, seedWarnings } = setup(columns({ pin: "left" as never }));
+    sync(columns({ pin: "start" }));
+    expect(seedWarnings()).toHaveLength(0);
+  });
 });
