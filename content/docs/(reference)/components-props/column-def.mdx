@@ -85,7 +85,7 @@ Keep the `columns` array stable: define it outside the component or memoize it. 
 | `resizable` | `boolean` | `true` | `false` removes the resize handle and leaves the column out of autosize. |
 | `reorderable` | `boolean` | `true` | `false` stops the drag of this column. `setColumnOrder` ignores the column. |
 | `pinnable` | `boolean` | `true` | `false` turns off pin and unpin. `setColumnPin` and the pins of a layout leave the column alone. It keeps its `pin`. |
-| `hideable` <NewBadge /> | `boolean` | `true` | `false` turns off the column row in the columns menu and removes "Hide column" from the header menu. `setColumnHidden` still hides the column. |
+| `hideable` <NewBadge /> | `boolean` | `true` | `false` turns off the column row in the columns menu while the column is visible and removes "Hide column" from the header menu. `setColumnHidden` still hides the column. |
 | `renderCell` | `(props) => ReactNode` | none | Replaces how the cell looks. |
 | `cellClassName` | `string \| (ctx) => string` | none | Adds classes to every cell of the column. A text alignment class aligns the cells. See [Align a column](/docs/theme-style-language/style-overrides#align-a-column). |
 | `headerClassName` | `string` | none | Adds classes to the header cell. |
