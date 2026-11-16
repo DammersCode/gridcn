@@ -193,6 +193,18 @@ describe("plugin conflicts (decision 3 table)", () => {
     expect(warn.mock.calls.map((c) => c[0])).toEqual(["keymap-unpluggable:p:selectAll"]);
   });
 
+  it("a plugin that takes the focusSearch chord warns in development, unless it is find-replace", () => {
+    const warn = vi.fn();
+    const palette = { name: "palette", commands: { openPalette: { run: () => {} } }, keymap: { openPalette: ["mod+f"] } };
+    const findReplace = { name: "find-replace", commands: { openFind: { run: () => {} } }, keymap: { openFind: ["mod+f"] } };
+    expect(mergePluginKeymaps([palette], undefined, warn).focusSearch).toEqual([]);
+    expect(warn.mock.calls.map((c) => c[0])).toEqual(["keymap-search:palette:openPalette"]);
+    warn.mockClear();
+    mergePluginKeymaps([findReplace], undefined, warn);
+    mergePluginKeymaps([palette], { focusSearch: [] }, warn);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it("a plugin keymap binds the plugin's own command", () => {
     const warn = vi.fn();
     const plugin = { name: "p", commands: { custom: { run: () => {} } }, keymap: { custom: ["alt+k"] } };
@@ -290,9 +302,9 @@ describe("plugin conflicts (decision 3 table)", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it("a plugin binding takes mod+f from the default focusSearch binding without a warning", () => {
+  it("the find-replace plugin takes mod+f from the default focusSearch binding without a warning", () => {
     const warn = vi.fn();
-    const plugin = { name: "p", commands: { openFind: { run: () => {} } }, keymap: { openFind: ["mod+f"] } };
+    const plugin = { name: "find-replace", commands: { openFind: { run: () => {} } }, keymap: { openFind: ["mod+f"] } };
     const merged = mergePluginKeymaps([plugin], undefined, warn);
     expect(merged.openFind).toEqual(["mod+f"]);
     expect(merged.focusSearch).toEqual([]);
