@@ -228,14 +228,14 @@ export const TERM_PAGES = {
 // Every public member of `DataGridActions`, mapped to the page that explains its feature.
 // The generator fails when an action has no entry or an entry names no action.
 export const ACTION_PAGES = {
-  setActiveCell: "/docs/types-hooks/exported-types",
+  setActiveCell: "/docs/types-hooks/store-hooks#handle",
   setActiveCellAt: "/docs/types-hooks/store-hooks#handle",
   selectCell: "/docs/types-hooks/exported-types",
   selectCellAt: "/docs/concepts/state-view-index",
-  extendTo: "/docs/types-hooks/exported-types",
+  extendTo: "/docs/types-hooks/store-hooks#handle",
   extendToAt: "/docs/types-hooks/store-hooks#handle",
   extendSelection: "/docs/types-hooks/store-hooks#handle",
-  pushRange: "/docs/types-hooks/exported-types",
+  pushRange: "/docs/types-hooks/store-hooks#handle",
   pushRangeAt: "/docs/types-hooks/store-hooks#handle",
   selectRow: "/docs/rows-pages-menus/row-markers",
   selectColumn: "/docs/selection-shortcuts/shortcut-remapping",
@@ -270,7 +270,7 @@ export const ACTION_PAGES = {
   startEditingAt: "/docs/row-examples/row-actions-example",
   cancelEditing: "/docs/events-state/edit-validation-events",
   commitCellEdit: "/docs/types-hooks/store-hooks#handle",
-  commitCellValue: "/docs/types-hooks/exported-types",
+  commitCellValue: "/docs/types-hooks/store-hooks#handle",
   commitCellValueAt: "/docs/types-hooks/store-hooks#handle",
   setCellErrors: "/docs/save-server/show-errors-cells",
   clearCellErrors: "/docs/save-server/show-errors-cells",

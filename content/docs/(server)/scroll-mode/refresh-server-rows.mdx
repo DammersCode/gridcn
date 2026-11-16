@@ -64,7 +64,7 @@ A refresh keeps a row that has an open edit or a save in flight. The row keeps i
 - If the answer carries a row with a pending delete, the row stays gone.
 - If the answer lacks a pending insert and no answer row sits in its slot, the insert returns to that slot.
 - If an answer row sits in the slot, the insert stays hidden.
-- A result with a row count refreshes again once no pending insert or delete remains.
+- In pages mode and in scroll mode with random access, the hook refreshes again once no pending insert or delete remains, also with `refreshAfterSave: false`.
 - A refresh of a sequential source that ends before a pending insert can drop it until its save settles.
 
 In pages mode, a pending insert stays at the end of the page. The page can then hold more than `pageSize` rows until the save settles.
@@ -73,11 +73,21 @@ In pages mode, a pending insert stays at the end of the page. The page can then 
 
 ## Let the hook refresh [#automatic]
 
-The hook calls `refresh()` itself after saves settle (`refreshAfterSave`) and after a row operation on a result with a row count. See [Save edits](/docs/save-server/save-edits#server-source). A timer refreshes too: see [Refresh on a timer](/docs/scroll-mode/tune-row-retention#revalidate).
+The hook calls `refresh()` itself after saves settle (`refreshAfterSave`) and, in scroll mode with random access, after a row operation. See [Save edits](/docs/save-server/save-edits#server-source). A timer refreshes too: see [Refresh on a timer](#revalidate).
+
+## Refresh on a timer [#revalidate]
+
+Set `revalidateIntervalMs` (milliseconds, at least 1000) to call `refresh()` on a timer while the page is visible. The default is off. Both modes take the option.
+
+- A tick waits for a request in flight, and every refresh restarts the clock.
+- A sequential source skips a tick while the rendered rows plus `overscan` end beyond 10 blocks.
+- Pages mode also drops a prefetched page on a tick. See [Tune page loading](/docs/server-pagination/tune-page-loading#prefetch).
+
+When live pushes leave rows out of order for the server's sort, set `reshapeDelayMs` to refetch after a push. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
 
 ## Related
 
-- [Tune row retention](/docs/scroll-mode/tune-row-retention): cap, evict, and refresh on a timer
+- [Tune row retention](/docs/scroll-mode/tune-row-retention): cap and evict loaded rows
 - [Save edits](/docs/save-server/save-edits): `refreshAfterSave` and its policies
 - [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view): `reshape()` and `reshapeDelayMs`
 - [Server rows options](/docs/add-options/server/server-rows-options): `refresh` and `retry`

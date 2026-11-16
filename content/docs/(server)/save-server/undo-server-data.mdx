@@ -62,7 +62,7 @@ If the server refuses an undo or a redo, the grid reverts the data and, when the
 
 ## Run history with scroll mode [#with-scroll-mode]
 
-`useDataGridServerRows` in scroll mode owns the `data` array. The array is sparse. Loaded indices hold rows, and unloaded indices hold holes. Spread `gridProps`, and put the history plugin after the plugins that `gridProps` carries:
+`useDataGridServerRows` in scroll mode owns the `data` array. The array is sparse. Loaded indices hold rows, and unloaded indices hold holes. Pass the history plugin in the `plugins` option of the hook, which mounts it after its own plugins. `datasetKey: serverSpecKey` clears the stacks when the sort, the filters, or the search text change:
 
 ```tsx
 import { DataGrid, serverSpecKey } from "@/components/data-grid/data-grid";
@@ -72,21 +72,14 @@ import { columns, type Row } from "./rows";
 import { fetchRows } from "./api";
 
 export function ScrollGrid() {
+  const history = useDataGridHistory<Row>({ datasetKey: serverSpecKey });
   const server = useDataGridServerRows<Row>({
     mode: "scroll",
     fetchRows,
-  });
-  const history = useDataGridHistory<Row>({
-    datasetKey: serverSpecKey(server.spec),
+    plugins: [history.plugin],
   });
 
-  return (
-    <DataGrid
-      {...server.gridProps}
-      columns={columns}
-      plugins={[...server.gridProps.plugins, history.plugin]}
-    />
-  );
+  return <DataGrid {...server.gridProps} columns={columns} />;
 }
 ```
 
@@ -96,7 +89,8 @@ These rules keep the combination safe:
 - An entry whose rows left the loaded rows applies nothing, stays on its stack, and calls `onSkip` with `"rows-not-loaded"`. Load the rows, then undo again.
 - `server.refresh()` drops every loaded row outside the rendered rows. A change of `spec` starts the blocks over. A row operation in a source with a row count runs that refresh.
 - A refresh, a row operation, and a tick of `revalidateIntervalMs` refetch the same result, so the stacks stay. An undo writes only the cells of its entry onto the refetched row, so a value that the server changed in another column stays.
-- `datasetKey` clears the stacks when it changes. Pass a key that changes with the result, as `serverSpecKey(server.spec)` does. Without a key, call `clear()` in the handler that loads a new result.
+- `datasetKey` clears the stacks when it changes. Pass a key that changes with the result, as `serverSpecKey` does for the spec. Without a key, call `clear()` in the handler that loads a new result.
+- Call `rollback(change)` only when your `onSave` catches a failure and does not rethrow. A rejected promise reverts for you.
 
 When `undo` needs a row that a hole hides, it warns once in development. An `undo` whose rows are all loaded does not warn.
 

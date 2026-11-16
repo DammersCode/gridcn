@@ -6,7 +6,7 @@ type: task
 aliases: ["RowActionResult", "gateTimeoutMs", "onGateAborted", "ok false", "gate pending", "delete did nothing", "shortcut does nothing", "row not deleted", "onRowActionSkipped"]
 ---
 
-`insertRow`, `insertRows`, `duplicateRows`, `deleteRows`, and `deleteRowsAt` can do nothing. They tell you why. A gate such as `onBeforeDeleteRows` can also wait forever. This page covers both. See [Change server rows](/docs/rows-live-data/change-server-rows) for the actions.
+`insertRow`, `insertRows`, `duplicateRows`, `duplicateRowsAt`, `deleteRows`, and `deleteRowsAt` can do nothing. They tell you why. A gate such as `onBeforeDeleteRows` can also wait forever. This page covers both. See [Change server rows](/docs/rows-live-data/change-server-rows) for the actions.
 
 In this demo, `onBeforeDeleteRows` asks a slow mock server, and `gateTimeoutMs` stops the wait after 2 seconds. The log shows each result, skip, and aborted gate:
 
@@ -14,7 +14,7 @@ In this demo, `onBeforeDeleteRows` asks a slow mock server, and `gateTimeoutMs` 
 
 ## Read the result of an action [#action-results]
 
-Each of the five row actions returns `{ ok: true }` once it ran or an async gate started. Otherwise it returns `{ ok: false, reason }`. The `reason` names the cause:
+Each of the six row actions returns `{ ok: true }` once it ran or an async gate started. Otherwise it returns `{ ok: false, reason }`. The `reason` names the cause:
 
 | `reason` | Meaning |
 | --- | --- |
@@ -28,6 +28,7 @@ Each of the five row actions returns `{ ok: true }` once it ran or an async gate
 | `"view-ordered"` | A row move was refused because an active sort or filter owns the row order. |
 | `"all-matching"` | A key or menu row action found all matching on, so the checked rows are not in the grid. |
 | `"hidden-rows-only"` | A key or menu row action found only checked rows that the view does not show. |
+| `"disabled"` | A row move shortcut ran without a reorder `rowMarkers` mode. |
 
 A call with `source: "stream"` returns `{ ok: true }` when no id matched, because a server push can repeat a delete.
 
@@ -36,7 +37,7 @@ A call with `source: "stream"` returns `{ ok: true }` when no id matched, becaus
 These cases differ:
 
 - A `deleteRows` call with `source: "stream"` never fires it.
-- `insertRow` reports the action as `"insertRows"`, and `deleteRowsAt` reports it as `"deleteRows"`.
+- `insertRow` reports the action as `"insertRows"`, `deleteRowsAt` as `"deleteRows"`, and `duplicateRowsAt` as `"duplicateRows"`.
 - Insert row with no active cell reports nothing, even in a read-only grid.
 - Duplicate row and Delete rows with no selection and no active cell report nothing when no reason applies.
 

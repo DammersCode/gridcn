@@ -1,9 +1,9 @@
 ---
 title: Tune row retention
 icon: Archive
-description: Evict loaded rows far from the viewport to cap memory, and refresh the rows in view after the server changes.
+description: Cap the loaded rows of scroll mode, evict row ranges far from the viewport, and list the rows that are loaded.
 type: task
-aliases: ["evict rows", "memory limit", "refresh rows"]
+aliases: ["evict rows", "memory limit"]
 ---
 
 Loaded rows stay in the sparse `data` array, and a long scroll through a large result grows it. Three levers tune the array: `maxLoadedRows` caps it, `evict` drops row ranges, and `getLoadedRanges` lists what is loaded. A spec change, a changed row count, a remount, and [a refresh](/docs/scroll-mode/refresh-server-rows) unload rows too.
@@ -12,7 +12,7 @@ Loaded rows stay in the sparse `data` array, and a long scroll through a large r
 
 Scroll mode keeps at most `maxLoadedRows` rows loaded on a random access source (default 10,000). When more are loaded, the hook unloads the blocks that the user viewed longest ago outside the keep range. Rows with an open edit, a pending save, or an unsaved change, and the row under the active cell, stay in `data`. They stop counting as loaded, so the next window fetches their block whole. Pass `maxLoadedRows: Infinity` to keep every row.
 
-## Memory and retention [#memory--retention]
+## Evict row ranges [#memory--retention]
 
 1. Pick the row ranges to drop. `server.getLoadedRanges()` lists the loaded ones, merged and sorted. It never triggers a render, so call it in an effect or a handler.
 2. Call `server.evict(rowRange)` for each row range you want to drop. A row range is a `RowRange`, `{ start, end }` with an exclusive `end`. A partial overlap drops the intersection only, and the rest stays loaded.
@@ -79,9 +79,7 @@ Two behaviors matter for a policy of your own:
 
 ## Refresh on a timer [#revalidate]
 
-Set `revalidateIntervalMs` (milliseconds, at least 1000) to call [`refresh()`](/docs/scroll-mode/refresh-server-rows) on a timer while the page is visible. A tick waits for a request in flight, and every refresh restarts the clock. A sequential source skips a tick while the rendered rows plus `overscan` end beyond 10 blocks. The default is off. Pages mode takes the same option.
-
-When live pushes leave rows out of order for the server's sort, set `reshapeDelayMs` to refetch after a push. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
+`revalidateIntervalMs` calls `refresh()` on a timer. See [Refresh on a timer](/docs/scroll-mode/refresh-server-rows#revalidate).
 
 Undo and redo compose with the `onDataChange` of the hook. See [Run history with scroll mode](/docs/save-server/undo-server-data#with-scroll-mode).
 

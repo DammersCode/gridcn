@@ -1,5 +1,5 @@
 ---
-title: "Stream updates"
+title: "Push live values"
 description: Push live values into cells by row id with updateCells, without a full data replacement, and control how a sorted view reacts.
 icon: Radio
 type: task
@@ -96,7 +96,7 @@ The grid flashes cells on its own only after a fill. A push does not flash. To f
 
 ## Undo and save [#undo-history]
 
-A batch carries `source: "stream"`. The history add-on does not record it, and `onSave` never receives it. Undo writes only the cells of its edit, so values pushed into other cells stay. A push into a row with a save in flight is skipped with reason `saving`. Push it again after the save settles.
+A batch carries `source: "stream"`. The history add-on does not record it, and `onSave` never receives it. Undo writes only the cells of its edit, so values pushed into other cells stay. A push into a row with a save in flight is held with reason `saving` and applies once the row's save settles. A later push to the same cell replaces it.
 
 To make one batch undoable, pass `{ source: "edit" }` to `updateCells`. An `"edit"` batch reaches `onSave`. To record streams without that, add the source to the defaults of the history add-on:
 

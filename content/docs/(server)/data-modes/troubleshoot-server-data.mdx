@@ -22,16 +22,16 @@ Find your symptom below. In a development build, the grid logs a warning for sev
 
 ## The pager and the count [#pager]
 
-- **The footer shows "Page 3" in place of a range, and Last stays disabled.** The count is unknown. The first answer omitted `totalRowCount`, sent `null`, or sent a value that is not a non-negative integer. Send the count of the filtered result.
+- **The footer shows "Page 3" in place of a range, and Last stays disabled.** The count is unknown. The first answer sent no valid `totalRowCount`. Send the count of the filtered result.
 - **The count stays unknown although the server sends `total` or `hasNextPage`.** The hook reads `totalRowCount` and `hasMore` only. Rename the fields. Development builds warn.
-- **The count stops at 10,000,000.** The hook clamps a larger count.
+
 - **The page goes back to page 1.** Nothing needs a fix. A change of the page size, the sort, the filter, or the search text gives other pages, so the hook resets the page.
 - **The page-size select is missing.** With `useDataGridServerPager`, pass `onPageSizeChange`.
 
 ## Edits and saves [#saves]
 
-- **An edit disappears at the next page or refresh.** You replaced `onDataChange` after the spread of `server.gridProps`, which drops the hook's merge. Pass your handler as the `onDataChange` option of the hook.
-- **A warning says that the refresh guard never mounted.** You replaced `plugins` after the spread. Pass your plugins in the `plugins` option of the hook. Without the guard, `refresh` cannot keep a row with a pending save or an open edit.
+- **Scroll mode loads no more blocks, and a warning names `onRenderedRowsChange`.** An `onRenderedRowsChange` prop after the spread of `server.gridProps` replaces the handler of the hook. Pass it as the `onRenderedRowsChange` option of the hook. An `onDataChange` prop after the spread runs next to the merge of the hook.
+- **A warning says that the refresh guard never mounted.** A `plugins` prop after the spread replaced the guard. Pass your plugins in the `plugins` option of the hook. Without the guard, `refresh` cannot keep a row with a pending save or an open edit.
 - **A failed save does not revert the edit.** Your `onSave` returns no promise and does not throw. Or the grid is `readOnly` at the refusal and keeps the refused value. Return a promise that rejects or resolves with `{ rejected }`. See [Save edits](/docs/save-server/save-edits).
 - **A row stays marked `failed`.** The mark clears at the next save of the row, or with `actions.clearSaveStatus()`.
 - **Two users edit the same row, and the later save overwrites the first.** Your server accepts every write. Compare `prev` with the stored row and refuse the row. See [Handle refused saves](/docs/save-server/handle-refused-saves#detect-a-conflict).

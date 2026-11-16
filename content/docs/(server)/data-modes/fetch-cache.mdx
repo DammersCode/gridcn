@@ -58,7 +58,7 @@ The grid shows each change at once, and `onDataChange` keeps the cache in step. 
 
 Edits are server state. `onSave` sends each change, and `onDataChange` writes the cache. The invalidation then shows what the server holds. With SWR, call the `mutate` that `useSWR` returns in place of `invalidateQueries`.
 
-A socket or a poll can push values many times per second. Write such values with `updateCells`, not with a new `data` array. See [Stream updates](/docs/rows-live-data/stream-updates).
+A socket or a poll can push values many times per second. Write such values with `updateCells`, not with a new `data` array. See [Push live values](/docs/rows-live-data/stream-updates).
 
 ## Cache scroll blocks [#wiring-a-fetchcache-library-react-query]
 
@@ -128,20 +128,27 @@ With SWR, call `preload(key, fetcher)` from `swr` in place of `fetchQuery`. `pre
 
 With `useDataGridServerRows` in pages mode, call `queryClient.fetchQuery` inside `fetchRows` as in [Cache scroll blocks](#wiring-a-fetchcache-library-react-query). Key the query by `serverSpecKey(spec)`, `page`, and `pageSize`.
 
-With `useDataGridServerPager` and your own fetch, use the page and the page size as the query key. `keepPreviousData` keeps the old page on screen while the next one loads:
+With `useDataGridServerPager` and your own fetch, use the page, the page size, and the spec as the query key. `keepPreviousData` keeps the old page on screen while the next one loads:
 
 ```tsx
 "use client";
 
 import { useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import {
+  DataGrid,
+  defineColumns,
+  type FilterNode,
+  type SortSpec,
+} from "@/components/data-grid/data-grid";
 import {
   DataGridPaginationBar,
   useDataGridServerPager,
 } from "@/components/data-grid-pagination/data-grid-pagination";
 
 type Order = { id: string; customer: string };
+type Spec = { sorts: SortSpec[]; filters: FilterNode[]; searchText: string };
+const NO_SPEC: Spec = { sorts: [], filters: [], searchText: "" };
 const columns = defineColumns<Order>()([
   { id: "customer", header: "Customer", accessorKey: "customer" },
 ]);
@@ -149,15 +156,24 @@ const columns = defineColumns<Order>()([
 export function OrdersGrid() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [spec, setSpec] = useState<Spec>(NO_SPEC);
   const query = useQuery<{ rows: Order[]; total: number }>({
-    queryKey: ["orders", page, pageSize],
-    queryFn: async () => {
-      const search = `page=${page}&pageSize=${pageSize}`;
-      const response = await fetch(`/api/orders?${search}`);
+    queryKey: ["orders", page, pageSize, spec],
+    queryFn: async ({ signal }) => {
+      const response = await fetch("/api/orders/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ page, pageSize, ...spec }),
+        signal,
+      });
       return response.json();
     },
     placeholderData: keepPreviousData,
   });
+  function changeSpec(change: Partial<Spec>) {
+    setSpec({ ...spec, ...change });
+    setPage(1);
+  }
   const { pager } = useDataGridServerPager({
     page,
     pageSize,
@@ -174,6 +190,12 @@ export function OrdersGrid() {
         data={query.data?.rows ?? []}
         columns={columns}
         getRowId={(row) => row.id}
+        sortState={spec.sorts}
+        onSortChange={(sorts) => changeSpec({ sorts })}
+        filterState={spec.filters}
+        onFilterChange={(filters) => changeSpec({ filters })}
+        searchText={spec.searchText}
+        onSearchTextChange={(searchText) => changeSpec({ searchText })}
         totalRowCount={query.data?.total ?? null}
       />
       <DataGridPaginationBar {...pager} />
@@ -182,15 +204,19 @@ export function OrdersGrid() {
 }
 ```
 
-`totalRowCount` makes the grid leave the sort and filter to your server. Add the sort, filter, and search text to the key and to the request. [Load rows by page](/docs/server-pagination/load-rows-page#own-fetch) shows the controlled `filterState`.
+`totalRowCount` makes the grid leave the sort and filter to your server, so the controlled spec reaches the key and the request. [Load rows by page](/docs/server-pagination/load-rows-page#own-fetch) shows the same wiring without a cache.
 
 With SWR, replace `useQuery` with `useSWR`. The fetcher receives the key itself, so the key is a tuple:
 
 ```tsx fragment="replaces useQuery in the sample above"
 const { data } = useSWR<{ rows: Order[]; total: number }>(
-  ["orders", page, pageSize],
-  ([, current, size]) =>
-    fetch(`/api/orders?page=${current}&pageSize=${size}`).then((r) => r.json()),
+  ["orders", page, pageSize, spec],
+  ([, current, size, currentSpec]) =>
+    fetch("/api/orders/query", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ page: current, pageSize: size, ...currentSpec }),
+    }).then((r) => r.json()),
   { keepPreviousData: true },
 );
 ```

@@ -88,7 +88,7 @@ If the promise creates the row on the server, skip the `insert` operation in `on
 
 ## Delete rows you know [#scroll-mode]
 
-A scroll-mode grid holds unloaded rows as holes. If their target touches a hole, `deleteRows`, `duplicateRows`, `insertRow`, and `insertRows` do nothing. The target is every row of a delete, every source row of a duplicate, and the anchor row of an insert. One hole cancels the whole request. The grid writes nothing, calls no `onDataChange`, and warns once in development.
+A scroll-mode grid holds unloaded rows as holes. If their target touches a hole, `deleteRows`, `deleteRowsAt`, `duplicateRows`, `duplicateRowsAt`, `insertRow`, and `insertRows` do nothing. The target is every row of a delete, every source row of a duplicate, and the anchor row of an insert. One hole cancels the whole request. The grid writes nothing, calls no `onDataChange`, and warns once in development.
 
 `deleteRows` skips an id that matches no row and deletes the rest. A placeholder id matches a hole, so it cancels the whole request. Drop those ids before you call it.
 
@@ -102,7 +102,7 @@ After a row operation in a scroll-mode source with a row count, the hook refresh
 
 ## Refresh after the save [#refresh-after-the-save]
 
-In server pagination, the operations act on the current page.
+In pages mode, the operations act on the current page. When the last pending insert or delete settles, the hook loads the page again.
 
 Pass `onSave` to `useDataGridServerRows` and the hook refreshes after the saves settle (`refreshAfterSave`, default `"settled"`). Or call `server.refresh()` after the `onSave` promise settles to pick up server-computed values. A refresh keeps a pending insert, so the page can hold more than `pageSize` rows until the save settles.
 

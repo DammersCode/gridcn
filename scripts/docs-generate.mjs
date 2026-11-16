@@ -699,7 +699,7 @@ function barrelExports() {
 }
 
 /** Hooks that no docs page names yet; the row links the page of the nearest topic. The set shrinks when a page names a hook. */
-const HOOKS_NAMED_NOWHERE = new Set(["createDataGridHooks", "useOptionalDataGridLabels"]);
+const HOOKS_NAMED_NOWHERE = new Set([]);
 
 function hooksZ() {
   const exported = barrelExports();

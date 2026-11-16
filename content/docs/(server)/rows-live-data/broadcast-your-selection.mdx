@@ -35,6 +35,16 @@ type Props = { rows: Row[]; roomId: string; userId: string; color: string };
 export function SharedGrid({ rows, roomId, userId, color }: Props) {
   const { plugin, setPresenceHighlights } = useDataGridPresence();
   const socketRef = useRef<WebSocket | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  function send(message: object) {
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      const socket = socketRef.current;
+      if (socket?.readyState !== WebSocket.OPEN) return;
+      socket.send(JSON.stringify(message));
+    }, 100);
+  }
 
   useEffect(() => {
     const socket = new WebSocket(`wss://your-server/rooms/${roomId}`);
@@ -56,7 +66,10 @@ export function SharedGrid({ rows, roomId, userId, color }: Props) {
         ),
       );
     };
-    return () => socket.close();
+    return () => {
+      clearTimeout(timerRef.current);
+      socket.close();
+    };
   }, [roomId, userId, setPresenceHighlights]);
 
   const columnIds: string[] = columns.map((column) => column.id);
@@ -68,10 +81,8 @@ export function SharedGrid({ rows, roomId, userId, color }: Props) {
       getRowId={(row) => row.id}
       plugins={[plugin]}
       onSelectionChange={(next, details) => {
-        const socket = socketRef.current;
-        if (socket?.readyState !== WebSocket.OPEN) return;
         if (!next.range) {
-          socket.send(JSON.stringify({ type: "leave", id: userId }));
+          send({ type: "leave", id: userId });
           return;
         }
         const { start, end } = next.range;
@@ -79,15 +90,13 @@ export function SharedGrid({ rows, roomId, userId, color }: Props) {
         const to = columnIds.indexOf(end.columnId);
         const [lo, hi] = from < to ? [from, to] : [to, from];
         const span = columnIds.slice(lo, hi + 1);
-        socket.send(
-          JSON.stringify({
-            type: "selection",
-            id: userId,
-            color,
-            rowIds: details.getRowIds(),
-            columnIds: span,
-          }),
-        );
+        send({
+          type: "selection",
+          id: userId,
+          color,
+          rowIds: details.getRowIds(),
+          columnIds: span,
+        });
       }}
     />
   );
@@ -98,19 +107,28 @@ The sample takes the column span from the order of `columns`. If users reorder o
 
 ## Relay a snapshot [#sending-your-selection]
 
-`setPresenceHighlights` replaces the whole list. So your server answers every `selection` or `leave` message with the full list of peers. Each entry is a row-id range entry with the `id`, `color`, `rowIds`, and `columnIds` that the peer sent. The sample above filters out the entry of the local user.
+`setPresenceHighlights` replaces the whole list. So your server answers every `selection` or `leave` message with the full list of peers. Each entry is a row-id range entry with the `id`, `color`, `rowIds`, and `columnIds` that the peer sent. The sample above filters out the entry of the local user. This relay keeps the last message of each peer:
 
-The receiver resolves the ids against its own view. The receiver drops a row that a local filter hides and a hidden column. A payload from a fuller view therefore paints cleanly on a narrower one.
+```ts fragment="server side; socket is one client of a ws server"
+const peers = new Map<string, unknown>();
+
+socket.on("message", (data) => {
+  const message = JSON.parse(String(data));
+  if (message.type === "leave") peers.delete(message.id);
+  else peers.set(message.id, message);
+  const snapshot = JSON.stringify([...peers.values()]);
+  for (const client of server.clients) client.send(snapshot);
+});
+```
+
+The receiver resolves the ids against its own view. The receiver drops a row that a local filter hides and a hidden column. A message from a fuller view therefore paints cleanly on a narrower one.
 
 `getRowIds()` lists every selected row, and checked rows count too. A select-all of 100,000 rows sends 100,000 ids. Cap the list on the sender or on the server.
 
-In scroll mode, `getRowIds()` skips unloaded rows. A peer paints only the loaded rows of the range.
-
-The sample sends the columns of the main range only. It sends only selections with a range. A selection of checked rows or whole columns has no `range`, so the sample reports it as a leave.
-
-`getRowIds()` lists the rows of every range and the checked rows together. For several ranges, build the row ids of each range from its corners and the view order. `getViewRowIds({ loaded: true })` on the grid ref lists the loaded rows in view order. Send one entry per range.
-
-Throttle the send, because a drag fires one change for each step.
+- In scroll mode, `getRowIds()` skips unloaded rows. A peer paints only the loaded rows of the range.
+- The sample sends the columns of the main range only. A selection of checked rows or whole columns has no `range`, so the sample reports it as a leave.
+- `getRowIds()` lists the rows of every range and the checked rows together. For several ranges, build the row ids of each range from its corners and the view order, and send one entry per range. `getViewRowIds({ loaded: true })` on the grid ref lists the loaded rows in view order.
+- The sample waits 100 ms after the last change before it sends, because a drag fires one change for each step.
 
 Treat every incoming message as untrusted input. The add-on drops malformed entries and repairs a bad `label` or `color`: [Presence options](/docs/add-options/server/presence-options) lists each rule. The add-on renders a `label` as text.
 

@@ -23,7 +23,7 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `clearSaveStatus` | Drops the `"failed"` mark of each row whose save the server refused. A row that is still `"saving"` keeps its mark. | [Save edits](/docs/save-server/save-edits) |
 | `clearSelection` | Clears the cell ranges, the column selection, and the checked rows. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | `commitCellEdit` | Validates and commits the open edit. A refused value keeps the editor open. A commit moves the active cell by `movement`. | [Store hooks](/docs/types-hooks/store-hooks#handle) |
-| `commitCellValue` | Validates and writes a value at a `CellRef` without an edit session, as a checkbox does. | [Exported types](/docs/types-hooks/exported-types) |
+| `commitCellValue` | Validates and writes a value at a `CellRef` without an edit session, as a checkbox does. | [Store hooks](/docs/types-hooks/store-hooks#handle) |
 | `commitCellValueAt` | Takes a `ViewCoord` in place of the `CellRef` of `commitCellValue`. | [Store hooks](/docs/types-hooks/store-hooks#handle) |
 | `commitChange` | Applies a whole `DataChange` in one write and fires `onDataChange` once. | [Data change events](/docs/events-state/data-change-events) |
 | `deleteRows` | Deletes the rows with the given ids, as one change. The grid skips an id that matches no row. Returns a `RowActionResult`. | [Row operations](/docs/rows-pages-menus/row-operations) |
@@ -33,16 +33,16 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `duplicateRowsAt` | Duplicates the rows at the given view indexes through `duplicateRow`, as one change. Returns a `RowActionResult`. | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `editRows` | Writes whole-row patches as a user edit: `source: "edit"`, one undo entry, and one `onSave`. The `readOnly`, read-only column, and `validate` checks apply. | [Edit rows in forms](/docs/editing-cells/edit-rows-forms) |
 | `extendSelection` | Grows or shrinks the main range by one cell in a direction, or moves its edge to the edge of the view with `toEdge`. | [Store hooks](/docs/types-hooks/store-hooks#handle) |
-| `extendTo` | Extends the selection to the cell named by the stable `CellRef`. | [Exported types](/docs/types-hooks/exported-types) |
+| `extendTo` | Extends the selection to the cell named by the stable `CellRef`. | [Store hooks](/docs/types-hooks/store-hooks#handle) |
 | `extendToAt` | Takes a `ViewCoord` in place of the `CellRef` of `extendTo`. | [Store hooks](/docs/types-hooks/store-hooks#handle) |
-| `flashCells` | Plays the fade pulse on the given cells. It is not a data change. | [Stream updates](/docs/rows-live-data/stream-updates#flash-cells) |
+| `flashCells` | Plays the fade pulse on the given cells. It is not a data change. | [Push live values](/docs/rows-live-data/stream-updates#flash-cells) |
 | `insertRow` | Inserts one row from `createRow` above or below a view index. Returns a `RowActionResult`. | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `insertRows` | Inserts `count` rows from `createRow` above or below a view index, as one change. Returns a `RowActionResult`. | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `moveRowsBy` | Shifts rows by `delta` and keeps the gaps between them. Returns whether rows moved. | [Row order](/docs/rows-pages-menus/row-order) |
 | `previewColumnWidth` | Writes a column width while a resize drag moves. Fires `onColumnResizing`. | [Column sizing](/docs/columns/column-sizing) |
-| `pushRange` | Adds a new range at a `CellRef`, as a Ctrl or Cmd click does. | [Exported types](/docs/types-hooks/exported-types) |
+| `pushRange` | Adds a new range at a `CellRef`, as a Ctrl or Cmd click does. | [Store hooks](/docs/types-hooks/store-hooks#handle) |
 | `pushRangeAt` | Takes a `ViewCoord` in place of the `CellRef` of `pushRange`. | [Store hooks](/docs/types-hooks/store-hooks#handle) |
-| `reconcileView` | Rebuilds the view index that a deferred `updateCells` postponed, and clears `viewStale`. | [Stream updates](/docs/rows-live-data/stream-updates) |
+| `reconcileView` | Rebuilds the view index that a deferred `updateCells` postponed, and clears `viewStale`. | [Push live values](/docs/rows-live-data/stream-updates) |
 | `reorderRows` | Moves rows as one block to a view index. Returns whether rows moved. | [Row order](/docs/rows-pages-menus/row-order) |
 | `replaceRowId` | Swaps the id of a row for the id that the server assigned, in one write. | [Save edits](/docs/save-server/save-edits) |
 | `replaceRowIds` | Swaps the ids of many rows in one write, with one `onDataChange`. | [Save edits](/docs/save-server/save-edits) |
@@ -53,7 +53,7 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `selectCellAt` | Takes a `ViewCoord` in place of the `CellRef` of `selectCell`. | [State and view index](/docs/concepts/state-view-index) |
 | `selectColumn` | Selects the column at a view column index, as a click on its header does. | [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) |
 | `selectRow` | Selects the row at a view index, as a click on its row marker does. | [Row markers](/docs/rows-pages-menus/row-markers) |
-| `setActiveCell` | Moves only the active cell to a `CellRef` and keeps the selection. `null` clears it. Fires no `onSelectionChange`. | [Exported types](/docs/types-hooks/exported-types) |
+| `setActiveCell` | Moves only the active cell to a `CellRef` and keeps the selection. `null` clears it. Fires no `onSelectionChange`. | [Store hooks](/docs/types-hooks/store-hooks#handle) |
 | `setActiveCellAt` | Takes a `ViewCoord` in place of the `CellRef` of `setActiveCell`. | [Store hooks](/docs/types-hooks/store-hooks#handle) |
 | `setAllRowsChecked` | Checks or unchecks every row of the view, as the header checkbox does. On a paged grid, the view is the shown page. With `totalRowCount`, `checkedRowsLifetime='across-filters'`, and unloaded rows in the view, checking selects all matching. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | `setCellErrors` | Merges server errors into the cell errors. It is not a data change. | [Show errors on cells](/docs/save-server/show-errors-cells) |
@@ -73,8 +73,8 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `startEditing` | Opens an editor at a `CellRef`, with optional first text. | [Edit and validation events](/docs/events-state/edit-validation-events) |
 | `startEditingAt` | Takes a `ViewCoord` in place of the `CellRef` of `startEditing`. | [Row actions example](/docs/row-examples/row-actions-example) |
 | `toggleSort` | Steps the sort of a column to the next direction or to no sort, as a header click does. `{ additive: true }` keeps the other sorts. | [Sort and filter events](/docs/events-state/sort-filter-events) |
-| `updateCells` | Writes cell patches by row id in one write, without a view rebuild. Default `source` is `"stream"`. | [Stream updates](/docs/rows-live-data/stream-updates) |
-| `updateRows` | Writes whole-row patches by row id. Each `RowPatch` expands to one cell patch per column, as in `updateCells`. | [Stream updates](/docs/rows-live-data/stream-updates) |
+| `updateCells` | Writes cell patches by row id in one write, without a view rebuild. Default `source` is `"stream"`. | [Push live values](/docs/rows-live-data/stream-updates) |
+| `updateRows` | Writes whole-row patches by row id. Each `RowPatch` expands to one cell patch per column, as in `updateCells`. | [Push live values](/docs/rows-live-data/stream-updates) |
 
 ## Related
 

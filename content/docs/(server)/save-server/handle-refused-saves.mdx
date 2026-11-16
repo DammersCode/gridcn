@@ -50,7 +50,8 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
 
 - A promise that resolves with nothing, or with `{ rejected: [] }`, accepts the whole change.
 - A promise that rejects, or a handler that throws, refuses the whole change. Every row of the change reverts.
-- The grid reads at most 10,000 entries of `rejected` and skips an entry without a string `rowId`. A `rejected` that is not an array accepts the whole change.
+- An answer with more than 10,000 entries in `rejected` refuses every row of the change, as a thrown error does, and warns once in development.
+- The grid skips an entry without a string `rowId`. A `rejected` that is not an array accepts the whole change.
 
 {/* props: SaveRejection */}
 
