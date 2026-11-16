@@ -2,7 +2,6 @@ import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-// @ts-expect-error untyped script module
 import { findCycles } from "../scripts/check-runtime-cycles.mjs";
 
 function project(files: Record<string, string>) {

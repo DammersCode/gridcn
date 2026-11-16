@@ -85,6 +85,7 @@ export const FEATURES = {
   filter: F(["/docs/sort-filter-search/filtering"], ["/docs/events-state/sort-filter-events"]),
   "filter-values": F(["/docs/sort-filter-search/header-filter"], ["/docs/add-options/sort-filter-search/toolbar-options"], "data-grid-toolbar"),
   search: F(["/docs/sort-filter-search/quick-search"], ["/docs/add-options/sort-filter-search/toolbar-options"], "data-grid-toolbar"),
+  "server-search": F(["/docs/data-modes/query-server-rows"], ["/docs/add-options/server/server-rows-options"], "data-grid-server"),
   "row-check": F(["/docs/selection-shortcuts/checked-rows"], ["/docs/components-props/data-grid-props"]),
   "row-ids": F(["/docs/learning-path/define-columns"], ["/docs/components-props/data-grid-props#rows-and-ids"]),
   counts: F(["/docs/server-pagination/load-rows-page"], ["/docs/contracts/server-rows-contract"]),
