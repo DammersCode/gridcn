@@ -463,7 +463,7 @@ export const OPTION_GROUPS = [
       { names: ["className"], owners: ["DataGridImportButton"], page: "/docs/add-options/import-export/import-options" },
       { names: ["open","onOpenChange","className"], owners: ["DataGridImportDialog"], page: "/docs/add-options/import-export/import-options#datagridimportdialogprops" },
       { names: ["csvDelimiter","sheetName","csvEncoding","signal"], owners: ["parseImportFile"], page: "/docs/add-options/import-export/import-options#parseimportfile" },
-      { names: ["dataRows","mapping","columns","cellTypes","createRow","processCellFromText","signal"], owners: ["buildImportedRows"], page: "/docs/add-options/import-export/import-options#buildimportedrows" },
+      { names: ["dataRows","mapping","columns","cellTypes","createRow","processCellFromText","signal","existingRows"], owners: ["buildImportedRows"], page: "/docs/add-options/import-export/import-options#buildimportedrows" },
       { names: ["createRow","onImport","importDefaults","importLimits"], owners: ["DataGridImportButton","DataGridImportDialog"], page: "/docs/add-options/import-export/import-options#datagridimportdialogprops" },
       { names: ["onImportError","parseFile","accept","csvEncoding","processImportRows","processCellFromText","file"], owners: ["DataGridImportButton","DataGridImportDialog"], page: "/docs/add-options/import-export/import-options#datagridimportdialogprops" },
       { names: ["columnFallback","defaults","limits","parseFile","csvEncoding"], owners: ["useDataGridImportPreview"], page: "/docs/add-options/import-export/import-options#usedatagridimportpreview" },

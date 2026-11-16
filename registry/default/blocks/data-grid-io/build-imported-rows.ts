@@ -64,6 +64,8 @@ export type BuildImportedRowsOptions<TData> = {
   processCellFromText?: ProcessCellFromText<TData>;
   /** Checked between chunks on the chunked path (above {@link IMPORT_CHUNK_THRESHOLD_ROWS} rows, or with `processCellFromText`) and after an async `createRow`; an aborted signal throws `"import-cancelled"`. A small synchronous build ignores it. */
   signal?: AbortSignal;
+  /** The rows the import joins. `unique()` compares each imported value with them and with the other imported rows. The default append passes the grid's `data`. Default `[]`. */
+  existingRows?: readonly TData[];
 };
 
 /** One import cell awaiting its validation verdict: where it goes, and what to write if the value is rejected. */
@@ -98,7 +100,7 @@ export async function buildImportedRows<TData>(options: BuildImportedRowsOptions
 }
 
 function buildNow<TData>(options: BuildImportedRowsOptions<TData>): BuildImportedRowsResult<TData> | Promise<BuildImportedRowsResult<TData>> {
-  const { dataRows, mapping, columns, cellTypes, createRow, signal, processCellFromText } = options;
+  const { dataRows, mapping, columns, cellTypes, createRow, signal, processCellFromText, existingRows = [] } = options;
   const columnsById = new Map(columns.map((column) => [column.id, column] as const));
   const activeMappings = mapping.filter((m): m is { importColumnIndex: number; gridColumnId: string } => m.gridColumnId !== null);
 
@@ -115,7 +117,7 @@ function buildNow<TData>(options: BuildImportedRowsOptions<TData>): BuildImporte
   }
 
   if (dataRows.length > IMPORT_CHUNK_THRESHOLD_ROWS || processCellFromText) {
-    return buildImportedRowsChunked(dataRows, activeMappings, columnsById, cellTypes, createRow, signal ?? new AbortController().signal, processCellFromText);
+    return buildImportedRowsChunked(dataRows, activeMappings, columnsById, cellTypes, createRow, signal ?? new AbortController().signal, existingRows, processCellFromText);
   }
 
   const gateCtx: GateContext = { signal: signal ?? new AbortController().signal };
@@ -123,10 +125,10 @@ function buildNow<TData>(options: BuildImportedRowsOptions<TData>): BuildImporte
   if (created.some((row) => isThenable(row))) {
     return Promise.all(created).then((rows) => {
       if (signal?.aborted) throw new Error(IMPORT_CANCELLED_MESSAGE);
-      return finishSmallImport(dataRows, activeMappings, columnsById, cellTypes, rows);
+      return finishSmallImport(dataRows, activeMappings, columnsById, cellTypes, rows, existingRows);
     });
   }
-  return finishSmallImport(dataRows, activeMappings, columnsById, cellTypes, created as TData[]);
+  return finishSmallImport(dataRows, activeMappings, columnsById, cellTypes, created as TData[], existingRows);
 }
 
 function finishSmallImport<TData>(
@@ -135,11 +137,12 @@ function finishSmallImport<TData>(
   columnsById: ReadonlyMap<string, ColumnDef<TData, unknown, any>>, // eslint-disable-line @typescript-eslint/no-explicit-any
   cellTypes: Record<string, CellType<TData, unknown, unknown>>,
   rows: TData[],
+  existingRows: readonly TData[],
 ): BuildImportedRowsResult<TData> | Promise<BuildImportedRowsResult<TData>> {
   const rejected: ImportRejectedCell[] = [];
   const flagged: ImportRejectedCell[] = [];
   const { items, cells } = buildCellsForRange(dataRows, 0, dataRows.length, activeMappings, columnsById, cellTypes, rows);
-  attachValidateContexts(items, cells);
+  attachValidateContexts(items, cells, existingRows);
   const results = runValidateBatch(items);
   if (results instanceof Promise) return results.then((resolved) => ({ rows: writeCells(rows, cells, items, resolved, rejected, flagged), rejected, flagged }));
   return { rows: writeCells(rows, cells, items, results, rejected, flagged), rejected, flagged };
@@ -149,9 +152,9 @@ function finishSmallImport<TData>(
 type ResolvedMapping = { importColumnIndex: number; gridColumnId: string };
 
 // shortcut: a chunked import (past one chunk) checks each chunk's cells as one batch; a duplicate across chunks passes. Upgrade: settle every chunk's values before validating.
-/** Gives each function `validate` the imported cells of its column as the batch; an import has no grid rows to compare with. */
-function attachValidateContexts(items: ValidateBatchItem[], cells: readonly ImportCell[]): void {
-  const contexts = validateContextsFor([], cells.map((cell) => cell.column as AnyColumnDef), cells.map((cell, i) => ({ columnId: cell.column.id, row: items[i]!.row, value: items[i]!.value })));
+/** Gives each function `validate` the imported cells of its column as the batch, over the rows the import joins. */
+function attachValidateContexts(items: ValidateBatchItem[], cells: readonly ImportCell[], existingRows: readonly unknown[]): void {
+  const contexts = validateContextsFor(existingRows, cells.map((cell) => cell.column as AnyColumnDef), cells.map((cell, i) => ({ columnId: cell.column.id, row: items[i]!.row, value: items[i]!.value })));
   cells.forEach((cell, i) => (items[i]!.ctx = contexts.get(cell.column.id)));
 }
 
@@ -227,6 +230,7 @@ async function buildImportedRowsChunked<TData>(
   cellTypes: Record<string, CellType<TData, unknown, unknown>>,
   createRow: (index: number, ctx: GateContext) => TData | Promise<TData>,
   signal: AbortSignal,
+  existingRows: readonly TData[],
   processCellFromText?: ProcessCellFromText<TData>,
 ): Promise<BuildImportedRowsResult<TData>> {
   const gateCtx: GateContext = { signal };
@@ -241,7 +245,7 @@ async function buildImportedRowsChunked<TData>(
     const { items, cells } = buildCellsForRange(dataRows, start, end, activeMappings, columnsById, cellTypes, rows, processCellFromText, signal);
     await settleItemValues(items);
     if (signal?.aborted) throw new Error(IMPORT_CANCELLED_MESSAGE);
-    attachValidateContexts(items, cells);
+    attachValidateContexts(items, cells, existingRows);
     const results = await runValidateBatch(items);
     writeCells(rows, cells, items, results, rejected, flagged);
     await yieldToEventLoop();

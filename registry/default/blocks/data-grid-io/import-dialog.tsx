@@ -291,6 +291,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
       signal: abortController.signal,
       processImportRows,
       processCellFromText: cellParser,
+      existingRows: onImport ? undefined : (state.data as TData[]),
     });
     // The dialog stays open with Import disabled while the build runs (chunked so it can repaint and Cancel can land),
     // and closes when the last verdict is in, or drops the batch silently if Cancel/close beat it.
@@ -300,7 +301,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
       setIsValidating(false);
       if (result !== null) finish(result.rows, result.rejected, result.flagged, source);
     }, fail);
-  }, [preview, build, allColumns, storeApi, createRow, finish, processImportRows, processCellFromText]);
+  }, [preview, build, allColumns, storeApi, createRow, finish, processImportRows, processCellFromText, onImport]);
 
   const onCancel = useCallback(() => {
     abortControllerRef.current?.abort();

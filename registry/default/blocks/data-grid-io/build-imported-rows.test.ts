@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { CellType, ColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
+import { unique } from "@/registry/default/blocks/data-grid/data-grid";
 import * as sdk from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
   buildImportedRows as buildImportedRowsRaw,
@@ -518,5 +519,27 @@ describe("buildImportedRows — chunked path for large imports (B5b)", () => {
     });
     expect(result).toBeInstanceOf(Promise);
     await expect(result).rejects.toThrow(IMPORT_CANCELLED_MESSAGE);
+  });
+});
+
+describe("buildImportedRows unique() against existing rows", () => {
+  const uniqueColumns = (): ColumnDef<Row, unknown>[] => [{ id: "name", header: "Name", accessorKey: "name", type: "text", validate: unique(), validationMode: "warn" }];
+  const options = (existingRows?: Row[]): BuildImportedRowsOptions<Row> => ({
+    dataRows: [["Ada"], ["Bob"]],
+    mapping: [{ importColumnIndex: 0, gridColumnId: "name" }],
+    columns: uniqueColumns(),
+    cellTypes: { text: textCellType, number: numberCellType } as never,
+    createRow: (index) => ({ id: `new-${index}`, name: "", age: null }),
+    existingRows,
+  });
+
+  it("flags an imported value that an existing row holds", async () => {
+    const result = await buildImportedRowsRaw(options([{ id: "a", name: "Ada", age: 1 }]));
+    expect(result.flagged.map((cell) => cell.rowIndex)).toEqual([0]);
+  });
+
+  it("compares the imported rows with each other only, without existing rows", async () => {
+    const result = await buildImportedRowsRaw(options());
+    expect(result.flagged).toEqual([]);
   });
 });
