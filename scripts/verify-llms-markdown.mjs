@@ -3,9 +3,10 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join, relative, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { findRawComponents, toAgentMarkdown } from "../lib/llms-markdown.ts";
+import { importTs } from "./docs-verify-lib.mjs";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const { findRawComponents, toAgentMarkdown } = await importTs(join(root, "lib/llms-markdown.ts"));
 const docsRoot = join(root, "content", "docs");
 const resolvers = {
   typeTable: async () => [{ name: "stub", type: "string", required: false, description: "" }],

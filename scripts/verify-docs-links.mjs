@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { anchorsOf, capped, pageIndex, readLf, rel, splitFrontmatter, urlOfPage, walk, lineOf } from "./docs-verify-lib.mjs";
+import { anchorsOf, capped, importTs, pageIndex, readLf, rel, splitFrontmatter, urlOfPage, walk, lineOf } from "./docs-verify-lib.mjs";
 
 const OTHER_FILES = ["README.md", "GLOSSARY.md", "DEVELOPMENT.md", "CHANGELOG.md", "CHANGELOG-2.0.md", "AGENTS.md", "registry.json", "research/parity-matrix.json", "scripts/verify-parity.mjs"];
 const OTHER_DIRS = [
@@ -103,7 +103,7 @@ export function run({ root = process.cwd(), migration, redirectsFile, siteHosts 
 
   const llmsTasks = join(root, "lib/llms-tasks.ts");
   if (existsSync(llmsTasks)) {
-    return import(pathToFileURL(llmsTasks).href)
+    return importTs(llmsTasks)
       .then(({ LLMS_TASKS }) => {
         for (const task of LLMS_TASKS) {
           checked++;

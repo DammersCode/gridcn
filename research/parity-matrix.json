@@ -58,7 +58,8 @@
         "onSortChange",
         "sortMode",
         "sortLocale",
-        "headerClickBehavior"
+        "headerClickBehavior",
+        "locale"
       ],
       "cells": {
         "L": {
@@ -71,7 +72,8 @@
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/view.parity.test.tsx"
+            "tests/parity/view.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/sort-locale.test.ts"
           ]
         },
         "PS": {
@@ -109,7 +111,9 @@
             "content/docs/(reference)/contracts/server-rows-contract.mdx"
           ]
         }
-      }
+      },
+      "doc": "/docs/sort-filter-search/sorting",
+      "note": "`locale` also sets the sort language when `sortLocale` is not set."
     },
     {
       "id": "filter",
@@ -125,7 +129,8 @@
           "status": "supported",
           "evidence": [
             "registry/default/blocks/data-grid/sort-filter/index.test.ts",
-            "registry/default/blocks/data-grid/sort-filter/custom-operators.test.ts"
+            "registry/default/blocks/data-grid/sort-filter/custom-operators.test.ts",
+            "registry/default/blocks/data-grid/store/known-columns.test.tsx"
           ]
         },
         "PC": {
@@ -172,7 +177,9 @@
             "content/docs/(reference)/contracts/server-rows-contract.mdx"
           ]
         }
-      }
+      },
+      "doc": "/docs/sort-filter-search/filtering",
+      "note": "A sort or filter on a column that is not in `columns` drops with a development warning, in every mode."
     },
     {
       "id": "filter-values",
@@ -228,7 +235,8 @@
           "status": "n/a",
           "reason": "Set values are read-only input of the filter; writes through onDataChange or onSave never read them."
         }
-      }
+      },
+      "doc": "/docs/sort-filter-search/filtering"
     },
     {
       "id": "search",
@@ -284,7 +292,8 @@
           "status": "n/a",
           "reason": "Search writes no data."
         }
-      }
+      },
+      "doc": "/docs/sort-filter-search/quick-search"
     },
     {
       "id": "row-check",
@@ -350,7 +359,8 @@
             "content/docs/(reference)/contracts/server-rows-contract.mdx"
           ]
         }
-      }
+      },
+      "doc": "/docs/selection-shortcuts/checked-rows"
     },
     {
       "id": "row-ids",
@@ -416,7 +426,8 @@
             "tests/parity/row-ids.parity.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/rows-pages-menus/row-operations"
     },
     {
       "id": "counts",
@@ -428,7 +439,8 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "tests/parity/counts.parity.test.tsx"
+            "tests/parity/counts.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/hole-view-guard.test.tsx"
           ]
         },
         "PC": {
@@ -473,7 +485,9 @@
             "tests/parity/counts.parity.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/server-pagination/load-rows-page",
+      "note": "A development warning names `totalRowCount` above the loaded rows under a client sort or filter. It never fires when `sortMode` and `filterMode` are both server."
     },
     {
       "id": "grouping",
@@ -575,7 +589,8 @@
             "tests/parity/pinned-rows.parity.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/rows-pages-menus/pinned-rows"
     },
     {
       "id": "server-aggregate",
@@ -630,7 +645,8 @@
             "tests/parity/pinned-rows.parity.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/add-options/rows-pages-menus/pinned-rows-options"
     },
     {
       "id": "columns",
@@ -698,7 +714,8 @@
           ]
         }
       },
-      "modeNeutral": true
+      "modeNeutral": true,
+      "doc": "/docs/columns/column-order-pinning"
     },
     {
       "id": "clipboard",
@@ -761,7 +778,8 @@
             "registry/default/blocks/data-grid/store/gate-signal.test.ts"
           ]
         }
-      }
+      },
+      "doc": "/docs/clipboard-undo/clipboard"
     },
     {
       "id": "fill",
@@ -790,7 +808,8 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "content/docs/(build)/clipboard-undo/fill-handle.mdx"
+            "content/docs/(build)/clipboard-undo/fill-handle.mdx",
+            "tests/parity/fill.parity.test.tsx"
           ]
         },
         "C": {
@@ -817,7 +836,8 @@
             "tests/parity/fill.parity.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/clipboard-undo/fill-handle"
     },
     {
       "id": "import",
@@ -868,7 +888,8 @@
             "registry/default/blocks/data-grid-io/import-button.browser.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/import-export/import"
     },
     {
       "id": "export",
@@ -935,7 +956,8 @@
             "content/docs/(build)/import-export/export-whole-result.mdx"
           ]
         }
-      }
+      },
+      "doc": "/docs/import-export/export"
     },
     {
       "id": "print",
@@ -994,7 +1016,8 @@
             "registry/default/blocks/data-grid-io/print-button.browser.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/import-export/export"
     },
     {
       "id": "undo-redo",
@@ -1058,7 +1081,8 @@
             "tests/parity/undo-redo.parity.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/clipboard-undo/undo-redo"
     },
     {
       "id": "row-ops",
@@ -1077,7 +1101,8 @@
           "evidence": [
             "content/docs/(build)/rows-pages-menus/row-operations.mdx",
             "registry/default/blocks/data-grid/store/gate-signal.test.ts",
-            "tests/parity/row-ops.parity.test.tsx"
+            "tests/parity/row-ops.parity.test.tsx",
+            "registry/default/blocks/data-grid/test/row-ops.test.tsx"
           ]
         },
         "PC": {
@@ -1126,7 +1151,9 @@
             "tests/parity/row-ops.parity.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/rows-pages-menus/row-operations",
+      "note": "The `move` operation carries `beforeRowId` and `afterRowId`, so a server receives the neighbors in `change.ops`."
     },
     {
       "id": "validation",
@@ -1192,7 +1219,9 @@
             "registry/default/blocks/data-grid/store/commit-change-validation.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/editing-cells/validation",
+      "note": "Delete and Cut run the column `validate` on the empty value in every mode. A server grid still checks the save in `onSave`."
     },
     {
       "id": "write-through",
@@ -1212,7 +1241,8 @@
           "status": "supported",
           "evidence": [
             "content/docs/(reference)/events-state/data-change-events.mdx",
-            "registry/default/blocks/data-grid/store/save-conflict.test.tsx"
+            "registry/default/blocks/data-grid/store/save-conflict.test.tsx",
+            "registry/default/blocks/data-grid-history/history-rebase.test.tsx"
           ]
         },
         "PC": {
@@ -1266,7 +1296,9 @@
             "registry/default/blocks/data-grid/store/save-conflict.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/save-server/save-revert",
+      "note": "`editRows` writes with source `edit`, so a server grid receives it in `onSave`."
     },
     {
       "id": "streaming",
@@ -1328,7 +1360,8 @@
             "tests/parity/push-reshape.parity.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/rows-live-data/stream-updates"
     },
     {
       "id": "push-reshape",
@@ -1384,7 +1417,8 @@
             "tests/parity/push-reshape.parity.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/rows-live-data/push-server-ordered-view"
     },
     {
       "id": "url-state",
@@ -1429,7 +1463,7 @@
         "FS": {
           "status": "gap",
           "track": "N2",
-          "note": "A deep-linked set-filter list keeps at most as many values as the static `choices` of the column, and at least 64. The grid drops the values past that bound, and an `isNoneOf` list past it drops the whole filter."
+          "note": "A deep-linked set-filter list keeps up to the larger of 64 and the number of static `choices` of the column. A column without static `choices` keeps up to 1,000 values. The grid drops the values past that bound, and an `isNoneOf` list past it drops the whole filter."
         },
         "API": {
           "status": "supported",
@@ -1437,7 +1471,8 @@
             "tests/parity/url-state.parity.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/sort-filter-search/url-state"
     },
     {
       "id": "saved-views",
@@ -1493,7 +1528,8 @@
             "tests/parity/saved-views.parity.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/sort-filter-search/saved-views"
     },
     {
       "id": "announce",
@@ -1552,7 +1588,8 @@
             "tests/parity/announce.parity.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/accessibility/screen-reader-support"
     },
     {
       "id": "zero-row-header",
@@ -1664,7 +1701,8 @@
           ]
         }
       },
-      "modeNeutral": true
+      "modeNeutral": true,
+      "doc": "/docs/rows-live-data/show-presence"
     },
     {
       "id": "loading",
@@ -1725,7 +1763,8 @@
             "tests/parity/loading-error.parity.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/theme-style-language/loading-state"
     },
     {
       "id": "find-replace",
@@ -1784,7 +1823,8 @@
             "tests/parity/find-replace.parity.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/sort-filter-search/find-replace"
     },
     {
       "id": "export-hooks",
@@ -1847,7 +1887,8 @@
             "content/docs/(build)/import-export/shape-export-file.mdx"
           ]
         }
-      }
+      },
+      "doc": "/docs/import-export/shape-export-file"
     },
     {
       "id": "import-hooks",
@@ -1910,7 +1951,8 @@
             "content/docs/(build)/import-export/control-import.mdx"
           ]
         }
-      }
+      },
+      "doc": "/docs/import-export/control-import"
     },
     {
       "id": "find-replace-hook",
@@ -1973,7 +2015,8 @@
             "content/docs/(build)/sort-filter-search/find-replace.mdx"
           ]
         }
-      }
+      },
+      "doc": "/docs/sort-filter-search/find-replace"
     },
     {
       "id": "lazy-fetch",
@@ -2028,7 +2071,8 @@
           "status": "n/a",
           "reason": "Not a write concern."
         }
-      }
+      },
+      "doc": "/docs/scroll-mode/load-rows-while-scrolling"
     },
     {
       "id": "fetch-limits",
@@ -2084,7 +2128,8 @@
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.hygiene.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/scroll-mode/tune-row-retention"
     },
     {
       "id": "revalidate",
@@ -2104,7 +2149,6 @@
         "PS": {
           "status": "supported",
           "evidence": [
-            "content/docs/(reference)/contracts/server-rows-contract.mdx",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.controlled-spec.test.tsx"
           ]
         },
@@ -2125,13 +2169,13 @@
         "SS": {
           "status": "supported",
           "evidence": [
-            "content/docs/(reference)/contracts/server-rows-contract.mdx"
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.controlled-spec.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
-            "content/docs/(reference)/contracts/server-rows-contract.mdx"
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.controlled-spec.test.tsx"
           ]
         },
         "API": {
@@ -2141,7 +2185,8 @@
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.revalidate.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/scroll-mode/tune-row-retention"
     },
     {
       "id": "page-prefetch",
@@ -2193,7 +2238,8 @@
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.prefetch.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/contracts/server-rows-contract"
     },
     {
       "id": "pagination",
@@ -2252,7 +2298,8 @@
             "tests/parity/server-rows.parity.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/rows-pages-menus/client-pagination"
     },
     {
       "id": "mode-neutral",
@@ -2260,7 +2307,6 @@
       "options": [
         "keymap",
         "labels",
-        "locale",
         "cellTypes",
         "commands",
         "plugins"
@@ -2373,7 +2419,8 @@
           ]
         }
       },
-      "note": "Pages mode pages without a total through `hasMore`, or through a `nextCursor` chain: each page request carries the `cursor` of the page before. Scroll mode loads a source without a count in order."
+      "note": "Pages mode pages without a total through `hasMore`, or through a `nextCursor` chain: each page request carries the `cursor` of the page before. Scroll mode loads a source without a count in order.",
+      "doc": "/docs/scroll-mode/load-without-row-count"
     },
     {
       "id": "server-rows",
@@ -2432,7 +2479,8 @@
             "tests/parity/server-rows.parity.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/server-data-examples/server-rows-example"
     },
     {
       "id": "error-state",
@@ -2484,7 +2532,8 @@
             "tests/parity/loading-error.parity.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/scroll-mode/recover-load-errors"
     },
     {
       "id": "input-debounce",
@@ -2554,7 +2603,8 @@
           "reason": "The inputs write no data."
         }
       },
-      "modeNeutral": true
+      "modeNeutral": true,
+      "doc": "/docs/types-hooks/use-debounced-input"
     },
     {
       "id": "lookup-cell",
@@ -2619,7 +2669,8 @@
             "registry/default/blocks/data-grid-lookup/test/lookup-editor.browser.test.tsx"
           ]
         }
-      }
+      },
+      "doc": "/docs/editing-cells/lookup-cell"
     }
   ]
 }

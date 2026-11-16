@@ -3,9 +3,11 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { pageIndex } from "./docs-verify-lib.mjs";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const MATRIX_FILE = "research/parity-matrix.json";
+const DOCS_ONLY_BASELINE_FILE = "research/parity-docs-only-baseline.json";
 const PAGE_FILE = "content/docs/(server)/data-modes/data-mode-support.mdx";
 const BLOCKS = "registry/default/blocks";
 const OPTION_SOURCES = [
@@ -19,6 +21,7 @@ const OPTION_SOURCES = [
 const PARITY_TESTS = "tests/parity/";
 const STATUSES = ["supported", "gap", "n/a", "unverified"];
 const UNVERIFIED = "Not verified.";
+const isDocsPath = (path) => /.mdx?(#|$)/.test(path);
 
 /** Top-level field names of the exported object type `name` declared in `source`. */
 export function extractOptionNames(source, name) {
@@ -36,13 +39,20 @@ export function extractOptionNames(source, name) {
   return [...body.matchAll(/^ {2}(\w+)\??\s*:/gm)].map((m) => m[1]);
 }
 
-/** Every problem in the matrix; an empty list means the guard passes. */
-export function checkParity(matrix, { optionNames, root: base }) {
+/**
+ * Every problem in the matrix; an empty list means the guard passes.
+ * `docsOnlyBaseline` lists `feature:mode` cells that may still cite only docs; `pageUrls` checks each row's `doc`.
+ * @param {any} matrix
+ * @param {{ optionNames: string[], root: string, docsOnlyBaseline?: string[], pageUrls?: Set<string> }} options
+ */
+export function checkParity(matrix, { optionNames, root: base, docsOnlyBaseline = [], pageUrls }) {
   const problems = [];
   const modeIds = new Set(matrix.modes.map((m) => m.id));
   const optionSet = new Set(optionNames);
   const covered = new Set();
   const seen = new Set();
+  const baseline = new Set(docsOnlyBaseline);
+  const docsOnlyCells = new Set();
   for (const mode of matrix.modes) {
     if (!mode.description) problems.push(`mode ${mode.id} has no description`);
   }
@@ -50,6 +60,7 @@ export function checkParity(matrix, { optionNames, root: base }) {
     const at = row.id;
     if (seen.has(at)) problems.push(`${at}: duplicate feature id`);
     seen.add(at);
+    if (row.doc && pageUrls && !pageUrls.has(row.doc)) problems.push(`${at}: doc ${row.doc} is not a docs page`);
     for (const option of row.options ?? []) {
       covered.add(option);
       if (!optionSet.has(option)) problems.push(`${at}: option ${option} is not a public option`);
@@ -81,6 +92,10 @@ export function checkParity(matrix, { optionNames, root: base }) {
           const runsMode = path.startsWith(PARITY_TESTS) && ((text.includes("ALL_MODES") && !text.includes("ALL_MODES.filter")) || text.includes(`mode ${id} `) || text.includes(`mountMode("${id}"`));
           if (path.startsWith(PARITY_TESTS) ? runsMode : !pattern || row.modeNeutral || new RegExp(pattern, "i").test(text)) mentioned = true;
         }
+        if (cell.evidence?.length && cell.evidence.every(isDocsPath) && !row.modeNeutral) {
+          docsOnlyCells.add(`${at}:${id}`);
+          if (!baseline.has(`${at}:${id}`)) problems.push(`${at}: supported cell ${id} cites only docs; cite a test file`);
+        }
         if (cell.evidence?.length && !mentioned && !missing) problems.push(`${at}: cell ${id} evidence ${cell.evidence[0]} does not mention the mode (${pattern})`);
       } else if (cell.status === "gap") {
         if (!cell.track) problems.push(`${at}: gap cell ${id} has no tracking id`);
@@ -91,6 +106,9 @@ export function checkParity(matrix, { optionNames, root: base }) {
         problems.push(`${at}: unverified cell ${id} has no note`);
       }
     }
+  }
+  for (const entry of baseline) {
+    if (!docsOnlyCells.has(entry)) problems.push(`docs-only baseline: ${entry} ${seen.has(entry.split(":")[0]) ? "cites a test file or is not supported" : "names no cell"}`);
   }
   for (const option of optionNames) {
     if (!covered.has(option)) problems.push(`public option ${option} appears in no matrix row`);
@@ -142,8 +160,8 @@ export function renderParityPage(matrix) {
     "  </thead>",
     "  <tbody>",
     ...matrix.features.flatMap((row) => [
-      "    <tr>",
-      `      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">${jsxProse(row.feature)}</th>`,
+      `    <tr id="parity-${row.id}">`,
+      `      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">${row.doc ? `<a href="${row.doc}">${jsxProse(row.feature)}</a>` : jsxProse(row.feature)}</th>`,
       ...matrix.modes.map((m) => `      <td className="text-center">${parityCell(row.cells[m.id])}</td>`),
       "    </tr>",
     ]),
@@ -158,7 +176,7 @@ export function renderParityPage(matrix) {
     const grouped = new Map();
     for (const m of matrix.modes) {
       const cell = row.cells[m.id];
-      const text = cell.status === "gap" ? `Gap: ${cell.note}` : cell.status === "n/a" ? `n/a: ${cell.reason}` : cell.status === "unverified" && cell.note !== UNVERIFIED ? `Not verified: ${cell.note}` : null;
+      const text = cell.status === "gap" ? `Gap (${cell.track}): ${cell.note}` : cell.status === "n/a" ? `n/a: ${cell.reason}` : cell.status === "unverified" && cell.note !== UNVERIFIED ? `Not verified: ${cell.note}` : null;
       if (text) grouped.set(text, [...(grouped.get(text) ?? []), m.id]);
     }
     const notes = [...grouped].map(([text, ids]) => `- **${ids.join(", ")}**: ${jsxProse(text)}`);
@@ -174,7 +192,9 @@ export function renderParityPage(matrix) {
 function main() {
   const matrix = JSON.parse(readFileSync(join(root, MATRIX_FILE), "utf8"));
   const optionNames = OPTION_SOURCES.flatMap(({ file, type }) => extractOptionNames(readFileSync(join(root, file), "utf8"), type));
-  const problems = checkParity(matrix, { optionNames, root });
+  const docsOnlyBaseline = JSON.parse(readFileSync(join(root, DOCS_ONLY_BASELINE_FILE), "utf8"));
+  const pageUrls = new Set(pageIndex(join(root, "content/docs")).keys());
+  const problems = checkParity(matrix, { optionNames, root, docsOnlyBaseline, pageUrls });
   const pagePath = join(root, PAGE_FILE);
   const page = problems.length === 0 ? renderParityPage(matrix) : "";
   if (problems.length === 0 && process.argv.includes("--write")) {

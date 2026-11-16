@@ -216,7 +216,9 @@ function splitRow(line) {
   return cells.slice(1, line.trimEnd().endsWith("|") ? -1 : undefined);
 }
 
-/** Props tables of a page body: `{ line, marker, headers, rows: [{ name, cells }] }`. */
+const LISTED_NAMES = /^`[A-Za-z_$][\w$]*`(?:\s*,\s*`[A-Za-z_$][\w$]*`)+$/;
+
+/** Props tables of a page body: `{ line, marker, headers, rows: [{ name, cells, listed? }] }`. A `listed` row names several members in its first cell; the check counts them as documented and does not hold them to the marker types. */
 export function propsTables(body, { small = false } = {}) {
   const lines = proseOnly(body).split("\n");
   const raw = body.split("\n");
@@ -227,14 +229,16 @@ export function propsTables(body, { small = false } = {}) {
     let end = i + 2;
     while (end < lines.length && lines[end].trimStart().startsWith("|")) end++;
     if (NAME_HEADERS.has(headers[0])) {
-      const rows = [];
-      for (let r = i + 2; r < end; r++) {
-        const name = /^`([A-Za-z_$][\w$]*)(?:\?|\(\))?`$/.exec(raw[r].trim().startsWith("|") ? splitRow(raw[r])[0] : "")?.[1];
-        if (name) rows.push({ name, cells: splitRow(raw[r]), line: r + 1 });
-      }
       let m = i - 1;
       while (m >= 0 && lines[m].trim() === "" && raw[m].trim() === "") m--;
       const marker = /^\{\/\*\s*props:\s*([^*]+?)\s*\*\/\}$/.exec(raw[m]?.trim() ?? "")?.[1]?.split(/\s*,\s*/);
+      const rows = [];
+      for (let r = i + 2; r < end; r++) {
+        const first = raw[r].trim().startsWith("|") ? splitRow(raw[r])[0] : "";
+        const name = /^`([A-Za-z_$][\w$]*)(?:\?|\(\))?`$/.exec(first)?.[1];
+        if (name) rows.push({ name, cells: splitRow(raw[r]), line: r + 1 });
+        else if (marker && LISTED_NAMES.test(first)) for (const [, listed] of first.matchAll(/`([A-Za-z_$][\w$]*)`/g)) rows.push({ name: listed, cells: splitRow(raw[r]), line: r + 1, listed: true });
+      }
       if (rows.length >= 3 || (marker && rows.length >= 1) || (small && rows.length >= 1 && headers.some((h) => h === "type" || h === "default"))) tables.push({ line: i + 1, marker, headers, rows });
     }
     i = end - 1;
@@ -311,6 +315,7 @@ export function run({ root = process.cwd(), strict = false } = {}) {
       const defaultColumn = table.headers.indexOf("default");
       for (const row of table.rows) {
         stats.rows++;
+        if (row.listed) continue;
         const member = merged.get(row.name);
         if (!member) {
           if (!open) issues.push(`${rel(root, file)}:${row.line + bodyOffset}: \`${row.name}\` is not a member of ${candidates.map((d) => d.name).join(" / ")}`);
