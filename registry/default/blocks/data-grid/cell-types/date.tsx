@@ -19,7 +19,7 @@ import { columnLabelText } from "../columns/column-format-helpers";
 
 const IMPLIED_DATE_FORMAT: Intl.DateTimeFormatOptions = { dateStyle: "medium" };
 // react-day-picker and date-fns load on the first calendar open, not with every grid
-const Calendar = lazy(() => import("@/components/ui/calendar").then((module) => ({ default: module.Calendar })));
+const Calendar = lazy(() => import("./date-calendar"));
 
 /** Calendar-validity probe for an ISO-shaped `yyyy-mm-dd`: UTC so no time-zone can shift a day; `setUTCFullYear` (unlike the `Date.UTC` constructor) maps 0-99 to themselves, so `0026-01-01` stays 0026. */
 function isRealIsoDate(iso: string): boolean {

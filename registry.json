@@ -73,6 +73,11 @@
                "target": "components/data-grid/cell-types/date.tsx"
             },
             {
+               "path": "registry/default/blocks/data-grid/cell-types/date-calendar.tsx",
+               "type": "registry:component",
+               "target": "components/data-grid/cell-types/date-calendar.tsx"
+            },
+            {
                "path": "registry/default/blocks/data-grid/cell-types/safe-href.ts",
                "type": "registry:component",
                "target": "components/data-grid/cell-types/safe-href.ts"
