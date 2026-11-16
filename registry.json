@@ -313,6 +313,16 @@
                "target": "components/data-grid/interaction/use-grid-interaction.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/interaction/dispatch-grid-action.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/interaction/dispatch-grid-action.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/interaction/pointer-geometry.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/interaction/pointer-geometry.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/interaction/closest-grid-root.ts",
                "type": "registry:component",
                "target": "components/data-grid/interaction/closest-grid-root.ts"
