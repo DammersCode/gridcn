@@ -85,6 +85,60 @@ With your own fetch and `useDataGridServerPager` in place of `useDataGridServerR
 
 To keep the sort, filter, and search in the URL too, compose the grid with `DataGridProvider` and `DataGridRoot`. Mount `<DataGridUrlState>` inside the provider. The first request then carries the restored spec and the restored page together. A restored spec does not cause a second request. See [URL state](/docs/sort-filter-search/url-state#server-mode).
 
+This grid restores the page and the spec from the URL:
+
+```tsx
+"use client";
+
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
+import { DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
+import {
+  DataGridUrlState,
+  useDataGridUrlPagination,
+} from "@/components/data-grid-url-state/data-grid-url-state";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+export function OrdersGrid() {
+  const url = useDataGridUrlPagination();
+  const server = useDataGridServerRows<Order>({
+    fetchRows: async ({ spec, start, end, signal }) => {
+      const response = await fetch("/api/orders/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ spec, start, end }),
+        signal,
+      });
+      const answer = await response.json();
+      return { rows: answer.rows, totalRowCount: answer.total };
+    },
+    ...url,
+  });
+
+  return (
+    <DataGridProvider {...server.providerProps} columns={columns}>
+      <DataGridUrlState />
+      <DataGridRoot {...server.rootProps} className="h-96">
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+      <DataGridPaginationBar {...server.pager} />
+    </DataGridProvider>
+  );
+}
+```
+
 ## Related
 
 - [Load rows by page](/docs/server-pagination/load-rows-page): the pages mode of the hook

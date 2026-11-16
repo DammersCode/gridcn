@@ -1,0 +1,83 @@
+---
+title: Refresh server rows
+icon: RefreshCw
+description: Fetch the rows in view again after the server changed them, and keep each row that has an open edit or a save in flight.
+type: task
+aliases: ["refresh", "refetch rows", "server refresh", "reload rows"]
+---
+
+`server.refresh()` calls `fetchRows` again for the rows in view. Use it after the result behind the same spec changes, for example after a server-side import. The grid keeps the old rows on screen until the answers land.
+
+## Refresh the rows in view [#refresh]
+
+This grid imports orders on the server, then refreshes:
+
+```tsx
+"use client";
+
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+export function OrdersGrid() {
+  const server = useDataGridServerRows<Order>({
+    mode: "scroll",
+    fetchRows: async ({ start, end, signal }) => {
+      const query = `offset=${start}&limit=${end - start}`;
+      const response = await fetch(`/api/orders?${query}`, { signal });
+      const answer = await response.json();
+      return { rows: answer.rows, totalRowCount: answer.total };
+    },
+  });
+
+  async function importOrders() {
+    await fetch("/api/orders/import", { method: "POST" });
+    server.refresh();
+  }
+
+  return (
+    <>
+      <button type="button" onClick={importOrders}>
+        Import
+      </button>
+      <DataGrid {...server.gridProps} columns={columns} className="h-96" />
+    </>
+  );
+}
+```
+
+Each mode fetches different rows:
+
+- Pages mode fetches the current page again.
+- Scroll mode fetches the blocks around the rendered rows and drops every other loaded block.
+- A sequential source fetches again from the first block, up to the rendered rows.
+
+## Keep rows with pending changes [#pending-changes]
+
+A refresh keeps a row that has an open edit or a save in flight. The row keeps its local value. A pending insert or delete is one whose `onSave` promise has not settled.
+
+- If the answer carries a row with a pending delete, the row stays gone.
+- If the answer lacks a pending insert and no answer row sits in its slot, the insert returns to that slot.
+- If an answer row sits in the slot, the insert stays hidden.
+- A result with a row count refreshes again once no pending insert or delete remains.
+- A refresh of a sequential source that ends before a pending insert can drop it until its save settles.
+
+In pages mode, a pending insert stays at the end of the page. The page can then hold more than `pageSize` rows until the save settles.
+
+`gridProps.plugins` mounts the guard that applies these rules, then the plugins of the `plugins` option. A `plugins` prop of your own after the spread replaces the guard. When an edit happened and the guard never mounted, `refresh()` warns once in development.
+
+## Let the hook refresh [#automatic]
+
+The hook calls `refresh()` itself after saves settle (`refreshAfterSave`) and after a row operation on a result with a row count. See [Save edits](/docs/save-server/save-edits#server-source). A timer refreshes too: see [Refresh on a timer](/docs/scroll-mode/tune-row-retention#revalidate).
+
+## Related
+
+- [Tune row retention](/docs/scroll-mode/tune-row-retention): cap, evict, and refresh on a timer
+- [Save edits](/docs/save-server/save-edits): `refreshAfterSave` and its policies
+- [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view): `reshape()` and `reshapeDelayMs`
+- [Server rows options](/docs/add-options/server/server-rows-options): `refresh` and `retry`

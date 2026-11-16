@@ -5,6 +5,7 @@
     "load-rows-while-scrolling",
     "load-without-row-count",
     "recover-load-errors",
-    "tune-row-retention"
+    "tune-row-retention",
+    "refresh-server-rows"
   ]
 }

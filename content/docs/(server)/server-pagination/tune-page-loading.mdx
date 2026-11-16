@@ -20,6 +20,41 @@ A keyset API returns a `nextCursor` and no page numbers. Answer `{ rows, nextCur
 
 `nextCursor: null` ends the source. Do not keep the chain in your own state.
 
+This grid pages through a cursor API:
+
+```tsx
+"use client";
+
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import { DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+export function OrdersGrid() {
+  const server = useDataGridServerRows<Order, string>({
+    fetchRows: async ({ cursor, start, end, signal }) => {
+      const query = new URLSearchParams({ limit: String(end - start) });
+      if (cursor !== undefined) query.set("after", cursor);
+      const response = await fetch(`/api/orders?${query}`, { signal });
+      const page = await response.json();
+      return { rows: page.items, nextCursor: page.next ?? null };
+    },
+  });
+
+  return (
+    <>
+      <DataGrid {...server.gridProps} columns={columns} className="h-96" />
+      <DataGridPaginationBar {...server.pager} />
+    </>
+  );
+}
+```
+
 With a fetch library, `useInfiniteQuery` or `useSWRInfinite` keeps the chain for you. These demos show infinite scroll and a pager over a cursor API:
 
 <ComponentPreview name="data-grid-cursor-react-query-demo" />
@@ -28,11 +63,17 @@ With a fetch library, `useInfiniteQuery` or `useSWRInfinite` keeps the chain for
 
 ## Load the next page early [#prefetch]
 
-Set `prefetchNextPage` to fetch the page after the current one in the background once the current page has landed. The pager then shows that page with no request and no loading state. A failed prefetch is silent. A refresh, a revalidation tick, a spec or page size change, a local insert, delete, or move, and the start of a save drop it. A landed page that the user does not reach within `revalidateIntervalMs`, or within 30 seconds without it, is dropped too. The default is `false`.
+Set `prefetchNextPage` to fetch the page after the current one in the background once the current page has landed. The pager then shows that page with no request and no loading state. A failed prefetch is silent. The default is `false`.
+
+The hook drops a prefetched page in these cases:
+
+- A refresh, a revalidation tick, a spec change, or a page size change.
+- A local insert, delete, or move, and the start of a save.
+- The user does not reach the page within `revalidateIntervalMs`, or within 30 seconds without it.
 
 ## Refresh on a timer [#revalidate]
 
-Set `revalidateIntervalMs` (at least 1000 milliseconds) to call `refresh()` on a timer while the page is visible. A tick waits for a request in flight, and every refresh restarts the clock. The default is off.
+Set `revalidateIntervalMs` to call `refresh()` on a timer while the page is visible. [Refresh on a timer](/docs/scroll-mode/tune-row-retention#revalidate) lists the rules.
 
 ## Related
 
