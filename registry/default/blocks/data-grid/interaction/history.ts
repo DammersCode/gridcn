@@ -1,4 +1,5 @@
 import type { DataChange, DataOp } from "../types";
+import { defaultGetRowId } from "../store/types";
 
 /** Inverts a single operation: update swaps row/prev, insert becomes delete, delete becomes insert. */
 function invertOp<TData>(op: DataOp<TData>): DataOp<TData> {
@@ -48,10 +49,11 @@ export function invertChange<TData>(change: DataChange<TData>, source: "history"
  * `index` convention: update/delete operation indices are informational only (those operations are
  * row-id-based). An insert's `index` is the row's slot in the resulting array, after all of the
  * batch's inserts are in place (the natural output of an insert-rows or duplicate-rows emitter).
+ * `getRowId` defaults to the row's `id` field, as in the grid.
  * Inserts are applied in ascending-index order regardless of their order in `ops`, so a multi-row
  * batch (including one produced by inverting a delete batch) round-trips through invertChange.
  */
-export function applyChange<TData>(data: readonly TData[], change: DataChange<TData>, getRowId: (row: TData, index: number) => string): TData[] {
+export function applyChange<TData>(data: readonly TData[], change: DataChange<TData>, getRowId: (row: TData, index: number) => string = defaultGetRowId): TData[] {
   return applyChangeWith(data, change, getRowId);
 }
 

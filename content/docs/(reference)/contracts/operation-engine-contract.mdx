@@ -14,7 +14,7 @@ The `data-grid` entry exports two functions of the engine:
 
 | Function | Returns |
 |---|---|
-| `applyChange(data, change, getRowId)` | A new row array with the change applied |
+| `applyChange(data, change, getRowId?)` | A new row array with the change applied |
 | `invertChange(change, source?)` | The change that undoes `change` |
 
 ## applyChange [#applychange]
@@ -30,16 +30,16 @@ import {
 
 type Row = { id: string; name: string };
 
-const getRowId = (row: Row) => row.id;
-
 export function applyToCache(cache: Row[], change: DataChange<Row>) {
-  return applyChange(cache, change, getRowId);
+  return applyChange(cache, change);
 }
 
 export function undoOnCache(cache: Row[], change: DataChange<Row>) {
-  return applyChange(cache, invertChange(change), getRowId);
+  return applyChange(cache, invertChange(change));
 }
 ```
+
+`getRowId` defaults to the `id` field of each row, as in the grid. Pass it when your rows use another key.
 
 These rules apply:
 
