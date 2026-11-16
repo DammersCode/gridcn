@@ -4,7 +4,12 @@ import { useImperativeHandle, type ReactNode, type Ref } from "react";
 import type { DataGridApi } from "./types";
 import {
   DataGridProvider,
+  createDataGridSelector,
+  useDataGridAllColumns,
+  useDataGridRow,
   useDataGridStoreApi,
+  useDataGridVisibleColumns,
+  type ColumnDefOf,
   type ExternalStoreProps,
   type OwnedStoreProps,
 } from "./store";
@@ -137,6 +142,7 @@ export {
   safeHref,
 } from "./cell-types/cell-types";
 export { displayText } from "./cell-types/display-text";
+export { columnLabelText } from "./columns/column-format-helpers";
 export { rejectText } from "./cell-types/safe-from-text";
 export { CellSpan } from "./cell-types/cell-span";
 
@@ -266,6 +272,20 @@ export function useDataGridApi<TData = unknown>(ref?: Ref<DataGridApi<TData>>): 
   const api = apiHandleOf<TData>(useDataGridStoreApi());
   useImperativeHandle(ref, () => api, [api]);
   return api;
+}
+
+/**
+ * Types every row-reading hook once for a row type: `export const { useDataGridRow, useDataGridApi } = createDataGridHooks<Order>();`.
+ * The returned hooks are the plain hooks with `TData` fixed, so a component reads `Order` rows without a type argument at each call.
+ */
+export function createDataGridHooks<TData>() {
+  return {
+    useDataGridApi: useDataGridApi as (ref?: Ref<DataGridApi<TData>>) => DataGridApi<TData>,
+    useDataGridRow: useDataGridRow as (viewRowIndex: number) => TData | undefined,
+    useDataGridVisibleColumns: useDataGridVisibleColumns as () => readonly ColumnDefOf<TData>[],
+    useDataGridAllColumns: useDataGridAllColumns as () => readonly ColumnDefOf<TData>[],
+    useDataGridSelector: createDataGridSelector<TData>(),
+  };
 }
 
 /**

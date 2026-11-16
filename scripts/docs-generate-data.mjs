@@ -299,6 +299,7 @@ export const HOOK_GROUPS = [
     intro: "Call these hooks inside a `DataGridProvider`. `useDataGridStoreProps` runs outside it and creates the store. `createDataGridSelector` builds such a hook. Import them from `@/components/data-grid/data-grid`.",
     rows: [
       ["createDataGridSelector", "Builds a typed hook that reads any slice of the store.", "/docs/types-hooks/store-hooks#createdatagridselector"],
+      ["createDataGridHooks", "Returns `useDataGridApi`, `useDataGridRow`, the column hooks, and `useDataGridSelector` typed for one row type.", "/docs/types-hooks/store-hooks#createdatagridselector"],
       ["useDataGridActions", "Returns the stable actions object.", "/docs/types-hooks/store-hooks#usedatagridactions"],
       ["useDataGridActiveCell", "Returns the active cell as a `ViewCoord`.", "/docs/types-hooks/store-hooks#usedatagridactivecell"],
       ["useDataGridActiveColumn", "Returns the view column of the active cell.", "/docs/types-hooks/store-hooks#usedatagridactivecolumn"],

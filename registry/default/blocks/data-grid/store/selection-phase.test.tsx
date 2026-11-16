@@ -10,7 +10,7 @@ import { useGridInteraction } from "../interaction/use-grid-interaction";
 import type { InteractionLayout } from "../data-grid-sdk";
 
 type Row = { id: string; name: string };
-const columns = [{ id: "name", header: "Name", accessorKey: "name" }];
+const columns = [{ id: "name", header: "Name", accessorKey: "name" as const }];
 const rows: Row[] = [{ id: "a", name: "A" }, { id: "b", name: "B" }, { id: "c", name: "C" }];
 
 describe("onSelectionChange details.phase", () => {
