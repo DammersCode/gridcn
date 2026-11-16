@@ -917,14 +917,16 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           if (!onSelectionChange) return;
           memory.selectionEchoQueue.push(derived);
           if (memory.selectionEchoQueue.length > 128) memory.selectionEchoQueue.shift();
-          if (memory.selectionPress) memory.selectionPress.changed = true;
-          const phase = memory.selectionPress ? "drag" : "end";
+          // The press's own change is settled unless the pointer moves on; only the later steps report "drag".
+          const press = memory.selectionPress;
+          const phase = press?.pressed ? "drag" : "end";
+          if (press) Object.assign(press, { changed: press.pressed, pressed: true });
           emitFromListener("onSelectionChange", () => onSelectionChange(derived, makeSelectionChangeDetails(() => api.getState(), phase)));
         });
       },
       _setSelectionPress(pressed) {
         const press = memory.selectionPress;
-        memory.selectionPress = pressed ? (press ?? { changed: false }) : null;
+        memory.selectionPress = pressed ? (press ?? { pressed: false, changed: false }) : null;
         const onSelectionChange = get().onSelectionChange;
         if (pressed || !press?.changed || !onSelectionChange) return;
         const settled = memory.lastKnownSelection;

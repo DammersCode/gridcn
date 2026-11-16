@@ -415,8 +415,8 @@ export type DataGridSyncProps<TData = unknown> = {
    * Fires on every committed selection change (click, extend step, range push, row/column/all selection, clear)
    * with the current selection in stable {@link SelectionState} terms plus a lazy `details.getValues()` accessor.
    * Fires only when the selection differs structurally from the last one, so a sort that keeps the selection's rows
-   * fires nothing. A pointer press or drag fires `details.phase: "drag"` per step, then once more with `"end"` on release;
-   * every other change fires `"end"`, so `phase === "end"` reads only settled selections. `getValues()` reads the values only when you call it.
+   * fires nothing. `details.phase` is `"end"` for a settled selection: a click, a key, an API call. A pointer drag fires `"drag"` for each
+   * step after the press, then once more with `"end"` on release, so `phase === "end"` skips the steps. `getValues()` reads the values only when you call it.
    */
   onSelectionChange?: (next: SelectionState, details: SelectionChangeDetails) => void;
    /**

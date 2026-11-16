@@ -1,4 +1,4 @@
-/** `"drag"` while a pointer press or drag still moves the selection; `"end"` for a settled selection. */
+/** `"drag"` while a pointer drag still moves the selection; `"end"` for a settled selection. */
 export type SelectionChangePhase = "drag" | "end";
 
 export type SelectionChangeDetails = {
@@ -6,6 +6,6 @@ export type SelectionChangeDetails = {
   getValues: () => unknown[][];
   /** Row ids of every selected row, view order, across both the row channel (checkboxes) and any cell range. */
   getRowIds: () => string[];
-  /** `"drag"` for each step of a pointer press or drag, `"end"` for the release after it and for every other change. */
+  /** `"drag"` for each step of a pointer drag after the press, `"end"` for the press, the release after a drag, and every other change. */
   phase: SelectionChangePhase;
 };
