@@ -23,6 +23,7 @@ export type RegistryItemName =
   | "data-grid-actions-demo"
   | "data-grid-find-replace-demo"
   | "data-grid-cell-errors-demo"
+  | "data-grid-linked-grids-demo"
   | "data-grid-cell-types-demo"
   | "data-grid-date-picker-demo"
   | "data-grid-announcements-demo"

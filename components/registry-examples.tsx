@@ -27,6 +27,7 @@ const EXAMPLES = {
   "data-grid-quick-search-demo": dynamic(() => import("@/registry/default/examples/data-grid-quick-search-demo")),
   "data-grid-colors-radius-demo": dynamic(() => import("@/registry/default/examples/data-grid-colors-radius-demo")),
   "data-grid-global-shortcuts-demo": dynamic(() => import("@/registry/default/examples/data-grid-global-shortcuts-demo")),
+  "data-grid-linked-grids-demo": dynamic(() => import("@/registry/default/examples/data-grid-linked-grids-demo")),
   "data-grid-io-demo": dynamic(() => import("@/registry/default/examples/data-grid-io-demo")),
   "data-grid-io-hooks-demo": dynamic(() => import("@/registry/default/examples/data-grid-io-hooks-demo")),
   "data-grid-export-all-demo": dynamic(() => import("@/registry/default/examples/data-grid-export-all-demo")),
