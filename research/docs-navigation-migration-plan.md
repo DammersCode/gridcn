@@ -32,8 +32,7 @@ this order:
 5. New-text PRs: the pages of section 5.
 6. Polish PR: lengths, descriptions, Related sections, and the audit gate.
 
-Gates for every PR: the gate list in `AGENTS.md` (types, lint, typed lint, tests, build). `pnpm docs:changes --check` runs
-inside `pnpm lint`. The skeleton PR also touches `registry.json`, so it needs the registry steps of that list (section 7).
+Gates for every PR: the gate list in `AGENTS.md` (types, lint, typed lint, tests, build). The skeleton PR also touches `registry.json`, so it needs the registry steps of that list (section 7).
 The audit script (`node scripts/docs-nav-audit.mjs --check`) joins the gates in the polish PR. Before that, a page above its
 hard cap would fail every PR.
 
@@ -115,7 +114,6 @@ Rules for a split PR:
 - Cut along the H2 sections named in the content map. Move text; edit only the links and the first paragraph.
 - Keep each H2 heading text unchanged so its anchor survives (section 6).
 - Each new page gets `type`, `description`, and a Related section (rules P7, P8).
-- Move the `<NewBadge />` with its section.
 
 Pages that merge: `custom-cell-types` (contract goes to the CellType contract page), `i18n` and the i18n section of
 `styling-theming`, and the sort-list add-on page keeps its own page.
@@ -182,28 +180,6 @@ Stable-anchor rule: a heading keeps its text in a split, so its anchor does not 
 Skills stay in sync: after the skeleton PR, a reviewer opens each skill and checks that every URL resolves and every
 claim about "where to look" is still true.
 
-## 8. `content/docs-changes.json`
-
-The file keys are page paths, and the sidebar dots read them. A move changes every path, so against the baseline (the last
-1.x tag for 2.0.0) every page looks `new`. A dot on every page tells the reader nothing.
-
-Plan:
-
-- Add `content/docs-moves.json`: `{ "<new path>": ["<old path>", ...] }`, generated from the URL map.
-- Teach `scripts/docs-changes.mjs` to compare a moved page with the old sections that the content map assigns to it, not with
-  the whole old page. Compared with the whole page, every split page would differ and show `updated`. A page whose text
-  changed in substance is `updated`. An unchanged moved page has no marker. A page with no old source is `new`.
-- Fix the badge pass in the same change. Today it keeps every `<NewBadge />` in a file that is absent at the baseline, so
-  the stale badges on moved files would never go. With the moves file, it removes the badges of sections that exist in the
-  old page.
-- Keep the key format. With area folders in parentheses, a path key contains the folder, for example
-  `(build)/sort-filter-search/sorting.mdx`. The plugin in `lib/source.tsx` removes only the `content/docs/` prefix, and
-  `docs-changes.mjs` keys by the raw path, so both already agree. Check in the spike that Fumadocs passes the same path
-  string to the plugin.
-- `pnpm lint` compares the committed file with the tagged release (`docs:changes --check`). The release commit
-  regenerates it (`pnpm docs:changes --release 2.0.0`), as the docs rules say.
-- Page dots appear when the release command runs, not in the move commits.
-
 ## 9. Defects fixed during the migration
 
 | Defect (from the audit) | Fixed in |
@@ -248,4 +224,3 @@ Plan:
 - The audit script passes (`--check`).
 - The candidate check passes (`--candidate` on the final file).
 - Each skill file reads correctly after the rewrite.
-- `docs:changes` shows dots only on pages whose text changed.

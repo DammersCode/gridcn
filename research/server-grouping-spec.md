@@ -416,7 +416,7 @@ re-layouts with anchors, and the rule-based selection are the risky parts.
 
 1. Glossary: new terms (group row, group path, child list, grand total, reserved row-id prefixes)
    and amended "block", "spec", "request, answer", "checked row", "result count", mirrored in
-   `terms.mdx` with `<NewBadge />`. Additive types (with pivot spec step 1, which adds `pivot`);
+   `terms.mdx`. Additive types (with pivot spec step 1, which adds `pivot`);
    `serverSpecKey` replacer; type tests; CHANGELOG
    `### Added`; `data-grid` and `data-grid-server` payloads.
 2. `DataGridSelectedRows` type shape (`readSelectedRows` adds `groups: []` and ids-mode `spec`; every
@@ -427,7 +427,7 @@ re-layouts with anchors, and the rule-based selection are the risky parts.
    (sections already new since v1.3.0), the
    server selection demo, `skills/gridcn-data-source/SKILL.md`; `data-grid` payload (and the demo's).
 3. `readGroupsAnswer`; pages and scroll strips with the warning and their test in `page-reset`;
-   "Server checks" in the recipe with `<NewBadge />`; CHANGELOG; `data-grid-server` payload;
+   "Server checks" in the recipe; CHANGELOG; `data-grid-server` payload;
    `registry:verify`; `test:e2e-install`.
 4. After #71: reader migration to `viewEntryAt`.
 5. Core `groupMode` (added to the `grouping` row's options in the same commit), the data-keyed getter,
@@ -439,7 +439,7 @@ re-layouts with anchors, and the rule-based selection are the risky parts.
 9. Spec and `aggregates` change rules; restored expansions and the `scrollTop` fix.
 10. Treegrid ARIA, announcements, totals, write rules.
 11. URL `group` param; demo `data-grid-server-grouping-demo` and its `components/registry-examples.tsx`
-    entry; docs (new page; `<NewBadge />` in `server-side.mdx`, `lazy-loading.mdx`,
+    entry; docs (new page; sections in `server-side.mdx`, `lazy-loading.mdx`,
     `accessibility.mdx`, `addons/url-state.mdx`, `addons/pinned-rows.mdx`; `addons/views.mdx` is the
     views block's); parity rows; CHANGELOG; payloads; `test:e2e-install`; budgets measured; remove
     the scroll strip of `groupBy` and `aggregates` and invert its test (`pivot` keeps its strip until

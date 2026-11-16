@@ -72,15 +72,6 @@ Component and addon page structure (match the existing pages):
 6. Warnings as `<Callout type="warn">`: command or condition first, then the risk.
 7. `## Related` links at the end.
 
-### Page status and "New" badges
-
-Docs follow the same discipline as the changelog: every added or substantively changed section is marked in the same commit, before a task is called done. Deleted pages and sections are not marked (the sidebar shows only new and updated content); a removal gets a `CHANGELOG.md` entry instead.
-
-The sidebar dot comes from `content/docs-changes.json`, not from page frontmatter. `pnpm docs:changes` writes it: a page absent at the baseline is `new`, a page changed in substance is `updated`. The baseline is the last tag of the previous minor version (1.2.x compares with the last 1.1.x tag). Patch releases add to the markers of their series. Page dots appear when `pnpm docs:changes --release <version>` runs for the release, not in the commit that adds a page. `pnpm lint` fails when the committed file disagrees with the tagged release (it never reads the working tree) and on any `status:` line in `content/docs`.
-
-- A section, paragraph, props-table row, or list item added to an existing page gets `<NewBadge />`: on its own line under a heading, after the first inline term of a paragraph or list item, or in the first cell of a table row. A badge inside heading text breaks the table of contents and the anchor. A page new since the baseline needs no section badges.
-- Release procedure: before the release commit, run `pnpm docs:changes --release <version>` and commit the result with the release. The command also removes every `<NewBadge />` that was not added since the baseline, so a new minor version starts clean and a patch release keeps its series.
-
 ## API design (registry/default/blocks/**)
 
 Design every public hook, function, and component from the caller's side.
@@ -186,7 +177,6 @@ Bugs that shipped or reached review more than once. Check each against your chan
 
 ### Docs and release
 
-- Put `<NewBadge />` on its own line under a heading, never in the heading text. A badge in a heading broke the build.
 - A fix to shipped behavior gets its changelog entry in the fix commit. A fix to unreleased behavior needs none. A release audit found nine fixes without an entry.
 - A registry change rebuilds the payloads and declares every import of the item in the same series of commits. A new demo also gets an entry in `components/registry-examples.tsx`.
 - Render docs and demos the same on the server and the client: pin locales, read the platform from a server snapshot, and check the server HTML. Hydration mismatches and sidebar flashes took six fixes.

@@ -61,7 +61,6 @@ Every page has exactly one type. The type decides the budget and the template. A
 - P10. A Feature page links its Reference page, and the Reference page links back. A Task page links the page that explains
   the concepts it uses.
 - P11. No page has fewer than 80 words, and no page is only links, unless it is a Landing page.
-- P12. A docs-changes marker (`<NewBadge />`) follows `AGENTS.md`. A moved section keeps its badge.
 - P13. A Feature page whose behavior differs between client and server mode has an H2 named "Server mode". A page with a
   sibling for the other mode links that sibling in the first screen. It states the
   request and the response and links the Server page that owns the detail. The feature list comes from

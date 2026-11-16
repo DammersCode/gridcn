@@ -79,7 +79,6 @@ export const urlOfPage = (contentDir, file) => {
 const slugText = (text) =>
   text
     .replace(/\[#[^\]]+\]\s*$/, "")
-    .replace(/<NewBadge\s*\/>/g, "")
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/[`*]/g, "")
     .trim()

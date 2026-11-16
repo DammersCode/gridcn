@@ -375,7 +375,7 @@ only; it fires once per (page, clamped) pair and never while the count is 0, as 
 ## 3. Steps
 
 Each step is one commit: tests first (red), then code, then docs, `CHANGELOG.md` `## Unreleased`
-entry, `<NewBadge />` on changed sections, parity row and `node scripts/verify-parity.mjs --write`,
+entry, parity row and `node scripts/verify-parity.mjs --write`,
 skills grep, all gates. "Client" and "server" name the path each test covers.
 
 1. **Core spec types and vocabulary (D1 part).** Move `ServerSpec`, `serverSpecKey`, `RowRange`

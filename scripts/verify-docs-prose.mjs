@@ -24,7 +24,7 @@ const SOFT = [
   ["phantom-contrast", /\b(?:not an? (?:array|object|string|function)|instead of|rather than)\b/i, "state the property positively"],
   ["late-condition", /[a-z,]\s+(?:if|when|unless)\s/, "put the condition first"],
 ];
-const BLOCK_TAG = /^\s*<\/?(?:Callout|Tabs?|Steps?|Accordions?|ComponentPreview|InstallCommand|ManualInstall|NewBadge|AutoTypeTable|details|summary|div|Cards?|TypeTable)\b/;
+const BLOCK_TAG = /^\s*<\/?(?:Callout|Tabs?|Steps?|Accordions?|ComponentPreview|InstallCommand|ManualInstall|AutoTypeTable|details|summary|div|Cards?|TypeTable)\b/;
 const SKIP_LINE = /^\s*(?:#{1,6}\s|\{\/\*|import\s|export\s|---)/;
 const LIST_ITEM = /^\s*(?:[-*]|\d+\.)\s+(.*)$/;
 
