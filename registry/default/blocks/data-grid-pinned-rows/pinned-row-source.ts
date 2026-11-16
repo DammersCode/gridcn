@@ -18,6 +18,21 @@ export type PinnedRowSource =
   | Readonly<{ kind: "aggregate"; specs: AggregateSpecs<never>; scope: NonNullable<UseDataGridAggregateOptions["scope"]>; cells: Readonly<Record<string, unknown>> | undefined }>
   | Readonly<{ kind: "server-aggregate"; options: ServerAggregateRowOptions; cells: Readonly<Record<string, unknown>> | undefined }>;
 
+/** Equal own keys and values; with `skipFunctions`, any two functions count as equal. */
+export function shallowEqual(a: object | undefined, b: object | undefined, skipFunctions = false): boolean {
+  if (a === b) return true;
+  if (a === undefined || b === undefined) return false;
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+  return (
+    keysA.length === keysB.length &&
+    keysA.every((key) => {
+      const [valueA, valueB] = [(a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]];
+      return Object.hasOwn(b, key) && (Object.is(valueA, valueB) || (skipFunctions && typeof valueA === "function" && typeof valueB === "function"));
+    })
+  );
+}
+
 const SOURCES = new WeakSet<object>();
 
 /** The newest equal source of a held one, so an inline source with new function identities keeps its band and calls the newest functions. */

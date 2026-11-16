@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DataGridPlugin, RowBandRenderCtx } from "@/registry/default/blocks/data-grid/data-grid";
 import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { DataGridPinnedRowBand } from "./pinned-row-band";
-import { forwardSource, isPinnedRowSource } from "./pinned-row-source";
+import { forwardSource, isPinnedRowSource, shallowEqual } from "./pinned-row-source";
 import type { ServerAggregateStatus } from "./use-data-grid-server-aggregate";
 
 /** Options for {@link useDataGridPinnedRows}. */
@@ -24,20 +24,6 @@ export type UseDataGridPinnedRowsResult = {
 };
 
 const EMPTY_ROWS: readonly never[] = [];
-
-function shallowEqual(a: object | undefined, b: object | undefined, skipFunctions = false): boolean {
-  if (a === b) return true;
-  if (a === undefined || b === undefined) return false;
-  const keysA = Object.keys(a);
-  const keysB = Object.keys(b);
-  return (
-    keysA.length === keysB.length &&
-    keysA.every((key) => {
-      const [valueA, valueB] = [(a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]];
-      return Object.hasOwn(b, key) && (Object.is(valueA, valueB) || (skipFunctions && typeof valueA === "function" && typeof valueB === "function"));
-    })
-  );
-}
 
 function sameEntry(a: unknown, b: unknown): boolean {
   if (Object.is(a, b)) return true;

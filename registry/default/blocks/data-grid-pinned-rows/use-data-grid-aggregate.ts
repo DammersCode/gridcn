@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { useStore } from "zustand";
 import { getCellValue, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
 import { fullViewOf, isDev, useDataGridStoreApi, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { shallowEqual } from "./pinned-row-source";
 
 /** `count` counts every value that is not `null` or `undefined`. `sum`/`avg`/`min`/`max` reduce over finite numbers only (a numeric string, `NaN`, or a `Date` is skipped) and give `undefined` when none is left. A function receives every resolved value plus its source rows (empty values included, so a custom reducer owns its own empty handling). Use a function to aggregate dates or numeric strings. `TData` is the grid's row type: pass it at the hook call (or annotate `specs` as `AggregateSpecs<Row>`) so `rows` is typed. */
 export type AggregateReducer<TData = unknown> = "sum" | "avg" | "min" | "max" | "count" | ((values: readonly unknown[], rows: readonly TData[]) => unknown);
@@ -99,9 +100,9 @@ function computeAggregate<TData>(owner: object, state: DataGridReadState, specs:
  * `getCellValue`, so `accessorFn` columns aggregate correctly, not just plain fields. Defaults to
  * `scope: "view"`, every row the sort and filter leave across all pages; `"page"` reduces over the
  * shown page only, and `"all"` over the raw `data`, ignoring the active filter. Recomputes only when `viewIndex`, `data`,
- * `scope`, or the `specs` object's own identity changes, so scrolling (no store write touches any of
- * those) never recomputes — same identity-guardrailed contract as the `plugins` prop; define
- * `specs` at module scope or memoize it, same discipline as any other grid callback prop.
+ * `scope`, or an entry of `specs` changes (a named reducer by name, a function by identity), so
+ * scrolling never recomputes and an inline `specs` object of named reducers is fine. A reducer
+ * function defined in the render recomputes on every render; define it at module scope or memoize it.
  * `undefined` rows (unloaded holes of a lazy grid) are skipped and a dev warning fires once per grid — on a
  * lazy grid the result covers loaded rows only. A spec key that matches no column id is ignored
  * and a dev warning fires once per grid. `TData` types `rows` in custom reducers (see {@link AggregateReducer}).
@@ -113,7 +114,7 @@ export function useDataGridAggregate<TData = unknown>(specs: AggregateSpecs<TDat
 
   return useStore(storeApi, (state) => {
     const c = cache.current;
-    if (c && c.viewIndex === state.viewIndex && c.data === state.data && c.scope === scope && c.specs === specs) {
+    if (c && c.viewIndex === state.viewIndex && c.data === state.data && c.scope === scope && shallowEqual(c.specs, specs)) {
       return c.result;
     }
     const result = computeAggregate(storeApi, state, specs, scope);

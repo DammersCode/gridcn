@@ -356,6 +356,30 @@ describe("useDataGridAggregate — memoization", () => {
     expect(results.at(-1)).toBe(first);
     expect(compute.mock.calls.length).toBe(callsAfterMount);
   });
+
+  it("keeps the result for inline specs of named reducers, and recomputes for a new reducer function", () => {
+    const data = makeRows([1, 2, 3]);
+    const results: Record<string, unknown>[] = [];
+    const { rerender } = render(<Capture data={data} specs={{ qty: "sum", note: "count" }} onResult={(r) => results.push(r)} />);
+    const first = results.at(-1);
+    rerender(<Capture data={data} specs={{ qty: "sum", note: "count" }} onResult={(r) => results.push(r)} />);
+    expect(results.at(-1)).toBe(first);
+    const threshold = 2;
+    rerender(<Capture data={data} specs={{ qty: (values) => values.filter((v) => (v as number) > threshold).length }} onResult={(r) => results.push(r)} />);
+    expect(results.at(-1)).toEqual({ qty: 1 });
+    rerender(<Capture data={data} specs={{ qty: (values) => values.filter((v) => (v as number) > threshold - 1).length }} onResult={(r) => results.push(r)} />);
+    expect(results.at(-1)).toEqual({ qty: 2 });
+  });
+
+  it("recomputes when inline specs change a reducer or a key", () => {
+    const data = makeRows([1, 2, 3]);
+    const results: Record<string, unknown>[] = [];
+    const { rerender } = render(<Capture data={data} specs={{ qty: "sum" }} onResult={(r) => results.push(r)} />);
+    rerender(<Capture data={data} specs={{ qty: "max" }} onResult={(r) => results.push(r)} />);
+    expect(results.at(-1)).toEqual({ qty: 3 });
+    rerender(<Capture data={data} specs={{ qty: "max", note: "count" }} onResult={(r) => results.push(r)} />);
+    expect(results.at(-1)).toEqual({ qty: 3, note: 3 });
+  });
 });
 
 describe("useDataGridAggregate with a __proto__ column id", () => {
