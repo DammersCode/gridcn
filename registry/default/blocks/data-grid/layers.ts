@@ -25,10 +25,10 @@ export const GRID_LAYER = {
   activeCell: 4,
   /** Pinned-left/right body cell — must cover any unpinned cell scrolled under it. */
   pinnedCell: 8,
-  /** Active pinned cell: the focus ring must not be clipped by its own band. */
+  /** Selection/fill/presence/plugin-band segment covering the pinned band — above the pinned cells it decorates, below the active ring and the marker. */
+  pinnedOverlaySegment: 10,
+  /** Active pinned cell: the focus ring must not be clipped by its own band or covered by an overlay segment. */
   activePinnedCell: 12,
-  /** Selection/fill/presence segment covering the pinned band — above the pinned cells it decorates, below the marker. */
-  pinnedOverlaySegment: 14,
   /** Row-marker body cell — first in DOM order, so it needs to outrank every data cell. */
   markerCell: 16,
   /** Pinned top/bottom row band — spans the full width above the scrolling body. */

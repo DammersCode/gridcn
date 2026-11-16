@@ -12,4 +12,9 @@ describe("cellLayer", () => {
   it("never returns auto, so toggling active keeps the stacking mode of the cell", () => {
     for (const pinned of [false, true]) for (const active of [false, true]) expect(typeof cellLayer(pinned, active)).toBe("number");
   });
+
+  it("ranks the active pinned ring above a pinned overlay segment, and the segment above pinned cells", () => {
+    expect(GRID_LAYER.pinnedOverlaySegment).toBeGreaterThan(GRID_LAYER.pinnedCell);
+    expect(GRID_LAYER.activePinnedCell).toBeGreaterThan(GRID_LAYER.pinnedOverlaySegment);
+  });
 });
