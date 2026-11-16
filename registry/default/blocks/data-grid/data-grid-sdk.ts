@@ -130,6 +130,12 @@ export function useDataGridStoreApi(): DataGridStoreWrapper {
   return gridStoreWrapper(useDataGridStoreApiRaw());
 }
 
+/** The enclosing grid's read-only store view, or `null` outside a `DataGridProvider`. */
+export function useOptionalDataGridStoreApi(): DataGridStoreWrapper | null {
+  const store = use(DataGridStoreContext);
+  return store && gridStoreWrapper(store);
+}
+
 /** Registers `focus` as what the `focusSearch` action runs while the caller is mounted; without one the action leaves its key to the browser. */
 export function useDataGridFocusSearchRegistration(focus: () => void): void {
   const internalActions = useDataGridInternalActions();

@@ -3,11 +3,13 @@
 import { CellSpan, type CellRenderProps, type CellType } from "@/registry/default/blocks/data-grid/data-grid";
 import { createFilterMatcher } from "@/registry/default/blocks/data-grid/data-grid";
 import type { FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { TEXT_FILTER_OPERATORS, sortCollator, UnparseableTextError } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { TEXT_FILTER_OPERATORS, sortCollator, UnparseableTextError, useOptionalDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { LookupEditor } from "./lookup-editor";
-import { isUnresolved, MAX_LOOKUP_TEXT, readLookup, recallOption, rememberOption, type LookupOptions, type LookupValue } from "./lookup-model";
+import { adoptOwner, isUnresolved, MAX_LOOKUP_TEXT, readLookup, recallOption, rememberOption, type LookupOptions, type LookupValue } from "./lookup-model";
 
-function LookupCell({ value, options }: CellRenderProps<unknown, LookupValue, LookupOptions>) {
+function LookupCell({ value, options, columnId }: CellRenderProps<unknown, LookupValue, LookupOptions>) {
+  const grid = useOptionalDataGridStoreApi();
+  if (grid && options?.fetchOptions) adoptOwner(grid, columnId, options.fetchOptions);
   const option = readLookup(value);
   if (!option) return <CellSpan text="" />;
   // a shown label pastes back to its key, also from outside the grid

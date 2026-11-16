@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useDebouncedInput } from "@/registry/default/hooks/use-debounce";
 import { useCommitGuard, type CellEditorProps } from "@/registry/default/blocks/data-grid/data-grid";
-import { columnLabelText, deepMergeLabels, isComposingKey, isDev, useDataGridInputDebounce } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { columnLabelText, deepMergeLabels, isComposingKey, useDataGridInputDebounce, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
+  adoptOwner,
   DEFAULT_LABELS,
   MAX_LOOKUP_TEXT,
   readLookup,
@@ -46,13 +47,9 @@ export function LookupEditor(props: CellEditorProps<unknown, LookupValue, Lookup
   const [attempt, setAttempt] = useState(0);
   const latest = useRef(options);
   const target = useRef({ row, rowId, columnId: column.id });
-  const warnedIdentity = useRef(false);
+  const grid = useDataGridStoreApi();
   useLayoutEffect(() => {
-    const previous = latest.current?.fetchOptions;
-    if (previous && options?.fetchOptions && previous !== options.fetchOptions && !warnedIdentity.current && isDev()) {
-      warnedIdentity.current = true;
-      console.warn(`[data-grid-lookup] fetchOptions of column "${column.id}" changed identity while the editor was open. Pasted labels resolve through a cache keyed on that function: define it outside the render or memoize it.`);
-    }
+    if (options?.fetchOptions) adoptOwner(grid, column.id, options.fetchOptions);
     latest.current = options;
     target.current = { row, rowId, columnId: column.id };
   });
@@ -77,7 +74,7 @@ export function LookupEditor(props: CellEditorProps<unknown, LookupValue, Lookup
       .then((answer) => {
         if (controller.signal.aborted) return;
         const list = sanitizeOptions(answer, latest.current?.maxResults);
-        for (const option of list) rememberOption(fetchOptions, option);
+        for (const option of list) rememberOption(latest.current?.fetchOptions ?? fetchOptions, option);
         setFetched({ status: "ready", options: list });
         setActive(0);
       })

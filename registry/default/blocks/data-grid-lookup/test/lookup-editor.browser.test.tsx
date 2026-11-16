@@ -39,27 +39,36 @@ async function openEditor() {
 }
 
 describe("lookup editor", () => {
-  it("warns once in development when fetchOptions changes identity while the editor is open", async () => {
+  it("keeps the labels the editor listed when an inline fetchOptions changes identity", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const onDataChange = vi.fn();
     const data: Row[] = [{ id: "r1", customer: acme }];
-    const tree = (fetchOptions: LookupOptions["fetchOptions"]) => (
+    const tree = () => (
       <div style={{ width: 400, height: 240 }}>
         <DataGrid
           data={data}
-          columns={[{ id: "customer", header: "Customer", accessorKey: "customer", type: "lookup", options: { fetchOptions, debounceMs: 0 }, width: 200 }] as readonly ColumnDef<Row, unknown>[]}
+          columns={[{ id: "customer", header: "Customer", accessorKey: "customer", type: "lookup", options: { fetchOptions: async () => [acme, globex], debounceMs: 0 }, width: 200 }] as readonly ColumnDef<Row, unknown>[]}
           getRowId={(r) => r.id}
           cellTypes={{ lookup: lookupCellType }}
+          onDataChange={onDataChange}
         />
       </div>
     );
-    const view = await render(tree(async () => [acme]));
+    const view = await render(tree());
     await openEditor();
-    await expect.element(page.getByRole("option", { name: "Acme" })).toBeVisible();
-    await view.rerender(tree(async () => [globex]));
-    await view.rerender(tree(async () => [acme]));
-    const identityWarnings = warn.mock.calls.filter((call) => String(call[0]).includes("[data-grid-lookup] fetchOptions"));
+    await expect.element(page.getByRole("option", { name: "Globex" })).toBeVisible();
+    await view.rerender(tree());
+    await userEvent.keyboard("{Escape}");
+    await expect.element(page.getByRole("option", { name: "Globex" })).not.toBeInTheDocument();
+    await view.rerender(tree());
+    const dataTransfer = new DataTransfer();
+    dataTransfer.setData("text/plain", "Globex");
+    document.querySelector('[role="grid"]')!.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: dataTransfer }));
+    await vi.waitFor(() => expect(onDataChange).toHaveBeenCalled());
+    const identityWarnings = warn.mock.calls.filter((call) => String(call[0]).includes("[data-grid-lookup]"));
     warn.mockRestore();
-    expect(identityWarnings).toHaveLength(1);
+    expect(firstCustomer(onDataChange)).toEqual(globex);
+    expect(identityWarnings).toHaveLength(0);
   });
 
   it("shows an id-only value as unresolved", async () => {

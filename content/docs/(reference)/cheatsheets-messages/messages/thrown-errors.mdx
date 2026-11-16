@@ -41,7 +41,6 @@ The grid throws these errors, or hands them to an error callback. Fix the cause 
 | <span id="unsupported-csvencoding-name" />`[data-grid-io] unsupported csvEncoding: <name>` | Pass a supported encoding name as `csvEncoding`, for example `utf-8` or `windows-1252`. | [Import options](/docs/add-options/import-export/import-options) |
 | <span id="fetchaggregates-must-resolve-an-object-of-columnid-value" />`fetchAggregates must resolve an object of { [columnId]: value }` | Resolve an object keyed by column id from `fetchAggregates`. `useDataGridServerAggregate` catches the error, sets the status `"error"`, and calls `onError`. | [Show totals from a server](/docs/data-modes/show-server-totals) |
 | <span id="fetchoptions-must-resolve-an-array-of-value-label" />`fetchOptions must resolve an array of { value, label }` | Resolve an array of `{ value, label }` objects from `fetchOptions`. The lookup editor catches the error and shows the error line with a Retry button. | [Lookup cell](/docs/editing-cells/lookup-cell) |
-| <span id="fetchoptions-of-column-id-changed-identity-while-the" />`[data-grid-lookup] fetchOptions of column "<id>" changed identity while the editor was open. Pasted labels resolve through a cache keyed on that function: define it outside the render or memoize it.` | Define `fetchOptions` outside the render or memoize it. | [Lookup cell](/docs/editing-cells/lookup-cell) |
 
 ## Related
 

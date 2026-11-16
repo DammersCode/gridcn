@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isUnresolved, MAX_LOOKUP_TEXT, readLookup, recallOption, rememberOption, sanitizeOptions } from "../lookup-model";
+import { adoptOwner, isUnresolved, MAX_LOOKUP_TEXT, readLookup, recallOption, rememberOption, sanitizeOptions } from "../lookup-model";
 
 describe("readLookup", () => {
   it("reads a pair, a bare key, and nothing", () => {
@@ -83,5 +83,45 @@ describe("known options", () => {
     for (let i = 0; i < 5100; i++) rememberOption(owner, { value: `v${i}`, label: `L${i}` });
     expect(recallOption(owner, "L0")).toBeUndefined();
     expect(recallOption(owner, "L5099")).toBeDefined();
+  });
+});
+
+describe("adoptOwner", () => {
+  const acme = { value: "c1", label: "Acme" };
+
+  it("carries a column's options over to its next fetchOptions identity", () => {
+    const grid = {};
+    const first = {};
+    const next = {};
+    adoptOwner(grid, "customer", first);
+    rememberOption(first, acme);
+    adoptOwner(grid, "customer", next);
+    expect(recallOption(next, "Acme")).toEqual(acme);
+  });
+
+  it("merges into an identity that already remembered options", () => {
+    const grid = {};
+    const first = {};
+    const next = {};
+    adoptOwner(grid, "customer", first);
+    rememberOption(first, acme);
+    rememberOption(next, { value: "c2", label: "Globex" });
+    adoptOwner(grid, "customer", next);
+    expect(recallOption(next, "Acme")).toEqual(acme);
+    expect(recallOption(next, "Globex")).toEqual({ value: "c2", label: "Globex" });
+  });
+
+  it("keeps other grids and other columns apart", () => {
+    const gridA = {};
+    const gridB = {};
+    const first = {};
+    adoptOwner(gridA, "customer", first);
+    rememberOption(first, acme);
+    const otherGrid = {};
+    const otherColumn = {};
+    adoptOwner(gridB, "customer", otherGrid);
+    adoptOwner(gridA, "supplier", otherColumn);
+    expect(recallOption(otherGrid, "Acme")).toBeUndefined();
+    expect(recallOption(otherColumn, "Acme")).toBeUndefined();
   });
 });

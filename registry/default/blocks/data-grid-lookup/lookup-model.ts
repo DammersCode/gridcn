@@ -137,6 +137,25 @@ export function rememberOption(owner: object, option: LookupOption): void {
   dropOldest(index.byValue);
 }
 
+const columnOwners = new WeakMap<object, Map<string, object>>();
+
+/** Carries the options remembered for a column of one grid over to its next `fetchOptions` identity, so an inline function keeps its labels. */
+export function adoptOwner(grid: object, columnId: string, owner: object): void {
+  let owners = columnOwners.get(grid);
+  if (!owners) {
+    owners = new Map();
+    columnOwners.set(grid, owners);
+  }
+  const previous = owners.get(columnId);
+  if (previous === owner) return;
+  owners.set(columnId, owner);
+  const inherited = previous && known.get(previous);
+  if (!inherited) return;
+  const own = known.get(owner);
+  if (!own) known.set(owner, inherited);
+  else if (own !== inherited) for (const option of inherited.byValue.values()) if (!own.byValue.has(option.value)) rememberOption(owner, option);
+}
+
 /** The remembered option whose label (case-insensitive) or key equals `text`. */
 export function recallOption(owner: object, text: string): LookupOption | undefined {
   const index = known.get(owner);
