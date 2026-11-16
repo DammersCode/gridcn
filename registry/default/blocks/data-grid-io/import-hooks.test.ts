@@ -109,8 +109,10 @@ describe("processCellFromText and the rejected message", () => {
     expect(result.rows[0]!.age).toBe("");
   });
 
-  it("rejects the build when the hook throws, and stops on an aborted signal", async () => {
-    await expect(buildImportedRows<Row>({ ...base, dataRows: [["a", "1"]], processCellFromText: () => Promise.reject(new Error("boom")) })).rejects.toThrow("boom");
+  it("rejects the cell when the hook rejects, and stops on an aborted signal", async () => {
+    const result = await buildImportedRows<Row>({ ...base, dataRows: [["a", "1"]], processCellFromText: () => Promise.reject(new Error("boom")) });
+    expect(result.rows).toHaveLength(1);
+    expect(result.rejected).toHaveLength(2);
     const controller = new AbortController();
     controller.abort();
     await expect(buildImportedRows<Row>({ ...base, dataRows: [["a", "1"]], processCellFromText: () => "1", signal: controller.signal })).rejects.toThrow("import-cancelled");
