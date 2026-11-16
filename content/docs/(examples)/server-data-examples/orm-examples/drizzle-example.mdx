@@ -12,6 +12,10 @@ This recipe needs a server and is not a registry item. A server grid sends its s
 The route follows the [server rows contract](/docs/contracts/server-rows-contract). It rejects a request that fails the check with status 400. It adds the row id as the last sort, so no two rows tie and a page never repeats a row:
 
 ```ts fragment="needs drizzle-orm" title="app/api/grid/route.ts"
+import {
+  isFilterGroup,
+  type FilterNode,
+} from "@/components/data-grid/data-grid";
 import { parseServerSpec } from "@/components/data-grid-server/data-grid-server";
 import {
   and, asc, count, desc, eq, gt, gte, ilike, inArray, lt, lte, ne,
@@ -25,19 +29,21 @@ const { name, email, role } = users;
 const COLUMNS: Record<string, PgColumn> = { name, email, role };
 const escapeLike = (text: string) => text.replace(/[\\%_]/g, "\\$&");
 const infix = (value: string) => `%${escapeLike(value)}%`;
+const lower = (c: PgColumn) => sql`lower(${c})`;
+const lowered = (v: string[]) => v.map((x) => x.toLowerCase());
 
 const OPERATORS: Record<string, (c: PgColumn, v: any) => SQL> = {
   contains: (c, v) => ilike(c, infix(v)),
   notContains: (c, v) => notIlike(c, infix(v)),
   startsWith: (c, v) => ilike(c, `${escapeLike(v)}%`),
   endsWith: (c, v) => ilike(c, `%${escapeLike(v)}`),
-  equals: eq,
-  notEquals: ne,
+  equals: (c, v) => sql`${lower(c)} = ${v.toLowerCase()}`,
+  notEquals: (c, v) => sql`${lower(c)} <> ${v.toLowerCase()}`,
   gt, gte, lt, lte,
   empty: (c) => eq(c, ""),
   notEmpty: (c) => ne(c, ""),
-  isAnyOf: (c, v) => (v.length ? inArray(c, v) : sql`false`),
-  isNoneOf: (c, v) => (v.length ? notInArray(c, v) : sql`true`),
+  isAnyOf: (c, v) => (v.length ? inArray(lower(c), lowered(v)) : sql`false`),
+  isNoneOf: (c, v) => (v.length ? notInArray(lower(c), lowered(v)) : sql`true`),
 };
 
 const columnRules = Object.fromEntries(
@@ -52,8 +58,8 @@ function readRange(body: any): { start: number; end: number } | null {
   return valid ? { start, end } : null;
 }
 
-function toWhere(node: any): SQL | undefined {
-  if (!Array.isArray(node.filters)) {
+function toWhere(node: FilterNode): SQL | undefined {
+  if (!isFilterGroup(node)) {
     return OPERATORS[node.operator](COLUMNS[node.columnId], node.value);
   }
   const parts: (SQL | undefined)[] = node.filters.map(toWhere);
@@ -79,7 +85,7 @@ export async function POST(request: Request) {
       : undefined,
     ...spec.filters.map(toWhere),
   );
-  const orderBy = spec.sorts.map((s: any) =>
+  const orderBy = spec.sorts.map((s) =>
     (s.direction === "asc" ? asc : desc)(COLUMNS[s.columnId]),
   );
 
@@ -95,9 +101,10 @@ export async function POST(request: Request) {
 About the sample:
 
 - The grid sends every value as text. A numeric column needs `Number(value)`.
-- The grid compares text without case. The sample uses `ilike` for the pattern operators only. Compare `lower(column)` in the others to match.
-- `parseServerSpec` checks the spec: the column ids, the operators, the value shapes, and the size of the tree. Its default caps are 64 sorts, 500 characters of search text, 64 filters, 16 groups, and 1,000 list values. A request over a cap gets status 400.
-- Number and date columns also get `isBetween`, a `[min, max]` pair in which either bound can be `""`. The sample refuses it.
+- `isFilterGroup(node)` is true for a group and false for a filter row.
+- The grid compares text without case. The sample uses `ilike` and `lower(column)`.
+- `parseServerSpec` checks the column ids, the operators, the value shapes, and the tree size. Its default caps are 64 sorts, 500 search characters, 64 filters, 16 groups, and 1,000 list values. A request over a cap gets status 400.
+- A number or date column also gets `isBetween`, a `[min, max]` pair. The sample refuses it.
 - The grid's `empty` also matches a null cell. A nullable column needs an `IS NULL` test.
 - The route caps a page at 500 rows. A larger page returns fewer rows than the grid asked for.
 
@@ -111,7 +118,9 @@ The grid posts the spec and the range to the route. `fetchRows` returns the JSON
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
-import { DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
+import {
+  DataGridPaginationBar,
+} from "@/components/data-grid-pagination/data-grid-pagination";
 import {
   useDataGridServerRows,
   type UseDataGridServerRowsOptions,
@@ -147,13 +156,11 @@ export function UsersGrid() {
 }
 ```
 
-Save edits from `onSave`. See [Handle refused saves](/docs/save-server/handle-refused-saves).
-
 ## Shareable state [#shareable-state]
 
 To restore the sort, the filters, the search text, the page, and the page size from the URL, spread `useDataGridUrlPagination()` into the hook options. Mount `DataGridUrlState` in the provider and spread `server.providerProps` and `server.rootProps`. The first request carries the restored spec, so the route stays as it is:
 
-```tsx fragment="inside a component under NuqsAdapter"
+```tsx fragment="renders under NuqsAdapter"
 import {
   DataGridBody,
   DataGridHeader,
@@ -162,26 +169,31 @@ import {
 } from "@/components/data-grid/data-grid";
 import { DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
 import {
+  useDataGridServerRows,
+} from "@/components/data-grid-server/data-grid-server";
+import {
   DataGridUrlState,
   useDataGridUrlPagination,
 } from "@/components/data-grid-url-state/data-grid-url-state";
 
-const url = useDataGridUrlPagination();
-const server = useDataGridServerRows<User>({
-  fetchRows, // the function of the client above
-  ...url,
-});
+function UsersGrid() {
+  const url = useDataGridUrlPagination();
+  const server = useDataGridServerRows<User>({
+    fetchRows, // the function of the client above
+    ...url,
+  });
 
-return (
-  <DataGridProvider columns={columns} {...server.providerProps}>
-    <DataGridUrlState />
-    <DataGridRoot {...server.rootProps} className="h-96">
-      <DataGridHeader />
-      <DataGridBody />
-    </DataGridRoot>
-    <DataGridPaginationBar {...server.pager} />
-  </DataGridProvider>
-);
+  return (
+    <DataGridProvider columns={columns} {...server.providerProps}>
+      <DataGridUrlState />
+      <DataGridRoot {...server.rootProps} className="h-96">
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+      <DataGridPaginationBar {...server.pager} />
+    </DataGridProvider>
+  );
+}
 ```
 
 [URL state](/docs/sort-filter-search/url-state) lists the keys and the adapter setup.
@@ -190,5 +202,6 @@ return (
 
 - [Server rows example](/docs/server-data-examples/server-rows-example): the grid side of this route
 - [Server rows contract](/docs/contracts/server-rows-contract): the request and the answer
+- [Handle refused saves](/docs/save-server/handle-refused-saves): the `onSave` round trip
 - [Prisma example](/docs/server-data-examples/orm-examples/prisma-example)
 - [Supabase example](/docs/server-data-examples/orm-examples/supabase-example)

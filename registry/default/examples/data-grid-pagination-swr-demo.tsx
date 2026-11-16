@@ -59,7 +59,7 @@ function PaginatedSwrGrid(): ReactNode {
   const onDataChange = useCallback(
     (_next: readonly DemoRow[], change: DataChange<DemoRow>) => {
       server.applyOps(change.ops);
-      void mutate(undefined, { revalidate: true });
+      void mutate();
     },
     [mutate, server],
   );

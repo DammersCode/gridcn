@@ -5,7 +5,7 @@ icon: GripVertical
 type: example
 ---
 
-Three paths reorder rows. Drag the handle in the marker column. Press <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> or <kbd>PageUp</kbd>. Or call `reorderRows` or `moveRowsBy`. Each path reports one change with one `move` operation per moved row. If the pressed row has a check, the drag moves every checked row. The rows land together at the drop line.
+Three paths reorder rows. Drag the handle in the marker column. Press <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageDown</kbd> or <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>PageUp</kbd>. Or call `reorderRows` or `moveRowsBy`. Each path reports one change with one `move` operation per moved row. If the pressed row has a check, the drag moves every checked row. The rows land together at the drop line.
 
 <ComponentPreview name="data-grid-row-reorder-demo" />
 
@@ -15,7 +15,7 @@ Three paths reorder rows. Drag the handle in the marker column. Press <kbd>Shift
 
 - `rowMarkers="reorder-checkbox"` puts a drag handle and a checkbox in the marker column.
 - A thin line marks the drop target while you drag. The row moves on release.
-- The Move down button calls `moveRowsBy(rows, 1)` for the checked rows. With no checked row, it moves the active row.
+- The Move down button runs the `moveRowsDown` shortcut. The shortcut calls `moveRowsBy` for the checked rows. With no checked row, it moves the active row.
 - The Undo button comes from the history add-on. One click restores the order before the move.
 - The panel under the grid prints the number of `move` operations, the first moved row, and the `source`.
 
@@ -119,6 +119,8 @@ function Playlist() {
 - The list is empty, an index is outside the grid, or `to` leaves no room for the rows.
 - For `moveRowsBy`, `delta` is 0.
 - For `moveRowsBy`, a row leaves the grid.
+
+Each no-op fires `onRowActionSkipped` with `action: "moveRows"` and a `reason`: `readOnly`, `view-ordered` (a sort or filter), `unloaded-rows`, or `nothing-to-do` (any other case above). On a paged grid, a move acts on the rows of the shown page.
 
 ## Related
 

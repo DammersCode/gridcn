@@ -5,19 +5,18 @@ icon: Cloud
 type: example
 ---
 
-<Callout type="info" title="Recipe">
-This recipe needs a server and is not a registry item.
-</Callout>
-
-A server grid sends its spec (`sorts`, `filters`, `searchText`) and a row range (`start`, `end`) to your route. The route checks the request with `parseServerSpec`, builds one query, and answers `{ rows, totalRowCount }`. The route reads a `users` table with an `id` column and the text columns `name`, `email`, and `role`.
+This recipe needs a server and is not a registry item. A server grid sends its spec (`sorts`, `filters`, `searchText`) and a row range (`start`, `end`) to your route. The route checks the request with `parseServerSpec`, builds one query, and answers `{ rows, totalRowCount }`. The route reads a `users` table with an `id` column and the text columns `name`, `email`, and `role`.
 
 ## The route [#the-route]
 
 The route follows the [server rows contract](/docs/contracts/server-rows-contract). It writes every filter as a PostgREST condition string, and every filter group as `and(...)` or `or(...)`. Each top-level node goes into one `.or()` call. It rejects a request that fails the check with status 400. It adds `id` as the last sort, so no two rows tie and a page never repeats a row:
 
-```ts fragment="needs @supabase/supabase-js"
+```ts fragment="needs @supabase/supabase-js" title="app/api/grid/route.ts"
+import {
+  isFilterGroup,
+  type FilterNode,
+} from "@/components/data-grid/data-grid";
 import { parseServerSpec } from "@/components/data-grid-server/data-grid-server";
-// app/api/grid/route.ts
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -30,13 +29,14 @@ const COLUMNS = new Set<string>(["name", "email", "role"]);
 // A condition string splits on commas and parentheses, so quote every value.
 const quote = (value: string) =>
   `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+const escapeLike = (text: string) => text.replace(/[\\%_]/g, "\\$&");
 const list = (values: string[]) => `(${values.map(quote).join(",")})`;
 
 const CLAUSES: Record<string, (c: string, v: any) => string> = {
-  contains: (c, v) => `${c}.ilike.${quote(`%${v}%`)}`,
-  notContains: (c, v) => `${c}.not.ilike.${quote(`%${v}%`)}`,
-  startsWith: (c, v) => `${c}.ilike.${quote(`${v}%`)}`,
-  endsWith: (c, v) => `${c}.ilike.${quote(`%${v}`)}`,
+  contains: (c, v) => `${c}.ilike.${quote(`%${escapeLike(v)}%`)}`,
+  notContains: (c, v) => `${c}.not.ilike.${quote(`%${escapeLike(v)}%`)}`,
+  startsWith: (c, v) => `${c}.ilike.${quote(`${escapeLike(v)}%`)}`,
+  endsWith: (c, v) => `${c}.ilike.${quote(`%${escapeLike(v)}`)}`,
   equals: (c, v) => `${c}.eq.${quote(v)}`,
   notEquals: (c, v) => `${c}.neq.${quote(v)}`,
   gt: (c, v) => `${c}.gt.${quote(v)}`,
@@ -62,8 +62,8 @@ function readRange(body: any): { start: number; end: number } | null {
 }
 
 // "" matches every row, as an empty group does in the grid.
-function condition(node: any): string {
-  if (!Array.isArray(node.filters)) {
+function condition(node: FilterNode): string {
+  if (!isFilterGroup(node)) {
     return CLAUSES[node.operator](node.columnId, node.value);
   }
   const parts: string[] = node.filters.map(condition);
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
   const limit = Math.min(end - start, 500);
   let query = supabase.from("users").select("*", { count: "exact" });
   if (spec.searchText) {
-    const pattern = quote(`%${spec.searchText}%`);
+    const pattern = quote(`%${escapeLike(spec.searchText)}%`);
     query = query.or(`name.ilike.${pattern},email.ilike.${pattern}`);
   }
   // Each top-level node is one .or() call; the calls combine with "and".
@@ -109,15 +109,16 @@ export async function POST(request: Request) {
 About the sample:
 
 - `range(from, to)` includes both ends, hence the `- 1`.
+- `isFilterGroup(node)` is true for a group and false for a filter row.
 - The grid compares text without case. The sample uses `ilike` for the pattern operators only.
-- In `ilike` patterns, `%`, `_`, and `*` in the user text act as wildcards.
-- `parseServerSpec` checks the spec: the column ids, the operators, the value shapes, and the size of the tree. Its default caps are 64 sorts, 500 characters of search text, 64 filters, 16 groups, and 1,000 list values. A request over a cap gets status 400.
+- `escapeLike` stops `%`, `_`, and `\` in the user text from acting as wildcards. PostgREST also reads `*` in an `ilike` pattern as a wildcard, and no escape removes that.
+- `parseServerSpec` checks the column ids, the operators, the value shapes, and the tree size. Its default caps are 64 sorts, 500 search characters, 64 filters, 16 groups, and 1,000 list values. A request over a cap gets status 400.
 - Number and date columns also get `isBetween`, with a `[min, max]` pair in which either bound can be `""`. The sample refuses it. Map it before you add such a column.
 - The grid's `empty` also matches a null cell. The sample compares with `""`, so a nullable column needs an `IS NULL` test too.
 - The route caps a page at 500 rows. Keep the page size at or below 500. A larger page returns fewer rows than the grid asked for.
 
 <Callout type="warn" title="Keep the key on the server">
-The service role key bypasses row-level security, so read it only in the route. With the anon key, add a read policy on `users`. Check every column id against `COLUMNS` and quote every value, or a crafted request adds conditions to the query. Cap the body size at the framework or proxy, because the tree limits do not bound a large JSON text.
+The service role key bypasses row-level security, so read it only in the route. Cap the body size at the framework or proxy, because the tree limits do not bound a large JSON text.
 </Callout>
 
 The client is the one in the [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example#the-client), and the same section covers [shareable state](/docs/server-data-examples/orm-examples/drizzle-example#shareable-state). Edits go through `onSave` and a `supabase.from("users").update(...)` call.

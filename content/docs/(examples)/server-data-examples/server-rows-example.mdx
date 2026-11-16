@@ -1,6 +1,6 @@
 ---
 title: "Server rows example"
-description: Send sort, filter, search, and page to your server with one fetchRows function, and see stale-request aborts, error states, and retry.
+description: Send sort, filter, search, and page to your server with one fetchRows function, and see stale-request aborts, server pushes, and revalidation.
 icon: Server
 type: example
 ---
@@ -12,6 +12,15 @@ In the demo, the Pages and Scroll buttons switch the mode of the hook. Sort a he
 <ComponentPreview name="data-grid-server-side-demo" />
 
 <InstallCommand item="data-grid-server-side-demo" />
+
+## What the demo shows [#whats-in-the-demo]
+
+- Pages and Scroll switch the `mode` of the hook. Pages mode sets `prefetchNextPage`, so Next shows the next page with no wait.
+- Revalidate every 10 s sets `revalidateIntervalMs` and fetches the rows again on that timer. See [Tune row retention](/docs/scroll-mode/tune-row-retention).
+- Server pushes changes three scores every 500 ms with `updateRows`. A row whose score the sort reads keeps its place and turns dim and italic until a refresh places it. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
+- The Reshape select sets `reshapeDelayMs`. With Reshape off, a refresh places the pushed rows. With Reshape 1 s, the hook refreshes one second after the pushes.
+- Delete on server removes the first row on the server and deletes it in the grid with `source: "stream"`.
+- The grid starts sorted by Score, highest first.
 
 ## The wiring [#the-wiring]
 
@@ -69,34 +78,32 @@ export function OrdersGrid() {
 }
 ```
 
+### The request and the answer [#the-request-and-the-answer]
+
 - The request holds `spec` (`sorts`, `filters`, `searchText`), `page`, `pageSize`, `start`, `end`, `cursor`, and `signal`. `cursor` is `undefined` until a page answer returns `nextCursor`. `start` is `(page - 1) * pageSize` and `end` is `start + pageSize`.
 - `fetchRows` resolves `{ rows, totalRowCount }`. A server without a count resolves `{ rows, hasMore }`. [Server rows options](/docs/add-options/server/server-rows-options#serverrowsanswer) lists how the hook checks an answer.
+### What gridProps carries [#what-gridprops-carries]
+
 - `server.gridProps` carries the data, the server sort and filter modes, the controlled spec, `totalRowCount`, `loading`, `error`, `onRetry`, `plugins`, `headerClickBehavior: "sort"`, and your `onSave`. The hook fetches again after the saves settle (`refreshAfterSave`). A header click sorts. Set `headerClickBehavior` after the spread to change that.
-- Treat the request as untrusted input. Pass it through `parseServerSpec(body.spec, { columns })` from `data-grid-server` before you build a query. It throws a `ServerSpecError` for an unknown column, an unknown operator, a tree that is too large, or a long value. Cap the request body size.
-- The [ORM examples](/docs/server-data-examples/orm-examples/drizzle-example) call `parseServerSpec`.
 - Put your own `onDataChange` in the hook options. A spread override drops the merge of the hook. Put your own plugins in the `plugins` option. The hook mounts them after its refresh guard.
 - A composed layout spreads `server.providerProps` onto `DataGridProvider` and `server.rootProps` onto `DataGridRoot`. The demo does this.
 
-## Errors and retry [#errors-and-retry]
+<Callout type="warn">
+  Pass the request through `parseServerSpec(body.spec, { columns })` from `data-grid-server` before you build a query, and cap the request body size. The function throws a `ServerSpecError` for an unknown column, an unknown operator, a tree that is too large, or a long value. The [ORM examples](/docs/server-data-examples/orm-examples/drizzle-example) call it.
+</Callout>
 
-A failed request sets `server.error` and keeps the last good rows visible. `DataGridRoot` shows an error state. With no rows loaded, it is a message with a Retry button. With rows present, it is a bar under the header. The text is `labels.grid.errorState`. Pass `errorState` to replace it: a node, or a function that receives `{ error, retry }`. The grid never renders the error object.
+A failed request keeps the last good rows on screen and shows an error state with Retry. See [Handle failures](/docs/server-path/handle-failures).
 
-`server.retry()` repeats the failed request and does nothing without an error. `server.refresh()` fetches the current page again and keeps the rows on screen until the answer lands. The error clears when a new request starts. `server.status` is `"loading"`, `"error"`, or `"ready"`, and `"error"` wins over `"loading"`.
+To own the spec, the page, or the page size, pass the value with its change callback. See [Query server rows](/docs/data-modes/query-server-rows#controlled-mode-server-side-sortfilter), [Load rows by page](/docs/server-pagination/load-rows-page), and [Keep pages in URL](/docs/server-pagination/keep-pages-url).
 
-`onError(error)` fires when a request fails. `onLoaded({ start, end })` fires when rows land. A throw in either goes to the console and does not drop the answer. [Change server rows](/docs/rows-live-data/change-server-rows) describes what a refresh does with a row that has a pending edit or save.
+## Delay every request [#wait-for-typing-to-pause]
 
-## Control the spec and the page [#control-the-spec-and-the-page]
-
-Pass `spec` with `onSpecChange`, `page` with `onPageChange`, or `pageSize` with `onPageSizeChange` to own that state. Each pair works like a controlled input. `defaultSpec`, `defaultPage`, and `defaultPageSize` seed the state when you do not control it. A spec change asks `onPageChange` for page 1, except before the first answer lands, so a restored spec keeps a deep-linked page.
-
-To keep the page and the page size in the URL, spread `useDataGridUrlPagination()` into the options. See [Keep pages in URL](/docs/server-pagination/keep-pages-url).
-
-## Wait for typing to pause [#wait-for-typing-to-pause]
-
-The hook sends one request for each state and aborts a replaced one. To also wait for typing to pause, wait inside `fetchRows`. The wait ends when the signal aborts:
+Text inputs in the filter and the search box wait 200 ms (`inputDebounceMs`) after the last keystroke before they change the spec. To delay every request, wait inside `fetchRows`. The wait ends when the signal aborts:
 
 ```tsx
-import type { UseDataGridServerRowsOptions } from "@/components/data-grid-server/data-grid-server";
+import type {
+  UseDataGridServerRowsOptions,
+} from "@/components/data-grid-server/data-grid-server";
 
 type Order = { id: string; customer: string };
 

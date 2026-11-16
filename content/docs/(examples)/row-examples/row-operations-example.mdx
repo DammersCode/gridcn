@@ -5,7 +5,7 @@ icon: ListPlus
 type: example
 ---
 
-Two surfaces run the same row operations. A toolbar acts on the rows that the row selection holds. If that selection is empty, it acts on the row of the active cell. In the context menu, Insert works at the clicked row. Duplicate and Delete act on the rows that the selection covers. If the selection is empty, they act on the clicked row. A side panel prints the last change.
+A toolbar and the context menu run the same row operations. A side panel prints the last change.
 
 <ComponentPreview name="data-grid-row-ops-demo" />
 
@@ -14,7 +14,8 @@ Two surfaces run the same row operations. A toolbar acts on the rows that the ro
 ## What the demo shows [#whats-in-the-demo]
 
 - The toolbar buttons call `insertRows(anchor, 1, "above")`, `insertRows(anchor, 1, "below")`, `runShortcut("duplicateRow")`, and `runShortcut("deleteRows")`. `runShortcut` runs the key action on the selected rows, or on the active row.
-- A right-click on a row opens the context menu with Insert, Duplicate, and Delete items.
+- The toolbar acts on the checked rows. If no row is checked, it acts on the row of the active cell.
+- A right-click on a row opens the context menu with Insert, Duplicate, and Delete items. Insert works at the clicked row. Duplicate and Delete act on the rows that the selection covers, or on the clicked row if the selection is empty.
 - The `createRow` and `duplicateRow` props enable Insert and Duplicate. Without them, the menu hides those items.
 - The Read-only switch sets `readOnly`. The toolbar buttons and the menu items that change data turn off.
 - The side panel shows the `source` and one line per operation.

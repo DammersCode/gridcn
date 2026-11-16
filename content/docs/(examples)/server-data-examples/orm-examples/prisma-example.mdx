@@ -5,24 +5,28 @@ icon: Boxes
 type: example
 ---
 
-<Callout type="info" title="Recipe">
-This recipe needs a server and is not a registry item.
-</Callout>
-
-A server grid sends its spec (`sorts`, `filters`, `searchText`) and a row range (`start`, `end`) to your route. The route checks the request with `parseServerSpec`, builds one query, and answers `{ rows, totalRowCount }`. The route reads a `User` model with a unique `id` and the text fields `name`, `email`, and `role`.
+This recipe needs a server and is not a registry item. A server grid sends its spec (`sorts`, `filters`, `searchText`) and a row range (`start`, `end`) to your route. The route checks the request with `parseServerSpec`, builds one query, and answers `{ rows, totalRowCount }`. The route reads a `User` model with a unique `id` and the text fields `name`, `email`, and `role`.
 
 ## The route [#the-route]
 
 Each grid operator maps to a function that builds a Prisma `where` object. The route follows the [server rows contract](/docs/contracts/server-rows-contract). It rejects a request that fails the check with status 400. It adds `id` as the last sort, so no two rows tie and a page never repeats a row:
 
 ```ts fragment="needs @prisma/client" title="app/api/grid/route.ts"
+import {
+  isFilterGroup,
+  type FilterNode,
+} from "@/components/data-grid/data-grid";
 import { parseServerSpec } from "@/components/data-grid-server/data-grid-server";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "~/lib/prisma";
 
 const COLUMNS = new Set<string>(["name", "email", "role"]);
-const text = (id: string, op: string, value: string) => ({
-  [id]: { [op]: value, mode: "insensitive" },
+const text = (
+  id: string,
+  op: string,
+  value: string,
+): Prisma.UserWhereInput => ({
+  [id]: { [op]: value, mode: "insensitive" as const },
 });
 
 type Build = (id: string, v: any) => Prisma.UserWhereInput;
@@ -56,8 +60,8 @@ function readRange(body: any): { start: number; end: number } | null {
   return valid ? { start, end } : null;
 }
 
-function toWhere(node: any): Prisma.UserWhereInput {
-  if (!Array.isArray(node.filters)) {
+function toWhere(node: FilterNode): Prisma.UserWhereInput {
+  if (!isFilterGroup(node)) {
     return OPERATORS[node.operator](node.columnId, node.value);
   }
   const parts = node.filters.map(toWhere);
@@ -91,7 +95,7 @@ export async function POST(request: Request) {
     prisma.user.findMany({
       where,
       orderBy: [
-        ...spec.sorts.map((s: any) => ({ [s.columnId]: s.direction })),
+        ...spec.sorts.map((s) => ({ [s.columnId]: s.direction })),
         { id: "asc" },
       ],
       skip: start,
@@ -104,9 +108,10 @@ export async function POST(request: Request) {
 
 About the sample:
 
+- `isFilterGroup(node)` is true for a group and false for a filter row.
 - The grid sends every value as text. A numeric field needs `Number(value)` in its operator.
 - The grid compares text without case. The sample sets `mode: "insensitive"` on the text operators, which Prisma supports on PostgreSQL, CockroachDB, and MongoDB. On other databases, remove `mode`. `in` and `notIn` compare with case.
-- `parseServerSpec` checks the spec: the column ids, the operators, the value shapes, and the size of the tree. Its default caps are 64 sorts, 500 characters of search text, 64 filters, 16 groups, and 1,000 list values. A request over a cap gets status 400.
+- `parseServerSpec` checks the column ids, the operators, the value shapes, and the tree size. Its default caps are 64 sorts, 500 search characters, 64 filters, 16 groups, and 1,000 list values. A request over a cap gets status 400.
 - Number and date columns also get `isBetween`, with a `[min, max]` pair in which either bound can be `""`. The sample refuses it. Map it before you add such a column.
 - The grid's `empty` also matches a null cell. The sample compares with `""`, so a nullable column needs an `IS NULL` test too.
 - The route caps a page at 500 rows. Keep the page size at or below 500. A larger page returns fewer rows than the grid asked for.

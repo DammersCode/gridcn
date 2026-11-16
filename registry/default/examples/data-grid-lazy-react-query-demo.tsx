@@ -44,10 +44,10 @@ function createSimulatedApi() {
 }
 
 const columns = defineColumns<LazyRow>()([
-  { id: "id", header: "ID", accessorKey: "id", type: "text", width: 60, flex: 1, readOnly: true },
-  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 100, flex: 2 },
-  { id: "email", header: "Email", accessorKey: "email", type: "text", width: 120, flex: 2 },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 60, flex: 1 },
+  { id: "id", header: "ID", accessorKey: "id", type: "text", width: 60, flex: 1, readOnly: true, sortable: false, filterable: false },
+  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 100, flex: 2, sortable: false, filterable: false },
+  { id: "email", header: "Email", accessorKey: "email", type: "text", width: 120, flex: 2, sortable: false, filterable: false },
+  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 60, flex: 1, sortable: false, filterable: false },
 ] as const);
 
 /**

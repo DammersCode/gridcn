@@ -14,16 +14,16 @@ The marker column sits at the start of the grid, outside your `columns`. This gr
 ## What the demo shows [#whats-in-the-demo]
 
 - `rowMarkers="checkbox"` sets the width of the marker column. The custom nodes replace the checkboxes.
-- A marker shows a check for a row in the row selection and a minus for a row with selected cells. Any other row shows a circle.
-- The header button selects all rows. Its icon follows `allSelected`.
+- A marker shows a check for a checked row and a minus for a row with selected cells. Any other row shows a circle.
+- The header button checks all rows. Its icon follows `allSelected`: a list with a minus for some rows, a list with checks for all rows, a plain list for none.
 - The header button carries its own accessible name, because the built-in `labels.markers.selectAll` name belongs to the built-in checkbox.
 
 ## Custom markers [#custom-markers]
 
-`renderMarker` receives `rowId`, `viewRowIndex`, `isRowChannelSelected`, and `isCellSelected`. A cell click sets `isCellSelected` and never sets `isRowChannelSelected`. With `checkedRowsLifetime="until-click"` (the default without `totalRowCount`), it clears the row selection. `renderMarkerHeader` receives `allSelected`. The header renderer runs inside the provider, so it can call `useDataGridActions`. Define both renderers at module scope:
+`renderMarker` receives `rowId`, `viewRowIndex`, `isRowChannelSelected`, and `isCellSelected`. `isRowChannelSelected` is true for a checked row. A cell click sets `isCellSelected` and never sets `isRowChannelSelected`. With `checkedRowsLifetime="until-click"` (the default without `totalRowCount`), it clears the checked rows. `renderMarkerHeader` receives `allSelected`. The header renderer runs inside the provider, so it can call `useDataGridActions`. Define both renderers at module scope:
 
 ```tsx
-import { Check, Circle, Minus } from "lucide-react";
+import { Check, Circle, List, ListChecks, ListMinus, Minus } from "lucide-react";
 import {
   DataGrid,
   defineColumns,
@@ -65,9 +65,16 @@ function SelectAllButton({ allSelected }: { allSelected: AllSelected }) {
       variant="ghost"
       size="icon"
       aria-label={checked ? "Unselect all rows" : "Select all rows"}
+      aria-pressed={checked}
       onClick={() => setAllRowsChecked(!checked)}
     >
-      {checked ? "On" : "Off"}
+      {allSelected === "indeterminate" ? (
+        <ListMinus className="size-3.5" aria-hidden="true" />
+      ) : checked ? (
+        <ListChecks className="size-3.5" aria-hidden="true" />
+      ) : (
+        <List className="size-3.5" aria-hidden="true" />
+      )}
     </Button>
   );
 }
