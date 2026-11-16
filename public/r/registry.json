@@ -3330,6 +3330,26 @@
       ]
     },
     {
+      "name": "data-grid-clipboard-demo",
+      "type": "registry:example",
+      "title": "Data Grid Clipboard Demo",
+      "description": "A grid with formula-like text cells and sanitizeClipboardFormulas: copy a range and paste it into a spreadsheet to get the formulas as text.",
+      "author": "gridcn",
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid"
+      ],
+      "files": [
+        {
+          "path": "registry/default/examples/data-grid-clipboard-demo.tsx",
+          "type": "registry:example",
+          "target": "components/data-grid-clipboard-demo.tsx"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    },
+    {
       "name": "data-grid-fill-patterns-demo",
       "type": "registry:example",
       "title": "Data Grid Fill Patterns Demo",
