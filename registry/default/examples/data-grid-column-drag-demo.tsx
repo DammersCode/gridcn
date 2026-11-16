@@ -52,18 +52,17 @@ function ReorderControls(): ReactNode {
   const [selectedId, setSelectedId] = useState<string | null>(() => visible[1]?.id ?? visible[0]?.id ?? null);
   const index = selectedId === null ? -1 : visible.findIndex((column) => column.id === selectedId);
 
-  const targetOf = (step: -1 | 1) => {
-    const selected = visible[index];
+  const moveArgs = (step: -1 | 1) => {
     const target = visible[index + step];
-    if (!selected || !target) return undefined;
-    const movable = selected.reorderable !== false && target.reorderable !== false;
-    return movable && selected.pin === target.pin ? target : undefined;
+    return selectedId === null || index === -1 || !target ? undefined : ([selectedId, target.id, step === -1 ? "before" : "after"] as const);
   };
-
+  const canMove = (step: -1 | 1) => {
+    const args = moveArgs(step);
+    return args !== undefined && actions.canSetColumnOrder(...args).ok;
+  };
   const move = (step: -1 | 1) => {
-    const target = targetOf(step);
-    if (selectedId === null || target === undefined) return;
-    actions.setColumnOrder(selectedId, target.id, step === -1 ? "before" : "after");
+    const args = moveArgs(step);
+    if (args) actions.setColumnOrder(...args);
   };
 
   if (visible.length < 2) return null;
@@ -83,10 +82,10 @@ function ReorderControls(): ReactNode {
           ))}
         </SelectContent>
       </Select>
-      <Button variant="outline" size="sm" disabled={targetOf(-1) === undefined} onClick={() => move(-1)}>
+      <Button variant="outline" size="sm" disabled={!canMove(-1)} onClick={() => move(-1)}>
         <ChevronLeft className="size-4" /> Left
       </Button>
-      <Button variant="outline" size="sm" disabled={targetOf(1) === undefined} onClick={() => move(1)}>
+      <Button variant="outline" size="sm" disabled={!canMove(1)} onClick={() => move(1)}>
         Right <ChevronRight className="size-4" />
       </Button>
     </div>

@@ -302,7 +302,7 @@ export function useDefaultHeaderMenuItems(args: { columnId: string; scrollRoot: 
   const position = visibleColumns.findIndex((c) => c.id === columnId);
   const neighbor = (step: -1 | 1) => {
     const other = position === -1 ? undefined : visibleColumns[position + step];
-    return other && (other.pin ?? null) === (column.pin ?? null) && other.reorderable !== false ? other : undefined;
+    return other && actions.canSetColumnOrder(columnId, other.id, step === -1 ? "before" : "after").ok ? other : undefined;
   };
   const before = neighbor(-1);
   const after = neighbor(1);

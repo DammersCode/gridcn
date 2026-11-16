@@ -65,8 +65,6 @@ import {
   rectsKeepRecords,
   remapColumnChannel,
   remapRowChannel,
-  reorderColumnIds as reorderColumnIdsBase,
-  reorderGroupBlock,
   resolveSelectionConfig,
   resolveSortMode,
   resolveFilterMode,
@@ -132,6 +130,7 @@ import {
 } from "./selection-state";
 import type { AnyColumnDef, CellPatch, DataGridInternalActions, DataGridStoreState, InternalSyncProps, SyncInputs, UpdateCellsOptions } from "./types";
 import { createStreamQueue } from "./stream-queue";
+import { planColumnOrder } from "./column-order";
 import { warnUnhandledServerSpec } from "./server-spec-warning";
 import { keepKnownFilters, keepKnownSorts } from "./known-columns";
 import { loadedRowCount, nextAnnouncement } from "./announcements";
@@ -191,8 +190,6 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const computeVisibleColumns = (columns: readonly AnyColumnDef[], order: string[] | null, hidden: readonly string[]) =>
     computeVisibleColumnsBase(columns, order, hidden, memory.groupModel);
   const normalizeColumnLayout = (columns: readonly AnyColumnDef[], parts: ColumnLayoutParts, hidden: string[]) => normalizeColumnLayoutBase(columns, parts, hidden, memory.groupModel, warnStoreOnce);
-  const reorderColumnIds = (ids: readonly string[], columns: readonly AnyColumnDef[], id: string, targetId: string, position: "before" | "after") =>
-    reorderColumnIdsBase(ids, columns, id, targetId, position, memory.groupModel);
   const defHidden = defHiddenColumnIds(initColumns);
   const seeded = applyDefaultColumnLayout(initColumns, defHidden, init.defaultColumnLayout);
   // `columnLayout` wins over `defaultColumnLayout`, and both resolve here (not in the provider),
@@ -1297,25 +1294,12 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         commitLayout({ widths: columnWidths });
       },
       setColumnOrder(id, targetId, position) {
-        const s = get();
-        if (!s.enableColumnReorder) return;
-        const byId = new Map(s.columns.map((c) => [c.id, c] as const));
-        const column = byId.get(id);
-        const target = byId.get(targetId);
-        if (memory.groupModel?.groups.has(id)) {
-          const blockMembers = s.columns.filter((c) => memory.groupModel?.paths.get(c.id)?.includes(id));
-          if (!target || !columnFlag(target, "reorderable") || blockMembers.some((c) => !columnFlag(c, "reorderable"))) return;
-          const currentIds = completeColumnOrder(s.columns, s.columnOrder);
-          const nextIds = reorderGroupBlock(currentIds, s.columns, memory.groupModel, id, targetId, position);
-          if (nextIds.length === currentIds.length && nextIds.every((columnId, index) => columnId === currentIds[index])) return;
-          commitLayout({ order: nextIds });
-          return;
-        }
-        if (!column || !target || !columnFlag(column, "reorderable") || !columnFlag(target, "reorderable")) return;
-        const currentIds = completeColumnOrder(s.columns, s.columnOrder);
-        const nextIds = reorderColumnIds(currentIds, s.columns, id, targetId, position);
-        if (nextIds.length === currentIds.length && nextIds.every((columnId, index) => columnId === currentIds[index])) return;
-        commitLayout({ order: nextIds });
+        const { result, order } = planColumnOrder(get(), memory.groupModel, id, targetId, position);
+        if (order) commitLayout({ order });
+        return result;
+      },
+      canSetColumnOrder(id, targetId, position) {
+        return planColumnOrder(get(), memory.groupModel, id, targetId, position).result;
       },
       setColumnPin(id, requestedPin) {
         const s = get();

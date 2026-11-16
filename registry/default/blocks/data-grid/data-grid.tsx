@@ -87,6 +87,8 @@ export {
   type SaveAck,
   type RowActionResult,
   type RowActionSkipReason,
+  type ColumnOrderResult,
+  type ColumnOrderSkipReason,
   type SaveConflictContext,
   type SaveRejectedContext,
   type SaveResolution,

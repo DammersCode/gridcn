@@ -1,6 +1,7 @@
 import type { ComponentType, ReactNode, Ref } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { ColumnGroupModel } from "../columns/column-groups";
+import type { ColumnOrderResult } from "./column-order";
 import type {
   CellRef,
   ViewCellRef,
@@ -1073,15 +1074,14 @@ export type DataGridActions = {
    */
   resetColumnWidth(id: string): void;
   /**
-   * Reorders visible columns. `id` moves to sit immediately before/after `targetId` (per `position`).
-   * Pinned columns only reorder within their own pin zone (left/right/unpinned) — a cross-zone
-   * request is a no-op recompute (dropping a left-pinned column onto the unpinned band does nothing).
-   * No-op when the column's own `reorderable: false`, the grid-wide `enableColumnReorder` is false,
-   * an id is unknown, or the drop keeps the order. Fires `onColumnLayoutChange` once on an actual move.
-   * `id` can be a column group id: the group's columns move as one block, and the move is a no-op
-   * when the target or any member has `reorderable: false`.
+   * Moves column `id` to sit immediately before/after `targetId`, within its own pin zone. `id` can be a column group id:
+   * its columns move as one block. Fires `onColumnLayoutChange` once on an actual move. Returns `{ ok: true }` on a move,
+   * else the reason: `"disabled"` (`enableColumnReorder` is false), `"unknown-column"`, `"not-reorderable"` (the column,
+   * the target, or a group member has `reorderable: false`), `"pin-zone"` (the target is in another pin zone), or `"nothing-to-do"`.
    */
-  setColumnOrder(id: string, targetId: string, position: "before" | "after"): void;
+  setColumnOrder(id: string, targetId: string, position: "before" | "after"): ColumnOrderResult;
+  /** The result {@link setColumnOrder} returns for the same arguments, without the move: drives a Move button's `disabled` state. */
+  canSetColumnOrder(id: string, targetId: string, position: "before" | "after"): ColumnOrderResult;
   /** Pins/unpins a column (`null` = unpinned). No-op when the id is unknown, the column's `pinnable: false`, grid-wide `enableColumnPinning` is false, or the pin already matches. Fires `onColumnLayoutChange` once on a real change. */
   setColumnPin(id: string, pin: ColumnPin | null): void;
   /**
