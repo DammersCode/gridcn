@@ -674,3 +674,38 @@ describe("controlled data (server path)", () => {
     expect(signal.aborted).toBe(true);
   });
 });
+
+describe("a gate that stays pending", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+  const stuckWarnings = (warn: { mock: { calls: unknown[][] } }) => warn.mock.calls.filter(([m]) => String(m).includes("has not settled"));
+
+  it("warns once per gate after 30 seconds without gateTimeoutMs", () => {
+    vi.useFakeTimers();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const m = mount({ onBeforeDeleteRows: () => new Promise<boolean>(() => {}) });
+    m.state().actions.deleteRows(["a"]);
+    vi.advanceTimersByTime(29_000);
+    expect(stuckWarnings(warn)).toHaveLength(0);
+    vi.advanceTimersByTime(2_000);
+    expect(stuckWarnings(warn)).toHaveLength(1);
+    expect(String(stuckWarnings(warn)[0]![0])).toContain("onBeforeDeleteRows");
+    vi.advanceTimersByTime(120_000);
+    expect(stuckWarnings(warn)).toHaveLength(1);
+  });
+
+  it("stays silent when gateTimeoutMs is set or the promise settles in time", async () => {
+    vi.useFakeTimers();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const withTimeout = mount({ onBeforeDeleteRows: () => new Promise<boolean>(() => {}), gateTimeoutMs: 60_000 });
+    withTimeout.state().actions.deleteRows(["a"]);
+    const quick = deferred<boolean>();
+    const settled = mount({ onBeforeDeleteRows: () => quick.promise });
+    settled.state().actions.deleteRows(["a"]);
+    quick.resolve(false);
+    await vi.advanceTimersByTimeAsync(45_000);
+    expect(stuckWarnings(warn)).toHaveLength(0);
+  });
+});

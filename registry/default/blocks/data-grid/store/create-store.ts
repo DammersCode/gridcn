@@ -350,6 +350,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         }
       }
     },
+    stuck: (name) => warnStoreOnce(`stuck gate ${name}`, `${name} has not settled after 30 seconds and gateTimeoutMs is not set, so the grid keeps waiting; settle the promise on every path, or set gateTimeoutMs`),
     publish: (gatesPending) => store.setState({ gatesPending }),
     subscribe: (listener) => store.subscribe(listener),
   });
