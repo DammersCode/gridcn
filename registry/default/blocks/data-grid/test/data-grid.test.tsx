@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, beforeAll, vi } from "vitest";
 import { createRef, memo, useLayoutEffect, useState } from "react";
 import type { CellType, ColumnDef } from "../types";
@@ -919,7 +919,7 @@ describe("date editor calendar trigger (options.calendarTrigger)", () => {
     render(<DataGrid data={[{ id: "1", when: "2026-03-04" }]} columns={plainColumns} getRowId={(r) => r.id} />);
     startEdit();
     await screen.findByRole("textbox", { name: "When" });
-    expect(document.querySelector('[data-slot="calendar"]')).not.toBeNull();
+    await waitFor(() => expect(document.querySelector('[data-slot="calendar"]')).not.toBeNull());
     expect(screen.queryByRole("button", { name: "Calendar" })).toBeNull();
   });
 
@@ -931,7 +931,7 @@ describe("date editor calendar trigger (options.calendarTrigger)", () => {
     const trigger = screen.getByRole("button", { name: "Calendar" });
     expect(trigger).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(trigger);
-    expect(document.querySelector('[data-slot="calendar"]')).not.toBeNull();
+    await waitFor(() => expect(document.querySelector('[data-slot="calendar"]')).not.toBeNull());
     expect(screen.getByRole("button", { name: "Calendar" })).toHaveAttribute("aria-expanded", "true");
   });
 
