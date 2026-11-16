@@ -6,14 +6,14 @@ export type LookupOption = { value: string; label: string };
 /** A lookup cell stores the picked option, or `null` when empty. A bare string is a key without a label (unresolved). */
 export type LookupValue = LookupOption | string | null;
 
-/** What `fetchOptions` receives. */
-export type LookupFetchRequest = {
+/** What `fetchOptions` receives. `TData` is the row type of the grid. */
+export type LookupFetchRequest<TData = unknown> = {
   /** The text the user typed; `""` asks for the default list. */
   query: string;
   /** Aborted when the user types again, closes the editor, or the cell unmounts. */
   signal: AbortSignal;
   /** The row being edited, so a dependent lookup can narrow its options. The request does not repeat when a push changes the row during the edit. */
-  row: unknown;
+  row: TData;
   /** The id of the row being edited. */
   rowId: string;
   /** The id of the lookup column. */
@@ -30,10 +30,10 @@ export type LookupLabels = {
   typeMore: (missing: number) => string;
 };
 
-/** Column `options` of the `lookup` cell type. */
-export type LookupOptions = {
+/** Column `options` of the `lookup` cell type. `TData` is the row type of the grid; it types `request.row`. */
+export type LookupOptions<TData = unknown> = {
   /** Resolves the options that match `query`. Keep its identity stable: pasted labels resolve through a cache keyed on it. */
-  fetchOptions: (request: LookupFetchRequest) => Promise<readonly LookupOption[]>;
+  fetchOptions: (request: LookupFetchRequest<TData>) => Promise<readonly LookupOption[]>;
   /** Wait after the last keystroke before a request starts. Default: the grid's `inputDebounceMs`. */
   debounceMs?: number;
   /** Fewest typed characters that start a request. Default `0`: the default list loads on open. */
