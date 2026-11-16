@@ -13,7 +13,7 @@ Scope: render and scroll cost of an existing grid. Building a cell type → `gri
 
 Before changing anything, capture a baseline so the fix is verifiable:
 
-1. Open the browser console in a dev build (`NODE_ENV !== "production"`) and reproduce the slow interaction (scroll, type, edit). Note every `[data-grid]`-prefixed warning and the `gridcn: the grid viewport shows more than...` warning verbatim.
+1. Open the browser console in a dev build (`NODE_ENV !== "production"`) and reproduce the slow interaction (scroll, type, edit). Note every `[data-grid]`-prefixed warning and the `[data-grid] the grid viewport shows more than...` warning verbatim.
 2. Open React DevTools Profiler, record the same interaction, and note which row/cell components re-render on a single scroll tick or keystroke. A one-row scroll step should re-render about two rows of cells (the entering row plus one row of slack) — anything more is the symptom this checklist explains.
 
 Without a browser, skip the recording: for each fix, name the checklist symptom (warning text) it removes.
@@ -24,7 +24,7 @@ Done when: you have a warning list (possibly empty) and a profiler recording to 
 
 Grep the grid's JSX for the element carrying `className`/`style` on `DataGridRoot` or `DataGrid`. If it has no bounded height (no fixed height, no `h-full` inside a sized parent), the viewport's `clientHeight` covers the whole dataset and virtualization cannot activate — the grid renders up to 200 rows and stops there.
 
-- Symptom in console: `gridcn: the grid viewport shows more than {N} rows at once — its height is probably unbounded, which disables virtualization.`
+- Symptom in console: `[data-grid] the grid viewport shows more than {N} rows at once — its height is probably unbounded, which disables virtualization.`
 - Fix: give the grid, or a sized parent, an explicit height, e.g. `className="h-150"` or `h-full` inside a container with its own bounded height.
 
 ## 2. Unstable `columns`
@@ -68,7 +68,7 @@ The grid compares the `plugins` array entry-wise — same length, same `name`, e
 - Symptoms:
   - `[data-grid] plugin "X"'s Overlay component identity changed; the overlay remounts and loses its state`
   - `[data-grid] plugin "X"'s Mount component identity changed; the mount remounts and loses its state`
-- Fix: keep the add-on hook's `plugin` as-is (its members are stable). For a custom plugin, hoist `Overlay`/`Mount` to module scope or memoize them on the data they close over. For pinned rows, memoize `topRows`/`bottomRows` so the hook's `plugin` changes only when the band contents change.
+- Fix: keep the add-on hook's `plugin` as-is (its members are stable). For a custom plugin, hoist `Overlay`/`Mount` to module scope or memoize them on the data they close over. For pinned rows, keep the entries of `topRows`/`bottomRows` stable, so the hook's `plugin` changes only when the band contents change.
 
 ## 5. Custom `Cell`/`renderCell` allocating per render
 
@@ -94,7 +94,7 @@ Grep for a feed/interval/subscription that calls `setData(wholeArrayRebuilt)` or
 
 ## Done when
 
-Zero `[data-grid]`-prefixed warnings and no `gridcn: the grid viewport shows more than...` warning appear in the dev console while scrolling and editing, every checklist item above is either fixed or confirmed not applicable, and the React DevTools Profiler recording from step 2 of section 0 now shows at most about two rows of cells (the entering row plus one row of slack) re-rendering per scroll tick or keystroke.
+Zero `[data-grid]`-prefixed warnings and no `[data-grid] the grid viewport shows more than...` warning appear in the dev console while scrolling and editing, every checklist item above is either fixed or confirmed not applicable, and the React DevTools Profiler recording from step 2 of section 0 now shows at most about two rows of cells (the entering row plus one row of slack) re-rendering per scroll tick or keystroke.
 
 ## Docs
 

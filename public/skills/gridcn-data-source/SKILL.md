@@ -14,7 +14,7 @@ Scope: where rows come from and where sort, filter, and search run. Wiring other
 Answer in order, stop at the first match:
 
 1. The whole dataset fits in one payload? Pass plain `data` to `DataGridProvider`/`DataGrid`. No add-on.
-2. The user needs bookmarkable, bounded pages (page 2 in the URL, a fixed page size)? Use `data-grid-pagination`.
+2. The user needs bookmarkable, bounded pages (page 2 in the URL, a fixed page size)? Use `useDataGridServerRows` in pages mode (`data-grid-server`). Use `data-grid-pagination` alone for client pages or your own fetch.
 3. Otherwise (one continuous result, too large to fetch up front, scrolled without pages): use `data-grid-server` in scroll mode (`useDataGridServerRows({ mode: "scroll" })`).
 
 Live value ticks (prices, statuses) are a separate question: streaming (`updateCells`/`updateRows`) layers on top of whichever base the tree picked. It never replaces it.
@@ -33,6 +33,7 @@ Record which strategy was picked and why (one sentence) before writing code — 
   - The hook aborts stale requests, goes to page 1 on a spec change, and keeps the last rows on error. It returns `status`, `loading`, `error`, `retry()`, and `refresh()`.
   - It sets `headerClickBehavior="sort"`. Override it after the spread. `DataGridRoot` shows the error state (`error`, `onRetry`, `errorState`).
   - `prefetchNextPage: true` loads the next page ahead of the click.
+  - `initialAnswer` (`{ rows, totalRowCount }` for the first page) shows the first page without a request, so the server HTML holds the rows.
 - `data-grid-server` in scroll mode: `useDataGridServerRows({ mode: "scroll", fetchRows })`, where `fetchRows({ spec, start, end, signal })` resolves `{ rows, totalRowCount }`.
   - The first request is block 0 (`[0, blockSize)`). The hook fetches `blockSize` blocks (default 50) around the rendered rows.
   - Spread `server.gridProps`. It carries `onRenderedRowsChange`, the error bar, and Retry.
@@ -153,7 +154,10 @@ Applies to streaming on top of either:
 - Resolve a refused save with `resolveSaveConflict({ rowId, mine, theirs, change, message, signal })`. It runs for a refused row that has `current`. Return `"theirs"` (the default), `"mine"`, or `{ row }` (a merged row with the same id). `"mine"` and `{ row }` commit one `source: "merge"` change that reaches `onSave`. An async resolver keeps the row `saving`.
 - Swap a client id for the server's id with `actions.replaceRowId(oldId, row)` after `onSave` creates the row. It fires one `source: "id-swap"` change that `onSave` does not receive. Only a row in `data` can swap. `actions.replaceRowIds([{ oldId, row }])` swaps several rows in that one change.
 - Gates that call your server (`processPaste`, `validateRow`, `onBeforeEditStart`, `createRow`, `duplicateRow`, `onBeforeDeleteRows`) receive an `AbortSignal` as the last argument. Pass it to `fetch`. `useDataGridGatePending()` reports the pending gates. `gateTimeoutMs` on the provider (one number, or one per gate name; off by default) aborts a gate that never settles, and `onGateAborted({ gate, reason })` reports it.
-- Row actions (`insertRow`, `insertRows`, `duplicateRows`, `duplicateRowsAt`, `deleteRows`, `deleteRowsAt`) return a `RowActionResult`: `{ ok: true }` or `{ ok: false, reason }` (for example `"unloaded-rows"`, `"gate-pending"`, `"readOnly"`); `onRowActionSkipped({ action, reason })` on the provider sees every skip of a call and of the matching shortcuts when the grid is read-only, a factory is missing, or hidden or all-matching rows are checked (a shortcut calls the action otherwise; Insert row with no active cell reports nothing, and Duplicate row or Delete rows with no selection and no active cell report nothing when none of those reasons applies); a disabled menu item fires nothing.
+- Row actions (`insertRow`, `insertRows`, `duplicateRows`, `duplicateRowsAt`, `deleteRows`, `deleteRowsAt`) return a `RowActionResult`: `{ ok: true }` or `{ ok: false, reason }`, for example `"unloaded-rows"`, `"gate-pending"`, or `"readOnly"`.
+- `onRowActionSkipped({ action, reason })` on the provider sees every skip of a call. It sees the skip of a matching shortcut when the grid is read-only, a factory is missing, or hidden or all-matching rows are checked.
+- Otherwise a shortcut calls the action. Insert row with no active cell reports nothing. Duplicate row and Delete rows with no selection and no active cell report nothing.
+- A disabled menu item fires nothing.
 - Export, print, and totals of a `DataGridProvider` with `pageSize` cover every page; pass `scope: "page"` to `exportGrid`, `printGrid`, or `aggregateRow` for the current page only. Copy, paste, fill, and Delete act on the shown page: a column copy holds its rows only, and a paste stops at its last row.
 - An undo or redo over rows that are not loaded or gone applies nothing and calls the `onSkip` option of `useDataGridHistory`. An undo that `onSave` refuses returns to the undo stack.
 

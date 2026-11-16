@@ -32,7 +32,16 @@ Rules that make this work, and break silently if skipped:
 - **The quick-search box never narrows the view.** It highlights and navigates matches already in `data`. The hook sends `searchText` in `spec` to `fetchRows`.
 - **A changed spec starts the blocks over.** `fetchRows` receives the spec of its request. Control it with `spec` and `onSpecChange` (for example from URL state); a content change restarts, an equal spec does not.
 - **Return `totalRowCount` for random access.** A first answer with a cursor, or with neither a count nor a cursor, makes the source sequential: resolve `{ rows, nextCursor }` or `{ rows, hasMore }`.
-- **`server.refresh()` refetches the rendered blocks in place** and applies one rule: a landing block replaces every row it carries, except a row with a pending cell edit or a save that was in flight at any moment since the request was sent, which keeps its local value, while a row with a pending delete is gone (the answer's copy is dropped, its slot stays empty) and a protected row the answer lacks, such as a pending insert, returns to its own slot when no answer row sits there, else is hidden until a counted source refreshes when no pending insert or delete is left (a pages refresh appends it at the page end, so the page can exceed `pageSize`; a sequential refresh that ends first may drop it until its save settles); a block shows each id once (the first row of a repeated id in an answer wins) and leaves no hole in its loaded range; rows that moved on the server can mix with older rows until the next refresh settles. The guard that applies it mounts through `gridProps.plugins`: a `plugins` prop of your own replaces it, so write `plugins={[...server.gridProps.plugins, mine]}` (pages mode has the same guard). Pass `onSave` to the hook, not to `DataGrid`: `refreshAfterSave` (default `"settled"`) calls `refresh()` once after every save in flight settles, because a row that still shows "saving" keeps its local value and misses server-computed fields. Do not call `refresh()` from `onSave` yourself. A sequential source skips the refresh while the rendered rows plus `overscan` end beyond 10 blocks: call `server.refresh()` there. `server.retry()` repeats the failed blocks.
+- **`server.refresh()` refetches the rendered blocks in place.** A landing block replaces every row it carries, with these exceptions:
+  - A row with a pending cell edit, or a save in flight at any moment since the request was sent, keeps its local value.
+  - A row with a pending delete is gone. The answer's copy is dropped and its slot stays empty.
+  - A protected row that the answer lacks, such as a pending insert, returns to its own slot when no answer row sits there. Otherwise it stays hidden until a counted source refreshes with no pending insert or delete left.
+  - A pages refresh appends such a row at the page end, so the page can exceed `pageSize`. A sequential refresh that ends first may drop it until its save settles.
+  - A block shows each id once: the first row of a repeated id in an answer wins. It leaves no hole in its loaded range.
+  - Rows that moved on the server can mix with older rows until the next refresh settles.
+  - The guard that applies this rule mounts through `gridProps.plugins`. A `plugins` prop of your own replaces it, so write `plugins={[...server.gridProps.plugins, mine]}`. Pages mode has the same guard.
+  - Pass `onSave` to the hook, not to `DataGrid`. `refreshAfterSave` (default `"settled"`) calls `refresh()` once after every save in flight settles, because a row that still shows "saving" keeps its local value and misses server-computed fields. Do not call `refresh()` from `onSave` yourself.
+  - A sequential source skips the refresh while the rendered rows plus `overscan` end beyond 10 blocks: call `server.refresh()` there. `server.retry()` repeats the failed blocks.
 - **Scroll mode limits the fetches.** A block starts after it stays in the wanted range for `loadDelayMs` ms (default 100; block 0, `refresh()`, `retry()`, and the refetch after a count change skip it). At most `maxConcurrentFetches` requests run (default 3). A request aborts when its block leaves the rendered rows by more than `overscan` plus one block, so pass `signal` to your client. `maxLoadedRows` (default 10,000; `Infinity` turns it off) unloads the least recently viewed blocks; rows with an open edit, a pending save, or an unsaved change, and the row under the active cell, stay. A sequential source uses `loadDelayMs` only.
 - **`revalidateIntervalMs` refreshes on a timer** (ms, at least 1000) while the page is visible, in both modes. A tick waits for a request in flight. A sequential source skips a tick while the rendered rows plus `overscan` end beyond 10 blocks. **`prefetchNextPage: true`** loads the next page in pages mode and shows it with no request; a refresh, a spec or page size change, a local insert, delete, or move, or the start of a save drops it.
 - **Pushes into a server grid.** `updateCells`/`updateRows`/`deleteRows(ids, { source: "stream" })` never reach `onSave`. A push that changes a column of the sort, the filter, or (with a search text) any column leaves the row in place, sets `data-row-stale` on it, and sets `viewStale`; the server places it again on a reshape. `reshapeDelayMs` (ms, at least 250, off by default) makes the hook reshape (a `refresh()`) once per delay after a stale push; `server.reshape()` and a push delete reshape on the next frame, or after `reshapeDelayMs` when it is set; `reconcileView()` and `reorder: "immediate"` reshape on the next frame. A sequential source skips every reshape while the rendered rows plus `overscan` end beyond 10 blocks; call `server.refresh()` there. Call `server.reshape()` when the server reports an inserted row. A `"stream"` push writes into `readOnly` grids, columns, and rows; other sources keep the read-only checks. A row that an answer delivered with a pushed value laid over it (a push made while the request was open, or between its landing and its render) stops being stale and can sit in the wrong place until the next reshape places it; a later push to it marks it again. A push to a row with a save in flight skips with `saving`, and a `"stream"` call takes at most 100,000 patches (`limit`).
@@ -44,25 +53,27 @@ Rules that make this work, and break silently if skipped:
 "use client";
 
 import { useEffect, useState } from "react";
-import { DataGrid, type SortSpec } from "@/components/data-grid/data-grid";
+import { DataGrid, type FilterNode, type SortSpec } from "@/components/data-grid/data-grid";
 import { useDataGridServerPager, DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
 
 function OrdersGrid() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [sorts, setSorts] = useState<SortSpec[]>([]);
+  const [filters, setFilters] = useState<FilterNode[]>([]);
+  const [searchText, setSearchText] = useState("");
   const [rows, setRows] = useState<Order[]>([]);
   const [total, setTotal] = useState(0);
 
   useEffect(() => {
     let stale = false; // a slower earlier-page response must not overwrite a later page's rows
-    api.orders({ page, pageSize, sorts }).then((res) => {
+    api.orders({ page, pageSize, sorts, filters, searchText }).then((res) => {
       if (stale) return;
       setRows(res.rows);
       setTotal(res.total);
     });
     return () => { stale = true; };
-  }, [page, pageSize, sorts]);
+  }, [page, pageSize, sorts, filters, searchText]);
 
   const { pager } = useDataGridServerPager({
     page,
@@ -77,8 +88,14 @@ function OrdersGrid() {
     setPage(1);
   };
 
-  const onFilterOrSearchChange = () => {
-    pager.onPageChange(1); // useDataGridUrlPagination needs the same manual reset
+  const onFilterChange = (next: FilterNode[]) => {
+    setFilters(next);
+    setPage(1);
+  };
+
+  const onSearchTextChange = (next: string) => {
+    setSearchText(next);
+    setPage(1);
   };
 
   return (
@@ -87,9 +104,12 @@ function OrdersGrid() {
         data={rows}
         columns={columns}
         totalRowCount={total}
+        sortState={sorts}
         onSortChange={onSortChange}
-        onFilterChange={onFilterOrSearchChange}
-        onSearchTextChange={onFilterOrSearchChange}
+        filterState={filters}
+        onFilterChange={onFilterChange}
+        searchText={searchText}
+        onSearchTextChange={onSearchTextChange}
         headerClickBehavior="sort"
       />
       <DataGridPaginationBar {...pager} />
@@ -100,7 +120,7 @@ function OrdersGrid() {
 
 Rules:
 
-- The grid only ever receives the fetched page (`rows`), so sort/filter/search on it are inherently page-local unless the spec (`sorts` here) is sent to the fetch and rendered from your own state. The rules above apply unchanged: `totalRowCount` makes both modes `"server"`, and header clicks sort only with `headerClickBehavior="sort"`.
+- The grid only ever receives the fetched page (`rows`). Hold `sorts`, `filters`, and `searchText` in your state, send them to the fetch, and pass them back as `sortState`, `filterState`, and `searchText`. The rules above apply unchanged: `totalRowCount` makes both modes `"server"`, and header clicks sort only with `headerClickBehavior="sort"`.
 - The `useEffect`'s `stale` flag is required in server mode: a page-2 response arriving after a page-3 request has already fired must not clobber page 3's rows.
 - The hook fires your `onPageChange` once with the clamped page when `totalRowCount` shrinks below the current page, and never while the count is 0. It never sets state itself.
 - With your own fetch state, a sort, filter, or search change must call `onPageChange(1)` by hand. A `DataGridProvider` with `pageSize` and `useDataGridServerRows` go back to page 1 by themselves.
