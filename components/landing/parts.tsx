@@ -36,15 +36,15 @@ export function PerfStats() {
           </li>
         ))}
       </ul>
-      <p className="mt-3 flex flex-wrap items-center gap-x-4 text-sm">
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 text-sm">
         <span className="font-medium">Scroll it yourself:</span>
         {perfDemos.map((d) => (
           <Link key={d.href} href={d.href} className={`inline-flex min-h-10 items-center underline underline-offset-4 ${focus}`}>
             {d.text}
           </Link>
         ))}
-      </p>
-      <p className="text-sm leading-relaxed text-muted-foreground">
+      </div>
+      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
         {perfNote}{" "}
         <Link href={perfRunHref} className="inline-flex min-h-10 items-center underline underline-offset-4">
           Run the benchmark on your machine
@@ -85,13 +85,13 @@ export function Faq() {
           <summary className={`flex min-h-10 cursor-pointer items-center text-base font-medium ${focus}`}>{f.question}</summary>
           <div className="max-w-prose pb-3 text-base leading-relaxed text-muted-foreground">
             <p>{f.answer}</p>
-            <p className="flex flex-wrap gap-x-4">
+            <div className="flex flex-wrap gap-x-4">
               {f.links.map((l) => (
                 <Link key={l.href} href={l.href} className={`inline-flex min-h-10 items-center text-foreground underline underline-offset-4 ${focus}`}>
                   {l.text}
                 </Link>
               ))}
-            </p>
+            </div>
           </div>
         </details>
       ))}

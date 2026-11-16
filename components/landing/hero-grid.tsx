@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import type { SelectionState } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridBody, DataGridHeader, DataGridProvider, DataGridRoot, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridFill } from "@/registry/default/blocks/data-grid-fill/data-grid-fill";
@@ -38,8 +38,14 @@ export function HeroGrid(): ReactNode {
   const { plugin: fill } = useDataGridFill();
   const { plugin: history } = useDataGridHistory<Row>();
   const plugins = useMemo(() => [fill, history], [fill, history]);
+  const rootRef = useRef<HTMLDivElement>(null);
+  // The seeded active cell focuses itself on mount; the page must load with focus on body.
+  useEffect(() => {
+    const focused = document.activeElement;
+    if (focused instanceof HTMLElement && rootRef.current?.contains(focused)) focused.blur();
+  }, []);
   return (
-    <div className="flex min-w-0 flex-col gap-2">
+    <div ref={rootRef} className="flex min-w-0 flex-col gap-2">
       <div className="h-60 overflow-hidden rounded-lg border bg-background sm:h-72">
         <DataGridProvider defaultData={ROWS} defaultSelection={START_RANGE} columns={columns} plugins={plugins} enableColumnReorder={false}>
           <DataGridRoot aria-label="Live example grid" className="h-full">

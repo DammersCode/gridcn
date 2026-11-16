@@ -61,15 +61,15 @@ describe.skipIf(!url)("landing layout", () => {
       expect(items.filter((i) => i.fontSize < 14).map((i) => `${i.fontSize}px: ${i.text}`)).toEqual([]);
     });
 
-    it(`${name}: Tested at 100,000 rows and What is new never share a row`, async () => {
+    it(`${name}: Tested at 100,000 rows and Your first grid never share a row`, async () => {
       const page = await browser.newPage({ viewport: { width, height } });
       await page.goto(url as string);
       const perf = await page.evaluate(sectionBox, "perf");
-      const news = await page.evaluate(sectionBox, "new");
+      const start = await page.evaluate(sectionBox, "start");
       await page.close();
       expect(perf).not.toBeNull();
-      expect(news).not.toBeNull();
-      const verticalOverlap = Math.min(perf!.bottom, news!.bottom) - Math.max(perf!.top, news!.top);
+      expect(start).not.toBeNull();
+      const verticalOverlap = Math.min(perf!.bottom, start!.bottom) - Math.max(perf!.top, start!.top);
       expect(verticalOverlap).toBeLessThanOrEqual(0);
     });
   }
