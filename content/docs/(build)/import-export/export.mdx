@@ -89,7 +89,7 @@ A cell that starts with `=`, `+`, `-`, `@`, a tab, or a carriage return gets a l
   `sanitizeFormulas: false` writes the raw text. A spreadsheet runs a cell that starts with `=` as a formula. Set it only for a program that expects the exact text.
 </Callout>
 
-`rowsToCsv(rows, options)` sanitizes the same way. Pass `{ sanitizeFormulas: false }` for raw fields. `sanitizeFormulaCell(value)` from `data-grid` does the same for your own writers. Copy and cut stay raw. The grid prop `sanitizeClipboardFormulas` changes that (see [Clipboard](/docs/clipboard-undo/clipboard#formula-sanitizing)).
+`rowsToCsv(rows, options)` sanitizes the same way. Pass `{ sanitizeFormulas: false }` for raw fields. `sanitizeFormulaCell(value)` from `data-grid` does the same for your own writers. Copy and cut prefix such cells too. The grid prop `sanitizeClipboardFormulas` turns that off (see [Clipboard](/docs/clipboard-undo/clipboard#formula-sanitizing)).
 
 ## Write an XLSX file
 
