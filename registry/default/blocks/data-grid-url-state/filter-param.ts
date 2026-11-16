@@ -35,10 +35,24 @@ export type ParseFilterStateOptions = {
   maxChoices?: (columnId: string) => number | undefined;
   /** The value shape of a custom operator registered on the column, or `undefined` when the column does not register it; a segment with an unregistered operator is dropped. */
   operatorInput?: (columnId: string, operator: string) => FilterOperatorInput | undefined;
+  /** The choice values of a column with `choices`, or `undefined` for a column without them. An `isAnyOf` or `isNoneOf` entry outside the set is dropped; the blank entry stays. */
+  choiceValues?: (columnId: string) => ReadonlySet<string> | undefined;
+  /** Receives the number of list entries dropped for falling outside {@link ParseFilterStateOptions.choiceValues}. */
+  onUnknownChoices?: (columnId: string, count: number) => void;
 };
 
 /** Options for {@link serializeFilterState}. */
 export type SerializeFilterStateOptions = Pick<ParseFilterStateOptions, "operatorInput" | "maxChoices">;
+
+/** The entries of a choice list that `choiceValues` allows; `null` when none of a non-empty list is left. */
+function knownChoices(columnId: string, operator: string, value: FilterSpec["value"], options: ParseFilterStateOptions): FilterSpec["value"] | null {
+  const allowed = (operator === "isAnyOf" || operator === "isNoneOf") && Array.isArray(value) ? options.choiceValues?.(columnId) : undefined;
+  if (!allowed || !Array.isArray(value)) return value;
+  const kept = value.filter((entry) => entry === "" || allowed.has(entry));
+  if (kept.length === value.length) return value;
+  options.onUnknownChoices?.(columnId, value.length - kept.length);
+  return kept.length === 0 ? null : kept;
+}
 
 /** `encodeURIComponent` plus escaping the one character it doesn't (`~`), so a literal tilde in a bound never collides with {@link RANGE_SEPARATOR}. */
 function encodeRangePart(part: string): string {
@@ -149,7 +163,7 @@ function decodeFilterValue(operator: string, input: FilterOperatorInput, raw: st
  * column id, wrong field count, malformed `isBetween` range or `isAnyOf` / `isNoneOf` list) are dropped silently
  * rather than throwing — a corrupt/hand-edited URL degrades to fewer filters, never an error.
  * Parsing stops after 256 raw segments. The parsed tree is capped at 64 filter rows and 16 groups, and each `isAnyOf`
- * list at `options.maxChoices(columnId)` entries (1000 by default); a segment whose decoded value, choice, or range bound
+ * list at `options.maxChoices(columnId)` entries (1000 by default), and keeps only the list entries `options.choiceValues` allows; a segment whose decoded value, choice, or range bound
  * exceeds 1,000 characters is dropped; the first segments win, so a
  * hand-edited URL cannot express an unbounded filter set. A group opener deeper than the nesting cap,
  * with an unknown join, or over the group cap drops its whole subtree; a stray `]` is ignored, an
@@ -206,7 +220,9 @@ export function parseFilterState(raw: string, options: ParseFilterStateOptions =
     if (value === DECODE_FAILED) continue;
     const frame = stack[stack.length - 1]!;
     if (frame.dropped) continue;
-    frame.filters.push({ columnId: decodedId, operator: decodedOperator, value });
+    const known = knownChoices(decodedId, decodedOperator, value, options);
+    if (known === null) continue;
+    frame.filters.push({ columnId: decodedId, operator: decodedOperator, value: known });
     leaves++;
   }
   while (stack.length > 1) closeTop();

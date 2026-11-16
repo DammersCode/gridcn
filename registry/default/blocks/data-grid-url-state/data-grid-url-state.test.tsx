@@ -89,6 +89,9 @@ function renderGrid(options: {
 describe("DataGridUrlState isAnyOf bound", () => {
   it("bounds a URL isAnyOf list by the column's own choices", () => {
     const values = Array.from({ length: 100 }, (_, i) => `v${i}`).join("|");
+    const manyChoices = defineColumns<StatusRow>()([
+      { id: "status", header: "Status", accessorKey: "status", type: "select", width: 80, options: { choices: Array.from({ length: 70 }, (_, i) => `v${i}`) } },
+    ] as const);
     let filter: unknown;
     const Probe = () => {
       filter = useDataGridFilterState();
@@ -96,13 +99,13 @@ describe("DataGridUrlState isAnyOf bound", () => {
     };
     render(
       <NuqsTestingAdapter searchParams={`?filter=status%3AisAnyOf%3A${values}`}>
-        <DataGridProvider data={[{ id: "r0", status: "new" }]} columns={statusColumns} getRowId={(r) => r.id}>
+        <DataGridProvider data={[{ id: "r0", status: "v0" }]} columns={manyChoices} getRowId={(r) => r.id}>
           <DataGridUrlState />
           <Probe />
         </DataGridProvider>
       </NuqsTestingAdapter>,
     );
-    expect(filter).toEqual([{ filterId: expect.any(String), columnId: "status", operator: "isAnyOf", value: Array.from({ length: 64 }, (_, i) => `v${i}`) }]);
+    expect(filter).toEqual([{ filterId: expect.any(String), columnId: "status", operator: "isAnyOf", value: Array.from({ length: 70 }, (_, i) => `v${i}`) }]);
   });
 
   it("keeps a deep link on a select column whose choices have not loaded yet", () => {
@@ -130,6 +133,49 @@ describe("DataGridUrlState isAnyOf bound", () => {
     const values = Array.from({ length: 100 }, (_, i) => `v${i}`).join("|");
     const { getState } = renderGrid({ searchParams: `?filter=name%3AisAnyOf%3A${values}` });
     expect((getState().filter as { value: string[] }[])[0]!.value).toHaveLength(100);
+  });
+});
+
+describe("DataGridUrlState choice values", () => {
+  function restoredFilter(searchParams: string, serverMode = false): unknown {
+    let filter: unknown;
+    const Probe = () => {
+      filter = useDataGridFilterState();
+      return null;
+    };
+    render(
+      <NuqsTestingAdapter searchParams={searchParams}>
+        <DataGridProvider
+          data={[{ id: "r0", status: "new" }]}
+          columns={statusColumns}
+          getRowId={(r) => r.id}
+          {...(serverMode ? { sortMode: "server", filterMode: "server" } : {})}
+        >
+          <DataGridUrlState />
+          <Probe />
+        </DataGridProvider>
+      </NuqsTestingAdapter>,
+    );
+    return filter;
+  }
+
+  it.each([false, true])("drops list values outside the column choices (server mode %s)", (serverMode) => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(restoredFilter("?filter=status%3AisAnyOf%3Anew%7Cbogus%7C%25", serverMode)).toEqual([
+      { filterId: expect.any(String), columnId: "status", operator: "isAnyOf", value: ["new", ""] },
+    ]);
+    expect(warn.mock.calls.some(([message]) => String(message).includes("outside the column choices"))).toBe(true);
+    warn.mockRestore();
+  });
+
+  it.each([false, true])("drops a list filter whose values are all outside the choices (server mode %s)", (serverMode) => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(restoredFilter("?filter=status%3AisNoneOf%3Abogus%7Cother", serverMode)).toEqual([]);
+    warn.mockRestore();
+  });
+
+  it("keeps text operator values on a choices column", () => {
+    expect(restoredFilter("?filter=status%3Acontains%3Ane")).toEqual([{ filterId: expect.any(String), columnId: "status", operator: "contains", value: "ne" }]);
   });
 });
 
