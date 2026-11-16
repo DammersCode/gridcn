@@ -2,8 +2,9 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { pageIndex } from "../scripts/docs-verify-lib.mjs";
-import { CLIENT_CODE, newInTwo, perfStats, serverHighlights } from "../components/landing/data";
-import { addOnTiles, agentSkills, COMPARISON_DATE, comparison, kitTiles } from "../components/landing/items";
+import { CLIENT_CODE, HEADLINE, newInTwo, perfStats, serverHighlights, SUBLINE } from "../components/landing/data";
+import { showReleaseBadge } from "../components/landing/hero";
+import { addOnTiles, agentSkills, COMPARISON_DATE, comparison, kitTiles, ROADMAP_HREF } from "../components/landing/items";
 
 const root = join(__dirname, "..");
 const pages = pageIndex(join(root, "content/docs")) as Map<string, { anchors: Set<string> }>;
@@ -73,10 +74,28 @@ describe("landing comparison", () => {
     }
   });
 
-  it("shows the rows where gridcn loses, linked to the feature matrix", () => {
+  it("shows the rows where gridcn loses, linked to the roadmap", () => {
     const losing = comparison.rows.filter((r) => r.cells[0].value === "Not built");
     expect(losing.map((r) => r.feature)).toEqual(["Row grouping", "Tree data", "Pivoting", "Master-detail"]);
-    for (const row of losing) expect(row.cells[0].href).toBe("/docs/fit-features/feature-matrix");
+    for (const row of losing) expect(row.cells[0].href).toBe(ROADMAP_HREF);
+    expect(resolves(ROADMAP_HREF)).toBe(true);
+  });
+
+  it("links vendor cells to the page section that states them", () => {
+    const cell = (feature: string, column: number) => comparison.rows.find((r) => r.feature === feature)!.cells[column]!;
+    expect(cell("Row grouping", 1).href).toBe("https://www.ag-grid.com/react-data-grid/grouping/");
+    expect(cell("Fill handle", 2).href).toBe("https://mui.com/x/react-data-grid/clipboard/#drag-to-fill");
+  });
+
+  it("labels TanStack cells as headless only where its overview lists the feature", () => {
+    const labels = Object.fromEntries(comparison.rows.map((r) => [r.feature, r.cells[3].value]));
+    expect(labels).toMatchObject({
+      "Range selection": "Headless, you build the UI",
+      "Clipboard paste": "Not listed",
+      "Fill handle": "Not listed",
+      "Undo and redo": "Not listed",
+      Pivoting: "Not listed",
+    });
   });
 
   it("has no install-command row", () => {
@@ -90,6 +109,7 @@ describe("landing copy", () => {
   it("makes no unbacked claim", () => {
     expect(copy).not.toMatch(/WCAG|\baccessible\b/i);
     expect(copy).not.toMatch(/\bspreadsheet\b(?!-style)/i);
+    expect(copy).not.toMatch(/leads where|silent traps|lazy-rows hook/i);
     expect(copy).not.toMatch(/Lazy rows|16\.8 ms|91\.7 ms|0\.3.7\.6 ms/);
   });
 
@@ -97,6 +117,31 @@ describe("landing copy", () => {
     const hero = readFileSync(join(landingDir, "hero.tsx"), "utf8");
     expect(hero).toContain("appVersion");
     expect(hero).not.toMatch(/>\s*\d+\.\d+/);
+  });
+
+  it("names React and the license in the hero", () => {
+    expect(HEADLINE).toMatch(/React/);
+    expect(SUBLINE).toMatch(/Apache-2.0/);
+    expect(readFileSync(join(root, "LICENSE"), "utf8")).toMatch(/Apache License/);
+  });
+
+  it("hides the release badge until the version is 2.0", () => {
+    expect(showReleaseBadge("1.3.0")).toBe(false);
+    expect(showReleaseBadge("2.0.0")).toBe(true);
+  });
+
+  it("sends Get started to the install guide", () => {
+    expect(readFileSync(join(landingDir, "hero.tsx"), "utf8")).toContain("/docs/learning-path/install-gridcn");
+  });
+
+  it("gives the header GitHub link a hidden icon through an explicit link item", () => {
+    const layout = readFileSync(join(root, "lib/layout.shared.tsx"), "utf8");
+    expect(layout).not.toContain("githubUrl");
+    expect(layout).toContain("GithubIcon");
+  });
+
+  it("loads the search dialog on first open", () => {
+    expect(readFileSync(join(root, "app/layout.tsx"), "utf8")).toContain("preload: false");
   });
 
   it("keeps the first-grid sample bounded in height and marked as a client component", () => {

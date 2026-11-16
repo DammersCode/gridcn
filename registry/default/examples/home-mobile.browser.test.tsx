@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import { page } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { FrameworkProvider } from "fumadocs-core/framework";
@@ -83,6 +83,40 @@ describe("home page at a 375x667 viewport (iPhone 8)", () => {
     const rect = (grid.element() as HTMLElement).getBoundingClientRect();
     expect(rect.top).toBeGreaterThanOrEqual(0);
     expect(rect.top).toBeLessThan(HEIGHT - 120);
+  });
+
+  it("puts Get started above the grid and the first screen", async () => {
+    await render(<HomeRoute />);
+    const cta = page.getByText("Get started");
+    await expect.element(cta).toBeInTheDocument();
+    const ctaRect = (cta.element() as HTMLElement).getBoundingClientRect();
+    const gridRect = (page.getByRole("grid", { name: "Live example grid" }).element() as HTMLElement).getBoundingClientRect();
+    expect(ctaRect.bottom).toBeLessThan(HEIGHT);
+    expect(ctaRect.top).toBeLessThan(gridRect.top);
+    expect((cta.element() as HTMLElement).closest("a")?.getAttribute("href")).toBe("/docs/learning-path/install-gridcn");
+  });
+
+  it("shows no column reorder grip in the hero grid header", async () => {
+    await render(<HomeRoute />);
+    const grid = page.getByRole("grid", { name: "Live example grid" });
+    await expect.element(grid).toBeInTheDocument();
+    expect((grid.element() as HTMLElement).querySelector("[data-column-reorder-handle], [aria-roledescription=\"sortable\"]")).toBeNull();
+    const headers = [...(grid.element() as HTMLElement).querySelectorAll<HTMLElement>("[role=columnheader]")];
+    expect(headers.map((h) => h.scrollWidth <= h.clientWidth + 1)).not.toContain(false);
+  });
+
+  it("undoes a fill in the hero grid with Ctrl+Z", async () => {
+    await render(<HomeRoute />);
+    const grid = page.getByRole("grid", { name: "Live example grid" });
+    await expect.element(grid).toBeInTheDocument();
+    const cells = (text: string) => [...(grid.element() as HTMLElement).querySelectorAll<HTMLElement>("[role=gridcell]")].filter((c) => c.textContent === text);
+    const ada = cells("Ada")[0]!;
+    ada.click();
+    await userEvent.keyboard("{Shift>}{ArrowDown}{/Shift}");
+    await userEvent.keyboard("{Control>}d{/Control}");
+    expect(cells("Grace").length).toBe(1);
+    await userEvent.keyboard("{Control>}z{/Control}");
+    await expect.poll(() => cells("Grace").length).toBe(2);
   });
 
   it("gives every link in the content a tap target of 40px or more", async () => {
