@@ -179,6 +179,23 @@ describe("totalRowCount default modes", () => {
     expect(warn.mock.calls.filter((c) => String(c[0]).includes("server-side by default"))).toHaveLength(1);
   });
 
+  it("warns once when a sort changes on a server-sorted grid that handles only the filters", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const m = mount({ defaultPageSize: undefined, totalRowCount: 100, onFilterChange: () => {} });
+    await flush();
+    act(() => m.state().actions.setSorts([{ columnId: "n", direction: "desc" }]));
+    act(() => m.state().actions.setSorts([{ columnId: "n", direction: "asc" }]));
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes("nothing handles onSortChange"))).toHaveLength(1);
+  });
+
+  it("warns once when a filter changes on a server-filtered grid that handles only the sort", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const m = mount({ defaultPageSize: undefined, totalRowCount: 100, onSortChange: () => {} });
+    await flush();
+    act(() => m.state().actions.setFilters([{ columnId: "n", operator: "equals", value: "1" }]));
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes("nothing handles onFilterChange"))).toHaveLength(1);
+  });
+
   it("stays quiet with an explicit mode or a handler", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     mount({ defaultPageSize: undefined, totalRowCount: 100, sortMode: "client" });
