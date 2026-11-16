@@ -170,3 +170,35 @@ describe("useCellEditor", () => {
     expect(props.commit).not.toHaveBeenCalled();
   });
 });
+
+describe("useCellEditor with a throwing toValue", () => {
+  const throwing: CellEditorCodec<number | null> = {
+    toDraft: () => "",
+    toValue: (draft) => {
+      if (draft === "bad") throw new Error("unparseable");
+      return Number(draft);
+    },
+  };
+
+  function ThrowingEditor(props: Props) {
+    const { ref, ...rest } = useCellEditor(props, throwing);
+    return <input ref={ref} {...rest} aria-label="probe" />;
+  }
+
+  it("keeps the editor open and lets a fixed draft commit", async () => {
+    const user = userEvent.setup();
+    const props = makeProps();
+    render(<ThrowingEditor {...props} />);
+    const input = screen.getByRole("textbox");
+    await user.type(input, "bad");
+    await user.keyboard("{Enter}");
+    expect(props.onChange).not.toHaveBeenCalled();
+    expect(props.commit).not.toHaveBeenCalled();
+    await user.clear(input);
+    await user.type(input, "7");
+    await user.keyboard("{Enter}");
+    expect(props.onChange).toHaveBeenCalledWith(7);
+    expect(props.commit).toHaveBeenCalledTimes(1);
+  });
+});
+

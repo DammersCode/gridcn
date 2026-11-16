@@ -78,13 +78,13 @@ Text that a type cannot parse becomes an empty value. A `number` editor commits 
 
 ## Number formatting [#number-formatting]
 
-The type parses a comma as the decimal separator, rounds to `decimals`, and clamps to `min` and `max`, in the editor and on paste. In the editor, <kbd>ArrowUp</kbd> and <kbd>ArrowDown</kbd> step the draft by `step` (default `1`) within `min` and `max`. With `decimals` set, the step is never smaller than the last decimal place.
+The type parses a comma as the decimal separator or a group separator. It rounds to `decimals` and clamps to `min` and `max`, in the editor and on paste. In the editor, <kbd>ArrowUp</kbd> and <kbd>ArrowDown</kbd> step the draft by `step` (default `1`) within `min` and `max`. With `decimals` set, the step is never smaller than the last decimal place.
 
 The clamp <NewBadge /> runs before a column `validate`. The `validate` function sees the clamped value, so a typed, pasted, or filled value outside `min` and `max` never reaches it. An imported value reaches `validate` clamped only when `processCellFromText` is not set, because its return value skips `fromText`. A value that code writes with `updateCells` is not clamped.
 
-The type <NewBadge /> reads the first comma as the decimal point and reads no thousands separator. The text `1,234` stores `1.234`, and `1,234.50` clears the cell without an error. To read grouped numbers, set `processCellFromClipboard` for paste, or `processCellFromText` for import.
+The type <NewBadge /> reads `1,234.50`, `1,234,567`, and `1.234,50` as grouped numbers. A single comma that is not followed by three digits is the decimal point, so `1,5` stores `1.5`. The text `1,234` can mean `1234` or `1.234`, so the type rejects it. The type also rejects text that is not a number. A rejected paste or fill leaves the cell unchanged. A rejected typed value keeps the editor open. To read other formats, set `processCellFromClipboard` for paste, or `processCellFromText` for import.
 
-`format` takes `Intl.NumberFormatOptions`. `locale` sets the language of `format` and defaults to the `locale` of the grid, and that is `"en-US"` without one. A column with a `locale` <NewBadge /> and no `format` shows the plain number, and `format: {}` groups the digits by `locale`. `format` and `locale` change only the display.
+`format` takes `Intl.NumberFormatOptions`. `locale` sets the language of `format` and defaults to the `locale` of the grid, and that is `"en-US"` without one. A column with a `locale` <NewBadge /> and no `format` shows the plain number. `format: {}` groups the digits by `locale`. `format` and `locale` change only the display.
 
 The editor, copy, paste, sort, and export keep the plain number, so a stored `0.25` under `style: "percent"` shows `25%` and edits as `0.25`. A unit style adds the unit to the display: under `{ style: "unit", unit: "kilogram" }`, a stored `12.5` shows `12.5 kg`. When the format sets no fraction digits, `decimals` sets both the minimum and the maximum. A format that `Intl` rejects, such as `style: "currency"` without a `currency`, shows the plain number and logs one development warning per locale and format.
 
@@ -163,7 +163,7 @@ The built-in cell types do not wrap text. All rows have the same height, and a c
 
 <kbd>Enter</kbd> commits and moves down. <kbd>Shift</kbd>+<kbd>Enter</kbd> and <kbd>Alt</kbd>+<kbd>Enter</kbd> insert a line break. <kbd>Escape</kbd> cancels, and a click outside commits the draft.
 
-`maxLength` defaults to 100,000. The textarea enforces it while typing. The type's own `validate` rejects pasted, filled, or imported text over 100,000 characters. A column with a smaller `maxLength` needs its own `validate` to reject the same text on those paths.
+`maxLength` defaults to 100,000. The textarea enforces it while typing. Paste, fill, and import reject text over `maxLength` with a message.
 
 ## Related
 

@@ -71,10 +71,6 @@ export const ACTION_CATEGORY: Partial<Record<GridAction | (string & {}), Keybind
 
   edit: "editing",
   typeToReplace: "editing",
-  commitDown: "editing",
-  commitUp: "editing",
-  commitRight: "editing",
-  commitLeft: "editing",
   cancel: "editing",
   clearContents: "editing",
   insertRowBelow: "editing",

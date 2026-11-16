@@ -81,7 +81,7 @@ A schema works too, for example `validate: z.email()` with Zod 4. Your server ch
 
 <Callout type="warn" title="A rejected edit stays open">
   The editor stays open on a rejected value and shows the message. The value never enters `data`.
-  A soft rule is the exception. A rejected checkbox toggle has no editor: the cell keeps its old value and shows no message.
+  A soft rule is the exception. A rejected checkbox toggle has no editor: the cell keeps its old value, and `onValidationError` reports it with the source `"edit"`.
 </Callout>
 
 The message <NewBadge /> shows as an error line next to the open editor. The line escapes the cell and widens to its text, up to 16rem. It flips above the cell at the bottom edge of the grid. At the side edges, it anchors to the end side of the cell. An editing cell does not clip its content, so a custom `Editor` wider than its cell spills over the neighbors.
@@ -143,7 +143,7 @@ const columns = defineColumns<Contact>()([
 
 ## Report rejected cells [#onvalidationerror]
 
-After a paste, a fill, a Delete or Cut clear, or an `updateCells` call settles with at least one rejected cell, `onValidationError` fires. The grid has applied the accepted cells by then. `updateCells` also lists each rejected patch in its return value. Import reports its rejected cells through `rejected` in `onImport`, not here. See [Control the import](/docs/import-export/control-import).
+After a paste, a fill, a Delete or Cut clear, or an `updateCells` call settles with at least one rejected cell, or when a checkbox toggle is rejected, `onValidationError` fires. The grid has applied the accepted cells by then. `updateCells` also lists each rejected patch in its return value. Import reports its rejected cells through `rejected` in `onImport`, not here. See [Control the import](/docs/import-export/control-import).
 
 Delete and Cut validate the empty value of the cell type. A column that rejects it keeps its value, and `onValidationError` reports the cell with `source: "delete"`. A `validationMode: "warn"` column clears the cell and flags it. Delete and Cut run a sync `validate` only, so an async schema lets the empty value through.
 
@@ -151,10 +151,10 @@ Delete and Cut validate the empty value of the cell type. A column that rejects 
 
 | Prop | Type |
 |---|---|
-| `source` | `"paste" \| "fill" \| "stream" \| "replace"` |
+| `source` | `"paste" \| "fill" \| "stream" \| "replace" \| "edit"` |
 | `rejected` | `GridBulkValidationError[]` |
 
-`"stream"` marks an `updateCells` or `updateRows` call, and `"replace"` a find-and-replace batch. Each entry has `rowId`, `columnId`, `viewRowIndex`, `value`, and `message`. A row outside the view reports `viewRowIndex: -1`.
+`"stream"` marks an `updateCells` or `updateRows` call, `"replace"` a find-and-replace batch, and `"edit"` a rejected checkbox toggle. Each entry has `rowId`, `columnId`, `viewRowIndex`, `value`, and `message`. A row outside the view reports `viewRowIndex: -1`.
 
 ## Props [#props]
 

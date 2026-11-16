@@ -40,10 +40,10 @@ function Harness({ readOnly = false, withToolbar = false, scope, replaceAllLimit
 }
 
 describe("find and replace in a browser", () => {
-  it("Ctrl+H opens the panel with focus in Find, and Escape returns focus to the grid", async () => {
+  it("Shift+Alt+Enter opens the panel with focus in Find, and Escape returns focus to the grid", async () => {
     await render(<Harness />);
     await page.getByRole("gridcell").first().click();
-    await userEvent.keyboard("{Control>}h{/Control}");
+    await userEvent.keyboard("{Shift>}{Alt>}{Enter}{/Alt}{/Shift}");
     const find = page.getByRole("textbox", { name: "Find" });
     await expect.element(find).toHaveFocus();
     await userEvent.keyboard("{Escape}");
@@ -54,7 +54,7 @@ describe("find and replace in a browser", () => {
   it("Enter in Find moves the active cell to the next match", async () => {
     await render(<Harness />);
     await page.getByRole("gridcell").first().click();
-    await userEvent.keyboard("{Control>}h{/Control}");
+    await userEvent.keyboard("{Shift>}{Alt>}{Enter}{/Alt}{/Shift}");
     await userEvent.keyboard("needle");
     await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("1 of 3 cells");
     await userEvent.keyboard("{Enter}");
@@ -64,7 +64,7 @@ describe("find and replace in a browser", () => {
   it("repeated Enter and Shift+Enter in Find keep focus in the field and open no editor", async () => {
     await render(<Harness />);
     await page.getByRole("gridcell").first().click();
-    await userEvent.keyboard("{Control>}h{/Control}");
+    await userEvent.keyboard("{Shift>}{Alt>}{Enter}{/Alt}{/Shift}");
     await userEvent.keyboard("needle");
     const find = page.getByRole("textbox", { name: "Find" });
     const status = page.getByRole("dialog").getByRole("status");
@@ -83,7 +83,7 @@ describe("find and replace in a browser", () => {
   it("Enter right after typing jumps to the first match of the typed text, then steps on", async () => {
     await render(<Harness />);
     await page.getByRole("gridcell").first().click();
-    await userEvent.keyboard("{Control>}h{/Control}");
+    await userEvent.keyboard("{Shift>}{Alt>}{Enter}{/Alt}{/Shift}");
     await userEvent.keyboard("needle{Enter}");
     const status = page.getByRole("dialog").getByRole("status");
     await expect.element(status).toHaveTextContent("1 of 3 cells");
@@ -95,7 +95,7 @@ describe("find and replace in a browser", () => {
   it("Enter right after typing jumps to the first match when searchText is controlled", async () => {
     await render(<Harness controlledSearch />);
     await page.getByRole("gridcell").first().click();
-    await userEvent.keyboard("{Control>}h{/Control}");
+    await userEvent.keyboard("{Shift>}{Alt>}{Enter}{/Alt}{/Shift}");
     await userEvent.keyboard("needle{Enter}");
     const status = page.getByRole("dialog").getByRole("status");
     await expect.element(status).toHaveTextContent("1 of 3 cells");
@@ -107,7 +107,7 @@ describe("find and replace in a browser", () => {
   it("a new query restarts at its first match", async () => {
     await render(<Harness />);
     await page.getByRole("gridcell").first().click();
-    await userEvent.keyboard("{Control>}h{/Control}");
+    await userEvent.keyboard("{Shift>}{Alt>}{Enter}{/Alt}{/Shift}");
     await userEvent.keyboard("needle");
     const status = page.getByRole("dialog").getByRole("status");
     await expect.element(status).toHaveTextContent("1 of 3 cells");
@@ -124,7 +124,7 @@ describe("find and replace in a browser", () => {
   it("a single Replace on the last match wraps to the first match, and Enter steps on from there", async () => {
     await render(<Harness />);
     await page.getByRole("gridcell").first().click();
-    await userEvent.keyboard("{Control>}h{/Control}");
+    await userEvent.keyboard("{Shift>}{Alt>}{Enter}{/Alt}{/Shift}");
     await userEvent.keyboard("needle");
     const status = page.getByRole("dialog").getByRole("status");
     await expect.element(status).toHaveTextContent("1 of 3 cells");
@@ -144,7 +144,7 @@ describe("find and replace in a browser", () => {
   it("Next match button keeps focus on the button and opens no editor", async () => {
     await render(<Harness />);
     await page.getByRole("gridcell").first().click();
-    await userEvent.keyboard("{Control>}h{/Control}");
+    await userEvent.keyboard("{Shift>}{Alt>}{Enter}{/Alt}{/Shift}");
     await userEvent.keyboard("needle");
     const next = page.getByRole("button", { name: "Next match" });
     const status = page.getByRole("dialog").getByRole("status");
@@ -172,7 +172,7 @@ describe("find and replace in a browser", () => {
     const menuTrigger = () => document.querySelector<HTMLElement>(gridAttrSelector("headerMenuTrigger"))!;
     await vi.waitFor(() => expect(menuTrigger()).toBeTruthy());
     menuTrigger().focus();
-    await userEvent.keyboard("{Control>}h{/Control}");
+    await userEvent.keyboard("{Shift>}{Alt>}{Enter}{/Alt}{/Shift}");
     await expect.element(page.getByRole("textbox", { name: "Find" })).toHaveFocus();
     await userEvent.keyboard("{Escape}");
     await expect.element(page.getByRole("dialog")).not.toBeInTheDocument();
@@ -209,10 +209,10 @@ describe("find and replace in a browser", () => {
     await expect.element(page.getByRole("textbox", { name: "Replace with" })).not.toBeInTheDocument();
   });
 
-  it("Ctrl+H opens expanded", async () => {
+  it("Shift+Alt+Enter opens expanded", async () => {
     await render(<Harness />);
     await page.getByRole("gridcell").first().click();
-    await userEvent.keyboard("{Control>}h{/Control}");
+    await userEvent.keyboard("{Shift>}{Alt>}{Enter}{/Alt}{/Shift}");
     await expect.element(page.getByRole("textbox", { name: "Replace with" })).toBeInTheDocument();
     await expect.element(page.getByRole("button", { name: "Toggle replace" })).toHaveAttribute("aria-expanded", "true");
   });
@@ -269,7 +269,7 @@ describe("find and replace in a browser", () => {
     const cells = page.getByRole("gridcell");
     await cells.nth(1).click();
     await userEvent.keyboard("{Shift>}{ArrowDown}{ArrowDown}{/Shift}");
-    await userEvent.keyboard("{Control>}h{/Control}");
+    await userEvent.keyboard("{Shift>}{Alt>}{Enter}{/Alt}{/Shift}");
     await userEvent.keyboard("item");
     await page.getByRole("textbox", { name: "Replace with" }).fill("x");
     await page.getByRole("button", { name: "Replace all" }).click();
@@ -281,9 +281,9 @@ describe("find and replace in a browser", () => {
     const panel = () => document.querySelector('[role="dialog"]') as HTMLElement;
     const statusLine = () => panel().querySelector('[role="status"]') as HTMLElement;
 
-    async function openPanel(chord = "f") {
+    async function openPanel(chord = "{Control>}f{/Control}") {
       await page.getByRole("gridcell").first().click();
-      await userEvent.keyboard(`{Control>}${chord}{/Control}`);
+      await userEvent.keyboard(chord);
       await expect.element(page.getByRole("textbox", { name: "Find" })).toHaveFocus();
     }
 
@@ -335,7 +335,7 @@ describe("find and replace in a browser", () => {
 
     it("keeps the panel height across empty, matching, and no-result states", async () => {
       await render(<Harness />);
-      await openPanel("h");
+      await openPanel("{Shift>}{Alt>}{Enter}{/Alt}{/Shift}");
       const empty = panel().getBoundingClientRect().height;
       await userEvent.keyboard("needle");
       await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("1 of 3 cells");
@@ -349,7 +349,7 @@ describe("find and replace in a browser", () => {
 
     it("keeps the panel height and the full text in the title when a replace leaves more matches", async () => {
       await render(<Harness replaceAllLimit={1} />);
-      await openPanel("h");
+      await openPanel("{Shift>}{Alt>}{Enter}{/Alt}{/Shift}");
       const empty = panel().getBoundingClientRect().height;
       await userEvent.keyboard("needle");
       await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("1 of 3 cells");
@@ -362,7 +362,7 @@ describe("find and replace in a browser", () => {
 
     it("sizes its buttons to at least 32px", async () => {
       await render(<Harness />);
-      await openPanel("h");
+      await openPanel("{Shift>}{Alt>}{Enter}{/Alt}{/Shift}");
       for (const name of ["Toggle replace", "Match case", "Whole cell", "Next match", "Previous match", "Close", "Replace", "Replace all"]) {
         expect(page.getByRole("button", { name, exact: true }).element().getBoundingClientRect().height).toBeGreaterThanOrEqual(32);
       }
@@ -372,7 +372,7 @@ describe("find and replace in a browser", () => {
       await page.viewport(375, 800);
       try {
         await render(<Harness />);
-        await openPanel("h");
+        await openPanel("{Shift>}{Alt>}{Enter}{/Alt}{/Shift}");
         const rect = panel().getBoundingClientRect();
         expect(rect.left).toBeGreaterThanOrEqual(0);
         expect(rect.right).toBeLessThanOrEqual(375);

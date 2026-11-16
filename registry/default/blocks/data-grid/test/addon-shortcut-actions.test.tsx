@@ -69,7 +69,7 @@ describe("add-on shortcut actions", () => {
   it("the find-replace add-on binds its keys and takes mod+f from focusSearch", () => {
     const keymap = keymapOf("find");
     expect(keymap["openFind"]).toEqual(["mod+f"]);
-    expect(keymap["openFindReplace"]).toEqual(["ctrl+h"]);
+    expect(keymap["openFindReplace"]).toEqual(["shift+alt+Enter"]);
     expect(keymap["focusSearch"]).toEqual([]);
   });
 

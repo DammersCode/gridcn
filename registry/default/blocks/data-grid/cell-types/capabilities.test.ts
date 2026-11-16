@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { CellType, ColumnDef } from "../types";
 import { cellTypes } from "./cell-types";
 import {
@@ -26,11 +26,14 @@ describe("resolveColumnValidate", () => {
   });
 
   it("falls back to the type's validate when the column declares none", () => {
-    const typeValidate = (value: unknown) => (value ? "type" : null);
+    const typeValidate = vi.fn((value: unknown) => (value ? "type" : null));
     const cellType = { ...cellTypes.text, validate: typeValidate };
+    const column = { ...noopColumn, options: { maxLength: 3 } } as AnyColumnDef;
 
-    const resolved = resolveColumnValidate(noopColumn, cellType);
-    expect(resolved).toBe(typeValidate);
+    const resolved = resolveColumnValidate(column, cellType);
+    expect(typeof resolved === "function" && resolved("x", {})).toBe("type");
+    expect(typeValidate).toHaveBeenCalledWith("x", {}, { maxLength: 3 });
+    expect(resolveColumnValidate(column, cellType)).toBe(resolved);
   });
 
   it("returns undefined when neither declares a validator", () => {

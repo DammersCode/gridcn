@@ -293,10 +293,10 @@ describe("useDataGridFindReplace", () => {
     expect(harness.data().map((r) => r.name)).toEqual(["foobar one", "two", "foobar three"]);
   });
 
-  it("binds ctrl+h to openFindReplace and mod+f to openFind", () => {
+  it("binds shift+alt+Enter to openFindReplace and mod+f to openFind", () => {
     const harness = setup();
     const { plugin } = harness.findReplace();
-    expect(plugin.keymap).toEqual({ openFindReplace: ["ctrl+h"], openFind: ["mod+f"] });
+    expect(plugin.keymap).toEqual({ openFindReplace: ["shift+alt+Enter"], openFind: ["mod+f"] });
     expect(Object.keys(plugin.commands ?? {}).sort()).toEqual(["openFind", "openFindReplace"]);
   });
 

@@ -140,6 +140,8 @@ export const longTextCellType: CellType<unknown, string, GridCellTypes["longText
   clearValue: () => "",
   isEmpty: (value) => value == null || value === "",
   compare: (a, b) => sortCollator().compare(toSafeText(a), toSafeText(b)),
-  validate: (value) =>
-    toSafeText(value).length > LONG_TEXT_DEFAULT_MAX_LENGTH ? `Too long: max ${LONG_TEXT_DEFAULT_MAX_LENGTH} characters` : null,
+  validate: (value, _row, options) => {
+    const max = options?.maxLength ?? LONG_TEXT_DEFAULT_MAX_LENGTH;
+    return toSafeText(value).length > max ? `Too long: max ${max} characters` : null;
+  },
 };

@@ -85,11 +85,11 @@ Content that the editor portals out of the cell, such as a popover, carries `dat
 
 ### validate [#validate]
 
-`validate` takes a function `(value, row) => string | null` or a Standard Schema. Every validation path resolves `column.validate ?? cellType.validate`: a cell commit, a paste, a fill, `updateCells`, and an import.
+`validate` takes a function `(value, row, options) => string | null` or a Standard Schema. `options` holds the `options` of the column, so the `longText` type reads `maxLength` from it. Every validation path resolves `column.validate ?? cellType.validate`: a cell commit, a paste, a fill, `updateCells`, and an import.
 
 ### activate [#activate]
 
-A type with `activate` has no editor session. Enter, F2, Space, a stationary click, and a double-click commit `activate(value, options)` directly, so `onBeforeEditStart` and `onEditEnd` never fire. The `checkbox` type declares `(value) => !value`.
+A type with `activate` has no editor session. Enter, F2, Space, a stationary click, and a double-click commit `activate(value, options)` directly. `onBeforeEditStart` runs first, and a `false` result or a pending promise holds the commit. `onEditEnd` never fires. The `checkbox` type declares `(value) => !value`.
 
 ### href [#href]
 
@@ -162,7 +162,7 @@ export const currencyCellType: CellType<unknown, number | null> = {
 
 `useCellEditor(props, codec)` builds a text-input editor. It owns the draft state, the end-caret focus, and a one-shot commit guard. It binds Enter, Escape, and blur. Enter commits and moves down. Escape cancels. A blur commits in place. It skips keys during IME composition.
 
-The `codec` is a `CellEditorCodec`. It holds `toDraft(value)` and `toValue(draft)`. `toValue` must never throw. The hook returns `ref`, `value`, `onChange`, `onKeyDown`, `onBlur`, `readOnly`, `aria-label`, `aria-busy`, and `dir`. Spread the result onto an input.
+The `codec` is a `CellEditorCodec`. It holds `toDraft(value)` and `toValue(draft)`. If `toValue` throws, the editor stays open with the draft unchanged, and the next commit runs again. The hook returns `ref`, `value`, `onChange`, `onKeyDown`, `onBlur`, `readOnly`, `aria-label`, `aria-busy`, and `dir`. Spread the result onto an input.
 
 For an editor that is not a text input, import `useCommitGuard` and `useSeedFocus` from the same entry point. `tryCommit()` returns `true` once. `reset()` re-arms it.
 

@@ -511,3 +511,10 @@ describe("computeDuplicateBatch with applyChange", () => {
     expect(redone.map((r) => r.id)).toEqual(expected);
   });
 });
+
+describe("applyChange without getRowId", () => {
+  it("reads the id field of each row", () => {
+    const change: DataChange<Row> = { source: "edit", ops: [{ type: "delete", rowId: "b", index: 1, row: rows[1]! }] };
+    expect(applyChange(rows, change).map((row) => row.id)).toEqual(["a", "c"]);
+  });
+});

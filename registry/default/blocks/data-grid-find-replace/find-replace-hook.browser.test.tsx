@@ -28,7 +28,7 @@ function Harness({ onDataChange, ...options }: UseDataGridFindReplaceOptions & {
 
 async function replaceAll(): Promise<void> {
   await page.getByRole("gridcell").first().click();
-  await userEvent.keyboard("{Control>}h{/Control}");
+  await userEvent.keyboard("{Shift>}{Alt>}{Enter}{/Alt}{/Shift}");
   await userEvent.keyboard("needle");
   await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("1 of 2 cells");
   await userEvent.click(page.getByRole("textbox", { name: "Replace with" }));
@@ -40,7 +40,7 @@ describe("className", () => {
   it("merges into the panel root", async () => {
     await render(<Harness className="w-96" />);
     await page.getByRole("gridcell").first().click();
-    await userEvent.keyboard("{Control>}h{/Control}");
+    await userEvent.keyboard("{Shift>}{Alt>}{Enter}{/Alt}{/Shift}");
     await expect.element(page.getByRole("dialog")).toHaveClass("w-96");
   });
 });

@@ -43,6 +43,18 @@ function menuItem(name: string): HTMLElement | undefined {
 }
 
 describe("DataGridHeaderDropdown", () => {
+  it.each([
+    ["Shift+Space", "{Shift>}[Space]{/Shift}"],
+    ["Shift+Enter", "{Shift>}{Enter}{/Shift}"],
+  ])("%s on the focused menu trigger opens the menu and leaves the selection alone", async (_name, keys) => {
+    await renderGrid();
+    const trigger = document.querySelector<HTMLElement>(gridAttrSelector("headerMenuTrigger"))!;
+    trigger.focus();
+    await userEvent.keyboard(keys);
+    await vi.waitFor(() => expect(menuItem("Sort")).toBeDefined());
+    expect(document.querySelectorAll('[aria-selected="true"]').length).toBe(0);
+  });
+
   it("merges className into the menu content", async () => {
     await render(
       <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>

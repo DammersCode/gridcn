@@ -175,7 +175,7 @@ const warnedSharedBindings = new Set<string>();
 /**
  * Warns in development for every combo shared across two or more distinct actions that involves
  * at least one non-default binding, once per unique combo and action set. Shares between default
- * bindings stay silent (Enter: `edit` and `commitDown` are contextually exclusive).
+ * bindings stay silent.
  */
 export function validateSharedBindings(keymap: Keymap, isMac: boolean = isMacPlatform()): void {
   if (!isDev()) return;

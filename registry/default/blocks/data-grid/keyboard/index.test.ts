@@ -230,15 +230,22 @@ describe("matchKeymap - other actions", () => {
     expect(matchKeymap(makeEvent({ key: "Z", ctrlKey: true }), DEFAULT_KEYMAP, false)).toBe("undo");
   });
 
-  it("editor-scope commit bindings resolve (component decides scope, keymap just matches)", () => {
+  it("binds no keymap action to the editor-owned keys: Tab, Shift+Tab, and Shift+Enter", () => {
     expect(matchKeymap(makeEvent({ key: "Enter" }), DEFAULT_KEYMAP, false)).toBe("edit");
-    expect(matchKeymap(makeEvent({ key: "Tab" }), DEFAULT_KEYMAP, false)).toBe("commitRight");
-    expect(matchKeymap(makeEvent({ key: "Tab", shiftKey: true }), DEFAULT_KEYMAP, false)).toBe(
-      "commitLeft",
-    );
-    expect(matchKeymap(makeEvent({ key: "Enter", shiftKey: true }), DEFAULT_KEYMAP, false)).toBe(
-      "commitUp",
-    );
+    expect(matchKeymap(makeEvent({ key: "Tab" }), DEFAULT_KEYMAP, false)).toBeNull();
+    expect(matchKeymap(makeEvent({ key: "Tab", shiftKey: true }), DEFAULT_KEYMAP, false)).toBeNull();
+    expect(matchKeymap(makeEvent({ key: "Enter", shiftKey: true }), DEFAULT_KEYMAP, false)).toBeNull();
+  });
+
+  it("toggleAllRows default avoids reserved chords", () => {
+    expect(DEFAULT_KEYMAP.toggleAllRows).toEqual(["mod+shift+Enter"]);
+    const reserved = ["mod+shift+e", "mod+shift+i", "mod+shift+j", "mod+shift+c", "mod+shift+k", "mod+shift+a", "ctrl+h", "mod+alt+e"];
+    const defaults = Object.values(DEFAULT_KEYMAP).flat();
+    for (const chord of reserved) expect(defaults).not.toContain(chord);
+  });
+
+  it("has no commitDown, commitUp, commitRight, or commitLeft action", () => {
+    for (const name of ["commitDown", "commitUp", "commitRight", "commitLeft"]) expect(DEFAULT_KEYMAP).not.toHaveProperty(name);
   });
 
   it("matches insertRowBelow and duplicateRow", () => {
@@ -407,7 +414,7 @@ describe("GridAction coverage", () => {
     extendFirstCell: true, extendLastCell: true,
     extendRowsToStart: true, extendRowsToEnd: true, extendRowsPageUp: true, extendRowsPageDown: true,
     selectRow: true, selectColumn: true, selectAll: true, toggleRow: true, toggleAllRows: true, openColumnMenu: true, openColumnFilter: true,
-    edit: true, typeToReplace: true, commitDown: true, commitUp: true, commitRight: true, commitLeft: true,
+    edit: true, typeToReplace: true,
     cancel: true, clearContents: true,
     undo: true, redo: true,
     fillDown: true, fillRight: true,
@@ -440,24 +447,15 @@ describe("matchKeymap - tie-break", () => {
     expect(matchKeymap(makeEvent({ key: "a", ctrlKey: true }), keymap, false)).toBe("saveAll");
   });
 
-  it("keeps the earlier entry on a tie between two default bindings (Enter: edit before commitDown)", () => {
-    expect(matchKeymap(makeEvent({ key: "Enter" }), DEFAULT_KEYMAP, false)).toBe("edit");
-  });
-
-  it("treats a keymap entry that repeats a default binding as a default (commitDown: [Enter] keeps edit)", () => {
-    const keymap = { ...DEFAULT_KEYMAP, commitDown: ["Enter"] } as Keymap;
-    expect(matchKeymap(makeEvent({ key: "Enter" }), keymap, false)).toBe("edit");
-  });
-
   it("treats a JSON-cloned default keymap as defaults, so a keymap binding still wins the tie", () => {
     const keymap = { ...(JSON.parse(JSON.stringify(DEFAULT_KEYMAP)) as Keymap), saveAll: ["Enter"] } as Keymap;
     expect(matchKeymap(makeEvent({ key: "Enter" }), keymap, false)).toBe("saveAll");
   });
 
   it("counts a restated default as a default regardless of modifier order or key case", () => {
-    expect(isDefaultBinding("toggleAllRows", "shift+mod+e")).toBe(true);
-    expect(isDefaultBinding("toggleAllRows", "mod+shift+E")).toBe(true);
-    expect(isDefaultBinding("toggleAllRows", "mod+alt+e")).toBe(false);
+    expect(isDefaultBinding("toggleAllRows", "shift+mod+Enter")).toBe(true);
+    expect(isDefaultBinding("toggleAllRows", "mod+alt+Enter")).toBe(false);
+    expect(isDefaultBinding("toggleAllRows", "mod+shift+e")).toBe(false);
     expect(isDefaultBinding("selectAll", "ctrl+a")).toBe(false);
     expect(isDefaultBinding("undo", "mod+z")).toBe(false);
   });

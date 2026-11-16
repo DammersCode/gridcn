@@ -188,6 +188,27 @@ describe("parseClipboardHtml", () => {
     ]);
   });
 
+  it("a pasted table with colspan=2 fills two cells", () => {
+    const html = '<table><tr><td colspan="2">wide</td><td>c</td></tr><tr><td>a</td><td>b</td><td>c</td></tr></table>';
+    expect(parseClipboardHtml(html)).toEqual([
+      ["wide", "", "c"],
+      ["a", "b", "c"],
+    ]);
+  });
+
+  it("a rowspan cell leaves its column empty in the rows it covers", () => {
+    const html = '<table><tr><td rowspan="2">tall</td><td>b</td></tr><tr><td>d</td></tr></table>';
+    expect(parseClipboardHtml(html)).toEqual([
+      ["tall", "b"],
+      ["", "d"],
+    ]);
+  });
+
+  it("a hostile colspan stays inside the cell cap", () => {
+    const rows = parseClipboardHtml('<table><tr><td colspan="999999999">x</td></tr></table>', 10)!;
+    expect(rows[0]!.length).toBeLessThanOrEqual(11);
+  });
+
   it("finds the first table if multiple are present", () => {
     const html = "<table><tr><td>first</td></tr></table><table><tr><td>second</td></tr></table>";
     expect(parseClipboardHtml(html)).toEqual([["first"]]);

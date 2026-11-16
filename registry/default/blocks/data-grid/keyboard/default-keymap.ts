@@ -48,18 +48,14 @@ export const DEFAULT_KEYMAP: Keymap = {
   selectColumn: ["ctrl+ "],
   selectAll: ["mod+a"],
   toggleRow: ["ctrl+shift+ "],
-  // Ctrl+Alt is AltGr on Windows; mod+shift+e is free in Chrome but opens DevTools in Firefox and Edge, so rebind it via keymap there
-  toggleAllRows: ["mod+shift+e"],
+  // mod+shift+letter chords are browser shortcuts (DevTools, tab search, add-ons) and Ctrl+Alt is AltGr on Windows; no browser binds Ctrl+Shift+Enter
+  toggleAllRows: ["mod+shift+Enter"],
   // alt+ArrowDown is moveDownKeepSelection and Shift+F10 opens the cell context menu
   openColumnMenu: ["shift+alt+ArrowDown"],
   // mirrors openColumnMenu; Alt+Arrow produces no character on any layout, so it never collides with AltGr
   openColumnFilter: ["shift+alt+ArrowUp"],
   focusSearch: ["mod+f"],
   edit: ["Enter", "F2", " "],
-  commitDown: ["Enter"],
-  commitUp: ["shift+Enter"],
-  commitRight: ["Tab"],
-  commitLeft: ["shift+Tab"],
   cancel: ["Escape"],
   clearContents: ["Delete", "Backspace"],
   // mod+shift+i/d/c/j/k/m are real devtools/bookmark-manager browser-chrome shortcuts a page
@@ -72,7 +68,7 @@ export const DEFAULT_KEYMAP: Keymap = {
   // shift+alt+Arrow opens the header menu and filter; PageUp/PageDown with shift+alt is unbound in the browsers and OSes, and Alt alone never forms AltGr
   moveRowsUp: ["shift+alt+PageUp"],
   moveRowsDown: ["shift+alt+PageDown"],
-  // Enter is edit/commitDown; alt+Enter was free
+  // Enter is edit; alt+Enter was free
   openLink: ["alt+Enter"],
 };
 

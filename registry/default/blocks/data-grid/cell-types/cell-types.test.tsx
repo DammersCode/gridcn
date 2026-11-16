@@ -88,9 +88,9 @@ describe("numberCellType value pipeline", () => {
     expect(numberCellType.fromText("  7  ")).toBe(7);
   });
 
-  it("fromText never throws on garbage; returns clearValue()'s result (null)", () => {
-    expect(numberCellType.fromText("not a number")).toBeNull();
-    expect(numberCellType.fromText("abc123")).toBeNull();
+  it("fromText rejects garbage by throwing; blank text returns null", () => {
+    expect(() => numberCellType.fromText("not a number")).toThrow();
+    expect(() => numberCellType.fromText("abc123")).toThrow();
     expect(numberCellType.fromText("")).toBeNull();
   });
 
@@ -595,7 +595,7 @@ describe("numberCellType.Editor lifecycle", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it("garbage input commits null (clearValue), never throws", async () => {
+  it("garbage input keeps the editor open and commits nothing", async () => {
     const user = userEvent.setup();
     const { onChange, commit, cancel } = editorSpies();
     render(
@@ -614,7 +614,8 @@ describe("numberCellType.Editor lifecycle", () => {
     const input = screen.getByRole("textbox");
     await user.type(input, "garbage");
     await user.keyboard("{Enter}");
-    expect(onChange).toHaveBeenCalledWith(null);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(commit).not.toHaveBeenCalled();
   });
 
   it("blur after an Enter commit does not commit a second time", async () => {

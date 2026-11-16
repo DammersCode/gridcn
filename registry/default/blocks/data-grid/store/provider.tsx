@@ -5,6 +5,7 @@ import type { StoreApi } from "zustand/vanilla";
 import { useStore } from "zustand";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { apiHandleOf } from "./api";
+import { DataGridStoreContext } from "./store-context";
 import { checkDevGuardrails, checkDuplicateColumnIds, checkUnresolvableColumnTypes, warnExternalStoreSyncPropsOnce, type GuardrailWarnings } from "./commit";
 import { holeRowId, rowIdAtViewRow } from "./compute";
 import { emitFromListener } from "./data-write";
@@ -54,8 +55,6 @@ function subscribeActiveCellChange(store: StoreApi<DataGridStoreState>): () => v
     emitFromListener("onActiveCellChange", () => onActiveCellChange(event));
   });
 }
-
-const DataGridStoreContext = createContext<StoreApi<DataGridStoreState> | null>(null);
 
 const GridInstanceIdContext = createContext<string>("");
 

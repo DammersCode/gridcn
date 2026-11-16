@@ -32,6 +32,7 @@ import {
   type PatchRejection,
   type PrevalidatedPatches,
   warnDev,
+  resolveEditTarget,
 } from "./commit";
 import { toSafeText } from "../cell-types/safe-text";
 import { createWarnOnce, isThenable } from "./async-gate";
@@ -434,6 +435,8 @@ export type DataWriteActions = Pick<
   _commitCellEdit: DataGridInternalActions["_commitCellEdit"];
   _commitChange: DataGridInternalActions["_commitChange"];
   _skipRowAction: DataGridInternalActions["_skipRowAction"];
+  /** Commits an `activate` result like `commitCellValueAt`, and reports a validator rejection through `onValidationError`. */
+  _commitActivation: (coord: ViewCoord, value: unknown) => void;
 };
 
 export function createDataWriteActions(set: SetState, get: GetState, deps: DataWriteDeps): DataWriteActions {
@@ -1335,6 +1338,33 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     );
   };
 
+  const commitValueAt = (coord: ViewCoord, value: unknown, reportRejection: boolean): void => {
+    const s = get();
+    if (s.readOnly) return;
+    const result = computeCommit(s, coord, value);
+    if ("error" in result) {
+      const target = reportRejection ? resolveEditTarget(s, coord) : undefined;
+      if (target) emitBulkRejections("edit", [{ rowId: s.getRowId(target.row, target.dataRowIndex), columnId: target.column.id, viewRowIndex: coord.row, value, message: result.error }]);
+      return;
+    }
+    if ("noop" in result) {
+      if (result.warnings) set({ cellErrors: mergeCellErrors(s.cellErrors, result.warnings) });
+      return;
+    }
+    ctx.rowIndexCache.rebase(result.data);
+    forgetDeferredRows(ctx);
+    ctx.lastEmittedData = result.data;
+    const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, result.change.ops), result.data, result.change.ops);
+    writeThenEmit(ctx, s, result.data, result.change, () =>
+      set({
+        data: result.data,
+        cellErrors: result.warnings ? mergeCellErrors(cellErrors, result.warnings) : cellErrors,
+        ...reconcileAfterWrite(s, result.data, result.change.ops),
+      }),
+    );
+
+  };
+
   return {
     _commitCellEdit(value, movement, rejection) {
       const s = get();
@@ -1409,25 +1439,10 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       if (coord) get().actions.commitCellValueAt(coord, value);
     },
     commitCellValueAt(coord, value) {
-      const s = get();
-      if (s.readOnly) return;
-      const result = computeCommit(s, coord, value);
-      if ("error" in result) return;
-      if ("noop" in result) {
-        if (result.warnings) set({ cellErrors: mergeCellErrors(s.cellErrors, result.warnings) });
-        return;
-      }
-      ctx.rowIndexCache.rebase(result.data);
-      forgetDeferredRows(ctx);
-      ctx.lastEmittedData = result.data;
-      const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, result.change.ops), result.data, result.change.ops);
-      writeThenEmit(ctx, s, result.data, result.change, () =>
-        set({
-          data: result.data,
-          cellErrors: result.warnings ? mergeCellErrors(cellErrors, result.warnings) : cellErrors,
-          ...reconcileAfterWrite(s, result.data, result.change.ops),
-        }),
-      );
+      commitValueAt(coord, value, false);
+    },
+    _commitActivation(coord, value) {
+      commitValueAt(coord, value, true);
     },
     deleteSelection() {
       const s = get();

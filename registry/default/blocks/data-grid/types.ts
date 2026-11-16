@@ -335,7 +335,7 @@ export type GridBulkValidationError = { rowId: string; columnId: string; viewRow
  * (their `onDataChange`/`onSelectionChange` fire first). `rejected` lists every refused cell with
  * its validator's message.
  */
-export type GridValidationErrorEvent = { source: "paste" | "fill" | "stream" | "replace" | "delete"; rejected: GridBulkValidationError[] };
+export type GridValidationErrorEvent = { source: "paste" | "fill" | "stream" | "replace" | "delete" | "edit"; rejected: GridBulkValidationError[] };
 
 /** Fired on a double-click on any non-pinned, non-skeleton cell — a pure notification in the {@link OnCellClick} sense (no veto), fired regardless of readOnly. */
 export type OnCellDoubleClick<TData> = (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;
@@ -445,7 +445,7 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
    * own; same shape as {@link ColumnDef.validate}. Every validation path resolves
    * `column.validate ?? cellType.validate` (single-cell commit, paste, fill, updateCells, import).
    */
-  validate?: ((value: TValue, row: TData) => string | null) | StandardSchemaV1<TValue>;
+  validate?: ((value: TValue, row: TData, options?: TOptions) => string | null) | StandardSchemaV1<TValue>;
   /**
    * The edit gestures ACTIVATE this cell in place instead of opening an editor: Enter/F2, a
    * stationary click, and double-click commit `activate(value, options)` through `commitCellValue`
@@ -764,10 +764,6 @@ export interface GridActions {
   openColumnFilter: true;
   edit: true;
   typeToReplace: true;
-  commitDown: true;
-  commitUp: true;
-  commitRight: true;
-  commitLeft: true;
   cancel: true;
   clearContents: true;
   insertRowBelow: true;
@@ -884,7 +880,7 @@ export type DataGridPlugin<TData = unknown> = {
   /** This plugin's commands, merged into the grid's command map (the consumer's `commands` win; a built-in action name is dropped). */
   commands?: Record<string, GridCommand<TData>>;
   /** Binds keys to this plugin's own commands. An entry for any other name is dropped, dev-warned; a key another action already holds is dropped, dev-warned. An entry is the action's full binding list: it replaces the action's default bindings, and an empty list or `undefined` unbinds the action. */
-  keymap?: Partial<Record<GridAction | (string & {}), KeyBinding[]>>;
+  keymap?: Keymap;
   /** A component rendered inside `DataGridRoot` after its children (no props — read the grid through {@link useDataGridApi}). */
   Mount?: ComponentType;
 };
@@ -954,7 +950,7 @@ export type GridCommand<TData = unknown> = {
  * Keep `ctrl` where `DEFAULT_KEYMAP` uses it (`ctrl+ ` for selectColumn): `mod+ ` on macOS is
  * Cmd+Space, which the OS intercepts (Spotlight), so the binding would be dead there.
  */
-export type Keymap = Partial<Record<GridAction, KeyBinding[]>>;
+export type Keymap = Partial<Record<GridAction | (string & {}), KeyBinding[]>>;
 
 /**
  * Map of built-in cell-type keys to their value/options shapes. Consumers
@@ -1026,7 +1022,7 @@ export interface GridCellTypes {
   longText: {
     value: string;
     options: {
-      /** The editor textarea's `maxLength`; default 100,000. Paste, fill, and import stay bounded by the type's `validate` at 100,000; declare a column `validate` for a smaller bound there. */
+      /** The editor textarea's `maxLength`; default 100,000. Editor, paste, fill, and import all enforce it. */
       maxLength?: number;
       placeholder?: string;
     };

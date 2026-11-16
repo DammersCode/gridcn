@@ -1,7 +1,8 @@
 import { cn } from "@/lib/utils";
 import { toSafeText } from "./safe-text";
-import { createFormatterCache, formatKey } from "./formatter-cache";
-import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import { createFormatterCache, formatKey, warnLocaleWithoutFormat } from "./formatter-cache";
+import { use, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import { useStore } from "zustand";
 import { CalendarIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
@@ -14,7 +15,7 @@ import { displayText } from "./display-text";
 import { useCommitGuard } from "../interaction/use-commit-guard";
 import { useCellTextInsets } from "../interaction/use-cell-editor";
 import { isComposingKey } from "../interaction/is-composing-key";
-import { useDataGridLabels } from "../store";
+import { DataGridStoreContext } from "../store/store-context";
 import { columnLabelText } from "../columns/column-format-helpers";
 
 /** Calendar-validity probe for an ISO-shaped `yyyy-mm-dd`: UTC so no time-zone can shift a day; `setUTCFullYear` (unlike the `Date.UTC` constructor) maps 0-99 to themselves, so `0026-01-01` stays 0026. */
@@ -102,6 +103,7 @@ function getDateFormatter(locale: string, format: Intl.DateTimeFormatOptions): I
 /** Formats an ISO date part per the column's `displayFormat`/`locale`, falling back to the raw ISO text. */
 function formatDateDisplay(value: string | null, options?: GridCellTypes["date"]["options"]): string {
   const text = toSafeText(value);
+  if (options?.locale && !options.displayFormat) warnLocaleWithoutFormat("date", options.locale);
   if (!options?.displayFormat) return text;
   const date = isoDatePartToLocalDate(text);
   if (!date) return text;
@@ -125,7 +127,7 @@ function DateEditor({
   pending,
   rejectionCount,
 }: CellEditorProps<unknown, string | null, GridCellTypes["date"]["options"]>) {
-  const labels = useDataGridLabels();
+  const labels = useStore(use(DataGridStoreContext)!, (state) => state.labels);
   const inputRef = useRef<HTMLInputElement>(null);
   const { triggerRef, measure } = useCellTextInsets();
   const [text, setText] = useState(dateCellType.toText(value));

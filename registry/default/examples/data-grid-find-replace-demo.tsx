@@ -35,7 +35,7 @@ export default function DataGridFindReplaceDemo(): ReactNode {
         <Button type="button" size="sm" variant="outline" disabled={!history.canUndo} onClick={history.undo}>
           Undo
         </Button>
-        <p className="m-0 text-sm text-muted-foreground">Press Ctrl+H inside the grid to open the panel.</p>
+        <p className="m-0 text-sm text-muted-foreground">Press Shift+Alt+Enter inside the grid to open the panel.</p>
       </div>
       <DataGridProvider data={rows} columns={columns} plugins={plugins} onDataChange={setRows}>
         <DataGridRoot className="h-[360px]">

@@ -90,6 +90,17 @@ describe("buildPasteWrites with a throwing fromText", () => {
   });
 });
 
+describe("buildPasteWrites with a column maxLength", () => {
+  it("a paste over the column maxLength is rejected", () => {
+    const longColumns: readonly ColumnDef<Row, unknown>[] = [{ id: "name", header: "Name", accessorKey: "name", type: "longText", options: { maxLength: 3 } }];
+    const s = fakeState({ columns: longColumns, visibleColumns: longColumns } as unknown as Partial<DataGridStoreState>);
+    const resolution = buildPasteWritesRaw(s, [["abcd"], ["abc"]], { col: 0, row: 0 });
+    if (resolution instanceof Promise) throw new Error("expected a synchronous result");
+    expect(resolution.writes).toEqual([{ viewRowIndex: 1, columnId: "name", value: "abc" }]);
+    expect(resolution.rejected.map((cell) => cell.columnId)).toEqual(["name"]);
+  });
+});
+
 describe("resolveCopyScope", () => {
   it("returns the primary range when a range selection exists", () => {
     const s = fakeState({ selection: selectCellPure({ col: 1, row: 0 }) });

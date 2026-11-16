@@ -34,3 +34,12 @@ const _keymap: Keymap = {
 };
 
 export { _badKey, _badPrefix, _escape, _bindings, _keymap };
+
+// a custom command name binds without a cast, and a built-in action name still type-checks its bindings
+const _customCommandKeymap: Keymap = { saveRow: ["mod+s"] };
+const _builtInKeymap: Keymap = { undo: ["mod+z"] };
+// @ts-expect-error - a binding list is an array of strings, not a bare string
+const _badBindings: Keymap = { saveRow: "mod+s" };
+void _customCommandKeymap;
+void _builtInKeymap;
+void _badBindings;

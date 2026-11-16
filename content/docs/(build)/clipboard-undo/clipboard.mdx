@@ -60,9 +60,9 @@ Select a range, press <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>C</kbd>, and paste int
 A truncated copy or paste warns in the browser console in development.
 
 <Callout type="warn" title="Real-world clipboard HTML is messy">
-  The HTML reader takes the first `<table>` of the payload and ignores merged-cell spans. Excel,
-  Sheets, and Numbers add inline styles that can hide this structure. If a paste does not
-  round-trip from one app, patch it with `processPaste` or `processCellFromClipboard`.
+  The HTML reader takes the first `<table>`. A merged cell keeps its text in its first position.
+  Inline styles from Excel, Sheets, and Numbers can hide this structure. If one app pastes wrong,
+  patch it with `processPaste` or `processCellFromClipboard`.
 </Callout>
 
 ## Formula sanitizing [#formula-sanitizing]
