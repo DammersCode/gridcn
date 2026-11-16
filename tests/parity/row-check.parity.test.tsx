@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { useDataGridSelectionStats } from "@/registry/default/blocks/data-grid-status-bar/use-data-grid-selection-stats";
 import type { SelectionStats } from "@/registry/default/blocks/data-grid-status-bar/compute-selection-stats";
-import { mountMode } from "./modes";
+import { makeRows, mountMode } from "./modes";
 import { viewIndex } from "@/registry/default/blocks/data-grid/types";
 
 describe("checked rows with client pagination", () => {
@@ -62,5 +62,17 @@ describe("selection stats with client pagination", () => {
     grid.goToPage(2);
     expect(grid.state().selection.columns.toArray()).toEqual([1]);
     expect(stats).toMatchObject({ numeric: 2, sum: 4 + 5 });
+  });
+});
+
+describe("checked rows with server pagination", () => {
+  it("across-filters remembers the checked row when the next page replaces the rows and checks it again when the page returns", async () => {
+    const grid = await mountMode("PS", { props: { checkedRowsLifetime: "across-filters" } });
+    const rows = makeRows(8);
+    grid.act(() => grid.state().actions.setRowCheckedAt(viewIndex(1), true));
+    grid.replaceData(rows.slice(4));
+    expect([...grid.state().hiddenCheckedRowIds]).toEqual(["r1"]);
+    grid.replaceData(rows.slice(0, 4));
+    expect(grid.state().selection.rows.toArray()).toEqual([1]);
   });
 });

@@ -152,6 +152,25 @@ describe("prefetchNextPage", () => {
     expect(view.result.current.gridProps.data[0]?.id).toBe("r10");
   });
 
+  it("prefetches the next page with the server sort (sortMode server)", async () => {
+    const s = server();
+    const view = await mount(s);
+    act(() => view.result.current.gridProps.onSortChange([{ columnId: "name", direction: "desc" }]));
+    await advance(0);
+    await advance(0);
+    expect(s.calls.at(-1)!.request).toMatchObject({ page: 2, spec: { sorts: [{ columnId: "name", direction: "desc" }] } });
+  });
+
+  it("prefetches the next page with the server filter (filterMode server)", async () => {
+    const s = server();
+    const view = await mount(s);
+    const filter = { columnId: "name", operator: "contains" as const, value: "9" };
+    act(() => view.result.current.gridProps.onFilterChange([filter]));
+    await advance(0);
+    await advance(0);
+    expect(s.calls.at(-1)!.request).toMatchObject({ page: 2, spec: { filters: [expect.objectContaining(filter)] } });
+  });
+
   it("drops the entry on a page size change", async () => {
     const s = server();
     const view = await mount(s);

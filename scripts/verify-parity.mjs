@@ -60,7 +60,7 @@ export function checkParity(matrix, { optionNames, root: base, docsOnlyBaseline 
     const at = row.id;
     if (seen.has(at)) problems.push(`${at}: duplicate feature id`);
     seen.add(at);
-    if (row.doc && pageUrls && !pageUrls.has(row.doc)) problems.push(`${at}: doc ${row.doc} is not a docs page`);
+    if (row.doc && pageUrls && !pageUrls.has(row.doc.split("#")[0])) problems.push(`${at}: doc ${row.doc} is not a docs page`);
     for (const option of row.options ?? []) {
       covered.add(option);
       if (!optionSet.has(option)) problems.push(`${at}: option ${option} is not a public option`);
