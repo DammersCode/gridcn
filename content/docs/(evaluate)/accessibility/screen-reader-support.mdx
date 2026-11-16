@@ -49,7 +49,9 @@ A cell with a validation error has `aria-invalid="true"` and the message in `ari
 
 ### Roving tabindex [#roving-tabindex]
 
-The grid uses the roving tabindex pattern. Before a cell is active, the root of a grid with rows is the one tab stop (`tabindex="0"`). Once a cell is active, only that cell has `tabindex="0"`. The other cells and the root have `-1`. With zero rows, the root has `-1`. Each column header has one tab stop.
+The grid uses the roving tabindex pattern. Before a cell is active, the root of a grid with rows is the one tab stop (`tabindex="0"`). Once a cell is active, only that cell has `tabindex="0"`. The other cells and the root have `-1`. With zero rows, the root has `-1`.
+
+The filter button of each column is a tab stop, or the menu button when the column has no filter button. A header with neither has no tab stop. While the view has rows, no header is a tab stop.
 
 DOM focus follows the active cell. The active row stays mounted after it scrolls out of view, so focus stays. Pinned-row cells and skeleton cells have no `tabindex`.
 
@@ -70,6 +72,7 @@ A text editor is a native `<input>` inside the `gridcell`, so a screen reader re
 - While the grid draws its own loading state, a visually hidden `role="progressbar"` outside the grid exposes `aria-label` and `aria-valuetext` from `labels.grid.loading`. A screen reader does not read it aloud.
 - A custom `loadingState` replaces the skeleton or the bar. The grid adds no role, label, or progressbar. The node owns its accessibility.
 - In scroll mode, a row and its cells that have not arrived have `aria-busy="true"`.
+- A row with a save in flight has `aria-busy="true"`.
 
 ## Live regions [#live-regions]
 

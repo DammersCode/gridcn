@@ -13,7 +13,8 @@ Browser tests drive the grid with a real keyboard in Chromium. The table lists w
 | Area | What the tests check | Test file |
 |---|---|---|
 | Roles, counts, indices | axe-core finds zero violations with column groups. It also finds zero on a fixture with a toolbar, checkbox markers, a pinned-top row, and a sorted column. Group headers carry row indexes and spans. | `data-grid/test/a11y.browser.test.tsx`, `data-grid/test/column-groups.browser.test.tsx` |
-| Tab entry and exit | A Tab press reaches the grid. A second Tab leaves it. Shift+Tab from the first cell leaves backward. Marker checkboxes, select all, and the header menu trigger are not tab stops while the view has rows. With zero rows, each column header has one tab stop, the filter button or the menu button, and Enter or Space opens it. Shift+Alt+ArrowDown on the filter button opens the column menu. Other keys, such as ArrowRight and Delete, still reach the grid from a focused trigger. | `data-grid/test/data-grid.browser.test.tsx`, `data-grid-toolbar/header-filter-zero-rows.browser.test.tsx`, `data-grid-context-menu/header-dropdown.browser.test.tsx` |
+| Tab entry | A Tab press reaches the grid. A second Tab leaves it. Shift+Tab from the first cell leaves backward. Marker checkboxes, select all, and the header menu trigger are not tab stops while the view has rows. | `data-grid/test/data-grid.browser.test.tsx`, `data-grid-context-menu/header-dropdown.browser.test.tsx` |
+| Zero-row headers | With zero rows, the filter button of each column is a tab stop, or the menu button when the column has no filter button. Enter or Space opens it. Shift+Alt+ArrowDown on the filter button opens the column menu. Other keys, such as ArrowRight and Delete, still reach the grid from a focused trigger. | `data-grid-toolbar/header-filter-zero-rows.browser.test.tsx`, `data-grid-context-menu/header-dropdown.browser.test.tsx` |
 | Tab in an edit | Tab commits a text edit and moves focus to the next control after the grid. Tab in a select edit moves focus there too. | `data-grid/test/data-grid.browser.test.tsx` |
 | Arrow keys and scroll | Arrow keys move the active cell and scroll at the viewport edge. Mod+Enter scrolls the active cell into view without moving it. | `data-grid/test/data-grid.browser.test.tsx` |
 | Editing keys | A printable key opens the editor with that character. Enter edits with the caret at the end. Escape cancels. Delete clears a range. Enter and Escape during IME composition leave editors open. | `data-grid/test/data-grid.browser.test.tsx` |
@@ -64,7 +65,7 @@ export function Tasks({ tasks }: { tasks: Task[] }) {
 }
 ```
 
-With this binding, Tab moves to the next cell. A test covers this. Outside an edit, Tab and Shift+Tab then keep focus in the grid, also at the last and the first cell. In an edit, Tab still commits and moves focus out of the grid. To meet WCAG 2.1.2 (No Keyboard Trap), give users another key that moves focus out, and tell them about it.
+With this binding, Tab moves the active cell. At the last column, Tab leaves the grid. Shift+Tab leaves it at the first column. In an edit, Tab still commits and moves focus out of the grid.
 
 ## Touch targets [#touch-targets]
 
