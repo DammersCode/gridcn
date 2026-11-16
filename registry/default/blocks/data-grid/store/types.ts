@@ -665,8 +665,8 @@ export type UpdateCellsSkip = {
   patchIndex: number;
   /**
    * `"unknown-row"` — the row id is not in `data`; `"unknown-column"` — the column id is not a
-   * known column; `"hole"` — the row is an unloaded lazy hole; `"readonly"` — the column (or the
-   * row, via `readOnly(row)`) is read-only for a batch with a `source` other than `"stream"`, or a
+   * known column; `"hole"` — the row is an unloaded lazy hole; `"readonly"` — the grid, the column, or the
+   * row (via `readOnly(row)`) is read-only for a batch with a `source` other than `"stream"`, or a
    * `"stream"` patch met a column with no write path (no `accessorKey` and no `setValue`); `"invalid"` — the column's `validate` rejected the
    * value; `"no-op"` — the value is `Object.is`-equal to the current one; `"saving"` — a
    * `"stream"` batch met a row whose save is in flight; the grid holds the patch and applies it once the save settles (after the acknowledgement or the rollback), and a later push to the same cell replaces the held value;

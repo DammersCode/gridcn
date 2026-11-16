@@ -1370,11 +1370,11 @@ describe("updateCells — verdict", () => {
     warn.mockRestore();
   });
 
-  it('reports a grid-level readOnly as an empty verdict for source "edit"', () => {
+  it('skips each patch with reason "readonly" on a grid-level readOnly for source "edit"', () => {
     const { result } = renderHarness({ readOnly: true });
     expect(result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 1 }], { source: "edit" })).toEqual({
       applied: 0,
-      skipped: [],
+      skipped: [{ patchIndex: 0, reason: "readonly" }],
       pending: false,
     });
   });

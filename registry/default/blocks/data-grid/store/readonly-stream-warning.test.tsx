@@ -24,3 +24,18 @@ it("applies a source-less push on a readOnly grid, and asks once in development 
   expect(String(readOnlyWarnings[0]![0])).toContain('Pass source: "stream" to confirm the push, or source: "edit" to keep the readOnly check');
   warn.mockRestore();
 });
+
+it("skips every patch with reason readonly when a non-stream write meets a readOnly grid", () => {
+  function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <DataGridProvider data={[{ id: "a", price: 0 }]} columns={columns} readOnly>
+        {children}
+      </DataGridProvider>
+    );
+  }
+  const { result } = renderHook(() => useDataGridActions(), { wrapper: Wrapper });
+  const patches = [{ rowId: "a", columnId: "price", value: 1 }, { rowId: "a", columnId: "price", value: 2 }];
+  const skipped = [{ patchIndex: 0, reason: "readonly" }, { patchIndex: 1, reason: "readonly" }];
+  expect(result.current.updateCells(patches, { source: "edit" })).toEqual({ applied: 0, skipped, pending: false });
+  expect(result.current.editRows([{ rowId: "a", changes: { price: 3 } }])).toEqual({ applied: 0, skipped: skipped.slice(0, 1), pending: false });
+});
