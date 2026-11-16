@@ -34,6 +34,25 @@ Grep for where `columns` is built. If it is a literal (`[...]` or `defineColumns
 - Symptom: `[data-grid] columns array identity changed since the last render; pass a stable reference (e.g. useMemo) or every row re-renders`
 - Fix: move `columns` to module scope, or wrap in `useMemo` with a dependency list that only changes when the schema actually changes.
 
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string };
+
+// Slow: a new array on every render
+function SlowGrid({ rows }: { rows: Row[] }) {
+  const columns = defineColumns<Row>()([{ id: "name", header: "Name", accessorKey: "name" }]);
+  return <DataGrid data={rows} columns={columns} onDataChange={() => {}} />;
+}
+
+// Fast: one array for the life of the module
+const columns = defineColumns<Row>()([{ id: "name", header: "Name", accessorKey: "name" }]);
+
+function FastGrid({ rows }: { rows: Row[] }) {
+  return <DataGrid data={rows} columns={columns} onDataChange={() => {}} />;
+}
+```
+
 ## 3. Unstable `data`
 
 Grep the `data`/`onDataChange` (controlled mode) call sites. If `data` is rebuilt from scratch every render (e.g. `.map()` over another source with no memoization) even though no row actually changed, row memoization is defeated grid-wide — check this even if the row count did not change.
@@ -42,16 +61,7 @@ Grep the `data`/`onDataChange` (controlled mode) call sites. If `data` is rebuil
 - Fix: keep row references stable across renders that don't touch them; update immutably (swap only the changed row's reference), don't rebuild the whole array. This warning does not fire in uncontrolled mode (no `data` prop) — the store's own array legitimately gets a new reference on every mutation there.
 - In controlled mode, store the array `onDataChange` hands over unchanged: `onDataChange={(next) => setData(next as Row[])}`. A copy (`[...next]`), `map`, or `filter` defeats the store's echo check, so every edit or `updateCells` tick rebuilds the row-id map and the view index.
 
-## 4. Unstable `getRowClassName` / `getCellClassName`
-
-Grep for these two props on `DataGridRoot`/`DataGrid`. An inline arrow function or closure passed directly in JSX is a fresh identity every render, breaking row/cell memoization the same way unstable `columns` does.
-
-- Symptoms (each independent):
-  - `[data-grid] getRowClassName identity changed since the last render; pass a stable reference (e.g. useCallback) or every row re-renders`
-  - `[data-grid] getCellClassName identity changed since the last render; pass a stable reference (e.g. useCallback) or every cell re-renders`
-- Fix: module scope if the function needs no closure state, otherwise `useCallback` with a stable dependency list.
-
-## 5. Unstable plugin members in `plugins`
+## 4. Unstable plugin members in `plugins`
 
 The grid compares the `plugins` array entry-wise — same length, same `name`, every member identity-equal — so an inline `plugins={[fill.plugin]}` is harmless while the `plugin` objects are stable, which every first-party hook's result is. The trap is a plugin MEMBER that churns: a rebuilt `Overlay` or `Mount` component, a fresh `onDataChange` closure, or a fresh `aggregateRow(...)` or row object in `topRows`/`bottomRows` created every render (an inline array of stable entries is fine). A changed member re-resolves the grid's plugin list and remounts the plugin components whose type changed, dropping their state.
 
@@ -60,7 +70,7 @@ The grid compares the `plugins` array entry-wise — same length, same `name`, e
   - `[data-grid] plugin "X"'s Mount component identity changed; the mount remounts and loses its state`
 - Fix: keep the add-on hook's `plugin` as-is (its members are stable). For a custom plugin, hoist `Overlay`/`Mount` to module scope or memoize them on the data they close over. For pinned rows, memoize `topRows`/`bottomRows` so the hook's `plugin` changes only when the band contents change.
 
-## 6. Custom `Cell`/`renderCell` allocating per render
+## 5. Custom `Cell`/`renderCell` allocating per render
 
 Grep any custom cell type or `renderCell` for `new Intl.DateTimeFormat(...)`, `new Intl.NumberFormat(...)`, or any other object/array/closure literal constructed directly inside the render function. `Cell` renders once per visible cell on every window mount, and mounts happen continuously during scroll — an uncached formatter multiplies across every cell that crosses the viewport in a fling.
 
@@ -70,9 +80,9 @@ Grep any custom cell type or `renderCell` for `new Intl.DateTimeFormat(...)`, `n
 - Also flag: per-cell work that grows with the dataset (a scan of `data`, a `find` or `filter` over rows, a sort). `Cell` runs for every visible cell on every scroll commit, so keep it O(1) per cell and precompute lookups outside the render path.
 - Note: React Compiler does not fix this. It optimizes gridcn's own compiled components; it cannot memoize a fresh literal a consumer constructs inside their own `Cell`/`renderCell` function on every call.
 
-## 7. High-rate live data replacing `data` wholesale
+## 6. High-rate live data replacing `data` wholesale
 
-Grep for a feed/interval/subscription that calls `setData(wholeArrayRebuilt)` or the controlled `onDataChange` path on every tick, rather than patching. Full replacement re-triggers checks 3 and 6 on every tick and puts selection and open-editor state at risk.
+Grep for a feed/interval/subscription that calls `setData(wholeArrayRebuilt)` or the controlled `onDataChange` path on every tick, rather than patching. Full replacement re-triggers checks 3 and 5 on every tick and puts selection and open-editor state at risk.
 
 - Fix: use `actions.updateCells(patches)` / `actions.updateRows(...)` (writes by row id, doesn't move selection/active cell/open editor) instead of replacing `data`. Add `{ skipValidation: true }` only when the producer already validated the values, to keep a high-rate feed synchronous.
 - Get `actions` one of two ways: `useDataGridActions()` in a child component inside `DataGridProvider`, or `const { store, actions } = useDataGridStoreProps({ ...sameProps })` with `<DataGridProvider store={store} {...sameProps}>` when code outside the provider needs the grid. A feed that needs current values reads `store.getState().data` from the second form; never assign a ref during render.
@@ -91,7 +101,6 @@ Zero `[data-grid]`-prefixed warnings and no `gridcn: the grid viewport shows mor
 - `https://gridcn.vercel.app/docs/performance/performance-guidance.md` — identity-stability rules, scroll model.
 - `https://gridcn.vercel.app/docs/performance/virtualization.md` — bounded-height requirement, virtualization model.
 - `https://gridcn.vercel.app/docs/plugins/plugin-shape.md` — plugin identity rules (entry-wise list comparison, one plugin per grid).
-- `https://gridcn.vercel.app/docs/theme-style-language/style-overrides.md` — `getRowClassName`/`getCellClassName` stability.
 - `https://gridcn.vercel.app/docs/recipes-custom-code/write-cell-type.md` — formatter caching, allocation-free `Cell`.
 - `https://gridcn.vercel.app/docs/rows-live-data/stream-updates.md` — `updateCells`/`updateRows`, `skipValidation`.
 

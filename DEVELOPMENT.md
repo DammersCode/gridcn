@@ -85,8 +85,8 @@ Rules that bite if forgotten:
   full address without a namespace mapping. After any `registry.json` change, push and validate:
 
   ```powershell
-  npx shadcn@latest registry validate DammersCode/gridcn   # default branch
-  npx shadcn@latest registry validate DammersCode/gridcn#<branch>
+  npx shadcn@4.21.0 registry validate DammersCode/gridcn   # default branch
+  npx shadcn@4.21.0 registry validate DammersCode/gridcn#<branch>
   ```
 
 ## Testing the registry install on your own PC
@@ -96,11 +96,11 @@ The dev server serves the payloads at `http://localhost:3000/r/<item>.json`. To 
 
 1. Keep `pnpm dev` running here.
 2. In the consuming project (any Next/Vite React app with Tailwind v4): initialize shadcn once
-   if it isn't (`npx shadcn@latest init`).
+   if it isn't (`npx shadcn@4.21.0 init`).
 3. Point the `@gridcn` namespace at your local server:
 
    ```powershell
-   npx shadcn@latest registry add @gridcn=http://localhost:3000/r/{name}.json
+   npx shadcn@4.21.0 registry add @gridcn=http://localhost:3000/r/{name}.json
    ```
 
    (or by hand in the consumer's `components.json`:
@@ -109,11 +109,11 @@ The dev server serves the payloads at `http://localhost:3000/r/<item>.json`. To 
 4. Install exactly like a real consumer:
 
    ```powershell
-   npx shadcn@latest add @gridcn/data-grid          # core
-   npx shadcn@latest add @gridcn/data-grid-toolbar  # any add-on, each depends only on core
+   npx shadcn@4.21.0 add @gridcn/data-grid          # core
+   npx shadcn@4.21.0 add @gridcn/data-grid-toolbar  # any add-on; each depends on the core, a few also install another gridcn item
    ```
 
-   One-off alternative without the namespace: `npx shadcn@latest add http://localhost:3000/r/data-grid.json`.
+   One-off alternative without the namespace: `npx shadcn@4.21.0 add http://localhost:3000/r/data-grid.json`.
 
 5. Files land under the consumer's alias path (`components/data-grid/*` by default), npm deps
    from the payload are installed, and you use the components per `/docs/learning-path/render-your-first-grid`.
@@ -138,9 +138,9 @@ would, into a project you start yourself. The repository is public, so the CLI n
    Quick checks without any app:
 
    ```powershell
-   npx shadcn@latest registry validate DammersCode/gridcn#<branch>   # schema + files exist
-   npx shadcn@latest list  DammersCode/gridcn#<branch>               # every item
-   npx shadcn@latest view  DammersCode/gridcn/data-grid#<branch>     # one item's resolved payload
+   npx shadcn@4.21.0 registry validate DammersCode/gridcn#<branch>   # schema + files exist
+   npx shadcn@4.21.0 list  DammersCode/gridcn#<branch>               # every item
+   npx shadcn@4.21.0 view  DammersCode/gridcn/data-grid#<branch>     # one item's resolved payload
    ```
 
 2. Start your own Vite + React project (the documented consumer prerequisite: React 19 +
@@ -162,12 +162,12 @@ would, into a project you start yourself. The repository is public, so the CLI n
    ref goes AFTER the item name:
 
    ```powershell
-   npx shadcn@latest init -y -b base -p nova -t vite
-   npx shadcn@latest add DammersCode/gridcn/data-grid#<branch>          # core
-   npx shadcn@latest add DammersCode/gridcn/data-grid-history#<branch>  # any add-on
+   npx shadcn@4.21.0 init -y -b base -p nova -t vite
+   npx shadcn@4.21.0 add DammersCode/gridcn/data-grid#<branch>          # core
+   npx shadcn@4.21.0 add DammersCode/gridcn/data-grid-history#<branch>  # any add-on
    ```
 
-   Preview without writing: `npx shadcn@latest add <addr> --dry-run`, or inspect one file with
+   Preview without writing: `npx shadcn@4.21.0 add <addr> --dry-run`, or inspect one file with
    `--view src/components/data-grid/data-grid.tsx` after install.
 
 5. Copy the two files from the [quick start](content/docs/(learn)/learning-path/render-your-first-grid.mdx) (`src/columns.ts`,
@@ -257,7 +257,7 @@ no docs chrome, 36 px rows, 1216 px wide), and run `node scripts/perf-scroll.mjs
 The dev route returns 404 in production builds. Measure on a 60 Hz display: a remote desktop session can run at
 32 Hz, which doubles every frame time. Compare two builds back to back on the same machine; one run varies by about two fps.
 
-The perf suites log their measured numbers (`[scroll-drag baseline] ...`, `spec 6c-8 perf ratio ...`) so you
+The perf suites log their measured numbers (`[scroll-drag baseline] ...`, `perf ratio: ...`) so you
 can compare machines or changes without touching assertions. Thresholds and their history live in
 comment blocks inside the test files — read them before changing anything. Enforced invariants: no
 observable blank rows after a 3-tick velocity warm-up, a full-swap FPS floor, and a one-row scroll

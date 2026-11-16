@@ -57,8 +57,9 @@ must run in the component that renders `<DataGridProvider>`, above it, not insid
 | Presence | `useDataGridPresence()` | `{ plugin, setPresenceHighlights, ... }` | `plugin` → `plugins` on the provider |
 | Pinned rows | `useDataGridPinnedRows({ topRows?, bottomRows?, status? })`; a totals row is `aggregateRow(specs, { cells?, scope? })` or `serverAggregateRow({ fetchAggregates, cells?, refreshAfterSave? })` in `topRows`/`bottomRows` | `{ plugin }` | `plugin` → `plugins` on the provider |
 | Keybindings | `useDataGridKeybindings({ className? })` | `{ plugin, open, close }` | `plugin` → `plugins` on the provider (`?` opens the dialog; rebind with `keymap={{ openKeybindings: [...] }}`) |
-| Find & replace | `useDataGridFindReplace({ scope?, replaceAllLimit?, processReplace?, className? })` | `{ plugin, open, close }` | `plugin` → `plugins` on the provider (`Mod+F` opens the panel with Find only, `Ctrl+H` with Replace; `open("find" \| "replace")` opens it from code) |
-| Undo & redo | `useDataGridState(rows, { getRowId })`, or `useDataGridHistory({ capacity?, datasetKey?, recordSources?, onSkip? })` to compose with your own `data`/`setData` | spreadable `{ data, getRowId, onDataChange, plugins, history }`, or `{ plugin, undo, redo, ... }` | spread the state result onto the provider; put the history `plugin` in `plugins` and keep your own `data` + `onDataChange` echo (the grid's `getRowId` prop addresses the operations) |
+| Find & replace | `useDataGridFindReplace({ scope?, replaceAllLimit?, processReplace?, className? })` | `{ plugin, open, close }` | `plugin` → `plugins` on the provider (`Mod+F` opens the panel with Find only, `Shift+Alt+Enter` with Replace; `open("find" \| "replace")` opens it from code) |
+| Undo & redo | `useDataGridState(rows, { getRowId })` | spreadable `{ data, getRowId, onDataChange, plugins, history }` | spread the result onto the provider |
+| Undo & redo, own state | `useDataGridHistory({ capacity?, datasetKey?, recordSources?, onSkip? })` | `{ plugin, undo, redo, ... }` | `plugin` → `plugins`; keep your own `data` and `onDataChange` echo (the grid's `getRowId` prop addresses the operations) |
 
 Everything else mounts as a plain child component, inside the provider:
 
@@ -73,7 +74,8 @@ Everything else mounts as a plain child component, inside the provider:
 | Saved views | `DataGridViews` (or `useDataGridViews()` for your own UI; options `storage` (a `localStorage` key or a storage object), `value`/`onValueChange`; mount `DataGridUrlState` beside it and a URL with params wins over the default view) | inside the provider, e.g. in `DataGridToolbar` |
 | Import/export | `DataGridImportButton`, `DataGridExportButton` | inside `DataGridToolbar` |
 | Server rows (scroll mode) | `useDataGridServerRows({ mode: "scroll" })` (owns `data`) | hook above the provider; spread `server.gridProps` |
-| Pagination | `defaultPageSize` on the provider + `DataGridPaginationBar` (client; `useDataGridPager()` returns `{ pager }` for your own controls); `useDataGridServerPager` + `DataGridPaginationBar {...pager}` (server) | the bar reads the pager from the provider when you spread nothing; spread `pager` and it works outside the provider too |
+| Pagination, client | `defaultPageSize` on the provider + `DataGridPaginationBar` | the bar reads the pager from the provider; `useDataGridPager()` returns `{ pager }` for your own controls |
+| Pagination, server | `useDataGridServerPager` + `DataGridPaginationBar {...pager}` | spread `pager` and the bar works outside the provider too |
 
 `keymap` (remapping or the keybindings dialog's source of truth) is a prop of `DataGridProvider` (or
 the `DataGrid` wrapper), never of `DataGridRoot`.
@@ -83,7 +85,24 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
 - **One `plugins` array for everything.** Fill, presence, pinned rows, and history (and any custom
   plugin) each hand you a `plugin`. Put every plugin in one array:
   ```tsx
-  <DataGridProvider data={data} columns={columns} getRowId={getRowId} plugins={[fill.plugin, presence.plugin, pinnedRows.plugin, history.plugin]}>
+  import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+  import { useDataGridFill } from "@/components/data-grid-fill/data-grid-fill";
+  import { useDataGridPinnedRows } from "@/components/data-grid-pinned-rows/data-grid-pinned-rows";
+
+  type Row = { id: string; item: string; price: number };
+
+  const columns = defineColumns<Row>()([
+    { id: "item", header: "Item", accessorKey: "item" },
+    { id: "price", header: "Price", accessorKey: "price", type: "number" },
+  ]);
+  const rows: Row[] = [{ id: "1", item: "Pen", price: 2 }];
+  const bottomRows = [{ id: "total", item: "Total", price: 2 }];
+
+  function PricesGrid() {
+    const fill = useDataGridFill();
+    const pinnedRows = useDataGridPinnedRows({ bottomRows });
+    return <DataGrid defaultData={rows} columns={columns} plugins={[fill.plugin, pinnedRows.plugin]} />;
+  }
   ```
   An inline array literal is fine: the grid compares the list entry-wise (same length, same `name`,
   every member identity-equal), so a fresh array with stable members re-resolves nothing.
@@ -100,18 +119,18 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
   `DataGridUrlState` only with both `sortMode="server"` and `filterMode="server"` (a grid with `totalRowCount` has both by default); otherwise it
   re-sorts and re-filters the partial `data` client-side.
 - **Scroll mode + pagination are mutually exclusive.** Neither exists for render performance
-  (virtualization already covers that); pick scroll mode for one continuous infinite-scroll dataset, or
+  (virtualization already covers that); pick scroll mode for one continuous result that scrolls without pages, or
   pagination for bookmarkable pages. Using both together is unsupported.
 - **Presence**: call `useDataGridPresence()` exactly once per grid. A second call mints a separate
   store whose `setPresenceHighlights` writes into nothing the grid reads; share the first call's
   return values as props instead.
 - **Pinned rows**: create `aggregateRow(...)` and `serverAggregateRow(...)` once, at module scope. The hook compares the entries of `topRows`/`bottomRows` by identity, so an inline `[TOTALS]` keeps the plugin. A plain row object must stay a stable value too.
 - **Server totals**: on a pages, scroll, or own-API grid put `serverAggregateRow({ fetchAggregates: ({ spec, signal }) => … })` in `bottomRows`. The band sets its own `status`, requests again on a filter or quick-search change, and fetches again after the pending saves settle (`refreshAfterSave: false` opts out). Pin one `serverAggregateRow` in one place only. To read the result outside the band, render `<DataGridServerAggregateReporter … onChange={setTotals} />` (start the state from `PENDING_SERVER_AGGREGATE`; it refreshes after saves like the band, `refreshAfterSave: false` opts out).
-- **Lookup cell**: register `cellTypes={{ lookup: lookupCellType }}`, set `type: "lookup"` and `options: { fetchOptions }` on the column, and keep `fetchOptions` stable.
+- **Lookup cell**: register `cellTypes={{ lookup: lookupCellType }}`, set `type: "lookup"` and `options: { fetchOptions }` on the column, and keep `fetchOptions` stable. No `declare module` block is needed; type `fetchOptions` with `LookupOptions<Row>`.
 - **Totals row**: put `aggregateRow({ price: "sum" }, { cells: { id: "total", item: "Total" } })` in `bottomRows`. The band reads each value by column id, so no `accessorKey` has to match. `DataGridAggregateReporter` stays for a read outside the band.
 - **Undo/redo choice**: reach for `useDataGridState` only when you actually want history — it
   replaces the core's uncontrolled `defaultData` with a controlled echo loop. If nothing needs undo,
-  skip the add-on. Already own the array via your own state? Use `useDataGridHistory` instead — its
+  skip the add-on. Own the array via your own state, or let the grid own it with `defaultData`? Use `useDataGridHistory` — its
   plugin observes the grid's changes (your `onDataChange` echo stays the single write target) and
   `undo`/`redo` apply the inverted batch through the grid's `commitChange`; an update with `cells` writes only those cells onto the current row.
 - **Undo over missing rows**: an undo or redo that needs a row missing from `data` applies nothing. Rows not loaded yet (holes) keep the entry and report `"rows-not-loaded"` to `onSkip`. Rows that are gone drop the entry and report `"rows-gone"`. An `onSave` refusal of an undo puts the entry back. Pass `datasetKey` to clear the stacks on a dataset swap.
@@ -150,8 +169,8 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
     between two plugins.
   - `useDataGridAggregate` (and `aggregateRow`, and the reporter) warns once for a spec key that matches no column or
     for a sparse (scroll mode) `data` array, rather than throwing.
-- **Fill/keyboard fill does nothing**: without the add-on installed, `Ctrl/Cmd+D`/`+R` are genuine
-  no-ops (the actions exist in core's keymap, but nothing handles them). A `readOnly` grid also
+- **Fill/keyboard fill does nothing**: without `data-grid-fill`, the grid binds no `Mod+D` or
+  `Mod+R`. Install the add-on and add `useDataGridFill().plugin` to `plugins`. A `readOnly` grid also
   disables fill entirely, regardless of `disabled`.
 - **Toolbar piece invisible**: each toolbar child is independent — confirm it's actually rendered as
   a child of `<DataGridToolbar>`, not just imported.

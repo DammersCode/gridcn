@@ -21,13 +21,13 @@ function OrdersGrid() {
     },
   });
 
-  return <DataGrid {...server.gridProps} columns={columns} headerClickBehavior="sort" />;
+  return <DataGrid {...server.gridProps} columns={columns} />;
 }
 ```
 
 Rules that make this work, and break silently if skipped:
 
-- **Header clicks sort only with `headerClickBehavior="sort"`.** The default `"select"` selects the column, and the spec never changes.
+- **Header clicks sort by default.** `server.gridProps` sets `headerClickBehavior="sort"`. Set `headerClickBehavior` after the spread to change it.
 - **The hook owns the spec and sets `sortMode="server"` and `filterMode="server"`.** The grid tracks the spec (header cycle, `aria-sort`, sort indicator, `DataGridSortList`, filter menu, header filters) and never reorders or filters `data`. Pass `fetchFilterValues` to list column values from your server. Each value is `{ value, label?, count? }`: the filter stores `value` (a code or id) and the list shows `label`. To name a server filter vocabulary, list `{ id, label, input?, match? }` objects in the column's `filter.operators`; with `filterMode="server"` the spec carries the `id` and the grid never calls `match`.
 - **The quick-search box never narrows the view.** It highlights and navigates matches already in `data`. The hook sends `searchText` in `spec` to `fetchRows`.
 - **A changed spec starts the blocks over.** `fetchRows` receives the spec of its request. Control it with `spec` and `onSpecChange` (for example from URL state); a content change restarts, an equal spec does not.

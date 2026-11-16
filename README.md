@@ -16,11 +16,11 @@
   <a href="https://github.com/DammersCode/gridcn/stargazers"><img alt="stars" src="https://img.shields.io/github/stars/DammersCode/gridcn.svg?style=social"></a>
 </p>
 
-<p align="center"><a href="https://gridcn.vercel.app"><b>Documentation</b></a> · <a href="https://gridcn.vercel.app/docs/learning-path/render-your-first-grid">Quick start</a> · <a href="https://gridcn.vercel.app/docs/components-props/data-grid-props">API reference</a></p>
+<p align="center"><a href="https://gridcn.vercel.app"><b>Documentation</b></a> · <a href="https://gridcn.vercel.app/docs/learning-path/render-your-first-grid">Quick start</a> · <a href="https://gridcn.vercel.app/docs/data-modes">Server data</a> · <a href="https://gridcn.vercel.app/docs/components-props/data-grid-props">API reference</a></p>
 
 ---
 
-Range selection, spreadsheet clipboard, typed cell editors, validation, and virtualized rendering at 100k+ rows. The code lands in your project, so you own every line. The core grid is the engine; every other feature is an add-on that depends only on the core.
+Range selection, spreadsheet clipboard, typed cell editors, validation, and virtualized rendering at 100k+ rows. The code lands in your project, so you own every line. The core grid is the engine; every other feature is an add-on that depends on the core. A few also install another gridcn item.
 
 ## Features
 
@@ -41,7 +41,7 @@ Range selection, spreadsheet clipboard, typed cell editors, validation, and virt
 - **RTL and i18n.** A `direction` prop (or `dir="rtl"` on the page) mirrors layout, pinning, pointer math, and keyboard semantics. Nearly every user-facing string lives in one typed `labels` object with English defaults.
 - **Your theme.** Styled through your shadcn CSS tokens plus a few `--grid-*` variables, for example `--grid-column-border`. See the [styling guide](https://gridcn.vercel.app/docs/theme-style-language/colors-radius).
 - **Plugins.** A single `plugins` prop mounts add-ons and your own overlays, row bands, observers, commands, and keymap entries. See the [plugin guide](https://gridcn.vercel.app/docs/plugins/plugin-shape).
-- **Accessibility.** WAI-ARIA grid roles, roving tabindex, and live regions. axe-core reports zero violations on the test fixture in Chromium. No screen reader and no WCAG conformance audit has been run yet; see the [accessibility page](https://gridcn.vercel.app/docs/accessibility/accessibility-gaps).
+- **Accessibility.** WAI-ARIA grid roles, roving tabindex, and live regions. axe-core reports zero violations in Chromium on three fixtures: the base grid with its toolbar, a grid with column groups, and the saved views menu. No screen reader and no WCAG conformance audit has run; see the [accessibility page](https://gridcn.vercel.app/docs/accessibility/accessibility-gaps).
 
 ## Install
 
@@ -88,18 +88,17 @@ export function PeopleGrid() {
     <DataGrid
       defaultData={initialRows}
       columns={columns}
-      getRowId={(row) => row.id}
       className="h-[400px]"
     />
   );
 }
 ```
 
-The [quick start](https://gridcn.vercel.app/docs/learning-path/render-your-first-grid) walks through the same example and the controlled variant.
+The [quick start](https://gridcn.vercel.app/docs/learning-path/render-your-first-grid) walks through the same example. To keep the rows in your own state, see [Keep edits in your state](https://gridcn.vercel.app/docs/learning-path/keep-edits-state).
 
 ## Add-ons
 
-Each add-on is a separate registry item that depends on the core `data-grid`, except the `use-debounce` and `is-composing-key` utilities. A few also install the shadcn/ui components they use, `data-grid-pagination`, `use-debounce`, or `dropzone` (for `data-grid-io`):
+Each add-on is a separate registry item that depends on the core `data-grid`, except the `use-debounce` and `is-composing-key` utilities. A few also install another gridcn item (`data-grid-pagination`, `use-debounce`, or `dropzone`) or the shadcn/ui components they use:
 
 | Item | Adds | Docs |
 | --- | --- | --- |
@@ -111,7 +110,7 @@ Each add-on is a separate registry item that depends on the core `data-grid`, ex
 | `data-grid-keybindings` | Keyboard-shortcuts reference dialog | [Keybindings](https://gridcn.vercel.app/docs/selection-shortcuts/shortcut-remapping) |
 | `data-grid-pinned-rows` | Pinned top and bottom row bands, for example a totals row | [Pinned rows](https://gridcn.vercel.app/docs/rows-pages-menus/pinned-rows) |
 | `data-grid-presence` | Multiplayer presence: remote users' live selections as named, colored highlights | [Presence](https://gridcn.vercel.app/docs/rows-live-data/show-presence) |
-| `data-grid-find-replace` | Find and replace panel: Mod+F finds, Ctrl+H replaces, one undo reverts a replace | [Find & replace](https://gridcn.vercel.app/docs/sort-filter-search/find-replace) |
+| `data-grid-find-replace` | Find and replace panel: Mod+F finds, Shift+Alt+Enter replaces, one undo reverts a replace | [Find & replace](https://gridcn.vercel.app/docs/sort-filter-search/find-replace) |
 | `data-grid-io` | CSV and XLSX import and export, plus print and Save as PDF | [Import](https://gridcn.vercel.app/docs/import-export/import), [Export](https://gridcn.vercel.app/docs/import-export/export) |
 | `data-grid-url-state` | Sort, filter, search, pagination, and column layout state synced to the URL | [URL state](https://gridcn.vercel.app/docs/sort-filter-search/url-state) |
 | `data-grid-server` | One server data source: pages or scroll-loaded row blocks, with the spec, races, and errors handled | [Load rows while scrolling](https://gridcn.vercel.app/docs/scroll-mode/load-rows-while-scrolling) |
@@ -132,7 +131,7 @@ Five skills teach Claude Code, Cursor, Codex, and other coding agents the proced
 
 ## Updating
 
-Re-run the install command, for example `npx shadcn add @gridcn/data-grid` (or the GitHub path for pinned refs). The CLI skips identical files and asks before it overwrites a file that differs. The default answer is no.
+Re-run the install command, for example `npx shadcn add @gridcn/data-grid` (or the GitHub path for pinned refs). The CLI skips identical files and asks before it overwrites a file that differs. The default answer is no. See [Upgrade gridcn](https://gridcn.vercel.app/docs/support-upgrades/upgrade-gridcn) for the steps, and [Migrate to 2.0](https://gridcn.vercel.app/docs/support-upgrades/migrate-2-0) when you come from 1.x.
 
 ## Contributing
 
