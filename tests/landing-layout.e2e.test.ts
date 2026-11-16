@@ -86,4 +86,56 @@ describe.skipIf(!url)("landing layout", () => {
       });
     }
   }
+
+  it("1280px: the H1 wraps to at most three lines", async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    await page.goto(url as string);
+    const lines = await page.evaluate(() => {
+      const h1 = document.querySelector("h1")!;
+      return Math.round(h1.getBoundingClientRect().height / Number.parseFloat(getComputedStyle(h1).lineHeight));
+    });
+    await page.close();
+    expect(lines).toBeLessThanOrEqual(3);
+  });
+
+  it("the first Tab after load stays outside the hero grid and the install command", async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    await page.goto(url as string);
+    await page.waitForSelector('[role="grid"] [role="gridcell"]');
+    await page.keyboard.press("Tab");
+    const landed = await page.evaluate(() => {
+      const el = document.activeElement;
+      return { grid: !!el?.closest('[role="grid"]'), command: !!el?.closest("pre, [role=tablist]"), tag: el?.tagName };
+    });
+    await page.close();
+    expect(landed).toMatchObject({ grid: false, command: false });
+  });
+
+  it("a fresh drag of the fill handle fills 4, 5, 6 and Ctrl+Z undoes it", async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    await page.goto(url as string);
+    const handle = page.locator("[data-grid-fill-handle]");
+    await handle.waitFor();
+    const box = (await handle.boundingBox())!;
+    expect(box.width).toBeLessThan(12);
+    const cells = () => page.locator('[role="grid"] [role="gridcell"]').allTextContents();
+    const before = await cells();
+    const rowHeight = (await page.locator('[role="grid"] [role="gridcell"]').nth(4).boundingBox())!.y - (await page.locator('[role="grid"] [role="gridcell"]').first().boundingBox())!.y;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2, box.y + rowHeight * 3, { steps: 8 });
+    await page.mouse.up();
+    expect((await cells()).slice(12, 14)).toEqual(["4", "Item 4"]);
+    await page.keyboard.press("Control+z");
+    expect(await cells()).toEqual(before);
+    await page.close();
+  });
+
+  it("gives the two install commands different names", async () => {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    await page.goto(url as string);
+    const labels = await page.evaluate(() => [...document.querySelectorAll("pre[role=region]")].map((el) => el.getAttribute("aria-label")));
+    await page.close();
+    expect(new Set(labels).size).toBe(labels.length);
+  });
 });

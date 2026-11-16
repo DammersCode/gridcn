@@ -9,6 +9,7 @@ import {
   isDev,
   inlineAutoScrollStep,
   candidateRowIds,
+  gridAttrSelector,
   pointerToCoord,
   rowIdAtViewRow,
   safeSetPointerCapture,
@@ -458,6 +459,9 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
       if (!s.selection.current) return;
       event.preventDefault();
       event.stopPropagation();
+      // preventDefault above stops the native focus move, so undo shortcuts would miss the grid
+      const grid = scrollRef.current;
+      (grid?.querySelector<HTMLElement>(gridAttrSelector("active")) ?? grid)?.focus({ preventScroll: true });
       lastPointerRef.current = { clientX: event.clientX, clientY: event.clientY, altKey: event.altKey };
       // the handle unmounts when auto-scroll moves the source out of the window; the scroll element's capture outlives it
       const captureElement = scrollRef.current ?? event.currentTarget;

@@ -32,6 +32,8 @@ type InstallCommandProps = {
   manual?: boolean;
   /** The Manual tab panel content (a server-rendered `<ManualInstall>` subtree). Ignored unless `manual` is set. */
   manualSlot?: ReactNode;
+  /** Accessible name of the command region; defaults to "Install command". Give each instance on a page its own. */
+  label?: string;
 };
 
 const MANUAL_TABS: readonly DocsTabItem[] = [
@@ -40,7 +42,7 @@ const MANUAL_TABS: readonly DocsTabItem[] = [
 ];
 
 /** Package-manager-tabbed install command (diceui pattern): persisted choice, synced across all instances, copy button. */
-export function InstallCommand({ item, items, command, manual = false, manualSlot }: InstallCommandProps): ReactNode {
+export function InstallCommand({ item, items, command, manual = false, manualSlot, label = "Install command" }: InstallCommandProps): ReactNode {
   const [manager, setManager] = usePackageManager();
   const { status, copy } = useCopyText();
   const [selected, setSelected] = useState(() => new Set((items ?? []).filter((i) => i.defaultChecked).map((i) => i.value)));
@@ -99,7 +101,7 @@ export function InstallCommand({ item, items, command, manual = false, manualSlo
       tabClassName="px-2.5"
       headerEnd={copyButton}
     >
-      <pre tabIndex={0} role="region" aria-label="Install command" className="overflow-x-auto px-4 py-3 font-mono text-sm text-foreground">{full || "Select at least one item"}</pre>
+      <pre tabIndex={0} role="region" aria-label={label} className="overflow-x-auto px-4 py-3 font-mono text-sm text-foreground">{full || "Select at least one item"}</pre>
       {picker}
     </DocsTabs>
   );

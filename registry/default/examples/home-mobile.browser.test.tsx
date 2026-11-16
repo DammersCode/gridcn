@@ -90,7 +90,9 @@ describe("home page at a 375x667 viewport (iPhone 8)", () => {
     const cta = page.getByText("Get started");
     await expect.element(cta).toBeInTheDocument();
     const ctaRect = (cta.element() as HTMLElement).getBoundingClientRect();
-    const gridRect = (page.getByRole("grid", { name: "Live example grid" }).element() as HTMLElement).getBoundingClientRect();
+    const grid = page.getByRole("grid", { name: "Live example grid" });
+    await expect.element(grid).toBeInTheDocument();
+    const gridRect = (grid.element() as HTMLElement).getBoundingClientRect();
     expect(ctaRect.bottom).toBeLessThan(HEIGHT);
     expect(ctaRect.top).toBeLessThan(gridRect.top);
     expect((cta.element() as HTMLElement).closest("a")?.getAttribute("href")).toBe("/docs/learning-path/install-gridcn");
@@ -122,7 +124,7 @@ describe("home page at a 375x667 viewport (iPhone 8)", () => {
   it("gives every link in the content a tap target of 40px or more", async () => {
     await render(<HomeRoute />);
     await expect.element(page.getByRole("heading", { name: /data grid you own/, level: 1 })).toBeInTheDocument();
-    const small = [...document.querySelectorAll<HTMLElement>("section a, nav[aria-label='More'] a")]
+    const small = [...document.querySelectorAll<HTMLElement>("section a, nav[aria-label='Site links'] a")]
       .filter((a) => !a.closest("[role='grid']"))
       .map((a) => ({ text: (a.textContent ?? "").trim().slice(0, 40), height: a.getBoundingClientRect().height }))
       .filter((a) => a.height > 0 && a.height < 40);

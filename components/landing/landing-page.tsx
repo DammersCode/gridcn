@@ -18,7 +18,7 @@ function Panel({ id, title, intro, children, className }: { id: string; title: s
   return (
     <section aria-labelledby={id} className={`flex min-w-0 flex-col gap-3 rounded-lg border bg-card p-4 ${className ?? ""}`}>
       <div>
-        <h2 id={id} className="text-lg font-semibold tracking-tight">
+        <h2 id={id} className="text-xl font-semibold tracking-tight sm:text-2xl">
           {title}
         </h2>
         {intro && <p className="mt-1 max-w-prose text-base leading-relaxed text-muted-foreground">{intro}</p>}
@@ -34,7 +34,7 @@ function TileGrid({ children, className }: { children: ReactNode; className: str
 
 function Hero() {
   return (
-    <section aria-labelledby="hero" className="grid gap-x-8 gap-y-4 rounded-lg border bg-card p-6 sm:p-7 lg:grid-cols-2">
+    <section aria-labelledby="hero" className="grid gap-x-8 gap-y-4 rounded-lg border bg-card p-6 sm:p-7 lg:grid-cols-[1.1fr_1fr]">
       <div className="flex min-w-0 flex-col items-center gap-3 text-center lg:col-start-1 lg:row-start-1 lg:items-start lg:text-start">
         <ReleaseBadge />
         <h1 id="hero" className="text-3xl font-bold tracking-tight sm:text-5xl">
@@ -48,10 +48,10 @@ function Hero() {
       </div>
       <div className="flex min-w-0 flex-col items-center gap-2 text-center lg:col-start-1 lg:row-start-2 lg:items-start lg:text-start">
         <div className={`w-full max-w-md text-start ${installFit}`}>
-          <InstallCommand item="data-grid" />
+          <InstallCommand item="data-grid" label="Install command for data-grid" />
         </div>
         <p className="text-sm text-muted-foreground">
-          Needs a shadcn/ui project, React 19 and Tailwind v4.{" "}
+          Needs a shadcn/ui project, React 19 and Tailwind CSS 4.{" "}
           <Link href="/docs/learning-path/install-gridcn" className="inline-flex min-h-10 items-center underline underline-offset-4">
             Install guide
           </Link>
@@ -92,7 +92,7 @@ function StartPanel() {
 
 function ServerPanel() {
   return (
-    <Panel id="server" title="Server mode" intro="A local array or server rows: the same grid. The grid sends the sort, the filter and the search text. You answer with rows.">
+    <Panel id="server" title="Server mode" intro="The same grid shows a local array or rows from your server. The grid sends the sort, the filter and the search text. You answer with rows.">
       <Code code={SERVER_CODE} label="Server rows example" />
       <ServerHighlights />
       <DataModesLink>Which feature works in which data mode</DataModesLink>
@@ -149,7 +149,7 @@ function CompareTable() {
       </div>
       <ul className="grid gap-2 sm:hidden">
         {comparison.rows.map(({ feature, cells }) => (
-          <li key={feature} className="border p-3 text-sm">
+          <li key={feature} className="rounded-lg border p-3 text-sm">
             <p className="font-medium">{feature}</p>
             <ul className="mt-1 grid grid-cols-3 gap-x-2 text-xs">
               {cells.map((cell, i) => (
@@ -194,7 +194,7 @@ function AgentsPanel() {
   return (
     <Panel id="agents" title="Skills for your coding agent" intro="Five skills for Claude Code, Cursor, Codex and other agents. Each one is a step-by-step procedure for one gridcn task.">
       <div className={`w-full max-w-md ${installFit}`}>
-        <InstallCommand command="skills add DammersCode/gridcn" />
+        <InstallCommand command="skills add DammersCode/gridcn" label="Install command for agent skills" />
       </div>
       <Link href="/docs/try-automate/use-agent-skills" className="inline-flex min-h-10 items-center text-sm underline underline-offset-4">
         What each skill does
@@ -205,7 +205,7 @@ function AgentsPanel() {
 
 function AddOnsPanel() {
   return (
-    <Panel id="addons" title="Modular by design" intro="Each tile is a separate registry item. Install only the ones you want.">
+    <Panel id="addons" title="Add-ons" intro="Each tile is a separate registry item. Install only the ones you want.">
       <TileGrid className="grid-cols-2 sm:grid-cols-3 xl:grid-cols-6">
         {addOnTiles.map(({ icon: Icon, title, href }) => (
           <li key={title} className="bg-card">
@@ -244,13 +244,13 @@ function FooterLinks() {
   ];
   return (
     <footer>
-    <nav aria-label="More" className="flex flex-wrap justify-center gap-x-4 text-sm">
-      {links.map((l) => (
-        <SiteLink key={l.label} href={l.href} className={`inline-flex min-h-10 items-center underline underline-offset-4 ${focus}`}>
-          {l.label}
-        </SiteLink>
-      ))}
-    </nav>
+      <nav aria-label="Site links" className="flex flex-wrap justify-center gap-x-4 text-sm">
+        {links.map((l) => (
+          <SiteLink key={l.label} href={l.href} className={`inline-flex min-h-10 items-center underline underline-offset-4 ${focus}`}>
+            {l.label}
+          </SiteLink>
+        ))}
+      </nav>
     </footer>
   );
 }

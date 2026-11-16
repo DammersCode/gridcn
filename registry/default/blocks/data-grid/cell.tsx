@@ -14,7 +14,7 @@ import {
 } from "react";
 import { cn } from "@/lib/utils";
 import { COLUMN_BORDER } from "./columns/column-border";
-import { gridAttrSelector } from "./data-attributes";
+import { GRID_ATTR, gridAttrSelector } from "./data-attributes";
 import type { CellType } from "./types";
 import type { CellClassNameReader } from "./rows/use-class-name-revision";
 import { getCellValue } from "./columns/column-helpers";
@@ -210,6 +210,8 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
     const focusLeftGrid = focusLeftGridRef.current;
     focusLeftGridRef.current = false;
     if (!isActive || isEditing || focusLeftGrid || !cellRef.current) return;
+    // a seeded active cell must not steal focus on page load, so Tab starts at the page start
+    if (cellRef.current.closest('[role="grid"]')?.hasAttribute(GRID_ATTR.settled) === false) return;
     if (!keepsFocusOutsideGrid(cellRef.current.ownerDocument)) cellRef.current.focus({ preventScroll: true });
   }, [isActive, isEditing, errorMessage]);
 

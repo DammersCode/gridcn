@@ -1,25 +1,25 @@
-export const HEADLINE = "A React data grid you own, with spreadsheet-style editing";
+export const HEADLINE = "A React data grid you own";
 export const SUBLINE = "Range selection, paste from Excel, a fill handle and undo, free under Apache‑2.0. One shadcn command copies the source into your app.";
 
 export const perfStats = [
   {
     value: "100,000",
     title: "Rows in the scroll tests",
-    detail: "Real Chromium. The scroll suites fail the build when frame rate, long tasks or blank rows cross a limit.",
+    detail: "The tests scroll in real Chromium and fail when frame rate, long tasks or blank rows cross a limit.",
     source: "Benchmark results: thresholds",
     href: "/docs/performance/benchmark-results#thresholds",
   },
   {
     value: "4 to 7 ms",
     title: "Client sort of a number column",
-    detail: "100,000 rows, unsorted input, one development machine, scripts/bench-sort.mjs. A text column took 5 to 93 ms.",
+    detail: "scripts/bench-sort.mjs sorted 100,000 unsorted rows on one machine. A text column took 5 to 93 ms.",
     source: "Benchmark results: sort speed",
     href: "/docs/performance/benchmark-results#sort-speed",
   },
   {
     value: "200 KiB",
     title: "Core grid, gzip",
-    detail: "Minified esbuild build of the core import, React left out. Add-ons add their own source.",
+    detail: "A minified esbuild build of the core import, with React left out. Add-ons add their own source.",
     source: "Bundle size: core",
     href: "/docs/performance/bundle-cost#core",
   },
@@ -69,7 +69,7 @@ export const serverHighlights = [
   { title: "Pages", text: "One page per request, with a row count, without one, or with a cursor.", href: "/docs/server-pagination/load-rows-page" },
   { title: "Server sort and filter", text: "With sortMode and filterMode set to server, the grid sends the spec and shows the rows you return.", href: "/docs/data-modes/query-server-rows" },
   { title: "Saves with rollback", text: "Turn edits into API calls. Roll a refused save back or refetch the rows.", href: "/docs/save-server/save-revert" },
-  { title: "Selection across pages", text: "Checked rows stay checked by id. Select all matching rows of the result.", href: "/docs/rows-live-data/select-server-rows" },
+  { title: "Selection across pages", text: "Checked rows stay checked by row id. Select all matching rows of the result.", href: "/docs/rows-live-data/select-server-rows" },
 ];
 
 export const CLIENT_CODE = `"use client";

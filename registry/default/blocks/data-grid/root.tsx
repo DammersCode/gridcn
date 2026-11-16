@@ -358,6 +358,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   const internalActions = useDataGridInternalActions();
   useEffect(() => {
     internalActions._registerScrollToCell(interaction.scrollCellIntoView);
+    scrollRef.current?.setAttribute(GRID_ATTR.settled, "");
     return () => internalActions._registerScrollToCell(null);
   }, [internalActions, interaction.scrollCellIntoView]);
 

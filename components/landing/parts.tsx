@@ -24,7 +24,7 @@ export function SiteLink({ href, className, children, ...rest }: { href: string;
 export function PerfStats() {
   return (
     <div>
-      <ul className="grid gap-px border bg-border lg:grid-cols-3">
+      <ul className="grid gap-px overflow-hidden rounded-lg border bg-border lg:grid-cols-3">
         {perfStats.map((s) => (
           <li key={s.title} className="bg-card">
             <Link href={s.href} className={`flex h-full flex-col gap-1 p-4 transition-colors hover:bg-muted ${focus}`}>
@@ -56,7 +56,7 @@ export function PerfStats() {
 
 export function ServerHighlights() {
   return (
-    <ul className="grid grid-cols-1 gap-px border bg-border sm:grid-cols-2">
+    <ul className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-2">
       {serverHighlights.map((h) => (
         <li key={h.title} className="bg-card">
           <Link href={h.href} className={`flex h-full flex-col gap-1 p-4 transition-colors hover:bg-muted ${focus}`}>

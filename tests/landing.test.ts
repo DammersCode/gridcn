@@ -126,6 +126,27 @@ describe("landing copy", () => {
     expect(copy).not.toMatch(/Lazy rows|16\.8 ms|91\.7 ms|0\.3.7\.6 ms/);
   });
 
+  it("states the fill and keymap facts as the docs do", () => {
+    const fill = kitTiles.find((t) => t.title === "Fill handle")!.text;
+    expect(fill).toContain("Two cells that form a series");
+    expect(kitTiles.find((t) => t.title === "Keyboard navigation")!.text).not.toMatch(/Remap any/);
+  });
+
+  it("writes whole sentences and plain headings", () => {
+    expect(copy).not.toMatch(/Modular by design|Real Chromium\.|Tailwind v4|tile a selection|corner circle/);
+  });
+
+  it("gives every install command on the page its own label", () => {
+    const page = readFileSync(join(landingDir, "landing-page.tsx"), "utf8");
+    const labels = [...page.matchAll(/<InstallCommand[^>]*label="([^"]+)"/g)].map((m) => m[1]);
+    expect(labels).toHaveLength(2);
+    expect(new Set(labels).size).toBe(2);
+  });
+
+  it("loads the hero grid after the first paint", () => {
+    expect(readFileSync(join(landingDir, "hero-grid.tsx"), "utf8")).toContain("dynamic(");
+  });
+
   it("takes the version badge from package.json", () => {
     const hero = readFileSync(join(landingDir, "hero.tsx"), "utf8");
     expect(hero).toContain("appVersion");
