@@ -31,7 +31,9 @@ Each row is one **Breaking:** entry of the [changelog](https://github.com/Dammer
 | <span id="no-results" />Filtered empty grid | `labels.grid.emptyState` ("No rows") | `labels.grid.noResults` ("No results") | To keep "No rows", set `labels.grid.noResults`. |
 | <span id="operators-for-column" />`operatorsForColumn` | A `DataGridFilterMenu` prop | Removed | Set `filter.operators` on the column. |
 | <span id="toggle-sort" />`toggleSort` | `toggleSort(id, true)` | `toggleSort(id, { additive: true })` | Pass an options object. |
-| <span id="set-filter-match" />Set operators with `filter.match` | A `text` or untyped column drops `isAnyOf`, `isNoneOf`, and the header filter. On `number`, `date`, and `select`, `match` receives them. | Every column keeps them, and the built-in set match runs them. `match` runs them only when its own `filter` lists them in `operators`. | To run your `match` for them, list `isAnyOf` and `isNoneOf` in `filter.operators`. |
+| <span id="unknown-column-spec" />Sort or filter on an unknown column | A filter matches no row | Dropped | Fix the column id. |
+| <span id="equal-spec-no-callback" />Equal sort or filter spec | Fires the callback | No callback | Refetch yourself. |
+| <span id="set-filter-match" />Set operators with a custom match | With `filterMatch`, a `text` or untyped column drops `isAnyOf`, `isNoneOf`, and the header filter. On `number`, `date`, and `select`, `match` receives them. | Every column keeps them, and the built-in set match runs them. `match` runs them only when its own `filter` lists them in `operators`. | To run your `match` for them, list `isAnyOf` and `isNoneOf` in `filter.operators`. |
 
 ## Selection and row actions [#selection-rows]
 
@@ -65,7 +67,7 @@ The props of 1.3 map to `checkedRowsLifetime` like this:
 | <span id="select-rejects" />Select text | Text that matches no choice empties the cell | The cell keeps its value, and the grid reports the text | To empty the cell, return `null` for the text from `processCellFromClipboard`. |
 | <span id="editor-commit-value" />`CellEditorProps` | `onChange(value)` then `commit(movement)` | Also `commitValue(value, movement)` | Pass `commitValue` where you build editor props yourself, such as a test. |
 | <span id="validate-compose" />Column `validate` with a type `validate` | The column rule replaces the type rule | The type rule runs first, then the column rule | To allow longer `longText`, raise `options.maxLength`. |
-| <span id="locale-implies-format" />Column `locale` without a format | No effect, plus a development warning | Grouped digits for `number`, the medium date style for `date` | To keep the raw display, remove `locale`. |
+| <span id="locale-implies-format" />Column `locale` without a format | No effect | Grouped digits for `number`, the medium date style for `date` | To keep the raw display, remove `locale`. |
 | <span id="process-fill" />Fill gate | `onFill({ target, preventDefault })` | `processFill({ target, cells })` returns the cells or `false` | Return `false` to cancel. Return `cells` to write. |
 | <span id="paste-refused" />`pasteFromClipboard` result | `"empty"` for a paste that does not start | `"refused"`. `"empty"` means no text. | Handle `"refused"`. |
 | <span id="cut-refused" />`cut()` result | Clears the cells while an editor is open | `"refused"` while an editor is open | Handle `"refused"`. |
@@ -96,6 +98,7 @@ The props of 1.3 map to `checkedRowsLifetime` like this:
 | <span id="commit-actions" />`commitDown` and siblings | Keymap names that change no key | Removed | Delete them from `keymap`. |
 | <span id="default-chords" />Default chords | `toggleAllRows`: `mod+shift+e`. `openFindReplace`: `ctrl+h`. | `mod+shift+Enter` and `shift+alt+Enter` | To keep an old chord, bind it in `keymap`. |
 | <span id="global-shortcuts" />`DataGridGlobalShortcuts` flags | A flag replaces the default set | A flag adds to undo and redo | For select all alone, add `undo={false} redo={false}`. |
+| <span id="global-shortcuts-modifier" />`DataGridGlobalShortcuts` bare key | Fires page-wide | Needs Ctrl or Cmd | Add a `keydown` listener. |
 | <span id="capture-find" />`captureFindShortcut` | A `DataGridSearch` prop | The `focusSearch` keymap action | Write `keymap={{ focusSearch: [] }}` to leave Mod+F to the browser. |
 | <span id="keybindings-plugin" />Shortcuts dialog | `DataGridKeybindingsShortcut` and your dialog state | `useDataGridKeybindings()` returns `{ plugin, open, close }` | Pass `plugins={[keys.plugin]}`. Call `keys.open()` from a button. |
 
@@ -136,8 +139,7 @@ The props of 1.3 map to `checkedRowsLifetime` like this:
 
 | Area | 1.3 | 2.0 | What to change |
 |---|---|---|---|
-| <span id="find-replace-open" />`useDataGridFindReplace().open()` | Opens the replace mode | Opens the find mode, as Mod+F | Call `open("replace")` to show the Replace field. |
-| <span id="replace-skip-hidden" />`processReplace` patch on a hidden column | Written | Skipped with the reason `"hidden"` | Handle `"hidden"` in a `ReplaceSkipReason` switch. |
+| <span id="find-replace-open" /><span id="replace-skip-hidden" />`useDataGridFindReplace().open()` | Opens the replace mode | Opens the find mode, as Mod+F | Call `open("replace")` to show the Replace field. |
 | <span id="core-exports" />`data-grid` barrel | Twelve hooks and helpers | Removed from the barrel | Use the [replacements](/docs/support-upgrades/version-policy-changelog#removed-exports). |
 | <span id="barrel-helpers" />Toolbar, io, and keybindings helpers | Exported | Removed from the barrels | Delete the imports. [Removed exports](/docs/support-upgrades/version-policy-changelog#removed-exports) lists the names. |
 | <span id="pinned-row-exports" />Pinned row components | `DataGridPinnedRow`, `DataGridPinnedRowBand` in the barrel | Module files only | Let `useDataGridPinnedRows` render them. |
