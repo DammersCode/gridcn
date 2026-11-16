@@ -46,14 +46,16 @@ export const columns = defineColumns<Product>()([
 
 [Built-in cell types](/docs/editing-cells/built-cell-types) lists every type and its options.
 
-## Write a cell type [#write-a-cell-type]
+## Define a custom type [#write-a-cell-type]
 
 If the stored value, the editor, or the text round trip differs from every built-in, write your own type. The sample builds a `money` type that stores a plain `number | null`, shows a formatted amount, and reads a pasted `$1,234.56` as `1234.56`.
+
+<ComponentPreview name="data-grid-custom-cell-demo" />
 
 1. Declare the key in `GridCellTypes`, so `defineColumns` types the column value and options.
 2. Write `toText` for copy and export. Keep it plain and parseable.
 3. Write `toDisplayText` for the formatted text. Print, column autosize, and the set values of the header filter use it, and use `toText` without it. When the numbers of a selection come from one column, the status bar formats its sum, average, minimum, and maximum with it. `Cell` decides what the cell itself shows.
-4. Write `fromText` for paste and typing. For text it cannot parse, return `clearValue()`.
+4. Write `fromText` for paste and typing. For text it cannot parse, call `rejectText()`. The cell keeps its value, and the grid reports the text. Return `clearValue()` only to empty the cell on purpose.
 5. Write `Cell` and `Editor`. Start the editor from `useCellEditor`. It owns the draft and the focus, commits on Enter and on blur, and cancels on Escape.
 6. Register the type in `cellTypes` under the name that a column uses in `type`.
 
@@ -66,6 +68,7 @@ import {
   DataGrid,
   defineCellType,
   defineColumns,
+  rejectText,
   useCellEditor,
   type CellEditorProps,
   type CellRenderProps,
@@ -105,6 +108,10 @@ function parse(text: string): number | null {
 
 type Value = number | null;
 
+function fromText(text: string): Value {
+  return text.trim() === "" ? null : (parse(text) ?? rejectText());
+}
+
 function Cell({ value, options }: CellRenderProps<unknown, Value, Options>) {
   return (
     <span className="block truncate tabular-nums">
@@ -126,7 +133,7 @@ const moneyCellType = defineCellType("money", {
   Editor,
   toText: (value) => (value === null ? "" : String(value)),
   toDisplayText: format,
-  fromText: parse,
+  fromText,
   clearValue: () => null,
   isEmpty: (value) => value === null,
   compare: (a, b) => (a ?? 0) - (b ?? 0),
@@ -172,7 +179,7 @@ The Price column shows `€1,234.56` for the value `1234.56`. A paste of `$1,234
 
 ## Test the type [#testing-your-cell-type]
 
-`toText`, `fromText`, `isEmpty`, and `compare` are plain functions. Test them without rendering: `fromText("$1,234.56")` gives `1234.56`, and `fromText("not a price")` gives `null`. Render the editor once to test that Enter commits and Escape cancels.
+`toText`, `fromText`, `isEmpty`, and `compare` are plain functions. Test them without rendering: `fromText("$1,234.56")` gives `1234.56`, and `fromText("not a price")` rejects the text. Render the editor once to test that Enter commits and Escape cancels.
 
 ## Related
 
