@@ -130,7 +130,9 @@ import {
   selectionStatesEqual,
   type ResolveWarnFlag,
 } from "./selection-state";
-import type { AnyColumnDef, DataGridInternalActions, DataGridStoreState, InternalSyncProps, SyncInputs } from "./types";
+import type { AnyColumnDef, CellPatch, DataGridInternalActions, DataGridStoreState, InternalSyncProps, SyncInputs, UpdateCellsOptions } from "./types";
+import { createStreamQueue } from "./stream-queue";
+import { warnUnhandledServerSpec } from "./server-spec-warning";
 import { keepKnownFilters, keepKnownSorts } from "./known-columns";
 import { loadedRowCount, nextAnnouncement } from "./announcements";
 import { allMatchingCheckedCount } from "./selected-rows";
@@ -232,7 +234,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const initFilterMode = resolveFilterMode(init);
   const initPageSize = init.pageSize !== undefined ? init.pageSize : (init.defaultPageSize ?? null);
   const initPage = init.page ?? init.defaultPage ?? 1;
-  if (init.totalRowCount !== undefined && init.sortMode === undefined && init.filterMode === undefined && init.onSortChange === undefined && init.onFilterChange === undefined && init.sortState === undefined && init.filterState === undefined) {
+  const warnsUnhandledSpecAtMount = init.totalRowCount !== undefined && init.sortMode === undefined && init.filterMode === undefined && init.onSortChange === undefined && init.onFilterChange === undefined && init.sortState === undefined && init.filterState === undefined;
+  if (warnsUnhandledSpecAtMount) {
     queueMicrotask(() => warnDev('totalRowCount makes sorting and filtering server-side by default, and nothing here handles onSortChange or onFilterChange, so the grid will not reorder or narrow its rows. Fetch rows for the spec, or set sortMode="client" and filterMode="client" to work on the loaded rows'));
   }
   const initFilterState = withFilterIds(init.filterState ?? dropUnknownFilters(init.defaultFilterState ?? [], init.columns));
@@ -310,6 +313,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     subscribe: (listener) => store.subscribe(listener),
   });
   const dataWrite = createDataWriteContext(rowIndexCache, gates);
+  const streamQueue = createStreamQueue((patches, options) => void store.getState().actions.updateCells(patches, options));
 
   const rebuildPageView = (s2: DataGridStoreState, page: number, pageSize: number | null): Partial<DataGridStoreState> => {
     const window = pageSize === null ? null : { page, pageSize };
@@ -764,7 +768,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       renameRowKeys: rowValidation.renameRow,
     });
     const { _deleteCellsById, _commitCellEdit, _commitChange, _skipRowAction, _commitActivation, ...otherWriteActions } = dataWriteActions;
-    const publicWriteActions = { ...otherWriteActions, commitCellEdit: (value: unknown, movement?: { dx: number; dy: number }) => _commitCellEdit(value, movement) };
+    const publicWriteActions = {
+      ...otherWriteActions,
+      updateCells: (patches: readonly CellPatch[], options?: UpdateCellsOptions) => streamQueue.hold(patches, options, otherWriteActions.updateCells(patches, options)),
+      commitCellEdit: (value: unknown, movement?: { dx: number; dy: number }) => _commitCellEdit(value, movement),
+    };
     const internal: DataGridInternalActions = {
       _deleteCellsById,
       _skipRowAction,
@@ -1497,6 +1505,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const sameRows = (a: readonly number[], b: readonly number[]) => a === b || (a.length === b.length && a.every((v, i) => v === b[i]));
   let staleAnnouncedAt = -Infinity;
   store.subscribe((state, prev) => {
+    if (state.saveStatus !== prev.saveStatus) streamQueue.release(state.saveStatus);
+    if (state.totalRowCount !== undefined && !warnsUnhandledSpecAtMount) warnUnhandledServerSpec(state, prev, warnStoreOnce);
     if (state.viewStale && !prev.viewStale && Date.now() - staleAnnouncedAt >= VIEW_STALE_ANNOUNCEMENT_INTERVAL_MS) {
       staleAnnouncedAt = Date.now();
       store.setState({ liveAnnouncement: nextAnnouncement(state.liveAnnouncement, "viewStale", 0) });

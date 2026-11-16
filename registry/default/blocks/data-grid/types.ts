@@ -214,9 +214,9 @@ export type DataOp<TData> =
       from: number;
       /** The row's position after the move (final index; `applyChange` deletes by id and places the row at output slot `to`, `invertChange` swaps `from`/`to`). `from` and `to` index the loaded `data`, so on a paged grid they count from the first loaded row, not from the page. */
       to: number;
-      /** The id of the row that follows the moved row in `data` after the whole batch; absent when the row ends last. A server places the row with this id, which does not depend on what the server has loaded. Absent on a move that undo or redo produces. */
+      /** The id of the row that follows the moved row in `data` after the whole batch; absent when the row ends last. A server places the row with this id, which does not depend on what the server has loaded. A move that `commitChange` applies with neither neighbor id, such as an undo or a redo, gets both from the data after the batch. */
       beforeRowId?: string;
-      /** The id of the row that precedes the moved row in `data` after the whole batch; absent when the row ends first. Absent on a move that undo or redo produces. */
+      /** The id of the row that precedes the moved row in `data` after the whole batch; absent when the row ends first. */
       afterRowId?: string;
     };
 

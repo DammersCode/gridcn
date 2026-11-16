@@ -64,6 +64,16 @@ describe("aggregateRow", () => {
 });
 
 describe("useDataGridPinnedRows entry identity", () => {
+  it("keeps the band through a re-render of an inline aggregateRow with an inline reducer", () => {
+    function InlineGrid() {
+      const { plugin } = useDataGridPinnedRows({ bottomRows: [aggregateRow({ price: (values) => values.length * 100 })] });
+      return <DataGrid data={data} columns={columns} getRowId={(r) => r.id} plugins={[plugin]} />;
+    }
+    const { rerender } = render(<InlineGrid />);
+    rerender(<InlineGrid />);
+    expect(bandText("bottom")).toContain("200");
+  });
+
   it("keeps the plugin while the entries stay identical", () => {
     const TOTALS = aggregateRow({ price: "sum" });
     const { result, rerender } = renderHook(() => useDataGridPinnedRows({ bottomRows: [TOTALS] }));
@@ -136,5 +146,33 @@ describe("serverAggregateRow", () => {
     render(<Grid top={[source]} bottom={[source]} />);
     await flush();
     expect(warn.mock.calls.filter(([m]) => String(m).includes("serverAggregateRow"))).toHaveLength(1);
+  });
+
+  it("keeps the band and calls the latest fetcher when an inline source re-renders", async () => {
+    const seen: string[] = [];
+    let actions!: DataGridActions;
+    function InlineGrid(props: { tag: string }) {
+      const { plugin } = useDataGridPinnedRows({
+        bottomRows: [serverAggregateRow({ debounceMs: 0, fetchAggregates: async () => (seen.push(props.tag), { price: 1 }) })],
+      });
+      function Probe() {
+        actions = useDataGridActions();
+        return null;
+      }
+      return (
+        <DataGrid data={data} columns={columns} getRowId={(r) => r.id} plugins={[plugin]}>
+          <Probe />
+        </DataGrid>
+      );
+    }
+    const { rerender } = render(<InlineGrid tag="first" />);
+    await flush();
+    rerender(<InlineGrid tag="second" />);
+    rerender(<InlineGrid tag="third" />);
+    await flush();
+    expect(seen).toEqual(["first"]);
+    await act(async () => actions.setSearch("a"));
+    await flush();
+    expect(seen).toEqual(["first", "third"]);
   });
 });

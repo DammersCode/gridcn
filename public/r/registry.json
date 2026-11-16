@@ -398,6 +398,11 @@
           "target": "components/data-grid/layout-context.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/overlay-rect.tsx",
+          "type": "registry:component",
+          "target": "components/data-grid/overlay-rect.tsx"
+        },
+        {
           "path": "registry/default/blocks/data-grid/overlays.tsx",
           "type": "registry:component",
           "target": "components/data-grid/overlays.tsx"
@@ -536,6 +541,11 @@
           "path": "registry/default/blocks/data-grid/sort-filter/incremental-view-index.ts",
           "type": "registry:component",
           "target": "components/data-grid/sort-filter/incremental-view-index.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid/sort-filter/set-filter-values.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/sort-filter/set-filter-values.ts"
         },
         {
           "path": "registry/default/blocks/data-grid/sort-filter/sort-collator.ts",
@@ -681,6 +691,21 @@
           "path": "registry/default/blocks/data-grid/store/selected-rows.ts",
           "type": "registry:component",
           "target": "components/data-grid/store/selected-rows.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid/store/stream-queue.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/store/stream-queue.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid/store/server-spec-warning.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/store/server-spec-warning.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid/store/move-neighbors.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/store/move-neighbors.ts"
         },
         {
           "path": "registry/default/blocks/data-grid/store/write-ack.ts",

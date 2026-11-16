@@ -11,12 +11,20 @@ function resolveSpecifier(root, from, spec) {
   return [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`, base].find((f) => /\.tsx?$/.test(f) && existsSync(f));
 }
 
+// shortcut: a regex literal that holds a quote or a comment opener can still confuse it; parse with a real tokenizer if one ever does.
+const STRING_OR_COMMENT = /("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\.|[^`\\])*`)|\/\*[\s\S]*?\*\/|\/\/[^\n]*/g;
+
+/** Removes comments and keeps string and template literals, so a `/*` or `//` inside a string hides no code. */
+export function stripComments(text) {
+  return text.replace(STRING_OR_COMMENT, (match, literal) => literal ?? "");
+}
+
 export function runtimeImports(root, file) {
-  const text = readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
+  const text = stripComments(readFileSync(file, "utf8"));
   const targets = [];
   for (const [statement, spec] of [...text.matchAll(RUNTIME_IMPORT)].map((m) => [m[0], m[1]])) {
     const names = statement.match(/\{([^}]*)\}/)?.[1];
-    if (names && names.split(",").map((n) => n.trim()).filter(Boolean).every((n) => n.startsWith("type "))) continue;
+    if (names && /^(?:import|export)\s*\{/.test(statement) && names.split(",").map((n) => n.trim()).filter(Boolean).every((n) => n.startsWith("type "))) continue;
     const target = resolveSpecifier(root, file, spec);
     if (target) targets.push(target);
   }

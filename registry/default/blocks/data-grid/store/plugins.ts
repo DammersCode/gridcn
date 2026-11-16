@@ -173,6 +173,9 @@ export function mergePluginCommands(
   return Object.keys(merged).length > 0 ? merged : null;
 }
 
+/** The find-replace add-on's plugin name: its `openFind` takes the `focusSearch` key by design. */
+const FIND_REPLACE_PLUGIN = "find-replace";
+
 function dedupeBySignature(bindings: readonly string[]): string[] {
   const seen = new Set<string>();
   return bindings.filter((binding) => {
@@ -189,7 +192,8 @@ function dedupeBySignature(bindings: readonly string[]): string[] {
  * entry is dropped, dev-warned. An entry is the action's full binding list: keys that differ only in
  * letter case count once, and an empty list unbinds the action. A binding another action already
  * holds (default keymap, consumer keymap, or an earlier plugin) is dropped, dev-warned. A plugin
- * binding takes a chord from the default `focusSearch` binding silently.
+ * binding takes a chord from the default `focusSearch` binding; it dev-warns unless the plugin is
+ * find-replace or the consumer's `keymap` sets `focusSearch`.
  */
 export function mergePluginKeymaps(
   plugins: readonly DataGridPlugin[],
@@ -232,7 +236,14 @@ export function mergePluginKeymaps(
       if (kept.length > 0 || given.length === 0) merged[name as GridAction] = kept;
       if (takesSearchKey && merged.focusSearch) {
         const keptSignatures = new Set(kept.map((binding) => bindingSignature(binding)));
-        merged.focusSearch = merged.focusSearch.filter((binding) => !keptSignatures.has(bindingSignature(binding)));
+        const searchKeys = merged.focusSearch.filter((binding) => !keptSignatures.has(bindingSignature(binding)));
+        if (searchKeys.length < merged.focusSearch.length && plugin.name !== FIND_REPLACE_PLUGIN) {
+          warn(
+            `keymap-search:${plugin.name}:${name}`,
+            `plugin "${plugin.name}"'s binding for "${name}" takes the focusSearch key, so the key no longer focuses the toolbar search; set keymap.focusSearch to keep a search key or to [] to hand the key over`,
+          );
+        }
+        merged.focusSearch = searchKeys;
       }
     }
   }

@@ -39,8 +39,8 @@ import { isThenable } from "./async-gate";
 import { reportRowActionSkipped } from "./row-action-skip";
 import type { GateRun, GateTracker } from "./gate-signal";
 import { buildRollback } from "../interaction/rollback";
-import { readRejections, refusedOps, type RowSaveStatus, type SaveAck, type SaveRejection, type SaveResolution } from "./write-ack";
-import { EMPTY_SAVE_STATUS } from "./write-ack";
+import { EMPTY_SAVE_STATUS, readRejections, refusedOps, type RowSaveStatus, type SaveAck, type SaveRejection, type SaveResolution } from "./write-ack";
+import { withMoveNeighbors } from "./move-neighbors";
 import { INCREMENTAL_PATCH_LIMIT } from "../sort-filter";
 import { NO_REMEMBERED_ROWS, withoutHiddenCheckedRows } from "./hidden-checked-rows";
 import { applyChange } from "../interaction/history";
@@ -604,7 +604,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         else pendingByRow.delete(rowId);
       }
       pendingSaves -= 1;
-      const rejectedAtSettle = readRejections(change, ack, error, failed);
+      const rejectedAtSettle = readRejections(change, ack, error, failed, warnGateOnce);
       const refusedAtSettle = new Set(rejectedAtSettle.map((entry) => liveId(entry.rowId)));
       // A chain only bridges writes that overlap in flight; an accepted write or an idle row ends it.
       for (const rowId of ids) if (!refusedAtSettle.has(rowId) && !pendingByRow.has(rowId)) dropChains(rowId);
@@ -1307,7 +1307,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     const followed = followActiveRow(s, nextData, view.viewIndex!);
     const carried = carryRows(s, s.selection.rows, view.viewIndex!, nextData, s.getRowId, false, () => followed.selection.rows);
     const base = editRemap.selection ?? followed.selection;
-    writeThenEmit(ctx, s, nextData, change, () =>
+    writeThenEmit(ctx, s, nextData, withMoveNeighbors(change, nextData, s.getRowId), () =>
       set({
         data: nextData,
         rowIdentityVersion: s.rowIdentityVersion + 1,

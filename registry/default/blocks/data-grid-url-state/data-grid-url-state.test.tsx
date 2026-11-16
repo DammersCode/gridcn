@@ -48,6 +48,8 @@ function UrlStateProbe(props: { prefix?: string; spec?: UseDataGridUrlStateOptio
   return null;
 }
 
+const ALL_SPEC_PARTS: UseDataGridUrlStateOptions["spec"] = ["sort", "filter", "search"];
+
 type StatusRow = { id: string; status: string };
 
 const statusColumns = defineColumns<StatusRow>()([
@@ -62,6 +64,8 @@ const statusColumns = defineColumns<StatusRow>()([
 ] as const);
 
 function renderGrid(options: {
+  /** Leaves `spec` to the hook default; without it the helper syncs every spec part. */
+  defaultSpec?: boolean;
   searchParams?: string;
   prefix?: string;
   spec?: UseDataGridUrlStateOptions["spec"];
@@ -70,13 +74,14 @@ function renderGrid(options: {
 }) {
   let latestState: { sort: unknown; filter: unknown; search: string } | undefined;
   let actions: ReturnType<typeof useDataGridActions> | undefined;
+  const spec = options.defaultSpec ? undefined : (options.spec ?? ALL_SPEC_PARTS);
   const utils = render(
     <NuqsTestingAdapter searchParams={options.searchParams} onUrlUpdate={options.onUrlUpdate}>
       <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
         {options.exposeUrlState ? (
-          <UrlStateProbe prefix={options.prefix} spec={options.spec} onResult={options.exposeUrlState} />
+          <UrlStateProbe prefix={options.prefix} spec={spec} onResult={options.exposeUrlState} />
         ) : (
-          <DataGridUrlState prefix={options.prefix} spec={options.spec} />
+          <DataGridUrlState prefix={options.prefix} spec={spec} />
         )}
         <StateProbe onState={(s) => (latestState = s)} />
         <ActionsProbe onActions={(a) => (actions = a)} />
@@ -100,7 +105,7 @@ describe("DataGridUrlState isAnyOf bound", () => {
     render(
       <NuqsTestingAdapter searchParams={`?filter=status%3AisAnyOf%3A${values}`}>
         <DataGridProvider data={[{ id: "r0", status: "v0" }]} columns={manyChoices} getRowId={(r) => r.id}>
-          <DataGridUrlState />
+          <DataGridUrlState spec={ALL_SPEC_PARTS} />
           <Probe />
         </DataGridProvider>
       </NuqsTestingAdapter>,
@@ -121,7 +126,7 @@ describe("DataGridUrlState isAnyOf bound", () => {
           columns={defineColumns<StatusRow>()([{ id: "status", header: "Status", accessorKey: "status", type: "select", width: 80, options: { choices: [] } }] as const)}
           getRowId={(r) => r.id}
         >
-          <DataGridUrlState />
+          <DataGridUrlState spec={ALL_SPEC_PARTS} />
           <Probe />
         </DataGridProvider>
       </NuqsTestingAdapter>,
@@ -137,7 +142,7 @@ describe("DataGridUrlState isAnyOf bound", () => {
 });
 
 describe("DataGridUrlState choice values", () => {
-  function restoredFilter(searchParams: string, serverMode = false): unknown {
+  function restoredFilter(searchParams: string, serverMode = false, data: StatusRow[] = [{ id: "r0", status: "new" }, { id: "r1", status: "legacy" }]): unknown {
     let filter: unknown;
     const Probe = () => {
       filter = useDataGridFilterState();
@@ -145,13 +150,8 @@ describe("DataGridUrlState choice values", () => {
     };
     render(
       <NuqsTestingAdapter searchParams={searchParams}>
-        <DataGridProvider
-          data={[{ id: "r0", status: "new" }]}
-          columns={statusColumns}
-          getRowId={(r) => r.id}
-          {...(serverMode ? { sortMode: "server", filterMode: "server" } : {})}
-        >
-          <DataGridUrlState />
+        <DataGridProvider data={data} columns={statusColumns} getRowId={(r) => r.id} {...(serverMode ? { sortMode: "server", filterMode: "server" } : {})}>
+          <DataGridUrlState spec={ALL_SPEC_PARTS} />
           <Probe />
         </DataGridProvider>
       </NuqsTestingAdapter>,
@@ -159,18 +159,37 @@ describe("DataGridUrlState choice values", () => {
     return filter;
   }
 
-  it.each([false, true])("drops list values outside the column choices (server mode %s)", (serverMode) => {
+  it("drops list values that match no choice and no data value", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(restoredFilter("?filter=status%3AisAnyOf%3Anew%7Cbogus%7C%25", serverMode)).toEqual([
+    expect(restoredFilter("?filter=status%3AisAnyOf%3Anew%7Cbogus%7Cother%7C%25")).toEqual([
       { filterId: expect.any(String), columnId: "status", operator: "isAnyOf", value: ["new", ""] },
     ]);
-    expect(warn.mock.calls.some(([message]) => String(message).includes("outside the column choices"))).toBe(true);
+    expect(warn.mock.calls.filter(([message]) => String(message).includes("outside the column choices"))).toHaveLength(1);
     warn.mockRestore();
   });
 
-  it.each([false, true])("drops a list filter whose values are all outside the choices (server mode %s)", (serverMode) => {
+  it("drops a list filter whose values all match no choice and no data value", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(restoredFilter("?filter=status%3AisNoneOf%3Abogus%7Cother", serverMode)).toEqual([]);
+    expect(restoredFilter("?filter=status%3AisNoneOf%3Abogus%7Cother")).toEqual([]);
+    warn.mockRestore();
+  });
+
+  it("restores a data value outside the choices, as the header filter writes it", () => {
+    expect(restoredFilter("?filter=status%3AisAnyOf%3Alegacy")).toEqual([{ filterId: expect.any(String), columnId: "status", operator: "isAnyOf", value: ["legacy"] }]);
+  });
+
+  it("matches choices and data values without regard to case, as isAnyOf does", () => {
+    expect(restoredFilter("?filter=status%3AisAnyOf%3ANew%7CLEGACY")).toEqual([{ filterId: expect.any(String), columnId: "status", operator: "isAnyOf", value: ["New", "LEGACY"] }]);
+  });
+
+  it("checks nothing while the data has not loaded", () => {
+    expect(restoredFilter("?filter=status%3AisAnyOf%3Alegacy", false, [])).toEqual([{ filterId: expect.any(String), columnId: "status", operator: "isAnyOf", value: ["legacy"] }]);
+  });
+
+  it("keeps every list value in server filter mode, where the server evaluates them", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(restoredFilter("?filter=status%3AisAnyOf%3Anew%7Cbogus", true, [])).toEqual([{ filterId: expect.any(String), columnId: "status", operator: "isAnyOf", value: ["new", "bogus"] }]);
+    expect(warn.mock.calls.some(([message]) => String(message).includes("outside the column choices"))).toBe(false);
     warn.mockRestore();
   });
 
@@ -249,7 +268,7 @@ describe("DataGridUrlState excluded columns", () => {
     render(
       <NuqsTestingAdapter searchParams={searchParams}>
         <DataGridProvider data={rows} columns={guardedColumns} getRowId={(r) => r.id}>
-          <DataGridUrlState />
+          <DataGridUrlState spec={ALL_SPEC_PARTS} />
           <StateProbe onState={(s) => (latest = s)} />
         </DataGridProvider>
       </NuqsTestingAdapter>,
@@ -427,7 +446,7 @@ describe("DataGridUrlState back and forward", () => {
     render(
       <NuqsTestingAdapter searchParams="?sort=name%3Aasc" hasMemory>
         <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
-          <UrlStateProbe enableNavigationSync={enableNavigationSync} onResult={() => {}} />
+          <UrlStateProbe enableNavigationSync={enableNavigationSync} spec={ALL_SPEC_PARTS} onResult={() => {}} />
           <StateProbe onState={(s) => probe.push(s)} />
         </DataGridProvider>
       </NuqsTestingAdapter>,
@@ -486,7 +505,7 @@ describe("DataGridUrlState applyFromUrl (URL→store after mount)", () => {
       // hasMemory: the testing adapter only syncs a new searchParams prop into its state with it
       <NuqsTestingAdapter searchParams={searchParams} hasMemory>
         <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
-          <UrlStateProbe onResult={(r) => (urlState = r)} />
+          <UrlStateProbe spec={ALL_SPEC_PARTS} onResult={(r) => (urlState = r)} />
           <StateProbe onState={(s) => probe.push(s)} />
         </DataGridProvider>
       </NuqsTestingAdapter>
@@ -525,7 +544,7 @@ describe("DataGridUrlState applyFromUrl (URL→store after mount)", () => {
     const tree = (searchParams: string) => (
       <NuqsTestingAdapter searchParams={searchParams} hasMemory>
         <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
-          <UrlStateProbe onResult={(r) => (urlState = r)} />
+          <UrlStateProbe spec={ALL_SPEC_PARTS} onResult={(r) => (urlState = r)} />
           <StateProbe onState={(s) => probe.push(s)} />
         </DataGridProvider>
       </NuqsTestingAdapter>
@@ -561,6 +580,13 @@ describe("DataGridUrlState spec", () => {
 
   it("applies only the listed parts from the URL on mount", () => {
     const { getState } = renderGrid({ searchParams: url, spec: ["sort"] });
+    expect(getState().sort).toEqual([{ columnId: "name", direction: "asc" }]);
+    expect(getState().filter).toEqual([]);
+    expect(getState().search).toBe("");
+  });
+
+  it("keeps filters and search text out of the URL by default", () => {
+    const { getState } = renderGrid({ searchParams: url, spec: undefined, defaultSpec: true });
     expect(getState().sort).toEqual([{ columnId: "name", direction: "asc" }]);
     expect(getState().filter).toEqual([]);
     expect(getState().search).toBe("");

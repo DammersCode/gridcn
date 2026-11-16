@@ -35,6 +35,7 @@ export {
 export { rowOperationTargets } from "./store/row-operation-targets";
 export { GRID_LAYER, cellLayer, type GridLayer } from "./layers";
 export { hasAnyPin } from "./overlays";
+export { OverlayRect, type OverlayRectProps } from "./overlay-rect";
 
 export { safeSetPointerCapture } from "./interaction/safe-set-pointer-capture";
 export { pointerToCoord, type InteractionLayout } from "./interaction/use-grid-interaction";
@@ -80,6 +81,7 @@ export { textAccessorFor as rowAccessorFor } from "./store/compute";
 export { sortCollator, withSortLocale } from "./sort-filter/sort-collator";
 export { isBuiltInOperator } from "./sort-filter/matches-filter";
 export { makeFilterPredicate } from "./sort-filter/incremental-view-index";
+export { setFilterValuesOf } from "./sort-filter/set-filter-values";
 export { MAX_FILTER_GROUP_DEPTH, MAX_SPEC_SEARCH_LENGTH, MAX_SPEC_SORTS, countFilterSpecs, forEachFilterSpec, groupChildren, isFilterGroup, pruneFilterSpecs } from "./sort-filter/filter-tree";
 export { resolveSelectChoices } from "./cell-types/select";
 export { toSafeText } from "./cell-types/safe-text";

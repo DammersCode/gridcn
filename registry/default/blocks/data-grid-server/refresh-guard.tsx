@@ -39,6 +39,8 @@ type Holder = {
   merged: number;
   seen: number;
   mergeWarned: boolean;
+  /** The hook's own handlers: the observer runs `onDataChange` when a provider prop after the spread replaced it, and the mount checks `onRenderedRowsChange`. */
+  handlers: GuardHandlers | null;
   /** Called when the last saving row leaves `"saving"`. */
   onSavesSettled: (() => void) | null;
   /** Called when the grid asks for a reshape: `reconcileView()`, an immediate push, or a deferred push that marked a row. */
@@ -60,6 +62,10 @@ function setSaveListenerOn(holder: Holder, listener: (() => void) | null) {
 
 function setSaveCheckOn(holder: Holder, listener: (() => void) | null) {
   holder.onSaveStartedCheck = listener;
+}
+
+function setHandlersOn(holder: Holder, handlers: GuardHandlers) {
+  holder.handlers = handlers;
 }
 
 function setSettledListenerOn(holder: Holder, listener: (() => void) | null) {
@@ -171,6 +177,10 @@ function createGuardPlugin(holder: Holder): DataGridPlugin<unknown> {
       holder.everMounted = true;
       const unsubscribe = store.subscribe((state, prev) => trackSaves(holder, state, prev));
       setServerReshapeHandler(store, (trigger) => holder.onReshape?.(trigger));
+      const own = holder.handlers?.onRenderedRowsChange;
+      if (isDev() && own !== undefined && (store.getState() as { onRenderedRowsChange?: unknown }).onRenderedRowsChange !== own) {
+        console.warn("[data-grid-server] an onRenderedRowsChange prop on DataGridProvider after {...gridProps} replaced the hook's handler, so scroll mode loads no rows. Pass your handler to the hook's onRenderedRowsChange option instead");
+      }
       return () => {
         setServerReshapeHandler(store, null);
         unsubscribe();
@@ -182,8 +192,10 @@ function createGuardPlugin(holder: Holder): DataGridPlugin<unknown> {
   return {
     name: "server-rows-refresh-guard",
     Mount: RefreshGuardMount,
-    onDataChange: (_next, change) => {
+    onDataChange: (next, change) => {
       holder.seen += 1;
+      // A provider onDataChange after the spread replaced the hook's merge; the merge runs here instead.
+      if (holder.merged < holder.seen && holder.handlers) holder.handlers.onDataChange(next as readonly never[], change as DataChange<never>);
       if (isDev() && holder.merged < holder.seen && !holder.mergeWarned) {
         holder.mergeWarned = true;
         console.warn("[data-grid-server] a change reached the grid, but the hook's onDataChange merge did not run: an onDataChange prop on DataGridProvider after {...gridProps} replaced it, so edits vanish on the next render. Pass your handler to the hook's onDataChange option instead");
@@ -195,6 +207,8 @@ function createGuardPlugin(holder: Holder): DataGridPlugin<unknown> {
   };
 }
 
+export type GuardHandlers = { onDataChange: (next: readonly never[], change: DataChange<never>) => void; onRenderedRowsChange?: unknown };
+
 export type RefreshGuardOptions = {
   /** Remember rows with a local change that no save acknowledged, for `evictionProtected`. Scroll mode only. */
   trackUnacknowledged?: boolean;
@@ -202,7 +216,7 @@ export type RefreshGuardOptions = {
 
 /** A plugin that gives the hook, which sits outside the provider, read access to the grid's save status and edit session. */
 export function useRefreshGuard({ trackUnacknowledged = false }: RefreshGuardOptions = {}) {
-  const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, edited: false, generation: 0, recording: false, savedAt: new Map(), structural: new Set(), onStructuralSettled: null, onSaveStarted: null, onSaveStartedCheck: null, merged: 0, seen: 0, mergeWarned: false, onSavesSettled: null, onReshape: null, pushed: new Map(), trackUnacknowledged, unacknowledged: new Set() }));
+  const [holder] = useState<Holder>(() => ({ store: null, everMounted: false, edited: false, generation: 0, recording: false, savedAt: new Map(), structural: new Set(), onStructuralSettled: null, onSaveStarted: null, onSaveStartedCheck: null, merged: 0, seen: 0, mergeWarned: false, handlers: null, onSavesSettled: null, onReshape: null, pushed: new Map(), trackUnacknowledged, unacknowledged: new Set() }));
   const [plugins] = useState(() => [createGuardPlugin(holder)]);
   const savingRows = useCallback((): ProtectedRows => {
     const state = holder.store?.getState();
@@ -263,7 +277,8 @@ export function useRefreshGuard({ trackUnacknowledged = false }: RefreshGuardOpt
     },
     [holder],
   );
-  return { setSaveCheckListener, plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, setSettleListener, setSaveStartListener, setSavesSettledListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows };
+  const setHandlers = useCallback((handlers: GuardHandlers) => setHandlersOn(holder, handlers), [holder]);
+  return { setHandlers, setSaveCheckListener, plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, setSettleListener, setSaveStartListener, setSavesSettledListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows };
 }
 
 /**

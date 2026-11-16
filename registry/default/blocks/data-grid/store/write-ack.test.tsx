@@ -273,14 +273,17 @@ describe("save acknowledgement", () => {
     expect(m.status("b")).toBe("saving");
   });
 
-  it("ignores the rejections beyond the bound", async () => {
+  it("refuses the whole change when the rejections pass the bound, and warns once", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const d = deferred<SaveAck>();
     const onSaveRejected = vi.fn();
     const m = mount(() => d.promise, { onSaveRejected });
     m.edit("a", "name", "X");
-    d.resolve({ rejected: Array.from({ length: 10_050 }, (_, i) => ({ rowId: i === 0 ? "a" : `ghost${i}` })) });
+    d.resolve({ rejected: Array.from({ length: 10_050 }, (_, i) => ({ rowId: i === 10_020 ? "a" : `ghost${i}` })) });
     await flush();
-    expect((onSaveRejected.mock.calls[0]![0].rejected as unknown[]).length).toBe(10_000);
+    expect(onSaveRejected.mock.calls[0]![0].rejected).toEqual([{ rowId: "a" }]);
+    expect(m.status("a")).toBe("failed");
+    expect(warn.mock.calls.filter(([message]) => String(message).includes("10000 rejections"))).toHaveLength(1);
   });
 });
 

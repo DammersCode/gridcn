@@ -34,7 +34,7 @@ function setup(searchParams: string, onUrlUpdate?: (e: UrlUpdateEvent) => void) 
   render(
     <NuqsTestingAdapter searchParams={searchParams} onUrlUpdate={onUrlUpdate}>
       <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
-        <DataGridUrlState />
+        <DataGridUrlState spec={["sort", "filter", "search"]} />
         <Probe onProbe={(p) => (probe.current = p)} />
       </DataGridProvider>
     </NuqsTestingAdapter>,

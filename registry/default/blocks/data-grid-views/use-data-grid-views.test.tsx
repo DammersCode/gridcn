@@ -612,17 +612,34 @@ describe("useDataGridViews", () => {
     expect(probe.current!.filter).toEqual([]);
   });
 
-  it.each([false, true])("drops list values outside the column choices when a view opens (server mode %s)", async (serverMode) => {
+  it("drops list values that match no choice and no data value when a view opens", async () => {
     const doc = seeded();
     doc.views[0]!.state.filters = [{ columnId: "name", operator: "isAnyOf", value: ["Alice", "Mallory", ""] }];
     doc.views[1]!.state.filters = [{ columnId: "name", operator: "isNoneOf", value: ["Mallory"] }];
-    const modes = serverMode ? { sortMode: "server", filterMode: "server" } : {};
-    const { probe } = setup({ storage: createMemoryViewsStorage(doc) }, { columns: choiceColumns, ...modes });
+    const { probe } = setup({ storage: createMemoryViewsStorage(doc) }, { columns: choiceColumns });
     await ready(probe);
     act(() => probe.current!.views.selectView("a"));
     expect(probe.current!.filter).toMatchObject([{ columnId: "name", operator: "isAnyOf", value: ["Alice", ""] }]);
     act(() => probe.current!.views.selectView("b"));
     expect(probe.current!.filter).toEqual([]);
+  });
+
+  it("keeps a data value outside the choices and matches without regard to case when a view opens", async () => {
+    const doc = seeded();
+    doc.views[0]!.state.filters = [{ columnId: "name", operator: "isAnyOf", value: ["carol", "ALICE"] }];
+    const { probe } = setup({ storage: createMemoryViewsStorage(doc) }, { columns: choiceColumns, data: [...rows, { id: "r2", name: "Carol", age: 50 }] });
+    await ready(probe);
+    act(() => probe.current!.views.selectView("a"));
+    expect(probe.current!.filter).toMatchObject([{ columnId: "name", operator: "isAnyOf", value: ["carol", "ALICE"] }]);
+  });
+
+  it("keeps every list value in server filter mode when a view opens", async () => {
+    const doc = seeded();
+    doc.views[0]!.state.filters = [{ columnId: "name", operator: "isAnyOf", value: ["Alice", "Mallory"] }];
+    const { probe } = setup({ storage: createMemoryViewsStorage(doc) }, { columns: choiceColumns, sortMode: "server", filterMode: "server" });
+    await ready(probe);
+    act(() => probe.current!.views.selectView("a"));
+    expect(probe.current!.filter).toMatchObject([{ columnId: "name", operator: "isAnyOf", value: ["Alice", "Mallory"] }]);
   });
 
   it("counts list values outside the column choices as dropped on import", async () => {

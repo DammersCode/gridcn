@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useMemo, type ReactNode } from "react";
 import { DataGridPinnedRow, type DataGridPinnedRowProps } from "./pinned-row";
-import type { PinnedRowSource } from "./pinned-row-source";
+import { liveServerOptions, liveSpecs, type PinnedRowSource } from "./pinned-row-source";
 import { useDataGridAggregate } from "./use-data-grid-aggregate";
 import { useDataGridServerAggregate, type ServerAggregateStatus } from "./use-data-grid-server-aggregate";
 
@@ -18,14 +18,16 @@ function withCells(cells: Readonly<Record<string, unknown>> | undefined, values:
 
 function AggregateSourceRow(props: SourceRowProps & { source: Extract<PinnedRowSource, { kind: "aggregate" }> }): ReactNode {
   const { source, onStatus: _onStatus, ...rowProps } = props;
-  const values = useDataGridAggregate(source.specs, { scope: source.scope });
+  const specs = useMemo(() => liveSpecs(source), [source]);
+  const values = useDataGridAggregate(specs, { scope: source.scope });
   const row = useMemo(() => withCells(source.cells, values), [source.cells, values]);
   return <DataGridPinnedRow {...rowProps} row={row} byColumnId />;
 }
 
 function ServerAggregateSourceRow(props: SourceRowProps & { source: Extract<PinnedRowSource, { kind: "server-aggregate" }> }): ReactNode {
   const { source, onStatus, ...rowProps } = props;
-  const result = useDataGridServerAggregate(source.options);
+  const options = useMemo(() => liveServerOptions(source), [source]);
+  const result = useDataGridServerAggregate(options);
   const row = useMemo(() => withCells(source.cells, result.row), [source.cells, result.row]);
 
   const { bandIndex } = rowProps;

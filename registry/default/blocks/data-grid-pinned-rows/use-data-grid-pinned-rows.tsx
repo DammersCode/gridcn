@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DataGridPlugin, RowBandRenderCtx } from "@/registry/default/blocks/data-grid/data-grid";
 import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { DataGridPinnedRowBand } from "./pinned-row-band";
-import { isPinnedRowSource } from "./pinned-row-source";
+import { forwardSource, isPinnedRowSource } from "./pinned-row-source";
 import type { ServerAggregateStatus } from "./use-data-grid-server-aggregate";
 
 /** Options for {@link useDataGridPinnedRows}. */
@@ -19,25 +19,31 @@ export type UseDataGridPinnedRowsOptions = {
 
 /** Return value of {@link useDataGridPinnedRows}. */
 export type UseDataGridPinnedRowsResult = {
-  /** Pass this into the grid's `plugins` prop (`plugins={[pinnedRows.plugin]}`). Stable across renders while `topRows` and `bottomRows` keep the same entries (a row object by identity, an `aggregateRow` or `serverAggregateRow` by its content, so an inline array and an inline `aggregateRow({ qty: "sum" })` are fine) and `status` stays the same. */
+  /** Pass this into the grid's `plugins` prop (`plugins={[pinnedRows.plugin]}`). Stable across renders while `topRows` and `bottomRows` keep the same entries (a row object by identity, an `aggregateRow` or `serverAggregateRow` by its content, so an inline array, an inline `aggregateRow`, and an inline `serverAggregateRow` are fine, also with inline functions) and `status` stays the same. */
   plugin: DataGridPlugin<unknown>;
 };
 
 const EMPTY_ROWS: readonly never[] = [];
 
-function shallowEqual(a: object | undefined, b: object | undefined): boolean {
+function shallowEqual(a: object | undefined, b: object | undefined, skipFunctions = false): boolean {
   if (a === b) return true;
   if (a === undefined || b === undefined) return false;
   const keysA = Object.keys(a);
   const keysB = Object.keys(b);
-  return keysA.length === keysB.length && keysA.every((key) => Object.hasOwn(b, key) && Object.is((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]));
+  return (
+    keysA.length === keysB.length &&
+    keysA.every((key) => {
+      const [valueA, valueB] = [(a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]];
+      return Object.hasOwn(b, key) && (Object.is(valueA, valueB) || (skipFunctions && typeof valueA === "function" && typeof valueB === "function"));
+    })
+  );
 }
 
 function sameEntry(a: unknown, b: unknown): boolean {
   if (Object.is(a, b)) return true;
   if (!isPinnedRowSource(a) || !isPinnedRowSource(b) || a.kind !== b.kind || !shallowEqual(a.cells, b.cells)) return false;
-  if (a.kind === "aggregate" && b.kind === "aggregate") return a.scope === b.scope && shallowEqual(a.specs, b.specs);
-  return a.kind === "server-aggregate" && b.kind === "server-aggregate" && shallowEqual(a.options, b.options);
+  if (a.kind === "aggregate" && b.kind === "aggregate") return a.scope === b.scope && shallowEqual(a.specs, b.specs, true);
+  return a.kind === "server-aggregate" && b.kind === "server-aggregate" && shallowEqual(a.options, b.options, true);
 }
 
 function sameEntries(a: readonly unknown[], b: readonly unknown[]): boolean {
@@ -46,7 +52,14 @@ function sameEntries(a: readonly unknown[], b: readonly unknown[]): boolean {
 
 function useStableEntries(rows: readonly unknown[]): readonly unknown[] {
   const [held, setHeld] = useState(rows);
-  if (held === rows || sameEntries(held, rows)) return held;
+  const keep = held === rows || sameEntries(held, rows);
+  useLayoutEffect(() => {
+    if (!keep) return;
+    held.forEach((entry, i) => {
+      if (isPinnedRowSource(entry) && isPinnedRowSource(rows[i])) forwardSource(entry, rows[i]);
+    });
+  });
+  if (keep) return held;
   setHeld(rows);
   return rows;
 }

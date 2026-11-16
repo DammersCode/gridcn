@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
-import { useDataGridApi, type DataChange, type DataGridApi, type DataGridPlugin } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridApi, useDataGridFilterState, useDataGridSearchText, useDataGridSortState, type DataChange, type DataGridApi, type DataGridPlugin, type ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { HISTORY_KEYMAP } from "./history-keymap";
 import { isDev, createHistory, buildRollback, rebaseOntoCurrent, useDataGridAnnounce, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
@@ -15,9 +15,11 @@ export type UseDataGridHistoryOptions<TData> = {
   capacity?: number;
   /**
    * Identity of the dataset; a change between renders clears both stacks, so undo after a dataset
-   * swap cannot reinsert rows from the old dataset. Omit it and reset with `clear()` instead.
+   * swap cannot reinsert rows from the old dataset. A function receives the grid's sort, filters,
+   * and search text and returns the key, so `datasetKey: serverSpecKey` clears the stacks on every
+   * server spec change and needs no server hook result. Omit it and reset with `clear()` instead.
    */
-  datasetKey?: string | number;
+  datasetKey?: string | number | ((spec: ServerSpec) => string | number);
   /**
    * Which `DataChange.source` values go on the undo stack. Defaults to
    * `["edit", "paste", "fill", "delete", "cut", "row-operation", "import", "replace", "app"]`: `"stream"` stays
@@ -138,13 +140,18 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
   const [, forceUpdate] = useState(0);
 
   // stale entries reference the old dataset: undo after a swap would resurrect dead rows
-  const prevDatasetKey = useRef(datasetKey);
+  const fixedKey = typeof datasetKey === "function" ? undefined : datasetKey;
+  const prevDatasetKey = useRef(fixedKey);
   useEffect(() => {
-    if (prevDatasetKey.current === datasetKey) return;
-    prevDatasetKey.current = datasetKey;
+    if (prevDatasetKey.current === fixedKey) return;
+    prevDatasetKey.current = fixedKey;
     history.clear();
     forceUpdate((n) => n + 1);
-  }, [datasetKey, history]);
+  }, [fixedKey, history]);
+  const specKeyRef = useRef(typeof datasetKey === "function" ? datasetKey : null);
+  specKeyRef.current = typeof datasetKey === "function" ? datasetKey : null;
+  const historyRef = useRef(history);
+  historyRef.current = history;
 
   const recorded = useMemo(
     () =>
@@ -263,6 +270,17 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
         readOnlyRef.current = readOnly;
         forceUpdate((n) => n + 1);
       }, [readOnly]);
+      const sorts = useDataGridSortState();
+      const filters = useDataGridFilterState();
+      const searchText = useDataGridSearchText();
+      const specKey = useMemo(() => specKeyRef.current?.({ sorts, filters, searchText }), [sorts, filters, searchText]);
+      const lastSpecKey = useRef(specKey);
+      useEffect(() => {
+        if (lastSpecKey.current === specKey) return;
+        lastSpecKey.current = specKey;
+        historyRef.current.clear();
+        forceUpdate((n) => n + 1);
+      }, [specKey]);
       return null;
     };
   }

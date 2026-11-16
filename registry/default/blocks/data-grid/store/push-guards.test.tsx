@@ -22,10 +22,12 @@ const rows = (): Row[] => [
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((res) => {
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
     resolve = res;
+    reject = rej;
   });
-  return { promise, resolve };
+  return { promise, resolve, reject };
 }
 
 function mount(onSave?: (change: DataChange<Row>) => void | Promise<SaveAck<Row>>, extra: Record<string, unknown> = {}) {
@@ -56,25 +58,33 @@ function mount(onSave?: (change: DataChange<Row>) => void | Promise<SaveAck<Row>
 afterEach(() => vi.restoreAllMocks());
 
 describe("push to a row with a save in flight", () => {
-  it('skips the row with reason "saving" and lands after the save settles', async () => {
+  it('holds the patch with reason "saving" and applies it once the save settles', async () => {
     const save = deferred<SaveAck<Row>>();
     const onSave = vi.fn(() => save.promise);
     const m = mount(onSave);
     act(() => m.state().actions.commitCellValue({ rowId: "a", columnId: "name" }, "Edited"));
     expect(m.state().saveStatus.get("a")).toBe("saving");
 
-    const blocked = m.push([{ rowId: "a", columnId: "note", value: "pushed" }, { rowId: "b", columnId: "note", value: "other" }]);
+    const blocked = m.push([{ rowId: "a", columnId: "note", value: "first" }, { rowId: "b", columnId: "note", value: "other" }]);
     expect(blocked.skipped).toEqual([{ patchIndex: 0, reason: "saving" }]);
     expect(blocked.applied).toBe(1);
+    m.push([{ rowId: "a", columnId: "note", value: "pushed" }]);
     expect(m.value("a", "note")).toBe("a");
     expect(m.value("b", "note")).toBe("other");
 
-    save.resolve(undefined);
-    await act(async () => {});
-    const landed = m.push([{ rowId: "a", columnId: "note", value: "pushed" }]);
-    expect(landed.skipped).toEqual([]);
+    await act(async () => save.resolve(undefined));
     expect(m.value("a", "note")).toBe("pushed");
+    expect(m.value("a", "name")).toBe("Edited");
     expect(onSave).toHaveBeenCalledTimes(1);
+  });
+
+  it("applies a held patch after a refused save rolls the row back", async () => {
+    const save = deferred<SaveAck<Row>>();
+    const m = mount(() => save.promise);
+    act(() => m.state().actions.commitCellValue({ rowId: "a", columnId: "name" }, "Edited"));
+    m.push([{ rowId: "a", columnId: "note", value: "pushed" }]);
+    await act(async () => save.reject(new Error("refused")));
+    expect(m.value("a", "note")).toBe("pushed");
   });
 
   it("still lets a user-source batch write to a saving row", () => {

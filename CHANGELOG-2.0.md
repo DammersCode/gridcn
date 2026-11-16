@@ -75,6 +75,7 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - `DataGridHeaderFilter` and `BindingChips` take a `className` that merges into the trigger button and the keycap row.
 - `DataGridSortIndicator` reads the grid's sort when `sortState` is omitted, so `<DataGridSortIndicator columnId="score" />` works inside a node header with no wrapper component. The rank number uses `text-xs` instead of `text-[10px]`. It also takes a `className` that merges onto its root.
 - `sortCollator(locale?)` takes an optional locale, for code that sorts after an `await`.
+- `DataGridUrlState` and saved views check the `isAnyOf` and `isNoneOf` values of a column with `choices` in client filter mode. A value stays when it matches a choice or a loaded data value of the column, without regard to case, so every value the header filter offers restores. Other values drop, and a list left empty drops its filter; a development build warns once per column. In server filter mode, or before the data loads, every value stays, and the server checks the values it receives.
 
 ## Server and data modes
 

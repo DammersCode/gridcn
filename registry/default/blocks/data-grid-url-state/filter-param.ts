@@ -35,7 +35,7 @@ export type ParseFilterStateOptions = {
   maxChoices?: (columnId: string) => number | undefined;
   /** The value shape of a custom operator registered on the column, or `undefined` when the column does not register it; a segment with an unregistered operator is dropped. */
   operatorInput?: (columnId: string, operator: string) => FilterOperatorInput | undefined;
-  /** The choice values of a column with `choices`, or `undefined` for a column without them. An `isAnyOf` or `isNoneOf` entry outside the set is dropped; the blank entry stays. */
+  /** The lowercased values an `isAnyOf` or `isNoneOf` list of the column may keep, or `undefined` to check nothing. An entry whose lowercased text is outside the set is dropped; the blank entry stays. */
   choiceValues?: (columnId: string) => ReadonlySet<string> | undefined;
   /** Receives the number of list entries dropped for falling outside {@link ParseFilterStateOptions.choiceValues}. */
   onUnknownChoices?: (columnId: string, count: number) => void;
@@ -44,11 +44,11 @@ export type ParseFilterStateOptions = {
 /** Options for {@link serializeFilterState}. */
 export type SerializeFilterStateOptions = Pick<ParseFilterStateOptions, "operatorInput" | "maxChoices">;
 
-/** The entries of a choice list that `choiceValues` allows; `null` when none of a non-empty list is left. */
+/** The entries of a set filter list that `choiceValues` allows, compared without case as `isAnyOf` matches; `null` when none of a non-empty list is left. */
 function knownChoices(columnId: string, operator: string, value: FilterSpec["value"], options: ParseFilterStateOptions): FilterSpec["value"] | null {
   const allowed = (operator === "isAnyOf" || operator === "isNoneOf") && Array.isArray(value) ? options.choiceValues?.(columnId) : undefined;
   if (!allowed || !Array.isArray(value)) return value;
-  const kept = value.filter((entry) => entry === "" || allowed.has(entry));
+  const kept = value.filter((entry) => entry === "" || allowed.has(entry.toLowerCase()));
   if (kept.length === value.length) return value;
   options.onUnknownChoices?.(columnId, value.length - kept.length);
   return kept.length === 0 ? null : kept;
