@@ -359,7 +359,10 @@ export function dispatchGridAction(args: {
     case "moveRowsUp":
     case "moveRowsDown": {
       preventDefault();
-      if (!isReorderMarkerMode(state.rowMarkers)) break;
+      if (!isReorderMarkerMode(state.rowMarkers)) {
+        reportRowActionSkipped(state, "moveRows", "disabled");
+        break;
+      }
       let moved = false;
       runRowOperation("moveRows", (rows) => {
         moved = actions.moveRowsBy(rows, action === "moveRowsUp" ? -1 : 1);
@@ -516,4 +519,4 @@ const JUMP_DIRECTION: Record<JumpAction, JumpDirection> = {
 
 export function hasCellSelection(selection: GridSelection): boolean {
   return selection.current !== null || selection.columns.length > 0;
-}
+}

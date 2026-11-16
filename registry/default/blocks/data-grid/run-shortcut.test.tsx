@@ -74,4 +74,13 @@ describe("api.runShortcut", () => {
     act(() => m.api().runShortcut("duplicateRow"));
     expect(onRowActionSkipped).toHaveBeenCalledWith({ action: "duplicateRows", reason: "no-factory" });
   });
+
+  it("reports a row move shortcut without a reorder rowMarkers mode as disabled", () => {
+    const onRowActionSkipped = vi.fn();
+    const m = mount({ onRowActionSkipped });
+    act(() => m.api().actions.selectCellAt({ col: 0, row: 1 }));
+    act(() => m.api().runShortcut("moveRowsUp"));
+    expect(onRowActionSkipped).toHaveBeenCalledWith({ action: "moveRows", reason: "disabled" });
+    expect(m.onDataChange).not.toHaveBeenCalled();
+  });
 });
