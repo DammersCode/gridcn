@@ -42,8 +42,8 @@ function ActionsProbe(props: { onActions: (actions: ReturnType<typeof useDataGri
 }
 
 /** Calls the hook directly so the test can reach its result (the component discards it). */
-function UrlStateProbe(props: { prefix?: string; spec?: UseDataGridUrlStateOptions["spec"]; onResult: (result: UseDataGridUrlStateResult) => void }) {
-  const result = useDataGridUrlState({ prefix: props.prefix, spec: props.spec });
+function UrlStateProbe(props: { prefix?: string; spec?: UseDataGridUrlStateOptions["spec"]; enableNavigationSync?: boolean; onResult: (result: UseDataGridUrlStateResult) => void }) {
+  const result = useDataGridUrlState({ prefix: props.prefix, spec: props.spec, enableNavigationSync: props.enableNavigationSync });
   props.onResult(result);
   return null;
 }
@@ -372,6 +372,63 @@ describe("DataGridUrlState state -> URL write", () => {
       expect(last?.searchParams.get("orders_sort")).toBe("name:asc");
       expect(last?.searchParams.get("sort")).toBeNull();
     });
+  });
+});
+
+describe("DataGridUrlState back and forward", () => {
+  async function mountAndNavigate(enableNavigationSync: boolean | undefined) {
+    const probe: { sort: unknown; filter: unknown; search: string }[] = [];
+    render(
+      <NuqsTestingAdapter searchParams="?sort=name%3Aasc" hasMemory>
+        <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
+          <UrlStateProbe enableNavigationSync={enableNavigationSync} onResult={() => {}} />
+          <StateProbe onState={(s) => probe.push(s)} />
+        </DataGridProvider>
+      </NuqsTestingAdapter>,
+    );
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 700));
+    });
+    expect(probe.at(-1)!.sort).toEqual([{ columnId: "name", direction: "asc" }]);
+    window.history.replaceState({}, "", "/?sort=age%3Adesc&q=bo");
+    await act(async () => {
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    window.history.replaceState({}, "", "/");
+    return probe.at(-1)!;
+  }
+
+  it("applies the URL to the grid on popstate", async () => {
+    const state = await mountAndNavigate(undefined);
+    expect(state.sort).toEqual([{ columnId: "age", direction: "desc" }]);
+    expect(state.search).toBe("bo");
+  });
+
+  it("sends one sort change to a server-sorted grid on popstate", async () => {
+    const onSortChange = vi.fn();
+    render(
+      <NuqsTestingAdapter searchParams="?sort=name%3Aasc" hasMemory>
+        <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id} sortMode="server" onSortChange={onSortChange}>
+          <UrlStateProbe onResult={() => {}} />
+        </DataGridProvider>
+      </NuqsTestingAdapter>,
+    );
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 700));
+    });
+    onSortChange.mockClear();
+    window.history.replaceState({}, "", "/?sort=age%3Adesc");
+    await act(async () => {
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    window.history.replaceState({}, "", "/");
+    expect(onSortChange).toHaveBeenCalledTimes(1);
+    expect(onSortChange).toHaveBeenCalledWith([{ columnId: "age", direction: "desc" }]);
+  });
+
+  it("leaves the grid alone on popstate when enableNavigationSync is false", async () => {
+    const state = await mountAndNavigate(false);
+    expect(state.sort).toEqual([{ columnId: "name", direction: "asc" }]);
   });
 });
 

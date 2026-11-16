@@ -23,6 +23,18 @@ describe("createMemoryViewsStorage", () => {
 });
 
 describe("createLocalStorageViewsStorage", () => {
+  it("tells a subscriber about a storage event on its key only, until it unsubscribes", () => {
+    const onChange = vi.fn();
+    const stop = createLocalStorageViewsStorage("k-sub").subscribe!(onChange);
+    window.dispatchEvent(new StorageEvent("storage", { key: "other" }));
+    expect(onChange).not.toHaveBeenCalled();
+    window.dispatchEvent(new StorageEvent("storage", { key: "k-sub" }));
+    expect(onChange).toHaveBeenCalledTimes(1);
+    stop();
+    window.dispatchEvent(new StorageEvent("storage", { key: "k-sub" }));
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
   it("round-trips through localStorage under the key", async () => {
     const storage = createLocalStorageViewsStorage("k1");
     await storage.save(doc);

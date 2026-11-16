@@ -34,7 +34,8 @@ export function isPinnedRowSource(value: unknown): value is PinnedRowSource {
 /**
  * A pinned totals row that reduces `specs` over the grid's rows (see {@link useDataGridAggregate}). Put it in
  * `useDataGridPinnedRows`'s `topRows` or `bottomRows`. The band reads each value by column id, so it needs no
- * `accessorKey` that matches the id. Create it once, at module scope.
+ * `accessorKey` that matches the id. An inline call is fine: equal specs, `scope`, and `cells` keep the band. A reducer
+ * function that you define inline has a new identity on each render and rebuilds the band.
  */
 export function aggregateRow<TData = unknown>(specs: AggregateSpecs<TData>, options: AggregateRowOptions = {}): PinnedRowSource {
   const { scope = "view", cells } = options;
@@ -45,7 +46,7 @@ export function aggregateRow<TData = unknown>(specs: AggregateSpecs<TData>, opti
 /**
  * A pinned totals row whose values come from a server (see {@link useDataGridServerAggregate}). Put it in one band
  * of `useDataGridPinnedRows`. The band dims while values load, and fetches again after pending saves settle.
- * Create it once, at module scope.
+ * An inline call is fine while `fetch` and the other options keep their identity.
  */
 export function serverAggregateRow(options: ServerAggregateRowOptions): PinnedRowSource {
   const { cells, ...rest } = options;

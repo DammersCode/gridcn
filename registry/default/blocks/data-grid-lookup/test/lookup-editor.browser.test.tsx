@@ -39,6 +39,29 @@ async function openEditor() {
 }
 
 describe("lookup editor", () => {
+  it("warns once in development when fetchOptions changes identity while the editor is open", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const data: Row[] = [{ id: "r1", customer: acme }];
+    const tree = (fetchOptions: LookupOptions["fetchOptions"]) => (
+      <div style={{ width: 400, height: 240 }}>
+        <DataGrid
+          data={data}
+          columns={[{ id: "customer", header: "Customer", accessorKey: "customer", type: "lookup", options: { fetchOptions, debounceMs: 0 }, width: 200 }] as readonly ColumnDef<Row, unknown>[]}
+          getRowId={(r) => r.id}
+          cellTypes={{ lookup: lookupCellType }}
+        />
+      </div>
+    );
+    const view = await render(tree(async () => [acme]));
+    await openEditor();
+    await expect.element(page.getByRole("option", { name: "Acme" })).toBeVisible();
+    await view.rerender(tree(async () => [globex]));
+    await view.rerender(tree(async () => [acme]));
+    const identityWarnings = warn.mock.calls.filter((call) => String(call[0]).includes("[data-grid-lookup] fetchOptions"));
+    warn.mockRestore();
+    expect(identityWarnings).toHaveLength(1);
+  });
+
   it("shows an id-only value as unresolved", async () => {
     await setup(makeOptions(), [{ id: "r2", customer: "c9" as never }]);
     await expect.element(page.getByText("c9")).toBeVisible();

@@ -1,5 +1,5 @@
 import type { ColumnLayout, ColumnPin, BuiltInFilterOperator, FilterNode, FilterOperator, FilterOperatorInput, FilterSpec, SearchOptions, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { MAX_FILTER_GROUP_DEPTH, MAX_SPEC_SEARCH_LENGTH, countFilterSpecs, isFilterGroup, pruneFilterSpecs } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { MAX_FILTER_GROUP_DEPTH, MAX_SPEC_SEARCH_LENGTH, MAX_SPEC_SORTS, countFilterSpecs, isFilterGroup, pruneFilterSpecs } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 export const MAX_VIEWS = 50;
 /** Largest stored document, in characters; a save over it is refused so the next load can read it. */
@@ -7,7 +7,7 @@ export const MAX_DOCUMENT_LENGTH = 1_000_000;
 export const MAX_VIEW_NAME_LENGTH = 80;
 /** Largest view file `parseViewFile` reads, in characters. */
 export const MAX_VIEW_FILE_LENGTH = 100_000;
-const MAX_SORTS = 16;
+const MAX_SORTS = MAX_SPEC_SORTS;
 const MAX_FILTERS = 64;
 const MAX_FILTER_GROUPS = 16;
 const MAX_LIST_ENTRIES = 1000;
@@ -166,7 +166,7 @@ type Tally = { dropped: number };
 
 /** An id passes when it is a usable key and, given a column set, names a live column. */
 function acceptsColumnId(id: unknown, columns: ViewColumns | undefined): id is string {
-  if (typeof id !== "string" || id === "" || id === "__proto__") return false;
+  if (typeof id !== "string" || id === "") return false;
   return columns ? columns.has(id) : true;
 }
 
@@ -204,6 +204,7 @@ function sanitizeFilterValue(operator: string, raw: unknown, tally: Tally): { ok
     }
     return { ok: true, value: [...raw] };
   }
+  if (raw === undefined) return { ok: true, value: undefined };
   return text(raw) ? { ok: true, value: raw } : { ok: false };
 }
 

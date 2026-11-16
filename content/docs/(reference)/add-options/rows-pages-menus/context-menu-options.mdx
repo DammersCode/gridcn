@@ -14,7 +14,7 @@ aliases: ["right-click menu", "header menu items", "menu ids", "custom menu item
 
 The wrapper leaves a right-click in a text field to the browser, for example in the Find field, a filter popover, or a cell editor. <NewBadge /> It also leaves a right-click anywhere in a popup outside the grid, such as a button of the Find panel, to the browser.
 
-A resolver runs while the menu renders. Do not call hooks in it. Read hook values in the component that renders the menu, and close over them.
+A resolver runs while the menu renders. Do not call hooks in it. Read grid state and run grid actions through `ctx`, and close over other hook values from the component that renders the menu.
 
 ## DataGridHeaderDropdown
 
@@ -38,6 +38,32 @@ Each resolver receives a context and the built-in items as `defaults`.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-context-menu/menu-items.tsx" name="HeaderMenuItemsCtx" />
 
+## useDataGridRowOps [#usedatagridrowops]
+
+<NewBadge />
+
+`useDataGridRowOps()` returns `{ canCreateRow, canDuplicateRow }`. `canCreateRow` is true when the grid has a `createRow` prop, and `canDuplicateRow` is true when it has a `duplicateRow` prop. The built-in menu reads the same flags. Call it below `DataGridProvider`, for example to disable a custom duplicate button:
+
+```tsx
+import { useDataGridActions } from "@/components/data-grid/data-grid";
+import { useDataGridRowOps } from "@/components/data-grid-context-menu/data-grid-context-menu";
+
+function DuplicateButton({ rowId }: { rowId: string }) {
+  const actions = useDataGridActions();
+  const { canDuplicateRow } = useDataGridRowOps();
+
+  return (
+    <button
+      type="button"
+      disabled={!canDuplicateRow}
+      onClick={() => actions.duplicateRows([rowId])}
+    >
+      Duplicate
+    </button>
+  );
+}
+```
+
 ## Menu item [#gridmenuitemspec]
 
 A menu item is an item or a separator. A separator is `{ id, separator: true }`. An item has these fields:
@@ -46,7 +72,7 @@ A menu item is an item or a separator. A separator is `{ id, separator: true }`.
 
 | Field | Type | Default |
 | --- | --- | --- |
-| `id` | `string` | required |
+| `id` | `BuiltInMenuItemId \| (string & {})` | required |
 | `label` | `string` | required |
 | `icon` | `ReactNode` | none |
 | `shortcut` | `string` | none |
@@ -59,7 +85,7 @@ A menu item is an item or a separator. A separator is `{ id, separator: true }`.
 
 ## Built-in item ids [#item-ids]
 
-A resolver keeps or drops a built-in item by its id. Separator ids start with `sep-`.
+A resolver keeps or drops a built-in item by its id. The `BuiltInMenuItemId` type lists these ids. Separator ids start with `sep-`.
 
 | Menu | Ids, in order |
 | --- | --- |

@@ -5,11 +5,13 @@ import { MAX_DOCUMENT_LENGTH, type DataGridViewsDocument } from "./view-state";
  * `undefined` for none. Throw from `load` when the store cannot be read, so the hook keeps the
  * stored views instead of replacing them. `load` gets a signal that aborts on unmount. `save`
  * receives the whole document and is never aborted, so a save started just before unmount still
- * lands. Both may be sync or async.
+ * lands. Both may be sync or async. `subscribe` is optional: call `onChange` when another writer changed
+ * the stored document, and the hook loads it again. Return a function that removes the subscription.
  */
 export type DataGridViewsStorage = {
   load: (ctx: { signal: AbortSignal }) => unknown | Promise<unknown>;
   save: (document: DataGridViewsDocument) => void | Promise<void>;
+  subscribe?: (onChange: () => void) => () => void;
 };
 
 /** Keeps views for the life of the page. */
@@ -34,7 +36,7 @@ function readStorage(): Storage | undefined {
 const memoryByKey = new Map<string, DataGridViewsDocument>();
 
 /**
- * Stores views as one JSON entry in `localStorage`. When the browser blocks or fills the store,
+ * Stores views as one JSON entry in `localStorage`. A save in another tab reloads the views here through the `storage` event. When the browser blocks or fills the store,
  * `save` keeps the document in memory for this page and throws, so the hook reports the failure; `load`
  * returns the memory copy until a save succeeds. Malformed text counts as no document; text over the size limit throws.
  * `key` defaults to `"gridcn-views"`.
@@ -57,6 +59,13 @@ export function createLocalStorageViewsStorage(key = "gridcn-views"): DataGridVi
       } catch {
         return undefined;
       }
+    },
+    subscribe: (onChange) => {
+      const onStorage = (event: StorageEvent) => {
+        if (event.key === key || event.key === null) onChange();
+      };
+      globalThis.addEventListener?.("storage", onStorage);
+      return () => globalThis.removeEventListener?.("storage", onStorage);
     },
     save: (next) => {
       try {

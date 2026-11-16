@@ -12,7 +12,7 @@ aliases: ["totals row options", "aggregate options", "totals band"]
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-pinned-rows/use-data-grid-pinned-rows.tsx" name="UseDataGridPinnedRowsOptions" />
 
-The result is `{ plugin }`, typed `UseDataGridPinnedRowsResult`. Pass the plugin in `plugins`. The plugin keeps its identity while the entries of `topRows` and `bottomRows` stay the same objects, so an inline array of stable entries is fine.
+The result is `{ plugin }`, typed `UseDataGridPinnedRowsResult`. Pass the plugin in `plugins`. The plugin keeps its identity while the entries of `topRows` and `bottomRows` stay equal. A row object counts by identity. An `aggregateRow` or `serverAggregateRow` counts by its content, so an inline array and an inline `aggregateRow` are fine.
 
 ## useDataGridPinnedRows status [#status]
 
@@ -30,7 +30,7 @@ The result is `{ plugin }`, typed `UseDataGridPinnedRowsResult`. Pass the plugin
 
 <NewBadge />
 
-`aggregateRow(specs, options)` returns a pinned row that reduces `specs` over the grid rows. Put it in `topRows` or `bottomRows`. The band reads each value by column id, so a column needs no `accessorKey` that equals its `id`. Create the row once, at module scope.
+`aggregateRow(specs, options)` returns a pinned row that reduces `specs` over the grid rows. Put it in `topRows` or `bottomRows`. The band reads each value by column id, so a column needs no `accessorKey` that equals its `id`. A reducer function that you define inline has a new identity on each render, which rebuilds the band. A spec such as `"sum"` has none.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-pinned-rows/pinned-row-source.ts" name="AggregateRowOptions" />
 

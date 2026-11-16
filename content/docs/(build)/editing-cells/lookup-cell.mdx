@@ -53,7 +53,7 @@ export function Orders({ orders }: { orders: Order[] }) {
 }
 ```
 
-Keep `fetchOptions` and the `options` object outside the render, or memoize them. The type reads pasted labels through a cache that belongs to the `fetchOptions` function.
+Keep `fetchOptions` and the `options` object outside the render, or memoize them. The type reads pasted labels through a cache that belongs to the `fetchOptions` function. In development the editor warns once when the function changes while it is open.
 
 ## The stored value
 
@@ -98,11 +98,13 @@ The answer is untrusted. The editor keeps only entries with a non-empty `value` 
 
 <NewBadge />
 
-`fetchOptions` receives the row that the user edits. Read it to narrow the options, such as the cities of the country in that row:
+`fetchOptions` receives the row that the user edits. Type the options with your row type and read the row to narrow the options, such as the cities of the country in that row:
 
 ```tsx fragment="one option of the lookup column"
-fetchOptions: ({ query, row, signal }) =>
-  searchCities(query, (row as Order).country, signal),
+const cityOptions: LookupOptions<Order> = {
+  fetchOptions: ({ query, row, signal }) =>
+    searchCities(query, row.country, signal),
+};
 ```
 
 ## Clipboard, fill, import, and export
@@ -124,10 +126,11 @@ The cell calls your `fetchOptions` in every data mode, because the options live 
 
 - `LookupOption` is `{ value, label }`.
 - `LookupValue` is the stored value: a `LookupOption`, a bare key string without a label, or `null`.
-- `LookupFetchRequest` is the argument of `fetchOptions`: `query`, `signal`, and the edited `row`, `rowId`, and `columnId`.
+- `LookupFetchRequest<TData>` is the argument of `fetchOptions`: `query`, `signal`, and the edited `row`, `rowId`, and `columnId`. `TData` is your row type and defaults to `unknown`.
+- `LookupOptions<TData>` takes the same row type.
 - `LookupLabels` holds the strings of the editor: `searching`, `noResults`, `error`, `retry`, and `typeMore`.
 
-`defineColumns` <NewBadge /> checks a `lookup` column after you add the type to `GridCellTypes`. It then checks `accessorKey` against `LookupValue` and `options` against `LookupOptions`:
+`defineColumns` <NewBadge /> checks a `lookup` column. The add-on registers the type in `GridCellTypes`, so you add no declaration. `defineColumns` checks `accessorKey` against `LookupValue` and `options` against `LookupOptions`:
 
 ```ts
 import { defineColumns } from "@/components/data-grid/data-grid";
@@ -136,15 +139,9 @@ import type {
   LookupValue,
 } from "@/components/data-grid-lookup/data-grid-lookup";
 
-declare module "@/components/data-grid/types" {
-  interface GridCellTypes {
-    lookup: { value: LookupValue; options: LookupOptions };
-  }
-}
-
 type Order = { id: string; customer: LookupValue };
 
-const customerOptions: LookupOptions = {
+const customerOptions: LookupOptions<Order> = {
   fetchOptions: async ({ query, signal }) => {
     const url = `/api/customers?q=${encodeURIComponent(query)}`;
     const response = await fetch(url, { signal });
@@ -162,8 +159,6 @@ export const columns = defineColumns<Order>()([
   },
 ]);
 ```
-
-[TypeScript generics](/docs/types-hooks/typescript-generics#augmentation) explains where the block goes.
 
 ## Related
 

@@ -15,7 +15,7 @@ Users hide the columns they do not need. `hidden: true` starts a column hidden. 
 
 `DataGridColumnsMenu` ships with the [toolbar add-on](/docs/sort-filter-search/toolbar). It is a dropdown with a checked row for each column. The menu shows and hides. It does not pin. The header menu of the [context menu add-on](/docs/rows-pages-menus/context-menu#header-surface) has a "Hide column" item.
 
-`hideable: false` protects a key column. <NewBadge /> The columns menu shows its row checked and turned off, and the header menu has no "Hide column" item. `setColumnHidden`, URL state, saved views, and `hidden` still apply to the column.
+`hideable: false` protects a key column. <NewBadge /> The columns menu shows its row checked and turned off while the column is visible. If code hid the column, the row is unchecked and a click shows the column again. The header menu has no "Hide column" item. `setColumnHidden`, URL state, saved views, and `hidden` still apply to the column.
 
 ```tsx
 import {

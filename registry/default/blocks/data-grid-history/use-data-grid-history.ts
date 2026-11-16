@@ -106,8 +106,11 @@ export type UseDataGridHistoryResult<TData> = {
    * records like any user gesture. Returns `false` when nothing is written (the grid is not mounted yet, is `readOnly`, or every operation was an insert of a row `data` already holds), `true` otherwise.
    * `label` is an optional human-readable entry label.
    */
-  record: (change: DataChange<TData>, label?: string) => boolean;
+  record: (change: RecordedChange<TData>, label?: string) => boolean;
 };
+
+/** The change `record` takes. `source` is optional: `record` stores every entry as `"app"`. */
+export type RecordedChange<TData> = Omit<DataChange<TData>, "source"> & { source?: DataChange<TData>["source"] };
 
 /**
  * Operation-based undo/redo as a grid plugin. Records the grid's own `onDataChange` stream (the observer
@@ -125,6 +128,7 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
   const onSkipRef = useRef(opts.onSkip);
   onSkipRef.current = opts.onSkip;
   const warnedSparseData = useRef(false);
+  const warnedNotMounted = useRef(false);
   const history = useMemo(() => createHistory<TData>({ capacity }), [capacity]);
   // history's canUndo/canRedo are getters on a mutable object; this forces a re-render
   // after every mutating call so callers see them update even when nothing else re-renders
@@ -156,10 +160,16 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
   const announceRef = useRef<ReturnType<typeof useDataGridAnnounce> | null>(null);
   const readOnlyRef = useRef(false);
 
+  const warnNotMounted = useCallback((method: string) => {
+    if (warnedNotMounted.current || !isDev()) return;
+    warnedNotMounted.current = true;
+    console.warn(`[data-grid-history] ${method}() ran before the history plugin mounted, so it did nothing. Pass "plugin" (or "plugins" from useDataGridState) to the grid, and keep it in a plugins prop that you set after a spread.`);
+  }, []);
+
   const applyHistoryChange = useCallback(
     (direction: HistorySkip["direction"]) => {
       const api = apiRef.current;
-      if (!api) return;
+      if (!api) return warnNotMounted(direction);
       const state = api.store.getState();
       // A read-only grid refuses the revert, so popping the entry would only lose it.
       if (state.readOnly) return;
@@ -167,7 +177,7 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
       const change = direction === "undo" ? history.undo(rebase) : history.redo(rebase);
       if (!change) return;
       const { missing, hasHoles } = findMissingRows(change, state.data, state.getRowId);
-      if (!warnedSparseData.current && hasHoles && isDev()) {
+      if (!warnedSparseData.current && hasHoles && missing.length > 0 && isDev()) {
         warnedSparseData.current = true;
         console.warn(
           "[data-grid-history] undo ran over a sparse (lazy) data array: unloaded rows are holes, so an undo that needs them is blocked and keeps its entry. Use a hole-tolerant getRowId and pass a datasetKey (or call clear()) when server.refresh() replaces the rows or the dataset changes.",
@@ -188,7 +198,7 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
         console.error("[data-grid-history] onSkip threw:", error);
       }
     },
-    [history],
+    [history, warnNotMounted],
   );
 
   const undo = useCallback(() => applyHistoryChange("undo"), [applyHistoryChange]);
@@ -204,7 +214,8 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
   const rollback = useCallback(
     (change: DataChange<TData>) => {
       const api = apiRef.current;
-      if (!api || api.store.getState().readOnly) return;
+      if (!api) return warnNotMounted("rollback");
+      if (api.store.getState().readOnly) return;
       rolledBack.add(change);
       const undoSize = history.size;
       const found = history.discard(change);
@@ -212,21 +223,25 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
       if (!alreadyUndone) api.actions.commitChange(buildRollback(change, api.store.getState()));
       forceUpdate((n) => n + 1);
     },
-    [history, rolledBack],
+    [history, rolledBack, warnNotMounted],
   );
 
   const record = useCallback(
-    (change: DataChange<TData>, label?: string) => {
+    (change: RecordedChange<TData>, label?: string) => {
       const api = apiRef.current;
-      if (!api || api.store.getState().readOnly) return false;
-      const fresh = withoutPresentInserts(api.store.getState(), change);
+      if (!api) {
+        warnNotMounted("record");
+        return false;
+      }
+      if (api.store.getState().readOnly) return false;
+      const fresh = withoutPresentInserts(api.store.getState(), { ...change, source: "app" });
       if (fresh.ops.length === 0) return false;
       // `source: "app"` tags the imperative entry (see DataChange.source); the observer records it
       api.actions.commitChange({ ...fresh, source: "app", ...(label !== undefined ? { label } : {}) });
       forceUpdate((n) => n + 1);
       return true;
     },
-    [history],
+    [history, warnNotMounted],
   );
 
   // The Mount must keep ONE identity for the hook's lifetime (a fresh component type per render

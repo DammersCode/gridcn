@@ -58,8 +58,8 @@ export type UseFillHandleOptions = {
   /** Turns the whole fill feature off (handle hidden, `fillDown`/`fillRight` no-op). Default `false`; a read-only grid disables fill regardless of this option. */
   disabled?: boolean;
   /**
-   * Gate that runs before a fill writes (drag release, fill down, fill right). Return the text grid to
-   * write, which goes through each column's `fromText` and `validate` like a paste, or `false` to veto the
+   * Runs before a fill writes (drag release, fill down, fill right). Synchronous: it cannot return a
+   * promise. Return the text grid to write, which goes through each column's `fromText` and `validate` like a paste, or `false` to veto the
    * fill: nothing is written and the selection does not expand.
    */
   processFill?: (ctx: ProcessFillContext) => string[][] | false;

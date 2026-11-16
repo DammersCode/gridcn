@@ -36,7 +36,6 @@ function MyGrid() {
     const row = { id: crypto.randomUUID(), name: "New row" };
     history.record(
       {
-        source: "app",
         ops: [{ type: "insert", rowId: row.id, row, index: data.length }],
       },
       "Add row",

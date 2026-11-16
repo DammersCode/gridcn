@@ -610,11 +610,34 @@ describe("useDataGridViews", () => {
   });
 });
 
+describe("useDataGridViews storage events", () => {
+  it("reloads the views when the storage reports a change from another tab", async () => {
+    let stored: DataGridViewsDocument = seeded();
+    let notify: () => void = () => {};
+    const storage: DataGridViewsStorage = {
+      load: () => stored,
+      save: (next) => {
+        stored = next;
+      },
+      subscribe: (onChange) => {
+        notify = onChange;
+        return () => {};
+      },
+    };
+    const { probe } = setup({ storage });
+    await ready(probe);
+    expect(probe.current!.views.views.map((v) => v.name)).toEqual(["By age", "Alices"]);
+    stored = { ...stored, views: [...stored.views, { id: "c", name: "From tab two", state: emptyViewState() }] };
+    act(() => notify());
+    await waitFor(() => expect(probe.current!.views.views.map((v) => v.name)).toEqual(["By age", "Alices", "From tab two"]));
+  });
+});
+
 describe("useDataGridViews limits", () => {
   const wide = defineColumns<Record<string, string> & { id: string }>()(
-    Array.from({ length: 17 }, (_, i) => ({ id: `c${i}`, header: `C${i}`, accessorKey: `c${i}`, type: "text", width: 80 })) as never,
+    Array.from({ length: 65 }, (_, i) => ({ id: `c${i}`, header: `C${i}`, accessorKey: `c${i}`, type: "text", width: 80 })) as never,
   );
-  const wideRows = [{ id: "r0", ...Object.fromEntries(Array.from({ length: 17 }, (_, i) => [`c${i}`, "x"])) }];
+  const wideRows = [{ id: "r0", ...Object.fromEntries(Array.from({ length: 65 }, (_, i) => [`c${i}`, "x"])) }];
 
   async function setupWide() {
     const probe: { current: Probe | null } = { current: null };
@@ -780,11 +803,16 @@ describe("useDataGridViews limits", () => {
     });
   });
 
-  it("17 sorts are refused and 16 are saved", async () => {
+  it("65 sorts are refused and 64 are saved", async () => {
     const probe = await setupWide();
-    act(() => probe.current!.actions.setSorts(Array.from({ length: 16 }, (_, i) => ({ columnId: `c${i}`, direction: "asc" as const }))));
+    act(() => probe.current!.actions.setSorts(Array.from({ length: 64 }, (_, i) => ({ columnId: `c${i}`, direction: "asc" as const }))));
     expect(probe.current!.views.overLimit).toBe(false);
-    act(() => probe.current!.actions.setSorts(Array.from({ length: 17 }, (_, i) => ({ columnId: `c${i}`, direction: "asc" as const }))));
+    let saved: unknown = null;
+    act(() => {
+      saved = probe.current!.views.saveView("Max sorts");
+    });
+    expect(saved).not.toBeNull();
+    act(() => probe.current!.actions.setSorts(Array.from({ length: 65 }, (_, i) => ({ columnId: `c${i}`, direction: "asc" as const }))));
     expect(probe.current!.views.overLimit).toBe("sorts");
     let result: unknown = "unset";
     act(() => {

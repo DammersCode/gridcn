@@ -22,7 +22,7 @@ If a row that the entry needs is missing from the data, undo and redo apply noth
 
 ## Quick start: useDataGridState [#quick-start-usedatagridstate]
 
-`useDataGridState` owns the `data` array and passes it to the grid on every render as the controlled `data` prop. Undo and redo need this: each undo writes through the grid, and the hook stores the result. To use history, use this hook. `defaultData` seeds the grid once and keeps no history. Spread the result onto `DataGrid`:
+`useDataGridState` is the short path to undo and redo. It owns the `data` array and passes it to the grid as the controlled `data` prop. Each undo writes through the grid, and the hook stores the result. `useDataGridHistory` also works when the grid owns the data with `defaultData`. A grid with `defaultData` and no history plugin keeps no history. Spread the result onto `DataGrid`:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
@@ -53,7 +53,7 @@ Result: edit a cell, then press Undo. The cell returns to its earlier value and 
 
 Undo and Redo <NewBadge /> write only the cells of the entry onto the current row. A value in another column that changed after the edit, for example from a stream push or a refetch, stays. An update that you build for `record` without a `cells` list writes the whole row.
 
-`getRowId` defaults to the `id` field of a row. `grid.history` holds `canUndo`, `canRedo`, `historySize`, `undo`, `redo`, `clear`, `record`, and `rollback`. `historySize` counts the entries on the undo stack. `clear` empties both stacks. To mount other plugins, pass `plugins` after the spread and keep `grid.plugins` in it: `<DataGrid {...grid} columns={columns} plugins={[fillPlugin, ...grid.plugins]} />`.
+`getRowId` defaults to the `id` field of a row. `grid.history` holds `canUndo`, `canRedo`, `historySize`, `undo`, `redo`, `clear`, `record`, and `rollback`. `historySize` counts the entries on the undo stack. `clear` empties both stacks. To mount other plugins, pass `plugins` after the spread and keep `grid.plugins` in it: `<DataGrid {...grid} columns={columns} plugins={[fillPlugin, ...grid.plugins]} />`. A `plugins` prop without `grid.plugins` unmounts the history plugin. In development, `undo`, `redo`, and `record` warn once when the plugin never mounted.
 
 ### Keyboard [#keyboard]
 

@@ -23,6 +23,8 @@ const MIN_CHOICE_BOUND = 64;
 
 type UrlSpecPart = "sort" | "filter" | "search";
 
+type UrlParams = Record<"sort" | "filter" | "join" | "q" | UrlLayoutPart, string>;
+
 const DEFAULT_SPEC_PARTS: readonly UrlSpecPart[] = ["sort", "filter", "search"];
 
 function choiceBoundsOf(columns: readonly { id: string; options?: unknown }[]): Map<string, number | undefined> {
@@ -37,6 +39,12 @@ function choiceBoundsOf(columns: readonly { id: string; options?: unknown }[]): 
 const DEFAULT_LAYOUT_PARTS: readonly UrlLayoutPart[] = ["order", "hidden"];
 
 const LAYOUT_KEYS: Record<UrlLayoutPart, string> = { order: "cols", hidden: "hide", widths: "widths", pins: "pins" };
+
+function readUrlParams(prefix: string | undefined): UrlParams {
+  const query = new URLSearchParams(window.location.search);
+  const read = (key: string) => query.get(prefixedKey(prefix, key)) ?? "";
+  return { sort: read("sort"), filter: read("filter"), join: read("join"), q: read("q"), order: read(LAYOUT_KEYS.order), hidden: read(LAYOUT_KEYS.hidden), widths: read(LAYOUT_KEYS.widths), pins: read(LAYOUT_KEYS.pins) };
+}
 
 function countUnknownLayoutIds(part: Partial<ColumnLayout>, known: ReadonlySet<string>): number {
   const ids = part.order ?? part.hidden ?? Object.keys(part.widths ?? part.pins ?? {});
@@ -63,6 +71,11 @@ export type UseDataGridUrlStateOptions = {
    * layout sync off. Default `["order", "hidden"]`.
    */
   layout?: readonly UrlLayoutPart[];
+  /**
+   * Applies the URL to the grid when the user navigates back or forward (`popstate`), as `applyFromUrl()` does.
+   * Set `false` to apply the URL yourself. Default `true`.
+   */
+  enableNavigationSync?: boolean;
 };
 
 /** Result of {@link useDataGridUrlState}. */
@@ -73,7 +86,8 @@ export type UseDataGridUrlStateResult = {
    * missing layout param resets that synced layout part to the layout the grid started with. Call
    * it when the URL changed outside the grid's own writes —
    * back/forward, a framework `setSearchParams`, or a query-only route change — since mount
-   * applies exactly once and the store is the source of truth afterwards.
+   * applies exactly once and the store is the source of truth afterwards. Back and forward call it
+   * already unless `enableNavigationSync` is `false`.
    */
   applyFromUrl: () => void;
 };
@@ -87,11 +101,11 @@ export type UseDataGridUrlStateResult = {
  * `join=or` param is read once (it wraps a flat filter list in one `or` group) and every filter
  * write removes it.
  *
- * The URL→store direction runs once on mount; after that the store wins. `applyFromUrl()`
- * re-runs the mount apply when the URL changed outside the grid's own writes.
+ * The URL→store direction runs on mount and on back/forward (`enableNavigationSync`); otherwise the store
+ * wins. `applyFromUrl()` re-runs the apply when the URL changed outside the grid's own writes.
  */
 export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): UseDataGridUrlStateResult {
-  const { prefix, layout = DEFAULT_LAYOUT_PARTS, spec: specParts = DEFAULT_SPEC_PARTS } = options;
+  const { prefix, layout = DEFAULT_LAYOUT_PARTS, spec: specParts = DEFAULT_SPEC_PARTS, enableNavigationSync = true } = options;
   const syncSort = specParts.includes("sort");
   const syncFilter = specParts.includes("filter");
   const syncSearch = specParts.includes("search");
@@ -143,7 +157,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   const [hiddenParam, setHiddenParam] = useQueryState(prefixedKey(prefix, LAYOUT_KEYS.hidden), layoutQueryOptions);
   const [widthsParam, setWidthsParam] = useQueryState(prefixedKey(prefix, LAYOUT_KEYS.widths), layoutQueryOptions);
   const [pinsParam, setPinsParam] = useQueryState(prefixedKey(prefix, LAYOUT_KEYS.pins), layoutQueryOptions);
-  const layoutParams: Record<UrlLayoutPart, string> = { order: orderParam, hidden: hiddenParam, widths: widthsParam, pins: pinsParam };
+  const currentParams: UrlParams = { sort: sortParam, filter: filterParam, join: joinParam, q: searchParam, order: orderParam, hidden: hiddenParam, widths: widthsParam, pins: pinsParam };
 
   // The nuqs setters are NOT stable across external URL changes (back/forward, setSearchParams,
   // the testing adapter's searchParams prop) — the adapter re-renders and the query hook rebuilds
@@ -165,13 +179,13 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   // Reads the current URL params and applies them to the store. Runs once on mount (via the
   // appliedRef guard below) and is exposed as applyFromUrl so a consumer can re-apply after an
   // external URL change (back/forward, setSearchParams, query-only route change).
-  const applyUrl = useCallback((keepMountDefaults: boolean) => {
+  const applyUrl = useCallback((keepMountDefaults: boolean, params: UrlParams) => {
     const initialLayout = storeApi.getInitialState().columnLayout;
     const knownIds = new Set(allColumns.map((c) => c.id));
     const layoutPatch: Partial<ColumnLayout> = {};
     let unknownLayoutIds = 0;
     for (const part of layoutParts ? (layoutParts.split(",") as UrlLayoutPart[]) : []) {
-      const parsed = parseLayoutPart(part, layoutParams[part]);
+      const parsed = parseLayoutPart(part, params[part]);
       if (parsed[part] !== undefined) {
         unknownLayoutIds += countUnknownLayoutIds(parsed, knownIds);
         Object.assign(layoutPatch, parsed);
@@ -185,15 +199,15 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
     const usable = (c: (typeof allColumns)[number]) => !hidden.has(c.id);
     const sortableIds = new Set(allColumns.filter((c) => usable(c) && c.sortable !== false).map((c) => c.id));
     const filterableIds = new Set(allColumns.filter((c) => usable(c) && c.filterable !== false).map((c) => c.id));
-    const parsedSorts = parseSortState(sortParam);
+    const parsedSorts = parseSortState(params.sort);
     const sorts = parsedSorts.filter((spec) => {
       if (sortableIds.has(spec.columnId)) return true;
       warnDev(`dropped URL sort spec for removed, hidden, or unsortable column "${spec.columnId}"`);
       return false;
     });
     const choiceBounds = choiceBoundsOf(allColumns);
-    const parsedFilters = parseFilterState(filterParam, { maxChoices: (columnId) => choiceBounds.get(columnId), operatorInput });
-    const legacyOr = parsedFilters.length > 0 && parseLegacyJoin(joinParam) === "or" && !parsedFilters.some(isFilterGroup);
+    const parsedFilters = parseFilterState(params.filter, { maxChoices: (columnId) => choiceBounds.get(columnId), operatorInput });
+    const legacyOr = parsedFilters.length > 0 && parseLegacyJoin(params.join) === "or" && !parsedFilters.some(isFilterGroup);
     const filters = pruneFilterSpecs(legacyOr ? [{ join: "or", filters: parsedFilters }] : parsedFilters, (spec) => {
       if (filterableIds.has(spec.columnId)) return true;
       warnDev(`dropped URL filter spec for removed, hidden, or unfilterable column "${spec.columnId}"`);
@@ -202,11 +216,15 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
     // On mount an absent param keeps the grid's initial state; a re-apply mirrors the URL, so a removed param clears its state.
     if (syncSort && (sorts.length > 0 || !keepMountDefaults)) actions.setSorts(sorts);
     if (syncFilter && (filters.length > 0 || !keepMountDefaults)) actions.setFilters(filters);
-    if (syncSearch && (searchParam || !keepMountDefaults)) actions.setSearch(searchParam.slice(0, MAX_SPEC_SEARCH_LENGTH));
+    if (syncSearch && (params.q || !keepMountDefaults)) actions.setSearch(params.q.slice(0, MAX_SPEC_SEARCH_LENGTH));
 
     if (Object.keys(layoutPatch).length > 0) actions.setColumnLayout(layoutPatch);
-  }, [actions, allColumns, operatorInput, storeApi, sortParam, filterParam, joinParam, searchParam, syncSort, syncFilter, syncSearch, layoutParts, orderParam, hiddenParam, widthsParam, pinsParam]);
-  const applyFromUrl = useCallback(() => applyUrl(false), [applyUrl]);
+  }, [actions, allColumns, operatorInput, storeApi, syncSort, syncFilter, syncSearch, layoutParts]);
+  const applyUrlRef = useRef(applyUrl);
+  applyUrlRef.current = applyUrl;
+  const currentParamsRef = useRef(currentParams);
+  currentParamsRef.current = currentParams;
+  const applyFromUrl = useCallback(() => applyUrlRef.current(false, currentParamsRef.current), []);
 
   // apply URL -> store exactly once on mount; afterwards the store is the source of truth and
   // this effect's own writes below must not be re-read back as if they were external URL edits.
@@ -214,9 +232,16 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   useEffect(() => {
     if (appliedRef.current) return;
     appliedRef.current = true;
-    applyUrl(true);
+    applyUrl(true, currentParams);
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!enableNavigationSync) return;
+    const onPopState = () => applyUrlRef.current(false, readUrlParams(prefix));
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [enableNavigationSync, prefix]);
 
   useEffect(() => {
     if (!appliedRef.current || !syncSort) return;

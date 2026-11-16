@@ -3,6 +3,7 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGrid } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridPinnedRows, type UseDataGridPinnedRowsOptions } from "../use-data-grid-pinned-rows";
+import { aggregateRow, serverAggregateRow } from "../pinned-row-source";
 import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 type Row = { id: string; name: string; qty: number };
@@ -44,6 +45,55 @@ function PinnedGrid(
   const { plugin: pinnedPlugin } = useDataGridPinnedRows({ topRows, bottomRows });
   return <DataGrid data={data} columns={cols} getRowId={getRowId} plugins={[pinnedPlugin]} />;
 }
+
+describe("pinned rows — inline source identity", () => {
+  function captureIdentity(build: () => UseDataGridPinnedRowsOptions) {
+    const plugins: unknown[] = [];
+    function Probe() {
+      plugins.push(useDataGridPinnedRows(build()).plugin);
+      return null;
+    }
+    const view = render(<Probe />);
+    view.rerender(<Probe />);
+    return plugins;
+  }
+
+  it("inline aggregateRow with equal specs keeps the plugin across a rerender", () => {
+    const plugins = captureIdentity(() => ({ bottomRows: [aggregateRow({ qty: "sum" })] }));
+    expect(plugins).toHaveLength(2);
+    expect(plugins[1]).toBe(plugins[0]);
+  });
+
+  it("inline aggregateRow with different specs rebuilds the plugin", () => {
+    let spec: "sum" | "avg" = "sum";
+    const plugins: unknown[] = [];
+    function Probe() {
+      plugins.push(useDataGridPinnedRows({ bottomRows: [aggregateRow({ qty: spec })] }).plugin);
+      return null;
+    }
+    const view = render(<Probe />);
+    spec = "avg";
+    view.rerender(<Probe />);
+    expect(plugins[1]).not.toBe(plugins[0]);
+  });
+
+  it("inline serverAggregateRow with the same fetch keeps the plugin", () => {
+    const fetch = async () => ({});
+    const plugins = captureIdentity(() => ({ bottomRows: [serverAggregateRow({ fetch } as never)] }));
+    expect(plugins[1]).toBe(plugins[0]);
+  });
+
+  it("renders one band row for an inline aggregateRow across rerenders", () => {
+    function Grid() {
+      const { plugin } = useDataGridPinnedRows({ bottomRows: [aggregateRow({ qty: "sum" })] });
+      return <DataGrid data={makeRows(3)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]} />;
+    }
+    const view = render(<Grid />);
+    view.rerender(<Grid />);
+    view.rerender(<Grid />);
+    expect(document.querySelector(gridAttrSelector("pinnedRowBand", "bottom"))!.querySelectorAll('[role="row"]')).toHaveLength(1);
+  });
+});
 
 describe("pinned rows — band rendering", () => {
   it("renders no pinned bands when the hook's options are omitted", () => {

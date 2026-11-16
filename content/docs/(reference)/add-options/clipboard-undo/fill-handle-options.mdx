@@ -52,7 +52,7 @@ Every option is optional.
 
 ## ProcessFillContext [#processfillcontext]
 
-`processFill` receives one `ProcessFillContext` object. It runs on the release of a drag and on both keyboard commands, before the grid writes. It returns the text grid to write, or `false` to cancel the fill. A keyboard command on a selection of one row (Ctrl/Cmd+D) or one column (Ctrl/Cmd+R) fills nothing and does not call it. A cancelled drag does not call it.
+`processFill` receives one `ProcessFillContext` object. It runs on the release of a drag and on both keyboard commands, before the grid writes. It is synchronous: it returns the text grid to write, or `false` to cancel the fill, and never a promise. A keyboard command on a selection of one row (Ctrl/Cmd+D) or one column (Ctrl/Cmd+R) fills nothing and does not call it. A cancelled drag does not call it.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-fill/use-fill-handle.ts" name="ProcessFillContext" />
 

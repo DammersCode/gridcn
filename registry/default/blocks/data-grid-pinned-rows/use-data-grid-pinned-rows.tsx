@@ -19,14 +19,29 @@ export type UseDataGridPinnedRowsOptions = {
 
 /** Return value of {@link useDataGridPinnedRows}. */
 export type UseDataGridPinnedRowsResult = {
-  /** Pass this into the grid's `plugins` prop (`plugins={[pinnedRows.plugin]}`). Stable across renders while `topRows` and `bottomRows` keep the same entries (compared by identity, so an inline array is fine) and `status` stays the same. */
+  /** Pass this into the grid's `plugins` prop (`plugins={[pinnedRows.plugin]}`). Stable across renders while `topRows` and `bottomRows` keep the same entries (a row object by identity, an `aggregateRow` or `serverAggregateRow` by its content, so an inline array and an inline `aggregateRow({ qty: "sum" })` are fine) and `status` stays the same. */
   plugin: DataGridPlugin<unknown>;
 };
 
 const EMPTY_ROWS: readonly never[] = [];
 
+function shallowEqual(a: object | undefined, b: object | undefined): boolean {
+  if (a === b) return true;
+  if (a === undefined || b === undefined) return false;
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+  return keysA.length === keysB.length && keysA.every((key) => Object.hasOwn(b, key) && Object.is((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key]));
+}
+
+function sameEntry(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (!isPinnedRowSource(a) || !isPinnedRowSource(b) || a.kind !== b.kind || !shallowEqual(a.cells, b.cells)) return false;
+  if (a.kind === "aggregate" && b.kind === "aggregate") return a.scope === b.scope && shallowEqual(a.specs, b.specs);
+  return a.kind === "server-aggregate" && b.kind === "server-aggregate" && shallowEqual(a.options, b.options);
+}
+
 function sameEntries(a: readonly unknown[], b: readonly unknown[]): boolean {
-  return a.length === b.length && a.every((entry, i) => Object.is(entry, b[i]));
+  return a.length === b.length && a.every((entry, i) => sameEntry(entry, b[i]));
 }
 
 function useStableEntries(rows: readonly unknown[]): readonly unknown[] {

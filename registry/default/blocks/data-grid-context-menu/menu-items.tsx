@@ -28,6 +28,7 @@ import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdow
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   formatShortcut,
+  type DataGridActions,
   type GridAction,
   viewIndexes,
   useDataGridActions,
@@ -44,14 +45,43 @@ import { rowOperationTargets, useDataGridStoreApi, useDataGridCommands, useDataG
 import { MenuShortcut } from "./menu-shortcut";
 import { useDataGridColumnFeatureFlags } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
+/** Ids of the built-in menu items. */
+export type BuiltInMenuItemId =
+  | "cut"
+  | "copy"
+  | "paste"
+  | "clear-contents"
+  | "fill-down"
+  | "fill-right"
+  | "insert-row-above"
+  | "insert-row-below"
+  | "duplicate-rows"
+  | "delete-rows"
+  | "sort-asc"
+  | "sort-desc"
+  | "clear-sort"
+  | "pin-start"
+  | "pin-end"
+  | "unpin"
+  | "hide-column"
+  | "autosize"
+  | "autosize-all"
+  | "sep-clipboard"
+  | "sep-rows"
+  | "sep-sort"
+  | "sep-autosize";
+
+/** An item id: a built-in id (the editor completes it) or your own string. */
+export type MenuItemId = BuiltInMenuItemId | (string & {});
+
 /**
  * One context/dropdown menu entry, in display order. The built-in sets are these specs; a
  * resolver's return value is the complete item set (the consumer owns items, order, and gating).
  */
 export type GridMenuItemSpec =
   | {
-      /** Stable identity for locating and replacing a built-in item. Built-in ids: `cut`, `copy`, `paste`, `clear-contents`, `fill-down`, `fill-right`, `insert-row-above`, `insert-row-below`, `duplicate-rows`, `delete-rows` (cell) and `sort-asc`, `sort-desc`, `clear-sort`, `pin-start`, `pin-end`, `unpin`, `hide-column`, `autosize`, `autosize-all` (header); separators use `sep-*` ids. */
-      id: string;
+      /** Stable identity for locating and replacing a built-in item; see {@link BuiltInMenuItemId}. Separators use `sep-*` ids. */
+      id: MenuItemId;
       /** Display label; i18n is the caller's (the built-ins use `labels.contextMenu`). */
       label: string;
       /** Leading icon element (lucide convention: `size-4 text-muted-foreground`). */
@@ -69,7 +99,7 @@ export type GridMenuItemSpec =
     }
   | {
       /** Stable identity; the built-in separators use ids like `sep-clipboard`. */
-      id: string;
+      id: MenuItemId;
       /** Marker for a separator entry (no label, no click). */
       separator: true;
     };
@@ -86,6 +116,10 @@ export type CellMenuItemsCtx = {
   canInsertRow: boolean;
   /** Whether the grid was given a `duplicateRow` prop — the flag the built-in set gates its Duplicate item on. */
   canDuplicateRow: boolean;
+  /** The row ids the row items act on: the checked rows, else the rows of the selected cells, else the clicked row. Empty while checked rows are hidden or all matching rows are selected, the cases where the built-in row items are off. */
+  readonly targetRowIds: readonly string[];
+  /** The grid's actions, for an item's `onClick`. A resolver cannot call hooks. */
+  actions: DataGridActions;
 };
 
 /** The right-clicked header's context, handed to a header-menu resolver. */
@@ -94,6 +128,8 @@ export type HeaderMenuItemsCtx = {
   columnId: string;
   /** The grid's scroll-container element (for autosize measurement), or null when the event target has no grid ancestor. */
   scrollRoot: HTMLElement | null;
+  /** The grid's actions, for an item's `onClick`. A resolver cannot call hooks. */
+  actions: DataGridActions;
 };
 
 /** Resolves the cell-surface item set. Return `defaults` unchanged, a filtered/reordered/extended array, or a fully custom set. */
@@ -109,6 +145,15 @@ export type HeaderMenuItemsResolver = (ctx: HeaderMenuItemsCtx, defaults: GridMe
  */
 export const DataGridHeaderMenuItemsContext = createContext<HeaderMenuItemsResolver | null>(null);
 
+/** The view rows the row items act on for a menu opened on view row `row`. */
+export function useRowOperationTargets(row: number) {
+  const selection = useDataGridSelection();
+  const { checkedRowsLifetime } = useDataGridSelectionConfig();
+  const hiddenCheckedRowIds = useDataGridSelector((s) => s.hiddenCheckedRowIds);
+  const allMatching = useDataGridSelector((s) => s.allMatching);
+  return rowOperationTargets({ checkedRowsLifetime, selection, hiddenCheckedRowIds, allMatching }, row);
+}
+
 /** The built-in cell-surface set as specs, resolved for the current grid state (labels, keymap, selection, clipboard gating). */
 export function useDefaultCellMenuItems(args: {
   row: number;
@@ -123,10 +168,7 @@ export function useDefaultCellMenuItems(args: {
 }): GridMenuItemSpec[] {
   const { row, rowId, canInsertRow, canDuplicateRow, pasteBlocked, onPasteBlocked, clipboardFailed = false, onClipboardFailed } = args;
   const actions = useDataGridActions();
-  const selection = useDataGridSelection();
-  const { checkedRowsLifetime } = useDataGridSelectionConfig();
-  const hiddenCheckedRowIds = useDataGridSelector((s) => s.hiddenCheckedRowIds);
-  const allMatching = useDataGridSelector((s) => s.allMatching);
+  const targets = useRowOperationTargets(row);
   const clipboard = useDataGridClipboard();
   const readOnly = useDataGridReadOnly();
   const labels = useDataGridLabels();
@@ -146,7 +188,6 @@ export function useDefaultCellMenuItems(args: {
 
   // Row-op items act on every view row covered by the current selection, falling back to the
   // right-clicked row (same rule as the keyboard/native-clipboard gating).
-  const targets = rowOperationTargets({ checkedRowsLifetime, selection, hiddenCheckedRowIds, allMatching }, row);
   const rows = targets.rows;
   const blockedTooltip = targets.reason === "all-matching" ? labels.contextMenu.rowActionAllMatching : targets.reason ? labels.contextMenu.rowActionHiddenChecked : undefined;
   const rowActionsBlocked = targets.reason !== undefined;
