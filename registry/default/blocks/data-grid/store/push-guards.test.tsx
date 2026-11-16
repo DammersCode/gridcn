@@ -216,6 +216,29 @@ describe("stream into read-only targets", () => {
   });
 });
 
+describe("a defaulted stream write into a readOnly grid", () => {
+  const readOnlyWarnings = (warn: { mock: { calls: unknown[][] } }) => warn.mock.calls.filter(([m]) => String(m).includes("defaults to source"));
+
+  it("warns once when updateCells and updateRows pass no source", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const m = mount(undefined, { readOnly: true });
+    act(() => {
+      m.state().actions.updateCells([{ rowId: "a", columnId: "note", value: "1" }]);
+      m.state().actions.updateRows([{ rowId: "a", changes: { note: "2" } }]);
+    });
+    expect(readOnlyWarnings(warn)).toHaveLength(1);
+  });
+
+  it("stays silent with an explicit source or a writable grid", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const readOnly = mount(undefined, { readOnly: true });
+    act(() => readOnly.state().actions.updateCells([{ rowId: "a", columnId: "note", value: "1" }], { source: "stream" }));
+    const writable = mount();
+    act(() => writable.state().actions.updateCells([{ rowId: "a", columnId: "note", value: "1" }]));
+    expect(readOnlyWarnings(warn)).toHaveLength(0);
+  });
+});
+
 describe("stream limit warnings", () => {
   it("warns for the patch cap and the delete cap separately", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
