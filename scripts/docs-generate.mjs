@@ -47,6 +47,7 @@ const sentence = (text) => {
 /** Turns glossary and JSDoc text into plain text: drops links, parentheses, and dashes. Never cuts a sentence. */
 function tidy(text) {
   let t = text.replace(/\{@link\s+([^}\s]+)[^}]*\}/g, "$1").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1");
+  t = t.replace(/;\s+(?=`)/g, ". ");
   for (let before = ""; before !== t; ) {
     before = t;
     t = outsideCode(t, (part) => part.replace(/\s*\([^()]*\)/g, ""));
@@ -917,7 +918,7 @@ function messagePages() {
   }
   const areaRows = MESSAGE_PAGES.map((page) => [`[${page.title}](${messagePageUrl(page)})`, String(page.sections.reduce((sum, id) => sum + (counts.get(id) ?? 0), 0)), cell(page.description.replace(/^Look up /, "").replace(/, and fix their cause\.$/, "").replace(/\.$/, ""))]);
   messageOutputs.set("index", [
-    frontmatter({ title: "Messages", description: "Look up the text that the grid prints, throws, or shows, and fix its cause.", type: "reference", icon: "MessageSquareWarning", aliases: ["error message", "warning", "console warning"] }),
+    frontmatter({ title: "Message index", description: "Look up the text that the grid prints, throws, or shows, and fix its cause.", type: "reference", icon: "MessageSquareWarning", aliases: ["error message", "warning", "console warning"] }),
     MARKER,
     "",
     READING_NOTE,
