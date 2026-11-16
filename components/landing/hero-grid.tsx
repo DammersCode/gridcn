@@ -3,6 +3,7 @@
 import { useMemo, type ReactNode } from "react";
 import { DataGridBody, DataGridHeader, DataGridProvider, DataGridRoot, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridFill } from "@/registry/default/blocks/data-grid-fill/data-grid-fill";
+import { useDataGridHistory } from "@/registry/default/blocks/data-grid-history/data-grid-history";
 
 type Row = { id: string; count: string; item: string; owner: string; region: string };
 
@@ -25,19 +26,25 @@ const columns = defineColumns<Row>()([
 ] as const);
 
 export function HeroGrid(): ReactNode {
-  const { plugin } = useDataGridFill();
-  const plugins = useMemo(() => [plugin], [plugin]);
+  const { plugin: fill } = useDataGridFill();
+  const { plugin: history } = useDataGridHistory<Row>();
+  const plugins = useMemo(() => [fill, history], [fill, history]);
   return (
     <div className="flex min-w-0 flex-col gap-2">
-      <div className="h-60 overflow-hidden border bg-background sm:h-72">
-        <DataGridProvider defaultData={ROWS} columns={columns} plugins={plugins}>
+      <div className="h-60 overflow-hidden rounded-lg border bg-background sm:h-72">
+        <DataGridProvider defaultData={ROWS} columns={columns} plugins={plugins} enableColumnReorder={false}>
           <DataGridRoot aria-label="Live example grid" className="h-full">
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>
         </DataGridProvider>
       </div>
-      <p className="text-xs text-muted-foreground">Try it: select Count and Item cells, then drag the corner handle down. 1, 2, 3 and Item 1, 2, 3 continue.</p>
+      <p className="text-xs text-muted-foreground">
+        <span className="pointer-coarse:hidden">
+          Try it: select the Count and Item cells of rows 1 to 3, then drag the corner handle down. The series continues: 4, 5, 6 and Item 4, Item 5, Item 6. Ctrl+Z undoes it.
+        </span>
+        <span className="hidden pointer-coarse:inline">Try it: tap a cell, then drag a corner circle to select a range. The fill handle needs a mouse.</span>
+      </p>
     </div>
   );
 }

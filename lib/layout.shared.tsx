@@ -1,4 +1,5 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
+import { GithubIcon } from "@/components/landing/hero";
 import { Logo } from '@/components/logo';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +17,16 @@ export function baseOptions(): BaseLayoutProps {
         </span>
       ),
     },
-    githubUrl: `https://github.com/${gitConfig.user}/${gitConfig.repo}`,
+    links: [
+      {
+        type: "icon",
+        url: `https://github.com/${gitConfig.user}/${gitConfig.repo}`,
+        text: "GitHub",
+        label: "GitHub",
+        external: true,
+        icon: <GithubIcon />,
+      },
+    ],
     // ncdai/theme-toggle-effect-polygon needs the view-transition wrapper in ThemeToggle,
     // not fumadocs' stock ThemeSwitch.
     themeSwitch: {
