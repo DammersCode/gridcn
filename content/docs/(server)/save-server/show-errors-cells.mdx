@@ -13,8 +13,10 @@ A server can reject a value after the grid committed it, for example with a 422 
 ## Mark the cells that the server rejected [#server-errors]
 
 1. Keep a `ref` to the grid. The rejection arrives long after the grid mounted, so the handler reaches the actions through the ref.
-2. In `onSave`, catch the failure and map the server's field errors to `{ rowId, columnId, message }` entries.
+2. In `onSave`, read the field errors of the 422 answer and map them to `{ rowId, columnId, message }` entries.
 3. Call `setCellErrors` with the entries.
+
+The server answers a 422 with `{ "errors": [{ "rowId": "o-17", "field": "email", "message": "Not an address" }] }`:
 
 ```tsx
 import { useRef } from "react";
@@ -24,18 +26,30 @@ import {
   type DataGridApi,
 } from "@/components/data-grid/data-grid";
 import { columns, type Order } from "./orders";
-import { sendOp, parseFieldErrors } from "./api";
+
+type FieldError = { rowId: string; field: string; message: string };
 
 export function OrdersGrid({ rows }: { rows: Order[] }) {
   const gridRef = useRef<DataGridApi<Order>>(null);
 
   async function onSave(change: DataChange<Order>) {
-    try {
-      await Promise.all(change.ops.map(sendOp));
-    } catch (error) {
-      const errors = parseFieldErrors(error, change.ops);
-      gridRef.current?.actions.setCellErrors(errors);
+    const response = await fetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(change.ops),
+    });
+    if (response.status === 422) {
+      const { errors }: { errors: FieldError[] } = await response.json();
+      gridRef.current?.actions.setCellErrors(
+        errors.map(({ rowId, field, message }) => ({
+          rowId,
+          columnId: field,
+          message,
+        })),
+      );
+      return;
     }
+    if (!response.ok) throw new Error(`Save failed: ${response.status}`);
   }
 
   return (
@@ -50,9 +64,7 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
 }
 ```
 
-`parseFieldErrors` is your own function. It matches the server's error shape against `change.ops` to find the `rowId` of each failed field.
-
-Because the `catch` block returns normally, the `onSave` promise resolves and the grid keeps the value. If you rethrow, the grid reverts the whole change. See [Revert or refetch after a save](/docs/save-server/save-revert).
+Because the handler returns normally after a 422, the `onSave` promise resolves and the grid keeps the value. If it throws, the grid reverts the whole change. See [Revert or refetch after a save](/docs/save-server/save-revert).
 
 ## What the user sees
 
@@ -98,13 +110,11 @@ export function EmailError({ rowId }: { rowId: string }) {
 }
 ```
 
-<Callout type="warn" title="Cell errors are not edits">
-  `setCellErrors` and `clearCellErrors` never touch `data`. They fire no `onDataChange`, and the history add-on does not record them. Undo does not need to step over an error.
-</Callout>
+`setCellErrors` and `clearCellErrors` never touch `data`. They fire no `onDataChange`, and the history add-on does not record them.
 
 ## Related
 
-- [Revert or refetch after a save](/docs/save-server/save-revert)
-- [Handle refused saves](/docs/save-server/handle-refused-saves)
-- [Validation](/docs/editing-cells/validation)
-- [Edit and validation events](/docs/events-state/edit-validation-events)
+- [Revert or refetch after a save](/docs/save-server/save-revert): roll a failed save back, or fetch the rows again
+- [Handle refused saves](/docs/save-server/handle-refused-saves): revert only the rows the server refused
+- [Validation](/docs/editing-cells/validation): the `validate` that rejects a value
+- [Edit and validation events](/docs/events-state/edit-validation-events): the events of an edit and a rejected value

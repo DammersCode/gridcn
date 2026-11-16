@@ -8,6 +8,8 @@ aliases: ["onsave", "save status", "onsaverejected", "save changes", "save to da
 
 The grid applies an edit at once. `onSave` sends the same change to your server. The grid calls it with a `DataChange` after `onDataChange`. If you return a promise, the grid tracks the save and reverts a refused change.
 
+<ComponentPreview name="data-grid-write-ack-demo" />
+
 ## Send a change [#send-a-change]
 
 1. Pass `onSave` to the grid.
@@ -33,8 +35,11 @@ const columns = defineColumns<Order>()([
 ]);
 
 async function save(change: DataChange<Order>) {
-  const body = JSON.stringify(change.ops);
-  const response = await fetch("/api/orders", { method: "POST", body });
+  const response = await fetch("/api/orders", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(change.ops),
+  });
   if (!response.ok) throw new Error(`Save failed: ${response.status}`);
 }
 
@@ -50,17 +55,30 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
 }
 ```
 
-`defaultData` seeds the rows once, and the grid owns them. With controlled `data`, write each change into your state in `onDataChange`, or the grid drops the edit the next time it reads `data`.
+`defaultData` seeds the rows once, and the grid owns them. With controlled `data`, write each change into your state in `onDataChange`, or the grid drops the edit.
 
-A request that fails reverts the whole change. After the revert, `onSaveRejected` runs once per refused change with `{ change, rejected, error }`. To revert only the rows that the server refused, see [Handle refused saves](/docs/save-server/handle-refused-saves).
+A request that fails reverts the whole change. Then `onSaveRejected` runs once per refused change with `{ change, rejected, error }`. To revert only the refused rows, see [Handle refused saves](/docs/save-server/handle-refused-saves).
 
 ## What onSave receives [#what-onsave-receives]
 
-- A row with a save in flight carries `aria-busy="true"`. A refused save reads through the live region, for example "2 rows not saved" (`labels.grid.saveRejected`).
-- The `source` of a change names its origin: an edit, a paste, a fill, a conflict merge (`source: "merge"`), or an import. Other origins are a delete, a row operation, a find and replace, a programmatic `record()`, and an undo or redo.
-- `onSave` never receives a change with `source: "rollback"`, `source: "stream"`, or `source: "id-swap"`. These changes do not go back to the server.
+- A row with a save in flight carries `aria-busy="true"`. A refused save reads through the live region (`labels.grid.saveRejected`).
 - A `readOnly` grid writes nothing for a cell edit, so `onSave` does not run.
 - A function that returns a promise sets the status of the rows. If it returns nothing and does not throw, the grid sets no status and cannot refuse the change. A synchronous throw refuses it.
+
+The `source` of a change names its origin. `onSave` receives these values, and never `"rollback"`, `"stream"`, or `"id-swap"`:
+
+| `source` | Origin |
+| --- | --- |
+| `"edit"` | A cell edit, or `updateCells` with `source: "edit"`. |
+| `"paste"` | A paste. |
+| `"fill"` | A fill. |
+| `"delete"` | A cell clear, with the Delete key or a cut. |
+| `"row-operation"` | An insert, a duplicate, a delete, or a move of rows. |
+| `"import"` | An import. |
+| `"history"` | An undo or a redo. |
+| `"merge"` | The row that `resolveSaveConflict` commits. |
+| `"replace"` | A find and replace. |
+| `"app"` | An entry that your code records with `record()`. |
 
 ## Read the save status [#read-the-save-status]
 
@@ -69,77 +87,48 @@ While the promise is pending, each row of the change is `saving`. The row elemen
 - `useDataGridRowSaveStatus(rowId)` returns `"saving"`, `"failed"`, or `undefined`.
 - `useDataGridPendingSaveCount()` returns the number of `onSave` promises that have not settled.
 
-Call both hooks under `DataGridProvider`. The CSS rule `[data-save-status="saving"] { opacity: 0.6; }` dims a saving row.
+Call both hooks under `DataGridProvider`. Style `[data-save-status="saving"]` to dim a saving row.
 
-The grid sets no time limit on a save. Pass `signal: AbortSignal.timeout(15_000)` to `fetch`, so a hung request rejects and reverts.
+The grid sets no time limit on a save. Pass `signal: AbortSignal.timeout(15_000)` to `fetch`, so a hung request reverts.
 
 ## Save rows from a server source [#server-source]
 
-With `useDataGridServerRows`, pass `onSave` to the hook. `gridProps.onSave` runs your handler and fetches again by the `refreshAfterSave` policy. A refresh keeps the local value of a row with a pending save or an open edit.
+With `useDataGridServerRows`, pass `onSave` to the hook. `gridProps.onSave` runs your handler and fetches again by the `refreshAfterSave` policy. A refresh keeps a row with a pending save or an open edit.
 
-This grid sends the change, and the hook fetches again once the saves settle:
+Pass `save` from the sample above as `onSave`. The hook fetches again once the saves settle:
 
-```tsx
-"use client";
+```tsx fragment="inside OrdersGrid; fetchRows is the loader of Load rows while scrolling"
+const server = useDataGridServerRows<Order>({
+  mode: "scroll",
+  fetchRows,
+  onSave: save,
+});
 
-import { DataGrid, defineColumns, type DataChange } from "@/components/data-grid/data-grid";
-import {
-  useDataGridServerRows,
-} from "@/components/data-grid-server/data-grid-server";
-
-type Order = { id: string; customer: string };
-
-const columns = defineColumns<Order>()([
-  { id: "customer", header: "Customer", accessorKey: "customer" },
-]);
-
-async function save(change: DataChange<Order>) {
-  const body = JSON.stringify(change.ops);
-  const response = await fetch("/api/orders", { method: "POST", body });
-  if (!response.ok) throw new Error(`Save failed: ${response.status}`);
-}
-
-export function OrdersGrid() {
-  const server = useDataGridServerRows<Order>({
-    mode: "scroll", onSave: save,
-    fetchRows: async ({ start, end, signal }) => {
-      const query = `offset=${start}&limit=${end - start}`;
-      const response = await fetch(`/api/orders?${query}`, { signal });
-      const answer = await response.json();
-      return { rows: answer.rows, totalRowCount: answer.total };
-    },
-  });
-
-  return <DataGrid {...server.gridProps} columns={columns} className="h-96" />;
-}
+return <DataGrid {...server.gridProps} columns={columns} className="h-96" />;
 ```
 
 `refreshAfterSave` takes one of these values:
 
 | Value | Refresh |
 | --- | --- |
-| `"settled"` (default) | Once, after every save in flight has settled, or after 10 seconds. After that, each save still in flight refreshes when it settles. |
+| `"settled"` (default) | Once, after every save in flight has settled, or after 10 seconds when at least one save has settled by then. |
 | `"each"` | After saves settle, without waiting for the saves in flight. Saves that settle in the same task share one refresh. |
 | `false` | Never. Call `server.refresh()` yourself. |
-| a function | When it returns `true`, at the times `"settled"` refreshes. It receives the `saved`, `rejected`, and `failed` counts, the `changes` of those saves (at most 100), and the `pending` saves. |
+| a function | When it returns `true`, at the times `"settled"` refreshes. It receives the `saved`, `rejected`, and `failed` counts, the `changes` of those saves (at most 100), and `pending`, the number of saves still in flight. |
 
 Beyond 10 blocks of rendered rows plus `overscan`, a [sequential source](/docs/add-options/server/server-rows-options#scroll-mode) skips the refresh: call `server.refresh()`.
 
-A refresh needs at least one `onSave` promise that resolved, with nothing or with `{ rejected }`. A hook without `onSave` leaves a provider `onSave` of your own in place.
+A refresh needs at least one `onSave` promise that resolved, with nothing or with `{ rejected }`.
 
 ## Swap a client id for the server id [#id-swap]
 
-A row that the user creates carries a client id. After the server saves it, call `actions.replaceRowId(oldId, row)` with the server row. The `ref` of `DataGrid` gives `onSave` its actions:
+A row that the user creates carries a client id. After the server saves it, call `actions.replaceRowId(oldId, row)` with the server row. The `ref` of `DataGrid` gives `onSave` its actions. This handler sends inserts only. Send the other operations as in [Revert or refetch after a save](/docs/save-server/save-revert#translate-operations-into-api-calls):
 
 ```tsx
 "use client";
 
 import { useRef } from "react";
-import {
-  DataGrid,
-  type DataChange,
-  type DataGridApi,
-} from "@/components/data-grid/data-grid";
+import { DataGrid, type DataChange, type DataGridApi } from "@/components/data-grid/data-grid";
 import { columns, type Order } from "./orders";
 
 export function OrdersGrid({ rows }: { rows: Order[] }) {
@@ -148,8 +137,11 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
   async function save(change: DataChange<Order>) {
     for (const op of change.ops) {
       if (op.type !== "insert") continue;
-      const body = JSON.stringify(op.row);
-      const response = await fetch("/api/orders", { method: "POST", body });
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(op.row),
+      });
       if (!response.ok) throw new Error(`Save failed: ${response.status}`);
       grid.current?.actions.replaceRowId(op.rowId, await response.json());
     }
@@ -161,9 +153,9 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
 }
 ```
 
-One `onDataChange` call fires, with `source: "id-swap"`. History does not record it. The state keyed by the row id follows the new id. That covers the open edit, the cell errors, the checked rows, the save status, the saves in flight, and the undo steps. Flashes of the row end, and `validateRow` runs again for the swapped row.
+One `onDataChange` call fires, with `source: "id-swap"`, and history does not record it. The state keyed by the row id follows the new id. That covers the open edit, the cell errors, the checked rows, the save status, the saves in flight, and the undo steps. Flashes of the row end, and `validateRow` runs again.
 
-After a batch create, call `actions.replaceRowIds([{ oldId, row }])`. It swaps many rows in one write and one `onDataChange`. A `readOnly` grid skips the swap. An unknown `oldId`, or a new id that another row holds, warns once in development.
+After a batch create, call `actions.replaceRowIds([{ oldId, row }])` to swap many rows in one write. A `readOnly` grid skips the swap. An unknown `oldId`, or a new id that another row holds, warns once in development.
 
 ## Server mode [#server-mode]
 
@@ -173,5 +165,5 @@ After a batch create, call `actions.replaceRowIds([{ oldId, row }])`. It swaps m
 
 - [Revert or refetch after a save](/docs/save-server/save-revert): roll back, or fetch the rows again
 - [Handle refused saves](/docs/save-server/handle-refused-saves): revert only the refused rows
-- [Show errors on cells](/docs/save-server/show-errors-cells)
+- [Show errors on cells](/docs/save-server/show-errors-cells): paint a server rejection on a cell
 - [Data change events](/docs/events-state/data-change-events#onsave): the exact contract

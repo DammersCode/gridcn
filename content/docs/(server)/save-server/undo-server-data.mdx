@@ -22,7 +22,7 @@ In this demo, the mock server refuses a short name, and the grid reverts the cel
 
 To keep the user's row or merge it with the server row, see [Resolve a conflict](/docs/save-server/handle-refused-saves#resolve-a-conflict).
 
-To revert a change yourself, call `rollback(change)` with the change that `onSave` received:
+A rejected promise or a `{ rejected }` answer reverts for you. Call `rollback(change)` with the change that `onSave` received only when your handler catches the failure and does not rethrow:
 
 ```tsx
 import {
@@ -65,7 +65,7 @@ If the server refuses an undo or a redo, the grid reverts the data and, when the
 `useDataGridServerRows` in scroll mode owns the `data` array. The array is sparse. Loaded indices hold rows, and unloaded indices hold holes. Spread `gridProps`, and put the history plugin after the plugins that `gridProps` carries:
 
 ```tsx
-import { DataGrid } from "@/components/data-grid/data-grid";
+import { DataGrid, serverSpecKey } from "@/components/data-grid/data-grid";
 import { useDataGridHistory } from "@/components/data-grid-history/data-grid-history";
 import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
 import { columns, type Row } from "./rows";
@@ -77,7 +77,7 @@ export function ScrollGrid() {
     fetchRows,
   });
   const history = useDataGridHistory<Row>({
-    datasetKey: JSON.stringify(server.spec),
+    datasetKey: serverSpecKey(server.spec),
   });
 
   return (
@@ -90,18 +90,20 @@ export function ScrollGrid() {
 }
 ```
 
-Three rules keep the combination safe:
+These rules keep the combination safe:
 
 - Pass a custom `getRowId` to the hook, never to the grid, and pass `server.gridProps` to the grid. The grid runs `getRowId` on every element, holes included, and a plain `(row) => row.id` throws on a hole. The hook's own option sees loaded rows only, and `gridProps.getRowId` gives each hole a placeholder id.
 - An entry whose rows left the loaded rows applies nothing, stays on its stack, and calls `onSkip` with `"rows-not-loaded"`. Load the rows, then undo again.
-- A change of `spec` starts the blocks over, and `server.refresh()` drops every loaded row outside the rendered rows. A row operation in a source with a row count runs that refresh. A tick of `revalidateIntervalMs` refetches the same dataset, so it needs no `clear()`. An undo writes only the cells of its entry onto the refetched row, so a value that the server changed in another column stays. Pass a key that changes with the dataset as `datasetKey`, so the stacks clear. Without a stable key, call `clear()` in the handler that swaps the dataset or calls `refresh()`.
+- `server.refresh()` drops every loaded row outside the rendered rows. A change of `spec` starts the blocks over. A row operation in a source with a row count runs that refresh.
+- A refresh, a row operation, and a tick of `revalidateIntervalMs` refetch the same dataset, so the stacks stay. An undo writes only the cells of its entry onto the refetched row, so a value that the server changed in another column stays.
+- `datasetKey` clears the stacks when it changes. Pass a key that changes with the dataset, as `serverSpecKey(server.spec)` does. Without a key, call `clear()` in the handler that swaps the dataset.
 
 When `undo` needs a row that a hole hides, it warns once in development. An `undo` whose rows are all loaded does not warn.
 
 ## Related
 
-- [Undo and redo](/docs/clipboard-undo/undo-redo)
-- [Handle refused saves](/docs/save-server/handle-refused-saves)
-- [Revert or refetch after a save](/docs/save-server/save-revert)
-- [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling)
-- [Data change events](/docs/events-state/data-change-events)
+- [Undo and redo](/docs/clipboard-undo/undo-redo): the history add-on
+- [Handle refused saves](/docs/save-server/handle-refused-saves): revert only the rows the server refused
+- [Revert or refetch after a save](/docs/save-server/save-revert): roll a failed save back, or fetch the rows again
+- [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling): how blocks load
+- [Data change events](/docs/events-state/data-change-events): the operations that a change reports
