@@ -7,7 +7,7 @@ demos: compare
 aliases: ["cursor paging", "keyset pagination", "prefetchNextPage", "revalidateIntervalMs", "next cursor"]
 ---
 
-These options belong to `useDataGridServerRows` in pages mode. Set them after the pager from [Load rows by page](/docs/server-pagination/load-rows-page) works.
+These options belong to `useDataGridServerRows` in pages mode. Set them after the pager from [Load rows by page](/docs/server-pagination/load-rows-page) works. When the last pending insert or delete settles, the hook loads the page again, also with `refreshAfterSave: false`.
 
 ## Page through a cursor API [#cursor-chain]
 
@@ -73,7 +73,7 @@ The hook drops a prefetched page in these cases:
 
 ## Refresh on a timer [#revalidate]
 
-Set `revalidateIntervalMs` to call `refresh()` on a timer while the page is visible. [Refresh on a timer](/docs/scroll-mode/tune-row-retention#revalidate) lists the rules.
+Set `revalidateIntervalMs` to call `refresh()` on a timer while the page is visible. [Refresh on a timer](/docs/scroll-mode/refresh-server-rows#revalidate) lists the rules.
 
 ## Related
 

@@ -72,7 +72,7 @@ The first request is always block 0, the rows `[0, blockSize)`. The first answer
 - A short answer marks only its rows as loaded and warns in development. The next report of the rendered rows requests the rest.
 - A burst of landing blocks costs about one update of `data` per frame.
 
-`blockSize` is 50 and `overscan` is 30 by default. Pass `source: "random"` to fix random access. A scroll-mode grid defaults `sortMode` and `filterMode` to `"server"`: see [Query server rows](/docs/data-modes/query-server-rows). `getRowId` is optional. It defaults to the `id` field of the row.
+`blockSize` is 50 and `overscan` is 30 by default. Pass `source: "random"` to force random access. A scroll-mode grid defaults `sortMode` and `filterMode` to `"server"`: see [Query server rows](/docs/data-modes/query-server-rows). `getRowId` is optional. It defaults to the `id` field of the row.
 
 ## Skeleton rows
 
@@ -81,11 +81,11 @@ The first request is always block 0, the rows `[0, blockSize)`. The first answer
 - The function forms of column `readOnly`, `getRowClassName`, `getCellClassName`, and column `cellClassName` skip holes. They never receive an `undefined` row.
 - `getRowId` runs on loaded rows only. A hole gets a placeholder id that names a position and not a record. `isPlaceholderRowId(id)` from `data-grid` tells a placeholder id from a real id, and `api.getViewRowIds({ loaded: true })` lists the loaded rows only.
 - A skeleton cell opens no editor, and the grid skips a write to an unloaded row.
-- `deleteRows`, `duplicateRows`, `insertRow`, and `insertRows` do nothing when their target touches an unloaded row, and warn once per grid in development. Delete known rows with `deleteRows`. See [Change server rows](/docs/rows-live-data/change-server-rows#scroll-mode).
+- `deleteRows`, `deleteRowsAt`, `duplicateRows`, `duplicateRowsAt`, `insertRow`, and `insertRows` do nothing when their target touches an unloaded row, and warn once per grid in development. `reorderRows` and `moveRowsBy` do nothing while any row is unloaded. Delete known rows with `deleteRows`. See [Change server rows](/docs/rows-live-data/change-server-rows#scroll-mode).
 
 ## Edit loaded rows [#editing-loaded-rows]
 
-`gridProps.onDataChange` merges each edit, insert, and delete into the loaded rows. Put your own handler in the `onDataChange` option of the hook. A handler that overrides the spread drops the merge. Send changes to your backend from `onSave`.
+`gridProps.onDataChange` merges each edit, insert, and delete into the loaded rows. Put your own handler in the `onDataChange` option of the hook. An `onDataChange` prop after the spread runs next to the merge. Send changes to your backend from `onSave`.
 
 When the block of an unsaved row loads again, the answer replaces the unsaved value. See [Tune row retention](/docs/scroll-mode/tune-row-retention).
 

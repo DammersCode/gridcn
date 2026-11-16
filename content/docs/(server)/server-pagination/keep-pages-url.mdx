@@ -45,9 +45,13 @@ const columns = defineColumns<Order>()([
 export function OrdersGrid() {
   const url = useDataGridUrlPagination();
   const server = useDataGridServerRows<Order>({
-    fetchRows: async ({ start, end, signal }) => {
-      const query = `offset=${start}&limit=${end - start}`;
-      const response = await fetch(`/api/orders?${query}`, { signal });
+    fetchRows: async ({ spec, start, end, signal }) => {
+      const response = await fetch("/api/orders/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ spec, start, end }),
+        signal,
+      });
       const answer = await response.json();
       return { rows: answer.rows, totalRowCount: answer.total };
     },
@@ -75,7 +79,7 @@ Open `?page=3&pageSize=50` and the grid fetches rows `[100, 150)`.
 
 ## Pages that reset
 
-A change of the page size resets `page` to 1. A change of the sort, filter, or search text resets it to 1 as well, because the pages hold other rows after the change.
+A change of the page size, the sort, the filter, or the search text resets `page` to 1.
 
 A link to a page past the last page requests that page first. When the row count arrives, the pager moves to the last page and writes it to the URL.
 
@@ -83,7 +87,7 @@ With your own fetch and `useDataGridServerPager` in place of `useDataGridServerR
 
 ## Restore the sort, filter, and search
 
-To keep the sort, filter, and search in the URL too, compose the grid with `DataGridProvider` and `DataGridRoot`. Mount `<DataGridUrlState>` inside the provider. The first request then carries the restored spec and the restored page together. A restored spec does not cause a second request. See [URL state](/docs/sort-filter-search/url-state#server-mode).
+To keep the sort, filter, and search in the URL too, compose the grid with `DataGridProvider` and `DataGridRoot`. Mount `<DataGridUrlState>` inside the provider and list `"filter"` and `"search"` in its `spec`, because the default is `["sort"]`. The first request then carries the restored spec and the restored page together. A restored spec does not cause a second request. See [URL state](/docs/sort-filter-search/url-state#server-mode).
 
 This grid restores the page and the spec from the URL:
 
@@ -128,7 +132,7 @@ export function OrdersGrid() {
 
   return (
     <DataGridProvider {...server.providerProps} columns={columns}>
-      <DataGridUrlState />
+      <DataGridUrlState spec={["sort", "filter", "search"]} />
       <DataGridRoot {...server.rootProps} className="h-96">
         <DataGridHeader />
         <DataGridBody />

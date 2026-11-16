@@ -57,92 +57,103 @@ export function OrdersGrid() {
 }
 ```
 
-On page 3 at 25 rows per page, `start` is 50 and `end` is 75. The request also carries `page` and `pageSize`. Pass `signal` to `fetch`, so the hook can abort a request that a newer page, size, or spec replaces.
+On page 3 at 25 rows per page, `start` is 50 and `end` is 75. The request also carries `page` and `pageSize`. Pass `signal` to `fetch`, so the hook can abort a replaced request.
 
-The hook sets `sortMode="server"` and `filterMode="server"`, so your server applies `spec`. See [Query server rows](/docs/data-modes/query-server-rows). Every option is on [Server rows options](/docs/add-options/server/server-rows-options#server-mode).
+The hook sets `sortMode="server"` and `filterMode="server"`: your server applies `spec`. See [Query server rows](/docs/data-modes/query-server-rows).
 
 ## Control the page [#control-the-page]
 
-The hook keeps the page and the page size in its own state. `defaultPage` and `defaultPageSize` seed them once. `pageSizeOptions` sets the sizes of the footer select (10, 25, 50, and 100 by default). To control a value, pass `page` with `onPageChange`, or `pageSize` with `onPageSizeChange`, as [Keep pages in URL](/docs/server-pagination/keep-pages-url) does. The hook sends a page below 1 as page 1.
+The hook keeps the page and the page size in its own state. `defaultPage` and `defaultPageSize` seed them once. To control a value, pass `page` with `onPageChange`, or `pageSize` with `onPageSizeChange`, as [Keep pages in URL](/docs/server-pagination/keep-pages-url) does. The page resets in these cases:
 
-## When the page resets [#when-the-page-resets]
-
-- A change of the page size, the sort, the filter, or the search text goes back to page 1, because the pages hold other rows.
+- A change of the page size, the sort, the filter, or the search text goes back to page 1.
 - A spec that URL state restores before the first answer keeps the page of the link.
-
-If the count shrinks below the page, the pager moves to the last page. A count of `0` leaves the page unchanged.
+- A count that shrinks below the page moves the pager to the last page. A count of `0` leaves the page unchanged.
 
 ## Show the count [#show-the-count]
 
-`totalRowCount` is the row count of the filtered result. The footer uses it for the range label and for the last page. The hook also passes it to the grid with `checkedRowsLifetime="across-filters"`, so checked rows survive a page change. See [Select server rows](/docs/rows-live-data/select-server-rows).
+`totalRowCount` is the row count of the filtered result. The hook also passes it to the grid with `checkedRowsLifetime="across-filters"`, so checked rows survive a page change. See [Select server rows](/docs/rows-live-data/select-server-rows).
 
 If your server sends no count, answer `{ rows, hasMore }` and omit `totalRowCount`, or send `totalRowCount: null`. The footer then shows "Page 3" in place of a range, Next stays enabled while `hasMore` is `true`, and Last stays disabled. Without `hasMore`, a full page means that another page exists. For a cursor API, see [Tune page loading](/docs/server-pagination/tune-page-loading).
 
+When the last pending insert or delete settles, the hook loads the page again, also with `refreshAfterSave: false`.
+
 ## Fetch the pages yourself [#own-fetch]
 
-If you fetch with your own code, call `useDataGridServerPager` for the footer. It keeps no page state, so you control `page` and `pageSize`. Pass `totalRowCount` and a controlled `filterState`. The count makes `sortMode` and `filterMode` default to `"server"`, so the grid does not filter the page again.
+If you fetch with your own code, call `useDataGridServerPager` for the footer. It keeps no page state, so you control `page` and `pageSize`. Pass `totalRowCount`: it makes `sortMode` and `filterMode` default to `"server"`, so the grid neither sorts nor filters the page again. Control `sortState`, `filterState`, and `searchText`, and send them with each request.
 
-If the page, the page size, or the filters change, this grid fetches again:
+If the page, the page size, the sort, the filters, or the search text change, this grid fetches again:
 
 ```tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import { DataGrid, defineColumns, type FilterNode } from "@/components/data-grid/data-grid";
-import { DataGridPaginationBar, useDataGridServerPager } from "@/components/data-grid-pagination/data-grid-pagination";
+import {
+  DataGrid,
+  defineColumns,
+  type FilterNode,
+  type SortSpec,
+} from "@/components/data-grid/data-grid";
+import {
+  DataGridPaginationBar,
+  useDataGridServerPager,
+} from "@/components/data-grid-pagination/data-grid-pagination";
 
 type Order = { id: string; customer: string };
+type Spec = { sorts: SortSpec[]; filters: FilterNode[]; searchText: string };
 
+const PAGE_SIZE = 25;
 const columns = defineColumns<Order>()([
   { id: "customer", header: "Customer", accessorKey: "customer" },
 ]);
 
 export function OrdersGrid() {
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-  const [filters, setFilters] = useState<FilterNode[]>([]);
-  const [answer, setAnswer] = useState({ rows: [] as Order[], total: 0 });
+  const [spec, setSpec] = useState<Spec>({ sorts: [], filters: [], searchText: "" });
+  const [rows, setRows] = useState<readonly Order[]>([]);
+  const [total, setTotal] = useState<number | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
     fetch("/api/orders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ page, pageSize, filters }),
+      body: JSON.stringify({ page, pageSize: PAGE_SIZE, ...spec }),
       signal: controller.signal,
     })
       .then((response) => response.json())
-      .then(setAnswer)
-      .catch((error: unknown) => {
-        if (!controller.signal.aborted) console.error(error);
-      });
+      .then((answer) => {
+        setRows(answer.rows);
+        setTotal(answer.total);
+      })
+      .catch((error) => controller.signal.aborted || console.error(error));
     return () => controller.abort();
-  }, [page, pageSize, filters]);
+  }, [page, spec]);
+
+  function changeSpec(change: Partial<Spec>) {
+    setSpec({ ...spec, ...change });
+    setPage(1);
+  }
 
   const { pager } = useDataGridServerPager({
     page,
-    pageSize,
-    totalRowCount: answer.total,
+    pageSize: PAGE_SIZE,
+    totalRowCount: total,
     onPageChange: setPage,
-    onPageSizeChange: (size) => {
-      setPageSize(size);
-      setPage(1);
-    },
   });
 
   return (
     <>
       <DataGrid
-        data={answer.rows}
-        onDataChange={(rows) => setAnswer({ ...answer, rows: [...rows] })}
+        data={rows}
         columns={columns}
         getRowId={(row) => row.id}
-        filterState={filters}
-        onFilterChange={(next) => {
-          setFilters(next);
-          setPage(1);
-        }}
-        totalRowCount={answer.total}
+        sortState={spec.sorts}
+        onSortChange={(sorts) => changeSpec({ sorts })}
+        filterState={spec.filters}
+        onFilterChange={(filters) => changeSpec({ filters })}
+        searchText={spec.searchText}
+        onSearchTextChange={(searchText) => changeSpec({ searchText })}
+        totalRowCount={total}
         className="h-96"
       />
       <DataGridPaginationBar {...pager} />
@@ -151,7 +162,7 @@ export function OrdersGrid() {
 }
 ```
 
-The `controller` aborts the request of a replaced page. Without `onPageSizeChange`, the footer hides the page-size select.
+The `controller` aborts the request of a replaced page.
 
 ## Related
 
