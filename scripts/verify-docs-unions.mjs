@@ -169,7 +169,7 @@ export function listedTokens(scope, column) {
     tokens.add(token);
     if (m[1] !== undefined) for (const inner of token.matchAll(/"([^"]*)"|'([^']*)'/g)) tokens.add(inner[1] ?? inner[2]);
   }
-  for (const token of [...tokens]) if (/^'[^']*'$/.test(token)) tokens.add(token.slice(1, -1));
+  for (const token of tokens) if (/^'[^']*'$/.test(token)) tokens.add(token.slice(1, -1));
   return tokens;
 }
 
