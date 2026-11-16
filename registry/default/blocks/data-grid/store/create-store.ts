@@ -104,7 +104,7 @@ import {
 } from "./selection-state";
 import type { AnyColumnDef, DataGridInternalActions, DataGridStoreState, InternalSyncProps, ResolvedPlugins, SyncInputs } from "./types";
 import { syncInputsEqual } from "./types";
-import { DEFAULT_SORT_LOCALE } from "../sort-filter/sort-collator";
+import { checkSortLocale, DEFAULT_SORT_LOCALE } from "../sort-filter/sort-collator";
 import { loadedRowCount, nextAnnouncement } from "./announcements";
 import { allMatchingCheckedCount } from "./selected-rows";
 
@@ -182,6 +182,12 @@ function sameCellTypeEntries(a: ProvidedCellTypes, b: ProvidedCellTypes): boolea
   return keys.every((key) => key in b && a[key] === b[key]);
 }
 
+function resolveSortLocale(props: { sortLocale?: string; locale?: string }): string {
+  const sortLocale = props.sortLocale ?? props.locale ?? DEFAULT_SORT_LOCALE;
+  if (sortLocale !== DEFAULT_SORT_LOCALE) checkSortLocale(sortLocale, props.sortLocale === undefined ? "locale" : "sortLocale");
+  return sortLocale;
+}
+
 const MOVED_COMMAND_NAMES = ["undo", "redo", "fillDown", "fillRight", "openFind", "openFindReplace"] as const;
 
 /**
@@ -241,7 +247,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // Seeded at init, so the first real sync has a previous value to compare against.
   const initSortState = init.sortState ?? init.defaultSortState ?? [];
   const initSortMode = resolveSortMode(init);
-  const initSortLocale = init.sortLocale ?? init.locale ?? DEFAULT_SORT_LOCALE;
+  const initSortLocale = resolveSortLocale(init);
   const initFilterMode = resolveFilterMode(init);
   const initPageSize = init.pageSize !== undefined ? init.pageSize : (init.defaultPageSize ?? null);
   const initPage = init.page ?? init.defaultPage ?? 1;
@@ -1085,7 +1091,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const nextFilterState =
             props.filterState === undefined || !propsFilterStateChanged ? s.filterState : withFilterIds(props.filterState);
           const nextSortMode = resolveSortMode(props);
-          const nextSortLocale = props.sortLocale ?? props.locale ?? DEFAULT_SORT_LOCALE;
+          const nextSortLocale = resolveSortLocale(props);
           const nextFilterMode = resolveFilterMode(props);
           const nextViewSorts = viewSorts(nextSortMode, nextSortState);
           const serverRows = nextSortMode === "server" || nextFilterMode === "server";

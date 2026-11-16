@@ -150,3 +150,34 @@ describe("sortLocale through the store", () => {
     expect((await orderWith({ filterState })).order()).toEqual([]);
   });
 });
+
+describe("sort locale warnings and collator argument", () => {
+  const stubbed = async () => {
+    const { cellTypes } = await loadUnderSwedishRuntime();
+    const { createDataGridStore } = await import("./create-store");
+    const create = (extra: object) =>
+      createDataGridStore({ data: [{ id: "0", v: "z" }], columns: column("text"), getRowId: (r: unknown) => (r as { id: string }).id, sortState: [{ columnId: "v", direction: "asc" }], cellTypes, ...extra } as never);
+    return create;
+  };
+
+  it("names locale when the invalid tag came from the locale prop", async () => {
+    const create = await stubbed();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    create({ locale: "not a tag!!" });
+    expect(warn.mock.calls.map(([m]) => String(m)).filter((m) => m.includes("not a tag!!"))).toEqual([expect.stringMatching(/^\[data-grid\] locale "not a tag!!" is not a valid language tag/)]);
+  });
+
+  it("names sortLocale when the invalid tag came from sortLocale", async () => {
+    const create = await stubbed();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    create({ locale: "sv", sortLocale: "not a tag!!" });
+    expect(warn.mock.calls.map(([m]) => String(m)).filter((m) => m.includes("not a tag!!"))).toEqual([expect.stringMatching(/^\[data-grid\] sortLocale "not a tag!!"/)]);
+  });
+
+  it("sortCollator(locale) ignores the scope", async () => {
+    await loadUnderSwedishRuntime();
+    const { sortCollator, withSortLocale } = await import("../sort-filter/sort-collator");
+    expect(withSortLocale("en-US", () => sortCollator("sv").compare("ä", "z"))).toBeGreaterThan(0);
+    expect(withSortLocale("sv", () => sortCollator("en-US").compare("ä", "z"))).toBeLessThan(0);
+  });
+});

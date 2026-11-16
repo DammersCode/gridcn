@@ -23,17 +23,19 @@ function warnOnce(locale: string, message: string) {
   }
 }
 
-function collatorsFor(locale: string): Collators {
+type LocaleProp = "sortLocale" | "locale";
+
+function collatorsFor(locale: string, prop: LocaleProp = "sortLocale"): Collators {
   const cached = cache.get(locale);
   if (cached) return cached;
   let built: Collators;
   try {
     built = buildCollators(locale);
     if (Intl.Collator.supportedLocalesOf(locale).length === 0) {
-      warnOnce(locale, `[data-grid] sortLocale "${locale}" is not supported by this runtime. The grid sorts with "${DEFAULT_SORT_LOCALE}".`);
+      warnOnce(locale, `[data-grid] ${prop} "${locale}" is not supported by this runtime. The grid sorts with "${DEFAULT_SORT_LOCALE}".`);
     }
   } catch {
-    warnOnce(locale, `[data-grid] sortLocale "${locale}" is not a valid language tag. The grid sorts with "${DEFAULT_SORT_LOCALE}".`);
+    warnOnce(locale, `[data-grid] ${prop} "${locale}" is not a valid language tag. The grid sorts with "${DEFAULT_SORT_LOCALE}".`);
     built = collatorsFor(DEFAULT_SORT_LOCALE);
   }
   if (cache.size >= MAX_CACHED_LOCALES) cache.delete(cache.keys().next().value as string);
@@ -59,9 +61,14 @@ export function withSortLocale<T>(locale: string | undefined, run: () => T): T {
   }
 }
 
-/** Numeric, case- and accent-insensitive collator for the sort locale in scope. */
-export function sortCollator(): Intl.Collator {
-  return collatorsFor(activeLocale).base;
+/** Builds the collators for a grid's sort locale and warns in development, naming the prop the tag came from. */
+export function checkSortLocale(locale: string, prop: LocaleProp): void {
+  collatorsFor(locale, prop);
+}
+
+/** Numeric, case- and accent-insensitive collator for `locale`, or for the sort locale in scope when `locale` is omitted. */
+export function sortCollator(locale?: string): Intl.Collator {
+  return collatorsFor(locale ?? activeLocale).base;
 }
 
 /** Plain collator (case and accents distinguish) for the sort locale in scope; the `text` cell type uses it. */

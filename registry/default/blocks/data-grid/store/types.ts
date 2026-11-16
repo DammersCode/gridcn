@@ -319,7 +319,7 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   sortMode?: "client" | "server";
   /**
-   * BCP 47 tag that decides the client text sort, the text range filters, and the filter value lists. It covers `gt`, `gte`, `lt`, `lte`, and `between`, and the lists of the header filter and the filter builder. Defaults to `locale`, then `"en-US"`: the server render and the browser order rows alike.
+   * BCP 47 tag that decides the client text sort, the text range filters, and the filter value lists. It covers `gt`, `gte`, `lt`, `lte`, and `isBetween`, and the lists of the header filter and the filter menu. Defaults to `locale`, then `"en-US"`: the server render and the browser order rows alike.
    * To follow the browser, read `navigator.language` after mount. Under `sortMode="server"` the grid does not sort rows; the server owns their order. A malformed or unsupported tag falls back to `"en-US"` with one development warning.
    */
   sortLocale?: string;
