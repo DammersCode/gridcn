@@ -55,6 +55,8 @@ import {
 } from "../selection";
 import { forEachMember } from "../selection/compact-selection";
 import { viewIndexes, type CellRef, type CompactSelectionLike, type DataChange, type DataGridApi, type DataOp, type GridBulkValidationError, type GridValidationErrorEvent, type ViewCoord } from "../types";
+import { resolveColumnValidate } from "../cell-types/capabilities";
+import { runValidateSync } from "../validation/validate-cell";
 import { nextAnnouncement } from "./announcements";
 import { clearStaleRows, followStaleRows, markStaleRows, pruneStaleRows, requestReshape, staleStateAfterPrune } from "./server-stale";
 import type { AnyColumnDef, CellErrorEntry, CellPatch, DataGridActions, DataGridInternalActions, DataGridStoreState, UpdateCellsSkip, RowActionName, RowActionResult, RowActionSkipReason, UpdateCellsVerdict } from "./types";
@@ -779,20 +781,50 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   };
 
   /** Commits clear-to-clearValue() `writes` as one `delete` batch; shared by both delete actions. */
-  const commitClearWrites = (s: DataGridStoreState, writes: { viewRowIndex: number; columnId: string; value: unknown }[]): void => {
-    const batch = computeRowEditsBatch(s, writes);
-    if (!batch) return;
-    ctx.rowIndexCache.rebase(batch.nextData);
-    forgetDeferredRows(ctx);
-    ctx.lastEmittedData = batch.nextData;
-    const cellErrors = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), batch.nextData, batch.ops);
-    writeThenEmit(ctx, s, batch.nextData, { source: "delete", ops: batch.ops }, () =>
-      set({
-        data: batch.nextData,
-        cellErrors,
-        ...reconcileAfterWrite(s, batch.nextData, batch.ops),
-      }),
-    );
+  /** Runs each column's sync `validate` on the cleared value: a rejected cell stays, except in a `validationMode: "warn"` column, which clears and flags it. */
+  const validateClearWrites = (s: DataGridStoreState, writes: { viewRowIndex: number; columnId: string; value: unknown }[]) => {
+    const columns = new Map(s.columns.map((c) => [c.id, c] as const));
+    const accepted: typeof writes = [];
+    const rejected: GridBulkValidationError[] = [];
+    const warnings: CellErrorEntry[] = [];
+    for (const write of writes) {
+      const column = columns.get(write.columnId);
+      const dataRowIndex = s.viewIndex[write.viewRowIndex];
+      const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
+      const validate = column && resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]);
+      if (!validate || row === undefined) {
+        accepted.push(write);
+        continue;
+      }
+      const result = runValidateSync(validate, write.value, row);
+      const rowId = s.getRowId(row, dataRowIndex!);
+      if (!("error" in result)) accepted.push({ ...write, value: result.value });
+      else if (column.validationMode === "warn" && !result.thrown) {
+        warnings.push({ rowId, columnId: write.columnId, message: result.error });
+        accepted.push(write);
+      } else rejected.push({ rowId, columnId: write.columnId, viewRowIndex: write.viewRowIndex, value: write.value, message: result.error });
+    }
+    return { accepted, rejected, warnings };
+  };
+
+  const commitClearWrites = (s: DataGridStoreState, requested: { viewRowIndex: number; columnId: string; value: unknown }[]): void => {
+    const { accepted, rejected, warnings } = validateClearWrites(s, requested);
+    const batch = computeRowEditsBatch(s, accepted);
+    if (batch) {
+      ctx.rowIndexCache.rebase(batch.nextData);
+      forgetDeferredRows(ctx);
+      ctx.lastEmittedData = batch.nextData;
+      const validated = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), batch.nextData, batch.ops);
+      const cellErrors = mergeCellErrors(validated, warnings);
+      writeThenEmit(ctx, s, batch.nextData, { source: "delete", ops: batch.ops }, () =>
+        set({
+          data: batch.nextData,
+          cellErrors,
+          ...reconcileAfterWrite(s, batch.nextData, batch.ops),
+        }),
+      );
+    }
+    emitBulkRejections("delete", rejected);
   };
 
   const hiddenAfterDelete = (s: DataGridStoreState, ops: readonly DataOp<unknown>[]): Partial<DataGridStoreState> => {

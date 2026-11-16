@@ -326,12 +326,12 @@ export type GridEditEndEvent = ViewCellRef & { result: "commit" | "cancel" | "re
 export type GridBulkValidationError = { rowId: string; columnId: string; viewRowIndex: number; value: unknown; message: string };
 
 /**
- * Fired by `onValidationError` after a bulk paste, a fill, or an `updateCells` call (`"stream"`, or `"replace"` for a find-and-replace batch)
+ * Fired by `onValidationError` after a bulk paste, a fill, a Delete or Cut clear (`"delete"`), or an `updateCells` call (`"stream"`, or `"replace"` for a find-and-replace batch)
  * settles, ONLY when at least one cell was rejected — the accepted cells are already applied
  * (their `onDataChange`/`onSelectionChange` fire first). `rejected` lists every refused cell with
  * its validator's message.
  */
-export type GridValidationErrorEvent = { source: "paste" | "fill" | "stream" | "replace"; rejected: GridBulkValidationError[] };
+export type GridValidationErrorEvent = { source: "paste" | "fill" | "stream" | "replace" | "delete"; rejected: GridBulkValidationError[] };
 
 /** Fired on a double-click on any non-pinned, non-skeleton cell — a pure notification in the {@link OnCellClick} sense (no veto), fired regardless of readOnly. */
 export type OnCellDoubleClick<TData> = (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;
@@ -547,7 +547,7 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   validate?: ((value: TValidate, row: TData) => string | null) | StandardSchemaV1<TValidate>;
   /**
    * What a `validate` rejection does. `"block"` (default): a single-cell commit is refused (the editor
-   * stays open with the message); paste, fill, `updateCells`, and import drop or clear the value. `"warn"`:
+   * stays open with the message); paste, fill, `updateCells`, import, Delete, and Cut drop or clear the value (Delete and Cut keep the cell as it is). `"warn"`:
    * every one of those writes commits the value and flags the cell in `cellErrors` (same ring/tint/tooltip as
    * server errors, auto-cleared by the next valid write of that cell, and by undo of the write). A rejection
    * carries no transformed value, so `"warn"` commits the RAW value. A validator that throws blocks on both
