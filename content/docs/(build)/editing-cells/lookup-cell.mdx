@@ -58,7 +58,7 @@ export function Orders({ orders }: { orders: Order[] }) {
 }
 ```
 
-The labels the editor lists last for the life of `fetchOptions`. Keep `fetchOptions` and the `options` object outside the render, or memoize them. In development the editor warns once when the function changes while it is open.
+Each lookup column of a grid remembers the labels that its editor listed and its cells showed. An inline `fetchOptions` keeps them. To drop them, for example after `fetchOptions` switches to another source, give the grid a new `key`.
 
 ## The stored value
 
@@ -131,7 +131,7 @@ export const cityOptions: LookupOptions<Address> = {
 ## Clipboard, fill, import, and export
 
 - Copy and export write the label.
-- A pasted or imported label resolves when the editor listed it, a cell shows it, or the grid copied it. The grid remembers up to 5,000 labels for each `fetchOptions` function, and the oldest leave first.
+- A pasted or imported label resolves when the editor listed it, a cell shows it, or the grid copied it. The grid remembers up to 5,000 labels for each lookup column, and the oldest leave first.
 - Other text follows `unresolvedPaste`. By default, it keeps the cell value and reaches `onValidationError`. A label that no cell, editor, or copy has shown follows `unresolvedPaste` too, so a paste from another spreadsheet keeps the cell value by default.
 - Copy, export, print, the source cells of a fill, autosize, and the filter value list write text, and the grid remembers it.
 - A fill inside the lookup column follows this table:
