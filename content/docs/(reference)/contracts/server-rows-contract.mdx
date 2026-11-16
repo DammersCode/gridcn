@@ -302,10 +302,9 @@ mount. With both modes set to `"server"`, the store keeps the spec and never sor
 response. Your fetch reads the restored spec and loads the rows. With pagination, add
 `useDataGridUrlPagination` for `page` and `pageSize`.
 
-<Callout type="warn">
-  Without both modes set to `"server"`, a URL-restored spec sorts and filters partial data in the
-  browser. The result is wrong, and the grid shows no error.
-</Callout>
+Without `totalRowCount` and without both modes set to `"server"`, a URL-restored spec sorts and
+filters partial data in the browser. With `totalRowCount`, the grid warns once in development when
+a client sort or filter runs over fewer rows than `totalRowCount`.
 
 ### Check the request on your server [#parse-server-spec]
 
