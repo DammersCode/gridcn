@@ -4,6 +4,7 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 
 ## Core
 
+- Row ids that start with `__` belong to the grid, such as the ids of pinned and unloaded rows. The feature matrix has a roadmap of planned releases, and its rows for tree data, pivoting and master-detail say Not built.
 - A `labels` key that you set to `undefined` keeps its default at every depth, also in the `lookup` and saved views labels. Before, it removed the label, and a function label threw when called.
 - `DataGridHeaderFilter`, `DataGridHeaderDropdown`, and `DataGridKeybindingsDialog` accept `className`. It merges into the filter button, the menu content, and the dialog content.
 - A plugin whose `name` an earlier plugin already uses is ignored with all its members. Its `commands` and `keymap` still merged, and its command won a name conflict with the first plugin.
