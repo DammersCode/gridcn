@@ -13,6 +13,7 @@ import { getInternalActions } from "./internal-actions";
 import { createDataGridStore } from "./create-store";
 import { watchClientViewOverHoles } from "./hole-view-guard";
 import { toInternalSyncProps } from "./types";
+import { applyFunctionSeeds } from "./function-seed";
 import type { AnyColumnDef, DataGridActions, DataGridProviderProps, DataGridStoreState, DataGridStoreStateOf, DataGridSyncProps, InternalSyncProps } from "./types";
 import type { ViewCellRef, ViewCoord } from "../types";
 
@@ -209,6 +210,12 @@ function useGridStoreCore<TData>(
   useEffect(() => {
     getInternalActions(store)._armResultsAnnouncement();
   }, [store]);
+  // A layout effect: before the paint, and before a descendant's passive mount restore (URL state), which then wins.
+  useLayoutEffect(() => {
+    if (!externalStore) applyFunctionSeeds(store, internalInit);
+    // The seeds apply once per store.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [store, externalStore]);
   useEffect(() => {
     if (externalStore) return;
     return getInternalActions(store)._subscribeSelection();

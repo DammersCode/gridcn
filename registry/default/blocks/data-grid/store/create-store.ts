@@ -131,6 +131,7 @@ import {
 import type { AnyColumnDef, CellPatch, DataGridInternalActions, DataGridStoreState, InternalSyncProps, SyncInputs, UpdateCellsOptions } from "./types";
 import { createStreamQueue } from "./stream-queue";
 import { planColumnOrder } from "./column-order";
+import { plainSeed } from "./function-seed";
 import { warnUnhandledServerSpec } from "./server-spec-warning";
 import { keepKnownFilters, keepKnownSorts } from "./known-columns";
 import { loadedRowCount, nextAnnouncement } from "./announcements";
@@ -191,7 +192,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     computeVisibleColumnsBase(columns, order, hidden, memory.groupModel);
   const normalizeColumnLayout = (columns: readonly AnyColumnDef[], parts: ColumnLayoutParts, hidden: string[]) => normalizeColumnLayoutBase(columns, parts, hidden, memory.groupModel, warnStoreOnce);
   const defHidden = defHiddenColumnIds(initColumns);
-  const seeded = applyDefaultColumnLayout(initColumns, defHidden, init.defaultColumnLayout);
+  const seeded = applyDefaultColumnLayout(initColumns, defHidden, plainSeed(init.defaultColumnLayout));
   // `columnLayout` wins over `defaultColumnLayout`, and both resolve here (not in the provider),
   // so the server render and the first client paint already show the controlled layout. Omitted
   // parts fall back to the seeded values (there is no store state yet).
@@ -225,7 +226,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     if (kept !== nodes) warnStoreOnce("unknown column", UNKNOWN_COLUMN_MESSAGE);
     return kept;
   };
-  const initSortState = init.sortState ?? dropUnknownSorts(init.defaultSortState ?? [], init.columns);
+  const initSortState = init.sortState ?? dropUnknownSorts(plainSeed(init.defaultSortState) ?? [], init.columns);
   const initSortMode = resolveSortMode(init);
   const initSortLocale = resolveSortLocale(init);
   const initFilterMode = resolveFilterMode(init);
@@ -235,8 +236,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   if (warnsUnhandledSpecAtMount) {
     queueMicrotask(() => warnDev('totalRowCount makes sorting and filtering server-side by default, and nothing here handles onSortChange or onFilterChange, so the grid will not reorder or narrow its rows. Fetch rows for the spec, or set sortMode="client" and filterMode="client" to work on the loaded rows'));
   }
-  const initFilterState = withFilterIds(init.filterState ?? dropUnknownFilters(init.defaultFilterState ?? [], init.columns));
-  const initSearchText = init.searchText ?? init.defaultSearchText ?? "";
+  const initFilterState = withFilterIds(init.filterState ?? dropUnknownFilters(plainSeed(init.defaultFilterState) ?? [], init.columns));
+  const initSearchText = init.searchText ?? plainSeed(init.defaultSearchText) ?? "";
   const initSearchOptions = DEFAULT_SEARCH_OPTIONS;
   // storage widens each per-column CellType<TData, TValue, TOptions> to the untyped registry shape; narrowed back per column at lookup (cell.tsx/store's column-op helpers).
   const initCellTypes = resolveCellTypes(init.cellTypes as unknown as ProvidedCellTypes);

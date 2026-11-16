@@ -315,8 +315,8 @@ export type DataGridSyncProps<TData = unknown> = {
    * To follow the browser, read `navigator.language` after mount. Under `sortMode="server"` the grid does not sort rows; the server owns their order. A malformed or unsupported tag falls back to `"en-US"` with one development warning.
    */
   sortLocale?: string;
-  /** Seeds the sort ONCE at store creation (uncontrolled, like `defaultData`); later changes are ignored. `sortState` wins when both are given. */
-  defaultSortState?: SortSpec[];
+  /** Seeds the sort ONCE at store creation (uncontrolled, like `defaultData`); later changes are ignored. `sortState` wins when both are given. A function runs once on the client after mount, never on the server, so it can read `localStorage` without a hydration mismatch. */
+  defaultSortState?: SortSpec[] | (() => SortSpec[] | null | undefined);
   /** Fires after the user (or `actions.toggleSort`/`setSorts`) changes the sort: uncontrolled, after the grid writes it; controlled, with the next sort. See `sortState`. */
   onSortChange?: (next: SortSpec[]) => void;
   /** Controlled filter tree; same controlled/uncontrolled semantics as `sortState`. The top level combines with "and"; a {@link FilterGroup} holds an "or". */
@@ -328,14 +328,14 @@ export type DataGridSyncProps<TData = unknown> = {
    * Default: `"server"` while `totalRowCount` is set, else `"client"`. Set `"client"` to filter the window locally.
    */
   filterMode?: "client" | "server";
-  /** Seeds the filters ONCE at store creation; see `defaultSortState`. */
-  defaultFilterState?: FilterNode[];
+  /** Seeds the filters ONCE at store creation; see `defaultSortState`, also for the function form. */
+  defaultFilterState?: FilterNode[] | (() => FilterNode[] | null | undefined);
   /** Fires after the user (or `actions.setFilters`) changes the filters: uncontrolled, after the grid writes them; controlled, with the next filters. See `filterState`. */
   onFilterChange?: (next: FilterNode[]) => void;
   /** Controlled quick-search text; same controlled/uncontrolled semantics as `sortState`. */
   searchText?: string;
-  /** Seeds the quick-search text ONCE at store creation; see `defaultSortState`. */
-  defaultSearchText?: string;
+  /** Seeds the quick-search text ONCE at store creation; see `defaultSortState`, also for the function form. */
+  defaultSearchText?: string | (() => string | null | undefined);
   /** Fires after the user (or `actions.setSearch`) changes the search text: uncontrolled, after the grid writes it; controlled, with the next text. See `searchText`. */
   onSearchTextChange?: (next: string) => void;
   /**
@@ -356,8 +356,9 @@ export type DataGridSyncProps<TData = unknown> = {
    * over a column's `width` and `pin`. Later changes to this value are ignored. Pair it with `onColumnLayoutChange` to
    * save and restore a user's layout. A partial layout is normalized like `columnLayout`: unknown column ids are dropped,
    * `order` gets missing ids appended in column order, widths are clamped, and pins on `pinnable: false` columns are ignored.
+   * A function runs once on the client after mount, never on the server, like the function form of `defaultSortState`.
    */
-  defaultColumnLayout?: Partial<ColumnLayout>;
+  defaultColumnLayout?: Partial<ColumnLayout> | (() => Partial<ColumnLayout> | null | undefined);
   /**
    * Controlled column layout (React `value` semantics, gesture-first like `selection`): each
    * provided part (`widths`, `order`, `pins`, `hidden`) replaces that part, and an omitted part
