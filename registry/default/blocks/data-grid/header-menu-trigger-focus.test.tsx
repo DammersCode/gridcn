@@ -25,7 +25,7 @@ it("header menu trigger shows a focus ring when focused by keyboard", () => {
 
 it("in a zero-row grid without a header filter the trigger is the tab stop and shows the focus ring", () => {
   const { container } = render(
-    <DataGridProvider data={[]} columns={columns} getRowId={(row) => row.id}>
+    <DataGridProvider data={[] as Row[]} columns={columns} getRowId={(row) => row.id}>
       <DataGridRoot renderHeaderMenu={({ trigger }) => trigger}>
         <DataGridHeader />
         <DataGridBody />
