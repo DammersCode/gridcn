@@ -269,7 +269,7 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - Fix: `DataGridStatusBar` renders its `children` when fewer than two cells are selected. Before, it returned `null` and the extra items vanished. It still renders nothing when it has nothing to show and no children; pass `children` conditionally to keep the old behavior.
 - Fix: a column whose id is `__proto__` or `constructor` reads no inherited width, keeps its def pin under a `columnLayout` without pins, and keeps its value in `useDataGridAggregate` and `useDataGridServerAggregate`.
 - Fix: `reorderRows` warns once per grid in development when a sort, a filter, or unloaded rows make it a no-op. It warned on every call.
-- Fix: `useDataGridUrlState` drops `isAnyOf` and `isNoneOf` values outside the `choices` of a column from a restored URL, in client and server filter modes. A list left with no value drops its filter.
+- Fix: `useDataGridUrlState` drops `isAnyOf` and `isNoneOf` values that match neither a `choices` value nor a loaded data value (case-insensitive) from a restored URL, in client filter mode only. Server filter mode keeps every value, because the server evaluates them. A list left with no value drops its filter.
 - Fix: a checkbox toggle asks `onBeforeEditStart` first, so a veto blocks it. A toggle that `validate` rejects reports through `onValidationError` with `source: "edit"`.
 - Fix: the `longText` `maxLength` bounds paste, fill, and import too. Pasted HTML tables expand `colspan` and `rowspan` into empty cells.
 - Fix: a custom text editor whose `toValue` throws stays open, and it commits again after the draft is fixed. A deep import of the date cell type resolves the date column.
