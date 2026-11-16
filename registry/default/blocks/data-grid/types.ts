@@ -331,7 +331,7 @@ export type GridBulkValidationError = { rowId: string; columnId: string; viewRow
  * (their `onDataChange`/`onSelectionChange` fire first). `rejected` lists every refused cell with
  * its validator's message.
  */
-export type GridValidationErrorEvent = { source: "paste" | "fill" | "stream" | "replace"; rejected: GridBulkValidationError[] };
+export type GridValidationErrorEvent = { source: "paste" | "fill" | "stream" | "replace" | "edit"; rejected: GridBulkValidationError[] };
 
 /** Fired on a double-click on any non-pinned, non-skeleton cell — a pure notification in the {@link OnCellClick} sense (no veto), fired regardless of readOnly. */
 export type OnCellDoubleClick<TData> = (ctx: CellClickCtx<TData, unknown>, event: MouseEvent) => void;

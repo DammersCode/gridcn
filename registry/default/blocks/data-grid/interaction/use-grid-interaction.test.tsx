@@ -129,7 +129,7 @@ function makeRows(count: number): Row[] {
 
 function renderInteraction(
   rowCount = 20,
-  options: { readOnly?: boolean; createRow?: (index: number) => Row; duplicateRow?: (row: Row, index: number) => Row; keymap?: Keymap; columns?: readonly ColumnDef<Row, unknown>[]; uncontrolled?: boolean; rowMarkers?: "reorder-checkbox"; onRowActionSkipped?: DataGridStoreState["onRowActionSkipped"]; checkedRowsLifetime?: DataGridStoreState["checkedRowsLifetime"]; totalRowCount?: number } = {},
+  options: { readOnly?: boolean; createRow?: (index: number) => Row; duplicateRow?: (row: Row, index: number) => Row; keymap?: Keymap; columns?: readonly ColumnDef<Row, unknown>[]; uncontrolled?: boolean; rowMarkers?: "reorder-checkbox"; onRowActionSkipped?: DataGridStoreState["onRowActionSkipped"]; checkedRowsLifetime?: DataGridStoreState["checkedRowsLifetime"]; totalRowCount?: number; onBeforeEditStart?: DataGridStoreState["onBeforeEditStart"]; onValidationError?: DataGridStoreState["onValidationError"] } = {},
 ) {
   const { readOnly = false, createRow, duplicateRow, keymap = DEFAULT_KEYMAP, columns: testColumns = columns } = options;
   const scrollRef = { current: makeScrollElement() };
@@ -152,6 +152,8 @@ function renderInteraction(
         onRowActionSkipped={options.onRowActionSkipped}
         checkedRowsLifetime={options.checkedRowsLifetime}
         totalRowCount={options.totalRowCount}
+        onBeforeEditStart={options.onBeforeEditStart}
+        onValidationError={options.onValidationError}
         rowMarkers={options.rowMarkers}
       >
         {children}
@@ -1219,5 +1221,54 @@ describe("useGridInteraction: keyboard row moves", () => {
     const hook = setup([], 0);
     moveDown(hook);
     expect(ids(hook)).toBe("1,0,2,3,4,5");
+  });
+});
+
+describe("checkbox activation", () => {
+  const flagValue = (hook: ReturnType<typeof renderInteraction>["hook"]) => (hook.result.current.storeApi.getState().data[0] as Row).flag;
+
+  function activateFlag(options: Parameters<typeof renderInteraction>[1]) {
+    const { hook } = renderInteraction(3, { columns: checkboxColumns, uncontrolled: true, ...options });
+    act(() => hook.result.current.actions.selectCellAt({ col: 1, row: 0 }));
+    hook.rerender();
+    return hook;
+  }
+
+  it("onBeforeEditStart returning false blocks a checkbox toggle", () => {
+    const onBeforeEditStart = vi.fn(() => false);
+    const hook = activateFlag({ onBeforeEditStart });
+    pressKey(hook, "Enter");
+    expect(onBeforeEditStart).toHaveBeenCalledWith(expect.objectContaining({ rowId: "0", columnId: "flag" }), expect.anything());
+    expect(flagValue(hook)).toBeUndefined();
+  });
+
+  it("onBeforeEditStart returning true lets the toggle through", () => {
+    const hook = activateFlag({ onBeforeEditStart: () => true });
+    pressKey(hook, "Enter");
+    expect(flagValue(hook)).toBe(true);
+  });
+
+  it("an async onBeforeEditStart holds the toggle until it resolves", async () => {
+    let allow!: (verdict: boolean) => void;
+    const hook = activateFlag({ onBeforeEditStart: () => new Promise<boolean>((resolve) => (allow = resolve)) });
+    pressKey(hook, "Enter");
+    expect(flagValue(hook)).toBeUndefined();
+    await act(async () => allow(true));
+    expect(flagValue(hook)).toBe(true);
+  });
+
+  it("a rejected checkbox toggle reports its message", () => {
+    const onValidationError = vi.fn();
+    const rejectingColumns: readonly ColumnDef<Row, unknown>[] = [
+      checkboxColumns[0]!,
+      { ...checkboxColumns[1]!, validate: () => "Locked" },
+    ];
+    const hook = activateFlag({ columns: rejectingColumns, onValidationError });
+    pressKey(hook, "Enter");
+    expect(flagValue(hook)).toBeUndefined();
+    expect(onValidationError).toHaveBeenCalledWith({
+      source: "edit",
+      rejected: [{ rowId: "0", columnId: "flag", viewRowIndex: 0, value: true, message: "Locked" }],
+    });
   });
 });

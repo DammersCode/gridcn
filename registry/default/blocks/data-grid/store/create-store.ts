@@ -696,7 +696,24 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       activeCell: coord,
     });
   };
-  const holdEditStart = (s: DataGridStoreState, run: GateRun, ref: CellRef, initialText: string | undefined, verdict: PromiseLike<boolean | void>): void => {
+  /** Runs `onBeforeEditStart` for a cell, then `proceed` when it allows (at once for a sync verdict, after the promise for an async one). */
+  const askEditStart = (s: DataGridStoreState, coord: ViewCoord, rowId: string, columnId: string, activation: boolean, proceed: (now: DataGridStoreState, coord: ViewCoord) => void): void => {
+    const gate = s.onBeforeEditStart;
+    if (gate) {
+      if (editStartRun && !editStartRun.aborted) return;
+      const ref = { rowId, columnId };
+      const run = gates.begin("onBeforeEditStart", (now) => cursorLeft(now, ref, s.activeCell));
+      const verdict = gate({ ...ref, viewRowIndex: coord.row, viewColumnIndex: coord.col }, { signal: run.signal });
+      if (verdict === false) return;
+      if (isThenable<boolean | void>(verdict)) {
+        editStartRun = run;
+        holdEditStart(s, run, ref, activation, proceed, verdict);
+        return;
+      }
+    }
+    proceed(s, coord);
+  };
+  const holdEditStart = (s: DataGridStoreState, run: GateRun, ref: CellRef, activation: boolean, proceed: (now: DataGridStoreState, coord: ViewCoord) => void, verdict: PromiseLike<boolean | void>): void => {
     gates.hold(run);
     const askedActive = s.activeCell;
     const finish = (): boolean => {
@@ -712,10 +729,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const coord = resolveCellRef(now, rowIndexCache, ref);
         if (!coord) return;
         const target = resolveEditTarget(now, coord);
-        if (!target || target.cellType.activate || isColumnReadOnly(target.column, target.row)) return;
+        if (!target || Boolean(target.cellType.activate) !== activation || isColumnReadOnly(target.column, target.row)) return;
         const active = now.activeCell;
         if (active !== askedActive && !(active && active.row === coord.row && active.col === coord.col)) return;
-        openEditor(now, coord, ref.rowId, ref.columnId, initialText);
+        proceed(now, coord);
       },
       (error: unknown) => {
         if (!finish()) return;
@@ -891,13 +908,26 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       endEditSession,
       renameRowKeys,
     });
-    const { _deleteCellsById, _commitCellEdit, _commitChange, _skipRowAction, ...otherWriteActions } = dataWriteActions;
+    const { _deleteCellsById, _commitCellEdit, _commitChange, _skipRowAction, _commitActivation, ...otherWriteActions } = dataWriteActions;
     const publicWriteActions = { ...otherWriteActions, commitCellEdit: (value: unknown, movement?: { dx: number; dy: number }) => _commitCellEdit(value, movement) };
     const internal: DataGridInternalActions = {
       _deleteCellsById,
       _skipRowAction,
       _commitCellEdit,
       _commitChange,
+      _activateCellAt(coord) {
+        const s = get();
+        if (s.readOnly) return;
+        const target = resolveEditTarget(s, coord);
+        const activate = target?.cellType.activate;
+        if (!target || !activate || isColumnReadOnly(target.column, target.row)) return;
+        askEditStart(s, coord, s.getRowId(target.row, target.dataRowIndex), target.column.id, true, (now, at) => {
+          const fresh = resolveEditTarget(now, at);
+          if (!fresh) return;
+          const value = getCellValue<unknown, typeof fresh.column>(fresh.row, fresh.column);
+          _commitActivation(at, activate(value, fresh.column.options));
+        });
+      },
       _armRowDragAnchor(index) {
         const s = get();
         if (!s.enableRowSelection) return;
@@ -1897,20 +1927,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const target = resolveEditTarget(s, coord);
         if (!target || target.cellType.activate || isColumnReadOnly(target.column, target.row)) return;
         const rowId = s.getRowId(target.row, target.dataRowIndex);
-        const gate = s.onBeforeEditStart;
-        if (gate) {
-          if (editStartRun && !editStartRun.aborted) return;
-          const ref = { rowId, columnId: target.column.id };
-          const run = gates.begin("onBeforeEditStart", (now) => cursorLeft(now, ref, s.activeCell));
-          const verdict = gate({ ...ref, viewRowIndex: coord.row, viewColumnIndex: coord.col }, { signal: run.signal });
-          if (verdict === false) return;
-          if (isThenable<boolean | void>(verdict)) {
-            editStartRun = run;
-            holdEditStart(s, run, ref, initialText, verdict);
-            return;
-          }
-        }
-        openEditor(s, coord, rowId, target.column.id, initialText);
+        askEditStart(s, coord, rowId, target.column.id, false, (now, at) => openEditor(now, at, rowId, target.column.id, initialText));
       },
       cancelEditing() {
         const s = get();

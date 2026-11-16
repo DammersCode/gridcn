@@ -1264,6 +1264,8 @@ export type DataGridActions = {
 
 /** @internal The `_`-prefixed store actions that the core and add-on wiring call; `useDataGridActions` never returns them. */
 export type DataGridInternalActions = {
+  /** @internal Asks `onBeforeEditStart` for an `activate` cell (a checkbox), then commits `activate(value, options)`; a validator rejection reaches `onValidationError` with source `"edit"`. */
+  _activateCellAt(coord: ViewCoord): void;
   /** @internal Arms a row range gesture at `index` without writing the rows channel, so a checkbox press can turn into a range drag while a stationary click keeps its own toggle. No-op when `enableRowSelection` is false. */
   _armRowDragAnchor(index: number): void;
   /**

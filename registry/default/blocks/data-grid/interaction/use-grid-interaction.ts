@@ -299,6 +299,8 @@ export function dispatchGridAction(args: {
     else if (targets.rows.length > 0) run(targets.rows);
   };
 
+  const activateCell = (coord: ViewCoord): void => getInternalActions(storeApi)._activateCellAt(coord);
+
   const moveAndScroll = (d: { dx: number; dy: number }, opts?: { extend?: boolean; retain?: boolean }) => {
     getInternalActions(storeApi)._moveActiveCell(d, opts);
     // extend keeps activeCell pinned at the anchor — scroll the growing selection's edge instead.
@@ -516,7 +518,7 @@ export function dispatchGridAction(args: {
     case "edit": {
       preventDefault();
       if (state.readOnly || !state.activeCell) break;
-      if (hasActivateCell(state, state.activeCell)) activateCell(state, actions, state.activeCell);
+      if (hasActivateCell(state, state.activeCell)) getInternalActions(storeApi)._activateCellAt(state.activeCell);
       else startEditingAndReveal(state.activeCell);
       break;
     }
@@ -618,20 +620,6 @@ function cellTypeAt(state: DataGridStoreState, coord: ViewCoord): CellType | und
 /** Whether the cell's type declares `activate` — the gesture semantics come from the type, not the name. */
 function hasActivateCell(state: DataGridStoreState, coord: ViewCoord): boolean {
   return cellTypeAt(state, coord)?.activate != null;
-}
-
-/** Runs the cell type's `activate` in place via the direct-write commit path (no edit session, no move). No-op for a readOnly column, an unresolvable row, or a type without `activate`. */
-function activateCell(state: DataGridStoreState, actions: DataGridActions, coord: ViewCoord): void {
-  const column = state.visibleColumns[coord.col];
-  const cellType = cellTypeAt(state, coord);
-  if (!column || !cellType?.activate) return;
-  const dataRowIndex = state.viewIndex[coord.row];
-  const row = dataRowIndex === undefined ? undefined : state.data[dataRowIndex];
-  if (row === undefined) return;
-  if (isColumnReadOnly(column, row)) return;
-  // explicit TData=unknown: row's `undefined`-narrowed type ({} | null) would otherwise drive inference instead of column's own already-unknown TData.
-  const value = getCellValue<unknown, typeof column>(row, column);
-  actions.commitCellValueAt(coord, cellType.activate(value, column.options));
 }
 
 /** Direction for a data-boundary (Ctrl/Cmd+Arrow) jump. */
@@ -990,7 +978,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
               if (coord.col === pending.col && coord.row === pending.row) {
                 const state = storeApi.getState();
                 if (!state.readOnly && hasActivateCell(state, pending)) {
-                  activateCell(state, actions, pending);
+                  getInternalActions(storeApi)._activateCellAt(pending);
                   resolvedByClickRef.current = pending;
                 }
               }
@@ -1212,7 +1200,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       resolvedByClickRef.current = null;
       if (alreadyResolved) return;
       // checkbox has no edit mode; direct-toggle instead of entering edit mode.
-      if (hasActivateCell(state, coord)) activateCell(state, actions, coord);
+      if (hasActivateCell(state, coord)) getInternalActions(storeApi)._activateCellAt(coord);
       else actions.startEditingAt(coord);
     },
     [actions, storeApi],
@@ -1232,7 +1220,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
           }
           actions.selectCellAt(coord);
           const state = storeApi.getState();
-          if (hitsCheckbox && !state.readOnly && hasActivateCell(state, coord)) activateCell(state, actions, coord);
+          if (hitsCheckbox && !state.readOnly && hasActivateCell(state, coord)) getInternalActions(storeApi)._activateCellAt(coord);
         },
         onLongPress: openContextMenuFromPress(event),
       });
@@ -1324,7 +1312,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       const state = storeApi.getState();
       // Excel model: only checkbox cells act on a stationary click; text/number/etc. never edit here.
       if (hasActivateCell(state, coord)) {
-        activateCell(state, actions, coord);
+        getInternalActions(storeApi)._activateCellAt(coord);
         resolvedByClickRef.current = coord;
       }
     },
