@@ -7,7 +7,7 @@ import type { CellType, FilterSpec } from "../types";
 type Row = { city: unknown };
 const data: Row[] = [{ city: "Bonn" }, { city: "Köln" }, { city: "Berlin" }];
 
-function viewCities(column: AnyColumnDef, filter: FilterSpec, types: Record<string, CellType> = cellTypes): unknown[] {
+function viewCities(column: AnyColumnDef, filter: FilterSpec, types: Record<string, CellType> = cellTypes as unknown as Record<string, CellType>): unknown[] {
   return computeViewIndex(data, [column], [], [filter], undefined, types).map((row) => data[row]!.city);
 }
 

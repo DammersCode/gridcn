@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cellTypes } from "../cell-types/cell-types";
 import { computeViewIndex } from "../store/compute";
 import type { AnyColumnDef } from "../store/types";
+import type { CellType } from "../types";
 import { KEYED_SORT_MIN_ROWS } from "./keyed-sort";
 
 type Row = { value: unknown };
@@ -10,7 +11,7 @@ const column: AnyColumnDef = { id: "value", header: "Value", accessorKey: "value
 
 function sortedValues(values: readonly unknown[], direction: "asc" | "desc" = "asc"): unknown[] {
   const data: Row[] = values.map((value) => ({ value }));
-  return computeViewIndex(data, [column], [{ columnId: "value", direction }], [], undefined, cellTypes).map((row) => data[row]!.value);
+  return computeViewIndex(data, [column], [{ columnId: "value", direction }], [], undefined, cellTypes as unknown as Record<string, CellType>).map((row) => data[row]!.value);
 }
 
 afterEach(() => vi.restoreAllMocks());
