@@ -118,7 +118,7 @@ Render the grid from [Render your first grid](/docs/learning-path/render-your-fi
 
 If the grid renders nothing, shows no rows, or has no styles, check these causes:
 
-- The grid shows "No rows" although your rows exist. `defaultData` seeds the grid once and ignores later changes, so rows that arrive after the first render never show. Pass them in `data` with `onDataChange` instead.
+- The grid shows "No rows" although your rows exist. `defaultData` seeds the grid once, so rows that arrive later never show, and the grid warns in development. Pass them in `data` with `onDataChange` instead.
 - The page throws "a row has no string or number `id` field". Add an `id` to each row, or pass `getRowId`.
 - The grid has no styles. Make sure your global CSS imports Tailwind and that the base tokens of shadcn/ui exist. The grid reads tokens such as `--background` and `--border`. The CLI adds `--grid-pin-shadow` and `--search-highlight` for light and dark mode.
 - The grid fails or loses its styles on an older stack. gridcn needs React 19 and Tailwind v4. See [Framework floors](/docs/support-upgrades/browser-framework-support#framework-floors).
