@@ -162,7 +162,7 @@ export function OrderGrid() {
 | Member | Description |
 | --- | --- |
 | `actions` | The stable actions object. It is the same object as `useDataGridActions()`. All writes go through it, such as `actions.startEditing`, `actions.cancelEditing`, and `actions.setSelection`. |
-| `store` | A `DataGridStoreWrapper`: `getState`, `getInitialState`, and `subscribe`. The state (`DataGridReadState`) omits most event callbacks, such as `onDataChange` and `onSelectionChange`. It keeps `onSave`, `onSaveRejected`, `onBeforeDeleteRows`, `onRowActionSkipped`, `onGateAborted`, `onPageChange`, and `onPageSizeChange`. |
+| `store` | A `DataGridStoreWrapper`: `getState`, `getInitialState`, and `subscribe`. Its type, `DataGridReadState`, leaves out the internal slots and most event callbacks, such as `onDataChange` and `onSelectionChange`. It keeps `onSave`, `onSaveRejected`, `onBeforeDeleteRows`, `onRowActionSkipped`, `onGateAborted`, `onPageChange`, and `onPageSizeChange`. |
 | `scrollTo()` | Takes a cell by `rowId` and `columnId` and scrolls it into view. A cell whose row left the data or the view, or whose column is hidden, does nothing, and a development build warns once. |
 | `focus()` | Scrolls the active cell into view and focuses it. With no active cell, it focuses the grid, and the first cell becomes active. It does nothing during an edit. |
 | `runShortcut(action)` | Runs what the key bound to a keymap action runs, whether or not a key is bound. A `commands` entry runs with its `when` and `scope`. Otherwise the built-in action runs with its guards. It does nothing before the grid mounts. |

@@ -129,6 +129,7 @@ export function deleteTopTwo(actions: DataGridActions) {
 | `RowBandRenderCtx` | The layout of one band | The argument of `render`. |
 | `DataGridPluginCtx<TData>` | `{ api }` | The context of the `onDataChange` observer. |
 | `OverlayPluginCtx` | The window and pin helpers | The props of an `Overlay` component. |
+| `OverlayRectProps` | `{ ctx, rect, className?, style? }` | The props of `OverlayRect`, which paints one `GridRect` of an `Overlay`. `data-grid-sdk` exports both. |
 | `PinTrackData` | `{ pins, trackLefts, trackRights, renderedUnpinnedRange }` | The pin and track data per column that an overlay segment needs to sit over a pinned cell. |
 | `RectSegment` | `{ rect, pin?, pinStyle? }` | One pin zone of a `GridRect`, with the style of a pinned zone. The unpinned middle segment has no `pin`. |
 
