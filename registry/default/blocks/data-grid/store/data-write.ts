@@ -601,7 +601,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         else pendingByRow.delete(rowId);
       }
       pendingSaves -= 1;
-      const rejectedAtSettle = readRejections(change, ack, error, failed);
+      const rejectedAtSettle = readRejections(change, ack, error, failed, warnGateOnce);
       const refusedAtSettle = new Set(rejectedAtSettle.map((entry) => liveId(entry.rowId)));
       // A chain only bridges writes that overlap in flight; an accepted write or an idle row ends it.
       for (const rowId of ids) if (!refusedAtSettle.has(rowId) && !pendingByRow.has(rowId)) dropChains(rowId);

@@ -54,17 +54,20 @@ export const EMPTY_SAVE_STATUS: ReadonlyMap<string, RowSaveStatus> = new Map();
 /** The grid reads at most this many rejections of one ack. */
 export const MAX_WRITE_REJECTIONS = 10_000;
 
-/** The rejections of a settled ack: a thrown error refuses every row, a malformed or oversized ack keeps its valid entries. */
-export function readRejections(change: DataChange<unknown>, ack: SaveAck, error: unknown, failed: boolean): SaveRejection[] {
+/** The rejections of a settled ack: a thrown error or more than {@link MAX_WRITE_REJECTIONS} rejections refuse every row of the change; a malformed ack keeps its valid entries. */
+export function readRejections(change: DataChange<unknown>, ack: SaveAck, error: unknown, failed: boolean, warn?: (key: string, message: string) => void): SaveRejection[] {
+  const rejected = ack?.rejected;
+  if (!failed && Array.isArray(rejected) && rejected.length > MAX_WRITE_REJECTIONS) {
+    warn?.("rejection bound", `an onSave answer listed more than ${MAX_WRITE_REJECTIONS} rejections, so the grid refuses every row of that change. Send at most ${MAX_WRITE_REJECTIONS} rejections, or reject with an error`);
+    return readRejections(change, undefined, undefined, true);
+  }
   if (failed) {
     const message = error instanceof Error ? error.message : undefined;
     return [...new Set(change.ops.map((op) => op.rowId))].map((rowId) => (message === undefined ? { rowId } : { rowId, message }));
   }
-  const rejected = ack?.rejected;
   if (!Array.isArray(rejected)) return [];
   const out: SaveRejection[] = [];
   for (const entry of rejected as readonly unknown[]) {
-    if (out.length >= MAX_WRITE_REJECTIONS) break;
     if (typeof entry !== "object" || entry === null || typeof (entry as SaveRejection).rowId !== "string") continue;
     const { rowId, columnId, message, current } = entry as SaveRejection;
     out.push({
