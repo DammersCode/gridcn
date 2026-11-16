@@ -140,6 +140,14 @@ export type Pager = { size: number } & ToolbarOptions;
     ]);
   });
 
+  it("counts the names of a comma-separated first cell as documented and does not check them against the marker types", () => {
+    const table = "{/* props: ToolbarOptions */}\n\n| Options | Used by |\n|---|---|\n| `mode` | `useX` |\n| `pageSize`, `density` | `useX` |\n| `elsewhere`, `other` | `useY` |\n";
+    const root = fixture({ "registry/default/blocks/x/types.ts": source, "content/docs/p.mdx": page("P", table) });
+    const result: Run = runProps({ root });
+    expect(result.failures).toEqual([]);
+    expect(result.warnings.join("\n")).not.toMatch(/members not in the table:.*(pageSize|density)/);
+  });
+
   it("keeps mismatches of a guessed table as warnings", () => {
     const root = fixture({
       "registry/default/blocks/x/types.ts": source,
