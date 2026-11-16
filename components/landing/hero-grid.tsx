@@ -39,7 +39,7 @@ export function HeroGrid(): ReactNode {
           </DataGridRoot>
         </DataGridProvider>
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         <span className="pointer-coarse:hidden">
           Try it: select the Count and Item cells of rows 1 to 3, then drag the corner handle down. The series continues: 4, 5, 6 and Item 4, Item 5, Item 6. Ctrl+Z undoes it.
         </span>

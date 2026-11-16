@@ -21,7 +21,7 @@ function Panel({ id, title, intro, children, className }: { id: string; title: s
         <h2 id={id} className="text-lg font-semibold tracking-tight">
           {title}
         </h2>
-        {intro && <p className="mt-0.5 max-w-2xl text-sm text-muted-foreground">{intro}</p>}
+        {intro && <p className="mt-1 max-w-prose text-base leading-relaxed text-muted-foreground">{intro}</p>}
       </div>
       {children}
     </section>
@@ -50,7 +50,7 @@ function Hero() {
         <div className={`w-full max-w-md text-start ${installFit}`}>
           <InstallCommand item="data-grid" />
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Needs a shadcn/ui project, React 19 and Tailwind v4.{" "}
           <Link href="/docs/learning-path/install-gridcn" className="inline-flex min-h-10 items-center underline underline-offset-4">
             Install guide
@@ -64,13 +64,13 @@ function Hero() {
 function KitPanel() {
   return (
     <Panel id="kit" title="What you get" intro={<>Range selection, paste from Excel and a fill handle cost a paid tier in AG Grid and MUI X. In gridcn they are free.</>}>
-      <TileGrid className="grid-cols-2 lg:grid-cols-4">
+      <TileGrid className="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {kitTiles.map(({ icon: Icon, title, text, href }) => (
           <li key={title} className="bg-card">
             <Link href={href} className={tile}>
               <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
               <h3 className="text-sm font-medium">{title}</h3>
-              <span className="text-xs text-muted-foreground max-sm:line-clamp-2">{text}</span>
+              <span className="text-sm leading-relaxed text-muted-foreground">{text}</span>
             </Link>
           </li>
         ))}
@@ -202,7 +202,7 @@ function ComparePanel() {
       intro="Each cell links to the page that states it. gridcn ships the editing features free. It does not build row grouping, tree data, pivoting or master-detail."
     >
       <CompareTable />
-      <p className="text-xs text-muted-foreground">
+      <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
         Checked on {COMPARISON_DATE} against the vendors&apos; public documentation pages. Vendors change tiers: check the linked page.{" "}
         <Link href={FEATURE_MATRIX_HREF} className="inline-flex min-h-10 items-center underline underline-offset-4">
           Feature matrix of gridcn
@@ -218,13 +218,13 @@ function AgentsPanel() {
       <div className={`w-full max-w-md ${installFit}`}>
         <InstallCommand command="skills add DammersCode/gridcn" />
       </div>
-      <TileGrid className="grid-cols-1">
+      <TileGrid className="grid-cols-1 md:grid-cols-2">
         {agentSkills.map(({ icon: Icon, title, text }) => (
           <li key={title} className="bg-card">
             <Link href={`/docs/try-automate/use-agent-skills#${title}`} className={tile}>
               <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
-              <h3 className="font-mono text-xs font-medium">{title}</h3>
-              <span className="text-xs text-muted-foreground">{text}</span>
+              <h3 className="font-mono text-sm font-medium">{title}</h3>
+              <span className="text-sm leading-relaxed text-muted-foreground">{text}</span>
             </Link>
           </li>
         ))}
@@ -236,12 +236,12 @@ function AgentsPanel() {
 function AddOnsPanel() {
   return (
     <Panel id="addons" title="Modular by design" intro="Each add-on is a separate registry item. Install only the ones you want.">
-      <TileGrid className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-2">
+      <TileGrid className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
         {addOnTiles.map(({ icon: Icon, title, href }) => (
           <li key={title} className="bg-card">
             <Link
               href={href}
-              className={`flex h-full min-h-16 flex-col items-center justify-center gap-1.5 p-2 text-center text-xs transition-colors hover:bg-muted lg:min-h-12 lg:flex-row lg:justify-start lg:px-3 lg:text-start ${focus}`}
+              className={`flex h-full min-h-16 flex-col items-center justify-center gap-1.5 p-2 text-center text-sm transition-colors hover:bg-muted lg:min-h-12 lg:flex-row lg:justify-start lg:px-3 lg:text-start ${focus}`}
             >
               <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
               {title}
@@ -277,24 +277,18 @@ function FooterLinks() {
   );
 }
 
-const pair = "grid items-start gap-4 lg:grid-cols-2";
-
 export function LandingPage() {
   return (
     <div className="relative z-10 flex w-full max-w-5xl flex-col gap-4 px-4 pb-12 pt-6 sm:px-6">
       <Hero />
       <KitPanel />
       <StartPanel />
-      <div className={pair}>
-        <NewPanel />
-        <PerfPanel />
-      </div>
+      <NewPanel />
+      <PerfPanel />
       <ServerPanel />
       <ComparePanel />
-      <div className={pair}>
-        <AgentsPanel />
-        <AddOnsPanel />
-      </div>
+      <AgentsPanel />
+      <AddOnsPanel />
       <FooterLinks />
     </div>
   );

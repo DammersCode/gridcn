@@ -24,19 +24,19 @@ export function SiteLink({ href, className, children, ...rest }: { href: string;
 export function PerfStats() {
   return (
     <div>
-      <ul className="grid gap-px border bg-border sm:grid-cols-3">
+      <ul className="grid gap-px border bg-border lg:grid-cols-3">
         {perfStats.map((s) => (
           <li key={s.title} className="bg-card">
             <Link href={s.href} className={`flex h-full flex-col gap-1 p-4 transition-colors hover:bg-muted ${focus}`}>
               <span className="text-2xl font-bold tracking-tight tabular-nums">{s.value}</span>
-              <span className="text-sm font-medium">{s.title}</span>
-              <span className="text-xs text-muted-foreground">{s.detail}</span>
-              <span className="text-xs underline underline-offset-4">Source: {s.source}</span>
+              <span className="text-base font-medium">{s.title}</span>
+              <span className="text-sm leading-relaxed text-muted-foreground">{s.detail}</span>
+              <span className="text-sm underline underline-offset-4">Source: {s.source}</span>
             </Link>
           </li>
         ))}
       </ul>
-      <p className="mt-2 text-xs text-muted-foreground">
+      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
         {perfNote}{" "}
         <Link href={perfRunHref} className="inline-flex min-h-10 items-center underline underline-offset-4">
           Run the benchmark on your machine
@@ -48,12 +48,12 @@ export function PerfStats() {
 
 export function ServerHighlights() {
   return (
-    <ul className="grid grid-cols-2 gap-px border bg-border lg:grid-cols-3">
+    <ul className="grid gap-px border bg-border sm:grid-cols-2 lg:grid-cols-3">
       {serverHighlights.map((h) => (
         <li key={h.title} className="bg-card">
           <Link href={h.href} className={`flex h-full flex-col gap-1 p-4 transition-colors hover:bg-muted ${focus}`}>
             <h3 className="text-sm font-medium">{h.title}</h3>
-            <span className="text-xs text-muted-foreground">{h.text}</span>
+            <span className="text-sm leading-relaxed text-muted-foreground">{h.text}</span>
           </Link>
         </li>
       ))}
