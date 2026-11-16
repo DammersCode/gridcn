@@ -678,6 +678,52 @@ describe("useDataGridViews storage events", () => {
   });
 });
 
+describe("useDataGridViews storage events, inline storage", () => {
+  function tabStorage(doc: DataGridViewsDocument) {
+    const state = { stored: doc, notify: () => {}, subscribes: 0 };
+    const make = (): DataGridViewsStorage => ({
+      load: () => state.stored,
+      save: (next) => {
+        state.stored = next;
+      },
+      subscribe: (onChange) => {
+        state.subscribes += 1;
+        state.notify = onChange;
+        return () => {};
+      },
+    });
+    return { state, make };
+  }
+
+  it("subscribes once for an inline storage object that changes on every render", async () => {
+    const tab = tabStorage(seeded());
+    const probe: { current: Probe | null } = { current: null };
+    const tree = () => (
+      <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id}>
+        <Harness options={{ storage: tab.make() }} onProbe={(p) => (probe.current = p)} />
+      </DataGridProvider>
+    );
+    const view = render(tree());
+    await ready(probe);
+    view.rerender(tree());
+    view.rerender(tree());
+    expect(tab.state.subscribes).toBe(1);
+  });
+
+  it("clears the active view when another tab deleted it", async () => {
+    const tab = tabStorage(seeded());
+    const onValueChange = vi.fn();
+    const { probe } = setup({ storage: tab.make(), onValueChange });
+    await ready(probe);
+    act(() => probe.current!.views.selectView("a"));
+    expect(probe.current!.views.activeViewId).toBe("a");
+    tab.state.stored = { ...tab.state.stored, views: tab.state.stored.views.filter((v) => v.id !== "a") };
+    act(() => tab.state.notify());
+    await waitFor(() => expect(probe.current!.views.activeViewId).toBeNull());
+    expect(onValueChange).toHaveBeenLastCalledWith(null);
+  });
+});
+
 describe("useDataGridViews limits", () => {
   const wide = defineColumns<Record<string, string> & { id: string }>()(
     Array.from({ length: 65 }, (_, i) => ({ id: `c${i}`, header: `C${i}`, accessorKey: `c${i}`, type: "text", width: 80 })) as never,

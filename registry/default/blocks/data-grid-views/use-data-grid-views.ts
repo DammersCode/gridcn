@@ -290,7 +290,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
   useEffect(() => {
     if (!loaded) return;
     const controller = new AbortController();
-    const unsubscribe = storage.subscribe?.(() => {
+    const unsubscribe = storageRef.current.subscribe?.(() => {
       if (savingRef.current || pendingSaveRef.current) return;
       void (async () => {
         let raw: unknown;
@@ -305,13 +305,15 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
         if (!parsed) return;
         documentRef.current = parsed;
         setDocument(parsed);
+        const activeId = (latest.current.value !== undefined ? latest.current.value : appliedIdRef.current) ?? null;
+        if (activeId !== null && !parsed.views.some((view) => view.id === activeId)) setActive(null);
       })();
     });
     return () => {
       controller.abort();
       unsubscribe?.();
     };
-  }, [loaded, storage, reportError]);
+  }, [loaded, reportError, setActive]);
 
   useEffect(() => {
     if (!loaded || appliedIdRef.current === activeViewId) return;
