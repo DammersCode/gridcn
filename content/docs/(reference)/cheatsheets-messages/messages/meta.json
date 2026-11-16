@@ -1,0 +1,14 @@
+{
+  "title": "Messages",
+  "icon": "MessageSquareWarning",
+  "pages": [
+    "index",
+    "setup",
+    "data",
+    "grid-parts",
+    "thrown-errors",
+    "server",
+    "addons",
+    "shown-text"
+  ]
+}

@@ -842,12 +842,45 @@ function messageAnchor(text, taken) {
   return `<span id="${id}" />`;
 }
 
-function messages() {
-  const sections = [];
+const MESSAGES_URL = "/docs/cheatsheets-messages/messages";
+const READING_NOTE = "Most console warnings print only in a development build, and most print once. A word in angle brackets, such as `<id>`, stands for a value that the grid fills in. A message that ends in `...` continues past the text that the table quotes. The tables leave out the backticks that some messages put around prop names.";
+
+const MESSAGE_PAGES = [
+  { slug: "setup", title: "Setup and keymap messages", description: "Look up the warnings about grid setup, column definitions, and the keymap, and fix their cause.", sections: ["setup-warnings", "keymap-warnings"] },
+  { slug: "data", title: "Data, save, and gate messages", description: "Look up the warnings about row data, saves, and async gates, and fix their cause.", sections: ["data-warnings", "save-warnings", "gate-warnings"] },
+  { slug: "grid-parts", title: "Clipboard, layout, and plugin messages", description: "Look up the warnings about the clipboard, the layout, plugins, and column groups, and fix their cause.", sections: ["clipboard-warnings", "layout-warnings", "plugin-warnings", "column-group-warnings"] },
+  { slug: "thrown-errors", title: "Thrown errors", description: "Look up the errors that the grid throws, and fix their cause.", sections: ["thrown-errors"] },
+  { slug: "server", title: "Server rows messages", description: "Look up the warnings and errors of useDataGridServerRows, and fix their cause.", sections: ["server-warnings"] },
+  { slug: "addons", title: "Add-on messages", description: "Look up the warnings of the history, pinned rows, saved views, URL state, presence, import and export, fill, and find and replace add-ons.", sections: ["addon-warnings"] },
+  { slug: "shown-text", title: "Shown text", description: "Look up the default text that the grid shows the user after a failure.", sections: ["shown-text"] },
+];
+
+const messagePageUrl = (page) => `${MESSAGES_URL}/${page.slug}`;
+const messagePageFile = (page) => `content/docs/(reference)/cheatsheets-messages/messages/${page.slug}.mdx`;
+
+/** The catalog with the add-on section split in two: the server rows hook has its own page. */
+function messageSections() {
+  return MESSAGES.flatMap((section) => {
+    if (section.id !== "addon-warnings") return [section];
+    const isServer = (m) => (m.file ?? "").includes("/data-grid-server/");
+    return [
+      { ...section, id: "server-warnings", title: "Server rows warnings", intro: "`useDataGridServerRows` prints its own prefix.", rows: section.rows.filter(isServer) },
+      { ...section, intro: "Each other add-on prints its own prefix.", rows: section.rows.filter((m) => !isServer(m)) },
+    ];
+  });
+}
+
+let messageOutputs = null;
+
+/** Renders the Messages index and its area pages once: slug -> page text. */
+function messagePages() {
+  if (messageOutputs) return messageOutputs;
   const anchors = new Set();
   const sources = new Map();
   const all = MESSAGES.flatMap((s) => s.rows).filter((m) => m.file);
-  for (const section of MESSAGES) {
+  const rendered = new Map();
+  const counts = new Map();
+  for (const section of messageSections()) {
     const rows = section.rows.map((m) => {
       if (m.file) {
         const text = sources.get(m.file) ?? read(m.file);
@@ -857,19 +890,38 @@ function messages() {
       }
       return [`${messageAnchor(m.text, anchors)}${code(m.text)}`, cell(m.fix), m.page ? link(m.page) : ""];
     });
-    sections.push(`## ${section.title} [#${section.id}]`, "", section.intro, "", table(["Message", section.id === "shown-text" ? "When it shows" : "What to do", "Page"], rows));
+    counts.set(section.id, rows.length);
+    rendered.set(section.id, [`## ${section.title} [#${section.id}]`, "", section.intro, "", table(["Message", section.id === "shown-text" ? "When it shows" : "What to do", "Page"], rows)]);
   }
   scanMessageSites(all);
   for (const o of OMITTED) if (!(sources.get(o.file) ?? read(o.file)).includes(o.line)) problems.push(`messages: OMITTED line "${o.line}" is gone from ${o.file}`);
-  return [
+  const used = new Set(MESSAGE_PAGES.flatMap((p) => p.sections));
+  for (const id of rendered.keys()) if (!used.has(id)) problems.push(`messages: section ${id} is on no page of MESSAGE_PAGES`);
+  messageOutputs = new Map();
+  for (const page of MESSAGE_PAGES) {
+    messageOutputs.set(page.slug, [
+      frontmatter({ title: page.title, description: page.description, type: "reference", icon: "MessageSquareWarning", }),
+      MARKER,
+      "",
+      READING_NOTE,
+      "",
+      ...page.sections.flatMap((id) => rendered.get(id) ?? []),
+      related([MESSAGES_URL, "all message pages"], ["/docs/theme-style-language/labels-i18n", "change the text the grid shows"], ["/docs/data-modes/troubleshoot-server-data", "fix a server data problem"]),
+    ].join("\n"));
+  }
+  const areaRows = MESSAGE_PAGES.map((page) => [`[${page.title}](${messagePageUrl(page)})`, String(page.sections.reduce((sum, id) => sum + (counts.get(id) ?? 0), 0)), cell(page.description.replace(/^Look up /, "").replace(/, and fix their cause\.$/, "").replace(/\.$/, ""))]);
+  messageOutputs.set("index", [
     frontmatter({ title: "Messages", description: "Look up the text that the grid prints, throws, or shows, and fix its cause.", type: "reference", icon: "MessageSquareWarning", aliases: ["error message", "warning", "console warning"] }),
     MARKER,
     "",
-    "Most console warnings print only in a development build, and most print once. A word in angle brackets, such as `<id>`, stands for a value that the grid fills in. A message that ends in `...` continues past the text that the table quotes. The tables leave out the backticks that some messages put around prop names.",
+    READING_NOTE,
     "",
-    ...sections,
+    "Each page lists the messages of one area.",
+    "",
+    table(["Page", "Messages", "Covers"], areaRows),
     related(["/docs/theme-style-language/labels-i18n", "change the text the grid shows"], ["/docs/terms-help/fix-install-problems", "fix an install problem"], ["/docs/data-modes/troubleshoot-server-data", "fix a server data problem"]),
-  ].join("\n");
+  ].join("\n"));
+  return messageOutputs;
 }
 
 /** The type names that the data-grid barrel exports. */
@@ -901,7 +953,8 @@ const OUTPUTS = [
   ["content/docs/(reference)/cheatsheets-messages/options-z.mdx", optionsZ],
   ["content/docs/(reference)/cheatsheets-messages/events-z.mdx", eventsZ],
   ["content/docs/(reference)/cheatsheets-messages/actions-z.mdx", actionsZ],
-  ["content/docs/(reference)/cheatsheets-messages/messages.mdx", messages],
+  ["content/docs/(reference)/cheatsheets-messages/messages/index.mdx", () => messagePages().get("index")],
+  ...MESSAGE_PAGES.map((page) => [messagePageFile(page), () => messagePages().get(page.slug)]),
   ["content/docs/(learn)/terms-help/terms.mdx", terms],
 ];
 
@@ -909,6 +962,10 @@ function main() {
   const check = process.argv.includes("--check");
   checkTypeCoverage();
   const rendered = [];
+  for (const [file] of OUTPUTS) {
+    const url = urlOfPage(contentDir, join(root, file));
+    if (!pages.has(url)) pages.set(url, { file: join(root, file), front: "", body: "", anchors: new Set() });
+  }
   for (const [file, make] of OUTPUTS) {
     const text = make().replace(/\n{3,}/g, "\n\n").trimEnd() + "\n";
     rendered.push([file, text]);

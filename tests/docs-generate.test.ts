@@ -4,7 +4,8 @@ import { describe, expect, it } from "vitest";
 
 const page = (path: string) => readFileSync(`content/docs/${path}.mdx`, "utf8").replace(/\r\n/g, "\n");
 const keyboard = () => page("(reference)/cheatsheets-messages/keyboard-shortcuts");
-const messages = () => page("(reference)/cheatsheets-messages/messages");
+const MESSAGE_PAGES = ["index", "setup", "data", "grid-parts", "thrown-errors", "server", "addons", "shown-text"];
+const messages = () => MESSAGE_PAGES.map((name) => page(`(reference)/cheatsheets-messages/messages/${name}`)).join("\n");
 // The generator compiles the blocks with TypeScript: about 1 s alone, several seconds under a parallel run.
 const GENERATOR_TIMEOUT_MS = 60_000;
 
@@ -207,7 +208,7 @@ describe("options page", () => {
 
 describe("docs-generate write mode", { timeout: GENERATOR_TIMEOUT_MS }, () => {
   it("leaves current pages untouched, including CRLF checkouts", () => {
-    const file = "content/docs/(reference)/cheatsheets-messages/messages.mdx";
+    const file = "content/docs/(reference)/cheatsheets-messages/messages/index.mdx";
     const original = readFileSync(file);
     const crlf = Buffer.from(original.toString("utf8").replace(/\r\n/g, "\n").replace(/\n/g, "\r\n"));
     writeFileSync(file, crlf);
