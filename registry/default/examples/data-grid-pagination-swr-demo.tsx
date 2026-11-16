@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import useSWR from "swr";
 import {
   DataGridProvider,
@@ -24,9 +24,10 @@ const columns = defineColumns<DemoRow>()([
 /**
  * Server-mode pagination through SWR: `useSWR(["rows", page, pageSize], fetcher)` fetches the
  * current page from the fake server (~300 ms) and caches it by key, so paging back is instant.
- * The last fetched rows are kept in local state so the grid keeps showing them while the next
- * page loads (SWR has no built-in keep-previous). Edits write through to the fake server, then
- * the scoped `mutate` revalidates the current key so the grid shows the server's truth.
+ * `keepPreviousData` keeps the last fetched rows on screen while the next
+ * page loads. `onDataChange` writes the edit into the cached page, and `onSave`
+ * writes it to the fake server, then the scoped `mutate` revalidates the current key so the grid shows
+ * the server's truth.
  *
  * The fetcher receives the key itself as its argument (SWR 2.x convention), hence the tuple
  * cast rather than destructured parameters.
@@ -35,15 +36,12 @@ function PaginatedSwrGrid(): ReactNode {
   const server = useMemo(() => createRemoteServer(), []);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
-  const [rows, setRows] = useState<readonly DemoRow[]>([]);
 
-  const { data, isLoading, mutate } = useSWR(["rows", page, pageSize] as [string, number, number], (key) =>
-    server.fetchPage({ page: key[1], pageSize: key[2] }),
+  const { data, isLoading, mutate } = useSWR(
+    ["rows", page, pageSize] as [string, number, number],
+    (key) => server.fetchPage({ page: key[1], pageSize: key[2] }),
+    { keepPreviousData: true },
   );
-
-  useEffect(() => {
-    if (data) setRows(data.rows);
-  }, [data]);
 
   const { pager } = useDataGridServerPager({
     page,
@@ -57,9 +55,16 @@ function PaginatedSwrGrid(): ReactNode {
   });
 
   const onDataChange = useCallback(
-    (_next: readonly DemoRow[], change: DataChange<DemoRow>) => {
+    (next: readonly DemoRow[]) => {
+      void mutate({ rows: [...next], total: data?.total ?? server.total }, { revalidate: false });
+    },
+    [data?.total, mutate, server],
+  );
+
+  const onSave = useCallback(
+    async (change: DataChange<DemoRow>) => {
       server.applyOps(change.ops);
-      void mutate();
+      await mutate();
     },
     [mutate, server],
   );
@@ -70,7 +75,7 @@ function PaginatedSwrGrid(): ReactNode {
         {isLoading ? "Loading page…" : `Page ${pager.page} of ${pager.pageCount} · ${data?.total ?? 0} rows on the server`}
       </div>
       <div className="flex h-[420px] flex-col overflow-hidden rounded-md border border-border">
-        <DataGridProvider data={rows} columns={columns} onDataChange={onDataChange}>
+        <DataGridProvider data={data?.rows ?? []} columns={columns} onDataChange={onDataChange} onSave={onSave}>
           <DataGridRoot className="min-h-0 flex-1 rounded-none border-none">
             <DataGridHeader />
             <DataGridBody />

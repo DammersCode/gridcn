@@ -24,9 +24,9 @@ const columns = defineColumns<DemoRow>()([
 /**
  * Server-mode pagination through TanStack Query: `useDataGridServerPager` only owns the page
  * math; `useQuery` fetches the current `[page, pageSize]` from the fake server (~300 ms), and
- * `keepPreviousData` keeps the old page on screen while the next one loads. Edits write through
- * to the fake server, then `invalidateQueries` drops the cached pages so the grid refetches and
- * shows the server's truth.
+ * `keepPreviousData` keeps the old page on screen while the next one loads. `onDataChange` writes
+ * the edit into the cached page, and `onSave` writes it to the fake server, then `invalidateQueries`
+ * drops the cached pages so the grid refetches and shows the server's truth.
  */
 function PaginatedReactQueryGrid(): ReactNode {
   const server = useMemo(() => createRemoteServer(), []);
@@ -52,9 +52,16 @@ function PaginatedReactQueryGrid(): ReactNode {
   });
 
   const onDataChange = useCallback(
-    (_next: readonly DemoRow[], change: DataChange<DemoRow>) => {
+    (next: readonly DemoRow[]) => {
+      queryClient.setQueryData(["rows", page, pageSize], { rows: [...next], total: query.data?.total ?? server.total });
+    },
+    [page, pageSize, query.data?.total, queryClient, server],
+  );
+
+  const onSave = useCallback(
+    async (change: DataChange<DemoRow>) => {
       server.applyOps(change.ops);
-      void queryClient.invalidateQueries({ queryKey: ["rows"] });
+      await queryClient.invalidateQueries({ queryKey: ["rows"] });
     },
     [queryClient, server],
   );
@@ -65,7 +72,7 @@ function PaginatedReactQueryGrid(): ReactNode {
         {query.isPending ? "Loading page…" : `Page ${pager.page} of ${pager.pageCount} · ${query.data?.total ?? 0} rows on the server`}
       </div>
       <div className="flex h-[420px] flex-col overflow-hidden rounded-md border border-border">
-        <DataGridProvider data={query.data?.rows ?? []} columns={columns} onDataChange={onDataChange}>
+        <DataGridProvider data={query.data?.rows ?? []} columns={columns} onDataChange={onDataChange} onSave={onSave}>
           <DataGridRoot className="min-h-0 flex-1 rounded-none border-none">
             <DataGridHeader />
             <DataGridBody />
