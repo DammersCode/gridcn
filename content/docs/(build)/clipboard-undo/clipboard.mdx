@@ -31,7 +31,7 @@ Copy takes the range that the user selected last, and no earlier Ctrl/Cmd+click 
 
 A paste back into gridcn reads that attribute, so tabs and runs of spaces survive.
 
-<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>X</kbd> copies the same way and then clears the copied cells. On a `readOnly` grid, cut only copies. While a cell editor is open, the editor handles copy, cut, and paste itself.
+<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>X</kbd> copies the same way and then clears the copied cells. Cut skips read-only cells. It writes one change with the source `"cut"`. On a `readOnly` grid, cut only copies. While a cell editor is open, the editor handles copy, cut, and paste itself.
 
 <Callout title="toText, not toDisplayText">
   The copied text of each cell comes from the `toText` of its cell type. Display formatting, such
@@ -45,7 +45,7 @@ Select a range, press <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>C</kbd>, and paste int
 - The rows come in view order, after the sort and the filters.
 - Only visible columns go into the copy. Column headers stay out.
 - In the table, a tab in a cell becomes four spaces, and a line break stays inside the cell.
-- The spreadsheet runs formula-like text as a formula. Set [`sanitizeClipboardFormulas`](#formula-sanitizing) to paste it as text.
+- The copy prefixes formula-like text with `'`, so the spreadsheet pastes it as text. [`sanitizeClipboardFormulas`](#formula-sanitizing) controls this.
 
 ## Known limitations [#known-limitations]
 
@@ -53,20 +53,20 @@ Select a range, press <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>C</kbd>, and paste int
 | --- | --- | --- |
 | Copied cells | 200,000 | The copy writes only the rows that fit. |
 | Pasted cells | 200,000 | The paste applies only the first rows that fit. |
-| Pasted HTML | 16,000,000 characters (200,000 cells at 80 characters each) | The grid ignores the HTML and reads the plain text. |
+| Pasted HTML | 16,000,000 characters (80 characters for each of the 200,000 cells a paste can write) | The grid ignores the HTML and reads the plain text. |
 | Pasted plain text | 51,200,000 characters, 200,000 cells at 256 characters each | The paste writes nothing. |
 
 A truncated copy or paste warns in the browser console in development.
 
 <Callout type="warn" title="Real-world clipboard HTML is messy">
-  The HTML reader takes the first `<table>`. A merged cell keeps its text in its first position.
-  Inline styles from Excel, Sheets, and Numbers can hide this structure. If one app pastes wrong,
-  patch it with `processPaste` or `processCellFromClipboard`.
+  The HTML reader takes the first `<table>`. A merged cell keeps its text in its first position
+  and leaves the cells it covers empty. Inline styles from Excel, Sheets, and Numbers can hide
+  this structure. If one app pastes wrong, patch it with `processPaste` or `processCellFromClipboard`.
 </Callout>
 
 ## Formula sanitizing [#formula-sanitizing]
 
-If a copied cell starts with `=`, `+`, `-`, `@`, TAB, or CR, a spreadsheet app that pastes it runs it as a formula. To copy such cells as text, set `sanitizeClipboardFormulas` (default `false`):
+If a copied cell starts with `=`, `+`, `-`, `@`, TAB, or CR, a spreadsheet app that pastes it runs it as a formula. By default, the grid copies such cells as text. Set `sanitizeClipboardFormulas` to `false` to copy the raw text:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
@@ -80,14 +80,18 @@ const columns = defineColumns<Row>()([
 
 function MyGrid() {
   return (
-    <DataGrid defaultData={rows} columns={columns} sanitizeClipboardFormulas />
+    <DataGrid
+      defaultData={rows}
+      columns={columns}
+      sanitizeClipboardFormulas={false}
+    />
   );
 }
 ```
 
-Result: copying the cell puts `'=SUM(A1:A3)` on the clipboard.
+Result: copying the cell puts `=SUM(A1:A3)` on the clipboard. Without the prop, it puts `'=SUM(A1:A3)` there.
 
-With the prop on, Ctrl+C, Ctrl+X, and the context menu's Copy and Cut put a single quote in front of each formula-like cell. The quote goes into both the `text/plain` and the `text/html` payload. Plain numbers such as `-5`, `+5`, and `-1e-7` stay unchanged. A paste back into gridcn restores the raw value.
+By default, Ctrl+C, Ctrl+X, and the context menu's Copy and Cut put a single quote in front of each formula-like cell. The quote goes into both the `text/plain` and the `text/html` payload. Plain numbers such as `-5`, `+5`, and `-1e-7` stay unchanged. A paste back into gridcn restores the raw value.
 
 The context menu writes through the async Clipboard API. If the browser lacks or denies that API, the copy writes plain text only. A paste back from that copy keeps the quote.
 
@@ -103,7 +107,7 @@ Three props replace one step of copy or paste. [Change copy and paste](/docs/cli
 
 | Prop | Type | Default |
 | --- | --- | --- |
-| `sanitizeClipboardFormulas` | `boolean` | `false` |
+| `sanitizeClipboardFormulas` | `boolean` | `true` |
 | `processCellForClipboard` | `(value, ctx) => string` | none |
 | `processCellFromClipboard` | `(text, ctx) => unknown` | none |
 | `processPaste` | `({ cells, target, signal }) => string[][] \| false \| Promise<string[][] \| false>` | none |
@@ -113,15 +117,46 @@ Three props replace one step of copy or paste. [Change copy and paste](/docs/cli
 `useDataGridClipboard` returns `copy`, `cut`, and `pasteFromClipboard` for your own buttons. Call it under the grid's provider:
 
 ```tsx
-import { useDataGridClipboard } from "@/components/data-grid/data-grid";
+import {
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+  useDataGridClipboard,
+} from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string };
+
+const rows: Row[] = [{ id: "1", name: "Pen" }];
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
 
 function CopyButton() {
   const clipboard = useDataGridClipboard();
   return <button onClick={() => void clipboard.copy()}>Copy selection</button>;
 }
-```
 
-`copy` and `cut` resolve `"ok"`, `"fallback"` (plain text only), `"failed"`, or `"no-selection"`. `pasteFromClipboard` resolves `"ok"`, `"permission-denied"`, `"empty"` (no text on the clipboard), or `"refused"`. `"refused"` means no paste started. Causes: a `readOnly` grid or an open editor (checked before any read), no target, a sync `processPaste` veto, a pending gate, or no cells. A paste through this hook carries no HTML.
+function MyGrid() {
+  return (
+    <DataGridProvider defaultData={rows} columns={columns}>
+      <CopyButton />
+      <DataGridRoot />
+    </DataGridProvider>
+  );
+}
+```
+`copy` also runs while a cell editor is open. `cut` and `pasteFromClipboard` resolve `"refused"` then.
+
+`copy` and `cut` resolve `"ok"`, `"fallback"` (plain text only), `"failed"`, or `"no-selection"`. `cut` also resolves `"refused"`. `pasteFromClipboard` resolves one of these:
+
+| Result | Meaning |
+| --- | --- |
+| `"ok"` | A paste started. |
+| `"permission-denied"` | The browser refused to read the clipboard. |
+| `"empty"` | The clipboard holds no text. |
+| `"refused"` | No paste started. The grid is `readOnly`, a cell editor is open, there is no target, a sync `processPaste` vetoed it, or the text holds no cells. |
+
+A paste through this hook carries no HTML.
 
 ### Context menu paste [#context-menu-paste]
 

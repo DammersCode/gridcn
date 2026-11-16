@@ -3,19 +3,24 @@ title: Column visibility
 icon: EyeOff
 description: Hide and show columns from code, a menu, or a column definition, and read column state in your own UI.
 type: feature
-demos: none
 aliases: ["hide columns", "show columns"]
 ---
 
 Users hide the columns they do not need. `hidden: true` starts a column hidden. `setColumnHidden` toggles a column from code. `DataGridColumnsMenu` gives users a checkbox for each column.
 
+<ComponentPreview name="data-grid-column-layout-demo" />
+
 ## Hide and show columns [#visibility]
 
 `hidden: true` in a `ColumnDef` sets the first state. `setColumnHidden(id, hidden)` and the columns menu override it. The flag applies once for each column id, when the id first appears. A new `columns` array keeps the visibility of the columns it already has and seeds only new ids.
 
+A hidden column is left out of the export and of quick search matches. A filter or sort on it stays active. Clear it in the filter menu or with `setFilterState`.
+
 `DataGridColumnsMenu` ships with the [toolbar add-on](/docs/sort-filter-search/toolbar). It is a dropdown with a checked row for each column. The header menu of the [context menu add-on](/docs/rows-pages-menus/context-menu#header-surface) has a "Hide column" item.
 
-`hideable: false` protects a key column. The columns menu shows its row checked and turned off while the column is visible. If code hid the column, the row is unchecked and a click shows the column again. The header menu has no "Hide column" item. `setColumnHidden`, URL state, saved views, and `hidden` still apply to the column. This sample sets `hideable: false` on the name column:
+`hideable: false` protects a key column. The columns menu shows its row checked and turned off while the column is visible. If code hid the column, the row is unchecked and a click shows the column again. The header menu has no "Hide column" item. `setColumnHidden`, URL state, saved views, and `hidden` still apply to the column.
+
+This sample sets `hideable: false` on the name column:
 
 ```tsx
 import {
@@ -71,6 +76,7 @@ The visible and all-columns hooks return the full `ColumnDef` of each column. Pa
 
 ```tsx
 import {
+  columnLabelText,
   useDataGridActions,
   useDataGridAllColumns,
   useDataGridIsColumnHidden,
@@ -92,14 +98,13 @@ function RestoreBar() {
     <ShowButton
       key={column.id}
       id={column.id}
-      label={
-        column.headerText ??
-        (typeof column.header === "string" ? column.header : column.id)
-      }
+      label={columnLabelText(column)}
     />
   ));
 }
 ```
+
+`columnLabelText(column)` returns the label the grid shows: `headerText`, the text of a node header, or the column id.
 
 ## Save the layout [#persisting-a-users-layout]
 

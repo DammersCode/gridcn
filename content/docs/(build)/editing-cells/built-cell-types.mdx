@@ -78,13 +78,21 @@ A `date` cell turns text that names no real day into an empty value. A `number` 
 
 ## Number formatting [#number-formatting]
 
-The type parses a comma as the decimal separator or a group separator. It rounds to `decimals` and clamps to `min` and `max`, in the editor and on paste. In the editor, <kbd>ArrowUp</kbd> and <kbd>ArrowDown</kbd> step the draft by `step` (default `1`) within `min` and `max`. With `decimals` set, the step is never smaller than the last decimal place.
+The type rounds to `decimals` and clamps to `min` and `max`, in the editor and on paste. In the editor, <kbd>ArrowUp</kbd> and <kbd>ArrowDown</kbd> step the draft by `step` (default `1`) within `min` and `max`. With `decimals` set, the step is never smaller than the last decimal place.
 
-The clamp runs before a column `validate`, so a typed, pasted, or filled value outside `min` and `max` never reaches it. A value that code writes with `updateCells` is not clamped. A value that `processCellFromClipboard` (paste) or `processCellFromText` (import) returns skips the clamp, unless the hook returns the result of the `fromText` it receives.
+Paste and parse follow these rules:
 
-The type reads `1,234.50`, `1,234,567`, and `1.234,50` as grouped numbers. A single comma that is not followed by three digits is the decimal point, so `1,5` stores `1.5`. The text `1,234` can mean `1234` or `1.234`, so the type rejects it. The type also rejects text that is not a number. A rejected paste or fill leaves the cell unchanged. A rejected typed value keeps the editor open. To read other formats, set `processCellFromClipboard` for paste, or `processCellFromText` for import.
+- The clamp runs before a column `validate`, so a typed, pasted, or filled value outside `min` and `max` never reaches it.
+- A value that code writes with `updateCells` is not clamped.
+- A value that `processCellFromClipboard` (paste) or `processCellFromText` (import) returns skips the clamp, unless the hook returns the result of the `fromText` it receives.
+- `1,234.50`, `1,234,567`, and `1.234,50` read as grouped numbers.
+- A single comma that is not followed by three digits is the decimal point, so `1,5` stores `1.5`.
+- `1,234` can mean `1234` or `1.234`, so the type rejects it. The type also rejects text that is not a number.
+- A rejected paste or fill leaves the cell unchanged. A rejected typed value keeps the editor open.
 
-`format` takes `Intl.NumberFormatOptions`. `locale` sets the language of `format` and defaults to the `locale` of the grid, and that is `"en-US"` without one. A column with a `locale` and no `format` shows the plain number and logs one development warning. `format: {}` groups the digits by `locale`. `format` and `locale` change only the display.
+To read other formats, set `processCellFromClipboard` for paste, or `processCellFromText` for import.
+
+`format` takes `Intl.NumberFormatOptions`. `locale` sets the language of `format`. Alone, it groups the digits in that language. It defaults to the grid `locale`, or `"en-US"` without one. `format` and `locale` change only the display.
 
 The editor, copy, paste, sort, and export keep the plain number, so a stored `0.25` under `style: "percent"` shows `25%` and edits as `0.25`. When the format sets no fraction digits, `decimals` sets both the minimum and the maximum. A format that `Intl` rejects, such as `style: "currency"` without a `currency`, shows the plain number and logs one development warning per locale and format.
 
@@ -108,7 +116,7 @@ const columns = defineColumns<Product>()([
 
 ## Date [#date-specifics]
 
-The stored value and the clipboard text are always ISO `yyyy-mm-dd`. `displayFormat` takes `Intl.DateTimeFormatOptions`. `locale` sets the language of `displayFormat` and defaults to the `locale` of the grid. A column with no `displayFormat` shows the ISO text. A column with a `locale` and no `displayFormat` does the same and logs one development warning. `displayFormat` and `locale` change only the display. A `locale` or `timeZone` that `Intl` rejects, such as `"de_DE"`, shows the ISO text and logs one development warning per locale and format.
+The stored value and the clipboard text are always ISO `yyyy-mm-dd`. `displayFormat` takes `Intl.DateTimeFormatOptions`. `locale` sets the language of `displayFormat` and defaults to the `locale` of the grid. A column with no `displayFormat` and no `locale` shows the ISO text. Alone, `locale` shows the medium date style. `displayFormat` and `locale` change only the display. A `locale` or `timeZone` that `Intl` rejects, such as `"de_DE"`, shows the ISO text and logs one development warning per locale and format.
 
 The editor is a popover with a typed input and a calendar. The input accepts ISO text or any text that `Date` parses. A text that names no real calendar day or falls outside `min` and `max` becomes an empty value. <kbd>Enter</kbd> commits the typed text and moves down. Picking a day commits and stays in place.
 
@@ -138,7 +146,9 @@ const columns = defineColumns<Task>()([
 
 ## Select and checkbox [#select-checkbox]
 
-A `select` cell stores the choice `value` and shows its `label`. A string choice is its own value and label. Display, search, sort, and copy use the label. A filter matches the stored choice `value`. A stored value without a choice shows as it is. Paste accepts a choice value, or a label in any letter case. Picking a choice commits at once.
+A `select` cell stores the choice `value` and shows its `label`. A string choice is its own value and label. Display, search, sort, and copy use the label. A filter matches the stored choice `value`. A stored value without a choice shows as it is.
+
+Paste accepts a choice value, or a label in any letter case. Other text leaves the cell unchanged, and the grid reports it to `onValidationError`. Blank text empties the cell. Picking a choice commits at once.
 
 The grid caches lookups for each `choices` array. Pass a new array to change the choices, and never change the array in place.
 
@@ -163,7 +173,9 @@ The built-in cell types do not wrap text. A cell shows one line that ends with a
 
 <kbd>Enter</kbd> commits and moves down. <kbd>Shift</kbd>+<kbd>Enter</kbd> and <kbd>Alt</kbd>+<kbd>Enter</kbd> insert a line break. <kbd>Escape</kbd> cancels, and a click outside commits the draft.
 
-`maxLength` defaults to 100,000. The textarea enforces it while typing. Paste, fill, and import reject text over `maxLength` with a message.
+`maxLength` defaults to 100,000. The textarea enforces it while typing. Paste, fill, and import reject text over `maxLength` with a message. A column `validate` runs after this check.
+
+In server mode, filters and sorts send the stored value: the choice `value`, the plain number, and the ISO date. `format` and `displayFormat` stay in the browser.
 
 ## Related
 

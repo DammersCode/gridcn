@@ -3,11 +3,12 @@ title: Column sizing
 icon: MoveHorizontal
 description: Set column widths, let users resize by drag, fit columns to their content with autosize, and let flex columns fill free space.
 type: feature
-demos: none
 aliases: ["resize columns", "column width", "autosize", "auto size columns"]
 ---
 
 A column needs a width that fits its data. Set `width`, `minWidth`, and `maxWidth` on the column. The user drags the header edge to resize it. `autosizeColumns` fits columns to their content. `flex` shares the free width of the grid.
+
+<ComponentPreview name="data-grid-column-layout-demo" />
 
 The [Column layout example](/docs/column-examples/column-layout-example) shows resize, reorder, and a saved layout together.
 
@@ -50,7 +51,33 @@ export function SizedGrid() {
 
 During a drag, `onColumnResizing({ columnId, width })` fires on every pointer move. On release of the handle, `onColumnLayoutChange` fires once.
 
-A drag that ends in a pointer cancel, a lost pointer capture, or a window blur restores the width it started at. `onColumnResizing` fires once with that width, and `onColumnLayoutChange` does not fire.
+A drag that ends in a pointer cancel, a lost pointer capture, or a window blur restores the width it started at. If the width moved, `onColumnResizing` fires once with that width. `onColumnLayoutChange` does not fire.
+
+**Widen column** and **Narrow column** in the header menu change the width by 16 px, within `minWidth` and `maxWidth`. Two `keymap` actions do the same for the active column, and both are unbound by default. This chord pair is free in the browsers and the OSes:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string };
+
+const rows: Row[] = [{ id: "1", name: "Ada" }];
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+export function ResizableByKeyGrid() {
+  return (
+    <DataGrid
+      defaultData={rows}
+      columns={columns}
+      keymap={{
+        widenColumn: ["shift+alt+End"],
+        narrowColumn: ["shift+alt+Home"],
+      }}
+    />
+  );
+}
+```
 
 Call the width actions from your own resize controls:
 
@@ -93,7 +120,7 @@ The pass skips hidden columns, columns with `resizable: false`, and unknown ids.
 | `sampleRows` | `number` | `1000`, clamped to 1 to 10,000 |
 | `includeHeader` | `boolean` | `true` |
 
-`autosizeOnMount` on `DataGridProvider` runs one pass once the view has rows. A grid that loads rows later waits for them. Pass `true` for the defaults, or pass the options above. The pass runs once per mount. A column with a stored width, for example from `defaultColumnLayout`, keeps it:
+`autosizeOnMount` on `DataGrid` or `DataGridProvider` runs one pass once the view has rows. A grid that loads rows later waits for them. Pass `true` for the defaults, or pass the options above. The pass runs once per mount. A column with a stored width, for example from `defaultColumnLayout`, keeps it:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
@@ -134,7 +161,7 @@ export const columns = defineColumns<Row>()([
 
 Here `email` grows twice as fast as `name`, and `age` stays at 80 px. `maxWidth` caps the growth, and the other flex columns take the unused share. A flex column never gets narrower than its `width`.
 
-A flex column that the user resizes keeps the new width and leaves the flex share. An autosize pass stores a width for every column it measures, so it also fixes a flex column. Pass `columnIds` to leave the flex columns out. `resetColumnWidth` puts a column back.
+A flex column that the user resizes keeps the new width and leaves the flex share. An autosize pass stores the width of each column whose width it changes, so it also fixes a flex column. Pass `columnIds` to leave the flex columns out. `resetColumnWidth` puts a column back.
 
 ## Server mode
 

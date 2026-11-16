@@ -3,22 +3,23 @@ title: Validation
 icon: ShieldCheck
 description: Reject a cell value before it commits with a function or a schema, and flag soft rules.
 type: feature
-demos: none
 aliases: ["validate cell", "validate email", "invalid value", "schema", "zod", "required field", "error message in cell"]
 ---
 
-A column's `validate` rejects a value before it enters `data`. It takes a function or a Standard Schema. It runs on a typed edit, a checkbox toggle, paste, fill, `updateCells`, `updateRows`, import, Delete, and Cut. Live columns for each form are in the [validation example](/docs/validation-examples/validation-example). To check a whole row or wait for an async schema, see [Validate rows and async checks](/docs/editing-cells/validate-rows-cross-field).
+A column's `validate` rejects a value before it enters `data`. It takes a function or a Standard Schema. It runs on a typed edit, a checkbox toggle, paste, fill, `updateCells`, `updateRows`, `editRows`, find and replace, import, Delete, and Cut. Live columns for each form are in the [validation example](/docs/validation-examples/validation-example). To check a whole row or wait for an async schema, see [Validate rows and async checks](/docs/editing-cells/validate-rows-cross-field).
+
+<ComponentPreview name="data-grid-validation-demo" />
 
 ## Validate a column [#validation]
 
 `validate` takes one of two forms:
 
-- A function `(value, row) => string | null`. Return a message to reject the value, or `null` to accept it.
+- A function `(value, row, ctx) => string | null`. Return a message to reject the value, or `null` to accept it. `ctx` holds three members. `rows` is the rows before the write. `batch` is every cell of the column that the same write sets. `valueOf(row)` is the column value of a row.
 - Any [Standard Schema](https://standardschema.dev) for the value, such as Zod, Valibot, or ArkType. The grid reads any schema with a `"~standard"` key.
 
 A schema message joins its issues with `"; "` and prefixes an issue path as `a.b: message`.
 
-A cell type can declare `validate` as a default for its columns. The column's own `validate` wins. Undo and redo replay recorded changes and skip `validate`.
+A cell type can declare `validate` as a default for its columns. The type rule runs first, then the column rule. Undo and redo replay recorded changes and skip `validate`.
 
 Install zod first with `pnpm add zod`. This grid uses both forms:
 
@@ -77,7 +78,7 @@ const columns = defineColumns<Contact>()([
 
 A schema works too, for example `validate: z.email()` with Zod 4. Your server checks the address again, because the grid only checks the format.
 
-The editor stays open on a rejected value and shows the message. The value never enters `data`. A rejected checkbox toggle has no editor: the cell keeps its old value, and `onValidationError` reports it with the source `"edit"`.
+The editor stays open on a rejected value and shows the message, and the value never enters `data`. A rejected checkbox toggle has no editor: the cell keeps its old value, and `onValidationError` reports it with the source `"edit"`.
 
 The message shows as an error line next to the open editor. The line escapes the cell and widens to its text, up to 16rem. It flips above the cell at the bottom edge of the grid. At the side edges, it anchors to the end side of the cell. An editing cell does not clip its content, so a custom `Editor` wider than its cell spills over the neighbors.
 
@@ -87,7 +88,14 @@ If a validator throws or its promise rejects, the grid rejects the value and sho
 
 By default a rejection blocks the commit. Set `validationMode: "warn"` to commit the value and flag the cell instead. The flag uses the same ring, tint, and hover tooltip as a server error. The next valid commit of that cell clears it. The editor closes, because the commit succeeded.
 
-A rejection carries no transformed value, so a soft commit stores the raw input. The flag works with the function form and with sync and async schemas. Paste, fill, `updateCells`, import, Delete, and Cut also keep the raw value of a rejected cell in a soft column and flag it. A validator that throws still blocks the cell. A bulk write updates the flags once and calls no `onValidationError` for a flagged cell. Use `validationMode: "block"` or `processPaste` to drop rejected cells.
+A soft rule follows these rules:
+
+- A rejection carries no transformed value, so a soft commit stores the raw input.
+- The flag works with the function form and with sync and async schemas.
+- Paste, fill, `updateCells`, import, Delete, and Cut also keep the raw value of a rejected cell in a soft column and flag it.
+- A validator that throws still blocks the cell.
+- A bulk write updates the flags once and calls no `onValidationError` for a flagged cell.
+- To drop rejected cells, use `validationMode: "block"` or `processPaste`.
 
 This table compares a blocking rule with a soft rule:
 
@@ -130,7 +138,7 @@ export function Notes({ notes }: { notes: Note[] }) {
 
 ## Transforms [#transforms-are-committed]
 
-A schema can transform a value. On success the grid commits the schema output, not the raw input. Bulk paths commit the output too.
+A schema can change the value, such as a trim. On success the grid commits the schema output, not the raw input. Bulk paths commit the output too. The output type is the column value type.
 
 This column stores the trimmed text:
 
@@ -152,18 +160,25 @@ const columns = defineColumns<Contact>()([
 
 ## Report rejected cells [#onvalidationerror]
 
-`onValidationError` fires when a paste, a fill, a Delete or Cut clear, or an `updateCells` call settles with a rejected cell. It also fires when a checkbox toggle is rejected. The grid has applied the accepted cells by then. `updateCells` also lists each rejected patch in its return value. Import reports its rejected cells through `rejected` in `onImport`, not here. See [Control the import](/docs/import-export/control-import).
+`onValidationError` fires when a write settles with a rejected cell. The writes are a paste, a fill, a Delete or Cut clear, a call of `updateCells`, `updateRows`, or `editRows`, and a find and replace. A rejected checkbox toggle fires it too. The grid has applied the accepted cells by then. `updateCells` also lists each rejected patch in its return value. Import reports its rejected cells through `rejected` in `onImport`, not here. See [Control the import](/docs/import-export/control-import).
 
-Delete and Cut validate the empty value of the cell type. A column that rejects it keeps its value, and `onValidationError` reports the cell with `source: "delete"`. A `validationMode: "warn"` column clears the cell and flags it. Delete and Cut run a sync `validate` only, so an async schema lets the empty value through.
+Delete and Cut validate the empty value of the cell type. A column that rejects it keeps its value, and `onValidationError` reports the cell with `source: "delete"`. A `validationMode: "warn"` column clears the cell and flags it. Delete and Cut wait for an async schema like a paste.
 
 {/* props: GridValidationErrorEvent */}
 
 | Prop | Type |
 |---|---|
-| `source` | `"paste" \| "fill" \| "stream" \| "replace" \| "edit"` |
+| `source` | `"paste" \| "fill" \| "stream" \| "replace" \| "delete" \| "cut" \| "edit"` |
 | `rejected` | `GridBulkValidationError[]` |
 
-`"stream"` marks an `updateCells` or `updateRows` call, `"replace"` a find-and-replace batch, and `"edit"` a rejected checkbox toggle. Each entry has `rowId`, `columnId`, `viewRowIndex`, `value`, and `message`. A row outside the view reports `viewRowIndex: -1`.
+These sources apply:
+
+- `"stream"` marks an `updateCells` or `updateRows` call.
+- `"replace"` marks a find-and-replace batch.
+- `"delete"` and `"cut"` mark a Delete or Cut clear.
+- `"edit"` marks a rejected checkbox toggle or an `editRows` call.
+
+Each entry has `rowId`, `columnId`, `viewRowIndex`, `value`, and `message`. A row outside the view reports `viewRowIndex: -1`.
 
 ## Props [#props]
 

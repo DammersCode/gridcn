@@ -12,7 +12,7 @@ Typing the same value into many cells is slow. The fill handle is the small squa
 
 <InstallCommand item="data-grid-fill" manual manualSlot={<ManualInstall item="data-grid-fill" />} />
 
-## Wiring it up [#wiring-it-up]
+## Fill setup [#wiring-it-up]
 
 The hook returns one plugin. Pass it to the grid through `plugins`:
 
@@ -46,7 +46,7 @@ If the source cells form a series, the fill continues the series instead:
 
 A series needs two source cells, because one value has no step. An integer with more than 15 digits is an identifier, so the fill copies it. Dates have no series of their own: the fill copies ISO dates such as `2026-01-30, 2026-01-31`. A custom detector below continues real dates.
 
-A vertical fill checks the series per column. A horizontal fill checks it per row. The series applies to a column or row only when its cells accept every generated value. A `select` column accepts a value that names a choice. A `date` column accepts a valid date inside `min` and `max`, so it rejects a date after `max`. If one generated value fails, the fill repeats the source in that column or row instead:
+A vertical fill checks the series per column. A horizontal fill checks it per row. The series applies to a column or row only when the `fromText` of each target cell reads every generated value. A `select` column reads a value that names a choice. A `date` column reads a valid date inside `min` and `max`, so it rejects a date after `max`. If `fromText` rejects one generated value, the fill repeats the source in that column or row instead. A value that `validate` rejects is reported and not copied:
 
 - A vertical fill repeats the stored source values of the column. With the choices `Tier 1` to `Tier 3`, the source `Tier 1, Tier 2` fills three cells with `Tier 1, Tier 2, Tier 1`, because `Tier 4` is no choice.
 - A horizontal fill reads the text of each source cell with the `fromText` of the target column. A row that fails repeats the source text. A target column that lacks the label clears the cell, as a paste does.
@@ -84,7 +84,7 @@ A fill works on the rows that the grid holds in memory. It never asks the server
 
 A fill is one change. The grid applies it, then calls `onDataChange` and `onSave` with the same change. `change.source` is `"fill"`. `change.ops` holds one `update` operation per written row, and each operation lists the changed `cells`. Your `onSave` sends these updates to the server.
 
-`onSave` returns nothing or a promise. If the promise resolves with nothing, the server accepted the fill. If it resolves with `{ rejected }`, the server refused part of it. If it rejects, the server refused all of it. A refusal reverts the cells through `onDataChange` with source `"rollback"`. The rows show as saving while the promise is pending. If a rejection carries `current`, the row as the server holds it, the revert puts that row in place instead.
+A refused fill reverts through `onDataChange` with source `"rollback"`. [Handle refused saves](/docs/save-server/handle-refused-saves) owns the `onSave` contract.
 
 In scroll mode, a fill target can cover rows that are not loaded. The grid fills the loaded rows, skips the others, and still expands the selection over the whole target. A development warning gives the number of skipped rows. When the fill must reach them, load the rows first. See [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling).
 
@@ -104,7 +104,7 @@ Pass these options to `useDataGridFill`. Every option is optional:
 
 ### disabled [#turning-fill-off]
 
-`disabled` hides the handle and turns both commands into no-ops.
+`disabled` hides the handle and leaves <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>D</kbd> and <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>R</kbd> to the browser.
 
 ### processFill
 

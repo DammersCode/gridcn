@@ -22,7 +22,7 @@ If a row that the entry needs is missing from the data, undo and redo apply noth
 
 ## Quick start: useDataGridState [#quick-start-usedatagridstate]
 
-`useDataGridState` is the short path to undo and redo. It owns the `data` array and passes it to the grid as the controlled `data` prop. Each undo writes through the grid, and the hook stores the result. `useDataGridHistory` also works when the grid owns the data with `defaultData`. A grid with `defaultData` and no history plugin keeps no history. Spread the result onto `DataGrid`:
+`useDataGridState` is the short path to undo and redo. It owns the `data` array and passes it to the grid as the controlled `data` prop. Each undo writes through the grid, and the hook stores the result. Spread the result onto `DataGrid`:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
@@ -53,14 +53,16 @@ Result: edit a cell, then press Undo. The cell returns to its earlier value and 
 
 Undo and Redo write only the cells of the entry onto the current row. A value in another column that changed after the edit, for example from a stream push or a refetch, stays. An update that you build for `record` without a `cells` list writes the whole row.
 
-`getRowId` defaults to the `id` field of a row. `grid.history` holds `canUndo`, `canRedo`, `historySize`, `undo`, `redo`, `clear`, `record`, and `rollback`. `historySize` counts the entries on the undo stack. `clear` empties both stacks. To mount other plugins, pass `plugins` after the spread and keep `grid.plugins` in it: `<DataGrid {...grid} columns={columns} plugins={[fillPlugin, ...grid.plugins]} />`. A `plugins` prop without `grid.plugins` unmounts the history plugin. In development, `undo`, `redo`, and `record` warn once when the plugin never mounted.
+`getRowId` defaults to the `id` field of a row. `grid.history` holds `canUndo`, `canRedo`, `historySize`, `undo`, `redo`, `clear`, `record`, and `rollback`. `historySize` counts the entries on the undo stack. `clear` empties both stacks.
+
+To mount other plugins, pass them in the `plugins` option: `useDataGridState(rows, { plugins: [fill.plugin] })`. The returned `grid.plugins` holds them and the history plugin. A `plugins` prop after the spread replaces the history plugin. In development, `undo`, `redo`, `record`, and `rollback` warn once when the plugin never mounted.
 
 ### Keyboard [#keyboard]
 
 - <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Z</kbd> undoes.
 - <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Y</kbd> and <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> redo.
 
-The keys work while focus is in the grid. While a cell editor is open, the editor keeps them for its own text. Without this add-on, both keys do nothing. Remap them with the `undo` and `redo` actions of the [`keymap` prop](/docs/selection-shortcuts/shortcut-remapping).
+The keys work while focus is in the grid. While a cell editor is open, the editor keeps them for its own text. Without this add-on, the grid leaves both keys to the browser. Remap them with the `undo` and `redo` actions of the [`keymap` prop](/docs/selection-shortcuts/shortcut-remapping).
 
 When you mount [`DataGridGlobalShortcuts`](/docs/selection-shortcuts/global-shortcuts), the keys also work while focus is outside the grid. They skip text fields.
 
@@ -98,11 +100,11 @@ function MyGrid() {
 }
 ```
 
-The result has the members of `grid.history` above, plus `plugin`.
+The result has the members of `grid.history` above, plus `plugin`. `useDataGridHistory` also works when the grid owns the data with `defaultData`. A grid with `defaultData` and no history plugin keeps no history.
 
 ## Capped stack [#capped-stack]
 
-`capacity` limits the entries on the undo stack. The default is 100. When the stack is full, the oldest entries drop first. `capacity` counts entries, not operations: a paste of 10,000 cells is one entry.
+`capacity` limits the entries on the undo stack. The default is 100. When the stack is full, the oldest entries drop first. `capacity` counts entries, not operations: a paste of 10,000 cells is one entry. A new `capacity` value starts an empty history.
 
 ## Read-only grids [#read-only-grids]
 
@@ -110,7 +112,7 @@ A `readOnly` grid refuses writes, so it records nothing. The keys, `undo`, and `
 
 ## Server mode
 
-Undo works in every data mode. Entries address rows by row id, so they follow server sort and server filter. In server pagination, `data` holds one page.
+Undo works in every data mode. Entries address rows by row id, so they follow server sort and server filter. In server pagination, `data` holds one page. An undo or redo for a row of another page keeps its entry and reports `"rows-not-loaded"` to `onSkip`. It applies when the page shows again.
 
 `onSave` receives an undo or a redo as a change with `source: "history"`. Your handler sends the inverse change to the server like any other change. If `onSave` refuses all or part of a change, the grid reverts the refused rows. See [Refused undo and redo](#refused-undo).
 
@@ -123,20 +125,23 @@ An update, delete, or move needs its row in `data`. An insert needs no row. If a
 | Case | Entry | `onSkip` reason |
 | --- | --- | --- |
 | Every needed row is in `data` | applied | none |
-| A needed row is missing and `data` has holes (scroll mode) | stays on its stack | `"rows-not-loaded"` |
-| A needed row is gone from a dense `data` array | dropped | `"rows-gone"` |
+| A needed row is missing, and `data` has holes (scroll mode) or holds part of the result (server pagination) | stays on its stack | `"rows-not-loaded"` |
+| A needed row is gone from `data`, which holds the whole result | dropped | `"rows-gone"` |
 
-For `"rows-not-loaded"`, load the rows and call `undo` again. Until the rows load, `datasetKey` changes, or `clear()` runs, the entry blocks the older entries under it. Pass `onSkip` to react:
+For `"rows-not-loaded"`, load the rows or show their page, and call `undo` again. Until the rows load, `datasetKey` changes, or `clear()` runs, the entry blocks the older entries under it. Pass `onSkip` to react:
 
 ```tsx
 import { toast } from "sonner";
-import { useDataGridHistory } from "@/components/data-grid-history/data-grid-history";
+import {
+  useDataGridHistory,
+  type HistorySkip,
+} from "@/components/data-grid-history/data-grid-history";
 
 type Row = { id: string; name: string };
 
 export function useHistoryWithHint() {
   return useDataGridHistory<Row>({
-    onSkip: ({ direction, reason, rowIds }) => {
+    onSkip: ({ direction, reason, rowIds }: HistorySkip) => {
       if (reason === "rows-not-loaded") {
         toast(`Scroll to load ${rowIds.length} rows, then ${direction} again`);
       }
@@ -155,7 +160,7 @@ If `onSave` refuses a change, the grid reverts the refused rows with a `"rollbac
 | --- | --- | --- |
 | An ordinary change | writes | leaves the stacks |
 | An undo | writes | returns to the undo stack |
-| A redo | writes | returns to the redo stack |
+| A redo | writes | returns to the redo stack, unless a newer undo entry sits above it |
 | Any change | writes nothing, because the grid is `readOnly` or a newer edit replaced every refused value | stays where it is |
 
 ### Rows the server replaced [#server-replaced-rows]
@@ -172,7 +177,7 @@ If `onSave` refuses a change, the grid reverts the refused rows with a `"rollbac
 | `capacity` | `number` | `100` |
 | `datasetKey` | `string \| number` | none |
 | `onSkip` | `(ctx: { direction; reason; rowIds }) => void` | none |
-| `recordSources` | `readonly DataChange<TData>["source"][] \| ((defaults) => readonly DataChange<TData>["source"][])` | `edit`, `paste`, `fill`, `delete`, `row-operation`, `import`, `replace`, and `app` |
+| `recordSources` | `readonly DataChange<TData>["source"][] \| ((defaults) => readonly DataChange<TData>["source"][])` | `edit`, `paste`, `fill`, `delete`, `cut`, `row-operation`, `import`, `replace`, and `app` |
 
 `useDataGridState` takes `getRowId` and every option of `useDataGridHistory`. [Undo for code changes](/docs/clipboard-undo/undo-code-changes) explains `recordSources` and `datasetKey`.
 

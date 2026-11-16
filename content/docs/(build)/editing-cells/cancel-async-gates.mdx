@@ -2,7 +2,7 @@
 title: Cancel async gates
 description: Abort the request of a slow gate with its signal, set a timeout for every gate, and show the pending state while a gate waits.
 icon: Timer
-type: task
+type: feature
 demos: none
 aliases: ["abort signal", "gate timeout", "cancel paste request"]
 ---
@@ -11,11 +11,13 @@ A gate is a callback that runs before the grid acts, such as `processPaste` or `
 
 ## Cancel a request with the signal [#cancel-a-request-with-the-signal]
 
-Every gate receives an `AbortSignal` as its last argument. The signal aborts in three cases:
+Every gate receives an `AbortSignal` as its last argument. The signal aborts in these cases:
 
-- A newer run of the same gate replaces the run. For example, the user edits a row again before `validateRow` settles for the row.
+- A newer run of the same gate replaces the run. For example, the user edits a row again before `validateRow` settles for the row, or the user pastes again before `processPaste` settles.
 - The grid unmounts.
 - The result cannot apply. For example, the grid turned `readOnly`, or the row is gone.
+- `gateTimeoutMs` runs out.
+- The user presses <kbd>Escape</kbd>.
 
 Pass the signal to `fetch`, and the request stops when the signal aborts. Pass the function as the `processPaste` prop:
 
@@ -41,6 +43,7 @@ The grid drops an aborted gate result. A rejection after an abort adds no warnin
 | Gate | Signal position |
 |---|---|
 | `processPaste` | `({ cells, target, signal })` |
+| `processCellFromClipboard` | `(text, { row, column, fromText, signal })` |
 | `validateRow` | `(row, rowId, { signal })` |
 | `onBeforeEditStart` | `(cell, { signal })` |
 | `createRow` | `(index, { signal })` |
@@ -49,7 +52,7 @@ The grid drops an aborted gate result. A rejection after an abort adds no warnin
 | `processReplace` | `({ plan, signal })` |
 | `mapColumn` | `(header, index, { signal })` |
 
-`gateTimeoutMs` covers the first seven gates in the table. `mapColumn` receives a `signal` and has no timeout. A gate that ignores the extra argument keeps working. `processCellFromClipboard` can return a promise, but it receives no `signal`, has no `gateTimeoutMs` timeout, and is not in the pending set.
+`gateTimeoutMs` covers every gate in the table. It also covers an async schema in `validate` that holds a paste, a fill, or a clear. That schema receives no signal, so the grid drops its late answer. A gate that ignores the extra argument keeps working.
 
 ## Stop waiting for a slow gate [#gate-timeout]
 
@@ -61,13 +64,36 @@ import {
   DataGridHeader,
   DataGridProvider,
   DataGridRoot,
+  defineColumns,
 } from "@/components/data-grid/data-grid";
 
-export function TimedGrid() {
+type Row = { id: string; name: string };
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+async function processPaste({
+  cells,
+  signal,
+}: {
+  cells: string[][];
+  signal: AbortSignal;
+}) {
+  const response = await fetch("/api/normalize", {
+    method: "POST",
+    body: JSON.stringify(cells),
+    signal,
+  });
+  return response.ok ? ((await response.json()) as string[][]) : false;
+}
+
+export function TimedGrid({ rows }: { rows: Row[] }) {
   return (
     <DataGridProvider
       defaultData={rows}
       columns={columns}
+      processPaste={processPaste}
       gateTimeoutMs={{ processPaste: 10_000, onBeforeEditStart: 3_000 }}
       onGateAborted={({ gate, reason }) => console.warn(gate, reason)}
     >
@@ -90,7 +116,7 @@ export function TimedGrid() {
 | `"cancelled"` | The user pressed <kbd>Escape</kbd>. |
 | `"reset"` | The grid reset or unmounted. |
 
-`gateTimeoutMs` is off by default, so a gate waits for its promise.
+`gateTimeoutMs` is off by default: a gate waits for its promise.
 
 ## Show the pending state [#show-the-pending-state]
 
