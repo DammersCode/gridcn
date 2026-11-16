@@ -8,7 +8,7 @@ import { CELL_INPUT_CLASS, useCellEditorDraft } from "../interaction/use-cell-ed
 import { cn } from "@/lib/utils";
 import { isComposingKey } from "../interaction/is-composing-key";
 import { displayText } from "./display-text";
-import { createFormatterCache, formatKey } from "./formatter-cache";
+import { createFormatterCache, formatKey, warnLocaleWithoutFormat } from "./formatter-cache";
 import { compareNumbers } from "../sort-filter/builtin-compare";
 
 const DECIMAL_NUMBER = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i;
@@ -133,6 +133,7 @@ export const numberCellType: CellType<unknown, number | null, GridCellTypes["num
   },
   toDisplayText: (value, options) => {
     if (value == null) return "";
+    if (options?.locale && !options.format) warnLocaleWithoutFormat("number", options.locale);
     if (!options?.format || typeof value !== "number") return numberCellType.toText(value, options);
     const formatter = getNumberFormatter(options.format, options.locale ?? "en-US", options.decimals);
     return formatter ? formatter.format(roundToDecimals(value, options)) : numberCellType.toText(value, options);

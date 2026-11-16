@@ -52,3 +52,14 @@ export function createFormatterCache<T>(failureMessage: string) {
     return formatter;
   };
 }
+
+const warnedLocaleOnly = new Set<string>();
+
+/** Dev-warns once per type and locale when `locale` is set but the format option that gives it effect is not. */
+export function warnLocaleWithoutFormat(type: "number" | "date", locale: string): void {
+  const key = `${type}|${locale}`;
+  if (warnedLocaleOnly.size >= MAX_WARNINGS || warnedLocaleOnly.has(key)) return;
+  warnedLocaleOnly.add(key);
+  const [formatOption, example] = type === "number" ? ["format", "format: {}"] : ["displayFormat", "displayFormat: { dateStyle: \"medium\" }"];
+  warnDev(`${type} column sets locale "${locale}" without ${formatOption}, so the locale has no effect; set ${example}`);
+}

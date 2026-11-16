@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { toSafeText } from "./safe-text";
-import { createFormatterCache, formatKey } from "./formatter-cache";
+import { createFormatterCache, formatKey, warnLocaleWithoutFormat } from "./formatter-cache";
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import { CalendarIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -102,6 +102,7 @@ function getDateFormatter(locale: string, format: Intl.DateTimeFormatOptions): I
 /** Formats an ISO date part per the column's `displayFormat`/`locale`, falling back to the raw ISO text. */
 function formatDateDisplay(value: string | null, options?: GridCellTypes["date"]["options"]): string {
   const text = toSafeText(value);
+  if (options?.locale && !options.displayFormat) warnLocaleWithoutFormat("date", options.locale);
   if (!options?.displayFormat) return text;
   const date = isoDatePartToLocalDate(text);
   if (!date) return text;
