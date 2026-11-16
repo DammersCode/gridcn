@@ -1,6 +1,6 @@
 import { act, cleanup, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { DataGridProvider, dateCellType, numberCellType, useDataGridActions, useDataGridAllColumns, useDataGridLabels, type ColumnDef } from "../data-grid";
 import { DataGridStatusBar } from "../../data-grid-status-bar/data-grid-status-bar";
 
@@ -53,6 +53,27 @@ describe("grid locale", () => {
     mount("de-DE");
     expect(display("amount", 1234.5)).toBe("1.234,5");
     expect(display("day", "2026-07-03")).toBe("3. Juli 2026");
+  });
+
+  it("the grid locale raises no locale-without-format warning on unformatted number and date columns", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render(
+      <DataGridProvider
+        data={rows}
+        columns={[
+          { id: "plainAmount", header: "Amount", accessorKey: "amount", type: "number" },
+          { id: "plainDay", header: "Day", accessorKey: "day", type: "date" },
+        ]}
+        getRowId={(r) => r.id}
+        locale="sv-SE"
+      >
+        <Probe />
+      </DataGridProvider>,
+    );
+    expect(display("plainAmount", 1234.5)).toBe("1234.5");
+    expect(display("plainDay", "2026-07-03")).toBe("2026-07-03");
+    expect(warn.mock.calls.filter(([message]) => String(message).includes("without"))).toEqual([]);
+    warn.mockRestore();
   });
 
   it("a column options.locale wins over the grid locale", () => {
