@@ -25,15 +25,41 @@ aliases: ["UpdateCellsVerdict", "skipped patches", "skip reason", "updateCells r
 | `invalid` | The column's `validate` rejected the value. |
 | `no-op` | The value equals the current value. |
 
-## Flash changed cells [#flash-cells]
+## Read the verdict [#read-verdict]
 
-The grid flashes cells on its own only after a fill. A push does not flash. To flash the cells that a push wrote, pass `{ flash: true }` to `updateCells` or `updateRows`. The call flashes the cells it applied at once. A held batch flashes after `settled`. Cells of hidden columns do not flash:
+`settled` is set only while `pending` is `true`. This hook pushes patches, waits for an async schema, and pushes again the patches that skipped with reason `saving`:
 
-```tsx fragment="inside the feed component"
-actions.updateCells(patches, { flash: true });
+```tsx
+"use client";
+
+import { useCallback } from "react";
+import {
+  useDataGridActions,
+  type CellPatch,
+} from "@/components/data-grid/data-grid";
+
+export function usePush() {
+  const actions = useDataGridActions();
+
+  return useCallback(
+    async (patches: CellPatch[]) => {
+      const verdict = actions.updateCells(patches);
+      const final = (await verdict.settled) ?? verdict;
+      const busy = final.skipped
+        .filter((skip) => skip.reason === "saving")
+        .map((skip) => patches[skip.patchIndex]);
+      const retry = busy.filter((patch) => patch !== undefined);
+      if (retry.length > 0) setTimeout(() => actions.updateCells(retry), 1000);
+      return final.applied;
+    },
+    [actions],
+  );
+}
 ```
 
-`actions.flashCells(cells, durationMs?)` flashes any cells without a write. Each cell is a `CellRef` with `rowId` and `columnId`. `flashCells` changes no data and adds no history entry. Flashing a cell again resets its timer. `durationMs` sets how long the cell keeps `data-flash`, 1400 by default. `--grid-flash-duration`, `--grid-flash-color`, and `--grid-flash-intensity` style the flash. See [Style contract](/docs/contracts/style-contract).
+## Flash changed cells [#flash-cells]
+
+`{ flash: true }` and `actions.flashCells` live on [Stream updates](/docs/rows-live-data/stream-updates#flash-cells).
 
 ## Related
 

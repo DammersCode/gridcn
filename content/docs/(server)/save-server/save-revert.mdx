@@ -8,7 +8,7 @@ aliases: ["optimistic update", "rollback", "roll back"]
 
 Send every edit to your API from `onSave`. The grid shows the edit at once. If the request fails, the grid reverts it. If the server recomputes values, refetch the rows after the save.
 
-The samples keep the rows in your own state, and `onDataChange` writes each change into it. The `DataChange` shape is on [Data change events](/docs/events-state/data-change-events).
+The samples keep the rows in your own state, and `onDataChange` writes each change into it. The samples take `Order` and `columns` from `orders.ts`. The `DataChange` shape is on [Data change events](/docs/events-state/data-change-events).
 
 ## Load the rows [#initial-fetch]
 
@@ -20,7 +20,6 @@ Fetch once, hold the rows in state, and pass the setter to `onDataChange`:
 import { useEffect, useState } from "react";
 import { DataGrid, type DataChange } from "@/components/data-grid/data-grid";
 import { columns, type Order } from "./orders";
-import { api } from "./api";
 import { opsToRequests } from "./ops-to-requests";
 
 export function OrdersGrid() {
@@ -28,9 +27,11 @@ export function OrdersGrid() {
 
   useEffect(() => {
     let cancelled = false;
-    api.orders.list().then((rows) => {
-      if (!cancelled) setData(rows);
-    });
+    fetch("/api/orders")
+      .then((response) => response.json())
+      .then((rows: Order[]) => {
+        if (!cancelled) setData(rows);
+      });
     return () => {
       cancelled = true;
     };
@@ -59,7 +60,15 @@ Put `opsToRequests` in `ops-to-requests.ts`. `change.ops` holds one operation pe
 ```ts
 import type { DataOp } from "@/components/data-grid/data-grid";
 import type { Order } from "./orders";
-import { api } from "./api";
+
+async function send(method: string, url: string, body?: unknown) {
+  const response = await fetch(url, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!response.ok) throw new Error(`Request failed: ${response.status}`);
+}
 
 export function opsToRequests(ops: DataOp<Order>[]) {
   const requests = ops.flatMap((op) => {
@@ -68,12 +77,12 @@ export function opsToRequests(ops: DataOp<Order>[]) {
         const patch = op.cells
           ? Object.fromEntries(op.cells.map((c) => [c.columnId, c.value]))
           : op.row;
-        return [api.orders.patch(op.rowId, patch)];
+        return [send("PATCH", `/api/orders/${op.rowId}`, patch)];
       }
       case "insert":
-        return [api.orders.create(op.row)];
+        return [send("POST", "/api/orders", op.row)];
       case "delete":
-        return [api.orders.remove(op.rowId)];
+        return [send("DELETE", `/api/orders/${op.rowId}`)];
       case "move":
         return [];
     }
@@ -90,7 +99,9 @@ export function opsToRequests(ops: DataOp<Order>[]) {
         ]
       : [],
   );
-  if (moves.length > 0) requests.push(api.orders.reorder(moves));
+  if (moves.length > 0) {
+    requests.push(send("POST", "/api/orders/reorder", moves));
+  }
   return requests;
 }
 ```
@@ -101,32 +112,10 @@ Each move also carries `afterRowId` and `beforeRowId`, the ids of the rows aroun
 
 ## Strategy A: roll back on failure [#strategy-a-optimistic-roll-back-on-failure]
 
-Keep the grid's value in `data` and let `onSave` return the promise of the requests. If the promise rejects, the grid reverts the whole change and calls `onSaveRejected`:
+Let `onSave` return the promise of the requests, as in [Load the rows](#initial-fetch). If the promise rejects, the grid reverts the whole change and calls `onSaveRejected`. Add that prop to tell the user:
 
-```tsx
-import { useState } from "react";
-import { DataGrid, type DataChange } from "@/components/data-grid/data-grid";
-import { columns, type Order } from "./orders";
-import { opsToRequests } from "./ops-to-requests";
-
-export function RevertingGrid({ rows }: { rows: Order[] }) {
-  const [data, setData] = useState<readonly Order[]>(rows);
-
-  async function save(change: DataChange<Order>) {
-    await Promise.all(opsToRequests(change.ops));
-  }
-
-  return (
-    <DataGrid
-      data={data}
-      columns={columns}
-      getRowId={(row) => row.id}
-      onDataChange={setData}
-      onSave={save}
-      onSaveRejected={() => alert("Could not save. The change was reverted.")}
-    />
-  );
-}
+```tsx fragment="props of the DataGrid above"
+onSaveRejected={() => alert("Could not save. The change was reverted.")}
 ```
 
 The revert is one more `onDataChange` call with `source: "rollback"`. `onSave` never receives that call, so a revert does not go back to the server. A cell reverts only while it still holds the refused value, so a newer edit of the same cell stays.
@@ -141,7 +130,6 @@ If the server recomputes values, for example a price that triggers a discount, p
 import { useState } from "react";
 import { DataGrid, type DataChange } from "@/components/data-grid/data-grid";
 import { columns, type Order } from "./orders";
-import { api } from "./api";
 import { opsToRequests } from "./ops-to-requests";
 
 export function RefetchingGrid({ rows }: { rows: Order[] }) {
@@ -149,7 +137,8 @@ export function RefetchingGrid({ rows }: { rows: Order[] }) {
 
   async function save(change: DataChange<Order>) {
     await Promise.all(opsToRequests(change.ops));
-    setData(await api.orders.list());
+    const response = await fetch("/api/orders");
+    setData(await response.json());
   }
 
   return (
@@ -164,7 +153,7 @@ export function RefetchingGrid({ rows }: { rows: Order[] }) {
 }
 ```
 
-The refetch replaces every row. An edit that the user made during the request shows the server value until its own save refetches. To keep such rows, use `useDataGridServerRows` and call `server.refresh()` after the `onSave` promise settles. The refresh keeps a row with an open edit or a save in flight.
+The refetch replaces every row. An edit that the user made during the request shows the server value until its own save refetches. To keep such rows, pass `onSave` to `useDataGridServerRows`. The hook refreshes after the saves settle and keeps a row with an open edit or a save in flight.
 
 ## Show the server error on the cell [#the-failure-path]
 
@@ -180,8 +169,8 @@ An edit appears in the grid before the server answers. A failed save reverts the
 
 ## Related
 
-- [Save edits](/docs/save-server/save-edits)
-- [Handle refused saves](/docs/save-server/handle-refused-saves)
-- [Show errors on cells](/docs/save-server/show-errors-cells)
-- [Undo with server data](/docs/save-server/undo-server-data)
-- [State and view index](/docs/concepts/state-view-index)
+- [Save edits](/docs/save-server/save-edits): send each change from `onSave`
+- [Handle refused saves](/docs/save-server/handle-refused-saves): revert only the rows the server refused
+- [Show errors on cells](/docs/save-server/show-errors-cells): paint a server rejection on a cell
+- [Undo with server data](/docs/save-server/undo-server-data): undo and redo with a server
+- [State and view index](/docs/concepts/state-view-index): row ids and view indices

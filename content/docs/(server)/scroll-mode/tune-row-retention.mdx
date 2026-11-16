@@ -6,16 +6,17 @@ type: task
 aliases: ["evict rows", "memory limit", "refresh rows"]
 ---
 
-Loaded rows stay in the sparse `data` array. A long scroll through a large result grows the array. The hook unloads rows itself above `maxLoadedRows`, as the next section says. A spec change, a changed row count, a remount, or `evict` also removes them. `refresh()` drops the loaded rows outside the rendered rows. So does a row operation on a result with a row count. Four levers tune the array: `maxLoadedRows`, `refresh`, `evict`, and `getLoadedRanges`.
+Loaded rows stay in the sparse `data` array, and a long scroll through a large result grows it. Three levers tune the array: `maxLoadedRows` caps it, `evict` drops row ranges, and `getLoadedRanges` lists what is loaded. A spec change, a changed row count, a remount, and [a refresh](/docs/scroll-mode/refresh-server-rows) unload rows too.
 
 ## Cap the loaded rows [#max-loaded-rows]
 
-Scroll mode keeps at most `maxLoadedRows` rows loaded on a random access source (default 10,000). When more are loaded, the hook unloads the blocks that the user viewed longest ago outside the rendered rows plus `overscan` plus one block. Rows with an open edit, a pending save, or an unsaved change, and the row under the active cell, stay in `data`. They stop counting as loaded, so the next window fetches their block whole. Pass `maxLoadedRows: Infinity` to keep every row.
+Scroll mode keeps at most `maxLoadedRows` rows loaded on a random access source (default 10,000). When more are loaded, the hook unloads the blocks that the user viewed longest ago outside the keep range. Rows with an open edit, a pending save, or an unsaved change, and the row under the active cell, stay in `data`. They stop counting as loaded, so the next window fetches their block whole. Pass `maxLoadedRows: Infinity` to keep every row.
 
 ## Memory and retention [#memory--retention]
 
 1. Pick the row ranges to drop. `server.getLoadedRanges()` lists the loaded ones, merged and sorted. It never triggers a render, so call it in an effect or a handler.
 2. Call `server.evict(rowRange)` for each row range you want to drop. A row range is a `RowRange`, `{ start, end }` with an exclusive `end`. A partial overlap drops the intersection only, and the rest stays loaded.
+
 When the user scrolls back into an evicted row range, the hook fetches the rows again.
 
 `server.unloadedCount` counts the rows that render as skeleton rows. A sequential source reports its one block of skeleton rows.
@@ -76,21 +77,9 @@ Two behaviors matter for a policy of your own:
 
 `evict` clamps the row range to `[0, totalRowCount)`. A sequential source ignores it.
 
-## Refresh the rows in view
-
-Call `server.refresh()` after the result behind the same spec changes, for example after a server-side import. It fetches the blocks around the rendered rows again and keeps them on screen until the answers land. It drops every other loaded block. A sequential source fetches again from the first block, up to the rendered rows.
-
-A pending insert or delete is one whose `onSave` promise has not settled. A refresh keeps a row that has an open edit or a save in flight. The row keeps its local value. If the answer carries a row with a pending delete, the row stays gone.
-
-If the answer lacks a pending insert and no answer row sits in its slot, the insert returns to that slot. If an answer row sits there, the insert stays hidden. A result with a row count refreshes again once no pending insert or delete remains. A refresh of a sequential source that ends before a pending insert can drop it until its save settles.
-
-`gridProps.plugins` mounts the guard that applies these rules, then the plugins of the `plugins` option. A `plugins` prop of your own after the spread replaces the guard. When an edit happened and the guard never mounted, `refresh()` warns once in development.
-
-Call `refresh()` after your `onSave` promise settles to pick up fields that the server computes. The hook can do it for you. See [Save edits](/docs/save-server/save-edits).
-
 ## Refresh on a timer [#revalidate]
 
-Set `revalidateIntervalMs` (milliseconds, at least 1000) to call `refresh()` on a timer while the page is visible. A tick waits for a request in flight, and every refresh restarts the clock. A sequential source skips a tick while the rendered rows plus `overscan` end beyond 10 blocks. The default is off. Pages mode takes the same option.
+Set `revalidateIntervalMs` (milliseconds, at least 1000) to call [`refresh()`](/docs/scroll-mode/refresh-server-rows) on a timer while the page is visible. A tick waits for a request in flight, and every refresh restarts the clock. A sequential source skips a tick while the rendered rows plus `overscan` end beyond 10 blocks. The default is off. Pages mode takes the same option.
 
 When live pushes leave rows out of order for the server's sort, set `reshapeDelayMs` to refetch after a push. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
 
@@ -107,6 +96,7 @@ The limits, the timer, and `evict` follow the spec of the hook in every setup:
 ## Related
 
 - [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling): how blocks load
+- [Refresh server rows](/docs/scroll-mode/refresh-server-rows): fetch the rows in view again
 - [Server rows options](/docs/add-options/server/server-rows-options): `evict`, `getLoadedRanges`, and `refresh`
 - [Undo with server data](/docs/save-server/undo-server-data): history over loaded rows
 - [Fetch with a cache](/docs/data-modes/fetch-cache): serve evicted blocks from a cache

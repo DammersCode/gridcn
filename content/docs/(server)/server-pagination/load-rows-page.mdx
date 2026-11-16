@@ -6,16 +6,17 @@ type: task
 aliases: ["server pagination", "server side pagination"]
 ---
 
-When your server returns one page of rows per request, use `useDataGridServerRows` in pages mode. The hook calls your `fetchRows` for the current page, shows the rows that come back, and returns a `pager` for the footer. If the whole array lives in the browser, see [Client pagination](/docs/rows-pages-menus/client-pagination).
+When your server returns one page of rows per request, use `useDataGridServerRows` in pages mode. The hook calls your `fetchRows` for the current page and returns a `pager` for the footer. If the browser holds the whole array, see [Client pagination](/docs/rows-pages-menus/client-pagination).
+
+<ComponentPreview name="data-grid-server-side-demo" />
 
 <InstallCommand item="data-grid-server" manual manualSlot={<ManualInstall item="data-grid-server" />} />
 
 ## Fetch a page [#fetch-a-page]
 
-1. Read `start`, `end`, and `spec` (the sort, the filters, and the search text) in `fetchRows`, and send them to your API.
+1. Send `start`, `end`, and `spec` (the sort, the filters, and the search text) from `fetchRows` to your API.
 2. Answer with the rows of that page and the row count of the whole result.
-3. Spread `server.gridProps` onto the grid.
-4. Spread `server.pager` onto `DataGridPaginationBar`.
+3. Spread `server.gridProps` onto the grid and `server.pager` onto `DataGridPaginationBar`.
 
 This grid loads 25 orders per page:
 
@@ -23,12 +24,8 @@ This grid loads 25 orders per page:
 "use client";
 
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
-import {
-  DataGridPaginationBar,
-} from "@/components/data-grid-pagination/data-grid-pagination";
-import {
-  useDataGridServerRows,
-} from "@/components/data-grid-server/data-grid-server";
+import { DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
 
 type Order = { id: string; customer: string };
 
@@ -60,33 +57,30 @@ export function OrdersGrid() {
 }
 ```
 
-On page 3 at 25 rows per page, `start` is 50 and `end` is 75. The request also carries `page` and `pageSize`. Pass `signal` to `fetch`. The hook aborts a request that a newer page, size, or spec replaces.
+On page 3 at 25 rows per page, `start` is 50 and `end` is 75. The request also carries `page` and `pageSize`. Pass `signal` to `fetch`, so the hook can abort a request that a newer page, size, or spec replaces.
 
-The hook sets `sortMode="server"` and `filterMode="server"`, so the grid never sorts or filters the page itself. Your server applies `spec`. See [Query server rows](/docs/data-modes/query-server-rows). The options are on [Server rows options](/docs/add-options/server/server-rows-options#server-mode).
+The hook sets `sortMode="server"` and `filterMode="server"`, so your server applies `spec`. See [Query server rows](/docs/data-modes/query-server-rows). Every option is on [Server rows options](/docs/add-options/server/server-rows-options#server-mode).
 
 ## Control the page [#control-the-page]
 
-The hook keeps the page and the page size in its own state. `defaultPage` and `defaultPageSize` seed them once. `pageSizeOptions` sets the sizes of the footer select, which are 10, 25, 50, and 100 by default.
-
-To control a value, pass `page` with `onPageChange`, or `pageSize` with `onPageSizeChange`. The hook sends a page below 1 as page 1. [Keep pages in URL](/docs/server-pagination/keep-pages-url) uses this pair.
+The hook keeps the page and the page size in its own state. `defaultPage` and `defaultPageSize` seed them once. `pageSizeOptions` sets the sizes of the footer select (10, 25, 50, and 100 by default). To control a value, pass `page` with `onPageChange`, or `pageSize` with `onPageSizeChange`, as [Keep pages in URL](/docs/server-pagination/keep-pages-url) does. The hook sends a page below 1 as page 1.
 
 ## When the page resets [#when-the-page-resets]
 
-- A change from the page-size select goes back to page 1.
-- A change of the sort, filter, or search text goes back to page 1 as well, because the pages hold other rows after the change.
+- A change of the page size, the sort, the filter, or the search text goes back to page 1, because the pages hold other rows.
 - A spec that URL state restores before the first answer keeps the page of the link.
 
-If the count shrinks below the page, the pager calls `onPageChange` once with the last page. A count of `0` leaves the page unchanged.
+If the count shrinks below the page, the pager moves to the last page. A count of `0` leaves the page unchanged.
 
 ## Show the count [#show-the-count]
 
-`totalRowCount` is the row count of the filtered result. The footer uses it for the range label and for the last page. The hook also passes it to the grid, with `checkedRowsLifetime="across-filters"`. The grid then remembers checked rows by row id, so they survive a page change. See [Select server rows](/docs/rows-live-data/select-server-rows).
+`totalRowCount` is the row count of the filtered result. The footer uses it for the range label and for the last page. The hook also passes it to the grid with `checkedRowsLifetime="across-filters"`, so checked rows survive a page change. See [Select server rows](/docs/rows-live-data/select-server-rows).
 
-If your server sends no count, answer `{ rows, hasMore }` and leave out `totalRowCount`, or send `totalRowCount: null`. The footer then shows "Page 3" in place of a range. Next stays enabled while `hasMore` is `true`, and Last stays disabled. Without `hasMore`, a full page means that another page exists. A cursor API answers `nextCursor`: see [Tune page loading](/docs/server-pagination/tune-page-loading).
+If your server sends no count, answer `{ rows, hasMore }` and omit `totalRowCount`, or send `totalRowCount: null`. The footer then shows "Page 3" in place of a range, Next stays enabled while `hasMore` is `true`, and Last stays disabled. Without `hasMore`, a full page means that another page exists. For a cursor API, see [Tune page loading](/docs/server-pagination/tune-page-loading).
 
 ## Fetch the pages yourself [#own-fetch]
 
-If you fetch with your own code, call `useDataGridServerPager` for the footer. It keeps no page state. You control `page` and `pageSize`, and you set `filterMode="server"` with a controlled `filterState`, so the grid does not filter the fetched page again.
+If you fetch with your own code, call `useDataGridServerPager` for the footer. It keeps no page state, so you control `page` and `pageSize`. Pass `totalRowCount` and a controlled `filterState`. The count makes `sortMode` and `filterMode` default to `"server"`, so the grid does not filter the page again.
 
 If the page, the page size, or the filters change, this grid fetches again:
 
@@ -94,15 +88,8 @@ If the page, the page size, or the filters change, this grid fetches again:
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  DataGrid,
-  defineColumns,
-  type FilterNode,
-} from "@/components/data-grid/data-grid";
-import {
-  DataGridPaginationBar,
-  useDataGridServerPager,
-} from "@/components/data-grid-pagination/data-grid-pagination";
+import { DataGrid, defineColumns, type FilterNode } from "@/components/data-grid/data-grid";
+import { DataGridPaginationBar, useDataGridServerPager } from "@/components/data-grid-pagination/data-grid-pagination";
 
 type Order = { id: string; customer: string };
 
@@ -114,31 +101,28 @@ export function OrdersGrid() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [filters, setFilters] = useState<FilterNode[]>([]);
-  const [rows, setRows] = useState<readonly Order[]>([]);
-  const [total, setTotal] = useState(0);
+  const [answer, setAnswer] = useState({ rows: [] as Order[], total: 0 });
 
   useEffect(() => {
-    let stale = false;
+    const controller = new AbortController();
     fetch("/api/orders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ page, pageSize, filters }),
+      signal: controller.signal,
     })
       .then((response) => response.json())
-      .then((answer) => {
-        if (stale) return;
-        setRows(answer.rows);
-        setTotal(answer.total);
+      .then(setAnswer)
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) console.error(error);
       });
-    return () => {
-      stale = true;
-    };
+    return () => controller.abort();
   }, [page, pageSize, filters]);
 
   const { pager } = useDataGridServerPager({
     page,
     pageSize,
-    totalRowCount: total,
+    totalRowCount: answer.total,
     onPageChange: setPage,
     onPageSizeChange: (size) => {
       setPageSize(size);
@@ -149,17 +133,16 @@ export function OrdersGrid() {
   return (
     <>
       <DataGrid
-        data={rows}
-        onDataChange={setRows}
+        data={answer.rows}
+        onDataChange={(rows) => setAnswer({ ...answer, rows: [...rows] })}
         columns={columns}
         getRowId={(row) => row.id}
-        rowMarkers="checkbox"
         filterState={filters}
         onFilterChange={(next) => {
           setFilters(next);
           setPage(1);
         }}
-        totalRowCount={total}
+        totalRowCount={answer.total}
         className="h-96"
       />
       <DataGridPaginationBar {...pager} />
@@ -168,12 +151,12 @@ export function OrdersGrid() {
 }
 ```
 
-A `totalRowCount` on the grid makes `sortMode` and `filterMode` default to `"server"`. The `stale` flag drops the answer of a replaced request. Without `onPageSizeChange`, the footer hides the page-size select.
+The `controller` aborts the request of a replaced page. Without `onPageSizeChange`, the footer hides the page-size select.
 
 ## Related
 
-- [Tune page loading](/docs/server-pagination/tune-page-loading): a cursor API, prefetch, and a refresh timer
-- [Client pagination](/docs/rows-pages-menus/client-pagination): the same footer on a local array
-- [Server rows options](/docs/add-options/server/server-rows-options#server-mode): every option and the answer checks
+- [Tune page loading](/docs/server-pagination/tune-page-loading): cursor, prefetch, timer
+- [Client pagination](/docs/rows-pages-menus/client-pagination): a local array
+- [Server rows options](/docs/add-options/server/server-rows-options#server-mode): every option
 - [Keep pages in URL](/docs/server-pagination/keep-pages-url): the page in the address bar
-- [Server pagination example](/docs/server-data-examples/server-pagination-example): pages with a fetch cache
+- [Server pagination example](/docs/server-data-examples/server-pagination-example): pages with a cache

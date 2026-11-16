@@ -44,17 +44,15 @@ export function TickerFeed({ url }: { url: string }) {
 }
 ```
 
-One call is one batch. The grid applies all patches together and calls `onDataChange` once, with one `update` operation per touched row. Rows you do not patch keep their object identity and do not render again. The grid skips a patch for an unknown row id. To add a row, pass a new `data` array.
+One call is one batch. The grid applies all patches together and calls `onDataChange` once, with one `update` operation per touched row. Rows you do not patch keep their object identity and do not render again. The grid skips a patch for an unknown row id. To add a row to a local `data` array, pass a new array. With `useDataGridServerRows`, call `server.reshape()` after the server reports the row.
 
 A call with `source: "stream"` (the default) takes at most 100,000 patches. The grid skips the patches after the limit. A stream `deleteRows` call takes at most 100,000 ids under the same rule.
 
-A hidden column takes patches like a visible one.
+A hidden column takes patches like a visible one. In controlled mode, pass the array that `onDataChange` gives you back as `data` unchanged. The grid recognizes its own array and keeps the sort, filter, and search results.
 
 A call with `source: "stream"` writes into a `readOnly` grid and into read-only columns and rows. A call with another `source`, for example `"edit"`, keeps every read-only check.
 
-## Patch whole rows [#whole-rows]
-
-`actions.updateRows([{ rowId: "AAPL", changes: { price: 214.5 } }])` takes `RowPatch` entries and patches several columns of one row at once. Each entry in `changes` becomes one patch. The options are the same as for `updateCells`.
+To patch several columns of one row at once, call `actions.updateRows([{ rowId: "AAPL", changes: { price: 214.5 } }])`. Each entry in `changes` becomes one patch. The options are the same as for `updateCells`.
 
 ## Sorted and filtered views [#sorted-and-filtered-views]
 
@@ -86,13 +84,15 @@ The `reorder` option of `UpdateCellsOptions` takes an `UpdateCellsReorder` value
 
 If no patched column feeds the active sort or filter, `"defer"` acts as `"never"`.
 
-`"immediate"` finds each patched row and keeps the order when every row still sits between its neighbors. Otherwise it removes the patched rows, tests them against the filter again, and puts them back at the positions a full sort gives them. A batch that cannot change a sort or filter value skips this work. The grid rebuilds the whole order when this batch and the earlier deferred batches touch more than 256 rows. After an edit, paste, fill, cell clear, undo, redo, rollback, row operation, or data swap, the next batch also rebuilds once.
+`"immediate"` keeps the order when every patched row still sits between its neighbors. Otherwise it puts the patched rows at the positions a full sort gives them.
 
 With `sortMode="server"` or `filterMode="server"`, the server orders the rows. A push marks the row stale and the hook can refetch. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
 
-## Control the data yourself [#controlled-mode]
+## Flash changed cells [#flash-cells]
 
-In controlled mode, store the array that `onDataChange` gives you in state, and pass it back as `data` unchanged. The grid recognizes its own array and keeps the sort, filter, and search results.
+The grid flashes cells on its own only after a fill. A push does not flash. To flash the cells that a push wrote, pass `{ flash: true }`, as in `actions.updateCells(patches, { flash: true })`. `updateRows` takes it too. The call flashes the cells it applied at once. A held batch flashes after `settled`. Cells of hidden columns do not flash.
+
+`actions.flashCells(cells, durationMs?)` flashes any cells without a write. Each cell is a `CellRef` with `rowId` and `columnId`. `flashCells` changes no data and adds no history entry. `durationMs` sets how long the cell keeps `data-flash`, 1400 by default. `--grid-flash-duration`, `--grid-flash-color`, and `--grid-flash-intensity` style the flash. See [Style contract](/docs/contracts/style-contract).
 
 ## Undo and save [#undo-history]
 
@@ -112,22 +112,16 @@ A batch without `reorder: "immediate"` does not move the selection, the active c
 
 If a value fails `validate`, the grid skips it and applies the rest of the batch. `onValidationError` then reports the skipped values with `source: "stream"`. See [Edit and validation events](/docs/events-state/edit-validation-events). When the producer already checked the values, set `skipValidation: true`.
 
-A batch into a column with an async schema changes nothing until the schema answers. The accepted cells then commit together as one `onDataChange`. A write that changes the rows, or a rebuild of the view, supersedes the held batch, and the grid drops its late answer. The common triggers are:
-
-- A newer batch that also waits for an async schema, or an `"immediate"` batch that writes a value
-- An edit, paste, fill, cell clear, undo, redo, rollback, or row operation
-- A sort or filter change, a hidden or shown column, `reconcileView()` on a stale view, or a new `data`, `columns`, or `searchText` prop
-
-A plain `updateCells` call that does not wait keeps the held batch, until the rows that wait for a re-sort pass 256. If every cell fails, the batch commits nothing. See [Validation](/docs/editing-cells/validate-rows-cross-field#on-bulk-paths).
+A batch into a column with an async schema changes nothing until the schema answers. The accepted cells then commit together as one `onDataChange`. A write that changes the rows supersedes the held batch, such as an edit or a row operation. So does a rebuild of the view, such as a sort change. The grid drops the late answer. If every cell fails, the batch commits nothing. See [Validation](/docs/editing-cells/validate-rows-cross-field#on-bulk-paths).
 
 ## Read the verdict [#what-the-verdict-tells-you]
 
-`updateCells` and `updateRows` return an `UpdateCellsVerdict` with `applied`, `skipped`, `pending`, and `settled`. [Read a push verdict](/docs/rows-live-data/read-push-verdict) lists the skip reasons. It also shows how to [flash the written cells](/docs/rows-live-data/read-push-verdict#flash-cells) with `{ flash: true }`.
+`updateCells` and `updateRows` return an `UpdateCellsVerdict` with `applied`, `skipped`, `pending`, and `settled`. [Read a push verdict](/docs/rows-live-data/read-push-verdict) lists the skip reasons.
 
 ## Related
 
-- [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view)
-- [Show presence](/docs/rows-live-data/show-presence)
-- [Data change events](/docs/events-state/data-change-events)
-- [Undo and redo](/docs/clipboard-undo/undo-redo)
-- [State and view index](/docs/concepts/state-view-index)
+- [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view): stale rows and reshape
+- [Show presence](/docs/rows-live-data/show-presence): paint the selections of peers
+- [Data change events](/docs/events-state/data-change-events): the operations that a change reports
+- [Undo and redo](/docs/clipboard-undo/undo-redo): the history add-on
+- [State and view index](/docs/concepts/state-view-index): row ids and view indices

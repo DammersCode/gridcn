@@ -14,23 +14,31 @@ The `data-grid-presence` add-on paints the selections of other users on top of t
 
 ## Wire the plugin [#wiring-it-up]
 
-`useDataGridPresence()` returns a `plugin` and the setters. Call it once per grid, in your own component above the grid (`DataGrid` or `DataGridProvider`). The `plugins` prop lives on the grid, so the plugin must exist first. Every further call creates another store, and only the plugin that you pass to `plugins` paints.
+`useDataGridPresence()` returns a `plugin` and the setters. Call it once per grid, in the component that renders the grid. Every further call creates another store, and only the plugin in `plugins` paints.
+
+This grid paints the list of highlights that a websocket sends:
 
 ```tsx
 "use client";
 
 import { useEffect } from "react";
-import { DataGrid } from "@/components/data-grid/data-grid";
-import { useDataGridPresence } from "@/components/data-grid-presence/data-grid-presence";
-import { columns, type Row } from "./rows";
-import { connectToRoom } from "./room";
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import { useDataGridPresence, type PresenceHighlightEntry } from "@/components/data-grid-presence/data-grid-presence";
+
+type Row = { id: string; name: string };
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
 
 export function MyGrid({ rows, roomId }: { rows: Row[]; roomId: string }) {
   const { plugin, setPresenceHighlights } = useDataGridPresence();
 
   useEffect(() => {
-    const socket = connectToRoom(roomId);
-    socket.on("presence", (remote) => setPresenceHighlights(remote));
+    const socket = new WebSocket(`wss://api.example.com/rooms/${roomId}`);
+    socket.onmessage = (event: MessageEvent<string>) => {
+      setPresenceHighlights(JSON.parse(event.data) as PresenceHighlightEntry[]);
+    };
     return () => socket.close();
   }, [setPresenceHighlights, roomId]);
 
@@ -45,7 +53,7 @@ export function MyGrid({ rows, roomId }: { rows: Row[]; roomId: string }) {
 }
 ```
 
-The identity of `plugin` never changes, so the inline `[plugin]` array is safe. To share the setters with other components, pass them down as props from the single call.
+The identity of `plugin` never changes, so the inline `[plugin]` array is safe. Pass the setters down as props to share them.
 
 ## Describe a highlight [#api]
 
@@ -57,14 +65,18 @@ The identity of `plugin` never changes, so the inline `[plugin]` array is safe. 
 | Row-id range | `id`, `color`, `rowIds`, `columnIds`, `label?` | The cells at the crossing of the rows and the columns. |
 | View range | `id`, `color`, `range`, `label?` | The rect `range`, in view indices. |
 
-`color` is any CSS color or a token such as `var(--color-primary)`. `label` shows as a name chip at the top-left corner of each painted rect while that corner is on screen.
+`color` is any CSS color or a token such as `var(--color-primary)`. `label` shows as a name chip at the top-left corner of each painted rect.
 
-The setter replaces the whole list, so each call carries the full current set of remote entries. To remove entries without a full list, use the two other setters:
+The setter replaces the whole list, so each call carries the full current set of remote entries. To remove entries without a full list, use the two other setters. This hook handles a full list, a leaving peer, and a closed room:
 
 ```tsx
 import { useEffect } from "react";
-import { useDataGridPresence } from "@/components/data-grid-presence/data-grid-presence";
-import { connectToRoom } from "./room";
+import { useDataGridPresence, type PresenceHighlightEntry } from "@/components/data-grid-presence/data-grid-presence";
+
+type Message =
+  | { type: "presence"; entries: PresenceHighlightEntry[] }
+  | { type: "leave"; id: string }
+  | { type: "room-closed" };
 
 export function usePeerSync(roomId: string) {
   const {
@@ -75,74 +87,65 @@ export function usePeerSync(roomId: string) {
   } = useDataGridPresence();
 
   useEffect(() => {
-    const socket = connectToRoom(roomId);
-    socket.on("leave", (peerId) => removePresenceHighlight(peerId));
-    socket.on("room-closed", clearPresenceHighlights);
+    const socket = new WebSocket(`wss://api.example.com/rooms/${roomId}`);
+    socket.onmessage = (event: MessageEvent<string>) => {
+      const message = JSON.parse(event.data) as Message;
+      if (message.type === "presence") setPresenceHighlights(message.entries);
+      else if (message.type === "leave") removePresenceHighlight(message.id);
+      else clearPresenceHighlights();
+    };
     return () => socket.close();
-  }, [roomId, removePresenceHighlight, clearPresenceHighlights]);
+  }, [
+    roomId,
+    setPresenceHighlights,
+    removePresenceHighlight,
+    clearPresenceHighlights,
+  ]);
 
   return { plugin, setPresenceHighlights };
 }
 ```
 
-Use this hook in place of the call in `MyGrid`. The sample gives each peer one entry with the peer id as its `id`. A peer with several ranges holds one entry per range. Give its entries ids such as `${peerId}:0`, and remove each one, or send the full list again with `setPresenceHighlights`.
+Use this hook in place of the call in `MyGrid`. Each peer has one entry with the peer id as its `id`. A peer with several ranges holds one entry per range. Give its entries ids such as `${peerId}:0`, and remove each one, or send the full list again with `setPresenceHighlights`.
 
-`removePresenceHighlight(id)` removes the entry with that `id`. If no entry matches, it does nothing. `clearPresenceHighlights()` removes every entry. The grid drops an entry with a malformed `range`, `rowId`, `columnId`, `rowIds`, or `columnIds`, and warns once in development for each one. It repairs a bad `label`: see [Presence options](/docs/add-options/server/presence-options).
+`removePresenceHighlight(id)` removes the entry with that `id`. If no entry matches, it does nothing. `clearPresenceHighlights()` removes every entry. The grid drops an entry with a malformed `range`, `rowId`, `columnId`, `rowIds`, or `columnIds`, and warns once in development. It repairs a bad `label`: see [Presence options](/docs/add-options/server/presence-options).
 
 ## Send row ids, not view indices [#coordinates-rowid-native-or-view-index]
 
-A view range holds indices into the view of the sender. If the receiver sorts or filters differently, or its own feed reorders rows, the highlight lands on the wrong cells. When sender and receiver views can differ, use the row-id forms:
-
-```tsx fragment="inside the socket handler of MyGrid"
-setPresenceHighlights([
-  {
-    id: remote.userId,
-    color: remote.color,
-    rowId: remote.rowId,
-    columnId: remote.columnId,
-  },
-  {
-    id: remote.rangeId,
-    color: remote.color,
-    rowIds: remote.rowIds,
-    columnIds: remote.columnIds,
-  },
-]);
-```
+A view range holds indices into the view of the sender. If the receiver sorts or filters differently, the highlight lands on the wrong cells. When sender and receiver views can differ, use the cell form and the row-id range form.
 
 The plugin resolves the ids against the view of the receiver when it paints. It drops a row that a filter hides. It also drops a row that the grid does not hold, such as a row on another page or an unloaded row in scroll mode. It drops a hidden or unknown column and warns once in development. A filter that splits a range paints one rect per contiguous fragment.
 
-One range entry paints at most 1024 fragments. The `maxRects` option changes that cap. The overlay drops the excess and calls `onExcessRects({ entry, kept, total })` once each time the `kept` and `total` of an entry over the cap change. In development, the grid also warns once for each entry. See [Presence options](/docs/add-options/server/presence-options).
+One range entry paints at most 1024 fragments. The overlay drops the excess and calls `onExcessRects({ entry, kept, total })` each time the `kept` and `total` of an entry over the cap change. See [Presence options](/docs/add-options/server/presence-options) for `maxRects` and the development warning.
 
-`isRowIdPresenceHighlight(entry)` and `isRowIdRangePresenceHighlight(entry)` narrow a received entry to the cell form or the row-id range form. To map a row id to a view row yourself, `useDataGridRowIdToViewRow()` returns a `ReadonlyMap<string, number>` of the current view.
+`isRowIdPresenceHighlight(entry)` and `isRowIdRangePresenceHighlight(entry)` narrow a received entry to the cell form or the row-id range form. `useDataGridRowIdToViewRow()` returns the `ReadonlyMap<string, number>` from row id to view row.
 
-A row move, a column move, a sort, a filter, or a data replacement can move cells while a view-range entry is active. In development, the grid then warns once.
+A row move, a column move, a sort, a filter, or a data replacement while a view-range entry is active warns once in development.
 
 ## Keep rows and cells out of it [#zero-re-render-guarantee]
 
-A call to `setPresenceHighlights` re-renders `DataGridOverlays` only. No row, no cell, and no `aria-selected` changes. To read the list elsewhere, pass `storeApi` (a `PresenceStoreApi`) from the hook to `useDataGridPresenceHighlights(storeApi)`. That hook re-renders only the component that calls it.
+A call to `setPresenceHighlights` re-renders `DataGridOverlays` only. No row, no cell, and no `aria-selected` changes. To read the list elsewhere, pass `storeApi` from the hook to `useDataGridPresenceHighlights(storeApi)`. That hook re-renders only the component that calls it.
 
 ## How highlights look [#rendering]
 
-- Highlights clamp to the rendered rows and split at pinned columns. A pinned segment paints at the pinned cell position.
+- Highlights clamp to the rendered rows and split at pinned columns.
 - `color` becomes the `--presence-color` of the overlay node. The border has full opacity, and the fill is translucent, so two overlapping highlights stay readable.
 - A `color` that is invalid, or a theme token that is not defined, paints as `var(--color-primary)`.
-- The name chip text is black on light colors and white on dark ones. The switch sits at an OKLCH lightness of 0.62. Set `--presence-label-foreground` to use one fixed text color.
-- Highlights paint below the local active-cell ring. They are `aria-hidden` and `pointer-events-none`, and they never reach the selection of the local user.
+- The name chip text is black on light colors and white on dark ones. The switch sits at an OKLCH lightness of 0.62. Without relative color syntax, the text is white. Set `--presence-label-foreground` to use one fixed text color.
+- Highlights paint below the local active-cell ring. They are `aria-hidden` and `pointer-events-none`, and never reach the local selection.
 
 ## Limits [#scope-cuts]
 
 - Presence paints on data rows. Pinned row bands have no highlight.
-- The add-on draws no cursors, no avatars, and no roster. Build those in your own components.
+- The add-on draws no cursors, avatars, or roster. Build those yourself.
 
 ## Broadcast your selection [#broadcasting-your-selection]
 
-To send the selection of the local user to peers, see [Broadcast your selection](/docs/rows-live-data/broadcast-your-selection).
+[Broadcast your selection](/docs/rows-live-data/broadcast-your-selection) sends the selection of the local user to peers.
 
 ## Related
 
-- [Broadcast your selection](/docs/rows-live-data/broadcast-your-selection)
-- [Stream updates](/docs/rows-live-data/stream-updates)
-- [Presence options](/docs/add-options/server/presence-options)
-- [Plugin model](/docs/plugins/plugin-shape)
-- [State and view index](/docs/concepts/state-view-index)
+- [Stream updates](/docs/rows-live-data/stream-updates): push values into cells
+- [Presence options](/docs/add-options/server/presence-options): every option of the add-on
+- [Plugin model](/docs/plugins/plugin-shape): what a grid plugin is
+- [State and view index](/docs/concepts/state-view-index): row ids and view indices

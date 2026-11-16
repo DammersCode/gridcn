@@ -14,9 +14,9 @@ The demo has two failure buttons. The first one fails the next request once. The
 
 ## Report and retry errors [#errors]
 
-1. Pass `onError` to `useDataGridServerRows` to report each failure.
-2. When your own code needs the failure, read `server.error` or `server.status`.
-3. Call `server.retry()`, or let the user press Retry in the error bar.
+- Pass `onError` to `useDataGridServerRows` to report each failure.
+- When your own code needs the failure, read `server.error` or `server.status`.
+- Call `server.retry()`, or let the user press Retry in the error bar.
 
 This grid reports a failure and replaces the content of the error bar:
 
@@ -25,9 +25,7 @@ This grid reports a failure and replaces the content of the error bar:
 
 import { Button } from "@/components/ui/button";
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
-import {
-  useDataGridServerRows,
-} from "@/components/data-grid-server/data-grid-server";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
 
 type Order = { id: string; customer: string };
 
@@ -74,8 +72,8 @@ Leave out `errorState` to keep the built-in error state. With rows, it is a bar 
 - A `fetchRows` that rejects, throws, or resolves without a `rows` array counts as a failure.
 - The next report of the rendered rows that covers the block requests it again. Scroll away and back to trigger it.
 - Until block 0 lands, the hook requests no other block, on mount and after a spec change. Call `retry()` or `refresh()` to load it.
-- An aborted request is no failure and fires no `onError`. The hook aborts a request on a spec change, a changed row count, `refresh()`, `evict()`, or an unmount. It also aborts a block outside the keep range (rendered rows, `overscan`, one block). The first three also clear `error`.
-- A failed block that leaves the same range stops counting as an error.
+- An aborted request is no failure and fires no `onError`. The hook aborts a request on a spec change, a changed row count, `refresh()`, `evict()`, or an unmount. It also aborts a block outside the keep range (the wanted range plus one block on each side). The first three also clear `error`.
+- A failed block outside the keep range stops counting as an error. When no failure is left, `error` clears.
 - A throw inside `onError` or `onLoaded` does not break the hook. The hook logs it to the console.
 
 ## When a block fails for good [#when-a-block-fails-permanently]
@@ -90,33 +88,33 @@ A sequential source stops at a failed block. `retry()` repeats that block, and s
 
 The hook does not retry on its own. To ride out a short outage, retry inside `fetchRows`. Wait longer after each attempt. If `signal` aborts, stop. A request with a `cursor` repeats the same cursor, so a sequential source keeps its place.
 
-This loader retries a timeout (408), a rate limit (429), and a server error (500 and above) twice. It sends the cursor of a sequential source. It also sends `limit`, because the hook drops rows past `end - start` and the next cursor moves past them:
+This loader retries a network error, a timeout (408), a rate limit (429), and a server error (500 and above) twice. It sends the cursor of a sequential source. It also sends `limit`, because the hook drops rows past `end - start` and the next cursor moves past them:
 
 ```ts
-import type {
-  ServerRowsRequest,
-} from "@/components/data-grid-server/data-grid-server";
+import type { ServerRowsRequest } from "@/components/data-grid-server/data-grid-server";
 
 const wait = (ms: number, signal: AbortSignal) =>
   new Promise<void>((resolve, reject) => {
-    const onAbort = () => {
+    const timer = setTimeout(resolve, ms);
+    signal.addEventListener("abort", () => {
       clearTimeout(timer);
       reject(signal.reason);
-    };
-    const timer = setTimeout(() => {
-      signal.removeEventListener("abort", onAbort);
-      resolve();
-    }, ms);
-    signal.addEventListener("abort", onAbort, { once: true });
+    }, { once: true });
   });
 
 const isRetryable = (status: number) =>
   status === 408 || status === 429 || status >= 500;
 
-
 async function fetchWithRetry(url: string, signal: AbortSignal) {
   for (let attempt = 1; ; attempt++) {
-    const response = await fetch(url, { signal });
+    let response: Response;
+    try {
+      response = await fetch(url, { signal });
+    } catch (error) {
+      if (signal.aborted || attempt === 3) throw error;
+      await wait(500 * 2 ** attempt, signal);
+      continue;
+    }
     if (response.ok) return response;
     if (!isRetryable(response.status) || attempt === 3) {
       throw new Error(`Request failed with ${response.status}`);
@@ -131,7 +129,7 @@ async function fetchWithRetry(url: string, signal: AbortSignal) {
 export async function loadOrders(request: ServerRowsRequest<string>) {
   const { start, end, cursor, signal } = request;
   const query = new URLSearchParams({ limit: String(end - start) });
-  if (cursor) query.set("after", cursor);
+  if (cursor !== undefined) query.set("after", cursor);
   const response = await fetchWithRetry(`/api/orders?${query}`, signal);
   const answer = await response.json();
   return { rows: answer.rows, nextCursor: answer.nextCursor };

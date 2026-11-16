@@ -31,29 +31,70 @@ Each of the five row actions returns `{ ok: true }` once it ran or an async gate
 
 A call with `source: "stream"` returns `{ ok: true }` when no id matched, because a server push can repeat a delete.
 
-`onRowActionSkipped({ action, reason })` on `DataGridProvider` fires for every skip of `insertRows`, `duplicateRows`, `deleteRows`, or `moveRows`. A shortcut, a drag, a menu item, or a call can start the action. One handler shows a message for all four.
+`onRowActionSkipped({ action, reason })` fires for every skip of `insertRows`, `duplicateRows`, `deleteRows`, or `moveRows`. A shortcut, a drag, a menu item, or a call can start the action. One handler shows a message for all four.
 
-A `deleteRows` call with `source: "stream"` never fires it. `insertRow` reports the action as `"insertRows"`, and `deleteRowsAt` reports it as `"deleteRows"`. Insert row with no active cell reports nothing, even in a read-only grid. Duplicate row and Delete rows with no selection and no active cell report nothing when no reason applies. Disabled row items of the context menu show the reason as a tooltip.
+These cases differ:
 
-Pass the handler to `DataGridProvider`:
+- A `deleteRows` call with `source: "stream"` never fires it.
+- `insertRow` reports the action as `"insertRows"`, and `deleteRowsAt` reports it as `"deleteRows"`.
+- Insert row with no active cell reports nothing, even in a read-only grid.
+- Duplicate row and Delete rows with no selection and no active cell report nothing when no reason applies.
+
+Disabled row items of the context menu show the reason as a tooltip.
+
+This grid maps the reason to a message. Pass the handler to `DataGrid` or `DataGridProvider`:
 
 ```tsx
-import { DataGridProvider, DataGridRoot } from "@/components/data-grid/data-grid";
+"use client";
 
-<DataGridProvider
-  defaultData={[]}
-  columns={[]}
-  onRowActionSkipped={({ action, reason }) => console.log(action, reason)}
->
-  <DataGridRoot />
-</DataGridProvider>;
+import { useState } from "react";
+import {
+  DataGrid,
+  defineColumns,
+  type RowActionSkipReason,
+} from "@/components/data-grid/data-grid";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+const MESSAGES: Partial<Record<RowActionSkipReason, string>> = {
+  readOnly: "The grid is read-only.",
+  "unloaded-rows": "Scroll to the rows first.",
+  "view-ordered": "Clear the sort or filter to move rows.",
+  "all-matching": "Use your server to act on all matching rows.",
+};
+
+export function OrdersGrid({ rows }: { rows: Order[] }) {
+  const [message, setMessage] = useState<string>();
+
+  return (
+    <>
+      <DataGrid
+        defaultData={rows}
+        columns={columns}
+        getRowId={(row) => row.id}
+        onRowActionSkipped={({ reason }) => setMessage(MESSAGES[reason])}
+      />
+      <p role="status">{message}</p>
+    </>
+  );
+}
 ```
 
 `reorderRows` and `moveRowsBy` return `true` or `false` and report their skips as `action: "moveRows"`.
 
 ## Stop a gate that never settles [#gate-timeout]
 
-Set `gateTimeoutMs` to abort an async gate whose promise has not settled in time. The gates are `onBeforeDeleteRows`, `validateRow`, `onBeforeEditStart`, `createRow`, `duplicateRow`, and `processPaste`. The import dialog has no timeout. Pass one number, or a number per gate name. The default is off. `onGateAborted({ gate, reason })` reports each gate the grid stopped waiting for. The `reason` is `"timeout"`, `"changed"`, `"superseded"`, `"cancelled"`, or `"reset"`.
+Set `gateTimeoutMs` to abort an async gate whose promise has not settled in time. The gates are `onBeforeDeleteRows`, `validateRow`, `onBeforeEditStart`, `createRow`, `duplicateRow`, `processPaste`, and `processReplace`. The import dialog has no timeout. Pass one number, or a number per gate name. The default is off. This prop gives the delete gate two seconds and sets no limit for the others:
+
+```tsx fragment="a prop of the DataGrid"
+gateTimeoutMs={{ onBeforeDeleteRows: 2000 }}
+```
+
+`onGateAborted({ gate, reason })` reports each gate the grid stopped waiting for. The `reason` is `"timeout"`, `"changed"`, `"superseded"`, `"cancelled"`, or `"reset"`.
 
 ## Related
 

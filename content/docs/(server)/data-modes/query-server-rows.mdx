@@ -15,7 +15,6 @@ When your server owns the result, it must also sort, filter, and search it. The 
 1. Read `spec` in `fetchRows` and send it to your API.
 2. Apply the spec on the server.
 3. Answer with the matching rows in order and the row count of the result.
-4. Set `headerClickBehavior="sort"`, so a header click sorts.
 
 This grid sends the spec as JSON:
 
@@ -53,14 +52,15 @@ export function OrdersGrid() {
     <DataGrid
       {...server.gridProps}
       columns={columns}
-      headerClickBehavior="sort"
       className="h-96"
     />
   );
 }
 ```
 
-The hook sets `sortMode="server"` and `filterMode="server"`. The grid tracks the spec and never sorts or filters `data` itself. Treat the spec as untrusted input. Pass it through `parseServerSpec` before you build a query. See [Check the spec](#parse-the-spec) and the ORM examples, such as the [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example).
+The hook sets `sortMode="server"`, `filterMode="server"`, and `headerClickBehavior="sort"`. The grid tracks the spec and never sorts or filters `data` itself. Treat the spec as untrusted input. Pass it through `parseServerSpec` before you build a query. See [Check the spec](#parse-the-spec) and the ORM examples, such as the [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example).
+
+A client sort or filter cannot see rows the grid never fetched. Use the hook, or set `sortMode="server"` and `filterMode="server"` yourself. The grid warns once in development when a client sort or filter applies while `data` holds fewer rows than the result.
 
 Pages mode takes the same spec. A spec change there goes back to page 1 and fetches again. In scroll mode it starts the blocks over.
 
@@ -70,7 +70,7 @@ Pages mode takes the same spec. A spec change there goes back to page 1 and fetc
 
 It drops every key it does not know and builds no query. It does not read `start` and `end`. Your server bounds them, as this sample does:
 
-```ts
+```ts fragment="queryOrders is your query layer"
 import { parseServerSpec, ServerSpecError } from "@/components/data-grid-server/data-grid-server";
 
 // The blockSize of the hook: one request asks for at most one block.
@@ -106,13 +106,13 @@ The grid shows the sort cycle, `aria-sort`, the sort indicator, and `DataGridSor
 
 In scroll mode, a sort change drops the loaded rows, because fetched blocks hold the old order. The hook fetches block 0 again with the new spec.
 
-A header click sorts only with `headerClickBehavior="sort"`. The default, `"select"`, selects the column and never changes the spec.
+With `server.gridProps`, a header click sorts. Without the hook, a header click selects the column until you set `headerClickBehavior="sort"`.
 
-Make the order total, for example by adding the row id as the last sort key. The hook keeps the first row of a repeated row id. In random access, scroll mode leaves the later copy as a skeleton row. A sequential source and pages mode drop it.
+Make the sort order unique, for example by adding the row id as the last sort key. The hook keeps the first row of a repeated row id. In random access, scroll mode leaves the later copy as a skeleton row. A sequential source and pages mode drop it.
 
 ## Filter on the server [#filtering-a-scroll-grid]
 
-The grid tracks the filter spec: the filter menu, the header filters, and `data-filtered`. It calls `onFilterChange` and never removes a row from `data`. The view keeps one row per index, so the range that `onRenderedRowsChange` reports maps to data indices.
+The grid tracks the filter spec: the filter menu, the header filters, and `data-filtered`. It calls `onFilterChange` and never removes a row from `data`.
 
 - **A filter change discards the loaded rows.** In scroll mode, fetched blocks hold rows of the old spec. The hook starts over at block 0 and takes the new row count from the answer.
 - **A newer spec wins.** The hook aborts the requests of the old spec and ignores their answers.
@@ -128,7 +128,6 @@ The hook owns the spec. Seed it with `defaultSpec`. Control it with `spec` and `
 
 `serverSpecKey(spec)` returns the spec as a string without the generated filter ids. Use it as a query key or an effect dependency. `ServerSpec` and `serverSpecKey` import from the `data-grid` barrel.
 
-A client sort or filter works on the rows in `data` and cannot see rows the grid never fetched. The grid warns once in development when a client sort or filter changes while `data` holds unloaded rows or fewer rows than `totalRowCount`. Without `totalRowCount`, set `sortMode="server"` and `filterMode="server"`, or use the hook.
 
 ## Related
 
