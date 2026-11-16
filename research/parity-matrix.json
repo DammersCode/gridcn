@@ -296,6 +296,62 @@
       "doc": "/docs/sort-filter-search/quick-search"
     },
     {
+      "id": "server-search",
+      "feature": "Server search",
+      "options": [
+        "searchText",
+        "defaultSearchText",
+        "onSearchTextChange"
+      ],
+      "note": "`useDataGridServerRows` puts the search text in `spec.searchText`, bounds it in `parseServerSpec`, and refetches. Your server narrows the result by it.",
+      "cells": {
+        "L": {
+          "status": "n/a",
+          "reason": "A local array has no server to send the text to."
+        },
+        "PC": {
+          "status": "n/a",
+          "reason": "Client pagination searches the whole local `data`."
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.controlled-spec.test.tsx",
+            "registry/default/blocks/data-grid-server/parse-server-spec.test.ts"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.test.tsx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.controlled-spec.test.tsx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/server-rows.parity.test.tsx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/server-rows.parity.test.tsx"
+          ]
+        },
+        "API": {
+          "status": "n/a",
+          "reason": "Search writes no data."
+        }
+      },
+      "doc": "/docs/data-modes/query-server-rows"
+    },
+    {
       "id": "row-check",
       "feature": "Row check and ranges",
       "options": [

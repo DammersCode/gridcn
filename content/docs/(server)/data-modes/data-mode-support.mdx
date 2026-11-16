@@ -85,6 +85,17 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="n/a" note={"Search highlights loaded rows and never filters."} /></td>
       <td className="text-center"><ParityCell status="n/a" note={"Search writes no data."} /></td>
     </tr>
+    <tr id="parity-server-search">
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal"><a href="/docs/data-modes/query-server-rows">Server search</a></th>
+      <td className="text-center"><ParityCell status="n/a" note={"A local array has no server to send the text to."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Client pagination searches the whole local data."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Search writes no data."} /></td>
+    </tr>
     <tr id="parity-row-check">
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal"><a href="/docs/selection-shortcuts/checked-rows">Row check and ranges</a></th>
       <td className="text-center"><ParityCell status="supported" /></td>
@@ -537,6 +548,13 @@ A sort or filter on a column that is not in `columns` drops with a development w
 
 - The grid's search highlights and navigates loaded rows and never narrows them. `useDataGridServerRows` sends the text as `spec.searchText`, so your server can narrow the result.
 - **FS**: n/a: Search highlights loaded rows and never filters.
+- **API**: n/a: Search writes no data.
+
+### Server search
+
+- `useDataGridServerRows` puts the search text in `spec.searchText`, bounds it in `parseServerSpec`, and refetches. Your server narrows the result by it.
+- **L**: n/a: A local array has no server to send the text to.
+- **PC**: n/a: Client pagination searches the whole local `data`.
 - **API**: n/a: Search writes no data.
 
 ### Counts and total
