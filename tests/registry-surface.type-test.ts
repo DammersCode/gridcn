@@ -1,8 +1,6 @@
 // Compile-time guard: the add-on-only types live on `data-grid-sdk`, never on the `data-grid` consumer barrel.
 // @ts-expect-error DataGridStoreState moved to data-grid-sdk
 import type { DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid";
-// @ts-expect-error DataGridFilterOperatorLabels moved to data-grid-sdk
-import type { DataGridFilterOperatorLabels } from "@/registry/default/blocks/data-grid/data-grid";
 // @ts-expect-error GridAttrName moved to data-grid-sdk
 import type { GridAttrName } from "@/registry/default/blocks/data-grid/data-grid";
 // @ts-expect-error GridAttr moved to data-grid-sdk
@@ -24,4 +22,4 @@ export type MovedTypesStillExist = [
   Sdk.History<unknown>,
   Sdk.HistoryOptions,
 ];
-export type ImportedNames = [DataGridStoreState, DataGridFilterOperatorLabels, GridAttrName, GridAttr, GridAttrValue, History, HistoryOptions];
+export type ImportedNames = [DataGridStoreState, GridAttrName, GridAttr, GridAttrValue, History, HistoryOptions];

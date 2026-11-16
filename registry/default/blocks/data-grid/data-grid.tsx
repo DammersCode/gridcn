@@ -14,7 +14,7 @@ import { DataGridHeader, type HeaderCellRenderer } from "./header";
 import { DataGridBody } from "./body";
 
 /** Public entry point — the only module consumers/docs should import from. */
-export { DataGridRoot, type DataGridRootProps, type EmptyStateReason, type EmptyStateRenderer, type LoadingStateReason, type LoadingStateRenderer } from "./root";
+export { DataGridRoot, type DataGridRootProps, type EmptyStateReason, type EmptyStateRenderer, type LoadingStateReason, type LoadingStateRenderer, type ErrorStateContext, type ErrorStateRenderer } from "./root";
 export { DataGridHeader, type DataGridHeaderProps, type HeaderCellRenderCtx, type HeaderCellRenderer } from "./header";
 export { DataGridBody, type DataGridBodyProps } from "./body";
 /** The per-cell renderer — `data-grid-pinned-rows`'s `DataGridPinnedRow` reuses this in `pinned` mode for identical cell-type rendering/alignment as data rows. */
@@ -110,7 +110,7 @@ export {
 } from "./store";
 export type { AnyCellType, ColumnDefOf, ClipboardProcessCtx, ClipboardCopyCtx, ClipboardPasteCtx } from "./store";
 
-export { useDataGridClipboard, type UseDataGridClipboardResult, type PasteFromClipboardResult } from "./clipboard/use-data-grid-clipboard";
+export { useDataGridClipboard, type UseDataGridClipboardOptions, type UseDataGridClipboardResult, type PasteFromClipboardResult } from "./clipboard/use-data-grid-clipboard";
 export { sanitizeFormulaCell } from "./clipboard/serialize-cells";
 export { DataGridGlobalShortcuts, type DataGridGlobalShortcutsProps } from "./keyboard/use-data-grid-global-shortcuts";
 export {
@@ -164,6 +164,9 @@ export {
   type DataGridPaginationLabels,
   type DataGridStatusBarLabels,
   type DataGridViewsLabels,
+  type DataGridSortLabels,
+  type DataGridFindReplaceLabels,
+  type DataGridFilterOperatorLabels,
 } from "./labels";
 
 
