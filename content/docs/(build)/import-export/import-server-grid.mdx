@@ -3,7 +3,7 @@ title: Import into a server grid
 icon: CloudUpload
 description: Send the imported rows to your server from onImport, then refresh the grid, because a grid with a row count cannot append rows.
 type: task
-aliases: ["import to server", "import server rows", "import totalRowCount"]
+aliases: ["import server grid", "import to server", "import server rows", "import totalRowCount"]
 ---
 
 A grid with a `totalRowCount` or unloaded rows cannot take appended rows: the data exceeds the count, and the next refresh drops them. Without `onImport`, its import button is disabled. Pass `onImport` to send the rows to your server instead.
@@ -87,6 +87,6 @@ The server decides where the new rows sit under the current sort. `server.refres
 ## Related
 
 - [Import](/docs/import-export/import): the dialog.
-- [Control the import](/docs/import-export/control-import): `onImportError` and the other hooks.
+- [Control the import](/docs/import-export/control-import): `onImportError` and the other import props.
 - [Save edits](/docs/save-server/save-edits): the request shape for writes.
 - [Import options](/docs/add-options/import-export/import-options): every import option and type

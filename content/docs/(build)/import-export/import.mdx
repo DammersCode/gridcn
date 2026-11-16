@@ -37,7 +37,7 @@ export function ImportOrders() {
 
 Without `onImport`, a confirm appends the rows to `data` with one `commitChange` of the `"import"` source. That is one undo entry. The change reaches `onDataChange`, `onSave`, and `validateRow` like any other write. Replacing `data` does none of this. A grid with a `totalRowCount` or a `readOnly` grid has no default. Its import button is disabled, and its `title` gives the reason (`labels.io.importNeedsOnImport` or `labels.io.importReadOnly`). Pass `onImport` on a server grid.
 
-`onImport(rows)` replaces the default and decides where the rows land: replace, merge, or send to a server. It can return a promise, which the dialog awaits. If it rejects, the dialog stays open with an error, and the user can retry. If it resolves, the dialog clears the grid selection. If the build cleared cells, it stays open (see [Confirm](#confirm)). Otherwise it closes. On a `readOnly` grid, `commitChange` writes nothing, and the dialog still closes.
+`onImport(rows)` replaces the default and decides where the rows land: replace, merge, or send to a server. It can return a promise, which the dialog awaits. If it rejects, the dialog stays open with an error, and the user can retry. If it resolves, the dialog clears the grid selection. If the build cleared cells, it stays open (see [Confirm](#confirm)). Otherwise it closes. On a `readOnly` grid, the dialog shows `labels.io.importReadOnly` and takes no import, also with `onImport`.
 
 A `commitChange` runs the grid's `validateRow` for each inserted row, so imported rows show the same cross-field errors as edited rows. You need no extra validation call after the commit. See [Cross-field rules](/docs/editing-cells/validate-rows-cross-field#cross-field-rules-validaterow).
 
@@ -45,7 +45,7 @@ A `commitChange` runs the grid's `validateRow` for each inserted row, so importe
 
 ### Choose a file [#choose-a-file]
 
-Drop a file on the zone or click it. The dialog takes `.csv`, `.tsv`, `.xlsx`, and `.xls`. The zone ignores a file whose name and type match none of these formats. A file over `maxFileBytes` shows the size message, whatever its type. A workbook opens on its first sheet, and a sheet picker switches sheets. A switch drops the column mapping that the user set by hand. A compact zone then shows the file name and replaces the file on a drop or click.
+Drop a file on the zone or click it. After a file loads, a compact zone shows its name and replaces the file on a drop or click. The dialog takes `.csv`, `.tsv`, `.xlsx`, and `.xls`. The zone ignores a file whose name and type match none of these formats. A file over `maxFileBytes` shows the size message, whatever its type. A workbook opens on its first sheet, and a sheet picker switches sheets. A switch drops the column mapping that the user set by hand.
 
 ### Header row [#header-row]
 
@@ -65,9 +65,11 @@ The preview shows the first 10 rows with a note such as "Showing 10 of 250 rows"
 
 ### Confirm [#confirm]
 
-The dialog clears a cell that fails the `validate` of its column and keeps its row. A cell of a `validationMode: "warn"` column keeps its value and goes to `flagged`. The import still runs: the rows reach `onImport`, or the default append. The dialog then shows the count of cleared cells, disables Import, and stays open. A file over 5,000 data rows builds 2,000 rows at a time, and Cancel stops the build between chunks.
+The dialog clears a cell that fails the `validate` of its column and keeps its row. A cell of a `validationMode: "warn"` column keeps its value and goes to `flagged`. The import still runs: the rows reach `onImport`, or the default append. The dialog then shows the count of cleared cells, disables Import, and stays open. A file over 5,000 data rows builds 2,000 rows at a time, and Cancel stops the build between batches.
 
 ## Read Excel files [#excel-files]
+
+The dialog reads an `.xlsx` or `.xls` file by its bytes, not its name. [Import options](/docs/add-options/import-export/import-options#excel-files) lists how each cell type comes in.
 
 ## Import limits [#import-limits]
 
