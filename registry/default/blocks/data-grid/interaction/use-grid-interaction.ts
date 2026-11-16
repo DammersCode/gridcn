@@ -475,6 +475,8 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       const onEnd = (e: PointerEvent) => {
         if (e.pointerId !== pointerId) return;
         endTouchPress();
+        // A long press is not a click: the click after its release must not sort, toggle, or select.
+        if (press.fired && e.type === "pointerup") swallowNextClick();
         if (press.fired || e.type !== "pointerup") return;
         const end = { x: e.clientX, y: e.clientY, time: e.timeStamp };
         if (isTap(start, end)) {
@@ -500,7 +502,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       };
       longPress?.arm();
     },
-    [endTouchPress],
+    [endTouchPress, swallowNextClick],
   );
 
   const openContextMenuFromPress = useCallback(
@@ -657,11 +659,14 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
   const onHeaderPointerDown = useCallback(
     (columnIndex: number, event: ReactPointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
-      if (!storeApi.getState().enableColumnSelection) return;
+      const state = storeApi.getState();
+      const selects = state.enableColumnSelection && state.headerClickBehavior === "select";
       if (event.pointerType === "touch") {
+        // iOS fires no native contextmenu, so the long press opens the header menu in every click behavior.
         beginTouchPress(event, {
           tapKey: `h:${columnIndex}`,
           onTap: () => {
+            if (!selects) return;
             markSelectionPointer("touch");
             actions.selectColumn(columnIndex);
           },
@@ -669,6 +674,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         });
         return;
       }
+      if (!selects) return;
       const isMultiKey = isMacRef.current ? event.metaKey : event.ctrlKey;
       if (event.shiftKey) {
         actions.selectColumn(columnIndex, { extendFromLast: true });

@@ -146,12 +146,11 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
       // (not the DOM tree) up to this handler, so a click on e.g. "Hide column" would otherwise also
       // fire the column-select gesture here — bail out for any event actually targeting the popup.
       if (fromPopup(event) || fromInteractiveContent(event)) return;
-      // 'sort' mode reassigns the plain click to sorting (handleClick below); the column-select
-      // gesture (and its press+drag range-select) only applies in the default 'select' mode.
-      if (headerClickBehavior === "select") onSelect(index, event);
+      // The press handler selects only in "select" mode, and arms the touch long press in every mode.
+      onSelect(index, event);
       if (reorder.enabled) reorder.onPointerDown(column.id, event);
     },
-    [headerClickBehavior, onSelect, index, reorder, column.id],
+    [onSelect, index, reorder, column.id],
   );
 
   const handleClick = useCallback(

@@ -129,7 +129,7 @@ function makeRows(count: number): Row[] {
 
 function renderInteraction(
   rowCount = 20,
-  options: { readOnly?: boolean; createRow?: (index: number) => Row; duplicateRow?: (row: Row, index: number) => Row; keymap?: Keymap; columns?: readonly ColumnDef<Row, unknown>[]; uncontrolled?: boolean; rowMarkers?: "reorder-checkbox"; onRowActionSkipped?: DataGridStoreState["onRowActionSkipped"]; checkedRowsLifetime?: DataGridStoreState["checkedRowsLifetime"]; totalRowCount?: number; onBeforeEditStart?: DataGridStoreState["onBeforeEditStart"]; onValidationError?: DataGridStoreState["onValidationError"] } = {},
+  options: { readOnly?: boolean; createRow?: (index: number) => Row; duplicateRow?: (row: Row, index: number) => Row; keymap?: Keymap; columns?: readonly ColumnDef<Row, unknown>[]; uncontrolled?: boolean; rowMarkers?: "reorder-checkbox"; onRowActionSkipped?: DataGridStoreState["onRowActionSkipped"]; checkedRowsLifetime?: DataGridStoreState["checkedRowsLifetime"]; totalRowCount?: number; headerClickBehavior?: "select" | "sort" | "none"; enableColumnSelection?: boolean; onBeforeEditStart?: DataGridStoreState["onBeforeEditStart"]; onValidationError?: DataGridStoreState["onValidationError"] } = {},
 ) {
   const { readOnly = false, createRow, duplicateRow, keymap = DEFAULT_KEYMAP, columns: testColumns = columns } = options;
   const scrollRef = { current: makeScrollElement() };
@@ -152,6 +152,8 @@ function renderInteraction(
         onRowActionSkipped={options.onRowActionSkipped}
         checkedRowsLifetime={options.checkedRowsLifetime}
         totalRowCount={options.totalRowCount}
+        headerClickBehavior={options.headerClickBehavior}
+        enableColumnSelection={options.enableColumnSelection}
         onBeforeEditStart={options.onBeforeEditStart}
         onValidationError={options.onValidationError}
         rowMarkers={options.rowMarkers}
@@ -1159,6 +1161,55 @@ describe("touch input", () => {
       } as unknown as React.KeyboardEvent<HTMLElement>);
     });
     expect(hook.result.current.storeApi.getState().selectionPointer).toBe("keyboard");
+  });
+
+  function pressHeader(hook: ReturnType<typeof renderInteraction>["hook"], column: number, target: Element) {
+    const event = { button: 0, pointerType: "touch", pointerId: 1, clientX: 10, clientY: 10, timeStamp: 0, target, currentTarget: target } as unknown as React.PointerEvent<HTMLElement>;
+    act(() => hook.result.current.interaction.onHeaderPointerDown(column, event));
+  }
+
+  it.each([
+    { headerClickBehavior: "sort" as const },
+    { headerClickBehavior: "none" as const },
+    { headerClickBehavior: "select" as const, enableColumnSelection: false },
+  ])("opens the header context menu on a long press with $headerClickBehavior and selects no column", (options) => {
+    vi.useFakeTimers();
+    const { hook } = renderInteraction(20, options);
+    const header = document.createElement("div");
+    document.body.append(header);
+    const onContextMenu = vi.fn();
+    header.addEventListener("contextmenu", onContextMenu);
+    const onClick = vi.fn();
+    header.addEventListener("click", onClick);
+
+    pressHeader(hook, 1, header);
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+    release("pointerup", { time: 700 });
+    act(() => {
+      header.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(onContextMenu).toHaveBeenCalledTimes(1);
+    expect(onClick).not.toHaveBeenCalled();
+    expect(hook.result.current.storeApi.getState().selection.columns.length).toBe(0);
+    header.remove();
+  });
+
+  it("selects no column on a header tap when the click sorts", () => {
+    const { hook } = renderInteraction(20, { headerClickBehavior: "sort" });
+    pressHeader(hook, 1, document.createElement("div"));
+    release("pointerup", { time: 60 });
+    expect(hook.result.current.storeApi.getState().selection.columns.length).toBe(0);
+  });
+
+  it("selects no column on a mouse press when the click sorts", () => {
+    const { hook } = renderInteraction(20, { headerClickBehavior: "sort" });
+    const target = Object.assign(document.createElement("div"), { setPointerCapture: vi.fn() });
+    const event = { button: 0, pointerType: "mouse", pointerId: 1, clientX: 10, clientY: 10, target, currentTarget: target } as unknown as React.PointerEvent<HTMLElement>;
+    act(() => hook.result.current.interaction.onHeaderPointerDown(1, event));
+    expect(hook.result.current.storeApi.getState().selection.columns.length).toBe(0);
   });
 
   it("selects the cell from a click that had no pointerdown on it", () => {
