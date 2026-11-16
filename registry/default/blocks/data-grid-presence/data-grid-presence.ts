@@ -2,6 +2,7 @@
 export {
   useDataGridPresence,
   useDataGridPresenceHighlights,
+  type ExcessRectsContext,
   type UseDataGridPresenceOptions,
   type UseDataGridPresenceResult,
 } from "./use-data-grid-presence";

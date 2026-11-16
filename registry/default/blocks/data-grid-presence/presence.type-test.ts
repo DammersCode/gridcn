@@ -10,6 +10,7 @@ import type { GridRect } from "@/registry/default/blocks/data-grid/data-grid";
 import {
   isRowIdPresenceHighlight,
   isRowIdRangePresenceHighlight,
+  type ExcessRectsContext,
   type PresenceHighlight,
   type PresenceHighlightEntry,
   type RowIdPresenceHighlight,
@@ -77,3 +78,5 @@ const foreign: PresenceHighlightEntry = { color: "red" };
 void foreign;
 
 export {};
+
+export const onExcessRects = (ctx: ExcessRectsContext): number => ctx.total - ctx.kept;
