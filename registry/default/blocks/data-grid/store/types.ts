@@ -5,7 +5,6 @@ import type {
   CellRef,
   ViewCellRef,
   ViewCoord,
-  ViewIndex,
   AutosizeOptions,
   CellType,
   ColumnDef,
@@ -996,7 +995,7 @@ export type DataGridActions = {
   selectAll(): void;
   /** Sets one row's checked state absolutely — never a toggle — independent of the last-highlighted/range mechanics `selectRow` uses for click gestures. Checking adds the row to the rows channel; unchecking removes it from the rows channel and from every cell range that covers it. A `rowId` that is not in the view does nothing. No-op when `enableRowSelection` is false. */
   setRowChecked(rowId: string, checked: boolean): void;
-  /** View-index variant of {@link DataGridActions.setRowChecked}; like every `At` action, it takes a view row number or a {@link ViewIndex}. */
+  /** View-index variant of {@link DataGridActions.setRowChecked}; like every `At` action, it takes a view row number or a `ViewIndex`. */
   setRowCheckedAt(index: number, checked: boolean): void;
   /**
    * Checks (or unchecks) the span from the gesture's anchor to `target`, replacing the previous span of the same gesture.
