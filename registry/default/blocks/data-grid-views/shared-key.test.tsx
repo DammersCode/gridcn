@@ -20,7 +20,7 @@ function Grid({ columns, storage }: { columns: ColumnDef<Row, unknown>[]; storag
   );
 }
 
-const sharedKeyWarnings = (warn: ReturnType<typeof vi.spyOn>) => warn.mock.calls.filter(([message]) => String(message).includes("share the views storage key"));
+const sharedKeyWarnings = (warn: { mock: { calls: unknown[][] } }) => warn.mock.calls.filter(([message]) => String(message).includes("share the views storage key"));
 
 afterEach(() => {
   cleanup();
