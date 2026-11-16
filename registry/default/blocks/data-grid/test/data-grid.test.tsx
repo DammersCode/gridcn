@@ -1561,6 +1561,11 @@ describe("DataGrid wrapper render slots", () => {
     expect(document.body.textContent).toContain("menu-slot");
   });
 
+  it("renderHeaderCell slot renders", () => {
+    render(<DataGrid data={makeRows(3)} columns={columns} getRowId={(r) => r.id} renderHeaderCell={(ctx) => <span>cell-slot-{ctx.column.id}</span>} />);
+    expect(document.body.textContent).toContain("cell-slot-");
+  });
+
   it("renders no header-menu trigger when renderHeaderMenu is omitted", () => {
     render(<DataGrid data={makeRows(3)} columns={columns} getRowId={(r) => r.id} />);
     expect(document.querySelector(gridAttrSelector("headerMenuTrigger"))).toBeNull();

@@ -10,7 +10,7 @@ import {
 } from "./store";
 import { apiHandleOf } from "./store/api";
 import { DataGridRoot, type DataGridRootProps } from "./root";
-import { DataGridHeader } from "./header";
+import { DataGridHeader, type HeaderCellRenderer } from "./header";
 import { DataGridBody } from "./body";
 
 /** Public entry point — the only module consumers/docs should import from. */
@@ -246,6 +246,8 @@ export type DataGridProps<TData> = (ExternalStoreProps | OwnedStoreProps<TData>)
      * `DataGridProvider`'s `ref` or from {@link useDataGridApi}.
      */
     ref?: Ref<DataGridApi<TData>>;
+    /** Per-column header cell slot of the default header — see {@link HeaderCellRenderer}. With `children`, pass it to `DataGridHeader` instead. */
+    renderHeaderCell?: HeaderCellRenderer;
   };
 
 /**
@@ -283,6 +285,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
     error,
     onRetry,
     errorState,
+    renderHeaderCell,
     renderHeaderMenu,
     renderHeaderFilter,
     renderMarker,
@@ -319,7 +322,7 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
       >
         {children ?? (
           <>
-            <DataGridHeader />
+            <DataGridHeader renderHeaderCell={renderHeaderCell} />
             <DataGridBody />
           </>
         )}
