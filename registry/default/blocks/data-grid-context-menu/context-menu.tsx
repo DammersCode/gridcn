@@ -8,7 +8,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { useDataGridActions } from "@/registry/default/blocks/data-grid/data-grid";
-import { gridAttrSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { gridAttrSelector, useDataGridStoreApi, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { resolveContextMenuTarget, type ContextMenuTarget } from "./resolve-context-menu-target";
 import { isCellInSelection } from "./selection-queries";
 import {
@@ -16,6 +16,7 @@ import {
   renderContextMenuItems,
   useDefaultCellMenuItems,
   useDefaultHeaderMenuItems,
+  useRowOperationTargets,
   type CellMenuItemsResolver,
   type HeaderMenuItemsResolver,
 } from "./menu-items";
@@ -25,6 +26,16 @@ type CellTarget = Extract<ContextMenuTarget, { kind: "cell" }> & { rowId: string
 type MenuTarget = CellTarget | Extract<ContextMenuTarget, { kind: "header" }>;
 
 const TEXT_ENTRY_SELECTOR = `input, textarea, select, [contenteditable]:not([contenteditable="false"]), ${gridAttrSelector("cellEditor")}`;
+
+function rowIdsOfViewRows(state: DataGridReadState, viewRows: readonly number[]): string[] {
+  const ids: string[] = [];
+  for (const viewRow of viewRows) {
+    const dataIndex = state.viewIndex[viewRow];
+    const dataRow = dataIndex === undefined ? undefined : state.data[dataIndex];
+    if (dataIndex !== undefined && dataRow !== undefined) ids.push(state.getRowId(dataRow, dataIndex));
+  }
+  return ids;
+}
 
 /**
  * The cell-surface items, mounted only while the menu content is open on a cell target — the
@@ -42,6 +53,9 @@ function CellMenuContent(props: {
   const { target, getCellMenuItems, pasteBlocked, onPasteBlocked, clipboardFailed, onClipboardFailed } = props;
   const canInsertRow = useHasCreateRow();
   const canDuplicateRow = useHasDuplicateRow();
+  const actions = useDataGridActions();
+  const storeApi = useDataGridStoreApi();
+  const targets = useRowOperationTargets(target.row);
   const defaultSpecs = useDefaultCellMenuItems({
     row: target.row,
     rowId: target.rowId,
@@ -53,7 +67,7 @@ function CellMenuContent(props: {
     onClipboardFailed,
   });
   const specs = getCellMenuItems
-    ? getCellMenuItems({ rowId: target.rowId, viewRowIndex: target.row, columnId: target.columnId, canInsertRow, canDuplicateRow }, defaultSpecs)
+    ? getCellMenuItems({ rowId: target.rowId, viewRowIndex: target.row, columnId: target.columnId, canInsertRow, canDuplicateRow, targetRowIds: rowIdsOfViewRows(storeApi.getState(), targets.rows), actions }, defaultSpecs)
     : defaultSpecs;
   return renderContextMenuItems(specs);
 }
@@ -65,8 +79,9 @@ function HeaderMenuContent(props: {
   getHeaderMenuItems?: HeaderMenuItemsResolver;
 }): ReactNode {
   const { target, scrollRoot, getHeaderMenuItems } = props;
+  const actions = useDataGridActions();
   const defaultSpecs = useDefaultHeaderMenuItems({ columnId: target.columnId, scrollRoot });
-  const specs = getHeaderMenuItems ? getHeaderMenuItems({ columnId: target.columnId, scrollRoot }, defaultSpecs) : defaultSpecs;
+  const specs = getHeaderMenuItems ? getHeaderMenuItems({ columnId: target.columnId, scrollRoot, actions }, defaultSpecs) : defaultSpecs;
   return renderContextMenuItems(specs);
 }
 
@@ -102,15 +117,9 @@ export type DataGridContextMenuProps = {
  * the current selection, selects that cell first (Excel behavior) before the menu opens.
  *
  * A surface that resolves to neither (row markers, empty grid space below the last row, the
- * scrollbar gutter, ...) has no menu content to show — `resolveContextMenuTarget` already returns
- * `null` there. Left alone, Base UI's `ContextMenuRoot` still opens the (then childless) popup on
- * that right-click, rendering a visibly empty rounded-card sliver.
- * `onOpenChange` here cancels that open via `eventDetails.cancel()` — checked against `targetRef`
- * (synchronous, unlike `target` state) since the "should this open" decision has to be made in the
- * same tick as the triggering event, before React re-renders. The native browser context menu is
- * deliberately NOT re-enabled for this case (no `event.preventDefault()` is skipped) — silent
- * suppression is less surprising than a browser chrome menu popping up only sometimes depending
- * on grid surface.
+ * scrollbar gutter, a hole row, ...) has no grid menu: the handler skips Base UI's default so the
+ * browser menu shows there, and `onOpenChange` cancels any open that still reaches it so no empty
+ * popup appears.
  */
 export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode {
   const { className, children, getCellMenuItems, getHeaderMenuItems } = props;
@@ -135,8 +144,13 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
     (event: ReactMouseEvent<HTMLDivElement> & { preventBaseUIHandler: () => void }) => {
       // Portaled popups (find panel, filter popover) bubble contextmenu through the React tree; they and any text-entry target keep the browser menu.
       const outsideGrid = !event.currentTarget.contains(event.target as Node);
-      if (outsideGrid || (event.target instanceof Element && event.target.closest(TEXT_ENTRY_SELECTOR) !== null)) {
+      // Base UI's trigger also cancels the native menu in a document listener, so the event stops at the React root.
+      const leaveToBrowser = () => {
         event.preventBaseUIHandler();
+        event.nativeEvent.stopPropagation();
+      };
+      if (outsideGrid || (event.target instanceof Element && event.target.closest(TEXT_ENTRY_SELECTOR) !== null)) {
+        leaveToBrowser();
         return;
       }
       const resolved = resolveContextMenuTarget(event.target);
@@ -150,11 +164,15 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
         if (dataRowIndex !== undefined && dataRow !== undefined) next = { ...resolved, rowId: s.getRowId(dataRow, dataRowIndex) };
       }
       targetRef.current = next;
+      if (next === null) {
+        leaveToBrowser();
+        return;
+      }
       setTarget(next);
       // explicit type parameter: consumer TypeScript doesn't infer `E = HTMLElement` from the
       // setState context type and defaults `closest` to `Element`.
       setScrollRoot(event.target instanceof Element ? event.target.closest<HTMLElement>('[role="grid"]') : null);
-      if (next?.kind === "cell" && !isCellInSelection(s.selection, { row: next.row, col: next.col })) {
+      if (next.kind === "cell" && !isCellInSelection(s.selection, { row: next.row, col: next.col })) {
         actions.selectCellAt({ row: next.row, col: next.col });
       }
     },

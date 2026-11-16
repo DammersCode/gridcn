@@ -7,6 +7,7 @@ import {
   DataGridHeader,
   DataGridBody,
   defineColumns,
+  viewIndexes,
   type ColumnLayout,
   type DataChange,
   type Keymap,
@@ -483,7 +484,7 @@ describe("DataGridContextMenu — menu resolvers", () => {
     rightClick(gridCell("Bob", "name"));
 
     await vi.waitFor(() => expect(menuItem("Duplicate row")).toBeTruthy());
-    expect(seen.ctx).toEqual({ rowId: "r1", viewRowIndex: 1, columnId: "name", canInsertRow: true, canDuplicateRow: true });
+    expect(seen.ctx).toMatchObject({ rowId: "r1", viewRowIndex: 1, columnId: "name", canInsertRow: true, canDuplicateRow: true, targetRowIds: ["r1"] });
     expect(seen.defaultIds).toEqual([
       "cut", "copy", "paste", "sep-clipboard", "clear-contents", "sep-rows",
       "insert-row-above", "insert-row-below", "duplicate-rows", "delete-rows",
@@ -493,6 +494,29 @@ describe("DataGridContextMenu — menu resolvers", () => {
     const rendered = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].map((el) => el.textContent);
     expect(rendered).toHaveLength(1);
     expect(rendered[0]).toContain("Duplicate row");
+  });
+
+  it("a resolver item reads ctx.targetRowIds and runs ctx.actions", async () => {
+    const seen: string[][] = [];
+    await renderGrid({
+      getCellMenuItems: (ctx, defaults) => [
+        ...defaults,
+        {
+          id: "flag",
+          label: "Flag rows",
+          onClick: () => {
+            seen.push([...ctx.targetRowIds]);
+            ctx.actions.deleteRowsAt(viewIndexes([ctx.viewRowIndex]));
+          },
+        },
+      ],
+    });
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    rightClick(gridCell("Bob", "name"));
+    await vi.waitFor(() => expect(menuItem("Flag rows")).toBeTruthy());
+    menuItem("Flag rows")!.click();
+    await vi.waitFor(() => expect(seen).toEqual([["r1"]]));
+    await vi.waitFor(() => expect(gridCell("Bob", "name")).toBeUndefined());
   });
 
   it("getCellMenuItems gets defaults without the Insert/Duplicate entries when no createRow/duplicateRow prop is given", async () => {
@@ -582,6 +606,17 @@ describe("DataGridContextMenu — menu resolvers", () => {
     expect(seen.scrollRootRole).toBe("grid");
     expect(seen.defaultIds).toEqual(["sort-asc", "sort-desc", "sep-sort", "pin-start", "pin-end", "hide-column", "sep-autosize", "autosize", "autosize-all"]);
     await expect.element(page.getByRole("menuitem", { name: "Pin to start" })).not.toBeInTheDocument();
+  });
+
+  it("a header resolver item runs ctx.actions", async () => {
+    await renderGrid({
+      getHeaderMenuItems: (ctx) => [{ id: "hide-now", label: "Hide now", onClick: () => ctx.actions.setColumnHidden(ctx.columnId, true) }],
+    });
+    await expect.element(page.getByRole("columnheader", { name: "Name" })).toBeInTheDocument();
+    rightClick(document.querySelector('[role="columnheader"][data-column-id="name"]')!);
+    await vi.waitFor(() => expect(menuItem("Hide now")).toBeTruthy());
+    menuItem("Hide now")!.click();
+    await vi.waitFor(() => expect(document.querySelector('[role="columnheader"][data-column-id="name"]')).toBeNull());
   });
 
   it("DataGridHeaderDropdown honors the wrapper's getHeaderMenuItems via context", async () => {

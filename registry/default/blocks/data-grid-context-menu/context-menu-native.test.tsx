@@ -44,6 +44,19 @@ describe("DataGridContextMenu and text fields", () => {
     expect(fireEvent.contextMenu(button)).toBe(true);
   });
 
+  it("leaves the browser menu to a blank grid area that resolves no target", async () => {
+    await mountWithFindPanel();
+    const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+    expect(fireEvent.contextMenu(grid)).toBe(true);
+  });
+
+  it("leaves the browser menu to a text field inside the grid", async () => {
+    await mountWithFindPanel();
+    const field = document.createElement("input");
+    document.querySelector('[role="grid"]')!.append(field);
+    expect(fireEvent.contextMenu(field)).toBe(true);
+  });
+
   it("still takes over the right-click on a column header", async () => {
     await mountWithFindPanel();
     const header = document.querySelector<HTMLElement>('[role="columnheader"]')!;

@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
 import { GRID_ATTR, useDataGridContainer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { useDataGridApi } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridActions, useDataGridApi } from "@/registry/default/blocks/data-grid/data-grid";
 import {
   DataGridHeaderMenuItemsContext,
   renderDropdownMenuItems,
@@ -45,9 +45,10 @@ function HeaderDropdownItems(props: {
   inheritedResolver: HeaderMenuItemsResolver | null;
 }): ReactNode {
   const { columnId, scrollRoot, getHeaderMenuItems, inheritedResolver } = props;
+  const actions = useDataGridActions();
   const defaultSpecs = useDefaultHeaderMenuItems({ columnId, scrollRoot });
   const resolver = getHeaderMenuItems ?? inheritedResolver;
-  const specs = resolver ? resolver({ columnId, scrollRoot }, defaultSpecs) : defaultSpecs;
+  const specs = resolver ? resolver({ columnId, scrollRoot, actions }, defaultSpecs) : defaultSpecs;
   return renderDropdownMenuItems(specs);
 }
 
