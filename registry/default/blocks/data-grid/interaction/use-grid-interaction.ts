@@ -258,10 +258,11 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
     captureElementRef.current = null;
     dragRef.current = null;
     lastPointerRef.current = null;
+    getInternalActions(storeApi)._setSelectionPress(false);
     stopAutoScrollLoop();
     documentListenersRef.current?.();
     documentListenersRef.current = null;
-  }, [stopAutoScrollLoop]);
+  }, [stopAutoScrollLoop, storeApi]);
 
   const beginDrag = useCallback(
     (mode: "range" | "row" | "column", pointerId: number, captureElement?: Element, anchor?: number, pendingOffAnchor?: boolean) => {
@@ -578,6 +579,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         return;
       }
       markSelectionPointer(event.pointerType === "pen" ? "pen" : "mouse");
+      getInternalActions(storeApi)._setSelectionPress(true);
       const state = storeApi.getState();
       const isMultiKey = isMacRef.current ? event.metaKey : event.ctrlKey;
       linkPressRef.current = isMultiKey && (event.target as HTMLElement | null)?.closest("a") ? coord : null;
@@ -683,6 +685,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         return;
       }
       if (!selects) return;
+      getInternalActions(storeApi)._setSelectionPress(true);
       const isMultiKey = isMacRef.current ? event.metaKey : event.ctrlKey;
       if (event.shiftKey) {
         actions.selectColumn(columnIndex, { extendFromLast: true });
@@ -741,6 +744,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         });
         return;
       }
+      getInternalActions(storeApi)._setSelectionPress(true);
       const isMultiKey = isMacRef.current ? event.metaKey : event.ctrlKey;
       // only a plain press swallows the click that follows a drag; a modified press keeps its own click handling
       const anchor = isMultiKey || event.shiftKey ? undefined : viewRowIndex;
@@ -770,6 +774,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       // arms the range gesture without writing `selection.rows` — a stationary press+release
       // still resolves purely via the checkbox's own click->toggle. lastPointerRef stays unseeded,
       // so runDragFrame's first tick is a no-op; only a real pointermove extends from this anchor.
+      getInternalActions(storeApi)._setSelectionPress(true);
       const before = storeApi.getState().rowRangeGesture;
       getInternalActions(storeApi)._armRowDragAnchor(viewRowIndex);
       const armed = storeApi.getState().rowRangeGesture;
@@ -790,6 +795,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
           ? { col: range.x, row: range.y }
           : { col: range.x + range.width - 1, row: range.y + range.height - 1 };
       markSelectionPointer(event.pointerType === "touch" ? "touch" : event.pointerType === "pen" ? "pen" : "mouse");
+      getInternalActions(storeApi)._setSelectionPress(true);
       actions.selectCellAt(opposite);
       safeSetPointerCapture(scrollElement, event.pointerId);
       beginDrag("range", event.pointerId, scrollElement);

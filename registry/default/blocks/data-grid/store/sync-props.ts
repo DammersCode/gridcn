@@ -139,6 +139,8 @@ export type SyncMemory = {
   selectionControlled: boolean;
   lastKnownSelection: SelectionState;
   selectionEchoQueue: SelectionState[];
+  /** The pointer press that drives the selection, and whether it changed the selection. */
+  selectionPress: { changed: boolean } | null;
   layoutEchoQueue: Partial<ColumnLayout>[];
 };
 

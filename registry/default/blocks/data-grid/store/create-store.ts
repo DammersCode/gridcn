@@ -596,6 +596,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   memory.selectionControlled = init.selection !== undefined;
   memory.lastKnownSelection = EMPTY_SELECTION_STATE;
   memory.selectionEchoQueue = [];
+  memory.selectionPress = null;
   // The resolver's once-per-grid dev-warn flag (the resolveRefOrWarn convention).
   const warnedControlledSelection: ResolveWarnFlag = { value: false };
   // Partial-typed: the echo check is an identity match, and a consumer may feed back either a
@@ -915,8 +916,18 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           if (!onSelectionChange) return;
           memory.selectionEchoQueue.push(derived);
           if (memory.selectionEchoQueue.length > 128) memory.selectionEchoQueue.shift();
-          emitFromListener("onSelectionChange", () => onSelectionChange(derived, makeSelectionChangeDetails(() => api.getState())));
+          if (memory.selectionPress) memory.selectionPress.changed = true;
+          const phase = memory.selectionPress ? "drag" : "end";
+          emitFromListener("onSelectionChange", () => onSelectionChange(derived, makeSelectionChangeDetails(() => api.getState(), phase)));
         });
+      },
+      _setSelectionPress(pressed) {
+        const press = memory.selectionPress;
+        memory.selectionPress = pressed ? (press ?? { changed: false }) : null;
+        const onSelectionChange = get().onSelectionChange;
+        if (pressed || !press?.changed || !onSelectionChange) return;
+        const settled = memory.lastKnownSelection;
+        emitFromListener("onSelectionChange", () => onSelectionChange(settled, makeSelectionChangeDetails(() => api.getState(), "end")));
       },
       _deriveSelection() {
         return deriveCurrentSelection(get());

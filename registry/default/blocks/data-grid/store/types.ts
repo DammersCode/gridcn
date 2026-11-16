@@ -2,6 +2,7 @@ import type { ComponentType, ReactNode, Ref } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { ColumnGroupModel } from "../columns/column-groups";
 import type { ColumnOrderResult } from "./column-order";
+import type { SelectionChangeDetails } from "./selection-change";
 import type {
   CellRef,
   ViewCellRef,
@@ -413,7 +414,8 @@ export type DataGridSyncProps<TData = unknown> = {
    * Fires on every committed selection change (click, extend step, range push, row/column/all selection, clear)
    * with the current selection in stable {@link SelectionState} terms plus a lazy `details.getValues()` accessor.
    * Fires only when the selection differs structurally from the last one, so a sort that keeps the selection's rows
-   * fires nothing. A drag fires once per step. `getValues()` reads the values only when you call it.
+   * fires nothing. A pointer press or drag fires `details.phase: "drag"` per step, then once more with `"end"` on release;
+   * every other change fires `"end"`, so `phase === "end"` reads only settled selections. `getValues()` reads the values only when you call it.
    */
   onSelectionChange?: (next: SelectionState, details: SelectionChangeDetails) => void;
    /**
@@ -482,12 +484,7 @@ export type DataGridSyncProps<TData = unknown> = {
  * snapshot only when called, so a consumer that ignores it (the common case) never pays for
  * reading/allocating a value matrix on every drag step.
  */
-export type SelectionChangeDetails = {
-  /** Raw cell VALUES (not clipboard text) over the primary range, view-row-major: `values[0][0]` is the range's top-left cell. */
-  getValues: () => unknown[][];
-  /** Row ids of every selected row, view order, across both the row channel (checkboxes) and any cell range. */
-  getRowIds: () => string[];
-};
+export type { SelectionChangeDetails, SelectionChangePhase } from "./selection-change";
 
 // The store is generic-erased to TData = unknown past this boundary (InternalSyncProps below): one
 // runtime engine serves every consumer's row type, and unknown (not never) keeps every ColumnDef
@@ -1318,6 +1315,8 @@ export type DataGridInternalActions = {
    * Returns the unsubscribe. Not part of the public hook surface.
    */
   _subscribeSelection(): () => void;
+  /** Marks a pointer press that drives the selection: `onSelectionChange` reports `"drag"` until `false` ends it with one `"end"`. */
+  _setSelectionPress(pressed: boolean): void;
   /** @internal Derives the current selection's public {@link SelectionState} on demand (`api.getSelection()`). Not part of the public hook surface. */
   _deriveSelection(): SelectionState;
   /** @internal `DataGridRoot` registers/clears its scroll-into-view on mount/unmount; not part of the public hook surface. */

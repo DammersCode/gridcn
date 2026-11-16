@@ -1157,8 +1157,9 @@ export function getSelectedRowIds(s: DataGridStoreState): string[] {
 }
 
 /** Builds the `details` argument passed to `onSelectionChange`; see {@link SelectionChangeDetails}. */
-export function makeSelectionChangeDetails(getSnapshot: () => DataGridStoreState): SelectionChangeDetails {
+export function makeSelectionChangeDetails(getSnapshot: () => DataGridStoreState, phase: SelectionChangeDetails["phase"] = "end"): SelectionChangeDetails {
   return {
+    phase,
     getValues() {
       const s = getSnapshot();
       const range = s.selection.current?.range;
