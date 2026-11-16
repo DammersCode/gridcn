@@ -75,3 +75,44 @@ describe("props page", () => {
     expect(props).not.toMatch(/Default (true|false|\d)/);
   });
 });
+
+describe("terms page", () => {
+  const terms = () => page("(learn)/terms-help/terms");
+  const termRows = () => {
+    const text = terms();
+    const body = text.slice(text.indexOf("## Terms [#terms]"), text.indexOf("## Other words"));
+    return body.split("\n").filter((line) => line.startsWith("| ") && !line.startsWith("| Term") && !line.startsWith("| ---"));
+  };
+  const termOf = (row: string) => row.split(" | ")[0]!.slice(2).replaceAll("`", "");
+
+  it("lists the terms from A to Z", () => {
+    const names = termRows().map(termOf);
+    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
+  });
+
+  it("keeps the full meaning of a term", () => {
+    expect(terms()).toContain("its `id` field, or the value that `getRowId` returns");
+    expect(terms()).toContain("`useDataGridServerRows({ mode: \"scroll\", source: \"sequential\" })`");
+  });
+
+  it("writes an identifier term as code", () => {
+    expect(termRows().map(termOf)).toContain("clearContents");
+    expect(terms()).toMatch(/\| `clearContents` \|/);
+    expect(terms()).toMatch(/\| `typeToReplace` \|/);
+  });
+
+  it("names a word for one term only", () => {
+    const text = terms();
+    const body = text.slice(text.indexOf("## Other words"), text.indexOf("## Search words"));
+    const words = body.split("\n").filter((line) => line.startsWith("| `")).map((line) => line.split(" | ")[0]);
+    expect(words.filter((word, i) => words.indexOf(word) !== i)).toEqual([]);
+  });
+
+  it("defines the sort locale, push verdict, soft rule, and blocking rule", () => {
+    for (const term of ["sort locale", "push verdict", "soft rule", "blocking rule", "filter menu"]) expect(termRows().map(termOf), term).toContain(term);
+  });
+
+  it("says start side for the row marker", () => {
+    expect(terms()).not.toContain("left edge");
+  });
+});

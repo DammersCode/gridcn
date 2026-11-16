@@ -14,7 +14,7 @@ mirror the change there.
 | operation (`ops` in code) | One record of a change to one row: `insert`, `update`, `delete`, or `move`. `DataChange.ops` holds a batch. Write "operations (`ops`)" at first use on a page. | op, ops (in prose) |
 | row operation | The `source` value `"row-operation"` marks a change from an insert, duplicate, delete, or move of rows. | row-op |
 | change | One `onDataChange` call: a batch of operations plus its `source`. | |
-| row id | The stable id from `getRowId`. Selection, editing, undo, and redo address rows by it. | id-keyed (write "by row id") |
+| row id | The stable id of a row: its `id` field, or the value that `getRowId` returns. Selection, editing, undo, and redo address rows by it. | id-keyed (write "by row id") |
 | view index | A row's position in the sorted and filtered list the user sees, on the shown page of a paged grid. | view space, display index |
 | data index | A row's position in your `data` array. | |
 | checked row | A row whose marker checkbox is on, kept in the row channel of the selection. | ticked row |
@@ -29,8 +29,8 @@ mirror the change there.
 | block | The fixed-size slice of rows that scroll mode requests: `[k * blockSize, (k + 1) * blockSize)`. Block 0 is always the first request. | page (pages mode only), chunk |
 | pages mode | `useDataGridServerRows` with `mode: "pages"`, the default: the server answers one page per request. The data modes matrix and the sidebar call it "Server pagination". | |
 | scroll mode | `useDataGridServerRows({ mode: "scroll" })`: the hook fetches the blocks the rendered rows need. A first answer with `totalRowCount` and no `nextCursor` gives random access: the grid shows that many rows. Any other first answer gives a sequential source. | lazy mode |
-| sequential source | A scroll-mode source whose first answer carries `nextCursor`, or neither a count nor a cursor. Blocks load in order, one at a time; the grid shows the loaded rows plus one block of skeleton rows until `nextCursor: null` or `hasMore: false` ends it. | infinite rows, open-ended source |
-| wanted range | The rendered rows grown by `overscan` on each side and rounded out to blocks. Scroll mode loads the blocks of it. | visible window |
+| sequential source | A scroll-mode source whose first answer carries `nextCursor`, or neither a count nor a cursor. `useDataGridServerRows({ mode: "scroll", source: "sequential" })` asks for it. Blocks load in order, one at a time; the grid shows the loaded rows plus one block of skeleton rows until `nextCursor: null` or `hasMore: false` ends it. | infinite rows, open-ended source |
+| wanted range | The rendered rows grown by `overscan` on each side and rounded out to blocks. Scroll mode loads the blocks of it. | |
 | keep range | The wanted range grown by one more block on each side. Scroll mode aborts and evicts only blocks outside it. | |
 | eviction | Unloading loaded rows back to holes, so a hole renders as a skeleton again. `maxLoadedRows` and `evict()` do it. | purge |
 | revalidation | A `refresh()` that the hook runs on a timer (`revalidateIntervalMs`). | polling, auto-refresh |
@@ -40,13 +40,15 @@ mirror the change there.
 | server grid | A grid with `sortMode="server"` and `filterMode="server"`. Your backend applies the spec and the grid shows the response. | |
 | server mode | How a feature behaves when your server holds the rows, the sort, or the filter: `sortMode` or `filterMode` `"server"`, or `useDataGridServerRows`. The heading of that section on a feature page. | |
 | result | Every row that matches the spec on the server. `data` holds the loaded rows of it. | result set, dataset |
+| sort locale | The BCP 47 tag that orders text compares in a client sort, text range filters, and filter value lists. The `sortLocale` prop sets it, then `locale`, then `"en-US"`. | |
 | row count | The size of the result. `totalRowCount` names it on the pager, the pagination hooks, URL pagination, and the provider prop that the hook's `gridProps` carries. `null` means unknown. | row total, count |
-| paged view | A grid with `pageSize`: `data` stays whole, the sorted and filtered list is the full view, and `viewIndex` holds the shown page of it. `fullViewOf(viewIndex)` returns the full view. | sliced data, page slice |
+| paged view | A grid with `pageSize` or `defaultPageSize`. `data` stays whole. The sorted and filtered list is the full view, and `viewIndex` holds the shown page of it. `fullViewOf(viewIndex)` returns the full view. | sliced data, page slice |
 | all matching | The whole result as the target of a bulk action. `selectAllMatching()` turns it on and the status bar offers it. | select everything |
 | gate | A prop function that the grid calls before it acts, for example `processPaste` or `createRow`. It returns a value or a promise. | hook (for props), interceptor |
 | gate pending | The state of a gate whose promise has not settled. `useDataGridGatePending()` reads the gate names; the root carries `data-gate-pending`. | gate busy, gate loading |
 | seed | The initial value a `default*` prop gives once, at mount. | |
 | push | A change that your code writes from the server: `updateCells`, `updateRows`, or `deleteRows` with `source: "stream"`. A push is not a save: it never reaches `onSave`. | stream update (in prose), live update |
+| push verdict | The `UpdateCellsVerdict` that `updateCells` and `updateRows` return: the count of cells the call wrote, and the patches it skipped with a reason. | |
 | stale row | A loaded row that a push changed in a column the server spec reads. It keeps its place and carries `data-row-stale` until the server places it again. | outdated row |
 | reshape | A `refresh()` that `useDataGridServerRows` runs after a push, so the server places the rows again. `reshapeDelayMs` and `reshape()` control it. | re-sort request |
 
@@ -65,8 +67,8 @@ mirror the change there.
 | virtualization | Draw only the rows and columns in view, plus overscan. | windowing, windowed, row window |
 | rendered rows | The rows currently in the DOM. `onRenderedRowsChange` reports their range. | visible window |
 | overscan | Extra rows or columns drawn beyond the viewport edge. | |
-| grid origin | The row line the rows canvas is positioned from. It trails the first rendered row. | |
-| jump | A scroll farther than the viewport plus the largest velocity buffer. | |
+| grid origin | The row that anchors the rows canvas. It trails the first rendered row and moves only when the rendered rows drift far from it. | |
+| jump | A scroll of more than the viewport height plus 1,600 px in one scroll tick. After a jump, the grid mounts only the base overscan. | |
 
 ## Structure
 
@@ -78,7 +80,7 @@ mirror the change there.
 | hosted registry | The `@gridcn` registry that serves the most recent deployment of `main`. | |
 | pinned release | A release installed with `#<ref>` on the GitHub registry path. | fixed release |
 | plugin | A runtime `DataGridPlugin` object in the `plugins` prop. Many add-ons install one; not every add-on does. | |
-| row marker | The narrow column at the left edge that shows a row number, a checkbox, or a drag handle. | gutter |
+| row marker | The narrow column at the start side that shows a row number, a checkbox, or a drag handle. | gutter |
 | drag handle | The control you drag to reorder a row or a sort entry. | grip |
 | cell type | The kind of value a column holds, for example `text` or `number`. | column type |
 | accessor | The `accessorKey` or `accessorFn` that reads a column's value from a row. | |
@@ -97,6 +99,7 @@ mirror the change there.
 | active cell | The one cell that has focus and receives typing. | focused cell, cursor |
 | anchor | The cell where a selection started. | |
 | range | A rectangle of selected cells. | |
+| filter menu | The toolbar menu where the user builds filters from filter rows and filter groups. `DataGridFilterMenu` is the built-in one. | filter builder |
 | quick search | The toolbar search that highlights matches and never filters rows. | |
 | find and replace | The add-on panel that finds text through the quick search and replaces it in one match or in all matches. A replace writes one change with the source `"replace"`. | search and replace |
 | export source | The function that returns the rows of the whole result for an all-rows export. It gets the `spec` and a `signal`. | |
@@ -119,6 +122,8 @@ mirror the change there.
 |---|---|---|
 | override | A prop or callback that replaces default behavior. | escape hatch |
 | paste result | The value `pasteFromClipboard` resolves: `"ok"` (a paste started), `"permission-denied"` (the browser denied the clipboard read), `"empty"` (the clipboard held no text), or `"refused"` (the grid started no paste). | paste outcome |
+| blocking rule | A column rule that stops the commit of a value it rejects. It is the default of `validationMode`. | |
+| soft rule | A column rule that commits the value it rejects and flags the cell. `validationMode: "warn"` turns it on. | |
 | save acknowledgement | The answer of `onSave`: nothing (accepted), `{ rejected }` (named rows or cells refused), or a rejected promise (everything refused). | write result |
 | save status | `"saving"` while an `onSave` promise is pending and `"failed"` after a refusal. `useDataGridRowSaveStatus` reads it. | save state |
 | save conflict | A refused save for which the server sent its current row. `resolveSaveConflict` decides whether the row becomes the server's row, stays as it is, or becomes a merged row. | edit conflict |

@@ -96,6 +96,7 @@ const avoidWords = (avoid) =>
     .map((w) => w.replace(/\s*\(.*?\)/g, "").trim())
     .filter((w) => w.length > 2 && !COMMON_WORDS.has(w));
 
+const IDENTIFIER = /^[a-z]+[A-Z]/;
 const TERMS_URL = "/docs/terms-help/terms";
 
 function terms() {
@@ -110,16 +111,22 @@ function terms() {
       problems.push(`terms: "${name}" is not a GLOSSARY.md term`);
       continue;
     }
-    const meaning = cell(override ?? tidy(sentence(entry.meaning)));
+    const meaning = cell(override ?? tidy(entry.meaning));
     checkCell(`terms: ${name}`, meaning);
-    termRows.push([cell(name), meaning, link(target)]);
+    termRows.push([IDENTIFIER.test(name) ? code(name) : cell(name), meaning, link(target)]);
   }
+  termRows.sort((a, b) => a[0].replaceAll("`", "").localeCompare(b[0].replaceAll("`", "")));
   const otherWords = [];
+  const wordOwners = new Map();
   for (const g of glossary) {
     const spec = TERM_PAGES[plainTerm(g.use)];
     const target = Array.isArray(spec) ? spec[0] : spec;
     if (!target) continue;
-    for (const word of avoidWords(g.avoid)) otherWords.push([code(word), cell(plainTerm(g.use)), link(target)]);
+    for (const word of avoidWords(g.avoid)) {
+      if (wordOwners.has(word)) problems.push(`terms: the word "${word}" is listed for "${wordOwners.get(word)}" and "${plainTerm(g.use)}"`);
+      wordOwners.set(word, plainTerm(g.use));
+      otherWords.push([code(word), cell(plainTerm(g.use)), link(target)]);
+    }
   }
   const aliasRows = [];
   for (const [url, page] of pages) {
