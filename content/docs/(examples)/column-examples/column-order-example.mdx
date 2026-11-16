@@ -16,7 +16,7 @@ Two paths change the column order: drag a header, or call `actions.setColumnOrde
 - `enableColumnReorder` lets the user drag a header. The grid shows a drop indicator. The prop defaults to `true`.
 - `reorderable: false` on Name keeps that column in place, while `enableColumnReorder` is `true`.
 - A column moves only inside its pin zone. A drop across zones does nothing. Score is the only column pinned to the end edge, so it has nowhere to move.
-- The picker and the Left and Right buttons call `setColumnOrder(selectedId, neighborId, "before" | "after")`. The buttons come from `useDataGridActions()`. At the ends of the order, the matching button is off.
+- The picker and the Left and Right buttons call `setColumnOrder(selectedId, neighborId, "before" | "after")`. The buttons come from `useDataGridActions()`. A button is off when the move is not possible. That is the case at the ends of the order, next to a column with `reorderable: false`, and across a pin zone.
 
 ## Related
 

@@ -13,15 +13,15 @@ type: example
 
 ## What the demo shows [#whats-in-the-demo]
 
-- `defaultColumnLayout={layout}` reads the saved layout after mount. The grid ignores later changes to this prop.
+- `defaultColumnLayout={layout}` seeds the grid once at mount. The server has no `localStorage`, so the demo reads the saved layout in an effect and mounts the grid after it. The grid ignores later changes to this prop.
 - `onColumnLayoutChange={persist}` runs once for each committed change: a resize release, a reorder drop, a pin or unpin, and a hide or show. It does not run for each drag frame.
 - `DataGridColumnsMenu` hides and restores columns, which updates `hidden`.
-- The Reset button clears the saved layout and mounts the grid again with the column defaults.
+- Reset layout clears the saved layout and mounts the grid again with a new `key`, because the grid reads `defaultColumnLayout` once.
 - The text above the grid lists the `order` of the most recent snapshot.
 
 ## The snapshot [#the-snapshot-shape]
 
-`onColumnLayoutChange` receives the whole layout, not only the change:
+`onColumnLayoutChange` receives the whole layout after each change:
 
 ```ts
 type ColumnLayout = {
@@ -35,5 +35,6 @@ type ColumnLayout = {
 ## Related
 
 - [Column visibility](/docs/columns/column-visibility#persisting-a-users-layout): the pattern to save a layout
+- [Saved views](/docs/sort-filter-search/saved-views): name, save, and share a layout with the sort and filters
 - [Pinned columns example](/docs/column-examples/pinned-columns-example): the gestures that the snapshot records
 - [URL state](/docs/sort-filter-search/url-state): share a layout as a URL
