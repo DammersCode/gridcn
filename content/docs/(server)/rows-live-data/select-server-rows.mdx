@@ -35,9 +35,15 @@ import {
   useDataGridActions,
   useDataGridSelectedRows,
 } from "@/components/data-grid/data-grid";
-import { DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
-import { DataGridStatusBar } from "@/components/data-grid-status-bar/data-grid-status-bar";
-import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
+import {
+  DataGridPaginationBar,
+} from "@/components/data-grid-pagination/data-grid-pagination";
+import {
+  DataGridStatusBar,
+} from "@/components/data-grid-status-bar/data-grid-status-bar";
+import {
+  useDataGridServerRows,
+} from "@/components/data-grid-server/data-grid-server";
 import { columns, type Order } from "./orders";
 import { api, fetchRows } from "./api";
 
@@ -115,7 +121,7 @@ With `totalRowCount` and `checkedRowsLifetime="across-filters"`, `DataGridStatus
 - `clearSelection()`, `setSelection(null)`, and an empty controlled `selection`
 - Escape, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd>, and the header checkbox turned off
 - A plain click on a row number, or <kbd>Shift</kbd>+<kbd>Space</kbd>
-- A change of the filter or the search text, which unchecks every row. The banner starts again from the next checked page.
+- In `allMatching` mode, a change of the filter or the search text ends all matching and unchecks every row. The banner starts again from the next checked page.
 - A row delete: `deleteRowsAt`, or `deleteRows` without `source: "stream"`. A server push keeps "all matching".
 - `checkedRowsLifetime` set to another value, or `totalRowCount` removed
 
