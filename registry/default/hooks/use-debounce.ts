@@ -61,6 +61,8 @@ export type UseDebouncedInputResult = {
   /** The text in the input; the same as `inputProps.value`. */
   inputValue: string;
   inputProps: DebouncedInputProps;
+  /** `inputProps` with your own handlers chained: each handler in `own` runs first, then the hook's. Other props in `own` pass through, such as `className`. */
+  getInputProps: <Own extends Partial<Omit<DebouncedInputProps, "value">>>(own?: Own) => Omit<Own, keyof DebouncedInputProps> & DebouncedInputProps;
   /** Commits a pending value now. */
   flush: () => void;
   /** Drops a pending value and shows `value` again. */
@@ -143,29 +145,34 @@ export function useDebouncedInput(value: string, onCommit: (next: string) => voi
   const settled = settleTyped(typed, value);
   if (settled !== typed) setTyped(settled);
   const inputValue = settled === null ? value : settled.text;
-  return {
-    inputValue,
-    inputProps: {
-      value: inputValue,
-      onChange,
-      onBlur: flush,
-      onKeyDown: (event) => {
-        if (isComposingKey(event)) return;
-        if (event.key === "Enter") flush();
-        else if (event.key === "Escape") cancel();
-      },
-      onCompositionStart: () => {
-        composingRef.current = true;
-        clearTimer();
-      },
-      onCompositionEnd: (event) => {
-        composingRef.current = false;
-        const next = event.currentTarget.value;
-        setTyped((prev) => ({ text: next, seen: prev?.seen ?? valueRef.current, pending: true, queue: prev?.queue ?? [] }));
-        schedule(next);
-      },
+  const inputProps: DebouncedInputProps = {
+    value: inputValue,
+    onChange,
+    onBlur: flush,
+    onKeyDown: (event) => {
+      if (isComposingKey(event)) return;
+      if (event.key === "Enter") flush();
+      else if (event.key === "Escape") cancel();
     },
-    flush,
-    cancel,
+    onCompositionStart: () => {
+      composingRef.current = true;
+      clearTimer();
+    },
+    onCompositionEnd: (event) => {
+      composingRef.current = false;
+      const next = event.currentTarget.value;
+      setTyped((prev) => ({ text: next, seen: prev?.seen ?? valueRef.current, pending: true, queue: prev?.queue ?? [] }));
+      schedule(next);
+    },
   };
+  const getInputProps = <Own extends Partial<Omit<DebouncedInputProps, "value">>>(own?: Own) => {
+    const chained = { ...own, value: inputProps.value } as Record<string, unknown>;
+    for (const name of ["onChange", "onBlur", "onKeyDown", "onCompositionStart", "onCompositionEnd"] as const) {
+      const ownHandler = own?.[name] as ((...args: unknown[]) => void) | undefined;
+      const hookHandler = inputProps[name] as (...args: unknown[]) => void;
+      chained[name] = ownHandler ? (...args: unknown[]) => (ownHandler(...args), hookHandler(...args)) : hookHandler;
+    }
+    return chained as Omit<Own, keyof DebouncedInputProps> & DebouncedInputProps;
+  };
+  return { inputValue, inputProps, getInputProps, flush, cancel };
 }

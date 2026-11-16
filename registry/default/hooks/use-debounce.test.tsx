@@ -440,3 +440,24 @@ describe("useDebouncedInput with a parent that applies the commit a render later
     expect((view.getByLabelText("x") as HTMLInputElement).value).toBe("reset");
   });
 });
+
+describe("useDebouncedInput getInputProps", () => {
+  function OwnHandlerField({ onCommit, onOwnChange }: { onCommit: (next: string) => void; onOwnChange: () => void }) {
+    const input = useDebouncedInput("", onCommit, { delayMs: 100 });
+    return <input aria-label="field" {...input.getInputProps({ onChange: onOwnChange, className: "own" })} />;
+  }
+
+  it("runs the own onChange and still debounces the commit", () => {
+    const onCommit = vi.fn();
+    const onOwnChange = vi.fn();
+    const { getByLabelText } = render(<OwnHandlerField onCommit={onCommit} onOwnChange={onOwnChange} />);
+    const field = getByLabelText("field") as HTMLInputElement;
+    fireEvent.change(field, { target: { value: "abc" } });
+    expect(onOwnChange).toHaveBeenCalledTimes(1);
+    expect(field.className).toBe("own");
+    expect(onCommit).not.toHaveBeenCalled();
+    act(() => void vi.advanceTimersByTime(100));
+    expect(onCommit).toHaveBeenCalledWith("abc");
+  });
+});
+
