@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createRemoteServer } from "./fake-remote-server";
 
 async function ids(server: ReturnType<typeof createRemoteServer>, count: number) {
@@ -88,6 +88,16 @@ describe("createRemoteServer filter groups", () => {
 });
 
 describe("createRemoteServer ranges and values", () => {
+  it("orders sorts and values with a fixed en-US collator, not the runtime locale", async () => {
+    const server = createRemoteServer();
+    const spy = vi.spyOn(String.prototype, "localeCompare");
+    await server.fetchPage({ page: 1, pageSize: 5, sorts: [{ columnId: "name", direction: "asc" }] });
+    await server.fetchValues({ columnId: "role", search: "" });
+
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
   it("returns a window of the filtered list with the filtered total", async () => {
     const server = createRemoteServer();
     const filters = [{ columnId: "role", operator: "isAnyOf", value: ["admin"] }];
