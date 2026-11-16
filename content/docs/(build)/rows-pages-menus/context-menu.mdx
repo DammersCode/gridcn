@@ -183,13 +183,15 @@ function GridWithExtraItem() {
 }
 ```
 
-<Callout type="warn" title="Do not call hooks in a resolver">
-  A resolver is a plain function that runs while the open menu renders. Read grid state from `ctx`. Read other hook values in the enclosing component and close over them.
-</Callout>
+A resolver is a plain function. Read grid state from `ctx`. Read hook values in your component and use them in the resolver.
+
+## Server mode
+
+On a server grid, unloaded rows have no menu. **All matching** turns off Duplicate and Delete. In scroll mode, a row item on unloaded rows returns the reason `"unloaded-rows"`. See [Row operations](/docs/rows-pages-menus/row-operations#server-mode).
 
 ## Touch
 
-Long-press a cell or a header for 500 ms to open its menu. The grid raises one `contextmenu` event, so `onCellContextMenu` fires as it does for a right-click. The browser's own touch menu stays closed. While the fill add-on runs, the cell menu of a touch selection also lists **Fill down** and **Fill right**. Their text comes from `labels.contextMenu.fillDown` and `labels.contextMenu.fillRight`.
+Long-press a cell or a header for 500 ms to open its menu. The grid raises one `contextmenu` event, so `onCellContextMenu` fires as it does for a right-click. The browser's own touch menu stays closed. While the fill add-on runs, the cell menu of a touch selection also lists **Fill down** and **Fill right**. Their text comes from `labels.contextMenu.fillDown` and `labels.contextMenu.fillRight`. The click that follows a long press does nothing.
 
 ## Paste permission
 
