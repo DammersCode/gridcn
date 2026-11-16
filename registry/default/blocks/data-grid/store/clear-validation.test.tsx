@@ -68,3 +68,34 @@ describe("clearing a cell runs its validator", () => {
     expect(name(store)).toBe("");
   });
 });
+
+describe("clearing a cell waits for an async schema", () => {
+  const asyncRequired = {
+    "~standard": { version: 1 as const, vendor: "test", validate: async (value: unknown) => (value ? { value } : { issues: [{ message: "Required" }] }) },
+  };
+  const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 0)));
+
+  it.each(["delete", "cut"] as const)("%s keeps the value and reports the rejection after the schema settles", async (how) => {
+    const onValidationError = vi.fn();
+    const store = mount({ validate: asyncRequired }, { onValidationError });
+    clear(store, how);
+    await settle();
+    expect(name(store)).toBe("Ada");
+    expect(onValidationError).toHaveBeenCalledWith({ source: "delete", rejected: [expect.objectContaining({ rowId: "a", columnId: "name", message: "Required" })] });
+  });
+
+  it("clears once an accepting schema settles, and drops the held clear on a readOnly grid", async () => {
+    const accepting = { "~standard": { ...asyncRequired["~standard"], validate: async (value: unknown) => ({ value }) } };
+    const store = mount({ validate: accepting });
+    clear(store, "delete");
+    expect(name(store)).toBe("Ada");
+    await settle();
+    expect(name(store)).toBe("");
+
+    const locked = mount({ validate: accepting });
+    clear(locked, "delete");
+    act(() => locked.setState({ readOnly: true }));
+    await settle();
+    expect(name(locked)).toBe("Ada");
+  });
+});

@@ -56,8 +56,9 @@ import {
 } from "../selection";
 import { forEachMember } from "../selection/compact-selection";
 import { viewIndexes, type CellRef, type CompactSelectionLike, type DataChange, type DataGridApi, type DataOp, type GridBulkValidationError, type GridValidationErrorEvent, type ViewCoord } from "../types";
-import { resolveColumnValidate } from "../cell-types/capabilities";
-import { runValidateSync } from "../validation/validate-cell";
+import type { BulkResolution } from "../validation/validate-batch";
+import { candidateRowIds, isBulkBatchCurrent, reresolveBulkWrites, snapshotBulkBatch } from "../validation/bulk-generation";
+import { resolveClearWrites, type ClearWrite } from "./clear-writes";
 import { nextAnnouncement } from "./announcements";
 import { clearStaleRows, followStaleRows, markStaleRows, pruneStaleRows, requestReshape, staleStateAfterPrune } from "./server-stale";
 import type { AnyColumnDef, CellErrorEntry, CellPatch, DataGridActions, DataGridInternalActions, DataGridStoreState, UpdateCellsSkip, RowActionName, RowActionResult, RowActionSkipReason, UpdateCellsVerdict } from "./types";
@@ -784,36 +785,21 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     emitAfterWrites(ctx, () => onValidationError({ source: source as GridValidationErrorEvent["source"], rejected: [...rejected] }));
   };
 
-  /** Commits clear-to-clearValue() `writes` as one `delete` batch; shared by both delete actions. */
-  /** Runs each column's sync `validate` on the cleared value: a rejected cell stays, except in a `validationMode: "warn"` column, which clears and flags it. */
-  const validateClearWrites = (s: DataGridStoreState, writes: { viewRowIndex: number; columnId: string; value: unknown }[]) => {
-    const columns = new Map(s.columns.map((c) => [c.id, c] as const));
-    const accepted: typeof writes = [];
-    const rejected: GridBulkValidationError[] = [];
-    const warnings: CellErrorEntry[] = [];
-    for (const write of writes) {
-      const column = columns.get(write.columnId);
-      const dataRowIndex = s.viewIndex[write.viewRowIndex];
-      const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
-      const validate = column && resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]);
-      if (!validate || row === undefined) {
-        accepted.push(write);
-        continue;
-      }
-      const result = runValidateSync(validate, write.value, row);
-      const rowId = s.getRowId(row, dataRowIndex!);
-      if (!("error" in result)) accepted.push({ ...write, value: result.value });
-      else if (column.validationMode === "warn" && !result.thrown) {
-        warnings.push({ rowId, columnId: write.columnId, message: result.error });
-        accepted.push(write);
-      } else rejected.push({ rowId, columnId: write.columnId, viewRowIndex: write.viewRowIndex, value: write.value, message: result.error });
-    }
-    return { accepted, rejected, warnings };
+  let clearGeneration = 0;
+  /** Commits clear-to-clearValue() `writes` as one `delete` batch once their validators settle; shared by both delete actions. */
+  const commitClearWrites = (s: DataGridStoreState, requested: ClearWrite[]): void => {
+    const token = ++clearGeneration;
+    const resolution = resolveClearWrites(s, requested);
+    if (!(resolution instanceof Promise)) return writeClears(s, resolution);
+    const snapshot = snapshotBulkBatch(s, candidateRowIds(s, requested));
+    void resolution.then((resolved) => {
+      const now = get();
+      if (token === clearGeneration && !now.readOnly && isBulkBatchCurrent(now, snapshot)) writeClears(now, { ...resolved, writes: reresolveBulkWrites(now, resolved.writes) });
+    });
   };
 
-  const commitClearWrites = (s: DataGridStoreState, requested: { viewRowIndex: number; columnId: string; value: unknown }[]): void => {
-    const { accepted, rejected, warnings } = validateClearWrites(s, requested);
-    const batch = computeRowEditsBatch(s, accepted);
+  const writeClears = (s: DataGridStoreState, { writes, rejected, warnings }: BulkResolution): void => {
+    const batch = computeRowEditsBatch(s, writes);
     if (batch) {
       ctx.rowIndexCache.rebase(batch.nextData);
       forgetDeferredRows(ctx);
@@ -1453,7 +1439,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         const cellType = s.cellTypes[column.type ?? "text"];
         return cellType ? { columnId: column.id, value: cellType.clearValue(column.options) } : null;
       });
-      const writes: { viewRowIndex: number; columnId: string; value: unknown }[] = [];
+      const writes: ClearWrite[] = [];
       for (const rect of rects) {
         for (let viewRow = rect.y; viewRow < rect.y + rect.height; viewRow++) {
           for (let col = rect.x; col < rect.x + rect.width; col++) {
@@ -1482,7 +1468,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         const dataRowIndex = rowIndex.get(rowId);
         if (dataRowIndex !== undefined) dataRows.add(dataRowIndex);
       }
-      const writes: { viewRowIndex: number; columnId: string; value: unknown }[] = [];
+      const writes: ClearWrite[] = [];
       // a row or column that left the view since the copy stays untouched, like any hidden cell
       s.viewIndex.forEach((dataRowIndex, viewRowIndex) => {
         if (!dataRows.has(dataRowIndex)) return;
