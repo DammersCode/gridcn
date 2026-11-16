@@ -436,7 +436,7 @@ export type DataWriteActions = Pick<
   _commitChange: DataGridInternalActions["_commitChange"];
   _skipRowAction: DataGridInternalActions["_skipRowAction"];
   /** Commits an `activate` result like `commitCellValueAt`, and reports a validator rejection through `onValidationError`. */
-  _commitActivation: (coord: ViewCoord, value: unknown) => void;
+  _commitActivation: (coord: ViewCoord, value: unknown) => boolean | null;
 };
 
 export function createDataWriteActions(set: SetState, get: GetState, deps: DataWriteDeps): DataWriteActions {
@@ -1338,18 +1338,19 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     );
   };
 
-  const commitValueAt = (coord: ViewCoord, value: unknown, reportRejection: boolean): void => {
+  /** Returns whether the value committed (a no-op counts), or `null` on a `readOnly` grid. */
+  const commitValueAt = (coord: ViewCoord, value: unknown, reportRejection: boolean): boolean | null => {
     const s = get();
-    if (s.readOnly) return;
+    if (s.readOnly) return null;
     const result = computeCommit(s, coord, value);
     if ("error" in result) {
       const target = reportRejection ? resolveEditTarget(s, coord) : undefined;
       if (target) emitBulkRejections("edit", [{ rowId: s.getRowId(target.row, target.dataRowIndex), columnId: target.column.id, viewRowIndex: coord.row, value, message: result.error }]);
-      return;
+      return false;
     }
     if ("noop" in result) {
       if (result.warnings) set({ cellErrors: mergeCellErrors(s.cellErrors, result.warnings) });
-      return;
+      return true;
     }
     ctx.rowIndexCache.rebase(result.data);
     forgetDeferredRows(ctx);
@@ -1362,7 +1363,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         ...reconcileAfterWrite(s, result.data, result.change.ops),
       }),
     );
-
+    return true;
   };
 
   return {
@@ -1441,9 +1442,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     commitCellValueAt(coord, value) {
       commitValueAt(coord, value, false);
     },
-    _commitActivation(coord, value) {
-      commitValueAt(coord, value, true);
-    },
+    _commitActivation: (coord, value) => commitValueAt(coord, value, true),
     deleteSelection() {
       const s = get();
       if (s.readOnly) return;

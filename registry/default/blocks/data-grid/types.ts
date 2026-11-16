@@ -448,7 +448,7 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   /**
    * The edit gestures ACTIVATE this cell in place instead of opening an editor: Enter/F2, a
    * stationary click, and double-click commit `activate(value, options)` through `commitCellValue`
-   * (no edit session, so `onBeforeEditStart`/`onEditEnd` never fire). checkbox declares
+   * (no edit session: `onBeforeEditStart` asks first, and `onEditEnd` reports `commit` or `rejected`). checkbox declares
    * `(value) => !value`. Absent, the gestures open the editor.
    */
   activate?: (value: TValue, options?: TOptions) => TValue;

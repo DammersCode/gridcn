@@ -88,6 +88,27 @@ describe("onBeforeEditStart", () => {
 });
 
 describe("onEditEnd", () => {
+  it("fires commit after a checkbox toggle and rejected when validate refuses it", () => {
+    type Flag = { id: string; done: boolean };
+    const onEditEnd = vi.fn();
+    const flagColumns: readonly ColumnDef<Flag, unknown>[] = [
+      { id: "done", header: "Done", accessorKey: "done", type: "checkbox", validate: (v, row) => (v === false && row.id === "2" ? "locked" : null) },
+    ];
+    const { result } = renderHook(useDataGridInternalActions, {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <DataGridProvider data={[{ id: "1", done: false }, { id: "2", done: true }]} columns={flagColumns} onEditEnd={onEditEnd}>
+          {children}
+        </DataGridProvider>
+      ),
+    });
+    act(() => result.current._activateCellAt({ col: 0, row: 0 }));
+    act(() => result.current._activateCellAt({ col: 0, row: 1 }));
+    expect(onEditEnd.mock.calls).toEqual([
+      [{ rowId: "1", columnId: "done", viewRowIndex: 0, viewColumnIndex: 0, result: "commit" }],
+      [{ rowId: "2", columnId: "done", viewRowIndex: 1, viewColumnIndex: 0, result: "rejected" }],
+    ]);
+  });
+
   it("fires commit when the commit succeeds", () => {
     const onEditEnd = vi.fn();
     const { result } = renderHook(useActionsAndEditing, { wrapper: makeWrapper({ onEditEnd }) });
