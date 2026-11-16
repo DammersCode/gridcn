@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { applyChangeWith, holeRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { readAnswer, type ReadAnswer, type ServerRowsAnswer, type ServerRowsRequest, type WithRowId } from "./read-answer";
-import { GUARD_MISSING_MESSAGE, pruneIds, stashGuardedRows, trackDeletes, unionIds, useRefreshGuard, writeBlocks, type GuardedBlock, type ProtectedRows } from "./refresh-guard";
+import { GUARD_MISSING_MESSAGE, pruneIds, stashGuardedRows, trackDeletes, unionIds, useRefreshGuard, writeBlocks, type GuardedBlock, type GuardHandlers, type ProtectedRows } from "./refresh-guard";
 import { cursorKey, MAX_SEEN_CURSORS, needsNextBlock, skeletonCount, startsSequence, stepSequence } from "./scroll-sequence";
 import { chunkAligned, chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes } from "./range-math";
 import { DEFAULT_MAX_LOADED_ROWS, MAX_SEQUENTIAL_REVALIDATE_BLOCKS, distanceToCentre, dueWanted, keepRange, pickEvictions, pruneViewed, rangesIntersect, readFetchLimits, trackWanted, unloadRangesOf, type FetchLimits, type Wanted } from "./fetch-hygiene";
@@ -295,7 +295,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
   const [count, setCount] = useState<number | null>(null);
   const [loadedCount, setLoadedCount] = useState(0);
   const [skeletons, setSkeletons] = useState<number | null>(null);
-  const { setSaveCheckListener, plugins: guardPlugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, setSettleListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows } = useRefreshGuard({ trackUnacknowledged: true });
+  const { setHandlers, setSaveCheckListener, plugins: guardPlugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, setSettleListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows } = useRefreshGuard({ trackUnacknowledged: true });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const live = useRef({ options, spec });
@@ -765,8 +765,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
   const onRenderedRowsChange = useCallback(
     (range: RowRange) => {
       reportRange(range, false);
-      const own = live.current.options.onRenderedRowsChange;
-      if (own) isolate("onRenderedRowsChange", () => own(range));
+      isolate("onRenderedRowsChange", () => live.current.options.onRenderedRowsChange?.(range));
     },
     [reportRange],
   );
@@ -998,7 +997,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
   const onSave = useSaveRefresh(options, refreshAfterSave, setSaveCheckListener);
 
   const plugins = useMountedPlugins(guardPlugins, options.plugins);
-
+  useLayoutEffect(() => setHandlers({ onDataChange: onDataChange as GuardHandlers["onDataChange"], onRenderedRowsChange }));
   const providerProps = useMemo<UseDataGridServerRowsScrollProviderProps<TData>>(
     () => ({
       data: rows as TData[],

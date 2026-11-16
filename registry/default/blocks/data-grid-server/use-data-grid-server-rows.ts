@@ -8,7 +8,7 @@ import { DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-paginati
 import { readRevalidateInterval } from "./fetch-hygiene";
 import { MAX_ROW_COUNT, readAnswer, type ReadAnswer, type ServerRowsAnswer, type ServerRowsPageRequest, type WithRowId } from "./read-answer";
 import { useScrollBlocks, type UseDataGridServerRowsScrollOptions, type UseDataGridServerRowsScrollResult } from "./scroll-blocks";
-import { GUARD_MISSING_MESSAGE, keepProtectedRows, pruneIds, trackDeletes, unionIds, useRefreshGuard, type ProtectedRows } from "./refresh-guard";
+import { GUARD_MISSING_MESSAGE, keepProtectedRows, pruneIds, trackDeletes, unionIds, useRefreshGuard, type GuardHandlers, type ProtectedRows } from "./refresh-guard";
 import { useSaveRefresh, type SaveRefreshOptions, type SaveRefreshPolicy } from "./save-refresh";
 import { isolate, scheduleFrame, useControlled, useMountedPlugins, useReshape, useRevalidation, useServerSpec } from "./server-state";
 
@@ -219,7 +219,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   const awaitingChain = !cursorSource && settled.cursorSource;
   const page = cursorSource ? Math.min(wantedPage, settled.furthestPage) : awaitingChain ? 1 : wantedPage;
   const [tick, setTick] = useState(0);
-  const { setSaveCheckListener, plugins: guardPlugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, savingRows, setSaveStartListener, setSavesSettledListener, setReshapeListener, setSettleListener } = useRefreshGuard();
+  const { setHandlers, setSaveCheckListener, plugins: guardPlugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, savingRows, setSaveStartListener, setSavesSettledListener, setReshapeListener, setSettleListener } = useRefreshGuard();
   const [landed, setLanded] = useState<Landed<TData, TCursor> | null>(null);
 
   const specKey = serverSpecKey(spec);
@@ -547,6 +547,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   const onSave = useSaveRefresh(options, refresh, setSaveCheckListener);
 
   const plugins = useMountedPlugins(guardPlugins, options.plugins);
+  useLayoutEffect(() => setHandlers({ onDataChange: onDataChange as GuardHandlers["onDataChange"] }));
 
   const providerProps = useMemo<UseDataGridServerRowsProviderProps<TData>>(
     () => ({
