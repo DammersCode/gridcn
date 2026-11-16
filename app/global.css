@@ -301,8 +301,19 @@ button[data-search],
 :is(#nd-sidebar, #nd-sidebar-mobile) > div.flex.flex-col {
   position: relative;
   z-index: 10;
-  border-bottom: 1px solid var(--color-border);
-  box-shadow: 0 1px 0 0 var(--color-border), 0 6px 16px -6px rgb(0 0 0 / 0.5);
+}
+
+/* header and footer: one quiet line each, softened borders on their controls */
+:is(#nd-sidebar, #nd-sidebar-mobile) > div.flex.flex-col:first-child {
+  border-bottom: 1px solid var(--chrome-line);
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) > div.flex.flex-col:last-child {
+  border-top: 1px solid var(--chrome-line);
+}
+
+:is(#nd-sidebar, #nd-sidebar-mobile) > div.flex.flex-col :is(button, a[class*="group/button"], div.border, kbd) {
+  border-color: var(--chrome-line);
 }
 
 /* Layered !important beats unlayered !important, so this rule sits in @layer base to outrank
@@ -439,9 +450,11 @@ button[data-search],
 
 /* paper card/callout/code-block shadows: retint Tailwind's shadow-sm/md/lg so docs chrome gets soft warm elevation */
 :root {
+  --chrome-line: color-mix(in oklab, var(--color-border) 55%, transparent);
   --tw-shadow-color: hsl(var(--shadow-paper-color) / 0.1);
 }
 .dark {
+  --chrome-line: color-mix(in oklab, var(--color-border) 70%, transparent);
   --tw-shadow-color: hsl(var(--shadow-paper-color) / 0.35);
 }
 
