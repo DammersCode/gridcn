@@ -6,9 +6,9 @@ type: feature
 aliases: ["toolbar slots", "button bar"]
 ---
 
-`data-grid-toolbar` is a flex frame for the toolbar of a grid. It renders its children from left to right in the order you write them. Each piece works alone, so dropping one leaves the others in the same relative order. The add-on also ships `DataGridSearch`, `DataGridFilterMenu`, and `DataGridColumnsMenu` for the frame, and `DataGridHeaderFilter` for the column headers.
+`data-grid-toolbar` is a flex frame for the toolbar of a grid. It renders its children from the start side to the end side in the order you write them. Each piece works alone. Leave one out, and the others keep their order. The add-on also ships `DataGridSearch`, `DataGridFilterMenu`, and `DataGridColumnsMenu` for the frame, and `DataGridHeaderFilter` for the column headers.
 
-<ComponentPreview name="data-grid-filter-operators-demo" />
+<ComponentPreview name="data-grid-toolbar-demo" />
 
 <InstallCommand item="data-grid-toolbar" manual manualSlot={<ManualInstall item="data-grid-toolbar" />} />
 
@@ -61,7 +61,12 @@ export function PeopleGrid({ rows }: { rows: Person[] }) {
 }
 ```
 
-`DataGridToolbar` takes `className` and `children`. It carries the `data-grid-toolbar` attribute, which scopes the search shortcut to the grid.
+`DataGridToolbar` carries the `data-grid-toolbar` attribute, which scopes the search shortcut to the grid.
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `className` | `string` | none | Merged into the classes of the frame. |
+| `children` | `ReactNode` | none | The pieces, in render order. |
 
 ## The pieces
 
@@ -71,7 +76,7 @@ export function PeopleGrid({ rows }: { rows: Person[] }) {
 - `DataGridColumnsMenu` shows and hides columns. Pin controls live in the header menu.
 - `DataGridHeaderFilter` is not a toolbar child. See [Header filter](/docs/sort-filter-search/header-filter).
 
-The filter menu and the sort list offer the visible columns. Pass `allColumns` to either one to offer hidden columns for new filters and sorts. A row for an existing filter or sort always shows its own column. The demo above lists a hidden column in the sort list this way. It also sets `filter.operators` on the Name column, which limits it to `equals` and `notEquals`.
+The filter menu and the sort list offer the visible columns. Pass `allColumns` to either one to offer hidden columns for new filters and sorts. A row for an existing filter or sort always shows its own column. The demo above lists the hidden Email column in the sort list this way. It also sets `filter.operators` on the Name column, which limits it to `equals` and `notEquals`.
 
 ## Toolbar order
 

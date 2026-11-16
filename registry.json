@@ -3641,6 +3641,162 @@
          ]
       },
       {
+         "name": "data-grid-pointer-demo",
+         "type": "registry:example",
+         "title": "Data Grid Pointer Demo",
+         "description": "Mouse selection with a switch for headerClickBehavior: select, sort, or none.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "button"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-pointer-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-pointer-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-density-demo",
+         "type": "registry:example",
+         "title": "Data Grid Density Demo",
+         "description": "The compact, default, and comfortable density presets on one grid.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "button"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-density-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-density-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-keyboard-demo",
+         "type": "registry:example",
+         "title": "Data Grid Keyboard Demo",
+         "description": "Move, extend, and edit with the keyboard while a line shows the last chord.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-keyboard-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-keyboard-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-toolbar-demo",
+         "type": "registry:example",
+         "title": "Data Grid Toolbar Demo",
+         "description": "Search, filter menu, sort list, and columns menu in toolbar order.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-toolbar",
+            "DammersCode/gridcn/data-grid-sort-list"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-toolbar-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-toolbar-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-quick-search-demo",
+         "type": "registry:example",
+         "title": "Data Grid Quick Search Demo",
+         "description": "Quick search seeded with defaultSearchText: highlights, a match counter, and no hidden rows.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-toolbar"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-quick-search-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-quick-search-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-colors-radius-demo",
+         "type": "registry:example",
+         "title": "Data Grid Colors Radius Demo",
+         "description": "A preset switcher: radius 0, 0.625rem, and 1rem, a tinted primary, and dark mode.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "button"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-colors-radius-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-colors-radius-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
          "name": "data-grid-global-shortcuts-demo",
          "type": "registry:example",
          "title": "Data Grid Global Shortcuts Demo",

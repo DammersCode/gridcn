@@ -3,11 +3,12 @@ title: Colors and radius
 icon: Paintbrush
 description: Recolor the grid with your shadcn theme tokens, set the search highlight for light and dark mode, and square or round the grid frame.
 type: feature
-demos: none
 aliases: ["dark mode", "theme", "border radius", "rounded corners", "brand color"]
 ---
 
 The grid paints with your shadcn theme tokens and takes its corners from your theme radius. Change the theme and the grid follows, in light and dark mode. The install adds two variables of its own: `--search-highlight` and `--grid-pin-shadow`.
+
+<ComponentPreview name="data-grid-colors-radius-demo" />
 
 ## Change colors
 
@@ -35,7 +36,7 @@ The grid reads more tokens, such as `muted-foreground` and `accent`. [Theme toke
 
 ## Dark mode
 
-The grid has no dark mode setting. Its colors are tokens, so the `.dark` values of your theme apply. To turn dark mode on, add the `dark` class to the `<html>` element. With `attribute="class"`, `next-themes` sets that class. These surfaces also use the Tailwind `dark:` variant, so your project needs the dark variant that `shadcn init` adds to your CSS:
+The grid follows the `.dark` values of your theme, because its colors are tokens. To turn dark mode on, add the `dark` class to the `<html>` element. With `attribute="class"`, `next-themes` sets that class. These surfaces also use the Tailwind `dark:` variant, so your project needs the dark variant that `shadcn init` adds to your CSS:
 
 - An unchecked checkbox cell fills with `input/30` in dark mode.
 - An invalid cell tints with `destructive` at 15% and rings at 40% in dark mode. In light mode it tints at 10% and rings at 20%.

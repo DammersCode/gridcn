@@ -9,12 +9,6 @@ content/docs/(build)/editing-cells/edit-rows-forms.mdx#3 fix-pending WP-08
 content/docs/(build)/editing-cells/lookup-cell.mdx#1 fix-pending WP-08
 content/docs/(build)/clipboard-undo/undo-redo.mdx#3 fix-pending WP-09
 content/docs/(build)/import-export/control-import.mdx#2 fix-pending WP-10
-content/docs/(build)/sort-filter-search/filtering.mdx#2 fix-pending WP-11
-content/docs/(build)/sort-filter-search/find-replace.mdx#2 fix-pending WP-11
-content/docs/(build)/sort-filter-search/saved-views.mdx#2 fix-pending WP-11
-content/docs/(build)/sort-filter-search/saved-views.mdx#4 fix-pending WP-11
-content/docs/(build)/theme-style-language/loading-state.mdx#2 fix-pending WP-11
-content/docs/(build)/theme-style-language/loading-state.mdx#3 fix-pending WP-11
 content/docs/(server)/data-modes/query-server-rows.mdx#2 fix-pending WP-14
 content/docs/(server)/rows-live-data/broadcast-your-selection.mdx#1 fix-pending WP-14
 content/docs/(server)/rows-live-data/push-server-ordered-view.mdx#2 fix-pending WP-14

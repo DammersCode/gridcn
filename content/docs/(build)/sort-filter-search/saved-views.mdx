@@ -15,6 +15,8 @@ Users set up a grid the way they like it, then lose it on the next visit. `data-
 Place the button inside the provider:
 
 ```tsx
+"use client";
+
 import {
   DataGridBody,
   DataGridHeader,
@@ -78,9 +80,16 @@ A grid that something else already changed keeps its state. When you mount both 
 `value` and `onValueChange` control which view is active, and `defaultValue` seeds it once:
 
 ```tsx
-const [viewId, setViewId] = useState<string | null>(null);
+"use client";
 
-<DataGridViews value={viewId} onValueChange={setViewId} />;
+import { useState } from "react";
+import { DataGridViews } from "@/components/data-grid-views/data-grid-views";
+
+export function ControlledViews() {
+  const [viewId, setViewId] = useState<string | null>(null);
+
+  return <DataGridViews value={viewId} onValueChange={setViewId} />;
+}
 ```
 
 When `value` changes, the hook opens that view. A pick only calls `onValueChange`. The grid changes when you pass the new `value` back. Saving or importing a view opens it at once and then calls `onValueChange` with its id.
@@ -127,6 +136,7 @@ The default adapter listens to the `storage` event, so a save in one tab reloads
 - A built-in operator with a value of the wrong shape goes away. An operator that a column or its cell type registers in `filter.operators` keeps a value of the shape its `input` names. Any other shape drops the filter.
 - An `isAnyOf` list is cut to 1,000 entries. An `isNoneOf` list or a custom operator list over 1,000 entries drops the filter.
 - A view keeps at most 64 sorts, 64 filters, and 16 filter groups. A filter value over 1,000 characters drops the filter.
+- A view name is cut to 80 characters. A stored view with an id over 64 characters is skipped.
 - A column id has no length limit. A stored view keeps the ids of columns that the grid lacks, and applying the view skips them. A column width over 10,000 px goes away. Each of `order`, `hidden`, `widths`, and `pins` in a layout is cut to 1,000 entries. The search text is cut to 500 characters. The document keeps at most 50 views.
 
 ## Use the hook [#use-the-hook]
@@ -134,9 +144,15 @@ The default adapter listens to the `storage` event, so a save in one tab reloads
 `useDataGridViews(options)` takes the same options as the button and returns the state and the actions for your own UI. Call it inside the provider. The full lists are on [Saved views options](/docs/add-options/sort-filter-search/saved-views-options):
 
 ```tsx
-const views = useDataGridViews({ storage: serverViews });
+"use client";
 
-<button onClick={() => views.saveView("My view")}>Save</button>;
+import { useDataGridViews } from "@/components/data-grid-views/data-grid-views";
+
+export function SaveViewButton() {
+  const views = useDataGridViews({ storage: "orders-views" });
+
+  return <button onClick={() => views.saveView("My view")}>Save</button>;
+}
 ```
 
 ### Limits [#limits]

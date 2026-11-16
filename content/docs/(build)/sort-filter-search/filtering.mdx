@@ -71,7 +71,7 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
 
 After the click, a row stays if its country is NL and its name contains A or B. A group with `join: "and"` needs every child to match. A group with `join: "or"` needs one child. Any other `join` value acts as `"and"`, and an empty group matches every row.
 
-A group can contain one level of nested groups. `setFilters` drops a group nested deeper, with its rows. `filterId` is an optional stable key for a row or group. The store adds one when it is missing.
+A group can contain one level of nested groups. `setFilters` drops a group nested deeper, with the filter rows in it. `filterId` is an optional stable key for a row or group. The store adds one when it is missing.
 
 ## Operators
 
@@ -104,6 +104,10 @@ A column can list its own operators next to the built-in ones. List an object wi
 This column registers one operator:
 
 ```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Order = { id: string; city: string };
+
 const inRegion = {
   id: "inRegion",
   label: "is in region",
@@ -118,6 +122,10 @@ const columns = defineColumns<Order>()([
     filter: { operators: ["contains", inRegion] },
   },
 ]);
+
+export function Orders({ orders }: { orders: Order[] }) {
+  return <DataGrid data={orders} columns={columns} />;
+}
 ```
 
 {/* props: CustomFilterOperator */}
@@ -149,7 +157,7 @@ The menu offers the visible columns. A filter on a hidden column keeps applying,
 
 | Key | Action |
 |---|---|
-| <kbd>Tab</kbd> | Moves through a row: column, operator, value, remove, drag handle. |
+| <kbd>Tab</kbd> | Moves through a row: join (from the second entry of a group), column, operator, value, remove, drag handle. |
 | <kbd>ArrowUp</kbd> / <kbd>ArrowDown</kbd> on the drag handle | Moves the row or group one place among its siblings. |
 | <kbd>Backspace</kbd> / <kbd>Delete</kbd> on the drag handle | Removes the row or group. |
 | <kbd>Escape</kbd> during a drag | Cancels the drag and keeps the popover open. |
