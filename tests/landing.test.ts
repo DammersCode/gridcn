@@ -2,9 +2,10 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { pageIndex } from "../scripts/docs-verify-lib.mjs";
-import { CLIENT_CODE, HEADLINE, newInTwo, perfStats, serverHighlights, SUBLINE } from "../components/landing/data";
+import { CLIENT_CODE, faq, HEADLINE, perfDemos, perfStats, serverHighlights, SUBLINE } from "../components/landing/data";
+import { CODE_THEMES } from "../lib/code-themes";
 import { showReleaseBadge } from "../components/landing/hero";
-import { addOnTiles, agentSkills, COMPARISON_DATE, comparison, kitTiles, FEATURE_MATRIX_HREF } from "../components/landing/items";
+import { addOnTiles, COMPARISON_DATE, comparison, kitTiles, FEATURE_MATRIX_HREF } from "../components/landing/items";
 
 const root = join(__dirname, "..");
 const pages = pageIndex(join(root, "content/docs")) as Map<string, { anchors: Set<string> }>;
@@ -34,26 +35,43 @@ describe("landing page links", () => {
     expect(dead).toEqual([]);
   });
 
-  it("every add-on tile, kit tile, server card, perf source and new-in-2.0 item resolves", () => {
+  it("every add-on tile, kit tile, server card, perf source, perf demo and FAQ link resolves", () => {
     const hrefs = [
       ...addOnTiles.map((t) => t.href),
       ...kitTiles.map((t) => t.href),
       ...serverHighlights.map((t) => t.href),
       ...perfStats.map((t) => t.href),
-      ...newInTwo.map((t) => t.href),
+      ...perfDemos.map((t) => t.href),
+      ...faq.flatMap((f) => f.links.map((l) => l.href)),
     ];
     expect(hrefs.filter((h) => !resolves(h))).toEqual([]);
   });
 
-  it("every agent skill tile has an anchor on the agent skills page", () => {
-    const page = pages.get("/docs/try-automate/use-agent-skills");
-    expect(agentSkills.filter((s) => !page?.anchors.has(s.title)).map((s) => s.title)).toEqual([]);
+  it("the agent skills link target exists", () => {
+    expect(resolves("/docs/try-automate/use-agent-skills")).toBe(true);
+    expect(readFileSync(join(landingDir, "landing-page.tsx"), "utf8")).toContain("/docs/try-automate/use-agent-skills");
   });
 });
 
 describe("landing kit tiles", () => {
   it("fill a 2, 3 and 4 column grid without a gap", () => {
     for (const columns of [2, 3, 4]) expect(kitTiles.length % columns, `${columns} columns`).toBe(0);
+  });
+});
+
+describe("landing server cards and FAQ", () => {
+  it("shows four server cards so the two-column grid has no gap", () => {
+    expect(serverHighlights.map((h) => h.title)).toEqual(["Pages", "Server sort and filter", "Saves with rollback", "Selection across pages"]);
+  });
+
+  it("answers five questions and states the framework tests as the docs page does", () => {
+    expect(faq).toHaveLength(5);
+    expect(faq.find((f) => f.question === "Which frameworks are tested?")?.answer).toContain("Install tests cover Next.js 16 and Vite");
+  });
+
+  it("removes the what-is-new panel and the paid-tier sentence", () => {
+    const page = readFileSync(join(landingDir, "landing-page.tsx"), "utf8");
+    expect(page).not.toMatch(/NewPanel|paid tier|migrate-2-0/);
   });
 });
 
@@ -102,7 +120,7 @@ describe("landing copy", () => {
   const copy = landingSources.map((s) => s.text).join("\n");
 
   it("makes no unbacked claim", () => {
-    expect(copy).not.toMatch(/WCAG|\baccessible\b/i);
+    expect(copy.replace("Is it accessible?", "")).not.toMatch(/WCAG|\baccessible\b/i);
     expect(copy).not.toMatch(/\bspreadsheet\b(?!-style)/i);
     expect(copy).not.toMatch(/leads where|silent traps|lazy-rows hook/i);
     expect(copy).not.toMatch(/Lazy rows|16\.8 ms|91\.7 ms|0\.3.7\.6 ms/);
@@ -116,7 +134,7 @@ describe("landing copy", () => {
 
   it("names React and the license in the hero", () => {
     expect(HEADLINE).toMatch(/React/);
-    expect(SUBLINE).toMatch(/Apache-2.0/);
+    expect(SUBLINE).toMatch(/Apache‑2\.0/);
     expect(readFileSync(join(root, "LICENSE"), "utf8")).toMatch(/Apache License/);
   });
 
@@ -146,6 +164,13 @@ describe("landing copy", () => {
 });
 
 describe("landing code block", () => {
+  it("uses the shared code theme pair", () => {
+    expect(CODE_THEMES).toEqual({ light: "github-light-high-contrast", dark: "github-dark" });
+    for (const f of ["components/component-preview.tsx", "components/manual-install.tsx", "components/landing/code.tsx", "source.config.ts"]) {
+      expect(readFileSync(join(root, f), "utf8"), f).toContain("CODE_THEMES");
+    }
+  });
+
   it("highlights with the dual theme variables of the docs code blocks", async () => {
     const { renderToStaticMarkup } = await import("react-dom/server");
     const { Code } = await import("../components/landing/code");

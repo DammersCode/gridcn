@@ -1,10 +1,11 @@
 import { highlight } from "fumadocs-core/highlight";
+import { CODE_THEMES } from "@/lib/code-themes";
 import { CodeBlock, Pre } from "fumadocs-ui/components/codeblock";
 
 export async function Code({ code, label }: { code: string; label: string }) {
   return highlight(code, {
     lang: "tsx",
-    themes: { light: "github-light-high-contrast", dark: "github-dark" },
+    themes: CODE_THEMES,
     defaultColor: false,
     components: {
       pre: (props) => (

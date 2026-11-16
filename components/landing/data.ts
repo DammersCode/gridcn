@@ -1,5 +1,5 @@
 export const HEADLINE = "A React data grid you own, with spreadsheet-style editing";
-export const SUBLINE = "Range selection, paste from Excel, a fill handle and undo, free under Apache-2.0. One shadcn command copies the source into your app.";
+export const SUBLINE = "Range selection, paste from Excel, a fill handle and undo, free under Apache‑2.0. One shadcn command copies the source into your app.";
 
 export const perfStats = [
   {
@@ -26,28 +26,50 @@ export const perfStats = [
 ];
 
 export const perfNote = "Your hardware and your cells change these numbers.";
+export const perfDemos = [
+  { text: "100,000 rows in the browser", href: "/docs/server-data-examples/large-data-example" },
+  { text: "100,000 rows loaded while you scroll", href: "/docs/server-data-examples/scroll-mode-example" },
+  { text: "Live values pushed four times a second", href: "/docs/row-examples/streaming-rows-example" },
+];
+
+export const faq = [
+  {
+    question: "How do I get fixes after the source is in my app?",
+    answer: "An upgrade reinstalls the registry files and asks before it replaces a file you changed.",
+    links: [{ text: "Upgrade gridcn", href: "/docs/support-upgrades/upgrade-gridcn" }],
+  },
+  {
+    question: "Does it work with React 18 or Tailwind 3?",
+    answer: "No. The grid needs React 19 and Tailwind CSS 4.",
+    links: [{ text: "Framework floors", href: "/docs/support-upgrades/browser-framework-support#framework-floors" }],
+  },
+  {
+    question: "Which frameworks are tested?",
+    answer: "Install tests cover Next.js 16 and Vite. The Next.js test builds and renders the core demo in a fresh project. The Vite test builds a fresh Vite app.",
+    links: [{ text: "Framework floors", href: "/docs/support-upgrades/browser-framework-support#framework-floors" }],
+  },
+  {
+    question: "How many rows can it hold?",
+    answer: "The tests scroll 100,000 rows. Past that, the browser's height limit decides.",
+    links: [{ text: "Row limits", href: "/docs/performance/row-limits" }],
+  },
+  {
+    question: "Is it accessible?",
+    answer: "Browser tests drive the grid with a real keyboard in Chromium, and an axe-core suite runs. The repository records no manual screen reader pass.",
+    links: [
+      { text: "Keyboard test coverage", href: "/docs/accessibility/keyboard-test-coverage" },
+      { text: "Accessibility gaps", href: "/docs/accessibility/accessibility-gaps" },
+    ],
+  },
+];
+
 export const perfRunHref = "/docs/performance/run-benchmark";
 
 export const serverHighlights = [
-  { title: "Scroll mode", text: "Row blocks load as the user scrolls. One hook: useDataGridServerRows.", href: "/docs/scroll-mode/load-rows-while-scrolling" },
   { title: "Pages", text: "One page per request, with a row count, without one, or with a cursor.", href: "/docs/server-pagination/load-rows-page" },
   { title: "Server sort and filter", text: "With sortMode and filterMode set to server, the grid sends the spec and shows the rows you return.", href: "/docs/data-modes/query-server-rows" },
-  { title: "Server totals", text: "Pin a totals row that your server computes for the whole filtered result.", href: "/docs/data-modes/show-server-totals" },
-  { title: "Streaming pushes", text: "updateCells and updateRows push live values. A server-ordered view marks changed rows as stale.", href: "/docs/rows-live-data/push-server-ordered-view" },
   { title: "Saves with rollback", text: "Turn edits into API calls. Roll a refused save back or refetch the rows.", href: "/docs/save-server/save-revert" },
   { title: "Selection across pages", text: "Checked rows stay checked by id. Select all matching rows of the result.", href: "/docs/rows-live-data/select-server-rows" },
-  { title: "Row actions", text: "A row action that does nothing says why. A gate that never settles can time out.", href: "/docs/rows-live-data/handle-row-action-results" },
-  { title: "Filter values from the server", text: "The header filter lists the values that your backend returns.", href: "/docs/sort-filter-search/header-filter" },
-];
-
-export const newInTwo = [
-  { text: "One server data source. useDataGridServerRows serves scroll mode and pages, and replaces the data-grid-lazy add-on.", href: "/docs/data-modes/query-server-rows" },
-  { text: "Selection across pages. Checked rows stay checked by id, and the status bar offers to select all matching rows.", href: "/docs/rows-live-data/select-server-rows" },
-  { text: "Saved views. Name a sort, filter, search and column layout and restore it later.", href: "/docs/sort-filter-search/saved-views" },
-  { text: "Server totals. useDataGridServerAggregate pins a totals row that your server computes.", href: "/docs/data-modes/show-server-totals" },
-  { text: "Async gates take an AbortSignal, and gateTimeoutMs stops a gate that never settles.", href: "/docs/editing-cells/cancel-async-gates" },
-  { text: "Faster client sort. A number or text column sorts on integer keys instead of a comparator per pair.", href: "/docs/performance/benchmark-results#sort-speed" },
-  { text: "Breaking changes. Read the migration guide before you upgrade a 1.x grid.", href: "/docs/support-upgrades/migrate-2-0" },
 ];
 
 export const CLIENT_CODE = `"use client";
