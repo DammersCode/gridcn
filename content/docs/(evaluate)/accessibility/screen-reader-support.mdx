@@ -10,7 +10,7 @@ The grid follows the WAI-ARIA grid pattern.
 
 ## Conformance target [#conformance-target]
 
-The target is WCAG 2.1 AA. gridcn makes no conformance claim and has had no conformance audit. The automated checks run axe-core in Chromium on two core fixtures and the saved-views menu. One fixture has a toolbar, markers, a pinned row, and a sort. One has column groups. No manual screen reader pass is on record.
+The target is WCAG 2.2 AA. gridcn makes no conformance claim and has had no conformance audit. The automated checks run axe-core in Chromium on two core fixtures and the saved-views menu. One fixture has a toolbar, markers, a pinned row, and a sort. One has column groups. No manual screen reader pass is on record.
 
 ## Roles and indices [#semantics]
 
@@ -43,7 +43,7 @@ A sortable column header has `aria-sort` set to `ascending`, `descending`, or `n
 
 With `readOnly`, the root has `aria-readonly`. While any of `enableRangeSelection`, `enableRowSelection`, `enableColumnSelection`, or `enableMultiRange` is true, the root has `aria-multiselectable`. All four default to `true`.
 
-A cell with a validation error has `aria-invalid="true"` and the message in `aria-description`. While the cell is in edit mode, the message also shows in an element with `role="alert"`.
+A cell with a validation error has `aria-invalid="true"` and the message in `aria-description`. While the cell is in edit mode, the message also shows in an element with `role="alert"`. In forced colors mode, an error draws a dashed outline, a search match draws a solid outline, and the active cell draws a solid outline.
 
 ## Focus, selection, and loading [#selection-and-editor]
 
@@ -73,30 +73,11 @@ A text editor is a native `<input>` inside the `gridcell`, so a screen reader re
 
 ## Live regions [#live-regions]
 
-Each grid adds one live region: a `role="status"` element with `aria-live="polite"`. A live region cannot sit inside `role="grid"`, so the grid places it in `<body>`. The region reads these changes, among others:
-
-- A row move, for example "Row 3 moved to position 4 of 8" (`labels.markers.reorderAnnouncement`).
-- The number of checked rows after a check, an uncheck, Escape, or Ctrl/Cmd+A, for example "3 rows checked" (`labels.grid.rowsChecked`). The count includes hidden checked rows. Under "all matching", it counts the result minus the unchecked rows.
-- "All matching rows checked" after select all matching on a result of unknown size (`labels.grid.allMatchingChecked`).
-
-The region waits 500 ms after the last change. A marker range drag gets one reading, with its final count. A repeated change reads its text again.
-
-With `announceResults`, the region also reads the number of rows of the view after a client filter or sort change, for example "42 rows" (`labels.grid.resultsCount`). A filter change that keeps the same rows in the same order stays quiet. Every sort change announces. A mount stays quiet. In scroll mode, while some rows have not arrived, the region counts the loaded rows only, for example "42 loaded rows" (`labels.grid.resultsCountLoaded`). With client pagination, the count covers every page, like the footer.
-
-A server sort or filter change announces nothing. With `announceResults`, the region reads the result when the next load ends. A load that began with zero rows also reads its result count. See [Load result](/docs/accessibility/live-region-messages#load-result). A client filter announces under `sortMode="server"`. With `announceResults` in a server grid, a new numeric `totalRowCount` becomes the result count.
-
-`announceResults` is a `boolean` grid prop with the default `false`. [Checked rows](/docs/selection-shortcuts/checked-rows) lists it.
-
-Add-ons bring their own live regions:
-
-- The toolbar search reads its match count.
-- The filter menu and the sort list read each reorder, for example "Name filter moved to position 2 of 3" (`labels.toolbar.filterReorderAnnouncement`, `labels.sort.sortReorderAnnouncement`).
-- The find and replace panel and the status bar read their status text.
-- The header filter and the value list of an `isAnyOf` filter read their status text.
+Each grid adds one `role="status"` live region with `aria-live="polite"`. [Live region messages](/docs/accessibility/live-region-messages) lists what it reads and the label that sets each message.
 
 ## Related
 
 - [Keyboard test coverage](/docs/accessibility/keyboard-test-coverage): what the tests check
 - [Accessibility gaps](/docs/accessibility/accessibility-gaps): what they leave out
-- [Live region messages](/docs/accessibility/live-region-messages): the other messages
+- [Live region messages](/docs/accessibility/live-region-messages): what the live region reads
 - [Screen reader announcements example](/docs/basic-examples/screen-reader-announcements-example): the live region on screen

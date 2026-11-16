@@ -68,7 +68,7 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
 
 ## Keep the first render equal [#hydration-rules]
 
-- **Pin the locale.** With `format` or `displayFormat` and no `options.locale`, the `number` and `date` cell types format with `"en-US"`. The built-in labels format counts with `"en-US"`. A server and a browser can have different default locales. In a custom cell type or label, pass a locale to `Intl` and `toLocaleString`.
+- **Pass the same `locale` prop on the server and in the browser.** The grid default is `"en-US"`. The `number` and `date` columns and the built-in labels read it. A column `options.locale` wins. In a custom cell type or label, pass a locale to `Intl` and `toLocaleString`.
 - **Pin the text sort.** The built-in text sorts use the `locale` prop, then `"en-US"`, on the server and in the browser. Pass `locale` or `sortLocale` for another language, and pass the same value on both sides.
 - **Read browser-only globals after mount.** `window`, `navigator`, and `localStorage` do not exist on the server. Read them in an effect and set state. [Column visibility](/docs/columns/column-visibility#persisting-a-users-layout) loads a saved layout this way.
 - **Make the rows once.** Rows built in render with `Date.now()` or `Math.random()` differ on each side. Build them on the server and pass them as props, or build them in an effect.

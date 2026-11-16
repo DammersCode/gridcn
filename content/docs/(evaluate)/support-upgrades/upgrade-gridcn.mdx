@@ -44,13 +44,11 @@ Before you start, commit your work. A clean working tree makes every upgrade cha
 
 6. Apply each breaking entry from step 2. If an entry renames an identifier, search your code for the old name and replace it. If an entry changes a behavior, check the code that depends on it.
 
-7. Run your type check. A removed or renamed export fails the check:
+7. Run your type check and your tests. A removed or renamed export fails the type check:
 
    ```bash
    npx tsc --noEmit
    ```
-
-8. Run your tests.
 
 Each file that you overwrote matches the version from step 5. Each file that you kept holds your edits and the upstream changes that you merged. The type check and the tests pass.
 
