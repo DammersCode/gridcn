@@ -1,8 +1,12 @@
 import type { StandardSchemaV1, StandardSchemaV1Issue, StandardSchemaV1Result } from "../types";
 import { toSafeText } from "../cell-types/safe-text";
+import type { CellValidateContext } from "./validate-context";
 
 /** A column's resolved `validate` field: the sync function form or any Standard Schema for the value. */
-export type CellValidate = ((value: unknown, row: unknown) => string | null) | StandardSchemaV1 | undefined;
+export type CellValidate = ((value: unknown, row: unknown, ctx: CellValidateContext) => string | null) | StandardSchemaV1 | undefined;
+
+/** The context of a validation that has no rows around it (a probe, a type check): no rows, only this cell. */
+export const lonelyContext = (row: unknown, value: unknown): CellValidateContext => ({ rows: [], batch: [{ row, value }], valueOf: () => undefined });
 
 /**
  * `error`: rejected, message to show; `thrown` marks a validator that threw, which blocks even an
@@ -12,7 +16,7 @@ export type ValidateResult = { error: string; thrown?: true } | { value: unknown
 
 /** `first`, then `then` when `first` passes. Beside a Standard Schema, `first` runs inside the schema and receives no row. */
 export function composeValidate(first: (value: unknown, row: unknown) => string | null, then: NonNullable<CellValidate>): CellValidate {
-  if (!isStandardSchema(then)) return (value, row) => first(value, row) ?? then(value, row);
+  if (!isStandardSchema(then)) return (value, row, ctx) => first(value, row) ?? then(value, row, ctx);
   const standard = then["~standard"];
   return {
     "~standard": {
@@ -55,10 +59,10 @@ export function resolveSchemaResult(result: StandardSchemaV1Result<unknown>): Va
  * hand `computeCommit`/`computeCellPatchBatch` an already-resolved `result.value`. A validator
  * that throws rejects the value with the thrown message and `thrown: true`.
  */
-export function runValidateSync(validate: CellValidate, value: unknown, row: unknown): ValidateResult {
+export function runValidateSync(validate: CellValidate, value: unknown, row: unknown, ctx?: CellValidateContext): ValidateResult {
   let pending: ReturnType<typeof runValidatePending>;
   try {
-    pending = runValidatePending(validate, value, row);
+    pending = runValidatePending(validate, value, row, ctx);
   } catch (error) {
     return { error: error instanceof Error ? error.message : toSafeText(error), thrown: true };
   }
@@ -76,10 +80,11 @@ export function runValidatePending(
   validate: CellValidate,
   value: unknown,
   row: unknown,
+  ctx?: CellValidateContext,
 ): ValidateResult | Promise<StandardSchemaV1Result<unknown>> {
   if (!validate) return { value };
   if (!isStandardSchema(validate)) {
-    const error = validate(value, row);
+    const error = validate(value, row, ctx ?? lonelyContext(row, value));
     return error ? { error } : { value };
   }
 

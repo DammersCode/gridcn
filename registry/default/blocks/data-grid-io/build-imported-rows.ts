@@ -1,6 +1,6 @@
 import type { AnyColumnDef, CellType, ColumnDef, GateContext } from "@/registry/default/blocks/data-grid/data-grid";
 import type { ValidateBatchItem, ValidateResult } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { createWarnOnce, isDev, isThenable, parseWithHook, resolveColumnValidate, runValidateBatch, safeFromText, settleHookFailure, setCellValue } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { createWarnOnce, isDev, isThenable, parseWithHook, resolveColumnValidate, runValidateBatch, safeFromText, settleHookFailure, setCellValue, validateContextsFor } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** One import-column -> grid-column mapping entry; `null` skips the import column. */
 export type ImportColumnMapping = { importColumnIndex: number; gridColumnId: string | null };
@@ -139,7 +139,7 @@ function finishSmallImport<TData>(
   const rejected: ImportRejectedCell[] = [];
   const flagged: ImportRejectedCell[] = [];
   const { items, cells } = buildCellsForRange(dataRows, 0, dataRows.length, activeMappings, columnsById, cellTypes, rows);
-
+  attachValidateContexts(items, cells);
   const results = runValidateBatch(items);
   if (results instanceof Promise) return results.then((resolved) => ({ rows: writeCells(rows, cells, items, resolved, rejected, flagged), rejected, flagged }));
   return { rows: writeCells(rows, cells, items, results, rejected, flagged), rejected, flagged };
@@ -147,6 +147,13 @@ function finishSmallImport<TData>(
 
 /** One resolved mapping entry: the source column index paired with its target column definition. */
 type ResolvedMapping = { importColumnIndex: number; gridColumnId: string };
+
+// shortcut: a chunked import (past one chunk) checks each chunk's cells as one batch; a duplicate across chunks passes. Upgrade: settle every chunk's values before validating.
+/** Gives each function `validate` the imported cells of its column as the batch; an import has no grid rows to compare with. */
+function attachValidateContexts(items: ValidateBatchItem[], cells: readonly ImportCell[]): void {
+  const contexts = validateContextsFor([], cells.map((cell) => cell.column as AnyColumnDef), cells.map((cell, i) => ({ columnId: cell.column.id, row: items[i]!.row, value: items[i]!.value })));
+  cells.forEach((cell, i) => (items[i]!.ctx = contexts.get(cell.column.id)));
+}
 
 /** Builds `rows[start, end)`'s validation items/cells against the already-created `rows` array. */
 function buildCellsForRange<TData>(
@@ -234,6 +241,7 @@ async function buildImportedRowsChunked<TData>(
     const { items, cells } = buildCellsForRange(dataRows, start, end, activeMappings, columnsById, cellTypes, rows, processCellFromText, signal);
     await settleItemValues(items);
     if (signal?.aborted) throw new Error(IMPORT_CANCELLED_MESSAGE);
+    attachValidateContexts(items, cells);
     const results = await runValidateBatch(items);
     writeCells(rows, cells, items, results, rejected, flagged);
     await yieldToEventLoop();

@@ -144,6 +144,7 @@ export {
 export { displayText } from "./cell-types/display-text";
 export { columnLabelText } from "./columns/column-format-helpers";
 export { rejectText } from "./cell-types/safe-from-text";
+export { unique, type CellValidateContext, type UniqueOptions } from "./validation/validate-context";
 export { CellSpan } from "./cell-types/cell-span";
 
 export { CompactSelection } from "./selection/compact-selection";

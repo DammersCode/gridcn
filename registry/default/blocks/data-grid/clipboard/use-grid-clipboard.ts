@@ -313,7 +313,7 @@ export function buildPasteWrites(
   target: ViewCoord,
 ): BulkResolution | Promise<BulkResolution> {
   const candidates = buildPasteCandidates(s, cells, target);
-  return candidates instanceof Promise ? candidates.then((settled) => resolveBulkWrites(settled)) : resolveBulkWrites(candidates);
+  return candidates instanceof Promise ? candidates.then((settled) => resolveBulkWrites(settled, s)) : resolveBulkWrites(candidates, s);
 }
 
 /**
@@ -498,7 +498,7 @@ function applyResolution(
   heldToken: number | undefined,
   afterAwait: boolean,
 ): boolean {
-  const resolution = resolveBulkWrites(afterAwait ? reresolveBulkWrites(s, candidates) : candidates);
+  const resolution = resolveBulkWrites(afterAwait ? reresolveBulkWrites(s, candidates) : candidates, s);
   if (!(resolution instanceof Promise)) {
     // rejected cells are reported by the write itself (same source, after the write's emit)
     actions.applyCellUpdates(resolution.writes, "paste", resolution.rejected, resolution.warnings);

@@ -2,6 +2,8 @@ import type { CellErrorEntry } from "../store/types";
 import type { GridBulkValidationError, StandardSchemaV1Result } from "../types";
 import { toSafeText } from "../cell-types/safe-text";
 import { resolveSchemaResult, runValidatePending, type CellValidate, type ValidateResult } from "./validate-cell";
+import { validateContextsFor, type CellValidateContext } from "./validate-context";
+import type { AnyColumnDef } from "../store/types";
 
 /** How many async cell validations may be in flight at once. A 10k-cell paste against a network-backed schema must not open 10k requests. */
 export const VALIDATE_CONCURRENCY = 32;
@@ -11,6 +13,8 @@ export type ValidateBatchItem = {
   validate: CellValidate;
   value: unknown;
   row: unknown;
+  /** The function form's third argument; without it the validator sees no other rows. */
+  ctx?: CellValidateContext;
 };
 
 /**
@@ -49,7 +53,7 @@ export function runValidateBatch(
 /** {@link runValidatePending} with a throwing validator downgraded to a plain rejection for that cell. */
 function runValidateOne(item: ValidateBatchItem): ValidateResult | Promise<StandardSchemaV1Result<unknown>> {
   try {
-    return runValidatePending(item.validate, item.value, item.row);
+    return runValidatePending(item.validate, item.value, item.row, item.ctx);
   } catch (error) {
     return { error: errorMessage(error), thrown: true };
   }
@@ -129,8 +133,9 @@ export type BulkResolution = { writes: BulkWrite[]; rejected: GridBulkValidation
  * straight-line behavior; returns a Promise for it when at least one column's schema was async,
  * and the caller holds the batch until it resolves.
  */
-export function resolveBulkWrites(candidates: readonly BulkCandidate[]): BulkResolution | Promise<BulkResolution> {
-  const results = runValidateBatch(candidates);
+export function resolveBulkWrites(candidates: readonly BulkCandidate[], grid?: { data: readonly unknown[]; columns: readonly AnyColumnDef[] }): BulkResolution | Promise<BulkResolution> {
+  const contexts = grid && candidates.some((candidate) => typeof candidate.validate === "function") ? validateContextsFor(grid.data, grid.columns, candidates) : null;
+  const results = runValidateBatch(contexts ? candidates.map((candidate) => ({ ...candidate, ctx: contexts.get(candidate.columnId) })) : candidates);
   if (results instanceof Promise) return results.then((resolved) => toResolution(candidates, resolved, true));
   return toResolution(candidates, results, false);
 }

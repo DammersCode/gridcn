@@ -1,3 +1,4 @@
+import { validateContextsFor, type CellValidateContext } from "../validation/validate-context";
 import type { ViewCoord, CellType, DataChange, DataOp } from "../types";
 import { getCellValue, setCellValue } from "../columns/column-helpers";
 import { isDev, warnDev } from "../is-dev";
@@ -150,7 +151,7 @@ export function warnFlagsForOps(s: DataGridStoreState, ops: readonly DataOp<unkn
   const warnColumns = s.columns.filter((column) => column.validationMode === "warn");
   if (warnColumns.length === 0) return flags;
   const check = (rowId: string, row: unknown, column: AnyColumnDef, value: unknown): void => {
-    const result = runValidateSync(resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]), value, row);
+    const result = runValidateSync(resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]), value, row, validateContextsFor(s.data, s.columns, [{ columnId: column.id, row, value }]).get(column.id));
     if ("error" in result && !result.thrown) flags.push({ rowId, columnId: column.id, message: result.error });
   };
   const byId = new Map(warnColumns.map((column) => [column.id, column] as const));
@@ -184,7 +185,7 @@ export function computeCommit(s: DataGridStoreState, coord: ViewCoord, value: un
   if (!target) return { noop: true };
   const { column, dataRowIndex, row, cellType } = target;
   if (isColumnReadOnly(column, row)) return { noop: true };
-  const validated = runValidateSync(resolveColumnValidate(column, cellType), value, row);
+  const validated = runValidateSync(resolveColumnValidate(column, cellType), value, row, validateContextsFor(s.data, s.columns, [{ columnId: column.id, row, value }]).get(column.id));
   let nextValue: unknown;
   let warning: string | undefined;
   if ("error" in validated) {
@@ -332,6 +333,9 @@ export function computeCellPatchBatch(
   const skipped: UpdateCellsSkip[] = [];
   const rejected: PatchRejection[] = [];
   const warnings = new Map<string, CellErrorEntry>();
+  let contexts: Map<string, CellValidateContext> | null = null;
+  const contextOf = (columnId: string) =>
+    (contexts ??= validateContextsFor(s.data, s.columns, patches.map((p) => ({ columnId: p.columnId, row: s.data[rowIndex.get(p.rowId) ?? -1], value: p.value })))).get(columnId);
 
   for (let patchIndex = 0; patchIndex < patches.length; patchIndex++) {
     const patch = patches[patchIndex]!;
@@ -364,7 +368,8 @@ export function computeCellPatchBatch(
     let value = patch.value;
     let warning: string | undefined;
     if (!skipValidation) {
-      const validated = runValidateSync(resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]), value, baseRow);
+      const validate = resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]);
+      const validated = runValidateSync(validate, value, baseRow, typeof validate === "function" ? contextOf(column.id) : undefined);
       if ("error" in validated) {
         if (column.validationMode !== "warn" || validated.thrown) {
           skipped.push({ patchIndex, reason: "invalid" });
@@ -456,6 +461,8 @@ export function prevalidatePatches(
     };
   });
 
+  const contexts = validateContextsFor(s.data, s.columns, patches.map((patch, i) => ({ columnId: patch.columnId, row: items[i]!.row, value: patch.value })));
+  for (let i = 0; i < items.length; i++) items[i]!.ctx = contexts.get(patches[i]!.columnId);
   const results = runValidateBatch(items);
   if (results instanceof Promise) return results.then((resolved) => keepAccepted(patches, resolved, warnByPatch));
   return keepAccepted(patches, results, warnByPatch);

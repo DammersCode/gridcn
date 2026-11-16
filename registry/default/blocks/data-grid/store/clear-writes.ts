@@ -16,5 +16,5 @@ export function resolveClearWrites(s: DataGridStoreState, writes: readonly Clear
     const validate = resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]);
     candidates.push({ ...write, validate, row, rowId: s.getRowId(row, dataRowIndex!), warn: column.validationMode === "warn" });
   }
-  return resolveBulkWrites(candidates);
+  return resolveBulkWrites(candidates, s);
 }

@@ -239,7 +239,7 @@ export function buildFillWrites(
   opts: { forceCopy?: boolean; detect?: (values: readonly string[]) => SeriesDescriptor | null } = {},
 ): { resolution: BulkResolution | Promise<BulkResolution>; filled: string[][] } {
   const { candidates, filled } = buildFillCandidates(s, source, strip, opts);
-  return { resolution: resolveBulkWrites(candidates), filled };
+  return { resolution: resolveBulkWrites(candidates, s), filled };
 }
 
 /** Handlers for the fill-handle drag gesture (see fill-overlay.tsx's handle square) and the fillDown/fillRight shortcuts. */
@@ -335,7 +335,7 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
       if (processed === false) return;
       const candidates = buildFillCandidatesFromText(s, strip, processed, plainFillOf(s, source, strip, { detect: detectSeries }));
 
-      const resolution = resolveBulkWrites(candidates);
+      const resolution = resolveBulkWrites(candidates, s);
       if (resolution instanceof Promise) {
         const token = guard.begin();
         const snapshot = snapshotBulkBatch(s, candidateRowIds(s, candidates));

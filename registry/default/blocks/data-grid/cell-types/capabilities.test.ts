@@ -1,3 +1,4 @@
+import { lonelyContext } from "../validation/validate-cell";
 import { describe, expect, it, vi } from "vitest";
 import type { CellType, ColumnDef } from "../types";
 import { cellTypes } from "./cell-types";
@@ -27,7 +28,7 @@ describe("resolveColumnValidate", () => {
     expect(run("toolong")).toEqual({ error: "type" });
     expect(columnValidate).not.toHaveBeenCalled();
     expect(run("bad")).toEqual({ error: "column" });
-    expect(columnValidate).toHaveBeenLastCalledWith("bad", { id: "1" });
+    expect(columnValidate).toHaveBeenLastCalledWith("bad", { id: "1" }, expect.objectContaining({ rows: [] }));
     expect(run("ok")).toEqual({ value: "ok" });
     expect(resolveColumnValidate(column, cellType)).toBe(resolved);
   });
@@ -47,7 +48,7 @@ describe("resolveColumnValidate", () => {
     const column = { ...noopColumn, options: { maxLength: 3 } } as AnyColumnDef;
 
     const resolved = resolveColumnValidate(column, cellType);
-    expect(typeof resolved === "function" && resolved("x", {})).toBe("type");
+    expect(typeof resolved === "function" && resolved("x", {}, lonelyContext({}, "x"))).toBe("type");
     expect(typeValidate).toHaveBeenCalledWith("x", {}, { maxLength: 3 });
     expect(resolveColumnValidate(column, cellType)).toBe(resolved);
   });

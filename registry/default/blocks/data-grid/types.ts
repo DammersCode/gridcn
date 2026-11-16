@@ -1,4 +1,5 @@
 import type { ComponentType, FC, ReactNode } from "react";
+import type { CellValidateContext } from "./validation/validate-context";
 import type { KeyBinding } from "./keyboard/key-syntax";
 import type { AnyColumnDef, DataGridActions, DataGridStoreState } from "./store/types";
 import type { RowBandRenderCtx } from "./layout-context";
@@ -527,7 +528,7 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   options?: unknown;
   readOnly?: boolean | ((row: TData) => boolean);
   /**
-   * Rejects a value: the function form returns an error message (`null` accepts), or any
+   * Rejects a value: the function form returns an error message (`null` accepts) and gets `ctx` (the rows before the write, the cells this write sets, `valueOf`; `unique()` uses it), or any
    * `StandardSchemaV1` for `TValue` (Zod/Valibot/ArkType/...) — detected at the call site via
    * `"~standard" in validate`. A schema's `validate` may resolve async: the single-cell editor
    * commit waits for it with the editor open, and a bulk write (paste, fill, `updateCells`) holds
@@ -544,7 +545,7 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
    * becomes incompatible) while only `TValidate` erases at the store boundary — a documented,
    * narrow, single-field cast (see `AnyColumnDef`), not a project-wide `any`.
    */
-  validate?: ((value: TValidate, row: TData) => string | null) | StandardSchemaV1<TValidate>;
+  validate?: ((value: TValidate, row: TData, ctx: CellValidateContext<TData, TValidate>) => string | null) | StandardSchemaV1<TValidate>;
   /**
    * What a `validate` rejection does. `"block"` (default): a single-cell commit is refused (the editor
    * stays open with the message); paste, fill, `updateCells`, import, Delete, and Cut drop or clear the value (Delete and Cut keep the cell as it is). `"warn"`:

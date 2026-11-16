@@ -698,6 +698,11 @@
                "target": "components/data-grid/store/stream-queue.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/validation/validate-context.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/validation/validate-context.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/store/function-seed.ts",
                "type": "registry:component",
                "target": "components/data-grid/store/function-seed.ts"

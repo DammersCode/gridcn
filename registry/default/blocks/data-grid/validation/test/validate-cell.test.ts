@@ -65,11 +65,11 @@ describe("runValidateSync", () => {
       expect(runValidateSync(validate, -1, {})).toEqual({ error: "must be >= 0" });
     });
 
-    it("receives (value, row) exactly as the direct call would", () => {
+    it("receives (value, row) and a context that holds only this cell when the caller passes none", () => {
       const validate = vi.fn(() => null);
       const row = { id: "r1" };
       runValidateSync(validate, "v", row);
-      expect(validate).toHaveBeenCalledWith("v", row);
+      expect(validate).toHaveBeenCalledWith("v", row, expect.objectContaining({ rows: [], batch: [{ row, value: "v" }] }));
     });
   });
 
