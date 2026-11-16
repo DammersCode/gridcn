@@ -158,13 +158,13 @@ export type DataGridSyncProps<TData = unknown> = {
   processCellForClipboard?: (value: unknown, ctx: ClipboardCopyCtx<TData>) => string;
   /**
    * Overrides parsing pasted text into a cell value. `ctx.fromText` is the column's own parser, for the cells you do not change.
-   * A promise holds the paste until every cell settles. A pending promise blocks a second paste until it settles or `ctx.signal` aborts.
+   * A promise holds the paste until every cell settles. A second paste aborts a pending one with the reason `"superseded"`.
    * A rejection cancels the paste.
    */
   processCellFromClipboard?: (text: string, ctx: ClipboardPasteCtx<TData>) => NonNullable<unknown> | null | undefined | Promise<unknown>;
   /**
    * Runs on the parsed paste grid before it's applied; returning `false` (or a promise of `false`)
-   * vetoes the paste entirely. A pending promise blocks a second paste. A rejection cancels the
+   * vetoes the paste entirely. A second paste aborts a pending one with the reason `"superseded"`. A rejection cancels the
    * paste. The cell cap applies to the settled grid. `signal` aborts when the grid goes read-only,
    * an edit starts, `gateTimeoutMs` runs out, or the grid unmounts; an aborted result is dropped.
    */
@@ -398,7 +398,7 @@ export type DataGridSyncProps<TData = unknown> = {
    * once and fires this callback; a `selection` prop that changes identity, is not an echo of a
    * value the grid just fired, and differs structurally from the grid's current value then
    * overrides the store. An applied value with an `anchor` moves the active cell to the anchor
-   * (a normal cursor move: `onActiveCellChange` fires); without an anchor the cursor stays.
+   * (a normal active cell move: `onActiveCellChange` fires); without an anchor the active cell stays.
    * Omitted (undefined) keeps the uncontrolled behavior (store-owned, with events). Mutually
    * exclusive with `defaultSelection`; when both are given, `selection` wins (dev-mode warns once).
    */
@@ -429,11 +429,11 @@ export type DataGridSyncProps<TData = unknown> = {
    /**
     * Fired when an edit session is about to start (Enter/F2, type-to-replace, double-click) with
     * the target cell's ids and view position. Return `false` to VETO the edit — `startEditing`
-    * then makes no state change at all (no session, no cursor move). A checkbox cell opens no editor;
+    * then makes no state change at all (no session, no active cell move). A checkbox cell opens no editor;
     * the veto holds or blocks its toggle instead. A promise holds the editor: it opens when
     * the promise settles, unless the promise is `false`, the user moved to another cell, or the
     * grid went read-only. A pending promise ignores a second edit start, so keys typed meanwhile add no text. A rejection cancels.
-    * `signal` aborts when the cursor moves to another cell, the edit is cancelled (Escape), the grid
+    * `signal` aborts when the active cell moves to another cell, the edit is cancelled (Escape), the grid
     * goes read-only, or the grid unmounts; an aborted result is dropped.
     */
    onBeforeEditStart?: (cell: ViewCellRef, ctx: GateContext) => boolean | void | Promise<boolean | void>;
@@ -1186,7 +1186,7 @@ export type DataGridActions = {
   deleteRowsAt(viewRowIndexes: readonly number[]): RowActionResult;
   /**
    * Deletes the rows with the given ids (the shape `getRowIds()` returns) as one `{source: 'row-operation'}` DataChange; ids that match no row are skipped.
-   * With `{ source: "stream" }` the delete is a push: it skips `onBeforeDeleteRows` and `onSave`, takes at most 100,000 ids, and unchecks the rows. The other checked rows and the cursor follow their rows: a range collapses onto the cursor, and the cursor clears when its row is deleted.
+   * With `{ source: "stream" }` the delete is a push: it skips `onBeforeDeleteRows` and `onSave`, takes at most 100,000 ids, and unchecks the rows. The other checked rows and the active cell follow their rows: a range collapses onto the active cell, and the active cell clears when its row is deleted.
    */
   deleteRows(rowIds: readonly string[], options?: DeleteRowsOptions): RowActionResult;
   /**
@@ -1230,7 +1230,7 @@ export type DataGridActions = {
    * nothing. Row-moving operations (insert, delete, move) run the row-operation view bookkeeping - full view
    * rebuild, `rowIdentityVersion` bump, and the row channel and the active cell follow their
    * records. An update-only batch rebuilds the view only to re-order rows under an active sort, and the
-   * cursor and the checked rows then follow their records. Cell errors clear for the written cells, and errors of
+   * active cell and the checked rows then follow their records. Cell errors clear for the written cells, and errors of
    * removed rows are pruned. No-op on a `readOnly` grid, except for a `source: "stream"` change. A `source: "history"` or `"rollback"` change is a
    * pass-through: the history stack ignores it, so an undo, redo, or rollback applied through this action
    * records no second entry. Column `validate` does NOT run - that is `updateCells`' job; build import
