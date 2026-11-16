@@ -71,9 +71,9 @@ Conflicts:
 | Two plugins with the same `name` | Dev error; the later plugin is ignored | `name` is the React key and the identity; two fills would bind the pointer twice |
 | Two plugins with the same command name | The later plugin wins; dev-warns once with both names | Same rule as the keymap merge |
 | Consumer `commands` vs a plugin command | The consumer wins, silently | The app owner's explicit choice |
-| Plugin command named after a built-in action | Dropped, dev-warns, unless the action is pluggable (decision 4) | A plugin never replaces core behavior |
+| Plugin command named after a built-in action | Dropped, dev-warns | A plugin never replaces core behavior |
 | Plugin `keymap` entry for a name not in its own `commands` | Dropped, dev-warns | A plugin cannot rebind copy, paste, or navigation |
-| Plugin `keymap` entry for a pluggable action | The entry is the action's full binding list and replaces its bindings; letter-case duplicates collapse | Same rule as the consumer `keymap`; restating a default key keeps it |
+| Plugin `keymap` entry for a built-in action | Dropped, dev-warns | A plugin keymap binds only the plugin's own commands |
 | Merge order of keymaps | `DEFAULT_KEYMAP` ← plugin keymaps (array order) ← consumer `keymap` | The consumer always wins |
 
 The custom-commands tie rule (spec 5c: the more specific binding wins, a non-default binding beats
@@ -81,6 +81,8 @@ a default) applies to every non-default binding, plugin bindings included. Rejec
 keymap merge and object spread both use.
 
 ### 4. Pluggable built-in actions
+
+**Superseded.** A plugin can no longer replace a built-in action or rebind its keys (`store/plugins.ts`: a plugin command or keymap entry named after a built-in action is dropped with a dev warning). The text below records the original design.
 
 `undo`, `redo`, `fillDown`, `fillRight` keep their `DEFAULT_KEYMAP` bindings
 (`keyboard/default-keymap.ts:52-55`) and their `preventDefault` (so mod+R never reloads the page),

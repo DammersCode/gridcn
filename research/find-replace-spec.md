@@ -58,7 +58,7 @@ plugins, `commitChange`, and the store-level `readOnly` guard.
    build a 2M-op `DataChange` and a history entry of the same size.
 8. **New add-on `data-grid-find-replace`**, shipped as a W5-13 plugin: a `Mount` renders the panel
    through a portal anchored to the grid root, `commands.openFindReplace` opens it, and
-   `keymap.openFindReplace` binds `ctrl+h` and `mod+alt+f`. Rejected: extending
+   `keymap.openFindReplace` binds `shift+alt+Enter`, and `keymap.openFind` binds `mod+f`. Rejected: extending
    `data-grid-toolbar` — a toolbar install would carry the replace engine for every consumer;
    rejected: `mod+h` — it is dead on macOS.
 

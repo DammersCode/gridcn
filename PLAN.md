@@ -6,8 +6,7 @@ documented on a Fumadocs site.
 
 **Status (2026-09-18): v1 fully shipped** — re-verified by the 2026-09-03 multi-agent
 audit (reports: `docs/agent-work/2026-09-03-audit-{features,performance,bugs}.md`).
-Open work is tracked in `plans/README.md` (executor plans in `plans/`: 007, 008, 010 TODO;
-011 in progress) plus workplan #67 (manual NVDA/VoiceOver pass, user-run; the only
+Plan status is in `plans/README.md`; open work is workplan #67 (manual NVDA/VoiceOver pass, user-run; the only
 unverified a11y claim, blocks any WCAG statement).
 Pre-slim full spec (shipped per-feature detail, API sketch, phase history):
 `docs/agent-work/2026-09-18-plan-v1-archive.md`.
