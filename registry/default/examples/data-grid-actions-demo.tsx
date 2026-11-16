@@ -71,6 +71,10 @@ function RowActions({ rowId, rowIndex }: { rowId: string; rowIndex: number }): R
   );
 }
 
+function duplicateRow(row: DemoRow): DemoRow {
+  return { ...row, id: `${row.id}-copy-${Date.now()}` };
+}
+
 const columns = defineColumns<DemoRow>()([
   {
     id: "name",
@@ -110,7 +114,7 @@ const columns = defineColumns<DemoRow>()([
 ] as const);
 
 /**
- * The action-buttons column pattern: a pinned-right `readOnly` column that composes shadcn
+ * The action-buttons column pattern: a end-pinned `readOnly` column that composes shadcn
  * Buttons over store actions (`startEditing` drops the row's first editable cell into edit mode,
  * `deleteRows`/`duplicateRows` work on the row by its id). No new core feature — pure
  * `renderCell` composition.
@@ -121,7 +125,7 @@ export default function DataGridActionsDemo(): ReactNode {
   return (
     <div className="w-full flex flex-col gap-3">
       <p className="text-sm text-muted-foreground">
-        Each row's pinned-right column offers inline Edit / Delete buttons plus
+        Each row's end-pinned column offers inline Edit / Delete buttons plus
         a "more" dropdown (Edit, Duplicate, Delete) — all plain store actions.
       </p>
       <div className="h-[260px] overflow-hidden rounded-md border border-border">
