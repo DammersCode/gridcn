@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { CodeSample } from "@/components/mdx";
+import { CodeSample } from "@/components/code-sample";
 import { InstallCommand } from "@/components/install-command";
 
 describe("CodeSample", () => {
