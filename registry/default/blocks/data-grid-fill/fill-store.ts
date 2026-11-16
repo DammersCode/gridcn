@@ -3,7 +3,7 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { useStore } from "zustand";
 import type { GridRect } from "@/registry/default/blocks/data-grid/data-grid";
-import type { FillHandleHandlers } from "./use-fill-handle";
+import type { FillHandleHandlers, UseFillHandleOptions } from "./use-fill-handle";
 
 /**
  * This add-on's own state slice: the in-progress drag preview rect, plus the live handlers the
@@ -14,7 +14,12 @@ import type { FillHandleHandlers } from "./use-fill-handle";
  * while the real handlers come from the plugin's `Mount`, which renders INSIDE `DataGridRoot`'s
  * own subtree (see fill-mount.tsx) — the store is what bridges them.
  */
+export type FillStoreOptions = Pick<UseFillHandleOptions, "disabled" | "processFill" | "detectSeries">;
+
 export type FillStoreState = {
+  /** The hook's latest options; a store field, so the overlay and mount update when a compiled consumer changes them. */
+  options: FillStoreOptions;
+  setOptions(options: FillStoreOptions): void;
   fillPreview: GridRect | null;
   setFillPreview(rect: GridRect | null): void;
   onPointerDown: FillHandleHandlers["onPointerDown"] | null;
@@ -28,8 +33,13 @@ export type FillStoreState = {
 export type FillStoreApi = StoreApi<FillStoreState>;
 
 /** One store instance per `useDataGridFill()` call, mirroring core's one-store-per-grid pattern and `data-grid-presence`'s own local store. */
-export function createFillStore(): FillStoreApi {
-  return createStore<FillStoreState>((set) => ({
+export function createFillStore(options: FillStoreOptions = {}): FillStoreApi {
+  return createStore<FillStoreState>((set, get) => ({
+    options,
+    setOptions(next) {
+      const current = get().options;
+      if (current.disabled !== next.disabled || current.processFill !== next.processFill || current.detectSeries !== next.detectSeries) set({ options: next });
+    },
     fillPreview: null,
     setFillPreview(rect) {
       set({ fillPreview: rect });
