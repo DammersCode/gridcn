@@ -1,4 +1,5 @@
 import { highlight } from "fumadocs-core/highlight";
+import { CodeBlock, Pre } from "fumadocs-ui/components/codeblock";
 
 export async function Code({ code, label }: { code: string; label: string }) {
   return highlight(code, {
@@ -6,12 +7,9 @@ export async function Code({ code, label }: { code: string; label: string }) {
     themes: { light: "light-plus", dark: "github-dark" },
     components: {
       pre: (props) => (
-        <pre
-          {...props}
-          tabIndex={0}
-          aria-label={label}
-          className="min-w-0 overflow-x-auto border p-4 text-start font-mono text-xs leading-relaxed dark:!bg-background dark:[&_span]:!text-[var(--shiki-dark)]"
-        />
+        <CodeBlock {...props} viewportProps={{ "aria-label": label }} className="my-0 min-w-0 bg-card">
+          <Pre>{props.children}</Pre>
+        </CodeBlock>
       ),
     },
   });

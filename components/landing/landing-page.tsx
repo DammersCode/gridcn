@@ -2,10 +2,10 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { InstallCommand } from "@/components/install-command";
 import { gitConfig } from "@/lib/shared";
-import { CLIENT_CODE, newInTwo, SERVER_CODE, SUBLINE } from "./data";
+import { CLIENT_CODE, HEADLINE, newInTwo, SERVER_CODE, SUBLINE } from "./data";
 import { Code } from "./code";
 import { HeroGrid } from "./hero-grid";
-import { addOnTiles, agentSkills, AgentIcon, COMPARISON_DATE, comparison, FEATURE_MATRIX_HREF, kitTiles } from "./items";
+import { addOnTiles, agentSkills, COMPARISON_DATE, comparison, FEATURE_MATRIX_HREF, kitTiles, ROADMAP_HREF } from "./items";
 import { HeroActions, ReleaseBadge } from "./hero";
 import { DataModesLink, focus, PerfStats, ServerHighlights, SiteLink } from "./parts";
 
@@ -16,7 +16,7 @@ const installFit = "min-w-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-all max-sm
 
 function Panel({ id, title, intro, children, className }: { id: string; title: string; intro?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <section aria-labelledby={id} className={`flex min-w-0 flex-col gap-3 border bg-card p-4 ${className ?? ""}`}>
+    <section aria-labelledby={id} className={`flex min-w-0 flex-col gap-3 rounded-lg border bg-card p-4 ${className ?? ""}`}>
       <div>
         <h2 id={id} className="text-lg font-semibold tracking-tight">
           {title}
@@ -29,37 +29,33 @@ function Panel({ id, title, intro, children, className }: { id: string; title: s
 }
 
 function TileGrid({ children, className }: { children: ReactNode; className: string }) {
-  return <ul className={`grid gap-px border bg-border ${className}`}>{children}</ul>;
+  return <ul className={`grid gap-px overflow-hidden rounded-lg border bg-border ${className}`}>{children}</ul>;
 }
 
 function Hero() {
   return (
-    <section aria-labelledby="hero" className="grid gap-x-8 gap-y-4 border bg-card p-6 sm:p-7 lg:grid-cols-2">
+    <section aria-labelledby="hero" className="grid gap-x-8 gap-y-4 rounded-lg border bg-card p-6 sm:p-7 lg:grid-cols-2">
       <div className="flex min-w-0 flex-col items-center gap-3 text-center lg:col-start-1 lg:row-start-1 lg:items-start lg:text-start">
         <ReleaseBadge />
         <h1 id="hero" className="text-3xl font-bold tracking-tight sm:text-5xl">
-          A data grid you own, with spreadsheet-style editing
+          {HEADLINE}
         </h1>
         <p className="text-base font-medium sm:text-xl">{SUBLINE}</p>
+        <HeroActions className="justify-center lg:justify-start" />
       </div>
-      <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center">
+      <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start">
         <HeroGrid />
       </div>
-      <div className="flex min-w-0 flex-col items-center gap-3 text-center lg:col-start-1 lg:row-start-2 lg:items-start lg:text-start">
-        <HeroActions className="justify-center lg:justify-start" />
+      <div className="flex min-w-0 flex-col items-center gap-2 text-center lg:col-start-1 lg:row-start-2 lg:items-start lg:text-start">
         <div className={`w-full max-w-md text-start ${installFit}`}>
           <InstallCommand item="data-grid" />
         </div>
         <p className="text-xs text-muted-foreground">
-          Needs a shadcn/ui project, React 19 and Tailwind v4.
+          Needs a shadcn/ui project, React 19 and Tailwind v4.{" "}
+          <Link href="/docs/learning-path/install-gridcn" className="inline-flex min-h-10 items-center underline underline-offset-4">
+            Install guide
+          </Link>
         </p>
-        <Link href="/docs/learning-path/install-gridcn" className="inline-flex min-h-10 items-center text-sm underline underline-offset-4">
-          Install guide
-        </Link>
-        <Link href="/docs/try-automate/use-agent-skills" className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium underline underline-offset-4">
-          <AgentIcon className="size-4" aria-hidden="true" />
-          Building with an AI agent? Install the gridcn agent skills
-        </Link>
       </div>
     </section>
   );
@@ -67,7 +63,7 @@ function Hero() {
 
 function KitPanel() {
   return (
-    <Panel id="kit" title="What you get" intro="Range selection, paste from Excel and a fill handle cost a paid tier in AG Grid and MUI X. In gridcn they are free.">
+    <Panel id="kit" title="What you get" intro={<>Range selection, paste from Excel and a fill handle cost a paid tier in AG Grid and MUI X. In gridcn they are free.</>}>
       <TileGrid className="grid-cols-2 lg:grid-cols-4">
         {kitTiles.map(({ icon: Icon, title, text, href }) => (
           <li key={title} className="bg-card">
@@ -79,6 +75,9 @@ function KitPanel() {
           </li>
         ))}
       </TileGrid>
+      <Link href="/docs/support-upgrades/license-credits" className="inline-flex min-h-10 items-center text-sm underline underline-offset-4">
+        Free under the Apache License 2.0
+      </Link>
     </Panel>
   );
 }
@@ -159,7 +158,7 @@ function CompareTable() {
                     <SiteLink
                       href={cell.href}
                       aria-label={`${comparison.columns[i]}, ${feature}: ${cell.value}`}
-                      className={`inline-flex min-h-10 items-center px-2 underline underline-offset-4 ${i === 0 ? "font-medium" : "text-muted-foreground"} ${focus}`}
+                      className={`inline-flex min-h-10 items-center px-2 hover:underline underline-offset-4 ${i === 0 ? "font-medium" : "text-muted-foreground"} ${focus}`}
                     >
                       {cell.value}
                     </SiteLink>
@@ -183,7 +182,7 @@ function CompareTable() {
                     className={`inline-flex min-h-10 items-center gap-1 ${focus}`}
                   >
                     <span className={i === 0 ? "font-semibold text-primary" : "text-foreground"}>{comparison.columns[i]}</span>
-                    <span className="text-muted-foreground underline underline-offset-4">{cell.value}</span>
+                    <span className="text-muted-foreground">{cell.value}</span>
                   </SiteLink>
                 </li>
               ))}
@@ -200,13 +199,16 @@ function ComparePanel() {
     <Panel
       id="compare"
       title="How gridcn compares"
-      intro="Each cell links to the page that states it. gridcn leads where editing is concerned and does not build grouping, tree data, pivoting or master-detail."
+      intro="Each cell links to the page that states it. gridcn ships the editing features free. It does not build row grouping, tree data, pivoting or master-detail; the roadmap lists them."
     >
       <CompareTable />
       <p className="text-xs text-muted-foreground">
-        Checked on {COMPARISON_DATE} against the vendors&apos; public documentation pages. TanStack Table is headless: it ships no UI, so each cell means you build it. Vendors change tiers: check the linked page.{" "}
+        Checked on {COMPARISON_DATE} against the vendors&apos; public documentation pages. TanStack Table is headless: it ships state and logic, not UI. Headless means the overview lists the feature and you build the UI; Not listed means the overview does not name it. Vendors change tiers: check the linked page.{" "}
         <Link href={FEATURE_MATRIX_HREF} className="inline-flex min-h-10 items-center underline underline-offset-4">
           Feature matrix of gridcn
+        </Link>{" "}
+        <Link href={ROADMAP_HREF} className="inline-flex min-h-10 items-center underline underline-offset-4">
+          Roadmap
         </Link>
       </p>
     </Panel>
@@ -215,7 +217,7 @@ function ComparePanel() {
 
 function AgentsPanel() {
   return (
-    <Panel id="agents" title="Your coding agent knows gridcn" intro="Five skills for Claude Code, Cursor, Codex and other agents: the procedures and silent traps the docs alone cannot enforce.">
+    <Panel id="agents" title="Skills for your coding agent" intro="Five skills for Claude Code, Cursor, Codex and other agents. Each one is a step-by-step procedure for one gridcn task.">
       <div className={`w-full max-w-md ${installFit}`}>
         <InstallCommand command="skills add DammersCode/gridcn" />
       </div>
@@ -266,6 +268,7 @@ function FooterLinks() {
     { label: "GitHub", href: repo },
   ];
   return (
+    <footer>
     <nav aria-label="More" className="flex flex-wrap justify-center gap-x-4 text-sm">
       {links.map((l) => (
         <SiteLink key={l.label} href={l.href} className={`inline-flex min-h-10 items-center underline underline-offset-4 ${focus}`}>
@@ -273,6 +276,7 @@ function FooterLinks() {
         </SiteLink>
       ))}
     </nav>
+    </footer>
   );
 }
 
@@ -283,11 +287,11 @@ export function LandingPage() {
     <div className="relative z-10 flex w-full max-w-5xl flex-col gap-4 px-4 pb-12 pt-6 sm:px-6">
       <Hero />
       <KitPanel />
+      <StartPanel />
       <div className={pair}>
         <NewPanel />
-        <StartPanel />
+        <PerfPanel />
       </div>
-      <PerfPanel />
       <ServerPanel />
       <ComparePanel />
       <div className={pair}>

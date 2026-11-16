@@ -1,10 +1,11 @@
-export const SUBLINE = "A data grid for React with range selection, paste from Excel, a fill handle and undo. One shadcn command copies the source into your app.";
+export const HEADLINE = "A React data grid you own, with spreadsheet-style editing";
+export const SUBLINE = "Range selection, paste from Excel, a fill handle and undo, free under Apache-2.0. One shadcn command copies the source into your app.";
 
 export const perfStats = [
   {
     value: "100,000",
     title: "Rows in the scroll tests",
-    detail: "Real Chromium. Scroll suites fail the build when a frame-rate, long-task or blank-row limit is crossed. The limits are not measurements.",
+    detail: "Real Chromium. The scroll suites fail the build when frame rate, long tasks or blank rows cross a limit.",
     source: "Benchmark results: thresholds",
     href: "/docs/performance/benchmark-results#thresholds",
   },
@@ -40,7 +41,7 @@ export const serverHighlights = [
 ];
 
 export const newInTwo = [
-  { text: "One server data source. useDataGridServerRows serves scroll mode and pages, and replaces the lazy-rows hook.", href: "/docs/data-modes/query-server-rows" },
+  { text: "One server data source. useDataGridServerRows serves scroll mode and pages, and replaces the data-grid-lazy add-on.", href: "/docs/data-modes/query-server-rows" },
   { text: "Selection across pages. Checked rows stay checked by id, and the status bar offers to select all matching rows.", href: "/docs/rows-live-data/select-server-rows" },
   { text: "Saved views. Name a sort, filter, search and column layout and restore it later.", href: "/docs/sort-filter-search/saved-views" },
   { text: "Server totals. useDataGridServerAggregate pins a totals row that your server computes.", href: "/docs/data-modes/show-server-totals" },
