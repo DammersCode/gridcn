@@ -17,7 +17,7 @@ Drag the end edge of a header to resize the column. If the user selected several
 
 A resize stops at the larger of `minWidth` and 32 px, and at `maxWidth` on the other side. The edge handle is wider on a touch screen.
 
-`resizable: false` on a column and `enableColumnResize={false}` on the grid turn the handle off. Both also leave the column out of autosize.
+`resizable: false` on a column and `enableColumnResize={false}` on the grid turn the handle off. Both also leave the column out of autosize. This sample sets widths and turns the handle off for the `age` column:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
@@ -48,7 +48,17 @@ export function SizedGrid() {
 }
 ```
 
-During a drag, `onColumnResizing({ columnId, width })` fires on every pointer move. On release of the handle, `onColumnLayoutChange` fires once. If the window loses focus or the browser cancels the pointer, the drag ends without that commit. The column keeps its last live width. `actions.resetColumnWidth(id)` drops the stored width and brings back the width from the column. `actions.setColumnWidth(id, width)` sets a width and fires `onColumnLayoutChange`, for your own resize controls. `actions.previewColumnWidth(id, width)` writes a live width and fires `onColumnResizing`, as a drag does.
+During a drag, `onColumnResizing({ columnId, width })` fires on every pointer move. On release of the handle, `onColumnLayoutChange` fires once.
+
+A drag that ends in a pointer cancel, a lost pointer capture, or a window blur restores the width it started at. `onColumnResizing` fires once with that width, and `onColumnLayoutChange` does not fire.
+
+Call the width actions from your own resize controls:
+
+| Action | Writes | Fires |
+| --- | --- | --- |
+| `previewColumnWidth(id, width)` | a live width, clamped to the column limits | `onColumnResizing` |
+| `setColumnWidth(id, width)` | the width, clamped to the column limits | `onColumnLayoutChange` once, when the width changed |
+| `resetColumnWidth(id)` | nothing: it drops the stored width, and the column takes the width of its definition | `onColumnLayoutChange` once, when a stored width existed |
 
 ## Autosize [#autosize]
 
@@ -86,7 +96,18 @@ The pass skips hidden columns, columns with `resizable: false`, and unknown ids.
 `autosizeOnMount` on `DataGridProvider` runs one pass once the view has rows. A grid that loads rows later waits for them. Pass `true` for the defaults, or pass the options above. The pass runs once per mount. A column with a stored width, for example from `defaultColumnLayout`, keeps it:
 
 ```tsx
-<DataGrid defaultData={rows} columns={columns} autosizeOnMount />
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string };
+
+const rows: Row[] = [{ id: "1", name: "Ada" }];
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+export function AutosizedGrid() {
+  return <DataGrid defaultData={rows} columns={columns} autosizeOnMount />;
+}
 ```
 
 ## Flex fill [#flex-fill]
@@ -94,10 +115,20 @@ The pass skips hidden columns, columns with `resizable: false`, and unknown ids.
 A column with `flex` grows from its `width` to take free width. Flex columns share the free width in proportion to their `flex` values, as CSS `flex-grow` does. A column without `flex`, or with `flex: 0`, keeps its width:
 
 ```tsx
-const columns = defineColumns<Row>()([
+import { defineColumns } from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string; email: string; age: number };
+
+export const columns = defineColumns<Row>()([
   { id: "name", header: "Name", accessorKey: "name", width: 160, flex: 1 },
   { id: "email", header: "Email", accessorKey: "email", width: 200, flex: 2 },
-  { id: "age", header: "Age", accessorKey: "age", width: 80 },
+  {
+    id: "age",
+    header: "Age",
+    accessorKey: "age",
+    type: "number",
+    width: 80,
+  },
 ]);
 ```
 
@@ -114,6 +145,6 @@ Autosize measures the rows the grid holds. In pages mode, that is the current pa
 ## Related
 
 - [Column order and pinning](/docs/columns/column-order-pinning)
-- [Column visibility](/docs/columns/column-visibility#persisting-a-users-layout)
+- [Save a column layout](/docs/columns/column-layout)
 - [Header menu of the context menu add-on](/docs/rows-pages-menus/context-menu#header-surface)
 - [ColumnDef reference](/docs/components-props/column-def)

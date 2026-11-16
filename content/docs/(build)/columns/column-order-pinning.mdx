@@ -16,7 +16,7 @@ Drag a header sideways to move its column. A drop indicator shows where the colu
 
 A column moves inside its pin zone: start-pinned, unpinned, or end-pinned. A drop in another zone changes nothing, and it does not change the pin.
 
-The keyboard has no reorder shortcut. For your own control, call `setColumnOrder`. The column lands next to the target:
+The keyboard has no reorder shortcut. For your own control, call `setColumnOrder`. The column lands next to the target. The `id` can also name a [column group](/docs/columns/column-headers-groups#column-groups), and then the whole group moves as one block:
 
 ```tsx
 import { useDataGridActions } from "@/components/data-grid/data-grid";
@@ -38,7 +38,11 @@ Render the button inside `DataGridProvider`. `reorderable: false` on a column st
 `pin: "start"` pins a column to the start side, and `pin: "end"` pins it to the end side. This column stays at the start edge, so the first column is frozen:
 
 ```tsx
-const columns = defineColumns<Person>()([
+import { defineColumns } from "@/components/data-grid/data-grid";
+
+type Person = { id: string; name: string; email: string };
+
+export const columns = defineColumns<Person>()([
   { id: "name", header: "Name", accessorKey: "name", pin: "start" },
   { id: "email", header: "Email", accessorKey: "email" },
 ]);
@@ -115,7 +119,7 @@ export function MarkedGrid({ rows }: { rows: Row[] }) {
 | `enableColumnPinning` | `boolean` | `true` |
 | `enableColumnReorder` | `boolean` | `true` |
 
-A pin or reorder that changes the layout fires `onColumnLayoutChange` once. [Persist a user's layout](/docs/columns/column-visibility#persisting-a-users-layout) shows how to save it.
+A pin or reorder that changes the layout fires `onColumnLayoutChange` once. [Save a column layout](/docs/columns/column-layout) shows how to store it.
 
 ## Related
 
