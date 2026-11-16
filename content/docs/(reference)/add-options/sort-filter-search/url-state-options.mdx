@@ -97,7 +97,7 @@ Each part is a `UrlLayoutPart`. The default is `["order", "hidden"]`. `layout={[
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-url-state/use-data-grid-url-state.ts" name="UseDataGridUrlStateResult" />
 
-The URL applies to the store once, on mount. After that, the store drives the URL. When the URL changes outside the grid, call `applyFromUrl`. A key that the URL lacks then clears its sort, filter, or search.
+The URL applies to the store on mount and on back and forward navigation. With `enableNavigationSync` set to `false`, only the mount applies. After that, the store drives the URL. When the URL changes outside the grid in another way, call `applyFromUrl`. A key that the URL lacks then clears its sort, filter, or search.
 
 ## useDataGridUrlPagination [#usedatagridurlpagination]
 
