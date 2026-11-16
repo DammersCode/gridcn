@@ -10,7 +10,7 @@ A custom cell type is a bigger decision than a column option. This page explains
 
 ## The mental model [#the-mental-model]
 
-A cell type is one object. `Cell` renders a value, and `Editor` edits it. The methods `toText`, `fromText`, `clearValue`, and `isEmpty` form the value pipeline. Clipboard, fill, delete, search, import, and export read through it. Sort and filter read the raw value.
+A cell type is one object. `Cell` renders a value, and `Editor` edits it. The methods `toText`, `fromText`, `clearValue`, and `isEmpty` form the value pipeline. Clipboard, fill, delete, search, import, and export read through it. Sort uses `compare` and filter matches the raw value.
 
 The optional members tell the grid more: `compare`, `toDisplayText`, `toSearchText`, `align`, `numeric`, `validate`, `activate`, `href`, and `filter`. The grid reads these members from the type and not from the type name.
 
@@ -18,24 +18,17 @@ One generic implementation of each feature runs against this contract for every 
 
 ## Keypoint checklist [#keypoint-checklist]
 
-The built-in types follow these rules. Each rule has a reason.
+The built-in types follow these rules. Each rule has a reason. [CellType contract](/docs/contracts/cell-type-contract) holds the exact rule for each member.
 
 ### Value pipeline [#value-pipeline]
 
-Each feature reads a value through its own surface:
-
-- Print, column autosize, and the set values of the header filter show `toDisplayText`, or `toText` without it. If the numbers of a selection come from one column, the status bar formats its totals with `toDisplayText`, or with a number format. A custom `Cell` decides its own display.
-- Clipboard copy and export use `toText`. Export with `text: "display"` reads `toDisplayText`.
-- Sort uses `compare`. Without it, sort uses a numeric-aware collation of the raw `String(value)`.
-- When the type has no `toSearchText`, quick search uses `toText`. Otherwise it uses `toSearchText`.
-- Filter matches the raw value, through `filter.match` or the built-in text matcher.
-- Fill reads the source cells through `toText` and writes each target cell through the `fromText` of its column. A repeat inside one column writes the stored source value. A series needs a non-empty `fromText` result, per column (vertical fill) or row (horizontal fill).
+Each feature reads a value through its own member. The [CellType contract](/docs/contracts/cell-type-contract#value-pipeline) lists the member for print, autosize, clipboard, export, sort, search, filter, and fill. A custom `Cell` decides its own display.
 
 Search matches text, and filter matches the stored value. A `select` column searches the choice label. Its filters take the stored choice values and not the labels.
 
 Follow these rules for the methods:
 
-- `fromText` receives any text from paste and import. A throw rejects that cell. Return `clearValue()` for text it cannot parse.
+- `fromText` receives any text from paste and import. A throw rejects that cell. Call `rejectText()` for text it cannot parse: the cell keeps its value, and the grid reports the text. Return `clearValue()` only to empty the cell on purpose.
 - Store serializable primitives. Use an ISO `yyyy-mm-dd` string and not a `Date`, and a plain number and not a money object. Compare, clipboard, and JSON then stay simple, and no time zone shifts a day.
 - Choose `isEmpty` for each type. For `text`, the empty string is empty. For `number` and `checkbox`, only `null` and `undefined` are empty, so `0` and `false` are values. For a column with a comparator (`compare` or `sortCompare`), `isEmpty` decides which cells sort last. `isEmpty` also decides where <kbd>Mod</kbd>+Arrow stops, and which cells <kbd>Mod</kbd>+<kbd>A</kbd> takes as the data region.
 - Format for people in `toDisplayText`. Keep `toText` a plain string that `fromText` parses back.
@@ -51,13 +44,13 @@ Follow these rules for the methods:
 
 ### Editor UX [#editor-ux]
 
-The editor holds its draft. `onChange(value)` stashes the draft in the grid, and `commit(movement?)` applies the stashed value and moves the active cell. `cancel()` discards the edit. Call `onChange` and then `commit`. A `commit` without an `onChange` writes the old value.
+The editor holds its draft. `onChange(value)` stashes the draft in the grid, and `commit(movement?)` applies the stashed value and moves the active cell. `cancel()` discards the edit. Call `onChange` and then `commit`, or call `commitValue(value, movement)` to commit a value in one call. A `commit` without an earlier `onChange` applies the opening value.
 
 - Build a text editor on `useCellEditor`. It owns the draft, the focus, the one-shot commit guard, and the Enter, Escape, and blur bindings. It ignores Enter and Escape during IME composition.
 - When an editor commits from more than one path, such as Enter followed by blur, use `useCommitGuard`. `tryCommit()` returns `true` once, and `reset()` arms it again.
 - Commit Enter with `{ dx: 0, dy: 1 }`. Commit blur, click-away, and a picked option with `{ dx: 0, dy: 0 }`. Escape calls `cancel()`, and it never calls `onChange`.
 - While `pending` is `true`, set the input `readOnly`. Never set it `disabled`, because a disabled input cannot receive Escape or blur. When `rejectionCount` changes, re-arm the commit guard.
-- Mark portaled editor content, such as a popover or a select list, with `data-grid-cell-editor`. Without it, a click inside the content looks like an outside click and ends the edit.
+- Mark portaled editor content, such as a popover or a select list, with `data-grid-cell-editor`. Without the marker, a press in portaled content outside the grid clears the cell range. After the commit, the focus stays where it went and does not return to the cell. An editor that commits on blur also commits when the focus moves into its portaled content.
 - A picker popover, such as `select` or `date`, commits on an explicit pick. When it closes without a pick, the editor cancels the edit. The `longText` popover commits its draft on an outside press and cancels on Escape.
 - A type with `activate` commits in place. Enter, F2, Space, a click on the active cell, and a double-click call `activate(value, options)` and open no editor. The `checkbox` type uses it.
 - Leave Tab to the browser. A Tab blur commits with `{ dx: 0, dy: 0 }` while the browser moves the focus. A commit with `{ dx: 1, dy: 0 }` on Tab moves the active cell away from the focus move.
@@ -84,7 +77,7 @@ Set the module path to where `components.json` installs `types.ts`. Without the 
 
 `CellTypeKey` is the union of the keys in `GridCellTypes`. `AnyCellType` is the value type of a `cellTypes` registry entry. The data grid entry exports the built-in types as `textCellType`, `numberCellType`, `checkboxCellType`, `selectCellType`, `dateCellType`, `urlCellType`, and `longTextCellType`.
 
-Wrap the type in `defineCellType("currency", currencyCellType)`. It checks the key, the value, and the options at the definition and returns the type unchanged.
+Wrap the type in `defineCellType("currency", currencyCellType)`. It returns the type unchanged and ties it to the `GridCellTypes` key.
 
 The `cellTypes` registry prop does not check an entry against its key. A `null` entry removes a type. A column whose `type` matches no entry renders as `text`, and its edits, pastes, and deletes write nothing. A development warning names the column and the type.
 

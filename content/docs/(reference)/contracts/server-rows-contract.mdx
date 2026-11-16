@@ -27,8 +27,12 @@ sorting and filtering the answer a second time. The [Server rows example](/docs/
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
-import { DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
-import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
+import {
+  DataGridPaginationBar,
+} from "@/components/data-grid-pagination/data-grid-pagination";
+import {
+  useDataGridServerRows,
+} from "@/components/data-grid-server/data-grid-server";
 
 type Order = { id: string; customer: string };
 
@@ -145,7 +149,9 @@ URL state drops a filter value over 1,000 characters and cuts the search text to
 A [custom operator](/docs/sort-filter-search/filtering#custom-operators) reaches the spec as a filter with its `id` in `operator`. List the `id` with its value shape, then map it to your query, as this sample shows:
 
 ```ts
-import { parseServerSpec } from "@/components/data-grid-server/data-grid-server";
+import {
+  parseServerSpec,
+} from "@/components/data-grid-server/data-grid-server";
 
 export function regionFilters(body: { spec: unknown }) {
   const spec = parseServerSpec(body.spec, {
@@ -279,22 +285,7 @@ Pass `resolveSaveConflict` to merge a refused row with the server row. See [Hand
 
 ## Async gates
 
-[Async gates](/docs/validation-examples/async-gates-example) hold a paste, an edit start, a row insert, or a row duplicate
-until your API answers. The grid drops the answer of a gate, with no error, in these cases:
-
-- the grid is `readOnly`,
-- the target row has left `data`, for example after a refetch removed it,
-- the sort or filter spec changes during a pending paste,
-- an editor is open when a pending paste settles,
-- the user moves to another cell during a pending edit start.
-
-Every gate receives an `AbortSignal` that aborts when the result cannot apply.
-
-`gateTimeoutMs` aborts a gate that never settles, and `onGateAborted` reports it. Show a busy state with
-`useDataGridGatePending()` while a gate is pending. The grid ignores a second paste, edit start, insert, or
-duplicate until the first one settles.
-
-`validateRow` runs after the write commits, and its verdict sets the row errors.
+An async gate holds a paste, an edit start, a row insert, or a row duplicate until your API answers. [Cancel async gates](/docs/editing-cells/cancel-async-gates) lists when the grid drops an answer, and the [async gates example](/docs/validation-examples/async-gates-example) runs one.
 
 ## Races and row identity
 

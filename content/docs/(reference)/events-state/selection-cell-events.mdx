@@ -36,7 +36,7 @@ The callback fires for a click, a range extend step, a row, column, or all selec
 
 In scroll mode, `rowIds` holds the placeholder id `__lazy-unloaded-<index>` for an unloaded row. Test an id with `isPlaceholderRowId(id)` from `data-grid`, not with the prefix.
 
-Dragging out a range fires the callback once per cell the pointer crosses. To read only the settled value, debounce your handler.
+A pointer drag fires `details.phase: "drag"` for each step and one call with `"end"` on release. Check `details.phase === "end"` to act once per selection. A click, a key, a tap, and an API call report `"end"`.
 
 The active cell is not part of `SelectionState`. Use `onActiveCellChange` for it.
 
@@ -82,7 +82,7 @@ The grid resolves each reference against its current view. It drops a range with
 
 ### Read the values [#reading-the-selected-values]
 
-The second argument holds two functions. They are lazy, so a handler that ignores them pays nothing on each drag step.
+The second argument holds `phase` and two functions. The functions are lazy, so a handler that ignores them pays nothing on each drag step.
 
 - `getValues()` returns the raw cell values of the primary range as `unknown[][]`, one array per view row. It returns `[]` without a range. It reads `range` only and skips `rangeStack`. In scroll mode, it returns `undefined` for an unloaded cell.
 - `getRowIds()` returns the ids of every selected row in view order. It covers the checked rows and every row under `range` and `rangeStack`. It skips unloaded rows, whole-column selections, and checked rows that left the view. Pass the ids to `deleteRows`. [`useDataGridSelectedRows`](/docs/types-hooks/store-hooks#selection) also reports the hidden checked rows.

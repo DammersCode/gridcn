@@ -105,7 +105,7 @@ The callback receives `{ columnId, width }`. It fires on every live width write 
 
 The callback receives `{ start, end }`. It is the range of view rows that the grid has rendered. `start` is inclusive and `end` is exclusive. It fires once after the first measured render. After that, a move of the range fires it. A scroll tick inside the overscan buffer does not fire it.
 
-The range maps to rows of `data` only while no client-side sort or filter is active and the grid has no `pageSize`. A grid with `sortMode="server"` and `filterMode="server"` keeps that mapping. `useDataGridServerRows` in scroll mode uses this callback to load the rows that scroll into view.
+The range maps to rows of `data` only while no client-side sort or filter is active and the grid has no `pageSize`. A grid with `sortMode="server"` and `filterMode="server"` keeps that mapping. `useDataGridServerRows` in scroll mode uses this callback to load the rows that scroll into view. In scroll mode, pass your handler to the `onRenderedRowsChange` option of `useDataGridServerRows`.
 
 ## Related
 

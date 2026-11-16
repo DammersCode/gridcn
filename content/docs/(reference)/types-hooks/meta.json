@@ -3,6 +3,7 @@
   "icon": "Braces",
   "pages": [
     "exported-types",
+    "layout-display-types",
     "typescript-generics",
     "store-hooks",
     "use-debounce",

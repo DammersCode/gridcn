@@ -68,7 +68,7 @@ These props set the look and the states of the grid. When you compose the parts 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `className` | `string` | none | Classes for the scroll root. Set the height here. |
-| `aria-label` | `string` | none | Accessible name of the grid. Without `aria-label` and `aria-labelledby`, the grid has no name unless a labelled ancestor names it. In development, the grid then warns once. |
+| `aria-label` | `string` | none | Accessible name of the grid. Without `aria-label` and `aria-labelledby`, the grid has no name. In development, the grid then warns once. |
 | `aria-labelledby` | `string` | none | Id of the element that names the grid. |
 | `rowHeight` | `number` | none | Row height in px. It overrides `density`. |
 | `markerWidth` | `number` | width of the `rowMarkers` mode | Marker track width in px. `rowMarkers="none"` ignores it. |
@@ -94,7 +94,7 @@ Pass a stable function to `renderMarker` and `renderMarkerHeader`. `getRowClassN
 
 ### Render slot arguments [#render-slots]
 
-- `renderMarker` receives `MarkerCellRenderCtx`: `rowId`, `viewRowIndex`, `isRowChannelSelected` (the row has a whole-row selection), and `isCellSelected` (a selection covers at least one cell of the row).
+- `renderMarker` receives `MarkerCellRenderCtx`: `rowId`, `viewRowIndex`, `isChecked` (the row is checked), and `isCellSelected` (a selection covers at least one cell of the row). `isRowChannelSelected` is a deprecated alias of `isChecked`.
 - `renderMarkerHeader` receives `MarkerHeaderRenderCtx`: `allSelected`, which is `"checked"`, `"indeterminate"`, or `"unchecked"`.
 
 - `renderHeaderMenu` receives `column`, `index`, and `trigger`, the menu button of the grid. Render `trigger` as the trigger of your menu.

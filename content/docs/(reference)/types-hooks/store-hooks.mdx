@@ -18,6 +18,7 @@ Store hooks read the state of one grid. Inside a `DataGridProvider` they work. O
 | [Sort, filter, and search](#query) | `useDataGridSortState`, `useDataGridFilterState`, `useDataGridSearchText` |
 | [Labels, keys, and saves](#misc) | `useDataGridLabels`, `useDataGridKeymap`, `useDataGridCellErrors`, `useDataGridRowSaveStatus`, `useDataGridPendingSaveCount`, `useDataGridGatePending` |
 | [Typed selector](#createdatagridselector) | `createDataGridSelector` |
+| [Typed hooks](#createdatagridhooks) | `createDataGridHooks` |
 
 ## Handle and actions [#handle]
 
@@ -88,7 +89,7 @@ Hooks that read the selection. [Selection model](/docs/concepts/selection-model)
 | --- | --- | --- |
 | <a id="usedatagridselection"></a>`useDataGridSelection` | `GridSelection` | The selection in view indexes. |
 | <a id="usedatagridgetselectionvalues"></a>`useDataGridGetSelectionValues` | `() => unknown[][]` | A stable callback. Each call reads the values of the main range at call time, or `[]` without a range. |
-| <a id="usedatagridselectedrows"></a>`useDataGridSelectedRows` | `DataGridSelectedRows` | The checked rows as a value for a bulk action. Mode `"ids"` holds `ids`. Mode `"allMatching"` holds `excludedIds`. See [Select server rows](/docs/rows-live-data/select-server-rows). |
+| <a id="usedatagridselectedrows"></a>`useDataGridSelectedRows` | `DataGridSelectedRows` | The checked rows as a value for a bulk action. Mode `"ids"` holds `ids` and `count`. Mode `"allMatching"` holds `excludedIds`, `count` (or `null`), and the `spec` to send. See [Select server rows](/docs/rows-live-data/select-server-rows). |
 | <a id="usedatagridhiddencheckedcount"></a>`useDataGridHiddenCheckedCount` | `number` | The count of checked rows that left the view (a filter, a page change, or a window move) and `checkedRowsLifetime="across-filters"` remembers. It is `0` after `selectAllMatching()`. |
 
 ## Columns [#columns]
@@ -119,7 +120,7 @@ Hooks for text, keys, and server results.
 
 | Hook | Returns | Meaning |
 | --- | --- | --- |
-| <a id="usedatagridlabels"></a>`useDataGridLabels` | `DataGridLabels` | The labels: the defaults merged with your `labels` prop. |
+| <a id="usedatagridlabels"></a>`useDataGridLabels` | `DataGridLabels` | The labels: the defaults merged with your `labels` prop. `useOptionalDataGridLabels` from `@/components/data-grid/data-grid-sdk` returns the same labels, or `null` outside a provider. |
 | <a id="usedatagridkeymap"></a>`useDataGridKeymap` | `Keymap` | The effective keymap: defaults, plugin keymaps, then your `keymap` prop. It leaves out a binding that never matches: an unknown modifier, an unknown key name, or an empty key. An action with no live binding reads `[]`. |
 | <a id="usedatagridcellerrors"></a>`useDataGridCellErrors` | `ReadonlyMap<string, string>` | The map of cell errors, keyed `"rowId:columnId"`. The server sets them with `setCellErrors`, and a column with `validationMode: "warn"` sets them on a value it accepts with a warning. A cell renders its own error through `useDataGridCellState`. |
 | <a id="usedatagridrowsavestatus"></a>`useDataGridRowSaveStatus` | `RowSaveStatus \| undefined` | `"saving"` while the `onSave` promise of the row is pending, `"failed"` after a refusal, else `undefined`. |
@@ -148,6 +149,29 @@ export function TotalBadge() {
 ```
 
 The state holds fields that are not part of the public API. When a hook above fits, use it instead.
+
+## createDataGridHooks [#createdatagridhooks]
+
+`createDataGridHooks<TData>()` returns `useDataGridApi`, `useDataGridRow`, `useDataGridVisibleColumns`, `useDataGridAllColumns`, and `useDataGridSelector`, with the row type fixed. Call it once at module scope:
+
+```tsx
+import { createDataGridHooks } from "@/components/data-grid/data-grid";
+
+type Order = { id: string; total: number };
+
+export const { useDataGridRow, useDataGridSelector } =
+  createDataGridHooks<Order>();
+
+export function FirstTotal() {
+  const row = useDataGridRow(0);
+  const count = useDataGridSelector((state) => state.data.length);
+  return (
+    <span>
+      {row?.total} of {count} rows
+    </span>
+  );
+}
+```
 
 ## Related
 

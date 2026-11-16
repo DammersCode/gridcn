@@ -1,0 +1,37 @@
+---
+title: Layout and display types
+icon: LayoutPanelTop
+description: Look up the shape of the types that describe the column layout, the row markers, the empty, loading, and error states, and the column helpers.
+type: reference
+aliases: ["column layout type", "row markers mode", "density mode", "grid direction", "empty state reason"]
+---
+
+The `data-grid` module exports these types for the column layout, the marker column, the display states, and the column helpers. Import them from `@/components/data-grid/data-grid`. [Exported types](/docs/types-hooks/exported-types) lists the types of addresses, selection, data changes, sort, filter, keys, the handle, plugins, and events.
+
+| Type | Shape | Meaning |
+| --- | --- | --- |
+| `ColumnLayout` | `{ widths, order, pins, hidden }` | A snapshot of the column layout. It is the payload of `onColumnLayoutChange`. The `columnLayout` and `defaultColumnLayout` props take it in `Partial` form. |
+| `RowMarkersMode` | `"none"`, `"number"`, `"checkbox"`, `"both"`, `"reorder"`, or `"reorder-"` plus a content name | What the marker column shows. |
+| `CheckedRowsLifetime` | `"until-click" \| "until-cleared" \| "across-filters"` | How long checked rows stay checked. It is the type of the `checkedRowsLifetime` prop. |
+| `HeaderClickBehavior` | `"select" \| "sort" \| "none"` | What a header click does. |
+| `RowMarkersContent` | `"number" \| "checkbox" \| "both"` | The content of the marker column. |
+| `GridDirection` | `"ltr" \| "rtl"` | The text direction of the grid. |
+| `EmptyStateReason` | `"no-data" \| "filtered"` | Why the view is empty: no rows at all, or none in view. An empty answer to a server filter or search is `"filtered"`. The function form of `emptyState` receives it as `reason`. |
+| `LoadingStateReason` | `"no-data" \| "rows-present"` | Which loading view the function form of `loadingState` replaces, as `reason`: the skeleton (`"no-data"`) or the header bar (`"rows-present"`). |
+| `ErrorStateContext` | `{ error, retry }` | The argument of the function form of `errorState`. `error` is the failure. `retry` is a function, or `undefined` when the grid has no retry. |
+| `DensityMode` | `"compact" \| "default" \| "comfortable"` | A row height preset. |
+| `ColumnPin` | `"start" \| "end"` | The inline side that a pinned column sticks to. The sides flip in a right-to-left page. |
+| `HeaderFilterRenderer` | `({ column, index }) => ReactNode` | The function that `renderHeaderFilter` takes to draw the filter control of a column header. |
+| `DataGridSortIndicatorProps` | `{ columnId, sortState?, className? }` | The props of `DataGridSortIndicator`. |
+| `DataGridCellProps` | The props of one rendered cell | The props of `DataGridCell`. |
+| `KeysMatching<T, V>` | A union of keys | The keys of `T` whose value extends `V`. A nullable `V` also matches the non-null key type. |
+| `AccessorLike<TData>` | `{ id, accessorKey?, accessorFn?, setValue? }` | The accessor fields of a column literal that `defineColumns` reads. |
+| `InferredValue<TData, TCol>` | The value type of a column | The result type of `accessorFn`, else `TData[accessorKey]`, else `unknown`. |
+
+[DataGrid props](/docs/components-props/data-grid-props) lists the props that take the layout and display types.
+
+## Related
+
+- [Exported types](/docs/types-hooks/exported-types): the other types of the `data-grid` module.
+- [DataGrid props](/docs/components-props/data-grid-props): the props that take these types.
+- [Column and viewport events](/docs/events-state/column-viewport-events): the `ColumnLayout` callback.
