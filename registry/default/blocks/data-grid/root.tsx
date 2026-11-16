@@ -360,6 +360,14 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     return () => internalActions._registerScrollToCell(null);
   }, [internalActions, interaction.scrollCellIntoView]);
 
+  const warnedNameRef = useRef(false);
+  useEffect(() => {
+    if (!isDev() || warnedNameRef.current || ariaLabel || ariaLabelledBy) return;
+    if (scrollRef.current?.parentElement?.closest("[aria-label], [aria-labelledby]")) return;
+    warnedNameRef.current = true;
+    console.warn("[data-grid] The grid has no accessible name. Set aria-label or aria-labelledby on it, or put it inside a labelled element.");
+  }, [ariaLabel, ariaLabelledBy]);
+
   useEffect(() => {
     internalActions._registerFocus(() => {
       const root = scrollRef.current;
