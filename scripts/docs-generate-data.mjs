@@ -560,6 +560,8 @@ export const OPTION_PURPOSE = {
   "useDataGridPagination.onPageChange": "Fires with the new page after a page change.",
   "useDataGridServerPager.onPageChange": "Fires with the new page after a page change.",
   "DataGridPaginationBar.className": "Adds a class name to the bar.",
+  "useDataGridHistory.datasetKey": "Identifies the result that the history belongs to. A change between renders clears both stacks, so undo cannot reinsert rows of the old result.",
+  "useDataGridState.datasetKey": "Identifies the result that the history belongs to. A change between renders clears both stacks, so undo cannot reinsert rows of the old result.",
   "useDataGridHistory.capacity": "Sets the most entries that the undo stack keeps. The oldest entries drop first. Default `100`.",
   "useDataGridState.capacity": "Sets the most entries that the undo stack keeps. The oldest entries drop first. Default `100`.",
   "DataGridKeybindingsDialog.defaultOpen": "Sets the first open state when `open` is not set.",
