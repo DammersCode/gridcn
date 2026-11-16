@@ -1509,9 +1509,10 @@ describe("row operations under sortMode server", () => {
     expect(result.current.store.getState().activeCell?.row).toBe(3);
   });
 
-  it("reorderRows moves a row", () => {
+  it("reorderRows is a no-op while the server sort owns the order", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     const { result } = renderServer();
-    expect(result.current.actions.reorderRows(0, 2)).toBe(true);
+    expect(result.current.actions.reorderRows(0, 2)).toBe(false);
   });
 });
 

@@ -1069,7 +1069,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   };
   const moveBlockedReason = (s: DataGridStoreState): RowActionSkipReason | null => {
     if (s.readOnly) return "readOnly";
-    if (viewSorts(s.sortMode, s.sortState).length > 0 || viewFilters(s.filterMode, s.filterState).length > 0) {
+    // A server sort owns the order too: the next fetch would put the moved rows back.
+    if (s.sortState.length > 0 || viewFilters(s.filterMode, s.filterState).length > 0) {
       warnGateOnce("reorder view-ordered", "reorderRows is a no-op while a sort or filter is active (the view order is owned by them)");
       return "view-ordered";
     }

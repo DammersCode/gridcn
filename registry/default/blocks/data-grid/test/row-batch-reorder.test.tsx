@@ -87,10 +87,25 @@ describe("reorderRows with a list", () => {
     warn.mockRestore();
   });
 
-  it("moves under sortMode=server, where the data order is the view order", () => {
-    const { onDataChange, result } = setup(5, { sortMode: "server", sortState: [{ columnId: "name", direction: "asc" }] });
-    act(() => void result.current.actions.reorderRows([0, 1], 3));
-    expect(idsOf(onDataChange.mock.calls[0]![0])).toEqual(["2", "3", "4", "0", "1"]);
+  it("is a no-op under an active server sort, which owns the row order", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const onRowActionSkipped = vi.fn();
+    const { onDataChange, result } = setup(5, { sortMode: "server", sortState: [{ columnId: "name", direction: "asc" }], onRowActionSkipped });
+    let moved = true;
+    act(() => void (moved = result.current.actions.reorderRows([0, 1], 3)));
+    act(() => void result.current.actions.moveRowsBy([0], 1));
+    expect(moved).toBe(false);
+    expect(onDataChange).not.toHaveBeenCalled();
+    expect(onRowActionSkipped).toHaveBeenNthCalledWith(2, { action: "moveRows", reason: "view-ordered" });
+  });
+
+  it("moves under sortMode=server without a sort, and under a server filter", () => {
+    const unsorted = setup(5, { sortMode: "server" });
+    act(() => void unsorted.result.current.actions.reorderRows([0, 1], 3));
+    expect(idsOf(unsorted.onDataChange.mock.calls[0]![0])).toEqual(["2", "3", "4", "0", "1"]);
+    const filtered = setup(5, { filterMode: "server", filterState: [{ columnId: "name", operator: "contains", value: "Row" }] });
+    act(() => void filtered.result.current.actions.moveRowsBy([0], 1));
+    expect(idsOf(filtered.onDataChange.mock.calls[0]![0])).toEqual(["1", "0", "2", "3", "4"]);
   });
 
   it("is a no-op with a dev warning while rows are unloaded", () => {

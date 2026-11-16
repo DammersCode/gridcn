@@ -42,6 +42,7 @@ Each row is one **Breaking:** entry of the [changelog](https://github.com/Dammer
 | <span id="row-actions-ids" />Row action arguments | `deleteRows([4])`, `duplicateRows([4])`, `deleteRowsById(ids)`, `setRowSelected(4, true)`, `setAllRowsSelected` | `deleteRowsAt([4])`, `duplicateRowsAt([4])`, `deleteRows(ids)`, `setRowCheckedAt(viewIndex(4), true)`, `setAllRowsChecked` | Rename the calls. `setRowChecked(rowId, checked)` takes a row id. |
 | <span id="row-ops-unloaded" />Row actions over unloaded rows | Run over the holes | Do nothing in a scroll-mode grid | Delete known rows with `deleteRows(ids)`. |
 | <span id="enable-row-reorder" />`enableRowReorder` | Turns off the row drag | Removed. A `reorder` family `rowMarkers` mode arms the drag. | Use a plain mode, such as `rowMarkers="checkbox"`. |
+| <span id="move-server-sort" />Row move under `sortMode="server"` with a sort | Moves the loaded rows | Does nothing, reason `"view-ordered"` | Clear the sort before a move. |
 
 The props of 1.3 map to `checkedRowsLifetime` like this:
 

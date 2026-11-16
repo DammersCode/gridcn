@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ALL_MODES, mountMode } from "./modes";
 import { viewIndexes } from "@/registry/default/blocks/data-grid/types";
 
@@ -35,6 +35,17 @@ describe.each(ALL_MODES)("row operations in mode %s", (mode) => {
     grid.act(() => void grid.state().actions.reorderRows(0, 2));
     expect(loaded(grid.dataIds()).slice(0, 3)).toEqual(["r1", "r2", "r0"]);
     expect(grid.changes.at(-1)?.ops.some((op) => op.type === "move")).toBe(true);
+  });
+
+  it("reorderRows is a no-op while a sort owns the order, in client and server sort modes", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const grid = await mountMode(mode);
+    grid.setSorts([{ columnId: "n", direction: "desc" }]);
+    const before = grid.changes.length;
+    let moved = true;
+    grid.act(() => void (moved = grid.state().actions.reorderRows(0, 2)));
+    expect(moved).toBe(false);
+    expect(grid.changes).toHaveLength(before);
   });
 
   it("onBeforeDeleteRows can veto a delete", async () => {

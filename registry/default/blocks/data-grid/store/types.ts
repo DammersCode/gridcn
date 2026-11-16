@@ -1210,7 +1210,7 @@ export type DataGridActions = {
    * relative order and land contiguous, the first at view index `to` (final position — arrayMove
    * semantics for one row). Duplicate indices count once. One `{source: 'row-operation'}` DataChange with one
    * row-id-based `move` operation per moved row, each `from` the index before the batch and each `to` the
-   * final index (one undo entry; apply the operations together, never one by one). No-ops (silent, dev-warned where the cause is a misconfiguration): readOnly, an active sort/filter (the view order is owned by the sort/filter, not the data),
+   * final index (one undo entry; apply the operations together, never one by one). No-ops (silent, dev-warned where the cause is a misconfiguration): readOnly, an active sort (client or server) or client filter (the view order is owned by the sort/filter, not the data),
    * unloaded rows of a scroll-mode grid (a reorder would shift the index bookkeeping of the unloaded blocks), and a drop
    * that leaves the rows where they already are, an empty list, and an out-of-range index or `to`.
    * On a paged grid the indices are page rows, and an index or `to` outside the shown page is out of range;
@@ -1346,7 +1346,7 @@ export type LiveAnnouncement = { kind: LiveAnnouncementKind; count: number; seq:
 /** Full store shape: interaction state + the stable actions object. */
 export type DataGridStore = DataGridStoreState;
 
-/** Why a row action did nothing: the grid is read-only, a target row is unloaded, a gate is still pending, the factory prop is missing, a sync `onBeforeDeleteRows` returned `false` (`"gate-declined"`) or threw (`"gate-threw"`), or no row matched. `"view-ordered"` marks a row move refused because an active sort or filter owns the row order. `"all-matching"` and `"hidden-rows-only"` mark a key or menu row action refused because the checked rows are not in the grid: every matching row is checked, or every checked row is outside the view. */
+/** Why a row action did nothing: the grid is read-only, a target row is unloaded, a gate is still pending, the factory prop is missing, a sync `onBeforeDeleteRows` returned `false` (`"gate-declined"`) or threw (`"gate-threw"`), or no row matched. `"view-ordered"` marks a row move refused because an active sort (client or server) or client filter owns the row order. `"all-matching"` and `"hidden-rows-only"` mark a key or menu row action refused because the checked rows are not in the grid: every matching row is checked, or every checked row is outside the view. */
 export type RowActionSkipReason = "readOnly" | "unloaded-rows" | "gate-pending" | "no-factory" | "gate-declined" | "gate-threw" | "nothing-to-do" | "view-ordered" | "all-matching" | "hidden-rows-only";
 
 /** The row actions that report through `onRowActionSkipped`; `deleteRowsAt` reports as `deleteRows`, and `reorderRows` and `moveRowsBy` as `moveRows`. */
