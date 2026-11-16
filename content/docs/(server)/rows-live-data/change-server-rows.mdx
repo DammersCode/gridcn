@@ -17,14 +17,8 @@ Insert needs `createRow`. Duplicate needs `duplicateRow`. Delete needs nothing. 
 ```tsx
 "use client";
 
-import {
-  DataGrid,
-  defineColumns,
-  type DataChange,
-} from "@/components/data-grid/data-grid";
-import {
-  useDataGridServerRows,
-} from "@/components/data-grid-server/data-grid-server";
+import { DataGrid, defineColumns, type DataChange } from "@/components/data-grid/data-grid";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
 
 type Order = { id: string; customer: string; total: number };
 

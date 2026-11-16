@@ -23,10 +23,7 @@ This grid paints the list of highlights that a websocket sends:
 
 import { useEffect } from "react";
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
-import {
-  useDataGridPresence,
-  type PresenceHighlightEntry,
-} from "@/components/data-grid-presence/data-grid-presence";
+import { useDataGridPresence, type PresenceHighlightEntry } from "@/components/data-grid-presence/data-grid-presence";
 
 type Row = { id: string; name: string };
 
@@ -74,10 +71,7 @@ The setter replaces the whole list, so each call carries the full current set of
 
 ```tsx
 import { useEffect } from "react";
-import {
-  useDataGridPresence,
-  type PresenceHighlightEntry,
-} from "@/components/data-grid-presence/data-grid-presence";
+import { useDataGridPresence, type PresenceHighlightEntry } from "@/components/data-grid-presence/data-grid-presence";
 
 type Message =
   | { type: "presence"; entries: PresenceHighlightEntry[] }

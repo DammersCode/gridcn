@@ -35,15 +35,9 @@ import {
   useDataGridActions,
   useDataGridSelectedRows,
 } from "@/components/data-grid/data-grid";
-import {
-  DataGridPaginationBar,
-} from "@/components/data-grid-pagination/data-grid-pagination";
-import {
-  DataGridStatusBar,
-} from "@/components/data-grid-status-bar/data-grid-status-bar";
-import {
-  useDataGridServerRows,
-} from "@/components/data-grid-server/data-grid-server";
+import { DataGridPaginationBar } from "@/components/data-grid-pagination/data-grid-pagination";
+import { DataGridStatusBar } from "@/components/data-grid-status-bar/data-grid-status-bar";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
 import { columns, type Order } from "./orders";
 import { api, fetchRows } from "./api";
 

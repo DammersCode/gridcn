@@ -97,7 +97,6 @@ export function OrdersGrid() {
   const [totals, setTotals] = useState(PENDING_SERVER_AGGREGATE);
   const { plugin } = useDataGridPinnedRows({ bottomRows: [totals.row] });
   const server = useDataGridServerRows<Order>({
-    mode: "scroll",
     plugins: [plugin],
     // fetchRows as above
   });
@@ -113,7 +112,6 @@ export function OrdersGrid() {
       <button type="button" onClick={totals.refresh}>
         Totals: {totals.status}
       </button>
-      {/* DataGridRoot as above */}
     </DataGridProvider>
   );
 }
@@ -163,7 +161,6 @@ A band with a status other than `"ready"` dims. A band that loads or goes stale 
 
 The answer is untrusted. The hook keeps values only for the requested columns. It cuts text at 1000 characters and drops everything but text, finite numbers, booleans, and `null`. An answer that is not an object counts as an error. The band formats each value with the cell type of its column, so a `number` column shows the total as a number.
 
-The band reads each value by column id. [Pinned rows](/docs/rows-pages-menus/pinned-rows#computing-a-totals-row) shows the same rule for client totals.
 
 ## Related
 
