@@ -21,7 +21,7 @@ export type UseDataGridFindReplaceOptions = Pick<ReplaceOptions, "scope" | "repl
 export type UseDataGridFindReplaceResult = {
   /** One entry of the grid's `plugins` prop: the panel, the `openFindReplace` and `openFind` commands, and their `shift+alt+Enter` and `mod+f` bindings. */
   plugin: DataGridPlugin<unknown>;
-  /** Opens the panel; `"replace"` (default) shows the Replace field, `"find"` hides it until the user expands it. */
+  /** Opens the panel; `"find"` (default, as Mod+F) hides the Replace field until the user expands it, `"replace"` shows it. */
   open: (mode?: "find" | "replace") => void;
   close: () => void;
 };
@@ -92,7 +92,7 @@ export function useDataGridFindReplace(options: UseDataGridFindReplaceOptions = 
   }, [panelStore]);
 
   return useMemo(
-    () => ({ plugin, open: (mode = "replace") => panelStore.open(mode), close: () => panelStore.close() }),
+    () => ({ plugin, open: (mode = "find") => panelStore.open(mode), close: () => panelStore.close() }),
     [plugin, panelStore],
   );
 }

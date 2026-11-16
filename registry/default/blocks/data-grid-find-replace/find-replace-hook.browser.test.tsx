@@ -9,15 +9,23 @@ type Row = { id: string; name: string };
 
 const columns = defineColumns<Row>()([{ id: "name", header: "Name", accessorKey: "name", type: "text", width: 200 }] as const);
 
-function Harness({ onDataChange, ...options }: UseDataGridFindReplaceOptions & { onDataChange?: (rows: readonly Row[]) => void }) {
+const hiddenColumns = defineColumns<Row & { secret: string }>()([
+  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 200 },
+  { id: "secret", header: "Secret", accessorKey: "secret", type: "text", hidden: true },
+] as const);
+
+function Harness({ onDataChange, withHidden, ...options }: UseDataGridFindReplaceOptions & { onDataChange?: (rows: readonly Row[]) => void; withHidden?: boolean }) {
   const findReplace = useDataGridFindReplace(options);
-  const rows: Row[] = [
-    { id: "a", name: "needle one" },
-    { id: "b", name: "needle two" },
-    { id: "c", name: "plain" },
+  const rows: (Row & { secret: string })[] = [
+    { id: "a", name: "needle one", secret: "s" },
+    { id: "b", name: "needle two", secret: "s" },
+    { id: "c", name: "plain", secret: "s" },
   ];
   return (
-    <DataGridProvider data={rows} columns={columns} getRowId={(r) => r.id} plugins={[findReplace.plugin]} onDataChange={onDataChange}>
+    <DataGridProvider data={rows} columns={(withHidden ? hiddenColumns : columns) as typeof columns} getRowId={(r) => r.id} plugins={[findReplace.plugin]} onDataChange={onDataChange}>
+      <button type="button" onClick={() => findReplace.open()}>
+        Open search
+      </button>
       <DataGridRoot className="h-[240px]">
         <DataGridHeader />
         <DataGridBody />
@@ -45,6 +53,15 @@ describe("className", () => {
   });
 });
 
+describe("open", () => {
+  it("opens the find mode by default, like Mod+F", async () => {
+    await render(<Harness />);
+    await userEvent.click(page.getByRole("button", { name: "Open search" }));
+    await expect.element(page.getByRole("dialog")).toBeInTheDocument();
+    expect(page.getByRole("textbox", { name: "Replace with" }).query()).toBeNull();
+  });
+});
+
 describe("processReplace", () => {
   it("receives the plan, and what it returns is what gets written", async () => {
     const onDataChange = vi.fn();
@@ -56,6 +73,16 @@ describe("processReplace", () => {
     expect(processReplace.mock.calls[0]![0]).toHaveProperty("signal");
     const written = onDataChange.mock.calls.at(-1)![0] as Row[];
     expect(written.map((row) => row.name)).toEqual(["pin one", "needle two", "plain"]);
+  });
+
+  it("skips a patch on a hidden column, like the panel's own plan", async () => {
+    const onDataChange = vi.fn();
+    const processReplace = ({ plan }: { plan: { patches: { rowId: string; columnId: string; value: unknown }[] } }) => ({ ...plan, patches: [...plan.patches, { rowId: "c", columnId: "secret", value: "leak" }] });
+    await render(<Harness processReplace={processReplace as never} onDataChange={onDataChange} withHidden />);
+    await replaceAll();
+    await expect.element(page.getByRole("dialog").getByRole("status")).toHaveTextContent("2 replaced, 1 skipped");
+    const written = onDataChange.mock.calls.at(-1)![0] as (Row & { secret?: string })[];
+    expect(written.map((row) => row.secret)).toEqual(["s", "s", "s"]);
   });
 
   it("writes nothing when the hook vetoes with false, and says so", async () => {

@@ -25,7 +25,8 @@ export type ReplaceOptions = SearchOptions & {
   skip?: (ref: CellRef) => boolean;
 };
 
-export type ReplaceSkipReason = "readonly" | "unparseable" | "too-long" | "no-occurrence";
+/** Why a cell is not replaced; `"hidden"` marks a `processReplace` patch on a hidden column, which the panel never writes. */
+export type ReplaceSkipReason = "readonly" | "unparseable" | "too-long" | "no-occurrence" | "hidden";
 
 export type ReplacePlan = {
   patches: CellPatch[];
