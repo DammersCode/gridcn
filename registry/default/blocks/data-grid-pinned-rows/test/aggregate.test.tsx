@@ -357,3 +357,22 @@ describe("useDataGridAggregate — memoization", () => {
     expect(compute.mock.calls.length).toBe(callsAfterMount);
   });
 });
+
+describe("useDataGridAggregate with a __proto__ column id", () => {
+  it("keeps the result of a column named __proto__ as an own key", () => {
+    type ProtoRow = { id: string; ["__proto__"]: number };
+    const protoColumns: readonly ColumnDef<ProtoRow, unknown>[] = [{ id: "__proto__", header: "Proto", accessorFn: (row) => Object.getOwnPropertyDescriptor(row, "__proto__")?.value as number, type: "number" }];
+    const rows = [1, 2].map((qty, i) => JSON.parse(`{"id":"${i}","__proto__":${qty}}`) as ProtoRow);
+    let result: Record<string, unknown> = {};
+    function Probe() {
+      result = useDataGridAggregate({ ["__proto__"]: "sum" } as AggregateSpecs);
+      return null;
+    }
+    render(
+      <DataGrid aria-label="Test" data={rows} columns={protoColumns} getRowId={(r) => r.id}>
+        <Probe />
+      </DataGrid>,
+    );
+    expect(Object.entries(result)).toEqual([["__proto__", 3]]);
+  });
+});

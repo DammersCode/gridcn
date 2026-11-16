@@ -236,3 +236,13 @@ describe("DataGridServerAggregateReporter", () => {
     }
   });
 });
+
+describe("useDataGridServerAggregate with a __proto__ column id", () => {
+  it("keeps the value of a column named __proto__ as an own key", async () => {
+    const s = setup({ columnIds: ["__proto__"] });
+    const answer = Object.create(null) as Record<string, unknown>;
+    answer["__proto__"] = 5;
+    await act(async () => s.call(0).resolve(answer));
+    expect(Object.entries(s.result.row)).toEqual([["__proto__", 5]]);
+  });
+});

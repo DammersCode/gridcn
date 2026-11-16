@@ -78,16 +78,15 @@ function sanitizeAnswer(answer: unknown, columnIds: readonly string[], warnDropp
   if (typeof answer !== "object" || answer === null || Array.isArray(answer)) {
     throw new TypeError("fetchAggregates must resolve an object of { [columnId]: value }");
   }
-  const row: Record<string, unknown> = {};
+  const row: [string, unknown][] = [];
   for (const id of columnIds) {
     if (!Object.prototype.hasOwnProperty.call(answer, id)) continue;
     const value = (answer as Record<string, unknown>)[id];
-    if (typeof value === "string") row[id] = value.length > MAX_SERVER_AGGREGATE_TEXT ? value.slice(0, MAX_SERVER_AGGREGATE_TEXT) : value;
-    else if (typeof value === "number" && Number.isFinite(value)) row[id] = value;
-    else if (typeof value === "boolean" || value === null) row[id] = value;
+    if (typeof value === "string") row.push([id, value.length > MAX_SERVER_AGGREGATE_TEXT ? value.slice(0, MAX_SERVER_AGGREGATE_TEXT) : value]);
+    else if ((typeof value === "number" && Number.isFinite(value)) || typeof value === "boolean" || value === null) row.push([id, value]);
     else warnDropped(id);
   }
-  return row;
+  return Object.fromEntries(row);
 }
 
 /**

@@ -3,6 +3,11 @@ import type { AnyColumnDef } from "../store";
 /** Absolute floor for any column width: a runaway drag or a zero/negative `minWidth` can never collapse a column to unusable. */
 export const MIN_COLUMN_WIDTH = 32;
 
+/** The saved width of a column; an own-key read, so a column id such as `__proto__` never reads `Object.prototype`. */
+export function savedColumnWidth(widths: Record<string, number>, columnId: string): number | undefined {
+  return Object.hasOwn(widths, columnId) ? widths[columnId] : undefined;
+}
+
 /**
  * Resolves a column's rendered width in px: live override, else def `width`, else the 150px
  * default, clamped by min/max. The clamp here covers the RENDERED width; programmatic writes go

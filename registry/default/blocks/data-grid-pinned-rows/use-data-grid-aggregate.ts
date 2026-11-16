@@ -77,16 +77,16 @@ function computeAggregate<TData>(owner: object, state: DataGridReadState, specs:
   // undefined rows are unloaded holes of a lazy grid; reduce over the loaded rows only.
   const rows = scoped.filter((row) => row !== undefined);
   if (rows.length !== scoped.length) warnSparseData(owner, scope, scoped.length - rows.length);
-  const result: Record<string, unknown> = {};
+  const result: [string, unknown][] = [];
   for (const [columnId, reducer] of Object.entries(specs)) {
     const column = byId.get(columnId);
     if (!column) {
       warnUnknownSpecKey(owner, columnId);
       continue;
     }
-    result[columnId] = aggregateColumn(reducer, column, rows);
+    result.push([columnId, aggregateColumn(reducer, column, rows)]);
   }
-  return result;
+  return Object.fromEntries(result);
 }
 
 /**

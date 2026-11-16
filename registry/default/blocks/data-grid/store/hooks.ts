@@ -24,6 +24,7 @@ import { resolveRefOrWarn } from "./data-write";
 import { getInternalActions } from "./internal-actions";
 import { bindingCanMatch } from "../keyboard/key-syntax";
 import { useDataGridStore, useDataGridStoreApi, useOptionalDataGridStore } from "./provider";
+import { savedColumnWidth } from "../columns/resolve-column-width";
 import type { GateName } from "./gate-signal";
 import type { RowSaveStatus } from "./write-ack";
 import { readSelectedRows, type DataGridSelectedRows } from "./selected-rows";
@@ -320,12 +321,12 @@ export function useDataGridIsColumnHidden(columnId: string): boolean {
 
 /** A single column's current width in px, or undefined when unset (falls back to the column def). */
 export function useDataGridColumnWidth(columnId: string): number | undefined {
-  return useDataGridStore((s) => s.columnWidths[columnId]);
+  return useDataGridStore((s) => savedColumnWidth(s.columnWidths, columnId));
 }
 
 /** Live width overrides for a set of column ids, in the same order — one subscription, safe under a changing column count. */
 export function useDataGridColumnWidths(columnIds: readonly string[]): (number | undefined)[] {
-  return useDataGridStore(useShallow((s) => columnIds.map((id) => s.columnWidths[id])));
+  return useDataGridStore(useShallow((s) => columnIds.map((id) => savedColumnWidth(s.columnWidths, id))));
 }
 
 /** The active multi-column sort spec. */

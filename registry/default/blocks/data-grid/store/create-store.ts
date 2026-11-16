@@ -3,7 +3,6 @@ import {
   viewIndex,
   type CellRef,
   type ColumnLayout,
-  type ColumnPin,
   type CompactSelectionLike,
   type GridRect,
   type GridSelection,
@@ -18,7 +17,7 @@ import { CompactSelection } from "../selection/compact-selection";
 import { applyRowRange, isRowRangeLive, type RowRangeGesture } from "../selection/row-range-gesture";
 import { getCellValue } from "../columns/column-helpers";
 import { buildColumnGroupModel, type ColumnGroupModel } from "../columns/column-groups";
-import { clampColumnWidth, resolveColumnWidth } from "../columns/resolve-column-width";
+import { clampColumnWidth, resolveColumnWidth, savedColumnWidth } from "../columns/resolve-column-width";
 import { computeAutosizeWidths } from "../columns/autosize-columns";
 import {
   emptySelection,
@@ -196,8 +195,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // `columnLayout` wins over `defaultColumnLayout`, and both resolve here (not in the provider),
   // so the server render and the first client paint already show the controlled layout. Omitted
   // parts fall back to the seeded values (there is no store state yet).
-  const seededPins: Record<string, ColumnPin> = {};
-  for (const column of seeded.columns) if (column.pin === "start" || column.pin === "end") seededPins[column.id] = column.pin;
+  const seededPins = pinsOf(seeded.columns);
   const effectiveLayout =
     init.columnLayout !== undefined
       ? normalizeColumnLayout(
@@ -1271,7 +1269,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         );
         const changed = Object.entries(measured).filter(([id, width]) => {
           const column = s.columns.find((c) => c.id === id);
-          return column !== undefined && resolveColumnWidth(column, s.columnWidths[id]) !== width;
+          return column !== undefined && resolveColumnWidth(column, savedColumnWidth(s.columnWidths, id)) !== width;
         });
         if (changed.length > 0) {
           commitLayout({ widths: { ...s.columnWidths, ...Object.fromEntries(changed) } });
@@ -1280,7 +1278,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       resetColumnWidth(id) {
         const s = get();
-        if (s.columnWidths[id] === undefined) return;
+        if (savedColumnWidth(s.columnWidths, id) === undefined) return;
         const { [id]: _dropped, ...columnWidths } = s.columnWidths;
         commitLayout({ widths: columnWidths });
       },
