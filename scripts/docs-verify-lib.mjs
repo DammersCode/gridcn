@@ -1,6 +1,7 @@
 // Shared helpers for the docs validators (verify-docs-*.mjs and docs-verify.mjs).
 import { readdirSync, readFileSync, existsSync, statSync } from "node:fs";
-import { isAbsolute, join, relative, sep } from "node:path";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { pathToFileURL } from "node:url";
 
 export const FAILURE_CAP = 8;
 
@@ -137,4 +138,17 @@ export function normalizeFile(file, base) {
   const path = (isAbsolute(file) ? relative(base, file) : file).split(sep).join("/").replaceAll("\\", "/").replace(/^\.\//, "");
   if (!path.startsWith("content/docs/") || !path.endsWith(".mdx")) throw new Error(`--files entry is not a docs page: ${file}`);
   return path;
+}
+
+const TYPELESS_WARNING = "MODULE_TYPELESS_PACKAGE_JSON";
+
+/** Imports a .ts file of the repo under Node type stripping; the repo's package.json has no "type", and Node warns about that for each such file. */
+export async function importTs(path) {
+  const emit = process.emitWarning;
+  process.emitWarning = (warning, ...rest) => (`${warning} ${JSON.stringify(rest)}`.includes(TYPELESS_WARNING) ? undefined : emit.call(process, warning, ...rest));
+  try {
+    return await import(pathToFileURL(resolve(path)).href);
+  } finally {
+    process.emitWarning = emit;
+  }
 }
