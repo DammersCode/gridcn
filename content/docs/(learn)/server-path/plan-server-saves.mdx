@@ -54,7 +54,7 @@ export function OrdersGrid() {
 
 `change.ops` holds one operation (`ops`) for each touched row. Key each request by `rowId`, because a sort or a filter moves the [view index](/docs/concepts/state-view-index).
 
-Pass `onSave` to the hook, not to `DataGrid`. While the promise is pending, the row has the save status `"saving"`, and a refresh keeps the local value of a saving row. After the promise resolves, the status clears. After a refusal, it is `"failed"`.
+Pass `onSave` to the hook. An `onSave` on `DataGrid` after `{...server.gridProps}` replaces the hook one, so `refreshAfterSave` stops, and the grid warns in development. While the promise is pending, the row has the save status `"saving"`, and a refresh keeps the local value of a saving row. After the promise resolves, the status clears. After a refusal, it is `"failed"`.
 
 The `refreshAfterSave` option of the hook defaults to `"settled"`. When every save in flight has settled, or after 10 seconds, the hook calls `refresh()` once. The refresh brings in the server values. See [Save options](/docs/add-options/server/server-rows-options#save-options) for the other policies.
 

@@ -11,7 +11,7 @@ Before you start, [plan server saves](/docs/server-path/plan-server-saves). Your
 
 1. Pass `onError` to `useDataGridServerRows`. It runs once for each failed load.
 2. Pass `onSaveRejected` to the grid. It runs once for each refused save, after the grid reverted the change.
-3. Leave out `errorState`. The built-in error state shows the failure and a Retry button.
+3. Leave out `errorState`. The built-in error state says `Could not load rows.` and shows a Retry button. It does not show the error message, so `onError` reports that.
 
 This grid imports `columns`, `Order`, `loadPage`, `sendChange`, and `notify` from the files of [Load server rows](/docs/server-path/load-server-rows). It reports both failures:
 
@@ -54,7 +54,7 @@ export function OrdersGrid() {
 
 ## A failed load [#a-failed-load]
 
-A `fetchRows` that rejects, throws, or resolves without a `rows` array counts as a failure. The grid keeps the last good rows on screen. With rows, the error state is a slim bar under the header. Without rows, it is a message in the body. The built-in state never renders the error itself.
+A `fetchRows` that rejects, throws, or resolves without a `rows` array counts as a failure. The grid keeps the last good rows on screen. With rows, the error state is a slim bar under the header. Without rows, it is a message in the body.
 
 The user presses Retry, or your code calls `server.retry()`. It repeats the failed request and does nothing without an error. A new request clears the error. A request that the hook aborts, for example after a page change, is not a failure and does not call `onError`.
 
