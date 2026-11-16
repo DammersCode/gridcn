@@ -35,14 +35,14 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `extendSelection` | Grows or shrinks the main range by one cell in a direction, or moves its edge to the edge of the view with `toEdge`. | [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation) |
 | `extendTo` | Extends the selection to the cell named by the stable `CellRef`. | [Selection model](/docs/concepts/selection-model) |
 | `extendToAt` | Takes a `ViewCoord` in place of the `CellRef` of `extendTo`. | [Selection model](/docs/concepts/selection-model) |
-| `flashCells` | Plays the fade pulse on the given cells. It is not a data change. | [Stream updates](/docs/rows-live-data/stream-updates#flash-cells) |
+| `flashCells` | Plays the fade pulse on the given cells. It is not a data change. | [Push live values](/docs/rows-live-data/stream-updates#flash-cells) |
 | `insertRow` | Inserts one row from `createRow` above or below a view index. Returns a `RowActionResult`. | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `insertRows` | Inserts `count` rows from `createRow` above or below a view index, as one change. Returns a `RowActionResult`. | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `moveRowsBy` | Shifts rows by `delta` and keeps the gaps between them. Returns whether rows moved. | [Row order](/docs/rows-pages-menus/row-order) |
 | `previewColumnWidth` | Writes a column width while a resize drag moves. Fires `onColumnResizing`. | [Column sizing](/docs/columns/column-sizing) |
 | `pushRange` | Adds a new range at a `CellRef`, as a Ctrl or Cmd click does. | [Selection model](/docs/concepts/selection-model) |
 | `pushRangeAt` | Takes a `ViewCoord` in place of the `CellRef` of `pushRange`. | [Selection model](/docs/concepts/selection-model) |
-| `reconcileView` | Rebuilds the view index that a deferred `updateCells` postponed, and clears `viewStale`. | [Stream updates](/docs/rows-live-data/stream-updates) |
+| `reconcileView` | Rebuilds the view index that a deferred `updateCells` postponed, and clears `viewStale`. | [Push live values](/docs/rows-live-data/stream-updates) |
 | `reorderRows` | Moves rows as one block to a view index. Returns whether rows moved. | [Row order](/docs/rows-pages-menus/row-order) |
 | `replaceRowId` | Swaps the id of a row for the id that the server assigned, in one write. | [Save edits](/docs/save-server/save-edits) |
 | `replaceRowIds` | Swaps the ids of many rows in one write, with one `onDataChange`. | [Save edits](/docs/save-server/save-edits) |
@@ -73,8 +73,8 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `startEditing` | Opens an editor at a `CellRef`, with optional first text. | [Edit and validation events](/docs/events-state/edit-validation-events) |
 | `startEditingAt` | Takes a `ViewCoord` in place of the `CellRef` of `startEditing`. | [Edit and validation events](/docs/events-state/edit-validation-events) |
 | `toggleSort` | Steps the sort of a column to the next direction or to no sort, as a header click does. `{ additive: true }` keeps the other sorts. | [Sorting](/docs/sort-filter-search/sorting) |
-| `updateCells` | Writes cell patches by row id in one write, without a view rebuild. Default `source` is `"stream"`. | [Stream updates](/docs/rows-live-data/stream-updates) |
-| `updateRows` | Writes whole-row patches by row id. Each `RowPatch` expands to one cell patch per column, as in `updateCells`. | [Stream updates](/docs/rows-live-data/stream-updates) |
+| `updateCells` | Writes cell patches by row id in one write, without a view rebuild. Default `source` is `"stream"`. | [Push live values](/docs/rows-live-data/stream-updates) |
+| `updateRows` | Writes whole-row patches by row id. Each `RowPatch` expands to one cell patch per column, as in `updateCells`. | [Push live values](/docs/rows-live-data/stream-updates) |
 
 ## Related
 

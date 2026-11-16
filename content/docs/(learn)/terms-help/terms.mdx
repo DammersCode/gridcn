@@ -68,7 +68,7 @@ A term row links to the page that explains it.
 | pinned release | A release installed with `#<ref>` on the GitHub registry path. | [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn) |
 | plugin | A runtime `DataGridPlugin` object in the `plugins` prop. Many add-ons install one. Not every add-on does. | [Plugin model](/docs/plugins/plugin-shape) |
 | prefetch | The pages-mode request for the page after the current one, made before the user asks for it (`prefetchNextPage`). | [Tune page loading](/docs/server-pagination/tune-page-loading#prefetch) |
-| push | A change that your code writes from the server: `updateCells`, `updateRows`, or `deleteRows` with `source: "stream"`. A push is not a save: it never reaches `onSave`. | [Stream updates](/docs/rows-live-data/stream-updates) |
+| push | A change that your code writes from the server: `updateCells`, `updateRows`, or `deleteRows` with `source: "stream"`. A push is not a save: it never reaches `onSave`. | [Push live values](/docs/rows-live-data/stream-updates) |
 | push verdict | The `UpdateCellsVerdict` that `updateCells` and `updateRows` return: the count of cells the call wrote, and the patches it skipped with a reason. | [Read a push verdict](/docs/rows-live-data/read-push-verdict) |
 | quick search | The toolbar search that highlights matches and never filters rows. | [Quick search](/docs/sort-filter-search/quick-search) |
 | range | A rectangle of selected cells. | [Selection model](/docs/concepts/selection-model) |
@@ -147,8 +147,8 @@ A word in this table names a term from the first table.
 | `interceptor` | gate | [Event shapes](/docs/events-state/event-shapes#gates) |
 | `gate busy` | gate pending | [Cancel async gates](/docs/editing-cells/cancel-async-gates#show-the-pending-state) |
 | `gate loading` | gate pending | [Cancel async gates](/docs/editing-cells/cancel-async-gates#show-the-pending-state) |
-| `stream update` | push | [Stream updates](/docs/rows-live-data/stream-updates) |
-| `live update` | push | [Stream updates](/docs/rows-live-data/stream-updates) |
+| `stream update` | push | [Push live values](/docs/rows-live-data/stream-updates) |
+| `live update` | push | [Push live values](/docs/rows-live-data/stream-updates) |
 | `outdated row` | stale row | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
 | `re-sort request` | reshape | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
 | `deleteContents` | clearContents | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
@@ -499,7 +499,7 @@ A search word in this table opens the page that answers it.
 | `linked grids` | [Link multiple grids](/docs/recipes-custom-code/link-multiple-grids) |
 | `list of add-ons` | [Add-ons A to Z](/docs/fit-features/add-ons-a-z) |
 | `live region demo` | [Screen reader announcements example](/docs/basic-examples/screen-reader-announcements-example) |
-| `live updates` | [Stream updates](/docs/rows-live-data/stream-updates) |
+| `live updates` | [Push live values](/docs/rows-live-data/stream-updates) |
 | `load data from an api` | [Load server rows](/docs/server-path/load-server-rows) |
 | `load more` | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
 | `loading spinner` | [Loading state](/docs/theme-style-language/loading-state) |
@@ -622,13 +622,12 @@ A search word in this table opens the page that answers it.
 | `react to data changes` | [Plugin events](/docs/plugins/plugin-events) |
 | `read only column` | [Editable columns](/docs/editing-cells/editable-columns) |
 | `read-only grid` | [Editable columns](/docs/editing-cells/editable-columns) |
-| `realtime` | [Stream updates](/docs/rows-live-data/stream-updates) |
+| `realtime` | [Push live values](/docs/rows-live-data/stream-updates) |
 | `rearrange rows` | [Row order](/docs/rows-pages-menus/row-order) |
 | `rebind keys` | [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) |
 | `record sources` | [Undo and redo options](/docs/add-options/clipboard-undo/undo-redo-options) |
 | `refetch rows` | [Refresh server rows](/docs/scroll-mode/refresh-server-rows) |
 | `refresh` | [Refresh server rows](/docs/scroll-mode/refresh-server-rows) |
-| `refresh rows` | [Tune row retention](/docs/scroll-mode/tune-row-retention) |
 | `refused save` | [Handle refused saves](/docs/save-server/handle-refused-saves) |
 | `release notes` | [Version policy and changelog](/docs/support-upgrades/version-policy-changelog) |
 | `reload rows` | [Refresh server rows](/docs/scroll-mode/refresh-server-rows) |
@@ -858,7 +857,7 @@ A search word in this table opens the page that answers it.
 | `wait for typing` | [useDebounce](/docs/types-hooks/use-debounce) |
 | `warning` | [Messages](/docs/cheatsheets-messages/messages) |
 | `wcag audit` | [Accessibility gaps](/docs/accessibility/accessibility-gaps) |
-| `websocket` | [Stream updates](/docs/rows-live-data/stream-updates) |
+| `websocket` | [Push live values](/docs/rows-live-data/stream-updates) |
 | `which callback` | [Event shapes](/docs/events-state/event-shapes) |
 | `who is online` | [Show presence](/docs/rows-live-data/show-presence) |
 | `window keydown` | [Global shortcuts](/docs/selection-shortcuts/global-shortcuts) |
