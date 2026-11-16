@@ -71,6 +71,28 @@ describe("checkParity", () => {
     expect(check(matrix({ modeNeutral: true, cells: { L: supported, PS: unrelated } }))).toEqual([]);
   });
 
+  const docsOnly = { status: "supported", evidence: ["README.md"] };
+
+  it("fails on a supported cell that cites only docs, unless a baseline lists it", () => {
+    const m = matrix({ cells: { L: docsOnly, PS: supported } });
+    expect(check(m)).toEqual(["sort: supported cell L cites only docs; cite a test file"]);
+    expect(checkParity(m, { optionNames: ["sortState"], root: ".", docsOnlyBaseline: ["sort:L"] })).toEqual([]);
+  });
+
+  it("fails on a stale docs-only baseline entry", () => {
+    const base = { optionNames: ["sortState"], root: ".", docsOnlyBaseline: ["sort:L", "sort:PS", "ghost:L"] };
+    expect(checkParity(matrix({ cells: { L: docsOnly, PS: supported } }), base)).toEqual(["docs-only baseline: sort:PS cites a test file or is not supported", "docs-only baseline: ghost:L names no cell"]);
+  });
+
+  it("skips the docs-only check for a mode-neutral row", () => {
+    expect(check(matrix({ modeNeutral: true, cells: { L: docsOnly, PS: supported } }))).toEqual([]);
+  });
+
+  it("fails on an owning page that does not exist", () => {
+    const problems = checkParity(matrix({ doc: "/docs/nope" }), { optionNames: ["sortState"], root: ".", pageUrls: new Set(["/docs/sorting"]) });
+    expect(problems).toEqual(["sort: doc /docs/nope is not a docs page"]);
+  });
+
   it("fails on a duplicate feature id", () => {
     const m = matrix();
     m.features.push(m.features[0]!);
@@ -135,7 +157,7 @@ describe("renderParityPage", () => {
   it("escapes braces and angle brackets in notes but not inside code spans", () => {
     const page = renderParityPage(matrix({ note: "uses {a} and `{b}`", cells: { L: supported, PS: { status: "gap", track: "A", note: "rows < offset" } } }));
     expect(page).toContain('- uses {"{"}a{"}"} and `{b}`');
-    expect(page).toContain('Gap: rows {"<"} offset');
+    expect(page).toContain('Gap (A): rows {"<"} offset');
   });
 
   it("leaves a code span in a feature name intact in the row header and heading", () => {
@@ -152,7 +174,19 @@ describe("renderParityPage", () => {
   it("merges modes with the same note into one bullet", () => {
     const gap = { status: "gap", track: "A", note: "client sort only" };
     const page = renderParityPage(matrix({ cells: { L: gap, PS: gap } }));
-    expect(page.split("**L, PS**: Gap: client sort only")).toHaveLength(2);
+    expect(page.split("**L, PS**: Gap (A): client sort only")).toHaveLength(2);
+  });
+});
+
+describe("renderParityPage, row links and tracks", () => {
+  it("links the row header to the owning page and anchors the row", () => {
+    const page = renderParityPage(matrix({ doc: "/docs/sorting" }));
+    expect(page).toContain('<tr id="parity-sort">');
+    expect(page).toContain('<a href="/docs/sorting">Sort</a>');
+  });
+
+  it("names the tracking id in a gap note", () => {
+    expect(renderParityPage(matrix())).toContain("**PS**: Gap (A): client sort only");
   });
 });
 

@@ -54,3 +54,18 @@ it("server pagination revalidates on a timer and sends the current spec", async 
   expect(calls.length).toBeGreaterThan(before);
   expect(calls.at(-1)).toMatchObject({ start: 0, spec: { searchText: "a" } });
 });
+
+it("with sortMode and filterMode server, a server pagination revalidation sends the controlled sort and filter", async () => {
+  const calls: ServerRowsRequest[] = [];
+  const fetchRows = (req: ServerRowsRequest) => {
+    calls.push(req);
+    return Promise.resolve({ rows: [{ id: `r${req.start}` }], totalRowCount: 50 });
+  };
+  const spec: ServerSpec = { sorts: [{ columnId: "name", direction: "desc" }], filters: [{ columnId: "name", operator: "contains", value: "an" }], searchText: "" };
+  renderHook(() => useDataGridServerRows<Row>({ fetchRows, spec, onSpecChange: () => {}, defaultPageSize: 10, revalidateIntervalMs: 5000 }));
+  await advance(0);
+  const before = calls.length;
+  await advance(5000);
+  expect(calls.length).toBeGreaterThan(before);
+  expect(calls.at(-1)!.spec).toMatchObject({ sorts: [{ columnId: "name", direction: "desc" }], filters: [{ columnId: "name", operator: "contains", value: "an" }] });
+});
