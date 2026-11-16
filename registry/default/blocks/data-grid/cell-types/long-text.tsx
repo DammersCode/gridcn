@@ -129,7 +129,7 @@ function LongTextEditor({
   );
 }
 
-/** `longText`: multi-line value stored verbatim; the cell renders the first 500 characters with line breaks as spaces, the editor is a popover textarea. The type's default `validate` cannot see column `options`, so it bounds at {@link LONG_TEXT_DEFAULT_MAX_LENGTH} — a column with a custom `maxLength` declares its own `validate` for the non-editor paths. */
+/** `longText`: multi-line value stored verbatim; the cell renders the first 500 characters with line breaks as spaces, the editor is a popover textarea. The type's `validate` bounds every write at the column `maxLength`, or {@link LONG_TEXT_DEFAULT_MAX_LENGTH}, before the column's own `validate` runs. */
 export const longTextCellType: CellType<unknown, string, GridCellTypes["longText"]["options"]> = {
   Cell: LongTextCell,
   Editor: LongTextEditor,
