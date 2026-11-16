@@ -5,13 +5,13 @@ icon: SlidersHorizontal
 type: example
 ---
 
-This grid composes the main add-ons and puts one control on each feature that does not fit a single embed. Change a control and the grid reacts at once.
+This grid combines the main add-ons. The controls switch single features on and off.
 
 <ComponentPreview name="data-grid-playground-demo" />
 
 ## What the grid mounts
 
-Every data mode mounts the toolbar, the context menu, the header dropdown, the header filter, the fill handle, the presence plugin, and the shortcuts dialog. The toolbar holds search, a filter menu, a sort list, a columns menu, import, and export. Undo and redo mount in the `virtualized` mode only.
+Every data mode mounts the toolbar, the context menu, the header dropdown, the header filter, the fill handle, the presence plugin, and the shortcuts dialog. The Shortcuts button in the toolbar opens that dialog. The toolbar holds search, a filter menu, a sort list, a columns menu, import, and export. Undo and redo mount in the `virtualized` mode only.
 
 The **Mode** select picks the data mode. Only one is active at a time, and a switch remounts the grid:
 
@@ -25,16 +25,16 @@ In `lazy` mode the import button, pinned totals, and streaming are off, because 
 
 | Control | What it changes | Page |
 | --- | --- | --- |
-| Row markers | The marker column: numbers, checkboxes, drag handles, or a mix. | [Row markers](/docs/rows-pages-menus/row-markers#row-markers) |
-| Custom marker, Row reorder | Your own marker cells, and drag reordering. Both need a row marker mode. | [Row order](/docs/rows-pages-menus/row-order#reorder) |
+| Row markers | The marker column: numbers, checkboxes, or both. The `reorder` values add drag handles for row reordering. | [Row markers](/docs/rows-pages-menus/row-markers#row-markers) |
+| Custom marker | Your own marker cells. It needs a row marker mode other than `none`. | [Row markers](/docs/rows-pages-menus/row-markers#row-markers) |
 | Header click | What a click on a header does: select, sort, or nothing. | [Pointer selection](/docs/selection-shortcuts/pointer-selection#header-click-behavior) |
 | Density | The row height. | [Density](/docs/theme-style-language/density-small-screens#density-and-row-height) |
-| Validation | A rule on the Age column: the value must be 18 or older. | [Validation](/docs/editing-cells/validation#validation) |
+| Validation | A rule on the Age column. A value under 18 shows the message `Must be 18 or older`. | [Validation](/docs/editing-cells/validation#validation) |
 | Custom headers | Name and Score headers with a sort direction icon. | [Column headers](/docs/columns/column-headers-groups#custom-headers) |
 | Read-only | Locks the whole grid. | [Lock cells](/docs/editing-cells/editable-columns#read-only) |
 | Loading | The loading display. | [Loading state](/docs/theme-style-language/loading-state#loading-state) |
 | RTL | Right-to-left layout. | [Labels and i18n](/docs/theme-style-language/labels-i18n#rtl-layout) |
-| Pinned totals | A totals row at the bottom of the grid. | [Pinned rows](/docs/rows-pages-menus/pinned-rows) |
+| Pinned totals | A totals row at the bottom of the grid: the row count under Name, the average Age, and the sum of Score. | [Pinned rows](/docs/rows-pages-menus/pinned-rows) |
 | Presence | Two simulated peers that move across cells. | [Show presence](/docs/rows-live-data/show-presence) |
 | Streaming | Random Score updates four times a second. A second switch sorts the rows as they change. | [Stream updates](/docs/rows-live-data/stream-updates) |
 
