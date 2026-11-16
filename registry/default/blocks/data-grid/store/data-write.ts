@@ -1146,6 +1146,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         lastHighlightedRow: s.lastHighlightedRow === null ? null : follow(s.lastHighlightedRow),
         rowMoveAnnouncement: announcement,
         liveAnnouncement: nextAnnouncement(s.liveAnnouncement, "rowMove", movedCount),
+        ...computeSearchMatches(nextData, s.columns, s.viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
         ...editRemap,
       }),
     );
