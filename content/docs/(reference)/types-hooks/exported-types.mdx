@@ -122,6 +122,7 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | `GridBulkValidationError` | `{ rowId, columnId, viewRowIndex, value, message }` | One cell that a bulk write refused. |
 | `GridValidationErrorEvent` | `{ source, rejected }` | The payload of `onValidationError`. `source` is `"paste"`, `"fill"`, `"stream"`, or `"replace"`. |
 | `ClipboardProcessCtx<TData>` | `{ row, column }` | The row and the column that `processCellForClipboard` and `processCellFromClipboard` share. |
+| `UseDataGridClipboardOptions` | `{ sanitizeFormulas? }` | The options of `useDataGridClipboard`. `sanitizeFormulas` prefixes formula-like cells with `'` in the copied text. |
 
 [Edit and validation events](/docs/events-state/edit-validation-events) lists the moment each one fires.
 
@@ -137,6 +138,7 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | `GridDirection` | `"ltr" \| "rtl"` | The text direction of the grid. |
 | `EmptyStateReason` | `"no-data" \| "filtered"` | Why the view is empty: no rows at all, or none in view. An empty answer to a server filter or search is `"filtered"`. The function form of `emptyState` receives it as `reason`. |
 | `LoadingStateReason` | `"no-data" \| "rows-present"` | Which loading view the function form of `loadingState` replaces, as `reason`: the skeleton (`"no-data"`) or the header bar (`"rows-present"`). |
+| `ErrorStateContext` | `{ error, retry }` | The argument of the function form of `errorState`. `error` is the failure. `retry` is a function, or `undefined` when the grid has no retry. |
 | `DensityMode` | `"compact" \| "default" \| "comfortable"` | A row height preset. |
 | `ColumnPin` | `"start" \| "end"` | The inline side that a pinned column sticks to. The sides flip in a right-to-left page. |
 | `HeaderFilterRenderer` | `({ column, index }) => ReactNode` | The function that `renderHeaderFilter` takes to draw the filter control of a column header. |
