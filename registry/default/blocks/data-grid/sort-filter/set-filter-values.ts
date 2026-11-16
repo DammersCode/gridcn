@@ -1,7 +1,8 @@
 import { resolveSelectChoices } from "../cell-types/select";
 import { textAccessorFor } from "../store/compute";
 import type { CellAccessor } from "./index";
-import type { AnyColumnDef, CellType } from "../types";
+import type { CellType } from "../types";
+import type { AnyColumnDef } from "../store/types";
 
 type SetFilterValuesInput = {
   columns: readonly AnyColumnDef[];

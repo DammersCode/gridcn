@@ -22,7 +22,7 @@ const parts = () => [...document.querySelectorAll<HTMLElement>(".tint")];
 
 describe("OverlayRect", () => {
   it("places one hidden, click-through part on the grid lines of the row", () => {
-    const columns: ColumnDef<Row, unknown>[] = [{ id: "a", accessorKey: "a" }, { id: "b", accessorKey: "b" }];
+    const columns: ColumnDef<Row, unknown>[] = [{ id: "a", header: "A", accessorKey: "a" }, { id: "b", header: "B", accessorKey: "b" }];
     render(<DataGrid data={rows} columns={columns} getRowId={(r) => r.id} plugins={[tint(1)]} />);
     const [part] = parts();
     expect(parts()).toHaveLength(1);
@@ -33,14 +33,14 @@ describe("OverlayRect", () => {
   });
 
   it("splits at a pinned column and lifts the pinned part above pinned cells", () => {
-    const columns: ColumnDef<Row, unknown>[] = [{ id: "a", accessorKey: "a", pin: "start" }, { id: "b", accessorKey: "b" }];
+    const columns: ColumnDef<Row, unknown>[] = [{ id: "a", header: "A", accessorKey: "a", pin: "start" }, { id: "b", header: "B", accessorKey: "b" }];
     render(<DataGrid data={rows} columns={columns} getRowId={(r) => r.id} plugins={[tint(0)]} />);
     expect(parts()).toHaveLength(2);
     expect(parts().filter((p) => p.hasAttribute("data-pinned"))).toHaveLength(1);
   });
 
   it("renders nothing for a row outside the rendered rows", () => {
-    const columns: ColumnDef<Row, unknown>[] = [{ id: "a", accessorKey: "a" }];
+    const columns: ColumnDef<Row, unknown>[] = [{ id: "a", header: "A", accessorKey: "a" }];
     render(<DataGrid data={rows} columns={columns} getRowId={(r) => r.id} plugins={[tint(50)]} />);
     expect(parts()).toHaveLength(0);
   });
