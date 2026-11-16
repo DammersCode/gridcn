@@ -379,7 +379,7 @@ const SCENARIOS = [
       await page.keyboard.press("Escape");
       await eventually(async () => !(await isOpen()), "Escape in the panel did not close it");
       check(await focusInGrid(), "focus did not return to the grid");
-      await page.keyboard.press("Control+Shift+Enter");
+      await page.keyboard.press("Shift+Enter");
       await eventually(isOpen, "Ctrl+Shift+Enter did not reopen the panel");
       await panel.getByRole("button", { name: "Close details" }).click();
       await eventually(async () => !(await isOpen()), "close button did not close the panel");

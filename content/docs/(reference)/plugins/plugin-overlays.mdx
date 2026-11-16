@@ -20,7 +20,7 @@ The overlay layer is a stack of elements above the cells. The core paints its ow
 4. The touch selection handles.
 5. The active-cell ring.
 
-A plugin paints before the ring. In an unpinned column the ring stays above plugin content. A pinned segment with `zIndex: GRID_LAYER.pinnedOverlaySegment` paints above the ring of a pinned active cell, so keep pinned content translucent.
+A plugin paints before the ring. In an unpinned column the ring stays above plugin content. The active-cell ring paints above every plugin overlay, including a pinned segment.
 
 An `Overlay` is a React component. A state change inside it re-renders the overlay only, not the rows.
 

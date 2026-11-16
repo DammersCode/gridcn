@@ -60,7 +60,7 @@ Each of these paths holds the batch while the schema resolves, and so does impor
 - The import dialog keeps its Import button disabled while it validates.
 
 <Callout type="warn" title="A slow schema makes a slow batch">
-  At 200 ms per cell, 10,000 cells take about 60 seconds at 32 calls at a time, and the grid shows no progress. To check a large paste against a remote service, validate the whole block once in the `processPaste` override of [Clipboard](/docs/clipboard-undo/clipboard#overrides).
+  At 200 ms per cell, 10,000 cells take about 60 seconds at 32 calls at a time, and the grid shows no progress. To check a large paste against a remote service, validate the whole block once in the `processPaste` override of [Change copy and paste](/docs/clipboard-undo/change-copy-paste).
 </Callout>
 
 To skip validation for values that your server already checked, call `actions.updateCells(patches, { skipValidation: true })`.
