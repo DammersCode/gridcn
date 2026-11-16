@@ -1,5 +1,8 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { checkChannelMaterialization } from "../scripts/verify-source-rules.mjs";
+import { checkChannelMaterialization, sourceRuleProblems } from "../scripts/verify-source-rules.mjs";
 
 const allowlist = new Map([["a/listed.ts", { count: 1, reason: "returns the list" }]]);
 const check = (files: { path: string; text: string }[]) => checkChannelMaterialization(files, allowlist);
@@ -31,5 +34,27 @@ describe("checkChannelMaterialization", () => {
       "a/b.ts:1 — walk the channel's runs() instead of spreading it into a list",
       "a/b.ts:2 — walk the channel's runs() instead of spreading it into a list",
     ]);
+  });
+});
+
+describe("sourceRuleProblems", () => {
+  const withBlocks = (files: Record<string, string>) => {
+    const base = mkdtempSync(join(tmpdir(), "source-rules-"));
+    mkdirSync(join(base, "components"), { recursive: true });
+    writeFileSync(join(base, "components/registry-examples.tsx"), "");
+    for (const [path, text] of Object.entries(files)) {
+      mkdirSync(dirname(join(base, path)), { recursive: true });
+      writeFileSync(join(base, path), text);
+    }
+    return base;
+  };
+
+  it("flags a fixed px size in a .ts block file as well as a .tsx one", () => {
+    const base = withBlocks({ "registry/default/blocks/x/size.ts": 'export const cls = "text-[10px]";', "registry/default/blocks/x/view.tsx": 'export const v = <p className="w-[3px]" />;' });
+    expect(sourceRuleProblems(base).filter((p: string) => p.includes("px size")).map((p: string) => p.replaceAll("\\", "/"))).toEqual([
+      expect.stringContaining("registry/default/blocks/x/size.ts:1"),
+      expect.stringContaining("registry/default/blocks/x/view.tsx:1"),
+    ]);
+    rmSync(base, { recursive: true, force: true });
   });
 });
