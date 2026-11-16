@@ -48,7 +48,7 @@ describe("keyboard shortcuts page", () => {
 
 describe("messages page", () => {
   it("has a row for the sort locale warnings of both props", () => {
-    expect(messages()).toContain(String.raw`<sortLocale|locale>`);
+    expect(messages()).toContain(String.raw`<sortLocale\|locale>`);
   });
 
   it("has a row for each new development warning", () => {
