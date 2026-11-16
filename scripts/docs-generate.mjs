@@ -352,7 +352,7 @@ function keyboardShortcuts() {
     "",
     "`Mod` is the Cmd key on macOS and the Ctrl key elsewhere. The `ctrl` keys are the physical Ctrl key on every platform. Rebind a key with the `keymap` prop on the keymap name in the third column. The built-in editors handle their keys themselves, and bind no keymap name to Enter, Shift+Enter, Tab, or Shift+Tab. Outside an edit, `Escape` clears the selection and the checked rows.",
     "",
-    "On macOS, `Ctrl+Space` (`selectColumn`) can switch the input source, so rebind `selectColumn` when that shortcut is on.",
+    "`Ctrl+Space` (`selectColumn`) can switch the input source on macOS and toggle the IME on Windows with a Chinese layout. Rebind `selectColumn` when that shortcut is on.",
     "",
     "## Common keys [#common-keys]",
     "",
@@ -697,6 +697,9 @@ function barrelExports() {
   return exports;
 }
 
+/** Hooks that no docs page names yet; the row links the page of the nearest topic. The set shrinks when a page names a hook. */
+const HOOKS_NAMED_NOWHERE = new Set(["createDataGridHooks", "useShortcutLabel", "useOptionalDataGridLabels"]);
+
 function hooksZ() {
   const exported = barrelExports();
   const sdk = read(`${BLOCKS}/data-grid/data-grid-sdk.ts`);
@@ -708,6 +711,9 @@ function hooksZ() {
     const rows = [...group.rows].sort((a, b) => a[0].localeCompare(b[0])).map(([name, purpose, target]) => {
       if (!known.has(name)) problems.push(`hooks: ${name} is exported by no barrel`);
       checkCell(`hooks: ${name}`, purpose);
+      const named = new RegExp(`(?<![A-Za-z])${name}(?![A-Za-z])`).test(pages.get(target.split("#")[0])?.body ?? "");
+      if (!named && !HOOKS_NAMED_NOWHERE.has(name)) problems.push(`hooks: ${target} never names ${name}`);
+      if (named && HOOKS_NAMED_NOWHERE.has(name)) problems.push(`hooks: ${target} names ${name}; remove it from HOOKS_NAMED_NOWHERE`);
       const source = exported.get(name);
       if (withSource && !source) problems.push(`hooks: ${name} is in no add-on barrel`);
       return [code(name), ...(withSource ? [code(source ?? "")] : []), cell(purpose), link(target)];
