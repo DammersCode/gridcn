@@ -6,6 +6,7 @@ export type SeriesDescriptor = {
 const NUMERIC_RE = /^-?\d+(\.\d+)?$/;
 const PADDED_INT_RE = /^\d+$/;
 const EPSILON = 1e-9;
+const ISO_DATE_PREFIX_RE = /^[0-9]{4}-[0-9]{2}-$/;
 /** Longest digit run a double holds exactly; longer ids would extrapolate to wrong digits, so they tile. */
 const MAX_EXACT_DIGITS = 15;
 
@@ -95,6 +96,7 @@ function detectPrefixNumber(values: readonly string[]): SeriesDescriptor | null 
   const suffix = parsed[0]!.suffix;
   if (!parsed.every((p) => p.prefix === prefix && p.suffix === suffix)) return null;
   if (parsed.some((p) => p.digits.length > MAX_EXACT_DIGITS)) return null;
+  if (parsed.every((p) => p.digits.length === 2 && ISO_DATE_PREFIX_RE.test(p.prefix.slice(-8)))) return null;
 
   const numStrings = parsed.map((p) => p.digits);
   const numbers = numStrings.map((n) => Number(n));
@@ -120,7 +122,7 @@ function detectPrefixNumber(values: readonly string[]): SeriesDescriptor | null 
  * Detects a fillable series in `values` (source cells along the fill axis, in
  * source order): arithmetic progressions, zero-padded numeric strings (pad
  * width preserved), or shared-prefix/suffix + arithmetic numeric part
- * ("Item 1", "Item 2"). Requires at least 2 values with a consistent delta;
+ * ("Item 1", "Item 2"); an ISO date is no series, because its day would pass the end of the month. Requires at least 2 values with a consistent delta;
  * returns `null` when no pattern applies (caller falls back to tiling).
  */
 export function detectSeries(values: readonly string[]): SeriesDescriptor | null {

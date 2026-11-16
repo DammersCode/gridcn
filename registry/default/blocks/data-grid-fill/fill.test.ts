@@ -87,6 +87,12 @@ describe("computeFillTarget", () => {
 });
 
 describe("detectSeries", () => {
+  it("finds no series in ISO dates, so a fill copies them", () => {
+    expect(detectSeries(["2026-01-30", "2026-01-31"])).toBeNull();
+    expect(detectSeries(["2026-01-01", "2026-01-02", "2026-01-03"])).toBeNull();
+    expect(detectSeries(["Day 1", "Day 2"])!.extrapolate(2)).toBe("Day 3");
+  });
+
   it("composes with a custom detector that falls back to the built-in one", () => {
     const detectWeekdays = (values: readonly string[]): SeriesDescriptor | null => {
       const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];

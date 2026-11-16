@@ -420,6 +420,43 @@ describe("data-grid-fill add-on", () => {
     expect(flashed().length).toBe(0);
   });
 
+  it("a runtime disabled toggle hides the handle and makes mod+D a no-op, then restores both", async () => {
+    const onDataChange = mockDataChangeFn();
+    const data = makeFillRows(4);
+    data[0]!.value = 7;
+    function Harness(props: { disabled: boolean }) {
+      const { plugin } = useDataGridFill({ disabled: props.disabled });
+      return (
+        <DataGridProvider data={data} columns={fillColumns} getRowId={(r) => r.id} onDataChange={onDataChange} plugins={[plugin]}>
+          <DataGridRoot className="h-[600px]">
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+    const tree = (disabled: boolean) => (
+      <div style={{ height: 600 }}>
+        <Harness disabled={disabled} />
+      </div>
+    );
+    const view = await render(tree(false));
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    await selectValueColumn(4);
+    const handle = () => document.querySelector(gridAttrSelector("fillHandle"));
+    expect(handle()).not.toBeNull();
+
+    await view.rerender(tree(true));
+    await vi.waitFor(() => expect(handle()).toBeNull());
+    await userEvent.keyboard("{Control>}d{/Control}");
+    expect(onDataChange).not.toHaveBeenCalled();
+
+    await view.rerender(tree(false));
+    await vi.waitFor(() => expect(handle()).not.toBeNull());
+    await userEvent.keyboard("{Control>}d{/Control}");
+    expect(onDataChange).toHaveBeenCalledTimes(1);
+  });
+
   it("mod+D fills the selection's top row downward across the range", async () => {
     const onDataChange = mockDataChangeFn();
     const data = makeFillRows(4);

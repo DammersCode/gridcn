@@ -44,9 +44,9 @@ If the source cells form a series, the fill continues the series instead:
 - **Zero-padded numbers.** `001, 002` continues as `003, 004` and keeps the width.
 - **Text with a trailing number.** `Item 1, Item 2` continues as `Item 3, Item 4`.
 
-A series needs two source cells, because one value has no step. The grid finds a series per source column for a vertical fill and per source row for a horizontal fill. An integer with more than 15 digits is an identifier, so the fill copies it. Dates have no series of their own. The text detector continues the trailing number, so `2026-01-30, 2026-01-31` continues as `2026-01-32`. A custom detector below handles real dates.
+A series needs two source cells, because one value has no step. The grid finds a series per source column for a vertical fill and per source row for a horizontal fill. An integer with more than 15 digits is an identifier, so the fill copies it. Dates have no series of their own: the fill copies ISO dates such as `2026-01-30, 2026-01-31`. A custom detector below continues real dates.
 
-A vertical fill checks the series per column. A horizontal fill checks it per row. The series applies to a column or row only when its cells accept every generated value. A `select` column accepts a value that names a choice. A `date` column accepts a valid date inside `min` and `max`, so it rejects `2026-01-32`. If one generated value fails, the fill repeats the source in that column or row instead:
+A vertical fill checks the series per column. A horizontal fill checks it per row. The series applies to a column or row only when its cells accept every generated value. A `select` column accepts a value that names a choice. A `date` column accepts a valid date inside `min` and `max`, so it rejects a date after `max`. If one generated value fails, the fill repeats the source in that column or row instead:
 
 - A vertical fill repeats the stored source values of the column. With the choices `Tier 1` to `Tier 3`, the source `Tier 1, Tier 2` fills three cells with `Tier 1, Tier 2, Tier 1`, because `Tier 4` is no choice.
 - A horizontal fill reads the text of each source cell with the `fromText` of the target column. A row that fails repeats the source text. A target column that lacks the label clears the cell, as a paste does.
@@ -110,7 +110,7 @@ Pass these options to `useDataGridFill`. Every option is optional:
 
 ### processFill
 
-`processFill` <NewBadge /> runs on drag release and on both keyboard commands, before the grid applies the fill. It returns the text grid to write, or `false` to cancel the fill. The grid parses the returned text with the `fromText` of each column and validates it, like a paste. After `false`, the grid writes nothing and the selection does not expand. This gate cancels large fills:
+`processFill` <NewBadge /> runs on drag release and on both keyboard commands, before the grid applies the fill. It is synchronous: it returns the text grid to write, or `false` to cancel the fill, and never a promise. The grid parses the returned text with the `fromText` of each column and validates it, like a paste. After `false`, the grid writes nothing and the selection does not expand. This option cancels large fills:
 
 ```tsx
 import { useDataGridFill } from "@/components/data-grid-fill/data-grid-fill";
