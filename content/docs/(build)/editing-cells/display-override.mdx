@@ -11,7 +11,7 @@ aliases: ["cell renderer", "rendercell", "custom display", "progress bar", "badg
 
 ## Override the display [#display-override-without-a-new-type]
 
-Set `renderCell` on the column and return a React node. This column draws a score as a bar:
+Set `renderCell` on the column and return a React node. The grid adds no label to the cell, and a screen reader reads the text inside your node. Add visually hidden text for a value that the node draws without text. This column draws a score as a bar and keeps the score as hidden text:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
@@ -27,6 +27,7 @@ const columns = defineColumns<Player>()([
     type: "number",
     renderCell: ({ value }) => (
       <div className="h-2 w-full rounded-full bg-muted">
+        <span className="sr-only">{value}</span>
         <div
           className="h-full rounded-full bg-primary"
           style={{ width: `${value ?? 0}%` }}

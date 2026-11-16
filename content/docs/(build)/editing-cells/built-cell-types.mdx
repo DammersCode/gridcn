@@ -6,7 +6,7 @@ type: feature
 aliases: ["number format", "dropdown", "date picker", "select cell", "number cell", "dropdown column", "currency", "percent", "checkbox column", "boolean column", "tags", "multi select", "time of day", "time picker"]
 ---
 
-A cell type decides how a column shows a value and which editor it opens. It also turns copied text back into a value. gridcn ships seven: `text`, `number`, `checkbox`, `select`, `date`, `url`, and `longText`. Set `type` on the column and pass the type's settings in `options`. A column without `type` shows and edits its values as `text`, but [sorts](/docs/sort-filter-search/sorting#sort-order) `item2` before `item10`, unlike `type: "text"`. No built-in type holds a time of day or a list of values. For those, store text and check it with `validate`, or [write a cell type](/docs/recipes-custom-code/write-cell-type#write-a-cell-type).
+A cell type decides how a column shows a value and which editor it opens. It also turns copied text back into a value. gridcn ships seven: `text`, `number`, `checkbox`, `select`, `date`, `url`, and `longText`. Set `type` on the column and pass the type's settings in `options`. A column without `type` shows and edits its values as `text`. No built-in type holds a time of day or a list of values. For those, store text and check it with `validate`, or [write a cell type](/docs/recipes-custom-code/write-cell-type#write-a-cell-type).
 
 The demo opens the two date editors. Press <kbd>Enter</kbd> on a date cell. The [cell types example](/docs/basic-examples/cell-types-example) shows every type:
 
@@ -28,7 +28,7 @@ The demo opens the two date editors. Press <kbd>Enter</kbd> on a date cell. The 
 
 Every type follows the same text pipeline, which [Cell type model](/docs/concepts/cell-type-model) describes.
 
-`number` and `date` cells align to the end, `checkbox` cells center, and the other types align to the start. [Align a column](/docs/theme-style-language/style-overrides#align-a-column) changes it for every type except `checkbox`.
+[Align a column](/docs/theme-style-language/style-overrides#align-a-column) changes the alignment of every type except `checkbox`. `number` and `date` cells align to the end, `checkbox` cells center, and the other types align to the start.
 
 This grid uses five of the types:
 
@@ -74,19 +74,19 @@ export function People({ people }: { people: Person[] }) {
 }
 ```
 
-Text that a type cannot parse becomes an empty value. A `number` editor commits `null` for text such as `abc`, and a `date` editor does the same. A column `validate` can refuse the empty value. See [Validation](/docs/editing-cells/validation).
+A `date` cell turns text that names no real day into an empty value. A `number` cell rejects text that is not a number: see [Number formatting](#number-formatting). A column `validate` can refuse the empty value. See [Validation](/docs/editing-cells/validation).
 
 ## Number formatting [#number-formatting]
 
 The type parses a comma as the decimal separator or a group separator. It rounds to `decimals` and clamps to `min` and `max`, in the editor and on paste. In the editor, <kbd>ArrowUp</kbd> and <kbd>ArrowDown</kbd> step the draft by `step` (default `1`) within `min` and `max`. With `decimals` set, the step is never smaller than the last decimal place.
 
-The clamp runs before a column `validate`. The `validate` function sees the clamped value, so a typed, pasted, or filled value outside `min` and `max` never reaches it. An imported value reaches `validate` clamped only when `processCellFromText` is not set, because its return value skips `fromText`. A value that code writes with `updateCells` is not clamped.
+The clamp runs before a column `validate`, so a typed, pasted, or filled value outside `min` and `max` never reaches it. A value that code writes with `updateCells` is not clamped. A value that `processCellFromClipboard` (paste) or `processCellFromText` (import) returns skips the clamp, unless the hook returns the result of the `fromText` it receives.
 
 The type reads `1,234.50`, `1,234,567`, and `1.234,50` as grouped numbers. A single comma that is not followed by three digits is the decimal point, so `1,5` stores `1.5`. The text `1,234` can mean `1234` or `1.234`, so the type rejects it. The type also rejects text that is not a number. A rejected paste or fill leaves the cell unchanged. A rejected typed value keeps the editor open. To read other formats, set `processCellFromClipboard` for paste, or `processCellFromText` for import.
 
-`format` takes `Intl.NumberFormatOptions`. `locale` sets the language of `format` and defaults to the `locale` of the grid, and that is `"en-US"` without one. A column with a `locale` and no `format` shows the plain number. `format: {}` groups the digits by `locale`. `format` and `locale` change only the display.
+`format` takes `Intl.NumberFormatOptions`. `locale` sets the language of `format` and defaults to the `locale` of the grid, and that is `"en-US"` without one. A column with a `locale` and no `format` shows the plain number and logs one development warning. `format: {}` groups the digits by `locale`. `format` and `locale` change only the display.
 
-The editor, copy, paste, sort, and export keep the plain number, so a stored `0.25` under `style: "percent"` shows `25%` and edits as `0.25`. A unit style adds the unit to the display: under `{ style: "unit", unit: "kilogram" }`, a stored `12.5` shows `12.5 kg`. When the format sets no fraction digits, `decimals` sets both the minimum and the maximum. A format that `Intl` rejects, such as `style: "currency"` without a `currency`, shows the plain number and logs one development warning per locale and format.
+The editor, copy, paste, sort, and export keep the plain number, so a stored `0.25` under `style: "percent"` shows `25%` and edits as `0.25`. When the format sets no fraction digits, `decimals` sets both the minimum and the maximum. A format that `Intl` rejects, such as `style: "currency"` without a `currency`, shows the plain number and logs one development warning per locale and format.
 
 This column shows a price as US dollars:
 
@@ -108,11 +108,11 @@ const columns = defineColumns<Product>()([
 
 ## Date [#date-specifics]
 
-The stored value and the clipboard text are always ISO `yyyy-mm-dd`. `displayFormat` takes `Intl.DateTimeFormatOptions`. `locale` sets the language of `displayFormat` and defaults to the `locale` of the grid. A column with no `displayFormat` shows the ISO text. `displayFormat` and `locale` change only the display. A `locale` or `timeZone` that `Intl` rejects, such as `"de_DE"`, shows the ISO text and logs one development warning per locale and format.
+The stored value and the clipboard text are always ISO `yyyy-mm-dd`. `displayFormat` takes `Intl.DateTimeFormatOptions`. `locale` sets the language of `displayFormat` and defaults to the `locale` of the grid. A column with no `displayFormat` shows the ISO text. A column with a `locale` and no `displayFormat` does the same and logs one development warning. `displayFormat` and `locale` change only the display. A `locale` or `timeZone` that `Intl` rejects, such as `"de_DE"`, shows the ISO text and logs one development warning per locale and format.
 
 The editor is a popover with a typed input and a calendar. The input accepts ISO text or any text that `Date` parses. A text that names no real calendar day or falls outside `min` and `max` becomes an empty value. <kbd>Enter</kbd> commits the typed text and moves down. Picking a day commits and stays in place.
 
-`calendarTrigger` shows the editor as a typed input with a calendar button. The calendar stays closed until the button opens it, and the button toggles it. The button label comes from `labels.grid.dateCalendarAriaLabel`. A column without `calendarTrigger` opens the calendar at the start of the edit. The popover opens at the start edge of the cell, and the cell text stays in place.
+`calendarTrigger` shows the editor as a typed input with a calendar button. The calendar stays closed until the button opens it, and the button toggles it. The button label comes from `labels.grid.dateCalendarAriaLabel`. A column without `calendarTrigger` opens the calendar at the start of the edit.
 
 This column formats the display and uses the calendar button:
 
@@ -138,15 +138,15 @@ const columns = defineColumns<Task>()([
 
 ## Select and checkbox [#select-checkbox]
 
-A `select` cell stores the choice `value` and shows its `label`. Display, search, sort, and copy use the label. A filter matches the stored choice `value`. A stored value without a choice shows as it is. Paste accepts a choice value, or a label in any letter case. Picking a choice commits at once.
+A `select` cell stores the choice `value` and shows its `label`. A string choice is its own value and label. Display, search, sort, and copy use the label. A filter matches the stored choice `value`. A stored value without a choice shows as it is. Paste accepts a choice value, or a label in any letter case. Picking a choice commits at once.
 
 The grid caches lookups for each `choices` array. Pass a new array to change the choices, and never change the array in place.
 
-A `checkbox` cell toggles in place and has no editor. A locked cell does not toggle. Copy writes `true` or `false`. Paste reads `true`, `1`, `yes`, `x`, and `on` in any letter case as `true`, and any other text as `false`.
+A `checkbox` cell toggles in place and has no editor. A locked cell does not toggle. A toggle asks `onBeforeEditStart`. If `validate` rejects the new value, `onValidationError` reports it with `source: "edit"`. Copy writes `true` or `false`. Paste reads `true`, `1`, `yes`, `x`, and `on` in any letter case as `true`, and any other text as `false`.
 
 ## URL links [#url-links]
 
-A `url` cell stores the URL as text and shows it as a link. The link opens in a new tab without a referrer and is not a tab stop. A click on the link only selects the cell. <kbd>Ctrl</kbd>+click (<kbd>Cmd</kbd>+click on macOS) opens the link, and a middle-click opens it through the browser. <kbd>Alt</kbd>+<kbd>Enter</kbd> (the `openLink` action) opens the link of the active cell, also in a read-only grid.
+A `url` cell stores the URL as text and shows it as a link. The link opens in a new tab without a referrer and is not a tab stop. A click on the link selects the cell. <kbd>Ctrl</kbd>+click (<kbd>Cmd</kbd>+click on macOS) opens the link, and a middle-click opens it through the browser. <kbd>Alt</kbd>+<kbd>Enter</kbd> (the `openLink` action) opens the link of the active cell, also in a read-only grid.
 
 `options.label` maps the stored URL to the link text. Copy and export keep the URL.
 
@@ -159,7 +159,7 @@ A `url` cell stores the URL as text and shows it as a link. The link opens in a 
 
 A `longText` cell stores multi-line text as it is. The cell shows one line: the first 500 characters, with line breaks as spaces. The editor is a popover with a textarea that opens over the cell.
 
-The built-in cell types do not wrap text. All rows have the same height, and a cell shows one line that ends with an ellipsis when the text is too long. To show more text, set `rowHeight` to a larger value and return an element with the `whitespace-normal` and `line-clamp-2` classes from `renderCell`. The full text stays in the `longText` editor. See [Density and small screens](/docs/theme-style-language/density-small-screens) and [Display override](/docs/editing-cells/display-override).
+The built-in cell types do not wrap text. A cell shows one line that ends with an ellipsis when the text is too long. To show more, set `rowHeight` to a larger value and return an element with `whitespace-normal` and `line-clamp-2` from `renderCell`. See [Density and small screens](/docs/theme-style-language/density-small-screens) and [Display override](/docs/editing-cells/display-override).
 
 <kbd>Enter</kbd> commits and moves down. <kbd>Shift</kbd>+<kbd>Enter</kbd> and <kbd>Alt</kbd>+<kbd>Enter</kbd> insert a line break. <kbd>Escape</kbd> cancels, and a click outside commits the draft.
 

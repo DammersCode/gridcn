@@ -17,9 +17,14 @@ Before you start, know the limit of the check. A role rule in the grid changes o
 3. Leave a column out of the array for the roles that must not see it.
 4. Return the array from `useMemo` on the role. The grid then receives a new array only after a role change.
 
+This hook applies the four steps:
+
 ```tsx
 import { useMemo } from "react";
-import { defineColumns, type ColumnDef } from "@/components/data-grid/data-grid";
+import {
+  defineColumns,
+  type ColumnDef,
+} from "@/components/data-grid/data-grid";
 
 type Role = "admin" | "member" | "guest";
 type Order = {
@@ -65,7 +70,7 @@ Call the hook in your grid component and pass its result as `columns`.
 
 ## Result
 
-`price` combines two conditions: only an `admin` can edit it, and a `locked` order accepts no edits from anyone. A locked cell rejects typed edits, paste, fill, and clear. A `guest` gets no `internalNote` column.
+`price` combines two conditions: only an `admin` can edit it, and a `locked` order accepts no edits from anyone. A locked cell rejects typed edits, paste, fill, and clear. A `guest` gets no `internalNote` column. A removed column hides the field in the grid only. The field stays in every row object that the browser holds, so strip it on the server.
 
 When the role changes, the new array replaces the columns, and the new `readOnly` rule applies from then on.
 

@@ -2,7 +2,7 @@
 title: Validate rows and async checks
 description: Check fields against each other with validateRow or a schema refine, and wait for an async schema on every write path.
 icon: ListChecks
-type: task
+type: feature
 demos: none
 aliases: ["validaterow", "validate row", "zod refine", "async validation", "cross field validation", "unique value check"]
 ---
@@ -46,7 +46,13 @@ export function Lines({ lines }: { lines: Line[] }) {
 
 `validateRow` does not run on a row insert or duplicate, because a fresh default row is incomplete. It does not run on a row delete, or after you replace the `data` array.
 
-`validateRow` also runs for the rows that `actions.commitChange` inserts or updates, for every change source except `"stream"`. An import that replaces the data with `delete` and `insert` operations validates each imported row, and does not validate the deleted rows. An undo, a redo, and a rollback validate the rows they restore, so a cross-field error that the undone edit caused goes away. A newer change that touches the row cancels its pending verdict.
+`validateRow` also runs in these cases:
+
+- `actions.commitChange` inserts or updates rows, for every change source except `"stream"`.
+- An import replaces the data with `delete` and `insert` operations. The grid validates each imported row, and not the deleted rows.
+- An undo, a redo, or a rollback restores rows. A cross-field error that the undone edit caused goes away.
+
+A newer change that touches the row cancels its pending verdict.
 
 `validateRow` can return a promise. The write commits first. The verdict merges after the promise settles. A newer verdict for the same row replaces a pending one. The grid drops a verdict for a row that is gone. A rejected promise or a thrown error adds no error and keeps the write.
 
@@ -54,7 +60,7 @@ export function Lines({ lines }: { lines: Line[] }) {
 
 ### Schema refine rules [#schema-refine-rules]
 
-A column schema receives only the cell value, so its `refine` checks one value. Put a rule that compares fields in `validateRow`. In a paste or a fill, the `row` of a column `validate` holds only the earlier cells of the gesture. To use an object schema, parse the row and map each issue to its column:
+A column schema receives only the cell value, so its `refine` checks one value. Put a rule that compares fields in `validateRow`. In a paste or a fill, the `row` of a column `validate` is the row as it was before the gesture. To use an object schema, parse the row and map each issue to its column:
 
 ```ts
 import { z } from "zod";
@@ -155,9 +161,10 @@ Paste, fill, and `updateCells` hold the batch while an async schema resolves:
 Import validates each cell the same way. It writes an empty value for a rejected cell. See [Import](/docs/import-export/import).
 
 <Callout type="warn" title="A slow schema makes a slow batch">
-  A 200 ms call across 10,000 cells takes about 60 seconds, and the grid shows no progress. For a
-  large paste against a remote check, validate the block once with `processPaste` of
-  [Clipboard](/docs/clipboard-undo/clipboard).
+  For a large paste against a remote check, validate the block once with `processPaste` of
+  [Clipboard](/docs/clipboard-undo/clipboard). A 200 ms call across 10,000 cells takes about 60
+  seconds, and the grid shows no progress. `processPaste` does not cover a fill. A large fill
+  against a remote check runs one call for each cell.
 </Callout>
 
 `actions.updateCells(patches, { skipValidation: true })` skips `validate` for a trusted feed.
@@ -168,7 +175,7 @@ Import validates each cell the same way. It writes an empty value for a rejected
 
 | Prop | Type | Default |
 |---|---|---|
-| `validateRow` | `(row, rowId, { signal }) => Record<string, string> \| null` or a promise of it | - |
+| `validateRow` | `(row, rowId, { signal }) => Record<string, string> \| null` or a promise of it | none |
 
 ## Related
 
