@@ -35,7 +35,7 @@ export function ImportOrders() {
 
 `createRow` can return a promise. A rejection imports nothing. Cancel stops a pending import.
 
-Without `onImport`, <NewBadge /> a confirm appends the rows to `data` with one `commitChange` of the `"import"` source. That is one undo entry. The change reaches `onDataChange`, `onSave`, and `validateRow` like any other write. Replacing `data` does none of this. A grid with a `totalRowCount` holds a window of its result, so it has no default. A confirm writes nothing, the dialog shows `The import could not be completed. Try again.`, and a development build warns once. Pass `onImport` on such a grid.
+Without `onImport`, <NewBadge /> a confirm appends the rows to `data` with one `commitChange` of the `"import"` source. That is one undo entry. The change reaches `onDataChange`, `onSave`, and `validateRow` like any other write. Replacing `data` does none of this. A grid with a `totalRowCount` or a `readOnly` grid has no default. Its import button is disabled, and its `title` gives the reason (`labels.io.importNeedsOnImport` or `labels.io.importReadOnly`). Pass `onImport` on a server grid.
 
 `onImport(rows)` replaces the default and decides where the rows land: replace, merge, or send to a server. It can return a promise, which the dialog awaits. If it rejects, the dialog stays open with an error, and the user can retry. If it resolves, the dialog clears the grid selection. If the build cleared cells, it stays open (see [Confirm](#confirm)). Otherwise it closes. On a `readOnly` grid, `commitChange` writes nothing, and the dialog still closes.
 

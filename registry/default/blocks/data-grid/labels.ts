@@ -241,9 +241,12 @@ export type DataGridIOLabels = {
   importDialogTitle: string;
   importDialogDescription: string;
   chooseFile: string;
+  /** @deprecated The empty drop zone reads `emptyDropzoneCaption`. */
   noFileChosen: string;
-  /** Size limit shown next to `noFileChosen` in the empty drop zone; `bytes` is the import's `maxFileBytes`. */
+  /** Size limit in the empty drop zone caption; `bytes` is the import's `maxFileBytes`. */
   maxFileSize: (bytes: number) => string;
+  /** Caption of the empty import drop zone; `maxSize` is the `maxFileSize` text. */
+  emptyDropzoneCaption: (maxSize: string) => string;
   /** Screen-reader description of the drop zone; `types` lists the accepted extensions and `maxSize` is the `maxFileSize` text. */
   dropzoneDescription: (types: readonly string[], maxSize: string) => string;
   /** Caption on the compact drop zone shown once a file is already chosen, in the column-mapping step. */
@@ -282,6 +285,10 @@ export type DataGridIOLabels = {
   errorTooManyCells: string;
   /** Shown under the mapping grid when the import build rejected cells; `count` is the rejected-cell count. */
   importRejectedCells: (count: number) => string;
+  /** Tooltip of the disabled import button and message in the dialog when the grid holds a window of a server result and has no `onImport`. */
+  importNeedsOnImport: string;
+  /** Tooltip of the disabled import button and message in the dialog when the grid is read-only and has no `onImport`. */
+  importReadOnly: string;
   /** Shown when the `onImport` callback rejected; the dialog stays open and the import can be retried. */
   importMergeFailed: string;
   /** Shown when `onImport` rejects with an error that has a message. */
@@ -656,7 +663,8 @@ function buildDefaultLabels(locale: string): DataGridLabels {
       chooseFile: "Choose file",
       noFileChosen: "No file chosen",
       maxFileSize: (bytes) => `up to ${formatFileSize(bytes)}`,
-      dropzoneDescription: (types, maxSize) => `Accepted types: ${types.join(", ")} — ${maxSize}`,
+      emptyDropzoneCaption: (maxSize) => `No file chosen — ${maxSize}`,
+      dropzoneDescription: (types, maxSize) => (types.length === 0 ? `All file types accepted — ${maxSize}` : `Accepted types: ${types.join(", ")} — ${maxSize}`),
       replaceFile: "Drop or click to replace",
       columnFallback: (index) => `Column ${index}`,
       delimiter: "Delimiter",
@@ -683,6 +691,8 @@ function buildDefaultLabels(locale: string): DataGridLabels {
       errorPartTooLarge: "A part of this file is too large to read safely. Save a smaller file, or ask the app owner to raise the import limit.",
       errorTooManyCells: "This file has too many rows or columns to import.",
       importRejectedCells: (count) => `${count} cell${count === 1 ? "" : "s"} failed validation and ${count === 1 ? "was" : "were"} left empty.`,
+      importNeedsOnImport: "Import is not available: this grid loads its rows from a server.",
+      importReadOnly: "Import is not available: this grid is read-only.",
       importMergeFailed: "The import could not be completed. Try again.",
       importFailedWithMessage: (message) => `The import failed: ${message}`,
       importBuildFailed: "The rows could not be prepared for import. Check the file and try again.",

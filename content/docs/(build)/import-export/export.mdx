@@ -87,11 +87,11 @@ A cell that starts with `=`, `+`, `-`, `@`, a tab, or a carriage return gets a l
   `sanitizeFormulas: false` writes the raw text. A spreadsheet runs a cell that starts with `=` as a formula. Set it only for a program that expects the exact text.
 </Callout>
 
-`rowsToCsv` sanitizes the same way. Pass `false` as its third argument for raw fields. `sanitizeFormulaCell(value)` from `data-grid` does the same for your own writers. Copy and cut stay raw. The grid prop `sanitizeClipboardFormulas` changes that (see [Clipboard](/docs/clipboard-undo/clipboard#formula-sanitizing)).
+`rowsToCsv(rows, options)` sanitizes the same way. Pass `{ sanitizeFormulas: false }` for raw fields. `sanitizeFormulaCell(value)` from `data-grid` does the same for your own writers. Copy and cut stay raw. The grid prop `sanitizeClipboardFormulas` changes that (see [Clipboard](/docs/clipboard-undo/clipboard#formula-sanitizing)).
 
 ## Write an XLSX file
 
-An XLSX file holds one compressed sheet. Every cell is a text cell with its `toText` string, so Excel shows a number column as text. A string never runs as a formula there. To write number, boolean, or date cells, return those values from [`formatCell`](/docs/import-export/shape-export-file#result).
+An XLSX file holds one compressed sheet. A `number` column writes number cells <NewBadge />. A `date` column writes date cells, and a `checkbox` column writes boolean cells. Excel can sum and sort them. Every other cell is a text cell with its `toText` string. A string never runs as a formula there. To write other typed cells, or to write a built-in column as text, return the value from [`formatCell`](/docs/import-export/shape-export-file#result).
 
 `sheetName` names the sheet (`Sheet1` by default). An export rejects a name that Excel does not allow:
 
@@ -130,6 +130,7 @@ Print takes the same `scope` as export. It prints visible columns in view order.
 - `orientation` defaults to `landscape` above 6 visible columns, else `portrait`.
 - `pageSize` is `"A4"` (default), `"A3"`, `"Letter"`, or `"Legal"`.
 - `maxRows` defaults to 10,000. A 500,000-cell ceiling cuts it further. `NaN` reads as the default, and a negative value counts as 0. <NewBadge /> A cut table ends with a note such as "Printed 10000 of 25000 rows".
+- `direction` <NewBadge /> is `"ltr"` or `"rtl"`. It defaults to the reading direction of the page that prints.
 - A cell text over 32,767 characters is cut, as in XLSX.
 - `DataGridPrintButton` passes its `options` prop to `printGrid`.
 

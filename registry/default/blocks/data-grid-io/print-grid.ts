@@ -1,4 +1,4 @@
-import { type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { type DataGridReadState, type GridDirection } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { normalizeLimit } from "./normalize-limit";
 import { MAX_CELL_TEXT, buildExportHeaders, buildExportRows, exportDataIndices } from "./export-grid";
 
@@ -29,6 +29,8 @@ export type PrintGridOptions = {
   orientation?: "portrait" | "landscape";
   /** Cap on the rows printed (the header row is not counted); default 10,000, further cut by the 500,000-cell ceiling. */
   maxRows?: number;
+  /** Reading direction of the printed page. Default: the direction of the page that calls print. */
+  direction?: GridDirection;
 };
 
 let openIframe: HTMLIFrameElement | null = null;
@@ -106,6 +108,7 @@ export function printGrid(state: DataGridReadState, options: PrintGridOptions = 
     return;
   }
 
+  doc.documentElement.dir = options.direction ?? (getComputedStyle(document.documentElement).direction === "rtl" ? "rtl" : "ltr");
   doc.title = options.title ?? "";
   const meta = doc.createElement("meta");
   meta.httpEquiv = "Content-Security-Policy";

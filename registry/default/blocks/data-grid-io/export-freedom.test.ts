@@ -3,6 +3,7 @@ import type { CellType, ColumnDef } from "@/registry/default/blocks/data-grid/da
 import type { DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { buildCsv, buildXlsx, exportGrid, exportRows, MAX_CELL_TEXT, type ExportCellValue, type ExportOutput } from "./export-grid";
 import { listZip } from "./xlsx-fixtures.test-helper";
+import { checkboxCellType, dateCellType, numberCellType } from "@/registry/default/blocks/data-grid/cell-types/cell-types";
 
 type Row = { id: string; name: string; age: number; secret: string };
 
@@ -324,5 +325,47 @@ describe("exportRows", () => {
     const result = await exportRows(makeState(), { source: () => rows, maxRows: 2, maxBytes: 1000, columns: ["age"] }, (batch: string[][]) => (batches.push(batch), 1));
     expect(batches).toEqual([[["31"], ["42"]]]);
     expect(result).toEqual({ rowCount: 2, truncated: true });
+  });
+});
+
+describe("typed XLSX cells of built-in cell types", () => {
+  type Typed = { id: string; amount: number | null; day: string | null; done: boolean; note: string };
+  const typedColumns: ColumnDef<Typed, unknown>[] = [
+    { id: "amount", header: "Amount", accessorKey: "amount", type: "number" },
+    { id: "day", header: "Day", accessorKey: "day", type: "date" },
+    { id: "done", header: "Done", accessorKey: "done", type: "checkbox" },
+    { id: "note", header: "Note", accessorKey: "note", type: "text" },
+  ];
+  const typedRows: Typed[] = [{ id: "a", amount: 12.5, day: "2024-01-02", done: true, note: "1234" }];
+  const typedState = () =>
+    ({
+      data: typedRows,
+      columns: typedColumns,
+      visibleColumns: typedColumns,
+      viewIndex: [0],
+      cellTypes: { text: textCellType, number: numberCellType, date: dateCellType, checkbox: checkboxCellType } as never,
+      sortState: [],
+      filterState: [],
+      searchText: "",
+    }) as unknown as DataGridStoreState;
+
+  it("writes number, date, and checkbox cells typed and keeps text columns as text", async () => {
+    const xml = await sheetXml(await buildXlsx(typedState(), { includeHeaders: false }));
+    expect(xml).toMatch(/<c r="A1"[^>]*><v>12.5<\/v>/);
+    expect(xml).toMatch(/<c r="B1" s="\d+"><v>45293<\/v>/);
+    expect(xml).toContain('t="b"');
+    expect(xml).toMatch(/<c r="D1"[^>]*t="(s|inlineStr|str)"/);
+  });
+
+  it("writes the same cells typed from a source export", async () => {
+    const batches: unknown[][][] = [];
+    await exportRows(typedState(), { source: () => typedRows, typed: true }, (batch) => (batches.push(batch), 1));
+    expect(batches[0]![0]).toEqual([12.5, new Date(Date.UTC(2024, 0, 2)), true, "1234"]);
+  });
+
+  it("keeps CSV text and lets formatCell override a typed default", async () => {
+    expect(await buildCsv(typedState(), { includeHeaders: false, csvBom: false }).text()).toBe("12.5,2024-01-02,true,1234");
+    const xml = await sheetXml(await buildXlsx(typedState(), { includeHeaders: false, formatCell: ({ text }) => text }));
+    expect(xml).not.toMatch(/<c r="A1"[^>]*><v>12.5<\/v>/);
   });
 });

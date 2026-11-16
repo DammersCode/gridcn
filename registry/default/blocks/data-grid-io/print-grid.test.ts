@@ -96,6 +96,23 @@ afterAll(() => {
   vi.useRealTimers();
 });
 
+describe("printGrid direction", () => {
+  it("sets the frame direction from options.direction, else from the page", () => {
+    const { spy, restore } = stubIframePrint();
+    printGrid(makeState(), { direction: "rtl" });
+    expect(lastIframe().contentDocument!.documentElement.dir).toBe("rtl");
+    document.documentElement.dir = "rtl";
+    printGrid(makeState());
+    expect(lastIframe().contentDocument!.documentElement.dir).toBe("rtl");
+    document.documentElement.dir = "";
+    printGrid(makeState());
+    expect(lastIframe().contentDocument!.documentElement.dir).toBe("ltr");
+    expect(spy).toHaveBeenCalledTimes(3);
+    restore();
+    document.querySelectorAll("iframe").forEach((frame) => frame.remove());
+  });
+});
+
 describe("printGrid", () => {
   it("opens a hidden sandboxed iframe with a CSP meta and calls print once", () => {
     const { spy, restore } = stubIframePrint();

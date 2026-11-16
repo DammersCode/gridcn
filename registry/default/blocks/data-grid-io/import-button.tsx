@@ -4,7 +4,7 @@ import { useState, type ReactNode } from "react";
 import { Upload } from "lucide-react";
 import { useDataGridLabels } from "@/registry/default/blocks/data-grid/data-grid";
 import { Button } from "@/components/ui/button";
-import { DataGridImportDialog, type DataGridImportDialogProps, type ImportDefaults } from "./import-dialog";
+import { DataGridImportDialog, useImportBlock, type DataGridImportDialogProps, type ImportDefaults } from "./import-dialog";
 
 export type { ImportDefaults };
 
@@ -21,10 +21,11 @@ export function DataGridImportButton<TData>(props: DataGridImportButtonProps<TDa
   const { className, ...dialogProps } = props;
   const labels = useDataGridLabels();
   const [open, setOpen] = useState(false);
+  const importBlock = useImportBlock(dialogProps.onImport);
 
   return (
     <>
-      <Button type="button" variant="ghost" size="icon" className={className} aria-label={labels.io.importButton} onClick={() => setOpen(true)}>
+      <Button type="button" variant="ghost" size="icon" className={className} aria-label={labels.io.importButton} disabled={importBlock !== null} title={importBlock ? labels.io[importBlock] : undefined} onClick={() => setOpen(true)}>
         <Upload />
       </Button>
       <DataGridImportDialog open={open} onOpenChange={setOpen} {...dialogProps} />

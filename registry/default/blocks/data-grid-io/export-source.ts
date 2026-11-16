@@ -222,6 +222,24 @@ function toTypedCell(value: ExportCellValue): ExportCell {
   return null;
 }
 
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** The typed XLSX cell of a built-in `number`, `date`, or `checkbox` column; any other column keeps its text. */
+function builtInTypedCell(type: string | undefined, value: unknown, text: string): ExportCell {
+  if (type === "number") {
+    const number = text === "" ? Number.NaN : Number(text);
+    return Number.isFinite(number) ? number : text;
+  }
+  if (type === "checkbox") return typeof value === "boolean" ? value : text;
+  if (type === "date") {
+    const match = typeof value === "string" ? ISO_DATE.exec(value) : null;
+    if (!match) return text;
+    const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+    return date.getUTCMonth() === Number(match[2]) - 1 ? date : text;
+  }
+  return text;
+}
+
 /** Characters one exported cell adds to the file; typed cells count as `String(value)`. */
 export function exportCellSize(cell: ExportCell): number {
   if (cell === null) return 0;
@@ -242,7 +260,7 @@ export function mapExportRow<TData>(
     const cellType = state.cellTypes[column.type ?? "text"];
     const value = getCellValue<unknown, AnyColumnDef>(row, column);
     const cellText = cellType ? (text === "display" ? displayText(cellType, value, column.options) : cellType.toText(value, column.options)) : "";
-    if (!formatCell) return cellText;
+    if (!formatCell) return typed ? builtInTypedCell(column.type, value, cellText) : cellText;
     const formatted = formatCell({ value, text: cellText, row, column });
     return typed ? toTypedCell(formatted) : toCsvCell(formatted);
   });

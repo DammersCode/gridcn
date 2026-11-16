@@ -55,7 +55,7 @@ describe("csvEncoding", () => {
 
   it("rejects every label outside the allow-list, whatever TextDecoder would take", async () => {
     for (const label of ["utf-7", "x-user-defined", "replacement", "../etc", "", "iso-2022-jp"]) {
-      await expect(parseImportFile(csvFile("a"), { csvEncoding: label })).rejects.toThrow(RangeError);
+      await expect(parseImportFile(csvFile("a"), { csvEncoding: label as never })).rejects.toThrow(RangeError);
     }
     expect(IMPORT_CSV_ENCODINGS).toContain("utf-8");
   });
@@ -151,7 +151,7 @@ describe("useDataGridImportPreview — parseFile, header row index, build", () =
 
   it("keeps only bounded fields of a custom parse result", async () => {
     const parseFile = async (): Promise<ParsedImportFile> =>
-      ({ rows: [["Name"], ["a"]], delimiter: "|", sheetNames: [...Array.from({ length: 1000 }, (_, i) => `S${i}`), 7], sheetName: "x".repeat(1000) }) as never;
+      ({ rows: [["Name"], ["a"]], delimiter: "x", sheetNames: [...Array.from({ length: 1000 }, (_, i) => `S${i}`), 7], sheetName: "x".repeat(1000) }) as never;
     const { result } = renderHook(() => useDataGridImportPreview(options({ parseFile })));
     await act(async () => result.current.loadFile(FILE, targets));
     expect(result.current.preview?.delimiter).toBeUndefined();

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 
 import { Paperclip, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDataGridActions, useDataGridAllColumns, useDataGridLabels, type GateContext } from "@/registry/default/blocks/data-grid/data-grid";
-import { columnLabelText, isDev, useDataGridFlaggedCommit, useDataGridMarkGatePending, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { columnLabelText, isDev, useDataGridFlaggedCommit, useDataGridMarkGatePending, useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +20,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { IMPORT_CANCELLED_MESSAGE, type ImportColumnMapping, type ImportRejectedCell, type ProcessCellFromText } from "./build-imported-rows";
 import { importErrorKey, useDataGridImportPreview, type ImportTargetColumn, type ImportDefaults, type ParseFile, type ProcessImportRows, type ImportErrorKey } from "./use-data-grid-import";
-import { resolveImportLimits, type CsvDelimiter, type ImportLimits } from "./parse-import-file";
+import { resolveImportLimits, type CsvDelimiter, type ImportCsvEncoding, type ImportLimits } from "./parse-import-file";
 import { acceptedTypeNames, Dropzone, DropzoneEmptyState, type DropzoneAccept, type DropzoneRejection } from "@/registry/default/blocks/dropzone/dropzone";
 
 /** Accepted import file types, shared by the file input and the {@link Dropzone}. */
@@ -64,6 +64,17 @@ type ImportSource = Pick<ImportContext, "fileName" | "sheetName" | "mapping">;
 /** Maximum characters of an `onImport` error message the dialog shows. */
 const MAX_ERROR_MESSAGE_LENGTH = 200;
 
+type AppendBlock = "importNeedsOnImport" | "importReadOnly";
+
+const appendBlockOf = (state: { readOnly: boolean; totalRowCount?: number | null }): AppendBlock | null =>
+  state.readOnly ? "importReadOnly" : state.totalRowCount !== undefined ? "importNeedsOnImport" : null;
+
+/** The label key that explains why import is unavailable: the default append needs a client grid that accepts writes, so a grid without `onImport` that is read-only or holds a server result gets one. */
+export function useImportBlock(onImport: unknown): AppendBlock | null {
+  const block = useDataGridSelector<unknown, AppendBlock | null>(appendBlockOf);
+  return onImport ? null : block;
+}
+
 /** Props for {@link DataGridImportDialog}. */
 export type DataGridImportDialogProps<TData> = {
   /** Merges into the dialog content, which is `max-h-[80vh]` and `sm:max-w-2xl` by default. */
@@ -85,7 +96,7 @@ export type DataGridImportDialogProps<TData> = {
   /** File types the drop zone accepts; default csv, tsv, xls, and xlsx. Pair it with `parseFile` for other types. */
   accept?: DropzoneAccept;
   /** Decodes a CSV file with this `TextDecoder` label instead of UTF-8. A label outside `IMPORT_CSV_ENCODINGS` shows `labels.io.errorParseFailed`. */
-  csvEncoding?: string;
+  csvEncoding?: ImportCsvEncoding;
   /** Rewrites or drops the data rows before they are mapped. `false` cancels the import quietly. The result is checked against `importLimits`. */
   processImportRows?: ProcessImportRows;
   /** Parses one cell instead of the column's `fromText`. Default: the grid's `processCellFromClipboard`, then `fromText`. The value still passes `column.validate`. */
@@ -186,14 +197,14 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
   const appendRows = useCallback(
     (rows: TData[], flagged: readonly ImportRejectedCell[]) => {
       const state = storeApi.getState();
-      if (state.totalRowCount != null) {
-        if (isDev() && !warnedMissingOnImportRef.current) {
+      const block = appendBlockOf(state);
+      if (block) {
+        if (block === "importNeedsOnImport" && isDev() && !warnedMissingOnImportRef.current) {
           warnedMissingOnImportRef.current = true;
           console.warn("[data-grid-io] this grid holds a window of its result; pass onImport to send the rows to your server");
         }
-        throw new Error("");
+        throw new Error(labels.io[block]);
       }
-      if (state.readOnly) throw new Error("");
       const start = state.data.length;
       const flags = flagged.flatMap(({ rowIndex, gridColumnId, message }) => {
         const row = rows[rowIndex];
@@ -207,7 +218,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
         flags,
       );
     },
-    [commitWithFlags, storeApi],
+    [commitWithFlags, storeApi, labels],
   );
   const finish = useCallback(
     (rows: TData[], rejected: readonly ImportRejectedCell[], flagged: readonly ImportRejectedCell[], source: ImportSource) => {
@@ -272,30 +283,19 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
       }
       setBuildError(key === "errorTooManyCells" || key === "errorNoRows" ? key : "importBuildFailed");
     };
-    let built;
-    try {
-      built = build<TData>({
-        columns: allColumns,
-        // The store erases TData; the cast re-widens cellTypes to this dialog's TData.
-        cellTypes: state.cellTypes as never,
-        createRow,
-        signal: abortController.signal,
-        processImportRows,
-        processCellFromText: cellParser,
-      });
-    } catch (reason) {
-      fail(reason);
-      return;
-    }
-    if (built !== null && !(built instanceof Promise)) {
-      finish(built.rows, built.rejected, built.flagged, source);
-      return;
-    }
-    // A large import (chunked so the dialog can repaint and Cancel can land), a row or cell hook, or an
-    // async schema on a mapped column: the dialog stays open with Import disabled — the existing pending
-    // affordance — and closes when the last verdict is in, or drops the batch silently if Cancel/close beat it.
+    const built = build<TData>({
+      columns: allColumns,
+      // The store erases TData; the cast re-widens cellTypes to this dialog's TData.
+      cellTypes: state.cellTypes as never,
+      createRow,
+      signal: abortController.signal,
+      processImportRows,
+      processCellFromText: cellParser,
+    });
+    // The dialog stays open with Import disabled while the build runs (chunked so it can repaint and Cancel can land),
+    // and closes when the last verdict is in, or drops the batch silently if Cancel/close beat it.
     setIsValidating(true);
-    void Promise.resolve(built).then((result) => {
+    void built.then((result) => {
       if (confirmTokenRef.current !== token) return; // superseded by a newer confirm, or the dialog reset
       setIsValidating(false);
       if (result !== null) finish(result.rows, result.rejected, result.flagged, source);
@@ -307,6 +307,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
     onOpenChange(false);
   }, [onOpenChange]);
 
+  const importBlock = useImportBlock(onImport);
   const acceptedTypesLabel = labels.io.dropzoneDescription(acceptedTypeNames(accept), labels.io.maxFileSize(maxFileBytes));
 
   return (
@@ -326,9 +327,11 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
             </Dropzone>
           ) : (
             <Dropzone accept={accept} accessibleDescription={acceptedTypesLabel} maxFiles={1} maxSize={maxFileBytes} onDrop={onDropFiles} aria-label={labels.io.chooseFile}>
-              <DropzoneEmptyState title={labels.io.chooseFile} description={`${labels.io.noFileChosen} — ${labels.io.maxFileSize(maxFileBytes)}`} />
+              <DropzoneEmptyState title={labels.io.chooseFile} description={labels.io.emptyDropzoneCaption(labels.io.maxFileSize(maxFileBytes))} />
             </Dropzone>
           )}
+
+          {importBlock && <p role="alert" className="text-sm text-destructive">{labels.io[importBlock]}</p>}
 
           {error && <p role="alert" className="text-sm text-destructive">{labels.io[error]}</p>}
 
@@ -470,7 +473,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
           <Button type="button" variant="outline" onClick={onCancel}>
             {labels.io.cancel}
           </Button>
-            <Button type="button" onClick={onConfirm} disabled={!preview || importRows.length === 0 || isParsing || isValidating || rejectedCount > 0}>
+            <Button type="button" onClick={onConfirm} disabled={!preview || importBlock !== null || importRows.length === 0 || isParsing || isValidating || rejectedCount > 0}>
               {labels.io.import}
             </Button>
         </DialogFooter>

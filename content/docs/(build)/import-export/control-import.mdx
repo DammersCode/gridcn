@@ -77,10 +77,10 @@ When `onImport` rejects, the dialog shows `The import failed: <message>` if the 
 
 ## Load a file from code
 
-Pass `file` to `DataGridImportDialog` to load a file you already hold, such as one you fetched or one the user dropped on the page. The dialog loads it when it opens. For a custom dialog, `useDataGridImportPreview` returns `build()`, which runs `processImportRows` and the row build for the current preview:
+Pass `file` to `DataGridImportDialog` to load a file you already hold, such as one you fetched or one the user dropped on the page. The dialog loads it when it opens. For a custom dialog under the provider, `useDataGridImportPreview()` returns `build()`, which runs `processImportRows` and the row build for the current preview. <NewBadge /> It reads `columns` and `cellTypes` from the grid. Pass `columns` or `cellTypes` to build for other ones:
 
 ```tsx
-const built = await preview.build({ columns, cellTypes, createRow, signal });
+const built = await preview.build({ createRow, signal });
 if (built) await save(built.rows);
 ```
 
