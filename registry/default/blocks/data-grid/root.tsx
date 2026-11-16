@@ -54,6 +54,7 @@ import { useLoadAnnouncement } from "./use-load-announcement";
 import { DataGridLoadingSkeleton, DataGridLoadingBar, DataGridLoadingProgress } from "./rows/loading-skeleton";
 import { Button } from "@/components/ui/button";
 import { isDev } from "./is-dev";
+import { useClassNameRevision, type RenderedRows } from "./rows/use-class-name-revision";
 import { GRID_ATTR, gridAttrSelector } from "./data-attributes";
 import { closestGridRoot } from "./interaction/closest-grid-root";
 
@@ -166,9 +167,9 @@ export type DataGridRootProps<TData = unknown> = {
   renderMarker?: MarkerCellRenderer;
   /** Custom marker-header renderer: replaces the built-in select-all checkbox; same track and width. See {@link MarkerHeaderRenderer}. Pass a stable identity. */
   renderMarkerHeader?: MarkerHeaderRenderer;
-  /** Row class hook, merged via `cn()` after the built-in row classes. Pass a stable identity — see {@link GetRowClassName}. */
+  /** Row class hook, merged via `cn()` after the built-in row classes. An inline function is fine — see {@link GetRowClassName}. */
   getRowClassName?: GetRowClassName<TData>;
-  /** Cell class hook, merged via `cn()` after the built-in cell classes. Pass a stable identity — see {@link GetCellClassName}. */
+  /** Cell class hook, merged via `cn()` after the built-in cell classes. An inline function is fine — see {@link GetCellClassName}. */
   getCellClassName?: GetCellClassName<TData>;
   /** Composition parts: header + body, or your own. The `DataGrid` wrapper defaults to header + body when omitted. */
   children?: ReactNode;
@@ -437,26 +438,6 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   // without resizing it or the viewport, so the ResizeObserver never fires for it.
   usePinShadowEdges(viewportRef, hasPinnedLeft, hasPinnedRight, direction, `${pins.join(",")}|${layout.markerWidth}|${widths.join(",")}`);
 
-  // Dev-only guardrail: getRowClassName/getCellClassName reach
-  // row.tsx/cell.tsx through this root's context value rather than a per-row prop specifically so a
-  // DataGridRoot re-render (rare — structural only, see the useElementDimensions comment above) doesn't
-  // reach the memoized row/cell hot path; an unstable identity here would still bust the CONTEXT
-  // consumers on every DataGridRoot render, same anti-pattern as unstable `columns`/`data`.
-  const prevGetRowClassName = useRef(getRowClassName);
-  const prevGetCellClassName = useRef(getCellClassName);
-  useEffect(() => {
-    if (isDev()) {
-      if (prevGetRowClassName.current !== undefined && prevGetRowClassName.current !== getRowClassName) {
-        console.warn("[data-grid] getRowClassName identity changed since the last render; pass a stable reference (e.g. useCallback) or every row re-renders");
-      }
-      if (prevGetCellClassName.current !== undefined && prevGetCellClassName.current !== getCellClassName) {
-        console.warn("[data-grid] getCellClassName identity changed since the last render; pass a stable reference (e.g. useCallback) or every cell re-renders");
-      }
-    }
-    prevGetRowClassName.current = getRowClassName;
-    prevGetCellClassName.current = getCellClassName;
-  }, [getRowClassName, getCellClassName]);
-
   const { indices: columnWindowIndices } = useColumnWindow(scrollRef, {
     widths,
     pins,
@@ -544,6 +525,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     [columnIndices, visibleColumns],
   );
 
+  const renderedRowsRef = useRef<RenderedRows | null>(null);
+  const classNames = useClassNameRevision({ getRowClassName: getRowClassName as GetRowClassName<unknown> | undefined, getCellClassName: getCellClassName as GetCellClassName<unknown> | undefined }, renderedRowsRef);
   // Stable context value on real deps (mustFix): DataGridRoot re-renders when the active
   // cell leaves the rendered column window, and cell.tsx/header.tsx read this context directly —
   // a fresh object literal here would bust every context consumer (all virtualized cells, header
@@ -574,8 +557,10 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       // Erasure boundary: DataGridRootContextValue is one shared non-generic context for every
       // DataGridRoot<TData>, so a typed caller's callbacks widen to <unknown> here — safe because
       // every row they ever receive at runtime came from this same subtree's DataGridProvider.
-      getRowClassName: getRowClassName as GetRowClassName<unknown> | undefined,
-      getCellClassName: getCellClassName as GetCellClassName<unknown> | undefined,
+      getRowClassName: classNames.getRowClassName,
+      getCellClassName: classNames.getCellClassName,
+      classNameRevision: classNames.revision,
+      renderedRowsRef,
     }),
     [
       scrollRef,
@@ -599,8 +584,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       renderHeaderFilter,
       renderMarker,
       renderMarkerHeader,
-      getRowClassName,
-      getCellClassName,
+      classNames,
     ],
   );
 

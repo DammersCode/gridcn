@@ -52,8 +52,10 @@ export type DataGridCellProps = {
   gridReadOnly?: boolean;
   /** 1-based `gridColumnStart` offset added to `viewColumnIndex`; 2 when a marker column occupies track 1, else 1. Presentation-only — never affects `coord`/`aria-colindex`. */
   gridColOffset?: number;
-  /** Forwarded from row.tsx (stable identity, root's dev guardrail) rather than read from context here, so this memoized cell's props stay shallow-equal across ticks. */
+  /** Forwarded from row.tsx (a stable function) rather than read from context here, so this memoized cell's props stay shallow-equal across ticks. */
   getCellClassName?: GetCellClassName<unknown>;
+  /** Changes when the class hooks return different classes; re-renders this memoized cell. */
+  classNameRevision?: number;
   /**
    * True for a pinned top/bottom row cell (the `data-grid-pinned-rows` add-on's row-bands):
    * display-only, so this skips every pointer/focus handler — pinned rows aren't part of

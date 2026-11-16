@@ -1428,15 +1428,30 @@ describe("DataGridCell memo prop-stability audit", () => {
     expect(screen.getAllByRole("gridcell")[0]!.className).toContain("cell-class");
   });
 
-  it("getRowClassName/getCellClassName: an unstable identity across renders logs a dev warning (guardrail)", () => {
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const rows = makeRows(1);
-    const { rerender } = render(
-      <DataGrid data={rows} columns={columns} getRowId={(r) => r.id} getRowClassName={() => undefined} />,
-    );
-    rerender(<DataGrid data={rows} columns={columns} getRowId={(r) => r.id} getRowClassName={() => undefined} />);
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("getRowClassName identity changed"));
-    warnSpy.mockRestore();
+  it("inline getRowClassName re-renders no row on an unrelated parent render", () => {
+    const renderCell = vi.fn(({ value }: { value: unknown }) => String(value));
+    const countedColumns = [{ id: "id", header: "Id", accessorKey: "id", renderCell }] as unknown as typeof columns;
+    const rows = makeRows(3);
+    function TestGrid({ tick, mark }: { tick: number; mark?: string }) {
+      return (
+        <DataGrid
+          data={rows}
+          columns={countedColumns}
+          getRowId={(r) => r.id}
+          getRowClassName={() => `row-${mark ?? "same"}`}
+          getCellClassName={() => `cell-${mark ?? "same"}`}
+          aria-label={`tick-${tick}`}
+        />
+      );
+    }
+    const { rerender } = render(<TestGrid tick={0} />);
+    const before = renderCell.mock.calls.length;
+    rerender(<TestGrid tick={1} />);
+    expect(renderCell.mock.calls.length).toBe(before);
+    rerender(<TestGrid tick={2} mark="changed" />);
+    const row = screen.getAllByRole("row").filter((r) => r.getAttribute("aria-rowindex"))[0]!;
+    expect(row.className).toContain("row-changed");
+    expect(screen.getAllByRole("gridcell")[0]!.className).toContain("cell-changed");
   });
 });
 
