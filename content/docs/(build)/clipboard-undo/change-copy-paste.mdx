@@ -1,0 +1,112 @@
+---
+title: Change copy and paste
+description: Replace the text of a copied cell, the value of a pasted cell, or the whole pasted block with your own functions.
+icon: ClipboardPaste
+type: task
+aliases: ["processpaste", "processcellforclipboard", "processcellfromclipboard", "custom copy format", "veto a paste"]
+---
+
+Three props replace one step of copy or paste. Use them to write a cell in your own format. Use them to read a pasted value your way, or to check a pasted block before it lands. [Clipboard](/docs/clipboard-undo/clipboard) describes the default behavior.
+
+## Before you start
+
+- Mount a grid with `columns` and data.
+- Know that each prop runs for every cell or paste. The `text` and `fromText` fields of the context hold the default, so return them for the cells you do not change.
+
+## Steps
+
+1. Pass `processCellForClipboard` to change the text of a copied cell.
+2. Pass `processCellFromClipboard` to change the value of a pasted cell.
+3. Pass `processPaste` to change or veto the whole pasted block.
+
+## Change one cell
+
+This sample writes prices with a `$` sign and reads them back:
+
+```tsx
+import {
+  DataGrid,
+  defineColumns,
+  type ClipboardCopyCtx,
+  type ClipboardPasteCtx,
+} from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string; price: number };
+
+const rows: Row[] = [{ id: "1", name: "Pen", price: 1.5 }];
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+  { id: "price", header: "Price", accessorKey: "price", type: "number" },
+]);
+
+function copyText(value: unknown, { column, text }: ClipboardCopyCtx<Row>) {
+  return column.id === "price" ? `$${value}` : text;
+}
+
+function pasteValue(text: string, ctx: ClipboardPasteCtx<Row>) {
+  if (ctx.column.id !== "price") return ctx.fromText(text);
+  return Number(text.replace("$", ""));
+}
+
+function MyGrid() {
+  return (
+    <DataGrid
+      defaultData={rows}
+      columns={columns}
+      processCellForClipboard={copyText}
+      processCellFromClipboard={pasteValue}
+    />
+  );
+}
+```
+
+- `processCellForClipboard(value, { row, column, text })` returns the text of one copied cell. `text` is the `toText` of the cell type. Without the prop, `text` is copied.
+- `processCellFromClipboard(text, { row, column, fromText })` returns the value of one pasted cell. `fromText` parses `text` with the parser of the column. Without the prop, that parser decides.
+
+## Change the whole paste
+
+`processPaste({ cells, target, signal })` receives the text grid after the parse and the single-row tiling. `target` is the top-left cell of the paste. Return the grid to write, or `false` to veto the whole paste.
+
+`signal` is an `AbortSignal`. It aborts when the grid turns `readOnly`, an edit starts, `gateTimeoutMs` runs out, or the grid unmounts. See [Async gates](/docs/editing-cells/cancel-async-gates#cancel-a-request-with-the-signal).
+
+`processPaste` and `processCellFromClipboard` also accept a promise. This function sends the pasted block to your server:
+
+```tsx
+async function processPaste({
+  cells,
+  signal,
+}: {
+  cells: string[][];
+  signal: AbortSignal;
+}) {
+  const response = await fetch("/api/normalize-paste", {
+    method: "POST",
+    body: JSON.stringify(cells),
+    signal,
+  });
+  return response.ok ? ((await response.json()) as string[][]) : false;
+}
+```
+
+The grid holds the paste until the promise settles, then writes one change. The paste cap applies to the settled grid. A pending promise blocks a second paste. A rejection cancels the paste.
+
+The grid drops a late result when one of these happens:
+
+- The grid went `readOnly`.
+- A cell editor opened.
+- A newer paste started.
+- The grid unmounted.
+- The row or the column under the paste is gone.
+- A sort or a filter changed.
+
+If the row moved, the paste follows it. The [Async gates example](/docs/validation-examples/async-gates-example) shows the gate.
+
+## Result
+
+Copy writes `$1.5` for the price, and a paste of `$1.5` stores `1.5`. A `processPaste` that returns `false` writes nothing.
+
+## Related
+
+- [Clipboard](/docs/clipboard-undo/clipboard#overrides): the props table and the default steps.
+- [Async gates](/docs/editing-cells/cancel-async-gates)
+- [Validate rows and async checks](/docs/editing-cells/validate-rows-cross-field#on-bulk-paths)
