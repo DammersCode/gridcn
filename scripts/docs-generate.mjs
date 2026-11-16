@@ -8,7 +8,7 @@ import { pathToFileURL } from "node:url";
 import { frontField, pageIndex, readLf, splitFrontmatter, urlOfPage } from "./docs-verify-lib.mjs";
 import { parseTypes } from "./verify-docs-props.mjs";
 import { MESSAGES, OMITTED } from "./docs-generate-messages.mjs";
-import { FINDER, FEATURES, FEATURE_SINCE, ADDONS, TERM_PAGES, ACTION_PAGES } from "./docs-generate-data.mjs";
+import { FINDER, FEATURES, FEATURE_SINCE, ADDONS, TERM_PAGES, ACTION_PAGES, HOOK_GROUPS } from "./docs-generate-data.mjs";
 
 const root = process.cwd();
 const BLOCKS = "registry/default/blocks";
@@ -670,6 +670,53 @@ function actionsZ() {
   ].join("\n");
 }
 
+// ---------------------------------------------------------------- hooks
+/** Barrel files of the core and every add-on: name -> { item, file }. The SDK barrel is internal and stays out. */
+function barrelExports() {
+  const exports = new Map();
+  for (const item of readdirSync(join(root, BLOCKS), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort()) {
+    const file = [`${item}.ts`, `${item}.tsx`].map((f) => `${BLOCKS}/${item}/${f}`).find((f) => existsSync(join(root, f)));
+    if (!file) continue;
+    for (const m of read(file).matchAll(/export\s*\{([^}]*)\}/g)) {
+      for (const part of m[1].split(",")) {
+        const name = part.trim().split(/\s+as\s+/).pop().trim();
+        if (name && !/^type\s/.test(part.trim()) && !exports.has(name)) exports.set(name, item);
+      }
+    }
+    for (const m of read(file).matchAll(/^export (?:function|const) (\w+)/gm)) if (!exports.has(m[1])) exports.set(m[1], item);
+  }
+  return exports;
+}
+
+function hooksZ() {
+  const exported = barrelExports();
+  const sdk = read(`${BLOCKS}/data-grid/data-grid-sdk.ts`);
+  const known = new Set([...exported.keys(), ...[...sdk.matchAll(/\b(\w+)\b/g)].map((m) => m[1]), "useDebounce", "useDebouncedInput", "useCellEditor", "useCommitGuard", "useSeedFocus"]);
+  const listed = new Set(HOOK_GROUPS.flatMap((g) => g.rows.map((r) => r[0])));
+  for (const [name, item] of exported) if (/^use[A-Z]/.test(name) && !listed.has(name)) problems.push(`hooks: ${item} exports ${name}, which has no row in HOOK_GROUPS`);
+  const sections = HOOK_GROUPS.map((group) => {
+    const withSource = group.id === "add-on";
+    const rows = [...group.rows].sort((a, b) => a[0].localeCompare(b[0])).map(([name, purpose, target]) => {
+      if (!known.has(name)) problems.push(`hooks: ${name} is exported by no barrel`);
+      checkCell(`hooks: ${name}`, purpose);
+      const source = exported.get(name);
+      if (withSource && !source) problems.push(`hooks: ${name} is in no add-on barrel`);
+      return [code(name), ...(withSource ? [code(source ?? "")] : []), cell(purpose), link(target)];
+    });
+    const head = [group.id === "sdk" ? "Export" : "Hook", ...(withSource ? ["Source"] : []), "Purpose", "Page"];
+    return [`## ${group.title}`, "", ...(group.intro ? [group.intro, ""] : []), table(head, rows)].join("\n");
+  });
+  return [
+    frontmatter({ title: "Hooks A to Z", description: "Find a gridcn hook by name, see what it returns or does, and open the page that explains it.", type: "cheatsheet", icon: "Anchor", aliases: ["hooks"] }),
+    MARKER,
+    "",
+    "Each table lists the hooks of one source. Every row links to the page that explains the hook.",
+    "",
+    ...sections,
+    related(["/docs/types-hooks/store-hooks", ""], ["/docs/cheatsheets-messages/actions-z", ""], ["/docs/concepts/state-view-index", ""], ["/docs/cheatsheets-messages/options-z", ""]),
+  ].join("\n");
+}
+
 // ---------------------------------------------------------------- messages
 const MESSAGE_CALL = /\b(console\.(?:warn|error)|warnDev|warnOnce|warnGateOnce|pluginWarnOnce|warn|new (?:Type|Range)?Error)\(|\bissues\.push\(|\{ kind: "\w+", message:/;
 
@@ -774,6 +821,7 @@ const OUTPUTS = [
   ["content/docs/(evaluate)/fit-features/add-ons-a-z.mdx", addOns],
   ["content/docs/(reference)/cheatsheets-messages/keyboard-shortcuts.mdx", keyboardShortcuts],
   ["content/docs/(reference)/cheatsheets-messages/props-z.mdx", propsZ],
+  ["content/docs/(reference)/cheatsheets-messages/hooks-z.mdx", hooksZ],
   ["content/docs/(reference)/cheatsheets-messages/events-z.mdx", eventsZ],
   ["content/docs/(reference)/cheatsheets-messages/actions-z.mdx", actionsZ],
   ["content/docs/(reference)/cheatsheets-messages/messages.mdx", messages],
