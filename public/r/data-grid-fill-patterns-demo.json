@@ -5,8 +5,8 @@
   "author": "gridcn",
   "description": "A staged dataset with a numeric series (1,2,3), a zero-padded series (001,002), a text-plus-number series (Item 1,2,3), and a plain-text column — dragging the fill handle down each shows series extrapolation vs. plain tiling; Alt/Option forces a copy and Ctrl/Cmd+D/R do the same from the keyboard.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-fill"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-fill"
   ],
   "files": [
     {

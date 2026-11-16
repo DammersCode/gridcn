@@ -6,9 +6,9 @@
   "description": "Drag rows by the reorder grip or move the active row with reorderRows - both emit one id-keyed move op (a single undo step), and row selection remaps by row id.",
   "dependencies": [],
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-toolbar",
-    "DammersCode/gridcn/data-grid-history",
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-toolbar",
+    "@gridcn/data-grid-history",
     "button"
   ],
   "files": [

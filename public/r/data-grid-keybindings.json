@@ -6,7 +6,7 @@
   "description": "Keyboard shortcuts dialog for the gridcn data grid, generated at runtime from the grid's effective keymap, grouped by category with platform-aware key chips; opens via '?' or a trigger.",
   "dependencies": [],
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
+    "@gridcn/data-grid",
     "dialog"
   ],
   "files": [

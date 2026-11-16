@@ -6,8 +6,8 @@
   "description": "Async lookup cell type for the gridcn data grid: remote options with search as you type, a value and label stored together, abortable requests, and bounded untrusted answers.",
   "dependencies": [],
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/use-debounce",
+    "@gridcn/data-grid",
+    "@gridcn/use-debounce",
     "button",
     "input",
     "popover"

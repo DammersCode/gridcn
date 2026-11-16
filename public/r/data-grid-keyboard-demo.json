@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "Move, extend, and edit with the keyboard while a line shows the last chord.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid"
+    "@gridcn/data-grid"
   ],
   "files": [
     {

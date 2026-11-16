@@ -12,6 +12,28 @@ const outDir = join(root, "public", "r");
 copyFileSync(join(root, "registry.json"), join(outDir, "registry.json"));
 console.log("  synced registry.json -> public/r/registry.json");
 
+// registry.json names gridcn items by their GitHub path for the GitHub-path install, which reads the
+// repo's registry.json. The hosted payloads name them `@gridcn/<item>`, so a hosted install never reaches GitHub.
+const GITHUB_PREFIX = "DammersCode/gridcn/";
+const toHostedDependency = (dep) => (dep.startsWith(GITHUB_PREFIX) ? `@gridcn/${dep.slice(GITHUB_PREFIX.length)}` : dep);
+let hostedDeps = 0;
+for (const name of readdirSync(outDir)) {
+  if (!name.endsWith(".json")) continue;
+  const path = join(outDir, name);
+  const json = JSON.parse(readFileSync(path, "utf8"));
+  const items = name === "registry.json" ? json.items : [json];
+  let changed = false;
+  for (const item of items) {
+    if (!item.registryDependencies?.some((dep) => dep.startsWith(GITHUB_PREFIX))) continue;
+    item.registryDependencies = item.registryDependencies.map(toHostedDependency);
+    changed = true;
+  }
+  if (!changed) continue;
+  writeFileSync(path, `${JSON.stringify(json, null, 2)}\n`, "utf8");
+  hostedDeps += 1;
+}
+console.log(`  named gridcn dependencies @gridcn/<item> in ${hostedDeps} hosted file(s)`);
+
 const BLOCKS_ALIAS_RE = /@\/registry\/default\/(?:blocks\/([^/"'\s]+)\/([^"'\s]+)|(?:hooks|lib)\/([^"'\s]+))/g;
 // Hook and lib items install to components/gridcn/<name>, so their imports rewrite to that folder.
 const toComponentsAlias = (_match, item, rest, standalone) => (standalone ? `@/registry/default/components/gridcn/${standalone}` : `@/registry/default/components/${item}/${rest}`);
@@ -65,6 +87,10 @@ for (const name of readdirSync(outDir)) {
     const matches = file.content.match(/@\/registry\/default\/(?:blocks|hooks|lib)\/[^"'\s]+/g);
     if (matches) for (const m of matches) offenders.push(`  public/r/${name} :: ${file.path} :: ${m}`);
   }
+}
+
+for (const name of readdirSync(outDir)) {
+  if (name.endsWith(".json") && readFileSync(join(outDir, name), "utf8").includes(`"${GITHUB_PREFIX}`)) offenders.push(`  public/r/${name} :: names a gridcn dependency by its GitHub path`);
 }
 
 if (offenders.length > 0) {

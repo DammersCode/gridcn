@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "100k generated rows proving row virtualization: only the virtualized rows around the viewport ever mount.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid"
+    "@gridcn/data-grid"
   ],
   "files": [
     {

@@ -5,8 +5,8 @@
   "author": "gridcn",
   "description": "A locale Select (English/Deutsch/Arabic) where each locale carries its strings and its text direction: labels, column headers, and hint text translate via deep-merged overrides, and the Arabic locale flips the grid to RTL through the direction prop.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-toolbar",
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-toolbar",
     "select"
   ],
   "files": [

@@ -5,8 +5,8 @@
   "author": "gridcn",
   "description": "Quick search seeded with defaultSearchText: highlights, a match counter, and no hidden rows.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-toolbar"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-toolbar"
   ],
   "files": [
     {

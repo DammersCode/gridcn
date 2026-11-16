@@ -5,10 +5,10 @@
   "author": "gridcn",
   "description": "Saved views: pick, save, update, rename, delete, default, and import or export a view of sort, filters, search, and column layout.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-toolbar",
-    "DammersCode/gridcn/data-grid-sort-list",
-    "DammersCode/gridcn/data-grid-views",
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-toolbar",
+    "@gridcn/data-grid-sort-list",
+    "@gridcn/data-grid-views",
     "button"
   ],
   "files": [

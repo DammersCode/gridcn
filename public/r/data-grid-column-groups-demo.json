@@ -5,8 +5,8 @@
   "author": "gridcn",
   "description": "Column groups: Contact, Work with a nested History group, and Standing sit above their columns. Click a group header to select its columns, drag a group header to move the block, and use the columns menu to hide members.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-toolbar"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-toolbar"
   ],
   "files": [
     {

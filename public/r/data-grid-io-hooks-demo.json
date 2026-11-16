@@ -5,9 +5,9 @@
   "author": "gridcn",
   "description": "Every export, import, and replace hook in one small grid with a side panel: upload instead of download, typed cells, a sample file with title rows, cell and row hooks, and a replace plan you approve before it is written.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-find-replace",
-    "DammersCode/gridcn/data-grid-io",
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-find-replace",
+    "@gridcn/data-grid-io",
     "button",
     "checkbox",
     "input",

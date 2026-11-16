@@ -5,9 +5,9 @@
   "author": "gridcn",
   "description": "All four pin zones at once: Name pinned left, Score pinned right, plus an averages row pinned to the top band and a totals row pinned to the bottom band via the data-grid-pinned-rows add-on, over 200 rows so both directions scroll.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-history",
-    "DammersCode/gridcn/data-grid-pinned-rows"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-history",
+    "@gridcn/data-grid-pinned-rows"
   ],
   "files": [
     {

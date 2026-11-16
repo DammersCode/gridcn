@@ -6,7 +6,7 @@
   "description": "Async gates against a simulated server: processPaste normalizes a paste, validateRow checks a SKU after the edit commits, and createRow waits for a server-assigned id. A promise holds the gesture and the grid writes once when it settles.",
   "registryDependencies": [
     "button",
-    "DammersCode/gridcn/data-grid"
+    "@gridcn/data-grid"
   ],
   "files": [
     {

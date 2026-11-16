@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "A live ticker: `updateCells` streams values in place. An auto-sort switch toggles between defer (rows hold position, re-sort on demand) and immediate (correct order every tick).",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
+    "@gridcn/data-grid",
     "button",
     "switch"
   ],

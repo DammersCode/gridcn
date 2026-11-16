@@ -5,9 +5,9 @@
   "author": "gridcn",
   "description": "Search, filter menu, sort list, and columns menu in toolbar order.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-toolbar",
-    "DammersCode/gridcn/data-grid-sort-list"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-toolbar",
+    "@gridcn/data-grid-sort-list"
   ],
   "files": [
     {

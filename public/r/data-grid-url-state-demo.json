@@ -8,11 +8,11 @@
     "nuqs@^2.10.1"
   ],
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-toolbar",
-    "DammersCode/gridcn/data-grid-url-state",
-    "DammersCode/gridcn/data-grid-pagination",
-    "DammersCode/gridcn/data-grid-context-menu"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-toolbar",
+    "@gridcn/data-grid-url-state",
+    "@gridcn/data-grid-pagination",
+    "@gridcn/data-grid-context-menu"
   ],
   "files": [
     {

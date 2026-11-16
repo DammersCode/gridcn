@@ -5,8 +5,8 @@
   "author": "gridcn",
   "description": "Custom context menu items via getCellMenuItems and getHeaderMenuItems, replacing the built-in item sets.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-context-menu"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-context-menu"
   ],
   "files": [
     {

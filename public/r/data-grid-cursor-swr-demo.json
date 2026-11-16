@@ -8,8 +8,8 @@
     "swr@^2.5.1"
   ],
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-pagination",
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-pagination",
     "button"
   ],
   "files": [

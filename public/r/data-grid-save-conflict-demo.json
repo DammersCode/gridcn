@@ -6,7 +6,7 @@
   "description": "A mock server refuses a save with its current row, and resolveSaveConflict returns theirs, mine, or a merged row; the log shows what each row becomes.",
   "registryDependencies": [
     "button",
-    "DammersCode/gridcn/data-grid"
+    "@gridcn/data-grid"
   ],
   "files": [
     {

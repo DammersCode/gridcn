@@ -5,9 +5,9 @@
   "author": "gridcn",
   "description": "Row operations from two surfaces: toolbar buttons (insert above/below, duplicate, delete on the current selection) and the right-click context menu, with a side panel showing the last onDataChange payload (source + id-keyed ops) and a read-only toggle.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-context-menu",
-    "DammersCode/gridcn/data-grid-toolbar",
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-context-menu",
+    "@gridcn/data-grid-toolbar",
     "switch",
     "button"
   ],

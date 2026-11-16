@@ -6,7 +6,7 @@
   "description": "A slow onBeforeDeleteRows gate under gateTimeoutMs: the log shows each RowActionResult, every onRowActionSkipped reason, and the aborted gate.",
   "registryDependencies": [
     "button",
-    "DammersCode/gridcn/data-grid"
+    "@gridcn/data-grid"
   ],
   "files": [
     {

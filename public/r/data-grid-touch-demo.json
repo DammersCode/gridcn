@@ -5,9 +5,9 @@
   "author": "gridcn",
   "description": "Touch gestures: tap selects, double-tap edits, selection handles extend the range, and a long press opens the context menu with Fill down and Fill right.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-context-menu",
-    "DammersCode/gridcn/data-grid-fill"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-context-menu",
+    "@gridcn/data-grid-fill"
   ],
   "files": [
     {

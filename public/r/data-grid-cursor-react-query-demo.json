@@ -8,8 +8,8 @@
     "@tanstack/react-query@^5.103.2"
   ],
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-pagination",
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-pagination",
     "button"
   ],
   "files": [

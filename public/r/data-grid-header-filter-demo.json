@@ -5,8 +5,8 @@
   "author": "gridcn",
   "description": "Header filter button on each column: search the distinct values, check the ones to keep, and apply.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-toolbar"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-toolbar"
   ],
   "files": [
     {

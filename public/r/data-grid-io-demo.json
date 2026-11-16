@@ -5,10 +5,10 @@
   "author": "gridcn",
   "description": "Import/export toolbar buttons: export downloads the current view as xlsx or csv; import parses a file and replaces the grid's data through onDataChange.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-history",
-    "DammersCode/gridcn/data-grid-io",
-    "DammersCode/gridcn/data-grid-toolbar"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-history",
+    "@gridcn/data-grid-io",
+    "@gridcn/data-grid-toolbar"
   ],
   "files": [
     {

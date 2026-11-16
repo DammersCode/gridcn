@@ -8,8 +8,8 @@
     "nuqs@^2.10.1"
   ],
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-pagination"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-pagination"
   ],
   "files": [
     {

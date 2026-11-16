@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "Cross-field validation with validateRow: an End time must stay at or after its Start. The row is judged after a whole write gesture commits; a rejected row flags the named cell like a server error (the value still commits, no rollback) and the flag clears once the row is consistent again.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid"
+    "@gridcn/data-grid"
   ],
   "files": [
     {

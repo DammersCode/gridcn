@@ -5,9 +5,9 @@
   "author": "gridcn",
   "description": "Column layout persistence: defaultColumnLayout seeds widths/order/pins/hidden from a localStorage snapshot at mount, onColumnLayoutChange writes every resize commit, reorder, pin, and hide back; a Reset button clears the snapshot and re-seeds.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-context-menu",
-    "DammersCode/gridcn/data-grid-toolbar",
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-context-menu",
+    "@gridcn/data-grid-toolbar",
     "button"
   ],
   "files": [

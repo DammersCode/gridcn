@@ -122,9 +122,7 @@ function serveDir(dir, port) {
     }
     const ext = extname(filePath);
     res.writeHead(200, { "content-type": MIME[ext] ?? "application/octet-stream" });
-    // Payload deps name the GitHub registry; left as-is, the CLI installs them from main instead of this build.
-    const body = readFileSync(filePath);
-    res.end(ext === ".json" ? body.toString("utf8").replaceAll('"DammersCode/gridcn/', '"@gridcn/') : body);
+    res.end(readFileSync(filePath));
   });
   return new Promise((resolve) => {
     server.listen(port, "127.0.0.1", () => resolve(server));

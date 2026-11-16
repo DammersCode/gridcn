@@ -5,8 +5,8 @@
   "author": "gridcn",
   "description": "The live region announces checked rows and, with announceResults, the result count; a line on the page mirrors the spoken text.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-toolbar"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-toolbar"
   ],
   "files": [
     {

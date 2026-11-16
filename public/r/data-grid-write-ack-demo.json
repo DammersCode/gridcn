@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "onDataChange returns a promise: rows show saving while it is pending, a refused cell reverts on its own, and onSaveRejected reports the server's message.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid"
+    "@gridcn/data-grid"
   ],
   "files": [
     {

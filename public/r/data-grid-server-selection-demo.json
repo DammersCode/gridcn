@@ -5,9 +5,9 @@
   "author": "gridcn",
   "description": "Checked rows that survive page changes and select all matching over a paged result: totalRowCount, actions.selectAllMatching, and useDataGridSelectedRows.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-pagination",
-    "DammersCode/gridcn/data-grid-status-bar"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-pagination",
+    "@gridcn/data-grid-status-bar"
   ],
   "files": [
     {

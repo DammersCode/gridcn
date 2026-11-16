@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "Mouse selection with a switch for headerClickBehavior: select, sort, or none.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
+    "@gridcn/data-grid",
     "button"
   ],
   "files": [

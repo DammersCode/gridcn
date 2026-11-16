@@ -5,8 +5,8 @@
   "author": "gridcn",
   "description": "The hero demo: an editable grid with every built-in cell type, range selection, the free data-grid-fill add-on, and native clipboard, via defaultData with zero state wiring.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-fill"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-fill"
   ],
   "files": [
     {

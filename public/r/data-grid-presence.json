@@ -8,7 +8,7 @@
     "zustand@^5.0.15"
   ],
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid"
+    "@gridcn/data-grid"
   ],
   "files": [
     {

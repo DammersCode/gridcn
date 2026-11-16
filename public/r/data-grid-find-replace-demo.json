@@ -5,9 +5,9 @@
   "author": "gridcn",
   "description": "Open the find-and-replace panel with Ctrl+H, replace one match or all of them, and undo the whole replace in one step.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-find-replace",
-    "DammersCode/gridcn/data-grid-history",
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-find-replace",
+    "@gridcn/data-grid-history",
     "button"
   ],
   "files": [

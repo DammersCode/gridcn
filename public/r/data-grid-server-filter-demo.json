@@ -5,9 +5,9 @@
   "author": "gridcn",
   "description": "A lazy grid filtered by a fake server: filterMode=\"server\" keeps the rows as fetched, and the header filter lists the server's values through fetchFilterValues.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-server",
-    "DammersCode/gridcn/data-grid-toolbar"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-server",
+    "@gridcn/data-grid-toolbar"
   ],
   "files": [
     {

@@ -5,11 +5,11 @@
   "author": "gridcn",
   "description": "Grid with a live inspector panel pretty-printing the latest payload per event: onDataChange, onSelectionChange, onSortChange, onFilterChange/join, onFill, onRenderedRowsChange, onColumnLayoutChange, and a presence read-back button.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-toolbar",
-    "DammersCode/gridcn/data-grid-context-menu",
-    "DammersCode/gridcn/data-grid-presence",
-    "DammersCode/gridcn/data-grid-fill",
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-toolbar",
+    "@gridcn/data-grid-context-menu",
+    "@gridcn/data-grid-presence",
+    "@gridcn/data-grid-fill",
     "button"
   ],
   "files": [

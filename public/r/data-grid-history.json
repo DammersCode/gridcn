@@ -6,7 +6,7 @@
   "description": "Undo/redo add-on for the gridcn data grid: op-based, id-keyed history plus a useDataGridState quick-start wrapper.",
   "dependencies": [],
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid"
+    "@gridcn/data-grid"
   ],
   "files": [
     {

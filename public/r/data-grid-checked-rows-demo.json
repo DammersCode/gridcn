@@ -5,9 +5,9 @@
   "author": "gridcn",
   "description": "Checked rows survive a filter with checkedRowsLifetime 'across-filters'; the status bar counts the hidden checked rows.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-toolbar",
-    "DammersCode/gridcn/data-grid-status-bar"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-toolbar",
+    "@gridcn/data-grid-status-bar"
   ],
   "files": [
     {

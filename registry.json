@@ -698,6 +698,16 @@
                "target": "components/data-grid/store/stream-queue.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/store/column-order.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/column-order.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/store/validate-gate.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/validate-gate.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/store/server-spec-warning.ts",
                "type": "registry:component",
                "target": "components/data-grid/store/server-spec-warning.ts"

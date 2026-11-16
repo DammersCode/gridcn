@@ -5,8 +5,8 @@
   "author": "gridcn",
   "description": "onBeforeDeleteRows returns a promise from a confirm dialog; Cancel keeps the checked rows and Delete removes them.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-context-menu",
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-context-menu",
     "button",
     "dialog"
   ],

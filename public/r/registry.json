@@ -698,6 +698,16 @@
           "target": "components/data-grid/store/stream-queue.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/store/column-order.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/store/column-order.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid/store/validate-gate.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/store/validate-gate.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/store/server-spec-warning.ts",
           "type": "registry:component",
           "target": "components/data-grid/store/server-spec-warning.ts"
@@ -857,7 +867,7 @@
         "zustand@^5.0.15"
       ],
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid"
+        "@gridcn/data-grid"
       ],
       "files": [
         {
@@ -895,7 +905,7 @@
         "zustand@^5.0.15"
       ],
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid"
+        "@gridcn/data-grid"
       ],
       "files": [
         {
@@ -973,7 +983,7 @@
         "zustand@^5.0.15"
       ],
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid"
+        "@gridcn/data-grid"
       ],
       "files": [
         {
@@ -1029,8 +1039,8 @@
       "author": "gridcn",
       "dependencies": [],
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/use-debounce",
+        "@gridcn/data-grid",
+        "@gridcn/use-debounce",
         "button",
         "input",
         "popover"
@@ -1069,7 +1079,7 @@
       "author": "gridcn",
       "dependencies": [],
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid"
+        "@gridcn/data-grid"
       ],
       "files": [
         {
@@ -1109,7 +1119,7 @@
         "lucide-react@^1.46.0"
       ],
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
+        "@gridcn/data-grid",
         "dropdown-menu",
         "popover",
         "input",
@@ -1118,7 +1128,7 @@
         "select",
         "checkbox",
         "input-group",
-        "DammersCode/gridcn/use-debounce"
+        "@gridcn/use-debounce"
       ],
       "files": [
         {
@@ -1203,7 +1213,7 @@
         "zustand@^5.0.15"
       ],
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
+        "@gridcn/data-grid",
         "context-menu",
         "dropdown-menu",
         "tooltip"
@@ -1267,7 +1277,7 @@
       "author": "gridcn",
       "dependencies": [],
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
+        "@gridcn/data-grid",
         "dialog"
       ],
       "files": [
@@ -1321,8 +1331,8 @@
         "nuqs@^2.10.1"
       ],
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-pagination"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-pagination"
       ],
       "files": [
         {
@@ -1415,8 +1425,8 @@
         "@types/papaparse@^5.5.2"
       ],
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/dropzone",
+        "@gridcn/data-grid",
+        "@gridcn/dropzone",
         "dialog",
         "select",
         "table",
@@ -1562,8 +1572,8 @@
       "author": "gridcn",
       "dependencies": [],
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-pagination"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-pagination"
       ],
       "files": [
         {
@@ -1636,7 +1646,7 @@
         "lucide-react@^1.46.0"
       ],
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
+        "@gridcn/data-grid",
         "button",
         "select"
       ],
@@ -1688,7 +1698,7 @@
         "lucide-react@^1.46.0"
       ],
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
+        "@gridcn/data-grid",
         "popover",
         "button",
         "badge",
@@ -1717,7 +1727,7 @@
       "description": "Saved views add-on for the gridcn data grid: <DataGridViews /> saves, applies, updates, renames, deletes, and defaults named views of sort, filters, search, and column layout, and imports or exports one as bounded JSON checked against the live columns. useDataGridViews is the headless hook; a storage adapter (localStorage with an in-memory fallback by default, any async store) keeps the views. Zero core changes — purely additive.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
+        "@gridcn/data-grid",
         "popover",
         "button",
         "badge",
@@ -1770,10 +1780,10 @@
       "description": "Saved views: pick, save, update, rename, delete, default, and import or export a view of sort, filters, search, and column layout.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-toolbar",
-        "DammersCode/gridcn/data-grid-sort-list",
-        "DammersCode/gridcn/data-grid-views",
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-toolbar",
+        "@gridcn/data-grid-sort-list",
+        "@gridcn/data-grid-views",
         "button"
       ],
       "files": [
@@ -1799,7 +1809,7 @@
       "description": "Status-bar add-on for the gridcn data grid: <DataGridStatusBar /> shows count, sum, avg, min, and max of the selected cells under the grid (useDataGridSelectionStats is the headless hook). Numbers are detected by value (finite numbers), sums use Neumaier-compensated summation, a single-column selection formats through that column's toDisplayText, and above 200,000 cells the walk caps and flags the values with ≈. New user-facing strings live under labels.statusBar (see data-grid/labels.ts DataGridStatusBarLabels). Zero core changes — purely additive.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
+        "@gridcn/data-grid",
         "button"
       ],
       "files": [
@@ -1838,10 +1848,10 @@
         "lucide-react@^1.46.0"
       ],
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
+        "@gridcn/data-grid",
         "button",
         "input",
-        "DammersCode/gridcn/use-debounce"
+        "@gridcn/use-debounce"
       ],
       "files": [
         {
@@ -1876,7 +1886,7 @@
       "description": "The quick-start minimum: the core item alone, `defaultData`, zero app-side state.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid"
+        "@gridcn/data-grid"
       ],
       "files": [
         {
@@ -1896,7 +1906,7 @@
       "description": "A live ticker: `updateCells` streams values in place. An auto-sort switch toggles between defer (rows hold position, re-sort on demand) and immediate (correct order every tick).",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
+        "@gridcn/data-grid",
         "button",
         "switch"
       ],
@@ -1918,8 +1928,8 @@
       "description": "The hero demo: an editable grid with every built-in cell type, range selection, the free data-grid-fill add-on, and native clipboard, via defaultData with zero state wiring.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-fill"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-fill"
       ],
       "files": [
         {
@@ -1944,7 +1954,7 @@
       "description": "Every built-in cell type in one grid, plus a read-only column, a validate rule, and a custom renderCell override.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid"
+        "@gridcn/data-grid"
       ],
       "files": [
         {
@@ -1969,7 +1979,7 @@
       "description": "A date column that opens its calendar at edit start next to one with a typed input and a calendar button.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid"
+        "@gridcn/data-grid"
       ],
       "files": [
         {
@@ -1994,7 +2004,7 @@
       "description": "A worked custom cell type: currency storage as a plain number, cached locale-formatted display, and a symbol-stripping fromText, registered via the cellTypes prop.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
+        "@gridcn/data-grid",
         "input"
       ],
       "files": [
@@ -2015,8 +2025,8 @@
       "description": "Toolbar quick-search with match navigation, a per-column filter menu, and click-to-sort headers with multi-column sort.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-toolbar"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-toolbar"
       ],
       "files": [
         {
@@ -2041,9 +2051,9 @@
       "description": "Per-column filter operator overrides via ColumnDef.filter.operators, plus a full column list (including hidden columns) in the sort popover via allColumns.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-toolbar",
-        "DammersCode/gridcn/data-grid-sort-list"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-toolbar",
+        "@gridcn/data-grid-sort-list"
       ],
       "files": [
         {
@@ -2068,8 +2078,8 @@
       "description": "Undo/redo via the useDataGridState quick start, with toolbar buttons wired to the returned history object.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-history",
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-history",
         "button"
       ],
       "files": [
@@ -2095,8 +2105,8 @@
       "description": "Right-click cell menu (cut/copy/paste/clear, row operations) and header menu (sort/pin/hide/autosize) via the header dropdown.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-context-menu"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-context-menu"
       ],
       "files": [
         {
@@ -2121,8 +2131,8 @@
       "description": "Custom context menu items via getCellMenuItems and getHeaderMenuItems, replacing the built-in item sets.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-context-menu"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-context-menu"
       ],
       "files": [
         {
@@ -2147,8 +2157,8 @@
       "description": "A shortcuts dialog generated at runtime from the grid's effective keymap, opened via a toolbar button or the '?' shortcut.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-keybindings",
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-keybindings",
         "button"
       ],
       "files": [
@@ -2174,10 +2184,10 @@
       "description": "Import/export toolbar buttons: export downloads the current view as xlsx or csv; import parses a file and replaces the grid's data through onDataChange.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-history",
-        "DammersCode/gridcn/data-grid-io",
-        "DammersCode/gridcn/data-grid-toolbar"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-history",
+        "@gridcn/data-grid-io",
+        "@gridcn/data-grid-toolbar"
       ],
       "files": [
         {
@@ -2202,10 +2212,10 @@
       "description": "Print button with a page size picker for the PDF: the chosen A4, A3, Letter, or Legal size is passed to printGrid as options.pageSize.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-history",
-        "DammersCode/gridcn/data-grid-io",
-        "DammersCode/gridcn/data-grid-toolbar",
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-history",
+        "@gridcn/data-grid-io",
+        "@gridcn/data-grid-toolbar",
         "select"
       ],
       "files": [
@@ -2231,11 +2241,11 @@
       "description": "A paged server grid whose export menu exports the whole filtered result through an async source in batches, and whose import sends the rows to the server and refreshes.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-pagination",
-        "DammersCode/gridcn/data-grid-server",
-        "DammersCode/gridcn/data-grid-io",
-        "DammersCode/gridcn/data-grid-toolbar"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-pagination",
+        "@gridcn/data-grid-server",
+        "@gridcn/data-grid-io",
+        "@gridcn/data-grid-toolbar"
       ],
       "files": [
         {
@@ -2265,9 +2275,9 @@
       "description": "Every export, import, and replace hook in one small grid with a side panel: upload instead of download, typed cells, a sample file with title rows, cell and row hooks, and a replace plan you approve before it is written.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-find-replace",
-        "DammersCode/gridcn/data-grid-io",
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-find-replace",
+        "@gridcn/data-grid-io",
         "button",
         "checkbox",
         "input",
@@ -2295,11 +2305,11 @@
         "nuqs@^2.10.1"
       ],
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-toolbar",
-        "DammersCode/gridcn/data-grid-url-state",
-        "DammersCode/gridcn/data-grid-pagination",
-        "DammersCode/gridcn/data-grid-context-menu"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-toolbar",
+        "@gridcn/data-grid-url-state",
+        "@gridcn/data-grid-pagination",
+        "@gridcn/data-grid-context-menu"
       ],
       "files": [
         {
@@ -2324,7 +2334,7 @@
       "description": "rowMarkers modes (none/number/checkbox/both): a pinned-left marker column outside the data index space, switchable at runtime.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
+        "@gridcn/data-grid",
         "select"
       ],
       "files": [
@@ -2350,7 +2360,7 @@
       "description": "Column header as a React component: a three-state sort icon (minus / up / down) driven by useDataGridSortState(); header click sorts in sort mode, and a custom header owns its display.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid"
+        "@gridcn/data-grid"
       ],
       "files": [
         {
@@ -2378,7 +2388,7 @@
       "description": "Custom row marker renderers (renderMarker/renderMarkerHeader): a lucide icon marker reflecting the row selection state, and a select-all header button, while the marker cell's own press/drag gestures still select rows.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
+        "@gridcn/data-grid",
         "button"
       ],
       "files": [
@@ -2407,9 +2417,9 @@
       "description": "All four pin zones at once: Name pinned left, Score pinned right, plus an averages row pinned to the top band and a totals row pinned to the bottom band via the data-grid-pinned-rows add-on, over 200 rows so both directions scroll.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-history",
-        "DammersCode/gridcn/data-grid-pinned-rows"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-history",
+        "@gridcn/data-grid-pinned-rows"
       ],
       "files": [
         {
@@ -2434,9 +2444,9 @@
       "description": "Column pinning (left/right), resize (incl. a resizable:false column and a flex:1 long-content column for double-click autosize), and drag-to-reorder, with the header dropdown menu for pin/unpin/autosize and a toolbar columns menu for show/hide.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-context-menu",
-        "DammersCode/gridcn/data-grid-toolbar"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-context-menu",
+        "@gridcn/data-grid-toolbar"
       ],
       "files": [
         {
@@ -2461,7 +2471,7 @@
       "description": "Drag a header to reorder columns within its pin zone (enableColumnReorder, per-column reorderable opt-out, pinned-right column), plus a column picker wired to the programmatic setColumnOrder(id, targetId, position) path.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
+        "@gridcn/data-grid",
         "button",
         "select"
       ],
@@ -2491,8 +2501,8 @@
       "description": "Column groups: Contact, Work with a nested History group, and Standing sit above their columns. Click a group header to select its columns, drag a group header to move the block, and use the columns menu to hide members.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-toolbar"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-toolbar"
       ],
       "files": [
         {
@@ -2517,9 +2527,9 @@
       "description": "Column layout persistence: defaultColumnLayout seeds widths/order/pins/hidden from a localStorage snapshot at mount, onColumnLayoutChange writes every resize commit, reorder, pin, and hide back; a Reset button clears the snapshot and re-seeds.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-context-menu",
-        "DammersCode/gridcn/data-grid-toolbar",
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-context-menu",
+        "@gridcn/data-grid-toolbar",
         "button"
       ],
       "files": [
@@ -2545,7 +2555,7 @@
       "description": "Action-buttons column pattern: a pinned-right readOnly column whose renderCell composes shadcn Buttons over store actions (startEditing on the row's first editable cell, deleteRows/duplicateRows by view index) plus a more dropdown (Edit, Duplicate, Delete).",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
+        "@gridcn/data-grid",
         "button",
         "dropdown-menu"
       ],
@@ -2575,9 +2585,9 @@
       "description": "Row operations from two surfaces: toolbar buttons (insert above/below, duplicate, delete on the current selection) and the right-click context menu, with a side panel showing the last onDataChange payload (source + id-keyed ops) and a read-only toggle.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-context-menu",
-        "DammersCode/gridcn/data-grid-toolbar",
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-context-menu",
+        "@gridcn/data-grid-toolbar",
         "switch",
         "button"
       ],
@@ -2604,7 +2614,7 @@
       "description": "100k generated rows proving row virtualization: only the virtualized rows around the viewport ever mount.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid"
+        "@gridcn/data-grid"
       ],
       "files": [
         {
@@ -2629,7 +2639,7 @@
       "description": "100k generated rows with a top-left FPS meter overlay so the scroll-performance claim is checkable live.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid"
+        "@gridcn/data-grid"
       ],
       "files": [
         {
@@ -2654,10 +2664,10 @@
       "description": "Totals and averages rows pinned under the header, recomputed live from the grid's data on every edit, and filter-aware via a toolbar filter menu on the Role column.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-history",
-        "DammersCode/gridcn/data-grid-pinned-rows",
-        "DammersCode/gridcn/data-grid-toolbar"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-history",
+        "@gridcn/data-grid-pinned-rows",
+        "@gridcn/data-grid-toolbar"
       ],
       "files": [
         {
@@ -2682,10 +2692,10 @@
       "description": "A scrolling grid over a fake server whose totals row is computed by the server for the whole filtered result, with loading and stale states.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-server",
-        "DammersCode/gridcn/data-grid-pinned-rows",
-        "DammersCode/gridcn/data-grid-toolbar"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-server",
+        "@gridcn/data-grid-pinned-rows",
+        "@gridcn/data-grid-toolbar"
       ],
       "files": [
         {
@@ -2715,8 +2725,8 @@
       "description": "A customer column that searches a fake server as you type and stores the picked key with its label.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-lookup"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-lookup"
       ],
       "files": [
         {
@@ -2736,7 +2746,7 @@
       "description": "An HR dataset showing all four value-driven styling surfaces: grid-level getRowClassName/getCellClassName plus per-column cellClassName/headerClassName, all using shadcn theme tokens.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid"
+        "@gridcn/data-grid"
       ],
       "files": [
         {
@@ -2756,7 +2766,7 @@
       "description": "A fully-styled brand column (per-column cellClassName/headerClassName), a fully-styled at-risk row (getRowClassName beyond a bg tint), and a live density/rowHeight toggle.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
+        "@gridcn/data-grid",
         "select"
       ],
       "files": [
@@ -2777,9 +2787,9 @@
       "description": "A lazy grid filtered by a fake server: filterMode=\"server\" keeps the rows as fetched, and the header filter lists the server's values through fetchFilterValues.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-server",
-        "DammersCode/gridcn/data-grid-toolbar"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-server",
+        "@gridcn/data-grid-toolbar"
       ],
       "files": [
         {
@@ -2809,8 +2819,8 @@
       "description": "100k rows, only a handful loaded up front; a simulated-latency in-memory API fetches each scrolled-into window on demand, with skeleton rows filling in as data lands.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-server",
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-server",
         "button"
       ],
       "files": [
@@ -2831,9 +2841,9 @@
       "description": "A server that sends a cursor and no row count: infinite scroll and a pager over a keyset API, both through useDataGridServerRows.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-server",
-        "DammersCode/gridcn/data-grid-pagination",
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-server",
+        "@gridcn/data-grid-pagination",
         "button"
       ],
       "files": [
@@ -2854,9 +2864,9 @@
       "description": "Checked rows that survive page changes and select all matching over a paged result: totalRowCount, actions.selectAllMatching, and useDataGridSelectedRows.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-pagination",
-        "DammersCode/gridcn/data-grid-status-bar"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-pagination",
+        "@gridcn/data-grid-status-bar"
       ],
       "files": [
         {
@@ -2876,7 +2886,7 @@
       "description": "onDataChange returns a promise: rows show saving while it is pending, a refused cell reverts on its own, and onSaveRejected reports the server's message.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid"
+        "@gridcn/data-grid"
       ],
       "files": [
         {
@@ -2897,7 +2907,7 @@
       "author": "gridcn",
       "registryDependencies": [
         "button",
-        "DammersCode/gridcn/data-grid"
+        "@gridcn/data-grid"
       ],
       "files": [
         {
@@ -2918,7 +2928,7 @@
       "author": "gridcn",
       "registryDependencies": [
         "button",
-        "DammersCode/gridcn/data-grid"
+        "@gridcn/data-grid"
       ],
       "files": [
         {
@@ -2939,7 +2949,7 @@
       "author": "gridcn",
       "registryDependencies": [
         "button",
-        "DammersCode/gridcn/data-grid"
+        "@gridcn/data-grid"
       ],
       "files": [
         {
@@ -2959,9 +2969,9 @@
       "description": "Client-mode pagination: useDataGridPagination slices a generated dataset and <DataGridPaginationBar /> renders the default footer (first/prev/pages/next/last, page-size select, range label).",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-pagination",
-        "DammersCode/gridcn/data-grid-toolbar"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-pagination",
+        "@gridcn/data-grid-toolbar"
       ],
       "files": [
         {
@@ -2986,9 +2996,9 @@
       "description": "Toolbar sort button + popover: add/remove sorts, toggle ascending/descending, and reorder precedence via drag handle or ArrowUp/ArrowDown keyboard.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-toolbar",
-        "DammersCode/gridcn/data-grid-sort-list"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-toolbar",
+        "@gridcn/data-grid-sort-list"
       ],
       "files": [
         {
@@ -3013,8 +3023,8 @@
       "description": "Header filter button on each column: search the distinct values, check the ones to keep, and apply.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-toolbar"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-toolbar"
       ],
       "files": [
         {
@@ -3039,9 +3049,9 @@
       "description": "Open the find-and-replace panel with Ctrl+H, replace one match or all of them, and undo the whole replace in one step.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-find-replace",
-        "DammersCode/gridcn/data-grid-history",
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-find-replace",
+        "@gridcn/data-grid-history",
         "button"
       ],
       "files": [
@@ -3067,8 +3077,8 @@
       "description": "The live region announces checked rows and, with announceResults, the result count; a line on the page mirrors the spoken text.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-toolbar"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-toolbar"
       ],
       "files": [
         {
@@ -3093,9 +3103,9 @@
       "description": "Checked rows survive a filter with checkedRowsLifetime 'across-filters'; the status bar counts the hidden checked rows.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-toolbar",
-        "DammersCode/gridcn/data-grid-status-bar"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-toolbar",
+        "@gridcn/data-grid-status-bar"
       ],
       "files": [
         {
@@ -3120,8 +3130,8 @@
       "description": "onBeforeDeleteRows returns a promise from a confirm dialog; Cancel keeps the checked rows and Delete removes them.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-context-menu",
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-context-menu",
         "button",
         "dialog"
       ],
@@ -3148,9 +3158,9 @@
       "description": "Touch gestures: tap selects, double-tap edits, selection handles extend the range, and a long press opens the context menu with Fill down and Fill right.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-context-menu",
-        "DammersCode/gridcn/data-grid-fill"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-context-menu",
+        "@gridcn/data-grid-fill"
       ],
       "files": [
         {
@@ -3175,8 +3185,8 @@
       "description": "Select a range, a row, or a column — the status bar below the grid aggregates count, sum, avg, min, and max of the selection in real time.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-status-bar"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-status-bar"
       ],
       "files": [
         {
@@ -3201,7 +3211,7 @@
       "description": "Show the active row in a non-modal side panel opened from onCellClick or a custom Ctrl+Shift+Enter command.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
+        "@gridcn/data-grid",
         "button"
       ],
       "files": [
@@ -3227,8 +3237,8 @@
       "description": "3 simulated users move cell/range selections on a timer via useDataGridPresence's setPresenceHighlights (2 in view-space range form, 1 rowId-native), with toolbar avatar chips, one user periodically overlapping another, and headerClickBehavior=\"sort\" proving the rowId-native highlight follows its row through a sort.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-presence"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-presence"
       ],
       "files": [
         {
@@ -3253,11 +3263,11 @@
       "description": "Grid with a live inspector panel pretty-printing the latest payload per event: onDataChange, onSelectionChange, onSortChange, onFilterChange/join, onFill, onRenderedRowsChange, onColumnLayoutChange, and a presence read-back button.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-toolbar",
-        "DammersCode/gridcn/data-grid-context-menu",
-        "DammersCode/gridcn/data-grid-presence",
-        "DammersCode/gridcn/data-grid-fill",
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-toolbar",
+        "@gridcn/data-grid-context-menu",
+        "@gridcn/data-grid-presence",
+        "@gridcn/data-grid-fill",
         "button"
       ],
       "files": [
@@ -3289,8 +3299,8 @@
         "zod@^4.6.7"
       ],
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-history",
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-history",
         "sonner"
       ],
       "files": [
@@ -3312,7 +3322,7 @@
       "author": "gridcn",
       "registryDependencies": [
         "button",
-        "DammersCode/gridcn/data-grid"
+        "@gridcn/data-grid"
       ],
       "files": [
         {
@@ -3332,7 +3342,7 @@
       "description": "Cross-field validation with validateRow: an End time must stay at or after its Start. The row is judged after a whole write gesture commits; a rejected row flags the named cell like a server error (the value still commits, no rollback) and the flag clears once the row is consistent again.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid"
+        "@gridcn/data-grid"
       ],
       "files": [
         {
@@ -3357,8 +3367,8 @@
       "description": "A fake saveOrders rejects any committed Quantity over 100 after ~600ms; the onSave handler calls actions.setCellErrors to paint the exact cell with the same ring/tint/aria-invalid treatment as a live validate rejection, after commit. A badge reads the count via useDataGridCellErrors(), and a Clear all button calls clearCellErrors().",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-history",
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-history",
         "button"
       ],
       "files": [
@@ -3379,7 +3389,7 @@
       "description": "Two grids linked through React state: onActiveCellChange of a customer grid sets the rows of a read-only order grid.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid"
+        "@gridcn/data-grid"
       ],
       "files": [
         {
@@ -3399,8 +3409,8 @@
       "description": "A locale Select (English/Deutsch/Arabic) where each locale carries its strings and its text direction: labels, column headers, and hint text translate via deep-merged overrides, and the Arabic locale flips the grid to RTL through the direction prop.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-toolbar",
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-toolbar",
         "select"
       ],
       "files": [
@@ -3426,7 +3436,7 @@
       "description": "A grid with formula-like text cells and sanitizeClipboardFormulas: copy a range and paste it into a spreadsheet to get the formulas as text.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid"
+        "@gridcn/data-grid"
       ],
       "files": [
         {
@@ -3446,8 +3456,8 @@
       "description": "A staged dataset with a numeric series (1,2,3), a zero-padded series (001,002), a text-plus-number series (Item 1,2,3), and a plain-text column — dragging the fill handle down each shows series extrapolation vs. plain tiling; Alt/Option forces a copy and Ctrl/Cmd+D/R do the same from the keyboard.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-fill"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-fill"
       ],
       "files": [
         {
@@ -3467,7 +3477,7 @@
       "description": "Two Switches (loading, rows present) reach all three states of the loading prop: zero rows + loading = viewport-filling skeleton, rows present + loading = a slim indeterminate bar under the header, zero rows + not loading = the ordinary empty state.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
+        "@gridcn/data-grid",
         "switch"
       ],
       "files": [
@@ -3493,18 +3503,18 @@
       "description": "Every add-on composed in one grid: toolbar, context menu, fill, undo/redo, keybindings, sort list, import/export, plus independent toggles (row markers, pinned totals, validation, read-only, loading, RTL, presence, streaming, density, header click) and an exclusive virtualized/paginated/lazy mode select.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-history",
-        "DammersCode/gridcn/data-grid-fill",
-        "DammersCode/gridcn/data-grid-pinned-rows",
-        "DammersCode/gridcn/data-grid-presence",
-        "DammersCode/gridcn/data-grid-server",
-        "DammersCode/gridcn/data-grid-pagination",
-        "DammersCode/gridcn/data-grid-toolbar",
-        "DammersCode/gridcn/data-grid-context-menu",
-        "DammersCode/gridcn/data-grid-sort-list",
-        "DammersCode/gridcn/data-grid-keybindings",
-        "DammersCode/gridcn/data-grid-io",
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-history",
+        "@gridcn/data-grid-fill",
+        "@gridcn/data-grid-pinned-rows",
+        "@gridcn/data-grid-presence",
+        "@gridcn/data-grid-server",
+        "@gridcn/data-grid-pagination",
+        "@gridcn/data-grid-toolbar",
+        "@gridcn/data-grid-context-menu",
+        "@gridcn/data-grid-sort-list",
+        "@gridcn/data-grid-keybindings",
+        "@gridcn/data-grid-io",
         "switch",
         "select",
         "button"
@@ -3538,8 +3548,8 @@
         "@tanstack/react-query@^5.103.2"
       ],
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-server"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-server"
       ],
       "files": [
         {
@@ -3562,8 +3572,8 @@
         "@tanstack/react-query@^5.103.2"
       ],
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-pagination",
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-pagination",
         "button"
       ],
       "files": [
@@ -3597,8 +3607,8 @@
         "swr@^2.5.1"
       ],
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-pagination",
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-pagination",
         "button"
       ],
       "files": [
@@ -3632,8 +3642,8 @@
         "swr@^2.5.1"
       ],
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-server"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-server"
       ],
       "files": [
         {
@@ -3656,8 +3666,8 @@
         "@tanstack/react-query@^5.103.2"
       ],
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-pagination"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-pagination"
       ],
       "files": [
         {
@@ -3690,8 +3700,8 @@
         "swr@^2.5.1"
       ],
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-pagination"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-pagination"
       ],
       "files": [
         {
@@ -3721,10 +3731,10 @@
       "description": "The full remote contract in about fifteen lines of wiring: useDataGridServerRows owns sort, filter, search and page (or scroll blocks); every change is sent to the fake server, a stale request is aborted, and edits save through onSave and refetch.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-pagination",
-        "DammersCode/gridcn/data-grid-server",
-        "DammersCode/gridcn/data-grid-toolbar",
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-pagination",
+        "@gridcn/data-grid-server",
+        "@gridcn/data-grid-toolbar",
         "button",
         "select",
         "switch"
@@ -3757,7 +3767,7 @@
       "description": "Mouse selection with a switch for headerClickBehavior: select, sort, or none.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
+        "@gridcn/data-grid",
         "button"
       ],
       "files": [
@@ -3783,7 +3793,7 @@
       "description": "The compact, default, and comfortable density presets on one grid.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
+        "@gridcn/data-grid",
         "button"
       ],
       "files": [
@@ -3809,7 +3819,7 @@
       "description": "Move, extend, and edit with the keyboard while a line shows the last chord.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid"
+        "@gridcn/data-grid"
       ],
       "files": [
         {
@@ -3834,9 +3844,9 @@
       "description": "Search, filter menu, sort list, and columns menu in toolbar order.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-toolbar",
-        "DammersCode/gridcn/data-grid-sort-list"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-toolbar",
+        "@gridcn/data-grid-sort-list"
       ],
       "files": [
         {
@@ -3861,8 +3871,8 @@
       "description": "Quick search seeded with defaultSearchText: highlights, a match counter, and no hidden rows.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-toolbar"
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-toolbar"
       ],
       "files": [
         {
@@ -3887,7 +3897,7 @@
       "description": "A preset switcher: radius 0, 0.625rem, and 1rem, a tinted primary, and dark mode.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
+        "@gridcn/data-grid",
         "button"
       ],
       "files": [
@@ -3913,8 +3923,8 @@
       "description": "Undo and redo keep working while focus sits on a custom toolbar - the opt-in useDataGridGlobalShortcuts hook, with the editable-target guard shown live.",
       "author": "gridcn",
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-history",
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-history",
         "button",
         "input"
       ],
@@ -3942,9 +3952,9 @@
       "author": "gridcn",
       "dependencies": [],
       "registryDependencies": [
-        "DammersCode/gridcn/data-grid",
-        "DammersCode/gridcn/data-grid-toolbar",
-        "DammersCode/gridcn/data-grid-history",
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-toolbar",
+        "@gridcn/data-grid-history",
         "button"
       ],
       "files": [

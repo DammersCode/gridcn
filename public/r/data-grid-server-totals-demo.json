@@ -5,10 +5,10 @@
   "author": "gridcn",
   "description": "A scrolling grid over a fake server whose totals row is computed by the server for the whole filtered result, with loading and stale states.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-server",
-    "DammersCode/gridcn/data-grid-pinned-rows",
-    "DammersCode/gridcn/data-grid-toolbar"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-server",
+    "@gridcn/data-grid-pinned-rows",
+    "@gridcn/data-grid-toolbar"
   ],
   "files": [
     {

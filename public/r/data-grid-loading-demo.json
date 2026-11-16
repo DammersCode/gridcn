@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "Two Switches (loading, rows present) reach all three states of the loading prop: zero rows + loading = viewport-filling skeleton, rows present + loading = a slim indeterminate bar under the header, zero rows + not loading = the ordinary empty state.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
+    "@gridcn/data-grid",
     "switch"
   ],
   "files": [

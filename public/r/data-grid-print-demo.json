@@ -5,10 +5,10 @@
   "author": "gridcn",
   "description": "Print button with a page size picker for the PDF: the chosen A4, A3, Letter, or Legal size is passed to printGrid as options.pageSize.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-history",
-    "DammersCode/gridcn/data-grid-io",
-    "DammersCode/gridcn/data-grid-toolbar",
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-history",
+    "@gridcn/data-grid-io",
+    "@gridcn/data-grid-toolbar",
     "select"
   ],
   "files": [

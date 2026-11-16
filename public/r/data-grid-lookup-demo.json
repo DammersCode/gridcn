@@ -5,8 +5,8 @@
   "author": "gridcn",
   "description": "A customer column that searches a fake server as you type and stores the picked key with its label.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-lookup"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-lookup"
   ],
   "files": [
     {

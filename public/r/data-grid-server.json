@@ -6,8 +6,8 @@
   "description": "One server data source for the gridcn data grid: useDataGridServerRows owns sort, filter, search, page and page size, fetches one page per state with a race guard (pages mode) or fixed-size blocks as the rendered rows move, random access over a counted result or a sequential cursor chain (scroll mode), goes back to page 1 on a spec change, keeps the last good rows on screen, and validates every answer, and exposes status, error, retry and refresh. Controlled spec, page and page size pairs take a URL pagination result. Returns gridProps for DataGrid and pager controls for the pagination bar.",
   "dependencies": [],
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-pagination"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-pagination"
   ],
   "files": [
     {

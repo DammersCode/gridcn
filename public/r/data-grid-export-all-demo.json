@@ -5,11 +5,11 @@
   "author": "gridcn",
   "description": "A paged server grid whose export menu exports the whole filtered result through an async source in batches, and whose import sends the rows to the server and refreshes.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-pagination",
-    "DammersCode/gridcn/data-grid-server",
-    "DammersCode/gridcn/data-grid-io",
-    "DammersCode/gridcn/data-grid-toolbar"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-pagination",
+    "@gridcn/data-grid-server",
+    "@gridcn/data-grid-io",
+    "@gridcn/data-grid-toolbar"
   ],
   "files": [
     {

@@ -5,10 +5,10 @@
   "author": "gridcn",
   "description": "The full remote contract in about fifteen lines of wiring: useDataGridServerRows owns sort, filter, search and page (or scroll blocks); every change is sent to the fake server, a stale request is aborted, and edits save through onSave and refetch.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-pagination",
-    "DammersCode/gridcn/data-grid-server",
-    "DammersCode/gridcn/data-grid-toolbar",
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-pagination",
+    "@gridcn/data-grid-server",
+    "@gridcn/data-grid-toolbar",
     "button",
     "select",
     "switch"

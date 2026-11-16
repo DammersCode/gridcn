@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "A preset switcher: radius 0, 0.625rem, and 1rem, a tinted primary, and dark mode.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
+    "@gridcn/data-grid",
     "button"
   ],
   "files": [

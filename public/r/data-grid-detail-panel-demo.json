@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "Show the active row in a non-modal side panel opened from onCellClick or a custom Ctrl+Shift+Enter command.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
+    "@gridcn/data-grid",
     "button"
   ],
   "files": [

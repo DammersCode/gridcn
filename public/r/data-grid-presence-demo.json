@@ -5,8 +5,8 @@
   "author": "gridcn",
   "description": "3 simulated users move cell/range selections on a timer via useDataGridPresence's setPresenceHighlights (2 in view-space range form, 1 rowId-native), with toolbar avatar chips, one user periodically overlapping another, and headerClickBehavior=\"sort\" proving the rowId-native highlight follows its row through a sort.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-presence"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-presence"
   ],
   "files": [
     {

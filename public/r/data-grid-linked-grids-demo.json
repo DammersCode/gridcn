@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "Two grids linked through React state: onActiveCellChange of a customer grid sets the rows of a read-only order grid.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid"
+    "@gridcn/data-grid"
   ],
   "files": [
     {

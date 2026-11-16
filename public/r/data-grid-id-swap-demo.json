@@ -6,7 +6,7 @@
   "description": "A new row starts with a client id; the mock server answers with its own id, and actions.replaceRowId swaps it in with one onDataChange of source id-swap.",
   "registryDependencies": [
     "button",
-    "DammersCode/gridcn/data-grid"
+    "@gridcn/data-grid"
   ],
   "files": [
     {

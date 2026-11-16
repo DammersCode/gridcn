@@ -5,9 +5,9 @@
   "author": "gridcn",
   "description": "Per-column filter operator overrides via ColumnDef.filter.operators, plus a full column list (including hidden columns) in the sort popover via allColumns.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-toolbar",
-    "DammersCode/gridcn/data-grid-sort-list"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-toolbar",
+    "@gridcn/data-grid-sort-list"
   ],
   "files": [
     {

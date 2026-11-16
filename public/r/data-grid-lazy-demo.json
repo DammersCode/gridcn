@@ -5,8 +5,8 @@
   "author": "gridcn",
   "description": "100k rows, only a handful loaded up front; a simulated-latency in-memory API fetches each scrolled-into window on demand, with skeleton rows filling in as data lands.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-server",
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-server",
     "button"
   ],
   "files": [

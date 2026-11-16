@@ -13,8 +13,8 @@
     "@types/papaparse@^5.5.2"
   ],
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/dropzone",
+    "@gridcn/data-grid",
+    "@gridcn/dropzone",
     "dialog",
     "select",
     "table",

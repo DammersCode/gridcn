@@ -8,10 +8,10 @@
     "lucide-react@^1.46.0"
   ],
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
+    "@gridcn/data-grid",
     "button",
     "input",
-    "DammersCode/gridcn/use-debounce"
+    "@gridcn/use-debounce"
   ],
   "files": [
     {

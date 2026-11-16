@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "A date column that opens its calendar at edit start next to one with a typed input and a calendar button.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid"
+    "@gridcn/data-grid"
   ],
   "files": [
     {

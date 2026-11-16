@@ -5,8 +5,8 @@
   "author": "gridcn",
   "description": "Select a range, a row, or a column — the status bar below the grid aggregates count, sum, avg, min, and max of the selection in real time.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-status-bar"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-status-bar"
   ],
   "files": [
     {

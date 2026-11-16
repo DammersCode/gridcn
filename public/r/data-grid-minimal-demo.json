@@ -5,7 +5,7 @@
   "author": "gridcn",
   "description": "The quick-start minimum: the core item alone, `defaultData`, zero app-side state.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid"
+    "@gridcn/data-grid"
   ],
   "files": [
     {

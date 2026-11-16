@@ -5,8 +5,8 @@
   "author": "gridcn",
   "description": "Toolbar quick-search with match navigation, a per-column filter menu, and click-to-sort headers with multi-column sort.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-toolbar"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-toolbar"
   ],
   "files": [
     {

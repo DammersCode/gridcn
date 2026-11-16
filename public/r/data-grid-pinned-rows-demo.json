@@ -5,10 +5,10 @@
   "author": "gridcn",
   "description": "Totals and averages rows pinned under the header, recomputed live from the grid's data on every edit, and filter-aware via a toolbar filter menu on the Role column.",
   "registryDependencies": [
-    "DammersCode/gridcn/data-grid",
-    "DammersCode/gridcn/data-grid-history",
-    "DammersCode/gridcn/data-grid-pinned-rows",
-    "DammersCode/gridcn/data-grid-toolbar"
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-history",
+    "@gridcn/data-grid-pinned-rows",
+    "@gridcn/data-grid-toolbar"
   ],
   "files": [
     {
