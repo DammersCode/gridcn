@@ -85,18 +85,19 @@ export const IMPORT_CANCELLED_MESSAGE = "import-cancelled";
  * cell type's `validate`) — invalid values are cleared via `clearValue()` rather than dropping the
  * whole row, and every rejected cell is listed in the result's `rejected`.
  *
- * Returns `{ rows, rejected }` directly when `createRow` and every validator are synchronous, no
- * `processCellFromText` is given, AND `dataRows` is at or below {@link IMPORT_CHUNK_THRESHOLD_ROWS}.
- * Otherwise this returns a Promise instead: large imports are built in chunks that yield to
- * the event loop (so the dialog repaints and `options.signal` can cancel between chunks), and any
- * async validators run with the shared chunked concurrency cap. The import dialog's existing
- * pending affordance covers both waits.
+ * Always returns a Promise, and a throw rejects it. Imports above {@link IMPORT_CHUNK_THRESHOLD_ROWS} rows
+ * (or with `processCellFromText`) are built in chunks that yield to the event loop, so the dialog repaints
+ * and `options.signal` can cancel between chunks. Async validators run with the shared chunked concurrency cap.
  *
  * The function form's second argument is the row as `createRow` returned it, not the row with this
  * import row's earlier columns already folded in — validating a whole import row concurrently and
  * validating it left to right cannot both be true, and the fresh row is the predictable one.
  */
-export function buildImportedRows<TData>(options: BuildImportedRowsOptions<TData>): BuildImportedRowsResult<TData> | Promise<BuildImportedRowsResult<TData>> {
+export async function buildImportedRows<TData>(options: BuildImportedRowsOptions<TData>): Promise<BuildImportedRowsResult<TData>> {
+  return buildNow(options);
+}
+
+function buildNow<TData>(options: BuildImportedRowsOptions<TData>): BuildImportedRowsResult<TData> | Promise<BuildImportedRowsResult<TData>> {
   const { dataRows, mapping, columns, cellTypes, createRow, signal, processCellFromText } = options;
   const columnsById = new Map(columns.map((column) => [column.id, column] as const));
   const activeMappings = mapping.filter((m): m is { importColumnIndex: number; gridColumnId: string } => m.gridColumnId !== null);

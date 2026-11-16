@@ -8,11 +8,8 @@ import {
   type BuildImportedRowsOptions,
 } from "./build-imported-rows";
 
-/** Asserts the sync contract while calling: a fully-sync column set must never return a Promise. */
-function buildImportedRows<TData>(options: BuildImportedRowsOptions<TData>): TData[] {
-  const result = buildImportedRowsRaw(options);
-  if (result instanceof Promise) throw new Error("expected a synchronous result");
-  return result.rows;
+async function buildImportedRows<TData>(options: BuildImportedRowsOptions<TData>): Promise<TData[]> {
+  return (await buildImportedRowsRaw(options)).rows;
 }
 
 type Row = { id: string; name: string; age: number | null };
@@ -56,22 +53,21 @@ function makeRow(index: number): Row {
 }
 
 describe("buildImportedRows", () => {
-  it("lists a cell whose fromText throws in `rejected` and still builds the row", () => {
+  it("lists a cell whose fromText throws in `rejected` and still builds the row", async () => {
     const throwing: CellType<Row, number | null> = { ...numberCellType, fromText: () => { throw new Error("boom"); } };
-    const result = buildImportedRowsRaw({
+    const result = await buildImportedRowsRaw({
       dataRows: [["Alice", "30"]],
       mapping: [{ importColumnIndex: 0, gridColumnId: "name" }, { importColumnIndex: 1, gridColumnId: "age" }],
       columns: makeColumns(),
       cellTypes: { text: textCellType, number: throwing } as never,
       createRow: makeRow,
     });
-    if (result instanceof Promise) throw new Error("expected a synchronous result");
     expect(result.rows).toHaveLength(1);
     expect(result.rejected).toEqual([{ rowIndex: 0, importColumnIndex: 1, gridColumnId: "age", message: expect.any(String) }]);
   });
 
-  it("creates one row per data row via createRow and applies mapped cells through fromText", () => {
-    const rows = buildImportedRows({
+  it("creates one row per data row via createRow and applies mapped cells through fromText", async () => {
+    const rows = await buildImportedRows({
       dataRows: [
         ["Alice", "30"],
         ["Bob", "40"],
@@ -91,8 +87,8 @@ describe("buildImportedRows", () => {
     ]);
   });
 
-  it("skips import columns mapped to null", () => {
-    const rows = buildImportedRows({
+  it("skips import columns mapped to null", async () => {
+    const rows = await buildImportedRows({
       dataRows: [["Alice", "30"]],
       mapping: [
         { importColumnIndex: 0, gridColumnId: "name" },
@@ -106,8 +102,8 @@ describe("buildImportedRows", () => {
     expect(rows).toEqual([{ id: "row-0", name: "Alice", age: null }]);
   });
 
-  it("clears a value that fails column.validate rather than dropping the row", () => {
-    const rows = buildImportedRows({
+  it("clears a value that fails column.validate rather than dropping the row", async () => {
+    const rows = await buildImportedRows({
       dataRows: [["Alice", "-5"]],
       mapping: [
         { importColumnIndex: 0, gridColumnId: "name" },
@@ -121,9 +117,9 @@ describe("buildImportedRows", () => {
     expect(rows).toEqual([{ id: "row-0", name: "Alice", age: null }]);
   });
 
-  it("clears a value that fails the cell type's validate when the column declares none", () => {
+  it("clears a value that fails the cell type's validate when the column declares none", async () => {
     const cappedCellType: CellType<Row, number | null> = { ...numberCellType, validate: (value) => (value !== null && value > 100 ? "too old" : null) };
-    const result = buildImportedRowsRaw<Row>({
+    const result = await buildImportedRowsRaw<Row>({
       dataRows: [["Alice", "130"], ["Bob", "40"]],
       mapping: [
         { importColumnIndex: 0, gridColumnId: "name" },
@@ -136,7 +132,6 @@ describe("buildImportedRows", () => {
       cellTypes: { text: textCellType, capped: cappedCellType } as never,
       createRow: makeRow,
     });
-    if (result instanceof Promise) throw new Error("expected a synchronous result");
 
     expect(result.rows).toEqual([
       { id: "row-0", name: "Alice", age: null },
@@ -145,12 +140,12 @@ describe("buildImportedRows", () => {
     expect(result.rejected).toEqual([{ rowIndex: 0, importColumnIndex: 1, gridColumnId: "age", message: expect.any(String) }]);
   });
 
-  it("lists every rejected cell in `rejected` with its row and source column, and still builds all rows", () => {
+  it("lists every rejected cell in `rejected` with its row and source column, and still builds all rows", async () => {
     const columns: ColumnDef<Row, unknown>[] = [
       { id: "name", header: "Name", accessorKey: "name", type: "text", validate: (value) => (value === "bad" ? "invalid name" : null) },
       { id: "age", header: "Age", accessorKey: "age", type: "number", validate: (value) => (typeof value === "number" && value < 0 ? "must be non-negative" : null) },
     ];
-    const result = buildImportedRowsRaw<Row>({
+    const result = await buildImportedRowsRaw<Row>({
       dataRows: [
         ["Alice", "-5"],
         ["bad", "7"],
@@ -164,7 +159,6 @@ describe("buildImportedRows", () => {
       cellTypes: { text: textCellType, number: numberCellType } as never,
       createRow: makeRow,
     });
-    if (result instanceof Promise) throw new Error("expected a synchronous result");
 
     expect(result.rows).toEqual([
       { id: "row-0", name: "Alice", age: null },
@@ -178,8 +172,8 @@ describe("buildImportedRows", () => {
     ]);
   });
 
-  it("passes through createRow's index for identity/defaults", () => {
-    const rows = buildImportedRows({
+  it("passes through createRow's index for identity/defaults", async () => {
+    const rows = await buildImportedRows({
       dataRows: [["A"], ["B"], ["C"]],
       mapping: [{ importColumnIndex: 0, gridColumnId: "name" }],
       columns: makeColumns(),
@@ -189,8 +183,8 @@ describe("buildImportedRows", () => {
     expect(rows.map((r) => r.id)).toEqual(["row-0", "row-1", "row-2"]);
   });
 
-  it("skips a mapping whose gridColumnId doesn't match any column", () => {
-    const rows = buildImportedRows({
+  it("skips a mapping whose gridColumnId doesn't match any column", async () => {
+    const rows = await buildImportedRows({
       dataRows: [["Alice", "30"]],
       mapping: [
         { importColumnIndex: 0, gridColumnId: "name" },
@@ -203,9 +197,9 @@ describe("buildImportedRows", () => {
     expect(rows).toEqual([{ id: "row-0", name: "Alice", age: null }]);
   });
 
-  it("a duplicate mapping (two source columns on one grid column) lets the later one win, once per column", () => {
+  it("a duplicate mapping (two source columns on one grid column) lets the later one win, once per column", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const rows = buildImportedRows({
+    const rows = await buildImportedRows({
       dataRows: [["Alice", "Bob"]],
       mapping: [
         { importColumnIndex: 0, gridColumnId: "name" },
@@ -222,11 +216,11 @@ describe("buildImportedRows", () => {
     warn.mockRestore();
   });
 
-  it("applies the later-mapping-wins rule without the dev warning when NODE_ENV is production", () => {
+  it("applies the later-mapping-wins rule without the dev warning when NODE_ENV is production", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.stubEnv("NODE_ENV", "production");
     try {
-      const rows = buildImportedRows({
+      const rows = await buildImportedRows({
         dataRows: [["Alice", "Bob"]],
         mapping: [
           { importColumnIndex: 0, gridColumnId: "name" },
@@ -244,12 +238,12 @@ describe("buildImportedRows", () => {
     }
   });
 
-  it("skips a cell whose verdict is missing from the batch result", () => {
+  it("skips a cell whose verdict is missing from the batch result", async () => {
     const spy = vi.spyOn(sdk, "runValidateBatch").mockImplementation(
       (items: readonly sdk.ValidateBatchItem[]) => items.slice(0, -1).map((item) => ({ value: item.value })),
     );
     try {
-      const rows = buildImportedRows({
+      const rows = await buildImportedRows({
         dataRows: [
           ["Alice", "30"],
           ["Bob", "40"],
@@ -272,8 +266,8 @@ describe("buildImportedRows", () => {
     }
   });
 
-  it("defaults a column with no `type` to the 'text' cell type", () => {
-    const rows = buildImportedRows({
+  it("defaults a column with no `type` to the 'text' cell type", async () => {
+    const rows = await buildImportedRows({
       dataRows: [["Alice"]],
       mapping: [{ importColumnIndex: 0, gridColumnId: "untyped" }],
       columns: [{ id: "untyped", header: "Untyped", accessorKey: "name" }] as never,
@@ -283,8 +277,8 @@ describe("buildImportedRows", () => {
     expect(rows).toEqual([{ id: "row-0", name: "Alice", age: null }]);
   });
 
-  it("skips a mapping whose column type has no registered cell type", () => {
-    const rows = buildImportedRows({
+  it("skips a mapping whose column type has no registered cell type", async () => {
+    const rows = await buildImportedRows({
       dataRows: [["Alice"]],
       mapping: [{ importColumnIndex: 0, gridColumnId: "name" }],
       columns: makeColumns(),
@@ -294,8 +288,8 @@ describe("buildImportedRows", () => {
     expect(rows).toEqual([{ id: "row-0", name: "", age: null }]);
   });
 
-  it("treats a missing source cell as empty text", () => {
-    const rows = buildImportedRows({
+  it("treats a missing source cell as empty text", async () => {
+    const rows = await buildImportedRows({
       dataRows: [["Alice"]],
       mapping: [
         { importColumnIndex: 0, gridColumnId: "name" },
@@ -370,7 +364,7 @@ function makeWideRow(index: number): WideRow {
 }
 
 describe("buildImportedRows — writeCells row-merged spread (B5a)", () => {
-  it("produces byte-identical output to per-cell writes on a several-column fixture", () => {
+  it("produces byte-identical output to per-cell writes on a several-column fixture", async () => {
     const dataRows = [
       ["a0", "b0", "c0", "d0", "e0"],
       ["a1", "b1", "c1", "d1", "e1"],
@@ -378,7 +372,7 @@ describe("buildImportedRows — writeCells row-merged spread (B5a)", () => {
     ];
     const mapping = ["a", "b", "c", "d", "e"].map((gridColumnId, importColumnIndex) => ({ importColumnIndex, gridColumnId }));
 
-    const rows = buildImportedRows<WideRow>({
+    const rows = await buildImportedRows<WideRow>({
       dataRows,
       mapping,
       columns: wideColumns(),
@@ -393,7 +387,7 @@ describe("buildImportedRows — writeCells row-merged spread (B5a)", () => {
     ]);
   });
 
-  it("a setValue column still sees every earlier accessorKey cell's write in the same row (ordering preserved)", () => {
+  it("a setValue column still sees every earlier accessorKey cell's write in the same row (ordering preserved)", async () => {
     type Row2 = { id: string; first: string; last: string; full: string };
     const columns: ColumnDef<Row2, unknown>[] = [
       { id: "first", header: "First", accessorKey: "first", type: "text" },
@@ -407,7 +401,7 @@ describe("buildImportedRows — writeCells row-merged spread (B5a)", () => {
       },
     ];
 
-    const rows = buildImportedRows<Row2>({
+    const rows = await buildImportedRows<Row2>({
       dataRows: [["Alice", "Doe", "ignored"]],
       mapping: [
         { importColumnIndex: 0, gridColumnId: "first" },
@@ -441,9 +435,14 @@ describe("buildImportedRows — chunked path for large imports (B5b)", () => {
     signal,
   });
 
-  it("stays synchronous at or below the chunk threshold", () => {
+  it("a small synchronous build returns a thenable", async () => {
     const result = buildImportedRowsRaw<Row>(chunkOptions(manyDataRows(IMPORT_CHUNK_THRESHOLD_ROWS)));
-    expect(result).not.toBeInstanceOf(Promise);
+    expect(result).toBeInstanceOf(Promise);
+    expect((await result).rows).toHaveLength(IMPORT_CHUNK_THRESHOLD_ROWS);
+  });
+
+  it("rejects instead of throwing when an option is invalid", async () => {
+    await expect(buildImportedRowsRaw<Row>(undefined as never)).rejects.toThrow();
   });
 
   it("returns a Promise above the chunk threshold, resolving to the same rows the sync path would build", async () => {

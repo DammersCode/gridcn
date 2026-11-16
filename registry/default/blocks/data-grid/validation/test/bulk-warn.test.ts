@@ -173,9 +173,9 @@ describe("validationMode warn in bulk writes", () => {
     expect([...store.getState().cellErrors.keys()]).toEqual([cellErrorKey("r0", "soft")]);
   });
 
-  it("import: a warn column keeps the value and lists the cell in flagged; a block column is cleared and rejected", () => {
+  it("import: a warn column keeps the value and lists the cell in flagged; a block column is cleared and rejected", async () => {
     const textCellType = { Cell: () => null, Editor: () => null, toText: (v: unknown) => String(v ?? ""), fromText: (t: string) => t, clearValue: () => "", isEmpty: (v: unknown) => v === "" };
-    const result = buildImportedRows<Row>({
+    const result = await buildImportedRows<Row>({
       dataRows: [["toolong", "toolong"]],
       mapping: [
         { importColumnIndex: 0, gridColumnId: "hard" },
@@ -185,7 +185,6 @@ describe("validationMode warn in bulk writes", () => {
       cellTypes: { text: textCellType } as never,
       createRow: (index) => ({ id: `n${index}`, hard: "", soft: "" }),
     });
-    if (result instanceof Promise) throw new Error("expected sync");
     expect(result.rows[0]).toMatchObject({ hard: "", soft: "toolong" });
     expect(result.rejected.map((c) => c.gridColumnId)).toEqual(["hard"]);
     expect(result.flagged.map((c) => c.gridColumnId)).toEqual(["soft"]);

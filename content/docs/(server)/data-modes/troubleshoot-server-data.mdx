@@ -28,7 +28,7 @@ Find your symptom, read the cause, and apply the fix. In a development build, th
 ## Edits and saves [#saves]
 
 - **An edit disappears at the next page or refresh.** You replaced `onDataChange` after the spread of `server.gridProps`. The hook's merge keeps the edit in its rows, and a spread override drops the merge. Pass your handler as the `onDataChange` option of the hook.
-- **A warning says that the refresh guard never mounted.** You replaced `plugins` after the spread. Put `...server.gridProps.plugins` first. Without the guard, `refresh` cannot keep a row with a pending save or an open edit.
+- **A warning says that the refresh guard never mounted.** You replaced `plugins` after the spread. Pass your plugins in the `plugins` option of the hook instead. Without the guard, `refresh` cannot keep a row with a pending save or an open edit.
 - **A failed save does not revert the edit.** Your `onSave` returns no promise and does not throw, or the grid is `readOnly` at the refusal. A `readOnly` grid keeps the refused value and warns in development builds. Return a promise that rejects or resolves with `{ rejected }`. See [Save edits](/docs/save-server/save-edits).
 - **A row stays marked `failed`.** The mark clears at the next save of the row or with `actions.clearSaveStatus()`.
 - **Two users edit the same row, and the later save overwrites the first.** Your server accepts every write. Compare `prev` with the stored row, and refuse the row with `current`. Then `resolveSaveConflict` picks the row that wins. See [Handle refused saves](/docs/save-server/handle-refused-saves#detect-a-conflict).

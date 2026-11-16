@@ -828,13 +828,51 @@ describe("DataGridImportButton default append (browser)", () => {
     expect((next as Row[]).map((row) => row.name)).toEqual(["Seed", "Alice", "Bob"]);
   });
 
-  it("without onImport on a grid with totalRowCount, writes nothing and shows the failure", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const onDataChange = vi.fn();
-    await importTwoRows(onDataChange, 50);
-    await expect.element(page.getByText("The import could not be completed. Try again.")).toBeInTheDocument();
-    expect(onDataChange).not.toHaveBeenCalled();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("pass onImport"));
-    warn.mockRestore();
+  const SERVER_REASON = "Import is not available: this grid loads its rows from a server.";
+  it.each([
+    ["a server count", { totalRowCount: 50 }, SERVER_REASON],
+    ["an unknown server count", { totalRowCount: null }, SERVER_REASON],
+    ["readOnly", { readOnly: true }, "Import is not available: this grid is read-only."],
+  ])("without onImport on a grid with %s, disables the trigger and says why", async (_name, gridProps, reason) => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id} sortMode="client" filterMode="client" {...gridProps}>
+        <DataGridImportButton createRow={(): Row => ({ id: "x", name: "", age: null })} />
+      </DataGridProvider>,
+    );
+    const trigger = page.getByRole("button", { name: "Import" });
+    await expect.element(trigger).toBeDisabled();
+    await expect.element(trigger).toHaveAttribute("title", reason);
+  });
+
+  it("without onImport on a server grid, a dialog opened from code shows the reason and disables Import", async () => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id} totalRowCount={null} sortMode="client" filterMode="client">
+        <DataGridImportDialog open onOpenChange={() => {}} createRow={(): Row => ({ id: "x", name: "", age: null })} file={makeCsvFile("Name,Age\nAlice,30")} />
+      </DataGridProvider>,
+    );
+    await expect.element(page.getByRole("alert")).toHaveTextContent(SERVER_REASON);
+    await expect.element(page.getByRole("button", { name: "Import", exact: true })).toBeDisabled();
+  });
+
+  it("with onImport, a server grid keeps the trigger enabled", async () => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id} totalRowCount={null} sortMode="client" filterMode="client">
+        <DataGridImportButton createRow={(): Row => ({ id: "x", name: "", age: null })} onImport={() => {}} />
+      </DataGridProvider>,
+    );
+    await expect.element(page.getByRole("button", { name: "Import" })).toBeEnabled();
+  });
+});
+
+describe("DataGridImportDialog caption labels (browser)", () => {
+  it("renders labels.io.emptyDropzoneCaption with no built-in joiner", async () => {
+    await render(
+      <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id} labels={{ io: { emptyDropzoneCaption: (maxSize: string) => `Nothing yet (${maxSize})` } }}>
+        <DataGridImportButton createRow={(): Row => ({ id: "x", name: "", age: null })} onImport={() => {}} />
+      </DataGridProvider>,
+    );
+    await userEvent.click(page.getByRole("button", { name: "Import" }));
+    await expect.element(page.getByText("Nothing yet (up to 50 MB)")).toBeInTheDocument();
+    expect(document.body.textContent).not.toContain("No file chosen");
   });
 });

@@ -63,7 +63,7 @@ A string is never a formula. A CSV cell that starts with `=`, `+`, `-`, `@`, TAB
 
 ## Build the file without a download
 
-The `output` option of `exportGrid` receives the CSV or XLSX `Blob` and starts no download. For the CSV text of the loaded rows without a `Blob`, call `rowsToCsv(buildExportRows(state, scope))`. `exportRows(state, options, onBatch)` is the engine behind a `source` export. It reads the batches, applies `columns` and `formatCell`, enforces the limits and the abort, and hands each batch of text rows to `onBatch`. Use it to write your own format:
+The `output` option of `exportGrid` receives the CSV or XLSX `Blob` and starts no download. For the CSV text of the loaded rows without a `Blob`, call `rowsToCsv(buildExportRows(state, scope))`. The text has no header row. `exportRows(state, options, onBatch)` is the engine behind a `source` export. It reads the batches, applies `columns` and `formatCell`, enforces the limits and the abort, and hands each batch of text rows to `onBatch`. Use it to write your own format:
 
 ```tsx
 import {

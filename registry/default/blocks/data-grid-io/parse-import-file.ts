@@ -36,7 +36,7 @@ export const UNSUPPORTED_EXCEL_FORMAT_MESSAGE = "unsupported-excel-format";
 
 /** Import bounds; each omitted field falls back to {@link DEFAULT_IMPORT_LIMITS}. A file over any bound is rejected, never truncated. */
 export type ImportLimits = {
-  /** Reject files above this size (bytes) before the file is read; default 50 MB. */
+  /** Reject files above this size (bytes) before the file is read; default 50 MiB. */
   maxFileBytes?: number;
   /** Maximum rows, header row included; default 1,000,000. */
   maxRows?: number;
@@ -67,13 +67,13 @@ export type ParseImportFileOptions = ImportLimits & {
   /** For xlsx/xls: import this sheet by name instead of the first; rejects when the workbook has no sheet by that name. Ignored for CSV. */
   sheetName?: string;
   /** Decodes a CSV file with this label instead of UTF-8. Only the labels in {@link IMPORT_CSV_ENCODINGS} are accepted; any other label throws a `RangeError`. Ignored for xlsx/xls. */
-  csvEncoding?: string;
+  csvEncoding?: ImportCsvEncoding;
   /** Aborts the file read; an aborted parse rejects with an AbortError. */
   signal?: AbortSignal;
 };
 
 /** The `TextDecoder` labels `csvEncoding` accepts. */
-export const IMPORT_CSV_ENCODINGS: readonly string[] = [
+export const IMPORT_CSV_ENCODINGS = [
   "utf-8",
   "utf-16le",
   "utf-16be",
@@ -91,13 +91,16 @@ export const IMPORT_CSV_ENCODINGS: readonly string[] = [
   "euc-kr",
   "gb18030",
   "big5",
-];
+] as const;
+
+/** A label of {@link IMPORT_CSV_ENCODINGS}; the match ignores case and surrounding spaces. */
+export type ImportCsvEncoding = (typeof IMPORT_CSV_ENCODINGS)[number] | Uppercase<(typeof IMPORT_CSV_ENCODINGS)[number]>;
 
 /** Reads a CSV file as text; a `csvEncoding` label from the allow-list decodes the bytes, otherwise the file reads as UTF-8. */
-async function readCsvText(file: File, csvEncoding: string | undefined): Promise<string> {
+async function readCsvText(file: File, csvEncoding: ImportCsvEncoding | undefined): Promise<string> {
   if (csvEncoding === undefined) return file.text();
   const label = csvEncoding.trim().toLowerCase();
-  if (!IMPORT_CSV_ENCODINGS.includes(label)) throw new RangeError(`[data-grid-io] unsupported csvEncoding: ${csvEncoding}`);
+  if (!(IMPORT_CSV_ENCODINGS as readonly string[]).includes(label)) throw new RangeError(`[data-grid-io] unsupported csvEncoding: ${csvEncoding}`);
   return new TextDecoder(label).decode(await file.arrayBuffer());
 }
 

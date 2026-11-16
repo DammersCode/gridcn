@@ -58,7 +58,7 @@ A client grid with `defaultPageSize` holds every row, so its plain items cover a
 |---|---|---|
 | `source` | none | Where the rows of the whole result come from. `scope` does not apply. |
 | `maxRows` | 1,000,000 | Stops the export after this many data rows. An xlsx file also stops at the Excel sheet limit and at 5,000,000 cells. |
-| `maxBytes` | 256 MiB | Stops the export after this much file text. An xlsx file counts characters. |
+| `maxBytes` | 256 MiB | Stops at the first 1,000-row slice that passes this much file text. The header row and the byte order mark are not counted. An xlsx file counts characters. |
 | `signal` | none | Cancels the export. The promise rejects and no file downloads. |
 | `onProgress` | none | Called after each batch with `{ rowCount, byteCount }`. |
 

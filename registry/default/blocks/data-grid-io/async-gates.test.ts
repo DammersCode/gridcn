@@ -4,7 +4,7 @@ import type { CellType, ColumnDef } from "@/registry/default/blocks/data-grid/da
 import { buildImportedRows, IMPORT_CANCELLED_MESSAGE, IMPORT_CHUNK_THRESHOLD_ROWS } from "./build-imported-rows";
 import { resolveImportMapping as applyImportOptions, type ImportTargetColumn } from "./match-import-column";
 import { parseImportFile } from "./parse-import-file";
-import { useDataGridImportPreview } from "./use-data-grid-import";
+import { useDataGridImportPreview, type UseDataGridImportPreviewOptions } from "./use-data-grid-import";
 
 vi.mock("./parse-import-file", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./parse-import-file")>();
@@ -108,7 +108,7 @@ describe("mapColumn async", () => {
 });
 
 describe("mapColumn signal", () => {
-  const preview = (mapColumn: NonNullable<Parameters<typeof useDataGridImportPreview>[0]["defaults"]>["mapColumn"]) =>
+  const preview = (mapColumn: NonNullable<UseDataGridImportPreviewOptions["defaults"]>["mapColumn"]) =>
     renderHook(() => useDataGridImportPreview({ columnFallback: (i) => `Column ${i}`, defaults: { mapColumn } }));
 
   it("passes a signal that stays live for a sync mapping", () => {
@@ -181,9 +181,10 @@ describe("import createRow async", () => {
       signal,
     });
 
-  it("stays synchronous when the factory is sync", () => {
+  it("returns a Promise when the factory is sync", async () => {
     const result = build((index) => ({ id: `r${index}`, name: "" }));
-    expect(result instanceof Promise).toBe(false);
+    expect(result instanceof Promise).toBe(true);
+    expect((await result).rows).toHaveLength(2);
   });
 
   it("returns a Promise for an async factory and folds the cells into the resolved rows", async () => {

@@ -298,3 +298,25 @@ describe("useDataGridImportPreview — limits", () => {
     vi.restoreAllMocks();
   });
 });
+
+describe("useDataGridImportPreview — custom parseFile and defaults", () => {
+  it("keeps a pipe delimiter from a custom parseFile", async () => {
+    const parseFile = vi.fn(async () => ({ rows: [["Name"], ["A-row"]], delimiter: "|" as const }));
+    const { result } = renderHook(() => useDataGridImportPreview({ parseFile }));
+    await act(async () => {
+      await result.current.loadFile(FILE_B, TARGETS);
+    });
+    expect(result.current.preview?.delimiter).toBe("|");
+  });
+
+  it("names a headerless column with the built-in label when called with no argument", async () => {
+    mockedParse.mockResolvedValue({ rows: [["A-row"]], delimiter: "," });
+    const { result } = renderHook(() => useDataGridImportPreview());
+    await act(async () => {
+      await result.current.loadFile(FILE_B, TARGETS);
+    });
+    act(() => result.current.setHasHeaderRow(false));
+    expect(result.current.preview?.importHeaders).toEqual(["Column 1"]);
+    vi.restoreAllMocks();
+  });
+});

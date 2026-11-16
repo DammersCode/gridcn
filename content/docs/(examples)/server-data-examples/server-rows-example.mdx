@@ -61,7 +61,6 @@ export function OrdersGrid() {
       <DataGrid
         {...server.gridProps}
         columns={columns}
-        headerClickBehavior="sort"
         className="h-96"
       />
       <DataGridPaginationBar {...server.pager} />
@@ -72,10 +71,10 @@ export function OrdersGrid() {
 
 - The request holds `spec` (`sorts`, `filters`, `searchText`), `page`, `pageSize`, `start`, `end`, `cursor`, and `signal`. `cursor` is `undefined` until a page answer returns `nextCursor`. `start` is `(page - 1) * pageSize` and `end` is `start + pageSize`.
 - `fetchRows` resolves `{ rows, totalRowCount }`. A server without a count resolves `{ rows, hasMore }`. [Server rows options](/docs/add-options/server/server-rows-options#serverrowsanswer) lists how the hook checks an answer.
-- `server.gridProps` <NewBadge /> carries the data, the server sort and filter modes, the controlled spec, `totalRowCount`, `loading`, `error`, `onRetry`, `plugins`, and your `onSave`. The hook fetches again after the saves settle (`refreshAfterSave`). A header click sorts only with `headerClickBehavior="sort"`.
+- `server.gridProps` <NewBadge /> carries the data, the server sort and filter modes, the controlled spec, `totalRowCount`, `loading`, `error`, `onRetry`, `plugins`, `headerClickBehavior: "sort"`, and your `onSave`. The hook fetches again after the saves settle (`refreshAfterSave`). A header click sorts. Set `headerClickBehavior` after the spread to change that.
 - Treat the request as untrusted input. Pass it through `parseServerSpec(body.spec, { columns })` from `data-grid-server` before you build a query. It throws a `ServerSpecError` for an unknown column, an unknown operator, a tree that is too large, or a long value. Cap the request body size.
 - The [ORM examples](/docs/server-data-examples/orm-examples/drizzle-example) <NewBadge /> call `parseServerSpec`.
-- Put your own `onDataChange` in the hook options. A spread override drops the merge of the hook. A `plugins` prop of your own goes after the guard: `plugins={[...server.gridProps.plugins, mine]}`.
+- Put your own `onDataChange` in the hook options. A spread override drops the merge of the hook. Put your own plugins in the `plugins` option. The hook mounts them after its refresh guard.
 - A composed layout spreads `server.providerProps` onto `DataGridProvider` and `server.rootProps` onto `DataGridRoot`. The demo does this.
 
 ## Errors and retry [#errors-and-retry]

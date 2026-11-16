@@ -29,6 +29,23 @@ const ranges = (fetchRows: ReturnType<typeof countedServer>) => fetchRows.mock.c
 
 afterEach(() => vi.restoreAllMocks());
 
+describe("useDataGridServerRows scroll mode: options.onRenderedRowsChange and options.plugins", () => {
+  it("fires onRenderedRowsChange after the hook handler and blocks still load", async () => {
+    const seen: RowRange[] = [];
+    const { result } = await mount(countedServer(), { onRenderedRowsChange: (range) => seen.push(range) });
+    window_(result, { start: 100, end: 120 });
+    expect(seen).toEqual([{ start: 100, end: 120 }]);
+    await waitFor(() => expect(result.current.getLoadedRanges()).toContainEqual({ start: 100, end: 120 }));
+  });
+
+  it("mounts options.plugins after the refresh guard", async () => {
+    const { result } = await mount(countedServer(), { plugins: [{ name: "mine" }] });
+    const names = result.current.gridProps.plugins.map((plugin) => plugin.name);
+    expect(names).toHaveLength(2);
+    expect(names[1]).toBe("mine");
+  });
+});
+
 describe("useDataGridServerRows scroll mode: first block and count", () => {
   it("sends block 0 first, with the spec, no cursor, and a signal", async () => {
     const fetchRows = countedServer();

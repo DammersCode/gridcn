@@ -9,7 +9,7 @@ import { cursorKey, MAX_SEEN_CURSORS, needsNextBlock, skeletonCount, startsSeque
 import { chunkAligned, chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes } from "./range-math";
 import { DEFAULT_MAX_LOADED_ROWS, MAX_SEQUENTIAL_REVALIDATE_BLOCKS, distanceToCentre, dueWanted, keepRange, pickEvictions, pruneViewed, rangesIntersect, readFetchLimits, trackWanted, unloadRangesOf, type FetchLimits, type Wanted } from "./fetch-hygiene";
 import { useSaveRefresh, type SaveRefreshOptions, type SaveRefreshPolicy } from "./save-refresh";
-import { isolate, scheduleFrame, useReshape, useRevalidation, useServerSpec } from "./server-state";
+import { isolate, scheduleFrame, useMountedPlugins, useReshape, useRevalidation, useServerSpec } from "./server-state";
 import type { UseDataGridServerRowsRootProps } from "./use-data-grid-server-rows";
 
 const DEFAULT_OVERSCAN = 30;
@@ -80,6 +80,10 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
   onSave?: SaveRefreshOptions<TData>["onSave"];
   /** When the hook calls `refresh()` after `onSave` settles: `"settled"` once after every save in flight (default), `"each"` after saves settle without waiting for the saves in flight, `false` never, or a function that gets the counts and returns whether to refresh. A sequential source skips the refresh while the rendered rows plus `overscan` end beyond 10 blocks. */
   refreshAfterSave?: SaveRefreshPolicy;
+  /** Plugins the hook mounts after its refresh guard, through `gridProps.plugins`. */
+  plugins?: readonly DataGridPlugin<unknown>[];
+  /** Fires after the hook's own handler of `gridProps.onRenderedRowsChange`, with the rendered rows. */
+  onRenderedRowsChange?: (range: RowRange) => void;
 };
 
 /** Props of {@link UseDataGridServerRowsScrollResult.gridProps} that belong to `DataGridProvider`. */
@@ -106,8 +110,10 @@ export type UseDataGridServerRowsScrollProviderProps<TData> = {
   totalRowCount: number | null;
   /** Keeps checks by row id across window moves, evictions, and server sorts and filters. */
   checkedRowsLifetime: "across-filters";
-  /** Mounts the guard that keeps a refresh from overwriting a row with a pending save or an open edit. Put your own plugins after it. */
+  /** The refresh guard that keeps a refresh from overwriting a row with a pending save or an open edit, then the `plugins` option. */
   plugins: readonly DataGridPlugin<unknown>[];
+  /** Sorts on a header click. Override it after the spread. */
+  headerClickBehavior: "sort";
 };
 
 /** Return value of `useDataGridServerRows` in scroll mode. */
@@ -288,7 +294,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
   const [count, setCount] = useState<number | null>(null);
   const [loadedCount, setLoadedCount] = useState(0);
   const [skeletons, setSkeletons] = useState<number | null>(null);
-  const { setSaveCheckListener, plugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, setSettleListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows } = useRefreshGuard({ trackUnacknowledged: true });
+  const { setSaveCheckListener, plugins: guardPlugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, setSettleListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows } = useRefreshGuard({ trackUnacknowledged: true });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const live = useRef({ options, spec });
@@ -756,7 +762,14 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     },
     [getCore, overscanOf, blockSize, limits, leaveKeepRange, pump],
   );
-  const onRenderedRowsChange = useCallback((range: RowRange) => reportRange(range, false), [reportRange]);
+  const onRenderedRowsChange = useCallback(
+    (range: RowRange) => {
+      reportRange(range, false);
+      const own = live.current.options.onRenderedRowsChange;
+      if (own) isolate("onRenderedRowsChange", () => own(range));
+    },
+    [reportRange],
+  );
   useLayoutEffect(() => {
     windowRef.current = (range) => reportRange(range, true);
   }, [reportRange]);
@@ -984,6 +997,8 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
   }, [canRevalidate, refresh]);
   const onSave = useSaveRefresh(options, refreshAfterSave, setSaveCheckListener);
 
+  const plugins = useMountedPlugins(guardPlugins, options.plugins);
+
   const providerProps = useMemo<UseDataGridServerRowsScrollProviderProps<TData>>(
     () => ({
       data: rows as TData[],
@@ -1001,6 +1016,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       onSearchTextChange,
       totalRowCount: count,
       checkedRowsLifetime: "across-filters",
+      headerClickBehavior: "sort",
       plugins,
     }),
     [rows, count, spec, getRowId, onDataChange, onSave, onRenderedRowsChange, onSortChange, onFilterChange, onSearchTextChange, plugins],

@@ -41,7 +41,7 @@ export type ExportOutput = (file: Blob, ctx: { fileName: string; format: "csv" |
 export type ExportShapeOptions<TData = unknown> = {
   /** Column ids to export, in this order. Hidden grid columns are allowed. Default: the visible columns in view order. An unknown id throws a `RangeError` before any row is read or fetched. With `source`, the source receives the same ids as `columnIds`. */
   columns?: readonly string[];
-  /** Replaces the value of each exported cell. Runs once per cell after the cell type made its text (`text` holds that default). Return `null` or `undefined` for an empty cell. CSV writes numbers and booleans as text and Dates as ISO 8601; XLSX keeps numbers, booleans and Dates typed. A string stays text, cut at 32,767 characters. A number that is not finite and an invalid Date make an empty cell. A throw rejects the export. */
+  /** Replaces the value of each exported cell. Runs once per cell after the cell type made its text (`text` holds that default). Return `null` or `undefined` for an empty cell. CSV writes numbers and booleans as text and Dates as ISO 8601; XLSX keeps numbers, booleans and Dates typed. Without `formatCell`, XLSX writes `number`, `date`, and `checkbox` columns typed and every other column as text. A string stays text, cut at 32,767 characters. A number that is not finite and an invalid Date make an empty cell. A throw rejects the export. */
   formatCell?: FormatExportCell<TData>;
 };
 
@@ -113,11 +113,20 @@ export function quoteCsvField(value: string, delimiter: string): string {
   return `"${value.replace(/"/g, '""')}"`;
 }
 
+/** Options for {@link rowsToCsv}. */
+export type RowsToCsvOptions = {
+  /** Field separator. Default `","`. */
+  delimiter?: string;
+  /** Prefix formula-like fields with `'` (see `sanitizeFormulaCell`). Default `true`. */
+  sanitizeFormulas?: boolean;
+};
+
 /**
  * Joins rows into an RFC4180 CSV string (CRLF line endings), quoting fields as needed. With
  * `sanitizeFormulas` (default `true`), formula-like fields get a leading `'` first (see `sanitizeFormulaCell`).
  */
-export function rowsToCsv(rows: readonly (readonly string[])[], delimiter: string, sanitizeFormulas = true): string {
+export function rowsToCsv(rows: readonly (readonly string[])[], options: RowsToCsvOptions = {}): string {
+  const { delimiter = ",", sanitizeFormulas = true } = options;
   // sanitize before quoting: the apostrophe prefix itself never needs quoting
   const field = (value: string) => quoteCsvField(sanitizeFormulas ? sanitizeFormulaCell(value) : value, delimiter);
   return rows.map((row) => row.map(field).join(delimiter)).join("\r\n");
@@ -228,8 +237,8 @@ async function writeSheet(name: string, rows: ExportCell[][]): Promise<Blob> {
 /**
  * Builds an xlsx `Blob` from the grid's state without triggering a download — for server uploads
  * or inspecting the workbook before it leaves the browser. Values go through each column's cell
- * type `toText` like `exportGrid` and land as string cells, never formulas, unless `formatCell`
- * returns a number, boolean or Date, which land typed; hucre loads lazily.
+ * type `toText` like `exportGrid`. Built-in `number`, `date`, and `checkbox` columns land typed, other columns as
+ * string cells, never formulas; `formatCell` overrides both. hucre loads lazily.
  */
 export async function buildXlsx<TData = unknown>(state: DataGridReadState, options: BuildXlsxOptions<TData> = {}): Promise<Blob> {
   const { scope = "view", includeHeaders = true, sheetName = "Sheet1", maxRows } = options;
@@ -246,7 +255,7 @@ export function buildCsv<TData = unknown>(state: DataGridReadState, options: Bui
   const { scope = "view", includeHeaders = true, csvDelimiter = ",", csvBom = true, sanitizeFormulas = true } = options;
   const rows = buildCappedExportRows(state, scope, options.maxRows, options, false) as string[][];
   const table = includeHeaders ? [buildExportHeaders(state, options.columns), ...rows] : rows;
-  return new Blob([(csvBom ? BOM : "") + rowsToCsv(table, csvDelimiter, sanitizeFormulas)], { type: "text/csv;charset=utf-8;" });
+  return new Blob([(csvBom ? BOM : "") + rowsToCsv(table, { delimiter: csvDelimiter, sanitizeFormulas })], { type: "text/csv;charset=utf-8;" });
 }
 
 function isValidSheetName(name: string): boolean {
@@ -299,7 +308,7 @@ async function exportFromSource<TData>(state: DataGridReadState, source: ExportS
     let started = false;
     const append = (rows: readonly (readonly string[])[]): number => {
       if (rows.length === 0) return 0;
-      const text = (started ? CSV_EOL : "") + rowsToCsv(rows, csvDelimiter, sanitizeFormulas);
+      const text = (started ? CSV_EOL : "") + rowsToCsv(rows, { delimiter: csvDelimiter, sanitizeFormulas });
       started = true;
       const part = new Blob([text]);
       parts.push(part);

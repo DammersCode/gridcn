@@ -134,6 +134,13 @@ export function useOptionalDataGridLabels(): DataGridLabels | null {
   return useOptionalDataGridStore((s) => s.labels);
 }
 
+/** The columns and resolved cell types of the enclosing grid, or `null` outside a `DataGridProvider`; the defaults of the import `build()`. */
+export function useOptionalDataGridColumnSource(): { columns: readonly AnyColumnDef[]; cellTypes: Record<string, CellType> } | null {
+  const columns = useOptionalDataGridStore((s) => s.columns);
+  const cellTypes = useOptionalDataGridStore((s) => s.cellTypes);
+  return columns && cellTypes ? { columns, cellTypes } : null;
+}
+
 /** The polite live-region text of the latest row move. */
 export function useDataGridRowMoveAnnouncement(): string {
   return useDataGridStore((s) => s.rowMoveAnnouncement);

@@ -23,7 +23,6 @@ This grid pins the totals of the filtered result:
 ```tsx
 "use client";
 
-import { useMemo } from "react";
 import {
   DataGridBody,
   DataGridHeader,
@@ -58,25 +57,18 @@ const TOTALS = serverAggregateRow({
 });
 
 export function OrdersGrid() {
+  const { plugin } = useDataGridPinnedRows({ bottomRows: [TOTALS] });
   const server = useDataGridServerRows<Order>({
     mode: "scroll",
+    plugins: [plugin],
     fetchRows: async ({ start, end, spec, signal }) => {
       const answer = await post("/api/orders", { start, end, spec }, signal);
       return { rows: answer.rows, totalRowCount: answer.total };
     },
   });
-  const { plugin } = useDataGridPinnedRows({ bottomRows: [TOTALS] });
-  const plugins = useMemo(
-    () => [...server.providerProps.plugins, plugin],
-    [server.providerProps.plugins, plugin],
-  );
 
   return (
-    <DataGridProvider
-      {...server.providerProps}
-      columns={columns}
-      plugins={plugins}
-    >
+    <DataGridProvider {...server.providerProps} columns={columns}>
       <DataGridRoot {...server.rootProps}>
         <DataGridHeader />
         <DataGridBody />

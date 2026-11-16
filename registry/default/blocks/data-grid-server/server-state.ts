@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { FilterNode, ServerSpec, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { DataGridPlugin, FilterNode, ServerSpec, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MIN_RESHAPE_DELAY, MIN_REVALIDATE_INTERVAL, readReshapeDelay, readRevalidateInterval } from "./fetch-hygiene";
 
@@ -54,6 +54,11 @@ export function isolate(label: string, call: () => void) {
   } catch (error) {
     console.error(`[data-grid-server] ${label} threw`, error);
   }
+}
+
+/** The refresh guard first, then the consumer's plugins; the array keeps its identity while `own` does. */
+export function useMountedPlugins(guard: readonly DataGridPlugin<unknown>[], own?: readonly DataGridPlugin<unknown>[]) {
+  return useMemo(() => (own && own.length > 0 ? [...guard, ...own] : guard), [guard, own]);
 }
 
 export type ServerSpecOptions = {
