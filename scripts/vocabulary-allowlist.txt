@@ -1,0 +1,22 @@
+content/docs/(build)/clipboard-undo/undo-code-changes.mdx:description: Make changes that your code applies undoable with record or a change source, pick which sources the history
+content/docs/(build)/clipboard-undo/undo-code-changes.mdx:## Dataset changes [#dataset-changes]
+content/docs/(build)/clipboard-undo/undo-code-changes.mdx:After you swap the data, the entries still describe the old rows, and an undo can insert them back. Pass the identity of
+content/docs/(build)/clipboard-undo/undo-code-changes.mdx:A dataset id and a version counter both work. The key only has to differ between datasets. For a reset without a key, su
+content/docs/(build)/columns/column-visibility.mdx:The layout is browser state in every data mode.   gets no list of hidden columns. A hidden column still loads its data. 
+content/docs/(build)/rows-pages-menus/pinned-rows.mdx:With   or  , the view holds the rows of the answer, so   covers the response.
+content/docs/(evaluate)/performance/performance-guidance.mdx:aliases: ["slow scrolling", "laggy", "stutter", "dropped frames", "large dataset", "100k rows", "slow grid", "huge data"
+content/docs/(evaluate)/support-upgrades/security-policy.mdx:| Response | Best effort within 7 days |
+content/docs/(evaluate)/support-upgrades/security-policy.mdx:The response time is best effort within 7 days.
+content/docs/(learn)/try-automate/use-agent-skills.mdx:| [ ](#gridcn-data-source) | Picks plain data, pagination, or scroll mode, and moves sort and filter to the server. | Yo
+content/docs/(learn)/try-automate/use-agent-skills.mdx:The skill picks one base for the rows: plain  , pagination, or scroll mode. If values change live, it adds streaming on 
+content/docs/(learn)/try-automate/use-agent-skills.mdx:**It is working if** every sort, filter, and search path covers the full dataset, or the page states that it covers only
+content/docs/(reference)/add-options/clipboard-undo/undo-redo-options.mdx:aliases: ["history options", "record sources", "dataset key", "undo capacity"]
+content/docs/(server)/save-server/undo-server-data.mdx:- A refresh, a row operation, and a tick of   refetch the same dataset, so the stacks stay. An undo writes only the cell
+content/docs/(server)/save-server/undo-server-data.mdx:-   clears the stacks when it changes. Pass a key that changes with the dataset, as   does. Without a key, call   in the
+registry/default/blocks/data-grid/columns/pin-offsets.test.ts:// columns 1 and 2 (from the right) are pinned right; column 0 sits before both
+registry/default/blocks/data-grid/test/store-columns-selection-events.test.tsx:// "id" (pinned left) is already display-first; dragging it next to "age" (unpinned) must not move.
+registry/default/blocks/data-grid/test/store-columns-selection-events.test.tsx:// "id" is pinned left (front), "age" is hidden, "name" keeps its seeded order slot.
+registry/default/examples/data-grid-column-drag-demo.tsx:* out via  , Score is pinned right and moves only with the pinned zone), and
+registry/default/examples/data-grid-column-groups-demo.tsx:* drag a column inside its group. Name is pinned left, so the Contact header splits at the pin
+registry/default/examples/data-grid-pinning-all-sides-demo.tsx:* All four pin zones at once: Name pinned left, Score pinned right, an averages row pinned to
+registry/default/examples/data-grid-pinning-demo.tsx:* Column pinning (Name pinned left, Score pinned right by default), resize (drag a header's

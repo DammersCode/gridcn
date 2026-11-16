@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Fails when prose or comments use a word that GLOSSARY.md replaces. Fix: use the glossary word.
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, dirname, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -16,11 +16,18 @@ const BANNED = [
   [/\bgrips?\b/, "write 'drag handle'"],
   [/[Ee]scape hatch/, "write 'override'"],
   [/[Vv]iew[- ]space/, "write 'view index'"],
-  [/[Ff]ilter builder/, "write 'filter menu'"],
+  [/[Ff]ilter builder/, "write 'filter menu'"],
+  [/\bpinned (?:left|right)\b/i, "write 'start-pinned' or 'end-pinned'"],
+  [/\b[Rr]esponses?\b/, "write 'answer'", "docs"],
+  [/\b[Dd]ataset/, "write 'result'", "docs"],
 ];
 
 // Path prefix -> banned labels that stay allowed there. Keep this empty unless a file has a real reason.
 const ALLOW = new Map([]);
+
+const DOCS = "content/docs/";
+const ALLOWLIST_FILE = join(root, "scripts/vocabulary-allowlist.txt");
+const ALLOWLIST = new Set(existsSync(ALLOWLIST_FILE) ? readFileSync(ALLOWLIST_FILE, "utf8").split(/\r?\n/).filter(Boolean) : []);
 
 function* walk(path) {
   const stat = readdirSync(path, { withFileTypes: true, recursive: false });
@@ -66,8 +73,10 @@ for (const file of files()) {
   const rel = relative(root, file).split(sep).join("/");
   const allowed = [...ALLOW].filter(([prefix]) => rel.startsWith(prefix)).flatMap(([, labels]) => labels);
   for (const [lineNo, line] of proseLines(file, readFileSync(file, "utf8"))) {
-    for (const [pattern, advice] of BANNED) {
+    for (const [pattern, advice, scope] of BANNED) {
       if (allowed.includes(advice) || !pattern.test(line)) continue;
+      if (scope === "docs" && !rel.startsWith(DOCS)) continue;
+      if (ALLOWLIST.has(`${rel}:${line.trim().slice(0, 120)}`)) continue;
       problems.push(`${rel}:${lineNo} — ${advice}: ${line.trim().slice(0, 120)}`);
     }
   }
