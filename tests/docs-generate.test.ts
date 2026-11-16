@@ -43,9 +43,9 @@ describe("keyboard shortcuts page", () => {
     expect(keyboard()).toMatch(/Use the find panel/);
   });
 
-  it("warns about Ctrl+Space on macOS", () => {
+  it("warns about Ctrl+Space on macOS and Windows", () => {
     expect(keyboard()).toContain("`Ctrl+Space`");
-    expect(keyboard()).toMatch(/macOS[^\n]*input source/);
+    expect(keyboard()).toMatch(/input source on macOS and toggle the IME on Windows/);
   });
 });
 
