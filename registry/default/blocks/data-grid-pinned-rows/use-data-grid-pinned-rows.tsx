@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DataGridPlugin, RowBandRenderCtx } from "@/registry/default/blocks/data-grid/data-grid";
 import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { DataGridPinnedRowBand } from "./pinned-row-band";
-import { forwardSource, isPinnedRowSource, shallowEqual } from "./pinned-row-source";
+import { forwardSource, isPinnedRowSource } from "./pinned-row-source";
 import type { ServerAggregateStatus } from "./use-data-grid-server-aggregate";
 
 /** Options for {@link useDataGridPinnedRows}. */
@@ -19,35 +19,57 @@ export type UseDataGridPinnedRowsOptions = {
 
 /** Return value of {@link useDataGridPinnedRows}. */
 export type UseDataGridPinnedRowsResult = {
-  /** Pass this into the grid's `plugins` prop (`plugins={[pinnedRows.plugin]}`). Stable across renders while `topRows` and `bottomRows` keep the same entries (a row object by identity, an `aggregateRow` or `serverAggregateRow` by its content, so an inline array, an inline `aggregateRow`, and an inline `serverAggregateRow` are fine, also with inline functions) and `status` stays the same. */
+  /** Pass this into the grid's `plugins` prop (`plugins={[pinnedRows.plugin]}`). Stable across renders while `topRows` and `bottomRows` keep the same entries (a plain row object by its own values, an `aggregateRow` or `serverAggregateRow` by its content, so an inline array, an inline `aggregateRow`, and an inline `serverAggregateRow` are fine, also with inline functions) and `status` stays the same. */
   plugin: DataGridPlugin<unknown>;
 };
 
 const EMPTY_ROWS: readonly never[] = [];
 
-function sameEntry(a: unknown, b: unknown): boolean {
-  if (Object.is(a, b)) return true;
-  if (!isPinnedRowSource(a) || !isPinnedRowSource(b) || a.kind !== b.kind || !shallowEqual(a.cells, b.cells)) return false;
-  if (a.kind === "aggregate" && b.kind === "aggregate") return a.scope === b.scope && shallowEqual(a.specs, b.specs, true);
-  return a.kind === "server-aggregate" && b.kind === "server-aggregate" && shallowEqual(a.options, b.options, true);
+const valueIds = new WeakMap<object, number>();
+let nextValueId = 0;
+
+function valueKey(value: unknown): string {
+  if (typeof value === "string") return JSON.stringify(value);
+  if ((typeof value !== "object" && typeof value !== "function") || value === null) return `${typeof value}:${String(value)}`;
+  let id = valueIds.get(value);
+  if (id === undefined) valueIds.set(value, (id = nextValueId++));
+  return `#${id}`;
 }
 
-function sameEntries(a: readonly unknown[], b: readonly unknown[]): boolean {
-  return a.length === b.length && a.every((entry, i) => sameEntry(entry, b[i]));
+/** Equal own keys and values give equal keys; with `skipFunctions`, every function gives the same key. */
+function shallowKey(record: object | undefined, skipFunctions = false): string {
+  if (record === undefined) return "-";
+  const parts = Object.entries(record).map(([key, value]) => `${JSON.stringify(key)}=${skipFunctions && typeof value === "function" ? "fn" : valueKey(value)}`);
+  return `{${parts.sort().join(",")}}`;
 }
 
+function entryKey(entry: unknown): string {
+  if (!isPinnedRowSource(entry)) return typeof entry === "object" && entry !== null && Object.getPrototypeOf(entry) === Object.prototype ? `row${shallowKey(entry)}` : valueKey(entry);
+  if (entry.kind === "aggregate") return `aggregate${JSON.stringify(entry.scope)}${shallowKey(entry.cells)}${shallowKey(entry.specs, true)}`;
+  return `server${shallowKey(entry.cells)}${shallowKey(entry.options, true)}`;
+}
+
+class EntriesHolder {
+  private key: string | null = null;
+  private rows: readonly unknown[] = EMPTY_ROWS;
+
+  /** The rows held for `key`: the last rows with an equal key, so a new array of equal entries keeps the identity. */
+  hold(key: string, rows: readonly unknown[]): readonly unknown[] {
+    if (key !== this.key) [this.key, this.rows] = [key, rows];
+    return this.rows;
+  }
+}
+
+// Keyed by content and held outside state, so an entry that changes on every render gives a new array instead of a render loop.
 function useStableEntries(rows: readonly unknown[]): readonly unknown[] {
-  const [held, setHeld] = useState(rows);
-  const keep = held === rows || sameEntries(held, rows);
+  const [holder] = useState(() => new EntriesHolder());
+  const held = holder.hold(rows.map(entryKey).join("|"), rows);
   useLayoutEffect(() => {
-    if (!keep) return;
     held.forEach((entry, i) => {
       if (isPinnedRowSource(entry) && isPinnedRowSource(rows[i])) forwardSource(entry, rows[i]);
     });
   });
-  if (keep) return held;
-  setHeld(rows);
-  return rows;
+  return held;
 }
 
 function useWarnSharedServerRow(topRows: readonly unknown[], bottomRows: readonly unknown[]): void {

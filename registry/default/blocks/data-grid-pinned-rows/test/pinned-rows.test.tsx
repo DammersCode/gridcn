@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, renderHook, screen } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { ColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGrid } from "@/registry/default/blocks/data-grid/data-grid";
@@ -90,6 +90,26 @@ describe("pinned rows — inline source identity", () => {
     view.rerender(<Grid />);
     view.rerender(<Grid />);
     expect(document.querySelector(gridAttrSelector("pinnedRowBand", "bottom"))!.querySelectorAll('[role="row"]')).toHaveLength(1);
+  });
+});
+
+describe("pinned rows — inline plain row identity", () => {
+  it("settles with an inline plain row object and keeps the plugin for equal values", () => {
+    const { result, rerender } = renderHook(() => useDataGridPinnedRows({ topRows: [{ id: "totals", name: "Total", qty: 45 }] }));
+    const first = result.current.plugin;
+    rerender();
+    rerender();
+    expect(result.current.plugin).toBe(first);
+  });
+
+  it("rebuilds the plugin when an inline plain row changes a value", () => {
+    let qty = 1;
+    const { result, rerender } = renderHook(() => useDataGridPinnedRows({ topRows: [{ id: "totals", qty }] }));
+    const first = result.current.plugin;
+    qty = 2;
+    rerender();
+    expect(result.current.plugin).not.toBe(first);
+    expect(result.current.plugin.rowBands?.top).toEqual([{ id: "totals", qty: 2 }]);
   });
 });
 
