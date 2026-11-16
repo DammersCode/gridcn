@@ -102,7 +102,7 @@ function ServerPanel() {
 
 function PerfPanel() {
   return (
-    <Panel id="perf" title="Tested at 100,000 rows">
+    <Panel id="perf" title="Performance">
       <PerfStats />
     </Panel>
   );

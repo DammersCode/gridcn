@@ -221,3 +221,11 @@ describe("landing idle mount", () => {
     vi.unstubAllGlobals();
   });
 });
+
+describe("landing core size", () => {
+  it("reads the gzip size from the bundle cost page", () => {
+    const doc = readFileSync(join(root, "content/docs/(evaluate)/performance/bundle-cost.mdx"), "utf8");
+    const docGzip = /\*\*(\d+ KiB) gzip\*\*/.exec(doc)?.[1];
+    expect(perfStats.find((s) => s.title === "Core grid, gzip")!.value).toBe(docGzip);
+  });
+});

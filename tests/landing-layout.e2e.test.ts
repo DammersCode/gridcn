@@ -61,7 +61,7 @@ describe.skipIf(!url)("landing layout", () => {
       expect(items.filter((i) => i.fontSize < 14).map((i) => `${i.fontSize}px: ${i.text}`)).toEqual([]);
     });
 
-    it(`${name}: Tested at 100,000 rows and Your first grid never share a row`, async () => {
+    it(`${name}: Performance and Your first grid never share a row`, async () => {
       const page = await browser.newPage({ viewport: { width, height } });
       await page.goto(url as string);
       const perf = await page.evaluate(sectionBox, "perf");
