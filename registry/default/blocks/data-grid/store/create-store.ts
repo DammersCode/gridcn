@@ -1,5 +1,5 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
-import { viewIndex, type CellRef, type ColumnLayout, type ColumnPin, type CompactSelectionLike, type DataGridPlugin, type GridCommand, type GridRect, type GridSelection, type SelectionState, type ViewCoord, type CellType, type DataOp, type FilterNode, type Keymap } from "../types";
+import { viewIndex, type CellRef, type ColumnLayout, type ColumnPin, type CompactSelectionLike, type DataGridPlugin, type GridCommand, type GridRect, type GridSelection, type SelectionState, type ViewCoord, type CellType, type DataOp, type FilterNode, type Keymap, type SortSpec } from "../types";
 import { BUILTIN_ACTIONS, keymapContentEqual, validateKeymap, validateSharedBindings } from "../keyboard";
 import { readColumnPin } from "../columns/column-pin";
 import { CompactSelection } from "../selection/compact-selection";
@@ -105,6 +105,7 @@ import {
 } from "./selection-state";
 import type { AnyColumnDef, DataGridInternalActions, DataGridStoreState, InternalSyncProps, ResolvedPlugins, SyncInputs } from "./types";
 import { syncInputsEqual } from "./types";
+import { keepKnownFilters, keepKnownSorts } from "./known-columns";
 import { checkSortLocale, DEFAULT_SORT_LOCALE } from "../sort-filter/sort-collator";
 import { loadedRowCount, nextAnnouncement } from "./announcements";
 import { allMatchingCheckedCount } from "./selected-rows";
@@ -194,6 +195,8 @@ function resolveSortLocale(props: { sortLocale?: string; locale?: string }): str
   return sortLocale;
 }
 
+const UNKNOWN_COLUMN_MESSAGE = "a sort or filter names an unknown column (its id is not in `columns`), so the grid ignores it";
+
 const MOVED_COMMAND_NAMES = ["undo", "redo", "fillDown", "fillRight", "openFind", "openFindReplace"] as const;
 
 /**
@@ -202,8 +205,8 @@ const MOVED_COMMAND_NAMES = ["undo", "redo", "fillDown", "fillRight", "openFind"
  */
 export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridStoreState> {
   const initLocale = init.locale ?? DEFAULT_LOCALE;
-  const warnLegacyOnce = createWarnOnce();
-  const initColumns = withGridLocale(init.columns, initLocale, warnLegacyOnce);
+  const warnStoreOnce = createWarnOnce();
+  const initColumns = withGridLocale(init.columns, initLocale, warnStoreOnce);
   let groupModel: ColumnGroupModel | null = buildColumnGroupModel(init.columnGroups, init.columns.map((c) => c.id));
   const warnedGroupIssues = new Set<string>();
   const warnGroupIssues = (model: ColumnGroupModel | null): void => {
@@ -222,7 +225,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     computeColumnLayoutBase(columns, order, widths, hidden, groupModel);
   const computeVisibleColumns = (columns: readonly AnyColumnDef[], order: string[] | null, hidden: readonly string[]) =>
     computeVisibleColumnsBase(columns, order, hidden, groupModel);
-  const normalizeColumnLayout = (columns: readonly AnyColumnDef[], parts: ColumnLayoutParts, hidden: string[]) => normalizeColumnLayoutBase(columns, parts, hidden, groupModel, warnLegacyOnce);
+  const normalizeColumnLayout = (columns: readonly AnyColumnDef[], parts: ColumnLayoutParts, hidden: string[]) => normalizeColumnLayoutBase(columns, parts, hidden, groupModel, warnStoreOnce);
   const reorderColumnIds = (ids: readonly string[], columns: readonly AnyColumnDef[], id: string, targetId: string, position: "before" | "after") =>
     reorderColumnIdsBase(ids, columns, id, targetId, position, groupModel);
   const defHidden = defHiddenColumnIds(initColumns);
@@ -251,7 +254,17 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const dataControlled = init.data !== undefined;
   const initData: readonly unknown[] = init.data ?? init.defaultData ?? [];
   // Seeded at init, so the first real sync has a previous value to compare against.
-  const initSortState = init.sortState ?? init.defaultSortState ?? [];
+  const dropUnknownSorts = (sorts: readonly SortSpec[], columns: readonly AnyColumnDef[]): readonly SortSpec[] => {
+    const kept = keepKnownSorts(sorts, columns);
+    if (kept !== sorts) warnStoreOnce("unknown column", UNKNOWN_COLUMN_MESSAGE);
+    return kept;
+  };
+  const dropUnknownFilters = (nodes: readonly FilterNode[], columns: readonly AnyColumnDef[]): readonly FilterNode[] => {
+    const kept = keepKnownFilters(nodes, columns);
+    if (kept !== nodes) warnStoreOnce("unknown column", UNKNOWN_COLUMN_MESSAGE);
+    return kept;
+  };
+  const initSortState = init.sortState ?? dropUnknownSorts(init.defaultSortState ?? [], init.columns);
   const initSortMode = resolveSortMode(init);
   const initSortLocale = resolveSortLocale(init);
   const initFilterMode = resolveFilterMode(init);
@@ -260,7 +273,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   if (init.totalRowCount !== undefined && init.sortMode === undefined && init.filterMode === undefined && init.onSortChange === undefined && init.onFilterChange === undefined && init.sortState === undefined && init.filterState === undefined) {
     queueMicrotask(() => warnDev('totalRowCount makes sorting and filtering server-side by default, and nothing here handles onSortChange or onFilterChange, so the grid will not reorder or narrow its rows. Fetch rows for the spec, or set sortMode="client" and filterMode="client" to work on the loaded rows'));
   }
-  const initFilterState = withFilterIds(init.filterState ?? init.defaultFilterState ?? []);
+  const initFilterState = withFilterIds(init.filterState ?? dropUnknownFilters(init.defaultFilterState ?? [], init.columns));
   const initSearchText = init.searchText ?? init.defaultSearchText ?? "";
   const initSearchOptions = DEFAULT_SEARCH_OPTIONS;
   // storage widens each per-column CellType<TData, TValue, TOptions> to the untyped registry shape; narrowed back per column at lookup (cell.tsx/store's column-op helpers).
@@ -867,7 +880,8 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       if (s.onColumnLayoutChange) layoutEchoQueue.push(snapshot);
       emitAfterWrites(dataWrite, () => s.onColumnLayoutChange?.(snapshot));
     };
-    const commitSorts = (s: DataGridStoreState, sorts: DataGridStoreState["sortState"]): void => {
+    const commitSorts = (s: DataGridStoreState, requested: DataGridStoreState["sortState"]): void => {
+      const sorts = dropUnknownSorts(requested, s.columns);
       if (!s.viewStale && sortSpecKey(sorts) === sortSpecKey(s.sortState)) return;
       // Controlled: _syncProps writes the consumer's next `sortState` prop.
       if (!s.sortControlled) {
@@ -1149,7 +1163,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
           const nextLocale = props.locale ?? DEFAULT_LOCALE;
           const localeChanged = nextLocale !== lastColumnsLocale;
           lastColumnsLocale = nextLocale;
-          const nextColumns = knownColumns ? withGridLocale(carryRuntimePins(props.columns, knownColumns), nextLocale, warnLegacyOnce) : localeChanged ? withGridLocale(s.columns, nextLocale, warnLegacyOnce) : s.columns;
+          const nextColumns = knownColumns ? withGridLocale(carryRuntimePins(props.columns, knownColumns), nextLocale, warnStoreOnce) : localeChanged ? withGridLocale(s.columns, nextLocale, warnStoreOnce) : s.columns;
           const reseededHidden = knownColumns ? defHiddenColumnIds(props.columns.filter((c) => !knownColumns.has(c.id))) : [];
           const nextHiddenColumns = reseededHidden.length > 0 ? [...s.hiddenColumns, ...reseededHidden] : s.hiddenColumns;
           // An inline `columnGroups` literal rebuilds the model; the old model stays while structure and headers are equal.
@@ -1792,7 +1806,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       setColumnPin(id, requestedPin) {
         const s = get();
         if (!s.enableColumnPinning) return;
-        const pin = requestedPin === null ? null : (readColumnPin(requestedPin, warnLegacyOnce) ?? null);
+        const pin = requestedPin === null ? null : (readColumnPin(requestedPin, warnStoreOnce) ?? null);
         const column = s.columns.find((c) => c.id === id);
         if (!column || !columnFlag(column, "pinnable") || (column.pin ?? null) === pin) return;
         const nextColumns = s.columns.map((c) => (c.id === id ? { ...c, pin: pin ?? undefined } : c));
@@ -1860,7 +1874,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       setFilters(filters) {
         const s = get();
         // backfills a filterId for any row the caller added without one (e.g. hand-built controlled updates).
-        const withIds = withFilterIds(filters);
+        const withIds = withFilterIds(dropUnknownFilters(filters, s.columns));
         if (!s.viewStale && filterSpecKey(withIds) === filterSpecKey(s.filterState)) return;
         const resetPage = s.pageSize !== null && s.page !== 1 && filterSpecKey(withIds) !== filterSpecKey(s.filterState);
         if (!s.filterControlled) {

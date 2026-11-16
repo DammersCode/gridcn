@@ -9,13 +9,14 @@ type Row = { id: string; city: string };
 
 const city: ColumnDef<Row, unknown> = { id: "city", header: "City", accessorKey: "city" };
 const select: ColumnDef<Row, unknown> = { id: "city", header: "City", accessorKey: "city", type: "select", options: { choices: [{ value: "a", label: "A" }] } };
+const idColumn: ColumnDef<Row, unknown> = { id: "id", header: "ID", accessorKey: "id" };
 const data: Row[] = [{ id: "1", city: "Berlin" }];
 
 afterEach(cleanup);
 
 function setup(fetchFilterValues: FetchFilterValues | undefined, column: ColumnDef<Row, unknown> = city, filterState: FilterNode[] = []) {
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <DataGridProvider data={data} columns={[column]} getRowId={(row: Row) => row.id} fetchFilterValues={fetchFilterValues} defaultFilterState={filterState}>
+    <DataGridProvider data={data} columns={[idColumn, column]} getRowId={(row: Row) => row.id} fetchFilterValues={fetchFilterValues} defaultFilterState={filterState}>
       {children}
     </DataGridProvider>
   );
