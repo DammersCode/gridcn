@@ -8,6 +8,8 @@ import { useDataGridHistory, type RecordedChange, type UseDataGridHistoryOptions
 export type UseDataGridStateOptions<TData> = UseDataGridHistoryOptions<TData> & {
   /** Row identity; defaults to the row's `id` field, like `DataGrid`'s `getRowId`. */
   getRowId?: (row: TData, index: number) => string;
+  /** More plugins for the grid; the returned `plugins` holds them, then the history plugin. An inline array is fine: the grid compares the entries. */
+  plugins?: readonly DataGridPlugin<TData>[];
 };
 
 /** Return value of {@link useDataGridState}, spreadable straight onto `<DataGrid {...grid} />`. */
@@ -16,7 +18,7 @@ export type UseDataGridStateResult<TData> = {
   getRowId?: (row: TData, index: number) => string;
   /** Writes the grid's next array back into the hook-owned state — the controlled-data echo the undo/redo flow relies on. */
   onDataChange: (next: readonly TData[], change: DataChange<TData>) => void;
-  /** The grid's `plugins` prop: the history plugin (observer + `undo`/`redo` commands + api stash). Combine with other plugins explicitly after the spread, e.g. `plugins={[fillPlugin, ...grid.plugins]}`. */
+  /** The grid's `plugins` prop: the `plugins` option, then the history plugin (observer + `undo`/`redo` commands + api stash). Pass other plugins through the `plugins` option, so the spread carries every plugin. */
   plugins: readonly DataGridPlugin<TData>[];
   /**
    * For a toolbar's undo/redo buttons, outside the spreadable `DataGrid` props. `clear` empties
@@ -61,7 +63,7 @@ export function useDataGridState<TData>(
   defaultRows: readonly TData[],
   opts: UseDataGridStateOptions<TData> = {},
 ): UseDataGridStateResult<TData> {
-  const { getRowId, ...historyOptions } = opts;
+  const { getRowId, plugins: extraPlugins, ...historyOptions } = opts;
   const [data, setData] = useState<readonly TData[]>(defaultRows);
   const history = useDataGridHistory<TData>(historyOptions);
   // stable identity: useDataGridRowIdToViewRow keys its O(n) Map build on getRowId identity.
@@ -75,7 +77,7 @@ export function useDataGridState<TData>(
   const historyPlugin = history.plugin;
   // a fresh `[historyPlugin]` per render is entry-equal (no re-resolution), but the config phase
   // keys its sync on array identity — a stable reference skips the store set entirely
-  const plugins = useMemo(() => [historyPlugin], [historyPlugin]);
+  const plugins = useMemo(() => [...(extraPlugins ?? []), historyPlugin], [extraPlugins, historyPlugin]);
 
   return {
     data,
