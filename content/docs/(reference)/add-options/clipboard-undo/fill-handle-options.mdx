@@ -52,13 +52,21 @@ Every option is optional.
 
 ## ProcessFillContext [#processfillcontext]
 
-`processFill` receives one `ProcessFillContext` object. It runs on the release of a drag and on both keyboard commands, before the grid writes. It is synchronous and never returns a promise. It returns a text grid, or `false` to cancel the fill. A text grid is a `string[][]` with one row of texts per row of `target`. A keyboard command on a selection of one row (<kbd>Mod</kbd>+<kbd>D</kbd>) or one column (<kbd>Mod</kbd>+<kbd>R</kbd>) fills nothing and does not call it. A cancelled drag does not call it.
+`processFill` receives one `ProcessFillContext` object before the grid writes. It is synchronous and never returns a promise. It returns a text grid, or `false` to cancel the fill. A text grid is a `string[][]` with one row of texts per row of `target`.
+
+`processFill` runs on:
+
+- the release of a drag
+- the fill down command (<kbd>Mod</kbd>+<kbd>D</kbd>)
+- the fill right command (<kbd>Mod</kbd>+<kbd>R</kbd>)
+
+It does not run on a cancelled drag. It does not run on a keyboard command over one row (fill down) or one column (fill right), because that fills nothing.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-fill/use-fill-handle.ts" name="ProcessFillContext" />
 
 `source` and `target` are rectangles in view index. `target` covers the new cells only. For <kbd>Mod</kbd>+<kbd>D</kbd>, `source` is the top row of the selection and `target` is the rest of it. For <kbd>Mod</kbd>+<kbd>R</kbd>, `source` is the left column.
 
-`cells` holds one text per cell of `target`, before parsing and validation. A returned grid replaces it. A cell that the returned grid does not cover is not written. It includes the cells that the grid skips: read-only cells and, in scroll mode, rows that are not loaded yet.
+`cells` holds one text per cell of `target`, before parsing and validation. A returned grid replaces it. A cell that the returned grid does not cover is not written. `cells` also holds texts for the cells that the grid skips: read-only cells and, in scroll mode, rows that are not loaded yet.
 
 ## SeriesDescriptor [#seriesdescriptor]
 

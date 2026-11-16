@@ -33,7 +33,7 @@ The result is `{ plugin }`, typed `UseDataGridPinnedRowsResult`. Pass the plugin
 
 ### aggregateRow [#aggregaterow]
 
-`aggregateRow(specs, options)` returns a pinned row that reduces `specs` over the grid rows. Put it in `topRows` or `bottomRows`. The band reads each value by column id, so a column needs no `accessorKey` that equals its `id`. A reducer function that you define inline has a new identity on each render, which rebuilds the band. A spec such as `"sum"` has none.
+`aggregateRow(specs, options)` returns a pinned row that reduces `specs` over the grid rows. Put it in `topRows` or `bottomRows`. The band reads each value by column id, so a column needs no `accessorKey` that equals its `id`. An inline reducer function keeps the band. The band calls the newest one when it next reduces.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-pinned-rows/pinned-row-source.ts" name="AggregateRowOptions" />
 

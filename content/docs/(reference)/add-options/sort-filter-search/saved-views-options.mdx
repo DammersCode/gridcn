@@ -11,7 +11,7 @@ aliases: ["views options", "useDataGridViews", "view storage", "DataGridViewsSto
 | Symbol | Purpose | Guide |
 | --- | --- | --- |
 | [`useDataGridViews`](#options) | Keeps the views and returns the state and the actions | [Saved views](/docs/sort-filter-search/saved-views) |
-| [`DataGridViews`](#options) | Renders the toolbar button | [Saved views](/docs/sort-filter-search/saved-views) |
+| [`DataGridViews`](#datagridviews) | Renders the toolbar button | [Saved views](/docs/sort-filter-search/saved-views) |
 | [`labels`](#labels) | Replaces the strings of the menu | [Saved views](/docs/sort-filter-search/saved-views) |
 | [`DataGridViewsStorage`](#storage) | Persists the views | [Saved views](/docs/sort-filter-search/saved-views) |
 
@@ -52,6 +52,8 @@ Render each one inside `DataGridProvider`.
 ## Options [#options]
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-views/use-data-grid-views.ts" name="UseDataGridViewsOptions" />
+
+### DataGridViews [#datagridviews]
 
 `DataGridViews` takes these options and two more props:
 
@@ -119,6 +121,10 @@ A `DataGridView` has an `id`, a `name`, and a `DataGridViewState` with the sorts
 <AutoTypeTable path="./registry/default/blocks/data-grid-views/view-storage.ts" name="DataGridViewsStorage" />
 
 `createLocalStorageViewsStorage(key)` returns the default adapter. `createMemoryViewsStorage(seed?)` returns an adapter that keeps views for the life of the page.
+
+## Server mode [#server-mode]
+
+A view stores the grid state only. Opening a view calls the change callbacks of a server grid, and a view saves no page number. See [Saved views: Server mode](/docs/sort-filter-search/saved-views#server-mode).
 
 ## Related
 

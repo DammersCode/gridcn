@@ -67,7 +67,7 @@ To record streams too, pass `recordSources: (defaults) => [...defaults, "stream"
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-history/use-data-grid-state.ts" name="UseDataGridStateOptions" />
 
-`getRowId` defaults to the `id` field of a row. Every option of `useDataGridHistory` works the same way here, including `recordSources` and `onSkip`.
+`getRowId` defaults to the `id` field of a row. Every option of `useDataGridHistory` works the same way here, including `recordSources` and `onSkip`. The `plugins` option takes the other plugins of the grid, such as the fill plugin: `useDataGridState(rows, { plugins: [fill.plugin] })`. The returned `plugins` holds them, then the history plugin.
 
 ## UseDataGridStateResult [#usedatagridstateresult]
 

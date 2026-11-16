@@ -14,11 +14,9 @@ aliases: ["nuqs", "share a link"]
 | [`useDataGridUrlState`](#usedatagridurlstate) | Hook behind the component | [URL state](/docs/sort-filter-search/url-state) |
 | [`useDataGridUrlPagination`](#usedatagridurlpagination) | Hook for `page` and `pageSize` | [URL state](/docs/sort-filter-search/url-state) |
 
-Filter values and search text go into the URL. The browser history, server logs, and the `Referer` header of the next request keep the query. Leave `"filter"` and `"search"` out of `spec` when they can hold personal data. See [What leaves the page](/docs/support-upgrades/security-policy#data-egress).
-
 ## DataGridUrlState [#datagridurlstate]
 
-The component renders nothing. Its props, `DataGridUrlStateProps`, are the options of `useDataGridUrlState`. This sample mounts it once:
+This sample mounts the component once:
 
 ```tsx
 import { NuqsAdapter } from "nuqs/adapters/react";
@@ -58,7 +56,7 @@ export function PeopleGrid() {
 }
 ```
 
-Mount `DataGridUrlState` inside `DataGridProvider`.
+The component renders nothing. Its props, `DataGridUrlStateProps`, are the options of `useDataGridUrlState`. Mount it inside `DataGridProvider`.
 
 ## useDataGridUrlState [#usedatagridurlstate]
 
@@ -70,7 +68,7 @@ The prefix and an underscore start every key of the grid. `prefix="people"` give
 
 ### spec [#spec]
 
-The option picks which parts of the view spec go into the URL. The default is `["sort", "filter", "search"]`. `spec={[]}` turns spec sync off. `spec={["sort"]}` keeps the sort in the URL and leaves the filter values and the search text out.
+The option picks which parts of the view spec go into the URL. The default is `["sort"]`. List `"filter"` and `"search"` to share filters and search text. They then reach the browser history, server logs, and the `Referer` header of the next request. See [What leaves the page](/docs/support-upgrades/security-policy#data-egress). `spec={[]}` turns spec sync off.
 
 | Part | Keys |
 | --- | --- |
@@ -122,7 +120,9 @@ A sort row for a missing, hidden, or unsortable column drops from the URL state.
 
 ## Server mode
 
-When `data` holds part of the result, as with server pages or scroll mode, set `sortMode="server"` and `filterMode="server"`. The store then holds the restored spec and your fetch applies it. `useDataGridServerRows` sets both modes, and a grid with `totalRowCount` gets them by default. Without both modes, the grid sorts and filters only the loaded rows. In server filter mode too, a set filter value outside `choices` drops, so list every value that your server filters by in `choices`. The [Limits](#limits) bound also applies: a longer `isAnyOf` list keeps its first entries, and a longer `isNoneOf` list drops the segment. See [Data mode support](/docs/data-modes/data-mode-support).
+When `data` holds part of the result, as with server pages or scroll mode, set `sortMode="server"` and `filterMode="server"`. The store then holds the restored spec and your fetch applies it. `useDataGridServerRows` sets both modes, and a grid with `totalRowCount` gets them by default. Without both modes, the grid sorts and filters only the loaded rows. See [Data mode support](/docs/data-modes/data-mode-support).
+
+In client filter mode, a column with `choices` keeps a list value that matches a choice or a loaded data value, without regard to case. In server filter mode every value stays, so check the values on the server. The [Limits](#limits) bound also applies: a longer `isAnyOf` list keeps its first entries, and a longer `isNoneOf` list drops the segment.
 
 ## Related
 

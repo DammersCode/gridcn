@@ -34,7 +34,7 @@ Render the buttons inside `DataGridProvider`, for example in `DataGridToolbar`.
 | --- | --- | --- |
 | `exportGrid(state, options?)` | `Promise<ExportResult>` | Writes a CSV or XLSX file and starts the download. |
 | `printGrid(state, options?)` | `void` | Opens the print dialog for a paged table. It does nothing without a DOM. |
-| `buildExportRows(state, scope, options?)` | `string[][]` | Builds the text rows. `options.text` is `"export"` (default) or `"display"`, and `options.maxRows` caps the rows (`BuildExportRowsOptions`). |
+| `buildExportRows(state, scope, options?)` | `string[][]` | Builds the text rows of the visible columns, without a header row. `options.text` is `"export"` (default) or `"display"`, and `options.maxRows` caps the rows (`BuildExportRowsOptions`). |
 | `rowsToCsv(rows, options?)` | `string` | Joins rows into CSV with CRLF line ends. `options.delimiter` defaults to `","`. `options.sanitizeFormulas` defaults to `true`. |
 
 ## Example [#example]
