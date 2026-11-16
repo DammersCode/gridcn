@@ -1,8 +1,8 @@
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { DataGrid } from "../data-grid";
+import { DataGrid, type ColumnDefOf } from "../data-grid";
 
-const columns = [{ id: "name", header: "Name", accessorKey: "name" }];
+const columns: ColumnDefOf<{ id: string; name: string }>[] = [{ id: "name", header: "Name", accessorKey: "name" }];
 const data = [{ id: "r1", name: "A" }];
 
 afterEach(() => {

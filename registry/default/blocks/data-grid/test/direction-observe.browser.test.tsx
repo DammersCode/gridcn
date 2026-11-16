@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
-import { DataGrid } from "../data-grid";
+import { DataGrid, type ColumnDefOf } from "../data-grid";
 import "@/app/global.css";
 
-const columns = [{ id: "name", header: "Name", accessorKey: "name" }];
+const columns: ColumnDefOf<{ id: string; name: string }>[] = [{ id: "name", header: "Name", accessorKey: "name" }];
 const data = [{ id: "r1", name: "A" }];
 
 const gridDir = () => document.querySelector('[role="grid"]')?.getAttribute("dir");
