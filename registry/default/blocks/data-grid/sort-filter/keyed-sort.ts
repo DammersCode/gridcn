@@ -1,6 +1,6 @@
 import type { SortSpec } from "../types";
 import type { CellAccessor } from "./build-view-index";
-import { sortCollator, variantSortCollator } from "./sort-collator";
+import { sortCollator } from "./sort-collator";
 
 /** Below this many rows the comparator-chain sort wins on setup cost, so the keyed sort stays out. */
 export const KEYED_SORT_MIN_ROWS = 256;
@@ -196,7 +196,7 @@ function keysFor(indices: readonly number[], accessor: CellAccessor, sort: SortS
         if (value === EMPTY_SORT_VALUE) return null;
         return typeof value === "string" ? value : undefined;
       },
-      variantSortCollator().compare,
+      sortCollator().compare,
       descending,
     );
   }

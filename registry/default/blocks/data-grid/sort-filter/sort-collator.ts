@@ -3,17 +3,14 @@ import { isDev } from "../is-dev";
 export const DEFAULT_SORT_LOCALE = "en-US";
 const MAX_CACHED_LOCALES = 20;
 
-type Collators = { base: Intl.Collator; variant: Intl.Collator };
+type Collators = { base: Intl.Collator };
 
 const cache = new Map<string, Collators>();
 const warned = new Set<string>();
 let activeLocale = DEFAULT_SORT_LOCALE;
 
 function buildCollators(locale: string): Collators {
-  return {
-    base: new Intl.Collator([locale, DEFAULT_SORT_LOCALE], { numeric: true, sensitivity: "base" }),
-    variant: new Intl.Collator([locale, DEFAULT_SORT_LOCALE]),
-  };
+  return { base: new Intl.Collator([locale, DEFAULT_SORT_LOCALE], { numeric: true, sensitivity: "base" }) };
 }
 
 function warnOnce(locale: string, message: string) {
@@ -69,9 +66,4 @@ export function checkSortLocale(locale: string, prop: LocaleProp): void {
 /** Numeric, case- and accent-insensitive collator for `locale`, or for the sort locale in scope when `locale` is omitted. */
 export function sortCollator(locale?: string): Intl.Collator {
   return collatorsFor(locale ?? activeLocale).base;
-}
-
-/** Plain collator (case and accents distinguish) for the sort locale in scope; the `text` cell type uses it. */
-export function variantSortCollator(): Intl.Collator {
-  return collatorsFor(activeLocale).variant;
 }

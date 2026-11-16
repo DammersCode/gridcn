@@ -23,7 +23,7 @@ function Order() {
 }
 
 const grid = (
-  <DataGridProvider columns={columns} getRowId={(row: Row) => row.id} defaultData={["z", "ä", "a"].map((v, i) => ({ id: String(i), v }))} sortState={[{ columnId: "v", direction: "asc" }]}>
+  <DataGridProvider columns={columns} getRowId={(row: Row) => row.id} defaultData={["z", "ä", "b"].map((v, i) => ({ id: String(i), v }))} sortState={[{ columnId: "v", direction: "asc" }]}>
     <Order />
   </DataGridProvider>
 );
@@ -32,7 +32,7 @@ describe("sort locale on the server and the client", () => {
   it("orders a text column the same way in the server HTML and in the browser render", () => {
     const serverOrder = />([^<]*)<\/span>/.exec(renderToString(grid))?.[1];
     const clientOrder = render(grid).container.textContent;
-    expect(serverOrder).toBe("a,ä,z");
+    expect(serverOrder).toBe("ä,b,z");
     expect(clientOrder).toBe(serverOrder);
   });
 });

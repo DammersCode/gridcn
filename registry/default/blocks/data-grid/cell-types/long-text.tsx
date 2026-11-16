@@ -9,7 +9,7 @@ import { useCellTextInsets } from "../interaction/use-cell-editor";
 import { isComposingKey } from "../interaction/is-composing-key";
 import { columnLabelText } from "../columns/column-format-helpers";
 import { displayText } from "./display-text";
-import { variantSortCollator } from "../sort-filter/sort-collator";
+import { sortCollator } from "../sort-filter/sort-collator";
 
 /** Rendered text is capped so one huge stored value cannot stall layout. */
 const LONG_TEXT_DISPLAY_LIMIT = 500;
@@ -139,7 +139,7 @@ export const longTextCellType: CellType<unknown, string, GridCellTypes["longText
   fromText: (text) => text,
   clearValue: () => "",
   isEmpty: (value) => value == null || value === "",
-  compare: (a, b) => variantSortCollator().compare(toSafeText(a), toSafeText(b)),
+  compare: (a, b) => sortCollator().compare(toSafeText(a), toSafeText(b)),
   validate: (value) =>
     toSafeText(value).length > LONG_TEXT_DEFAULT_MAX_LENGTH ? `Too long: max ${LONG_TEXT_DEFAULT_MAX_LENGTH} characters` : null,
 };
