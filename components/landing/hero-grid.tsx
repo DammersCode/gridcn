@@ -2,14 +2,14 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState, type ReactNode } from "react";
+import { whenIdle } from "./when-idle";
 
 const HeroGridLive = dynamic(() => import("./hero-grid-live"), { ssr: false });
 
 export function HeroGrid(): ReactNode {
   const [armed, setArmed] = useState(false);
   useEffect(() => {
-    const id = requestIdleCallback(() => setArmed(true), { timeout: 1500 });
-    return () => cancelIdleCallback(id);
+    return whenIdle(() => setArmed(true));
   }, []);
   return (
     <div className="flex min-w-0 flex-col gap-2">
@@ -18,7 +18,7 @@ export function HeroGrid(): ReactNode {
       </div>
       <p className="text-sm text-muted-foreground">
         <span className="pointer-coarse:hidden">
-          <span className="font-medium text-foreground">Try it:</span> drag the selection handle down. The series continues: 4, 5, 6 and Item 4, Item 5, Item 6. Ctrl+Z (Cmd+Z on Mac) undoes it.
+          <span className="font-medium text-foreground">Try it:</span> drag the fill handle (the small square at the corner of the range) down. The series continues: 4, 5, 6 and Item 4, Item 5, Item 6. Ctrl+Z (Cmd+Z on Mac) undoes it.
         </span>
         <span className="hidden pointer-coarse:inline">
           <span className="font-medium text-foreground">Try it:</span> tap a cell, then drag a selection handle to select a range. The fill handle needs a mouse.

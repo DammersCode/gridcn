@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { pageIndex } from "../scripts/docs-verify-lib.mjs";
 import { CLIENT_CODE, faq, HEADLINE, perfDemos, perfStats, serverHighlights, SUBLINE } from "../components/landing/data";
 import { CODE_THEMES } from "../lib/code-themes";
@@ -200,5 +200,24 @@ describe("landing code block", () => {
     expect(html).toContain("--shiki-dark");
     expect(html).not.toMatch(/background-color:\s*#|bg-card/);
     expect(html).toContain('aria-label="Sample"');
+  });
+});
+
+describe("landing idle mount", () => {
+  it("falls back to a timer when requestIdleCallback is missing", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("requestIdleCallback", undefined);
+    const { whenIdle } = await import("../components/landing/when-idle");
+    const callback = vi.fn();
+    const cancel = whenIdle(callback);
+    vi.runAllTimers();
+    expect(callback).toHaveBeenCalledTimes(1);
+    const cancelled = vi.fn();
+    whenIdle(cancelled)();
+    vi.runAllTimers();
+    expect(cancelled).not.toHaveBeenCalled();
+    cancel();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 });
