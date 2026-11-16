@@ -89,7 +89,7 @@ Content that the editor portals out of the cell, such as a popover, carries `dat
 
 ### activate [#activate]
 
-A type with `activate` has no editor session. Enter, F2, Space, a stationary click, and a double-click commit `activate(value, options)` directly, so `onBeforeEditStart` and `onEditEnd` never fire. The `checkbox` type declares `(value) => !value`.
+A type with `activate` has no editor session. Enter, F2, Space, a stationary click, and a double-click commit `activate(value, options)` directly. `onBeforeEditStart` runs first, and a `false` result or a pending promise holds the commit. `onEditEnd` never fires. The `checkbox` type declares `(value) => !value`.
 
 ### href [#href]
 
