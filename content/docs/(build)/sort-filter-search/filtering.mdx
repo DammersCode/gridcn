@@ -71,7 +71,7 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
 
 After the click, a row stays if its country is NL and its name contains A or B. A group with `join: "and"` needs every child to match. A group with `join: "or"` needs one child. Any other `join` value acts as `"and"`, and an empty group matches every row.
 
-A group can contain one level of nested groups. `setFilters` drops a group nested deeper, with its rows. `filterId` is an optional stable key for a row or group. The store adds one when it is missing.
+A group can contain one level of nested groups. `setFilters` drops a group nested deeper, with the filter rows in it. `filterId` is an optional stable key. The store adds one when it is missing.
 
 ## Operators
 
@@ -86,7 +86,7 @@ By default, every column offers the text operators: `contains`, `notContains`, `
 | `isNoneOf` | `string[]` | The cell text equals no entry. Case does not matter. An empty list matches every row. |
 | `empty`, `notEmpty` | none | The cell text is empty, or is not. |
 
-Every value is text, even for number and date columns, as in `{ columnId: "stock", operator: "lt", value: "5" }`. A comparison reads both sides as numbers when both parse. Otherwise it compares them as text.
+Every value is text, even for number and date columns, such as `"5"`. A comparison reads both sides as numbers when both parse. Otherwise it compares them as text.
 
 The `filter` object of a column changes this behavior for that column:
 
@@ -99,11 +99,15 @@ A cell type takes the same `filter` object, with a fourth member, `valueInput`, 
 
 ### Custom operators [#custom-operators]
 
-A column can list its own operators next to the built-in ones. List an object with an `id` and a `label` in `filter.operators`. The filter menu shows the `label`, and the filter stores the `id`. A `FilterOperator` is a built-in operator or any string. `BuiltInFilterOperator` is the closed set of built-in operators.
+A column can list its own operators next to the built-in ones. List an object with an `id` and a `label` in `filter.operators`. The filter menu shows the `label`, and the filter stores the `id`. A `FilterOperator` is a built-in operator or any string.
 
 This column registers one operator:
 
 ```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Order = { id: string; city: string };
+
 const inRegion = {
   id: "inRegion",
   label: "is in region",
@@ -118,6 +122,10 @@ const columns = defineColumns<Order>()([
     filter: { operators: ["contains", inRegion] },
   },
 ]);
+
+export function Orders({ orders }: { orders: Order[] }) {
+  return <DataGrid data={orders} columns={columns} />;
+}
 ```
 
 {/* props: CustomFilterOperator */}
@@ -133,28 +141,26 @@ With `filterMode="server"`, the grid never calls `match`, so leave it out. In cl
 
 [Custom operators on the server](/docs/contracts/server-rows-contract#custom-operators) maps the `id` to a query.
 
-An empty grid shows `labels.grid.noResults` ("No results") when a filter or a server search hides every row. A grid with no rows and no filter shows `labels.grid.emptyState`.
-
 ## Filter menu
 
 The popover lists the filter tree. The first entry of the top level and of each group reads "Where". Later top-level entries read "And". Later entries of a group show a select with "And" and "Or". That select sets the join of the whole group, so all its entries show the same word.
 
-Each row has a column select, an operator select, and a value input. It also has a remove button and a drag handle. The foot of the popover holds the "Add filter" and "Add group" buttons. Each group has its own "Add filter" button. A top-level group also has its own "Add group" button.
+Each row has a column select, an operator select, a value input, a remove button, and a drag handle. The foot of the popover holds the "Add filter" and "Add group" buttons. Each group has its own "Add filter" button. A top-level group also has its own "Add group" button.
 
-A new group takes the opposite join of its parent, so a group in the top level starts as "Or". The value input follows the cell type. `isBetween` shows two inputs, and `isAnyOf` and `isNoneOf` show a checkbox list.
+A new group takes the opposite join of its parent, so a group in the top level starts as "Or". `isBetween` shows two inputs, and `isAnyOf` and `isNoneOf` show a checkbox list.
 
-The menu offers the visible columns. A filter on a hidden column keeps applying, and its row shows that column with its own operators. Pass `allColumns` to offer hidden columns for new filters.
+The menu offers the visible columns. A filter on a hidden column keeps applying and shows its column. Pass `allColumns` to offer hidden columns for new filters.
 
 ### Filter menu keyboard & accessibility
 
 | Key | Action |
 |---|---|
-| <kbd>Tab</kbd> | Moves through a row: column, operator, value, remove, drag handle. |
+| <kbd>Tab</kbd> | Moves through a row: join (from the second entry of a group), column, operator, value, remove, drag handle. |
 | <kbd>ArrowUp</kbd> / <kbd>ArrowDown</kbd> on the drag handle | Moves the row or group one place among its siblings. |
 | <kbd>Backspace</kbd> / <kbd>Delete</kbd> on the drag handle | Removes the row or group. |
 | <kbd>Escape</kbd> during a drag | Cancels the drag and keeps the popover open. |
 
-While a pointer drags, a line shows where the row lands. A reorder announces the new place through `labels.toolbar.filterReorderAnnouncement`. Focus stays on the moved handle. The drop line fades in unless the user prefers reduced motion. After a removal, focus moves to the handle of a sibling. When the row was the last of its group, the group goes too, and focus moves to a sibling of the group. If no sibling remains at any level, focus moves to "Add filter".
+While a pointer drags, a line shows where the row lands. A reorder announces the new place through `labels.toolbar.filterReorderAnnouncement`, and focus stays on the moved handle. After a removal, focus moves to the handle of a sibling. When the row was the last of its group, the group goes too, and focus moves to a sibling of the group. If no sibling remains at any level, focus moves to "Add filter".
 
 ## Controlled and initial filters
 
@@ -164,7 +170,7 @@ While a pointer drags, a line shows where the row lands. A reorder announces the
 
 If your server filters the rows, set `filterMode="server"`. The grid tracks `filterState`, shows the filter indicators, and calls `onFilterChange`. It never filters `data`. A grid with `totalRowCount` defaults to `"server"`. Set `filterMode="client"` to filter its `data` in the browser.
 
-The request is the `FilterNode[]` that `onFilterChange` receives. The answer is the rows that match. `useDataGridServerRows` sets `filterMode` for you and passes each fetch the list as `request.spec.filters`. See [Query server rows](/docs/data-modes/query-server-rows).
+The request is the `FilterNode[]` that `onFilterChange` receives, and the answer is the rows that match. `useDataGridServerRows` sets `filterMode` for you and passes each fetch the list as `request.spec.filters`. See [Query server rows](/docs/data-modes/query-server-rows).
 
 On a column with `choices`, the `isAnyOf` input lists the choices. On other columns, the header filter and the `isAnyOf` input list the set values of the loaded rows. Pass `fetchFilterValues` to read them from your server. See [Header filter](/docs/sort-filter-search/header-filter#server-values).
 

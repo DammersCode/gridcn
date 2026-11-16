@@ -6,7 +6,7 @@ type: feature
 aliases: ["search and replace", "bulk replace", "ctrl h"]
 ---
 
-Users fix the same typo in many cells without editing each cell. `data-grid-find-replace` adds a panel with a Find field and a Replace field. `useDataGridFindReplace` returns the `plugin` that mounts the panel. The plugin binds <kbd>Mod</kbd>+<kbd>F</kbd> to open Find and <kbd>Ctrl</kbd>+<kbd>H</kbd> to open Find and Replace.
+Users fix the same typo in many cells without editing each cell. `data-grid-find-replace` adds a panel with a Find field and a Replace field. `useDataGridFindReplace` returns the `plugin` that mounts the panel. The plugin binds <kbd>Mod</kbd>+<kbd>F</kbd> to open Find and <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>Enter</kbd> to open Find and Replace.
 
 <ComponentPreview name="data-grid-find-replace-demo" />
 
@@ -61,6 +61,8 @@ The search is a literal text match. It ignores spaces at both ends of the Find t
 - **Match case** matches letter case. It is off by default.
 - **Whole cell** matches only cells that equal the Find text. It is off by default.
 
+Find reads each cell as its search text: the `toSearchText` of its cell type, else its `toText`. A `select` cell searches its label. A `number` cell searches its plain value rounded to `decimals`, not its `format`, so `12.5` finds a cell that shows `$12.50`. A `date` cell searches its ISO text. A custom cell type can set `toSearchText`.
+
 The status line is the last row of the panel. It shows `2 of 4 cells` for the current match, `No results` when nothing matches, and `Type to search` while the Find field is empty. The number gets a `+` when more than 1,000 cells match.
 
 ### Typing
@@ -68,8 +70,6 @@ The status line is the last row of the panel. It shows `2 of 4 cells` for the cu
 The Find field waits for the `inputDebounceMs` prop of the grid (default 200 ms) after the last keystroke before it searches. <kbd>Enter</kbd> and blur search at once. Closing the panel with anything but <kbd>Escape</kbd> searches the waiting text.
 
 ## Replace
-
-Find reads each cell as its search text: the `toSearchText` of its cell type, else its `toText`. A `select` cell searches its label. A `number` cell searches its value rounded to `decimals`, and a `date` cell its ISO text, so `12.5` matches `$12.50`. A custom cell type can set `toSearchText`.
 
 Replace swaps the Find text in that text and converts the result with `fromText`.
 
@@ -80,7 +80,7 @@ Each click writes one change with the source `"replace"`. With the [undo add-on]
 
 Replace skips a cell when:
 
-- the column or the row is read-only,
+- the column is read-only, as a flag or for that row,
 - the replaced text cannot become a value of the type, such as `x` in a `number` column,
 - the replaced text is longer than 100,000 characters,
 - the column's `validate` rejects the new value. `onValidationError` receives these cells with the source `"replace"`.
@@ -93,7 +93,7 @@ Replace covers the visible columns of the rows in the view, on every page of a p
 
 One Replace all changes at most `replaceAllLimit` cells. When more cells match, the status line says so, and the next click continues. That click skips the cells the earlier one changed, even when the replacement contains the find text. A change to the find text, the replacement, or an option starts over.
 
-The chevron button at the start of the Find row shows and hides the Replace field. Every open sets it: <kbd>Mod</kbd>+<kbd>F</kbd> and `open("find")` hide it, and <kbd>Ctrl</kbd>+<kbd>H</kbd> and `open("replace")` show it. In a `readOnly` grid, the Find field works, the chevron is hidden, and Replace stays disabled. While a cell editor is open, Replace does nothing.
+The chevron button at the start of the Find row shows and hides the Replace field. Every open sets it: <kbd>Mod</kbd>+<kbd>F</kbd> and `open("find")` hide it, and <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>Enter</kbd> and `open("replace")` show it. In a `readOnly` grid, the Find field works, the chevron is hidden, and Replace stays disabled. While a cell editor is open, Replace does nothing.
 
 A sort or filter on a replaced column does not move rows while the panel is open. The view reconciles on the next sort or filter change.
 
@@ -102,12 +102,20 @@ A sort or filter on a replaced column does not move rows while the panel is open
 `processReplace` runs after the panel builds the list of changes and before it writes them. It gets the `plan` and a `signal`. Return the plan to write, or `false` to cancel:
 
 ```tsx
-const findReplace = useDataGridFindReplace({
-  processReplace: async ({ plan, signal }) => {
-    const allowed = await api.checkEdit(plan.patches, { signal });
-    return allowed ? plan : false;
-  },
-});
+import { useDataGridFindReplace } from "@/components/data-grid-find-replace/data-grid-find-replace";
+
+export function useCheckedFindReplace() {
+  return useDataGridFindReplace({
+    processReplace: async ({ plan, signal }) => {
+      const response = await fetch("/api/check-edit", {
+        method: "POST",
+        body: JSON.stringify(plan.patches),
+        signal,
+      });
+      return response.ok ? plan : false;
+    },
+  });
+}
 ```
 
 The hook can drop, add, or change patches. A patch holds the new value of one cell. The grid writes that value as given, with no `fromText`, and runs the column's `validate` on it. A patch for a hidden column is written too, so check what the hook adds.
@@ -126,24 +134,20 @@ A change of the find text, the replacement, or an option, a newer replace, or cl
 | Key | Where | Action |
 |---|---|---|
 | <kbd>Mod</kbd>+<kbd>F</kbd> | grid | Opens the panel with the cursor in Find. The Replace field stays hidden. |
-| <kbd>Ctrl</kbd>+<kbd>H</kbd> | grid | Opens the panel with the cursor in Find and the Replace field shown. |
+| <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>Enter</kbd> | grid | Opens the panel with the cursor in Find and the Replace field shown. |
 | <kbd>Enter</kbd> | Find | Goes to the next match. |
 | <kbd>Shift</kbd>+<kbd>Enter</kbd> | Find | Goes to the previous match. |
 | <kbd>Enter</kbd> | Replace | Replaces the current match. |
 | <kbd>Mod</kbd>+<kbd>Enter</kbd> | Replace | Replaces all matches. |
 | <kbd>Escape</kbd> | panel | Closes the panel and drops find text that is still waiting. |
 
-Focus stays in the panel field while Enter, Next, or Previous moves the active cell to a match. To move focus into the grid, call `api.focus()` on the grid ref. When the panel opened from the grid, <kbd>Escape</kbd> returns focus to the header button or grid. <kbd>Mod</kbd> is <kbd>Cmd</kbd> on macOS and <kbd>Ctrl</kbd> elsewhere. <kbd>Ctrl</kbd> in <kbd>Ctrl</kbd>+<kbd>H</kbd> is the physical Ctrl key on every platform, because <kbd>Cmd</kbd>+<kbd>H</kbd> hides the app on macOS. Outside the grid, <kbd>Mod</kbd>+<kbd>F</kbd> opens the browser's find bar. To change a key, bind `openFindReplace` or `openFind` in the grid's `keymap`.
+Focus stays in the panel field while Enter, Next, or Previous moves the active cell to a match. To move focus into the grid, call `api.focus()` on the grid ref. When the panel opened from the grid, <kbd>Escape</kbd> returns focus to the header button or grid. <kbd>Mod</kbd> is <kbd>Cmd</kbd> on macOS and <kbd>Ctrl</kbd> elsewhere. Outside the grid, <kbd>Mod</kbd>+<kbd>F</kbd> opens the browser's find bar. To change a key, bind `openFindReplace` or `openFind` in the grid's `keymap`.
 
 With `DataGridSearch` also on screen, <kbd>Mod</kbd>+<kbd>F</kbd> opens this panel and takes the key from the `focusSearch` action, which is then unbound. Bind `focusSearch` in `keymap` to reach the toolbar search with another key.
 
-<Callout type="warn" title="Ctrl+H opens the browser history in some browsers">
-  The panel calls `preventDefault` on <kbd>Ctrl</kbd>+<kbd>H</kbd> while the grid has focus. A browser that reserves the key still opens its history. Bind another key in `keymap`, or call `findReplace.open()` from a button.
-</Callout>
-
 ## Server mode
 
-Find and Replace work on the rows the grid holds: the loaded rows in scroll mode, and the current page in server pages mode. A client grid that pages its view holds every row. Its search and "Replace all" cover every page. A jump to a match changes the page. A search that finds nothing does not mean the server result has no match. To search the whole result, set the grid's `searchText`. Your server narrows the rows by `spec.searchText`.
+Find and Replace work on the rows the grid holds: the loaded rows in scroll mode, and the current page in pages mode. A client grid that pages its view holds every row. Its search and "Replace all" cover every page. A jump to a match changes the page. A search that finds nothing does not mean the server result has no match. To search the whole result, set the grid's `searchText`. Your server narrows the rows by `spec.searchText`.
 
 A grid with a `totalRowCount`, or with a server `sortMode` or `filterMode`, shows "Searches loaded rows only" under the fields. The Find field points to the note with `aria-describedby`. A local grid shows no note. To hide the note, set `labels.findReplace.scopeLoadedRows` to `""`.
 

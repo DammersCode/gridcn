@@ -8,7 +8,7 @@ aliases: ["mouse selection", "drag to select", "tap to select", "column header c
 
 Users select cells, rows, and columns with the pointer. A press and drag paints a rectangular range. A marker press checks a row. A header press selects a column. Four `enable*` props switch these channels off, and `headerClickBehavior` decides what a header click does.
 
-<ComponentPreview name="data-grid-touch-demo" />
+<ComponentPreview name="data-grid-pointer-demo" />
 
 ## Mouse gestures
 
@@ -20,24 +20,30 @@ A mouse or a pen uses these gestures:
 - Press a column header and drag to select adjacent columns. <kbd>Shift</kbd>+click extends from the last selected column. <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+click adds a column.
 - Press a row marker and drag to check rows. Drag back over checked rows to shrink the range.
 
-The marker gestures are in [Checked rows](/docs/selection-shortcuts/checked-rows#checking-a-range-of-rows). The grid root turns off native text selection. The `reorder` marker modes move a row only from the drag handle, and that drag leaves the selection as it was. A drag from the number or the checkbox still selects.
+The marker gestures are in [Checked rows](/docs/selection-shortcuts/checked-rows#checking-a-range-of-rows).
+
+The grid root turns off native text selection.
+
+The `reorder` marker modes move a row only from the drag handle, and that drag leaves the selection as it was. A drag from the number or the checkbox still selects.
 
 ## Touch gestures
 
 A touch screen scrolls natively. The grid reads the input type of each press. A laptop with a touch screen and a trackpad gets touch gestures from the screen and mouse gestures from the trackpad.
 
+<ComponentPreview name="data-grid-touch-demo" />
+
 | Gesture | Result |
 |---|---|
 | Tap a cell | Selects the cell. A scroll or a pan selects nothing. |
 | Tap the checkbox of a checkbox cell | Toggles the value. A tap elsewhere in the cell selects it. A read-only grid does not toggle. |
-| Double-tap a cell | Starts editing, or toggles a checkbox cell. A read-only grid does not edit. |
+| Double-tap a cell | Starts editing, or toggles a checkbox cell. Two taps on the same cell within 300 ms and 10 px make a double-tap. A read-only grid does not edit. |
 | Tap a column header | Selects the column. With `headerClickBehavior="sort"`, it sorts the column. |
 | Tap the number of a row marker | Checks only this row. |
 | Tap the checkbox of a row marker | Toggles this row and keeps the other checks. |
 | Long-press (500 ms) a cell or a header | Fires a `contextmenu` event. The [context menu](/docs/rows-pages-menus/context-menu) add-on opens its menu. |
 | Drag a selection handle | Extends the range from the opposite corner. The grid scrolls at the edges. |
 
-After a touch selection, two handles appear at the top-start and bottom-end corners of the range. A key press other than a modifier hides them. A press that moves more than 10 px counts as a pan, not a tap.
+After a touch selection, two selection handles appear at the top-start and bottom-end corners of the range. A key press other than a modifier hides them, and so does an open editor. A press that moves more than 10 px counts as a pan, not a tap.
 
 The grid root sets `touch-action: manipulation`. A double-tap does not zoom the page, and pinch zoom stays available. For targets that are easier to hit, use `density="comfortable"`.
 
@@ -51,7 +57,7 @@ The grid root sets `touch-action: manipulation`. A double-tap does not zoom the 
 | `"sort"` | Cycles the column through ascending order, descending order, and no sort. <kbd>Shift</kbd>+click adds the column to a multi-sort. |
 | `"none"` | Does nothing. |
 
-Only `"select"` mode selects columns. The other two modes make a column header press select no column. When a sort list or your own UI drives the sort, set `"none"`. A column with `sortable: false` never sorts on click, and `useDataGridActions().setSorts()` still sorts it. [Sorting](/docs/sort-filter-search/sorting) covers the sort itself.
+Only `"select"` mode selects columns. In `"sort"` and `"none"` mode, a header press selects no column. When a sort list or your own UI drives the sort, set `"none"`. A column with `sortable: false` never sorts on click, and `useDataGridActions().setSorts()` still sorts it. [Sorting](/docs/sort-filter-search/sorting) covers the sort itself.
 
 The following example sorts on a header click:
 

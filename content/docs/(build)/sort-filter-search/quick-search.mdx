@@ -8,7 +8,7 @@ aliases: ["search box", "find in grid", "highlight matches", "search all columns
 
 Users type a word and the grid highlights every cell that holds it. `DataGridSearch` is the input. It counts the matches, and it moves the active cell from match to match. Search never hides rows. A [filter](/docs/sort-filter-search/filtering) hides rows.
 
-<ComponentPreview name="data-grid-sorting-filtering-demo" />
+<ComponentPreview name="data-grid-quick-search-demo" />
 
 `DataGridSearch` comes with the [toolbar add-on](/docs/sort-filter-search/toolbar). Put it first in the toolbar:
 
@@ -93,8 +93,8 @@ Typed text is not lost. Blur, <kbd>Enter</kbd>, and unmount commit text that is 
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
-| `placeholder` | `string` | none | Placeholder text. The default comes from `labels.toolbar.searchPlaceholder`. |
-| `debounceMs` | `number` | the grid's `inputDebounceMs` | Typing delay in ms. The default is the provider's `inputDebounceMs`. |
+| `placeholder` | `string` | `labels.toolbar.searchPlaceholder` | Placeholder text. |
+| `debounceMs` | `number` | the grid's `inputDebounceMs` | Typing delay in ms. |
 | `className` | `string` | none | Classes for the root. |
 
 `defaultSearchText` seeds the text once. `searchText` and `onSearchTextChange(next)` control it.

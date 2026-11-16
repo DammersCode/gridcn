@@ -15,6 +15,8 @@ A grid with zero rows shows the empty state, which reads as a query without resu
 Pass `loading` to `DataGrid` or `DataGridRoot`:
 
 ```tsx
+"use client";
+
 import { useState } from "react";
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
 
@@ -54,16 +56,33 @@ export function LoadingGrid({ rows }: { rows: Row[] }) {
 `loadingState` replaces the skeleton and the bar. It takes a node, or a function that receives `{ reason }`. `reason` is `"no-data"` for zero rows and `"rows-present"` otherwise. The grid renders the result under the header at full width. The node owns its accessibility:
 
 ```tsx
-<DataGrid
-  data={rows}
-  columns={columns}
-  loading={loading}
-  loadingState={({ reason }) => (
-    <p className="p-4 text-sm">
-      {reason === "no-data" ? "Fetching rows…" : "Refreshing…"}
-    </p>
-  )}
-/>
+"use client";
+
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Row = { id: string; name: string };
+
+const columns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+]);
+
+type Props = { rows: Row[]; loading: boolean };
+
+export function FetchingGrid({ rows, loading }: Props) {
+  return (
+    <DataGrid
+      className="h-80"
+      data={rows}
+      columns={columns}
+      loading={loading}
+      loadingState={({ reason }) => (
+        <p className="p-4 text-sm">
+          {reason === "no-data" ? "Fetching rows…" : "Refreshing…"}
+        </p>
+      )}
+    />
+  );
+}
 ```
 
 ## Empty state [#empty-state]
@@ -73,20 +92,73 @@ A grid with no rows in view shows the empty state. The text is `labels.grid.empt
 `emptyState` replaces the message. It takes a node, or a function that receives `{ reason }`. `reason` is `"filtered"` when a filter or a server search leaves no row, and `"no-data"` otherwise:
 
 ```tsx
-<DataGrid
-  data={rows}
-  columns={columns}
-  emptyState={({ reason }) =>
-    reason === "filtered" ? "No orders match the filter." : "No orders yet."
-  }
-/>
+"use client";
+
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+export function OrdersGrid({ orders }: { orders: Order[] }) {
+  return (
+    <DataGrid
+      className="h-80"
+      data={orders}
+      columns={columns}
+      emptyState={({ reason }) =>
+        reason === "filtered" ? "No orders match the filter." : "No orders yet."
+      }
+    />
+  );
+}
 ```
 
 ## Error state [#error-state]
 
 A failed load needs its own message. Any `error` value except `undefined` and `null` shows it. With zero rows, the grid centers a message with a Retry button. With rows present, a slim alert bar appears under the header and the rows stay. The text comes from `labels.grid.errorState`, and the built-in display never shows the error value.
 
-Pressing Retry runs `onRetry`. If you omit `onRetry`, the button stays hidden. `errorState` replaces the display with a node, or with a function that receives `{ error, retry }`.
+Pressing Retry runs `onRetry`. If you omit `onRetry`, the button stays hidden. `errorState` replaces the display with a node, or with a function that receives `{ error, retry }`. `retry` is `undefined` without `onRetry`. This grid shows its own message and a Retry button:
+
+```tsx
+"use client";
+
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Order = { id: string; customer: string };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+]);
+
+export function OrdersGrid({
+  orders,
+  error,
+  reload,
+}: {
+  orders: Order[];
+  error: unknown;
+  reload: () => void;
+}) {
+  return (
+    <DataGrid
+      className="h-80"
+      data={orders}
+      columns={columns}
+      error={error}
+      onRetry={reload}
+      errorState={({ retry }) => (
+        <div className="p-4 text-sm">
+          Orders did not load.
+          {retry && <button onClick={retry}>Try again</button>}
+        </div>
+      )}
+    />
+  );
+}
+```
 
 ## Server mode
 
@@ -101,11 +173,11 @@ In scroll mode, `loading` is true while any block request runs. Rows that are no
 | Prop | Type | Default |
 | --- | --- | --- |
 | `loading` | `boolean` | `false` |
-| `loadingState` | `ReactNode \| LoadingStateRenderer` | none |
+| `loadingState` | `ReactNode | ErrorStateRenderer`\| LoadingStateRenderer` | none |
 | `emptyState` | `ReactNode \| EmptyStateRenderer` | `labels.grid.emptyState`, or `labels.grid.noResults` for `"filtered"` |
 | `error` | `unknown` | none |
 | `onRetry` | `() => void` | none |
-| `errorState` | `ReactNode \| ((ctx) => ReactNode)` | none |
+| `errorState` | `ReactNode \| ErrorStateRenderer` | none |
 
 ## Related
 

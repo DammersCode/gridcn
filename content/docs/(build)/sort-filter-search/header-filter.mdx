@@ -60,19 +60,23 @@ The button shows on each column that offers `isAnyOf` or `isNoneOf` and is not `
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
-| `column` | `AnyColumnDef` | none | The column that the button filters. |
-| `index` | `number` | none | The index of the column in the header. |
+| `column` | `AnyColumnDef` | required | The column that the button filters. |
+| `index` | `number` | required | The index of the column in the header. |
 | `className` | `string` | none | Merged into the classes of the filter button. |
 
 ## The popover
 
 - The list holds one entry per distinct value, with the number of rows that have it. Values that differ only in case form one entry, and Apply writes the first spelling it meets. An empty value shows as "(Blanks)".
-- The popover opens with focus in the search box, which narrows the list. "Select all" is a checkbox at the start of the search field. It checks or unchecks the values that match the typed text. It comes before the search input in the Tab order, and <kbd>Space</kbd> toggles it. The box is empty when none of those values is checked, indeterminate when some are, and checked when all are.
+- The popover opens with focus in the search box, which narrows the list.
+- "Select all" is a checkbox at the start of the search field. It checks or unchecks the values that match the typed text. It comes before the search input in the Tab order, and <kbd>Space</kbd> toggles it. The box is empty when none of those values is checked, indeterminate when some are, and checked when all are.
 - The status line reads "N of M selected" for the values the search shows. Set the text with `labels.toolbar.headerFilterSelectedCount`.
 - The counts include only the rows that pass every other top-level filter. The column's own top-level set filter never hides its own values. A set filter of the column inside a group counts like any other filter.
-- If the user checks fewer values than they leave unchecked, Apply writes `isAnyOf` with the checked values. Otherwise it writes `isNoneOf` with the unchecked values. On a tie, it keeps the operator of the column's current set filter, or uses `isAnyOf` if there is none. Checking every listed value removes the set filter, apart from values the list does not show. A value that enters the data later passes `isNoneOf`.
-- Apply keeps every other filter. That includes condition filters on the same column. It reads and writes only the top-level set filter of the column. Set filters inside a group belong to the filter menu, and a line under the list tells the user that the column has some.
-- Apply stays off while the user checks no value. If the stored list needs more than 1,000 entries, Apply also stays off, and a message explains why.
+- Apply writes the set filter of the column:
+  - If the user checks fewer values than they leave unchecked, Apply writes `isAnyOf` with the checked values. Otherwise it writes `isNoneOf` with the unchecked values.
+  - On a tie, it keeps the operator of the column's current set filter, or uses `isAnyOf` if there is none.
+  - Checking every listed value removes the set filter, apart from values the list does not show. A value that enters the data later passes `isNoneOf`.
+  - Apply keeps every other filter, including condition filters on the same column. It reads and writes only the top-level set filter of the column. Set filters inside a group belong to the filter menu, and a line under the list tells the user that the column has some.
+- Apply stays off while the user checks no value, except on a server list that holds an `isNoneOf` entry. There, no checked value writes `isNoneOf` with every listed value. If the stored list needs more than 1,000 entries, Apply also stays off, and a message explains why.
 - Clear removes every filter of the column at every level, and removes the groups this leaves empty. <kbd>Escape</kbd> or a press outside the popover discards the selection.
 - The list reads at most 100,000 distinct values. Past that limit it shows the first values and a message.
 
@@ -89,7 +93,7 @@ To change the first key, bind `openColumnFilter` in the grid's `keymap`. The fil
 
 ## Server values
 
-Pass `fetchFilterValues` to `DataGridProvider` to fill the list from your server. The popover calls it when it opens and once for each debounced search. The `isAnyOf` input of the filter menu calls it the same way. This function reads the values from an API:
+Pass `fetchFilterValues` to `DataGridProvider` to fill the list from your server. The popover calls it when it opens and once for each search, after `inputDebounceMs` (default 200 ms) without typing. The `isAnyOf` input of the filter menu calls it the same way. This function reads the values from an API:
 
 ```ts
 import type { FetchFilterValues } from "@/components/data-grid/data-grid";
@@ -104,7 +108,7 @@ export const fetchFilterValues: FetchFilterValues = async (ctx) => {
 
 Pass it as `fetchFilterValues={fetchFilterValues}` to `DataGridProvider`. The function receives `{ columnId, query, filters, signal }`. It returns `{ values: { value: string; label?: string; count?: number }[] }`.
 
-Each value has a `value` and an optional `label`. The filter stores `value`, so `filterState`, the URL, and the spec your server receives hold the code. The list shows `label`, and shows `value` when `label` is absent. Return `{ value: "DE", label: "Germany" }` for a column of country codes.
+Each value has a `value` and an optional `label`. The filter stores `value`, so `filterState`, the URL, and the spec your server receives hold the code. The list shows `label`, and shows `value` when `label` is absent. Return `{ value: "DE", label: "Germany" }` for a column of country codes. A `count` shows the number of rows beside the value. A `count` that is not a non-negative integer shows no number.
 
 {/* props: FetchFilterValuesContext */}
 
