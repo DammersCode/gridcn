@@ -4,7 +4,17 @@ import type { SortedResult } from 'fumadocs-core/search';
 export type SearchPageFacts = { title: string; aliases?: readonly string[] };
 
 /** Pages that list every term or message: they match most queries, so they rank after the owner pages. */
-export const demotedSearchUrls: ReadonlySet<string> = new Set(['/docs/terms-help/terms', '/docs/cheatsheets-messages/messages']);
+export const demotedSearchUrls: ReadonlySet<string> = new Set([
+  '/docs/terms-help/terms',
+  '/docs/cheatsheets-messages/messages',
+  '/docs/cheatsheets-messages/messages/addons',
+  '/docs/cheatsheets-messages/messages/data',
+  '/docs/cheatsheets-messages/messages/grid-parts',
+  '/docs/cheatsheets-messages/messages/server',
+  '/docs/cheatsheets-messages/messages/setup',
+  '/docs/cheatsheets-messages/messages/shown-text',
+  '/docs/cheatsheets-messages/messages/thrown-errors',
+]);
 
 /** Adds the page's frontmatter aliases to its index as one text block. */
 export function withAliases(index: AdvancedIndex, aliases: readonly string[] | undefined): AdvancedIndex {
