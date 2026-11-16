@@ -55,7 +55,7 @@ Each of these paths holds the batch while the schema resolves, and so does impor
 
 - The grid runs at most 32 validations at the same time. A paste of 10,000 cells makes 32 calls at a time.
 - Nothing changes until every verdict is in. The accepted cells then commit together as one `onDataChange` batch.
-- A rejected cell drops, and the other cells still commit. `onValidationError` reports the rejected cells of a paste, a fill, a Delete or Cut clear, or an `updateCells` call.
+- A rejected cell drops, and the other cells still commit. `onValidationError` reports the rejected cells of a paste, a fill, a Delete or Cut clear, a find and replace batch, an `updateCells` call, or the toggle of an `activate` cell.
 - While a schema holds a paste, a second paste replaces the first. A held batch also drops when a sort or filter changes, or when a target row leaves the data.
 - The import dialog keeps its Import button disabled while it validates.
 
