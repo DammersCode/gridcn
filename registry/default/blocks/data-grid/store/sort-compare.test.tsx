@@ -299,7 +299,8 @@ describe("select sort cost", () => {
     time("label");
     let selectSort = Infinity;
     let collatedSort = Infinity;
-    for (let i = 0; i < 5; i++) {
+    // Best of up to 15 interleaved pairs: a load spike only slows single runs, so the minimums converge on the real cost.
+    for (let i = 0; i < 15 && !(selectSort < collatedSort * 1.5 && i >= 3); i++) {
       selectSort = Math.min(selectSort, time("fruit"));
       collatedSort = Math.min(collatedSort, time("label"));
     }

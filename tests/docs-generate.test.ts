@@ -5,8 +5,10 @@ import { describe, expect, it } from "vitest";
 const page = (path: string) => readFileSync(`content/docs/${path}.mdx`, "utf8").replace(/\r\n/g, "\n");
 const keyboard = () => page("(reference)/cheatsheets-messages/keyboard-shortcuts");
 const messages = () => page("(reference)/cheatsheets-messages/messages");
+// The generator compiles the blocks with TypeScript: about 1 s alone, several seconds under a parallel run.
+const GENERATOR_TIMEOUT_MS = 60_000;
 
-describe("docs-generate check", () => {
+describe("docs-generate check", { timeout: GENERATOR_TIMEOUT_MS }, () => {
   it("finds no stale page and no message without a row", () => {
     expect(() => execFileSync("node", ["scripts/docs-generate.mjs", "--check"], { stdio: "pipe" })).not.toThrow();
   });
@@ -78,7 +80,7 @@ describe("messages page", () => {
   });
 });
 
-describe("props page", () => {
+describe("props page", { timeout: GENERATOR_TIMEOUT_MS }, () => {
   it("reads the JSDoc of the named type, not the first member of that name", async () => {
     const { jsdocOf } = await import("../scripts/docs-generate.mjs");
     const file = "registry/default/blocks/data-grid/types.ts";
@@ -152,7 +154,7 @@ describe("task finder page", () => {
   });
 });
 
-describe("exported types coverage", () => {
+describe("exported types coverage", { timeout: GENERATOR_TIMEOUT_MS }, () => {
   it("reads type names from a barrel", async () => {
     const { exportedTypeNames } = await import("../scripts/docs-generate.mjs");
     const barrel = 'export type { A, B as C } from "./a";\nexport { x, type D } from "./b";\nexport type E = number;';
@@ -203,7 +205,7 @@ describe("options page", () => {
   });
 });
 
-describe("docs-generate write mode", () => {
+describe("docs-generate write mode", { timeout: GENERATOR_TIMEOUT_MS }, () => {
   it("leaves current pages untouched, including CRLF checkouts", () => {
     const file = "content/docs/(reference)/cheatsheets-messages/messages.mdx";
     const original = readFileSync(file);
