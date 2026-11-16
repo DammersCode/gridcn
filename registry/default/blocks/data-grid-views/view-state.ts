@@ -32,7 +32,7 @@ export type DataGridView = { id: string; name: string; state: DataGridViewState 
 export type DataGridViewsDocument = { version: 1; views: DataGridView[]; defaultViewId: string | null };
 
 /** The live columns a view is checked against; `undefined` checks structure and limits only, so any column id passes. */
-export type ViewColumns = ReadonlyMap<string, { sortable?: boolean; filterable?: boolean; operators?: ReadonlyMap<string, FilterOperatorInput> }>;
+export type ViewColumns = ReadonlyMap<string, { sortable?: boolean; filterable?: boolean; operators?: ReadonlyMap<string, FilterOperatorInput>; choices?: ReadonlySet<string> }>;
 
 export type ViewFileResult = { ok: true; name: string; state: DataGridViewState; dropped: number } | { ok: false; reason: "too-large" | "invalid" };
 
@@ -232,6 +232,14 @@ function sanitizeOperatorValue(operator: unknown, columnId: unknown, raw: unknow
   return input ? sanitizeCustomValue(input, raw) : { ok: false };
 }
 
+/** The blank entry and the list entries that `choices` holds; `null` when none of a non-empty list is left. */
+function knownChoices(operator: unknown, value: FilterSpec["value"], choices: ReadonlySet<string> | undefined, tally: Tally): FilterSpec["value"] | null {
+  if (!choices || (operator !== "isAnyOf" && operator !== "isNoneOf") || !Array.isArray(value)) return value;
+  const kept = value.filter((entry) => entry === "" || choices.has(entry));
+  tally.dropped += value.length - kept.length;
+  return kept.length === 0 && value.length > 0 ? null : kept;
+}
+
 function sanitizeFilterNodes(raw: unknown, depth: number, columns: ViewColumns | undefined, budget: FilterBudget, tally: Tally): FilterNode[] {
   if (!Array.isArray(raw)) return [];
   const out: FilterNode[] = [];
@@ -259,9 +267,11 @@ function sanitizeFilterNodes(raw: unknown, depth: number, columns: ViewColumns |
       tally.dropped++;
       continue;
     }
+    const known = knownChoices(operator, value.value, columns?.get(columnId)?.choices, tally);
+    if (known === null) continue;
     budget.leaves++;
     const spec: FilterSpec = { columnId, operator: operator as FilterOperator };
-    if (value.value !== undefined) spec.value = value.value;
+    if (known !== undefined) spec.value = known;
     out.push(spec);
   }
   return out;

@@ -27,6 +27,9 @@ const columns = defineColumns<Row>()([
   { id: "name", header: "Name", accessorKey: "name", type: "text", width: 100 },
   { id: "age", header: "Age", accessorKey: "age", type: "number", width: 80 },
 ] as const);
+const choiceColumns = defineColumns<Row>()([
+  { id: "name", header: "Name", accessorKey: "name", type: "select", options: { choices: ["Alice", "Bob"] } },
+] as const);
 
 type Probe = {
   views: UseDataGridViewsResult;
@@ -607,6 +610,31 @@ describe("useDataGridViews", () => {
     act(() => probe.current!.actions.setFilters([{ columnId: "name", operator: "isNoneOf", value: Array.from({ length: 1001 }, (_, i) => String(i)) }]));
     act(() => probe.current!.views.selectView("a"));
     expect(probe.current!.filter).toEqual([]);
+  });
+
+  it.each([false, true])("drops list values outside the column choices when a view opens (server mode %s)", async (serverMode) => {
+    const doc = seeded();
+    doc.views[0]!.state.filters = [{ columnId: "name", operator: "isAnyOf", value: ["Alice", "Mallory", ""] }];
+    doc.views[1]!.state.filters = [{ columnId: "name", operator: "isNoneOf", value: ["Mallory"] }];
+    const modes = serverMode ? { sortMode: "server", filterMode: "server" } : {};
+    const { probe } = setup({ storage: createMemoryViewsStorage(doc) }, { columns: choiceColumns, ...modes });
+    await ready(probe);
+    act(() => probe.current!.views.selectView("a"));
+    expect(probe.current!.filter).toMatchObject([{ columnId: "name", operator: "isAnyOf", value: ["Alice", ""] }]);
+    act(() => probe.current!.views.selectView("b"));
+    expect(probe.current!.filter).toEqual([]);
+  });
+
+  it("counts list values outside the column choices as dropped on import", async () => {
+    const { probe } = setup({ storage: createMemoryViewsStorage() }, { columns: choiceColumns });
+    await ready(probe);
+    const file = JSON.stringify({ format: "gridcn-view", version: 1, name: "Picked", state: { filters: [{ columnId: "name", operator: "isAnyOf", value: ["Bob", "Mallory"] }] } });
+    let result: ReturnType<UseDataGridViewsResult["importView"]> | undefined;
+    act(() => {
+      result = probe.current!.views.importView(file);
+    });
+    expect(result).toMatchObject({ ok: true, dropped: 1 });
+    expect(probe.current!.views.views.at(-1)!.state.filters).toEqual([{ columnId: "name", operator: "isAnyOf", value: ["Bob"] }]);
   });
 });
 
