@@ -9,6 +9,7 @@ import {
   DataGridRoot,
   defineColumns,
   type CellClickCtx,
+  type DataGridApi,
   type GridCommand,
   type Keymap,
 } from "@/registry/default/blocks/data-grid/data-grid";
@@ -21,19 +22,19 @@ const columns = defineColumns<DemoRow>()([
   { id: "active", header: "Active", accessorKey: "active", type: "checkbox", width: 70, flex: 1 },
 ] as const);
 
-const keymap = { openRow: ["mod+shift+Enter"] } as Keymap;
+const keymap = { openRow: ["shift+Enter"] } as Keymap;
 
 export default function DataGridDetailPanelDemo(): ReactNode {
   const rows = useMemo(() => generateDemoRows(30), []);
   const rowsById = useMemo(() => new Map(rows.map((row) => [row.id, row])), [rows]);
   const [open, setOpen] = useState(false);
   const [rowId, setRowId] = useState<string | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<DataGridApi<DemoRow> | null>(null);
   const row = rowId === null ? undefined : rowsById.get(rowId);
 
   const close = () => {
     setOpen(false);
-    containerRef.current?.querySelector<HTMLElement>('[role="grid"]')?.focus();
+    gridRef.current?.focus();
   };
 
   const commands = useMemo<Record<string, GridCommand<DemoRow>>>(
@@ -54,11 +55,12 @@ export default function DataGridDetailPanelDemo(): ReactNode {
   return (
     <div className="flex flex-col gap-2">
       <p className="m-0 text-sm text-muted-foreground">
-        Click a cell, or press Ctrl+Shift+Enter on the active cell, to show its row. The panel follows the active
+        Click a cell, or press Shift+Enter on the active cell, to show its row. The panel follows the active
         cell while you move with the arrow keys. Escape closes it when focus is inside the panel.
       </p>
-      <div ref={containerRef} className="relative overflow-hidden">
+      <div className="relative overflow-hidden">
         <DataGridProvider
+          ref={gridRef}
           defaultData={rows}
           columns={columns}
           onCellClick={openFromClick}

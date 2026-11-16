@@ -3,6 +3,7 @@
   "icon": "Clipboard",
   "pages": [
     "clipboard",
+    "change-copy-paste",
     "fill-handle",
     "undo-redo",
     "undo-code-changes"

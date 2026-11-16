@@ -62,6 +62,7 @@ const EXAMPLES = {
   "data-grid-cross-field-demo": dynamic(() => import("@/registry/default/examples/data-grid-cross-field-demo")),
   "data-grid-cell-errors-demo": dynamic(() => import("@/registry/default/examples/data-grid-cell-errors-demo")),
   "data-grid-i18n-demo": dynamic(() => import("@/registry/default/examples/data-grid-i18n-demo")),
+  "data-grid-clipboard-demo": dynamic(() => import("@/registry/default/examples/data-grid-clipboard-demo")),
   "data-grid-fill-patterns-demo": dynamic(() => import("@/registry/default/examples/data-grid-fill-patterns-demo")),
   "data-grid-loading-demo": dynamic(() => import("@/registry/default/examples/data-grid-loading-demo")),
   "data-grid-playground-demo": dynamic(() => import("@/registry/default/examples/data-grid-playground-demo")),

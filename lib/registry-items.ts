@@ -34,6 +34,7 @@ export type RegistryItemName =
   | "data-grid-context-menu-demo"
   | "data-grid-context-menu-slots-demo"
   | "data-grid-async-gates-demo"
+  | "data-grid-clipboard-demo"
   | "data-grid-cross-field-demo"
   | "data-grid-cursor-react-query-demo"
   | "data-grid-cursor-swr-demo"

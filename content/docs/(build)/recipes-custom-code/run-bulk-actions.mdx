@@ -29,6 +29,7 @@ A bulk bar needs the checked row ids and one write for each button. Checkbox row
 "use client";
 
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 import {
   DataGrid,
   defineColumns,
@@ -53,9 +54,14 @@ export function OrdersGrid({ initialOrders }: { initialOrders: Order[] }) {
   const checkedIds = () => gridRef.current?.getSelection().rowIds ?? [];
 
   const markShipped = () => {
-    gridRef.current?.actions.editRows(
-      checkedIds().map((rowId) => ({ rowId, changes: { status: "shipped" } })),
-    );
+    const patches = checkedIds().map((rowId) => ({
+      rowId,
+      changes: { status: "shipped" },
+    }));
+    const { skipped } = gridRef.current?.actions.editRows(patches) ?? {
+      skipped: [],
+    };
+    if (skipped.length) toast(`${skipped.length} rows were not changed`);
   };
 
   const deleteChecked = () => {
@@ -93,7 +99,11 @@ export function OrdersGrid({ initialOrders }: { initialOrders: Order[] }) {
 
 ## One write for each button [#one-write-per-button]
 
-`editRows` writes every row in one batch. `onDataChange` fires once, `onSave` fires once, and [undo](/docs/clipboard-undo/undo-redo) records one entry. The patched rows move to their sorted position at once. `editRows` is `updateRows` with `source: "edit"` and `reorder: "immediate"`. A plain `updateRows` call uses the `"stream"` source, which stays off the undo stack and never reaches `onSave`. The call returns how many cells it wrote and which patches it skipped, such as a read-only column or a value that fails `validate`.
+`editRows` writes every row in one batch. `onDataChange` fires once, `onSave` fires once, and [undo](/docs/clipboard-undo/undo-redo) records one entry. The patched rows move to their sorted position at once.
+
+`editRows` is `updateRows` with `source: "edit"` and `reorder: "immediate"`. A plain `updateRows` call uses the `"stream"` source. That source stays off the undo stack and never reaches `onSave`.
+
+`editRows` returns `{ applied, skipped, pending }`. `applied` counts the cells it wrote. `skipped` lists each patch that did not land, with a `reason` such as `"readonly"` or `"invalid"`. `pending` is `true` while an async `validate` holds the batch.
 
 `deleteRows` deletes the rows in one batch and clears the selection, so the bar hides itself. If the grid has `onBeforeDeleteRows`, that callback can cancel the delete.
 
