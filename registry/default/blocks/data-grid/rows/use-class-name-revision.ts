@@ -43,10 +43,10 @@ export function useClassNameRevision(hooks: ClassNameHooks, renderedRef: RefObje
   const storeApi = useDataGridStoreApi();
   const latest = useRef(hooks);
   const previous = useRef(hooks);
-  latest.current = hooks;
   const [revision, setRevision] = useState(0);
 
   useLayoutEffect(() => {
+    latest.current = hooks;
     const before = previous.current;
     previous.current = hooks;
     if (before.getRowClassName === hooks.getRowClassName && before.getCellClassName === hooks.getCellClassName) return;

@@ -264,7 +264,6 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     return () => observer.disconnect();
   }, [directionProp]);
   const direction = directionProp ?? domDirection;
-  const isRtl = direction === "rtl";
   const visibleColumns = useDataGridVisibleColumns();
   const columnGroupModel = useDataGridColumnGroupModel();
   const headerRows = useMemo(() => computeHeaderRows(visibleColumns, columnGroupModel), [visibleColumns, columnGroupModel]);

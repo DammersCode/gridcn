@@ -202,7 +202,9 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
 
   // Rows are memoized by getRowId, not viewRowIndex, so sort/filter/insert/delete reuses the right DOM row.
   const rowIds = useDataGridRowIds(viewRowIndices);
-  renderedRowsRef.current = { viewRowIndices, rowIds, columns: renderedColumns.map((rendered) => rendered.column) };
+  useLayoutEffect(() => {
+    renderedRowsRef.current = { viewRowIndices, rowIds, columns: renderedColumns.map((rendered) => rendered.column) };
+  });
 
   // Keyed by getRowId (the row's own React key), so a row kept across a shift is found by
   // identity, not array position. Separate module: the render-time callback lookup reads Maps —
