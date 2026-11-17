@@ -22,6 +22,11 @@ describe("parseServerSpec", () => {
     expect(spec.searchText).toHaveLength(500);
   });
 
+  it("keeps the matchCase mark of a filter row and drops any other matchCase value", () => {
+    const spec = parse({ filters: [{ columnId: "name", operator: "equals", value: "Bonn", matchCase: true }, { columnId: "name", operator: "equals", value: "x", matchCase: "yes" }] });
+    expect(spec.filters).toEqual([{ columnId: "name", operator: "equals", value: "Bonn", matchCase: true }, { columnId: "name", operator: "equals", value: "x" }]);
+  });
+
   it("reads a missing part as empty", () => {
     expect(parse({})).toEqual({ sorts: [], filters: [], searchText: "" });
   });

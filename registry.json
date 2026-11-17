@@ -632,6 +632,11 @@
                "type": "registry:component",
                "target": "components/data-grid/store/compute.ts"
             },
+            {
+               "path": "registry/default/blocks/data-grid/store/filter-match-case.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/filter-match-case.ts"
+            },
              {
                 "path": "registry/default/blocks/data-grid/store/create-store.ts",
                 "type": "registry:component",

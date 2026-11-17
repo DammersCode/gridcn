@@ -614,7 +614,14 @@ export type FilterJoinOperator = "and" | "or";
  * same column are allowed and meaningful under `"or"`/mixed joins); optional at the input boundary
  * for backward compatibility — the store auto-assigns one when absent (see `genFilterId`).
  */
-export type FilterSpec = { filterId?: string; columnId: string; operator: FilterOperator; value?: string | [string, string] | string[] };
+export type FilterSpec = {
+  filterId?: string;
+  columnId: string;
+  operator: FilterOperator;
+  value?: string | [string, string] | string[];
+  /** `true` when the column's filters respect letter case (`filter.matchCase`), so a server compares with letter case too. The grid sets it from the column; the client filter reads the column. */
+  matchCase?: true;
+};
 
 /**
  * A box of filters that match together: with `join: "and"` every child must match, with `"or"` any one.

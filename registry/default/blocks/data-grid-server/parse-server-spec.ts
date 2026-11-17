@@ -49,7 +49,7 @@ const DEFAULT_LIMITS = { maxSorts: MAX_SPEC_SORTS, maxFilters: 64, maxGroups: 16
 
 type Budget = { filters: number; groups: number };
 
-type Raw = { sorts?: unknown; filters?: unknown; searchText?: unknown; columnId?: unknown; direction?: unknown; join?: unknown; operator?: unknown; value?: unknown };
+type Raw = { sorts?: unknown; filters?: unknown; searchText?: unknown; columnId?: unknown; direction?: unknown; join?: unknown; operator?: unknown; value?: unknown; matchCase?: unknown };
 
 const isRecord = (value: unknown): value is Raw => typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -144,7 +144,8 @@ function parseRow(node: Raw, path: string, rules: ReadonlyMap<string, ServerSpec
   if (!allowed) throw new ServerSpecError(`${path}.operator`, `"${operator.slice(0, 40)}" is not allowed on "${columnId.slice(0, 40)}"`);
   const input = custom ?? filterOperatorInput(operator);
   const value = parseValue(node.value, input, `${path}.value`, limits);
-  return value === undefined ? { columnId, operator } : { columnId, operator, value };
+  const row: FilterSpec = value === undefined ? { columnId, operator } : { columnId, operator, value };
+  return node.matchCase === true ? { ...row, matchCase: true } : row;
 }
 
 function text(value: unknown, path: string, limits: Required<ServerSpecLimits>): string {

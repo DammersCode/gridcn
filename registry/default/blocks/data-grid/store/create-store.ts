@@ -79,6 +79,7 @@ import {
   EMPTY_CELL_ERRORS,
   EMPTY_FLASHING_CELLS,
 } from "./compute";
+import { withMatchCase } from "./filter-match-case";
 import { toSafeText } from "../cell-types/safe-text";
 import { createWarnOnce, isDev, warnDev } from "../is-dev";
 import {
@@ -236,11 +237,11 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   if (warnsUnhandledSpecAtMount) {
     queueMicrotask(() => warnDev('totalRowCount makes sorting and filtering server-side by default, and nothing here handles onSortChange or onFilterChange, so the grid will not reorder or narrow its rows. Fetch rows for the spec, or set sortMode="client" and filterMode="client" to work on the loaded rows'));
   }
-  const initFilterState = withFilterIds(init.filterState ?? dropUnknownFilters(plainSeed(init.defaultFilterState) ?? [], init.columns));
   const initSearchText = init.searchText ?? plainSeed(init.defaultSearchText) ?? "";
   const initSearchOptions = DEFAULT_SEARCH_OPTIONS;
   // storage widens each per-column CellType<TData, TValue, TOptions> to the untyped registry shape; narrowed back per column at lookup (cell.tsx/store's column-op helpers).
   const initCellTypes = resolveCellTypes(init.cellTypes as unknown as ProvidedCellTypes);
+  const initFilterState = withMatchCase(withFilterIds(init.filterState ?? dropUnknownFilters(plainSeed(init.defaultFilterState) ?? [], init.columns)), init.columns, initCellTypes);
   Object.assign(memory, {
     lastPropsCellTypes: init.cellTypes as unknown as ProvidedCellTypes,
     lastSyncInputs: {
@@ -1386,7 +1387,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       setFilters(filters) {
         const s = get();
         // backfills a filterId for any row the caller added without one (e.g. hand-built controlled updates).
-        const withIds = withFilterIds(dropUnknownFilters(filters, s.columns));
+        const withIds = withMatchCase(withFilterIds(dropUnknownFilters(filters, s.columns)), s.columns, s.cellTypes);
         if (!s.viewStale && filterSpecKey(withIds) === filterSpecKey(s.filterState)) return;
         const resetPage = s.pageSize !== null && s.page !== 1 && filterSpecKey(withIds) !== filterSpecKey(s.filterState);
         if (!s.filterControlled) {
