@@ -64,7 +64,7 @@ The bar also shows the count of [hidden checked rows](/docs/selection-shortcuts/
 
 ## Server mode [#server-mode]
 
-The unloaded rows of a lazy source in scroll mode have no value and count as nothing. A grid with `totalRowCount` shows a select-all banner when every row of the page is checked and the result is larger. The banner needs `checkedRowsLifetime="across-filters"`, which is the default with `totalRowCount`. The banner offers "Select all 237 matching", or "Select all matching" when the size is `null`. After the click, it reads "All 237 selected." with a "Clear selection" button. `selectAllMatching()` announces the real count in the live region, or "All matching rows checked" when the size is `null`.
+The unloaded rows of a lazy source in scroll mode have no value and count as nothing. A grid with `totalRowCount`, or with `pageSize`, shows a select-all banner when every row of the page is checked and the result is larger. The banner needs `checkedRowsLifetime="across-filters"`, which is the default with `totalRowCount`. The banner offers "Select all 237 matching", or "Select all matching" when the size is `null`. After the click, it reads "All 237 selected." with a "Clear selection" button. `selectAllMatching()` announces the real count in the live region, or "All matching rows checked" when the size is `null`.
 
 Set the banner text with `labels.statusBar.pageSelected`, `selectAllMatching`, `allSelected`, and `clearSelection`. `selectAllMatching` and `allSelected` take `null` for an unknown size.
 

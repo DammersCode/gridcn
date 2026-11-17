@@ -44,6 +44,17 @@ describe("select-all banner", () => {
     expect(screen.getByRole("button", { name: "Select all 237 matching" })).toBeInTheDocument();
   });
 
+  it("offers to select all rows of a client-paged grid with the size of the whole list", () => {
+    render(
+      <DataGridProvider data={["a", "b", "c", "d", "e"].map((id) => ({ id }))} columns={columns} getRowId={(r) => r.id} rowMarkers="checkbox" checkedRowsLifetime="across-filters" pageSize={2}>
+        <Probe />
+        <DataGridStatusBar />
+      </DataGridProvider>,
+    );
+    act(() => actions!.setAllRowsChecked(true));
+    expect(screen.getByRole("button", { name: "Select all 5 matching" })).toBeInTheDocument();
+  });
+
   it("says 'Select all matching' when the size is unknown", () => {
     mount({ totalRowCount: null });
     act(() => actions!.setAllRowsChecked(true));

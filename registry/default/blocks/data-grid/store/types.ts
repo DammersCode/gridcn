@@ -48,6 +48,9 @@ export type { GateAbortReason, GateContext, GateName } from "./gate-signal";
 import type { RowSaveStatus, SaveAck, SaveConflictContext, SaveRejectedContext, SaveResolution } from "./write-ack";
 export type { RowSaveStatus, SaveAck, SaveConflictContext, SaveRejectedContext, SaveRejection, SaveResolution } from "./write-ack";
 
+/** The result of `actions.selectAllMatching()`. */
+export type SelectAllMatchingResult = { ok: true } | { ok: false; reason: "disabled" | "needs-across-filters" | "needs-total-row-count" };
+
 /** The input that wrote the current selection. */
 export type SelectionPointer = "touch" | "mouse" | "pen" | "keyboard";
 
@@ -1005,10 +1008,11 @@ export type DataGridActions = {
   /** Header marker select-all checkbox: sets every view row's membership in the rows channel at once (on a paged grid, the shown page's rows). On a grid with `totalRowCount` and `checkedRowsLifetime="across-filters"` whose view holds unloaded rows, checking calls `selectAllMatching`. No-op when `enableRowSelection` is false. */
   setAllRowsChecked(checked: boolean): void;
   /**
-   * Checks every row of the result, loaded or not. Rows that load later show as checked; unchecking a row excludes it.
-   * No-op with a development warning without `totalRowCount` or without `checkedRowsLifetime="across-filters"`. Read the outcome with `useDataGridSelectedRows`.
+   * Checks every row of the result: every page of a client-paged grid, or every row of a server result, loaded or not. Rows that load later show as checked; unchecking a row excludes it.
+   * Returns `{ ok: false, reason }` and changes nothing when row selection is off (`"disabled"`), when the result outruns the shown rows and `checkedRowsLifetime` is not `"across-filters"` (`"needs-across-filters"`),
+   * or when a server-sorted or server-filtered grid lacks `totalRowCount` (`"needs-total-row-count"`). A client grid without paging checks its rows. Read the outcome with `useDataGridSelectedRows`.
    */
-  selectAllMatching(): void;
+  selectAllMatching(): SelectAllMatchingResult;
   /** Shows page `page` (1-based) of the view. Calls `onPageChange`; a controlled `page` changes when the parent passes the next one. */
   setPage(page: number): void;
   /** Shows `pageSize` rows per page and keeps the first row of the page on screen; `null` shows every row. Calls `onPageSizeChange` with the new size, or `null`; a controlled `pageSize` changes when the parent passes it. `null` calls `onPageChange(1)` when the page was not 1. */
@@ -1095,6 +1099,8 @@ export type DataGridActions = {
    * `onColumnLayoutChange` once only when the layout actually changed.
    */
   setColumnLayout(parts: Partial<ColumnLayout>): void;
+  /** Restores widths, order, pins, and hidden columns to the `columns` defs: the pre-resize, pre-reorder layout. Fires `onColumnLayoutChange` once, and only when the layout changed. */
+  resetColumnLayout(): void;
   /** Steps the column to its next sort direction, or to no sort. `{ additive: true }` keeps the other sorts, as a Shift-click on the header does. */
   toggleSort(columnId: string, options?: { additive?: boolean }): void;
   setSorts(sorts: SortSpec[]): void;

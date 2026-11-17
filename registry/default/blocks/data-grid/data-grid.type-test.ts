@@ -172,6 +172,7 @@ assertEqual<(next: SelectionState | null) => void, typeof gridApi.actions.setSel
 declare const wActions: DataGridActions;
 assertEqual<(next: SelectionState | null) => void, typeof wActions.setSelection>(true);
 assertEqual<(parts: Partial<ColumnLayout>) => void, typeof wActions.setColumnLayout>(true);
+assertEqual<() => void, typeof wActions.resetColumnLayout>(true);
 
 // --- W6-05: the generic write action ----------------------------------------------------------
 // commitChange takes a DataChange; typed consumer operations (DataChange<Row>) are assignable to the

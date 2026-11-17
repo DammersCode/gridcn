@@ -292,6 +292,7 @@ export const ACTION_PAGES = {
   cancelColumnResize: "/docs/types-hooks/store-hooks#handle",
   setColumnWidth: "/docs/columns/column-sizing",
   autosizeColumns: "/docs/columns/column-sizing",
+  resetColumnLayout: "/docs/columns/column-layout",
   resetColumnWidth: "/docs/columns/column-sizing",
   setColumnOrder: "/docs/columns/column-order-pinning",
   canSetColumnOrder: "/docs/types-hooks/exported-types",

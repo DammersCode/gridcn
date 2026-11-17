@@ -14,10 +14,11 @@ import {
 /** Multi-grid focus owner: the id of the last opted-in grid whose container received `focusin`. */
 let lastFocusedGrid: number | null = null;
 let nextGridId = 0;
+const POPUP_SELECTOR = '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]';
 
 /**
  * While DOM focus is outside the grid, dispatches the enabled global actions (default: undo/redo)
- * on window keydown. Each action runs through `api.runShortcut`, so it behaves exactly like its in-grid binding — same scrolling,
+ * on window keydown, in the capture phase: a page listener, registered before or after the grid, sees `defaultPrevented` once the grid handled the key. Each action runs through `api.runShortcut`, so it behaves exactly like its in-grid binding — same scrolling,
  * same store-side guards. Mount inside `DataGridRoot`; prefer {@link DataGridGlobalShortcuts}.
  */
 export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void {
@@ -72,12 +73,14 @@ export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void
           target.tagName === "SELECT" ||
           target.isContentEditable);
       const targetInAnyGrid = target instanceof Element ? target.closest('[role="grid"]') !== null : false;
+      const targetInPopup = target instanceof Element ? target.closest(POPUP_SELECTOR) !== null : false;
       const action = resolveGlobalShortcut(event, {
         keymap: latest.keymap,
         isMac: isMacPlatform(),
         actions: latest.enabled,
         targetIsEditable,
         targetInAnyGrid,
+        targetInPopup,
         ownsFocus: lastFocusedGrid === gridId,
         editing: storeApi.getState().editing !== null,
         include: (a) => storeApi.getState().commands?.[a]?.scope !== "editing",
@@ -90,10 +93,10 @@ export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void
     }
 
     container.addEventListener("focusin", onFocusIn);
-    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keydown", onKeyDown, true);
     return () => {
       container.removeEventListener("focusin", onFocusIn);
-      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keydown", onKeyDown, true);
       if (lastFocusedGrid === gridId) lastFocusedGrid = null;
     };
   }, [containerRef, storeApi]);

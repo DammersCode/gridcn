@@ -162,17 +162,17 @@ describe("onBeforeEditStart async", () => {
     expect(m.state().editing?.rowId).toBe("a");
   });
 
-  it("a pending promise ignores a second request", async () => {
+  it("a newer request supersedes the pending promise: only the newest applies", async () => {
     const d = deferred<boolean>();
     const onBeforeEditStart = vi.fn(() => d.promise);
     const m = mount({ onBeforeEditStart });
     m.state().actions.startEditingAt({ row: 0, col: 0 });
     m.state().actions.startEditingAt({ row: 1, col: 0 });
     m.state().actions.startEditingAt({ row: 2, col: 0 });
-    expect(onBeforeEditStart).toHaveBeenCalledTimes(1);
+    expect(onBeforeEditStart).toHaveBeenCalledTimes(3);
     d.resolve(true);
     await settle();
-    expect(m.state().editing?.rowId).toBe("a");
+    expect(m.state().editing?.rowId).toBe("c");
   });
 
   it("a rejection cancels, warns, and leaves the gate usable", async () => {

@@ -375,7 +375,8 @@
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/row-check.parity.test.tsx"
+            "tests/parity/row-check.parity.test.tsx",
+            "registry/default/blocks/data-grid-status-bar/select-all-banner.test.tsx"
           ]
         },
         "PS": {

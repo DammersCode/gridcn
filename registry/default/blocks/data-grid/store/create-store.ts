@@ -73,6 +73,7 @@ import {
   windowView,
   effectivePage,
   fullViewOf,
+  matchingRowTotal,
   rowIdAtViewRow,
   toggleSortAdditive,
   withFilterIds,
@@ -540,7 +541,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const askEditStart = (s: DataGridStoreState, coord: ViewCoord, rowId: string, columnId: string, activation: boolean, proceed: (now: DataGridStoreState, coord: ViewCoord) => void): void => {
     const gate = s.onBeforeEditStart;
     if (gate) {
-      if (editStartRun && !editStartRun.aborted) return;
+      if (editStartRun && !editStartRun.aborted) gates.abortRun(editStartRun, "superseded");
       const ref = { rowId, columnId };
       const run = gates.begin("onBeforeEditStart", (now) => cursorLeft(now, ref, s.activeCell));
       const verdict = gate({ ...ref, viewRowIndex: coord.row, viewColumnIndex: coord.col }, { signal: run.signal });
@@ -830,6 +831,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       _cancelSelection() {
         const s = get();
         if (editStartRun) gates.abortRun(editStartRun, "cancelled");
+        gates.abort(["processPaste", "validate"], "cancelled");
         if (isSelectionEmpty(s.selection) && s.hiddenCheckedRowIds.size === 0 && !s.allMatching) return;
         set({
           selection: emptySelection(),
@@ -1215,22 +1217,26 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
       },
       selectAllMatching() {
         const s = get();
-        if (!s.enableRowSelection) return;
-        if (s.checkedRowsLifetime !== "across-filters" || s.totalRowCount === undefined) {
-          warnDev("selectAllMatching is a no-op without totalRowCount and checkedRowsLifetime=\"across-filters\"");
-          return;
+        if (!s.enableRowSelection) return { ok: false, reason: "disabled" };
+        const total = matchingRowTotal(s);
+        if (total === undefined) {
+          if (s.sortMode === "server" || s.filterMode === "server" || viewHoldsUnloadedRows(s)) return { ok: false, reason: "needs-total-row-count" };
+          get().actions.setAllRowsChecked(true);
+          return { ok: true };
         }
+        if (s.checkedRowsLifetime !== "across-filters") return { ok: false, reason: "needs-across-filters" };
         const next = { ...s.selection, rows: CompactSelection.fromSingleSelection([0, s.viewIndex.length]) };
         set({
           selection: next,
           liveAnnouncement:
-            typeof s.totalRowCount === "number"
-              ? nextAnnouncement(s.liveAnnouncement, "rowsChecked", s.totalRowCount)
+            typeof total === "number"
+              ? nextAnnouncement(s.liveAnnouncement, "rowsChecked", total)
               : nextAnnouncement(s.liveAnnouncement, "rowsChecked", s.viewIndex.length, true),
           rowRangeGesture: null,
           hiddenCheckedRowIds: NO_HIDDEN_CHECKED_ROWS,
           allMatching: true,
         });
+        return { ok: true };
       },
       clearSelection() {
         const s = get();
@@ -1346,6 +1352,10 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const nextHidden = Array.from(current);
         resetDeferredRows(dataWrite);
         commitLayout({ hidden: nextHidden });
+      },
+      resetColumnLayout() {
+        const defs = memory.lastPropsColumns;
+        commitLayout({ widths: {}, order: [], pins: pinsOf(defs), hidden: defHiddenColumnIds(defs) });
       },
       setColumnLayout(parts) {
         commitLayout(parts);

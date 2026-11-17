@@ -48,8 +48,8 @@ export type GateTracker = {
   settle(run: GateRun): void;
   /** Aborts a run and takes it out of the pending set. */
   abortRun(run: GateRun, reason?: GateAbortReason): void;
-  /** Aborts every live run, or only the runs of the named gates. */
-  abort(names?: readonly GateName[]): void;
+  /** Aborts every live run, or only the runs of the named gates; `reason` defaults to `"reset"`. */
+  abort(names?: readonly GateName[], reason?: GateAbortReason): void;
   /** Marks `name` pending for work the grid does not run itself (the import dialog); returns the release. */
   track(name: GateName): () => void;
 };
@@ -146,8 +146,8 @@ export function createGateTracker(host: GateTrackerHost): GateTracker {
       release(run);
       if (pending) host.aborted?.(run.name, reason);
     },
-    abort(names) {
-      for (const run of Array.from(live)) if (!names || names.includes(run.name)) tracker.abortRun(run, "reset");
+    abort(names, reason = "reset") {
+      for (const run of Array.from(live)) if (!names || names.includes(run.name)) tracker.abortRun(run, reason);
     },
     track(name) {
       const run = new GateRun(name);

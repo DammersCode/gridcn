@@ -19,8 +19,7 @@ A negative or non-finite `totalRowCount` counts as `null`. With `'across-filters
 With `totalRowCount` and `checkedRowsLifetime="across-filters"` in effect:
 
 - A checked row that leaves `data` stays checked by row id, in every mode. A page change, an eviction in scroll mode, and a server sort or filter change keep it. When the row returns, it shows as checked.
-- `actions.selectAllMatching()` checks every row of the result. Rows that load later show as checked. Unchecking a row excludes it by id.
-- Without `totalRowCount` and `checkedRowsLifetime="across-filters"`, or with `enableRowSelection={false}`, `selectAllMatching()` does nothing. The first case warns in development.
+- `actions.selectAllMatching()` checks every row of the result. Rows that load later show as checked. Unchecking a row excludes it by id. It returns `{ ok: true }`, or `{ ok: false, reason }` without a change.
 
 ## Read the selection as a value [#read-the-selection-as-a-value]
 
@@ -107,8 +106,8 @@ export async function POST(request: Request) {
 With `totalRowCount` and `checkedRowsLifetime="across-filters"`, `DataGridStatusBar` shows a banner:
 
 - When you check every row of a page of a larger result, it reads "All 10 on this page are selected." The button reads "Select all 237 matching" ("Select all matching" for `null`).
-- After the button, it reads "All 237 selected." ("All matching rows are selected." for `null`) with the button "Clear selection". The count drops by one for each row you uncheck.
-- The live region announces the count when you select all matching, and again after each check or uncheck. When the size is unknown, it announces that all matching rows are checked, and later changes announce nothing.
+- After the button, it reads "All 237 selected." ("All matching rows are selected." for `null`) with the button "Clear selection". Each unchecked row lowers the count by one.
+- The live region announces the count after each select all matching, check, or uncheck. When the size is unknown, it announces that all matching rows are checked, and later changes announce nothing.
 
 ## What ends "all matching"
 

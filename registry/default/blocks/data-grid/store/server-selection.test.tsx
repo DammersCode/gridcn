@@ -177,15 +177,73 @@ describe("select all matching", () => {
     }
   });
 
-  it("is a no-op with a warning without totalRowCount or without across-filters", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const noTotal = mount({ totalRowCount: undefined });
-    act(() => noTotal.state().actions.selectAllMatching());
-    expect(noTotal.state().allMatching).toBe(false);
-    const noKeep = mount({ checkedRowsLifetime: "until-cleared" });
-    act(() => noKeep.state().actions.selectAllMatching());
-    expect(noKeep.state().allMatching).toBe(false);
-    expect(warn).toHaveBeenCalledTimes(2);
+  it("returns the reason and changes nothing when the result outruns the rows without across-filters", () => {
+    const m = mount({ checkedRowsLifetime: "until-cleared" });
+    let result: unknown;
+    act(() => {
+      result = m.state().actions.selectAllMatching();
+    });
+    expect(result).toEqual({ ok: false, reason: "needs-across-filters" });
+    expect(m.state().allMatching).toBe(false);
+    expect(m.checkedViewRows()).toEqual([]);
+  });
+
+  it("returns the reason on a server-sorted grid without totalRowCount", () => {
+    const m = mount({ totalRowCount: undefined, sortMode: "server" });
+    let result: unknown;
+    act(() => {
+      result = m.state().actions.selectAllMatching();
+    });
+    expect(result).toEqual({ ok: false, reason: "needs-total-row-count" });
+    expect(m.state().allMatching).toBe(false);
+  });
+
+  it("returns disabled when row selection is off", () => {
+    const m = mount({ enableRowSelection: false });
+    let result: unknown;
+    act(() => {
+      result = m.state().actions.selectAllMatching();
+    });
+    expect(result).toEqual({ ok: false, reason: "disabled" });
+  });
+
+  it("checks every row of a client grid without totalRowCount or paging", () => {
+    const m = mount({ totalRowCount: undefined, checkedRowsLifetime: "until-click" });
+    let result: unknown;
+    act(() => {
+      result = m.state().actions.selectAllMatching();
+    });
+    expect(result).toEqual({ ok: true });
+    expect(m.state().allMatching).toBe(false);
+    expect(m.checkedViewRows()).toEqual([0, 1, 2]);
+  });
+
+  it("checks every page of a client-paged grid and counts the whole list", () => {
+    const rows = page(Array.from({ length: 10 }, (_, i) => `r${i}`));
+    const m = mount({ data: rows, totalRowCount: undefined, pageSize: 3 });
+    let result: unknown;
+    act(() => {
+      result = m.state().actions.selectAllMatching();
+    });
+    expect(result).toEqual({ ok: true });
+    expect(m.state().allMatching).toBe(true);
+    expect(readSelectedRows(m.state())).toMatchObject({ mode: "allMatching", count: 10, excludedIds: [] });
+    act(() => m.state().actions.setPage(2));
+    expect(m.checkedViewRows()).toEqual([0, 1, 2]);
+    act(() => m.state().actions.setRowCheckedAt(viewIndex(1), false));
+    expect(readSelectedRows(m.state())).toMatchObject({ mode: "allMatching", count: 9, excludedIds: ["r4"] });
+  });
+
+  it("selects all of 100k client rows without materializing ids", () => {
+    const rows = page(Array.from({ length: 100_000 }, (_, i) => `r${i}`));
+    const m = mount({ data: rows, totalRowCount: undefined, pageSize: 50 });
+    const start = performance.now();
+    act(() => {
+      m.state().actions.selectAllMatching();
+    });
+    expect(performance.now() - start).toBeLessThan(500);
+    expect(m.state().hiddenCheckedRowIds.size).toBe(0);
+    expect(readSelectedRows(m.state())).toMatchObject({ mode: "allMatching", count: 100_000 });
   });
 
   it("clears allMatching instead of dropping an exclusion past the cap", async () => {
@@ -345,7 +403,6 @@ describe("select all matching and the result spec", () => {
   });
 
   it("totalRowCount alone turns on across-filters, and an explicit until-click turns it off", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const m = mount({ checkedRowsLifetime: undefined });
     expect(m.state().checkedRowsLifetime).toBe("across-filters");
     act(() => m.state().actions.selectAllMatching());
@@ -354,15 +411,6 @@ describe("select all matching and the result spec", () => {
     const off = mount({ checkedRowsLifetime: "until-click" });
     act(() => off.state().actions.selectAllMatching());
     expect(off.state().allMatching).toBe(false);
-    expect(warn).toHaveBeenCalledTimes(1);
-  });
-
-  it("until-cleared keeps selectAllMatching off with a warning", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const m = mount({ checkedRowsLifetime: "until-cleared" });
-    act(() => m.state().actions.selectAllMatching());
-    expect(m.state().allMatching).toBe(false);
-    expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it("a programmatic deleteRows leaves allMatching", () => {

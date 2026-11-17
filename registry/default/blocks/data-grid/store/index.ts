@@ -101,4 +101,5 @@ export type { DataGridSelectedRows } from "./selected-rows";
 export type { GateAbortReason, GateContext, GateName } from "./gate-signal";
 export type { RowActionResult, RowActionSkipReason } from "./types";
 export type { ColumnOrderResult, ColumnOrderSkipReason } from "./column-order";
+export type { SelectAllMatchingResult } from "./types";
 export type { RowSaveStatus, SaveAck, SaveConflictContext, SaveRejectedContext, SaveRejection, SaveResolution } from "./write-ack";
