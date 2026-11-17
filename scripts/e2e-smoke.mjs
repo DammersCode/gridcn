@@ -329,12 +329,12 @@ const SCENARIOS = [
         buffer: Buffer.from("Name,Email,Score\nZed Zebra,zed@example.com,5\nYuri Yak,yuri@example.com,7\n"),
       });
       await dialog.getByRole("button", { name: /^Import/ }).last().click();
-      await eventually(async () => (await textOf(cell(page, 0, "name"))) === "Zed Zebra", "imported rows did not replace the grid data");
+      await dialog.waitFor({ state: "hidden" });
       await page.getByRole("button", { name: /export/i }).click();
       const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: /csv/i }).click()]);
       check(download.suggestedFilename().endsWith(".csv"), `export file is ${download.suggestedFilename()}`);
       const csv = readFileSync(await download.path(), "utf8");
-      check(csv.includes("Zed Zebra") && csv.includes("Yuri Yak"), "exported CSV misses the imported rows");
+      check(csv.includes("Zed Zebra") && csv.includes("Yuri Yak"), "exported CSV misses the appended rows");
     },
   },
   {
