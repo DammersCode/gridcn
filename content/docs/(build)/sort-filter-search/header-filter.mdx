@@ -6,7 +6,7 @@ type: feature
 aliases: ["column filter", "filter by column", "spreadsheet filter list", "filter dropdown"]
 ---
 
-A column header can hold its own filter button. The button opens a popover with a searchable list of the column's values. Users check the values to keep. `DataGridHeaderFilter` is that button. Pass it to the `renderHeaderFilter` slot of `DataGridRoot`.
+A column header can hold its own filter button. The button opens a popover with a searchable list of the column's values. Users check the values to keep. `DataGridHeaderFilter` is that button. Pass it to the `renderHeaderFilter` slot of `DataGridRoot`, as `renderHeaderFilter={DataGridHeaderFilter}` or as a function that returns it.
 
 <ComponentPreview name="data-grid-header-filter-demo" />
 

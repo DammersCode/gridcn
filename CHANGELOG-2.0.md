@@ -42,6 +42,9 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - `setColumnOrder` returns `{ ok: true }` or `{ ok: false, reason }`, and `canSetColumnOrder` returns the same without the move.
 - The date editor loads the calendar (`react-day-picker`, `date-fns`) on its first open, so a grid ships no date picker until a user opens one.
 - New development warnings: an async gate that stays pending for 30 seconds without `gateTimeoutMs`, partial `data` under a client sort or filter with `totalRowCount`, a `number` or `date` column with `locale` and no `format` or `displayFormat`, and `defaultData` that fills after an empty seed.
+- A node `header` shows the built-in sort arrow, like a string header. `sortIndicator: false` on the column removes it, so a header that draws its own arrow (`DataGridSortIndicator`, a custom icon) sets the opt-out. In development, a node header with no plain text and no `headerText` warns once for each header.
+- Escape ends a column resize drag, restores the width, and fires no `onColumnLayoutChange`.
+- `renderHeaderFilter` accepts a component (`renderHeaderFilter={DataGridHeaderFilter}`); the header renders the slot through a stable wrapper, so hooks in the slot keep their state.
 
 ## Selection and editing
 

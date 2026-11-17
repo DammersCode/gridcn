@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { COLUMN_BORDER } from "./columns/column-border";
 import { ChevronDown, GripVertical } from "lucide-react";
 import { GRID_ATTR } from "./data-attributes";
@@ -14,7 +14,8 @@ import type { HeaderFilterRenderer, HeaderMenuRenderer } from "./layout-context"
 import type { GridDirection } from "./virtualization/direction";
 import { useDataGridCellTypes, useDataGridIsColumnFiltered, useDataGridLabels, useDataGridSelector, type AnyColumnDef } from "./store";
 import { offersSetFilter } from "./cell-types/capabilities";
-import { columnLabelText as headerLabelText } from "./columns/column-format-helpers";
+import { warnDev } from "./is-dev";
+import { columnHeaderText, columnLabelText as headerLabelText } from "./columns/column-format-helpers";
 import { gridAttrSelector } from "./data-attributes";
 
 const INTERACTIVE_CONTENT = 'button, a, input, select, textarea, [role="button"], [contenteditable]:not([contenteditable="false"])';
@@ -88,6 +89,11 @@ export type DataGridHeaderCellProps = {
   /** Replaces the cell's contents; see {@link HeaderCellRenderer}. */
   renderHeaderCell?: HeaderCellRenderer;
 };
+
+/** A stable component around the slot, so a component passed as `renderHeaderFilter` keeps its hooks. */
+function HeaderFilterSlot(props: { render: HeaderFilterRenderer; column: AnyColumnDef; index: number }): ReactNode {
+  return props.render({ column: props.column, index: props.index });
+}
 
 /**
  * One header cell: label + sort indicator, a resize handle at the inline-end edge, and the
@@ -164,15 +170,15 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
     [headerClickBehavior, column.sortable, onSort, column.id],
   );
 
+  const unnamedNodeHeader = typeof column.header !== "string" && column.headerText === undefined && !columnHeaderText(column);
+  useEffect(() => {
+    if (unnamedNodeHeader) warnDev(`column "${column.id}" has a node header with no plain text; set headerText so menus, export, and assistive technology can name it`);
+  }, [unnamedNodeHeader, column.id]);
   const sorted = sortState.some((sort) => sort.columnId === column.id);
   const defaultContent = (
     <>
       {typeof column.header === "string" ? <span className="truncate">{column.header}</span> : column.header}
-      {/* A custom (ReactNode) header owns its display, so the built-in arrow is only appended for string headers;
-          embed DataGridSortIndicator inside a custom header when you still want it. A programmatic sort shows on a sortable: false column too. */}
-      {typeof column.header === "string" && (
-        <DataGridSortIndicator columnId={column.id} sortState={sortState} />
-      )}
+      {column.sortIndicator !== false && <DataGridSortIndicator columnId={column.id} sortState={sortState} />}
       {showHeaderFilter && renderHeaderFilter && (
         <span
           data-grid-header-filter-slot=""
@@ -180,7 +186,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
           onPointerDown={(event) => event.stopPropagation()}
           onClick={(event) => event.stopPropagation()}
         >
-          {renderHeaderFilter({ column, index })}
+          <HeaderFilterSlot render={renderHeaderFilter} column={column} index={index} />
         </span>
       )}
       {reorder.enabled && (
