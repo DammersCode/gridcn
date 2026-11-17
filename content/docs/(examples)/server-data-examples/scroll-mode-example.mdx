@@ -80,7 +80,7 @@ export function useCachedPeople() {
           const body = JSON.stringify({ spec, start, end });
           const init = { method: "POST", body, signal };
           const response = await fetch("/api/people", init);
-            const answer = await response.json();
+          const answer = await response.json();
           return { rows: answer.rows, totalRowCount: answer.total };
         },
       }),
@@ -123,7 +123,7 @@ export function useSwrPeople() {
         return { rows: answer.rows, totalRowCount: answer.total };
       };
       return preload(key, fetcher).catch((error: unknown) => {
-        void mutate(key, undefined, { revalidate: false });
+        void mutate(key);
         throw error;
       });
     },
@@ -131,7 +131,7 @@ export function useSwrPeople() {
 }
 ```
 
-Do not pass the request `signal` to the fetcher. `preload` caches the promise, so an abort stays as a rejection and fail again when the block scrolls back. The `catch` clears the entry of a failed block with `mutate(key)`, so `retry()` fetches it again. See [Fetch with a cache](/docs/data-modes/fetch-cache#wiring-a-fetchcache-library-react-query) for the limits of each cache.
+Do not pass the request `signal` to the fetcher. `preload` caches the promise, so an aborted block stays a rejection and fails again when the block scrolls back. The `catch` clears the entry of a failed block with `mutate(key)`, so `retry()` fetches it again. See [Fetch with a cache](/docs/data-modes/fetch-cache#wiring-a-fetchcache-library-react-query) for the limits of each cache.
 
 ## Related
 

@@ -18,6 +18,45 @@ Each header holds a filter button. The button opens a popover with a search box 
 - The search box narrows the list. The checkbox at its start checks or unchecks the values that match the search.
 - Apply writes the filter. Clear removes every filter of the column.
 
+## Wire the filter
+
+The header filter is one prop of `DataGridRoot`:
+
+```tsx
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
+import { DataGridHeaderFilter } from "@/components/data-grid-toolbar/data-grid-toolbar";
+
+type Person = { id: string; name: string; age: number };
+
+const columns = defineColumns<Person>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+  { id: "age", header: "Age", accessorKey: "age", type: "number" },
+]);
+
+const rows: Person[] = [{ id: "1", name: "Ada", age: 36 }];
+
+export function FilteredGrid() {
+  return (
+    <DataGridProvider defaultData={rows} columns={columns}>
+      <DataGridRoot
+        className="h-60"
+        aria-label="People"
+        renderHeaderFilter={(ctx) => <DataGridHeaderFilter {...ctx} />}
+      >
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+```
+
 ## The filter it writes [#header-filter]
 
 Apply picks the operator from the counts:
@@ -25,7 +64,7 @@ Apply picks the operator from the counts:
 - If the user checks fewer values than they leave unchecked, Apply stores `isAnyOf` with the checked values.
 - Otherwise it stores `isNoneOf` with the unchecked values.
 
-On a tie, Apply keeps the operator of the current set filter, or uses `isAnyOf` if there is none. The filter menu writes the same shape.
+On a tie, Apply keeps the operator of the current set filter, or uses `isAnyOf` if there is none. The filter menu writes the same shape. [Header filter](/docs/sort-filter-search/header-filter#apply) lists every Apply rule.
 
 A `role` column has five values: Admin, User, Editor, Viewer, and Manager. Checking Admin and Editor writes this filter, which `defaultFilterState` can start a grid with:
 

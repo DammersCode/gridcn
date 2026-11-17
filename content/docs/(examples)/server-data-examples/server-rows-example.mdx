@@ -94,6 +94,8 @@ export function OrdersGrid() {
 | `loading`, `error`, `onRetry` | Show the loading state and the error state with Retry. |
 | `onSave` | Runs your `onSave`. The hook fetches again after the saves settle (`refreshAfterSave`). |
 | `headerClickBehavior: "sort"` | Makes a header click sort. Set `headerClickBehavior` after the spread to change that. |
+| `getRowId` | The row id. The default reads `row.id`, and the `getRowId` option overrides it. |
+| `checkedRowsLifetime: "across-filters"` | Keeps checked rows by row id across pages, sorts, and filters. |
 | `plugins` | Your `plugins` option, mounted after the refresh guard of the hook. |
 
 - An `onDataChange` after the spread replaces the handler of the hook, so the hook stops merging edits into its rows. Put your own `onDataChange` in the hook options instead.

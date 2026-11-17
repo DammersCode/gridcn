@@ -13,7 +13,7 @@ type: example
 
 ## What the demo shows [#whats-in-the-demo]
 
-- `defaultColumnLayout={layout}` seeds the grid once at mount. The server has no `localStorage`, so the demo reads the saved layout in an effect and mounts the grid after it. The grid ignores later changes to this prop.
+- `defaultColumnLayout={readLayout}` passes a function. The grid calls it once on the client after mount, before the first paint, so the server renders the default layout and never reads `localStorage`. The grid ignores later changes to this prop.
 - `onColumnLayoutChange={persist}` runs once for each committed change: a resize release, a reorder drop, a pin or unpin, and a hide or show. It does not run for each drag frame.
 - `DataGridColumnsMenu` hides and restores columns, which updates `hidden`.
 - Reset layout clears the saved layout and mounts the grid again with a new `key`, because the grid reads `defaultColumnLayout` once.
@@ -26,7 +26,6 @@ type: example
 ```tsx
 "use client";
 
-import { useEffect, useState } from "react";
 import {
   DataGrid,
   defineColumns,
@@ -62,16 +61,12 @@ function saveLayout(layout: ColumnLayout) {
 }
 
 export function PeopleGrid() {
-  const [layout, setLayout] = useState<ColumnLayout | undefined | null>(null);
-  useEffect(() => setLayout(readLayout()), []);
-  if (layout === null) return null;
-
   return (
     <DataGrid
       defaultData={rows}
       columns={columns}
       className="h-60"
-      defaultColumnLayout={layout}
+      defaultColumnLayout={readLayout}
       onColumnLayoutChange={saveLayout}
     />
   );
@@ -82,7 +77,7 @@ To reset without a remount, pass `columnLayout` with `onColumnLayoutChange`.
 
 ## Related
 
-- [Column visibility](/docs/columns/column-visibility#persisting-a-users-layout): the pattern to save a layout
+- [Save a column layout](/docs/columns/column-layout): the steps to save and restore a layout
 - [Saved views](/docs/sort-filter-search/saved-views): name, save, and share a layout with the sort and filters
 - [Pinned columns example](/docs/column-examples/pinned-columns-example): the gestures that the snapshot records
 - [URL state](/docs/sort-filter-search/url-state): share a layout as a URL

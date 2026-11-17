@@ -49,11 +49,11 @@ const people: Person[] = [
 ];
 
 export function PeopleGrid() {
-  return <DataGrid defaultData={people} columns={columns} className="h-96" />;
+  return <DataGrid defaultData={people} columns={columns} aria-label="People" className="h-96" />;
 }
 ```
 
-`className="h-96"` gives the grid a fixed height. Without a bounded height the grid cannot virtualize. It draws at most 200 rows and, when more than 200 rows fit, warns once in development. In a flex column or a CSS grid track, give the grid `min-h-0 flex-1` or `h-full min-h-0` instead. Without `min-h-0`, a flex or grid item grows to fit every row.
+`className="h-96"` gives the grid a fixed height. `aria-label` names the grid for screen readers. Without it or `aria-labelledby`, development mode warns once. Without a bounded height the grid cannot virtualize. It draws at most 200 rows and, when more than 200 rows fit, warns once in development. In a flex column or a CSS grid track, give the grid `min-h-0 flex-1` or `h-full min-h-0` instead. Without `min-h-0`, a flex or grid item grows to fit every row.
 
 To keep the rows in your own state, see [Keep edits in state](/docs/learning-path/keep-edits-state).
 

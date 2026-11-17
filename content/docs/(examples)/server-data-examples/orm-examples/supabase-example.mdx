@@ -120,7 +120,7 @@ About the sample:
 - `escapeLike` stops `%`, `_`, and `\` in the user text from acting as wildcards. PostgREST also reads `*` in an `ilike` pattern as a wildcard, and no escape removes that.
 - `parseServerSpec` checks the column ids, the operators, the value shapes, and the tree size. Its default caps are 64 sorts, 500 search characters, 64 filters, 16 groups, 1,000 characters per value, and 1,000 list values. A request over a cap gets status 400.
 - Number and date columns also get `isBetween`, with a `[min, max]` pair in which either bound can be `""`. The sample refuses it. Map it before you add such a column.
-- The grid's `empty` also matches a null cell. The sample compares with `""`, so a nullable column needs an `IS NULL` test too.
+- A null cell reads as empty text in the grid, so `empty`, `notContains`, `notEquals`, and `isNoneOf` match it. For a nullable column, add an `IS NULL` test to these four operators.
 - The route caps a page at 500 rows. Keep the page size at or below 500. A larger page returns fewer rows than the grid asked for.
 
 <Callout type="warn" title="Keep the key on the server">

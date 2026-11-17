@@ -14,7 +14,7 @@ Three groups sit above the columns: Contact, Work, and Standing. Work holds a ne
 ## What the demo shows [#whats-in-the-demo]
 
 - `columnGroups` is a list of `{ id, header, children }` objects. `children` lists column ids and nested groups.
-- A press on a group header selects the visible columns of the group.
+- In the default `select` mode, a press on a group header selects the columns under that header cell. The Contact header has two cells, so a press on its pinned cell selects Name only.
 - A drag on a group header moves the group as one block inside its parent. A drag on a column moves it inside its group.
 - The Contact header splits in two cells because the demo pins Name and leaves Email unpinned.
 - If the user hides every column of a group, the group header disappears.

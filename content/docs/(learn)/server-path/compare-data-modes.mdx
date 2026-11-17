@@ -9,7 +9,7 @@ Before you start, [render your first grid](/docs/learning-path/render-your-first
 
 A data mode is one way the grid gets its rows. Ask these questions in order and stop at the first yes:
 
-1. Can the browser hold every row, and can one request load them? Use a local array.
+1. Can the browser hold every row, and can one request load them? Use a local array. For numbered pages, add client pagination.
 2. Does the user jump to numbered pages? Use pages mode (server pagination).
 3. Otherwise, use scroll mode. If the row count passes the [row limit](/docs/performance/row-limits), use pages mode instead.
 
@@ -56,9 +56,13 @@ export function LocalOrders({ rows }: { rows: Order[] }) {
 
 export function ServerOrders() {
   const server = useDataGridServerRows<Order>({
-    fetchRows: async ({ start, end, signal }) => {
-      const query = `offset=${start}&limit=${end - start}`;
-      const response = await fetch(`/api/orders?${query}`, { signal });
+    fetchRows: async ({ spec, start, end, signal }) => {
+      const response = await fetch("/api/orders/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ spec, start, end }),
+        signal,
+      });
       const answer = await response.json();
       return { rows: answer.rows, totalRowCount: answer.total };
     },
@@ -78,6 +82,7 @@ Without `mode`, the hook runs in pages mode and needs a pager. With `mode: "scro
 
 You know which mode fits your rows. The next step writes a `loadPage` function and adds a pager.
 
+- To skip the server path, go to [Where next](/docs/server-path/go-live-streaming#result).
 - For pages mode, go on to the next step.
 - For scroll mode, read [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling), keep your own `fetchRows`, leave out the pager, and continue with [Plan server saves](/docs/server-path/plan-server-saves).
 
