@@ -91,7 +91,7 @@ describe("checked rows and outside clicks", () => {
 
 describe("checkedRowsLifetime", () => {
   it("until-click: a cell click clears the checked rows", async () => {
-    const { checkedIds } = await mount();
+    const { checkedIds } = await mount({ checkedRowsLifetime: "until-click" });
     await userEvent.click(checkboxAt(1));
     await userEvent.click(gridCells()[4]!);
     expect(checkedIds()).toEqual([]);

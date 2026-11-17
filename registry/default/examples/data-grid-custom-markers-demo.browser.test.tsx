@@ -40,12 +40,13 @@ describe("data-grid-custom-markers-demo", () => {
     expect(header().querySelector("svg.lucide-list-minus")).not.toBeNull();
     expect(header()).toHaveAttribute("aria-pressed", "false");
 
-    // a plain cell click selects the cell and CLEARS the rows channel (selectCell semantics):
-    // row 1's marker shows the minus, row 0 falls back to the circle, header back to unchecked.
+    // a plain cell click selects the cell and KEEPS the checked rows (checkbox markers default to until-cleared):
+    // row 1's marker shows the minus, row 0 keeps its check, the header stays indeterminate.
     await userEvent.click(dataCells()[2]!);
     await new Promise((r) => setTimeout(r, 150));
     expect(markerCells()[1]!.querySelector("svg.lucide-minus")).not.toBeNull();
-    expect(markerCells()[0]!.querySelector("svg.lucide-circle")).not.toBeNull();
+    expect(markerCells()[0]!.querySelector("svg.lucide-check")).not.toBeNull();
+    expect(header().querySelector("svg.lucide-list-minus")).not.toBeNull();
     expect(header()).toHaveAttribute("aria-pressed", "false");
 
     // the custom select-all selects every row: all markers check, pressed + list-checks icon.

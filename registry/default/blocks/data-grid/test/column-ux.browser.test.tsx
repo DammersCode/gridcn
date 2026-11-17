@@ -409,8 +409,10 @@ describe("sort mode (headerClickBehavior)", () => {
     expect(nameHeader.querySelector(gridAttrSelector("sortIndicator"))).toBeNull();
   });
 
-  it("a custom (ReactNode) header owns its display: no built-in indicator is appended in sort mode", async () => {
-    const customColumns = columns.map((c) => (c.id === "name" ? { ...c, header: <span>Custom Name</span> } : c));
+  it("a custom (ReactNode) header draws the built-in sort arrow, and sortIndicator: false opts out", async () => {
+    const customColumns = columns.map((c) =>
+      c.id === "name" ? { ...c, header: <span>Custom Name</span> } : c.id === "email" ? { ...c, header: <span>Custom Email</span>, sortIndicator: false } : c,
+    );
     await render(
       <div style={{ height: 400 }}>
         <DataGrid data={makeRows(20)} columns={customColumns} getRowId={(r) => r.id} className="h-[400px]" headerClickBehavior="sort" />
@@ -420,14 +422,13 @@ describe("sort mode (headerClickBehavior)", () => {
     const nameHeader = headerCells()[1]!;
 
     await userEvent.click(nameHeader);
-    // sorting still works and reports aria-sort, but the built-in arrow is not appended to a custom header
     expect(nameHeader).toHaveAttribute("aria-sort", "ascending");
-    expect(nameHeader.querySelector(gridAttrSelector("sortIndicator"))).toBeNull();
+    expect(nameHeader.querySelector(gridAttrSelector("sortIndicator"))).not.toBeNull();
 
-    // a plain string header in the same grid still gets the built-in arrow
     const emailHeader = headerCells()[2]!;
     await userEvent.click(emailHeader);
-    expect(emailHeader.querySelector(gridAttrSelector("sortIndicator"))).not.toBeNull();
+    expect(emailHeader).toHaveAttribute("aria-sort", "ascending");
+    expect(emailHeader.querySelector(gridAttrSelector("sortIndicator"))).toBeNull();
   });
 
   it("'select' mode (default) leaves a plain click selecting the column instead of sorting", async () => {
