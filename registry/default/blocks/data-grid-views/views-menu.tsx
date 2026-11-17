@@ -5,7 +5,8 @@ import { Bookmark, Check, Pencil, Star, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { ButtonGroup } from "@/components/ui/button-group";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { isComposingKey, mergeLabelLayers } from "@/registry/default/blocks/data-grid/data-grid-sdk";
@@ -68,30 +69,33 @@ function ViewRow({
 
   if (editing) {
     return (
-      <li className="flex items-center gap-1">
-        <Input value={name} maxLength={MAX_VIEW_NAME_LENGTH} aria-label={labels.rename(view.name)} autoFocus onChange={(e) => setName(e.target.value)} onKeyDown={onKeyDown} />
-        <Button type="button" size="sm" onClick={commitRename}>
-          {labels.confirmRename}
-        </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={stopEditing}>
-          {labels.cancel}
-        </Button>
+      <li>
+        <InputGroup>
+          <InputGroupInput value={name} maxLength={MAX_VIEW_NAME_LENGTH} aria-label={labels.rename(view.name)} autoFocus onChange={(e) => setName(e.target.value)} onKeyDown={onKeyDown} />
+          <InputGroupAddon align="inline-end">
+            <InputGroupButton variant="secondary" onClick={commitRename}>
+              {labels.confirmRename}
+            </InputGroupButton>
+            <InputGroupButton onClick={stopEditing}>{labels.cancel}</InputGroupButton>
+          </InputGroupAddon>
+        </InputGroup>
       </li>
     );
   }
 
   return (
-    <li className="flex items-center gap-1" data-active={active ? "" : undefined}>
-      <Button type="button" variant={active ? "secondary" : "ghost"} size="sm" className="min-w-0 flex-1 justify-start" aria-current={active ? "true" : undefined} onClick={onSelect}>
+    <li data-active={active ? "" : undefined}>
+      <ButtonGroup className="w-full">
+      <Button type="button" variant={active ? "secondary" : "outline"} size="sm" className="min-w-0 flex-1 justify-start" aria-current={active ? "true" : undefined} onClick={onSelect}>
         {active ? <Check /> : null}
         <span className="truncate">{view.name}</span>
       </Button>
-      <Button type="button" variant="ghost" size="icon-sm" aria-pressed={isDefault} aria-label={isDefault ? labels.unsetDefault(view.name) : labels.setDefault(view.name)} onClick={onSetDefault}>
+      <Button type="button" variant="outline" size="icon-sm" aria-pressed={isDefault} aria-label={isDefault ? labels.unsetDefault(view.name) : labels.setDefault(view.name)} onClick={onSetDefault}>
         <Star className={cn(isDefault && "fill-current")} />
       </Button>
       <Button
         type="button"
-        variant="ghost"
+        variant="outline"
         size="icon-sm"
         ref={renameButton}
         aria-label={labels.rename(view.name)}
@@ -104,7 +108,7 @@ function ViewRow({
       </Button>
       <Button
         type="button"
-        variant={confirming ? "destructive" : "ghost"}
+        variant={confirming ? "destructive" : "outline"}
         size="icon-sm"
         aria-label={confirming ? labels.confirmDelete(view.name) : labels.delete(view.name)}
         onBlur={() => setConfirming(false)}
@@ -116,6 +120,7 @@ function ViewRow({
       >
         <Trash2 />
       </Button>
+      </ButtonGroup>
     </li>
   );
 }
@@ -234,12 +239,14 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
               {labels.updateActive(activeView.name)}
             </Button>
           ) : null}
-          <div className="flex items-center gap-1">
-            <Input ref={nameField} value={newName} maxLength={MAX_VIEW_NAME_LENGTH} placeholder={labels.newViewName} aria-label={labels.newViewName} onChange={(e) => setNewName(e.target.value)} onKeyDown={onSaveKeyDown} />
-            <Button type="button" size="sm" disabled={!canSave} onClick={save}>
-              {labels.saveNew}
-            </Button>
-          </div>
+          <InputGroup>
+            <InputGroupInput ref={nameField} value={newName} maxLength={MAX_VIEW_NAME_LENGTH} placeholder={labels.newViewName} aria-label={labels.newViewName} onChange={(e) => setNewName(e.target.value)} onKeyDown={onSaveKeyDown} />
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton variant="secondary" disabled={!canSave} onClick={save}>
+                {labels.saveNew}
+              </InputGroupButton>
+            </InputGroupAddon>
+          </InputGroup>
           <div className="flex flex-col gap-1.5">
             <Textarea
               value={fileText}
@@ -250,7 +257,7 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
               rows={4}
               className="max-h-40 resize-y font-mono text-xs"
             />
-            <div className="flex items-center gap-1">
+            <ButtonGroup>
               <Button
                 type="button"
                 variant="outline"
@@ -268,7 +275,7 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
               <Button type="button" variant="outline" size="sm" disabled={fileText.trim() === ""} onClick={runImport}>
                 {labels.importView}
               </Button>
-            </div>
+            </ButtonGroup>
           </div>
           {atLimit ? <p className="text-muted-foreground">{labels.limit}</p> : null}
           {views.overLimit ? <p className="text-muted-foreground">{labels.overLimit(views.overLimit)}</p> : null}

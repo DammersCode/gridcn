@@ -17,6 +17,7 @@ import { createPortal } from "react-dom";
 import { CaseSensitive, ChevronDown, ChevronRight, ChevronUp, Replace, ReplaceAll, WholeWord, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { cn } from "@/lib/utils";
 import { useDebouncedInput } from "@/registry/default/hooks/use-debounce";
 import {
@@ -513,7 +514,8 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
       {showReplace && (
         <div id={replaceRowId} className="flex items-center gap-1">
           {!readOnly && <span aria-hidden="true" className="size-8 shrink-0" />}
-          <Input
+          <InputGroup className="h-9 min-w-0 flex-1">
+          <InputGroupInput
             value={replacement}
             maxLength={MAX_REPLACE_INPUT_LENGTH}
             onChange={(event) => {
@@ -527,14 +529,16 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
             aria-label={labels.replaceLabel}
             placeholder={labels.replaceLabel}
             disabled={readOnly}
-            className="h-9 min-w-0 flex-1"
           />
-          <Button type="button" variant="ghost" size="icon-sm" className="size-8 shrink-0" aria-label={labels.replace} title={labels.replace} disabled={!canReplace || !hasMatches} onClick={replaceOne}>
+          <InputGroupAddon align="inline-end">
+          <InputGroupButton size="icon-xs" aria-label={labels.replace} title={labels.replace} disabled={!canReplace || !hasMatches} onClick={replaceOne}>
             <Replace />
-          </Button>
-          <Button type="button" variant="ghost" size="icon-sm" className="size-8 shrink-0" aria-label={labels.replaceAll} aria-description={resultScope ? labels.replaceLoadedRows : undefined} title={resultScope ? labels.replaceLoadedRows : labels.replaceAll} disabled={!canReplace || !hasMatches} onClick={() => apply(undefined)}>
+          </InputGroupButton>
+          <InputGroupButton size="icon-xs" aria-label={labels.replaceAll} aria-description={resultScope ? labels.replaceLoadedRows : undefined} title={resultScope ? labels.replaceLoadedRows : labels.replaceAll} disabled={!canReplace || !hasMatches} onClick={() => apply(undefined)}>
             <ReplaceAll />
-          </Button>
+          </InputGroupButton>
+          </InputGroupAddon>
+          </InputGroup>
         </div>
       )}
       {showScope && (
