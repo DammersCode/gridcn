@@ -111,7 +111,7 @@ Applies to `data-grid-pagination`:
 
 - With your own fetch state, a sort, filter, or search change must call `onPageChange(1)` yourself. A `DataGridProvider` with `pageSize` and `useDataGridServerRows` reset the page by themselves.
 - Server mode: guard against stale responses (a slower page-2 fetch resolving after a faster page-3 one must not overwrite page-3's rows) and expect the hook to call your `onPageChange` once with the clamped page when a shrunk `totalRowCount` leaves `page` out of range (it never sets your state itself).
-- Checked rows, the cell range, and the active cell follow row ids only while the rows stay in `data`; a page change drops those whose rows leave. Key the provider by page or clear the selection in `onPageChange` to clear everything.
+- Checked rows, the cell range, and the active cell follow row ids only while the rows stay in `data`; without `totalRowCount`, a page change drops those whose rows leave. Key the provider by page or clear the selection in `onPageChange` to clear everything.
 - With server pages, `data` holds one page, so `onDataChange` acts on that page only. A `DataGridProvider` with `pageSize` keeps all of `data`.
 - `useDataGridUrlPagination` spreads into `DataGridProvider`, `useDataGridServerPager`, or `useDataGridServerRows`.
 

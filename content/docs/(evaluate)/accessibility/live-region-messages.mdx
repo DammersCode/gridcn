@@ -6,7 +6,7 @@ type: reference
 aliases: ["announcements", "saveRejected", "noResults announcement"]
 ---
 
-The grid has one `role="status"` live region with `aria-live="polite"`.
+The core adds one `role="status"` live region with `aria-live="polite"`.
 
 ## Row moves, checked rows, and result counts [#live-regions]
 
@@ -61,7 +61,7 @@ export function Tasks({ tasks }: { tasks: Task[] }) {
 |---|---|---|
 | Stale view | `labels.grid.viewStale` | A write changes a value that the sort or filter reads: an edit, a paste, a fill, a clear, or a push. It reads once when the view turns stale, and at most once every 30 seconds, in every data mode. |
 | Refused save | `labels.grid.saveRejected` | The server refuses rows of a save. It reads the row count, for example "2 rows not saved". |
-| Undo or redo, rows not loaded | `labels.grid.historyRowsNotLoaded` | An undo or redo needs rows that are not loaded. |
+| Undo or redo, rows not loaded (needs `data-grid-history`) | `labels.grid.historyRowsNotLoaded` | An undo or redo needs rows that are not loaded. |
 | Undo or redo, rows gone | `labels.grid.historyRowsGone` | An undo or redo needs rows that do not exist. |
 | Load result | `labels.grid.resultsCount`, `resultsCountLoaded`, or `noResults` | A load ends with `announceResults` on. The server spec or count changed, the load before failed, or a load from zero rows changed the count. |
 
@@ -72,8 +72,6 @@ A stale row carries `data-row-stale` and no ARIA state. The live region carries 
 ## Refused save
 
 The message reads once for each settled change, also on a `readOnly` grid. The grid announces only the refusals that it read: a rejected `onSave` promise, or a `rejected` list in the answer. A row with a save in flight carries `aria-busy="true"` and `data-save-status="saving"`. See [Handle refused saves](/docs/save-server/handle-refused-saves).
-
-The undo and redo messages need `data-grid-history`.
 
 ## Load result
 

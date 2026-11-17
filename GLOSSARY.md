@@ -50,7 +50,7 @@ mirror the change there.
 | push | A change that your code writes from the server: `updateCells`, `updateRows`, or `deleteRows` with `source: "stream"`. A push is not a save: it never reaches `onSave`. | stream update (in prose), live update |
 | push verdict | The `UpdateCellsVerdict` that `updateCells` and `updateRows` return: the count of cells the call wrote, and the patches it skipped with a reason. | |
 | stale row | A loaded row that a push changed in a column the server spec reads. It keeps its place and carries `data-row-stale` until the server places it again. | outdated row |
-| reshape | A `refresh()` that `useDataGridServerRows` runs after a push, so the server places the rows again. `reshapeDelayMs` and `reshape()` control it. | re-sort request |
+| reshape | A `refresh()` that asks the server to place pushed rows again. `reshape()` runs one, and `reshapeDelayMs` runs one after a push (off by default). | re-sort request |
 
 ## Keyboard actions
 

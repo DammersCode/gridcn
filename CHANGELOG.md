@@ -46,7 +46,7 @@ The [2.0 breaking changes](https://gridcn.vercel.app/docs/support-upgrades/break
 - **Breaking:** The clipboard failure tooltips of the context menu name the Cmd key on macOS. `labels.contextMenu.pasteBlocked` and `clipboardFailed` can be a function that receives the modifier name. Code that reads them as a string handles the function too. <!-- row: clipboard-labels -->
 - **Breaking:** the pin-shadow and scroll-edge hooks use logical names. `data-grid-pin-shadow="left"` and `"right"` are now `"start"` and `"end"`, `data-scrolled-left` and `data-scrolled-right` are `data-scrolled-start` and `data-scrolled-end`, and `--grid-pin-shadow-left-x` and `--grid-pin-shadow-right-x` are `--grid-pin-shadow-start-x` and `--grid-pin-shadow-end-x`. Update custom CSS and selectors that target the old names. `setColumnPin` also reads `"left"` and `"right"` as `"start"` and `"end"`. <!-- row: pin-shadow -->
 - **Breaking:** a column with `validationMode: "warn"` (`onInvalid: "warn"` in 1.3) also accepts invalid values in paste, fill, `updateCells`, and import, and flags them in `cellErrors` (before, only single-cell commits did). Each bulk write updates `cellErrors` once and does not call `onValidationError` for warned cells. Use `validationMode: "block"` (the default) or `processPaste` to keep dropping invalid values. `buildImportedRows` returns the kept cells in a new `flagged` list, and `onImport` receives it as `ctx.flagged`. <!-- row: warn-bulk -->
-- **Breaking:** row actions take a stable row id unless the name ends in `At`, which takes view indexes. `deleteRows` and `duplicateRows` take row ids, and `deleteRowsAt` and `duplicateRowsAt` take view indexes. `setRowChecked(rowId, checked)` is new, and `setRowSelected` and `setAllRowsSelected` are `setRowCheckedAt` and `setAllRowsChecked`; `setRowCheckedAt` takes a `viewIndex(n)`. In development, `deleteRows`, `duplicateRows`, and `setRowChecked` warn once per grid when a number is used as a row id (the default `getRowId` returns strings), because a JavaScript call from before this change would otherwise do nothing silently. `onRowActionSkipped` keeps `action: "deleteRows"` for both addressings. `insertRow(s)`, `reorderRows`, `moveRowsBy`, `selectRow`, and `checkRowRange` keep their view-index parameters. <!-- row: row-actions-ids -->
+- **Breaking:** row actions take a stable row id unless the name ends in `At`, which takes view indexes. `deleteRows` and `duplicateRows` take row ids, and `deleteRowsAt` and `duplicateRowsAt` take view indexes. `setRowChecked(rowId, checked)` is new, and `setRowSelected` and `setAllRowsSelected` are `setRowCheckedAt` and `setAllRowsChecked`; `setRowCheckedAt` takes a view row number. In development, `deleteRows`, `duplicateRows`, and `setRowChecked` warn once per grid when a number is used as a row id (the default `getRowId` returns strings), because a JavaScript call from before this change would otherwise do nothing silently. `onRowActionSkipped` keeps `action: "deleteRows"` for both addressings. `insertRow(s)`, `reorderRows`, `moveRowsBy`, `selectRow`, and `checkRowRange` keep their view-index parameters. <!-- row: row-actions-ids -->
 
   | Before | After |
   | --- | --- |
@@ -54,7 +54,7 @@ The [2.0 breaking changes](https://gridcn.vercel.app/docs/support-upgrades/break
   | `deleteRowsById(ids)` | `deleteRows(ids)` |
   | `deleteRowsById(ids, { source: "stream" })` | `deleteRows(ids, { source: "stream" })` |
   | `duplicateRows([4])` | `duplicateRowsAt([4])` |
-  | `setRowSelected(4, true)` | `setRowCheckedAt(viewIndex(4), true)` or `setRowChecked(rowId, true)` |
+  | `setRowSelected(4, true)` | `setRowCheckedAt(4, true)` or `setRowChecked(rowId, true)` |
   | `setAllRowsSelected(true)` | `setAllRowsChecked(true)` |
 - **Breaking:** `ColumnDef.filter` replaces `filterOperators` and `filterMatch`. It takes the shape of the cell type's `filter` (`operators`, `match`, `compare`, `valueInput`), and each member wins over the same member of the type's `filter`. `filterable` stays a flat column prop. The old flat keys are no longer in `ColumnDef`, so they are a type error. At runtime the grid still reads a flat key when `filter` lacks that member, and in development it warns once per key; rename the key. A column-level operator list and raw-value matcher work as before, and a custom operator still works on the client and on the server (`parseServerSpec` reads the operators you pass it). <!-- row: column-filter -->
 
@@ -692,7 +692,7 @@ Re-run `npx shadcn add @gridcn/data-grid` (and each add-on you use) to replace t
   empty) beside the snapshot `setPresenceHighlights`.
 - **Presence rect budget is configurable:** `useDataGridPresence` accepts `maxRects` (default
   `MAX_RESOLVED_RECTS`, now exported from the barrel) and `onExcessRects(entry, kept, total)`,
-  fired each time the highlights resolve with a range whose fragments exceed the budget (the development warning still
+  fired once per entry when a range's fragments exceed the budget (the development warning still
   fires in dev).
 - **Re-applying URL state:** `useDataGridUrlState` now returns `{ applyFromUrl }` (the
   `UseDataGridUrlStateResult` type is exported). The mount apply still runs once; call

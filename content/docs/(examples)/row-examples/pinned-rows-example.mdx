@@ -5,7 +5,7 @@ icon: Pin
 type: example
 ---
 
-One grid uses all four pin zones. Name sits in the start band and Score sits in the end band. An averages row fills the top band and a totals row fills the bottom band. The [pinned rows](/docs/rows-pages-menus/pinned-rows) add-on owns the bands.
+One grid uses all four pin zones. Name is pinned to the start side and Score to the end side. An averages row fills the top band and a totals row fills the bottom band. The [pinned rows](/docs/rows-pages-menus/pinned-rows) add-on owns the bands.
 
 <ComponentPreview name="data-grid-pinning-all-sides-demo" />
 
@@ -13,7 +13,7 @@ One grid uses all four pin zones. Name sits in the start band and Score sits in 
 
 ## What the demo shows [#whats-in-the-demo]
 
-- `pin: "start"` on Name and `pin: "end"` on Score pin the column bands.
+- `pin: "start"` on Name and `pin: "end"` on Score pin the two columns.
 - `useDataGridPinnedRows` takes `topRows` and `bottomRows`. The top band holds the averages row. The bottom band holds the totals row.
 - `aggregateRow` declares both rows. The band computes them from the rows that pass the filter (the `scope` defaults to `"view"`).
 - The totals row sets the Name cell with a function reducer, `(values, rows) => ...`, that shows the row count.
@@ -21,7 +21,7 @@ One grid uses all four pin zones. Name sits in the start band and Score sits in 
 
 ## Wire the zones
 
-Declare each computed row with `aggregateRow` and pass it to the hook. A function reducer defined inline has a new identity on each render and rebuilds the band, so declare such a row once at module scope. The `cells` option sets the fixed cells by column id:
+Declare each computed row with `aggregateRow` and pass it to the hook. An inline `aggregateRow` keeps the band. A function reducer with a new identity reduces again after each render. Declare such a row at module scope to skip that work. The `cells` option sets the fixed cells by column id:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
@@ -51,8 +51,8 @@ const AVERAGE = aggregateRow<Row>(
   { cells: { id: "average", name: "Average" } },
 );
 const TOTAL = aggregateRow<Row>(
-  { age: "sum", score: "sum" },
-  { cells: { id: "total", name: "Total" } },
+  { name: (_values, rows) => `${rows.length} rows`, age: "sum", score: "sum" },
+  { cells: { id: "total" } },
 );
 
 function PinnedGrid() {

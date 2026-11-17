@@ -17,7 +17,7 @@ A plugin needs only a `name`. Add the parts that your change needs:
 | Add rows above or below the data | `rowBands` |
 | Observe every data change | `onDataChange` |
 | Add a command and its keys | `commands`, and `keymap` to bind the keys to those commands |
-| Back undo, redo, fill, or find with your own command | `commands` under the action name, such as `undo`. The default keys of that action apply. |
+| Back undo, redo, fill, or find with your own command | `commands` under the action name, such as `undo`, and `keymap` with its keys, such as `{ undo: ["mod+z"] }`. The core binds no key to an add-on action. |
 | Run pointer work, listeners, or timers inside the grid root | `Mount` |
 
 Keep an `Overlay` paint-only. Put pointer work, listeners, and timers in `Mount`. A `Mount` component takes no props and reads the grid through `useDataGridApi`.
@@ -69,6 +69,7 @@ export function PeopleGrid({ rows }: { rows: Person[] }) {
       defaultData={rows}
       columns={columns}
       plugins={[plugin]}
+      aria-label="People"
       className="h-96"
     />
   );

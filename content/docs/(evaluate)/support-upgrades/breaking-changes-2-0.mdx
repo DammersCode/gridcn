@@ -3,7 +3,7 @@ title: 2.0 breaking changes
 icon: TriangleAlert
 description: Each breaking change from 1.3 to 2.0 with the 1.3 form, the 2.0 form, and the change to make in your code.
 type: reference
-aliases: ["2.0 breaking changes", "renamed in 2.0", "removed in 2.0"]
+aliases: ["breaking changes", "2.0 breaking changes", "renamed in 2.0", "removed in 2.0"]
 ---
 
 Each row is one **Breaking:** entry of the [changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md). The changelog entry holds the full rule and a sample. [Migrate to 2.0](/docs/support-upgrades/migrate-2-0) gives the order of the steps.
@@ -21,7 +21,7 @@ Each row is one **Breaking:** entry of the [changelog](https://github.com/Dammer
 
 ## Sorting and filtering [#sorting-filtering]
 
-| Area | 1.3 | 2.0 | What to change |
+| Change | 1.3 | 2.0 | What to change |
 |---|---|---|---|
 | <span id="sort-locale" />Text sort language | The runtime language | The `locale` prop, then `"en-US"`. `sortLocale` sets it apart. | Pass `locale` or `sortLocale`. A custom text `compare` calls `sortCollator().compare`. |
 | <span id="text-collator" />`text`, `longText`, and `url` order | `localeCompare`: `item10` before `item2` | Numeric and case-insensitive: `item2` before `item10` | For the old order, set `sortCompare` with `localeCompare`. |
@@ -33,15 +33,15 @@ Each row is one **Breaking:** entry of the [changelog](https://github.com/Dammer
 | <span id="toggle-sort" />`toggleSort` | `toggleSort(id, true)` | `toggleSort(id, { additive: true })` | Pass an options object. |
 | <span id="unknown-column-spec" />Sort or filter on an unknown column | A filter matches no row | Dropped | Fix the column id. |
 | <span id="equal-spec-no-callback" />Equal sort or filter spec | Fires the callback | No callback | Refetch yourself. |
-| <span id="set-filter-match" />Set operators with a custom match | With `filterMatch`, a `text` or untyped column drops `isAnyOf`, `isNoneOf`, and the header filter. On `number`, `date`, and `select`, `match` receives them. | Every column keeps them, and the built-in set match runs them. `match` runs them only when its own `filter` lists them in `operators`. | To run your `match` for them, list `isAnyOf` and `isNoneOf` in `filter.operators`. |
+| <span id="set-filter-match" />Set operators with a custom match | With `filterMatch`, a `text` or untyped column drops the set operators and the header filter. | Every column keeps them, and the built-in set match runs them. `match` runs them only when its own `filter` lists them in `operators`. | To run your `match` for them, list `isAnyOf` and `isNoneOf` in `filter.operators`. |
 
 ## Selection and row actions [#selection-rows]
 
-| Area | 1.3 | 2.0 | What to change |
+| Change | 1.3 | 2.0 | What to change |
 |---|---|---|---|
 | <span id="checked-rows-lifetime" />Checked row memory | `keepCheckedRows`, `keepHiddenCheckedRows` | `checkedRowsLifetime` | Map the props with the table below. |
 | <span id="checked-rows-only" />Checkbox state | A cell range, such as Ctrl+A, checks the markers. | The checkboxes, `aria-selected`, and the count read the checked rows. Ctrl+A selects cells. | Call `setAllRowsChecked(true)` to check every row. A `CompactSelectionLike` implements `runs()`. |
-| <span id="row-actions-ids" />Row action arguments | `deleteRows([4])`, `duplicateRows([4])`, `deleteRowsById(ids)`, `setRowSelected(4, true)`, `setAllRowsSelected` | `deleteRowsAt([4])`, `duplicateRowsAt([4])`, `deleteRows(ids)`, `setRowCheckedAt(viewIndex(4), true)`, `setAllRowsChecked` | Rename the calls. `setRowChecked(rowId, checked)` takes a row id. |
+| <span id="row-actions-ids" />Row action arguments | `deleteRows([4])`, `duplicateRows([4])`, `deleteRowsById(ids)`, `setRowSelected(4, true)`, `setAllRowsSelected` | `deleteRowsAt([4])`, `duplicateRowsAt([4])`, `deleteRows(ids)`, `setRowCheckedAt(4, true)`, `setAllRowsChecked` | Rename the calls. `setRowChecked(rowId, checked)` takes a row id. |
 | <span id="row-ops-unloaded" />Row actions over unloaded rows | Run over the holes | Do nothing in a scroll-mode grid | Delete known rows with `deleteRows(ids)`. |
 | <span id="enable-row-reorder" />`enableRowReorder` | Turns off the row drag | Removed. A `reorder` family `rowMarkers` mode arms the drag. | Use a plain mode, such as `rowMarkers="checkbox"`. |
 | <span id="move-server-sort" />Row move under `sortMode="server"` with a sort | Moves the loaded rows | Does nothing, reason `"view-ordered"` | Clear the sort before a move. |
@@ -57,7 +57,7 @@ The props of 1.3 map to `checkedRowsLifetime` like this:
 
 ## Editing and validation [#editing]
 
-| Area | 1.3 | 2.0 | What to change |
+| Change | 1.3 | 2.0 | What to change |
 |---|---|---|---|
 | <span id="before-edit-start" />Edit gate | `onEditStart(cell)` | `onBeforeEditStart(cell, { signal })` | Rename the prop. |
 | <span id="validation-mode" />Soft validation | `onInvalid: "warn"` | `validationMode: "warn"` | Rename the column option. |
@@ -79,7 +79,7 @@ The props of 1.3 map to `checkedRowsLifetime` like this:
 
 ## Columns and styling [#columns-styling]
 
-| Area | 1.3 | 2.0 | What to change |
+| Change | 1.3 | 2.0 | What to change |
 |---|---|---|---|
 | <span id="pin-start-end" />Pin values | `"left"`, `"right"`, `pin-left`, `data-pinned="left"` | `"start"`, `"end"`, `pin-start`, `data-pinned="start"` | Rename. Saved layouts with the old values still load. |
 | <span id="pin-shadow" />Pin shadow hooks | `data-grid-pin-shadow="left"`, `data-scrolled-left`, `--grid-pin-shadow-left-x` | `"start"`, `data-scrolled-start`, `--grid-pin-shadow-start-x`, and the `end` forms | Rename the CSS selectors. |
@@ -92,7 +92,7 @@ The props of 1.3 map to `checkedRowsLifetime` like this:
 
 ## Keyboard [#keyboard]
 
-| Area | 1.3 | 2.0 | What to change |
+| Change | 1.3 | 2.0 | What to change |
 |---|---|---|---|
 | <span id="addon-actions" />Add-on actions | `undo`, `redo`, `fillDown`, `fillRight`, `openFind`, `openFindReplace` in the core | Each add-on declares and binds its own actions | For your own command, [declare the name](/docs/plugins/plugin-commands-shortcuts#add-on-actions). |
 | <span id="commit-actions" />`commitDown` and siblings | Keymap names that change no key | Removed | Delete them from `keymap`. |
@@ -104,7 +104,7 @@ The props of 1.3 map to `checkedRowsLifetime` like this:
 
 ## Server data and pagination [#server-pagination]
 
-| Area | 1.3 | 2.0 | What to change |
+| Change | 1.3 | 2.0 | What to change |
 |---|---|---|---|
 | <span id="lazy-removed" />Scroll rows | `useDataGridLazyRows`, `DataGridLazyGuard` | `useDataGridServerRows({ mode: "scroll" })` | Follow [Move the lazy rows](/docs/support-upgrades/migrate-2-0#server-rows). |
 | <span id="row-range" />Row range type | `Range` from `data-grid-lazy` | `RowRange` from `data-grid` | Rename the import. |
@@ -120,7 +120,7 @@ The props of 1.3 map to `checkedRowsLifetime` like this:
 
 ## Import and export [#import-export]
 
-| Area | 1.3 | 2.0 | What to change |
+| Change | 1.3 | 2.0 | What to change |
 |---|---|---|---|
 | <span id="import-readonly" />Import on a `readOnly` grid | Runs when `onImport` is set | Disabled, with `labels.io.importReadOnly` | Clear `readOnly` to allow an import. |
 | <span id="csv-control-chars" />CSV delimiter detection | U+001E and U+001F too | Comma, semicolon, tab, or pipe | Parse such a file in `parseFile`. |
@@ -137,7 +137,7 @@ The props of 1.3 map to `checkedRowsLifetime` like this:
 
 ## Exports and add-ons [#exports-add-ons]
 
-| Area | 1.3 | 2.0 | What to change |
+| Change | 1.3 | 2.0 | What to change |
 |---|---|---|---|
 | <span id="find-replace-open" />`useDataGridFindReplace().open()` | Opens the replace mode | Opens the find mode, as Mod+F | Call `open("replace")` to show the Replace field. |
 | <span id="core-exports" />`data-grid` barrel | Twelve hooks and helpers | Removed from the barrel | Use the [replacements](/docs/support-upgrades/version-policy-changelog#removed-exports). |

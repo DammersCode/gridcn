@@ -43,7 +43,7 @@ export const kitTiles: { icon: LucideIcon; title: string; text: string; href: st
   { icon: ShieldCheck, title: "Validation", text: "A function or schema checks a cell before it commits. Soft rules only flag it.", href: "/docs/editing-cells/validation" },
   { icon: ListFilter, title: "Sorting and filtering", text: "Sort by several columns. Filter per column in and/or groups, from a menu or from code.", href: "/docs/sort-filter-search/filtering" },
   { icon: Keyboard, title: "Keyboard navigation", text: "Move, extend, edit and select with the keyboard. The keymap prop remaps the grid's shortcuts.", href: "/docs/selection-shortcuts/keyboard-navigation" },
-  { icon: ArrowLeftRight, title: "Column order and pinning", text: "Drag columns into a new order. Pin columns to the start or end edge.", href: "/docs/columns/column-order-pinning" },
+  { icon: ArrowLeftRight, title: "Column order and pinning", text: "Drag columns into a new order. Pin columns to the start or end side.", href: "/docs/columns/column-order-pinning" },
 ];
 
 export type AddOnTile = { block: string; icon: LucideIcon; title: string; href: string };

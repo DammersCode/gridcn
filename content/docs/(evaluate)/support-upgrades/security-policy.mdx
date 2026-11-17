@@ -74,11 +74,11 @@ The grid makes no network request of its own. It has no telemetry and loads no r
 | Your server functions | What you send in a function you pass, such as `fetchRows`, `onSave`, `fetchFilterValues`, `fetchOptions`, `fetchAggregates`, an export `source`, or a presence channel | Your code. See [Save edits](/docs/save-server/save-edits) and [Load server rows](/docs/server-path/load-server-rows). |
 | Clipboard | The copied cells as `text/plain` and `text/html` | A copy or cut by the user. See [Clipboard](/docs/clipboard-undo/clipboard). |
 | Export file | A CSV or XLSX file that the browser downloads | An export by the user or your code. See [Export](/docs/import-export/export). |
-| URL state | The sort, the filter values, the search text, the page and the page size, and the column layout | `useDataGridUrlState` and `useDataGridUrlPagination`. See [URL state](/docs/sort-filter-search/url-state). |
+| URL state | The sort by default. The filter values and the search text when `spec` lists them. The page, the page size, and the column layout | `useDataGridUrlState` and `useDataGridUrlPagination`. See [URL state](/docs/sort-filter-search/url-state). |
 | Saved views | Named sorts, filters, search text, and layouts | `DataGridViews` writes them to `localStorage` of the origin by default. See [Saved views](/docs/sort-filter-search/saved-views#storage). |
 | Cell links | The link of a `url` cell, opened in a new tab without a referrer | A click on the link. |
 
-A URL keeps its query in the browser history, in server logs, and in the `Referer` header of the next request. If a filter or the search can hold personal data, leave `"filter"` and `"search"` out of the `spec` option of `DataGridUrlState`.
+A URL keeps its query in the browser history, in server logs, and in the `Referer` header of the next request. The default `spec` keeps filters and search text out of the URL. Add `"filter"` and `"search"` only when they cannot hold personal data.
 
 ## Related
 

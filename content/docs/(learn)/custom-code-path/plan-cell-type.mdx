@@ -10,7 +10,7 @@ Before you start, [pick a code route](/docs/custom-code-path/pick-code-route) an
 ## Decide five things [#decide-five-things]
 
 1. **The stored value.** Store a serializable primitive, such as a number or an ISO date string. Do not store a class instance.
-2. **The text form.** `toText` turns the value into plain text. `fromText` parses typed, pasted, and imported text back. `toText` must round-trip through `fromText`. A built-in type refuses text it cannot parse, and the cell keeps its value. Call `rejectText()` in `fromText` for the same result. Return `clearValue()` only to empty the cell on purpose.
+2. **The text form.** `toText` turns the value into plain text. `fromText` parses typed, pasted, and imported text back into a value. For every value, `fromText(toText(value))` returns the same value. If `fromText` cannot parse the text, call `rejectText()`: the cell keeps its value. Return `clearValue()` only to empty the cell on purpose.
 3. **The empty value.** `isEmpty` says which values count as empty. In the rating type below, `0` is a real rating, so `isEmpty` returns `true` for `null` only.
 4. **The display.** `Cell` draws the value. If print, column autosize, and the header filter need formatted text, add `toDisplayText`.
 5. **The editor.** Build a text editor on `useCellEditor`. It owns the draft, the focus, and the commit on Enter and on blur.
@@ -57,7 +57,7 @@ function Cell({ value, options }: CellRenderProps<unknown, Value, Options>) {
 function Editor(props: CellEditorProps<unknown, Value, Options>) {
   const { ref, ...bindings } = useCellEditor(props, {
     toDraft: (value) => (value === null ? "" : String(value)),
-    toValue: (draft) => parseRating(draft, props.options),
+    toValue: (draft) => ratingCellType.fromText(draft, props.options),
   });
   return <Input ref={ref} {...bindings} className="h-full text-end" />;
 }

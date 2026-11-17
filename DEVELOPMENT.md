@@ -14,7 +14,7 @@ How to run, test, and consume this repo on your own machine. Structure/code rule
 pnpm dev            # Next.js (Turbopack) on http://localhost:3000
 ```
 
-| Page | What it's for |
+| Page | What it is for |
 |---|---|
 | `/` | Landing page (animated hero background, embedded grid demo) |
 | `/docs` | The full documentation site |
@@ -44,7 +44,7 @@ Single file: `npx vitest run --project=browser sort-list` (substring-matches the
 - **Uppercase drive letter.** If the browser suite fails at *import* with doubled-drive-letter
   paths (`c:\C:\...`, usually via a fumadocs typography resolve error), your shell's cwd uses a
   lowercase drive letter. Run suites from the repo root spelled with a capital drive letter
-  (e.g. `cd C:/path/to/gridcn`).
+  (for example `cd C:/path/to/gridcn`).
 - **Stale Vite cache.** A different flavor of the same doubled-drive-letter error is cache
   corruption: `Remove-Item -Recurse -Force node_modules/.vite`, rerun.
 - **Stale Turbopack CSS.** If a CSS change doesn't show up in the browser (even after restart),
@@ -73,14 +73,14 @@ checked in, so the deployed site serves them statically.
 
 Rules that bite if forgotten:
 
-- Every new shipped file under `registry/` MUST be listed in `registry.json` (`verify-registry`
+- Every new shipped file under `registry/` must be listed in `registry.json` (`verify-registry`
   gates it). Test files (`*.test.ts*`, `*.browser.test.tsx`) are never listed.
-- npm dependencies a component needs (e.g. `@dnd-kit/react` for the toolbar/sort-list) are
+- npm dependencies a component needs (for example `@dnd-kit/react` for the toolbar/sort-list) are
   declared per item in `registry.json` → consumers get them installed automatically.
 - `registry.json` is also the manifest of the **GitHub registry**: the shadcn CLI reads it
   straight from `github.com/DammersCode/gridcn` and consumers install items as
   `npx shadcn add DammersCode/gridcn/<item>` (no namespace, no server). Same-repo
-  `registryDependencies` MUST use the full GitHub item address
+  `registryDependencies` must use the full GitHub item address
   (`DammersCode/gridcn/<item>`), never a `@gridcn/` scope — the CLI resolves only the
   full address without a namespace mapping. After any `registry.json` change, push and validate:
 
@@ -126,12 +126,12 @@ For production there are two equivalent paths (what `/docs/learning-path/install
 - GitHub registry: `npx shadcn add DammersCode/gridcn/data-grid` — reads the pushed
   repository directly; the only path with ref pinning (`#<ref>`).
 
-This flow is the honest end-to-end test of the registry: it exercises the payloads, the
+This flow is the full end-to-end test of the registry: it exercises the payloads, the
 cross-item import rewriting, and the declared dependencies exactly as a consumer would.
 
 ## Testing the GitHub registry locally (your own React project)
 
-The honest test of the GitHub registry is to install from `github.com` exactly like a consumer
+The real test of the GitHub registry is to install from `github.com` exactly like a consumer
 would, into a project you start yourself. The repository is public, so the CLI needs no credentials.
 
 1. Push the branch you want to test, then note the ref (`<branch>`, a tag, or a commit SHA).
@@ -179,7 +179,7 @@ would, into a project you start yourself. The repository is public, so the CLI n
    ```
 
    What to check: files land in `src/components/data-grid/*` with imports rewritten to your
-   `@/components/...` alias (no `@/registry/...` leftovers), declared npm deps (e.g. `zustand`)
+   `@/components/...` alias (no `@/registry/...` leftovers), declared npm deps (for example `zustand`)
    are in `package.json`, and the grid renders and edits. That is the full consumer experience.
 
    For a bigger sweep (all items, two consumer flavors, typecheck + build), run
@@ -245,7 +245,7 @@ More scroll suites, each runnable on its own with `--project=browser`:
 # jump sequence (0 -> 75 -> 50 -> 90 -> 10 -> 100 % of 100k rows): longest frame, frames over 33/50 ms, long tasks
 npx vitest run registry/default/blocks/data-grid/test/perf.browser.test.tsx --project=browser --reporter=verbose
 
-# canvas offset and origin rebase after 192 rows, range overlay (fill, presence, pinned rows and lazy holes run the same check in their own test folders)
+# canvas offset and origin rebase after 192 rows, range overlay (fill, presence, fill, presence, and pinned rows run the same check in their own test folders; scroll mode runs it in `data-grid-server/use-data-grid-server-rows.scroll.browser.test.tsx`)
 npx vitest run registry/default/blocks/data-grid/test/vertical-scroll-offset.browser.test.tsx --project=browser
 
 # render counts: marker cells stay still during horizontal scroll; row hover has no transition and no :hover rule
@@ -265,12 +265,12 @@ step rendering at most two rows' worth of cells.
 
 ## Consumer-install troubleshooting
 
-### Vite + a non-default import alias (e.g. `~/`): set `paths` in BOTH tsconfig files
+### Vite + a non-default import alias (for example `~/`): set `paths` in both tsconfig files
 
 If your Vite project uses a custom alias like `~/components` instead of the default `@/components`,
 you must add the `baseUrl`/`paths` config to **both** `tsconfig.json` (the root, references-only
 file) **and** `tsconfig.app.json` — not just the latter. This matches shadcn's own Vite docs, but
-it's easy to miss since your editor and `vite dev` both work fine with only `tsconfig.app.json`
+it is easy to miss since your editor and `vite dev` both work fine with only `tsconfig.app.json`
 configured (Vite reads `tsconfig.app.json` directly; only the shadcn CLI needs the root file too).
 
 ```jsonc
@@ -290,7 +290,7 @@ the `tsconfig-paths` package, which reads `tsconfig.json` directly and does not 
 `references` array. If `tsconfig.json` has no `paths`, the CLI cannot resolve `~/components` to a
 real directory — `shadcn init` will still report success, but `components.json` ends up with the
 **literal alias string** unresolved, and the next `shadcn add` will write files into a directory
-literally named `~` at your project root (e.g. `./~/components/ui/button.tsx`) instead of
+literally named `~` at your project root (for example `./~/components/ui/button.tsx`) instead of
 `src/components/ui/button.tsx`. This is a CLI-side resolution gap (not something a registry can
 work around from its own `registry.json`) — the fix has to happen in the consumer project's
 tsconfig, as shown above. `scripts/registry-smoke.ps1` in this repo encodes the working

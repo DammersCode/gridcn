@@ -1,11 +1,11 @@
 ---
 title: "Pinned columns example"
-description: Pin columns to the start or end edge, resize edges, autosize on double-click, and hide and restore columns.
+description: Pin columns to the start or end side, resize columns, autosize on double-click, and hide and restore columns.
 icon: Pin
 type: example
 ---
 
-The demo pins Name to the start edge and Score to the end edge. Scroll the grid sideways to see them stay in place. Email cannot resize, and the long Bio column fills the free width.
+The demo pins Name to the start side and Score to the end side. Scroll the grid sideways to see them stay in place. Email cannot resize, and the long Bio column fills the free width.
 
 <ComponentPreview name="data-grid-pinning-demo" />
 
@@ -13,10 +13,10 @@ The demo pins Name to the start edge and Score to the end edge. Scroll the grid 
 
 ## What the demo shows [#whats-in-the-demo]
 
-- `pin: "start"` on Name and `pin: "end"` on Score pin the columns to the start and end. A pinned edge shows a shadow once other columns scroll under it.
+- `pin: "start"` on Name and `pin: "end"` on Score pin the columns to the start side and the end side. A pinned column shows a shadow once other columns scroll under it.
 - `resizable: false` on Email removes its resize handle. Drag the end edge of another header to resize it.
 - On a grid wider than its columns, `flex: 1` on Bio fills the free width. Double-click the end edge of its header to autosize it to its content.
-- Hover a header to see the menu button, or right-click the header. The menu pins, unpins, hides, and autosizes the column. The demo wires it with `DataGridContextMenu` and `DataGridHeaderDropdown`.
+- Hover a header to see the menu button, or right-click the header. The menu pins, unpins, hides, moves, resizes, and autosizes the column. From the keyboard, <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>ArrowDown</kbd> opens the menu of the active cell's column. The demo wires it with `DataGridContextMenu` and `DataGridHeaderDropdown`.
 - The `DataGridColumnsMenu` in the toolbar hides and restores columns.
 
 Pin, resize, and reorder are on for every column. Set `pinnable`, `resizable`, or `reorderable` to `false` on a column to turn one off. Set `enableColumnPinning`, `enableColumnResize`, or `enableColumnReorder` to `false` to turn one off for the grid. To pin rows as well, see the [pinned rows example](/docs/row-examples/pinned-rows-example).

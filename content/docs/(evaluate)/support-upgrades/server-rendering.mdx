@@ -17,7 +17,7 @@ In the Next.js App Router, the server renders each client component to HTML, and
 - the first 30 rows of the view, sorted and filtered as in the first render (see **Pin the text sort** below)
 - the row bands, such as pinned totals rows, with their heights
 
-The server cannot know the height of the grid, so it renders a fixed preview. After hydration, the grid measures itself and renders the visible rows plus the overscan. Each cell carries about 1 KB of class names, so serve the page with compression.
+The server cannot know the height of the grid, so it renders a fixed preview. After hydration, the grid measures itself and renders the visible rows plus the overscan. Serve the page with compression.
 
 A grid that mounts in the browser only, for example after a client navigation, renders no data cell in its first commit. Its rows are in the DOM by the first frame.
 
@@ -74,7 +74,7 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
 }
 ```
 
-Pass the first page as `initialAnswer`, for example from a Server Component. The server HTML then holds the rows, and the hook sends no request until the state changes. Scroll mode takes no first answer.
+With [`useDataGridServerRows`](/docs/data-modes/query-server-rows) in pages mode, pass the first page as `initialAnswer`, for example from a Server Component. The server HTML then holds the rows, and the hook sends no request until the state changes. Scroll mode takes no first answer.
 
 ## Keep the first render equal [#hydration-rules]
 

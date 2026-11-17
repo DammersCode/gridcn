@@ -76,7 +76,7 @@ export const ADDONS = [
  * The generator fails when a row's title names a symbol that CHANGELOG.md first names in a later release than this one.
  */
 export const FEATURE_SINCE = {
-  "1.2.0": ["find-replace", "filter-values"],
+  "1.2.0": ["find-replace", "filter-values", "column-groups", "touch"],
   "2.0.0": ["comments", "unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "server-initial-answer", "error-state", "input-debounce", "lookup-cell", "server-aggregate", "zero-row-header"],
 };
 
@@ -151,7 +151,7 @@ export const TERM_PAGES = {
   "write id": "/docs/rows-live-data/add-comments#share-changes",
   tombstone: "/docs/add-options/server/comments-options#apply-remote-verdict",
   echo: "/docs/rows-live-data/add-comments#share-changes",
-  operation: "/docs/events-state/data-change-events#datachange",
+  operation: ["/docs/events-state/data-change-events#datachange", "One record of a change to one row: `insert`, `update`, `delete`, or `move`. `DataChange.ops` holds a batch."],
   "export source": "/docs/import-export/export-whole-result",
   "row id": "/docs/components-props/data-grid-props#rows-and-ids",
   "view index": "/docs/concepts/state-view-index",
@@ -181,7 +181,7 @@ export const TERM_PAGES = {
   eviction: "/docs/scroll-mode/tune-row-retention#max-loaded-rows",
   revalidation: "/docs/scroll-mode/tune-row-retention#revalidate",
   prefetch: "/docs/server-pagination/tune-page-loading#prefetch",
-  "paged view": "/docs/rows-pages-menus/client-pagination",
+  "paged view": ["/docs/rows-pages-menus/client-pagination", "A grid with `pageSize` or `defaultPageSize`. `data` stays whole. The sorted and filtered list is the full view, and `viewIndex` holds the shown page of it."],
   push: "/docs/rows-live-data/stream-updates",
   "stale row": "/docs/rows-live-data/push-server-ordered-view",
   reshape: "/docs/rows-live-data/push-server-ordered-view",

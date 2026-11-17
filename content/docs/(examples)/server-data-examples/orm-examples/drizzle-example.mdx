@@ -105,7 +105,7 @@ About the sample:
 - The sample compares text without case with `ilike` and `lower(column)`.
 - `parseServerSpec` checks the column ids, the operators, the value shapes, and the tree size. Its default caps are 64 sorts, 500 search characters, 64 filters, 16 groups, 1,000 characters per value, and 1,000 list values. A request over a cap gets status 400.
 - A number or date column also gets `isBetween`, a `[min, max]` pair. The sample refuses it.
-- The grid's `empty` also matches a null cell. A nullable column needs an `IS NULL` test.
+- A null cell reads as empty text, so `empty`, `notContains`, `notEquals`, and `isNoneOf` match it. Add an `IS NULL` test to these four for a nullable column.
 - The route caps a page at 500 rows, so a larger page returns fewer rows than the grid asked for.
 - Cap the request body size at the framework or proxy. The limits of `parseServerSpec` do not bound a large JSON text.
 
@@ -155,7 +155,7 @@ export function UsersGrid() {
 
 ## Shareable state [#shareable-state]
 
-Spread `useDataGridUrlPagination()` into the hook options to restore the sort, the filters, the search text, the page, and the page size from the URL. Mount `DataGridUrlState` in the provider with `server.providerProps` and `server.rootProps`. The route stays as it is:
+`useDataGridUrlPagination()` keeps the page and the page size in the URL. `DataGridUrlState` keeps the sort, the filters, and the search text. The route stays as it is:
 
 ```tsx fragment="renders under NuqsAdapter"
 import {

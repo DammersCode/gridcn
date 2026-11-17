@@ -5,7 +5,7 @@ description: Choose the lightest way to change the grid with your own code, from
 type: step
 ---
 
-Before you start, [render your first grid](/docs/learning-path/render-your-first-grid) with `columns` and `data`. This step is the first of the custom code path. It ends with one choice: the route that fits your change.
+Before you start, [render your first grid](/docs/learning-path/render-your-first-grid) with `columns` and `defaultData`. This step is the first of the custom code path. It ends with one choice: the route that fits your change.
 
 Take the first row that fits. A lighter route leaves less code for you to keep.
 
@@ -34,8 +34,8 @@ import {
   DataGrid,
   defineColumns,
   type DataGridApi,
+  type DataGridPlugin,
 } from "@/components/data-grid/data-grid";
-import type { DataGridPlugin } from "@/components/data-grid/data-grid";
 
 type Player = { id: string; name: string; score: number | null };
 
@@ -77,6 +77,7 @@ export function Players({ players }: { players: Player[] }) {
         defaultData={players}
         columns={columns}
         plugins={[plugin]}
+        aria-label="Players"
         className="h-96"
       />
     </>

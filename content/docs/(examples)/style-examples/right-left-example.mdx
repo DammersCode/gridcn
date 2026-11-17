@@ -2,6 +2,7 @@
 title: "Right-to-left example"
 description: Switch one grid between English, German, and Arabic, with translated labels and a layout direction that follows the locale.
 icon: Languages
+aliases: ["i18n example", "translate labels", "rtl grid"]
 type: example
 ---
 
@@ -22,6 +23,7 @@ Column headers are not labels. They belong to the column definitions, so build t
 `direction` is `"ltr"` or `"rtl"`. `locale` is a BCP 47 language tag. It sets the language of number and date formats and the sort order. Take both from the same locale record as the labels. The sample sets `dir` on the element around the grid, so the page around the grid mirrors with it, and the grid follows that `dir`:
 
 ```tsx
+import { useMemo } from "react";
 import {
   DataGridBody,
   DataGridHeader,
@@ -37,27 +39,34 @@ type Row = { id: string; name: string };
 
 const TRANSLATIONS: Record<
   Locale,
-  { locale: string; dir: GridDirection; labels: DeepPartialLabels }
+  {
+    locale: string;
+    dir: GridDirection;
+    header: string;
+    labels: DeepPartialLabels;
+  }
 > = {
-  en: { locale: "en-US", dir: "ltr", labels: {} },
+  en: { locale: "en-US", dir: "ltr", header: "Name", labels: {} },
   de: {
     locale: "de-DE",
     dir: "ltr",
+    header: "Name",
     labels: { grid: { emptyState: "Keine Zeilen" } },
   },
   ar: {
     locale: "ar-EG",
     dir: "rtl",
+    header: "الاسم",
     labels: { grid: { emptyState: "لا صفوف" } },
   },
 };
 
-const columns = defineColumns<Row>()([
-  { id: "name", header: "Name", accessorKey: "name" },
-]);
-
 export function LocaleGrid({ locale }: { locale: Locale }) {
-  const { dir, labels, locale: tag } = TRANSLATIONS[locale];
+  const { dir, header, labels, locale: tag } = TRANSLATIONS[locale];
+  const columns = useMemo(
+    () => defineColumns<Row>()([{ id: "name", header, accessorKey: "name" }]),
+    [header],
+  );
   return (
     <div dir={dir}>
       <DataGridProvider
@@ -66,7 +75,7 @@ export function LocaleGrid({ locale }: { locale: Locale }) {
         labels={labels}
         locale={tag}
       >
-        <DataGridRoot className="h-48">
+        <DataGridRoot className="h-48" aria-label="People">
           <DataGridHeader />
           <DataGridBody />
         </DataGridRoot>
@@ -76,7 +85,7 @@ export function LocaleGrid({ locale }: { locale: Locale }) {
 }
 ```
 
-With no rows, the grid shows the empty-state text of the locale. In `rtl`, the grid mirrors the column order, the pinned bands, the pointer math, and the placement of popups. The arrow keys move visually, so <kbd>ArrowRight</kbd> goes to the column on the right of the screen. If you omit `direction`, the grid follows the `dir` that it inherits from the page and updates when a `dir` attribute on the page changes. A `direction` prop on `DataGridRoot` overrides the inherited value.
+With no rows, the grid shows the empty-state text of the locale. In `rtl`, the grid mirrors the column order, the pinned columns, the pointer math, and the placement of popups. The arrow keys move visually, so <kbd>ArrowRight</kbd> goes to the column on the right of the screen. If you omit `direction`, the grid follows the `dir` that it inherits from the page and updates when a `dir` attribute on the page changes. A `direction` prop on `DataGridRoot` overrides the inherited value.
 
 ## Related
 
