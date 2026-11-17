@@ -31,10 +31,13 @@ const columns = defineColumns<Order>()([
 
 const filters: FilterNode[] = [
   { columnId: "country", operator: "equals", value: "NL" },
-  { join: "or", filters: [
-    { columnId: "name", operator: "contains", value: "A" },
-    { columnId: "name", operator: "contains", value: "B" },
-  ] },
+  {
+    join: "or",
+    filters: [
+      { columnId: "name", operator: "contains", value: "A" },
+      { columnId: "name", operator: "contains", value: "B" },
+    ],
+  },
 ];
 
 function ApplyButton() {
@@ -57,7 +60,7 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
 
 After the click, a row stays if its country is NL and its name contains A or B. A `join: "and"` group needs every child to match, and `"or"` needs one. Any other value acts as `"and"`, and an empty group matches every row.
 
-A group can contain one level of nested groups. `setFilters` drops a group nested deeper, with the filter rows in it. `filterId` is an optional stable key. The store adds one when it is missing.
+A group can contain one level of nested groups. `setFilters` drops a group nested deeper, with the filter rows in it.
 
 ## Operators
 

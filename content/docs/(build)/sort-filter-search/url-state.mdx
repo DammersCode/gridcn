@@ -91,7 +91,7 @@ A filter group is a segment `[or` or `[and`, then its rows, then a `]` segment:
 
 The characters `[` and `]` are always percent-encoded inside ids and values, so a value cannot imitate a group. A group holds one more group at most. A deeper group drops with the filter rows in it. The parser skips a stray `]`, closes a group left open at the end, and drops an empty group.
 
-`join=or` joins the top-level entries with "or". The param is absent for "and", and any other value reads as "and".
+`join=or` joins the top-level entries with "or". The param is absent for "and", and any other value reads as "and". With a `prefix`, the param is `<prefix>_join`.
 
 ## Behavior
 
@@ -128,7 +128,6 @@ The `layout` option picks which parts of the column layout go into the URL. The 
 - A part is in the URL only while it differs from the layout the grid started with.
 - The URL changes once per committed gesture: a drop, a resize release, a pin, or a hide. A resize drag writes nothing while the pointer moves.
 - The grid drops an id that matches no column. A column missing from `cols` keeps its place at the end.
-- The grid ignores a key longer than 16,384 characters, and it reads at most 1,024 entries of a key.
 
 ## Pagination
 
@@ -174,7 +173,7 @@ For a server grid, pass the same result into `useDataGridServerRows` or `useData
 
 The add-on restores sorts, filters, and search text through the store actions. Those actions call `onSortChange`, `onFilterChange`, and `onSearchTextChange` as any change does. With `sortMode="server"` and `filterMode="server"`, a link restores the spec and the grid never reorders or hides the rows you load. `useDataGridServerRows` sets both modes. A grid that declares a `totalRowCount` holds the restored spec and never sorts or filters the partial `data`. Without `totalRowCount` and without the hook, set both modes on a scroll-mode grid. Otherwise the add-on sorts and filters the partial `data` on the client.
 
-Fetch the rows for the restored spec on mount. For page numbers in the URL, see [Keep pages in URL](/docs/server-pagination/keep-pages-url).
+A grid that declares a `totalRowCount` holds the restored spec and never sorts or filters the partial `data`. Fetch the rows for the restored spec on mount. For page numbers in the URL, see [Keep pages in URL](/docs/server-pagination/keep-pages-url).
 
 A link holds up to 64 sorts. The default `parseServerSpec` limits accept them. In server filter mode, every set filter value stays, and your server checks the values.
 
