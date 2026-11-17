@@ -61,6 +61,10 @@ export type DataGridToolbarLabels = {
   filterConnectorAnd: string;
   /** "or" option of the connector select; also the text on later nodes of an "or" list. */
   filterConnectorOr: string;
+  /** Summary on the left of the header of an "or" group. */
+  filterGroupAny: string;
+  /** Summary on the left of the header of an "and" group. */
+  filterGroupAll: string;
   columns: string;
   columnsAriaLabel: string;
   /** aria-label of the header filter button; `filtered` is true while the column has any filter, including a condition filter. */

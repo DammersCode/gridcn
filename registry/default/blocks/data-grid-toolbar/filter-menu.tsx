@@ -527,7 +527,11 @@ function FilterGroupBox(props: FilterGroupBoxProps): ReactNode {
       {dropEdge && <DropIndicator edge={dropEdge} />}
       <ConnectorCell index={index} join={join} parentId={parentId} path={path} ctx={ctx} />
       <div className="flex min-w-0 flex-1 flex-col gap-2 rounded-md border p-2">
-        <ButtonGroup data-grid-filter-group-header="" className="self-end">
+        <div className="flex items-center gap-2">
+          <span data-grid-filter-group-summary="" className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+            {group.join === "or" ? labels.toolbar.filterGroupAny : labels.toolbar.filterGroupAll}
+          </span>
+          <ButtonGroup data-grid-filter-group-header="" className="shrink-0">
           <Button type="button" variant="outline" size="icon-sm" title={labels.toolbar.addFilter} aria-label={labels.toolbar.addFilter} onClick={() => ctx.onAddFilter(group)} disabled={noColumns}>
             <Plus />
           </Button>
@@ -540,6 +544,7 @@ function FilterGroupBox(props: FilterGroupBoxProps): ReactNode {
             <Trash2 />
           </Button>
         </ButtonGroup>
+        </div>
         <FilterList nodes={children} parent={group} depth={depth} path={groupPath} ctx={ctx} />
       </div>
       <GripButton label={labels.toolbar.reorderFilterAriaLabel} isDragSource={isDragSource} handleRef={handleRef} gripRef={(el) => ctx.gripRef(filterId, el)} onKeyDown={onGripKeyDown} />

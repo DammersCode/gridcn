@@ -119,3 +119,24 @@ describe("DataGridFilterMenu row alignment", () => {
     expect(edges(second!)).toEqual(edges(first!));
   });
 });
+
+describe("DataGridFilterMenu group header summary", () => {
+  it("states the group join on the left and keeps the icon group inside the box", async () => {
+    await render(
+      <DataGridProvider data={[]} columns={columns} getRowId={(r) => r.id}>
+        <DataGridFilterMenu />
+      </DataGridProvider>,
+    );
+    await userEvent.click(document.querySelector<HTMLElement>('button[aria-label="Filters"]')!);
+    expect(document.querySelector("[data-grid-filter-group-summary]")).toBeNull();
+    await userEvent.click(document.querySelector<HTMLElement>('[data-grid-filter-menu] button[aria-label="Add group"]')!);
+    const summary = document.querySelector<HTMLElement>("[data-grid-filter-group-summary]")!;
+    expect(summary.textContent).toBe("Any of the following are true…");
+    const header = document.querySelector<HTMLElement>("[data-grid-filter-group-header]")!;
+    const box = header.closest("[data-grid-filter-group]")!.getBoundingClientRect();
+    expect(summary.getBoundingClientRect().right).toBeLessThanOrEqual(header.getBoundingClientRect().left);
+    expect(header.getBoundingClientRect().right).toBeLessThanOrEqual(box.right);
+    const results = await axe.run(document.body, { rules: { "color-contrast": { enabled: false } } });
+    expect(results.violations.map((v) => v.id)).toEqual([]);
+  });
+});
