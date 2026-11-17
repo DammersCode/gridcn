@@ -190,6 +190,8 @@ export type DataGridSyncProps<TData = unknown> = {
   rowMarkers?: RowMarkersMode;
   /** Whole-row selection channel gestures (marker click, Shift+Space); default true. */
   enableRowSelection?: boolean;
+  /** Whether the delete-rows key (and the cell menu's Delete rows item) deletes; default true. `false` skips with reason `"disabled"`. `actions.deleteRows` and `actions.deleteRowsAt` keep working. */
+  enableRowDelete?: boolean;
   /**
    * How long the checked rows last. Default `'across-filters'` with `totalRowCount`, else `'until-cleared'` when `rowMarkers` shows a checkbox, else `'until-click'`; an explicit value always wins. `useDataGridSelectionConfig` returns the value that applies.
    * - `'until-click'`: a cell or column selection (click, arrows, Shift or Ctrl click, a header click, Ctrl+Space) clears the checked rows.
@@ -464,9 +466,7 @@ export type DataGridSyncProps<TData = unknown> = {
    onCellDoubleClick?: OnCellDoubleClick<TData>;
    /** Fired when the user right-clicks any non-pinned, non-skeleton cell — pure notification. See {@link OnCellContextMenu}. */
    onCellContextMenu?: OnCellContextMenu<TData>;
-    /**
-     * Fired on a plain click on any cell — see {@link OnCellClick}. An inline function is fine.
-     */
+    /** Fired on a plain click on any cell — see {@link OnCellClick}. An inline function is fine. */
     onCellClick?: OnCellClick<TData>;
     /**
      * Fired after a row-window commit with the rendered view-row range `[start, end)` (inclusive
@@ -536,6 +536,7 @@ export type ResolvedPlugins = {
   bands: { top: readonly ResolvedBandSegment[]; bottom: readonly ResolvedBandSegment[] };
   mounts: readonly ResolvedPluginMount[];
   observers: readonly PluginDataChangeObserver[];
+  cellMenuItems: readonly NonNullable<DataGridPlugin["cellMenuItems"]>[];
 };
 
 /**
@@ -591,9 +592,7 @@ export function toInternalSyncProps<TData>(props: DataGridSyncProps<TData>): Int
   return (props.getRowId ? props : { ...props, getRowId: defaultGetRowId }) as unknown as InternalSyncProps;
 }
 
-/**
- * Options passed to selectRow/selectColumn actions; mirrors lib/selection's SelectLineOptions.
- */
+/** Options passed to selectRow/selectColumn actions; mirrors lib/selection's SelectLineOptions. */
 export type SelectLineActionOptions = SelectLineOptions;
 
 /**
@@ -646,6 +645,7 @@ export type DataGridStoreState = Omit<
   | "commands"
   | "rowMarkers"
   | "enableRowSelection"
+  | "enableRowDelete"
   | "checkedRowsLifetime"
   | "totalRowCount"
   | "announceResults"
@@ -683,6 +683,7 @@ export type DataGridStoreState = Omit<
   /** Defaulted (never undefined) — see `resolveSelectionConfig`. */
   rowMarkers: RowMarkersMode;
   enableRowSelection: boolean;
+  enableRowDelete: boolean;
   checkedRowsLifetime: CheckedRowsLifetime;
   announceResults: boolean;
   /** Row ids of checked rows that left the view (a filter, a page change, a window move), or the excluded rows in "all matching"; empty unless `checkedRowsLifetime` is `'across-filters'` and in effect. */
@@ -1362,7 +1363,6 @@ export type ExternalStoreProps = { store: StoreApi<DataGridStoreState> } & {
 };
 /** The owned-store branch of {@link DataGridProviderProps}/{@link DataGridProps}: this instance self-creates and syncs the store from the sync props. */
 export type OwnedStoreProps<TData> = DataGridSyncProps<TData> & { store?: undefined };
-
 
 /** Props for {@link DataGridProvider}. */
 export type DataGridProviderProps<TData = unknown> = (ExternalStoreProps | OwnedStoreProps<TData>) & {

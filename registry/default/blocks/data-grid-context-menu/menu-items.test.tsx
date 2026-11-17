@@ -38,6 +38,7 @@ type ProbeProps = {
   pin?: "start" | "end";
   hideable?: false;
   readOnly?: boolean;
+  enableRowDelete?: boolean;
   allMatching?: boolean;
   headerColumnId?: string;
   clipboardFailed?: boolean;
@@ -74,6 +75,7 @@ function renderProbe(props: ProbeProps) {
       createRow={props.createRow}
       duplicateRow={props.duplicateRow}
       readOnly={props.readOnly}
+      enableRowDelete={props.enableRowDelete}
       totalRowCount={props.allMatching ? 50 : undefined}
       checkedRowsLifetime={props.allMatching ? "across-filters" : undefined}
     >
@@ -102,6 +104,12 @@ describe("useDefaultCellMenuItems", () => {
     ]);
     expect(item(cell, "delete-rows")?.destructive).toBe(true);
     expect(item(cell, "paste")?.tooltip).toBeUndefined();
+  });
+
+  it("omits Delete rows when enableRowDelete is false", () => {
+    let cell: GridMenuItemSpec[] = [];
+    renderProbe({ enableRowDelete: false, onSpecs: (c) => { cell = c; } });
+    expect(item(cell, "delete-rows")).toBeUndefined();
   });
 
   it("omits the Insert entries without createRow and the Duplicate entry without duplicateRow", () => {

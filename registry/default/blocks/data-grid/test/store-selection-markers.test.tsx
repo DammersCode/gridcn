@@ -220,6 +220,7 @@ describe("selection config defaults and gating", () => {
     const { result } = renderHook(() => useDataGridSelectionConfig(), { wrapper: makeWrapper() });
     expect(result.current).toEqual({
       enableRowSelection: true,
+      enableRowDelete: true,
       enableColumnSelection: true,
       enableRangeSelection: true,
       enableMultiRange: true,

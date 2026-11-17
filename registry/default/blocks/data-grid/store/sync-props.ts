@@ -209,8 +209,8 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           warnPluginComponentRemounts(get().plugins.list, props.plugins ?? [], pluginWarnOnce);
           nextPlugins = resolvePluginsList(props.plugins, api, pluginWarnOnce);
         }
-        if (pluginsChanged || keymapChanged) {
-          nextKeymap = mergePluginKeymaps((nextPlugins ?? get().plugins).list, props.keymap, pluginWarnOnce);
+        if (pluginsChanged || keymapChanged || commandsChanged) {
+          nextKeymap = mergePluginKeymaps((nextPlugins ?? get().plugins).list, props.keymap, pluginWarnOnce, props.commands);
           if (isDev()) {
             validateKeymap(nextKeymap);
             validateSharedBindings(nextKeymap);

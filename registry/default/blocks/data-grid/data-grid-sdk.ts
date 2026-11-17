@@ -33,6 +33,7 @@ export {
 } from "./virtualization/direction";
 
 export { rowOperationTargets } from "./store/row-operation-targets";
+export { pluginCellMenuItems } from "./store/plugins";
 export { GRID_LAYER, cellLayer, type GridLayer } from "./layers";
 export { hasAnyPin } from "./overlays";
 export { OverlayRect, type OverlayRectProps } from "./overlay-rect";

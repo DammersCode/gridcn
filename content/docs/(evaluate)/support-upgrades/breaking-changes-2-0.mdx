@@ -64,6 +64,7 @@ The props of 1.3 map to `checkedRowsLifetime` like this:
 | <span id="callback-errors" />Callback errors | Callbacks rethrow | A throw goes to `reportError` | Catch in the callback. |
 | <span id="update-cells-source" />`updateCells` `source` | Defaults to `"stream"` | Required | Pass `{ source: "stream" }`. |
 | <span id="gate-supersede" />Second insert or delete | Ignored, `"gate-pending"` | Aborts the pending one | Drop that check. |
+| <span id="plugin-command-first" />Two plugins, one command name | The later plugin wins | The first plugin keeps it | Order the plugins, or define the command in `commands`. |
 | <span id="before-edit-start" />Edit gate | `onEditStart(cell)` | `onBeforeEditStart(cell, { signal })` | Rename the prop. |
 | <span id="validation-mode" />Soft validation | `onInvalid: "warn"` | `validationMode: "warn"` | Rename the column option. |
 | <span id="warn-bulk" />Bulk writes on `"warn"` columns | Paste, fill, and import drop invalid values | They keep the values and flag them in `cellErrors` | To drop them, use `"block"` or `processPaste`. |

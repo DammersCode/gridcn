@@ -545,6 +545,8 @@ const saveAllCommand: GridCommand<Row> = {
 // @ts-expect-error - scope is one of "grid" | "editing" | "always"
 const badCommandScope: GridCommand<Row> = { run: saveAllRun, scope: "both" };
 void badCommandScope;
+const keyedCommand: GridCommand<Row> = { run: saveAllRun, keys: ["mod+alt+s"] };
+void keyedCommand;
 const commandProps: Pick<DataGridProps<Row>, "commands" | "keymap"> = {
   commands: { saveAll: saveAllCommand },
   keymap: customKeymap as Keymap,

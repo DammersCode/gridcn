@@ -99,12 +99,10 @@ describe("dispatchGridAction custom-command tier", () => {
     expect(actions.selectAll).not.toHaveBeenCalled();
   });
 
-  it("a bound name with neither a case nor a command dev-warns once and is a no-op", () => {
+  it("a name with neither a case nor a command is a no-op and warns nothing (the config-time check warns)", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     dispatch({ action: "unwired" });
-    dispatch({ action: "unwired" });
-    expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn.mock.calls[0]![0]).toContain("unwired");
+    expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
   });
 

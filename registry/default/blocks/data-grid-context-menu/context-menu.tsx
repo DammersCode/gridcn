@@ -8,7 +8,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { useDataGridActions } from "@/registry/default/blocks/data-grid/data-grid";
-import { gridAttrSelector, useDataGridStoreApi, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { gridAttrSelector, pluginCellMenuItems, useDataGridStoreApi, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { resolveContextMenuTarget, type ContextMenuTarget } from "./resolve-context-menu-target";
 import { isCellInSelection } from "./selection-queries";
 import {
@@ -18,6 +18,7 @@ import {
   useDefaultHeaderMenuItems,
   useRowOperationTargets,
   type CellMenuItemsResolver,
+  type GridMenuItemSpec,
   type HeaderMenuItemsResolver,
 } from "./menu-items";
 import { useHasCreateRow, useHasDuplicateRow } from "./has-row-op";
@@ -66,9 +67,12 @@ function CellMenuContent(props: {
     clipboardFailed,
     onClipboardFailed,
   });
+  const targetRowIds = rowIdsOfViewRows(storeApi.getState(), targets.rows);
+  const pluginItems = pluginCellMenuItems(storeApi.getState().plugins, { rowId: target.rowId, viewRowIndex: target.row, columnId: target.columnId, targetRowIds, actions });
+  const withPlugins: GridMenuItemSpec[] = pluginItems.length > 0 ? [...defaultSpecs, { id: "sep-plugins", separator: true }, ...pluginItems] : defaultSpecs;
   const specs = getCellMenuItems
-    ? getCellMenuItems({ rowId: target.rowId, viewRowIndex: target.row, columnId: target.columnId, canInsertRow, canDuplicateRow, targetRowIds: rowIdsOfViewRows(storeApi.getState(), targets.rows), actions }, defaultSpecs)
-    : defaultSpecs;
+    ? getCellMenuItems({ rowId: target.rowId, viewRowIndex: target.row, columnId: target.columnId, canInsertRow, canDuplicateRow, targetRowIds, actions }, withPlugins)
+    : withPlugins;
   return renderContextMenuItems(specs);
 }
 

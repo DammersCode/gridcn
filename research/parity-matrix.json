@@ -1147,6 +1147,7 @@
       "options": [
         "createRow",
         "duplicateRow",
+        "enableRowDelete",
         "onBeforeDeleteRows",
         "gateTimeoutMs",
         "onGateAborted",
@@ -1158,6 +1159,7 @@
           "evidence": [
             "content/docs/(build)/rows-pages-menus/row-operations.mdx",
             "registry/default/blocks/data-grid/store/gate-signal.test.ts",
+            "registry/default/blocks/data-grid/store/enable-row-delete.test.tsx",
             "tests/parity/row-ops.parity.test.tsx",
             "registry/default/blocks/data-grid/test/row-ops.test.tsx"
           ]

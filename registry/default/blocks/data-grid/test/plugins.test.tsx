@@ -17,7 +17,7 @@ import {
   type RowBandRenderCtx,
 } from "../data-grid";
 import { useDataGridStoreApi, type DataGridStoreState } from "../store";
-import { EMPTY_PLUGINS, mergePluginCommands, mergePluginKeymaps, resolvePluginsList } from "../store/plugins";
+import { EMPTY_PLUGINS, pluginCellMenuItems, mergePluginCommands, mergePluginKeymaps, resolvePluginsList } from "../store/plugins";
 import { DEFAULT_KEYMAP } from "../keyboard";
 import { dispatchGridAction } from "../interaction/use-grid-interaction";
 import { useDataGridHistory } from "@/registry/default/blocks/data-grid-history/data-grid-history";
@@ -146,12 +146,12 @@ describe("plugin conflicts (decision 3 table)", () => {
     expect(resolvePluginsList(list, {}, vi.fn()).list).toBe(list);
   });
 
-  it("two plugins with the same command name: the later plugin wins, dev-warns with both names", () => {
+  it("two plugins with the same command name: the first plugin keeps it, dev-warns with both names", () => {
     const warn = vi.fn();
     const p1 = { name: "p1", commands: { save: { run: () => {} } } };
     const p2 = { name: "p2", commands: { save: { run: () => {} } } };
     const merged = mergePluginCommands([p1, p2], null, warn)!;
-    expect(merged["save"]).toBe(p2.commands!.save);
+    expect(merged["save"]).toBe(p1.commands!.save);
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn.mock.calls[0]![0]).toBe("cmd-conflict:save:p1:p2");
     expect(warn.mock.calls[0]![1]).toContain("p1");
@@ -350,10 +350,10 @@ describe("plugin conflicts (decision 3 table)", () => {
 
 describe("plugin array order precedence", () => {
   const run = () => {};
-  it("a later plugin wins a command name", () => {
+  it("the first plugin keeps a command name", () => {
     const first = { name: "first", commands: { pick: { run } } };
     const second = { name: "second", commands: { pick: { run: () => {} } } };
-    expect(mergePluginCommands([first, second], undefined, vi.fn())!["pick"]).toBe(second.commands.pick);
+    expect(mergePluginCommands([first, second], undefined, vi.fn())!["pick"]).toBe(first.commands.pick);
   });
 
   it("an earlier plugin keeps a key that a later plugin also binds", () => {
@@ -936,5 +936,48 @@ describe("fill plugin commands (mod+D / mod+R)", () => {
     const { keymap } = store!.getState();
     expect(keymap.fillDown).toBeUndefined();
     expect(keymap.fillRight).toBeUndefined();
+  });
+});
+
+describe("command keys", () => {
+  const run = () => {};
+  it("a consumer command's keys bind it by default", () => {
+    const merged = mergePluginKeymaps([], undefined, vi.fn(), { saveAll: { run, keys: ["mod+alt+s"] } });
+    expect((merged as Record<string, unknown>)["saveAll"]).toEqual(["mod+alt+s"]);
+  });
+
+  it("the keymap prop wins over a command's keys", () => {
+    const merged = mergePluginKeymaps([], { saveAll: ["mod+alt+k"] } as never, vi.fn(), { saveAll: { run, keys: ["mod+alt+s"] } });
+    expect((merged as Record<string, unknown>)["saveAll"]).toEqual(["mod+alt+k"]);
+  });
+
+  it("a plugin command's keys act as the plugin's keymap entry, and its keymap entry wins", () => {
+    const keyed = { name: "p", commands: { one: { run, keys: ["mod+alt+j"] } } };
+    expect((mergePluginKeymaps([keyed], undefined, vi.fn()) as Record<string, unknown>)["one"]).toEqual(["mod+alt+j"]);
+    const both = { ...keyed, keymap: { one: ["mod+alt+l"] } };
+    expect((mergePluginKeymaps([both], undefined, vi.fn()) as Record<string, unknown>)["one"]).toEqual(["mod+alt+l"]);
+  });
+
+  it("a plugin command's key that a default binding holds is dropped with a warning", () => {
+    const warn = vi.fn();
+    const clash = { name: "p", commands: { one: { run, keys: ["mod+a"] } } };
+    expect((mergePluginKeymaps([clash], undefined, warn) as Record<string, unknown>)["one"]).toBeUndefined();
+    expect(warn).toHaveBeenCalled();
+  });
+});
+
+describe("plugin cellMenuItems", () => {
+  const ctx = { rowId: "a", viewRowIndex: 0, columnId: "x", targetRowIds: ["a"], actions: {} as never };
+  it("resolves in plugin order and isolates a throwing plugin", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const list = [
+      { name: "a", cellMenuItems: () => [{ id: "a-item", label: "A" }] },
+      { name: "b", cellMenuItems: () => { throw new Error("boom"); } },
+      { name: "c", cellMenuItems: () => [{ id: "c-item", label: "C" }] },
+    ];
+    const items = pluginCellMenuItems(resolvePluginsList(list, {}, vi.fn()), ctx);
+    expect(items.map((item) => item.id)).toEqual(["a-item", "c-item"]);
+    expect(error).toHaveBeenCalledTimes(1);
+    error.mockRestore();
   });
 });

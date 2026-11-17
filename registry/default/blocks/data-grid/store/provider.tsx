@@ -110,6 +110,7 @@ const CONFIG_KEYS = [
   "sanitizeClipboardFormulas",
   "rowMarkers",
   "enableRowSelection",
+  "enableRowDelete",
   "checkedRowsLifetime",
   "totalRowCount",
   "announceResults",

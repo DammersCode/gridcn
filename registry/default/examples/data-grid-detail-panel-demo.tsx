@@ -11,7 +11,6 @@ import {
   type CellClickCtx,
   type DataGridApi,
   type GridCommand,
-  type Keymap,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { generateDemoRows, type DemoRow } from "./demo-data";
 
@@ -21,8 +20,6 @@ const columns = defineColumns<DemoRow>()([
   { id: "role", header: "Role", accessorKey: "role", type: "text", width: 100, flex: 1 },
   { id: "active", header: "Active", accessorKey: "active", type: "checkbox", width: 70, flex: 1 },
 ] as const);
-
-const keymap = { openRow: ["shift+Enter"] } as Keymap;
 
 export default function DataGridDetailPanelDemo(): ReactNode {
   const rows = useMemo(() => generateDemoRows(30), []);
@@ -41,6 +38,7 @@ export default function DataGridDetailPanelDemo(): ReactNode {
     () => ({
       openRow: {
         label: "Open row",
+        keys: ["shift+Enter"],
         when: (ctx) => ctx.row !== undefined,
         run: () => setOpen(true),
       },
@@ -66,7 +64,6 @@ export default function DataGridDetailPanelDemo(): ReactNode {
           onCellClick={openFromClick}
           onActiveCellChange={(next) => setRowId(next?.rowId ?? null)}
           commands={commands}
-          keymap={keymap}
         >
           <DataGridRoot className="h-[360px]">
             <DataGridHeader />

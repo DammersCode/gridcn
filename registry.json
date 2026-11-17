@@ -418,6 +418,11 @@
                "target": "components/data-grid/layout-context.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/plugin-menu-types.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/plugin-menu-types.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/overlay-rect.tsx",
                "type": "registry:component",
                "target": "components/data-grid/overlay-rect.tsx"

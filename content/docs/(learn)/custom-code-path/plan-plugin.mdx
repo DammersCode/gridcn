@@ -27,7 +27,7 @@ Keep an `Overlay` paint-only. Put pointer work, listeners, and timers in `Mount`
 - Give the plugin a `name` that no other plugin of the grid uses. The grid ignores a second plugin with the same name, and development mode warns.
 - Create one plugin object for each grid. A second grid drops an object that another grid holds, and warns in development.
 - Keep the identity of the object. Create it once with `useState` or `useMemo`. An `Overlay` or `Mount` component that changes identity remounts.
-- Order the array on purpose. The array order is the paint order and the observer order. A later plugin wins a command name. An earlier plugin keeps a key that a later one also binds.
+- Order the array on purpose. The array order is the paint order and the observer order. The first plugin keeps a command name and a key that a later one also takes.
 
 ## Write the first plugin [#write-the-first-plugin]
 

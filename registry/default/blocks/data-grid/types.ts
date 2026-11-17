@@ -6,6 +6,7 @@ import type { AnyColumnDef, DataGridActions, DataGridStoreState } from "./store/
 import type { DataGridSelectedRows } from "./store/selected-rows";
 import type { RowBandRenderCtx } from "./layout-context";
 import type { OverlayPluginCtx } from "./overlays";
+import type { PluginCellMenuItems } from "./plugin-menu-types";
 import type { StandardSchemaV1 } from "./standard-schema";
 import type {
   BuiltInFilterOperator,
@@ -645,6 +646,7 @@ export interface GridActions {
   widenColumn: true;
   narrowColumn: true;
   openLink: true;
+  openCellMenu: true;
   focusSearch: true;
 }
 
@@ -739,8 +741,8 @@ export type DataGridStoreWrapper = {
  * row bands; `onDataChange` observes every data change AFTER the store write and the consumer's
  * `onDataChange`; `commands`/`keymap` join the grid's command and keymap merges; `Mount` renders
  * inside `DataGridRoot` after its children for engine work (pointer handlers, listeners). Array
- * order is the paint order, the observer order, and the precedence: a later plugin wins a command name,
- * and an earlier plugin keeps a key that a later plugin also binds. A plugin object attaches to ONE grid.
+ * order is the paint order, the observer order, and the precedence: the first plugin keeps a command name
+ * and a key that a later plugin also takes. A plugin object attaches to ONE grid.
  */
 export type DataGridPlugin<TData = unknown> = {
   /** Unique per grid: the React key of the plugin's components and its identity in the store. A later plugin with a taken name is ignored, with all its members. */
@@ -757,6 +759,8 @@ export type DataGridPlugin<TData = unknown> = {
   keymap?: Keymap;
   /** A component rendered inside `DataGridRoot` after its children (no props — read the grid through {@link useDataGridApi}). */
   Mount?: ComponentType;
+  /** Items this plugin adds to the cell menu, after the built-in items and in plugin order; the consumer's `getCellMenuItems` resolver then sees the set. A throwing function adds no items. */
+  cellMenuItems?: PluginCellMenuItems;
 };
 
 /** The row-band contribution of a {@link DataGridPlugin}. */
@@ -809,6 +813,8 @@ export type GridCommand<TData = unknown> = {
    * while an edit session is open; `"always"` in both cases. The grid keeps its built-in bindings.
    */
   scope?: "grid" | "editing" | "always";
+  /** Default keys of the command, in `keymap` syntax. An entry in the `keymap` prop for the command name replaces them. */
+  keys?: readonly KeyBinding[];
   /** Keybindings-dialog label; default: `labels.keybindings.actions[name]` or the humanized name. */
   label?: string;
   /** Keybindings-dialog section; default: `"other"`. */

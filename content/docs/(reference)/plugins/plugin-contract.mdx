@@ -17,6 +17,7 @@ A plugin is a plain object of type `DataGridPlugin<TData>`. The `plugins` prop o
 | [`commands`](#commands) | `Record<string, GridCommand<TData>>` | Adds named commands. |
 | [`keymap`](#keymap) | `Keymap` | Binds keys to the commands of the plugin. |
 | [`Mount`](#mount) | `ComponentType` | Runs engine work inside `DataGridRoot`. |
+| [`cellMenuItems`](#cellmenuitems) | `(ctx) => PluginMenuItem[]` | Adds items to the cell menu. |
 
 A plugin needs only `name`. [Plugin model](/docs/plugins/plugin-shape) explains the model, and [Write a plugin](/docs/recipes-custom-code/write-plugin) builds one.
 
@@ -58,6 +59,10 @@ The grid drops a key that another action already holds. Your `keymap` prop keeps
 ### Mount [#mount]
 
 `Mount` is a component without props. `DataGridRoot` renders it after its children. Read the grid through `useDataGridApi`.
+
+### cellMenuItems [#cellmenuitems]
+
+`cellMenuItems` receives the right-clicked row id, view row index, column id, the target row ids, and the grid actions. The cell menu of `DataGridContextMenu` appends the returned items after the built-in items, behind a separator, in plugin order. The `getCellMenuItems` resolver then sees the whole set. A function that throws adds no items.
 
 ## Context types
 

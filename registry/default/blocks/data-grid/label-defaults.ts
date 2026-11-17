@@ -212,6 +212,7 @@ export function buildDefaultLabels(locale: string): DataGridLabels {
         redo: "Redo",
 
         openLink: "Open link",
+        openCellMenu: "Open cell menu",
       },
     },
     markers: {

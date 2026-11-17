@@ -21,7 +21,7 @@ Give every row a stable `id`. If rows have no `id` field, pass `getRowId`. A num
 3. Open the panel from `onCellClick`. Compare `ctx.columnId` to skip a checkbox column.
 4. Set `rowId` from `onActiveCellChange`. With no active cell, the event passes `null`.
 5. Look the row up by id in your own data. The event carries the cell reference and not the row.
-6. Declare an `openRow` command in `GridActions`, define it in `commands`, and bind it in `keymap`.
+6. Define an `openRow` command in `commands` with its `keys`.
 7. Close the panel on Escape inside the `aside`, then call `focus()` on the grid API from a ref. It focuses the active cell and does nothing during an edit.
 
 ## Wire the panel, the click, and the key
@@ -44,18 +44,10 @@ import {
 
 type Order = { id: string; customer: string; active: boolean };
 
-declare module "@/components/data-grid/types" {
-  interface GridActions {
-    openRow: true;
-  }
-}
-
 const columns = defineColumns<Order>()([
   { id: "customer", header: "Customer", accessorKey: "customer", type: "text" },
   { id: "active", header: "Active", accessorKey: "active", type: "checkbox" },
 ] as const);
-
-const keymap = { openRow: ["shift+Enter"] };
 
 export function OrdersWithPanel({ orders }: { orders: Order[] }) {
   const [open, setOpen] = useState(false);
@@ -73,6 +65,7 @@ export function OrdersWithPanel({ orders }: { orders: Order[] }) {
     () => ({
       openRow: {
         label: "Open row",
+        keys: ["shift+Enter"],
         when: (ctx) => ctx.row !== undefined,
         run: () => setOpen(true),
       },
@@ -89,7 +82,6 @@ export function OrdersWithPanel({ orders }: { orders: Order[] }) {
         onDataChange={setRows}
         columns={columns}
         commands={commands}
-        keymap={keymap}
         onCellClick={(ctx) => {
           if (ctx.columnId !== "active") setOpen(true);
         }}
@@ -130,6 +122,6 @@ A click on a cell, or `Shift+Enter` on the active cell, opens the panel. The pan
 
 ## Related
 
-- [Custom commands](/docs/selection-shortcuts/shortcut-remapping#custom-commands): how `commands`, `keymap`, and `GridActions` fit together.
+- [Custom commands](/docs/selection-shortcuts/shortcut-remapping#custom-commands): how `commands`, `keys`, and `keymap` fit together.
 - [Selection and cell events](/docs/events-state/selection-cell-events): the `onCellClick` and `onActiveCellChange` callbacks.
 - [Edit a row with a form](/docs/editing-cells/edit-rows-forms): put a form in the panel and save it as one undoable change.
