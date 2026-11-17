@@ -100,6 +100,9 @@ Set `limits` on the factory to change a bound. A request over a bound fails with
 | `maxOffset` | None |
 | `maxColumnIds` | 10000 |
 | `maxImportRows` | 10000 |
+| `maxGroupLevels` | 4 |
+| `maxGroupKeyLength` | 1024 |
+| `maxGroupAggregates` | 32 |
 
 A group nests one group at most. A deeper group fails with `limit-exceeded`. With `maxOffset`, a `start` above the bound fails with `offset-too-deep`.
 
@@ -116,7 +119,7 @@ The query layer throws `QueryError` with a `code` and a `path`. The path holds f
 | `invalid-value` | 400 | A value is over its length, or a range does not match the page. |
 | `limit-exceeded` | 400 | The tree or a list is over a bound. |
 | `offset-too-deep` | 400 | `start` is above `maxOffset`. |
-| `unsupported` | 501 | The request asks for row groups or a pivot. |
+| `unsupported` | 501 | The request asks for a pivot, or the adapter cannot group. |
 | `payload-too-large` | 413 | The body is over `maxBodyBytes`. |
 
 ## Client differences [#client-differences]

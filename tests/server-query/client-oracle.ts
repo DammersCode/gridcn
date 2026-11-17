@@ -1,4 +1,5 @@
-import { makeFilterPredicate, rowAccessorFor } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { buildGroupView, groupKeyText, makeFilterPredicate, rowAccessorFor, type GroupKey } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import type { GroupAggregateSpec, GroupBucket, GroupTree } from "@/registry/default/blocks/data-grid/sort-filter/build-group-view";
 import { FIXTURE_ROWS, type FixtureRow } from "./fixture";
 
 const COLUMNS = ["id", "name", "tag", "score", "qty", "active", "price", "createdAt"].map((id) => ({ id, header: id, accessorFn: (row: unknown) => (row as Record<string, unknown>)[id] }));
@@ -10,4 +11,54 @@ export function oracleIds(filters: FilterTree, rows: readonly FixtureRow[] = FIX
   const accessor = rowAccessorFor(COLUMNS as never, rows, undefined);
   const keep = makeFilterPredicate(accessor, filters as never);
   return rows.filter((_, index) => keep(index)).map((row) => row.id);
+}
+
+const NUMERIC_IDS = new Set(["id", "score", "qty", "active"]);
+const GROUP_COLUMNS = [
+  ...COLUMNS.map((column) => (NUMERIC_IDS.has(column.id) ? { ...column, sortCompare: (a: unknown, b: unknown) => Number((a as Record<string, unknown>)[column.id]) - Number((b as Record<string, unknown>)[column.id]) } : column)),
+  ...["qtyMin", "qtyMax"].map((id) => ({ id, header: id, accessorFn: (row: unknown) => (row as Record<string, unknown>)["qty"] })),
+  { id: "nameCount", header: "nameCount", accessorFn: (row: unknown) => (row as Record<string, unknown>)["name"] },
+];
+
+export type OracleGroup = { key: GroupKey; count: number; childCount: number; aggregates: Record<string, unknown> };
+export type OraclePath = readonly { columnId: string; key: GroupKey }[];
+
+function oracleTree(filters: FilterTree, groupBy: readonly string[], options: { directions?: ReadonlyMap<string, "asc" | "desc">; aggregates?: readonly GroupAggregateSpec[] }): GroupTree {
+  const accessor = rowAccessorFor(GROUP_COLUMNS as never, FIXTURE_ROWS, undefined);
+  const keep = makeFilterPredicate(accessor, filters as never);
+  const leaves = FIXTURE_ROWS.flatMap((_, index) => (keep(index) ? [index] : []));
+  const view = buildGroupView({ leaves, accessor, groupBy, directions: options.directions, aggregates: options.aggregates }, { mode: "collapsed", ids: [] });
+  return view!.layout.tree as GroupTree;
+}
+
+function bucketAt(tree: GroupTree, path: OraclePath) {
+  let level: readonly GroupBucket[] = tree.roots;
+  let found: GroupBucket | undefined;
+  for (const segment of path) {
+    found = level.find((bucket) => groupKeyText(bucket.node.key) === groupKeyText(segment.key));
+    if (!found) return undefined;
+    level = found.groups ?? [];
+  }
+  return found;
+}
+
+export type OracleRequest = {
+  filters: FilterTree;
+  groupBy: readonly string[];
+  path?: OraclePath;
+  directions?: ReadonlyMap<string, "asc" | "desc">;
+  aggregates?: readonly { columnId: string; reducer: "sum" | "avg" | "min" | "max" | "count" }[];
+};
+
+/** The child groups of `path` the grid's own `buildGroupView` builds over the fixture literals. */
+export function oracleGroups({ filters, groupBy, path = [], directions, aggregates }: OracleRequest): OracleGroup[] {
+  const tree = oracleTree(filters, groupBy, { directions, aggregates });
+  const level = path.length === 0 ? tree.roots : (bucketAt(tree, path)?.groups ?? []);
+  return level.map(({ node }) => ({ key: node.key, count: node.count, childCount: node.childCount, aggregates: { ...node.aggregates } }));
+}
+
+/** The ids of the rows of the group at the end of `path`. */
+export function oracleGroupRowIds({ filters, groupBy, path = [] }: OracleRequest): number[] {
+  const bucket = bucketAt(oracleTree(filters, groupBy, {}), path);
+  return (bucket?.leaves ?? []).map((index) => FIXTURE_ROWS[index]!.id).sort((a, b) => a - b);
 }

@@ -60,3 +60,21 @@ export const SQLITE_DDL = `create table items (
 export const PG_DDL = `create table items (
   id bigint primary key, name text, tag text, score double precision, qty integer, active boolean, price numeric(12,2), "createdAt" timestamptz, "tenantId" integer not null
 )`;
+
+/** The fixture map with one column per reducer, so each reducer is a request-able aggregate. */
+export function groupColumns(engine: Engine) {
+  return defineColumnMap({
+    id: { type: "number", numeric: "int8", primaryKey: true },
+    name: { type: "text", searchable: true },
+    tag: { type: "select", choices: ["red", "green", "blue", "Red"], searchable: true },
+    score: { type: "number", numeric: "float", aggregate: "avg" },
+    qty: { type: "number", numeric: "int4", aggregate: "sum" },
+    qtyMin: { type: "number", numeric: "int4", field: "qty", aggregate: "min" },
+    qtyMax: { type: "number", numeric: "int4", field: "qty", aggregate: "max" },
+    nameCount: { type: "text", field: "name", aggregate: "count" },
+    active: { type: "checkbox" },
+    price: { type: "number", numeric: "decimal", scale: 2, aggregate: "max" },
+    createdAt: { type: "date", time: true, storage: engine === "pg" ? "native" : "iso-text", aggregate: "max" },
+    tenantId: { type: "number", numeric: "int4", serverOnly: true, aggregate: "sum" },
+  });
+}
