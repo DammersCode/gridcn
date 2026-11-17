@@ -12,7 +12,7 @@ import { useDataGridApi, useDataGridReadOnly } from "@/registry/default/blocks/d
 import { GRID_ATTR, isComposingKey, rowIdAtViewRow, toSafeText, useDataGridContainer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { cellComments, editDraftKey, newDraftKey } from "./comment-state";
 import type { CommentEngine, WriteResult } from "./comment-engine";
-import { DEFAULT_COMMENTS_LABELS, type DataGridCommentsLabels } from "./labels";
+import { resolveCommentsLabels, type DataGridCommentsLabels } from "./labels";
 import type { CellComment, CommentAuthor, UseDataGridCommentsOptions } from "./types";
 
 const FALLBACK_COLOR = "var(--color-primary)";
@@ -104,7 +104,7 @@ function OpenPopover({ engine, getOptions, rowId, columnId, by }: HostProps & { 
   const escapeFn = useHolder<(() => boolean) | null>(null);
   const lastRect = useHolder<DOMRect | null>(null);
   const options = getOptions();
-  const labels: DataGridCommentsLabels = { ...DEFAULT_COMMENTS_LABELS, ...options.labels };
+  const labels = resolveCommentsLabels(options.labels);
 
   // a function anchor: Base UI builds the virtual element outside render, where it reads the scroll element
   const anchor = useCallback(() => createCellAnchor(locate, getScroll, lastRect), [locate, getScroll, lastRect]);

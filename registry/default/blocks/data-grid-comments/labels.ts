@@ -1,3 +1,5 @@
+import { mergeLabelLayers } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+
 /** Every string of the comments UI. Functions take the values to insert; the plural form is the function's job. */
 export type DataGridCommentsLabels = {
   popover: (columnTitle: string, cellText: string) => string;
@@ -79,3 +81,8 @@ export const DEFAULT_COMMENTS_LABELS: DataGridCommentsLabels = {
   announceAdded: (name) => `Comment added by ${name}`,
   unknownAuthor: "Unknown",
 };
+
+/** The default labels under `overrides`; a key set to `undefined` keeps its default. */
+export function resolveCommentsLabels(overrides: Partial<DataGridCommentsLabels> | undefined): DataGridCommentsLabels {
+  return mergeLabelLayers<DataGridCommentsLabels>(DEFAULT_COMMENTS_LABELS, overrides);
+}

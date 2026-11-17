@@ -88,6 +88,14 @@ describe("comments: accessibility and focus", () => {
     expect(popup()?.getAttribute("role")).toBe("dialog");
   });
 
+  it("a label set to undefined keeps its default, also a function label", async () => {
+    await render(<Harness withMenu options={{ labels: { popover: undefined, menuItem: undefined, composer: undefined } }} />);
+    await page.getByRole("gridcell").first().click({ button: "right" });
+    await page.getByRole("menuitem", { name: "Comments…" }).click();
+    await expect.poll(() => popup()?.getAttribute("aria-label")).toBe("Comments on Name: Item 0");
+    await expect.element(page.getByRole("textbox", { name: "Write a comment" })).toBeInTheDocument();
+  });
+
   it("the popover sits under its cell and follows it when the grid scrolls", async () => {
     await render(<Harness />);
     const cell = page.getByRole("gridcell").nth(2);

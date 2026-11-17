@@ -8,7 +8,7 @@ import { GRID_ATTR, isDev, rowIdAtViewRow, useDataGridContainer } from "@/regist
 import { CommentPopoverHost } from "./comment-popover";
 import { cellComments } from "./comment-state";
 import type { CommentEngine, GridAdapter } from "./comment-engine";
-import { DEFAULT_COMMENTS_LABELS } from "./labels";
+import { resolveCommentsLabels } from "./labels";
 import type { UseDataGridCommentsOptions } from "./types";
 
 const ANNOUNCE_DEBOUNCE_MS = 250;
@@ -77,7 +77,7 @@ function Announcer({ engine, getOptions }: { engine: CommentEngine; getOptions: 
       if (last.key === key) return;
       last.key = key;
       const unresolved = entries.filter((e) => !e.comment.resolved).length;
-      const labels = { ...DEFAULT_COMMENTS_LABELS, ...getOptions().labels };
+      const labels = resolveCommentsLabels(getOptions().labels);
       speaker.say(labels.announce(entries.length, unresolved, chord));
     }, ANNOUNCE_DEBOUNCE_MS);
     return () => clearTimeout(timer);

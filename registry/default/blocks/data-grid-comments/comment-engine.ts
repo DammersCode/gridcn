@@ -16,6 +16,7 @@ import {
 import { createFetchScheduler } from "./comment-fetch";
 import { createCommentStore, type CommentStore } from "./comment-store";
 import { createWriteIdGenerator, defaultCreateId } from "./create-id";
+import { resolveCommentsLabels } from "./labels";
 import type {
   ApplyRemoteVerdict,
   CellComment,
@@ -193,9 +194,8 @@ export function createCommentEngine(config: EngineConfig): CommentEngine {
       const c = change.comment;
       if (c.rowId !== open.rowId || c.columnId !== open.columnId) continue;
       if (c.version !== 1) continue;
-      const labels = { ...optionsOf().labels };
-      const name = c.author.name ?? labels.unknownAuthor ?? "Unknown";
-      store.announce(labels.announceAdded ? labels.announceAdded(name) : `Comment added by ${name}`);
+      const labels = resolveCommentsLabels(optionsOf().labels);
+      store.announce(labels.announceAdded(c.author.name ?? labels.unknownAuthor));
       return;
     }
   }
