@@ -280,7 +280,7 @@ function featureMatrix() {
     "",
     "Core features ship in `data-grid`. An add-on feature needs the item in the Item column. Client covers a local array and client pagination. Server covers server pages, scroll mode, server sort, and server filter. A Gap cell is a known gap. A Partial cell has a gap in some of its modes. The [data mode support](/docs/data-modes/data-mode-support) page names each gap.",
     "",
-    `Since names the first release with the feature. ${FIRST_TAGGED_RELEASE} is the first release in the changelog. Item names the item that holds the feature. In 1.x, \`data-grid-lazy\` held scroll row fetching. Unreleased marks a feature that only an install without a ref has. The [changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) lists each release.`,
+    `Since names the first release with the feature. ${FIRST_TAGGED_RELEASE} is the first dated release in the changelog. Item names the item that holds the feature. In 1.x, \`data-grid-lazy\` held scroll row fetching. Unreleased marks a feature that only an install without a ref has. The [changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) lists each release.`,
     "",
     table(["Feature", "Kind", "Item", "Client", "Server", "Since", "Guide", "Reference"], rows),
     related(["/docs/data-modes/data-mode-support", "every feature against every data mode"], ["/docs/fit-features/add-ons-a-z", "every add-on"], ["/docs/data-modes", "choose where the rows come from"]),

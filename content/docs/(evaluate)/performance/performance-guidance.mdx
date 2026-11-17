@@ -68,7 +68,7 @@ If an identity changes between renders, a development build logs a warning:
 | `data` | A new array has the same length and no new row. Controlled grids only. |
 | A plugin `Overlay` or `Mount` | The component identity differs. The overlay remounts and loses its state. |
 
-An inline `getRowId` function costs nothing. If the new function returns the same ids as the old one for the same `data` array, the grid keeps the old function. A function that returns other ids takes effect. Pass it with a new `data` array.
+An inline `getRowId` function costs nothing. If the new function returns the same ids as the old one for the first and the last row, the grid keeps the old function. To change `getRowId`, pass it together with a new `data` array: a new array always takes the new function.
 
 The `columns` warning reads `columns array identity changed since the last render`. The `data` warning reads `data array identity changed with no row changes`.
 

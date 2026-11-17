@@ -47,7 +47,7 @@ export function Grid() {
 
 - Re-brand the grid with the theme tokens. One change in `--primary` re-colors the selection, the active-cell ring, the resize handle, and the loading bar.
 - Change a size or a line with a CSS variable or a prop.
-- Style by state with data attributes. Do not select the grid's own utility classes, because class names can change between versions and data attributes do not.
+- Style by state with data attributes. Do not select the grid's own utility classes, because class names can change in any release. A data attribute changes only with a **Breaking:** entry in the changelog.
 - Style one column or one row with a class merge.
 - Only when classes cannot express the change, reach for content replacement.
 
