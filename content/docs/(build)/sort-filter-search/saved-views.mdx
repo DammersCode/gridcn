@@ -52,7 +52,7 @@ function OrdersGrid({ rows }: { rows: Order[] }) {
 }
 ```
 
-With no props, views persist in `localStorage` under `gridcn-views`. Every grid on the same origin shares that key, so give each grid its own `storage` key. Two mounted grids with other columns on one key warn in development. If `localStorage` is blocked or full, the views stay in memory for the page.
+With no props, views persist in `localStorage` under `gridcn-views`. Grids with the same columns can share it and stay in sync. Two mounted grids with other columns on one key warn in development, so give such a grid its own `storage` key. If `localStorage` is blocked or full, the views stay in memory for the page.
 
 ## What a view holds [#what-a-view-holds]
 
@@ -77,9 +77,9 @@ The star marks one view as the default. After the views load, the default view a
 
 - `enableDefaultView` is not `false`.
 - `value` and `defaultValue` are both unset.
-- The grid still holds its start state.
+- The grid still holds its first state.
 
-A grid that something else already changed keeps its state. When you mount both add-ons, a link from [URL state](/docs/sort-filter-search/url-state) with any param that changes the first state wins over the default view. Sort, filter, search, and column layout params all count.
+A grid that something else already changed keeps its state. When you mount both add-ons, a link from [URL state](/docs/sort-filter-search/url-state) with any param that changes the first state wins over the default view.
 
 `value` and `onValueChange` control which view is active, and `defaultValue` seeds it once:
 

@@ -53,7 +53,7 @@ The stack keeps the last 50 entries. Only edits, pastes, and fills go on it. If 
 To record streams too, pass `recordSources: (defaults) => [...defaults, "stream"]`.
 
 - `capacity` defaults to `100`. It counts entries, not operations. A change of `capacity` between renders starts an empty history.
-- `recordSources` defaults to `edit`, `paste`, `fill`, `delete`, `row-operation`, `import`, `replace`, and `app`. The default leaves out `stream`. Pass a list to replace the default, or a function that receives the default list and returns the list to use.
+- `recordSources` defaults to `edit`, `paste`, `fill`, `delete`, `cut`, `row-operation`, `import`, `replace`, and `app`. The default leaves out `stream`. Pass a list to replace the default, or a function that receives the default list and returns the list to use.
 - The history never records `history`, `rollback`, `merge`, or `id-swap`, whatever the list says.
 - A change of `datasetKey` between renders clears both stacks. The first render clears nothing.
 

@@ -6,7 +6,7 @@ type: concept
 aliases: ["data change observer", "observe edits", "react to data changes", "plugin onDataChange"]
 ---
 
-A plugin observes data with its `onDataChange` member. The grid calls it for every change it applies. The `source` field of the change names the origin. Its values are `"edit"`, `"paste"`, `"fill"`, `"delete"`, `"row-operation"`, `"import"`, and `"history"` (undo and redo). The other values are `"rollback"`, `"merge"`, `"id-swap"`, `"stream"`, `"replace"`, and `"app"`.
+A plugin observes data with its `onDataChange` member. The grid calls it for every change it applies. The `source` field of the change names the origin. Its values are `"edit"`, `"paste"`, `"fill"`, `"delete"`, `"cut"`, `"row-operation"`, `"import"`, and `"history"` (undo and redo). The other values are `"rollback"`, `"merge"`, `"id-swap"`, `"stream"`, `"replace"`, and `"app"`.
 
 ## Observing data changes
 

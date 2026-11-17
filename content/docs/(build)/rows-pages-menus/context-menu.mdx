@@ -110,12 +110,7 @@ Each surface resolves its items through a function prop of `DataGridContextMenu`
 
 `getCellMenuItems(ctx, defaults)` receives `ctx` with `rowId`, `viewRowIndex`, `columnId`, `canInsertRow`, and `canDuplicateRow` of the clicked cell. `ctx.targetRowIds` lists the row ids that the row items act on, and `ctx.actions` holds the grid actions. `getHeaderMenuItems(ctx, defaults)` receives `columnId`, `scrollRoot`, the scroll container element, and `actions`. If the clicked element has no grid ancestor, `scrollRoot` is `null`. The header resolver applies to the right-click header menu and to every `DataGridHeaderDropdown` inside the wrapper.
 
-Built-in items have stable ids, so a resolver can keep or drop them by id:
-
-| Surface | Built-in ids, in order |
-| --- | --- |
-| Cell | `cut`, `copy`, `paste`, `sep-clipboard`, `clear-contents`, `fill-down`, `fill-right`, `sep-rows`, `insert-row-above`, `insert-row-below`, `duplicate-rows`, `delete-rows` |
-| Header | `sort-asc`, `sort-desc`, `clear-sort`, `sep-sort`, `pin-start`, `pin-end`, `unpin`, `hide-column`, `sep-autosize`, `autosize`, `autosize-all` |
+Built-in items have stable ids, so a resolver can keep or drop them by id. [Context menu options](/docs/add-options/rows-pages-menus/context-menu-options#item-ids) lists every id.
 
 The fill items exist only for a touch selection while the fill add-on runs. An item is an object with `id`, `label`, `icon`, `shortcut`, `disabled`, `destructive`, `tooltip`, and `onClick`. `shortcut` is a keymap binding that the menu shows as keycaps. `tooltip` shows on hover while the item is off. A separator is `{ id, separator: true }`. The types are `GridMenuItemSpec`, `CellMenuItemsResolver`, and `HeaderMenuItemsResolver`.
 

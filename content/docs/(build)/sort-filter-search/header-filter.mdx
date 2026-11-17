@@ -129,7 +129,7 @@ Each value has a `value` and an optional `label`. The filter stores `value`, so 
 
 The popover shows one loading line on the first request. A new search keeps the previous list until the answer arrives. A rejected request, or an answer without a `values` array, shows one error line, and the next open asks again. Set the texts with `labels.toolbar.headerFilterLoading` and `labels.toolbar.headerFilterError`.
 
-A column with `options.choices` keeps its declared list and never calls the function. The grid reads at most 1,000 values from an answer, cuts each text at 1,000 characters, and renders it as text. Values that differ only in letter case count as one value, and the first one stays, unless the column sets `filter.matchCase`. A list from the server stores the checked `value` entries with `isAnyOf`. If the column already holds one `isNoneOf` entry, the list stores the unchecked values with `isNoneOf`. Checked values stay checked when a search hides them.
+A column with `options.choices` keeps its declared list and never calls the function. The grid reads at most 1,000 values from an answer, cuts each text at 1,000 characters, and renders it as text. Values that differ only in letter case count as one value, and the first one stays, unless the column sets `filter.matchCase`. A list from the server stores the checked `value` entries with `isAnyOf`. If the column already holds one `isNoneOf` entry, the list stores the unchecked values with `isNoneOf`. Checked values stay checked when a search hides them. A filter row of a column with `filter.matchCase` carries `matchCase: true`, so your server compares with letter case.
 
 ## Server mode
 

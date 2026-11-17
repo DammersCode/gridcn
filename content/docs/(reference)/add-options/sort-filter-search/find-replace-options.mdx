@@ -131,9 +131,10 @@ Each entry of `skipped` holds a cell and a `reason`. The `reason` is a `ReplaceS
 | Reason | Cause |
 | --- | --- |
 | `readonly` | The column or row blocks writes, or the column has no `accessorKey` or `setValue` |
-| `unparseable` | The new text cannot become a value of the column type |
+| `unparseable` | The new text cannot become a value of the cell type |
 | `too-long` | The new text exceeds 100,000 characters |
 | `no-occurrence` | The cell matched, but its text holds no occurrence of the find text |
+| `hidden` | A `processReplace` patch targets a hidden column. The panel does not write it |
 
 ### remaining [#remaining]
 

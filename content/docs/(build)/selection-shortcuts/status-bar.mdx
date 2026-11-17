@@ -70,7 +70,7 @@ Set the banner text with `labels.statusBar.pageSelected`, `selectAllMatching`, `
 
 ## When it computes [#when-it-computes]
 
-The hook recomputes after the selection settles. A selection whose ranges cover up to 5,000 cells computes at once. A larger selection computes on a 150 ms trailing timer, so dragging a large range does not walk the whole selection on every frame.
+A selection whose ranges cover up to 5,000 cells computes at once. A larger selection computes 150 ms after the last change, so dragging a large range does not walk the whole selection on every frame.
 
 A walk stops at 200,000 cells (`MAX_STATUS_CELLS`). Above the cap, every value gets a `≈` prefix, and the `title` of the bar says how many cells the values cover.
 
