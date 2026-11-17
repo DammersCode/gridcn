@@ -554,6 +554,12 @@ export const PROP_PAGES = {
 
 // Purpose of an option whose type carries no usable JSDoc sentence, keyed "owner.option".
 export const OPTION_PURPOSE = {
+  "DataGridToolbar.className": "Adds a class name to the toolbar bar.",
+  "DataGridSearch.className": "Adds a class name to the search box wrapper.",
+  "DataGridFilterMenu.className": "Adds a class name to the trigger button.",
+  "DataGridColumnsMenu.className": "Adds a class name to the trigger button.",
+  "DataGridImportButton.className": "Adds a class name to the import button.",
+  "DataGridContextMenu.className": "Adds a class name to the element that wraps the grid and opens the menu.",
   "buildImportedRows.processCellFromText": "Parses one cell in place of `cellType.fromText`. Can return a promise, which makes the build asynchronous.",
   "DataGridToolbar.children": "Renders the toolbar controls inside the bar.",
   "DataGridSortList.className": "Adds a class name to the sort list.",
