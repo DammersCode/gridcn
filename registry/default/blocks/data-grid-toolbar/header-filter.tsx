@@ -20,7 +20,7 @@ import {
   useDataGridSelector,
   useDataGridStoreApi,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { MAX_SET_FILTER_ENTRIES, checkedKeysFromFilters, planServerSetFilter, planSetFilter } from "./apply-set-filter";
+import { MAX_SET_FILTER_ENTRIES, checkedKeysFromFilters, planServerSetFilter, planSetFilter, type SetFilterOperatorChoice } from "./apply-set-filter";
 import { columnMatchCase, distinctColumnValues, isOwnSetFilter } from "./distinct-values";
 import { useServerFilterValues, useServerFilterValuesEnabled } from "./server-filter-values";
 import { SetFilterList, filterSetOptions, useDebouncedSearch, type SetFilterOption } from "./set-filter-list";
@@ -33,10 +33,12 @@ export type DataGridHeaderFilterProps = {
   index: number;
   /** Merged into the class list of the trigger button. */
   className?: string;
+  /** Operator of the set entry the popover writes. `"auto"` picks the shorter of the checked and unchecked lists. Default `"auto"`. */
+  setFilterOperator?: SetFilterOperatorChoice;
 };
 
-function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void; searchRef: RefObject<HTMLInputElement | null> }): ReactNode {
-  const { column, onClose, searchRef } = props;
+function HeaderFilterBody(props: { column: AnyColumnDef; setFilterOperator?: SetFilterOperatorChoice; onClose: () => void; searchRef: RefObject<HTMLInputElement | null> }): ReactNode {
+  const { column, onClose, searchRef, setFilterOperator } = props;
   const labels = useDataGridLabels().toolbar;
   const cellTypes = useDataGridCellTypes();
   const storeApi = useDataGridStoreApi();
@@ -89,8 +91,8 @@ function HeaderFilterBody(props: { column: AnyColumnDef; onClose: () => void; se
   const allowed = resolveFilterOperators(column, cellTypes[column.type ?? "text"]);
   const planFor = (filters: typeof loaded.openFilters) =>
     server
-      ? planServerSetFilter({ filters, columnId: column.id, known, checked, allowed, matchCase })
-      : planSetFilter({ filters, columnId: column.id, keys: loaded.keys, texts: loaded.texts, checked, allowed, matchCase });
+      ? planServerSetFilter({ filters, columnId: column.id, known, checked, allowed, matchCase, operator: setFilterOperator })
+      : planSetFilter({ filters, columnId: column.id, keys: loaded.keys, texts: loaded.texts, checked, allowed, matchCase, operator: setFilterOperator });
   const plan = planFor(loaded.openFilters);
   const tooMany = applyBlocked || (plan.status === "blocked" && plan.reason === "too-many");
   const canApply = plan.status !== "blocked";
@@ -242,7 +244,7 @@ export function DataGridHeaderFilter(props: DataGridHeaderFilterProps): ReactNod
           return false;
         }}
       >
-        <HeaderFilterBody column={column} onClose={() => setOpen(false)} searchRef={searchRef} />
+        <HeaderFilterBody column={column} setFilterOperator={props.setFilterOperator} onClose={() => setOpen(false)} searchRef={searchRef} />
       </PopoverContent>
     </Popover>
   );

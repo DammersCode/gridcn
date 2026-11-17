@@ -15,7 +15,7 @@ The item installs to `components/gridcn/use-debounce.ts`. The same file holds [`
 ## useDebounce [#usedebounce]
 
 ```ts fragment="signature"
-function useDebounce<T>(value: T, delayMs?: number): T;
+function useDebounce<T>(value: T, delay?: number | { delayMs?: number }): T;
 ```
 
 Debounce a state value before it feeds a request:
@@ -43,14 +43,14 @@ The input shows each keystroke at once. The line below it changes 300 ms after t
 | Argument | Type | Default |
 | --- | --- | --- |
 | `value` | `T` | Required |
-| `delayMs` | `number` | `300` |
+| `delay` | `number \| { delayMs?: number }` | `300` |
 
 ## Behavior [#behavior]
 
 - The first render returns `value`.
 - Each change of `value` or `delayMs` restarts the wait.
 - An unmount cancels a pending update.
-- With a `delayMs` of `0` or less, the hook returns `value` itself and sets no timer.
+- With a delay of `0` or less, the hook returns `value` itself and sets no timer.
 
 ## inputDebounceMs [#inputdebouncems]
 

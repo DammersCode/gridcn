@@ -119,6 +119,10 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - `DataGridUrlState` and saved views check the `isAnyOf` and `isNoneOf` values of a column with `choices` in client filter mode. A value stays when it matches a choice or a loaded data value of the column, without regard to case, so every value the header filter offers restores. Other values drop, and a list left empty drops its filter; a development build warns once per column. In server filter mode, or before the data loads, every value stays, and the server checks the values it receives.
 - A filter row of a column with `filter.matchCase` carries `matchCase: true` in `filterState`, `onFilterChange`, and the server request, so a server applies the same case rule. `parseServerSpec` keeps it.
 - Two grids on one page that share a views `storage` key stay in sync. Before, the second grid overwrote the first grid's new view.
+- `DataGridHeaderFilter` takes `setFilterOperator` (`"auto"`, `"isAnyOf"`, `"isNoneOf"`; default `"auto"`). A fixed choice always writes that operator when the column allows it.
+- The columns menu marks a hidden column that still has a filter or a sort, with the label `columnsMenuActiveHint`.
+- The filter menu does not offer a custom operator without `match` under client filtering, so a new row never starts on an operator that cannot narrow rows.
+- A string patch that `processReplace` returns for a cell holding a non-string value runs through the column `fromText`. An unparseable value is skipped.
 
 ## Server and data modes
 
@@ -228,6 +232,7 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - Pinned rows: `useDataGridPinnedRows` returns `serverAggregates`, the result of each `serverAggregateRow` entry with `row`, `status`, `refresh()`, and `retry()`. A refresh button or a status label no longer needs a reporter and state above the hook.
 - `useDataGridFill({ processFill })` may return a promise. The fill is held as the new `processFill` gate and its `ctx.signal` aborts when a newer fill supersedes it; the cells write and the selection expands when it resolves. Before, `processFill` was synchronous only.
 - `lookup` column option `resolveLabels({ labels, signal })` resolves the pasted labels that no option, cell, or copy has shown, once per paste. `labelCacheKey` drops the remembered labels of the column when it changes. `isAnyOf` and `isNoneOf` filter a lookup column by the stored key or the label, so a server set filter that lists keys works.
+- `useDebounce` takes `{ delayMs }` as well as a number. An own handler passed to `getInputProps` that calls `event.preventDefault()` skips the hook handler for that event.
 
 ## Accessibility and keyboard
 

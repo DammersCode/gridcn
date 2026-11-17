@@ -17,9 +17,10 @@ import {
   useDataGridAllColumns,
   useDataGridIsColumnHidden,
   useDataGridLabels,
+  useDataGridSortState,
   type AnyColumnDef,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { columnLabelText, groupPathOf, useDataGridColumnGroupModel, type ColumnGroupModel } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { columnLabelText, groupPathOf, useDataGridColumnGroupModel, useDataGridIsColumnFiltered, type ColumnGroupModel } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Props for {@link DataGridColumnsMenu}. */
 export type DataGridColumnsMenuProps = {
@@ -31,6 +32,9 @@ function ColumnRow(props: { column: AnyColumnDef }): ReactNode {
   const { column } = props;
   const actions = useDataGridActions();
   const hidden = useDataGridIsColumnHidden(column.id);
+  const filtered = useDataGridIsColumnFiltered(column.id);
+  const sorted = useDataGridSortState().some((sort) => sort.columnId === column.id);
+  const hint = useDataGridLabels().toolbar.columnsMenuActiveHint;
 
   return (
     <DropdownMenuCheckboxItem
@@ -39,6 +43,7 @@ function ColumnRow(props: { column: AnyColumnDef }): ReactNode {
       onCheckedChange={(checked) => actions.setColumnHidden(column.id, checked !== true)}
     >
       {columnLabelText(column)}
+      {hidden && (filtered || sorted) && <span className="ml-auto text-xs text-muted-foreground">{hint}</span>}
     </DropdownMenuCheckboxItem>
   );
 }

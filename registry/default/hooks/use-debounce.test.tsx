@@ -496,5 +496,26 @@ describe("useDebouncedInput getInputProps", () => {
     act(() => void vi.advanceTimersByTime(100));
     expect(onCommit).toHaveBeenCalledWith("abc");
   });
+
+  it("skips the hook's handler when the own handler calls preventDefault", () => {
+    const onCommit = vi.fn();
+    function Field() {
+      const input = useDebouncedInput("", onCommit, { delayMs: 100 });
+      return <input aria-label="field" {...input.getInputProps({ onKeyDown: (event) => event.preventDefault() })} />;
+    }
+    const { getByLabelText } = render(<Field />);
+    const field = getByLabelText("field") as HTMLInputElement;
+    fireEvent.change(field, { target: { value: "abc" } });
+    fireEvent.keyDown(field, { key: "Enter" });
+    expect(onCommit).not.toHaveBeenCalled();
+  });
 });
 
+describe("useDebounce options form", () => {
+  it("takes { delayMs } like a number", () => {
+    const { result, rerender } = renderHook(({ value }) => useDebounce(value, { delayMs: 50 }), { initialProps: { value: "a" } });
+    rerender({ value: "b" });
+    act(() => void vi.advanceTimersByTime(50));
+    expect(result.current).toBe("b");
+  });
+});

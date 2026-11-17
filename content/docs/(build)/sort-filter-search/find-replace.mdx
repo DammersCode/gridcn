@@ -121,7 +121,7 @@ export function useCheckedFindReplace() {
 }
 ```
 
-The hook can drop, add, or change patches. A patch holds the new value of one cell. The grid writes that value as given, with no `fromText`, and runs the column's `validate` on it. The panel skips a returned patch on a hidden column with the reason `"hidden"`.
+The hook can drop, add, or change patches. A patch holds the new value of one cell. The grid runs the column's `validate` on it. A string for a non-string cell goes through `fromText` first. An unparseable one is skipped. The panel skips a returned patch on a hidden column with the reason `"hidden"`.
 
 The replace is cancelled, and the status line says `Replace cancelled`, when:
 

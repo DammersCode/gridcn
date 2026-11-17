@@ -10,7 +10,7 @@ export type UseDataGridFindReplaceOptions = Pick<ReplaceOptions, "scope" | "repl
   /**
    * Runs after the plan is built and before it is written. Return the plan to write (it may add, drop, or
    * change patches), or `false` to cancel. The returned plan may hold at most `replaceAllLimit` patches;
-   * more cancels the replace. Each patch value is written as given, with no `fromText`, and still goes through the column's `validate`.
+   * more cancels the replace. A string patch value for a cell that holds a non-string (a number cell, say) runs through the column's `fromText`; an unparseable one is skipped. Every other value is written as given. Each patch still goes through the column's `validate`.
    * A patched row that changes or goes away, a `readOnly` grid, or an open cell editor also cancels. `signal` aborts when the find text, the replacement, or an option changes, a newer replace starts, or the panel closes; a late answer is dropped.
    */
   processReplace?: PanelOptions["processReplace"];

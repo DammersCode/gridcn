@@ -63,3 +63,28 @@ describe("DataGridContextMenu and text fields", () => {
     expect(fireEvent.contextMenu(header)).toBe(false);
   });
 });
+
+describe("DataGridContextMenu plugin items", () => {
+  it("hands the resolver the defaults with the plugin items already applied", async () => {
+    const seen: string[][] = [];
+    render(
+      <DataGridProvider
+        data={rows}
+        columns={columns}
+        getRowId={(r: Row) => r.id}
+        plugins={[{ name: "p", cellMenuItems: () => [{ id: "plugin-item", label: "P" }] }]}
+      >
+        <DataGridContextMenu getCellMenuItems={(_ctx, defaults) => { seen.push(defaults.map((d) => d.id)); return defaults; }}>
+          <DataGridRoot>
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridContextMenu>
+      </DataGridProvider>,
+    );
+    const cell = document.querySelector<HTMLElement>('[role="gridcell"]')!;
+    await act(async () => { fireEvent.contextMenu(cell); });
+    expect(seen.at(-1)).toContain("plugin-item");
+    expect(seen.at(-1)!.indexOf("plugin-item")).toBeGreaterThan(seen.at(-1)!.indexOf("delete-rows"));
+  });
+});

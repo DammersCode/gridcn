@@ -456,7 +456,7 @@ export const OPTION_GROUPS = [
       { names: ["className","children"], owners: ["DataGridToolbar"], page: "/docs/add-options/sort-filter-search/toolbar-options#datagridtoolbar" },
       { names: ["className"], owners: ["DataGridColumnsMenu"], page: "/docs/add-options/sort-filter-search/toolbar-options#datagridcolumnsmenu" },
       { names: ["className"], owners: ["DataGridSortList"], page: "/docs/add-options/sort-filter-search/sort-list-options" },
-      { names: ["column","index","className"], owners: ["DataGridHeaderFilter"], page: "/docs/add-options/sort-filter-search/toolbar-options#datagridheaderfilter" },
+      { names: ["column","index","className","setFilterOperator"], owners: ["DataGridHeaderFilter"], page: "/docs/add-options/sort-filter-search/toolbar-options#datagridheaderfilter" },
       { names: ["scope","replaceAllLimit","processReplace","className"], owners: ["useDataGridFindReplace"], page: "/docs/add-options/sort-filter-search/find-replace-options#usedatagridfindreplace" },
       { names: ["matchCase","wholeCell","only","skip","scope","replaceAllLimit"], owners: ["planReplace"], page: "/docs/add-options/sort-filter-search/find-replace-options#planreplace" },
       { names: ["storage","value","defaultValue","onValueChange","enableDefaultView","onError"], owners: ["useDataGridViews","DataGridViews"], page: "/docs/add-options/sort-filter-search/saved-views-options#options" },

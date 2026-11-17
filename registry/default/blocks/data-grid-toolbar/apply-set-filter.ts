@@ -5,6 +5,9 @@ export const MAX_SET_FILTER_ENTRIES = 1000;
 
 type SetOperator = "isAnyOf" | "isNoneOf";
 
+/** `"auto"` writes the shorter of the checked and unchecked lists; the others always write that operator when the column allows it. */
+export type SetFilterOperatorChoice = "auto" | SetOperator;
+
 export type SetFilterPlan =
   | { status: "unchanged" }
   | { status: "blocked"; reason: "none-checked" | "too-many" }
@@ -21,6 +24,8 @@ export type SetFilterPlanInput = {
   allowed: readonly FilterOperator[];
   /** The column's `filter.matchCase`: keys and filter values compare with letter case. Default `false`. */
   matchCase?: boolean;
+  /** Default `"auto"`. */
+  operator?: SetFilterOperatorChoice;
 };
 
 /** The set-filter key of a text: the text itself under `matchCase`, else its lowercase form. */
@@ -40,7 +45,8 @@ export function checkedKeysFromFilters(filters: readonly FilterNode[], columnId:
   return checked;
 }
 
-function chooseOperator(checkedCount: number, uncheckedCount: number, allowed: readonly FilterOperator[], existing: SetOperator | undefined): SetOperator {
+function chooseOperator(checkedCount: number, uncheckedCount: number, allowed: readonly FilterOperator[], existing: SetOperator | undefined, choice: SetFilterOperatorChoice): SetOperator {
+  if (choice !== "auto" && allowed.includes(choice)) return choice;
   const canAny = allowed.includes("isAnyOf");
   const canNone = allowed.includes("isNoneOf");
   if (!canNone) return "isAnyOf";
@@ -90,7 +96,7 @@ function placeSetEntry(filters: readonly FilterNode[], existing: readonly Filter
  * the column allows, and keeps every other filter.
  */
 export function planSetFilter(input: SetFilterPlanInput): SetFilterPlan {
-  const { filters, columnId, keys, checked, allowed, matchCase = false } = input;
+  const { filters, columnId, keys, checked, allowed, matchCase = false, operator: choice = "auto" } = input;
   const textOf = (key: string) => input.texts?.get(key) ?? key;
   const existing = filters.filter((f): f is FilterSpec => isSetFilterOf(f, columnId));
   const checkedKeys = keys.filter((key) => checked.has(key));
@@ -104,7 +110,7 @@ export function planSetFilter(input: SetFilterPlanInput): SetFilterPlan {
     entry = keepOutsideValues(existing, columnId, keys.map(textOf), known, matchCase);
     if (entry && entry.value!.length > MAX_SET_FILTER_ENTRIES) return { status: "blocked", reason: "too-many" };
   } else {
-    const operator = chooseOperator(checkedKeys.length, uncheckedKeys.length, allowed, existing[0]?.operator as SetOperator | undefined);
+    const operator = chooseOperator(checkedKeys.length, uncheckedKeys.length, allowed, existing[0]?.operator as SetOperator | undefined, choice);
     const outside = existing.length === 1 && existing[0]!.operator === operator ? outsideValues(existing, known, matchCase) : [];
     const value = [...(operator === "isAnyOf" ? checkedKeys : uncheckedKeys).map(textOf), ...outside];
     if (value.length > MAX_SET_FILTER_ENTRIES) return { status: "blocked", reason: "too-many" };
@@ -122,6 +128,8 @@ export type ServerSetFilterPlanInput = {
   checked: ReadonlySet<string>;
   allowed: readonly FilterOperator[];
   matchCase?: boolean;
+  /** Default `"auto"`: `isNoneOf` only when the column already holds one such entry. */
+  operator?: SetFilterOperatorChoice;
 };
 
 /**
@@ -130,9 +138,11 @@ export type ServerSetFilterPlanInput = {
  * `isNoneOf` entry. Existing values the lists never showed stay.
  */
 export function planServerSetFilter(input: ServerSetFilterPlanInput): SetFilterPlan {
-  const { filters, columnId, known, checked, allowed, matchCase = false } = input;
+  const { filters, columnId, known, checked, allowed, matchCase = false, operator: choice = "auto" } = input;
   const existing = filters.filter((f): f is FilterSpec => isSetFilterOf(f, columnId));
-  const operator: SetOperator = existing.length === 1 && existing[0]!.operator === "isNoneOf" && allowed.includes("isNoneOf") ? "isNoneOf" : "isAnyOf";
+  const keepsNone = existing.length === 1 && existing[0]!.operator === "isNoneOf";
+  const wanted: SetOperator = choice === "auto" ? (keepsNone ? "isNoneOf" : "isAnyOf") : choice;
+  const operator: SetOperator = wanted === "isNoneOf" && allowed.includes("isNoneOf") ? "isNoneOf" : "isAnyOf";
   const picked = [...known].filter(([key]) => checked.has(key) === (operator === "isAnyOf")).map(([, text]) => text);
   const outside = existing.length === 1 && existing[0]!.operator === operator ? outsideValues(existing, new Set(known.keys()), matchCase) : [];
   const value = [...picked, ...outside];

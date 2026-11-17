@@ -14,7 +14,7 @@ Users hide the columns they do not need. `hidden: true` starts a column hidden. 
 
 `hidden: true` in a `ColumnDef` sets the first state. `setColumnHidden(id, hidden)` and the columns menu override it. The flag applies once for each column id, when the id first appears. A new `columns` array keeps the visibility of the columns it already has and seeds only new ids.
 
-A hidden column is left out of the export and of quick search matches. A filter or sort on it stays active. Clear it in the filter menu or with `setFilterState`.
+A hidden column is left out of the export and of quick search matches. A filter or sort on it stays active, and the columns menu marks its row. Clear it in the filter menu or with `setFilterState`.
 
 `DataGridColumnsMenu` ships with the [toolbar add-on](/docs/sort-filter-search/toolbar). It is a dropdown with a checked row for each column. The header menu of the [context menu add-on](/docs/rows-pages-menus/context-menu#header-surface) has a "Hide column" item.
 
