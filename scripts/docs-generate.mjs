@@ -490,6 +490,7 @@ const PURPOSE = {
   "DataGridSyncProps.defaultPage": "Seeds the page of a paged grid once. Default 1.",
   "DataGridSyncProps.defaultPageSize": "Seeds the page size once and turns paging on. The grid keeps all of `data` and shows one page of the view.",
   "DataGridSyncProps.onPageSizeChange": "Fires with the new page size after a change of the page size.",
+  "DataGridSyncProps.pageSizeOptions": "Lists the page sizes that the footer select offers. `DataGridPaginationBar` and `useDataGridPager` read it, and an option on either wins.",
   "DataGridSyncProps.onPageChange": "Fires with the new page after a page change, and with 1 after a filter change.",
   "DataGridSyncProps.onGateAborted": "Fires once for every async gate that the grid stopped waiting for, with its name and the reason.",
   "DataGridSyncProps.sortMode": "Who sorts: `\"client\"` sorts `data`, `\"server\"` only tracks the sort. Default `\"server\"` with `totalRowCount`, else `\"client\"`.",
@@ -552,6 +553,7 @@ const EVENT_PAGES = {
   onRowActionSkipped: "/docs/rows-live-data/handle-row-action-results#action-results",
   onPageChange: "/docs/rows-pages-menus/client-pagination#client-mode",
   onPageSizeChange: "/docs/rows-pages-menus/client-pagination#client-mode",
+  pageSizeOptions: "/docs/rows-pages-menus/client-pagination#client-mode",
 };
 
 function eventsZ() {

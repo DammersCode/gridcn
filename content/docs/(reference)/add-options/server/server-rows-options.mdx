@@ -49,7 +49,7 @@ Spread `gridProps` onto `DataGrid`. For a composed layout, spread `providerProps
 
 ### Pager options [#pager-options]
 
-`pager` in pages mode comes from `useDataGridServerPager`. If you fetch rows without `useDataGridServerRows`, call that hook yourself. It returns `{ pager }`. Pass `page`, `pageSize`, `totalRowCount`, and `onPageChange`, and fetch each page yourself. If the server sends no count, pass `totalRowCount: null` and `hasMore`.
+`pager` in pages mode comes from `useDataGridServerPager`. If you fetch rows without `useDataGridServerRows`, call that hook yourself. It returns `{ pager, gridProps }`: spread `gridProps` onto the grid for `totalRowCount` and for a `DataGridPaginationBar` with no props. Pass `page`, `pageSize`, `totalRowCount`, and `onPageChange`, and fetch each page yourself. If the server sends no count, pass `totalRowCount: null` and `hasMore`.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="UseDataGridPaginationServerOptions" />
 

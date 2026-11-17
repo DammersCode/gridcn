@@ -102,3 +102,20 @@ describe("setPageSize(null) page callbacks", () => {
     expect(onPageChange).not.toHaveBeenCalled();
   });
 });
+
+describe("provider pageSizeOptions", () => {
+  it("is the default list of the pager", () => {
+    const { result } = setup({ pageSizeOptions: [5, 10] });
+    expect(result.current.pager.pageSizeOptions).toEqual([5, 10]);
+  });
+
+  it("loses to the hook's own option", () => {
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <DataGridProvider data={rows} columns={columns} getRowId={(row) => row.id} defaultPageSize={10} pageSizeOptions={[5, 10]}>
+        {children}
+      </DataGridProvider>
+    );
+    const { result } = renderHook(() => useDataGridPager({ pageSizeOptions: [20] }).pager, { wrapper });
+    expect(result.current.pageSizeOptions).toEqual([20]);
+  });
+});

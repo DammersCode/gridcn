@@ -70,7 +70,7 @@ function DataGridUrlStateDemoInner(): ReactNode {
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>
-          <DataGridPaginationBar pageSizeOptions={url.pageSizeOptions} />
+          <DataGridPaginationBar />
         </DataGridProvider>
       </div>
     </div>

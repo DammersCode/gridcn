@@ -51,7 +51,7 @@ export function PagedGrid({ rows }: { rows: Person[] }) {
 }
 ```
 
-`useDataGridPager({ pageSizeOptions })` returns `{ pager }` for a grid that pages its view. Call it under `DataGridProvider`. `DataGridPaginationBar` with no props calls it for you. Its options type is `UseDataGridPagerOptions`. A grid without `pageSize` reads as one page that holds every row, so the bar shows one page.
+`useDataGridPager({ pageSizeOptions })` returns `{ pager }` for a grid that pages its view. Call it under `DataGridProvider`. `DataGridPaginationBar` with no props calls it for you. Inside a server grid, the bar reads the pager from `useDataGridServerRows` or from `gridProps` of `useDataGridServerPager`. Its options type is `UseDataGridPagerOptions`. A grid without `pageSize` reads as one page that holds every row, so the bar shows one page.
 
 ## DataGridPaginationBar [#datagridpaginationbarprops]
 
@@ -108,7 +108,7 @@ export function CompactPager({ rows }: { rows: { id: string }[] }) {
 
 ## Server pager [#server-pager]
 
-`useDataGridServerPager` returns `{ pager }` for rows that you fetch yourself. Its options are on [Server rows options](/docs/add-options/server/server-rows-options#pager-options).
+`useDataGridServerPager` returns `{ pager, gridProps }` for rows that you fetch yourself. Its options are on [Server rows options](/docs/add-options/server/server-rows-options#pager-options).
 
 ## useDataGridPagination [#usedatagridpagination]
 
@@ -116,7 +116,7 @@ The hook slices `data` into pages for a list that is not a grid. To page a grid,
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-pagination/use-data-grid-pagination.ts" name="UseDataGridPaginationClientOptions" />
 
-`pageSizeOptions` defaults to `[10, 25, 50, 100]`. Without `defaultPageSize`, the first size of `pageSizeOptions` applies. The page and the page size stay uncontrolled until you pass `page` or `pageSize`. A page-size change moves to the page that holds the first row of the current page.
+`pageSizeOptions` defaults to `[10, 25, 50, 100]`. `DataGridProvider` takes `pageSizeOptions` too. The bar and `useDataGridPager` read it, and an option on the bar or the hook wins. Without `defaultPageSize`, the first size of `pageSizeOptions` applies. The page and the page size stay uncontrolled until you pass `page` or `pageSize`. A page-size change moves to the page that holds the first row of the current page.
 
 ### Result [#result]
 

@@ -9,6 +9,7 @@ import { DEFAULT_LABELS, type DataGridPaginationLabels } from "@/registry/defaul
 import { GRID_ATTR, isDev, mergeLabelLayers, useDataGridSelector, useOptionalDataGridLabels } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { DataGridPaginationControls } from "./use-data-grid-pagination";
 import { useDataGridPager } from "./use-data-grid-pager";
+import { useStashedPager } from "./pager-stash";
 import { DEFAULT_PAGE_SIZES, pageWindow } from "./pagination-math";
 
 /** Default window size for {@link DataGridPaginationPages} when its `windowSize` prop is omitted. */
@@ -59,23 +60,33 @@ export type DataGridPaginationBarProps = (BarControls | { [K in keyof BarControl
  * Works identically for every source: spread the `DataGridPaginationControls` of
  * `useDataGridPagination`, `useDataGridServerPager`, `useDataGridPager`, or `useDataGridServerRows`,
  * or pass no controls inside a `DataGridProvider` with `pageSize` to read the grid's own pager.
+ * Inside a grid that spreads `useDataGridServerRows` `gridProps` (or `useDataGridServerPager` `gridProps`) a bar without controls reads that hook's pager.
  */
 export function DataGridPaginationBar(props: DataGridPaginationBarProps): ReactNode {
   return props.page === undefined ? <ProviderPaginationBar {...props} /> : <PaginationBarView {...props} controls={{ ...(props as BarControls), pageSizeOptions: props.pageSizeOptions ?? DEFAULT_PAGE_SIZES }} />;
 }
 
-/** The bar of a grid that pages its view: the controls come from the enclosing `DataGridProvider`. */
+/** The bar of a grid without controls on the bar: the pager comes from the server hook of the enclosing `DataGridProvider`, else from the grid's own paging. */
 function ProviderPaginationBar(props: DataGridPaginationBarProps): ReactNode {
-  const { pager: controls } = useDataGridPager(props.pageSizeOptions ? { pageSizeOptions: props.pageSizeOptions } : {});
-  const serverRows = useDataGridSelector<unknown, boolean>((s) => typeof s.totalRowCount === "number" && s.pageSize === null);
+  const { pager: viewPager } = useDataGridPager(props.pageSizeOptions ? { pageSizeOptions: props.pageSizeOptions } : {});
+  const stashed = useStashedPager();
+  const controls = stashed ? { ...stashed, pageSizeOptions: stashed.pageSizeOptions.length > 0 ? (props.pageSizeOptions ?? stashed.pageSizeOptions) : stashed.pageSizeOptions } : viewPager;
+  const serverRows = useDataGridSelector<unknown, boolean>((s) => s.totalRowCount !== undefined && s.pageSize === null) && !stashed;
   const warned = useRef(false);
   useEffect(() => {
     if (!serverRows || warned.current || !isDev()) return;
-    warned.current = true;
-    console.warn("[data-grid-pagination] this grid's rows come from a server; spread `server.pager` (or a `useDataGridServerPager` result) onto DataGridPaginationBar");
+    // the server pager registers in the commit's effects; warn only if none has arrived by the next task
+    const timer = setTimeout(() => {
+      warned.current = true;
+      warnServerBar();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [serverRows]);
   return <PaginationBarView {...props} controls={controls} />;
 }
+
+const warnServerBar = () =>
+  console.warn("[data-grid-pagination] this grid's rows come from a server; spread `pager.gridProps` (from `useDataGridServerPager`) onto DataGridProvider, or spread `pager` onto DataGridPaginationBar");
 
 function PaginationBarView(props: DataGridPaginationBarProps & { controls: DataGridPaginationControls }): ReactNode {
   const { controls, className, labels: labelsOverride, windowSize, children } = props;

@@ -118,6 +118,7 @@ const CONFIG_KEYS = [
   "onBeforeDeleteRows",
   "inputDebounceMs",
   "onPageSizeChange",
+  "pageSizeOptions",
   "onPageChange",
   "gateTimeoutMs",
   "onRowActionSkipped",
