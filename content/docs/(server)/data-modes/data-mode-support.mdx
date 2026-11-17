@@ -596,7 +596,7 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="n/a" note={"A local array needs no fetch."} /></td>
       <td className="text-center"><ParityCell status="n/a" note={"A client grid with defaultPageSize holds every row, so no fetch runs."} /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="gap" note={"Scroll mode takes no first answer; its first block always fetches."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
@@ -816,7 +816,6 @@ Mode-neutral.
 
 - **L**: n/a: A local array needs no fetch.
 - **PC**: n/a: A client grid with `defaultPageSize` holds every row, so no fetch runs.
-- **Z**: Gap (K): Scroll mode takes no first answer. Its first block always fetches.
 - **API**: n/a: The first answer is an option of the server hook, not an action.
 
 ### Error state and retry
