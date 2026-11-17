@@ -94,6 +94,8 @@ Each part of `columnLayout` replaces that part. An omitted part stays under the 
 
 A user change applies at once. The grid applies `columnLayout` again only when the prop is a new object that differs from the current layout. Keep the object stable, for example in state, and store each `onColumnLayoutChange` snapshot in it. `actions.setColumnLayout(parts)` applies a partial layout from code as one change. `actions.resetColumnLayout()` restores the widths, order, pins, and hidden columns of the column definitions as one change.
 
+`defaultColumnLayout` also takes a function. It runs once on the client after mount, never on the server, so it can read `localStorage` without a hydration mismatch.
+
 The grid cleans a layout before it applies it:
 
 - It drops ids that match no column.

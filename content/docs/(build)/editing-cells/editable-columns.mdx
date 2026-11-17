@@ -69,7 +69,7 @@ A locked cell rejects typed edits, paste, fill, and clear. Cells in pinned rows 
 
 ## Veto an edit [#veto-edit]
 
-`onBeforeEditStart` runs before an editor opens on an editable cell, and before a checkbox toggle. Return `false` to refuse the edit or the toggle. A returned promise holds the editor until it settles, and a promise that rejects cancels the edit. While the promise is pending, the grid ignores a second edit start. `gateTimeoutMs` ends a wait that takes too long: see [Cancel async gates](/docs/editing-cells/cancel-async-gates).
+`onBeforeEditStart` runs before an editor opens on an editable cell, and before a checkbox toggle. Return `false` to refuse the edit or the toggle. A returned promise holds the editor until it settles, and a promise that rejects cancels the edit. While the promise is pending, a newer edit start aborts it and runs instead. `gateTimeoutMs` ends a wait that takes too long: see [Cancel async gates](/docs/editing-cells/cancel-async-gates).
 
 A checkbox toggle opens no editor, so `onEditEnd` does not fire for it. Read toggles from `onDataChange` with `source: "edit"`. Use `readOnly` to lock a checkbox.
 

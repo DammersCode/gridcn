@@ -104,7 +104,7 @@ export default function DataGridColumnDragDemo(): ReactNode {
     <div className="w-full flex flex-col gap-3">
       <p className="text-sm text-muted-foreground">
         Drag a header to reorder it — the move stays inside its pin zone. Name cannot be moved
-        (<code>reorderable: false</code>) and Score is pinned right. The picker below the line
+        (<code>reorderable: false</code>) and Score is pinned to the end. The picker below the line
         moves the chosen column programmatically.
       </p>
       <DataGridProvider defaultData={rows} columns={columns} enableColumnReorder>

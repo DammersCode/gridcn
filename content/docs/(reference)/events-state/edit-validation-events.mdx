@@ -47,7 +47,7 @@ The second argument is a `GateContext`. Its `signal` aborts when the active cell
 
 The callback also fires for the `startEditing` action. It does not fire on a `readOnly` grid. It does not fire for a cell that its column makes read-only for that row. For a cell whose type declares `activate`, such as a checkbox, it fires before the toggle. `false` or a pending promise holds the toggle.
 
-Return a promise to decide later. The editor opens after the promise settles. Three cases open no editor: the promise resolves to `false`, the user moved to another cell, or the grid became `readOnly`. A pending promise blocks a second edit start. A rejection cancels the edit start.
+Return a promise to decide later. The editor opens after the promise settles. Three cases open no editor: the promise resolves to `false`, the user moved to another cell, or the grid became `readOnly`. A newer edit start aborts the pending one. A rejection cancels the edit start.
 
 ## onEditEnd [#oneditend]
 

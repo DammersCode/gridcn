@@ -54,7 +54,7 @@ const columns = defineColumns<Employee>()([
     flex: 1,
     // Per-column string form: every cell in this column gets right-aligned emphasis.
     cellClassName: "font-medium tabular-nums",
-    headerClassName: "text-right",
+    headerClassName: "text-end",
   },
   {
     id: "performance",

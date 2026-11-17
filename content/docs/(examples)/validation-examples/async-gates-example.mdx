@@ -67,11 +67,11 @@ type SkuApi = {
 |---|---|---|---|
 | `processPaste` | the whole paste | a newer paste aborts it and runs instead | the paste does not happen |
 | `processCellFromClipboard` | the paste, until every cell settles | a newer paste aborts it and runs instead | the paste does not happen |
-| `onBeforeEditStart` | the start of the edit | a second edit start does nothing | the edit does not start |
-| `createRow` | the insert, until every row settles | a second insert does nothing | the insert does not happen |
-| `duplicateRow` | the duplicate, until every copy settles | a second duplicate does nothing | the duplicate does not happen |
+| `onBeforeEditStart` | the start of the edit | a newer edit start aborts it and runs instead | the edit does not start |
+| `createRow` | the insert, until every row settles | a newer insert aborts it and runs instead | the insert does not happen |
+| `duplicateRow` | the duplicate, until every copy settles | a newer duplicate aborts it and runs instead | the duplicate does not happen |
 | `validateRow` | nothing: the write commits first | a newer verdict for the row replaces it | the row gets no verdict |
-| `onBeforeDeleteRows` | the delete | the grid ignores a second delete | the delete does not happen |
+| `onBeforeDeleteRows` | the delete | a newer delete aborts it and runs instead | the delete does not happen |
 | `processReplace` | the write of a find-and-replace plan | the replace does not write yet | the replace does not happen |
 
 The `import` gate holds the import dialog while it parses or validates. `mapColumn` and the `createRow` of the import also accept a promise, and the import dialog waits for it. See [Import](/docs/import-export/import). A function that returns a plain value acts in the same call. `processPaste` returns `false` and `onBeforeEditStart` returns `false` to cancel.
@@ -84,7 +84,7 @@ The grid reads its state again when the promise settles. It discards the result 
 - Delete: the grid is `readOnly`, or the rows or checked rows changed.
 - Row verdict: the row left the data.
 
-A row that moved keeps its gesture, because the grid follows the row id. While a promise is pending, the grid ignores a second edit start, insert, duplicate, or delete. A newer paste aborts the pending paste and runs instead.
+A row that moved keeps its gesture, because the grid follows the row id. While a promise is pending, a newer request of the same kind aborts the pending one and runs instead.
 
 The grid also passes an `AbortSignal` to every gate. [Cancel async gates](/docs/editing-cells/cancel-async-gates) covers the signal, `gateTimeoutMs`, and the pending state.
 

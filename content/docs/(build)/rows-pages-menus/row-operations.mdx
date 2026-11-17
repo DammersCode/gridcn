@@ -50,7 +50,7 @@ Without a factory, the operation does nothing, the context menu hides its item, 
 
 `createRow` receives the data index of the new row. `duplicateRow` receives the source row and the data index of the copy. Give the copy a new id.
 
-Both factories can return a promise. The grid waits until every row settles and then writes one change. While a promise is pending, a second insert or duplicate does nothing. A rejection cancels the operation. The grid drops a late result when it became `readOnly` or the anchor or source row is gone. `ctx.signal` aborts in those cases, when `gateTimeoutMs` runs out, and when the grid unmounts.
+Both factories can return a promise. The grid waits until every row settles and then writes one change. A newer insert or duplicate aborts the pending one and runs instead. A rejection cancels the operation. The grid drops a late result when it became `readOnly` or the anchor or source row is gone. `ctx.signal` aborts in those cases, when `gateTimeoutMs` runs out, and when the grid unmounts.
 
 If a cell editor is open during an operation, the editor follows its row. An operation that removes the edited row cancels the edit and calls `onEditEnd` with `result: "cancel"`.
 
@@ -173,9 +173,9 @@ function GridWithConfirm() {
 }
 ```
 
-While a promise is pending, a second delete does nothing. After the promise resolves, the grid reads its state again. If the grid became `readOnly`, it drops a `true` result. It also drops the result after a change of the row set or the checks. A callback that throws or rejects cancels the delete and warns in development.
+A newer delete aborts the pending one and runs instead. After the promise resolves, the grid reads its state again. If the grid became `readOnly`, it drops a `true` result. It also drops the result after a change of the row set or the checks. A callback that throws or rejects cancels the delete and warns in development.
 
-Settle the promise on every path, also when the user dismisses the dialog. A promise that never settles blocks every later delete. `gateTimeoutMs` aborts it. Without that prop, the grid warns once in development after 30 seconds.
+Settle the promise on every path, also when the user dismisses the dialog. A promise that never settles waits until a newer delete replaces it. `gateTimeoutMs` aborts it. Without that prop, the grid warns once in development after 30 seconds.
 
 Clearing cell contents with <kbd>Delete</kbd> skips `onBeforeDeleteRows`. With the [history add-on](/docs/clipboard-undo/undo-redo), undo restores a confirmed delete.
 

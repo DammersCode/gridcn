@@ -23,6 +23,7 @@ export default function DataGridMinimalDemo(): ReactNode {
     <DataGrid
       defaultData={initialRows}
       columns={columns}
+      aria-label="People"
       className="w-full h-[240px]"
     />
   );
