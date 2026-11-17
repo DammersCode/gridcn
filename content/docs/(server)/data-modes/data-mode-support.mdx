@@ -635,6 +635,17 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
     </tr>
+    <tr id="parity-server-query">
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal"><a href="/docs/data-modes/query-layer">Server query layer (ORM adapters)</a></th>
+      <td className="text-center"><ParityCell status="n/a" note={"The layer runs on the consumer's server; a local array has no server."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Client pagination pages data the grid already holds."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"The layer reads rows; writing rows stays the consumer's code."} /></td>
+    </tr>
   </tbody>
 </table>
 </div>
@@ -819,6 +830,12 @@ Mode-neutral.
 ### Async lookup cell
 
 Mode-neutral: the editor fetches options, not rows.
+
+### Server query layer (ORM adapters)
+
+- **L**: n/a: The layer runs on the consumer's server. A local array has no server.
+- **PC**: n/a: Client pagination pages data the grid already holds.
+- **API**: n/a: The layer reads rows. Writing rows stays the consumer's code.
 
 ## Related
 

@@ -23,6 +23,7 @@ A term row links to the page that explains it.
 | anchor | The cell where a selection started. | [Selection model](/docs/concepts/selection-model) |
 | anonymous comment | A comment with no `author`. It comes from a write with no `currentUser`. Anyone can edit and delete it by default. | [Add comments to cells](/docs/rows-pages-menus/add-comments#client-only) |
 | band | A fixed strip of rows above or below the body, such as pinned rows. | [Pinned rows](/docs/rows-pages-menus/pinned-rows) |
+| blank operand | The empty value (`""`, `["", ""]`, `[]`) of a filter row that the user has not filled in. The query layer gives it the meaning the grid gives it. | [Query layer reference](/docs/contracts/query-layer-reference#operators) |
 | block | The fixed-size slice of rows that scroll mode requests. | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
 | block move | Moving several rows so they land next to each other in their current order: `reorderRows(rows, to)`. `moveRowsBy(rows, delta)` shifts each row and keeps the gaps. | [Row order](/docs/rows-pages-menus/row-order) |
 | blocking rule | A column rule that stops the commit of a value it rejects. It is the default of `validationMode`. | [Validation](/docs/editing-cells/validation#soft-rules-oninvalid) |
@@ -33,6 +34,7 @@ A term row links to the page that explains it.
 | `clearContents` | Empties the selected cells. | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
 | coarse pointer | An input whose `(pointer: coarse)` media query matches, such as a finger. Hit areas grow under it. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
 | column group | A named set of columns, or of other groups, that share one header above their own headers. `columnGroups` defines it. | [Column headers and groups](/docs/columns/column-headers-groups) |
+| column map | The list of columns a server request can name, from `defineColumnMap`. It is the allow-list and the projection. | [Query layer](/docs/data-modes/query-layer#column-map) |
 | comment address | The pair `rowId` and `columnId` that names the cell of a comment. A comment never holds a view index. | [Add comments to cells](/docs/rows-pages-menus/add-comments#addresses) |
 | comment author | The `author` of a comment: a snapshot of the writer with an `id`, and optionally a `name` and a `color`. The identity is `author.id`. | [Comments options](/docs/add-options/server/comments-options#usedatagridcommentsoptions) |
 | comment conflict | The state of a comment write that a newer version from another client made stale. The popover offers the text again with Retry, Discard, or Save my version. Not the save conflict of a row. | [Add comments to cells](/docs/rows-pages-menus/add-comments#save-comments) |
@@ -46,6 +48,7 @@ A term row links to the page that explains it.
 | data index | A row's position in your `data` array. | [State and view index](/docs/concepts/state-view-index) |
 | data mode | One way the grid gets its rows, such as a local array or server pages. | [Data mode guide](/docs/data-modes) |
 | drag handle | The control you drag to reorder a row or a sort entry. | [Row order](/docs/rows-pages-menus/row-order) |
+| driver adapter | The Prisma layer that connects the client to a database driver. It is not an ORM adapter. | [Query layer](/docs/data-modes/query-layer) |
 | echo | A record that comes back through `applyRemote`, a fetch answer, or the `comments` prop with the write id of a pending write. It confirms the write. | [Add comments to cells](/docs/rows-pages-menus/add-comments#share-changes) |
 | eviction | Unloading loaded rows back to holes, so a hole renders as a skeleton again. `maxLoadedRows` and `evict()` do it. | [Tune row retention](/docs/scroll-mode/tune-row-retention#max-loaded-rows) |
 | export source | The function that returns the rows of the whole result for an all-rows export. It gets the `spec` and a `signal`. | [Export the whole result](/docs/import-export/export-whole-result) |
@@ -67,8 +70,10 @@ A term row links to the page that explains it.
 | long-press | A touch press held for 500 ms without moving more than 10 px. It opens the context menu. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
 | lookup | A cell type whose options a server searches as the user types. | [Lookup cell](/docs/editing-cells/lookup-cell) |
 | `moveUpKeepSelection` | Moves the active cell and keeps the selection. | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
+| native fragment | A piece of SQL in the type of one ORM, such as the `sql` fragment of Drizzle. `where(plan)`, `orderBy(plan)`, and `customOperators` use it. | [Query layer](/docs/data-modes/query-layer#custom-operators) |
 | operation | One record of a change to one row: `insert`, `update`, `delete`, or `move`. `DataChange.ops` holds a batch. | [Data change events](/docs/events-state/data-change-events#datachange) |
 | optimistic write | A comment write that the popover shows at once, at `baseVersion + 1`, before `onCommentSave` answers. A refusal reverts it. | [Add comments to cells](/docs/rows-pages-menus/add-comments#save-comments) |
+| ORM adapter | The add-on that runs a query plan with one ORM, such as `createDrizzleGridQuery`. Write "ORM adapter" for it and "driver adapter" for the Prisma database driver layer. | [Query layer](/docs/data-modes/query-layer) |
 | orphaned comments | The comments of a deleted row. They stay in the store, and `onOrphanedComments` reports them. | [Add comments to cells](/docs/rows-pages-menus/add-comments#addresses) |
 | override | A prop or callback that replaces default behavior. | [Display override](/docs/editing-cells/display-override) |
 | overscan | Extra rows or columns drawn beyond the viewport edge. | [Virtualization](/docs/performance/virtualization) |
@@ -80,6 +85,7 @@ A term row links to the page that explains it.
 | prefetch | The pages-mode request for the page after the current one, made before the user asks for it (`prefetchNextPage`). | [Tune page loading](/docs/server-pagination/tune-page-loading#prefetch) |
 | push | A change that your code writes from the server: `updateCells`, `updateRows`, or `deleteRows` with `source: "stream"`. A push is not a save: it never reaches `onSave`. | [Push live values](/docs/rows-live-data/stream-updates) |
 | push verdict | The `UpdateCellsVerdict` that `updateCells` and `updateRows` return: the count of cells the call wrote, and the patches it skipped with a reason. | [Read a push verdict](/docs/rows-live-data/read-push-verdict) |
+| query plan | The checked form of a server request: a filter predicate, an order, a row range, and the columns to read. An ORM adapter runs it. | [Query layer](/docs/data-modes/query-layer) |
 | quick search | The toolbar search that highlights matches and never filters rows. | [Quick search](/docs/sort-filter-search/quick-search) |
 | range | A rectangle of selected cells. | [Selection model](/docs/concepts/selection-model) |
 | rendered rows | The rows in the DOM. `onRenderedRowsChange` reports their range. The identifiers `windowStart` and `clampRectToWindow` call this range the window. | [Column and viewport events](/docs/events-state/column-viewport-events#onrenderedrowschange) |
@@ -94,6 +100,7 @@ A term row links to the page that explains it.
 | row marker | The narrow column at the start side that shows a row number, a checkbox, or a drag handle. | [Row markers](/docs/rows-pages-menus/row-markers) |
 | row operation | The `source` value `"row-operation"` marks a change from an insert, duplicate, delete, or move of rows. | [Data change events](/docs/events-state/data-change-events#sources) |
 | row range | `RowRange`: `{ start, end }` over rows, `end` excluded. A scroll-mode request asks for one. | [Server rows contract](/docs/contracts/server-rows-contract) |
+| row scope | `rowScope`: equalities on `serverOnly` columns that every query of a factory adds with AND, such as the tenant. | [Query layer](/docs/data-modes/query-layer#row-scope) |
 | save | Sending a change to a server through `onSave`, or a comment write through `onCommentSave`. A save is accepted or refused. A refusal is reverted. | [Save edits](/docs/save-server/save-edits) |
 | save acknowledgement | The answer of `onSave`: nothing, `{ rejected }`, or a rejected promise. `onCommentSave` answers a comment save the same way: nothing, `{ comment }`, `{ rejected }`, or a throw. | [Save edits](/docs/save-server/save-edits) |
 | save conflict | A refused save for which the server sent its current row. `resolveSaveConflict` decides whether the row becomes the server's row, stays as it is, or becomes a merged row. | [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict) |
@@ -227,6 +234,10 @@ A word in this table names a term from the first table.
 | `deleted marker` | tombstone | [Comments options](/docs/add-options/server/comments-options#apply-remote-verdict) |
 | `reflection` | echo | [Add comments to cells](/docs/rows-pages-menus/add-comments#share-changes) |
 | `loopback` | echo | [Add comments to cells](/docs/rows-pages-menus/add-comments#share-changes) |
+| `schema` | column map | [Query layer](/docs/data-modes/query-layer#column-map) |
+| `whitelist` | column map | [Query layer](/docs/data-modes/query-layer#column-map) |
+| `tenant filter` | row scope | [Query layer](/docs/data-modes/query-layer#row-scope) |
+| `empty value` | blank operand | [Query layer reference](/docs/contracts/query-layer-reference#operators) |
 
 ## Search words [#search-words]
 
@@ -330,6 +341,7 @@ A search word in this table opens the page that answers it.
 | `column header click` | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
 | `column header text` | [Column headers and groups](/docs/columns/column-headers-groups) |
 | `column layout type` | [Layout and display types](/docs/types-hooks/layout-display-types) |
+| `column map` | [Query layer](/docs/data-modes/query-layer) |
 | `column menu` | [Context menu](/docs/rows-pages-menus/context-menu) |
 | `column options` | [ColumnDef](/docs/components-props/column-def) |
 | `column state` | [Column and viewport events](/docs/events-state/column-viewport-events) |
@@ -415,6 +427,7 @@ A search word in this table opens the page that answers it.
 | `drag rows` | [Row order](/docs/rows-pages-menus/row-order) |
 | `drag to select` | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
 | `draw over cells` | [Plugin overlays](/docs/plugins/plugin-overlays) |
+| `drizzle` | [Query layer](/docs/data-modes/query-layer) |
 | `dropdown` | [Built-in cell types](/docs/editing-cells/built-cell-types) |
 | `dropdown column` | [Built-in cell types](/docs/editing-cells/built-cell-types) |
 | `dropped frames` | [Performance guidance](/docs/performance/performance-guidance) |
@@ -452,6 +465,7 @@ A search word in this table opens the page that answers it.
 | `fetchComments` | [Comments options](/docs/add-options/server/comments-options) |
 | `fetchoptions` | [Lookup options](/docs/add-options/editing-cells/lookup-options) |
 | `fetchrows answer` | [Server rows contract](/docs/contracts/server-rows-contract) |
+| `fetchRows server` | [Query layer](/docs/data-modes/query-layer) |
 | `fill options` | [Fill handle options](/docs/add-options/clipboard-undo/fill-handle-options) |
 | `filter` | [Filtering](/docs/sort-filter-search/filtering) |
 | `filter by column` | [Header filter](/docs/sort-filter-search/header-filter) |
@@ -537,6 +551,7 @@ A search word in this table opens the page that answers it.
 | `keyset paging` | [Load without row count](/docs/scroll-mode/load-without-row-count) |
 | `kilobytes` | [Bundle size](/docs/performance/bundle-cost) |
 | `known issues` | [Accessibility gaps](/docs/accessibility/accessibility-gaps) |
+| `kysely` | [Query layer](/docs/data-modes/query-layer) |
 | `laggy` | [Performance guidance](/docs/performance/performance-guidance) |
 | `language` | [Labels and i18n](/docs/theme-style-language/labels-i18n) |
 | `large dataset` | [Performance guidance](/docs/performance/performance-guidance) |
@@ -606,6 +621,7 @@ A search word in this table opens the page that answers it.
 | `onvalidationerror` | [Edit and validation events](/docs/events-state/edit-validation-events) |
 | `optimistic update` | [Revert or refetch after a save](/docs/save-server/save-revert) |
 | `option names` | [Options A to Z](/docs/cheatsheets-messages/options-z) |
+| `orm` | [Query layer](/docs/data-modes/query-layer) |
 | `overdue` | [Style overrides](/docs/theme-style-language/style-overrides) |
 | `overlay context` | [Plugin overlays](/docs/plugins/plugin-overlays) |
 | `override grid classes` | [Styling model](/docs/concepts/styling-model) |
@@ -663,6 +679,7 @@ A search word in this table opens the page that answers it.
 | `prop names` | [Props A to Z](/docs/cheatsheets-messages/props-z) |
 | `props` | [DataGrid props](/docs/components-props/data-grid-props) |
 | `push delete` | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
+| `query plan` | [Query layer](/docs/data-modes/query-layer) |
 | `query string` | [URL state](/docs/sort-filter-search/url-state) |
 | `quick start` | [Render your first grid](/docs/learning-path/render-your-first-grid) |
 | `range stack` | [Selection model](/docs/concepts/selection-model) |
@@ -730,6 +747,7 @@ A search word in this table opens the page that answers it.
 | `row number` | [Row markers](/docs/rows-pages-menus/row-markers) |
 | `row numbers` | [Row markers](/docs/rows-pages-menus/row-markers) |
 | `row position` | [State and view index](/docs/concepts/state-view-index) |
+| `row scope` | [Query layer](/docs/data-modes/query-layer) |
 | `row selector` | [Row markers](/docs/rows-pages-menus/row-markers) |
 | `RowActionResult` | [Handle row action results](/docs/rows-live-data/handle-row-action-results) |
 | `rows per page` | [Client pagination](/docs/rows-pages-menus/client-pagination) |
@@ -812,6 +830,7 @@ A search word in this table opens the page that answers it.
 | `speed` | [Benchmark results](/docs/performance/benchmark-results) |
 | `spreadsheet filter list` | [Header filter](/docs/sort-filter-search/header-filter) |
 | `spreadsheet paste` | [Clipboard](/docs/clipboard-undo/clipboard) |
+| `sql injection` | [Query layer](/docs/data-modes/query-layer) |
 | `ssr` | [Render the grid on the server](/docs/support-upgrades/server-rendering) |
 | `stale index` | [State and view index](/docs/concepts/state-view-index) |
 | `stale row` | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
@@ -836,6 +855,7 @@ A search word in this table opens the page that answers it.
 | `tanstack query` | [Fetch with a cache](/docs/data-modes/fetch-cache) |
 | `tap to select` | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
 | `tdata` | [TypeScript generics](/docs/types-hooks/typescript-generics) |
+| `tenant` | [Query layer](/docs/data-modes/query-layer) |
 | `test matrix` | [Keyboard test coverage](/docs/accessibility/keyboard-test-coverage) |
 | `test the grid` | [Test a grid in your app](/docs/recipes-custom-code/test-grid-in-app) |
 | `testing library` | [Test a grid in your app](/docs/recipes-custom-code/test-grid-in-app) |

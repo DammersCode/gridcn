@@ -4,6 +4,7 @@
   "pages": [
     "cell-type-contract",
     "server-rows-contract",
+    "query-layer-reference",
     "style-contract",
     "operation-engine-contract"
   ]

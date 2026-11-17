@@ -16,6 +16,9 @@ const landingSources = readdirSync(landingDir)
 
 const BLOCKS_WITHOUT_TILE: Record<string, string> = {
   "data-grid-comments": "ships in 2.0 without a landing tile (owner decision); the add-ons A to Z page and the feature matrix list it",
+  "data-grid-server-query": "the server half of a server grid: the Query layer page and the add-ons A to Z page list it",
+  "data-grid-server-query-drizzle": "an ORM adapter of the query layer: the Query layer page and the add-ons A to Z page list it",
+  "data-grid-server-query-kysely": "an ORM adapter of the query layer: the Query layer page and the add-ons A to Z page list it",
 };
 
 function resolves(href: string): boolean {

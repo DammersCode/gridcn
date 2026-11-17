@@ -63,6 +63,9 @@ export const ADDONS = [
   { name: "use-debounce", adds: "The `useDebounce` and `useDebouncedInput` hooks.", guides: [A("/docs/types-hooks/use-debounce", "useDebounce"), A("/docs/types-hooks/use-debounced-input", "useDebouncedInput")], options: [] },
   { name: "is-composing-key", adds: "The `isComposingKey` function for keys that belong to an IME composition.", guides: [A("/docs/types-hooks/is-composing-key", "isComposingKey")], options: [] },
   { name: "data-grid-server", adds: "`useDataGridServerRows`, one data source for server pages and scroll mode.", guides: [A("/docs/scroll-mode/load-rows-while-scrolling", "Load rows while scrolling"), A("/docs/server-pagination/load-rows-page", "Load rows by page")], options: [A("/docs/add-options/server/server-rows-options", "Server rows options")] },
+  { name: "data-grid-server-query", adds: "The server half of a server grid: a column map, the request check, and `handleGridRequest`. Needs no ORM.", guides: [A("/docs/data-modes/query-layer", "Query layer")], options: [A("/docs/contracts/query-layer-reference", "Query layer reference")] },
+  { name: "data-grid-server-query-drizzle", adds: "`createDrizzleGridQuery` and `columnsFromDrizzleTable`: run the query layer with Drizzle.", guides: [A("/docs/data-modes/query-layer", "Query layer"), A("/docs/server-data-examples/orm-examples/drizzle-example", "Drizzle example")], options: [A("/docs/contracts/query-layer-reference", "Query layer reference")] },
+  { name: "data-grid-server-query-kysely", adds: "`createKyselyGridQuery`: run the query layer with Kysely.", guides: [A("/docs/data-modes/query-layer", "Query layer"), A("/docs/server-data-examples/orm-examples/kysely-example", "Kysely example")], options: [A("/docs/contracts/query-layer-reference", "Query layer reference")] },
   { name: "data-grid-pagination", adds: "`useDataGridPagination`, `useDataGridPager`, `useDataGridServerPager`, and the pagination bar.", guides: [A("/docs/rows-pages-menus/client-pagination", "Client pagination")], options: [A("/docs/add-options/rows-pages-menus/client-pagination-options", "Client pagination options")] },
   { name: "data-grid-views", adds: "Saved views: named sorts, filters, search, and column layouts that persist in a storage adapter.", guides: [A("/docs/sort-filter-search/saved-views", "Saved views")], options: [A("/docs/add-options/sort-filter-search/saved-views-options", "Saved views options")] },
   { name: "data-grid-sort-list", adds: "A sort button and a popover that lists the applied sorts.", guides: [A("/docs/sort-filter-search/sorting", "Sorting")], options: [A("/docs/add-options/sort-filter-search/sort-list-options", "Sort list options")] },
@@ -77,7 +80,7 @@ export const ADDONS = [
  */
 export const FEATURE_SINCE = {
   "1.2.0": ["find-replace", "filter-values", "column-groups", "touch"],
-  "2.0.0": ["comments", "unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "server-initial-answer", "error-state", "input-debounce", "lookup-cell", "server-aggregate", "zero-row-header"],
+  "2.0.0": ["comments", "unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "server-initial-answer", "error-state", "input-debounce", "lookup-cell", "server-aggregate", "zero-row-header", "server-query"],
 };
 
 const F = (guide, reference, item) => ({ item, guide, reference });
@@ -86,6 +89,7 @@ export const FEATURES = {
   filter: F(["/docs/sort-filter-search/filtering"], ["/docs/events-state/sort-filter-events"]),
   "filter-values": F(["/docs/sort-filter-search/header-filter"], ["/docs/add-options/sort-filter-search/toolbar-options"], "data-grid-toolbar"),
   search: F(["/docs/sort-filter-search/quick-search"], ["/docs/add-options/sort-filter-search/toolbar-options"], "data-grid-toolbar"),
+  "server-query": F(["/docs/data-modes/query-layer"], ["/docs/contracts/query-layer-reference"], "data-grid-server-query"),
   "server-search": F(["/docs/data-modes/query-server-rows"], ["/docs/add-options/server/server-rows-options"], "data-grid-server"),
   "row-check": F(["/docs/selection-shortcuts/checked-rows"], ["/docs/components-props/data-grid-props"]),
   "row-ids": F(["/docs/learning-path/define-columns"], ["/docs/components-props/data-grid-props#rows-and-ids"]),
@@ -139,6 +143,13 @@ export const FEATURES = {
 };
 
 export const TERM_PAGES = {
+  "query plan": "/docs/data-modes/query-layer",
+  "column map": "/docs/data-modes/query-layer#column-map",
+  "ORM adapter": "/docs/data-modes/query-layer",
+  "driver adapter": "/docs/data-modes/query-layer",
+  "row scope": "/docs/data-modes/query-layer#row-scope",
+  "blank operand": "/docs/contracts/query-layer-reference#operators",
+  "native fragment": "/docs/data-modes/query-layer#custom-operators",
   "comment marker": "/docs/rows-pages-menus/add-comments#markers",
   "anonymous comment": "/docs/rows-pages-menus/add-comments#client-only",
   "comment author": "/docs/add-options/server/comments-options#usedatagridcommentsoptions",

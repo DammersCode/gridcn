@@ -8,6 +8,7 @@
     "move-to-server-rows",
     "fetch-cache",
     "query-server-rows",
+    "query-layer",
     "show-server-totals",
     "troubleshoot-server-data"
   ]

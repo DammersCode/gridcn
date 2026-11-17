@@ -3,6 +3,7 @@
   "icon": "Database",
   "pages": [
     "drizzle-example",
+    "kysely-example",
     "prisma-example",
     "supabase-example"
   ]

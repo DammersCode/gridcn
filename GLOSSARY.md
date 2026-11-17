@@ -149,3 +149,15 @@ mirror the change there.
 | write id | The random id (`writeId`) that the add-on puts on each comment write. A record with the pending write id is the echo of that write. | request id |
 | tombstone | The record of a deleted comment: an id, an address, and a version, with no text. It blocks an older upsert for 10 minutes. | deleted marker |
 | echo | A record that comes back through `applyRemote`, a fetch answer, or the `comments` prop with the write id of a pending write. It confirms the write. | reflection, loopback |
+
+## Server query layer
+
+| Use | Meaning | Do not use |
+|---|---|---|
+| query plan | The checked form of a server request: a filter predicate, an order, a row range, and the columns to read. An ORM adapter runs it. | |
+| column map | The list of columns a server request can name, from `defineColumnMap`. It is the allow-list and the projection. | schema, whitelist |
+| ORM adapter | The add-on that runs a query plan with one ORM, such as `createDrizzleGridQuery`. Write "ORM adapter" for it and "driver adapter" for the Prisma database driver layer. | |
+| driver adapter | The Prisma layer that connects the client to a database driver. It is not an ORM adapter. | |
+| row scope | `rowScope`: equalities on `serverOnly` columns that every query of a factory adds with AND, such as the tenant. | tenant filter |
+| blank operand | The empty value (`""`, `["", ""]`, `[]`) of a filter row that the user has not filled in. The query layer gives it the meaning the grid gives it. | empty value |
+| native fragment | A piece of SQL in the type of one ORM, such as the `sql` fragment of Drizzle. `where(plan)`, `orderBy(plan)`, and `customOperators` use it. | |
