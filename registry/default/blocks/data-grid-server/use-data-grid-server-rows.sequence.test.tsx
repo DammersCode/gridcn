@@ -507,20 +507,75 @@ describe("scroll mode, declared source", () => {
 });
 
 describe("scroll mode, sequential: maxLoadedRows", () => {
-  it("ends the chain once a finite maxLoadedRows loaded, and warns once", async () => {
-    const warn = spyWarn();
+  it("evicts the front blocks past a finite maxLoadedRows and keeps the chain going", async () => {
     const fetchRows = keyset(1000);
     const { result } = mount(fetchRows, { maxLoadedRows: 20 });
     await settled(result);
-    report(result, view(10));
+    for (const end of [10, 20, 30, 40]) {
+      report(result, { start: end - 10, end });
+      await settled(result);
+    }
+    await waitFor(() => expect(result.current.getLoadedRanges()[0]!.start).toBeGreaterThan(0));
+    const data = result.current.gridProps.data;
+    expect(data[0]).toBeUndefined();
+    expect(data[35]).toEqual({ id: "r35" });
+    expect(data.length).toBeGreaterThan(40);
+    const loaded = result.current.getLoadedRanges().reduce((sum, range) => sum + range.end - range.start, 0);
+    expect(loaded).toBeLessThanOrEqual(30);
+  });
+
+  it("reloads an evicted block with the cursor it was first requested with", async () => {
+    const fetchRows = keyset(1000);
+    const { result } = mount(fetchRows, { maxLoadedRows: 20 });
     await settled(result);
-    report(result, view(20));
+    for (const end of [10, 20, 30, 40]) {
+      report(result, { start: end - 10, end });
+      await settled(result);
+    }
+    await waitFor(() => expect(result.current.gridProps.data[0]).toBeUndefined());
+    const before = fetchRows.mock.calls.length;
+    report(result, { start: 0, end: 10 });
+    await waitFor(() => expect(result.current.gridProps.data[0]).toEqual({ id: "r0" }));
+    const reload = fetchRows.mock.calls.slice(before).find(([request]) => request.start === 0)![0];
+    expect(reload).toMatchObject({ start: 0, end: 10, cursor: undefined });
+    expect(result.current.gridProps.data[9]).toEqual({ id: "r9" });
+  });
+
+  it("reloads a middle block with its stored cursor", async () => {
+    const fetchRows = keyset(1000);
+    const { result } = mount(fetchRows, { maxLoadedRows: 20 });
     await settled(result);
-    report(result, view(30));
+    for (const end of [10, 20, 30, 40, 50]) {
+      report(result, { start: end - 10, end });
+      await settled(result);
+    }
+    await waitFor(() => expect(result.current.gridProps.data[10]).toBeUndefined());
+    report(result, { start: 10, end: 20 });
+    await waitFor(() => expect(result.current.gridProps.data[10]).toEqual({ id: "r10" }));
+    expect(fetchRows.mock.calls.some(([request]) => request.start === 10 && request.cursor === 10)).toBe(true);
+  });
+
+  it("never evicts with the default maxLoadedRows below the cap", async () => {
+    const fetchRows = keyset(1000);
+    const { result } = mount(fetchRows);
     await settled(result);
-    expect(result.current.getLoadedRanges()).toEqual([{ start: 0, end: 20 }]);
-    expect(result.current.gridProps.data).toHaveLength(20);
-    expect(warningsAbout(warn, "maxLoadedRows")).toHaveLength(1);
+    for (const end of [10, 20, 30, 40]) {
+      report(result, { start: end - 10, end });
+      await settled(result);
+    }
+    expect(result.current.gridProps.data[0]).toEqual({ id: "r0" });
+  });
+
+  it("evicts and reloads under StrictMode", async () => {
+    const fetchRows = keyset(1000);
+    const { result } = renderHook(() => useDataGridServerRows<Row, number>(optionsOf(fetchRows, { maxLoadedRows: 20 })), { wrapper: StrictMode });
+    await settled(result);
+    for (const end of [10, 20, 30, 40]) {
+      report(result, { start: end - 10, end });
+      await settled(result);
+    }
+    await waitFor(() => expect(result.current.gridProps.data[0]).toBeUndefined());
+    expect(result.current.gridProps.data[35]).toEqual({ id: "r35" });
   });
 
   it("keeps loading without maxLoadedRows", async () => {

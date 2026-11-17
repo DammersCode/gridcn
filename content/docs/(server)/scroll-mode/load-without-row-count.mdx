@@ -72,7 +72,7 @@ When the rendered rows come within `overscan` rows of the loaded end, the next b
 - A failed block sets `error`, calls `onError`, and stops the source. `retry()` repeats the block, and so does the next report of the rendered rows.
 - A change of the sort, filter, or search text drops the loaded rows and the cursor. The source starts again at block 0.
 - `refresh()` fetches again from the first block and keeps the loaded rows on screen until the answers land.
-- `evict` does nothing on a sequential source, because it cannot refetch an arbitrary range. A finite `maxLoadedRows` ends its chain once that many rows loaded, with one warning in development. Without it, every loaded row stays until a spec change or a `refresh()`.
+- `evict` does nothing on a sequential source, because it cannot refetch an arbitrary range. `maxLoadedRows` (default 10,000) unloads the blocks furthest from the rendered rows. The hook stores the cursor that each block was requested with. When the user scrolls back, it sends that request again, so `fetchRows` must answer the same cursor with the same rows. Pass `maxLoadedRows: Infinity` to keep every loaded row until a spec change or a `refresh()`.
 
 ## Select rows without a row count
 

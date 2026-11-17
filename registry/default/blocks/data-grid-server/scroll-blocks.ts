@@ -4,10 +4,12 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { applyChangeWith, holeRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { readAnswer, type FetchReason, type ReadAnswer, type ServerRowsAnswer, type ServerRowsRequest, type WithRowId } from "./read-answer";
-import { pruneIds, stashGuardedRows, trackDeletes, unionIds, useRefreshGuard, writeBlocks, type GuardedBlock, type ProtectedRows } from "./refresh-guard";
+import { pruneIds, stashGuardedRows, trackDeletes, unionIds, useRefreshGuard, writeBlocks, type ProtectedRows } from "./refresh-guard";
 import { cursorKey, MAX_SEEN_CURSORS, needsNextBlock, skeletonCount, startsSequence, stepSequence } from "./scroll-sequence";
 import { chunkAligned, chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes } from "./range-math";
-import { DEFAULT_MAX_LOADED_ROWS, MAX_SEQUENTIAL_REVALIDATE_BLOCKS, distanceToCentre, dueWanted, keepRange, rangesIntersect, readFetchLimits, trackWanted, type FetchLimits, type Wanted } from "./fetch-hygiene";
+import { DEFAULT_MAX_LOADED_ROWS, MAX_SEQUENTIAL_REVALIDATE_BLOCKS, distanceToCentre, dueWanted, keepRange, rangesIntersect, readFetchLimits, trackWanted, type FetchLimits } from "./fetch-hygiene";
+import { createCore, freshSequence, type Core, type Guard } from "./scroll-core";
+import { evictedBlocksIn, evictSequenceRows, sequenceLoaded, shiftBlocks } from "./sequence-eviction";
 import { evictRows, forgetUnloaded, stampLanded, stampViewed, unloadRows } from "./scroll-eviction";
 import { useSaveRefresh, type SaveRefreshOptions, type SaveRefreshPolicy } from "./save-refresh";
 import { isolate, scheduleFrame, useMountedPlugins, useRegisteredWiring, useReshape, useRevalidation, useServerSpec } from "./server-state";
@@ -167,90 +169,6 @@ export type UseDataGridServerRowsScrollResult<TData> = {
   evict: (range: RowRange) => void;
 };
 
-type Pending<TData> = GuardedBlock<TData> & { rows: (TData | undefined)[]; mark: number; final?: boolean };
-/** `guard` is the set of rows protected when the request started; a retry reuses it. */
-type Guard = { ids: ProtectedRows; /** The save count when the request started; later saves are protected too. */ mark: number };
-type InFlight = { range: RowRange; controller: AbortController; guard: Guard; /** The answer is being written; the request only waits to settle. */ landed: boolean };
-type Failed = { range: RowRange; cursor: unknown; error: unknown };
-
-type Sequence = {
-  /** The cursor the next block sends. */
-  cursor: unknown;
-  ended: boolean;
-  /** Rows loaded, without the skeleton rows below them. */
-  length: number;
-  /** Where the next request starts: the rows the server answered, which exceed `length` by the protected rows dropped from appended blocks. */
-  offset: number;
-  /** The count the server sent, if any. */
-  sentCount: number | null;
-  /** A refresh rewrites the rows in place from the first block until the chain passes `keepUntil`. */
-  refresh: { keepUntil: number; local: number } | null;
-  /** Keys of the cursors the chain returned so far. */
-  seen: Set<string>;
-};
-
-const freshSequence = (): Sequence => ({ cursor: undefined, ended: false, length: 0, offset: 0, sentCount: null, refresh: null, seen: new Set() });
-
-export type Core<TData> = {
-  count: number | null;
-  /** The first block of the current spec landed. */
-  ready: boolean;
-  loaded: RowRange[];
-  /** Decided by the first answer of the current spec. */
-  kind: "unknown" | "random" | "sequence";
-  seq: Sequence;
-  inFlight: Map<string, InFlight>;
-  failed: Map<string, Failed>;
-  pending: Pending<TData>[];
-  cancelFrame: (() => void) | null;
-  lastWindow: RowRange | null;
-  rowsLength: number;
-  warned: Set<string>;
-  /** Guarded rows an earlier block overwrote, for the block that brings their id back; empty when no request is pending. */
-  displaced: Map<string, TData>;
-  /** Protected rows that are not loaded (dropped by a spec change or deleted locally); a block that carries one keeps its incoming copy. */
-  absent: Set<string>;
-  /** Ranges whose rows a local row operation moved: not loaded, but a protected row may still sit there. A landing block or an eviction removes them. */
-  stale: RowRange[];
-  /** Protected rows that a block overwrote, and the ids the landed blocks carried; both are emptied when no request is pending. */
-  orphans: Map<string, { row: TData; slot: number }>;
-  carried: Set<string>;
-  /** Cancels the refresh that a burst of local row operations queued for the next frame. */
-  cancelQueuedRefresh: (() => void) | null;
-  /** Rows with a delete still saving: an answer that carries one drops it. */
-  deleted: Set<string>;
-  /** Slots an answer left empty on purpose (a repeated or deleted row): answered, never refetched, never claimed as loaded. */
-  empty: RowRange[];
-  /** Slots a protected row moved away from; `core.loaded` stops claiming them. */
-  cleared: Set<number>;
-  /** Slots where a protected row returned outside any claimed range; they join `stale`, so a count change still finds the row. */
-  restored: Set<number>;
-  /** Uncovered blocks of the wanted range with the time each entered it; one entry for a sequential source. */
-  wanted: Wanted;
-  delayTimer: ReturnType<typeof setTimeout> | null;
-  /** Why the requests that start now run; back to `"load"` when none is owed or in flight. */
-  reason: FetchReason;
-  /** Blocks of a refresh or retry that wait for a free request slot. */
-  owed: RowRange[];
-  /** Block index -> stamp of the latest report that had the block in its keep range. */
-  viewed: Map<number, number>;
-  tick: number;
-  /** The keep range of the latest report. */
-  keep: RowRange | null;
-  /** Blocks an eviction unloaded; the layout effect drops their stamps. */
-  evictedBlocks: Set<number>;
-  /** Set when rows were unloaded; the layout effect syncs the loaded count. */
-  unloaded: boolean;
-  /** Set by an eviction; the layout effect reports the rendered rows again, in case a report ran before the rows unloaded. */
-  reportAfterUnload: boolean;
-  pumping: boolean;
-  pumpAgain: boolean;
-};
-
-function createCore<TData>(): Core<TData> {
-  return { count: null, ready: false, loaded: [], kind: "unknown", seq: freshSequence(), inFlight: new Map(), failed: new Map(), pending: [], cancelFrame: null, lastWindow: null, rowsLength: 0, warned: new Set(), displaced: new Map(), absent: new Set(), deleted: new Set(), cancelQueuedRefresh: null, orphans: new Map(), carried: new Set(), empty: [], stale: [], cleared: new Set(), restored: new Set(), wanted: new Map(), delayTimer: null, reason: "load", owed: [], viewed: new Map(), tick: 0, keep: null, evictedBlocks: new Set(), unloaded: false, reportAfterUnload: false, pumping: false, pumpAgain: false };
-}
-
 function oldestMark<TData>(core: Core<TData>): number | null {
   let oldest: number | null = null;
   const note = (mark: number) => {
@@ -269,6 +187,7 @@ function resetQueues<TData>(core: Core<TData>) {
   if (core.delayTimer !== null) clearTimeout(core.delayTimer);
   core.delayTimer = null;
   core.wanted.clear();
+  core.reloads.clear();
   core.owed = [];
 }
 
@@ -383,11 +302,15 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     const loadedNow = core.stale.length > 0 ? mergeRanges([...core.loaded, ...core.stale]) : core.loaded;
     const keep = core.keep;
     const evicting = core.kind === "random" && keep !== null && Number.isFinite(cap) && sumRangeSizes(loadedNow) > cap;
+    const sequentialEvicting = core.kind === "sequence" && !core.seq.refresh && keep !== null && Number.isFinite(cap) && sumRangeSizes(core.loaded) > cap;
+    const wasEvicted = sequentialEvicting ? core.seq.blocks.map((block) => block.evicted) : [];
+    const loadedTotal = sumRangeSizes(core.loaded);
     setRows((prev) => {
       const base = length === null ? prev : Object.assign(prev.slice(), { length });
       const written = writeBlocks(base, batch, guarded, displaced, ranges, idOf, memory, final);
       for (const slot of written.cleared) core.cleared.add(slot);
       for (const slot of written.restored) core.restored.add(slot);
+      if (sequentialEvicting) return evictSequenceRows(core, written.rows, { wasEvicted, loadedTotal, keep, cap, protectedIds: protectedFromEviction(), idOf });
       return evicting ? evictRows(core, written.rows, { loaded: loadedNow, keep, size, cap, protectedIds: protectedFromEviction(), idOf }) : written.rows;
     });
   }, [getCore, protectedRows, savingRows, savedSince, overlayPushed, unacknowledgedRows, acknowledge, blockSize, limits, protectedFromEviction]);
@@ -491,8 +414,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       const written = incoming.length;
       const position = at + written;
       const serverPosition = range.start + serverLength;
-      const capped = Number.isFinite(live.current.options.maxLoadedRows ?? Infinity) ? limits().maxLoadedRows : undefined;
-      const step = stepSequence({ read, sentCursor, loaded: serverPosition, count: seq.sentCount, seenCursors: seq.seen, maxRows: capped });
+      const step = stepSequence({ read, sentCursor, loaded: serverPosition, count: seq.sentCount, seenCursors: seq.seen });
       if (step.warning) warn(step.warning.kind, step.warning.message);
       for (const [key, failure] of core.failed) {
         if (failure.range.start === range.start) core.failed.delete(key);
@@ -502,6 +424,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       const returned = cursorKey(step.cursor);
       if (returned !== null && seq.seen.size < MAX_SEEN_CURSORS) seq.seen.add(returned);
       core.pending.push({ start: at, rows: incoming, guard: guard.ids, mark: guard.mark });
+      if (written > 0) seq.blocks.push({ local: at, length: written, server: range.start, serverEnd: range.end, cursor: sentCursor, evicted: false });
       if (refresh && !step.ended && position < refresh.keepUntil) {
         core.rowsLength = Math.max(core.rowsLength, position);
         commitSoon();
@@ -514,17 +437,40 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       seq.ended = step.ended;
       seq.length = position;
       seq.offset = serverPosition;
-      core.loaded = position > 0 ? [{ start: 0, end: position }] : [];
+      core.loaded = sequenceLoaded(position, seq.blocks);
       const tail = skeletonCount({ loaded: serverPosition, blockSize: size, count: seq.sentCount, ended: step.ended });
       if (refresh) core.pending.push({ start: position, rows: new Array<TData | undefined>(tail).fill(undefined), guard: null, mark: guard.mark });
       core.rowsLength = position + tail;
-      setLoadedCount(position);
+      setLoadedCount(sumRangeSizes(core.loaded));
       setSkeletons(tail);
       setCount(seq.sentCount ?? (step.ended ? position : null));
       commitSoon();
       notifyLoaded(at, position);
     },
     [getCore, warn, commitSoon, blockSize, notifyLoaded, protectedRows, savedSince],
+  );
+
+  const landReload = useCallback(
+    (range: RowRange, read: ReadAnswer<TData, unknown>, guard: Guard): boolean => {
+      const core = getCore();
+      const block = core.seq.blocks.find((candidate) => candidate.evicted && candidate.server === range.start);
+      if (!block) return false;
+      const idOf = live.current.options.getRowId;
+      const guarded = unionIds(unionIds(guard.ids, savedSince(guard.mark)), protectedRows());
+      const rows = new Array<TData | undefined>(block.length);
+      read.rows.slice(0, block.length).forEach((row, index) => {
+        const id = row === undefined ? undefined : idOf(row, range.start + index);
+        if (id !== undefined && !core.deleted.has(id) && !guarded?.has(id)) rows[index] = row;
+      });
+      block.evicted = false;
+      core.loaded = sequenceLoaded(core.seq.length, core.seq.blocks);
+      core.pending.push({ start: block.local, rows, guard: guard.ids, mark: guard.mark });
+      setLoadedCount(sumRangeSizes(core.loaded));
+      commitSoon();
+      notifyLoaded(block.local, block.local + block.length);
+      return true;
+    },
+    [getCore, commitSoon, notifyLoaded, protectedRows, savedSince],
   );
 
   const land = useCallback(
@@ -536,7 +482,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
         core.kind = declared === "sequential" ? "sequence" : declared === "random" ? "random" : startsSequence(read) ? "sequence" : "random";
       }
       if (core.kind === "sequence") {
-        landSequence(range, read, sentCursor, guard);
+        if (!landReload(range, read, guard)) landSequence(range, read, sentCursor, guard);
         return;
       }
       if (live.current.options.source === "random" && typeof read.totalRowCount !== "number") {
@@ -609,7 +555,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       }
       if (refire && core.lastWindow) windowRef.current(core.lastWindow);
     },
-    [getCore, warn, commitSoon, landSequence, notifyLoaded, protectedRows, savedSince, forgetStructural, blockSize, limits],
+    [getCore, warn, commitSoon, landSequence, landReload, notifyLoaded, protectedRows, savedSince, forgetStructural, blockSize, limits],
   );
 
   const runFetch = useCallback(
@@ -685,15 +631,22 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     };
     if (core.kind === "sequence") {
       const { seq } = core;
+      const reloads = dueWanted(core.reloads, { now: Date.now(), delay: loadDelayMs, centre, limit: maxConcurrentFetches - core.inFlight.size });
+      for (const { start } of reloads.due) {
+        core.reloads.delete(start);
+        const block = seq.blocks.find((candidate) => candidate.evicted && candidate.server === start);
+        if (block) runFetch({ start, end: block.serverEnd }, block.cursor);
+      }
       if (seq.ended || seq.refresh || core.inFlight.size > 0 || !core.lastWindow || !needsNextBlock(core.lastWindow, seq.length, overscanOf())) {
         core.wanted.clear();
+        armTimer(reloads.nextAt);
         return;
       }
       const { due, nextAt } = dueWanted(core.wanted, { now: Date.now(), delay: loadDelayMs, centre, limit: 1 });
       if (due.length > 0) {
         core.wanted.clear();
         runFetch({ start: seq.offset, end: seq.offset + size }, seq.cursor);
-      } else armTimer(nextAt);
+      } else armTimer(nextAt === null || (reloads.nextAt !== null && reloads.nextAt < nextAt) ? reloads.nextAt : nextAt);
       return;
     }
     if (core.kind !== "random" || core.count === null) return;
@@ -757,6 +710,11 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
           const { loadDelayMs } = limits();
           trackWanted(core.wanted, [{ start: seq.offset, end: seq.offset + blockSize() }], immediate ? Date.now() - loadDelayMs : Date.now());
         } else core.wanted.clear();
+        const size = blockSize();
+        const wantedRange = expandRange(range, { overscan: overscanOf(), blockSize: size, total: seq.length });
+        core.keep = keepRange(wantedRange, size, seq.length);
+        const reloads = seq.refresh ? [] : evictedBlocksIn(seq.blocks, wantedRange).map((block) => ({ start: block.server, end: block.serverEnd }));
+        trackWanted(core.reloads, reloads, immediate ? Date.now() - limits().loadDelayMs : Date.now());
         pump();
         return;
       }
@@ -918,6 +876,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       core.failed.clear();
       setError(null);
       core.seq.seen = new Set();
+      core.seq.blocks = [];
       core.seq.refresh = { keepUntil: Math.max(size, (core.lastWindow?.end ?? 0) + overscanOf()), local: 0 };
       runFetch({ start: 0, end: size });
       return;
@@ -966,13 +925,16 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       const core = getCore();
       const { seq } = core;
       let delta = 0;
-      for (const op of change.ops) delta += op.type === "insert" ? 1 : op.type === "delete" ? -1 : 0;
+      for (const op of change.ops) {
+        if (op.type === "insert" || op.type === "delete") seq.blocks = shiftBlocks(seq.blocks, op.index, op.type === "insert" ? 1 : -1);
+        delta += op.type === "insert" ? 1 : op.type === "delete" ? -1 : 0;
+      }
       if (delta === 0) return;
       seq.length = Math.max(0, seq.length + delta);
       seq.offset = Math.max(0, seq.offset + delta);
       core.rowsLength = Math.max(0, core.rowsLength + delta);
-      core.loaded = seq.length > 0 ? [{ start: 0, end: seq.length }] : [];
-      setLoadedCount(seq.length);
+      core.loaded = sequenceLoaded(seq.length, seq.blocks);
+      setLoadedCount(sumRangeSizes(core.loaded));
       if (seq.ended && seq.sentCount === null) setCount(seq.length);
     },
     [getCore],

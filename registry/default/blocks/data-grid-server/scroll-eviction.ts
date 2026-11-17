@@ -2,7 +2,7 @@ import type { RowRange } from "@/registry/default/blocks/data-grid/data-grid";
 import { pickEvictions, pruneViewed, unloadRangesOf } from "./fetch-hygiene";
 import { mergeRanges, subtractRanges } from "./range-math";
 import type { ProtectedRows } from "./refresh-guard";
-import type { Core } from "./scroll-blocks";
+import type { Core } from "./scroll-core";
 
 export function stampViewed<TData>(core: Core<TData>, keep: RowRange, size: number, cap: number) {
   const stamp = ++core.tick;
@@ -58,7 +58,7 @@ export function evictRows<TData>(core: Core<TData>, rows: (TData | undefined)[],
   return rows;
 }
 
-function protectedSlotsIn<TData>(rows: readonly (TData | undefined)[], block: RowRange, protectedIds: ReadonlySet<string>, idOf: (row: TData, index: number) => string): number[] {
+export function protectedSlotsIn<TData>(rows: readonly (TData | undefined)[], block: RowRange, protectedIds: ReadonlySet<string>, idOf: (row: TData, index: number) => string): number[] {
   const slots: number[] = [];
   for (let index = block.start; index < Math.min(block.end, rows.length); index++) {
     const row = rows[index];
