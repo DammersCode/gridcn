@@ -1,12 +1,12 @@
 ---
 title: Export the whole result
 icon: FileDown
-description: Export every row of a server result, or of a paged grid, with a source function that returns the rows in batches, with limits and cancel.
+description: Export every row of a server result, or of server pages or scroll mode, with a source function that returns the rows in batches, with limits and cancel.
 type: task
 aliases: ["export all rows", "export source", "export server rows"]
 ---
 
-A paged or scroll-mode grid holds only part of its result. Pass a `source` to `exportGrid` or to `DataGridExportButton` to write all of it. This page applies to a client grid that pages its view, to server pages, and to scroll mode.
+A grid with server pages or scroll mode holds only part of its result. Pass a `source` to `exportGrid` or to `DataGridExportButton` to write all of it. This page applies to server pages and to scroll mode.
 
 <ComponentPreview name="data-grid-export-all-demo" />
 
@@ -50,7 +50,7 @@ With a `source`, `DataGridExportButton` adds "Export all rows" items. The plain 
 
 A client grid with `defaultPageSize` holds every row, so its plain items cover all pages already. For server pages, pass a `source` that fetches every page from your API. The source returns the rows in the order you choose.
 
-`exportGrid` resolves `{ rowCount, truncated }`. `truncated` is `true` when `maxRows` or `maxBytes` ended the export before the source did. The file then holds the rows read so far.
+`exportGrid` resolves `{ rowCount, truncated }`. `truncated` is `true` when `maxRows` or `maxBytes` left rows of the source out. The file then holds the rows read so far.
 
 ## Limits and options
 

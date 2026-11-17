@@ -76,13 +76,19 @@ export function OrdersGrid() {
 
 ## Result
 
-A reload restores the sort, the filters, the search text, and the width, order, pins, and hidden state of the columns. An `undefined` result leaves that part at its normal start. The grid reads each default once at mount and ignores later changes. A function seed runs once on the client after mount, so the server render and the first client render match. On a server grid, the restored sort and filters are the `spec` of the first request.
+A reload restores the sort, the filters, the search text, and the width, order, pins, and hidden state of the columns. An `undefined` result leaves that part at its normal start. The grid reads each default once at mount and ignores later changes. A function seed runs once on the client after mount, so the server render and the first client render match.
 
 The grid drops a saved layout id that names no column. It drops a saved sort or filter that names no column too, and warns once in development. A new column joins at the end, in the order of `columns`.
 
 A view saved before gridcn 1.3.0 can hold a `joinOperator`. [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn#views-before-1-3) shows how to read it.
 
 The [saved views add-on](/docs/sort-filter-search/saved-views) saves several named views with a picker. To share a view as a link, use [URL state](/docs/sort-filter-search/url-state). To save the view for each user on a server, send the same patches from the callbacks to your API.
+
+## Server mode
+
+A grid fed by `useDataGridServerRows` takes its sort, filters, and search from the hook. The grid ignores the three default props and their callbacks there. Seed the hook with `defaultSpec`, and save from its `onSpecChange`. `defaultSpec` is a plain value that the hook reads when it is created, also during server rendering, so read the saved spec on the client only. The column layout stays browser state: seed it with `defaultColumnLayout` and save it from `onColumnLayoutChange`.
+
+An `onSortChange`, `onFilterChange`, or `onSearchTextChange` that you pass after `{...server.gridProps}` replaces the hook's handler, and sorting stops fetching.
 
 ## Related
 

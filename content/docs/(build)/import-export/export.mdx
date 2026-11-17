@@ -75,7 +75,7 @@ export function ExportAllButton() {
 - `all` writes every row of `data` in data order, whatever the sort and the filters.
 - `selection` writes the rows that a cell range or a checked row marker covers, in view order. With `'until-cleared'` or `'across-filters'`, one checked row limits the export to the checked rows. [Run bulk actions](/docs/recipes-custom-code/run-bulk-actions) exports the checked rows from a button.
 
-Every scope writes all visible columns in view order. Hidden columns stay out. A cell range that covers part of a row still writes the whole row. `includeHeaders: false` drops the header row. `maxRows` keeps the first rows only and does not count the header row. When it cuts rows, the console warns in development.
+Without `columns`, every scope writes the visible columns in view order. [Shape the export file](/docs/import-export/shape-export-file) picks other columns, hidden ones included. A cell range that covers part of a row still writes the whole row. `includeHeaders: false` drops the header row. `maxRows` keeps the first rows only and does not count the header row. When it cuts rows, the console warns in development.
 
 ## Write a CSV file
 
@@ -157,7 +157,7 @@ Print covers the rows the grid holds, in the same way. A grid fed by `useDataGri
 ## Related
 
 - [Export options](/docs/add-options/import-export/export-options): every `exportGrid` and `printGrid` option.
-- [Export the whole result](/docs/import-export/export-whole-result): the `source` option for server and paged grids.
+- [Export the whole result](/docs/import-export/export-whole-result): the `source` option for server pages and scroll mode.
 - [Shape the export file](/docs/import-export/shape-export-file): `columns`, `formatCell`, and `output`.
 - [Import](/docs/import-export/import): the dialog that reads CSV and Excel files into rows.
 - [Clipboard](/docs/clipboard-undo/clipboard): the copy text that export reuses.

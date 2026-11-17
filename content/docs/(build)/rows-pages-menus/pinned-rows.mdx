@@ -116,7 +116,7 @@ function TotalsGrid() {
 }
 ```
 
-The hook keeps the plugin while the entries of `topRows` and `bottomRows` stay equal. It compares a row object by identity, and an `aggregateRow` by its specs, `scope`, and `cells`. An inline `aggregateRow({ qty: "sum" })` keeps the plugin and the band. A new reducer function in an inline `aggregateRow` makes the band reduce again.
+The hook keeps the plugin while the entries of `topRows` and `bottomRows` stay equal. It compares a plain row object by its own values, and an `aggregateRow` by its specs, `scope`, and `cells`. An inline `aggregateRow({ qty: "sum" })` keeps the plugin and the band. A new reducer function in an inline `aggregateRow` makes the band reduce again.
 
 A reducer is `"sum"`, `"avg"`, `"min"`, `"max"`, `"count"`, or a function. The numeric reducers use finite numbers only, so they skip numeric strings and dates. `count` counts the values that are not `null` or `undefined`. A function receives every value, so use one for dates or numeric strings. The aggregate ignores a spec key that matches no column id and warns once in development.
 

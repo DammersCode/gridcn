@@ -6,7 +6,7 @@ type: task
 aliases: ["import server grid", "import to server", "import server rows", "import totalRowCount"]
 ---
 
-A grid with a `totalRowCount` or unloaded rows cannot take appended rows: the data exceeds the count, and the next refresh drops them. Without `onImport`, its import button is disabled. Pass `onImport` to send the rows to your server instead.
+A grid with a `totalRowCount` cannot take appended rows: the data exceeds the count, and the next refresh drops them. Without `onImport`, its import button is disabled. Pass `onImport` to send the rows to your server instead.
 
 <ComponentPreview name="data-grid-export-all-demo" />
 
