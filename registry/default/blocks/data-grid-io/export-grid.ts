@@ -6,10 +6,14 @@ import {
   DEFAULT_SOURCE_MAX_BYTES,
   DEFAULT_SOURCE_MAX_ROWS,
   MAX_CELL_TEXT,
+  NEVER_ABORTED,
+  SLICE_ROWS,
   exportCellSize,
   exportRows,
   mapExportRow,
   resolveExportColumns,
+  settlePending,
+  type PendingCell,
   type ExportCell,
   type ExportCellContext,
   type ExportCellValue,
@@ -19,6 +23,7 @@ import {
   type ExportSource,
   type ExportSourceContext,
   type FormatExportCell,
+  type FormatExportCellSync,
 } from "./export-source";
 
 const BOM = String.fromCharCode(0xfeff);
@@ -41,17 +46,17 @@ export type ExportOutput = (file: Blob, ctx: { fileName: string; format: "csv" |
 export type ExportScope = "view" | "page" | "all" | "selection" | "checked-rows" | "ranges";
 
 /** Column selection and cell formatting shared by every export. */
-export type ExportShapeOptions<TData = unknown> = {
+export type ExportShapeOptions<TData = unknown, TFormat = FormatExportCell<TData>> = {
   /** Header text per column id, replacing the column's label in the header row. A column without an entry keeps its label. */
   headers?: Readonly<Record<string, string>>;
   /** Column ids to export, in this order. Hidden grid columns are allowed. Default: the visible columns in view order. An unknown id throws a `RangeError` before any row is read or fetched. With `source`, the source receives the same ids as `columnIds`. */
   columns?: readonly string[];
-  /** Replaces the value of each exported cell. Runs once per cell after the cell type made its text (`text` holds that default). Return `null` or `undefined` for an empty cell. CSV writes numbers and booleans as text and Dates as ISO 8601; XLSX keeps numbers, booleans and Dates typed. Without `formatCell`, XLSX writes `number`, `date`, and `checkbox` columns typed and every other column as text. A string stays text, cut at 32,767 characters. A number that is not finite and an invalid Date make an empty cell. A throw rejects the export. */
-  formatCell?: FormatExportCell<TData>;
+  /** Replaces the value of each exported cell. Runs once per cell after the cell type made its text (`text` holds that default). Return `null` or `undefined` for an empty cell. CSV writes numbers and booleans as text and Dates as ISO 8601; XLSX keeps numbers, booleans and Dates typed. Without `formatCell`, XLSX writes `number`, `date`, and `checkbox` columns typed and every other column as text. A string stays text, cut at 32,767 characters. A number that is not finite and an invalid Date make an empty cell. A throw rejects the export. `exportGrid` and `buildXlsx` also accept a hook that returns a promise: they await the promises of each slice of rows together, in groups of at most 10,000 cells, and `ctx.signal` aborts with the export. Load data for many cells in `source`; use an async hook for a value that one cell needs. `buildCsv` is synchronous and throws a `TypeError` for a promise. */
+  formatCell?: TFormat;
 };
 
 /** Options for {@link buildCsv}. */
-export type BuildCsvOptions<TData = unknown> = ExportShapeOptions<TData> & {
+export type BuildCsvOptions<TData = unknown> = ExportShapeOptions<TData, FormatExportCellSync<TData>> & {
   /** Row scope, same semantics as {@link ExportGridOptions.scope}; default 'view'. */
   scope?: ExportScope;
   /** Whether to emit a header row; default true. */
@@ -107,7 +112,7 @@ export type ExportGridOptions<TData = unknown> = ExportShapeOptions<TData> & {
   onProgress?: (progress: ExportProgress) => void;
 };
 
-export type { ExportCell, ExportCellContext, ExportCellValue, ExportProgress, ExportResult, ExportRowsOptions, ExportSource, ExportSourceContext, FormatExportCell };
+export type { ExportCell, ExportCellContext, ExportCellValue, ExportProgress, ExportResult, ExportRowsOptions, ExportSource, ExportSourceContext, FormatExportCell, FormatExportCellSync };
 
 const NEEDS_QUOTING_DEFAULT = /["\r\n]/;
 
@@ -200,21 +205,51 @@ function buildRowsAt<TData>(
   dataIndices: readonly number[],
   text: "export" | "display",
   columns: readonly ExportColumn[] = state.visibleColumns,
-  formatCell?: FormatExportCell<TData>,
+  formatCell?: FormatExportCellSync<TData>,
   typed = false,
 ): ExportCell[][] {
   return dataIndices.map((dataRowIndex) => mapExportRow(state, columns, state.data[dataRowIndex] as TData, text, formatCell, typed));
 }
 
+/** {@link buildRowsAt} for a `formatCell` that may return promises: each slice of rows settles its promises before the next slice starts. */
+async function buildRowsAtAsync<TData>(
+  state: DataGridReadState,
+  dataIndices: readonly number[],
+  columns: readonly ExportColumn[],
+  formatCell: FormatExportCell<TData> | undefined,
+  typed: boolean,
+  signal: AbortSignal,
+): Promise<ExportCell[][]> {
+  const rows: ExportCell[][] = [];
+  for (let from = 0; from < dataIndices.length; from += SLICE_ROWS) {
+    const pending: PendingCell[] = [];
+    for (const dataRowIndex of dataIndices.slice(from, from + SLICE_ROWS)) {
+      rows.push(mapExportRow(state, columns, state.data[dataRowIndex] as TData, "export", formatCell, typed, signal, pending));
+    }
+    if (pending.length > 0) await settlePending(pending, typed, signal);
+  }
+  return rows;
+}
+
 type ExportColumn = DataGridReadState["visibleColumns"][number];
 
-/** Builds at most `maxRows` rows, with a dev-only warning when the scope exceeds the cap. */
-function buildCappedExportRows<TData>(state: DataGridReadState, scope: ExportScope, rawMaxRows: number | undefined, shape: ExportShapeOptions<TData>, typed: boolean): ExportCell[][] {
+/** The columns and the data indices to build: at most `maxRows` rows, with a dev-only warning when the scope exceeds the cap. */
+function cappedExportPlan(state: DataGridReadState, scope: ExportScope, rawMaxRows: number | undefined, columnIds: readonly string[] | undefined) {
   const maxRows = rawMaxRows === undefined ? undefined : normalizeLimit(rawMaxRows, Number.POSITIVE_INFINITY);
-  const columns = resolveExportColumns(state, shape.columns);
+  const columns = resolveExportColumns(state, columnIds);
   const dataIndices = exportDataIndices(state, scope);
   if (maxRows !== undefined && dataIndices.length > maxRows && isDev()) console.warn(`[data-grid-io] export truncated to ${maxRows} of ${dataIndices.length} rows (maxRows)`);
-  return buildRowsAt(state, maxRows === undefined ? dataIndices : dataIndices.slice(0, maxRows), "export", columns, shape.formatCell, typed);
+  return { columns, dataIndices: maxRows === undefined ? dataIndices : dataIndices.slice(0, maxRows) };
+}
+
+function buildCappedExportRows<TData>(state: DataGridReadState, scope: ExportScope, rawMaxRows: number | undefined, shape: ExportShapeOptions<TData, FormatExportCellSync<TData>>, typed: boolean): ExportCell[][] {
+  const { columns, dataIndices } = cappedExportPlan(state, scope, rawMaxRows, shape.columns);
+  return buildRowsAt(state, dataIndices, "export", columns, shape.formatCell, typed);
+}
+
+function buildCappedExportRowsAsync<TData>(state: DataGridReadState, scope: ExportScope, rawMaxRows: number | undefined, shape: ExportShapeOptions<TData>, typed: boolean, signal: AbortSignal): Promise<ExportCell[][]> {
+  const { columns, dataIndices } = cappedExportPlan(state, scope, rawMaxRows, shape.columns);
+  return buildRowsAtAsync(state, dataIndices, columns, shape.formatCell, typed, signal);
 }
 
 /** Header row text for each exported column: the visible columns, or the columns named by `columnIds`. */
@@ -246,6 +281,8 @@ export type BuildXlsxOptions<TData = unknown> = ExportShapeOptions<TData> & {
   sheetName?: string;
   /** Same row cap as {@link ExportGridOptions.maxRows}. */
   maxRows?: number;
+  /** Passed to `formatCell` as `ctx.signal`; an aborted signal rejects the build between slices of rows. */
+  signal?: AbortSignal;
 };
 
 const XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -264,8 +301,8 @@ async function writeSheet(name: string, rows: ExportCell[][]): Promise<Blob> {
  * string cells, never formulas; `formatCell` overrides both. hucre loads lazily.
  */
 export async function buildXlsx<TData = unknown>(state: DataGridReadState, options: BuildXlsxOptions<TData> = {}): Promise<Blob> {
-  const { scope = "view", includeHeaders = true, sheetName = "Sheet1", maxRows } = options;
-  const rows = buildCappedExportRows(state, scope, maxRows, options, true);
+  const { scope = "view", includeHeaders = true, sheetName = "Sheet1", maxRows, signal = NEVER_ABORTED } = options;
+  const rows = await buildCappedExportRowsAsync(state, scope, maxRows, options, true, signal);
   const table = includeHeaders ? [buildExportHeaders(state, options.columns, options.headers), ...rows] : rows;
   return writeSheet(sheetName, table.map((row) => row.map((cell) => (typeof cell === "string" ? cutCell(cell) : cell))));
 }
@@ -275,10 +312,19 @@ export async function buildXlsx<TData = unknown>(state: DataGridReadState, optio
  * through each column's cell type `toText` like `exportGrid`, then `formatCell`.
  */
 export function buildCsv<TData = unknown>(state: DataGridReadState, options: BuildCsvOptions<TData> = {}): Blob {
-  const { scope = "view", includeHeaders = true, csvDelimiter = ",", csvBom = true, sanitizeFormulas = true } = options;
-  const rows = buildCappedExportRows(state, scope, options.maxRows, options, false) as string[][];
+  const rows = buildCappedExportRows(state, options.scope ?? "view", options.maxRows, options, false) as string[][];
+  return csvBlob(state, rows, options);
+}
+
+function csvBlob(state: DataGridReadState, rows: string[][], options: Pick<BuildCsvOptions, "includeHeaders" | "csvDelimiter" | "csvBom" | "sanitizeFormulas" | "columns" | "headers">): Blob {
+  const { includeHeaders = true, csvDelimiter = ",", csvBom = true, sanitizeFormulas = true } = options;
   const table = includeHeaders ? [buildExportHeaders(state, options.columns, options.headers), ...rows] : rows;
   return new Blob([(csvBom ? BOM : "") + rowsToCsv(table, { delimiter: csvDelimiter, sanitizeFormulas })], { type: "text/csv;charset=utf-8;" });
+}
+
+async function buildCsvAsync<TData>(state: DataGridReadState, options: ExportGridOptions<TData>, signal: AbortSignal): Promise<Blob> {
+  const rows = (await buildCappedExportRowsAsync(state, options.scope ?? "view", options.maxRows, options, false, signal)) as string[][];
+  return csvBlob(state, rows, options);
 }
 
 function isValidSheetName(name: string): boolean {
@@ -380,10 +426,10 @@ async function runExport<TData>(state: DataGridReadState, options: ExportGridOpt
   if (source) return exportFromSource(state, source, options, delivery);
   const maxRows = options.maxRows === undefined ? undefined : normalizeLimit(options.maxRows, Number.POSITIVE_INFINITY);
   if (format === "csv") {
-    await deliver(buildCsv(state, { ...options, maxRows }), "csv", delivery);
+    await deliver(await buildCsvAsync(state, { ...options, maxRows }, signal), "csv", delivery);
     return loadedResult(state, scope, maxRows);
   }
 
-  await deliver(await buildXlsx(state, { ...options, maxRows }), "xlsx", delivery);
+  await deliver(await buildXlsx(state, { ...options, maxRows, signal }), "xlsx", delivery);
   return loadedResult(state, scope, maxRows);
 }

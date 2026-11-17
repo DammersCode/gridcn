@@ -308,6 +308,8 @@ export type DataGridIOLabels = {
   printButtonAriaLabel: string;
   /** Note shown under the printed table when the row cap cut the output; `printed` is the table's rows, `total` the scope rows. */
   printTruncated: (printed: number, total: number) => string;
+  /** Note shown under a table printed from a `source` when a limit cut the output; the total is unknown. */
+  printTruncatedSource: (printed: number) => string;
 };
 
 /** Pagination add-on strings (`data-grid-pagination`): footer prev/next, page numbers, page-size select, range label. */
