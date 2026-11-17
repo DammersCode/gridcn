@@ -15,6 +15,7 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | --- | --- | --- |
 | `applyCellUpdates` | Writes values at view coordinates as one change with the given `source`, and selects the touched cells. | [Store hooks](/docs/types-hooks/store-hooks#handle) |
 | `autosizeColumns` | Sizes columns to their content over the view and returns the measured widths. On a paged grid, it measures the shown page. | [Column sizing](/docs/columns/column-sizing) |
+| `cancelColumnResize` | Ends a resize drag without a commit and restores the width the drag started from. Fires `onColumnResizing`. | [Store hooks](/docs/types-hooks/store-hooks#handle) |
 | `cancelEditing` | Discards the open edit. It writes nothing. | [Edit and validation events](/docs/events-state/edit-validation-events) |
 | `canSetColumnOrder` | Returns the result that `setColumnOrder` returns for the same arguments, without the move. | [Exported types](/docs/types-hooks/exported-types) |
 | `checkRowRange` | Checks or unchecks the rows from the anchor row to a target view index. | [Store hooks](/docs/types-hooks/store-hooks#handle) |

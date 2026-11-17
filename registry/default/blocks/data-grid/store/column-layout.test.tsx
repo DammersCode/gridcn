@@ -288,3 +288,55 @@ describe("a columnLayout that is not an object", () => {
     expect(visibleIds(store())).toEqual(["a", "b"]);
   });
 });
+
+describe("cancelColumnResize", () => {
+  function mountWithSpies(extra: Props = {}) {
+    const onColumnLayoutChange = vi.fn();
+    const onColumnResizing = vi.fn();
+    const { store } = mount({ columns: threeColumns, onColumnLayoutChange, onColumnResizing, ...extra });
+    return { actions: () => store().getState().actions, widths: () => store().getState().columnWidths, onColumnLayoutChange, onColumnResizing };
+  }
+
+  it("drops the preview width of a column that had no stored width", () => {
+    const { actions, widths, onColumnLayoutChange, onColumnResizing } = mountWithSpies();
+
+    act(() => actions().previewColumnWidth("b", 220));
+    act(() => actions().cancelColumnResize("b", 150));
+
+    expect(widths()).toEqual({});
+    expect(onColumnResizing).toHaveBeenLastCalledWith({ columnId: "b", width: 150 });
+    act(() => actions().setColumnHidden("c", true));
+    expect(onColumnLayoutChange).toHaveBeenCalledTimes(1);
+    expect(onColumnLayoutChange.mock.calls[0]![0].widths).toEqual({});
+  });
+
+  it("restores the stored width the drag started from", () => {
+    const { actions, widths } = mountWithSpies({ defaultColumnLayout: { widths: { b: 180 } } });
+
+    act(() => actions().previewColumnWidth("b", 220));
+    act(() => actions().previewColumnWidth("b", 260));
+    act(() => actions().cancelColumnResize("b", 180));
+
+    expect(widths()).toEqual({ b: 180 });
+  });
+
+  it("starts a new drag from the state after a commit", () => {
+    const { actions, widths } = mountWithSpies();
+
+    act(() => actions().previewColumnWidth("b", 220));
+    act(() => actions().setColumnWidth("b", 220));
+    act(() => actions().previewColumnWidth("b", 300));
+    act(() => actions().cancelColumnResize("b", 220));
+
+    expect(widths()).toEqual({ b: 220 });
+  });
+
+  it("ignores a cancel without a preview", () => {
+    const { actions, widths, onColumnResizing } = mountWithSpies();
+
+    act(() => actions().cancelColumnResize("b", 150));
+
+    expect(widths()).toEqual({});
+    expect(onColumnResizing).not.toHaveBeenCalled();
+  });
+});

@@ -5,6 +5,7 @@ import type { DataGridPlugin } from "@/registry/default/blocks/data-grid/data-gr
 import { createCommentEngine, type CommentEngine } from "./comment-engine";
 import { createCommentsMount } from "./comments-mount";
 import { createCommentsOverlay } from "./comments-overlay";
+import { sameRecord } from "./comment-state";
 import { createMenuItemsResolver } from "./menu-items";
 import type { UseDataGridCommentsOptions, UseDataGridCommentsResult } from "./types";
 
@@ -30,8 +31,14 @@ function assignOptions(live: Live, options: UseDataGridCommentsOptions): UseData
   return previous;
 }
 
-function previousProp(live: Live): UseDataGridCommentsOptions["comments"] {
-  return live.prop;
+function sameComments(a: UseDataGridCommentsOptions["comments"], b: UseDataGridCommentsOptions["comments"]): boolean {
+  if (a === b) return true;
+  if (!a || !b || a.length !== b.length) return false;
+  try {
+    return a.every((record, i) => sameRecord(record, b[i]!));
+  } catch {
+    return false;
+  }
 }
 
 function assignProp(live: Live, prop: UseDataGridCommentsOptions["comments"]): void {
@@ -86,7 +93,7 @@ export function useDataGridComments(options: UseDataGridCommentsOptions = {}): U
   useEffect(() => {
     const previous = assignOptions(live, options);
     if (renderOptionsChanged(previous, options)) engine.store.bumpContent();
-    if (options.comments !== undefined && options.comments !== previousProp(live)) {
+    if (options.comments !== undefined && !sameComments(options.comments, live.prop)) {
       assignProp(live, options.comments);
       engine.syncProp(options.comments);
     }

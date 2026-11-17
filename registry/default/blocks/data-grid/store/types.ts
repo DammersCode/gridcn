@@ -1040,13 +1040,10 @@ export type DataGridActions = {
    * cell to the anchor; `null` clears the whole selection. A single cell stays `selectCell(ref)`.
    */
   setSelection(next: SelectionState | null): void;
-  /**
-   * Live per-frame width write during a resize drag; fires `onColumnResizing` (not
-   * `onColumnLayoutChange` - see `setColumnWidth` for the commit point). The width is clamped
-   * to the column's legal range (`[max(32, minWidth), maxWidth]`, the same bounds the resize
-   * gesture enforces); a callback-observed width is the clamped one. An unknown column id is a no-op.
-   */
+  /** Live width write during a resize drag, clamped to the column's legal range; fires `onColumnResizing`, not `onColumnLayoutChange`. Unknown id: no-op. */
   previewColumnWidth(id: string, width: number): void;
+  /** Ends a drag without a commit: restores the stored width from before the first preview (or none), fires `onColumnResizing` with `renderedWidth`. */
+  cancelColumnResize(id: string, renderedWidth: number): void;
   /**
    * Sets the column's width AND fires `onColumnLayoutChange` once — the resize-drag-release/autosize
    * commit point. The width is clamped exactly as {@link previewColumnWidth} clamps, and the fired

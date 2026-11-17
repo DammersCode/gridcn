@@ -278,6 +278,7 @@ export const ACTION_PAGES = {
   clearCellSelection: "/docs/types-hooks/store-hooks#handle",
   setSelection: "/docs/events-state/selection-cell-events",
   previewColumnWidth: "/docs/columns/column-sizing",
+  cancelColumnResize: "/docs/types-hooks/store-hooks#handle",
   setColumnWidth: "/docs/columns/column-sizing",
   autosizeColumns: "/docs/columns/column-sizing",
   resetColumnWidth: "/docs/columns/column-sizing",

@@ -67,6 +67,7 @@ export type DataGridHeaderCellProps = {
   resize: {
     enabled: boolean;
     previewColumnWidth: (id: string, width: number) => void;
+    cancelColumnResize: (id: string, renderedWidth: number) => void;
     setColumnWidth: (id: string, width: number) => void;
     /** The store's `autosizeColumns` action; double-click on the handle calls it for this column. */
     autosizeColumns: (options?: AutosizeOptions) => void;
@@ -125,6 +126,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
     column,
     currentWidth: width,
     previewColumnWidth: resizeProps.previewColumnWidth,
+    cancelColumnResize: resizeProps.cancelColumnResize,
     setColumnWidth: resizeProps.setColumnWidth,
     autosizeColumns: resizeProps.autosizeColumns,
     direction: resizeProps.direction,
