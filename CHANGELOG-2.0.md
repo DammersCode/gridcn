@@ -313,3 +313,13 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - Fix: `setColumnOrder` returns `pin-zone` for a column group move across pin zones.
 - Fix: the comments add-on no longer warns about a stale rejection without `current` when `fetchComments` is set.
 - Fix: a column resize that ends in a cancel (`pointercancel`, `lostpointercapture`, or a window blur) restores the width the drag started from and stores nothing. It left the preview width as a stored width, so a flex column lost its flex share and the width entered the next `onColumnLayoutChange`. The new `cancelColumnResize(id, renderedWidth)` store action does the restore.
+- A grid whose viewport holds more than 200 rows sets `data-grid-unbounded` on its root and limits its height to `var(--data-grid-fallback-height, 100dvh)`, so every row stays reachable. The development warning for an unbounded height is gone.
+- A grid with a measured height of 0, such as one in jsdom, renders the first 10 rows.
+- A grid with `loading` and `error` set shows the error, without the loading skeleton.
+- A grid without `aria-label` and `aria-labelledby` takes its name from `labels.grid.gridName` ("Data grid"). The development warning stays.
+- In development, a second `DataGridRoot` on a store that another root already serves warns once.
+- The default header height follows `density`: 32, 36, and 40 px for `compact`, `default`, and `comfortable`. `headerHeight` overrides it.
+- `DataGrid` takes `toolbar`, a node that renders inside the provider before the grid.
+- `useDataGridLiveAnnouncement()` is exported from the barrel.
+- An inline function in `labels` no longer rebuilds the labels on every render, and the grid calls the function of the latest render.
+- `labels.comments` types the comments add-on overrides in the grid `labels`.

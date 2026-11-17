@@ -1,51 +1,6 @@
-import { mergeLabelLayers } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { mergeLabelLayers, type DataGridCommentsLabels } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
-/** Every string of the comments UI. Functions take the values to insert; the plural form is the function's job. */
-export type DataGridCommentsLabels = {
-  popover: (columnTitle: string, cellText: string) => string;
-  /** Locale of the comment times. Pinned so the server and the client render the same text. */
-  locale: string;
-  commentList: string;
-  composer: string;
-  editComposer: string;
-  composerPlaceholder: string;
-  submit: string;
-  cancel: string;
-  save: string;
-  editAction: string;
-  deleteAction: string;
-  confirmDeleteAction: string;
-  resolveAction: string;
-  reopenAction: string;
-  /** `name` is `""` for a comment without an author. */
-  edit: (name: string, time: string) => string;
-  remove: (name: string, time: string) => string;
-  confirmRemove: (name: string, time: string) => string;
-  resolve: (name: string, time: string) => string;
-  reopen: (name: string, time: string) => string;
-  resolved: string;
-  saving: string;
-  loading: string;
-  loadFailed: string;
-  retry: string;
-  discard: string;
-  saveMine: string;
-  changedByOther: string;
-  readOnlyHint: string;
-  rowBusyHint: string;
-  refused: string;
-  failed: string;
-  counter: (used: number, max: number) => string;
-  menuItem: string;
-  noComments: string;
-  /** `chord` is `""` when the app unbinds `openComments`. */
-  announce: (count: number, unresolved: number, chord: string) => string;
-  /** The announcement when `enableResolve` is `false`. */
-  announceCount: (count: number, chord: string) => string;
-  /** `name` is `""` for a comment without an author. */
-  announceAdded: (name: string) => string;
-  unknownAuthor: string;
-};
+export type { DataGridCommentsLabels } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 const by = (name: string): string => (name ? ` by ${name}` : "");
 const openHint = (chord: string): string => (chord ? ` Press ${chord} to open.` : "");

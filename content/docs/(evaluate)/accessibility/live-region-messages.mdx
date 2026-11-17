@@ -94,6 +94,10 @@ Add-ons bring their own live regions:
 - The find and replace panel and the status bar read their status text.
 - The header filter and the value list of an `isAnyOf` filter read their status text.
 
+## Read the message in code [#read-message]
+
+`useDataGridLiveAnnouncement()` returns the current announcement as `{ kind, count, seq, partial? }`, or `null` before the first one. Use it to mirror the message in your own UI.
+
 ## Related
 
 - [Screen reader support](/docs/accessibility/screen-reader-support): roles, counts, and focus rules

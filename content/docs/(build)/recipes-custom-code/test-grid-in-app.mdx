@@ -18,7 +18,7 @@ The grid renders real DOM elements with ARIA roles, so Testing Library finds its
 
 1. Run the jsdom tests with `environment: "jsdom"` in the Vitest config.
 2. Without Vitest globals, Testing Library does not clean up by itself. Call `cleanup` in an `afterEach` of a setup file. Otherwise a timer of the unmounted grid fires after jsdom is gone and throws.
-3. jsdom does no layout, so the scroll element has a height of 0 and the grid renders no data rows. Stub `HTMLElement.prototype.clientHeight` before the test, as the sample below does.
+3. jsdom does no layout, so the scroll element has a height of 0 and the grid renders the first 10 data rows. To render more rows or fewer, stub `HTMLElement.prototype.clientHeight` before the test, as the sample below does.
 4. Query the grid by its roles: `grid`, `row`, `columnheader`, and `gridcell`.
 5. For a test that needs real sizes, scroll, or pointer drags, run it in browser mode and import your app stylesheet.
 
