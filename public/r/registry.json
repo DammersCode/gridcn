@@ -1986,6 +1986,7 @@
       "registryDependencies": [
         "@gridcn/data-grid",
         "popover",
+        "button-group",
         "button",
         "badge",
         "select"
@@ -2018,7 +2019,7 @@
         "button",
         "button-group",
         "badge",
-        "input",
+        "input-group",
         "textarea"
       ],
       "dependencies": [
@@ -2138,6 +2139,7 @@
         "@gridcn/data-grid",
         "button",
         "input",
+        "input-group",
         "@gridcn/use-debounce",
         "@gridcn/data-grid-pagination"
       ],
