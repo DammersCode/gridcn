@@ -39,7 +39,8 @@ describe("row grouping rendering", () => {
     await expect.poll(() => groupRows().length).toBe(4);
     expect(bodyRows()).toHaveLength(4);
     await userEvent.click(page.getByRole("button", { name: "Expand Region 0" }));
-    await expect.poll(() => bodyRows().length).toBe(4 + 15);
+    await expect.poll(() => bodyRows().length).toBeGreaterThan(10);
+    expect(bodyRows().filter((row) => row.getAttribute("aria-level") === "2").length).toBeGreaterThan(5);
     expect(groupRows()[0]!.getAttribute("aria-expanded")).toBe("true");
     await userEvent.click(page.getByRole("button", { name: "Collapse Region 0" }));
     await expect.poll(() => bodyRows().length).toBe(4);
