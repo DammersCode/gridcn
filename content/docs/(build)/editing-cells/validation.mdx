@@ -6,7 +6,7 @@ type: feature
 aliases: ["validate cell", "validate email", "invalid value", "schema", "zod", "required field", "error message in cell"]
 ---
 
-A column's `validate` rejects a value before it enters `data`. It takes a function or a Standard Schema. It runs on a typed edit, a checkbox toggle, paste, fill, `updateCells`, `updateRows`, `editRows`, find and replace, import, Delete, and Cut. Live columns for each form are in the [validation example](/docs/validation-examples/validation-example). To check a whole row or wait for an async schema, see [Validate rows and async checks](/docs/editing-cells/validate-rows-cross-field).
+A column's `validate` rejects a value before it enters `data`. It takes a function or a Standard Schema. It runs on a typed edit, a checkbox toggle, paste, fill, `updateCells`, `updateRows`, `editRows`, find and replace, import, Delete, and Cut. Live columns for each form are in the [validation example](/docs/validation-examples/validation-example). To check a whole row or wait for an async schema, see [Row validation and async checks](/docs/editing-cells/validate-rows-cross-field).
 
 <ComponentPreview name="data-grid-validation-demo" />
 
@@ -207,4 +207,4 @@ A server can still refuse a value after it commits. Paint that refusal with `act
 - [Built-in cell types](/docs/editing-cells/built-cell-types): the empty value for unparseable text.
 - [Edit and validation events](/docs/events-state/edit-validation-events): the event shapes.
 - [Show errors on cells](/docs/save-server/show-errors-cells): flag a cell after a server refusal.
-- [Validate rows and async checks](/docs/editing-cells/validate-rows-cross-field): `validateRow`, `refine` rules, and async schemas.
+- [Row validation and async checks](/docs/editing-cells/validate-rows-cross-field): `validateRow`, `refine` rules, and async schemas.

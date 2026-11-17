@@ -123,7 +123,7 @@ export function Orders({ orders }: { orders: Order[] }) {
 }
 ```
 
-`onSelectionChange` fires at each step of a drag. Read the ids in the click handler, and keep only a count in the callback.
+`onSelectionChange` fires for each step of a drag with `details.phase: "drag"`, then once with `"end"` on release. Check `details.phase === "end"` to act on settled selections only. See [Selection and cell events](/docs/events-state/selection-cell-events).
 
 To act on checks that a filter hides, read `useDataGridSelectedRows()` inside the grid. It returns `{ mode: "ids", ids, excludedIds: [], count }` with the visible and the remembered ids. After select all matching, it returns `{ mode: "allMatching", excludedIds, count, spec }`. The remembered ids need `checkedRowsLifetime="across-filters"`. Select all matching needs that and `totalRowCount`. This component sits inside `DataGridProvider` and shows the count:
 

@@ -177,7 +177,7 @@ Three more rules apply:
 - A bound name with neither a built-in handler nor a `commands` entry does nothing. Development mode warns once.
 - A key bound to two or more actions follows the tie rules in [Remapping](#remapping).
 
-The `keymap` type takes any name. To add a new name to the built-in action names, merge it into the `GridActions` interface:
+The `keymap` type takes any name. To type your command names as `GridAction` values, for example for autocompletion, merge them into the `GridActions` interface. A merged name still runs through its `commands` entry:
 
 ```ts fragment="module augmentation"
 export {};

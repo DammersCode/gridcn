@@ -20,7 +20,7 @@ The grid reads the `text/html` payload first, for example from gridcn, Excel, Sh
 - **Skipped cells.** Read-only cells keep their value. This covers a column's static `readOnly` and its per-row function form. A `readOnly` grid ignores the paste.
 - **One change.** A paste calls `onDataChange` once, with one batch of operations (`ops`) and the source `"paste"`. The selection then covers the written cells.
 
-A column with an async `validate` holds the paste until the schema answers. [Validate rows and async checks](/docs/editing-cells/validate-rows-cross-field#on-bulk-paths) owns that contract. For a large paste against a remote check, [`processPaste`](/docs/clipboard-undo/change-copy-paste#change-the-whole-paste) validates the whole block in one request.
+A column with an async `validate` holds the paste until the schema answers. [Row validation and async checks](/docs/editing-cells/validate-rows-cross-field#on-bulk-paths) owns that contract. For a large paste against a remote check, [`processPaste`](/docs/clipboard-undo/change-copy-paste#change-the-whole-paste) validates the whole block in one request.
 
 ## Copy [#copy]
 

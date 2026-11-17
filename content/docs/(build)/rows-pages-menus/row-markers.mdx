@@ -50,7 +50,7 @@ function MyGrid() {
 
 ## Selecting rows
 
-A press on a marker cell selects its row. Press and drag to select a range of rows. <kbd>Shift</kbd> extends the range, and <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> adds a row. A press on the checkbox toggles that row and keeps the other checks. The select-all checkbox in the header shows the state of the row channel: checked, indeterminate, or unchecked.
+A press on a marker cell selects its row. Press and drag to select a range of rows. <kbd>Shift</kbd> extends the range, and <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> adds a row. A press on the checkbox toggles that row and keeps the other checks. The select-all checkbox in the header shows whether the rows are checked: checked, indeterminate, or unchecked.
 
 The checkboxes are not tab stops. Use <kbd>Shift</kbd>+<kbd>Space</kbd> to select the active row and <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> to toggle it. `enableRowSelection={false}` turns off the marker gestures and <kbd>Shift</kbd>+<kbd>Space</kbd>. See [Pointer selection](/docs/selection-shortcuts/pointer-selection) and [Checked rows](/docs/selection-shortcuts/checked-rows).
 
@@ -70,7 +70,7 @@ The built-in checkboxes take their aria-labels from `labels.markers.selectRow` a
 | `renderMarkerHeader` | `MarkerHeaderRenderer` | built-in select-all checkbox |
 | `markerWidth` | `number` | width of the mode |
 
-`renderMarker` receives `rowId`, the 0-based `viewRowIndex`, and two flags. If the row channel holds the row, `isRowChannelSelected` is true. If the selection covers at least one cell of the row, `isCellSelected` is true. A cell click sets the second flag and never sets the first. With `'until-click'` (the default without `totalRowCount`), a cell click also clears the checked rows.
+`renderMarker` receives `rowId`, the 0-based `viewRowIndex`, and two flags. If the row is checked, `isChecked` is true. If the selection covers at least one cell of the row, `isCellSelected` is true. A cell click sets the second flag and never sets the first. With `'until-click'` (the default without `totalRowCount`), a cell click also clears the checked rows.
 
 In a mode of the `reorder` family, `renderMarker` also receives `reorderHandleProps`. Spread it onto an element of the marker to make that element the drag handle. `renderMarkerHeader` receives `allSelected`, which is `"checked"`, `"indeterminate"`, or `"unchecked"`. In modes without a checkbox, the header is blank, so the renderer fills the blank cell.
 
@@ -89,8 +89,8 @@ const columns = defineColumns<Row>()([
 
 const rows: Row[] = [{ id: "1", name: "Ada" }];
 
-const renderMarker: MarkerCellRenderer = ({ isRowChannelSelected }) =>
-  isRowChannelSelected ? (
+const renderMarker: MarkerCellRenderer = ({ isChecked }) =>
+  isChecked ? (
     <Check className="size-3.5 text-muted-foreground" aria-hidden="true" />
   ) : (
     <Circle className="size-3.5 text-muted-foreground" aria-hidden="true" />

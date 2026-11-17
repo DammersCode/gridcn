@@ -60,7 +60,7 @@ Result: clear the Active checkbox of a row, and its Name cell rejects typing, pa
 
 ## Other ways to lock and validate
 
-- `readOnly` on `<DataGrid>` locks editing and delete in every column.
+- `readOnly` on `<DataGrid>` locks every user write in every column: editing, paste, fill, cut, delete, row operations, undo, and redo.
 - `validationMode: "warn"` on a column commits a rejected edit, paste, or fill and flags the cell. The default, `"block"`, refuses the commit.
 - `validate` also takes a Standard Schema, such as a Zod schema, in place of the function.
 - The cell type picks the editor: a text input, a number input, a date picker, or a list of choices.

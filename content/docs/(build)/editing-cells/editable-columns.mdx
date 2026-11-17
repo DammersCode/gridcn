@@ -64,8 +64,7 @@ export function Orders({ orders }: { orders: Order[] }) {
 A locked cell rejects typed edits, paste, fill, and clear. Cells in pinned rows never edit, whatever `readOnly` says. See [Pinned rows](/docs/rows-pages-menus/pinned-rows). A column that has `accessorFn` but no `accessorKey` or `setValue` locks itself. Add `setValue` to make a computed value writable. To derive the lock from a user role, see [Lock cells by role](/docs/editing-cells/lock-cells-role).
 
 <Callout title="Grid-wide read-only wins">
-  `readOnly` on `<DataGrid>` (`<DataGridProvider readOnly>` in a composed grid) disables editing
-  and delete in every column, whatever the column says. If it turns on during an edit, the grid cancels the edit and discards the draft.
+  `readOnly` on `<DataGrid>` (`<DataGridProvider readOnly>` in a composed grid) disables every user write in every column, whatever the column says. That covers editing, paste, fill, cut, delete, row operations, undo, and redo. If it turns on during an edit, the grid cancels the edit and discards the draft.
 </Callout>
 
 ## Veto an edit [#veto-edit]
