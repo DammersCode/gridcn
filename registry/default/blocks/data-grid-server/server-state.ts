@@ -91,6 +91,7 @@ export function useServerSpec(source: ServerSpecOptions, afterChange: () => void
     (next: Partial<ServerSpec>) => {
       const merged = { ...live.current.spec, ...next };
       if (merged.groupBy?.length === 0) delete merged.groupBy;
+      if (merged.filterJoin !== "or") delete merged.filterJoin;
       // Two changes in one effect (a URL restore) merge instead of overwriting each other.
       live.current.spec = merged;
       setSpec(merged);
@@ -100,9 +101,10 @@ export function useServerSpec(source: ServerSpecOptions, afterChange: () => void
   );
   const onSortChange = useCallback((sorts: SortSpec[]) => changeSpec({ sorts }), [changeSpec]);
   const onFilterChange = useCallback((filters: FilterNode[]) => changeSpec({ filters }), [changeSpec]);
+  const onFilterJoinChange = useCallback((join: "and" | "or") => changeSpec({ filterJoin: join === "or" ? "or" : undefined }), [changeSpec]);
   const onSearchTextChange = useCallback((searchText: string) => changeSpec({ searchText }), [changeSpec]);
   const onGroupByChange = useCallback((groupBy: readonly string[]) => changeSpec({ groupBy }), [changeSpec]);
-  return { spec, ready, onSortChange, onFilterChange, onSearchTextChange, onGroupByChange };
+  return { spec, ready, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, onGroupByChange };
 }
 
 /** The result of {@link useServerSpec}: the scroll hook takes it from its caller so the group engine and the flat engine share one spec. */
@@ -111,6 +113,7 @@ export type ServerSpecState = ReturnType<typeof useServerSpec>;
 const specOf = (seed?: Partial<ServerSpec>, groups = false): ServerSpec => ({
   sorts: [...(seed?.sorts ?? EMPTY_SPEC.sorts)],
   filters: [...(seed?.filters ?? EMPTY_SPEC.filters)],
+  ...(seed?.filterJoin === "or" ? { filterJoin: "or" as const } : null),
   searchText: seed?.searchText ?? EMPTY_SPEC.searchText,
   ...(groups && seed?.groupBy?.length ? { groupBy: [...seed.groupBy] } : null),
   ...(groups && seed?.aggregates?.length ? { aggregates: [...seed.aggregates] } : null),

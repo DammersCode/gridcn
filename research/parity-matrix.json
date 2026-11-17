@@ -124,7 +124,10 @@
         "filterState",
         "defaultFilterState",
         "onFilterChange",
-        "filterMode"
+        "filterMode",
+        "filterJoin",
+        "defaultFilterJoin",
+        "onFilterJoinChange"
       ],
       "cells": {
         "L": {
@@ -132,7 +135,8 @@
           "evidence": [
             "registry/default/blocks/data-grid/sort-filter/index.test.ts",
             "registry/default/blocks/data-grid/sort-filter/custom-operators.test.ts",
-            "registry/default/blocks/data-grid/store/known-columns.test.tsx"
+            "registry/default/blocks/data-grid/store/known-columns.test.tsx",
+            "registry/default/blocks/data-grid/store/filter-join.test.tsx"
           ]
         },
         "PC": {
@@ -150,14 +154,16 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.browser.test.tsx"
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.browser.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.filter-join.test.tsx"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
             "content/docs/(build)/sort-filter-search/filtering.mdx",
-            "registry/default/blocks/data-grid/store/custom-filter-operators.test.tsx"
+            "registry/default/blocks/data-grid/store/custom-filter-operators.test.tsx",
+            "registry/default/blocks/data-grid/store/filter-join.test.tsx"
           ]
         },
         "SS": {
@@ -170,7 +176,8 @@
           "status": "supported",
           "evidence": [
             "registry/default/blocks/data-grid-toolbar/header-filter-server.browser.test.tsx",
-            "registry/default/blocks/data-grid/store/custom-filter-operators.test.tsx"
+            "registry/default/blocks/data-grid/store/custom-filter-operators.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.filter-join.test.tsx"
           ]
         },
         "API": {
@@ -181,7 +188,7 @@
         }
       },
       "doc": "/docs/sort-filter-search/filtering",
-      "note": "A sort or filter on a column that is not in `columns` drops with a development warning, in every mode."
+      "note": "A sort or filter on a column that is not in `columns` drops with a development warning, in every mode. `filterJoin` joins the top-level filters with `and` (default) or `or`; a server request carries `filterJoin: \"or\"` in the spec."
     },
     {
       "id": "filter-values",
@@ -1603,7 +1610,7 @@
             "registry/default/blocks/data-grid-url-state/data-grid-url-state.test.tsx",
             "registry/default/blocks/data-grid-url-state/data-grid-url-state.group.test.tsx"
           ],
-          "note": "The `group` param holds the `groupBy` columns; a client grid reads them against its live, visible, groupable columns. The open groups stay out."
+          "note": "The `group` param holds the `groupBy` columns; a client grid reads them against its live, visible, groupable columns. The open groups stay out. The `join` param holds the top-level join: `join=or` when the list joins with `or`, absent for `and`."
         },
         "PC": {
           "status": "supported",
@@ -1664,7 +1671,7 @@
             "tests/parity/saved-views.parity.test.tsx",
             "registry/default/blocks/data-grid-views/use-data-grid-views.test.tsx"
           ],
-          "note": "A view keeps `groupBy`, validated against live, groupable columns and capped at 4 levels. The open groups stay out."
+          "note": "A view keeps `groupBy`, validated against live, groupable columns and capped at 4 levels. The open groups stay out. A view keeps the top-level join of its filters."
         },
         "PC": {
           "status": "supported",
@@ -3491,8 +3498,10 @@
         "FS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/server-query.parity.test.tsx"
-          ]
+            "tests/parity/server-query.parity.test.tsx",
+            "tests/server-query/conformance.test.ts"
+          ],
+          "note": "A root `filterJoin: \"or\"` joins the top-level filters in SQL; `rowScope` still ANDs on top."
         },
         "API": {
           "status": "n/a",

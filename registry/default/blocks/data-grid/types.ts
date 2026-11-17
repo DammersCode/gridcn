@@ -562,9 +562,7 @@ export type SortSpec = { columnId: string; direction: "asc" | "desc" };
 export type {
   BuiltInFilterOperator,
   FilterOperator,
-  FilterOperatorInput,
-  CustomFilterOperator,
-  FilterJoinOperator,
+  FilterOperatorInput, CustomFilterOperator, FilterJoinOperator,
   FilterSpec,
   FilterGroup,
   FilterValue,
@@ -705,6 +703,7 @@ export type DataGridReadState = Omit<
   | "onEditEnd"
   | "onSortChange"
   | "onFilterChange"
+  | "onFilterJoinChange"
   | "onSearchTextChange"
   | "onColumnLayoutChange"
   | "onColumnResizing"

@@ -25,6 +25,7 @@ Each row is a callback prop of the grid. Add-on callbacks are on [Options A to Z
 | `onEditEnd` | A session ends, or validation refuses a commit attempt. | [Edit and validation events](/docs/events-state/edit-validation-events#oneditend) |
 | `onExpandedChange` | Fires after the user (or `toggleGroup`, `expandAll`, `collapseAll`) changes the open groups. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `onFilterChange` | Fires with the next filter tree. | [Sort and filter events](/docs/events-state/sort-filter-events#onfilterchange) |
+| `onFilterJoinChange` | Fires with the next join of the top-level filters. | [Sort and filter events](/docs/events-state/sort-filter-events#prop-onfilterjoinchange) |
 | `onGateAborted` | Fires once for every async gate that the grid stopped waiting for, with its name and the reason. | [Gate cancellation and timeouts](/docs/editing-cells/cancel-async-gates#gate-timeout) |
 | `onGroupByChange` | Fires after the user (or `setGroupBy`, `toggleGroupBy`) changes the group columns. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `onPageChange` | Fires with the new page after a page change, and with 1 after a filter change. | [Client pagination](/docs/rows-pages-menus/client-pagination#client-mode) |

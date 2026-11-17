@@ -1,5 +1,6 @@
 import { buildGroupView, groupKeyText, makeFilterPredicate, rowAccessorFor, type GroupKey } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { GroupAggregateSpec, GroupBucket, GroupTree } from "@/registry/default/blocks/data-grid/sort-filter/build-group-view";
+import { withRootJoin } from "@/registry/default/blocks/data-grid/sort-filter/filter-tree";
 import { FIXTURE_ROWS, type FixtureRow } from "./fixture";
 
 const COLUMNS = ["id", "name", "tag", "score", "qty", "active", "price", "createdAt"].map((id) => ({ id, header: id, accessorFn: (row: unknown) => (row as Record<string, unknown>)[id] }));
@@ -7,9 +8,9 @@ const COLUMNS = ["id", "name", "tag", "score", "qty", "active", "price", "create
 export type FilterTree = readonly Record<string, unknown>[];
 
 /** The ids the grid's own client filter engine keeps, evaluated over the fixture literals (never over driver rows). */
-export function oracleIds(filters: FilterTree, rows: readonly FixtureRow[] = FIXTURE_ROWS): number[] {
+export function oracleIds(filters: FilterTree, rows: readonly FixtureRow[] = FIXTURE_ROWS, join?: "and" | "or"): number[] {
   const accessor = rowAccessorFor(COLUMNS as never, rows, undefined);
-  const keep = makeFilterPredicate(accessor, filters as never);
+  const keep = makeFilterPredicate(accessor, withRootJoin(filters as never, join) as never);
   return rows.filter((_, index) => keep(index)).map((row) => row.id);
 }
 

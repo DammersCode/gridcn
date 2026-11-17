@@ -14,7 +14,7 @@ export function watchClientViewOverHoles(store: StoreApi<DataGridStoreState>): (
   return store.subscribe((state, prev) => {
     if (warned || !isDev()) return;
     const sortChanged = state.sortMode !== "server" && state.sortState !== prev.sortState;
-    const filterChanged = state.filterMode !== "server" && state.filterState !== prev.filterState;
+    const filterChanged = state.filterMode !== "server" && (state.filterState !== prev.filterState || state.filterJoin !== prev.filterJoin);
     if (!sortChanged && !filterChanged) return;
     if (!hasHole(state.data) && !(state.totalRowCount != null && state.totalRowCount > state.data.length)) return;
     warned = true;

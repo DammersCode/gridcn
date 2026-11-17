@@ -56,7 +56,7 @@ With no props, views persist in `localStorage` under `gridcn-views`. Grids with 
 
 ## What a view holds [#what-a-view-holds]
 
-A view holds the sort, the `groupBy` columns, and the filters, with their groups and custom operators. It holds the search text with its two options, match case and whole cell. It holds the column layout: order, hidden columns, pins, and widths. A view holds no rows, no selection, no page, and no scroll position.
+A view holds the sort, the `groupBy` columns, and the filters, with their groups, the join of the top level, and custom operators. It holds the search text with its two options, match case and whole cell. It holds the column layout: order, hidden columns, pins, and widths. A view holds no rows, no selection, no page, and no scroll position.
 
 Opening a view runs the same actions as a user gesture, and only for the parts that differ from the grid. The change callbacks of a controlled `sortState`, `filterState`, `searchText`, or `columnLayout` fire for those parts.
 

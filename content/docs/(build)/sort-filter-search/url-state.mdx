@@ -91,7 +91,7 @@ A filter group is a segment `[or` or `[and`, then its rows, then a `]` segment:
 
 The characters `[` and `]` are always percent-encoded inside ids and values, so a value cannot imitate a group. A group holds one more group at most. A deeper group drops with the filter rows in it. The parser skips a stray `]`, closes a group left open at the end, and drops an empty group.
 
-A link with `join=or` is read once: when `filter` has no group, the rows wrap in one `or` group. Every filter write removes the param.
+`join=or` joins the top-level entries with "or". The param is absent for "and", and any other value reads as "and".
 
 ## Behavior
 

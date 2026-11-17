@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { parseImportRows } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
-import { ORACLE_CASES, SERVER_CASES } from "./cases";
+import { ORACLE_CASES, ROOT_OR_CASES, SERVER_CASES } from "./cases";
 import { oracleIds } from "./client-oracle";
 import { type Harness, openPg, openSqlite } from "./engines";
 import { FIXTURE_ROWS, fixtureColumns } from "./fixture";
@@ -34,6 +34,23 @@ describe.each([
   it.each(ORACLE_CASES)("matches the client filter engine: $name", async ({ filters }) => {
     const answer = await query().fetchRows(request(filters));
     expect(idsOf(answer)).toEqual(oracleIds(filters));
+  });
+
+  it.each(ROOT_OR_CASES)("matches the client with a root or: $name", async ({ filters }) => {
+    const answer = await query().fetchRows({ ...request(filters), spec: { sorts: [], filters, filterJoin: "or", searchText: "" } });
+    expect(idsOf(answer)).toEqual(oracleIds(filters, undefined, "or"));
+  });
+
+  it("ANDs the row scope on top of a root or", async () => {
+    const filters = [{ columnId: "name", operator: "equals", value: "alpha" }, { columnId: "qty", operator: "gt", value: "50" }];
+    const harness = harnesses.find((h) => h.engine === engine && h.adapter === adapter)!;
+    const spec = { sorts: [], filters, filterJoin: "or", searchText: "" };
+    const scoped = await harness.make({ rowScope: true }).fetchRows({ spec, start: 0, end: 1000 }, { context: { tenantId: 1 } });
+    const mine = new Set(FIXTURE_ROWS.filter((row) => row.tenantId === 1).map((row) => row.id));
+    expect(idsOf(scoped)).toEqual(oracleIds(filters, undefined, "or").filter((id) => mine.has(id)));
+    const totals = await harness.make({ rowScope: true }).aggregates({ spec, columnIds: ["qty"] }, { context: { tenantId: 1 } });
+    const kept = FIXTURE_ROWS.filter((row) => mine.has(row.id) && oracleIds(filters, undefined, "or").includes(row.id));
+    expect(totals["qty"]).toBe(kept.reduce((sum, row) => sum + (row.qty ?? 0), 0));
   });
 
   it.each(SERVER_CASES)("documented difference: $name", async ({ filters, expect: expected }) => {

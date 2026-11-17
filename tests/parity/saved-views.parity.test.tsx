@@ -22,6 +22,7 @@ const document = (): DataGridViewsDocument => ({
         searchText: "Name 3",
       },
     },
+    { id: "v2", name: "Either", state: { ...emptyViewState(), filters: [{ columnId: "n", operator: "lt", value: "1" }, { columnId: "n", operator: "gt", value: "4" }], filterJoin: "or" } },
   ],
 });
 
@@ -45,6 +46,14 @@ describe.each(ALL_MODES)("saved views in mode %s", (mode) => {
     expect(grid.state().filterState).toMatchObject([{ columnId: "n", operator: "gt", value: "1" }]);
     expect(grid.state().searchText).toBe("Name 3");
     expect(views().modified).toBe(false);
+  });
+
+  it("a view restores the top-level join of its filters", async () => {
+    const { grid, views } = await mountViews(mode);
+    grid.act(() => views().selectView("v2"));
+    await waitFor(() => expect(grid.state().filterJoin).toBe("or"));
+    grid.act(() => views().selectView("v1"));
+    await waitFor(() => expect(grid.state().filterJoin).toBe("and"));
   });
 
   it("a saved view restores the spec after the grid changed", async () => {

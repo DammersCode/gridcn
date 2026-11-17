@@ -3,7 +3,7 @@ import type { FetchFilterValuesContext, FilterNode, RowRange, ServerSpec, SortSp
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
 const assertEqual = <A, B>(_ok: Equal<A, B>) => {};
 
-assertEqual<ServerSpec, { sorts: readonly SortSpec[]; filters: readonly FilterNode[]; searchText: string; groupBy?: readonly string[]; aggregates?: readonly { columnId: string; reducer: "sum" | "avg" | "min" | "max" | "count" }[] }>(true);
+assertEqual<ServerSpec, { sorts: readonly SortSpec[]; filters: readonly FilterNode[]; filterJoin?: "or"; searchText: string; groupBy?: readonly string[]; aggregates?: readonly { columnId: string; reducer: "sum" | "avg" | "min" | "max" | "count" }[] }>(true);
 const _specOfToday: ServerSpec = { sorts: [], filters: [], searchText: "" };
 void _specOfToday;
 assertEqual<RowRange, { start: number; end: number }>(true);

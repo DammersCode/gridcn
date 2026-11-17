@@ -86,6 +86,21 @@ describe("the query layer in mode FS (filterMode server)", () => {
   });
 });
 
+describe("the query layer with a root or join", () => {
+  const low = { filterId: "a", columnId: "n", operator: "lt", value: "2" };
+  const high = { filterId: "b", columnId: "n", operator: "gte", value: "93" };
+  it.each(["pages", "scroll"] as const)("joins the top-level filters with or in the database, %s mode", async (mode) => {
+    const fetchRows = fetchFromLayer();
+    const grid = await mountLayer(fetchRows, mode);
+    act(() => grid.state().actions.setFilters([low, high] as never));
+    await waitFor(() => expect(grid.state().totalRowCount ?? grid.server().pager?.totalRowCount).toBe(0));
+    act(() => grid.state().actions.setFilterJoin("or"));
+    await waitFor(() => expect(fetchRows.mock.calls.at(-1)![0]).toMatchObject({ spec: { filterJoin: "or" } }));
+    await grid.ready();
+    expect(ids(grid).sort()).toEqual(["r0", "r1", "r93", "r94"]);
+  });
+});
+
 describe("the query layer in mode C (controlled state)", () => {
   it("quick search narrows the result, and a half-built filter row keeps the client meaning", async () => {
     const grid = await mountLayer(fetchFromLayer(), "pages");

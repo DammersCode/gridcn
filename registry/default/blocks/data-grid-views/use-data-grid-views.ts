@@ -128,6 +128,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
   const sortState = useDataGridSortState();
   const groupBy = useDataGridSelector((s) => s.groupBy);
   const filterState = useDataGridFilterState();
+  const filterJoin = useDataGridSelector((s) => s.filterJoin);
   const searchText = useDataGridSearchText();
   const searchOptions = useDataGridSelector((s) => s.searchOptions);
   const columnLayout = useDataGridSelector((s) => s.columnLayout);
@@ -169,7 +170,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
 
   const readState = useCallback((): DataGridViewState => {
     const s = storeApi.getState();
-    return captureViewState({ sorts: s.sortState, groupBy: [...s.groupBy], filters: s.filterState, searchText: s.searchText, searchOptions: s.searchOptions, columnLayout: s.columnLayout });
+    return captureViewState({ sorts: s.sortState, groupBy: [...s.groupBy], filters: s.filterState, filterJoin: s.filterJoin, searchText: s.searchText, searchOptions: s.searchOptions, columnLayout: s.columnLayout });
   }, [storeApi]);
 
   const readSavableState = useCallback(() => savableViewState(readState()), [readState]);
@@ -194,7 +195,10 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
       const now = viewPartKeys(readState());
       if (wanted.sorts !== now.sorts) actions.setSorts(clean.sorts);
       if (wanted.group !== now.group) actions.setGroupBy(clean.groupBy);
-      if (wanted.filters !== now.filters) actions.setFilters(clean.filters);
+      if (wanted.filters !== now.filters) {
+        actions.setFilters(clean.filters);
+        actions.setFilterJoin(clean.filterJoin ?? "and");
+      }
       if (wanted.search !== now.search) actions.setSearch(clean.searchText, clean.searchOptions);
       if (wanted.layout !== now.layout) actions.setColumnLayout(clean.columnLayout);
       // the store fills in layout parts a view leaves out, so the baseline reads the layout back
@@ -279,7 +283,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
       const initial = storeApi.getInitialState();
       const untouched =
         viewStateKey(readState()) ===
-        viewStateKey(captureViewState({ sorts: initial.sortState, groupBy: [...initial.groupBy], filters: initial.filterState, searchText: initial.searchText, searchOptions: initial.searchOptions, columnLayout: initial.columnLayout }));
+        viewStateKey(captureViewState({ sorts: initial.sortState, groupBy: [...initial.groupBy], filters: initial.filterState, filterJoin: initial.filterJoin, searchText: initial.searchText, searchOptions: initial.searchOptions, columnLayout: initial.columnLayout }));
       const view = useDefault && controlled === undefined && seed === undefined && untouched ? parsed.views.find((v) => v.id === parsed.defaultViewId) : undefined;
       if (view) {
         applyState(view.state);
@@ -328,13 +332,13 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
   const activeView = views.find((v) => v.id === activeViewId) ?? null;
 
   const currentKey = useMemo(
-    () => (activeView ? viewStateKey({ sorts: sortState, groupBy: [...groupBy], filters: filterState, searchText, searchOptions, columnLayout }) : null),
-    [activeView, sortState, groupBy, filterState, searchText, searchOptions, columnLayout],
+    () => (activeView ? viewStateKey({ sorts: sortState, groupBy: [...groupBy], filters: filterState, filterJoin, searchText, searchOptions, columnLayout }) : null),
+    [activeView, sortState, groupBy, filterState, filterJoin, searchText, searchOptions, columnLayout],
   );
 
   const overLimit = useMemo(
-    () => overLimitPart(captureViewState({ sorts: sortState, groupBy: [...groupBy], filters: filterState, searchText, searchOptions, columnLayout })),
-    [sortState, groupBy, filterState, searchText, searchOptions, columnLayout],
+    () => overLimitPart(captureViewState({ sorts: sortState, groupBy: [...groupBy], filters: filterState, filterJoin, searchText, searchOptions, columnLayout })),
+    [sortState, groupBy, filterState, filterJoin, searchText, searchOptions, columnLayout],
   );
 
   const activeIdNow = useCallback(() => (latest.current.value !== undefined ? latest.current.value : appliedIdRef.current) ?? null, []);

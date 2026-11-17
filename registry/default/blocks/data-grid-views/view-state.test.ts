@@ -29,6 +29,29 @@ const state: DataGridViewState = {
   columnLayout: { widths: { name: 120 }, order: ["age", "name", "secret"], pins: { name: "start" }, hidden: ["secret"] },
 };
 
+describe("filterJoin", () => {
+  it("keeps or and leaves and out of a capture", () => {
+    expect(captureViewState({ ...state, filterJoin: "or" }).filterJoin).toBe("or");
+    expect("filterJoin" in captureViewState({ ...state, filterJoin: "and" })).toBe(false);
+  });
+
+  it("tells an or view from an and view", () => {
+    expect(viewStateKey({ ...state, filterJoin: "or" })).not.toBe(viewStateKey(state));
+    expect(viewStateKey({ ...state, filterJoin: "and" })).toBe(viewStateKey(state));
+  });
+
+  it("sanitizes untrusted values to or or nothing", () => {
+    expect(sanitizeViewState({ ...state, filterJoin: "or" }, columns).state.filterJoin).toBe("or");
+    for (const bad of ["and", "OR", 1, null, {}, "xor"]) expect("filterJoin" in sanitizeViewState({ ...state, filterJoin: bad }, columns).state).toBe(false);
+  });
+
+  it("survives a file round trip and a stored document", () => {
+    const view = { name: "x", state: { ...state, filterJoin: "or" as const } };
+    expect(parseViewFile(serializeViewFile(view), columns)).toMatchObject({ ok: true, state: { filterJoin: "or" } });
+    expect(parseViewDocument({ version: 1, defaultViewId: null, views: [{ id: "a", name: "x", state: view.state }] })?.views[0]!.state.filterJoin).toBe("or");
+  });
+});
+
 describe("captureViewState", () => {
   it("strips transient filter ids from nested groups", () => {
     const captured = captureViewState({

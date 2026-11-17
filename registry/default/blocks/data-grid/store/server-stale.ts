@@ -1,6 +1,6 @@
 import { forEachFilterSpec } from "../sort-filter/filter-tree";
-import { serverSpecKey } from "../server-spec";
-import type { DataOp, FilterNode, SortSpec } from "../types";
+import { serverSpecKey, serverSpecOf } from "../server-spec";
+import type { DataOp, FilterJoinOperator, FilterNode, SortSpec } from "../types";
 import type { DataWriteContext } from "./data-write";
 import type { DataGridStoreState } from "./types";
 
@@ -122,7 +122,9 @@ export function staleStateAfterPrune(ctx: DataWriteContext, previous: ReadonlySe
 }
 
 /** True when the server spec of `next` differs from the one of `previous`; compared by content. */
-export function serverSpecChanged(previous: { sortState: SortSpec[]; filterState: FilterNode[]; searchText: string }, next: { sortState: SortSpec[]; filterState: FilterNode[]; searchText: string }): boolean {
-  if (previous.sortState === next.sortState && previous.filterState === next.filterState && previous.searchText === next.searchText) return false;
-  return serverSpecKey({ sorts: previous.sortState, filters: previous.filterState, searchText: previous.searchText }) !== serverSpecKey({ sorts: next.sortState, filters: next.filterState, searchText: next.searchText });
+type SpecState = { sortState: SortSpec[]; filterState: FilterNode[]; filterJoin: FilterJoinOperator; searchText: string };
+
+export function serverSpecChanged(previous: SpecState, next: SpecState): boolean {
+  if (previous.sortState === next.sortState && previous.filterState === next.filterState && previous.filterJoin === next.filterJoin && previous.searchText === next.searchText) return false;
+  return serverSpecKey(serverSpecOf(previous)) !== serverSpecKey(serverSpecOf(next));
 }

@@ -76,7 +76,7 @@ export function useGroupBlocks<TData, TCursor = never>(
   active: boolean,
   pages?: GroupPagesConfig,
 ) {
-  const { spec, onSortChange, onFilterChange, onSearchTextChange, onGroupByChange } = specState;
+  const { spec, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, onGroupByChange } = specState;
   const groupBy = spec.groupBy ?? NO_GROUPS;
   const requestKey = serverSpecKey({ ...spec, aggregates: undefined });
   const engineKey = pages ? `${requestKey}|${pages.pageSize}` : requestKey;
@@ -494,6 +494,8 @@ export function useGroupBlocks<TData, TCursor = never>(
       onSortChange,
       filterState: spec.filters as UseDataGridServerRowsScrollProviderProps<TData>["filterState"],
       onFilterChange,
+      filterJoin: spec.filterJoin ?? "and",
+      onFilterJoinChange,
       searchText: spec.searchText,
       onSearchTextChange,
       totalRowCount: view.data.length,
@@ -507,7 +509,7 @@ export function useGroupBlocks<TData, TCursor = never>(
       groupMode: "server",
       groupLayout,
     }),
-    [view, getRowId, onDataChange, onSave, onRenderedRowsChange, spec, onSortChange, onFilterChange, onSearchTextChange, plugins, groupBy, onGroupByChange, expanded, setExpanded, groupLayout],
+    [view, getRowId, onDataChange, onSave, onRenderedRowsChange, spec, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, plugins, groupBy, onGroupByChange, expanded, setExpanded, groupLayout],
   );
   useRegisteredWiring(providerProps, wrapSave);
   const rootProps = useMemo<UseDataGridServerRowsRootProps>(() => ({ loading, error, onRetry: retry }), [loading, error, retry]);

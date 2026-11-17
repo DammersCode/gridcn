@@ -1,4 +1,4 @@
-import type { FilterGroup, FilterNode, FilterSpec } from "../types";
+import type { FilterGroup, FilterJoinOperator, FilterNode, FilterSpec } from "../types";
 
 /** Deepest group nesting a filter tree may have: a group (1) holds at most one more group (2). */
 export const MAX_FILTER_GROUP_DEPTH = 2;
@@ -8,6 +8,16 @@ export const MAX_SPEC_SORTS = 64;
 
 /** Longest search text that URL state and saved views restore and `parseServerSpec` accepts by default. */
 export const MAX_SPEC_SEARCH_LENGTH = 500;
+
+const orRoots = new WeakMap<readonly FilterNode[], FilterNode[]>();
+
+/** The tree to evaluate for a root join: `"or"` over two or more entries is one `or` group, any other input is returned as is. The wrapper keeps its identity per list. */
+export function withRootJoin(filters: readonly FilterNode[], join: FilterJoinOperator | undefined): readonly FilterNode[] {
+  if (join !== "or" || filters.length < 2) return filters;
+  let wrapped = orRoots.get(filters);
+  if (!wrapped) orRoots.set(filters, (wrapped = [{ join: "or", filters: filters as FilterNode[] }]));
+  return wrapped;
+}
 
 export function isFilterGroup(node: FilterNode): node is FilterGroup {
   return "filters" in node;

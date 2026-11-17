@@ -1,4 +1,5 @@
 import type { FilterNode, SortSpec } from "../types";
+import { withRootJoin } from "./filter-tree";
 import { isEmptyCell, makeFilterNodeTest, type CellAccessor, type ViewIndexOptions } from "./build-view-index";
 import { defaultCompareText } from "./default-compare-text";
 
@@ -130,7 +131,7 @@ export function updateViewIndex(
   // buildViewIndex narrows by `search` before sorting; this path only knows sort + filter membership.
   if (opts.search?.trim() && opts.searchColumnIds) return { viewIndex: null, bail: "search-active" };
   const rows = Array.from(new Set(touchedRows));
-  const survives = makeFilterPredicate(accessor, opts.filters);
+  const survives = makeFilterPredicate(accessor, withRootJoin(opts.filters, opts.filterJoin));
   // With no sort columns the comparator degenerates to the data-index tiebreak alone, which is
   // exactly the order the rebuild leaves an unsorted filtered view in.
   const compare = makeViewComparator(accessor, opts.sorts);

@@ -955,14 +955,39 @@ describe("DataGridFilterMenu groups", () => {
     await expect.poll(rowCount).toBe(2);
   }
 
-  it("shows no connector select at the top level and Where on the first row", async () => {
+  it("shows the connector select on the second top-level row only and the join as text after it", async () => {
     await renderGrid();
     await page.getByRole("button", { name: "Filters" }).click();
     await click(buttons("Add filter")[0]);
     await click(buttons("Add filter")[0]);
-    expect(document.querySelector('[role="combobox"][aria-label^="Connector of filter"]')).toBeNull();
+    await click(buttons("Add filter")[0]);
+    const selects = document.querySelectorAll('[role="combobox"][aria-label^="Connector of filter"]');
+    expect(selects).toHaveLength(1);
+    expect(selects[0]!.getAttribute("aria-label")).toBe("Connector of filter 2");
     const connectors = [...document.querySelectorAll("[data-grid-filter-row] > div:first-child")].map((c) => c.textContent);
-    expect(connectors).toEqual(["Where", "And"]);
+    expect(connectors).toEqual(["Where", "And", "And"]);
+  });
+
+  it("joins the top level with or from the second row connector and mirrors it on later rows", async () => {
+    await renderGrid();
+    await page.getByRole("button", { name: "Filters" }).click();
+    await click(buttons("Add filter")[0]);
+    await click(buttons("Add filter")[0]);
+    await click(buttons("Add filter")[0]);
+    await page.getByRole("combobox", { name: "Connector of filter 2" }).click();
+    await page.getByRole("option", { name: "Or", exact: true }).click();
+    await expect.poll(() => [...document.querySelectorAll("[data-grid-filter-row] > div:first-child")].map((c) => c.textContent)).toEqual(["Where", "Or", "Or"]);
+    await expect.poll(rowCount).toBe(3);
+  });
+
+  it("sets the top-level join with the keyboard on the second row connector", async () => {
+    await renderGrid();
+    await page.getByRole("button", { name: "Filters" }).click();
+    await click(buttons("Add filter")[0]);
+    await click(buttons("Add filter")[0]);
+    document.querySelector<HTMLElement>('[role="combobox"][aria-label="Connector of filter 2"]')!.focus();
+    await userEvent.keyboard("{Enter}{ArrowDown}{Enter}");
+    await expect.poll(() => [...document.querySelectorAll("[data-grid-filter-row] > div:first-child")].map((c) => c.textContent)).toEqual(["Where", "Or"]);
   });
 
   it("builds a nested filter group by clicking and counts leaf rows in the badge", async () => {
@@ -975,12 +1000,12 @@ describe("DataGridFilterMenu groups", () => {
     await buildNestedFilterTree();
     expect(page.getByText("Match any of the following").query()).toBeNull();
     expect(page.getByText("Match all of the following").query()).toBeNull();
-    expect(document.querySelectorAll('[data-grid-filter-group] [role="combobox"][aria-label^="Connector of filter"]')).toHaveLength(1);
+    expect(document.querySelectorAll('[data-grid-filter-group] [data-grid-filter-row] [role="combobox"][aria-label^="Connector of filter"]')).toHaveLength(1);
     const group = document.querySelector("[data-grid-filter-group]")!;
     expect(group.querySelector(":scope > div:nth-child(2) > [role='combobox']")).toBeNull();
   });
 
-  it("keeps the first row's connector and the top level connector static", async () => {
+  it("keeps the first row's connector static and puts the top-level select on the group at index 1", async () => {
     await buildNestedFilterTree();
     const connector = (row: Element) => row.querySelector(":scope > div:first-child")!;
     const groupRows = [...document.querySelectorAll("[data-grid-filter-group] [data-grid-filter-row]")];
@@ -989,24 +1014,26 @@ describe("DataGridFilterMenu groups", () => {
     expect(connector(groupRows[1]!).querySelector("[role='combobox']")).not.toBeNull();
     const group = document.querySelector("[data-grid-filter-group]")!;
     expect(connector(group).textContent).toBe("And");
-    expect(connector(group).querySelector("[role='combobox']")).toBeNull();
+    expect(connector(group).querySelector("[role='combobox']")).not.toBeNull();
   });
 
   it("changing the connector on one row sets it on every row of that group and re-filters", async () => {
     await buildNestedFilterTree();
     await click(buttons("Add filter")[1]); // third row in the group
     await expect.poll(() => valueInputs().length).toBe(4);
-    const selects = () => [...document.querySelectorAll<HTMLElement>('[data-grid-filter-group] [role="combobox"][aria-label^="Connector of filter"]')];
-    expect(selects().map((s) => s.textContent)).toEqual(["Or", "Or"]);
+    const selects = () => [...document.querySelectorAll<HTMLElement>('[data-grid-filter-group] [data-grid-filter-row] [role="combobox"][aria-label^="Connector of filter"]')];
+    const texts = () => [...document.querySelectorAll("[data-grid-filter-group] [data-grid-filter-row] > div:first-child")].map((c) => c.textContent);
+    expect(selects().map((s) => s.textContent)).toEqual(["Or"]);
+    expect(texts()).toEqual(["Where", "Or", "Or"]);
     await page.getByRole("combobox", { name: "Connector of filter 2 in group 1" }).click();
     await page.getByRole("option", { name: "And", exact: true }).click();
-    await expect.poll(() => selects().map((s) => s.textContent)).toEqual(["And", "And"]);
+    await expect.poll(() => texts()).toEqual(["Where", "And", "And"]);
     // Age > 26 and (Ali and Bo and ""): no name holds both
     await expect.poll(rowCount).toBe(0);
     expect(valueInputs()[0]!.value).toBe("26");
-    await page.getByRole("combobox", { name: "Connector of filter 3 in group 1" }).click();
+    await page.getByRole("combobox", { name: "Connector of filter 2 in group 1" }).click();
     await page.getByRole("option", { name: "Or", exact: true }).click();
-    await expect.poll(() => selects().map((s) => s.textContent)).toEqual(["Or", "Or"]);
+    await expect.poll(() => texts()).toEqual(["Where", "Or", "Or"]);
     await expect.poll(rowCount).toBeGreaterThan(0);
   });
 

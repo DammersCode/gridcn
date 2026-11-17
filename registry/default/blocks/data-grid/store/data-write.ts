@@ -242,10 +242,10 @@ function flushEmits(ctx: DataWriteContext): void {
 export function resolveViewIndex(s: DataGridStoreState, data: readonly unknown[], pending: readonly number[] | null): number[] {
   const prevFull = fullViewOf(s.viewIndex);
   const incremental = pending && s.groupLayout === null
-    ? incrementalViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), prevFull, pending, s.cellTypes, s.sortLocale)
+    ? incrementalViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState, s.filterJoin), prevFull, pending, s.cellTypes, s.sortLocale)
     : null;
   if (incremental) return windowView(sameElements(incremental, prevFull) ? prevFull : incremental, viewWindowOf(s), s.viewIndex);
-  return computeViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, s.cellTypes, viewWindowOf(s), s.sortLocale, groupingOf(s));
+  return computeViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState, s.filterJoin), s.viewIndex, s.cellTypes, viewWindowOf(s), s.sortLocale, groupingOf(s));
 }
 
 /**
@@ -257,7 +257,7 @@ export function resolveViewIndex(s: DataGridStoreState, data: readonly unknown[]
  */
 export function reconcileAfterWrite(s: DataGridStoreState, nextData: readonly unknown[], ops: readonly DataOp<unknown>[]): Partial<DataGridStoreState> {
   const written: CellPatch[] = ops.flatMap((op) => (op.type === "update" && op.cells ? op.cells.map((cell) => ({ rowId: op.rowId, columnId: cell.columnId, value: cell.value })) : []));
-  const viewStale = s.viewStale || touchesViewInputs(written, viewInputSorts(s), viewFilters(s.filterMode, s.filterState));
+  const viewStale = s.viewStale || touchesViewInputs(written, viewInputSorts(s), viewFilters(s.filterMode, s.filterState, s.filterJoin));
   const groups = refreshedGroups(s, nextData, null, written);
   if (s.searchText.trim() === "") return viewStale === s.viewStale ? groups : { ...groups, viewStale };
   return {
@@ -274,7 +274,7 @@ export function reconcileAfterWrite(s: DataGridStoreState, nextData: readonly un
  * `activeCell` (it follows or clears the cursor itself).
  */
 export function rebuildRowOpView(s: DataGridStoreState, nextData: readonly unknown[]): Partial<DataGridStoreState> {
-  const viewIndex = computeViewIndex(nextData, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, s.cellTypes, viewWindowOf(s), s.sortLocale, groupingOf(s));
+  const viewIndex = computeViewIndex(nextData, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState, s.filterJoin), s.viewIndex, s.cellTypes, viewWindowOf(s), s.sortLocale, groupingOf(s));
   const staleRowIds = s.dataWrite.staleRows.size > 0 ? staleStateAfterPrune(s.dataWrite, s.staleRowIds, pruneStaleRows(s.dataWrite, nextData, s.getRowId)) : s.staleRowIds;
   return {
     viewIndex,
@@ -421,7 +421,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       if (ctx.reshape) ctx.reshape("urgent");
       else stale = clearStaleRows(ctx);
     }
-    if (s.pageSize === null && s.groupLayout === null && viewSorts(s.sortMode, s.sortState).length === 0 && viewFilters(s.filterMode, s.filterState).length === 0) {
+    if (s.pageSize === null && s.groupLayout === null && viewSorts(s.sortMode, s.sortState).length === 0 && viewFilters(s.filterMode, s.filterState, s.filterJoin).length === 0) {
       resetDeferredRows(ctx);
       set({ viewStale: stale.staleRowIds.size > 0, staleRowIds: stale.staleRowIds });
       return;
@@ -643,7 +643,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     ctx.lastEmittedData = batch.nextData;
     const view = rebuildRowOpView(s, batch.nextData);
     const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, batch.nextData, s.getRowId);
-    if (s.pageSize !== null || viewSorts(s.sortMode, s.sortState).length > 0 || viewFilters(s.filterMode, s.filterState).length > 0) {
+    if (s.pageSize !== null || viewSorts(s.sortMode, s.sortState).length > 0 || viewFilters(s.filterMode, s.filterState, s.filterJoin).length > 0) {
       const followed = followActiveRow(s, batch.nextData, view.viewIndex!);
       pruneRowValidationKeys(batch.nextData, s.getRowId);
       writeThenEmit(ctx, s, batch.nextData, { source: "row-operation", ops: batch.ops }, () =>
@@ -677,7 +677,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     ctx.lastEmittedData = batch.nextData;
     const view = rebuildRowOpView(s, batch.nextData);
     const editRemap = remapEditing(s, view.viewIndex!, s.visibleColumns, batch.nextData, s.getRowId);
-    if (s.pageSize !== null || viewSorts(s.sortMode, s.sortState).length > 0 || viewFilters(s.filterMode, s.filterState).length > 0) {
+    if (s.pageSize !== null || viewSorts(s.sortMode, s.sortState).length > 0 || viewFilters(s.filterMode, s.filterState, s.filterJoin).length > 0) {
       const followed = followActiveRow(s, batch.nextData, view.viewIndex!);
       pruneRowValidationKeys(batch.nextData, s.getRowId);
       writeThenEmit(ctx, s, batch.nextData, { source: "row-operation", ops: batch.ops }, () =>
@@ -784,7 +784,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     if (s.readOnly) return "readOnly";
     if (serverOwnsGroups(s)) return "server-groups";
     // A server sort owns the order too: the next fetch would put the moved rows back.
-    if (s.sortState.length > 0 || viewFilters(s.filterMode, s.filterState).length > 0) {
+    if (s.sortState.length > 0 || viewFilters(s.filterMode, s.filterState, s.filterJoin).length > 0) {
       warnGateOnce("reorder view-ordered", "reorderRows is a no-op while a sort or filter is active (the view order is owned by them)");
       return "view-ordered";
     }
@@ -930,7 +930,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     }
     const applied = batch.ops.reduce((n, op) => (op.type === "update" ? n + (op.cells?.length ?? 0) : n), 0);
 
-    const reorder = resolveReorder(options?.reorder, patches, viewInputSorts(s), viewFilters(s.filterMode, s.filterState));
+    const reorder = resolveReorder(options?.reorder, patches, viewInputSorts(s), viewFilters(s.filterMode, s.filterState, s.filterJoin));
     ctx.rowIndexCache.rebase(nextData);
     ctx.lastEmittedData = nextData;
     const marks = markStaleRows(ctx, s, batch.ops, batch.touchedRows, (options?.reorder ?? "defer") !== "never");
@@ -965,7 +965,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     }
     // A tick that cannot touch a sort or filter input leaves a settled, search-free view where it is.
     const settled = !s.viewStale && ctx.deferredRows?.size === 0 && s.searchText.trim() === "";
-    if (settled && !marks.touched && patchesLeaveViewAlone(s.columns, patches, viewInputSorts(s), viewFilters(s.filterMode, s.filterState))) {
+    if (settled && !marks.touched && patchesLeaveViewAlone(s.columns, patches, viewInputSorts(s), viewFilters(s.filterMode, s.filterState, s.filterJoin))) {
       writeThenEmit(ctx, s, nextData, change, () => set({ data: nextData, cellErrors, ...refreshedGroups(s, nextData, batch.touchedRows, patches) }));
       emitStreamRejections(patches, batch.rejected, options?.source);
       return { applied, skipped: batch.skipped, pending: false };

@@ -13,6 +13,7 @@ const OBSERVERS = [
   ["onRenderedRowsChange", null],
   ["onSortChange", "sortState"],
   ["onFilterChange", "filterState"],
+  ["onFilterJoinChange", "filterJoin"],
   ["onSearchTextChange", "searchText"],
 ] as const;
 

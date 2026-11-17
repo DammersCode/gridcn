@@ -1,4 +1,5 @@
 import { getCellValue, type AnyColumnDef, type ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import { serverSpecOf } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { normalizeLimit } from "./normalize-limit";
 import { displayText, isDev, isThenable, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
@@ -122,7 +123,7 @@ export async function exportRows<TData = unknown, TCell extends ExportCell = str
   if (outer?.aborted) throw abortReason(outer);
   outer?.addEventListener("abort", stop, { once: true });
 
-  const spec: ServerSpec = { sorts: state.sortState, filters: state.filterState, searchText: state.searchText };
+  const spec: ServerSpec = serverSpecOf(state);
   let rowCount = 0;
   let byteCount = 0;
   let truncated = false;

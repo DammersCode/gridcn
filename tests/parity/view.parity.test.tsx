@@ -61,6 +61,28 @@ describe("writes with client pagination", () => {
   });
 });
 
+describe("the top-level join with client pagination", () => {
+  const or = [{ filterId: "a", columnId: "n", operator: "lt", value: "1" }, { filterId: "b", columnId: "n", operator: "gt", value: "3" }] as const;
+  it("or narrows every page and resets to page 1", async () => {
+    const grid = await mountMode("PC");
+    grid.setFilters([...or] as never);
+    expect(grid.fullViewIds()).toEqual([]);
+    grid.goToPage(2);
+    grid.act(() => grid.state().actions.setFilterJoin("or"));
+    expect(grid.state().page).toBe(1);
+    expect(grid.fullViewIds()).toEqual(["r0", "r4", "r5"]);
+  });
+});
+
+describe("the top-level join with server pagination", () => {
+  it("filterMode server keeps the page whole and tracks the join", async () => {
+    const grid = await mountMode("PS", { props: { filterMode: "server" } });
+    grid.act(() => grid.state().actions.setFilterJoin("or"));
+    expect(grid.state().filterJoin).toBe("or");
+    expect(grid.viewIds()).toEqual(["r0", "r1", "r2", "r3"]);
+  });
+});
+
 describe("sort, filter, and search with server pagination", () => {
   it("filterMode server keeps the page whole and tracks the spec", async () => {
     const grid = await mountMode("PS", { props: { filterMode: "server", sortMode: "server" } });

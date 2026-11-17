@@ -60,7 +60,7 @@ const DEFAULT_LIMITS = { maxSorts: MAX_SPEC_SORTS, maxFilters: 64, maxGroups: 16
 
 type Budget = { filters: number; groups: number };
 
-type Raw = { sorts?: unknown; filters?: unknown; searchText?: unknown; groupBy?: unknown; aggregates?: unknown; columnId?: unknown; direction?: unknown; join?: unknown; operator?: unknown; value?: unknown; matchCase?: unknown };
+type Raw = { sorts?: unknown; filters?: unknown; filterJoin?: unknown; searchText?: unknown; groupBy?: unknown; aggregates?: unknown; columnId?: unknown; direction?: unknown; join?: unknown; operator?: unknown; value?: unknown; matchCase?: unknown };
 
 const isRecord = (value: unknown): value is Raw => typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -81,9 +81,10 @@ export function parseServerSpec(input: unknown, options: ParseServerSpecOptions)
     filters: parseFilters(input.filters, rules, limits),
     searchText: parseSearch(input.searchText, limits),
   };
+  const filterJoin = parseFilterJoin(input.filterJoin);
   const groupBy = parseGroupBy(input.groupBy, rules, limits);
   const aggregates = parseAggregates(input.aggregates, groupBy.length > 0, rules, limits);
-  return { ...spec, ...(groupBy.length > 0 ? { groupBy } : null), ...(aggregates.length > 0 ? { aggregates } : null) };
+  return { ...spec, ...(filterJoin === "or" ? { filterJoin } : null), ...(groupBy.length > 0 ? { groupBy } : null), ...(aggregates.length > 0 ? { aggregates } : null) };
 }
 
 /**
@@ -111,6 +112,11 @@ export function parseGroupPath(input: unknown, spec: ServerSpec, options: { limi
   const childKind = groupPath.length < groupBy.length ? "groups" : "rows";
   if (body.childKind !== undefined && body.childKind !== childKind) throw new ServerSpecError("childKind", `must be "${childKind}" for a path of ${groupPath.length} of ${groupBy.length} levels`);
   return { groupPath, childKind };
+}
+
+function parseFilterJoin(value: unknown): "and" | "or" {
+  if (value === undefined || value === "and" || value === "or") return value ?? "and";
+  throw new ServerSpecError("filterJoin", 'must be "and" or "or"');
 }
 
 function limitsOf(options: { limits?: ServerSpecLimits }): Required<ServerSpecLimits> {

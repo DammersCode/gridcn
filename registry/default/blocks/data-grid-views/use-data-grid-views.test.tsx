@@ -11,6 +11,7 @@ import {
   type FilterNode,
   type SortSpec,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
 import { useDataGridViews, type UseDataGridViewsOptions, type UseDataGridViewsResult } from "./use-data-grid-views";
 import { createMemoryViewsStorage, type DataGridViewsStorage } from "./view-storage";
@@ -37,6 +38,7 @@ type Probe = {
   filter: FilterNode[];
   search: string;
   actions: ReturnType<typeof useDataGridActions>;
+  joinOf: () => string;
 };
 
 function Harness({ options, onProbe, beforeLoad }: { options?: UseDataGridViewsOptions; onProbe: (p: Probe) => void; beforeLoad?: (a: ReturnType<typeof useDataGridActions>) => void }) {
@@ -46,7 +48,8 @@ function Harness({ options, onProbe, beforeLoad }: { options?: UseDataGridViewsO
   const search = useDataGridSearchText();
   const actions = useDataGridActions();
   useEffect(() => beforeLoad?.(actions), []); // oxlint-disable-line react-hooks/exhaustive-deps
-  onProbe({ views, sort, filter, search, actions });
+  const storeApi = useDataGridStoreApi();
+  onProbe({ views, sort, filter, search, actions, joinOf: () => storeApi.getState().filterJoin });
   return null;
 }
 
@@ -103,6 +106,24 @@ describe("useDataGridViews", () => {
     expect(probe.current!.sort).toEqual([]);
     expect(probe.current!.filter).toMatchObject([{ columnId: "name", operator: "equals", value: "Alice" }]);
     expect(probe.current!.search).toBe("");
+  });
+
+  it("saves the top-level join and restores it on select", async () => {
+    const storage = createMemoryViewsStorage();
+    const { probe } = setup({ storage });
+    await ready(probe);
+    act(() => probe.current!.actions.setFilters([{ columnId: "name", operator: "equals", value: "Alice" }, { columnId: "age", operator: "gt", value: "35" }]));
+    act(() => probe.current!.actions.setFilterJoin("or"));
+    let saved: ReturnType<UseDataGridViewsResult["saveView"]> = null;
+    act(() => {
+      saved = probe.current!.views.saveView("Either");
+    });
+    expect(saved).toMatchObject({ state: { filterJoin: "or" } });
+    expect(probe.current!.views.modified).toBe(false);
+    act(() => probe.current!.actions.setFilterJoin("and"));
+    expect(probe.current!.views.modified).toBe(true);
+    act(() => probe.current!.views.selectView(saved!.id));
+    expect(probe.current!.joinOf()).toBe("or");
   });
 
   it("ignores an unknown id", async () => {

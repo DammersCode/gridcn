@@ -8,7 +8,12 @@ export type DistinctValue = { key: string; text: string; label: string; count: n
 
 export type DistinctValues = { values: DistinctValue[]; capped: boolean; hasHoles: boolean };
 
-export type DistinctValuesInput = Pick<DataGridReadState, "data" | "columns" | "cellTypes" | "filterState"> & { filterMode?: "client" | "server"; sortLocale?: string };
+export type DistinctValuesInput = Pick<DataGridReadState, "data" | "columns" | "cellTypes" | "filterState"> & { filterMode?: "client" | "server"; filterJoin?: "and" | "or"; sortLocale?: string };
+
+/** The filters that narrow a column's value list: every top-level entry but its own set filter. Under a root `"or"` no entry narrows, because an `or` list only widens. */
+export function narrowingFilters(state: { filterState: readonly FilterNode[]; filterJoin?: "and" | "or" }, columnId: string, custom?: ReadonlyMap<string, CustomFilterOperator>): FilterNode[] {
+  return state.filterJoin === "or" ? [] : state.filterState.filter((node) => !isOwnSetFilter(node, columnId, custom));
+}
 
 /** A top-level set row of the column: `isAnyOf`, `isNoneOf`, or a registered custom operator with `input: "list"`. */
 export const isOwnSetFilter = (node: FilterNode, columnId: string, custom?: ReadonlyMap<string, CustomFilterOperator>) =>
@@ -43,7 +48,7 @@ function collectDistinctValues(state: DistinctValuesInput, columnId: string, exc
   const { data } = state;
   const accessor = rowAccessorFor(state.columns, data, state.cellTypes);
   const custom = excludeCustomLists ? customOperatorsOf(column, state.cellTypes) : undefined;
-  const passes = makeFilterPredicate(accessor, (state.filterMode === "server" ? [] : state.filterState).filter((node) => !isOwnSetFilter(node, columnId, custom)));
+  const passes = makeFilterPredicate(accessor, state.filterMode === "server" ? [] : narrowingFilters(state, columnId, custom));
 
   const matchCase = accessor.filterMatchCase?.(columnId) ?? false;
   const groups = new Map<string, { row: number; text: string; count: number }>();

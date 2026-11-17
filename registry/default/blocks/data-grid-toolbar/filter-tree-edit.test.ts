@@ -38,5 +38,7 @@ describe("filter tree edits", () => {
     expect(oppositeJoin(undefined)).toBe("or");
     expect(oppositeJoin({ join: "or", filters: [] })).toBe("and");
     expect(oppositeJoin({ join: "and", filters: [] })).toBe("or");
+    expect(oppositeJoin(undefined, "or")).toBe("and");
+    expect(oppositeJoin({ join: "and", filters: [] }, "or")).toBe("or");
   });
 });

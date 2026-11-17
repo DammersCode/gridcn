@@ -293,3 +293,21 @@ describe("values and aggregates requests", () => {
     expect(parseQuery({ spec: {} }, { columns: withAggregate, request: "aggregates" }).columns).toHaveLength(1);
   });
 });
+
+describe("root filterJoin", () => {
+  const two = [leaf("name", "equals", "a"), leaf("qty", "gt", "3")];
+  it("joins the top-level filters with or", () => {
+    expect(rows(two, {}, { filterJoin: "or" }).where).toMatchObject({ t: "or" });
+  });
+  it.each([undefined, "and", "xor", 1, null])("reads %j as and", (join) => {
+    expect(rows(two, {}, { filterJoin: join }).where).toMatchObject({ t: "and" });
+  });
+  it("keeps a root or beside the search as one and", () => {
+    const where = rows(two, {}, { filterJoin: "or", searchText: "z" }).where;
+    expect(where.t).toBe("and");
+    expect((where as unknown as { items: Predicate[] }).items.map((item) => item.t)).toEqual(["or", "or"]);
+  });
+  it("leaves an empty list as no filter", () => {
+    expect(rows([], {}, { filterJoin: "or" }).where.t).toBe("true");
+  });
+});

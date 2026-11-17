@@ -285,6 +285,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           onExpandedChange: props.onExpandedChange,
           groupingEnabled: s.groupingEnabled || props.onGroupByChange !== undefined,
           onFilterChange: props.onFilterChange,
+          onFilterJoinChange: props.onFilterJoinChange,
           onSearchTextChange: props.onSearchTextChange,
           onColumnLayoutChange: props.onColumnLayoutChange,
           onColumnResizing: props.onColumnResizing,
@@ -316,6 +317,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
         memory.lastPropsFilterState = props.filterState;
         const nextFilterState =
           props.filterState === undefined || !propsFilterStateChanged || filterSpecKey(props.filterState) === filterSpecKey(s.filterState) ? s.filterState : withMatchCase(withFilterIds(props.filterState), props.columns, s.cellTypes);
+        const nextFilterJoin = props.filterJoin === undefined ? s.filterJoin : props.filterJoin === "or" ? "or" : "and";
         const nextSortMode = resolveSortMode(props);
         const nextSortLocale = resolveSortLocale(props);
         const nextFilterMode = resolveFilterMode(props);
@@ -325,7 +327,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
         }
         const nextSearchText = props.searchText ?? s.searchText;
-        const filterSpecChanged = filterSpecKey(nextFilterState) !== filterSpecKey(s.filterState);
+        const filterSpecChanged = filterSpecKey(nextFilterState) !== filterSpecKey(s.filterState) || nextFilterJoin !== s.filterJoin;
         const nextPageSize = props.pageSize !== undefined ? props.pageSize : s.pageSize;
         let nextPage = props.page ?? (filterSpecChanged ? 1 : s.page);
         if (filterSpecChanged && s.pageSize !== null && s.page !== 1) queueMicrotask(() => s.onPageChange?.(1));
@@ -398,7 +400,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           cellTypes: nextCellTypes,
           columns: nextColumns,
           sortState: nextViewSorts,
-          filterState: viewFilters(nextFilterMode, nextFilterState),
+          filterState: viewFilters(nextFilterMode, nextFilterState, nextFilterJoin),
           searchText: nextSearchText,
           columnOrder: s.columnOrder,
           hiddenColumns: nextHiddenColumns,
@@ -419,7 +421,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
         const nextVisibleColumns = unchanged ? s.visibleColumns : computeVisibleColumns(nextColumns, s.columnOrder, nextHiddenColumns);
         const nextViewIndex = unchanged
           ? s.viewIndex
-          : computeViewIndex(nextData, nextColumns, nextViewSorts, viewFilters(nextFilterMode, nextFilterState), s.viewIndex, nextCellTypes, nextPageSize === null ? null : { page: nextPage, pageSize: nextPageSize }, nextSortLocale, groupingOf({ ...nextGroup, groupMode: nextGroupMode, serverGroupLayout: nextServerLayout, totalRowCount: s.totalRowCount, sortMode: nextSortMode, dataWrite: s.dataWrite }));
+          : computeViewIndex(nextData, nextColumns, nextViewSorts, viewFilters(nextFilterMode, nextFilterState, nextFilterJoin), s.viewIndex, nextCellTypes, nextPageSize === null ? null : { page: nextPage, pageSize: nextPageSize }, nextSortLocale, groupingOf({ ...nextGroup, groupMode: nextGroupMode, serverGroupLayout: nextServerLayout, totalRowCount: s.totalRowCount, sortMode: nextSortMode, dataWrite: s.dataWrite }));
         // Controlled columnLayout (decision 8): the same echo/structural-equal rule as selection,
         // merged over the incoming column state; a new `columns` array re-applies the controlled
         // parts over the new defs (normalize re-seeds def-hidden and ignores pins on `pinnable: false` columns).
@@ -497,11 +499,11 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
         if (!unchanged) resetDeferredRows(dataWrite);
         let nextStaleRowIds = s.staleRowIds;
         if (dataWrite.staleRows.size > 0) {
-          if (serverSpecChanged(s, { sortState: nextSortState, filterState: nextFilterState, searchText: nextSearchText })) nextStaleRowIds = clearStaleRows(dataWrite).staleRowIds;
+          if (serverSpecChanged(s, { sortState: nextSortState, filterState: nextFilterState, filterJoin: nextFilterJoin, searchText: nextSearchText })) nextStaleRowIds = clearStaleRows(dataWrite).staleRowIds;
           else if (foreignData) nextStaleRowIds = staleStateAfterPrune(dataWrite, s.staleRowIds, pruneStaleRows(dataWrite, nextData, nextGetRowId as (row: unknown, index: number) => string));
         }
         const staleChanged = nextStaleRowIds !== s.staleRowIds;
-        const clientViewActive = viewSorts(nextSortMode, nextSortState).length > 0 || viewFilters(nextFilterMode, nextFilterState).length > 0;
+        const clientViewActive = viewSorts(nextSortMode, nextSortState).length > 0 || viewFilters(nextFilterMode, nextFilterState, nextFilterJoin).length > 0;
         // An echo-only sync (every recompute input unchanged, selection/layout no-ops, flags
         // stable) returns the same state so zustand skips every listener: the controlled loop
         // pays zero store work per drag step (decision 4).
@@ -510,6 +512,8 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           s.sortMode !== nextSortMode ||
           s.filterMode !== nextFilterMode ||
           s.filterState !== nextFilterState ||
+          s.filterJoin !== nextFilterJoin ||
+          s.filterJoinControlled !== (props.filterJoin !== undefined) ||
           s.sortState !== nextSortState ||
           s.filterControlled !== (props.filterState !== undefined) ||
           s.searchControlled !== (props.searchText !== undefined) ||
@@ -544,9 +548,11 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           sortLocale: nextSortLocale,
           filterMode: nextFilterMode,
           filterState: nextFilterState,
+          filterJoin: nextFilterJoin,
           searchText: nextSearchText,
           sortControlled: props.sortState !== undefined,
           filterControlled: props.filterState !== undefined,
+          filterJoinControlled: props.filterJoin !== undefined,
           searchControlled: props.searchText !== undefined,
           page: nextPage,
           pageSize: nextPageSize,
@@ -571,7 +577,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           ...(unchanged && layoutApply === null
             ? { searchMatches: s.searchMatches, searchMatchSet: s.searchMatchSet, searchMatchRows: s.searchMatchRows, searchMatchesCapped: s.searchMatchesCapped }
             : computeSearchMatches(nextData, finalColumns, nextViewIndex, finalVisibleColumns, nextSearchText, nextCellTypes, s.searchOptions)),
-          ...(s.allMatching && (nextSearchText !== s.searchText || filterSpecKey(nextFilterState) !== filterSpecKey(s.filterState))
+          ...(s.allMatching && (nextSearchText !== s.searchText || filterSpecKey(nextFilterState) !== filterSpecKey(s.filterState) || nextFilterJoin !== s.filterJoin)
             ? endAllMatching(followed.selection ?? s.selection)
             : {}),
           // The controlled values win over the remapped ones.
