@@ -131,6 +131,10 @@ export type UseDataGridCommentsOptions = {
   readOnly?: boolean;
   /** Shows resolve and reopen. `false` ignores the `resolved` state in the UI and refuses resolve and reopen. Default `true`. */
   enableResolve?: boolean;
+  /** Shows edit. `false` removes the Edit action and refuses edits with the reason `"forbidden"`. Default `true`. */
+  enableEdit?: boolean;
+  /** Shows delete. `false` removes the Delete action and refuses deletes with the reason `"forbidden"`. Default `true`. */
+  enableDelete?: boolean;
   /** Controlled confirmed comments. Keep the reference stable between renders. */
   comments?: readonly CellComment[];
   /** One-shot seed. */

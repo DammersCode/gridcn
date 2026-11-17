@@ -8,7 +8,7 @@ import { createCommentsOverlay } from "./comments-overlay";
 import { createMenuItemsResolver } from "./menu-items";
 import type { UseDataGridCommentsOptions, UseDataGridCommentsResult } from "./types";
 
-const RENDER_OPTION_KEYS = ["hideResolved", "labels", "className", "allowWhenReadOnly", "readOnly", "enableResolve", "canEdit", "canDelete", "canResolve", "canCreate", "fetchComments"] as const;
+const RENDER_OPTION_KEYS = ["hideResolved", "labels", "className", "allowWhenReadOnly", "readOnly", "enableResolve", "enableEdit", "enableDelete", "canEdit", "canDelete", "canResolve", "canCreate", "fetchComments"] as const;
 
 function renderOptionsChanged(previous: UseDataGridCommentsOptions, next: UseDataGridCommentsOptions): boolean {
   if (previous.currentUser?.id !== next.currentUser?.id || previous.currentUser?.name !== next.currentUser?.name || previous.currentUser?.color !== next.currentUser?.color) return true;

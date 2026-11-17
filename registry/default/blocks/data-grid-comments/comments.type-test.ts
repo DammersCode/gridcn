@@ -24,6 +24,8 @@ export function typedComments() {
     canResolve: ({ action }) => action === "resolve",
     readOnly: false,
     enableResolve: true,
+    enableEdit: false,
+    enableDelete: false,
     fetchComments: async ({ rowIds }) => rowIds.map((rowId) => ({ id: rowId, rowId, columnId: "name", text: "x", author, createdAt: 0, updatedAt: 0, version: 1, resolved: false })),
   });
 }

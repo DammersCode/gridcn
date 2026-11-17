@@ -102,6 +102,14 @@ describe("anonymous local writes", () => {
     expect((await engine.edit("c1", "still editable")).ok).toBe(true);
   });
 
+  it("enableEdit false and enableDelete false refuse edit and delete and keep the rest", async () => {
+    const { engine } = make({ enableEdit: false, enableDelete: false }, [record()]);
+    expect(await engine.edit("c1", "changed")).toEqual({ ok: false, reason: "forbidden" });
+    expect(await engine.remove("c1")).toEqual({ ok: false, reason: "forbidden" });
+    expect(live(engine)?.text).toBe(record().text);
+    expect((await engine.setResolved("c1", true)).ok).toBe(true);
+  });
+
   it("writes in controlled mode without onCommentSave", async () => {
     const seen: number[] = [];
     const { engine } = make({ onCommentsChange: (next) => seen.push(next.length) }, [], true);

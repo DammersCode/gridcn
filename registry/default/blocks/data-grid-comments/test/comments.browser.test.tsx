@@ -136,6 +136,15 @@ describe("comments: keyboard", () => {
     expect(popup()?.querySelector("[aria-label^='Reopen']")).toBeNull();
   });
 
+  it("enableEdit false and enableDelete false remove the Edit and Delete actions", async () => {
+    await render(<Harness options={{ enableEdit: false, enableDelete: false, defaultComments: [comment({ author: undefined })] }} />);
+    await expect.poll(() => markers().length).toBe(1);
+    markers()[0]?.click();
+    await expect.poll(() => popup()).not.toBeNull();
+    expect(popup()?.querySelector("[aria-label^='Edit']")).toBeNull();
+    expect(popup()?.querySelector("[aria-label^='Delete']")).toBeNull();
+  });
+
   it("a read-only grid blocks writes unless allowWhenReadOnly", async () => {
     await render(<Harness readOnly options={{ defaultComments: [comment({ author: alice })] }} />);
     await expect.poll(() => markers().length).toBe(1);
