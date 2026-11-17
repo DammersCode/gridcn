@@ -18,3 +18,10 @@ export function resolveClearWrites(s: DataGridStoreState, writes: readonly Clear
   }
   return resolveBulkWrites(candidates, s);
 }
+
+/** Runs `apply` on the resolution at once, or after an async schema settles. */
+export function resolveClearWritesThen(s: DataGridStoreState, writes: readonly ClearWrite[], apply: (resolved: BulkResolution) => void): void {
+  const resolution = resolveClearWrites(s, writes);
+  if (resolution instanceof Promise) void resolution.then(apply);
+  else apply(resolution);
+}

@@ -649,3 +649,25 @@ describe("development warnings", () => {
     warn.mockRestore();
   });
 });
+
+describe("stale rejection warning", () => {
+  const staleWithoutCurrent = { onCommentSave: () => ({ rejected: { reason: "stale" as const } }), canEdit: () => true };
+
+  async function editStale(extra: UseDataGridCommentsOptions): Promise<number> {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const h = make({ ...staleWithoutCurrent, ...extra }, { initial: [record()] });
+    const result = await h.engine.edit("c1", "mine");
+    if (result.ok) await result.settled;
+    const count = warn.mock.calls.filter((call) => String(call[0]).includes("stale rejection without")).length;
+    warn.mockRestore();
+    return count;
+  }
+
+  it("warns when the save gives no current record and fetchComments is unset", async () => {
+    expect(await editStale({})).toBe(1);
+  });
+
+  it("stays silent when fetchComments refetches the row", async () => {
+    expect(await editStale({ fetchComments: async () => [] })).toBe(0);
+  });
+});

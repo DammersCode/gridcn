@@ -68,15 +68,18 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - A function `validate` receives `ctx` as its third argument: `rows`, `batch` (every cell of the column that the same write sets), and `valueOf`. `unique()` rejects a value that another row holds, also inside one paste or fill.
 - Rows that a user change wrote (edit, paste, fill, delete, cut, replace, import, row operation) carry `data-row-changed`. An undo, a push, or new `data` clears it.
 - `setRowCheckedAt` takes a view row number, like `deleteRowsAt` and `duplicateRowsAt`. A `ViewIndex` still works.
-- `updateCells`, `updateRows`, and `editRows` with a source other than `"stream"` on a `readOnly` grid list every patch in `skipped` with the reason `"readonly"`.
+- `updateCells`, `updateRows`, and `editRows` on a `readOnly` grid list every patch in `skipped` with the reason `"readonly"`, unless the call passes `source: "stream"`. A call without a `source` is refused and warns once in development.
+- `applyCellUpdates` runs the column `validate` of each cell when the call passes no `rejected` and `warnings`, so a rejected value stays out and reaches `onValidationError`.
+- A development warning names a `defaultSortState`, `defaultFilterState`, or `defaultSearchText` that meets its controlled state, such as the state of `useDataGridServerRows`. The seed of a server grid is `defaultSpec`.
 - `processCellFromClipboard` receives `ctx.signal` and counts as a gate: `useDataGridGatePending()` lists it while a promise is pending, and `gateTimeoutMs.processCellFromClipboard` aborts it. `gateTimeoutMs.mapColumn` aborts a pending import `mapColumn`, which falls back to the built-in column match.
 - A paste, fill, or clear that an async column `validate` holds marks the gate `"validate"` pending, and `gateTimeoutMs.validate` aborts it. A paste aborts an earlier paste whose gate or async schema is still pending (`onGateAborted` reason `"superseded"`).
 - The move-rows shortcuts report `"disabled"` to `onRowActionSkipped` without a reorder `rowMarkers` mode.
+- `api.getSelectedRows()` returns the checked rows as `useDataGridSelectedRows()` does, the remembered hidden ones included, so a ref reads the set the status bar counts.
 
 ## Sorting, filtering, and search
 
 - A paged grid searches every page: `searchMatches` and the match count cover the whole view, the highlights show the matches on the shown page, and next and previous match (toolbar search, find and replace) jump to the page of the match. Find and replace's "replace all" covers every page. `reorderRows` and `moveRowsBy` work inside a paged grid with page-relative rows: a move stays on the shown page, a move past the page edge does nothing, and the checked rows and the active cell follow their rows (a sort or filter still blocks them).
-- The sort arrow shows in the string header of a sorted column that is not `sortable: false`, whatever `headerClickBehavior` says, so a sort restored from the URL is visible and no longer needs a docs workaround.
+- The sort arrow and `aria-sort` show on every sorted column, including a `sortable: false` column that `setSorts` sorts, whatever `headerClickBehavior` says, so a sort restored from the URL is visible and no longer needs a docs workaround.
 - Custom filter operators. List `{ id, label, input?, match? }` in the `filter.operators` of a column or a cell type: the operator select shows `label`, `input` (`single`, `range`, `list`, `none`) picks the value widget, and `match(text, filter)` evaluates it on the client. With `filterMode="server"` the spec carries the id and `match` is never called. The URL param round-trips a custom id through `useDataGridUrlState`.
 - `ColumnDef.filter.compare(text, bound)` orders a column's cells for `gt`, `gte`, `lt`, `lte`, and `isBetween` instead of the numeric-then-text default.
 - The find and replace panel shows "Searches loaded rows only" on a grid with a `totalRowCount` or a server `sortMode` or `filterMode`. New label: `findReplace.scopeLoadedRows`; an empty string hides the note.
@@ -95,6 +98,8 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - `filter.matchCase` on a column or a cell type makes the text and set operators and the header filter list respect letter case. `createFilterMatcher` takes `matchCase`.
 - After a row move, the search highlights and next and previous match stay on their records.
 - `DataGridUrlState` and saved views check the `isAnyOf` and `isNoneOf` values of a column with `choices` in client filter mode. A value stays when it matches a choice or a loaded data value of the column, without regard to case, so every value the header filter offers restores. Other values drop, and a list left empty drops its filter; a development build warns once per column. In server filter mode, or before the data loads, every value stays, and the server checks the values it receives.
+- A filter row of a column with `filter.matchCase` carries `matchCase: true` in `filterState`, `onFilterChange`, and the server request, so a server applies the same case rule. `parseServerSpec` keeps it.
+- Two grids on one page that share a views `storage` key stay in sync. Before, the second grid overwrote the first grid's new view.
 
 ## Server and data modes
 
@@ -157,6 +162,8 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - `processCellForClipboard` gets `ctx.text` (the cell type's copy text), and `processCellFromClipboard` and the import `processCellFromText` get `ctx.fromText` (the column's own parser). Return them for the cells you do not change: `(value, { column, text }) => (column.id === "price" ? "$" + value : text)`. The new `ClipboardCopyCtx` and `ClipboardPasteCtx` types describe the contexts.
 - `useDataGridImportPreview()` needs no argument: `build()` reads `columns` and `cellTypes` from the grid, and options with the same names override them. `printGrid` takes `direction`. New labels: `labels.io.importNeedsOnImport`, `importReadOnly`, and `emptyDropzoneCaption`.
 - The import button is disabled, with the reason, for a server grid without `onImport` (also with a `totalRowCount` of `null`) and for a `readOnly` grid. A custom `parseFile` can return a `"|"` delimiter. `accept={{}}` reads "All file types accepted". `csvEncoding` is typed.
+- `buildImportedRows` takes `existingRows`, and the import dialog's default append passes the grid's data, so `unique()` rejects an imported value that a grid row already holds.
+- `exportGrid` with `source` reports `truncated: false` for a complete file whose last slice passes `maxBytes`.
 
 ## Add-ons
 
@@ -292,3 +299,14 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - Fix: the hosted registry names the gridcn dependencies of an add-on `@gridcn/<item>`, so `npx shadcn add @gridcn/<add-on>` installs the core from the hosted registry. They named `DammersCode/gridcn/<item>`.
 - Fix: `useDataGridAggregate` keeps its result when an inline `specs` object keeps the same keys and reducers. A reducer function still recomputes when its identity changes. Before, every new `specs` object recomputed.
 - Fix: on a touch screen, the header menu button and the drag handle of a resizable column no longer sit under the column resize handle. Before, a tap on the menu button started a resize.
+- Fix: the date editor's calendar loads in an app whose `components.json` sets a custom `aliases.ui`. Before, the lazy import kept the `@/components/ui` path, and the build failed with "Module not found".
+- Fix: undo, redo, rollback, and other `commitChange` batches validate a `validationMode: "warn"` column with `unique()` in time linear in the rows. Before, each cell counted every row again (2,000 history operations over 20,000 rows took 3.3 s). Duplicates inside one batch are flagged, and a swap of two values is not.
+- Fix: `useDataGridState` with an inline plugin object in `plugins`, and `useDataGridPinnedRows` with an inline plain row object, no longer throw "Too many re-renders".
+- Fix: `refreshAfterSave: false` also turns off the pages-mode refresh after an insert or delete settles.
+- Fix: the fill handle focuses its own grid, not a nested grid's active cell, so Mod+Z undoes the fill.
+- Fix: a function `defaultSortState`, `defaultFilterState`, `defaultSearchText`, or `defaultColumnLayout` runs once under React StrictMode.
+- Fix: a lookup cell no longer writes its label memory on every render.
+- Fix: `BuiltInMenuItemId` lists `move-toward-start`, `move-toward-end`, `widen-column`, `narrow-column`, and `sep-move`.
+- Fix: the `columns` and `data` identity warnings print once per grid, and a rebuilt `columns` array with a new function no longer warns.
+- Fix: `setColumnOrder` returns `pin-zone` for a column group move across pin zones.
+- Fix: the comments add-on no longer warns about a stale rejection without `current` when `fetchComments` is set.

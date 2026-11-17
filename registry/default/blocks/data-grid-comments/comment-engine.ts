@@ -171,7 +171,7 @@ export function createCommentEngine(config: EngineConfig): CommentEngine {
         fetcher.schedule();
         return;
       case "warn":
-        warnOnce(emit.message, emit.message);
+        if (!(emit.unlessFetch && o.fetchComments)) warnOnce(emit.message, emit.message);
     }
   };
 

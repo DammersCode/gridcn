@@ -186,7 +186,7 @@ describe("stream delete", () => {
 describe("stream into read-only targets", () => {
   it("writes into a readOnly grid", () => {
     const m = mount(undefined, { readOnly: true });
-    const verdict = m.push([{ rowId: "a", columnId: "note", value: "pushed" }]);
+    const verdict = m.push([{ rowId: "a", columnId: "note", value: "pushed" }], { source: "stream" });
     expect(verdict).toMatchObject({ applied: 1, skipped: [] });
     expect(m.value("a", "note")).toBe("pushed");
   });
@@ -220,16 +220,16 @@ describe("stream into read-only targets", () => {
   it("reports a rejected value to onValidationError in a readOnly grid", () => {
     const onValidationError = vi.fn();
     const m = mount(undefined, { readOnly: true, onValidationError, columns: [{ id: "note", header: "Note", accessorKey: "note", validate: (value: unknown) => (value === "bad" ? "no" : null) }] });
-    const verdict = m.push([{ rowId: "a", columnId: "note", value: "bad" }]);
+    const verdict = m.push([{ rowId: "a", columnId: "note", value: "bad" }], { source: "stream" });
     expect(verdict.skipped).toEqual([{ patchIndex: 0, reason: "invalid" }]);
     expect(onValidationError).toHaveBeenCalledTimes(1);
   });
 });
 
-describe("a defaulted stream write into a readOnly grid", () => {
-  const readOnlyWarnings = (warn: { mock: { calls: unknown[][] } }) => warn.mock.calls.filter(([m]) => String(m).includes("defaults to source"));
+describe("a source-less write into a readOnly grid", () => {
+  const readOnlyWarnings = (warn: { mock: { calls: unknown[][] } }) => warn.mock.calls.filter(([m]) => String(m).includes("the write is refused"));
 
-  it("warns once when updateCells and updateRows pass no source", () => {
+  it("refuses and warns once when updateCells and updateRows pass no source", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const m = mount(undefined, { readOnly: true });
     act(() => {

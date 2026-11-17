@@ -58,7 +58,7 @@ import { forEachMember } from "../selection/compact-selection";
 import { viewIndexes, type CellRef, type CompactSelectionLike, type DataChange, type DataGridApi, type DataOp, type GridBulkValidationError, type GridValidationErrorEvent, type ViewCoord } from "../types";
 import type { BulkResolution } from "../validation/validate-batch";
 import { candidateRowIds, isBulkBatchCurrent, reresolveBulkWrites, snapshotBulkBatch } from "../validation/bulk-generation";
-import { resolveClearWrites, type ClearWrite } from "./clear-writes";
+import { resolveClearWrites, resolveClearWritesThen, type ClearWrite } from "./clear-writes";
 import { markChangedRows } from "./changed-rows";
 import { nextAnnouncement } from "./announcements";
 import { clearStaleRows, followStaleRows, markStaleRows, pruneStaleRows, requestReshape, staleStateAfterPrune } from "./server-stale";
@@ -1181,8 +1181,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   const updateCellsCore = (patches: Parameters<DataWriteActions["updateCells"]>[0], options?: Parameters<DataWriteActions["updateCells"]>[1], prevalidatedWarnings?: readonly CellErrorEntry[]): UpdateCellsVerdict => {
     const s = get();
     if (patches.length === 0) return { applied: 0, skipped: [], pending: false };
-    if (s.readOnly && (options?.source ?? "stream") !== "stream") return { applied: 0, skipped: patches.map((_, patchIndex) => ({ patchIndex, reason: "readonly" })), pending: false };
-    if (s.readOnly && options?.source === undefined) warnGateOnce("readOnly stream write", 'the grid is readOnly and this call has no source, so it defaults to source "stream" and writes anyway. Pass source: "stream" to confirm the push, or source: "edit" to keep the readOnly check');
+    if (s.readOnly && options?.source === undefined) warnGateOnce("readOnly stream write", 'the grid is readOnly and this call has no source, so the write is refused. Pass source: "stream" to push into a readOnly grid');
+    if (s.readOnly && options?.source !== "stream") return { applied: 0, skipped: patches.map((_, patchIndex) => ({ patchIndex, reason: "readonly" })), pending: false };
     if (patches.length > MAX_STREAM_PATCHES && (options?.source ?? "stream") === "stream") {
       warnGateOnce("stream patch limit", `a "stream" call takes at most ${MAX_STREAM_PATCHES} patches; the ${patches.length - MAX_STREAM_PATCHES} after them skip with reason "limit". Send smaller batches`);
       const beyond: UpdateCellsSkip[] = [];
@@ -1494,11 +1494,9 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     applyCellUpdates(updates, source, rejected, warnings) {
       const s = get();
       if (s.readOnly) return;
-      if (updates.length === 0) {
-        // every cell rejected: the write is a no-op, but the consumer still gets the rejection report
-        if (rejected) emitBulkRejections(source, rejected);
-        return;
-      }
+      if (rejected === undefined && warnings === undefined && updates.length > 0) return resolveClearWritesThen(s, updates, (r) => get().actions.applyCellUpdates(r.writes, source, r.rejected, r.warnings));
+      // every cell rejected: the write is a no-op, but the consumer still gets the rejection report
+      if (updates.length === 0) return rejected ? emitBulkRejections(source, rejected) : undefined;
       const batch = computeRowEditsBatch(s, updates);
       if (!batch) return;
       ctx.rowIndexCache.rebase(batch.nextData);

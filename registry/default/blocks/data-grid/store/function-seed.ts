@@ -23,6 +23,7 @@ const seededStores = new WeakSet<object>();
 export function applyFunctionSeeds(store: StoreApi<DataGridStoreState>, init: InternalSyncProps): void {
   if (seededStores.has(store)) return;
   seededStores.add(store);
+  warnIgnoredSeeds(init);
   const { actions } = store.getState();
   const sorts = init.sortState === undefined ? readSeed("defaultSortState", init.defaultSortState) : undefined;
   if (Array.isArray(sorts)) actions.setSorts(sorts as SortSpec[]);
@@ -32,4 +33,18 @@ export function applyFunctionSeeds(store: StoreApi<DataGridStoreState>, init: In
   if (typeof search === "string") actions.setSearch(search);
   const layout = init.columnLayout === undefined ? readSeed("defaultColumnLayout", init.defaultColumnLayout) : undefined;
   if (layout !== null && typeof layout === "object") actions.setColumnLayout(layout);
+}
+
+const CONTROLLED_SEEDS = [
+  ["defaultSortState", "sortState"],
+  ["defaultFilterState", "filterState"],
+  ["defaultSearchText", "searchText"],
+] as const;
+
+function warnIgnoredSeeds(init: InternalSyncProps): void {
+  for (const [seed, controlled] of CONTROLLED_SEEDS) {
+    if (init[seed] !== undefined && init[controlled] !== undefined) {
+      warnDev(`${seed} is ignored because ${controlled} is controlled. Seed the owner of ${controlled} instead; for a server grid, pass defaultSpec to useDataGridServerRows.`);
+    }
+  }
 }
