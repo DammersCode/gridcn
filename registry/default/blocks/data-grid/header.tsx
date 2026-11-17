@@ -165,6 +165,7 @@ export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderPr
       resize={{
         enabled: enableColumnResize,
         previewColumnWidth: actions.previewColumnWidth,
+        cancelColumnResize: actions.cancelColumnResize,
         setColumnWidth: actions.setColumnWidth,
         autosizeColumns: actions.autosizeColumns,
         direction,

@@ -606,6 +606,7 @@ const ACTION_PURPOSE = {
   replaceRowId: "Swaps the id of a row for the id that the server assigned, in one write.",
   setSelection: "Applies a whole `SelectionState` in `CellRef` terms. `null` clears the selection.",
   previewColumnWidth: "Writes a column width while a resize drag moves. Fires `onColumnResizing`.",
+  cancelColumnResize: "Ends a resize drag without a commit and restores the width the drag started from. Fires `onColumnResizing`.",
   setColumnWidth: "Sets a column width and fires `onColumnLayoutChange` once, as a resize release does.",
   autosizeColumns: "Sizes columns to their content over the view and returns the measured widths. On a paged grid, it measures the shown page.",
   resetColumnWidth: "Drops the width override of a column, so the column gets its `width` from the definition again.",

@@ -25,6 +25,7 @@ function renderResizeHook(autosizeColumns = vi.fn()) {
         column: COLUMN,
         currentWidth: 100,
         previewColumnWidth: vi.fn(),
+        cancelColumnResize: vi.fn(),
         setColumnWidth: vi.fn(),
         autosizeColumns,
       }),
@@ -138,8 +139,9 @@ describe("useColumnResize document listener lifecycle", () => {
 
   it.each(["pointercancel", "blur"])("%s restores the start width and fires no layout change", (kind) => {
     const previewColumnWidth = vi.fn();
+    const cancelColumnResize = vi.fn();
     const setColumnWidth = vi.fn();
-    const hook = renderHook(() => useColumnResize({ column: COLUMN, currentWidth: 100, previewColumnWidth, setColumnWidth, autosizeColumns: vi.fn() }));
+    const hook = renderHook(() => useColumnResize({ column: COLUMN, currentWidth: 100, previewColumnWidth, cancelColumnResize, setColumnWidth, autosizeColumns: vi.fn() }));
     act(() => {
       hook.result.current.onPointerDown(pointerDown(document.createElement("div"), 1));
     });
@@ -151,7 +153,7 @@ describe("useColumnResize document listener lifecycle", () => {
       if (kind === "blur") window.dispatchEvent(new Event("blur"));
       else document.dispatchEvent(new PointerEvent("pointercancel", { pointerId: 1 }));
     });
-    expect(previewColumnWidth).toHaveBeenLastCalledWith("c1", 100);
+    expect(cancelColumnResize).toHaveBeenCalledWith("c1", 100);
     expect(setColumnWidth).not.toHaveBeenCalled();
     hook.unmount();
   });

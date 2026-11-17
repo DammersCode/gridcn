@@ -19,13 +19,15 @@ export type ColumnResizeHandlers = {
  * Pointer-capture column resize: drag the handle to live-update the column's
  * width via `previewColumnWidth`, clamped to `[max(32, minWidth), maxWidth ?? Infinity]`; commits on
  * `pointerup`, and `pointercancel`, `lostpointercapture`, or a window blur end the drag, restore the
- * width the drag started at, and commit nothing. Double-click sizes this column to its content through the store's `autosizeColumns`
+ * stored width the drag started from (none, for an unresized column), and commit nothing. Double-click sizes this column to its content through the store's `autosizeColumns`
  * action, which samples the view (one commit, one `onColumnLayoutChange`).
  */
 export function useColumnResize(args: {
   column: AnyColumnDef;
   currentWidth: number;
   previewColumnWidth: (id: string, width: number) => void;
+  /** Restores the pre-drag stored width when a drag is cancelled. */
+  cancelColumnResize: (id: string, renderedWidth: number) => void;
   /** Fires once at drag release — the `onColumnLayoutChange` commit point (not per drag frame). */
   setColumnWidth: (id: string, width: number) => void;
   /** The store's `autosizeColumns` action; double-click calls it for this column. */
@@ -84,7 +86,7 @@ export function useColumnResize(args: {
         dragRef.current = null;
         setIsResizing(false);
         cleanup();
-        if (drag && lastWidth !== drag.startWidth) argsRef.current.previewColumnWidth(column.id, drag.startWidth);
+        if (drag) argsRef.current.cancelColumnResize(column.id, drag.startWidth);
       };
       const handleEnd = (e: PointerEvent) => {
         if (e.pointerId !== pointerId) return;

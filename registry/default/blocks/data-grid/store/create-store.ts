@@ -173,6 +173,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   const initLocale = init.locale ?? DEFAULT_LOCALE;
   const warnStoreOnce = createWarnOnce();
   const initColumns = withGridLocale(init.columns, initLocale, warnStoreOnce);
+  const resizeStartWidths = new Map<string, number | undefined>();
   const memory = { groupModel: buildColumnGroupModel(init.columnGroups, init.columns.map((c) => c.id)) } as SyncMemory;
   const warnedGroupIssues = new Set<string>();
   const warnGroupIssues = (model: ColumnGroupModel | null): void => {
@@ -1260,11 +1261,22 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
         const column = get().columns.find((c) => c.id === id);
         if (!column) return;
         const next = clampColumnWidth(column, width);
+        if (!resizeStartWidths.has(id)) resizeStartWidths.set(id, savedColumnWidth(get().columnWidths, id));
         set((s) => ({ columnWidths: { ...s.columnWidths, [id]: next } }));
         const onColumnResizing = get().onColumnResizing;
         if (onColumnResizing) emitAfterWrites(dataWrite, () => onColumnResizing({ columnId: id, width: next }));
       },
+      cancelColumnResize(id, renderedWidth) {
+        if (!resizeStartWidths.has(id)) return;
+        const startWidth = resizeStartWidths.get(id);
+        resizeStartWidths.delete(id);
+        const { [id]: _preview, ...rest } = get().columnWidths;
+        set({ columnWidths: startWidth === undefined ? rest : { ...rest, [id]: startWidth } });
+        const onColumnResizing = get().onColumnResizing;
+        if (onColumnResizing) emitAfterWrites(dataWrite, () => onColumnResizing({ columnId: id, width: renderedWidth }));
+      },
       setColumnWidth(id, width) {
+        resizeStartWidths.delete(id);
         const s = get();
         const column = s.columns.find((c) => c.id === id);
         if (!column) return;

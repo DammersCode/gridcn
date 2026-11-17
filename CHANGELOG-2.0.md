@@ -311,3 +311,4 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - Fix: the `columns` and `data` identity warnings print once per grid, and a rebuilt `columns` array with a new function no longer warns.
 - Fix: `setColumnOrder` returns `pin-zone` for a column group move across pin zones.
 - Fix: the comments add-on no longer warns about a stale rejection without `current` when `fetchComments` is set.
+- Fix: a column resize that ends in a cancel (`pointercancel`, `lostpointercapture`, or a window blur) restores the width the drag started from and stores nothing. It left the preview width as a stored width, so a flex column lost its flex share and the width entered the next `onColumnLayoutChange`. The new `cancelColumnResize(id, renderedWidth)` store action does the restore.
