@@ -135,9 +135,11 @@ The function always returns a promise. An abort of `signal` rejects it with `"im
 - A smaller build checks `signal` once, after an async `createRow` settles.
 - A small build with synchronous hooks ignores `signal`.
 
-If two entries of `mapping` name one grid column, the later entry wins, and development mode warns once for that column.
+If two entries of `mapping` name one grid column, the first entry wins, and development mode warns once for that column.
 
 `mapping` is a list of `ImportColumnMapping` entries: `{ importColumnIndex, gridColumnId }`, with `null` as `gridColumnId` for a skipped column. `rejected` lists `ImportRejectedCell` entries for cleared cells. `flagged` lists the cells of `validationMode: "warn"` columns that keep their value.
+
+With `validateRow`, the function runs once per built row, in chunks, and gets the row id from `getRowId` (default: the row index as text). A verdict entry for a mapped column clears that cell and adds it to `rejected`. An entry for a column outside the mapping adds a `flagged` cell with `importColumnIndex` `-1`. A throw or a rejection gives that row no verdict. The import dialog passes the grid's `validateRow` when `onImport` is set. The default append runs it when the rows commit.
 
 ## useDataGridImportPreview [#usedatagridimportpreview]
 

@@ -66,6 +66,10 @@ export type BuildImportedRowsOptions<TData> = {
   signal?: AbortSignal;
   /** The rows the import joins. `unique()` compares each imported value with them and with the other imported rows. The default append passes the grid's `data`. Default `[]`. */
   existingRows?: readonly TData[];
+  /** Runs once per built row after the build parses its cells, like the grid's `validateRow`. A verdict entry for a mapped column clears that cell and lands in `rejected`; an entry for an unmapped column lands in `flagged` with `importColumnIndex` `-1`. A throw or a rejection gives that row no verdict. Rows run in chunks, so `signal` cancels between chunks. */
+  validateRow?: (row: TData, rowId: string, ctx: GateContext) => Record<string, string> | null | undefined | Promise<Record<string, string> | null | undefined>;
+  /** The id `validateRow` receives for built row `index`. Default: `String(index)`. */
+  getRowId?: (row: TData, index: number) => string;
 };
 
 /** One import cell awaiting its validation verdict: where it goes, and what to write if the value is rejected. */
@@ -96,25 +100,74 @@ export const IMPORT_CANCELLED_MESSAGE = "import-cancelled";
  * validating it left to right cannot both be true, and the fresh row is the predictable one.
  */
 export async function buildImportedRows<TData>(options: BuildImportedRowsOptions<TData>): Promise<BuildImportedRowsResult<TData>> {
-  return buildNow(options);
+  const built = await buildNow(options);
+  return options.validateRow ? validateBuiltRows(built, options, options.validateRow) : built;
+}
+
+/** Runs `validateRow` over the built rows, `CHUNK_SIZE` rows at a time. A verdict reads only the keys of known columns, so a hostile object costs at most one lookup per column. */
+async function validateBuiltRows<TData>(
+  built: BuildImportedRowsResult<TData>,
+  options: BuildImportedRowsOptions<TData>,
+  validateRow: NonNullable<BuildImportedRowsOptions<TData>["validateRow"]>,
+): Promise<BuildImportedRowsResult<TData>> {
+  const { rows, rejected, flagged } = built;
+  const { columns, cellTypes, mapping, signal = NEVER_ABORTED, getRowId = (_row, index) => String(index) } = options;
+  const gateCtx: GateContext = { signal };
+  const importIndexOf = new Map<string, number>();
+  for (const m of mapping) if (m.gridColumnId !== null && !importIndexOf.has(m.gridColumnId)) importIndexOf.set(m.gridColumnId, m.importColumnIndex);
+
+  for (let start = 0; start < rows.length; start += CHUNK_SIZE) {
+    if (signal.aborted) throw new Error(IMPORT_CANCELLED_MESSAGE);
+    const end = Math.min(start + CHUNK_SIZE, rows.length);
+    const verdicts = await Promise.all(
+      rows.slice(start, end).map(async (row, offset) => {
+        try {
+          return await validateRow(row, getRowId(row, start + offset), gateCtx);
+        } catch {
+          return null;
+        }
+      }),
+    );
+    if (signal.aborted) throw new Error(IMPORT_CANCELLED_MESSAGE);
+    verdicts.forEach((verdict, offset) => {
+      if (!verdict || typeof verdict !== "object") return;
+      const rowIndex = start + offset;
+      for (const column of columns) {
+        if (!Object.hasOwn(verdict, column.id) || typeof verdict[column.id] !== "string") continue;
+        const message = verdict[column.id]!.slice(0, MAX_REJECTED_MESSAGE_LENGTH);
+        const importColumnIndex = importIndexOf.get(column.id);
+        const cellType = cellTypes[column.type ?? "text"];
+        if (importColumnIndex === undefined || !cellType) {
+          flagged.push({ rowIndex, importColumnIndex: -1, gridColumnId: column.id, message });
+          continue;
+        }
+        // as never: setCellValue is typed against this column's own TData/TValue, which TS can't unify with the generic TData/unknown here
+        rows[rowIndex] = setCellValue(rows[rowIndex] as never, column as never, cellType.clearValue(column.options) as never) as TData;
+        rejected.push({ rowIndex, importColumnIndex, gridColumnId: column.id, message });
+      }
+    });
+    await yieldToEventLoop();
+  }
+  return built;
 }
 
 function buildNow<TData>(options: BuildImportedRowsOptions<TData>): BuildImportedRowsResult<TData> | Promise<BuildImportedRowsResult<TData>> {
   const { dataRows, mapping, columns, cellTypes, createRow, signal, processCellFromText, existingRows = [] } = options;
   const columnsById = new Map(columns.map((column) => [column.id, column] as const));
-  const activeMappings = mapping.filter((m): m is { importColumnIndex: number; gridColumnId: string } => m.gridColumnId !== null);
-
-  // the dialog UI prevents duplicate mappings, a custom UI's setMapping does not — the later
-  // mapping wins silently, so make it visible in dev (one warn per duplicated column)
   const seenColumns = new Set<string>();
   const warnedColumns = new Set<string>();
-  for (const { gridColumnId } of activeMappings) {
-    if (seenColumns.has(gridColumnId) && !warnedColumns.has(gridColumnId)) {
-      warnedColumns.add(gridColumnId);
-      if (isDev()) console.warn(`[data-grid-io] buildImportedRows: grid column "${gridColumnId}" is mapped by more than one import column - the later mapping wins`);
+  const activeMappings = mapping.filter((m): m is { importColumnIndex: number; gridColumnId: string } => {
+    if (m.gridColumnId === null) return false;
+    if (!seenColumns.has(m.gridColumnId)) {
+      seenColumns.add(m.gridColumnId);
+      return true;
     }
-    seenColumns.add(gridColumnId);
-  }
+    if (isDev() && !warnedColumns.has(m.gridColumnId)) {
+      warnedColumns.add(m.gridColumnId);
+      console.warn(`[data-grid-io] buildImportedRows: grid column "${m.gridColumnId}" is mapped by more than one import column - the first mapping wins`);
+    }
+    return false;
+  });
 
   if (dataRows.length > IMPORT_CHUNK_THRESHOLD_ROWS || processCellFromText) {
     return buildImportedRowsChunked(dataRows, activeMappings, columnsById, cellTypes, createRow, signal ?? new AbortController().signal, existingRows, processCellFromText);

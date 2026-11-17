@@ -448,7 +448,9 @@ export function useDataGridImportPreview(options: UseDataGridImportPreviewOption
   const setMapping = useCallback((importColumnIndex: number, gridColumnId: string | null) => {
     setPreview((prev) => {
       if (!prev) return prev;
-      const mapping = prev.mapping.map((m) => (m.importColumnIndex === importColumnIndex ? { ...m, gridColumnId } : m));
+      const mapping = prev.mapping.map((m) =>
+        m.importColumnIndex === importColumnIndex ? { ...m, gridColumnId } : gridColumnId !== null && m.gridColumnId === gridColumnId ? { ...m, gridColumnId: null } : m,
+      );
       return { ...prev, mapping };
     });
   }, []);
@@ -460,9 +462,16 @@ export function useDataGridImportPreview(options: UseDataGridImportPreviewOption
 
   const previewRows = useMemo(() => importRows.slice(0, IMPORT_PREVIEW_ROW_COUNT), [importRows]);
 
+  const warnedNoPreviewRef = useRef(false);
   const build = useCallback(
     async <TData,>(buildOptions: BuildImportOptions<TData>): Promise<BuildImportedRowsResult<TData> | null> => {
-      if (!preview) return null;
+      if (!preview) {
+        if (isDev() && !warnedNoPreviewRef.current) {
+          warnedNoPreviewRef.current = true;
+          console.warn("[data-grid-io] build() ran before a file was loaded and returns null; call loadFile() first");
+        }
+        return null;
+      }
       const { processImportRows, columns, cellTypes, ...rest } = buildOptions;
       if (!(columns && cellTypes) && !gridColumns && isDev()) console.warn("[data-grid-io] build() found no grid; pass `columns` and `cellTypes` or call it under a DataGridProvider");
       const signal = rest.signal ?? new AbortController().signal;

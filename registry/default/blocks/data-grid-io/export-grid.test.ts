@@ -172,6 +172,22 @@ describe("buildExportRows / buildExportHeaders", () => {
     expect(rows.map((r) => r[0])).toEqual(["Bob", "Ünïcödé"]);
   });
 
+  it("scope 'checked-rows' exports only the rows channel and 'ranges' only the cell ranges", () => {
+    const selection = {
+      rows: CompactSelection.fromArray([2]),
+      current: { range: { x: 0, y: 0, width: 1, height: 2 }, rangeStack: [] },
+    } as never;
+    const state = makeState({ selection });
+    expect(buildExportRows(state, "checked-rows").map((r) => r[0])).toEqual(["Ünïcödé"]);
+    expect(buildExportRows(state, "ranges").map((r) => r[0])).toEqual(["Alice", "Bob"]);
+    expect(buildExportRows(makeState({ selection: { rows: CompactSelection.empty(), current: null } as never }), "ranges")).toEqual([]);
+  });
+
+  it("headers replaces the header text per column id and keeps the others", () => {
+    expect(buildExportHeaders(makeState(), undefined, { name: "Full name" })).toEqual(["Full name", "Note"]);
+    expect(buildExportHeaders(makeState(), undefined, { constructor: "x" })).toEqual(["Name", "Note"]);
+  });
+
   it("scope 'selection' reads ctrl-click stacked ranges too", () => {
     const state = makeState({
       selection: {

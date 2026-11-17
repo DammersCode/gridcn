@@ -26,6 +26,15 @@ export type ImportDefaults = {
   mapColumn?: (header: string, index: number, ctx: GateContext) => string | null | undefined | Promise<string | null | undefined>;
 };
 
+function firstWins(columns: readonly ImportTargetColumn[], keyOf: (column: ImportTargetColumn) => string): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const column of columns) {
+    const key = keyOf(column);
+    if (!map.has(key)) map.set(key, column.id);
+  }
+  return map;
+}
+
 /**
  * Prefills the import-column -> grid-column mapping by matching each imported header against
  * `column.headerText ?? header ?? column.id`, case-insensitively. Unmatched headers map to `null`
@@ -33,8 +42,8 @@ export type ImportDefaults = {
  * match falls back to `null` (skip) since one-source-per-grid-column is enforced everywhere.
  */
 export function matchImportColumns(importHeaders: readonly string[], gridColumns: readonly ImportTargetColumn[]): (string | null)[] {
-  const byLowerText = new Map(gridColumns.map((column) => [columnLabelText(column).toLowerCase(), column.id] as const));
-  const byLowerId = new Map(gridColumns.map((column) => [column.id.toLowerCase(), column.id] as const));
+  const byLowerText = firstWins(gridColumns, (column) => columnLabelText(column).toLowerCase());
+  const byLowerId = firstWins(gridColumns, (column) => column.id.toLowerCase());
 
   const claimed = new Set<string>();
   return importHeaders.map((header) => {
@@ -57,9 +66,8 @@ function isDefaultSkipped(header: string, index: number, defaultSkipColumns: rea
  * then applies `options.defaultSkipColumns` (by header name or index), then `options.mapColumn`
  * per column (wins over `defaultSkipColumns`; `undefined` keeps whatever came before it). All of
  * this only decides the dialog's *initial* mapping — the user can still change every cell by hand
- * once the dialog is open. Duplicate-claim dedup from {@link matchImportColumns} still applies
- * first; `mapColumn` overrides are trusted as-is and not deduped against each other, matching a
- * consumer's explicit intent.
+ * once the dialog is open. A grid column that two import columns claim stays with the first
+ * one, whether the matcher or `mapColumn` named it; the later import column maps to `null`.
  */
 export function applyImportOptions(
   importHeaders: readonly string[],
@@ -83,6 +91,14 @@ export function resolveImportMapping(
     return defaultSkipColumns && isDefaultSkipped(header, index, defaultSkipColumns) ? null : gridColumnId;
   });
   const overrides = matched.map((_, index) => mapColumn?.(importHeaders[index] ?? "", index, gateCtx));
-  const combine = (resolved: readonly (string | null | undefined)[]) => overridden.map((kept, index) => (resolved[index] === undefined ? kept : resolved[index]!));
+  const combine = (resolved: readonly (string | null | undefined)[]) => {
+    const claimed = new Set<string>();
+    return overridden.map((kept, index) => {
+      const id = resolved[index] === undefined ? kept : resolved[index]!;
+      if (id === null || claimed.has(id)) return null;
+      claimed.add(id);
+      return id;
+    });
+  };
   return overrides.some((override) => isThenable(override)) ? Promise.all(overrides).then(combine) : combine(overrides as (string | null | undefined)[]);
 }

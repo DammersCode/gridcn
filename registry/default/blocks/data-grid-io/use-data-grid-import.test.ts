@@ -319,4 +319,25 @@ describe("useDataGridImportPreview — custom parseFile and defaults", () => {
     expect(result.current.preview?.importHeaders).toEqual(["Column 1"]);
     vi.restoreAllMocks();
   });
+
+  it("setMapping takes a grid column from its previous holder", async () => {
+    mockedParse.mockResolvedValue({ rows: [["A", "B"], ["1", "2"]], delimiter: "," });
+    const targets: ImportTargetColumn[] = [{ id: "name", header: "A" }, { id: "age", header: "B" }];
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
+    await act(async () => {
+      await result.current.loadFile(FILE_B, targets);
+    });
+    act(() => result.current.setMapping(1, "name"));
+    expect(result.current.preview?.mapping.map((m) => m.gridColumnId)).toEqual([null, "name"]);
+  });
+
+  it("build() without a preview resolves null and warns once in development", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { result } = renderHook(() => useDataGridImportPreview({ columnFallback: (index) => `Column ${index}` }));
+    const options = { columns: [], cellTypes: {}, createRow: () => ({}) };
+    expect(await result.current.build(options)).toBeNull();
+    expect(await result.current.build(options)).toBeNull();
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
 });

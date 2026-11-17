@@ -40,7 +40,7 @@ Each row is one **Breaking:** entry of the [changelog](https://github.com/Dammer
 | Change | 1.3 | 2.0 | What to change |
 |---|---|---|---|
 | <span id="checked-rows-lifetime" />Checked row memory | `keepCheckedRows`, `keepHiddenCheckedRows` | `checkedRowsLifetime` | Map the props with the table below. |
-| <span id="checked-rows-only" />Checkbox state | A cell range, such as Ctrl+A, checks the markers. | The checkboxes, `aria-selected`, and the count read the checked rows. Ctrl+A selects cells. | Call `setAllRowsChecked(true)` to check every row. A `CompactSelectionLike` implements `runs()`. |
+| <span id="checked-rows-only" />Checkbox state | A cell range, such as Ctrl+A, checks the markers. | The checkboxes, `aria-selected`, and the count read the checked rows. Ctrl+A selects cells. | Call `setAllRowsChecked(true)` to check every row. |
 | <span id="row-actions-ids" />Row action arguments | `deleteRows([4])`, `duplicateRows([4])`, `deleteRowsById(ids)`, `setRowSelected(4, true)`, `setAllRowsSelected` | `deleteRowsAt([4])`, `duplicateRowsAt([4])`, `deleteRows(ids)`, `setRowCheckedAt(4, true)`, `setAllRowsChecked` | Rename the calls. `setRowChecked(rowId, checked)` takes a row id. |
 | <span id="row-ops-unloaded" />Row actions over unloaded rows | Run over the holes | Do nothing in a scroll-mode grid | Delete known rows with `deleteRows(ids)`. |
 | <span id="enable-row-reorder" />`enableRowReorder` | Turns off the row drag | Removed. A `reorder` family `rowMarkers` mode arms the drag. | Use a plain mode, such as `rowMarkers="checkbox"`. |
@@ -139,15 +139,17 @@ The props of 1.3 map to `checkedRowsLifetime` like this:
 | <span id="sheet-name" />XLSX sheet name | `workbookName` | `sheetName` | Rename the option. |
 | <span id="build-xlsx" />`buildXlsx` | Returns the XLSX `Blob` | Removed. The `output` option of `exportGrid` receives the `Blob`. | Call `exportGrid` with `format: "xlsx"` and `output`. |
 | <span id="rows-to-csv" />`rowsToCsv` arguments | `rowsToCsv(rows, ";", false)` | `rowsToCsv(rows, { delimiter: ";", sanitizeFormulas: false })` | Pass an options object. |
+| <span id="print-page-size" />`printGrid` paper size | `pageSize: "A3"` | `paperSize: "A3"` | Rename it. |
+| <span id="import-duplicate-mapping" />Two import columns on one grid column | The later column wins | The first wins | Map a grid column once. |
 | <span id="xlsx-typed" />XLSX cell types | Every cell is text | `number`, `date`, and `checkbox` columns write typed cells | For text, set `formatCell: ({ text }) => text`. |
 
 ## Exports and add-ons [#exports-add-ons]
 
 | Change | 1.3 | 2.0 | What to change |
 |---|---|---|---|
-| <span id="find-replace-open" />`useDataGridFindReplace().open()` | Opens the replace mode | Opens the find mode, as Mod+F | Call `open("replace")` to show the Replace field. |
+| <span id="find-replace-open" />`useDataGridFindReplace().open()` | Opens the replace mode | Opens the find mode, as Mod+F | Call `open("replace")`. |
 | <span id="core-exports" />`data-grid` barrel | Twelve hooks and helpers | Removed from the barrel | Use the [replacements](/docs/support-upgrades/version-policy-changelog#removed-exports). |
-| <span id="barrel-helpers" />Toolbar, io, and keybindings helpers | Exported | Removed from the barrels | Delete the imports. [Removed exports](/docs/support-upgrades/version-policy-changelog#removed-exports) lists the names. |
+| <span id="barrel-helpers" />Toolbar, io, and keybindings helpers | Exported | Removed from the barrels | [Removed exports](/docs/support-upgrades/version-policy-changelog#removed-exports) lists the names. |
 | <span id="pinned-row-exports" />Pinned row components | `DataGridPinnedRow`, `DataGridPinnedRowBand` in the barrel | Module files only | Let `useDataGridPinnedRows` render them. |
 | <span id="excess-rects" />Presence `onExcessRects` | `(entry, kept, total)` in render | `({ entry, kept, total })` after the commit | Take one object. |
 | <span id="label-undefined" />`undefined` label | Removes the label | Keeps the default | Set `""` to blank a string label. |

@@ -11,8 +11,6 @@ const PRINT_FALLBACK_MS = 60_000;
 
 /** Paper sizes for {@link PrintGridOptions.paperSize}. */
 export type PrintPaperSize = "A3" | "A4" | "Letter" | "Legal";
-/** @deprecated Use {@link PrintPaperSize}. */
-export type PrintPageSize = PrintPaperSize;
 
 /** CSS `@page` size keyword per paper size. */
 const PAPER_SIZE_CSS: Record<PrintPaperSize, string> = { A3: "A3", A4: "A4", Letter: "letter", Legal: "legal" };
@@ -27,8 +25,6 @@ export type PrintGridOptions = {
   includeHeaders?: boolean;
   /** Paper size of the printed page; default `"A4"`. */
   paperSize?: PrintPaperSize;
-  /** @deprecated Use `paperSize`; `pageSize` elsewhere counts rows per page. `paperSize` wins when both are set. */
-  pageSize?: PrintPaperSize;
   /** Page orientation; default: `landscape` above 6 visible columns, else `portrait`. */
   orientation?: "portrait" | "landscape";
   /** Cap on the rows printed (the header row is not counted); default 10,000, further cut by the 500,000-cell ceiling. */
@@ -91,7 +87,7 @@ export function printGrid(state: DataGridReadState, options: PrintGridOptions = 
   const headers = buildExportHeaders(state);
   const orientation = options.orientation ?? (colCount > 6 ? "landscape" : "portrait");
   // Untyped callers can pass any string; only the fixed map reaches the CSS.
-  const requestedSize = options.paperSize ?? options.pageSize ?? "A4";
+  const requestedSize = options.paperSize ?? "A4";
   const paperSize = Object.hasOwn(PAPER_SIZE_CSS, requestedSize) ? PAPER_SIZE_CSS[requestedSize] : "A4";
 
   const iframe = document.createElement("iframe");

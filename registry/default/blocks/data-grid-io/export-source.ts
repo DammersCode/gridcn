@@ -138,6 +138,7 @@ export async function exportRows<TData = unknown, TCell extends ExportCell = str
     });
   };
 
+  let warnedBatchBytes = false;
   let sliceStarted = performance.now();
   const take = async (batch: unknown): Promise<void> => {
     if (!Array.isArray(batch)) throw new TypeError("[data-grid-io] an export source batch must be an array");
@@ -156,7 +157,12 @@ export async function exportRows<TData = unknown, TCell extends ExportCell = str
       else if (skippedRows > maxSkippedRows) throw new RangeError("[data-grid-io] an export source returned too many empty rows");
       const rows = present.slice(0, room).map((row) => mapExportRow(state, columns, row as TData, "export", formatCell, typed) as TCell[]);
       rowCount += rows.length;
-      byteCount += onBatch(rows);
+      const batchBytes = onBatch(rows);
+      if (Number.isFinite(batchBytes)) byteCount += batchBytes;
+      else if (!warnedBatchBytes && isDev()) {
+        warnedBatchBytes = true;
+        console.warn("[data-grid-io] onBatch must return the byte size it kept as a finite number; this batch counts as 0 bytes");
+      }
       if (byteCount > maxBytes) overBytes = true;
       if (performance.now() - sliceStarted > YIELD_AFTER_MS) {
         await yieldToEventLoop();

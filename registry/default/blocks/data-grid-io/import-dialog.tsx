@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { Paperclip, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDataGridActions, useDataGridAllColumns, useDataGridLabels, type GateContext } from "@/registry/default/blocks/data-grid/data-grid";
@@ -18,7 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { IMPORT_CANCELLED_MESSAGE, type ImportColumnMapping, type ImportRejectedCell, type ProcessCellFromText } from "./build-imported-rows";
+import { IMPORT_CANCELLED_MESSAGE, type BuildImportedRowsOptions, type ImportColumnMapping, type ImportRejectedCell, type ProcessCellFromText } from "./build-imported-rows";
 import { importErrorKey, useDataGridImportPreview, type ImportTargetColumn, type ImportDefaults, type ParseFile, type ProcessImportRows, type ImportErrorKey } from "./use-data-grid-import";
 import { resolveImportLimits, type CsvDelimiter, type ImportCsvEncoding, type ImportLimits } from "./parse-import-file";
 import { acceptedTypeNames, Dropzone, DropzoneEmptyState, type DropzoneAccept, type DropzoneRejection } from "@/registry/default/blocks/dropzone/dropzone";
@@ -64,15 +64,22 @@ type ImportSource = Pick<ImportContext, "fileName" | "sheetName" | "mapping">;
 /** Maximum characters of an `onImport` error message the dialog shows. */
 const MAX_ERROR_MESSAGE_LENGTH = 200;
 
+const hasUnloadedRows = (data: readonly unknown[]): boolean => {
+  for (let i = 0; i < data.length; i++) if (data[i] === undefined) return true;
+  return false;
+};
+
 type AppendBlock = "importNeedsOnImport" | "importReadOnly";
 
 const appendBlockOf = (state: { readOnly: boolean; totalRowCount?: number | null }): AppendBlock | null =>
   state.readOnly ? "importReadOnly" : state.totalRowCount !== undefined ? "importNeedsOnImport" : null;
 
 /** The label key that explains why import is unavailable: a read-only grid takes no import, and the default append needs a client grid, so a grid without `onImport` that holds a server result gets one. */
-export function useImportBlock(onImport: unknown): AppendBlock | null {
+export function useImportBlock(onImport: unknown, open = true): AppendBlock | null {
   const block = useDataGridSelector<unknown, AppendBlock | null>(appendBlockOf);
-  return onImport && block !== "importReadOnly" ? null : block;
+  const storeApi = useDataGridStoreApi();
+  const sparse = useMemo(() => open && !onImport && hasUnloadedRows(storeApi.getState().data), [open, onImport, storeApi]);
+  return onImport && block !== "importReadOnly" ? null : (block ?? (sparse ? "importNeedsOnImport" : null));
 }
 
 /** Props for {@link DataGridImportDialog}. */
@@ -139,6 +146,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
     confirmTokenRef.current += 1;
     abortControllerRef.current?.abort();
     setIsValidating(false);
+    setUnsupportedDrop(false);
     setRejectedCount(0);
     setMergeFailed(false);
     setMergeMessage(null);
@@ -154,8 +162,10 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
     [],
   );
 
+  const [unsupportedDrop, setUnsupportedDrop] = useState(false);
   const onFile = useCallback(
     (file: File) => {
+      setUnsupportedDrop(false);
       const targets: ImportTargetColumn[] = allColumns.map((c) => ({ id: c.id, headerText: c.headerText, header: c.header }));
       setRejectedCount(0);
       setMergeFailed(false);
@@ -181,6 +191,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
       // a maxSize rejection is re-routed through loadFile so the parse's own size check surfaces the dialog's too-large error
       const file = acceptedFiles[0] ?? (rejections.some((r) => r.reasons.includes("maxSize")) ? rejections[0]?.file : undefined);
       if (file) onFile(file);
+      else if (rejections.some((r) => r.reasons.includes("accept"))) setUnsupportedDrop(true);
     },
     [onFile],
   );
@@ -197,7 +208,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
   const appendRows = useCallback(
     (rows: TData[], flagged: readonly ImportRejectedCell[]) => {
       const state = storeApi.getState();
-      const block = appendBlockOf(state);
+      const block = appendBlockOf(state) ?? (hasUnloadedRows(state.data) ? "importNeedsOnImport" : null);
       if (block) {
         if (block === "importNeedsOnImport" && isDev() && !warnedMissingOnImportRef.current) {
           warnedMissingOnImportRef.current = true;
@@ -292,6 +303,8 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
       processImportRows,
       processCellFromText: cellParser,
       existingRows: onImport ? undefined : (state.data as TData[]),
+      validateRow: onImport ? (state.validateRow as BuildImportedRowsOptions<TData>["validateRow"]) : undefined,
+      getRowId: (row, index) => state.getRowId(row, state.data.length + index),
     });
     // The dialog stays open with Import disabled while the build runs (chunked so it can repaint and Cancel can land),
     // and closes when the last verdict is in, or drops the batch silently if Cancel/close beat it.
@@ -308,7 +321,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
     onOpenChange(false);
   }, [onOpenChange]);
 
-  const importBlock = useImportBlock(onImport);
+  const importBlock = useImportBlock(onImport, open);
   const acceptedTypesLabel = labels.io.dropzoneDescription(acceptedTypeNames(accept), labels.io.maxFileSize(maxFileBytes));
 
   return (
@@ -333,6 +346,8 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
           )}
 
           {importBlock && <p role="alert" className="text-sm text-destructive">{labels.io[importBlock]}</p>}
+
+          {unsupportedDrop && <p role="alert" className="text-sm text-destructive">{labels.io.errorUnsupportedFile}</p>}
 
           {error && <p role="alert" className="text-sm text-destructive">{labels.io[error]}</p>}
 

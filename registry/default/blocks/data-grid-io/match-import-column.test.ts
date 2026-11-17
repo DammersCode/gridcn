@@ -125,4 +125,17 @@ describe("applyImportOptions", () => {
     const result = applyImportOptions(["Name", "name"], makeColumns(), { defaultSkipColumns: ["Email"] });
     expect(result).toEqual(["name", null]);
   });
+
+  it("gives a header to the first of two grid columns with the same label", () => {
+    const columns = [
+      { id: "a", header: "Name" },
+      { id: "b", header: "Name" },
+    ];
+    expect(matchImportColumns(["Name"], columns)).toEqual(["a"]);
+  });
+
+  it("keeps the first import column when mapColumn names one grid column twice", () => {
+    const result = applyImportOptions(["x", "y"], makeColumns(), { mapColumn: () => "age" });
+    expect(result).toEqual(["age", null]);
+  });
 });

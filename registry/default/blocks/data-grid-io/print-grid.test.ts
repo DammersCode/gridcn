@@ -388,7 +388,7 @@ describe("printGrid", () => {
     }
   });
 
-  it("sets the paper size from the paperSize option, A4 by default, and still reads the deprecated pageSize", () => {
+  it("sets the paper size from the paperSize option, A4 by default", () => {
     const { restore } = stubIframePrint();
     try {
       const styleText = () => lastIframe().contentDocument!.querySelector("style")!.textContent;
@@ -398,10 +398,6 @@ describe("printGrid", () => {
       expect(styleText()).toContain("@page { size: letter portrait;");
       printGrid(makeState(), { paperSize: "Legal", orientation: "landscape" });
       expect(styleText()).toContain("@page { size: legal landscape;");
-      printGrid(makeState(), { pageSize: "A3" });
-      expect(styleText()).toContain("@page { size: A3 portrait;");
-      printGrid(makeState(), { paperSize: "Letter", pageSize: "A3" });
-      expect(styleText()).toContain("@page { size: letter portrait;");
     } finally {
       restore();
     }

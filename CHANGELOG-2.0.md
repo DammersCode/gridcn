@@ -178,6 +178,10 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - The import button is disabled, with the reason, for a server grid without `onImport` (also with a `totalRowCount` of `null`) and for a `readOnly` grid. A custom `parseFile` can return a `"|"` delimiter. `accept={{}}` reads "All file types accepted". `csvEncoding` is typed.
 - `buildImportedRows` takes `existingRows`, and the import dialog's default append passes the grid's data, so `unique()` rejects an imported value that a grid row already holds.
 - `exportGrid` with `source` reports `truncated: false` for a complete file whose last slice passes `maxBytes`.
+- `exportGrid` and `buildCsv` take `headers`, a map of column id to header text. `scope` takes `"checked-rows"` (the checked rows only) and `"ranges"` (the rows of the cell ranges, checked rows ignored).
+- The import dialog shows `labels.io.errorUnsupportedFile` for a dropped file of a wrong type. The default append is refused, like on a server grid, when `data` holds unloaded rows.
+- `onImport` imports run the grid's `validateRow` once per built row. A refused mapped cell is cleared and listed in `rejected`; `buildImportedRows` takes `validateRow` and `getRowId`.
+- A development warning names an `exportRows` `onBatch` that returns a non-finite number (counted as 0 bytes) and a `build()` call before a file loaded.
 
 ## Add-ons
 
@@ -197,7 +201,7 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - `useShortcutLabel(binding)` returns the key labels of a binding: word names during server rendering and hydration, glyphs on macOS after.
 - A pasted or imported text that matches no option of a `lookup` column keeps the cell value and reaches `onValidationError` (`unresolvedPaste: "reject"`, the default). `"clear"` and `"keep"` opt in. A label that a cell shows pastes back to its key.
 - `useDebouncedInput` takes `applyTimeoutMs` (default 1000): the input shows `value` again when the parent does not apply a commit in that time. `Infinity` keeps the old behavior.
-- `printGrid` and the print button take `paperSize` (`PrintPaperSize`). `pageSize` and `PrintPageSize` still work and are deprecated.
+- `printGrid` and the print button take `paperSize` (`PrintPaperSize`).
 - `useDataGridState` forwards every `useDataGridHistory` option (`recordSources` and `onSkip` included), not only `capacity` and `datasetKey`.
 - `useDataGridHistory({ recordSources })` also takes a function of the default list, such as `(defaults) => [...defaults, "stream"]`, so a copied list no longer goes stale when a source is added. The list form is unchanged.
 - One label chain for every component: the default, then the grid's `labels.<group>`, then the component's own `labels`. `DataGridPaginationBar` reads `labels.pagination` from the provider (the key did nothing before), and `DataGridViews` reads the new `labels.views`. `DataGridViewsLabels` and its defaults moved into `DataGridLabels`. Before: `<DataGridPaginationBar labels={i18n.pagination} />` inside a provider. After: pass `labels={i18n}` to the grid once.

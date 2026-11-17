@@ -50,7 +50,7 @@ describe("mapColumn async", () => {
   it("returns a Promise when a result is a promise, and keeps undefined as 'no override'", async () => {
     const mapped = applyImportOptions(["Name", "Other"], TARGETS, { mapColumn: (header) => (header === "Other" ? Promise.resolve("name") : Promise.resolve(undefined)) });
     expect(mapped instanceof Promise).toBe(true);
-    expect(await mapped).toEqual(["name", "name"]);
+    expect(await mapped).toEqual(["name", null]);
   });
 
   it("a rejection rejects the whole mapping", async () => {
