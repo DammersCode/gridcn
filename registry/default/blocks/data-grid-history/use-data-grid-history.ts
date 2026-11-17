@@ -11,7 +11,7 @@ type RecordSources<TData> =
 
 /** Options for {@link useDataGridHistory}. */
 export type UseDataGridHistoryOptions<TData> = {
-  /** Maximum number of entries kept on the undo stack (default `100`); oldest entries are dropped past this. A change between renders starts an empty history. */
+  /** Maximum number of entries kept on the undo stack (default `100`); oldest entries are dropped past this. A change between renders keeps the entries and trims to the new value. */
   capacity?: number;
   /**
    * Identity of the dataset; a change between renders clears both stacks, so undo after a dataset
@@ -32,8 +32,8 @@ export type UseDataGridHistoryOptions<TData> = {
   recordSources?: RecordSources<TData>;
   /**
    * Called when `undo` or `redo` finds a row its change needs missing from `data`, and applies nothing.
-   * `"rows-not-loaded"`: `data` has holes (scroll mode) or holds part of the result (`totalRowCount` above its length, such as one
-   * server page); the entry stays, so the same call works after the rows load.
+   * `"rows-not-loaded"`: `data` has holes (scroll mode) or holds part of the result (`totalRowCount` above its length or `null`, such as one
+   * server page or a cursor source); the entry stays, so the same call works after the rows load.
    * `"rows-gone"`: `data` holds the whole result and lacks the rows; the entry is dropped. The live region announces both.
    * A throw is logged and does not stop the grid.
    */
@@ -80,6 +80,8 @@ const DEFAULT_RECORD_SOURCES: readonly DataChange<unknown>["source"][] = [
   "replace",
   "app",
 ];
+
+const NOT_MOUNTED_CHECK_MS = 2000;
 
 /** Return value of {@link useDataGridHistory}. */
 export type UseDataGridHistoryResult<TData> = {
@@ -133,7 +135,8 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
   onSkipRef.current = opts.onSkip;
   const warnedSparseData = useRef(false);
   const warnedNotMounted = useRef(false);
-  const history = useMemo(() => createHistory<TData>({ capacity }), [capacity]);
+  const history = useMemo(() => createHistory<TData>({ capacity }), []);
+  history.setCapacity(capacity ?? 100);
   // history's canUndo/canRedo are getters on a mutable object; this forces a re-render
   // after every mutating call so callers see them update even when nothing else re-renders
   // this hook (e.g. `clear()`, or a consumer setter that dedupes identical arrays).
@@ -175,6 +178,16 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
     console.warn(`[data-grid-history] ${method}() ran before the history plugin mounted, so it did nothing. Pass "plugin" (or "plugins" from useDataGridState) to the grid, and keep it in a plugins prop that you set after a spread.`);
   }, []);
 
+  useEffect(() => {
+    if (!isDev()) return;
+    const timer = setTimeout(() => {
+      if (apiRef.current || warnedNotMounted.current) return;
+      warnedNotMounted.current = true;
+      console.warn(`[data-grid-history] The history plugin never mounted, so undo and redo do nothing. Pass "plugin" (or "plugins" from useDataGridState) to the grid's plugins prop.`);
+    }, NOT_MOUNTED_CHECK_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
   const applyHistoryChange = useCallback(
     (direction: HistorySkip["direction"]) => {
       const api = apiRef.current;
@@ -186,8 +199,8 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
       const change = direction === "undo" ? history.undo(rebase) : history.redo(rebase);
       if (!change) return;
       const { missing, hasHoles: holes } = findMissingRows(change, state.data, state.getRowId);
-      // a row count above the loaded rows means `data` holds a part of the result, such as one server page
-      const hasHoles = holes || (typeof state.totalRowCount === "number" && state.totalRowCount > state.data.length);
+      // an unknown count (`null`, a cursor source) or a count above the loaded rows means `data` holds a part of the result
+      const hasHoles = holes || state.totalRowCount === null || (typeof state.totalRowCount === "number" && state.totalRowCount > state.data.length);
       if (!warnedSparseData.current && holes && missing.length > 0 && isDev()) {
         warnedSparseData.current = true;
         console.warn(

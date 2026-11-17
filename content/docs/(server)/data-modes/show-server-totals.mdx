@@ -82,48 +82,41 @@ The server answers `{ "total": 1234.5 }`: one value for each requested column id
 
 ## Read the result yourself [#read-the-result]
 
-To show the status or a refresh button outside the band, render `DataGridServerAggregateReporter` inside `DataGridProvider`. It takes the options of `serverAggregateRow` and an `onChange` that receives the result. Start the state from `PENDING_SERVER_AGGREGATE`. Inside the grid, `useDataGridServerAggregate(options)` returns the same result. The result holds `row`, `status`, `error`, `loading`, `refresh()`, and `retry()`.
+`useDataGridPinnedRows` returns `serverAggregates`: the result of each `serverAggregateRow` entry, top band first, in entry order. The result holds `row`, `status`, `error`, `loading`, `refresh()`, and `retry()`. It stays `PENDING_SERVER_AGGREGATE` until the band mounts.
 
-The reporter replaces `serverAggregateRow`. The band shows `totals.row`, and a button shows the status and refreshes the totals. The state lives above `useDataGridPinnedRows`, and the reporter sits inside the provider:
+Read it to show the status or a refresh button outside the band:
 
-```tsx fragment="OrdersGrid above with the reporter; imports as above, plus useState and the two reporter names"
-import { useState } from "react";
-import {
-  DataGridServerAggregateReporter,
-  PENDING_SERVER_AGGREGATE,
-} from "@/components/data-grid-pinned-rows/data-grid-pinned-rows";
-
+```tsx fragment="OrdersGrid above; imports as above"
 export function OrdersGrid() {
-  const [totals, setTotals] = useState(PENDING_SERVER_AGGREGATE);
-  const { plugin } = useDataGridPinnedRows({ bottomRows: [totals.row] });
-  const server = useDataGridServerRows<Order>({
-    mode: "scroll",
-    plugins: [plugin],
-    // fetchRows as above
+  const { plugin, serverAggregates } = useDataGridPinnedRows({
+    bottomRows: [
+      serverAggregateRow({
+        fetchAggregates: ({ spec: { filters, searchText }, signal }) =>
+          post("/api/orders/totals", { filters, searchText }, signal),
+      }),
+    ],
   });
+  const totals = serverAggregates[0];
+  // server, DataGridProvider, and the header and body as above
 
   return (
-    <DataGridProvider {...server.providerProps} columns={columns}>
-      {/* DataGridRoot with the header and body, as above */}
-      <DataGridServerAggregateReporter
-        fetchAggregates={({ spec: { filters, searchText }, signal }) =>
-          post("/api/orders/totals", { filters, searchText }, signal)
-        }
-        onChange={setTotals}
-      />
+    <>
+      {/* the grid as above */}
       <button type="button" onClick={totals.refresh}>
         Totals: {totals.status}
       </button>
-    </DataGridProvider>
+    </>
   );
 }
 ```
+
+To place the totals row yourself, render `DataGridServerAggregateReporter` inside `DataGridProvider`. It takes the options of `serverAggregateRow` and an `onChange` that receives the result. Start the state from `PENDING_SERVER_AGGREGATE` and pass `totals.row` as a plain pinned row. Inside the grid, `useDataGridServerAggregate(options)` returns the same result.
 
 ## Refresh after a save [#refresh-after-save]
 
 `serverAggregateRow`, `DataGridServerAggregateReporter`, and `useDataGridServerAggregate` fetch again after the last pending save settles. An edit that your `onSave` answers with a promise therefore updates the totals. Set `refreshAfterSave: false` to keep the totals of the last request, and call `refresh()` on the result yourself.
 
-A grid without `onSave` has no save to wait for. Call `totals.refresh()` after your own write lands. `totals` is the result that `onChange` stored.
+A grid without `onSave` has no save to wait for. Call `totals.refresh()` after your own write lands. `totals` is an entry of `serverAggregates`.
 
 ## When it requests [#when-it-requests]
 

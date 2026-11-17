@@ -12,7 +12,7 @@ The receiving side is the `data-grid-presence` add-on, which [Show presence](/do
 
 `onSelectionChange` on the grid fires on every committed change: a click, a drag-extend step, a row, column, or all selection, and a clear. Its first argument is the stable `SelectionState`. It holds row ids and column ids and no view positions. The second argument has `getRowIds()`, which lists every selected row in view order.
 
-Send the row ids and the column ids between the two corners of the range:
+`toPresenceEntries(selection, details, { id, color, columnIds })` turns the selection into the entry to send: the selected rows, and the columns that the ranges, the column channel, and the checked rows cover, in the order of `columnIds`. It returns `[]` when nothing is selected. Send that entry:
 
 ```tsx
 "use client";
@@ -20,6 +20,7 @@ Send the row ids and the column ids between the two corners of the range:
 import { useEffect, useRef } from "react";
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
 import {
+  toPresenceEntries,
   useDataGridPresence,
   type PresenceHighlightEntry,
 } from "@/components/data-grid-presence/data-grid-presence";
@@ -81,29 +82,19 @@ export function SharedGrid({ rows, roomId, userId, color }: Props) {
       getRowId={(row) => row.id}
       plugins={[plugin]}
       onSelectionChange={(next, details) => {
-        if (!next.range) {
+        const [entry] = toPresenceEntries(next, details, { id: userId, color, columnIds });
+        if (!entry) {
           send({ type: "leave", id: userId });
           return;
         }
-        const { start, end } = next.range;
-        const from = columnIds.indexOf(start.columnId);
-        const to = columnIds.indexOf(end.columnId);
-        const [lo, hi] = from < to ? [from, to] : [to, from];
-        const span = columnIds.slice(lo, hi + 1);
-        send({
-          type: "selection",
-          id: userId,
-          color,
-          rowIds: details.getRowIds(),
-          columnIds: span,
-        });
+        send({ type: "selection", ...entry });
       }}
     />
   );
 }
 ```
 
-The sample takes the column span from the order of `columns`. If users reorder or hide columns, build `columnIds` from the visible column order instead, for example with `useDataGridVisibleColumns()` in a component under the provider.
+The sample takes `columnIds` from the order of `columns`. If users reorder or hide columns, build `columnIds` from the visible column order instead, for example with `useDataGridVisibleColumns()` in a component under the provider.
 
 ## Relay a snapshot [#sending-your-selection]
 

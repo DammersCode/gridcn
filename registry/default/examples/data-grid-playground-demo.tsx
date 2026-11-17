@@ -28,7 +28,7 @@ import {
   useDataGridPinnedRows,
   aggregateRow,
 } from "@/registry/default/blocks/data-grid-pinned-rows/data-grid-pinned-rows";
-import { useDataGridPresence, type PresenceHighlight } from "@/registry/default/blocks/data-grid-presence/data-grid-presence";
+import { useDataGridPresence, type ViewRangePresenceHighlight } from "@/registry/default/blocks/data-grid-presence/data-grid-presence";
 import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
 import { DataGridPaginationBar } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import {
@@ -247,7 +247,7 @@ function StreamingFeed({ enabled, reorder, rowIds }: { enabled: boolean; reorder
 }
 
 /** Drives two simulated peers' presence highlights on a timer via `setPresenceHighlights`, while `enabled`. */
-function usePresenceDriver(setPresenceHighlights: (highlights: PresenceHighlight[]) => void, enabled: boolean): void {
+function usePresenceDriver(setPresenceHighlights: (highlights: ViewRangePresenceHighlight[]) => void, enabled: boolean): void {
   useEffect(() => {
     if (!enabled) return;
     let tick = 0;

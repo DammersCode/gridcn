@@ -1,6 +1,6 @@
 /**
  * Compile-time-only pin of the data-grid-presence public payload contract: the
- * `PresenceHighlight`/`RowIdPresenceHighlight`/`RowIdRangePresenceHighlight` entry shapes, the
+ * `ViewRangePresenceHighlight`/`RowIdPresenceHighlight`/`RowIdRangePresenceHighlight` entry shapes, the
  * `isRowIdPresenceHighlight`/`isRowIdRangePresenceHighlight` guards (signature + true-branch
  * narrowing to the member type), and that foreign/malformed payloads are rejected. No runtime
  * assertions live here; the tsc gate typechecks this file (named so vitest's *.test.ts glob does
@@ -11,7 +11,7 @@ import {
   isRowIdPresenceHighlight,
   isRowIdRangePresenceHighlight,
   type ExcessRectsContext,
-  type PresenceHighlight,
+  type ViewRangePresenceHighlight,
   type PresenceHighlightEntry,
   type RowIdPresenceHighlight,
   type RowIdRangePresenceHighlight,
@@ -25,10 +25,10 @@ function assertEqual<Expected, Actual>(_check: Equal<Expected, Actual>): void {}
 
 // --- entry shapes: the discriminated union's three members and the union itself --
 
-assertEqual<PresenceHighlight, { id: string; color: string; range: GridRect; label?: string }>(true);
+assertEqual<ViewRangePresenceHighlight, { id: string; color: string; range: GridRect; label?: string }>(true);
 assertEqual<RowIdPresenceHighlight, { id: string; color: string; rowId: string; columnId: string; label?: string }>(true);
 assertEqual<RowIdRangePresenceHighlight, { id: string; color: string; rowIds: string[]; columnIds: string[]; label?: string }>(true);
-assertEqual<PresenceHighlight | RowIdPresenceHighlight | RowIdRangePresenceHighlight, PresenceHighlightEntry>(true);
+assertEqual<ViewRangePresenceHighlight | RowIdPresenceHighlight | RowIdRangePresenceHighlight, PresenceHighlightEntry>(true);
 
 // --- guards: signature + true-branch narrowing to the member type ----------------
 

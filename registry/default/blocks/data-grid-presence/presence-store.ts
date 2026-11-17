@@ -12,7 +12,7 @@ import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
  * rowId -> view index itself before building this — either with {@link RowIdPresenceHighlight}
  * (the plugin resolves it for you) or by hand via `useDataGridRowIdToViewRow()`.
  */
-export type PresenceHighlight = {
+export type ViewRangePresenceHighlight = {
   /**
    * Unique id PER ENTRY — the `id` must be unique per entry: a user with a multi-range selection
    * sends one entry per range, each with its own id. Entries are keyed by position, not id, so
@@ -27,7 +27,7 @@ export type PresenceHighlight = {
 };
 
 /**
- * rowId-native alternative to {@link PresenceHighlight}: a single cell keyed by stable rowId + columnId instead of a view-index rect.
+ * rowId-native alternative to {@link ViewRangePresenceHighlight}: a single cell keyed by stable rowId + columnId instead of a view-index rect.
  * The plugin resolves `rowId` -> view row itself at paint time via `useDataGridRowIdToViewRow()`, so
  * a locally-active sort/filter never mispaints it; an entry whose `rowId` fell out of the current
  * view (filtered out) is dropped silently, same contract as the manual mapping it replaces.
@@ -44,7 +44,7 @@ export type RowIdPresenceHighlight = {
 };
 
 /**
- * rowId-native alternative to {@link PresenceHighlight}: a multi-cell selection keyed by stable
+ * rowId-native alternative to {@link ViewRangePresenceHighlight}: a multi-cell selection keyed by stable
  * rowIds × columnIds instead of a view-index rect. The plugin resolves every id against the
  * receiver's current view at paint time, so a local sort or filter never mispaints it. Ids that
  * fell out of the view are dropped; the surviving cells paint one rect per contiguous run.
@@ -62,8 +62,8 @@ export type RowIdRangePresenceHighlight = {
   label?: string;
 };
 
-/** Any coordinate form a highlight entry can take — {@link PresenceHighlight} (view-index rect), {@link RowIdPresenceHighlight} (rowId-native single cell), or {@link RowIdRangePresenceHighlight} (rowId-native range), distinguished by `rowId` / `rowIds`. When an entry carries BOTH `rowId` and `rowIds`, the single-cell form wins. */
-export type PresenceHighlightEntry = PresenceHighlight | RowIdPresenceHighlight | RowIdRangePresenceHighlight;
+/** Any coordinate form a highlight entry can take — {@link ViewRangePresenceHighlight} (view-index rect), {@link RowIdPresenceHighlight} (rowId-native single cell), or {@link RowIdRangePresenceHighlight} (rowId-native range), distinguished by `rowId` / `rowIds`. When an entry carries BOTH `rowId` and `rowIds`, the single-cell form wins. */
+export type PresenceHighlightEntry = ViewRangePresenceHighlight | RowIdPresenceHighlight | RowIdRangePresenceHighlight;
 
 /**
  * True when `entry` is the rowId-native form — the discriminant used by the plugin to route to the

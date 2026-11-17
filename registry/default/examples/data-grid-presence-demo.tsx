@@ -25,7 +25,7 @@ const columns = defineColumns<DemoRow>()([
 const ROW_COUNT = 24;
 const COL_COUNT = columns.length;
 
-/** Fixed simulated users — stable id/name/color; the last has no valid color and paints with the primary fallback, matching the real transport's `PresenceHighlight.id` contract. */
+/** Fixed simulated users — stable id/name/color; the last has no valid color and paints with the primary fallback, matching the real transport's `ViewRangePresenceHighlight.id` contract. */
 const SIMULATED_USERS: { id: string; name: string; color: string }[] = [
   { id: "ada", name: "Ada", color: "oklch(0.62 0.19 255)" },
   { id: "grace", name: "Grace", color: "oklch(0.68 0.19 150)" },

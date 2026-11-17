@@ -181,6 +181,21 @@ describe("undo and redo over a server page", () => {
   });
 });
 
+describe("undo and redo over a cursor source", () => {
+  it("keeps the entry as rows-not-loaded when totalRowCount is null", () => {
+    const onSkip = vi.fn();
+    const h = setup({ onSkip }, { totalRowCount: null });
+    const prev = initialRows[1]!;
+    h.commit(editChange("b", { ...prev, name: "Bobby" }, prev));
+    h.swapData([{ id: "x", name: "Xena", age: 1 }]);
+
+    act(() => h.history().undo());
+
+    expect(onSkip).toHaveBeenCalledWith({ direction: "undo", reason: "rows-not-loaded", rowIds: ["b"] });
+    expect(h.history().canUndo).toBe(true);
+  });
+});
+
 describe("undo and redo over rows that are gone", () => {
   it("drops the undo entry, reports rows-gone and announces a full block", () => {
     const onSkip = vi.fn();

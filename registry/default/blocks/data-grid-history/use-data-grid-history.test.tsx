@@ -177,6 +177,23 @@ describe("useDataGridHistory", () => {
     expect(h.history().canUndo).toBe(false);
   });
 
+  it("keeps the stacks when capacity changes and trims to a smaller one", () => {
+    const h = setupHarness({ capacity: 5 });
+    const rows = [...initialRows];
+    for (let i = 0; i < 3; i++) {
+      const prev = rows[0]!;
+      const next = { ...prev, name: `Edit ${i + 1}` };
+      rows[0] = next;
+      h.commit(editChange("a", next, prev));
+    }
+    h.setHistoryOpts({ capacity: 10 });
+    expect(h.history().historySize).toBe(3);
+    h.setHistoryOpts({ capacity: 2 });
+    expect(h.history().historySize).toBe(2);
+    act(() => h.history().undo());
+    expect(h.data()[0]!.name).toBe("Edit 2");
+  });
+
   it("discards the redo branch once a new change is pushed", () => {
     const h = setupHarness();
     const prev = initialRows[0]!;
@@ -397,6 +414,36 @@ describe("useDataGridHistory", () => {
     const notMounted = warn.mock.calls.filter((c) => String(c[0]).includes("before the history plugin mounted"));
     warn.mockRestore();
     expect(notMounted).toHaveLength(1);
+  });
+
+  it("warns once in development when the history plugin never mounts, without any call", () => {
+    vi.useFakeTimers();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    function Unplugged() {
+      useDataGridHistory<Row>();
+      return (
+        <DataGridProvider data={initialRows} columns={columns} getRowId={getRowId}>
+          <DataGridRoot />
+        </DataGridProvider>
+      );
+    }
+    render(<Unplugged />);
+    act(() => void vi.advanceTimersByTime(5000));
+    const never = warn.mock.calls.filter((c) => String(c[0]).includes("never mounted"));
+    warn.mockRestore();
+    vi.useRealTimers();
+    expect(never).toHaveLength(1);
+  });
+
+  it("does not warn about a missing plugin when the plugin mounted", () => {
+    vi.useFakeTimers();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    setupHarness();
+    act(() => void vi.advanceTimersByTime(5000));
+    const never = warn.mock.calls.filter((c) => String(c[0]).includes("never mounted"));
+    warn.mockRestore();
+    vi.useRealTimers();
+    expect(never).toHaveLength(0);
   });
 
   it("scroll mode with datasetKey: an undo whose rows are loaded logs no warning", () => {

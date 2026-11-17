@@ -21,7 +21,7 @@ aliases: ["totals row options", "aggregate options", "totals band"]
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-pinned-rows/use-data-grid-pinned-rows.tsx" name="UseDataGridPinnedRowsOptions" />
 
-The result is `{ plugin }`, typed `UseDataGridPinnedRowsResult`. Pass the plugin in `plugins`. The plugin keeps its identity while the entries of `topRows` and `bottomRows` and the `status` stay equal. A row object counts by identity. An `aggregateRow` or `serverAggregateRow` counts by its content, so an inline array and an inline `aggregateRow` are fine.
+The result is `{ plugin, serverAggregates }`, typed `UseDataGridPinnedRowsResult`. Pass the plugin in `plugins`. `serverAggregates` lists the result of each `serverAggregateRow` entry. The plugin keeps its identity while the entries of `topRows` and `bottomRows` and the `status` stay equal. A row object counts by identity. An `aggregateRow` or `serverAggregateRow` counts by its content, so an inline array and an inline `aggregateRow` are fine.
 
 ### status [#status]
 
