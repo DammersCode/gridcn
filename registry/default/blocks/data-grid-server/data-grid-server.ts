@@ -13,3 +13,5 @@ export {
 } from "./use-data-grid-server-rows";
 export type { SaveRefreshPolicy, SaveRefreshReport } from "./save-refresh";
 export { parseServerSpec, parseGroupPath, ServerSpecError, type ParseServerSpecOptions, type ServerSpecColumnRules, type ServerSpecLimits } from "./parse-server-spec";
+export type { ServerChildKind, ServerGroupPath, ServerGroupRow, ServerGroupsAnswer } from "./read-groups-answer";
+export type { ServerFetchAnswer } from "./read-answer";

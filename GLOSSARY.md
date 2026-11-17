@@ -23,6 +23,7 @@ mirror the change there.
 | group key | The stored value that the rows of a row group share. `null`, `undefined`, and `""` form one empty key. | |
 | group path | The group keys from the outermost level down to one row group: one `{ columnId, key }` per level. A server request names the group whose children it reads with `groupPath`. | |
 | group level | The place of a group column in `groupBy`. The first column is level 0. | |
+| child list | The rows or the groups that a server grid holds for one open row group, or for the top level. One request reads one child list, named by `groupPath`. | |
 | expanded state | `{ mode, ids }`: the row groups that differ from `mode`, named by group id. It decides which groups show their rows. | |
 | checked row | A row whose marker checkbox is on, kept in the row channel of the selection. | ticked row |
 | data mode | One way the grid gets its rows: local array, client pagination, server pagination (pages mode), scroll mode, controlled state, server sort, server filter, or write-through to your own API. `research/parity-matrix.json` lists each feature against each data mode. | source kind |
@@ -33,7 +34,7 @@ mirror the change there.
 | controlled / uncontrolled | `data` puts the state in your code. `defaultData` seeds the grid once. | |
 | spec | What the user chose: sort, filter, and search text. `ServerSpec` (`{ sorts, filters, searchText }`) carries it to `fetchRows`; the page or the row range travels beside it. The mode decides who applies it. | |
 | request, answer | What `fetchRows` receives (`spec`, `start`, `end`, `cursor`, `signal`, plus `page` and `pageSize` in pages mode) and what it resolves (`rows`, `totalRowCount`, `hasMore`, `nextCursor`). The hook validates every answer. | response, payload |
-| block | The fixed-size slice of rows that scroll mode requests: `[k * blockSize, (k + 1) * blockSize)`. Block 0 is always the first request. | page (pages mode only), chunk |
+| block | The fixed-size slice of rows that scroll mode requests: `[k * blockSize, (k + 1) * blockSize)`. Block 0 is always the first request. While grouped, a block is a slice of one child list. | page (pages mode only), chunk |
 | pages mode | `useDataGridServerRows` with `mode: "pages"`, the default: the server answers one page per request. The data modes matrix and the sidebar call it "Server pagination". | |
 | scroll mode | `useDataGridServerRows({ mode: "scroll" })`: the hook fetches the blocks the rendered rows need. A first answer with `totalRowCount` and no `nextCursor` gives random access: the grid shows that many rows. Any other first answer gives a sequential source. | lazy mode |
 | sequential source | A scroll-mode source whose first answer carries `nextCursor`, or neither a count nor a cursor. `useDataGridServerRows({ mode: "scroll", source: "sequential" })` asks for it. Blocks load in order, one at a time; the grid shows the loaded rows plus one block of skeleton rows until `nextCursor: null` or `hasMore: false` ends it. | infinite rows, open-ended source |
@@ -91,7 +92,7 @@ mirror the change there.
 | drag handle | The control you drag to reorder a row or a sort entry. | grip |
 | cell type | The kind of value a column holds, for example `text` or `number`. | column type |
 | accessor | The `accessorKey` or `accessorFn` that reads a column's value from a row. | |
-| band | A fixed strip of rows above or below the body, such as pinned rows. | |
+| band | A fixed strip of rows above or below the body, such as pinned rows. A group row never enters a band. | |
 | aggregate row | A pinned row that `aggregateRow` or `serverAggregateRow` declares. The band computes its values and reads them by column id. | totals source |
 | server aggregate | A value for a band that a server computes for the whole result of the current spec. | |
 | lookup | A cell type whose options a server searches as the user types. It stores a value and a label. | |

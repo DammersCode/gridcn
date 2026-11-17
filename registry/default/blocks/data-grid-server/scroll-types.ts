@@ -31,17 +31,17 @@ export type UseDataGridServerRowsScrollProviderProps<TData> = {
   plugins: readonly DataGridPlugin<unknown>[];
   /** Sorts on a header click. Override it after the spread. */
   headerClickBehavior: "sort";
-  /** @internal Present while the source groups: the group columns, outermost first. */
+  /** Present while the source groups: the group columns, outermost first. */
   groupBy?: readonly string[];
-  /** @internal Present while the source groups. */
+  /** Present while the source groups. */
   onGroupByChange?: (next: readonly string[]) => void;
-  /** @internal Present while the source groups: the open groups. */
+  /** Present while the source groups: the open groups. */
   expanded?: ExpandedState;
-  /** @internal Present while the source groups. */
+  /** Present while the source groups. */
   onExpandedChange?: (next: ExpandedState) => void;
-  /** @internal Present while `groupBy` is not empty. */
+  /** Present while `groupBy` is not empty. */
   groupMode?: "server";
-  /** @internal Present while `groupBy` is not empty. */
+  /** Present while `groupBy` is not empty. */
   groupLayout?: ServerGroupLayout;
 };
 

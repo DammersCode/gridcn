@@ -4644,6 +4644,66 @@
       "categories": [
         "data"
       ]
+    },
+    {
+      "name": "data-grid-row-grouping-demo",
+      "type": "registry:example",
+      "title": "Data Grid Row Grouping Demo",
+      "description": "Rows grouped by role with a count, an average age, and a total score on each group row, buttons to open, close, and regroup, and Group by items in the header menu.",
+      "author": "gridcn",
+      "registryDependencies": [
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-context-menu",
+        "button"
+      ],
+      "files": [
+        {
+          "path": "registry/default/examples/data-grid-row-grouping-demo.tsx",
+          "type": "registry:example",
+          "target": "components/data-grid-row-grouping-demo.tsx"
+        },
+        {
+          "path": "registry/default/examples/demo-data.ts",
+          "type": "registry:example",
+          "target": "components/demo-data.ts"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    },
+    {
+      "name": "data-grid-server-grouping-demo",
+      "type": "registry:example",
+      "title": "Data Grid Server Grouping Demo",
+      "description": "A scrolling grid grouped on an in-browser PostgreSQL (PGlite): the query layer answers each group list with one statement, and a panel shows the last statement with its bound parameters.",
+      "author": "gridcn",
+      "dependencies": [
+        "@electric-sql/pglite@^0.5.15",
+        "drizzle-orm@>=0.45.0 <1"
+      ],
+      "registryDependencies": [
+        "@gridcn/data-grid",
+        "@gridcn/data-grid-server",
+        "@gridcn/data-grid-server-query",
+        "@gridcn/data-grid-server-query-drizzle",
+        "button"
+      ],
+      "files": [
+        {
+          "path": "registry/default/examples/data-grid-server-grouping-demo.tsx",
+          "type": "registry:example",
+          "target": "components/data-grid-server-grouping-demo.tsx"
+        },
+        {
+          "path": "registry/default/examples/data-grid-server-query-demo-db.ts",
+          "type": "registry:example",
+          "target": "components/data-grid-server-query-demo-db.ts"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
     }
   ],
   "files": []

@@ -106,6 +106,10 @@ Set `limits` on the factory to change a bound. A request over a bound fails with
 
 A group nests one group at most. A deeper group fails with `limit-exceeded`. With `maxOffset`, a `start` above the bound fails with `offset-too-deep`.
 
+## Group answer [#groups-answer]
+
+A request with `groupBy` and `childKind: "groups"` resolves a `GroupsAnswer`: `groups`, `groupCount`, and, at the top level, `totalRowCount`. Each group holds `key`, `childCount`, `totalRowCount`, and `aggregates` keyed by column id. A reducer with no counted value gives `null`. `fetchRows` has the type `Promise<RowsAnswer | GroupsAnswer>`. A `capabilities.groupBy` of `false` answers `unsupported`.
+
 ## Errors [#errors]
 
 The query layer throws `QueryError` with a `code` and a `path`. The path holds field names and indices, never request text. `handleGridRequest` answers `{ error, path }`.

@@ -3,6 +3,7 @@
   "icon": "Rows3",
   "pages": [
     "pinned-rows-example",
+    "row-grouping-example",
     "row-operations-example",
     "row-order-example",
     "row-markers-example",

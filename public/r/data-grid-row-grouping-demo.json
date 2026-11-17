@@ -1,0 +1,30 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "data-grid-row-grouping-demo",
+  "title": "Data Grid Row Grouping Demo",
+  "author": "gridcn",
+  "description": "Rows grouped by role with a count, an average age, and a total score on each group row, buttons to open, close, and regroup, and Group by items in the header menu.",
+  "registryDependencies": [
+    "@gridcn/data-grid",
+    "@gridcn/data-grid-context-menu",
+    "button"
+  ],
+  "files": [
+    {
+      "path": "registry/default/examples/data-grid-row-grouping-demo.tsx",
+      "content": "\"use client\";\n\nimport { useMemo, type ReactNode } from \"react\";\nimport { Button } from \"@/components/ui/button\";\nimport {\n  DataGridBody,\n  DataGridHeader,\n  DataGridProvider,\n  DataGridRoot,\n  defineColumns,\n  useDataGridActions,\n} from \"@/registry/default/components/data-grid/data-grid\";\nimport { DataGridContextMenu, DataGridHeaderDropdown } from \"@/registry/default/components/data-grid-context-menu/data-grid-context-menu\";\nimport { generateDemoRows, type DemoRow } from \"./demo-data\";\n\nconst columns = defineColumns<DemoRow>()([\n  { id: \"name\", header: \"Name\", accessorKey: \"name\", type: \"text\", width: 160, flex: 1, groupable: false },\n  { id: \"role\", header: \"Role\", accessorKey: \"role\", type: \"select\", options: { choices: [\"Admin\", \"User\", \"Editor\", \"Viewer\", \"Manager\"] }, width: 110 },\n  { id: \"active\", header: \"Active\", accessorKey: \"active\", type: \"checkbox\", width: 90 },\n  { id: \"age\", header: \"Age\", accessorKey: \"age\", type: \"number\", width: 80, aggregate: \"avg\" },\n  { id: \"score\", header: \"Score\", accessorKey: \"score\", type: \"number\", width: 90, aggregate: \"sum\" },\n] as const);\n\nfunction GroupControls(): ReactNode {\n  const actions = useDataGridActions();\n  return (\n    <div className=\"flex gap-2\">\n      <Button size=\"sm\" variant=\"outline\" onClick={() => actions.expandAll()}>\n        Expand all\n      </Button>\n      <Button size=\"sm\" variant=\"outline\" onClick={() => actions.collapseAll()}>\n        Collapse all\n      </Button>\n      <Button size=\"sm\" variant=\"outline\" onClick={() => actions.setGroupBy([\"role\", \"active\"])}>\n        Group by role, then active\n      </Button>\n      <Button size=\"sm\" variant=\"outline\" onClick={() => actions.setGroupBy([])}>\n        Ungroup\n      </Button>\n    </div>\n  );\n}\n\n/** Rows grouped by role. Each group row shows its row count and the average age and total score. Open a header menu to group by another column. */\nexport default function DataGridRowGroupingDemo(): ReactNode {\n  const rows = useMemo(() => generateDemoRows(200), []);\n  return (\n    <div className=\"flex w-full flex-col gap-2\">\n      <DataGridProvider defaultData={rows} columns={columns} defaultGroupBy={[\"role\"]}>\n        <GroupControls />\n        <div className=\"h-[380px] overflow-hidden rounded-md border border-border\">\n          <DataGridContextMenu className=\"flex h-full flex-col\">\n            <DataGridRoot aria-label=\"Employees by role\" className=\"h-full rounded-[inherit] border-none\" renderHeaderMenu={(ctx) => <DataGridHeaderDropdown {...ctx} />}>\n              <DataGridHeader />\n              <DataGridBody />\n            </DataGridRoot>\n          </DataGridContextMenu>\n        </div>\n      </DataGridProvider>\n    </div>\n  );\n}\n",
+      "type": "registry:example",
+      "target": "components/data-grid-row-grouping-demo.tsx"
+    },
+    {
+      "path": "registry/default/examples/demo-data.ts",
+      "content": "/** Deterministic LCG so SSR/CSR markup match without Math.random(); shared across example rows. */\r\nfunction createSeededLcg(seed: number) {\r\n  let state = seed;\r\n  return () => {\r\n    state = (state * 1103515245 + 12345) & 0x7fffffff;\r\n    return state / 0x7fffffff;\r\n  };\r\n}\r\n\r\nexport type DemoRow = {\r\n  id: string;\r\n  name: string;\r\n  email: string;\r\n  age: number;\r\n  active: boolean;\r\n  role: string;\r\n  joined: string;\r\n  score: number;\r\n};\r\n\r\nconst ROLES = [\"Admin\", \"User\", \"Editor\", \"Viewer\", \"Manager\"] as const;\r\nconst ADJECTIVES = [\"Eager\", \"Quick\", \"Silent\", \"Bold\", \"Swift\"] as const;\r\nconst NOUNS = [\"Eagle\", \"Lion\", \"Tiger\", \"Bear\", \"Wolf\"] as const;\r\n\r\n/** Generates `count` deterministic demo rows for example previews (seed 42, stable across renders). */\r\nexport function generateDemoRows(count: number, seed = 42): DemoRow[] {\r\n  const next = createSeededLcg(seed);\r\n  const rows: DemoRow[] = [];\r\n  for (let i = 0; i < count; i++) {\r\n    rows.push({\r\n      id: `row-${i}`,\r\n      name: `${ADJECTIVES[Math.floor(next() * ADJECTIVES.length)]} ${NOUNS[Math.floor(next() * NOUNS.length)]}`,\r\n      email: `user${i}@example.com`,\r\n      age: Math.floor(next() * 50) + 18,\r\n      active: next() > 0.5,\r\n      role: ROLES[Math.floor(next() * ROLES.length)]!, // ROLES is a fixed non-empty literal array\r\n      joined: `${2020 + Math.floor(next() * 5)}-${String(Math.floor(next() * 12) + 1).padStart(2, \"0\")}-${String(Math.floor(next() * 28) + 1).padStart(2, \"0\")}`,\r\n      score: Math.floor(next() * 100),\r\n    });\r\n  }\r\n  return rows;\r\n}\r\n",
+      "type": "registry:example",
+      "target": "components/demo-data.ts"
+    }
+  ],
+  "categories": [
+    "data"
+  ],
+  "type": "registry:example"
+}

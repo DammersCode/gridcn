@@ -169,6 +169,13 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
 - Pass `onError` to `DataGridExportButton`. A throwing export is reported there. Without it, only a dev warning appears.
 - History `rollback(change)` is cell-level. It reverts only the cells that still hold the change's value and skips cells edited since.
 
+## Grouping with add-ons
+
+- The context menu add-on adds Group by and Ungroup to the header menu and a menu to each group row (item ids `group-by`, `ungroup`, `toggle-group`).
+- `data-grid-url-state` writes `groupBy` as the `group` param (4 column ids at most) and `spec` takes `"group"`; the default is `["sort", "group"]`. A saved view of `data-grid-views` keeps `groupBy` (`DataGridViewState.groupBy`); the open groups stay out of both.
+- `useDataGridAggregate` and `aggregateRow` share the reducers of the group rows: `count` skips `""`, and a reducer with no value gives `null`.
+- `data-grid-pagination` counts groups while `groupBy` is set (`pager.unit` `"groups"`, label `labels.pagination.rangeGroups`). Export, find and replace, fill, comments, and the status bar skip group rows.
+
 ## 4. When an add-on renders nothing or has no effect
 
 - Check the browser console first. Dev-only warnings name most silent failures:

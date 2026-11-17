@@ -506,9 +506,9 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   sortable?: boolean;
   /** Draws the built-in sort arrow in the header, for string and node headers alike. Set `false` when a node header draws its own arrow, such as `DataGridSortIndicator`. Default true. */
   sortIndicator?: boolean;
-  /** @internal Lets the grid group by this column. Default true. */
+  /** Lets the grid group by this column. Default true. */
   groupable?: boolean;
-  /** @internal Reduces this column over each row group; the group row shows the result. */
+  /** Reduces this column over each row group; the group row shows the result. */
   aggregate?: AggregateReducer<TData>;
   /** Excludes the column from the filter menu's column picker. Existing filter specs on it keep applying. Default true. */
   filterable?: boolean;

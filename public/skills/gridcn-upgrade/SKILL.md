@@ -115,6 +115,12 @@ apply, and every unmodified file matches the new upstream content.
   `package.json` against the package table of the license and credits page, not just against what you
   remember installing.
 
+Row grouping adds three Breaking rows. Check each against your code:
+
+- `viewIndex` and `useDataGridViewIndex()` hold an entry below 0 for a group row when `groupBy` is set; read a row through `dataIndexAt`.
+- `useDataGridAggregate` and `aggregateRow`: `count` skips `""`, and a reducer with no value gives `null`, not `undefined`.
+- `GridQuery.fetchRows` of the query layer resolves `RowsAnswer | GroupsAnswer`; narrow with `"groups" in answer` before you read `rows`. `DataGridViewState` also gained `groupBy`.
+
 ## Done when
 
 Every installed file is either confirmed identical to upstream or has its local edits re-applied on

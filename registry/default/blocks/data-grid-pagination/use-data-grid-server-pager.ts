@@ -7,7 +7,7 @@ import { clampPage, DEFAULT_PAGE_SIZES, pageCount } from "./pagination-math";
 import type { DataGridPaginationControls, UseDataGridPaginationServerOptions } from "./use-data-grid-pagination";
 
 export type UseDataGridServerPagerOptions = UseDataGridPaginationServerOptions & {
-  /** @internal What a page counts. Default `"rows"`. */
+  /** What a page counts. Default `"rows"`. */
   unit?: "rows" | "groups";
 };
 

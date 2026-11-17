@@ -275,7 +275,7 @@ function featureMatrix() {
     rows.push([feature, "Not built", "none", "Gap", "Gap", "none", "none", "none"]);
   }
   return [
-    frontmatter({ title: "Feature matrix", description: "See which features are core or add-on, whether each works with client and server data, and where its guide is.", type: "cheatsheet", icon: "Table", aliases: ["row grouping", "group rows", "tree data", "aggregation", "since version"] }),
+    frontmatter({ title: "Feature matrix", description: "See which features are core or add-on, whether each works with client and server data, and where its guide is.", type: "cheatsheet", icon: "Table", aliases: ["tree data", "aggregation", "since version"] }),
     MARKER,
     "",
     "Core features ship in `data-grid`. An add-on feature needs the item in the Item column. Client covers a local array and client pagination. Server covers server pages, scroll mode, server sort, and server filter. A Gap cell is a known gap. A Partial cell has a gap in some of its modes. The [data mode support](/docs/data-modes/data-mode-support) page names each gap.",

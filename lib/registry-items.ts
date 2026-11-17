@@ -69,6 +69,8 @@ export type RegistryItemName =
   | "data-grid-lazy-demo"
   | "data-grid-open-ended-demo"
   | "data-grid-server-selection-demo"
+  | "data-grid-row-grouping-demo"
+  | "data-grid-server-grouping-demo"
   | "data-grid-write-ack-demo"
   | "data-grid-save-conflict-demo"
   | "data-grid-id-swap-demo"

@@ -22,7 +22,7 @@ A term row links to the page that explains it.
 | all matching | The whole result as the target of a bulk action. `selectAllMatching()` turns it on and the status bar offers it. | [Select server rows](/docs/rows-live-data/select-server-rows) |
 | anchor | The cell where a selection started. | [Selection model](/docs/concepts/selection-model) |
 | anonymous comment | A comment with no `author`. It comes from a write with no `currentUser`. Anyone can edit and delete it by default. | [Add comments to cells](/docs/rows-pages-menus/add-comments#client-only) |
-| band | A fixed strip of rows above or below the body, such as pinned rows. | [Pinned rows](/docs/rows-pages-menus/pinned-rows) |
+| band | A fixed strip of rows above or below the body, such as pinned rows. A group row never enters a band. | [Pinned rows](/docs/rows-pages-menus/pinned-rows) |
 | blank operand | The empty value (`""`, `["", ""]`, `[]`) of a filter row that the user has not filled in. The query layer gives it the meaning the grid gives it. | [Query layer reference](/docs/contracts/query-layer-reference#operators) |
 | block | The fixed-size slice of rows that scroll mode requests. | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
 | block move | Moving several rows so they land next to each other in their current order: `reorderRows(rows, to)`. `moveRowsBy(rows, delta)` shifts each row and keeps the gaps. | [Row order](/docs/rows-pages-menus/row-order) |
@@ -31,6 +31,7 @@ A term row links to the page that explains it.
 | change | One `onDataChange` call: a batch of operations plus its `source`. | [Data change events](/docs/events-state/data-change-events#ondatachange) |
 | checked row | A row whose marker checkbox is on, kept in the row channel of the selection. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | checked rows lifetime | How long the checked rows last: `'until-click'`, `'until-cleared'`, or `'across-filters'`. Set by the prop `checkedRowsLifetime`. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
+| child list | The rows or the groups that a server grid holds for one open row group, or for the top level. One request reads one child list, named by `groupPath`. | [Group server rows](/docs/data-modes/group-server-rows) |
 | `clearContents` | Empties the selected cells. | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
 | coarse pointer | An input whose `(pointer: coarse)` media query matches, such as a finger. Hit areas grow under it. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
 | column group | A named set of columns, or of other groups, that share one header above their own headers. `columnGroups` defines it. | [Column headers and groups](/docs/columns/column-headers-groups) |
@@ -51,7 +52,7 @@ A term row links to the page that explains it.
 | driver adapter | The Prisma layer that connects the client to a database driver. It is not an ORM adapter. | [Query layer](/docs/data-modes/query-layer) |
 | echo | A record that comes back through `applyRemote`, a fetch answer, or the `comments` prop with the write id of a pending write. It confirms the write. | [Add comments to cells](/docs/rows-pages-menus/add-comments#share-changes) |
 | eviction | Unloading loaded rows back to holes, so a hole renders as a skeleton again. `maxLoadedRows` and `evict()` do it. | [Tune row retention](/docs/scroll-mode/tune-row-retention#max-loaded-rows) |
-| expanded state | `{ mode, ids }`: the row groups that differ from `mode`, named by group id. It decides which groups show their rows. | [Data mode support](/docs/data-modes/data-mode-support#row-grouping) |
+| expanded state | `{ mode, ids }`: the row groups that differ from `mode`, named by group id. It decides which groups show their rows. | [Row grouping](/docs/rows-pages-menus/row-grouping) |
 | export source | The function that returns the rows of the whole result for an all-rows export. It gets the `spec` and a `signal`. | [Export the whole result](/docs/import-export/export-whole-result) |
 | filter group | A box of filter nodes that match together. Its join is `and` or `or`. A group holds one more group at most. The top level of `filterState` always combines with `and`. | [Filtering](/docs/sort-filter-search/filtering) |
 | filter menu | The toolbar menu where the user builds filters from filter rows and filter groups. `DataGridFilterMenu` is the built-in one. | [Toolbar](/docs/sort-filter-search/toolbar#the-pieces) |
@@ -61,10 +62,10 @@ A term row links to the page that explains it.
 | gate | A prop function that the grid calls before it acts, for example `processPaste` or `createRow`. It returns a value or a promise. | [Event shapes](/docs/events-state/event-shapes#gates) |
 | gate pending | The state of a gate whose promise has not settled. `useDataGridGatePending()` reads the gate names. The root carries `data-gate-pending`. | [Gate cancellation and timeouts](/docs/editing-cells/cancel-async-gates#show-the-pending-state) |
 | grid origin | The row that anchors the rows canvas. It trails the first rendered row and moves only when the rendered rows drift far from it. | [Virtualization](/docs/performance/virtualization) |
-| group key | The stored value that the rows of a row group share. `null`, `undefined`, and `""` form one empty key. | [Data mode support](/docs/data-modes/data-mode-support#row-grouping) |
-| group level | The place of a group column in `groupBy`. The first column is level 0. | [Data mode support](/docs/data-modes/data-mode-support#row-grouping) |
+| group key | The stored value that the rows of a row group share. `null`, `undefined`, and `""` form one empty key. | [Row grouping](/docs/rows-pages-menus/row-grouping) |
+| group level | The place of a group column in `groupBy`. The first column is level 0. | [Row grouping](/docs/rows-pages-menus/row-grouping) |
 | group path | The group keys from the outermost level down to one row group: one `{ columnId, key }` per level. A server request names the group whose children it reads with `groupPath`. | [Server rows contract](/docs/contracts/server-rows-contract#parse-group-path) |
-| group row | The view row that heads a row group. It holds no data. A `viewIndex` entry below 0 names it. | [Data mode support](/docs/data-modes/data-mode-support#row-grouping) |
+| group row | The view row that heads a row group. It holds no data. A `viewIndex` entry below 0 names it. | [Row grouping](/docs/rows-pages-menus/row-grouping) |
 | header filter | The filter button in a column header. It opens a popover with the set filter of that column. `renderHeaderFilter` places it, and `DataGridHeaderFilter` is the built-in one. | [Header filter](/docs/sort-filter-search/header-filter) |
 | header row | One level of the header block. Group levels come first, and the column headers fill the last row. | [Column headers and groups](/docs/columns/column-headers-groups) |
 | hidden checked row | A checked row that a filter, a page change, or a window move takes out of the view. `checkedRowsLifetime="across-filters"` remembers it by row id, outside the row channel. The grid's row operations never act on it. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
@@ -103,7 +104,7 @@ A term row links to the page that explains it.
 | result count | The number of rows in the view after a filter or sort change. `announceResults` turns its announcement on. | [Screen reader support](/docs/accessibility/screen-reader-support) |
 | revalidation | A `refresh()` that the hook runs on a timer (`revalidateIntervalMs`). | [Refresh server rows](/docs/scroll-mode/refresh-server-rows#revalidate) |
 | row count | The size of the result. `totalRowCount` names it on the pager, the pagination hooks, URL pagination, and the provider prop that the hook's `gridProps` carries. `null` means unknown. | [Load rows by page](/docs/server-pagination/load-rows-page) |
-| row group | The rows that share one group key under `groupBy`. Not a column group and not a filter group. | [Data mode support](/docs/data-modes/data-mode-support#row-grouping) |
+| row group | The rows that share one group key under `groupBy`. Not a column group and not a filter group. | [Row grouping](/docs/rows-pages-menus/row-grouping) |
 | row id | The stable id of a row: its `id` field, or the value that `getRowId` returns. Selection, editing, undo, and redo address rows by it. | [DataGrid props](/docs/components-props/data-grid-props#rows-and-ids) |
 | row marker | The narrow column at the start side that shows a row number, a checkbox, or a drag handle. | [Row markers](/docs/rows-pages-menus/row-markers) |
 | row operation | The `source` value `"row-operation"` marks a change from an insert, duplicate, delete, or move of rows. | [Data change events](/docs/events-state/data-change-events#sources) |
@@ -337,10 +338,12 @@ A search word in this table opens the page that answers it.
 | `checkbox selection` | [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | `checked row ids` | [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | `checked rows across pages` | [Select server rows](/docs/rows-live-data/select-server-rows) |
+| `childKind` | [Group server rows](/docs/data-modes/group-server-rows) |
 | `cjk enter key` | [isComposingKey](/docs/types-hooks/is-composing-key) |
 | `client pagination` | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | `client to server` | [Move from client rows to server rows](/docs/data-modes/move-to-server-rows) |
 | `collaborator selection` | [Presence options](/docs/add-options/server/presence-options) |
+| `collapse all` | [Row grouping](/docs/rows-pages-menus/row-grouping) |
 | `color blind` | [Accessibility gaps](/docs/accessibility/accessibility-gaps) |
 | `color cell` | [Style overrides](/docs/theme-style-language/style-overrides) |
 | `color rows by value` | [Style overrides](/docs/theme-style-language/style-overrides) |
@@ -463,6 +466,7 @@ A search word in this table opens the page that answers it.
 | `event payloads` | [Event log example](/docs/basic-examples/event-log-example) |
 | `evict rows` | [Tune row retention](/docs/scroll-mode/tune-row-retention) |
 | `existing table` | [Adopt the grid in an existing table](/docs/support-upgrades/adopt-grid-existing-table) |
+| `expand all` | [Row grouping](/docs/rows-pages-menus/row-grouping) |
 | `expand row` | [Open a detail panel](/docs/recipes-custom-code/open-detail-panel) |
 | `export all rows` | [Export the whole result](/docs/import-export/export-whole-result) |
 | `export breaking changes` | [2.0 add-on breaking changes](/docs/support-upgrades/breaking-changes-2-0-addons) |
@@ -513,7 +517,12 @@ A search word in this table opens the page that answers it.
 | `grid direction` | [Layout and display types](/docs/types-hooks/layout-display-types) |
 | `grid rect` | [Exported types](/docs/types-hooks/exported-types) |
 | `grid shows nothing` | [Fix install problems](/docs/terms-help/fix-install-problems) |
-| `group rows` | [Feature matrix](/docs/fit-features/feature-matrix) |
+| `group answer` | [Group server rows](/docs/data-modes/group-server-rows) |
+| `group by` | [Row grouping](/docs/rows-pages-menus/row-grouping) |
+| `group rows` | [Row grouping](/docs/rows-pages-menus/row-grouping) |
+| `grouped server rows` | [Group server rows](/docs/data-modes/group-server-rows) |
+| `grouping` | [Row grouping](/docs/rows-pages-menus/row-grouping) |
+| `groupPath` | [Group server rows](/docs/data-modes/group-server-rows) |
 | `gzip size` | [Bundle size](/docs/performance/bundle-cost) |
 | `header cell` | [Column headers and groups](/docs/columns/column-headers-groups) |
 | `header menu` | [Context menu](/docs/rows-pages-menus/context-menu) |
@@ -752,7 +761,7 @@ A search word in this table opens the page that answers it.
 | `row checkboxes` | [Row markers](/docs/rows-pages-menus/row-markers) |
 | `row color` | [Style overrides](/docs/theme-style-language/style-overrides) |
 | `row form` | [Edit rows in forms](/docs/editing-cells/edit-rows-forms) |
-| `row grouping` | [Feature matrix](/docs/fit-features/feature-matrix) |
+| `row group` | [Row grouping](/docs/rows-pages-menus/row-grouping) |
 | `row header` | [Row markers](/docs/rows-pages-menus/row-markers) |
 | `row height` | [Density and small screens](/docs/theme-style-language/density-small-screens) |
 | `row id` | [DataGrid props](/docs/components-props/data-grid-props) |
@@ -808,6 +817,8 @@ A search word in this table opens the page that answers it.
 | `server error` | [Show errors on cells](/docs/save-server/show-errors-cells) |
 | `server filter` | [Query server rows](/docs/data-modes/query-server-rows) |
 | `server grid problem` | [Troubleshoot server data](/docs/data-modes/troubleshoot-server-data) |
+| `server group by` | [Group server rows](/docs/data-modes/group-server-rows) |
+| `server grouping` | [Group server rows](/docs/data-modes/group-server-rows) |
 | `server html` | [Render the grid on the server](/docs/support-upgrades/server-rendering) |
 | `server options` | [Lookup cell](/docs/editing-cells/lookup-cell) |
 | `server pagination` | [Load rows by page](/docs/server-pagination/load-rows-page) |

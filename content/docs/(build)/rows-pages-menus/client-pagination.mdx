@@ -167,6 +167,10 @@ function CompactBar({ pager }: { pager: DataGridPaginationControls }) {
 
 The other parts are `DataGridPaginationPageSize` and `DataGridPaginationPages`. A part reads its controls and labels from the bar, so it throws outside `DataGridPaginationBar`. The default strings are the `labels.pagination` group. Inside a `DataGridProvider`, the bar reads the `labels.pagination` of the grid. The `labels` prop of `DataGridPaginationBar` overrides both. See [Labels](/docs/components-props/labels).
 
+## Pages of groups [#group-pages]
+
+While `groupBy` is set, a page holds `pageSize` top-level groups with the rows opened under them. `pager.unit` is `"groups"`, and the footer reads `labels.pagination.rangeGroups`. A change of `groupBy` returns to page 1. See [Row grouping](/docs/rows-pages-menus/row-grouping#pages).
+
 ## Server mode
 
 For server data, use `useDataGridServerRows`. It fetches each page and returns the `pager`. If you fetch with your own code, `useDataGridServerPager({ page, pageSize, totalRowCount, hasMore, onPageChange })` builds the pager and returns `{ pager }`. [Load rows by page](/docs/server-pagination/load-rows-page) owns the detail. [Keep pages in URL](/docs/server-pagination/keep-pages-url) covers a page in the address bar.

@@ -73,7 +73,7 @@ The option picks which parts of the view spec go into the URL. The default is `[
 | Part | Keys |
 | --- | --- |
 | `sort` | `sort` |
-| `group` | `group`, the `groupBy` column ids. The open groups stay out. |
+| `group` | `group`, the `groupBy` column ids, at most 4. An unknown column, a `groupable: false` column, and a repeated column drop out. The open groups stay out. |
 | `filter` | `filter`, and `join`, which the add-on reads once and removes |
 | `search` | `q` |
 
