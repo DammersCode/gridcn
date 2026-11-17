@@ -7,12 +7,13 @@ export type ServerWiring = {
   wrapSave: (save: SaveFn) => SaveFn;
 };
 
+/** Each observer joins the hook's while the grid reads the matching state from the hook; `null` means always. */
 const OBSERVERS = [
-  "onDataChange",
-  "onRenderedRowsChange",
-  "onSortChange",
-  "onFilterChange",
-  "onSearchTextChange",
+  ["onDataChange", null],
+  ["onRenderedRowsChange", null],
+  ["onSortChange", "sortState"],
+  ["onFilterChange", "filterState"],
+  ["onSearchTextChange", "searchText"],
 ] as const;
 
 const wirings = new WeakMap<object, ServerWiring>();
@@ -75,7 +76,8 @@ export function applyServerWiring<T extends object>(props: T): T {
     next ??= { ...given };
     next[key] = value;
   };
-  for (const key of OBSERVERS) {
+  for (const [key, state] of OBSERVERS) {
+    if (state && given[state] !== own[state]) continue;
     const hook = own[key] as AnyFn | undefined;
     const provider = given[key] as AnyFn | undefined;
     if (hook)

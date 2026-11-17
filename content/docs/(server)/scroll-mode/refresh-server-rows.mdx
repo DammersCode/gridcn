@@ -83,7 +83,7 @@ Set `revalidateIntervalMs` (milliseconds, at least 1000) to call `refresh()` on 
 - A sequential source skips a tick while the rendered rows plus `overscan` end beyond 10 blocks.
 - Pages mode also drops a prefetched page on a tick. See [Tune page loading](/docs/server-pagination/tune-page-loading#prefetch).
 
-When live pushes leave rows out of order for the server's sort, set `reshapeDelayMs` to refetch after a push. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
+When live pushes leave rows out of order for the server's sort, the hook refetches one second after a push. Set `reshapeDelayMs` to change the delay. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
 
 ## Related
 

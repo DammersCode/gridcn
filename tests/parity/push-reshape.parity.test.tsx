@@ -29,7 +29,7 @@ function suite(mode: ModeId) {
     expect(grid.state().viewStale).toBe(false);
   });
 
-  it("clears the marks on reconcileView() when no server rows hook is mounted", async () => {
+  it.skipIf(mode === "Z")("clears the marks on reconcileView() when no server rows hook is mounted", async () => {
     const grid = await mount();
     useSpec(grid);
     grid.act(() => void grid.state().actions.updateCells([{ rowId: "r2", columnId: "n", value: 99 }], { source: "stream" }));

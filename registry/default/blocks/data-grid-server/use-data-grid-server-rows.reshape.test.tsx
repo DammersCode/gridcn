@@ -116,13 +116,40 @@ describe.each([
   ["pages", pages],
   ["scroll", scroll],
 ] as const)("reshape, %s mode", (_name, mount) => {
-  it("marks a deferred push and sends no request without reshapeDelayMs", async () => {
+  it("marks a deferred push and sends no request with reshapeDelayMs false", async () => {
     const s = server();
-    const grid = await mount(s);
+    const grid = await mount(s, { reshapeDelayMs: false });
     grid.push("r1");
     await advance(10_000);
     expect(grid.stale()).toEqual(["r1"]);
     expect(s.fetchRows).toHaveBeenCalledTimes(1);
+  });
+
+  it("reshapes 1000 ms after a deferred push by default while the spec has a sort", async () => {
+    const s = server();
+    const grid = await mount(s);
+    grid.push("r1");
+    await advance(999);
+    expect(s.fetchRows).toHaveBeenCalledTimes(1);
+    await advance(1);
+    expect(s.fetchRows).toHaveBeenCalledTimes(2);
+    expect(grid.stale()).toEqual([]);
+  });
+
+  it("sends no request after a deferred push when the spec has no sort or filter", async () => {
+    const s = server();
+    const grid = await mount(s, { defaultSpec: { sorts: [], filters: [], searchText: "" } });
+    grid.push("r1");
+    await advance(10_000);
+    expect(s.fetchRows).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps reshape() on the next frame under the default delay", async () => {
+    const s = server();
+    const grid = await mount(s);
+    act(() => grid.server().reshape());
+    await advance(50);
+    expect(s.fetchRows).toHaveBeenCalledTimes(2);
   });
 
   it("reshapes once after the delay, however many pushes joined the timer", async () => {

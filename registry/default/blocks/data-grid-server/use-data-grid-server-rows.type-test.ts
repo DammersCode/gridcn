@@ -73,3 +73,8 @@ export function ownPluginsAndRenderedRows() {
   pages.gridProps.headerClickBehavior satisfies "sort";
   scroll.gridProps.headerClickBehavior satisfies "sort";
 }
+
+export function defaultSpecFunction() {
+  useDataGridServerRows<Row>({ getRowId, fetchRows: async () => ({ rows: [] as Row[] }), defaultSpec: () => undefined });
+  useDataGridServerRows<Row>({ getRowId, fetchRows: async () => ({ rows: [] as Row[] }), defaultSpec: () => ({ searchText: "a" }) });
+}

@@ -113,3 +113,31 @@ describe.each(["pages", "scroll"] as const)("an onSave prop after the gridProps 
     expect(wiringWarnings(warn)).toHaveLength(0);
   });
 });
+
+describe.each(["pages", "scroll"] as const)("an onDataChange prop that forwards to the hook's handler, %s mode", (mode) => {
+  it("merges the change once", async () => {
+    let server!: UseDataGridServerRowsResult<Row> | UseDataGridServerRowsScrollResult<Row>;
+    let store!: StoreApi<DataGridStoreState>;
+    function Probe() {
+      store = useDataGridStoreApi() as unknown as StoreApi<DataGridStoreState>;
+      return null;
+    }
+    function Harness() {
+      server = mode === "pages" ? useDataGridServerRows<Row>({ getRowId: (r) => r.id, fetchRows: fetchPage, defaultPageSize: 10, pageSizeOptions: [10] }) : useDataGridServerRows<Row, number>({ mode: "scroll", loadDelayMs: 0, blockSize: 10, overscan: 0, getRowId: (r) => r.id, fetchRows });
+      return (
+        <DataGridProvider {...server.gridProps} columns={columns} createRow={() => ({ id: "new", name: "New" })} onDataChange={(next, change) => server.gridProps.onDataChange(next as Row[], change as never)}>
+          <DataGridRoot aria-label="People">
+            <Probe />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+    render(<Harness />);
+    await waitFor(() => expect(server.gridProps.data[1]).toBeDefined());
+    const before = server.gridProps.data.length;
+    await act(async () => void store.getState().actions.insertRow(0, "above"));
+    await waitFor(() => expect(server.gridProps.data.some((row) => row?.id === "new")).toBe(true));
+    expect(server.gridProps.data.filter((row) => row?.id === "new")).toHaveLength(1);
+    expect(server.gridProps.data.length - before).toBeLessThanOrEqual(1);
+  });
+});

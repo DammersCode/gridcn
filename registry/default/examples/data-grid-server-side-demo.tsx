@@ -54,7 +54,7 @@ export default function DataGridServerSideDemo(): ReactNode {
   const [revalidate, setRevalidate] = useState(false);
   const [live, setLive] = useState(false);
   const [reshapeDelayMs, setReshapeDelay] = useState<"off" | "1000">("off");
-  const push = { live, reshapeDelayMs: reshapeDelayMs === "off" ? undefined : Number(reshapeDelayMs) };
+  const push = { live, reshapeDelayMs: reshapeDelayMs === "off" ? (false as const) : Number(reshapeDelayMs) };
   return (
     <div className="w-full flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
@@ -88,7 +88,7 @@ export default function DataGridServerSideDemo(): ReactNode {
 }
 
 type Remote = ReturnType<typeof createRemoteServer>;
-type PushProps = { remote: Remote; live: boolean; reshapeDelayMs: number | undefined };
+type PushProps = { remote: Remote; live: boolean; reshapeDelayMs: number | false };
 
 const BY_SCORE = { sorts: [{ columnId: "score", direction: "desc" as const }] };
 const STALE_ROW = "[&_[data-row-stale]]:text-muted-foreground [&_[data-row-stale]]:italic";

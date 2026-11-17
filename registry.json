@@ -1702,6 +1702,11 @@
                "target": "components/data-grid-server/scroll-sequence.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid-server/scroll-eviction.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-server/scroll-eviction.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid-server/refresh-guard.tsx",
                "type": "registry:component",
                "target": "components/data-grid-server/refresh-guard.tsx"

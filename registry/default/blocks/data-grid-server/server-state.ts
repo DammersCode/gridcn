@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DataGridPlugin, FilterNode, ServerSpec, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { isDev, registerServerWiring } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { MIN_RESHAPE_DELAY, MIN_REVALIDATE_INTERVAL, readReshapeDelay, readRevalidateInterval } from "./fetch-hygiene";
+import { DEFAULT_RESHAPE_DELAY, MIN_RESHAPE_DELAY, MIN_REVALIDATE_INTERVAL, readReshapeDelay, readRevalidateInterval } from "./fetch-hygiene";
 
 /** The request state every mode of `useDataGridServerRows` returns. */
 export type DataSourceState = {
@@ -44,7 +44,7 @@ export function useControlled<T>(controlled: T | undefined, initial: () => T, on
     if (latest.current.controlled === undefined) setInner(next);
     latest.current.onChange?.(next);
   }, []);
-  return [controlled ?? inner, set] as const;
+  return [controlled ?? inner, set, setInner] as const;
 }
 
 /** Runs a consumer callback so that a throw cannot break the caller's bookkeeping. */
@@ -63,21 +63,26 @@ export function useMountedPlugins(guard: readonly DataGridPlugin<unknown>[], own
 
 export type ServerSpecOptions = {
   spec?: ServerSpec;
-  defaultSpec?: Partial<ServerSpec>;
+  defaultSpec?: Partial<ServerSpec> | (() => Partial<ServerSpec> | undefined);
   onSpecChange?: (spec: ServerSpec) => void;
 };
 
 /** The sort, filter, and search of a server source, with stable change handlers for the grid's controlled state. */
 export function useServerSpec(source: ServerSpecOptions, afterChange: () => void) {
-  const [spec, setSpec] = useControlled<ServerSpec>(
-    source.spec,
-    () => ({
-      sorts: [...(source.defaultSpec?.sorts ?? EMPTY_SPEC.sorts)],
-      filters: [...(source.defaultSpec?.filters ?? EMPTY_SPEC.filters)],
-      searchText: source.defaultSpec?.searchText ?? EMPTY_SPEC.searchText,
-    }),
-    source.onSpecChange,
-  );
+  const lateSeed = typeof source.defaultSpec === "function" && source.spec === undefined ? source.defaultSpec : null;
+  const [spec, setSpec, seedSpec] = useControlled<ServerSpec>(source.spec, () => specOf(lateSeed ? undefined : (source.defaultSpec as Partial<ServerSpec> | undefined)), source.onSpecChange);
+  const [ready, setReady] = useState(lateSeed === null);
+  const lateSeedRef = useRef(lateSeed);
+  // A function seed runs after mount, on the client only, so the server render and the first client render match.
+  useLayoutEffect(() => {
+    const seed = lateSeedRef.current;
+    if (seed) {
+      let value: Partial<ServerSpec> | undefined;
+      isolate("defaultSpec", () => (value = seed()));
+      if (value) seedSpec(specOf(value));
+    }
+    setReady(true);
+  }, [seedSpec]);
   const live = useRef({ spec, afterChange });
   useLayoutEffect(() => {
     live.current = { spec, afterChange };
@@ -95,8 +100,14 @@ export function useServerSpec(source: ServerSpecOptions, afterChange: () => void
   const onSortChange = useCallback((sorts: SortSpec[]) => changeSpec({ sorts }), [changeSpec]);
   const onFilterChange = useCallback((filters: FilterNode[]) => changeSpec({ filters }), [changeSpec]);
   const onSearchTextChange = useCallback((searchText: string) => changeSpec({ searchText }), [changeSpec]);
-  return { spec, onSortChange, onFilterChange, onSearchTextChange };
+  return { spec, ready, onSortChange, onFilterChange, onSearchTextChange };
 }
+
+const specOf = (seed?: Partial<ServerSpec>): ServerSpec => ({
+  sorts: [...(seed?.sorts ?? EMPTY_SPEC.sorts)],
+  filters: [...(seed?.filters ?? EMPTY_SPEC.filters)],
+  searchText: seed?.searchText ?? EMPTY_SPEC.searchText,
+});
 
 type RevalidationInput = {
   /** The `revalidateIntervalMs` option as the consumer passed it. */
@@ -203,6 +214,8 @@ export function useRevalidation({ interval: raw, onTick, busy, canTick, resetKey
 type ReshapeInput = {
   /** The `reshapeDelayMs` option as the consumer passed it. */
   delay: unknown;
+  /** The spec has a sort or a filter, so a pushed row can belong elsewhere: `delay` defaults to {@link DEFAULT_RESHAPE_DELAY}. */
+  ordered: boolean;
   /** Runs the refresh when a reshape is due. */
   run: () => void;
   /** A request is in flight: a due reshape waits until this turns false and then runs once. */
@@ -222,11 +235,12 @@ export type ReshapeTrigger = "stale" | "soon" | "urgent";
  * timer, so a steady feed reshapes at most once per delay; without it `"stale"` triggers do nothing and `"soon"` runs on the next
  * frame. `"urgent"` always runs on the next frame. A reshape that falls due during a request or while the page is hidden waits and runs once.
  */
-export function useReshape({ delay: raw, run, busy, canRun, resetKey, warn }: ReshapeInput) {
+export function useReshape({ delay: raw, ordered, run, busy, canRun, resetKey, warn }: ReshapeInput) {
   const { delay, invalid, raised } = readReshapeDelay(raw);
-  const live = useRef({ delay, run, busy, canRun, warn });
+  const staleDelay = delay ?? (raw === undefined && ordered ? DEFAULT_RESHAPE_DELAY : null);
+  const live = useRef({ delay, staleDelay, run, busy, canRun, warn });
   useLayoutEffect(() => {
-    live.current = { delay, run, busy, canRun, warn };
+    live.current = { delay, staleDelay, run, busy, canRun, warn };
   });
   const pending = useRef<{ timer: ReturnType<typeof setTimeout> | null; cancelFrame: (() => void) | null; waiting: boolean }>({ timer: null, cancelFrame: null, waiting: false });
 
@@ -252,7 +266,7 @@ export function useReshape({ delay: raw, run, busy, canRun, resetKey, warn }: Re
   const request = useCallback(
     (trigger: ReshapeTrigger) => {
       const state = pending.current;
-      const ms = live.current.delay;
+      const ms = trigger === "stale" ? live.current.staleDelay : live.current.delay;
       if (trigger === "stale" || (trigger === "soon" && ms !== null)) {
         if (ms === null || state.timer !== null) return;
         state.timer = setTimeout(() => {

@@ -60,7 +60,6 @@ function PriceFeed() {
 export function OrdersGrid() {
   const server = useDataGridServerRows<Order>({
     mode: "scroll",
-    reshapeDelayMs: 1000,
     fetchRows: async ({ spec, start, end, signal }) => {
       const response = await fetch("/api/orders/query", {
         method: "POST",
@@ -106,7 +105,9 @@ A row stops being stale when:
 
 `reconcileView()` asks `useDataGridServerRows` to reshape and keeps the marks until the answer delivers the rows again. A sequential source sends no request while the rendered rows plus `overscan` end beyond 10 blocks. The marks then stay until `refresh()` or a spec change. Without the hook, it clears the marks. When the view turns stale, the live region reads `labels.grid.viewStale` once, at most once every 30 seconds, in every data mode.
 
-A reshape is a `refresh()` that the hook runs, so the server places the rows again. Set `reshapeDelayMs` (milliseconds, at least 250, off by default) on the hook to reshape on its own after a push. A stale row then starts one throttled `refresh()` after the delay. A push delete and `server.reshape()` refresh on the next frame, or after the delay when it is set. A sequential source skips that refresh while the rendered rows plus `overscan` end beyond 10 blocks. Call `server.refresh()` there. Without `reshapeDelayMs`, a stale row waits for `reshape()`, `refresh()`, or a spec change.
+A reshape is a `refresh()` that the hook runs, so the server places the rows again. While the spec has a sort or a filter, the hook reshapes on its own after a push. A stale row starts one throttled `refresh()` after `reshapeDelayMs` (milliseconds, at least 250, default 1000). Pass `false` to turn it off.
+
+A push delete and `server.reshape()` refresh on the next frame, or after the delay when it is set. A sequential source skips that refresh while the rendered rows plus `overscan` end beyond 10 blocks. Call `server.refresh()` there. With `reshapeDelayMs: false`, a stale row waits for `reshape()`, `refresh()`, or a spec change.
 
 ## Delete and insert rows [#push-delete]
 

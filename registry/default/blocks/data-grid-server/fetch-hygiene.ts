@@ -53,9 +53,12 @@ export function readRevalidateInterval(value: unknown): { interval: number | nul
 
 export const MIN_RESHAPE_DELAY = 250;
 
-/** The delay in ms, or `null` when the reshape delay is off; `invalid` marks a value that was set but unusable, `raised` a value below the minimum. */
+/** The reshape delay of a spec with a sort or a filter when `reshapeDelayMs` is not set. */
+export const DEFAULT_RESHAPE_DELAY = 1000;
+
+/** The delay in ms, or `null` when the reshape delay is off; `invalid` marks a value that was set but unusable, `raised` a value below the minimum. `false` turns the default off. */
 export function readReshapeDelay(value: unknown): { delay: number | null; invalid: boolean; raised: boolean } {
-  if (value === undefined) return { delay: null, invalid: false, raised: false };
+  if (value === undefined || value === false) return { delay: null, invalid: false, raised: false };
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return { delay: null, invalid: true, raised: false };
   const delay = Math.min(MAX_REVALIDATE_INTERVAL, Math.floor(value));
   return { delay: Math.max(MIN_RESHAPE_DELAY, delay), invalid: false, raised: delay < MIN_RESHAPE_DELAY };
