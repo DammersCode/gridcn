@@ -131,7 +131,7 @@ A grid feature can behave differently on a local array, on server pages and on s
     </tr>
     <tr id="parity-grouping">
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Row grouping</th>
-      <td className="text-center"><ParityCell status="gap" note={"Row grouping is not available."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="gap" note={"Row grouping is not available."} /></td>
       <td className="text-center"><ParityCell status="gap" note={"The request fields, the groups answer with its bounds, and the core layout exist; the hook does not group yet."} /></td>
       <td className="text-center"><ParityCell status="gap" note={"The request fields, the groups answer with its bounds, and the core layout exist; the hook does not group yet."} /></td>
@@ -695,7 +695,7 @@ A development warning names `totalRowCount` above the loaded rows under a client
 
 ### Row grouping
 
-- **L, PC**: Gap (#71): Row grouping is not available.
+- **PC**: Gap (#71): Row grouping is not available.
 - **PS, Z, SS, FS, API**: Gap (#71): The request fields, the groups answer with its bounds, and the core layout exist. The hook does not group yet.
 
 ### Server totals (`useDataGridServerAggregate`)

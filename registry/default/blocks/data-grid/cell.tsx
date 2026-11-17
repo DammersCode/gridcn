@@ -15,7 +15,7 @@ import {
 } from "react";
 import { cn } from "@/lib/utils";
 import { COLUMN_BORDER } from "./columns/column-border";
-import { GRID_ATTR, gridAttrSelector } from "./data-attributes";
+import { GRID_ATTR, GRID_ROLE_SELECTOR, gridAttrSelector } from "./data-attributes";
 import type { CellType } from "./types";
 import type { CellClassNameReader } from "./rows/use-class-name-revision";
 import { getCellValue } from "./columns/column-helpers";
@@ -105,9 +105,9 @@ const SEARCH_MATCH_COLOR =
 
 const TEXT_FIELD = 'input:not([type="checkbox"],[type="radio"],[type="button"],[type="submit"],[type="reset"],[type="range"],[type="color"],[type="file"]), textarea';
 
-function keepsFocusOutsideGrid(doc: Document): boolean {
+export function keepsFocusOutsideGrid(doc: Document): boolean {
   const holder = doc.activeElement;
-  if (!(holder instanceof HTMLElement) || holder.closest('[role="grid"]') !== null) return false;
+  if (!(holder instanceof HTMLElement) || holder.closest(GRID_ROLE_SELECTOR) !== null) return false;
   return holder.matches(TEXT_FIELD) || holder.isContentEditable || holder.closest(gridAttrSelector("keepFocus")) !== null;
 }
 
@@ -122,7 +122,7 @@ function isEditorEvent(event: { currentTarget: Element; target: EventTarget | nu
 // The grid scroller clips the inline error line: flip it above the cell at the bottom edge and
 // anchor it to the cell's end side at the side edges.
 function placeInlineAlert(alert: HTMLElement | null): void {
-  const scroller = alert?.closest('[role="grid"]');
+  const scroller = alert?.closest(GRID_ROLE_SELECTOR);
   if (!alert || !scroller) return;
   alert.removeAttribute("data-above");
   alert.removeAttribute("data-end");
@@ -201,7 +201,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
     const onFocusOut = (event: FocusEvent) => {
       const target = event.relatedTarget;
       focusLeftGridRef.current =
-        target instanceof Element && !cellRef.current?.closest('[role="grid"]')?.contains(target) && !target.closest(gridAttrSelector("cellEditor"));
+        target instanceof Element && !cellRef.current?.closest(GRID_ROLE_SELECTOR)?.contains(target) && !target.closest(gridAttrSelector("cellEditor"));
     };
     document.addEventListener("focusout", onFocusOut, true);
     return () => document.removeEventListener("focusout", onFocusOut, true);
@@ -217,7 +217,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
     focusLeftGridRef.current = false;
     if (!isActive || isEditing || focusLeftGrid || !cellRef.current) return;
     // a seeded active cell must not steal focus on page load, so Tab starts at the page start
-    if (cellRef.current.closest('[role="grid"]')?.hasAttribute(GRID_ATTR.settled) === false) return;
+    if (cellRef.current.closest(GRID_ROLE_SELECTOR)?.hasAttribute(GRID_ATTR.settled) === false) return;
     if (!keepsFocusOutsideGrid(cellRef.current.ownerDocument)) cellRef.current.focus({ preventScroll: true });
   }, [isActive, isEditing, errorMessage]);
 

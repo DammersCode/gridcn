@@ -564,9 +564,10 @@
       ],
       "cells": {
         "L": {
-          "status": "gap",
-          "track": "#71",
-          "note": "Row grouping is not available."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/grouping.parity.test.tsx"
+          ]
         },
         "PC": {
           "status": "gap",
@@ -586,7 +587,8 @@
         "C": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid/store/row-grouping.test.tsx"
+            "registry/default/blocks/data-grid/store/row-grouping.test.tsx",
+            "tests/parity/grouping.parity.test.tsx"
           ]
         },
         "SS": {

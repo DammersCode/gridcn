@@ -30,7 +30,8 @@ import type { RowSaveStatus } from "./write-ack";
 import { readSelectedRows, type DataGridSelectedRows } from "./selected-rows";
 import type { SelectionPointer } from "./types";
 import type { AnyColumnDef, ColumnDefOf, DataGridActions, DataGridCellState, DataGridInternalActions, DataGridRowCellState, DataGridStoreState, LiveAnnouncement, ResolvedPlugins } from "./types";
-import { dataIndexAt } from "./view-rows";
+import { dataIndexAt, recordKeyAt } from "./view-rows";
+import { groupRowMetaAt, type GroupRowMeta } from "./group-positions";
 
 /** The stable actions object for the current grid; never changes identity, so this hook never re-renders. */
 export function useDataGridActions(): DataGridActions {
@@ -402,10 +403,20 @@ export function useDataGridRow<TData = unknown>(viewRowIndex: number): TData | u
 export function useDataGridRowId(viewRowIndex: number): string | undefined {
   return useDataGridStore((s) => {
     const dataRowIndex = dataIndexAt(s, viewRowIndex);
-    if (dataRowIndex === undefined) return undefined;
+    if (dataRowIndex === undefined) return groupIdAt(s, viewRowIndex);
     const row = s.data[dataRowIndex];
     return row === undefined ? holeRowId(dataRowIndex) : s.getRowId(row, dataRowIndex);
   });
+}
+
+/** The group id of the group row at `viewRow`; `undefined` for a missing row. */
+function groupIdAt(s: DataGridStoreState, viewRow: number): string | undefined {
+  return recordKeyAt(s.viewIndex, viewRow) as string | undefined;
+}
+
+/** The group row at a view row index with its level, position, and open state; `null` for any other row. Re-renders only when that group row changes. */
+export function useDataGridGroupRow(viewRowIndex: number): GroupRowMeta | null {
+  return useDataGridStore(useShallow((s) => groupRowMetaAt(s, viewRowIndex)));
 }
 
 /** `getRowId` results for a set of view row indices, in the same order — one subscription, safe under a changing window size. */
@@ -414,7 +425,7 @@ export function useDataGridRowIds(viewRowIndices: readonly number[]): (string | 
     useShallow((s) =>
       viewRowIndices.map((viewRowIndex) => {
         const dataRowIndex = dataIndexAt(s, viewRowIndex);
-        if (dataRowIndex === undefined) return undefined;
+        if (dataRowIndex === undefined) return groupIdAt(s, viewRowIndex);
         const row = s.data[dataRowIndex];
         return row === undefined ? holeRowId(dataRowIndex) : s.getRowId(row, dataRowIndex);
       }),

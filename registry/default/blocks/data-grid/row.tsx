@@ -43,6 +43,10 @@ export type DataGridRowProps = {
   classNameRevision?: number;
   /** Forwarded to each cell; see {@link DataGridRowProps.getRowClassName}. */
   getCellClassName?: CellClassNameReader;
+  /** Set only while the rows are grouped: the level, 1-based position, and size of this row inside its group (`aria-level`, `aria-posinset`, `aria-setsize`; the position also numbers the row marker). Plain numbers keep the memoized row stable. */
+  groupLevel?: number;
+  groupPosInSet?: number;
+  groupSetSize?: number;
 };
 
 /**
@@ -68,6 +72,9 @@ export const DataGridRow = memo(function DataGridRow({
   getRowClassName,
   getCellClassName,
   classNameRevision,
+  groupLevel,
+  groupPosInSet,
+  groupSetSize,
 }: DataGridRowProps) {
   const [initialGridLine] = useState(() => getGridLine(viewRowIndex));
   const row = useDataGridRow(viewRowIndex);
@@ -94,6 +101,9 @@ export const DataGridRow = memo(function DataGridRow({
       ref={rowRef}
       role="row"
       aria-rowindex={viewRowIndex + 2 + ariaRowIndexOffset}
+      aria-level={groupLevel}
+      aria-posinset={groupPosInSet}
+      aria-setsize={groupSetSize}
       data-grid-row-index={viewRowIndex}
       aria-busy={isSkeleton || cellState.saveStatus === "saving" || undefined}
       {...(cellState.saveStatus === undefined ? undefined : { [GRID_ATTR.saveStatus]: cellState.saveStatus })}
@@ -121,6 +131,7 @@ export const DataGridRow = memo(function DataGridRow({
           onReorderPointerDown={onMarkerReorderPointerDown}
           renderMarker={renderMarker}
           isReorderDragging={isRowReorderDragging}
+          rowNumber={groupPosInSet}
         />
       )}
       {renderedColumns.map(({ column, index }) => {

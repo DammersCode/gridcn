@@ -78,6 +78,7 @@ export {
   useDataGridRow,
   useDataGridRowId,
   useDataGridRowIds,
+  useDataGridGroupRow,
   useDataGridRowIdToViewRow,
   useDataGridRowCount,
   useDataGridIsRowSelected,

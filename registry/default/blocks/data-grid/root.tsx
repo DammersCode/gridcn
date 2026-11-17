@@ -45,6 +45,7 @@ import {
   type HeaderMenuRenderer,
   type MarkerCellRenderer,
   type MarkerHeaderRenderer,
+  type GroupLabelRenderer,
 } from "./layout-context";
 import { MAX_RENDERED_ROWS } from "./virtualization/use-row-window";
 import { resolveHeaderHeight, resolveRowHeight } from "./rows/density";
@@ -168,6 +169,8 @@ export type DataGridRootProps<TData = unknown> = {
   renderMarker?: MarkerCellRenderer;
   /** Custom marker-header renderer: replaces the built-in select-all checkbox; same track and width. See {@link MarkerHeaderRenderer}. Pass a stable identity. */
   renderMarkerHeader?: MarkerHeaderRenderer;
+  /** @internal Renders the content of a group row label; the default is "column: key (count)". Pass a stable identity. */
+  renderGroupLabel?: GroupLabelRenderer;
   /** Row class hook, merged via `cn()` after the built-in row classes. An inline function is fine — see {@link GetRowClassName}. */
   getRowClassName?: GetRowClassName<TData>;
   /** Cell class hook, merged via `cn()` after the built-in cell classes. An inline function is fine — see {@link GetCellClassName}. */
@@ -197,6 +200,7 @@ export const DATA_GRID_ROOT_PROP_KEYS = [
   "renderHeaderFilter",
   "renderMarker",
   "renderMarkerHeader",
+  "renderGroupLabel",
   "getRowClassName",
   "getCellClassName",
   "children",
@@ -238,6 +242,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     renderHeaderFilter,
     renderMarker,
     renderMarkerHeader,
+    renderGroupLabel,
     getRowClassName,
     getCellClassName,
     children,
@@ -247,11 +252,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   const instanceId = useDataGridInstanceId();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
-  // Roving-tabindex bootstrap (see the root's onFocus below) must only fire for a genuine
-  // keyboard Tab into the grid — a mouse gesture on a header/marker cell (row/column channel
-  // selection, no `activeCell`) also focuses the root as a side effect and must NOT clobber that
-  // selection back to (0,0). Any pointerdown anywhere in the grid (captured phase, fires before
-  // the resulting focus event in the same tick) marks the next focus as pointer-originated.
+  // The roving-tabindex bootstrap (root onFocus below) fires only for a keyboard Tab in: a captured pointerdown marks the next focus as pointer-originated,
+  // so a header or marker click does not reset the row or column selection to (0,0).
   const pointerInteractionRef = useRef(false);
   // `ltr` until the parent is measured. The root sets its own `dir`, so the inherited direction is read from the parent.
   const [domDirection, setDomDirection] = useState<GridDirection>("ltr");
@@ -272,6 +274,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   const rowCount = useDataGridRowCount();
   const dataLength = useDataGridStore((s) => s.data.length);
   const gatesPending = useDataGridStore((s) => (s.gatesPending.size === 0 ? "" : Array.from(s.gatesPending).join(" ")));
+  const grouped = useDataGridStore((s) => s.groupLayout !== null);
   const serverFiltered = useDataGridStore((s) => s.filterMode === "server" && (s.filterState.length > 0 || s.searchText !== ""));
   const hasError = error !== undefined && error !== null;
   // labels.grid.emptyState is the translatable default; the emptyState prop (node or function) still wins when provided.
@@ -299,9 +302,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   const pinnedBottomHeight = bottomBandRowCount * rowHeight;
   // Where data row 0 starts: the header track plus the pinned-top band.
   const effectiveHeaderHeight = headerHeight + pinnedTopHeight;
-  // primitive boolean, not the full activeCell — see useDataGridHasActiveCell's doc for why this
-  // matters (a full ViewCoord subscription here would re-render the root, and thus the whole tree
-  // via its context value, on every single row/column move).
+  // a boolean, not the full activeCell: a ViewCoord subscription would re-render the root on every cell move
   const hasActiveCell = useDataGridHasActiveCell();
   const storeApi = useDataGridStoreApi();
   // WAI-ARIA grid pattern: aria-multiselectable reflects whether more than one cell can be
@@ -500,11 +501,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     "--grid-row-height": `${rowHeight}px`,
     "--grid-viewport-width": `${dimensions.clientWidth}px`,
     "--grid-content-width": `${totalWidth}px`,
-    // Sign of the horizontal scroll transform. CSS Grid and every inset-inline-* offset mirror
-    // themselves under dir=rtl, but `transform` is always physical — so the canvas/header/band
-    // transforms multiply the (always positive) scroll offset by this instead of a literal -1. The
-    // browser resolves it at compositing time, which is what keeps the per-tick scroll write, and
-    // the whole hot path, byte-for-byte identical in both directions.
+    // Sign of the horizontal scroll transform: grid tracks and inset-inline-* mirror under dir=rtl but `transform` stays physical,
+    // so the transforms multiply the scroll offset by this and the per-tick scroll write is identical in both directions.
     "--grid-dir": directionSign(direction),
   };
   visibleColumns.forEach((_, i) => {
@@ -524,7 +522,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   );
 
   const renderedRowsRef = useRef<RenderedRows | null>(null);
-  const [stableRenderMarker, stableRenderMarkerHeader] = [useLatestRenderer(renderMarker), useLatestRenderer(renderMarkerHeader)];
+  const [stableRenderMarker, stableRenderMarkerHeader, stableRenderGroupLabel] = [useLatestRenderer(renderMarker), useLatestRenderer(renderMarkerHeader), useLatestRenderer(renderGroupLabel)];
   const classNames = useClassNameRevision({ getRowClassName: getRowClassName as GetRowClassName<unknown> | undefined, getCellClassName: getCellClassName as GetCellClassName<unknown> | undefined }, renderedRowsRef);
   // Stable context value on real deps (mustFix): DataGridRoot re-renders when the active
   // cell leaves the rendered column window, and cell.tsx/header.tsx read this context directly —
@@ -553,6 +551,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       renderHeaderFilter,
       renderMarker: stableRenderMarker,
       renderMarkerHeader: stableRenderMarkerHeader,
+      renderGroupLabel: stableRenderGroupLabel,
       // Erasure boundary: DataGridRootContextValue is one shared non-generic context for every
       // DataGridRoot<TData>, so a typed caller's callbacks widen to <unknown> here — safe because
       // every row they ever receive at runtime came from this same subtree's DataGridProvider.
@@ -581,7 +580,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       direction,
       renderHeaderMenu,
       renderHeaderFilter,
-      stableRenderMarker, stableRenderMarkerHeader,
+      stableRenderMarker, stableRenderMarkerHeader, stableRenderGroupLabel,
       classNames,
     ],
   );
@@ -595,7 +594,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     <DataGridRootContext value={contextValue}>
       <div
         ref={scrollRef}
-        role="grid"
+        role={grouped ? "treegrid" : "grid"}
         aria-label={ariaLabel ?? (ariaLabelledBy ? undefined : gridLabels.gridName)}
         aria-labelledby={ariaLabelledBy}
         dir={direction}

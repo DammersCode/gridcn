@@ -1,6 +1,6 @@
-import { gridAttrSelector } from "../data-attributes";
+import { GRID_ROLE_SELECTOR, gridAttrSelector } from "../data-attributes";
 
-const GRID_ROOT_SELECTOR = `[role="grid"]${gridAttrSelector("instance")}`;
+const GRID_ROOT_SELECTOR = `:is(${GRID_ROLE_SELECTOR})${gridAttrSelector("instance")}`;
 
 /** The innermost grid root around `node`, crossing shadow roots, so a nested grid's elements never count as its host's. */
 export function closestGridRoot(node: Node | null): Element | null {

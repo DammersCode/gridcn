@@ -216,6 +216,17 @@ export function buildDefaultLabels(locale: string): DataGridLabels {
         openCellMenu: "Open cell menu",
       },
     },
+    grouping: {
+      groupBy: (column) => `Group by ${column}`,
+      ungroup: (column) => `Ungroup ${column}`,
+      expand: (label) => `Expand ${label}`,
+      collapse: (label) => `Collapse ${label}`,
+      expandAll: "Expand all groups",
+      collapseAll: "Collapse all groups",
+      empty: "(empty)",
+      expanded: (label, count) => `${label} expanded, ${count.toLocaleString(locale)} ${count === 1 ? "row" : "rows"}`,
+      collapsed: (label) => `${label} collapsed`,
+    },
     markers: {
       columnHeader: "Row markers",
       selectAll: "Select all rows",
