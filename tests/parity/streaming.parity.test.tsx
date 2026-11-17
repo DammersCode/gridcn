@@ -38,7 +38,7 @@ describe.each(ALL_MODES)("updateCells streaming in mode %s", (mode) => {
     const readOnly = await mountMode(mode, { props: { readOnly: true } });
     readOnly.act(() => void readOnly.state().actions.updateCells([{ rowId: "r1", columnId: "n", value: 5 }], { source: "edit" }));
     expect(readOnly.changes).toHaveLength(0);
-    readOnly.act(() => void readOnly.state().actions.updateCells([{ rowId: "r1", columnId: "n", value: 5 }]));
+    readOnly.act(() => void readOnly.state().actions.updateCells([{ rowId: "r1", columnId: "n", value: 5 }], { source: "stream" }));
     expect(readOnly.cell("r1", "n")).toBe(5);
     expect(readOnly.changes.at(-1)?.source).toBe("stream");
   });

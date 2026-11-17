@@ -25,7 +25,7 @@ export type AccessorKeyOf<TData> = unknown extends TData ? string : keyof TData 
 
 declare const viewIndexBrand: unique symbol;
 
-/** A row position in the current view. The `At` row actions take it, so a plain number cannot pass for a stable row id. Build one with {@link viewIndex}. */
+/** A row position in the current view. Build one with {@link viewIndex}. The `At` row actions take a plain number or a `ViewIndex`. */
 export type ViewIndex = number & { readonly [viewIndexBrand]: true };
 
 /** Marks `index` as a view row position for an `At` action. */

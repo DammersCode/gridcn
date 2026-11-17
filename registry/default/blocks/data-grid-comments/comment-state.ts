@@ -99,7 +99,7 @@ export type Emit =
   | { t: "local"; change: CommentChange }
   | { t: "rejected"; ctx: CommentRejectedCtx }
   | { t: "refetch"; rowIds: string[] }
-  | { t: "warn"; message: string };
+  | { t: "warn"; message: string; unlessFetch?: boolean };
 
 export type AckOutcome =
   | { kind: "void"; server: boolean }

@@ -1381,7 +1381,7 @@ describe("updateCells — verdict", () => {
 
   it("applies a stream batch in a grid-level readOnly grid", () => {
     const { result } = renderHarness({ readOnly: true });
-    expect(result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 1 }])).toEqual({ applied: 1, skipped: [], pending: false });
+    expect(result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 1 }], { source: "stream" })).toEqual({ applied: 1, skipped: [], pending: false });
   });
 
   it("skips patches aimed at an unloaded lazy hole", () => {

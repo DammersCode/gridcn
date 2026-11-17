@@ -270,7 +270,7 @@ function handleAck(c: Ctx, id: string, writeId: string, outcome: AckOutcome): vo
         return;
       }
       c.out.push({ t: "refetch", rowIds: [p.record.rowId] });
-      c.out.push({ t: "warn", message: "a stale rejection without `current` leaves Discard only; return `current` from the save, or set `fetchComments`" });
+      c.out.push({ t: "warn", message: "a stale rejection without `current` leaves Discard only; return `current` from the save, or set `fetchComments`", unlessFetch: true });
       return rollback(c, p, { reason: "stale", message: outcome.message, thrown: false, discardOnly: true });
     }
     return rollback(c, p, { reason: outcome.reason, message: outcome.message, current: outcome.current, thrown: false });
