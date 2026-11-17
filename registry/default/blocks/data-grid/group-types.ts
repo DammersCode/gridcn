@@ -22,6 +22,8 @@ export type GroupNode = {
   readonly childCount: number;
   /** One value per `aggregate` column; `null` when no value counted. */
   readonly aggregates: Readonly<Record<string, unknown>>;
+  /** A server group whose rows load or failed to load. */
+  readonly status?: "loading" | "failed";
 };
 
 type ReduceFn<TData> = { reduce(values: readonly unknown[], rows: readonly TData[]): unknown }["reduce"];
@@ -48,6 +50,29 @@ export type GroupLayout = {
   readonly tree?: unknown;
 };
 
+/** One group row of a {@link ServerGroupLayout}: where it sits in `data`, the group it heads, and what the server said about it. */
+export type ServerGroupSlot = {
+  /** The row of `data` that stands for the group row. Strictly increasing across `rows`. */
+  viewRow: number;
+  /** From the outermost level to this group: one segment per level, following `groupBy`. */
+  path: readonly GroupPathSegment[];
+  label?: string;
+  count: number;
+  childCount: number;
+  aggregates?: Readonly<Record<string, unknown>>;
+  status?: "loading" | "failed";
+};
+
+/**
+ * The group rows of a server grid, in view order. `data` holds one entry per view row, a placeholder at each group row.
+ * Only the server hook builds it; the core derives the group ids from the paths.
+ */
+export type ServerGroupLayout = {
+  readonly rows: readonly ServerGroupSlot[];
+  /** Rows of the whole result, collapsed groups included. */
+  readonly leafCount: number;
+};
+
 /** What `renderGroupLabel` receives for a group row. */
 export type GroupLabelCtx = {
   groupId: string;
@@ -67,6 +92,10 @@ export type GroupStoreState = {
   groupBy: readonly string[];
   expanded: ExpandedState;
   groupLayout: GroupLayout | null;
+  /** `"server"` shows the group rows of `serverGroupLayout` and never buckets rows. */
+  groupMode: "client" | "server";
+  /** The `groupLayout` prop as given; `groupLayout` above is the layout the core derived from it. */
+  serverGroupLayout: ServerGroupLayout | null;
   /** Whether a grouping prop was given: the menus and keys show only then. */
   groupingEnabled: boolean;
   groupByControlled: boolean;

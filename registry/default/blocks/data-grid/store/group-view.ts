@@ -1,11 +1,12 @@
 import type { StoreApi } from "zustand/vanilla";
 import { toSafeText } from "../cell-types/safe-text";
 import type { CellType, FilterNode, SortSpec } from "../types";
-import type { GroupKey, ExpandedState } from "../group-types";
+import type { GroupKey, ExpandedState, ServerGroupLayout } from "../group-types";
 import { buildViewIndex, type CellAccessor } from "../sort-filter/build-view-index";
 import { buildGroupView, type GroupAggregateSpec, type GroupBuildInput, type GroupedView } from "../sort-filter/build-group-view";
 import { createWarnOnce } from "../is-dev";
 import type { AnyColumnDef, DataGridStoreState } from "./types";
+import { buildServerGroupView } from "./server-group-view";
 import { groupLayoutOfView } from "./view-rows";
 
 /** What a grouped rebuild reads: the group columns, which groups are open, and where to warn. */
@@ -13,11 +14,17 @@ export type GroupingInput = {
   groupBy: readonly string[];
   expanded: ExpandedState;
   warn?: (key: string, message: string) => void;
+  /** Set under `groupMode="server"`: the view comes from the layout and no row is bucketed. */
+  server?: { layout: ServerGroupLayout | null };
 };
 
-type GroupingState = Pick<DataGridStoreState, "groupBy" | "expanded" | "totalRowCount" | "sortMode" | "dataWrite">;
+type GroupingState = Pick<DataGridStoreState, "groupBy" | "expanded" | "totalRowCount" | "sortMode" | "dataWrite" | "groupMode" | "serverGroupLayout">;
 
 const warners = new WeakMap<object, (key: string, message: string) => void>();
+
+export function warnGroupOnce(owner: object, key: string, message: string): void {
+  warnerOf(owner)(key, message);
+}
 
 function warnerOf(owner: object): (key: string, message: string) => void {
   let warn = warners.get(owner);
@@ -28,10 +35,16 @@ function warnerOf(owner: object): (key: string, message: string) => void {
   return warn;
 }
 
+/** The mode of a grid: `"server"` when the prop says so, else when a server layout is given. */
+export function groupModeOf(props: { groupMode?: "client" | "server"; groupLayout?: unknown }): "client" | "server" {
+  return props.groupMode ?? (props.groupLayout === undefined ? "client" : "server");
+}
+
 /** The grouping a rebuild applies; `null` for a grid that does not group, and for a result the client cannot group (a window of a larger result, rows sorted by the server). */
 export function groupingOf(s: GroupingState): GroupingInput | null {
   if (s.groupBy.length === 0) return null;
   const warn = warnerOf(s.dataWrite);
+  if (s.groupMode === "server") return { groupBy: s.groupBy, expanded: s.expanded, warn, server: { layout: s.serverGroupLayout } };
   if (s.totalRowCount !== undefined || s.sortMode === "server") {
     warn("ungrouped window", "groupBy needs every row on the client: with totalRowCount or sortMode=\"server\" the grid shows the rows ungrouped");
     return null;
@@ -103,10 +116,22 @@ export function computeGroupedView(args: {
   grouping: GroupingInput;
 }): GroupedView | null {
   const { data, columns, accessor, sortState, filterState, cellTypes, grouping } = args;
+  if (grouping.server) return serverGroupedView(data.length, grouping);
   const leaves = buildViewIndex(data.length, accessor, { sorts: sortsBesideGroups(sortState, grouping.groupBy), filters: filterState });
   const grouped = buildGroupView(groupBuildInput(data, columns, accessor, cellTypes, grouping, sortState, leaves), grouping.expanded);
   if (!grouped) grouping.warn?.("ungrouped holes", "groupBy needs loaded rows: while rows are unloaded (a lazy source) the grid shows them ungrouped");
   return grouped;
+}
+
+function serverGroupedView(dataLength: number, grouping: GroupingInput): GroupedView | null {
+  const layout = grouping.server?.layout;
+  if (!layout) {
+    grouping.warn?.("server layout", 'groupMode="server" needs a groupLayout prop: the grid shows the rows ungrouped. useDataGridServerRows passes it through gridProps');
+    return null;
+  }
+  const result = buildServerGroupView(layout, dataLength, grouping.groupBy);
+  if ("invalid" in result) grouping.warn?.("server layout invalid", `the groupLayout prop is invalid (${result.invalid}), so the grid shows the rows ungrouped`);
+  return "view" in result ? result.view : null;
 }
 
 /** A `setState` that fills `groupLayout` from the view a patch writes, so `viewIndex` and the group rows land in one write. */

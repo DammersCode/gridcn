@@ -176,6 +176,7 @@ export const TERM_PAGES = {
   "group key": "/docs/data-modes/data-mode-support#row-grouping",
   "group level": "/docs/data-modes/data-mode-support#row-grouping",
   "expanded state": "/docs/data-modes/data-mode-support#row-grouping",
+  "group path": "/docs/contracts/server-rows-contract#parse-group-path",
   "checked row": "/docs/selection-shortcuts/checked-rows",
   "checked rows lifetime": "/docs/selection-shortcuts/checked-rows",
   "data mode": ["/docs/data-modes", "One way the grid gets its rows, such as a local array or server pages."],

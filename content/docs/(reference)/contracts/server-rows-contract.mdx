@@ -144,6 +144,12 @@ loaded rows. Pass `fetchFilterValues` to list the values of the whole column fro
 
 URL state drops a filter value over 1,000 characters and cuts the search text to 500 characters. `maxValueLength` and `maxSearchLength` bound them on the server.
 
+#### Check a group request [#parse-group-path]
+
+A grouped request adds `groupBy` and `aggregates` to the spec, and `groupPath` and `childKind` to the request. `parseServerSpec` reads `groupBy` (at most `maxGroupLevels`, 4) and `aggregates` (at most `maxGroupAggregates`, 32, one reducer per column). `ServerSpecColumnRules` takes `groupable` and `aggregatable`.
+
+`parseGroupPath(body, spec)` returns `{ groupPath, childKind }`. The path follows `spec.groupBy` in order and is not longer. A key is a string of at most `maxGroupKeyLength` (1,024) characters, a finite number, a boolean, or `null`. `childKind` is `"groups"` while the path is shorter than `groupBy`, else `"rows"`. Pass every key to your query as a parameter.
+
 #### Custom operators [#custom-operators]
 
 A [custom operator](/docs/sort-filter-search/filtering#custom-operators) reaches the spec as a filter with its `id` in `operator`. List the `id` with its value shape, then map it to your query, as this sample shows:

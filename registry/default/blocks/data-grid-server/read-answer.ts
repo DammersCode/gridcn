@@ -1,4 +1,5 @@
 import type { RowRange, ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import type { GroupPathSegment } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Largest row count the server contract accepts; a bigger count clamps to it. */
 export const MAX_ROW_COUNT = 10_000_000;
@@ -20,6 +21,10 @@ export type ServerRowsRequest<TCursor = never> = {
   reason: FetchReason;
   /** Aborted when a newer request replaces this one, when a scroll-mode block leaves the rendered rows by more than `overscan` plus one block, on a spec change, and on unmount. */
   signal: AbortSignal;
+  /** Only while `spec.groupBy` is not empty: the group whose children this request reads, outermost first; `[]` is the top level. */
+  groupPath?: readonly GroupPathSegment[];
+  /** Only while `spec.groupBy` is not empty: `"groups"` while `groupPath` is shorter than `groupBy`, else `"rows"`. */
+  childKind?: "groups" | "rows";
 };
 
 /** Pages mode adds the page address; `start` is `(page - 1) * pageSize`. */

@@ -783,6 +783,11 @@
                "target": "components/data-grid/store/group-view.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/store/server-group-view.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/server-group-view.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/store/group-patch.ts",
                "type": "registry:component",
                "target": "components/data-grid/store/group-patch.ts"
@@ -1840,6 +1845,11 @@
                "path": "registry/default/blocks/data-grid-server/read-answer.ts",
                "type": "registry:component",
                "target": "components/data-grid-server/read-answer.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-server/read-groups-answer.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-server/read-groups-answer.ts"
             },
             {
                "path": "registry/default/blocks/data-grid-server/server-state.ts",
