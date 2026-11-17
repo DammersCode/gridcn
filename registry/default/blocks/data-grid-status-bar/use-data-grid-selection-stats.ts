@@ -9,7 +9,7 @@ import {
   useDataGridVisibleColumns,
   type AnyColumnDef,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { selectionRects, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { rowAtViewRow, selectionRects, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { computeSelectionStats, EMPTY_SELECTION_STATS, type SelectionStats } from "./compute-selection-stats";
 
 /** Total rect area up to which the walk runs at once; above it, the settle timer defers it. */
@@ -47,8 +47,7 @@ export function useDataGridSelectionStats(): SelectionStats {
           rowCount: viewIndex.length,
           colCount: columns.length,
           valueAt: (viewRow, viewCol) => {
-            const dataRow = viewIndex[viewRow];
-            const row = dataRow === undefined ? undefined : data[dataRow];
+            const row = rowAtViewRow({ viewIndex, data }, viewRow);
             if (row === undefined) return undefined;
             return getCellValue<unknown, AnyColumnDef>(row, columns[viewCol]!);
           },

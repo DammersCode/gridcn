@@ -4,7 +4,7 @@ import { memo, useLayoutEffect, useMemo, type ComponentType, type CSSProperties,
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import { useDataGridVisibleColumns, type OverlayPluginCtx } from "@/registry/default/blocks/data-grid/data-grid";
-import { GRID_LAYER, hasAnyPin, rowIdAtViewRow, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { GRID_LAYER, dataIndexAt, hasAnyPin, rowIdAtViewRow, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { cellComments } from "./comment-state";
 import type { CommentEngine } from "./comment-engine";
 import type { UseDataGridCommentsOptions } from "./types";
@@ -104,7 +104,7 @@ export function createCommentsOverlay(engine: CommentEngine, getOptions: () => U
     const rowIds = useDataGridSelector<unknown, readonly (string | undefined)[]>(
       useShallow((s) => {
         const ids: (string | undefined)[] = [];
-        for (let viewRow = clampRowStart; viewRow < clampRowEnd; viewRow += 1) ids.push(rowIdAtViewRow(s, viewRow));
+        for (let viewRow = clampRowStart; viewRow < clampRowEnd; viewRow += 1) ids.push(dataIndexAt(s, viewRow) === undefined ? undefined : rowIdAtViewRow(s, viewRow));
         return ids;
       }),
     );

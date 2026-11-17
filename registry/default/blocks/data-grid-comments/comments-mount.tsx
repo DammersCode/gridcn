@@ -6,7 +6,7 @@ import { useStore } from "zustand";
 import { useDataGridActiveCell, useDataGridApi, useDataGridKeymap, useDataGridReadOnly, type DataGridApi } from "@/registry/default/blocks/data-grid/data-grid";
 import { GRID_ATTR, isDev, rowIdAtViewRow, useDataGridContainer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { CommentPopoverHost } from "./comment-popover";
-import { findOwnCell } from "./own-cell";
+import { findOwnCell, viewRowOfRowId } from "./own-cell";
 import { cellComments } from "./comment-state";
 import type { CommentEngine, GridAdapter } from "./comment-engine";
 import type { UseDataGridCommentsOptions } from "./types";
@@ -121,7 +121,7 @@ function openCell(
 ): boolean {
   const state = api.store.getState();
   if (!state.visibleColumns.some((c) => c.id === ref.columnId)) return false;
-  const viewRow = api.getViewRowIds().indexOf(ref.rowId);
+  const viewRow = viewRowOfRowId(state, ref.rowId);
   if (viewRow < 0) return false;
   api.scrollTo(ref);
   api.actions.selectCell(ref);

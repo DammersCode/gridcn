@@ -8,13 +8,14 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { useDataGridActions } from "@/registry/default/blocks/data-grid/data-grid";
-import { GRID_ROLE_SELECTOR, gridAttrSelector, pluginCellMenuItems, useDataGridStoreApi, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { GRID_ROLE_SELECTOR, dataIndexAt, gridAttrSelector, pluginCellMenuItems, rowAtViewRow, rowIdAtViewRow, useDataGridStoreApi, viewEntryAt, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { resolveContextMenuTarget, type ContextMenuTarget } from "./resolve-context-menu-target";
 import { isCellInSelection } from "./selection-queries";
 import {
   DataGridHeaderMenuItemsContext,
   renderContextMenuItems,
   useDefaultCellMenuItems,
+  useDefaultGroupRowMenuItems,
   useDefaultHeaderMenuItems,
   useRowOperationTargets,
   type CellMenuItemsResolver,
@@ -23,7 +24,7 @@ import {
 } from "./menu-items";
 import { useHasCreateRow, useHasDuplicateRow } from "./has-row-op";
 
-type CellTarget = Extract<ContextMenuTarget, { kind: "cell" }> & { rowId: string };
+type CellTarget = Extract<ContextMenuTarget, { kind: "cell" }> & { rowId: string; group?: true };
 type MenuTarget = CellTarget | Extract<ContextMenuTarget, { kind: "header" }>;
 
 const TEXT_ENTRY_SELECTOR = `input, textarea, select, [contenteditable]:not([contenteditable="false"]), ${gridAttrSelector("cellEditor")}`;
@@ -31,11 +32,16 @@ const TEXT_ENTRY_SELECTOR = `input, textarea, select, [contenteditable]:not([con
 function rowIdsOfViewRows(state: DataGridReadState, viewRows: readonly number[]): string[] {
   const ids: string[] = [];
   for (const viewRow of viewRows) {
-    const dataIndex = state.viewIndex[viewRow];
-    const dataRow = dataIndex === undefined ? undefined : state.data[dataIndex];
+    const dataIndex = dataIndexAt(state, viewRow);
+    const dataRow = rowAtViewRow(state, viewRow);
     if (dataIndex !== undefined && dataRow !== undefined) ids.push(state.getRowId(dataRow, dataIndex));
   }
   return ids;
+}
+
+/** The items of a right-click on a group row: no row operation applies, so only the group items show. */
+function GroupRowMenuContent({ target }: { target: CellTarget }): ReactNode {
+  return renderContextMenuItems(useDefaultGroupRowMenuItems(target.row));
 }
 
 /**
@@ -163,9 +169,9 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
       const s = storeApi.getState();
       let next: MenuTarget | null = resolved?.kind === "header" ? resolved : null;
       if (resolved?.kind === "cell") {
-        const dataRowIndex = s.viewIndex[resolved.row];
-        const dataRow = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
-        if (dataRowIndex !== undefined && dataRow !== undefined) next = { ...resolved, rowId: s.getRowId(dataRow, dataRowIndex) };
+        const entry = viewEntryAt(s, resolved.row);
+        if (entry.kind === "group") next = { ...resolved, rowId: rowIdAtViewRow(s, resolved.row)!, group: true };
+        else if (entry.kind === "data") next = { ...resolved, rowId: s.getRowId(s.data[entry.dataIndex]!, entry.dataIndex) };
       }
       targetRef.current = next;
       if (next === null) {
@@ -202,7 +208,8 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
           {children}
         </ContextMenuTrigger>
         <ContextMenuContent data-grid-context-menu="">
-          {target?.kind === "cell" && (
+          {target?.kind === "cell" && target.group && <GroupRowMenuContent target={target} />}
+          {target?.kind === "cell" && !target.group && (
             <CellMenuContent
               target={target}
               getCellMenuItems={getCellMenuItems}
