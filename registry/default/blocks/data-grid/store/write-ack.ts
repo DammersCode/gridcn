@@ -1,4 +1,5 @@
 import type { DataChange, DataOp } from "../types";
+import type { DataGridActions } from "./types";
 
 /** One refusal in a {@link SaveAck}: the row the server refused, and optionally one of its columns. */
 export type SaveRejection<TData = unknown> = {
@@ -7,6 +8,8 @@ export type SaveRejection<TData = unknown> = {
   columnId?: string;
   /** Display text for `onSaveRejected`; the grid does not render it. */
   message?: string;
+  /** Set by the grid: `"timeout"` marks a refusal because `onSave` outlived `saveTimeoutMs`. */
+  reason?: "timeout";
   /**
    * The row as the server holds it now. The revert puts this row in place of the refused one, unless a newer
    * write to the row is pending. A refused delete restores it; a refused insert removes the row. The row's
@@ -14,6 +17,22 @@ export type SaveRejection<TData = unknown> = {
    */
   current?: TData;
 };
+
+/** The second argument of `onSave`. */
+export type SaveContext = {
+  /** The grid's actions, so a save can write the server's answer back without a grid ref. */
+  actions: DataGridActions;
+  /** Aborts when the grid unmounts or `saveTimeoutMs` runs out; pass it to `fetch`. */
+  signal: AbortSignal;
+};
+
+/** The error a save that outlived `saveTimeoutMs` settles with. */
+export class SaveTimeoutError extends Error {
+  constructor(ms: number) {
+    super(`onSave did not settle within ${ms} ms`);
+    this.name = "SaveTimeoutError";
+  }
+}
 
 /** What a promise returned by `onSave` resolves with. `void` accepts the whole change. */
 export type SaveAck<TData = unknown> = void | { rejected?: readonly SaveRejection<TData>[] };
@@ -63,7 +82,8 @@ export function readRejections(change: DataChange<unknown>, ack: SaveAck, error:
   }
   if (failed) {
     const message = error instanceof Error ? error.message : undefined;
-    return [...new Set(change.ops.map((op) => op.rowId))].map((rowId) => (message === undefined ? { rowId } : { rowId, message }));
+    const reason = error instanceof SaveTimeoutError ? ({ reason: "timeout" } as const) : {};
+    return [...new Set(change.ops.map((op) => op.rowId))].map((rowId) => ({ rowId, ...(message === undefined ? {} : { message }), ...reason }));
   }
   if (!Array.isArray(rejected)) return [];
   const out: SaveRejection[] = [];

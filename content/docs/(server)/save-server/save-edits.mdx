@@ -90,7 +90,9 @@ While the promise is pending, each row of the change is `saving`. The row elemen
 
 Call both hooks under `DataGridProvider`. Style `[data-save-status="saving"]` to dim a saving row.
 
-The grid sets no time limit on a save. Pass `signal: AbortSignal.timeout(15_000)` to `fetch`, so a hung request reverts.
+`onSave` takes a second argument, `{ actions, signal }`. `actions` is the actions of the grid. `signal` aborts when the grid unmounts or when `saveTimeoutMs` runs out. Pass it to `fetch`.
+
+The grid sets no time limit on a save. Set `saveTimeoutMs` to refuse a save that has not settled after that many milliseconds. The grid aborts `signal`, reverts the rows, and calls `onSaveRejected` with `reason: "timeout"` on each rejection. An answer that arrives later is ignored, so a server that applied the save late keeps its row while the grid shows the old value. Leave `saveTimeoutMs` off when the server can apply a late save.
 
 ## Save rows from a server source [#server-source]
 
@@ -123,33 +125,31 @@ A refresh needs at least one `onSave` promise that resolved, with nothing or wit
 
 ## Swap a client id for the server id [#id-swap]
 
-A row that the user creates carries a client id. After the server saves it, call `actions.replaceRowId(oldId, row)` with the server row. The `ref` of `DataGrid` gives `onSave` its actions. This handler sends inserts only. Send the other operations as in [Revert or refetch after a save](/docs/save-server/save-revert#translate-operations-into-api-calls):
+A row that the user creates carries a client id. After the server saves it, call `actions.replaceRowId(oldId, row)` with the server row. The second argument of `onSave` gives it the actions. This handler sends inserts only. Send the other operations as in [Revert or refetch after a save](/docs/save-server/save-revert#translate-operations-into-api-calls):
 
 ```tsx
 "use client";
 
-import { useRef } from "react";
-import { DataGrid, type DataChange, type DataGridApi } from "@/components/data-grid/data-grid";
+import { DataGrid, type DataChange, type SaveContext } from "@/components/data-grid/data-grid";
 import { columns, type Order } from "./orders";
 
 export function OrdersGrid({ rows }: { rows: Order[] }) {
-  const grid = useRef<DataGridApi<Order>>(null);
-
-  async function save(change: DataChange<Order>) {
+  async function save(change: DataChange<Order>, { actions, signal }: SaveContext) {
     for (const op of change.ops) {
       if (op.type !== "insert") continue;
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(op.row),
+        signal,
       });
       if (!response.ok) throw new Error(`Save failed: ${response.status}`);
-      grid.current?.actions.replaceRowId(op.rowId, await response.json());
+      actions.replaceRowId(op.rowId, await response.json());
     }
   }
 
   return (
-    <DataGrid ref={grid} defaultData={rows} columns={columns} onSave={save} />
+    <DataGrid defaultData={rows} columns={columns} onSave={save} />
   );
 }
 ```

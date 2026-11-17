@@ -65,6 +65,7 @@ Props of DataGrid, DataGridProvider.
 | `resolveSaveConflict` | Decides what a refused row becomes when the server sent its current row (`SaveRejection.current`). | [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict) |
 | `rowMarkers` | Sets the mode of the marker column. Default `"none"`. | [Row markers](/docs/rows-pages-menus/row-markers) |
 | `sanitizeClipboardFormulas` | Prefixes formula-like copied cells with `'` in the clipboard text and HTML. Default `true`. `false` copies raw text. | [Clipboard](/docs/clipboard-undo/clipboard) |
+| `saveTimeoutMs` | Refuses a save that has not settled after this many ms. | [Data change events](/docs/events-state/data-change-events#prop-savetimeoutms) |
 | `searchText` | The quick search text, controlled by your code. | [Sort and filter events](/docs/events-state/sort-filter-events#prop-searchtext) |
 | `selection` | The selection, controlled by your code. | [Selection and cell events](/docs/events-state/selection-cell-events#prop-selection) |
 | `sortLocale` | The language tag for text compares in a client sort, text range filters, and the filter value lists. | [Sort and filter events](/docs/events-state/sort-filter-events#prop-sortlocale) |

@@ -15,6 +15,7 @@ aliases: ["ondatachange", "controlled data", "controlled mode"]
 | `defaultData` | The rows, seeded once and then owned by the grid | none |
 | `onDataChange` | Fires once per change with the next array and the operations | none |
 | `onSave` | Sends a change to a server. Can return a promise | none |
+| `saveTimeoutMs` | Refuses a save that has not settled after this many ms | off |
 | `onSaveRejected` | Fires after the grid reverted a refused change | none |
 | `onBeforeDeleteRows` | Runs before a row delete and can cancel it | none |
 
@@ -117,9 +118,10 @@ async function save(change: DataChange<Row>) {
 }
 ```
 
+- The second argument is `{ actions, signal }`. `signal` aborts when the grid unmounts or `saveTimeoutMs` runs out.
 - A promise that resolves with nothing accepts the change.
 - A promise that resolves with `{ rejected }` refuses the listed rows or cells. Each entry holds `rowId` and can hold `columnId`, `message`, and `current`. `current` is the row as the server holds it. The revert puts it in place of the refused row. While a newer write to the row is pending, the grid ignores `current`. A refused delete restores the row. A refused insert removes it.
-- A promise that rejects refuses the whole change. A throw inside `onSave` refuses the whole change too.
+- A promise that rejects refuses the whole change. A save that outlives `saveTimeoutMs` is refused with `reason: "timeout"`. A throw inside `onSave` refuses the whole change too.
 - On a `readOnly` grid, the grid keeps the refused value and development mode warns once.
 
 `useDataGridRowSaveStatus(rowId)` reads the `RowSaveStatus` of one row. The row carries `data-save-status="saving"` while the promise is pending. The grid reverts each refused entry through `onDataChange` with `source: "rollback"`. A refused row shows `data-save-status="failed"`.

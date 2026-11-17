@@ -758,6 +758,16 @@
                "target": "components/data-grid/store/write-ack.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/store/save-tracker.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/save-tracker.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/store/update-cells-types.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/update-cells-types.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/store/changed-rows.ts",
                "type": "registry:component",
                "target": "components/data-grid/store/changed-rows.ts"
