@@ -4,6 +4,8 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 
 ## Core
 
+- The group row label no longer shows as a darker box inside a selected range. The label, the group marker cell, and the row marker cell paint the same hover and selection tints as the rows under them.
+- A group row aggregate on a `number` column without `format` or `decimals` shows at most two fraction digits, so an average no longer prints a long decimal.
 - `api.getSelectedRows()` on the grid ref returns the checked rows for a bulk action, the same value `useDataGridSelectedRows()` returns, without a subscription.
 - Row ids that start with `__` belong to the grid, such as the ids of pinned and unloaded rows.
 - `DataGridHeaderFilter`, `DataGridHeaderDropdown`, and `DataGridKeybindingsDialog` accept `className`. It merges into the filter button, the menu content, and the dialog content.
