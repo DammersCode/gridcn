@@ -648,6 +648,16 @@
           "target": "components/data-grid/store/compute.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/store/cell-errors.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/store/cell-errors.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid/store/cell-state-types.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/store/cell-state-types.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/store/filter-match-case.ts",
           "type": "registry:component",
           "target": "components/data-grid/store/filter-match-case.ts"
@@ -3355,7 +3365,7 @@
         {
           "path": "registry/default/blocks/data-grid-comments/own-cell.ts",
           "type": "registry:component",
-          "target": "components/data-grid-comments/validate.ts"
+          "target": "components/data-grid-comments/own-cell.ts"
         },
         {
           "path": "registry/default/blocks/data-grid-comments/validate.ts",

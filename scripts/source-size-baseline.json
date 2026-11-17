@@ -1,10 +1,10 @@
 {
   "registry/default/blocks/data-grid/interaction/use-grid-interaction.ts": 1534,
   "registry/default/blocks/data-grid/root.tsx": 829,
-  "registry/default/blocks/data-grid/store/compute.ts": 1176,
+  "registry/default/blocks/data-grid/store/compute.ts": 1111,
   "registry/default/blocks/data-grid/store/create-store.ts": 2045,
   "registry/default/blocks/data-grid/store/data-write.ts": 1476,
-  "registry/default/blocks/data-grid/store/types.ts": 1418,
+  "registry/default/blocks/data-grid/store/types.ts": 1381,
   "registry/default/blocks/data-grid/store/update-cells.test.tsx": 1604,
   "registry/default/blocks/data-grid/test/data-grid.browser.test.tsx": 2375,
   "registry/default/blocks/data-grid/test/data-grid.test.tsx": 1821,
