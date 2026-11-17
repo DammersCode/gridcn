@@ -313,3 +313,7 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - Fix: `setColumnOrder` returns `pin-zone` for a column group move across pin zones.
 - Fix: the comments add-on no longer warns about a stale rejection without `current` when `fetchComments` is set.
 - Fix: a column resize that ends in a cancel (`pointercancel`, `lostpointercapture`, or a window blur) restores the width the drag started from and stores nothing. It left the preview width as a stored width, so a flex column lost its flex share and the width entered the next `onColumnLayoutChange`. The new `cancelColumnResize(id, renderedWidth)` store action does the restore.
+- Fix: the comments add-on finds a cell and announces a comment only in its own grid, never in a nested grid's cell at the same row and column.
+- Fix: comment text drops bidi override and isolate characters (U+202A to U+202E, U+2066 to U+2069); direction marks stay.
+- Fix: `onCommentRejected` fires when `edit`, `remove`, or `setResolved` get an unknown comment id (reason `"invalid"`).
+- Fix: the comments popover shows Retry only for a write that threw or failed with the reason `"error"`.

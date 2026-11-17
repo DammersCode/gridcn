@@ -6,6 +6,7 @@ import { useStore } from "zustand";
 import { useDataGridActiveCell, useDataGridApi, useDataGridKeymap, useDataGridReadOnly, type DataGridApi } from "@/registry/default/blocks/data-grid/data-grid";
 import { GRID_ATTR, isDev, rowIdAtViewRow, useDataGridContainer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { CommentPopoverHost } from "./comment-popover";
+import { findOwnCell } from "./own-cell";
 import { cellComments } from "./comment-state";
 import type { CommentEngine, GridAdapter } from "./comment-engine";
 import { resolveCommentsLabels } from "./labels";
@@ -95,7 +96,7 @@ function Announcer({ engine, getOptions }: { engine: CommentEngine; getOptions: 
 }
 
 function findCell(scroll: HTMLElement | null, viewRow: number, columnId: string): boolean {
-  return scroll?.querySelector(`[${GRID_ATTR.rowIndex}="${viewRow}"] [data-column-id="${CSS.escape(columnId)}"]`) != null;
+  return findOwnCell(scroll, viewRow, columnId) !== null;
 }
 
 function waitForCell(engine: CommentEngine, scroll: HTMLElement | null, viewRow: number, ref: { rowId: string; columnId: string }, by: "keyboard" | "pointer" | "menu", frame: number): void {

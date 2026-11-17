@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { defaultCreateId, createWriteIdGenerator } from "../create-id";
 import { DEFAULT_COMMENTS_LABELS } from "../labels";
-import { DEFAULT_BOUNDS, resolveBounds, sanitizeName, validateAuthor, validateChange, validateComment } from "../validate";
+import { DEFAULT_BOUNDS, cleanText, resolveBounds, sanitizeName, validateAuthor, validateChange, validateComment } from "../validate";
 
 const bounds = DEFAULT_BOUNDS;
 const base = { id: "c1", rowId: "r1", columnId: "name", text: "hello", author: { id: "u1" }, createdAt: 1, updatedAt: 1, version: 1, resolved: false };
@@ -127,5 +127,12 @@ describe("optional author", () => {
     expect(validateComment({ ...anonymous, author: null }, bounds)).toBeNull();
     expect(validateComment({ ...anonymous, author: { id: "" } }, bounds)).toBeNull();
     expect(validateComment({ ...anonymous, author: "x" }, bounds)).toBeNull();
+  });
+});
+
+describe("bidi overrides in comment text", () => {
+  it("strips overrides and isolates from written and received text, keeps direction marks", () => {
+    expect(cleanText("  a\u202eb\u2066c\u200fd ")).toBe("abc\u200fd");
+    expect(validateComment({ ...base, text: "x\u202ey" }, bounds)?.text).toBe("xy");
   });
 });

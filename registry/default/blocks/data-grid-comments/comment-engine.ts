@@ -320,7 +320,7 @@ export function createCommentEngine(config: EngineConfig): CommentEngine {
     const o = optionsOf();
     refreshBounds();
     const prev = spec.id ? core.confirmed.get(spec.id) : undefined;
-    if (spec.action !== "create" && !prev) return { ok: false, reason: "invalid" };
+    if (spec.action !== "create" && !prev) return rejectBeforeWrite(spec.action, "invalid");
     if (spec.id && core.pending.has(spec.id)) return { ok: false, reason: "pending" };
     const blocked = writeIsBlocked(spec.rowId);
     if (blocked) return rejectBeforeWrite(spec.action, blocked);
@@ -556,15 +556,15 @@ export function createCommentEngine(config: EngineConfig): CommentEngine {
     create: (input) => execute({ action: "create", rowId: input.rowId, columnId: input.columnId, text: input.text }),
     edit: (id, text, base) => {
       const c = core.confirmed.get(id);
-      return c ? execute({ action: "update", id, rowId: c.rowId, columnId: c.columnId, text, base }) : Promise.resolve({ ok: false as const, reason: "invalid" as const });
+      return c ? execute({ action: "update", id, rowId: c.rowId, columnId: c.columnId, text, base }) : Promise.resolve(rejectBeforeWrite("update", "invalid"));
     },
     remove: (id, base) => {
       const c = core.confirmed.get(id);
-      return c ? execute({ action: "delete", id, rowId: c.rowId, columnId: c.columnId, base }) : Promise.resolve({ ok: false as const, reason: "invalid" as const });
+      return c ? execute({ action: "delete", id, rowId: c.rowId, columnId: c.columnId, base }) : Promise.resolve(rejectBeforeWrite("delete", "invalid"));
     },
     setResolved: (id, resolved, base) => {
       const c = core.confirmed.get(id);
-      return c ? execute({ action: resolved ? "resolve" : "reopen", id, rowId: c.rowId, columnId: c.columnId, base }) : Promise.resolve({ ok: false as const, reason: "invalid" as const });
+      return c ? execute({ action: resolved ? "resolve" : "reopen", id, rowId: c.rowId, columnId: c.columnId, base }) : Promise.resolve(rejectBeforeWrite(resolved ? "resolve" : "reopen", "invalid"));
     },
     retry(id, text) {
       const conflict = core.conflicts.get(id);
