@@ -443,7 +443,7 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   id: string;
   /**
    * String headers render truncated and get the built-in sort-direction arrow
-   * while the column is sorted and not `sortable: false`, in every header-click mode; a ReactNode header renders as-is and owns its own display (the built-in
+   * while the column is sorted, in every header-click mode; a ReactNode header renders as-is and owns its own display (the built-in
    * arrow is NOT appended — embed DataGridSortIndicator inside it when you still want it).
    */
   header: string | ReactNode;
@@ -506,7 +506,7 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   flex?: number;
   /** Initial pin side, applied when the column id first appears; `"start"` and `"end"` follow the inline axis, so both flip in a right-to-left page; change it at runtime through `setColumnPin` or the context menu. Pinned columns only reorder within their own pin zone. */
   pin?: ColumnPin;
-  /** Removes the column from click-to-sort (header clicks no longer sort it); programmatic `setSorts`/`toggleSort` still apply. Default true. */
+  /** Removes the column from click-to-sort (header clicks no longer sort it); programmatic `setSorts`/`toggleSort` still apply, and the header shows their arrow and `aria-sort`. Default true. */
   sortable?: boolean;
   /** Excludes the column from the filter menu's column picker. Existing filter specs on it keep applying. Default true. */
   filterable?: boolean;

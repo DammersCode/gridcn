@@ -468,21 +468,21 @@ describe("aria-sort under the default headerClickBehavior", () => {
     expect(document.querySelectorAll(gridAttrSelector("sortIndicator"))).toHaveLength(1);
   });
 
-  it("omits aria-sort entirely when the column is sortable: false", () => {
+  it("omits aria-sort on an unsorted sortable: false column", () => {
     const nonSortableColumns: readonly ColumnDef<Row, unknown>[] = [
       { id: "name", header: "Name", accessorKey: "name", sortable: false },
       { id: "qty", header: "Qty", accessorKey: "qty", type: "number" },
     ];
-    render(
-      <DataGrid
-        data={makeRows(5)}
-        columns={nonSortableColumns}
-        getRowId={(r) => r.id}
-        sortState={[{ columnId: "name", direction: "asc" }]}
-      />,
-    );
+    render(<DataGrid data={makeRows(5)} columns={nonSortableColumns} getRowId={(r) => r.id} />);
     expect(screen.getByRole("columnheader", { name: "Name" })).not.toHaveAttribute("aria-sort");
     expect(screen.getByRole("columnheader", { name: "Qty" })).toHaveAttribute("aria-sort", "none");
+  });
+
+  it("shows the arrow and aria-sort on a sortable: false column that a programmatic sort orders", () => {
+    const nonSortableColumns: readonly ColumnDef<Row, unknown>[] = [{ id: "name", header: "Name", accessorKey: "name", sortable: false }];
+    render(<DataGrid data={makeRows(5)} columns={nonSortableColumns} getRowId={(r) => r.id} sortState={[{ columnId: "name", direction: "asc" }]} />);
+    expect(screen.getByRole("columnheader", { name: "Name" })).toHaveAttribute("aria-sort", "ascending");
+    expect(document.querySelectorAll(gridAttrSelector("sortIndicator"))).toHaveLength(1);
   });
 });
 
