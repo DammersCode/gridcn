@@ -55,7 +55,13 @@ Without the augmentation, pass the types as the second type argument of `defineC
 ```ts fragment="uses the currencyCellType and Order of the demo"
 const extraTypes = { currency: defineCellType(currencyCellType) };
 const columns = defineColumns<Order, typeof extraTypes>()([
-  { id: "price", header: "Price", accessorKey: "price", type: "currency", options: { currency: "EUR" } },
+  {
+    id: "price",
+    header: "Price",
+    accessorKey: "price",
+    type: "currency",
+    options: { currency: "EUR" },
+  },
 ]);
 ```
 

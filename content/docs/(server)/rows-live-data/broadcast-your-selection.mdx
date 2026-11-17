@@ -12,7 +12,7 @@ The receiving side is the `data-grid-presence` add-on, which [Show presence](/do
 
 `onSelectionChange` on the grid fires on every committed change: a click, a drag-extend step, a row, column, or all selection, and a clear. Its first argument is the stable `SelectionState`. It holds row ids and column ids and no view positions. The second argument has `getRowIds()`, which lists every selected row in view order.
 
-`toPresenceEntries(selection, details, { id, color, columnIds })` turns the selection into the entry to send: the selected rows, and the columns that the ranges, the column channel, and the checked rows cover, in the order of `columnIds`. It returns `[]` when nothing is selected. Send that entry:
+`toPresenceEntries(selection, details, { id, color, columnIds })` turns the selection into the entry to send. It holds the selected rows and the columns that the ranges, the column channel, and the checked rows cover, in the order of `columnIds`. It returns `[]` when nothing is selected. Send that entry:
 
 ```tsx
 "use client";
@@ -82,7 +82,11 @@ export function SharedGrid({ rows, roomId, userId, color }: Props) {
       getRowId={(row) => row.id}
       plugins={[plugin]}
       onSelectionChange={(next, details) => {
-        const [entry] = toPresenceEntries(next, details, { id: userId, color, columnIds });
+        const [entry] = toPresenceEntries(next, details, {
+          id: userId,
+          color,
+          columnIds,
+        });
         if (!entry) {
           send({ type: "leave", id: userId });
           return;
