@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { Paperclip, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDataGridActions, useDataGridAllColumns, useDataGridLabels, type GateContext } from "@/registry/default/blocks/data-grid/data-grid";
@@ -561,23 +561,23 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
 
         <DialogFooter>
           {checkStep ? (
-            <>
+            <Fragment key="check">
               <Button type="button" variant="outline" onClick={backFromCheck} autoFocus>
                 {labels.io.back}
               </Button>
               <Button type="button" onClick={() => finish(checkStep.rows, checkStep.rejected, checkStep.flagged, checkStep.source)} disabled={isValidating}>
                 {labels.io.importAnyway}
               </Button>
-            </>
+            </Fragment>
           ) : (
-            <>
+            <Fragment key="confirm">
           <Button type="button" variant="outline" onClick={onCancel}>
             {labels.io.cancel}
           </Button>
             <Button ref={confirmButtonRef} type="button" onClick={onConfirm} disabled={!preview || importBlock !== null || importRows.length === 0 || isParsing || isValidating || rejectedCount > 0}>
               {labels.io.import}
             </Button>
-            </>
+            </Fragment>
           )}
         </DialogFooter>
       </DialogContent>

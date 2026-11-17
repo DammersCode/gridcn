@@ -130,6 +130,7 @@ describe("DataGridExportButton export failures (browser)", () => {
     // the browser mocker rejects mock factories that throw, so the failure is placed on first use
     // (writeXlsx runs right after the import) — the rejection reaches the same exportGrid catch
     vi.doMock("hucre/xlsx", () => ({
+      XlsxStreamWriter: class {},
       writeXlsx: () => {
         throw loadError;
       },

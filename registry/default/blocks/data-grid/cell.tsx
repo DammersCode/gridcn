@@ -206,9 +206,9 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
     document.addEventListener("focusout", onFocusOut, true);
     return () => document.removeEventListener("focusout", onFocusOut, true);
   }, [isEditing]);
-  // focus that lands in the cell's own portaled editor never left the grid
+  // React delivers a guard's focus late; a stale event must not undo a Tab out
   const onEditorFocus = useCallback((event: ReactFocusEvent<HTMLDivElement>) => {
-    if (isPortaledEvent(event)) focusLeftGridRef.current = false;
+    if (isPortaledEvent(event) && event.target === event.target.ownerDocument.activeElement) focusLeftGridRef.current = false;
   }, []);
 
   // A commit caused by focus moving to a control outside the grid (Tab) must not pull focus back.
