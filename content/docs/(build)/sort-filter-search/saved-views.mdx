@@ -140,7 +140,7 @@ The default adapter listens to the `storage` event, so a save in one tab reloads
 - Import refuses text over 100,000 characters, and anything but a gridcn view file.
 - A sort, filter, or layout entry for a column that does not exist, or that opted out with `sortable: false` or `filterable: false`, goes away. A sort or filter on a column that the file hides goes away too. The status message reports how many entries it left out.
 - A built-in operator with a value of the wrong shape goes away. An operator that a column or its cell type registers in `filter.operators` keeps a value of the shape its `input` names. Any other shape drops the filter.
-- In client filter mode, a column with `choices` keeps the blank entry and the set filter values that match a choice or a loaded value. The match ignores case. In server filter mode, every value stays.
+- A column with `choices` keeps the blank entry and the set filter values that match a choice or a loaded value. The match ignores case. With `filterMode="server"` or `fetchFilterValues`, the server lists the values, so every value stays.
 - An `isAnyOf` list is cut to 1,000 entries. An `isNoneOf` list or a custom operator list over 1,000 entries drops the filter.
 - A view keeps at most 64 sorts, 64 filters, and 16 filter groups. A filter value over 1,000 characters drops the filter.
 - The name of a view has at most 80 characters, and a stored view needs an id of at most 64 characters.

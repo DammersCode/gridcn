@@ -9,17 +9,13 @@ import {
   useDataGridSearchText,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { MAX_SPEC_SEARCH_LENGTH, isDev, isFilterGroup, pruneFilterSpecs, resolveCustomFilterOperators, setFilterValuesOf, useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { MAX_SPEC_SEARCH_LENGTH, isDev, isFilterGroup, pruneFilterSpecs, resolveCustomFilterOperators, setFilterListBound, setFilterValuesOf, useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { ColumnLayout, FilterOperatorInput } from "@/registry/default/blocks/data-grid/data-grid";
 import { serializeSortState, parseSortState } from "./sort-param";
 import { parseLayoutPart, serializeLayoutPart, type UrlLayoutPart } from "./layout-param";
 import { serializeFilterState, parseFilterState } from "./filter-param";
 import { parseLegacyJoin } from "./join-param";
 import { prefixedKey, useWarnSharedPrefix } from "./prefixed-key";
-
-/** Smallest `isAnyOf` / `isNoneOf` list bound for a column with choices, so a link written before a choice was removed still parses. */
-const MIN_CHOICE_BOUND = 64;
-
 
 type UrlSpecPart = "sort" | "filter" | "search";
 
@@ -28,13 +24,8 @@ type UrlParams = Record<"sort" | "filter" | "join" | "q" | UrlLayoutPart, string
 // Filter values and search text can hold personal data; a URL leaks them into history, logs, and Referer, so they sync only on request.
 const DEFAULT_SPEC_PARTS: readonly UrlSpecPart[] = ["sort"];
 
-function choiceBoundsOf(columns: readonly { id: string; options?: unknown }[]): Map<string, number | undefined> {
-  return new Map(
-    columns.map((c) => {
-      const choices = (c.options as { choices?: unknown } | undefined)?.choices;
-      return [c.id, Array.isArray(choices) && choices.length > 0 ? Math.max(choices.length, MIN_CHOICE_BOUND) : undefined];
-    }),
-  );
+function choiceBoundsOf(columns: readonly { id: string; options?: unknown }[], state: Parameters<typeof setFilterListBound>[0]): Map<string, number | undefined> {
+  return new Map(columns.map((c) => [c.id, setFilterListBound(state, c)]));
 }
 
 const DEFAULT_LAYOUT_PARTS: readonly UrlLayoutPart[] = ["order", "hidden"];
@@ -205,7 +196,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
       warnDev(`dropped URL sort spec for removed, hidden, or unsortable column "${spec.columnId}"`);
       return false;
     });
-    const choiceBounds = choiceBoundsOf(allColumns);
+    const choiceBounds = choiceBoundsOf(allColumns, storeApi.getState());
     const unknownChoices = new Map<string, number>();
     const parsedFilters = parseFilterState(params.filter, {
       maxChoices: (columnId) => choiceBounds.get(columnId),
@@ -274,7 +265,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
 
   useEffect(() => {
     if (!appliedRef.current || !syncFilter) return;
-    const choiceBounds = choiceBoundsOf(allColumns);
+    const choiceBounds = choiceBoundsOf(allColumns, storeApi.getState());
     noteWrite(setFilterParamRef.current(serializeFilterState(filterState, { operatorInput, maxChoices: (columnId) => choiceBounds.get(columnId) }) || null));
     noteWrite(setJoinParamRef.current(null));
     // oxlint-disable-next-line react-hooks/exhaustive-deps

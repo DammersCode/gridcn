@@ -1524,9 +1524,12 @@
           ]
         },
         "FS": {
-          "status": "gap",
-          "track": "N2",
-          "note": "A deep link drops the set-filter values that only `fetchFilterValues` lists when the column has static `choices`. The grid keeps the blank entry and the static `choices` of the column, up to the larger of 64 and the number of those choices. A list with no value left drops its filter. A column without static `choices` keeps up to 1,000 values; the grid drops the values past that bound, and an `isNoneOf` list past it drops the whole filter."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/url-state.parity.test.tsx",
+            "tests/parity/saved-views.parity.test.tsx"
+          ],
+          "note": "Server contract: the grid keeps up to 1,000 set-filter values from a link or a saved view and sends them in the `filter` spec of `fetchRows`; the server judges each value, `choices` does not narrow or bound the list. An `isNoneOf` list past 1,000 drops the filter, because a cut list would widen the result."
         },
         "API": {
           "status": "supported",

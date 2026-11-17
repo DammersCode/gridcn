@@ -302,7 +302,7 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="n/a" note={"URL state drives the controlled props itself."} /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="gap" note={"A deep link drops the set-filter values that only fetchFilterValues lists when the column has static choices. The grid keeps the blank entry and the static choices of the column, up to the larger of 64 and the number of those choices. A list with no value left drops its filter. A column without static choices keeps up to 1,000 values; the grid drops the values past that bound, and an isNoneOf list past it drops the whole filter."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
     </tr>
     <tr id="parity-saved-views">
@@ -727,8 +727,7 @@ Delete and Cut run the column `validate` on the empty value in every mode. A ser
 
 ### URL state
 
-- **C**: n/a: URL state drives the controlled props itself.
-- **FS**: Gap (N2): A deep link drops the set-filter values that only `fetchFilterValues` lists when the column has static `choices`. The grid keeps the blank entry and the static `choices` of the column, up to the larger of 64 and the number of those choices. A list with no value left drops its filter. A column without static `choices` keeps up to 1,000 values. The grid drops the values past that bound, and an `isNoneOf` list past it drops the whole filter.
+**C**: n/a: URL state drives the controlled props itself.
 
 ### Presence
 

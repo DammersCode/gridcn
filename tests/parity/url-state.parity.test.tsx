@@ -5,6 +5,8 @@ import type { StoreApi } from "zustand/vanilla";
 import { DataGridUrlState } from "@/registry/default/blocks/data-grid-url-state/data-grid-url-state";
 import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
 import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState } from "@/registry/default/blocks/data-grid/store";
+import { serializeFilterState } from "@/registry/default/blocks/data-grid-url-state/filter-param";
+import type { ColumnDef } from "@/registry/default/blocks/data-grid/types";
 import { columns, makeRows, type Row } from "./modes";
 
 afterEach(cleanup);
@@ -82,5 +84,38 @@ describe("URL state in mode API (write-through with onDataChange)", () => {
     expect(onUrlUpdate).not.toHaveBeenCalled();
     await act(async () => state().actions.setSorts([{ columnId: "n", direction: "desc" }]));
     await waitFor(() => expect((onUrlUpdate.mock.calls.at(-1)?.[0] as UrlUpdateEvent | undefined)?.searchParams.get("sort")).toBe("n:desc"));
+  });
+});
+
+describe("URL state in mode FS (server filter with fetchFilterValues)", () => {
+  const choiceColumns: readonly ColumnDef<Row, unknown>[] = [{ id: "name", header: "Name", accessorKey: "name", options: { choices: ["a", "b", "c"] } }, columns[1]!];
+  const link = (operator: "isAnyOf" | "isNoneOf", count: number) =>
+    `?filter=${encodeURIComponent(serializeFilterState([{ columnId: "name", operator, value: Array.from({ length: count }, (_, i) => `v${i}`) }]))}`;
+
+  function mountFs(search: string) {
+    render(
+      <NuqsTestingAdapter searchParams={search}>
+        <DataGridProvider columns={choiceColumns} defaultData={makeRows()} getRowId={(r: Row) => r.id} filterMode="server" fetchFilterValues={async () => ({ values: [] })}>
+          <DataGridUrlState spec={["sort", "filter", "search"]} />
+          <Capture />
+        </DataGridProvider>
+      </NuqsTestingAdapter>,
+    );
+  }
+  const listLength = () => ((state().filterState[0] as { value?: unknown[] } | undefined)?.value ?? []).length;
+
+  it("keeps a list of 200 values although the column has 3 static choices", async () => {
+    mountFs(link("isAnyOf", 200));
+    await waitFor(() => expect(listLength()).toBe(200));
+  });
+
+  it("cuts a list at 1,000 values", async () => {
+    mountFs(link("isAnyOf", 1001));
+    await waitFor(() => expect(listLength()).toBe(1000));
+  });
+
+  it("drops an isNoneOf list past 1,000 values", async () => {
+    mountFs(link("isNoneOf", 1001));
+    await waitFor(() => expect(state().filterState).toEqual([]));
   });
 });

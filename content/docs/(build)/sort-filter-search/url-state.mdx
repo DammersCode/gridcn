@@ -105,15 +105,14 @@ A link with a `join=or` param is read once: when the `filter` param has no group
 A hand-edited URL cannot express an unbounded view. [URL state options](/docs/add-options/sort-filter-search/url-state-options#limits) lists every bound. The main ones:
 
 - The `filter` param reads at most 256 segments and keeps at most 64 rows and 16 groups.
-- An `isAnyOf` list keeps at most `max(number of choices, 64)` values for a column with `choices`, else 1,000.
-- An `isNoneOf` list over the same bound drops the whole segment.
+- An `isAnyOf` list keeps at most 1,000 values, or `max(number of choices, 64)` for a column with `choices` that no server lists. An `isNoneOf` list over the bound drops the whole segment.
 - A value, list entry, or range bound over 1,000 characters drops the segment.
 - The `q` param is cut to 500 characters.
 - The `sort` param reads at most 256 segments and keeps at most 64 sorts, one per column, so the first segment of a column wins.
 
 A sort from the URL (`?sort=name:asc`) shows its arrow in a string header. Set `headerClickBehavior="sort"` to let a header click change it, or add the sort list.
 
-In client filter mode, a column with `choices` keeps the blank entry and the set filter values that match a choice or a loaded value. The match ignores case. In server filter mode, every value stays.
+A column with `choices` keeps the blank entry and the set filter values that match a choice or a loaded value. The match ignores case. With `filterMode="server"` or `fetchFilterValues`, the server lists the values, so every value stays.
 
 ## Column layout
 
