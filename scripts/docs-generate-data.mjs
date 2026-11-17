@@ -80,7 +80,7 @@ export const ADDONS = [
  */
 export const FEATURE_SINCE = {
   "1.2.0": ["find-replace", "filter-values", "column-groups", "touch"],
-  "2.0.0": ["comments", "unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "server-initial-answer", "error-state", "input-debounce", "lookup-cell", "server-aggregate", "zero-row-header", "server-query"],
+  "2.0.0": ["import-check", "comments", "unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "server-initial-answer", "error-state", "input-debounce", "lookup-cell", "server-aggregate", "zero-row-header", "server-query"],
 };
 
 const F = (guide, reference, item) => ({ item, guide, reference });
@@ -115,6 +115,7 @@ export const FEATURES = {
   loading: F(["/docs/theme-style-language/loading-state"], ["/docs/components-props/data-grid-props#states"]),
   "find-replace": F(["/docs/sort-filter-search/find-replace"], ["/docs/add-options/sort-filter-search/find-replace-options"], "data-grid-find-replace"),
   "export-hooks": F(["/docs/import-export/shape-export-file"], ["/docs/add-options/import-export/export-options"], "data-grid-io"),
+  "import-check": F(["/docs/import-export/import"], ["/docs/add-options/import-export/import-options#checkimport"], "data-grid-io"),
   "import-hooks": F(["/docs/import-export/control-import"], ["/docs/add-options/import-export/import-options"], "data-grid-io"),
   "find-replace-hook": F(["/docs/sort-filter-search/find-replace"], ["/docs/add-options/sort-filter-search/find-replace-options"], "data-grid-find-replace"),
   "lazy-fetch": F(["/docs/scroll-mode/load-rows-while-scrolling"], ["/docs/add-options/server/server-rows-options"], "data-grid-server"),
@@ -166,6 +167,7 @@ export const TERM_PAGES = {
   echo: "/docs/rows-pages-menus/add-comments#share-changes",
   operation: ["/docs/events-state/data-change-events#datachange", "One record of a change to one row: `insert`, `update`, `delete`, or `move`. `DataChange.ops` holds a batch."],
   "export source": "/docs/import-export/export-whole-result",
+  "import check": "/docs/add-options/import-export/import-options#checkimport",
   "row id": "/docs/components-props/data-grid-props#rows-and-ids",
   "view index": "/docs/concepts/state-view-index",
   "data index": "/docs/concepts/state-view-index",
@@ -486,7 +488,7 @@ export const OPTION_GROUPS = [
     intro: "Options of the file add-ons.",
     rows: [
       { names: ["formats","options","onError","className"], owners: ["DataGridExportButton"], page: "/docs/add-options/import-export/export-options" },
-      { names: ["format","scope","includeHeaders","csvDelimiter","csvBom","sanitizeFormulas","fileName","sheetName","maxRows"], owners: ["exportGrid"], page: "/docs/add-options/import-export/export-options#exportgridoptions" },
+      { names: ["format","scope","includeHeaders","csvDelimiter","csvBom","sanitizeFormulas","fileName","sheetName","maxRows","xlsxWriter"], owners: ["exportGrid"], page: "/docs/add-options/import-export/export-options#exportgridoptions" },
       { names: ["columns","formatCell","output","headers"], owners: ["exportGrid"], page: "/docs/add-options/import-export/export-options#shape-output" },
       { names: ["source","maxBytes","signal","onProgress"], owners: ["exportGrid"], page: "/docs/add-options/import-export/export-options#exportgridoptions" },
       { names: ["scope","title","includeHeaders","orientation","maxRows","paperSize","direction","source","headers","css","signal"], owners: ["printGrid"], page: "/docs/add-options/import-export/export-options#printgridoptions" },
@@ -496,7 +498,7 @@ export const OPTION_GROUPS = [
       { names: ["csvDelimiter","sheetName","csvEncoding","signal","valueMode"], owners: ["parseImportFile"], page: "/docs/add-options/import-export/import-options#parseimportfile" },
       { names: ["dataRows","mapping","columns","cellTypes","createRow","processCellFromText","signal","existingRows","validateRow","getRowId"], owners: ["buildImportedRows"], page: "/docs/add-options/import-export/import-options#buildimportedrows" },
       { names: ["createRow","onImport","importDefaults","importLimits"], owners: ["DataGridImportButton","DataGridImportDialog"], page: "/docs/add-options/import-export/import-options#datagridimportdialogprops" },
-      { names: ["onImportError","parseFile","accept","csvEncoding","processImportRows","processCellFromText","file"], owners: ["DataGridImportButton","DataGridImportDialog"], page: "/docs/add-options/import-export/import-options#datagridimportdialogprops" },
+      { names: ["onImportError","parseFile","accept","csvEncoding","processImportRows","processCellFromText","file","checkImport"], owners: ["DataGridImportButton","DataGridImportDialog"], page: "/docs/add-options/import-export/import-options#datagridimportdialogprops" },
       { names: ["columnFallback","defaults","limits","parseFile","csvEncoding"], owners: ["useDataGridImportPreview"], page: "/docs/add-options/import-export/import-options#usedatagridimportpreview" },
     ],
   },

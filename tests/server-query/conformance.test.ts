@@ -1,9 +1,10 @@
 // @vitest-environment node
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { parseImportRows } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
 import { ORACLE_CASES, SERVER_CASES } from "./cases";
 import { oracleIds } from "./client-oracle";
 import { type Harness, openPg, openSqlite } from "./engines";
-import { FIXTURE_ROWS } from "./fixture";
+import { FIXTURE_ROWS, fixtureColumns } from "./fixture";
 
 const harnesses: Harness[] = [];
 const closers: (() => Promise<void> | void)[] = [];
@@ -136,6 +137,28 @@ describe.each([
     expect(Number(result["price"])).toBe(9999999.99);
     expect(result["createdAt"]).toBe("2024-03-10T07:00:00.000Z");
     expect(result).not.toHaveProperty("name");
+  });
+
+  it("stores parsed import rows that fetchRows returns", async () => {
+    const harness = harnesses.find((h) => h.engine === engine && h.adapter === adapter)!;
+    const body = {
+      rows: [
+        { id: "9001", name: "imported", tag: "red", score: "1.25", qty: "42", active: "true", price: "7.5", createdAt: "2024-05-05T10:00:00+02:00" },
+        { id: 9002, name: "second", qty: null, active: false },
+        { id: 9003, name: "bad", qty: "forty" },
+      ],
+    };
+    const { rows, rejected } = parseImportRows(body, { columns: fixtureColumns(engine) });
+    expect(rejected).toEqual([{ rowIndex: 2, columnId: "qty", message: "Not a number" }]);
+    expect(rows).toHaveLength(2);
+    await harness.insert(rows.map((row) => ({ ...row, tenantId: 1 })));
+    try {
+      const answer = await harness.make().fetchRows(request([{ columnId: "id", operator: "gt", value: "9000" }]));
+      expect(idsOf(answer)).toEqual([9001, 9002]);
+      expect(answer.rows.find((row) => row["id"] === 9001)).toMatchObject({ name: "imported", tag: "red", qty: 42, active: true, createdAt: "2024-05-05T08:00:00.000Z" });
+    } finally {
+      await harness.remove([9001, 9002, 9003]);
+    }
   });
 
   it("rejects a plan it did not make", () => {

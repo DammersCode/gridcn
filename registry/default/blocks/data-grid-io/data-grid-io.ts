@@ -22,6 +22,7 @@ export {
   type UseDataGridImportPreviewResult,
 } from "./use-data-grid-import";
 export { DataGridImportDialog, type DataGridImportDialogProps, type ImportContext } from "./import-dialog";
+export type { CheckImport, ImportCheckAnswer } from "./import-check";
 
 export { DataGridExportButton, type DataGridExportButtonProps } from "./export-button";
 export { DataGridImportButton, type DataGridImportButtonProps } from "./import-button";

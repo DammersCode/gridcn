@@ -217,6 +217,17 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
     </tr>
+    <tr id="parity-import-check">
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal"><a href="/docs/import-export/import">Import check before the save</a></th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
     <tr id="parity-print">
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal"><a href="/docs/import-export/export">Print</a></th>
       <td className="text-center"><ParityCell status="supported" /></td>
@@ -704,6 +715,10 @@ Fill skips rows not loaded yet and warns.
 ### Import
 
 **PC, C, SS, FS**: n/a: Import hands the built rows to onImport and reads no sort, filter, page, or server state. The app decides where they land.
+
+### Import check before the save
+
+checkImport reads the built rows and takes an answer from any promise. The dialog writes nothing. On the server, parseImportRows reads the import request with bounds and answers the refusals.
 
 ### Print
 

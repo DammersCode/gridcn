@@ -30,6 +30,7 @@ The first table has one row for each option. The Purpose column gives the first 
 | <span id="cells-aggregaterow" />`cells` | Fixed cell values by column id, such as the row id and a label. | `aggregateRow` | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options#aggregaterow) |
 | <span id="cells-serveraggregaterow" />`cells` | Fixed cell values by column id, such as the row id and a label. | `serverAggregateRow` | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options#serveraggregaterow) |
 | <span id="celltypes-buildimportedrows" />`cellTypes` | Custom cell types that parse the imported text, keyed by `ColumnDef.type`. | `buildImportedRows` | [Import options](/docs/add-options/import-export/import-options#buildimportedrows) |
+| <span id="checkimport-datagridimportbutton" />`checkImport` | Checks the built rows on your server before `onImport` runs. | `DataGridImportButton`, `DataGridImportDialog` | [Import options](/docs/add-options/import-export/import-options#datagridimportdialogprops) |
 | <span id="children-datagridcontextmenu" />`children` | Holds the grid that the menu wraps. | `DataGridContextMenu` | [Context menu options](/docs/add-options/rows-pages-menus/context-menu-options) |
 | <span id="children-datagridpaginationbar" />`children` | Custom composition of parts. Omit to render the default layout. | `DataGridPaginationBar` | [Client pagination options](/docs/add-options/rows-pages-menus/client-pagination-options) |
 | <span id="children-datagridstatusbar" />`children` | Extra items, rendered after the aggregates. | `DataGridStatusBar` | [Status bar options](/docs/add-options/selection-shortcuts/status-bar-options) |
@@ -260,6 +261,7 @@ The first table has one row for each option. The Purpose column gives the first 
 | <span id="valuemode-parseimportfile" />`valueMode` | For xlsx/xls: `"formatted"` renders each cell through its number format. `"raw"` reads the stored value: a number as `String(n)`, a date as ISO 8601, a boolean as `true` or `false`, an error cell as empty. | `parseImportFile` | [Import options](/docs/add-options/import-export/import-options#parseimportfile) |
 | <span id="wholecell-planreplace" />`wholeCell` | Matches only a cell whose whole text equals the search text. | `planReplace` | [Find and replace options](/docs/add-options/sort-filter-search/find-replace-options#planreplace) |
 | <span id="windowsize-datagridpaginationbar" />`windowSize` | How many numbered page buttons the default layout shows at once (forwarded to `DataGridPaginationPages`. Ignored with `children`). | `DataGridPaginationBar` | [Client pagination options](/docs/add-options/rows-pages-menus/client-pagination-options) |
+| <span id="xlsxwriter-exportgrid" />`xlsxWriter` | How XLSX is written. Default `"buffered"`. | `exportGrid` | [Export options](/docs/add-options/import-export/export-options#exportgridoptions) |
 
 ## By add-on [#by-add-on]
 
@@ -308,7 +310,7 @@ Options of the file add-ons.
 | Options | Used by | Page |
 | --- | --- | --- |
 | `formats`, `options`, `onError`, `className` | `DataGridExportButton` | [Export options](/docs/add-options/import-export/export-options) |
-| `format`, `scope`, `includeHeaders`, `csvDelimiter`, `csvBom`, `sanitizeFormulas`, `fileName`, `sheetName`, `maxRows` | `exportGrid` | [Export options](/docs/add-options/import-export/export-options#exportgridoptions) |
+| `format`, `scope`, `includeHeaders`, `csvDelimiter`, `csvBom`, `sanitizeFormulas`, `fileName`, `sheetName`, `maxRows`, `xlsxWriter` | `exportGrid` | [Export options](/docs/add-options/import-export/export-options#exportgridoptions) |
 | `columns`, `formatCell`, `output`, `headers` | `exportGrid` | [Export options](/docs/add-options/import-export/export-options#shape-output) |
 | `source`, `maxBytes`, `signal`, `onProgress` | `exportGrid` | [Export options](/docs/add-options/import-export/export-options#exportgridoptions) |
 | `scope`, `title`, `includeHeaders`, `orientation`, `maxRows`, `paperSize`, `direction`, `source`, `headers`, `css`, `signal` | `printGrid` | [Export options](/docs/add-options/import-export/export-options#printgridoptions) |
@@ -318,7 +320,7 @@ Options of the file add-ons.
 | `csvDelimiter`, `sheetName`, `csvEncoding`, `signal`, `valueMode` | `parseImportFile` | [Import options](/docs/add-options/import-export/import-options#parseimportfile) |
 | `dataRows`, `mapping`, `columns`, `cellTypes`, `createRow`, `processCellFromText`, `signal`, `existingRows`, `validateRow`, `getRowId` | `buildImportedRows` | [Import options](/docs/add-options/import-export/import-options#buildimportedrows) |
 | `createRow`, `onImport`, `importDefaults`, `importLimits` | `DataGridImportButton`, `DataGridImportDialog` | [Import options](/docs/add-options/import-export/import-options#datagridimportdialogprops) |
-| `onImportError`, `parseFile`, `accept`, `csvEncoding`, `processImportRows`, `processCellFromText`, `file` | `DataGridImportButton`, `DataGridImportDialog` | [Import options](/docs/add-options/import-export/import-options#datagridimportdialogprops) |
+| `onImportError`, `parseFile`, `accept`, `csvEncoding`, `processImportRows`, `processCellFromText`, `file`, `checkImport` | `DataGridImportButton`, `DataGridImportDialog` | [Import options](/docs/add-options/import-export/import-options#datagridimportdialogprops) |
 | `columnFallback`, `defaults`, `limits`, `parseFile`, `csvEncoding` | `useDataGridImportPreview` | [Import options](/docs/add-options/import-export/import-options#usedatagridimportpreview) |
 
 ### Rows, pages, and menus

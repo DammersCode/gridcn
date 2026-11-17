@@ -310,6 +310,24 @@ export type DataGridIOLabels = {
   printTruncated: (printed: number, total: number) => string;
   /** Note shown under a table printed from a `source` when a limit cut the output; the total is unknown. */
   printTruncatedSource: (printed: number) => string;
+  /** Title of the step that lists the rows the server refused before the import is saved. */
+  checkStepTitle: string;
+  /** Summary line of the check step: the refused row count and the counts the server reported. */
+  checkSummary: (counts: { refused: number; created?: number; updated?: number; skipped?: number }) => string;
+  /** Last line of the check step when the server refused more rows than the list shows. */
+  checkAndMore: (count: number) => string;
+  /** Shown when `checkImport` failed or answered in a shape the dialog does not accept; the import can be retried. */
+  checkFailed: string;
+  /** Column heading of the row number in the check step. */
+  checkRowHeading: string;
+  /** Column heading of the grid column in the check step. */
+  checkColumnHeading: string;
+  /** Column heading of the server's message in the check step. */
+  checkMessageHeading: string;
+  /** Button of the check step that saves the rows although the server refused some. */
+  importAnyway: string;
+  /** Button of the check step that returns to the mapping step. */
+  back: string;
 };
 
 /** Pagination add-on strings (`data-grid-pagination`): footer prev/next, page numbers, page-size select, range label. */

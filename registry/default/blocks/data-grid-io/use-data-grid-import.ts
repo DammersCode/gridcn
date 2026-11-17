@@ -16,6 +16,7 @@ import {
   type ParsedImportFile,
 } from "./parse-import-file";
 import { resolveImportMapping, type ImportTargetColumn, type ImportDefaults } from "./match-import-column";
+import { runImportCheck, type CheckImport, type ImportCheck } from "./import-check";
 import { buildImportedRows, IMPORT_CANCELLED_MESSAGE, type BuildImportedRowsOptions, type BuildImportedRowsResult, type ImportColumnMapping } from "./build-imported-rows";
 import { DEFAULT_LABELS, type AnyCellType } from "@/registry/default/blocks/data-grid/data-grid";
 import { isDev, isThenable, useOptionalDataGridColumnSource, useOptionalDataGridGateTracker, useOptionalDataGridLabels, type GateTracker } from "@/registry/default/blocks/data-grid/data-grid-sdk";
@@ -101,8 +102,11 @@ export type UseDataGridImportPreviewResult = {
    * `false` or there is no preview yet. A hook result outside the import limits rejects with the
    * too-many-cells error. Always returns a Promise.
    */
-  build: <TData>(options: BuildImportOptions<TData>) => Promise<BuildImportedRowsResult<TData> | null>;
+  build: <TData>(options: BuildImportOptions<TData>) => Promise<ImportBuildResult<TData> | null>;
 };
+
+/** Result of {@link UseDataGridImportPreviewResult.build}: with `checkImport`, `check` holds the read answer. */
+export type ImportBuildResult<TData> = BuildImportedRowsResult<TData> & { check?: ImportCheck };
 
 /** Builds display headers: the file's header row when present, else `labels.io.columnFallback(N)`. */
 function computeImportHeaders(rows: string[][], hasHeaderRow: boolean, columnFallback: (index: number) => string): string[] {
@@ -173,6 +177,8 @@ export type BuildImportOptions<TData> = Omit<BuildImportedRowsOptions<TData>, "d
   cellTypes?: Record<string, AnyCellType>;
   /** Runs on the data rows before the mapping is applied. `false` cancels the import: `build()` resolves `null`. The result is checked against the import limits. */
   processImportRows?: ProcessImportRows;
+  /** Checks the built rows on your server before they are saved; the answer lands in `result.check`. A throw or a rejection gives `{ status: "failed" }`. Absent: no check. */
+  checkImport?: CheckImport<TData>;
 };
 
 type MappingGate = { signal: AbortSignal; arm: () => void; stop: () => void };
@@ -466,7 +472,7 @@ export function useDataGridImportPreview(options: UseDataGridImportPreviewOption
 
   const warnedNoPreviewRef = useRef(false);
   const build = useCallback(
-    async <TData,>(buildOptions: BuildImportOptions<TData>): Promise<BuildImportedRowsResult<TData> | null> => {
+    async <TData,>(buildOptions: BuildImportOptions<TData>): Promise<ImportBuildResult<TData> | null> => {
       if (!preview) {
         if (isDev() && !warnedNoPreviewRef.current) {
           warnedNoPreviewRef.current = true;
@@ -474,21 +480,28 @@ export function useDataGridImportPreview(options: UseDataGridImportPreviewOption
         }
         return null;
       }
-      const { processImportRows, columns, cellTypes, ...rest } = buildOptions;
+      const { processImportRows, checkImport, columns, cellTypes, ...rest } = buildOptions;
       if (!(columns && cellTypes) && !gridColumns && isDev()) console.warn("[data-grid-io] build() found no grid; pass `columns` and `cellTypes` or call it under a DataGridProvider");
       const signal = rest.signal ?? new AbortController().signal;
-      const finish = (dataRows: string[][]) =>
-        buildImportedRows<TData>({
+      const buildColumns = columns ?? ((gridColumns ?? []) as BuildImportedRowsOptions<TData>["columns"]);
+      const finish = async (dataRows: string[][]): Promise<ImportBuildResult<TData>> => {
+        const built = await buildImportedRows<TData>({
           ...rest,
-          columns: columns ?? ((gridColumns ?? []) as BuildImportedRowsOptions<TData>["columns"]),
+          columns: buildColumns,
           cellTypes: (cellTypes ?? gridCellTypes ?? {}) as BuildImportedRowsOptions<TData>["cellTypes"],
           signal: rest.signal,
           dataRows,
           mapping: preview.mapping,
         });
+        if (!checkImport) return built;
+        const ctx = { signal, mapping: preview.mapping, fileName: preview.fileName, sheetName: preview.sheetName, rejected: built.rejected };
+        const check = await runImportCheck(checkImport, built.rows, ctx, new Set(buildColumns.map((column) => column.id)));
+        if (signal.aborted) throw new Error(IMPORT_CANCELLED_MESSAGE);
+        return { ...built, check };
+      };
       if (!processImportRows) return finish(importRows);
       const hooked = processImportRows({ rows: importRows, headers: preview.importHeaders, mapping: preview.mapping, signal });
-      const accept = (result: string[][] | false): BuildImportedRowsResult<TData> | null | Promise<BuildImportedRowsResult<TData> | null> => {
+      const accept = (result: string[][] | false): ImportBuildResult<TData> | null | Promise<ImportBuildResult<TData>> => {
         if (signal.aborted) throw new Error(IMPORT_CANCELLED_MESSAGE);
         if (result === false) return null;
         assertImportRows(result, effectiveLimits, preview.hasHeaderRow ? 1 : 0);

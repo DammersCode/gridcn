@@ -39,6 +39,9 @@ const INVALID_SHEET_NAME = /[[\]:*?/\\]/;
 
 export { MAX_CELL_TEXT, exportRows };
 
+/** How an XLSX file is written: `"buffered"` builds the workbook in one call, `"stream"` serializes each slice of rows as it arrives. */
+export type XlsxWriterMode = "buffered" | "stream";
+
 /** Where an export delivers its file instead of the browser download. */
 export type ExportOutput = (file: Blob, ctx: { fileName: string; format: "csv" | "xlsx"; signal: AbortSignal }) => void | Promise<void>;
 
@@ -98,6 +101,8 @@ export type ExportGridOptions<TData = unknown> = ExportShapeOptions<TData> & {
   sanitizeFormulas?: boolean;
   /** Download file name, without extension; default 'export'. */
   fileName?: string;
+  /** How XLSX is written; default `"buffered"`. `"stream"` serializes each slice of 1,000 rows to XML as it arrives and drops the cell objects. The writer keeps the serialized rows until the file is built, so peak memory stays close to `"buffered"`. The file has the same cells, cut, sheet limits, `maxBytes`, and abort checks. Ignored for csv. */
+  xlsxWriter?: XlsxWriterMode;
   /** Name of the single sheet inside the xlsx file; default 'Sheet1'. Ignored for csv. An invalid Excel sheet name (empty, over 31 characters, `[]:*?/\`, a leading or trailing `'`, `history` in any case) rejects. */
   sheetName?: string;
   /** Caps the number of data rows exported (the header row is not counted); when the scope exceeds the cap, the export is truncated with a dev-only warning. With `source` the default is 1,000,000, and an xlsx file also stops at the Excel sheet limit and at 5,000,000 cells. */
@@ -219,14 +224,19 @@ async function buildRowsAtAsync<TData>(
   formatCell: FormatExportCell<TData> | undefined,
   typed: boolean,
   signal: AbortSignal,
+  onSlice?: (rows: ExportCell[][]) => void,
 ): Promise<ExportCell[][]> {
   const rows: ExportCell[][] = [];
   for (let from = 0; from < dataIndices.length; from += SLICE_ROWS) {
+    throwIfAborted(signal);
     const pending: PendingCell[] = [];
+    const slice: ExportCell[][] = [];
     for (const dataRowIndex of dataIndices.slice(from, from + SLICE_ROWS)) {
-      rows.push(mapExportRow(state, columns, state.data[dataRowIndex] as TData, "export", formatCell, typed, signal, pending));
+      slice.push(mapExportRow(state, columns, state.data[dataRowIndex] as TData, "export", formatCell, typed, signal, pending));
     }
     if (pending.length > 0) await settlePending(pending, typed, signal);
+    if (onSlice) onSlice(slice);
+    else for (const row of slice) rows.push(row);
   }
   return rows;
 }
@@ -247,9 +257,9 @@ function buildCappedExportRows<TData>(state: DataGridReadState, scope: ExportSco
   return buildRowsAt(state, dataIndices, "export", columns, shape.formatCell, typed);
 }
 
-function buildCappedExportRowsAsync<TData>(state: DataGridReadState, scope: ExportScope, rawMaxRows: number | undefined, shape: ExportShapeOptions<TData>, typed: boolean, signal: AbortSignal): Promise<ExportCell[][]> {
+function buildCappedExportRowsAsync<TData>(state: DataGridReadState, scope: ExportScope, rawMaxRows: number | undefined, shape: ExportShapeOptions<TData>, typed: boolean, signal: AbortSignal, onSlice?: (rows: ExportCell[][]) => void): Promise<ExportCell[][]> {
   const { columns, dataIndices } = cappedExportPlan(state, scope, rawMaxRows, shape.columns);
-  return buildRowsAtAsync(state, dataIndices, columns, shape.formatCell, typed, signal);
+  return buildRowsAtAsync(state, dataIndices, columns, shape.formatCell, typed, signal, onSlice);
 }
 
 /** Header row text for each exported column: the visible columns, or the columns named by `columnIds`. */
@@ -283,16 +293,45 @@ export type BuildXlsxOptions<TData = unknown> = ExportShapeOptions<TData> & {
   maxRows?: number;
   /** Passed to `formatCell` as `ctx.signal`; an aborted signal rejects the build between slices of rows. */
   signal?: AbortSignal;
+  /** Same as {@link ExportGridOptions.xlsxWriter}; default `"buffered"`. */
+  xlsxWriter?: XlsxWriterMode;
 };
 
 const XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
-async function writeSheet(name: string, rows: ExportCell[][]): Promise<Blob> {
-  const { writeXlsx } = await import("./xlsx-writer");
-  const bytes = await writeXlsx({ sheets: [{ name, rows }] });
-  // hucre types its output as ArrayBufferLike, but writeXlsx never returns a SharedArrayBuffer view
+function xlsxBlob(bytes: Uint8Array): Blob {
+  // hucre types its output as ArrayBufferLike, but its writers never return a SharedArrayBuffer view
   return new Blob([bytes as Uint8Array<ArrayBuffer>], { type: XLSX_TYPE });
 }
+
+/** Receives the rows of one sheet slice by slice and turns them into the file. */
+type XlsxSink = { add(rows: readonly (readonly ExportCell[])[]): void; finish(): Promise<Blob> };
+
+async function createXlsxSink(name: string, mode: XlsxWriterMode | undefined): Promise<XlsxSink> {
+  if (mode === "stream") {
+    const { XlsxStreamWriter } = await import("./xlsx-writer");
+    // no rollover and no header repeat: the file holds the same single sheet as the buffered writer
+    const writer = new XlsxStreamWriter({ name, maxRowsPerSheet: Number.POSITIVE_INFINITY, repeatHeaders: false });
+    return {
+      add: (rows) => {
+        for (const row of rows) writer.addRow(row as ExportCell[]);
+      },
+      finish: async () => xlsxBlob(await writer.finish()),
+    };
+  }
+  const table: (readonly ExportCell[])[] = [];
+  return {
+    add: (rows) => {
+      for (const row of rows) table.push(row);
+    },
+    finish: async () => {
+      const { writeXlsx } = await import("./xlsx-writer");
+      return xlsxBlob(await writeXlsx({ sheets: [{ name, rows: table as ExportCell[][] }] }));
+    },
+  };
+}
+
+const cutRow = (row: readonly ExportCell[]): ExportCell[] => row.map((cell) => (typeof cell === "string" ? cutCell(cell) : cell));
 
 /**
  * Builds an xlsx `Blob` from the grid's state without triggering a download — for server uploads
@@ -302,9 +341,10 @@ async function writeSheet(name: string, rows: ExportCell[][]): Promise<Blob> {
  */
 export async function buildXlsx<TData = unknown>(state: DataGridReadState, options: BuildXlsxOptions<TData> = {}): Promise<Blob> {
   const { scope = "view", includeHeaders = true, sheetName = "Sheet1", maxRows, signal = NEVER_ABORTED } = options;
-  const rows = await buildCappedExportRowsAsync(state, scope, maxRows, options, true, signal);
-  const table = includeHeaders ? [buildExportHeaders(state, options.columns, options.headers), ...rows] : rows;
-  return writeSheet(sheetName, table.map((row) => row.map((cell) => (typeof cell === "string" ? cutCell(cell) : cell))));
+  const sink = await createXlsxSink(sheetName, options.xlsxWriter);
+  if (includeHeaders) sink.add([cutRow(buildExportHeaders(state, options.columns, options.headers))]);
+  await buildCappedExportRowsAsync(state, scope, maxRows, options, true, signal, (slice) => sink.add(slice.map(cutRow)));
+  return sink.finish();
 }
 
 /**
@@ -353,7 +393,7 @@ async function deliver(blob: Blob, format: "csv" | "xlsx", { fileName, output, s
   else downloadBlob(blob, file);
 }
 
-/** Exports the rows `source` returns; CSV is written batch by batch, XLSX collects the rows first. */
+/** Exports the rows `source` returns; CSV is written batch by batch, XLSX goes through the chosen `xlsxWriter`. */
 async function exportFromSource<TData>(state: DataGridReadState, source: ExportSource, options: ExportGridOptions<TData>, delivery: ExportDelivery): Promise<ExportResult> {
   const { format = "csv", includeHeaders = true, csvDelimiter = ",", csvBom = true, sanitizeFormulas = true, sheetName = "Sheet1", onProgress } = options;
   const xlsx = format === "xlsx";
@@ -389,17 +429,16 @@ async function exportFromSource<TData>(state: DataGridReadState, source: ExportS
     return result;
   }
 
-  const table: ExportCell[][] = includeHeaders ? [headers] : [];
+  const sink = await createXlsxSink(sheetName, options.xlsxWriter);
+  if (includeHeaders) sink.add([headers]);
   const result = await exportRows<TData, ExportCell>(state, run, (rows) => {
     let size = 0;
-    for (const row of rows) {
-      const cut = row.map((cell) => (typeof cell === "string" ? cutCell(cell) : cell));
-      for (const cell of cut) size += exportCellSize(cell);
-      table.push(cut);
-    }
+    const cuts = rows.map(cutRow);
+    for (const cut of cuts) for (const cell of cut) size += exportCellSize(cell);
+    sink.add(cuts);
     return size;
   });
-  await deliver(await writeSheet(sheetName, table), "xlsx", delivery);
+  await deliver(await sink.finish(), "xlsx", delivery);
   return result;
 }
 
