@@ -582,7 +582,7 @@
         "Z": {
           "status": "gap",
           "track": "#71",
-          "note": "The request fields, the groups answer with its bounds, and the core layout exist; the hook does not group yet."
+          "note": "The request fields, the groups answer with its bounds, and the core layout exist; the scroll hook groups random-access and sequential sources alike (`registry/default/blocks/data-grid-server/use-data-grid-server-rows.groups.scroll.test.tsx`); the cell flips with the pages mode, saves, and checks."
         },
         "C": {
           "status": "supported",
@@ -594,7 +594,7 @@
         "SS": {
           "status": "gap",
           "track": "#71",
-          "note": "The request fields, the groups answer with its bounds, and the core layout exist; the hook does not group yet."
+          "note": "The request fields, the groups answer with its bounds, and the core layout exist; the scroll hook groups random-access and sequential sources alike (`registry/default/blocks/data-grid-server/use-data-grid-server-rows.groups.scroll.test.tsx`); the cell flips with the pages mode, saves, and checks."
         },
         "FS": {
           "status": "gap",

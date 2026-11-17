@@ -68,9 +68,9 @@ export type ServerSpecOptions = {
 };
 
 /** The sort, filter, and search of a server source, with stable change handlers for the grid's controlled state. */
-export function useServerSpec(source: ServerSpecOptions, afterChange: () => void) {
+export function useServerSpec(source: ServerSpecOptions, afterChange: () => void, groups = false) {
   const lateSeed = typeof source.defaultSpec === "function" && source.spec === undefined ? source.defaultSpec : null;
-  const [spec, setSpec, seedSpec] = useControlled<ServerSpec>(source.spec, () => specOf(lateSeed ? undefined : (source.defaultSpec as Partial<ServerSpec> | undefined)), source.onSpecChange);
+  const [spec, setSpec, seedSpec] = useControlled<ServerSpec>(source.spec, () => specOf(lateSeed ? undefined : (source.defaultSpec as Partial<ServerSpec> | undefined), groups), source.onSpecChange);
   const [ready, setReady] = useState(lateSeed === null);
   const lateSeedRef = useRef(lateSeed);
   // A function seed runs after mount, on the client only, so the server render and the first client render match.
@@ -79,10 +79,10 @@ export function useServerSpec(source: ServerSpecOptions, afterChange: () => void
     if (seed) {
       let value: Partial<ServerSpec> | undefined;
       isolate("defaultSpec", () => (value = seed()));
-      if (value) seedSpec(specOf(value));
+      if (value) seedSpec(specOf(value, groups));
     }
     setReady(true);
-  }, [seedSpec]);
+  }, [seedSpec, groups]);
   const live = useRef({ spec, afterChange });
   useLayoutEffect(() => {
     live.current = { spec, afterChange };
@@ -90,6 +90,7 @@ export function useServerSpec(source: ServerSpecOptions, afterChange: () => void
   const changeSpec = useCallback(
     (next: Partial<ServerSpec>) => {
       const merged = { ...live.current.spec, ...next };
+      if (merged.groupBy?.length === 0) delete merged.groupBy;
       // Two changes in one effect (a URL restore) merge instead of overwriting each other.
       live.current.spec = merged;
       setSpec(merged);
@@ -100,13 +101,19 @@ export function useServerSpec(source: ServerSpecOptions, afterChange: () => void
   const onSortChange = useCallback((sorts: SortSpec[]) => changeSpec({ sorts }), [changeSpec]);
   const onFilterChange = useCallback((filters: FilterNode[]) => changeSpec({ filters }), [changeSpec]);
   const onSearchTextChange = useCallback((searchText: string) => changeSpec({ searchText }), [changeSpec]);
-  return { spec, ready, onSortChange, onFilterChange, onSearchTextChange };
+  const onGroupByChange = useCallback((groupBy: readonly string[]) => changeSpec({ groupBy }), [changeSpec]);
+  return { spec, ready, onSortChange, onFilterChange, onSearchTextChange, onGroupByChange };
 }
 
-const specOf = (seed?: Partial<ServerSpec>): ServerSpec => ({
+/** The result of {@link useServerSpec}: the scroll hook takes it from its caller so the group engine and the flat engine share one spec. */
+export type ServerSpecState = ReturnType<typeof useServerSpec>;
+
+const specOf = (seed?: Partial<ServerSpec>, groups = false): ServerSpec => ({
   sorts: [...(seed?.sorts ?? EMPTY_SPEC.sorts)],
   filters: [...(seed?.filters ?? EMPTY_SPEC.filters)],
   searchText: seed?.searchText ?? EMPTY_SPEC.searchText,
+  ...(groups && seed?.groupBy?.length ? { groupBy: [...seed.groupBy] } : null),
+  ...(groups && seed?.aggregates?.length ? { aggregates: [...seed.aggregates] } : null),
 });
 
 type RevalidationInput = {

@@ -1,4 +1,5 @@
 import type { DataChange, DataGridPlugin, FilterNode, RowRange, ServerSpec, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import type { ExpandedState, ServerGroupLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { SaveRefreshOptions } from "./save-refresh";
 import type { UseDataGridServerRowsRootProps } from "./use-data-grid-server-rows";
 
@@ -30,6 +31,18 @@ export type UseDataGridServerRowsScrollProviderProps<TData> = {
   plugins: readonly DataGridPlugin<unknown>[];
   /** Sorts on a header click. Override it after the spread. */
   headerClickBehavior: "sort";
+  /** @internal Present while the source groups: the group columns, outermost first. */
+  groupBy?: readonly string[];
+  /** @internal Present while the source groups. */
+  onGroupByChange?: (next: readonly string[]) => void;
+  /** @internal Present while the source groups: the open groups. */
+  expanded?: ExpandedState;
+  /** @internal Present while the source groups. */
+  onExpandedChange?: (next: ExpandedState) => void;
+  /** @internal Present while `groupBy` is not empty. */
+  groupMode?: "server";
+  /** @internal Present while `groupBy` is not empty. */
+  groupLayout?: ServerGroupLayout;
 };
 
 /** Return value of `useDataGridServerRows` in scroll mode. */

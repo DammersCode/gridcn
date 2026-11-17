@@ -567,9 +567,11 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   };
   const OK: RowActionResult = { ok: true };
   const skippedBy = (action: RowActionName, reason: RowActionSkipReason): RowActionResult => reportRowActionSkipped(get(), action, reason);
+  const inServerGroups = (s: DataGridStoreState) => s.groupMode === "server" && s.groupLayout !== null;
   const requestDelete = (requested: number[]): RowActionResult => {
     const s = get();
     if (s.readOnly) return skippedBy("deleteRows", "readOnly");
+    if (inServerGroups(s)) return skippedBy("deleteRows", "server-groups");
     const dataRowIndexes = requested.filter((i) => s.data[i] !== undefined);
     const unloaded = requested.filter((i) => s.data[i] === undefined && i >= 0 && i < s.data.length).length;
     if (unloaded > 0) {
@@ -780,6 +782,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   };
   const moveBlockedReason = (s: DataGridStoreState): RowActionSkipReason | null => {
     if (s.readOnly) return "readOnly";
+    if (inServerGroups(s)) return "server-groups";
     // A server sort owns the order too: the next fetch would put the moved rows back.
     if (s.sortState.length > 0 || viewFilters(s.filterMode, s.filterState).length > 0) {
       warnGateOnce("reorder view-ordered", "reorderRows is a no-op while a sort or filter is active (the view order is owned by them)");
@@ -1263,6 +1266,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     insertRows(viewRowIndex, count, position = "below") {
       const s = get();
       if (s.readOnly) return skippedBy("insertRows", "readOnly");
+      if (inServerGroups(s)) return skippedBy("insertRows", "server-groups");
       if (!s.createRow) {
         warnGateOnce("no createRow", "row insertion is a no-op because no `createRow` prop was provided");
         return skippedBy("insertRows", "no-factory");
@@ -1329,6 +1333,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     duplicateRowsAt(viewRowIndexes) {
       const s = get();
       if (s.readOnly) return skippedBy("duplicateRows", "readOnly");
+      if (inServerGroups(s)) return skippedBy("duplicateRows", "server-groups");
       if (!s.duplicateRow) {
         warnGateOnce("no duplicateRow", "duplicateRows is a no-op because no `duplicateRow` prop was provided");
         return skippedBy("duplicateRows", "no-factory");

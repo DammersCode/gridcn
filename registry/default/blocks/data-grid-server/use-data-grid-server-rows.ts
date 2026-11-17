@@ -7,7 +7,10 @@ import { useDataGridServerPager, type DataGridPaginationControls } from "@/regis
 import { DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-pagination/pagination-math";
 import { readRevalidateInterval } from "./fetch-hygiene";
 import { MAX_ROW_COUNT, readAnswer, type FetchReason, type ReadAnswer, type ServerRowsAnswer, type ServerRowsPageRequest, type WithRowId } from "./read-answer";
-import { useScrollBlocks, type UseDataGridServerRowsScrollOptions, type UseDataGridServerRowsScrollResult } from "./scroll-blocks";
+import type { UseDataGridServerRowsScrollOptions } from "./scroll-blocks";
+import type { UseDataGridServerRowsScrollResult } from "./scroll-types";
+import { useScrollRows } from "./use-scroll-rows";
+import type { UseDataGridServerRowsGroupOptions } from "./use-group-blocks";
 import { keepProtectedRows, pruneIds, trackDeletes, unionIds, useRefreshGuard, type ProtectedRows } from "./refresh-guard";
 import { useSaveRefresh, type SaveRefreshOptions, type SaveRefreshPolicy } from "./save-refresh";
 import { isolate, scheduleFrame, useControlled, useMountedPlugins, useRegisteredWiring, useReshape, useRevalidation, useServerSpec } from "./server-state";
@@ -195,9 +198,9 @@ type PrefetchEntry = {
  * an answer with `nextCursor`, or with neither, makes it sequential: the loaded rows plus one block of skeletons.
  * The mode is fixed for the life of the hook.
  */
-export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGridServerRowsScrollOptions<TData, TCursor>): UseDataGridServerRowsScrollResult<TData>;
+export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGridServerRowsScrollOptions<TData, TCursor> & UseDataGridServerRowsGroupOptions): UseDataGridServerRowsScrollResult<TData>;
 export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGridServerRowsOptions<TData, TCursor>): UseDataGridServerRowsResult<TData>;
-export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGridServerRowsOptions<TData, TCursor> | UseDataGridServerRowsScrollOptions<TData, TCursor>) {
+export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGridServerRowsOptions<TData, TCursor> | (UseDataGridServerRowsScrollOptions<TData, TCursor> & UseDataGridServerRowsGroupOptions)) {
   const firstMode = useRef({ mode: options.mode ?? "pages", warned: false });
   if (isDev() && !firstMode.current.warned && (options.mode ?? "pages") !== firstMode.current.mode) {
     firstMode.current.warned = true;
@@ -208,7 +211,7 @@ export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGr
   // oxlint-disable-next-line react-hooks/rules-of-hooks
   const [pagerWatch] = useState(() => new PagerWatch());
   const resolved = options.getRowId ? options : { ...options, getRowId: defaultGetRowId };
-  return resolved.mode === "scroll" ? useScrollBlocks(resolved as WithRowId<UseDataGridServerRowsScrollOptions<TData, TCursor>, TData>) : pagerWatch.attach(usePagesRows(resolved as WithRowId<UseDataGridServerRowsOptions<TData, TCursor>, TData>, pagerWatch));
+  return resolved.mode === "scroll" ? useScrollRows(resolved as WithRowId<UseDataGridServerRowsScrollOptions<TData, TCursor> & UseDataGridServerRowsGroupOptions, TData>) : pagerWatch.attach(usePagesRows(resolved as WithRowId<UseDataGridServerRowsOptions<TData, TCursor>, TData>, pagerWatch));
 }
 
 function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOptions<TData, TCursor>, TData>, pagerWatch: PagerWatch): UseDataGridServerRowsResult<TData> {

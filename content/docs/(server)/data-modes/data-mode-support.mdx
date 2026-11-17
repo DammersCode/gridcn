@@ -134,9 +134,9 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="gap" note={"Row grouping is not available."} /></td>
       <td className="text-center"><ParityCell status="gap" note={"The request fields, the groups answer with its bounds, and the core layout exist; the hook does not group yet."} /></td>
-      <td className="text-center"><ParityCell status="gap" note={"The request fields, the groups answer with its bounds, and the core layout exist; the hook does not group yet."} /></td>
+      <td className="text-center"><ParityCell status="gap" note={"The request fields, the groups answer with its bounds, and the core layout exist; the scroll hook groups random-access and sequential sources alike (registry/default/blocks/data-grid-server/use-data-grid-server-rows.groups.scroll.test.tsx); the cell flips with the pages mode, saves, and checks."} /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="gap" note={"The request fields, the groups answer with its bounds, and the core layout exist; the hook does not group yet."} /></td>
+      <td className="text-center"><ParityCell status="gap" note={"The request fields, the groups answer with its bounds, and the core layout exist; the scroll hook groups random-access and sequential sources alike (registry/default/blocks/data-grid-server/use-data-grid-server-rows.groups.scroll.test.tsx); the cell flips with the pages mode, saves, and checks."} /></td>
       <td className="text-center"><ParityCell status="gap" note={"The request fields, the groups answer with its bounds, and the core layout exist; the hook does not group yet."} /></td>
       <td className="text-center"><ParityCell status="gap" note={"The request fields, the groups answer with its bounds, and the core layout exist; the hook does not group yet."} /></td>
     </tr>
@@ -696,7 +696,8 @@ A development warning names `totalRowCount` above the loaded rows under a client
 ### Row grouping
 
 - **PC**: Gap (#71): Row grouping is not available.
-- **PS, Z, SS, FS, API**: Gap (#71): The request fields, the groups answer with its bounds, and the core layout exist. The hook does not group yet.
+- **PS, FS, API**: Gap (#71): The request fields, the groups answer with its bounds, and the core layout exist. The hook does not group yet.
+- **Z, SS**: Gap (#71): The request fields, the groups answer with its bounds, and the core layout exist. The scroll hook groups random-access and sequential sources alike (`registry/default/blocks/data-grid-server/use-data-grid-server-rows.groups.scroll.test.tsx`). The cell flips with the pages mode, saves, and checks.
 
 ### Server totals (`useDataGridServerAggregate`)
 

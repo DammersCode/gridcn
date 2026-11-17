@@ -1847,6 +1847,21 @@
                "target": "components/data-grid-server/sequence-eviction.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid-server/group-lists.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-server/group-lists.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-server/use-group-blocks.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-server/use-group-blocks.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-server/use-scroll-rows.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-server/use-scroll-rows.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid-server/refresh-guard.tsx",
                "type": "registry:component",
                "target": "components/data-grid-server/refresh-guard.tsx"
