@@ -1,5 +1,5 @@
 ---
-title: Validate rows and async checks
+title: Row validation and async checks
 description: Check fields against each other with validateRow or a schema refine, and wait for an async schema on every write path.
 icon: ListChecks
 type: feature
@@ -107,7 +107,11 @@ export function Accounts({ accounts }: { accounts: Account[] }) {
 }
 ```
 
-`unique()` compares the value with the other rows and with the other cells of the same paste or fill. Blank values pass. On a server grid it sees only the loaded rows, so check uniqueness on the server too. `unique()` takes `message` (default `"Must be unique"`) and `ignoreCase` (default `false`).
+`unique()` compares the value with the other rows and with the other cells of the same paste or fill. Blank values pass. An import compares with the grid rows on the default append, and with `existingRows` in `buildImportedRows`. A chunked import of more than 5,000 rows compares each chunk on its own. `unique()` takes `message` (default `"Must be unique"`) and `ignoreCase` (default `false`).
+
+## Server mode
+
+`validateRow` runs in the browser in every data mode. `unique()` sees the loaded rows only, so check uniqueness on the server too.
 
 ## Wait for an async schema [#async-schemas]
 

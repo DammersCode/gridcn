@@ -55,7 +55,7 @@ Undo and Redo write only the cells of the entry onto the current row. A value in
 
 `getRowId` defaults to the `id` field of a row. `grid.history` holds `canUndo`, `canRedo`, `historySize`, `undo`, `redo`, `clear`, `record`, and `rollback`. `historySize` counts the entries on the undo stack. `clear` empties both stacks.
 
-To mount other plugins, pass them in the `plugins` option: `useDataGridState(rows, { plugins: [fill.plugin] })`. The returned `grid.plugins` holds them and the history plugin. A `plugins` prop after the spread replaces the history plugin. In development, `undo`, `redo`, `record`, and `rollback` warn once when the plugin never mounted.
+To mount other plugins, pass them in the `plugins` option: `useDataGridState(rows, { plugins: [fill.plugin] })`. The returned `grid.plugins` holds them and the history plugin. A `plugins` prop after the spread replaces the history plugin. An inline plugin object is a new plugin on every render, so define it at module scope or memoize it. In development, `undo`, `redo`, `record`, and `rollback` warn once when the plugin never mounted.
 
 ### Keyboard [#keyboard]
 
@@ -175,11 +175,11 @@ If `onSave` refuses a change, the grid reverts the refused rows with a `"rollbac
 | Prop | Type | Default |
 | --- | --- | --- |
 | `capacity` | `number` | `100` |
-| `datasetKey` | `string \| number` | none |
+| `datasetKey` | `string \| number \| ((spec: ServerSpec) => string \| number)` | none |
 | `onSkip` | `(ctx: { direction; reason; rowIds }) => void` | none |
 | `recordSources` | `readonly DataChange<TData>["source"][] \| ((defaults) => readonly DataChange<TData>["source"][])` | `edit`, `paste`, `fill`, `delete`, `cut`, `row-operation`, `import`, `replace`, and `app` |
 
-`useDataGridState` takes `getRowId` and every option of `useDataGridHistory`. [Undo for code changes](/docs/clipboard-undo/undo-code-changes) explains `recordSources` and `datasetKey`.
+`useDataGridState` takes `getRowId` and every option of `useDataGridHistory`. [Undo for code changes](/docs/clipboard-undo/undo-code-changes) explains `recordSources` and `datasetKey`. [Undo with server data](/docs/save-server/undo-server-data) shows the function form.
 
 ## Related
 

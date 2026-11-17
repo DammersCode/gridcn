@@ -19,7 +19,7 @@ A column's `validate` rejects a value before it enters `data`. It takes a functi
 
 A schema message joins its issues with `"; "` and prefixes an issue path as `a.b: message`.
 
-A cell type can declare `validate` as a default for its columns. The type rule runs first, then the column rule. Undo and redo replay recorded changes and skip `validate`.
+A cell type can declare `validate` as a default for its columns. The type rule runs first, then the column rule. A schema on the cell type applies only to a column without its own `validate`. Undo and redo replay recorded changes and skip `validate`.
 
 Install zod first with `pnpm add zod`. This grid uses both forms:
 
@@ -186,7 +186,7 @@ Each entry has `rowId`, `columnId`, `viewRowIndex`, `value`, and `message`. A ro
 
 | Prop | Type | Default |
 |---|---|---|
-| `validate` | `(value, row) => string \| null` or Standard Schema | none |
+| `validate` | `(value, row, ctx) => string \| null` or Standard Schema | none |
 | `validationMode` | `"block" \| "warn"` | `"block"` |
 
 {/* props: DataGridSyncProps */}
