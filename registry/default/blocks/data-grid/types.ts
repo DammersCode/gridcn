@@ -1,5 +1,6 @@
 import type { ComponentType, FC, ReactNode } from "react";
 import type { CellValidateContext } from "./validation/validate-context";
+import type { GateContext } from "./store/gate-signal";
 import type { KeyBinding } from "./keyboard/key-syntax";
 import type { AnyColumnDef, DataGridActions, DataGridStoreState } from "./store/types";
 import type { DataGridSelectedRows } from "./store/selected-rows";
@@ -367,6 +368,11 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   toDisplayText?(value: TValue, options?: TOptions): string;
   /** Parse from paste/import/typing. Call `rejectText()` for text it cannot parse: the cell keeps its value on paste, fill, import, and replace, and the grid reports the text. Return `clearValue()`'s result only to empty the cell on purpose. */
   fromText(text: string, options?: TOptions): TValue;
+  /**
+   * Runs once per column before a paste calls `fromText`, with the column's distinct texts. A returned promise holds the paste as the `resolveTexts` gate
+   * (`useDataGridGatePending`, `gateTimeoutMs`); `fromText` then reads what the call learned. `signal` aborts when a newer paste supersedes this one.
+   */
+  resolveTexts?(texts: readonly string[], options: TOptions | undefined, ctx: GateContext): Promise<void> | void;
   clearValue(options?: TOptions): TValue;
   isEmpty(value: TValue): boolean;
   /** Sort comparator for this type, given the column's `options`; when absent, sorting falls back to a numeric-aware locale collation of the raw `String(value)` — not of `toText` output. */
