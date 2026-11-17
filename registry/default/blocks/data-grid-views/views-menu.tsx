@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
-import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { isComposingKey, mergeLabelLayers } from "@/registry/default/blocks/data-grid/data-grid-sdk";
@@ -235,12 +235,14 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
               {labels.updateActive(activeView.name)}
             </Button>
           ) : null}
-          <div className="flex items-center gap-1">
-            <Input ref={nameField} value={newName} maxLength={MAX_VIEW_NAME_LENGTH} placeholder={labels.newViewName} aria-label={labels.newViewName} onChange={(e) => setNewName(e.target.value)} onKeyDown={onSaveKeyDown} />
-            <Button type="button" size="sm" disabled={!canSave} onClick={save}>
-              {labels.saveNew}
-            </Button>
-          </div>
+          <InputGroup>
+            <InputGroupInput ref={nameField} value={newName} maxLength={MAX_VIEW_NAME_LENGTH} placeholder={labels.newViewName} aria-label={labels.newViewName} onChange={(e) => setNewName(e.target.value)} onKeyDown={onSaveKeyDown} />
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton variant="secondary" disabled={!canSave} onClick={save}>
+                {labels.saveNew}
+              </InputGroupButton>
+            </InputGroupAddon>
+          </InputGroup>
           <div className="flex flex-col gap-1.5">
             <Textarea
               value={fileText}
