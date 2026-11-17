@@ -1,11 +1,14 @@
 import { type DataGridReadState, type GridDirection } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { normalizeLimit } from "./normalize-limit";
-import { MAX_CELL_TEXT, buildExportHeaders, buildExportRows, exportDataIndices } from "./export-grid";
+import { MAX_CELL_TEXT, buildExportHeaders, buildExportRows, exportDataIndices, exportRows } from "./export-grid";
+import { abortReason, type ExportSource } from "./export-source";
 
 /** Default number of rows printed when `maxRows` is not given. */
 const DEFAULT_PRINT_MAX_ROWS = 10_000;
 /** Hard ceiling on the printed table's cell count (a multi-million-cell DOM table hangs the print dialog). */
 const PRINT_CELL_CEILING = 500_000;
+/** Longest `css` option, in characters. */
+export const MAX_PRINT_CSS_LENGTH = 65_536;
 /** Fallback removal (ms) for the print iframe when the window's `afterprint` never fires. */
 const PRINT_FALLBACK_MS = 60_000;
 
@@ -31,9 +34,25 @@ export type PrintGridOptions = {
   maxRows?: number;
   /** Reading direction of the printed page. Default: the direction of the page that calls print. */
   direction?: GridDirection;
+  /** Where the rows come from, for a grid that holds one page or some loaded blocks. With `source` the print ignores `scope` and the held rows. It receives the same context as the export source, and the `maxRows` and cell bounds apply. */
+  source?: ExportSource;
+  /** Header text per column id, replacing the column's label. A column without an entry keeps its label. */
+  headers?: Readonly<Record<string, string>>;
+  /** Extra CSS appended after the built-in rules, in a second `<style>` node. Longer than 65,536 characters rejects with a `RangeError`. Build it from constants only: a cell value in `css` can load a remote URL. */
+  css?: string;
+  /** Cancels the print: the promise rejects with the signal's reason and no dialog opens. */
+  signal?: AbortSignal;
+};
+
+/** What a finished {@link printGrid} printed. */
+export type PrintGridResult = {
+  rowCount: number;
+  /** True when `maxRows` or the cell ceiling cut the output. */
+  truncated: boolean;
 };
 
 let openIframe: HTMLIFrameElement | null = null;
+let activeRun: AbortController | null = null;
 let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
 
 /** Removes the currently open print iframe and clears its fallback timer. */
@@ -64,6 +83,28 @@ function printCss(paperSize: string, orientation: "portrait" | "landscape"): str
   ].join("\n");
 }
 
+type PrintRows = { rows: string[][]; note: string | undefined };
+
+function loadedPrintRows(state: DataGridReadState, scope: NonNullable<PrintGridOptions["scope"]>, maxRows: number): PrintRows {
+  const total = exportDataIndices(state, scope).length;
+  const rows = buildExportRows(state, scope, { text: "display", maxRows });
+  return { rows, note: rows.length < total ? state.labels.io.printTruncated(rows.length, total) : undefined };
+}
+
+async function sourcePrintRows(state: DataGridReadState, source: ExportSource, maxRows: number, signal: AbortSignal): Promise<PrintRows> {
+  const rows: string[][] = [];
+  const result = await exportRows<unknown, string>(state, { source, text: "display", maxRows, signal }, (batch) => {
+    let size = 0;
+    for (const row of batch) {
+      rows.push(row);
+      for (const cell of row) size += cell.length;
+    }
+    return size;
+  });
+  if (signal.aborted) throw abortReason(signal);
+  return { rows, note: result.truncated ? state.labels.io.printTruncatedSource(rows.length) : undefined };
+}
+
 /**
  * Prints the grid's rows as a plain paged table: the rows are resolved through the cell-type
  * pipeline's display text (`toDisplayText ?? toText`), built into a hidden, sandboxed iframe's
@@ -72,19 +113,32 @@ function printCss(paperSize: string, orientation: "portrait" | "landscape"): str
  * lazy holes and hidden columns never print. `options.maxRows` caps the rows (default 10,000,
  * further cut to fit the 500,000-cell ceiling); when the cap cut the output, the table ends
  * with a truncation note. The iframe is removed on `afterprint` (with a 60 s fallback timer),
- * and a second call while one is open replaces the first. No-op without a DOM (SSR).
+ * and a second call replaces the first, aborting its pending `source`. Without `source` the
+ * dialog opens before the call returns. No-op without a DOM (SSR).
  */
-export function printGrid(state: DataGridReadState, options: PrintGridOptions = {}): void {
-  if (typeof document === "undefined") return;
+export async function printGrid(state: DataGridReadState, options: PrintGridOptions = {}): Promise<PrintGridResult> {
+  if (typeof document === "undefined") return { rowCount: 0, truncated: false };
+  if (options.css !== undefined && options.css.length > MAX_PRINT_CSS_LENGTH) throw new RangeError(`[data-grid-io] print css is longer than ${MAX_PRINT_CSS_LENGTH} characters`);
   removeOpenIframe();
+  activeRun?.abort();
+  const run = new AbortController();
+  activeRun = run;
+  const signal = options.signal ? AbortSignal.any([options.signal, run.signal]) : run.signal;
+  try {
+    const colCount = state.visibleColumns.length;
+    const maxRows = Math.min(normalizeLimit(options.maxRows, DEFAULT_PRINT_MAX_ROWS), Math.floor(PRINT_CELL_CEILING / Math.max(colCount, 1)));
+    const { rows, note } = options.source ? await sourcePrintRows(state, options.source, maxRows, signal) : loadedPrintRows(state, options.scope ?? "view", maxRows);
+    openPrintDocument(state, options, rows, note);
+    return { rowCount: rows.length, truncated: note !== undefined };
+  } finally {
+    if (activeRun === run) activeRun = null;
+  }
+}
 
-  const scope = options.scope ?? "view";
+function openPrintDocument(state: DataGridReadState, options: PrintGridOptions, rows: string[][], note: string | undefined): void {
   const includeHeaders = options.includeHeaders ?? true;
   const colCount = state.visibleColumns.length;
-  const maxRows = Math.min(normalizeLimit(options.maxRows, DEFAULT_PRINT_MAX_ROWS), Math.floor(PRINT_CELL_CEILING / Math.max(colCount, 1)));
-  const total = exportDataIndices(state, scope).length;
-  const rows = buildExportRows(state, scope, { text: "display", maxRows });
-  const headers = buildExportHeaders(state);
+  const headers = buildExportHeaders(state, undefined, options.headers);
   const orientation = options.orientation ?? (colCount > 6 ? "landscape" : "portrait");
   // Untyped callers can pass any string; only the fixed map reaches the CSS.
   const requestedSize = options.paperSize ?? "A4";
@@ -116,6 +170,11 @@ export function printGrid(state: DataGridReadState, options: PrintGridOptions = 
   const style = doc.createElement("style");
   style.textContent = printCss(paperSize, orientation);
   doc.head.append(meta, style);
+  if (options.css) {
+    const extra = doc.createElement("style");
+    extra.textContent = options.css;
+    doc.head.append(extra);
+  }
   if (options.title) {
     const heading = doc.createElement("h1");
     heading.textContent = options.title;
@@ -149,10 +208,10 @@ export function printGrid(state: DataGridReadState, options: PrintGridOptions = 
   }
   table.append(tbody);
   doc.body.append(table);
-  if (rows.length < total) {
-    const note = doc.createElement("p");
-    note.textContent = state.labels.io.printTruncated(rows.length, total);
-    doc.body.append(note);
+  if (note !== undefined) {
+    const noteElement = doc.createElement("p");
+    noteElement.textContent = note;
+    doc.body.append(noteElement);
   }
 
   const cleanup = () => {

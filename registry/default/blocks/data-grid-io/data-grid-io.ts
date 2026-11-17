@@ -3,7 +3,7 @@
 export { exportGrid, exportRows, buildExportRows, rowsToCsv, type RowsToCsvOptions, type ExportGridOptions, type ExportOutput, type ExportCellValue, type ExportCellContext, type FormatExportCell, type ExportRowsOptions, type BuildExportRowsOptions, type ExportSource, type ExportSourceContext, type ExportProgress, type ExportResult } from "./export-grid";
 export { useDataGridExport, type UseDataGridExportResult } from "./use-data-grid-export";
 
-export { printGrid, type PrintGridOptions, type PrintPaperSize } from "./print-grid";
+export { printGrid, type PrintGridOptions, type PrintGridResult, type PrintPaperSize } from "./print-grid";
 export { useDataGridPrint, type UseDataGridPrintResult } from "./use-data-grid-print";
 export { DataGridPrintButton, type DataGridPrintButtonProps } from "./print-button";
 
