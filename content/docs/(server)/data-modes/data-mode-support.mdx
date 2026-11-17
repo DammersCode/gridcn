@@ -748,6 +748,7 @@ Mode-neutral by design. Comments are addressed by row id and column id, so a sor
 
 ### Scroll fetch limits
 
+- A finite `maxLoadedRows` evicts on a sequential source too. The hook stores the request that loaded each block (its `start`, `end` and the `cursor` the server returned for it). The hook sends that request again when the user scrolls back. `fetchRows` must answer a repeated cursor with the same rows. A block with an open edit, a pending save, or an unsaved change stays loaded. The chain goes on with the cursor of its last block.
 - **L, PC**: n/a: Rows are in memory.
 - **PS**: n/a: A pages-mode request is one per state. A newer page aborts the older one.
 

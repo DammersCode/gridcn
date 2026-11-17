@@ -10,7 +10,7 @@ Loaded rows stay in the sparse `data` array, and a long scroll through a large r
 
 ## Cap the loaded rows [#max-loaded-rows]
 
-Scroll mode keeps at most `maxLoadedRows` rows loaded on a random access source (default 10,000). When more are loaded, the hook unloads the blocks that the user viewed longest ago outside the keep range. Rows with an open edit, a pending save, or an unsaved change, and the row under the active cell, stay in `data`. They stop counting as loaded, so the next rendered rows fetch their block whole. Pass `maxLoadedRows: Infinity` to keep every row.
+Scroll mode keeps at most `maxLoadedRows` rows loaded (default 10,000). When more are loaded, the hook unloads blocks outside the keep range. A random access source drops the blocks viewed longest ago, and a sequential source drops the blocks furthest from the rendered rows. Rows with an open edit, a pending save, or an unsaved change, and the row under the active cell, stay in `data`. A random access source stops counting them as loaded, so the next rendered rows fetch their block whole. A sequential source keeps the whole block. Pass `maxLoadedRows: Infinity` to keep every row.
 
 ## Evict row ranges [#memory--retention]
 
@@ -19,7 +19,7 @@ Scroll mode keeps at most `maxLoadedRows` rows loaded on a random access source 
 
 When the user scrolls back into an evicted row range, the hook fetches the rows again.
 
-`server.unloadedCount` counts the rows that render as skeleton rows. A sequential source reports its one block of skeleton rows.
+`server.unloadedCount` counts the rows that render as skeleton rows. A sequential source reports its one block of skeleton rows, and an evicted block shows skeleton rows until it reloads.
 
 An eviction policy is your decision. This grid drops the loaded blocks that are at least 500 rows away from the rendered rows. It rounds the edges to multiples of `blockSize`, so a block that comes back asks for the same rows as before:
 

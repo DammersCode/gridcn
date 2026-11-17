@@ -42,12 +42,10 @@ type StepInput<TCursor> = {
   count: number | null;
   /** Keys of the cursors this chain already returned. */
   seenCursors?: ReadonlySet<string>;
-  /** The caller's finite `maxLoadedRows`: the chain ends once this many rows loaded. */
-  maxRows?: number;
 };
 
 /** Decides what a landed block means for the chain: does it go on, and with which cursor. */
-export function stepSequence<TCursor>({ read, sentCursor, loaded, count, seenCursors, maxRows }: StepInput<TCursor>): SequenceStep<TCursor> {
+export function stepSequence<TCursor>({ read, sentCursor, loaded, count, seenCursors }: StepInput<TCursor>): SequenceStep<TCursor> {
   const cursor = read.nextCursor ?? undefined;
   const end = (warning: SequenceStep<TCursor>["warning"] = null): SequenceStep<TCursor> => ({ ended: true, cursor, warning });
   if (read.rows.length === 0) {
@@ -64,7 +62,6 @@ export function stepSequence<TCursor>({ read, sentCursor, loaded, count, seenCur
     return end({ kind: "cursor", message: "fetchRows returned a cursor it returned before; the source ends here, so return a new cursor or null" });
   }
   if (count !== null && loaded >= count) return end();
-  if (maxRows !== undefined && loaded >= maxRows) return end({ kind: "maxLoadedRows", message: `the sequential source loaded maxLoadedRows (${maxRows}) rows; it ends here, so the rows stay within the memory bound` });
   if (loaded >= MAX_ROW_COUNT) return end({ kind: "max", message: `the source loaded ${MAX_ROW_COUNT} rows; it ends here` });
   return { ended: false, cursor, warning: null };
 }
