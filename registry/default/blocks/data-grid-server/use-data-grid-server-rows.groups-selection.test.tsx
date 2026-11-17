@@ -27,6 +27,7 @@ const settle = () => act(async () => void (await new Promise((resolve) => setTim
 function setup(mode: "scroll" | "pages" = "scroll", rows = rowsOf({ A: 6, B: 4 })) {
   const server = fakeServer(rows);
   const onSelectionChange = vi.fn();
+  const onEditEnd = vi.fn();
   let hook!: UseDataGridServerRowsResult<Row>;
   let store!: StoreApi<DataGridStoreState>;
   let selected!: DataGridSelectedRows;
@@ -42,7 +43,7 @@ function setup(mode: "scroll" | "pages" = "scroll", rows = rowsOf({ A: 6, B: 4 }
       defaultSpec: { groupBy: ["region"] },
     } as never) as unknown as UseDataGridServerRowsResult<Row>;
     return (
-      <DataGridProvider {...hook.providerProps} columns={columns} enableRowSelection onSelectionChange={onSelectionChange}>
+      <DataGridProvider {...hook.providerProps} columns={columns} enableRowSelection onSelectionChange={onSelectionChange} onEditEnd={onEditEnd}>
         <DataGridRoot aria-label="Sales" {...hook.rootProps}>
           <DataGridHeader />
           <DataGridBody />
@@ -58,7 +59,7 @@ function setup(mode: "scroll" | "pages" = "scroll", rows = rowsOf({ A: 6, B: 4 }
     act(() => hook.providerProps.onRenderedRowsChange?.({ start: 0, end: 12 }));
     await waitFor(() => expect(hook.providerProps.data.some((row) => row?.id === `${regions[0]}0`)).toBe(true));
   };
-  return { server, hook: () => hook, state: () => store.getState(), actions, selected: () => selected, open, onSelectionChange, ready: () => waitFor(() => expect(hook.providerProps.data.length).toBeGreaterThan(0)) };
+  return { server, hook: () => hook, state: () => store.getState(), actions, selected: () => selected, open, onSelectionChange, onEditEnd, ready: () => waitFor(() => expect(hook.providerProps.data.length).toBeGreaterThan(0)) };
 }
 
 describe("selecting rows of a grouped server source", () => {
@@ -130,6 +131,9 @@ describe("selecting rows of a grouped server source", () => {
     act(() => t.hook().providerProps.onGroupByChange!([]));
     await waitFor(() => expect(t.hook().providerProps.data).toHaveLength(10));
     expect(t.hook().providerProps.groupLayout).toBeUndefined();
+    expect(t.state().editing).toBeNull();
+    expect(t.onEditEnd).toHaveBeenCalledTimes(1);
+    expect(t.onEditEnd).toHaveBeenCalledWith(expect.objectContaining({ rowId: "A0", result: "cancel" }));
     act(() => t.hook().providerProps.onGroupByChange!(["region"]));
     await waitFor(() => expect(t.hook().providerProps.groupLayout?.rows).toHaveLength(2));
     expect(t.state().editing).toBeNull();

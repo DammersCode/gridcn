@@ -108,7 +108,7 @@ A group nests one group at most. A deeper group fails with `limit-exceeded`. Wit
 
 ## Group answer [#groups-answer]
 
-A request with `groupBy` and `childKind: "groups"` resolves a `GroupsAnswer`: `groups`, `groupCount`, and, at the top level, `totalRowCount`. Each group holds `key`, `childCount`, `totalRowCount`, and `aggregates` keyed by column id. A reducer with no counted value gives `null`. `fetchRows` has the type `Promise<RowsAnswer | GroupsAnswer>`. A `capabilities.groupBy` of `false` answers `unsupported`.
+A request with `groupBy` and `childKind: "groups"` resolves a `GroupsAnswer`: `groups`, `groupCount`, and, at the top level, `totalRowCount`. Each group holds `key`, `childCount`, `totalRowCount`, and `aggregates` keyed by column id. A reducer with no counted value gives `null`. `fetchRows` has the type `Promise<RowsAnswer | GroupsAnswer>`. A `capabilities.groupBy` of `false` answers `unsupported`. A group page with a text key longer than `maxGroupKeyLength` fails with `limit-exceeded` at `spec.groupBy.<columnId>`. The bound never goes above 1,024, which is what the grid accepts.
 
 ## Errors [#errors]
 
@@ -121,7 +121,7 @@ The query layer throws `QueryError` with a `code` and a `path`. The path holds f
 | `unknown-operator` | 400 | The operator is not built in and the column does not declare it. |
 | `operator-not-allowed` | 400 | The operator does not fit the kind of the column, or the column is not filterable or sortable. |
 | `invalid-value` | 400 | A value is over its length, or a range does not match the page. |
-| `limit-exceeded` | 400 | The tree or a list is over a bound. |
+| `limit-exceeded` | 400 | The tree or a list is over a bound, or a group key is over `maxGroupKeyLength`. |
 | `offset-too-deep` | 400 | `start` is above `maxOffset`. |
 | `unsupported` | 501 | The request asks for a pivot, or the adapter cannot group. |
 | `payload-too-large` | 413 | The body is over `maxBodyBytes`. |

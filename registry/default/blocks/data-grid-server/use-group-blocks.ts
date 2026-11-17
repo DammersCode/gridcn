@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { serverSpecKey, type DataChange, type RowRange } from "@/registry/default/blocks/data-grid/data-grid";
-import { COLLAPSED, expandedTest, holeRowId, isDev, normalizeExpanded, type ExpandedState, type ServerGroupLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { COLLAPSED, expandedTest, groupIdOf, holeRowId, isDev, normalizeExpanded, type ExpandedState, type ServerGroupLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { blockOf, createGroupStore, evictBlock, landGroups, landRows, layoutView, listFor, type GroupList, type GroupStore, type GroupView } from "./group-lists";
 import { isGroupsAnswer, pageWindowOf, seedGroupStore, useGroupPager, type GroupPagesConfig } from "./group-pages";
 import { assertRowIdsNotReserved, readGroupsAnswer } from "./read-groups-answer";
 import { readAnswer, type FetchReason, type ServerRowsRequest, type WithRowId } from "./read-answer";
 import { unionIds, useRefreshGuard } from "./refresh-guard";
-import { useSaveRefresh, type SaveRefreshPolicy } from "./save-refresh";
+import { groupSaveScope } from "./group-save-scope";
+import { useSaveRefresh, type SaveRefreshPolicy, type SaveRefreshReport } from "./save-refresh";
 import type { UseDataGridServerRowsScrollOptions } from "./scroll-blocks";
 import type { UseDataGridServerRowsScrollProviderProps, UseDataGridServerRowsScrollResult } from "./scroll-types";
 import { isolate, scheduleFrame, useControlled, useMountedPlugins, useRegisteredWiring, useReshape, useRevalidation, type ServerSpecState } from "./server-state";
@@ -330,8 +331,28 @@ export function useGroupBlocks<TData, TCursor = never>(
     pump();
   };
 
+  const refreshForSaves = (report: SaveRefreshReport) => {
+    const engine = getEngine();
+    const store = engine.store;
+    const total = report.saved + report.rejected + report.failed;
+    const scope = report.rejected + report.failed > 0 || total > report.changes.length ? "all" : groupSaveScope(report.changes, live.current.spec);
+    if (!store || scope === "all") return refreshFor("save");
+    if (scope === "none") return;
+    const index = engine.idIndex ?? indexRows(store, idOf);
+    engine.idIndex = index;
+    const above = new Set<string>();
+    for (const rowId of scope.rowIds) {
+      const at = index.get(rowId);
+      if (!at) return refreshFor("save");
+      for (let depth = 0; depth < at.list.path.length; depth++) above.add(depth === 0 ? "" : groupIdOf(at.list.path.slice(0, depth)));
+    }
+    engine.reason = "save";
+    for (const id of above) for (const block of store.lists.get(id)?.blocks.keys() ?? []) engine.stale.add(`${id}|${block}`);
+    pump();
+  };
+
   const loading = view.loading;
-  const apiRef = useRef({ seedStore: noop, pump: noop, pumpSoon: noopFlag, publish: noop, reset: noop, refreshFor: noopReason, staleGroupBlocks: noop, retry: noop, applyUpdates: noopChange, evictRange: noopRange });
+  const apiRef = useRef({ seedStore: noop, pump: noop, pumpSoon: noopFlag, publish: noop, reset: noop, refreshFor: noopReason, refreshForSaves: noopReport, staleGroupBlocks: noop, retry: noop, applyUpdates: noopChange, evictRange: noopRange });
   const { request: requestReshape, cancel: cancelReshape } = useReshape({ delay: active ? options.reshapeDelayMs : false, ordered: spec.sorts.length + spec.filters.length > 0, run: () => apiRef.current.refreshFor("refresh"), busy: loading, resetKey: requestKey, warn });
   const restartClock = useRevalidation({ interval: active ? options.revalidateIntervalMs : undefined, onTick: () => apiRef.current.refreshFor("refresh"), busy: loading, resetKey: requestKey });
 
@@ -406,7 +427,7 @@ export function useGroupBlocks<TData, TCursor = never>(
   };
 
   useLayoutEffect(() => {
-    apiRef.current = { seedStore, pump, pumpSoon, publish, reset, refreshFor, staleGroupBlocks, retry: retryFailed, applyUpdates: applyUpdates as (change: DataChange<never>) => void, evictRange };
+    apiRef.current = { seedStore, pump, pumpSoon, publish, reset, refreshFor, refreshForSaves, staleGroupBlocks, retry: retryFailed, applyUpdates: applyUpdates as (change: DataChange<never>) => void, evictRange };
   });
 
   const onRenderedRowsChange = useCallback(
@@ -477,7 +498,7 @@ export function useGroupBlocks<TData, TCursor = never>(
     [],
   );
 
-  const refreshAfterSave = useCallback(() => apiRef.current.refreshFor("save"), []);
+  const refreshAfterSave = useCallback((report: SaveRefreshReport) => apiRef.current.refreshForSaves(report), []);
   const { onSave, wrapSave } = useSaveRefresh({ onSave: options.onSave, refreshAfterSave: options.refreshAfterSave as SaveRefreshPolicy | undefined }, refreshAfterSave);
   const paged = pages !== undefined;
   const ownPlugins = useMemo(() => (paged ? [...guardPlugins, ...pagerPlugins] : guardPlugins), [paged, guardPlugins, pagerPlugins]);
@@ -542,6 +563,7 @@ export function useGroupBlocks<TData, TCursor = never>(
 function noop() {}
 const noopFlag = (_immediate: boolean) => {};
 const noopReason = (_reason: FetchReason) => {};
+const noopReport = (_report: SaveRefreshReport) => {};
 const noopChange = (_change: DataChange<never>) => {};
 const noopRange = (_range: RowRange) => {};
 

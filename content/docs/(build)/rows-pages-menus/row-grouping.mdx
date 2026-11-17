@@ -95,13 +95,13 @@ The server answers `childKind: "groups"` with `groups`, `groupCount`, and, at th
 - The core shows the group rows of `groupLayout` and never buckets rows (`groupMode="server"`). The hook sets both props.
 - While the server lays out the groups, an insert, a duplicate, a delete, and a move report the reason `server-groups`.
 - A save, a refusal, and `refresh()` keep the open groups in place.
+- A save of an aggregate column reloads only the group rows above the saved row. A save of another column that no group, sort, or aggregate uses sends no request. A save of a group or sort column, or any save while a filter or search is active, reloads every open list.
+- A swap between a grouped and an ungrouped source ends an open edit. `onEditEnd` reports `result: "cancel"`.
 - `selectAllMatching()` counts the rows of the result that `totalRowCount` reports.
 - The query layer answers group requests for Drizzle and Kysely. See [Query layer](/docs/data-modes/query-layer).
 
 ## Limits [#limits]
 
-- A save refreshes the whole open list. The refresh does not narrow to the group and aggregate columns.
-- A swap between a grouped and an ungrouped source ends an open edit.
 - The group queries of the query layer have no performance measurement.
 - At most 10,000 groups stay open. A further toggle shows `labels.grouping.tooManyOpen`.
 

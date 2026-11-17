@@ -46,7 +46,7 @@ type SaveFn<TData> = (change: DataChange<TData>, ctx: SaveContext) => void | Pro
  * Wraps the caller's `onSave` so the hook refreshes after saves settle by the caller's policy. `onSave` is `undefined` without an
  * `onSave` option, so spreading `gridProps` never overrides a provider `onSave` of your own. `wrapSave` tracks a provider `onSave` the same way.
  */
-export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, refresh: () => void): { onSave: SaveFn<TData> | undefined; wrapSave: (save: SaveFn<TData>) => SaveFn<TData> } {
+export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, refresh: (report: SaveRefreshReport) => void): { onSave: SaveFn<TData> | undefined; wrapSave: (save: SaveFn<TData>) => SaveFn<TData> } {
   const live = useRef({ options, refresh });
   useLayoutEffect(() => {
     live.current = { options, refresh };
@@ -100,7 +100,7 @@ export function useSaveRefresh<TData>(options: SaveRefreshOptions<TData> = {}, r
       }
       if (!wanted) return;
     }
-    live.current.refresh();
+    live.current.refresh(report);
   }, []);
 
   const settle = useCallback(

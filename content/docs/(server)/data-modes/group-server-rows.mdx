@@ -107,6 +107,8 @@ The grid checks each answer. It throws on an answer with no `groups`. It throws 
 - Scroll mode loads the rows of an open group in blocks, and drops the blocks furthest from the screen past `maxLoadedRows`.
 - Pages mode makes the top level one page of groups. `pager.totalRowCount` counts groups, and `pager.unit` is `"groups"`.
 - A change of `groupBy`, the spec, or the page size returns to the first list.
+- A change of the spec scrolls the grid to its first row.
+- Groups load by offset. In scroll mode, `source: "sequential"` has no effect while the spec groups, and the hook warns once in development. Leave `source` unset or use `"random"` with `groupBy`.
 - `initialAnswer` can be the groups answer of the top level.
 - An insert, a duplicate, a delete, and a move report the reason `server-groups`.
 - A save, a refusal, and `refresh()` keep the open groups.

@@ -10,6 +10,7 @@ import { useDataGridServerRows, type UseDataGridServerRowsResult } from "./use-d
 const columns = defineColumns<Row>()([
   { id: "region", header: "Region", accessorKey: "region", type: "text" },
   { id: "qty", header: "Qty", accessorKey: "qty", type: "number" },
+  { id: "city", header: "City", accessorKey: "city", type: "text" },
 ] as const);
 
 beforeAll(() => {
@@ -85,6 +86,31 @@ describe("a grouped server source after a save", () => {
     expect(t.slots().map((slot) => slot.aggregates?.["qty"])).toEqual([5, 5]);
     expect(t.hook().gridProps.data.filter((row) => row?.region === "A")).toHaveLength(5);
     expect(t.hook().gridProps.data.some((row) => row?.id === "A0")).toBe(false);
+  });
+
+  it("reloads only the group rows on the path when a save changes an aggregate column", async () => {
+    const t = setup();
+    await waitFor(() => expect(t.slots()).toHaveLength(2));
+    await t.openGroup("A");
+    const before = t.server.calls.length;
+    act(() => t.store().actions.applyCellUpdates([{ viewRowIndex: 1, columnId: "qty", value: 5 }], "edit"));
+    await waitFor(() => expect(t.slots().map((slot) => slot.aggregates?.["qty"])).toEqual([10, 4]));
+    const refetched = t.server.calls.slice(before);
+    expect(refetched.length).toBeGreaterThan(0);
+    expect(new Set(refetched.map((call) => call.childKind))).toEqual(new Set(["groups"]));
+    expect(t.hook().gridProps.data[1]?.qty).toBe(5);
+  });
+
+  it("sends no request when a save changes a column that is neither grouped, aggregated, nor sorted", async () => {
+    const t = setup();
+    await waitFor(() => expect(t.slots()).toHaveLength(2));
+    await t.openGroup("A");
+    const before = t.server.calls.length;
+    act(() => t.store().actions.applyCellUpdates([{ viewRowIndex: 1, columnId: "city", value: "elsewhere" }], "edit"));
+    await waitFor(() => expect(t.saved).toHaveLength(1));
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    expect(t.server.calls.length).toBe(before);
+    expect(t.hook().gridProps.data[1]?.city).toBe("elsewhere");
   });
 
   it("reverts a refused save and leaves the groups alone", async () => {
