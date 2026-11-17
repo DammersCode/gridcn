@@ -214,7 +214,7 @@ describe("row ops under an open edit session", () => {
 
     await openEditorOnRow(0, "X"); // row-0
 
-    store!.getState().actions.updateCells([{ rowId: "row-4", columnId: "age", value: 1 }], { reorder: "immediate" });
+    store!.getState().actions.updateCells([{ rowId: "row-4", columnId: "age", value: 1 }], { source: "stream", reorder: "immediate" });
 
     // row-4 (age 1) re-sorts to the top and the edited row-0 shifts down to view row 1
     await vi.waitFor(() => {

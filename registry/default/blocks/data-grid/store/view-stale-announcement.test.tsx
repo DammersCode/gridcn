@@ -25,7 +25,7 @@ function mount(mode: "client" | "server") {
   return {
     state,
     announcement: () => state().liveAnnouncement,
-    push: () => act(() => void state().actions.updateCells([{ rowId: "a", columnId: "name", value: `v${++tick}` }])),
+    push: () => act(() => void state().actions.updateCells([{ rowId: "a", columnId: "name", value: `v${++tick}` }], { source: "stream" })),
     reconcile: () => act(() => state().actions.reconcileView()),
   };
 }
@@ -56,7 +56,7 @@ describe.each(["client", "server"] as const)("view stale announcement (%s sort)"
 
   it("does not announce a push that leaves the view fresh", () => {
     const m = mount(mode);
-    act(() => void m.state().actions.updateCells([{ rowId: "a", columnId: "name", value: "Z" }], { reorder: "never" }));
+    act(() => void m.state().actions.updateCells([{ rowId: "a", columnId: "name", value: "Z" }], { source: "stream", reorder: "never" }));
     expect(m.announcement()).toBeNull();
   });
 });

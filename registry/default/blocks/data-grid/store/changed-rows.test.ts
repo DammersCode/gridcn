@@ -23,7 +23,7 @@ describe("changed rows", () => {
   it("marks a row that a user write changed and not one that a push changed", () => {
     const store = makeStore();
     store.getState().actions.commitChange({ source: "edit", ops: [{ type: "update", rowId: "a", row: { id: "a", name: "Ana" }, prev: rowAt(store, 0), cells: [{ columnId: "name", value: "Ana", prev: "Ada" }] }] });
-    store.getState().actions.updateCells([{ rowId: "b", columnId: "name", value: "Bob" }]);
+    store.getState().actions.updateCells([{ rowId: "b", columnId: "name", value: "Bob" }], { source: "stream" });
     expect(changed(store, 0)).toBe(true);
     expect(changed(store, 1)).toBe(false);
   });

@@ -106,7 +106,7 @@ describe("controlled selection perf (100k rows)", () => {
     store.setState({ selection: rowChannelSelection() });
 
     const t0 = performance.now();
-    store.getState().actions.updateCells([{ rowId: "0", columnId: "v", value: 1_000_000_000 }], { reorder: "immediate" });
+    store.getState().actions.updateCells([{ rowId: "0", columnId: "v", value: 1_000_000_000 }], { source: "stream", reorder: "immediate" });
     const ms = performance.now() - t0;
     console.log(`immediate updateCells tick at 100k rows with 1000-row channel: ${ms.toFixed(2)}ms`);
     // The batch cost scales with the batch (1 row), not the row count or the channel.
@@ -142,7 +142,7 @@ describe("hidden checked rows with streaming (100k rows)", () => {
     const tick = (store: ReturnType<typeof makeStore>, n: number) => {
       const t0 = performance.now();
       for (let i = 0; i < n; i++) {
-        store.getState().actions.updateCells([{ rowId: String(i), columnId: "v", value: 1_000_000_000 + i }], { reorder: "immediate" });
+        store.getState().actions.updateCells([{ rowId: String(i), columnId: "v", value: 1_000_000_000 + i }], { source: "stream", reorder: "immediate" });
       }
       return (performance.now() - t0) / n;
     };

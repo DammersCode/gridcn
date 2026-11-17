@@ -459,8 +459,8 @@ void rowPatch;
 // The actions surface: both take a readonly patch list and an optional options object, and return
 // the per-patch verdict (applied / skipped with reason / pending for a held async batch).
 declare const _actions: DataGridActions;
-assertEqual<(patches: readonly CellPatch[], options?: UpdateCellsOptions) => UpdateCellsVerdict, typeof _actions.updateCells>(true);
-assertEqual<(updates: readonly RowPatch[], options?: UpdateCellsOptions) => UpdateCellsVerdict, typeof _actions.updateRows>(true);
+assertEqual<(patches: readonly CellPatch[], options: UpdateCellsOptions) => UpdateCellsVerdict, typeof _actions.updateCells>(true);
+assertEqual<(updates: readonly RowPatch[], options: UpdateCellsOptions) => UpdateCellsVerdict, typeof _actions.updateRows>(true);
 assertEqual<(updates: readonly RowPatch[], options?: Omit<UpdateCellsOptions, "source" | "reorder">) => UpdateCellsVerdict, typeof _actions.editRows>(true);
 assertEqual<() => void, typeof _actions.reconcileView>(true);
 
@@ -614,3 +614,10 @@ export const gateTimeoutImport: DataGridProviderProps<{ id: string }>["gateTimeo
 
 export const asyncPasteParser: DataGridProviderProps<{ id: string }>["processCellFromClipboard"] = async (text) => text.trim();
 export const syncPasteParser: DataGridProviderProps<{ id: string }>["processCellFromClipboard"] = (text) => (text === "" ? null : Number(text));
+
+// updateCells and updateRows need a source.
+// @ts-expect-error - options.source is required
+_actions.updateCells([]);
+// @ts-expect-error - options.source is required
+_actions.updateRows([], {});
+_actions.updateCells([], { source: "stream" });

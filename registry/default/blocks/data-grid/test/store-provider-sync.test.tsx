@@ -342,7 +342,7 @@ describe("atomic hook re-render counts", () => {
             <Probe />
             <button
               onClick={() => {
-                actions.updateCells([{ rowId: "1", columnId: "name", value: "Aaron" }]);
+                actions.updateCells([{ rowId: "1", columnId: "name", value: "Aaron" }], { source: "stream" });
               }}
             >
               patch
@@ -442,7 +442,7 @@ describe("atomic hook re-render counts", () => {
       expect(renderCount).toBe(1);
 
       act(() => {
-        result.current.updateCells([{ rowId: "1", columnId: "name", value: "Aaron" }]);
+        result.current.updateCells([{ rowId: "1", columnId: "name", value: "Aaron" }], { source: "stream" });
       });
       expect(renderCount).toBe(1);
     });

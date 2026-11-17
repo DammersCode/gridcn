@@ -40,14 +40,14 @@ describe("data-row-stale", () => {
   it("marks the pushed row and only that row", async () => {
     const api = await mount();
     expect(staleRows()).toEqual([]);
-    api.getState().actions.updateCells([{ rowId: "b", columnId: "name", value: "Zed" }]);
+    api.getState().actions.updateCells([{ rowId: "b", columnId: "name", value: "Zed" }], { source: "stream" });
     await expect.poll(() => staleRows().length).toBe(1);
     expect(staleRows()[0]).toContain("Zed");
   });
 
   it("leaves a row unmarked when the push touches no column of the spec", async () => {
     const api = await mount();
-    api.getState().actions.updateCells([{ rowId: "b", columnId: "price", value: 26 }]);
+    api.getState().actions.updateCells([{ rowId: "b", columnId: "price", value: 26 }], { source: "stream" });
     await expect.poll(() => document.body.textContent).toContain("26");
     expect(staleRows()).toEqual([]);
   });

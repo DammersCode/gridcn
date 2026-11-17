@@ -184,7 +184,7 @@ describe("async Standard Schema on streaming updateCells", () => {
     getStore().getState().actions.updateCells([
       { rowId: "row-0", columnId: "name", value: "streamed" },
       { rowId: "row-1", columnId: "name", value: "bad" },
-    ]);
+    ], { source: "stream" });
 
     await delay(5);
     expect(onDataChange).not.toHaveBeenCalled();
@@ -201,7 +201,7 @@ describe("async Standard Schema on streaming updateCells", () => {
     const getStore = await renderStreamingGrid(onDataChange);
     await expect.element(page.getByRole("grid")).toBeInTheDocument();
 
-    getStore().getState().actions.updateCells([{ rowId: "row-0", columnId: "name", value: "raw" }], { skipValidation: true });
+    getStore().getState().actions.updateCells([{ rowId: "row-0", columnId: "name", value: "raw" }], { source: "stream", skipValidation: true });
 
     // no await: a trusted feed commits in the same tick, unvalidated and untransformed
     expect(onDataChange).toHaveBeenCalledTimes(1);

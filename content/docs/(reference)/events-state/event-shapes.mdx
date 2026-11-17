@@ -90,17 +90,13 @@ A gate runs before the grid acts and can stop the action:
 
 A callback runs synchronously, after the grid writes the change. Inside the callback, the store holds the new state. One exception: when a filter prop resets a paged grid to page 1, `onPageChange(1)` runs in a microtask after the sync. With a controlled value prop, the grid writes nothing, and the callback receives the next value.
 
-Two policies apply.
-
-Callbacks of a write that you start rethrow. These are `onSortChange`, `onFilterChange`, `onSearchTextChange`, `onPageChange`, `onPageSizeChange`, `onColumnLayoutChange`, `onColumnResizing`, `onValidationError`, and `onEditEnd`. If one of them throws, these rules apply:
+Every callback runs isolated. If one throws, these rules apply:
 
 - The change stays written.
 - The other callbacks of the change still run. For example, a filter change resets a paged grid to page 1. A throwing `onFilterChange` still lets that `onPageChange` fire.
-- After they ran, the grid rethrows the first error to the caller, for example a click handler or your `setSorts` call.
+- The grid does not rethrow. It hands the error to `reportError`, so the page sees it as an uncaught error. Where the platform has no `reportError`, the grid prints `[data-grid] <callback> threw:` and the error as a console error.
 
-Observer callbacks log. These are `onSelectionChange`, `onActiveCellChange`, `onGateAborted`, `onRowActionSkipped`, and the `onEditEnd` of an edit that a view change ends. If one of them throws, the grid prints `[data-grid] <callback> threw:` and the error as a console error. The grid goes on.
-
-`onDataChange` and `onSave` follow the rules of [Data change events](/docs/events-state/data-change-events#ondatachange).
+This covers `onDataChange`, `onSave`, `onSaveRejected`, the plugin observers, and every callback of this page. `onDataChange` and `onSave` follow the order of [Data change events](/docs/events-state/data-change-events#ondatachange).
 
 ## Related
 

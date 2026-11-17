@@ -6,7 +6,7 @@ type: task
 aliases: ["realtime", "websocket", "live updates"]
 ---
 
-`updateCells` writes values into the grid by row id. Use it for live feeds that update many cells per second.
+`updateCells` writes values into the grid by row id. Use it for live feeds that update many cells per second. Every call needs a `source`: `"stream"` for a push, `"edit"` for a user edit.
 
 <ComponentPreview name="data-grid-streaming-demo" />
 
@@ -35,7 +35,7 @@ export function TickerFeed({ url }: { url: string }) {
         columnId: "price",
         value: q.price,
       }));
-      actions.updateCells(patches);
+      actions.updateCells(patches, { source: "stream" });
     };
     return () => socket.close();
   }, [actions, url]);
@@ -90,15 +90,15 @@ With `sortMode="server"` or `filterMode="server"`, the server orders the rows. A
 
 ## Flash changed cells [#flash-cells]
 
-The grid flashes cells on its own only after a fill. A push does not flash. To flash the cells that a push wrote, pass `{ flash: true }`, as in `actions.updateCells(patches, { flash: true })`. `updateRows` takes it too. The call flashes the cells it applied at once. A held batch flashes after `settled`. Cells of hidden columns do not flash.
+The grid flashes cells on its own only after a fill. A push does not flash. To flash the cells that a push wrote, pass `{ flash: true }`, as in `actions.updateCells(patches, { source: "stream", flash: true })`. `updateRows` takes it too. The call flashes the cells it applied at once. A held batch flashes after `settled`. Cells of hidden columns do not flash.
 
 `actions.flashCells(cells, durationMs?)` flashes any cells without a write. Each cell is a `CellRef` with `rowId` and `columnId`. `flashCells` changes no data and adds no history entry. `durationMs` sets how long the cell keeps `data-flash`, 1400 by default. `--grid-flash-duration`, `--grid-flash-color`, and `--grid-flash-intensity` style the flash. See [Style contract](/docs/contracts/style-contract).
 
 ## Undo and save [#undo-history]
 
-A batch carries `source: "stream"`. The history add-on does not record it, and `onSave` never receives it. Undo writes only the cells of its edit, so values pushed into other cells stay. A push into a row with a save in flight is held with reason `saving` and applies once the row's save settles. A later push to the same cell replaces it.
+A batch with `source: "stream"` is not recorded by the history add-on, and `onSave` never receives it. A push into a row with a save in flight is held with reason `saving` and applies once the row's save settles. A later push to the same cell replaces it.
 
-To make one batch undoable, pass `{ source: "edit" }` to `updateCells`. An `"edit"` batch reaches `onSave`. To record streams without that, add the source to the defaults of the history add-on:
+To make a batch undoable, pass `{ source: "edit" }`. It reaches `onSave`. To record streams without that, add the source to the defaults of the history add-on:
 
 ```tsx fragment="inside your grid component"
 const history = useDataGridHistory<Row>({

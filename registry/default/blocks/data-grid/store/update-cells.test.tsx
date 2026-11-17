@@ -93,7 +93,7 @@ describe("updateCells — patch application", () => {
   it("applies a patch addressed by row id", () => {
     const onDataChange = vi.fn();
     const { result } = renderHarness({ onDataChange });
-    act(() => result.current.actions.updateCells([{ rowId: "b", columnId: "price", value: 99 }]));
+    act(() => result.current.actions.updateCells([{ rowId: "b", columnId: "price", value: 99 }], { source: "stream" }));
     expect(lastData(onDataChange)[1]).toMatchObject({ id: "b", price: 99 });
   });
 
@@ -102,7 +102,7 @@ describe("updateCells — patch application", () => {
     // sorted by name: Alice(b), Bob(c), Charlie(a) — data order is a, b, c.
     const { result } = renderHarness({ onDataChange, sortState: [{ columnId: "name", direction: "asc" }] });
     expect(result.current.viewIndex).toEqual([1, 2, 0]);
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 7 }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 7 }], { source: "stream" }));
     const next = lastData(onDataChange);
     expect(next[0]).toMatchObject({ id: "a", price: 7 });
     expect(next[1]).toMatchObject({ id: "b", price: 25 });
@@ -111,14 +111,14 @@ describe("updateCells — patch application", () => {
   it("ignores an unknown rowId", () => {
     const onDataChange = vi.fn();
     const { result } = renderHarness({ onDataChange });
-    act(() => result.current.actions.updateCells([{ rowId: "nope", columnId: "price", value: 1 }]));
+    act(() => result.current.actions.updateCells([{ rowId: "nope", columnId: "price", value: 1 }], { source: "stream" }));
     expect(onDataChange).not.toHaveBeenCalled();
   });
 
   it("ignores an unknown columnId", () => {
     const onDataChange = vi.fn();
     const { result } = renderHarness({ onDataChange });
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "nope", value: 1 }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "nope", value: 1 }], { source: "stream" }));
     expect(onDataChange).not.toHaveBeenCalled();
   });
 
@@ -140,21 +140,21 @@ describe("updateCells — patch application", () => {
       { id: "price", header: "Price", accessorKey: "price" },
     ];
     const { result } = renderHarness({ onDataChange, columnsOverride: readOnlyColumns });
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "X" }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "X" }], { source: "stream" }));
     expect(lastData(onDataChange)[0]!.name).toBe("X");
   });
 
   it("skips an accessorFn-only column, which has no write path", () => {
     const onDataChange = vi.fn();
     const { result } = renderHarness({ onDataChange });
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "computed", value: 1 }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "computed", value: 1 }], { source: "stream" }));
     expect(onDataChange).not.toHaveBeenCalled();
   });
 
   it("skips a no-op value", () => {
     const onDataChange = vi.fn();
     const { result } = renderHarness({ onDataChange });
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 30 }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 30 }], { source: "stream" }));
     expect(onDataChange).not.toHaveBeenCalled();
   });
 
@@ -165,7 +165,7 @@ describe("updateCells — patch application", () => {
       result.current.actions.updateCells([
         { rowId: "a", columnId: "price", value: 31 },
         { rowId: "a", columnId: "price", value: 32 },
-      ]),
+      ], { source: "stream" }),
     );
     const change = onDataChange.mock.calls.at(-1)![1] as DataChange<Row>;
     expect(change.ops).toHaveLength(1);
@@ -182,7 +182,7 @@ describe("updateCells — patch application", () => {
       { id: "price", header: "Price", accessorKey: "price", hidden: true },
     ];
     const { result } = renderHarness({ onDataChange, columnsOverride: hiddenColumns });
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 55 }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 55 }], { source: "stream" }));
     expect(lastData(onDataChange)[0]).toMatchObject({ id: "a", price: 55 });
   });
 
@@ -190,7 +190,7 @@ describe("updateCells — patch application", () => {
     const onDataChange = vi.fn();
     const data = rows();
     const { result } = renderHarness({ onDataChange, data });
-    act(() => result.current.actions.updateCells([{ rowId: "b", columnId: "price", value: 99 }]));
+    act(() => result.current.actions.updateCells([{ rowId: "b", columnId: "price", value: 99 }], { source: "stream" }));
     const next = lastData(onDataChange);
     expect(next[0]).toBe(data[0]);
     expect(next[2]).toBe(data[2]);
@@ -204,7 +204,7 @@ describe("updateCells — patch application", () => {
       result.current.actions.updateCells([
         { rowId: "a", columnId: "price", value: 1 },
         { rowId: "c", columnId: "price", value: 2 },
-      ]),
+      ], { source: "stream" }),
     );
     expect(onDataChange).toHaveBeenCalledTimes(1);
     const change = onDataChange.mock.calls[0]![1] as DataChange<Row>;
@@ -222,7 +222,7 @@ describe("updateCells — patch application", () => {
   it("does nothing for an empty patch list", () => {
     const onDataChange = vi.fn();
     const { result } = renderHarness({ onDataChange });
-    act(() => result.current.actions.updateCells([]));
+    act(() => result.current.actions.updateCells([], { source: "stream" }));
     expect(onDataChange).not.toHaveBeenCalled();
   });
 });
@@ -248,7 +248,7 @@ describe("updateCells — validation", () => {
       result.current.actions.updateCells([
         { rowId: "a", columnId: "price", value: -5 },
         { rowId: "b", columnId: "price", value: 12 },
-      ]),
+      ], { source: "stream" }),
     );
     const next = lastData(onDataChange);
     expect(next[0]!.price).toBe(30);
@@ -262,7 +262,7 @@ describe("updateCells — validation", () => {
       columnsOverride: validated,
     });
     act(() =>
-      result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: -5 }], { skipValidation: true }),
+      result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: -5 }], { source: "stream", skipValidation: true }),
     );
     expect(lastData(onDataChange)[0]!.price).toBe(-5);
   });
@@ -292,7 +292,7 @@ describe("updateCells — async validation", () => {
       result.current.actions.updateCells([
         { rowId: "a", columnId: "price", value: 12.4 },
         { rowId: "b", columnId: "price", value: 7.6 },
-      ]),
+      ], { source: "stream" }),
     );
     expect(onDataChange).not.toHaveBeenCalled();
     expect(result.current.firstRow!.price).toBe(30);
@@ -310,7 +310,7 @@ describe("updateCells — async validation", () => {
       result.current.actions.updateCells([
         { rowId: "a", columnId: "price", value: -5 },
         { rowId: "b", columnId: "price", value: 12 },
-      ]),
+      ], { source: "stream" }),
     );
     await vi.waitFor(() => expect(onDataChange).toHaveBeenCalledTimes(1));
     const next = lastData(onDataChange);
@@ -321,7 +321,7 @@ describe("updateCells — async validation", () => {
   it("a batch where every cell fails commits nothing at all", async () => {
     const onDataChange = vi.fn();
     const { result } = renderHarness({ onDataChange, columnsOverride: asyncColumns });
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: -5 }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: -5 }], { source: "stream" }));
     // Nothing to wait FOR here (proving an absence) — await the same schema fn this batch runs, so the
     // wait is sized to the real async dependency instead of a guessed tick count.
     await act(() => asyncPrice["~standard"].validate(-5) as Promise<unknown>);
@@ -332,7 +332,7 @@ describe("updateCells — async validation", () => {
     const onDataChange = vi.fn();
     const { result } = renderHarness({ onDataChange, columnsOverride: asyncColumns });
     act(() =>
-      result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: -5 }], { skipValidation: true }),
+      result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: -5 }], { source: "stream", skipValidation: true }),
     );
     expect(onDataChange).toHaveBeenCalledTimes(1);
     expect(lastData(onDataChange)[0]!.price).toBe(-5);
@@ -343,7 +343,7 @@ describe("updateCells — async validation", () => {
       columnsOverride: asyncColumns,
       sortState: [{ columnId: "price", direction: "asc" }],
     });
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 1.2 }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 1.2 }], { source: "stream" }));
     expect(result.current.viewStale).toBe(false);
     await vi.waitFor(() => expect(result.current.viewStale).toBe(true));
   });
@@ -352,8 +352,8 @@ describe("updateCells — async validation", () => {
     const onDataChange = vi.fn();
     const { result } = renderHarness({ onDataChange, columnsOverride: asyncColumns });
     act(() => {
-      result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 11 }]);
-      result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 22 }]);
+      result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 11 }], { source: "stream" });
+      result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 22 }], { source: "stream" });
     });
     await vi.waitFor(() => expect(onDataChange).toHaveBeenCalledTimes(1));
     expect(lastData(onDataChange)[0]!.price).toBe(22);
@@ -364,7 +364,7 @@ describe("updateCells — async validation", () => {
     const { result } = renderHarness({ onDataChange, columnsOverride: asyncColumns });
     let pending = false;
     act(() => {
-      pending = result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 11 }]).pending;
+      pending = result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 11 }], { source: "stream" }).pending;
     });
     expect(pending).toBe(true); // held against the async schema
     // the consumer replaces the data array before the schema resolves
@@ -382,7 +382,7 @@ describe("updateCells — async validation", () => {
   it("a sync column in the same grid keeps the fully synchronous path", () => {
     const onDataChange = vi.fn();
     const { result } = renderHarness({ onDataChange, columnsOverride: asyncColumns });
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Zoe" }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Zoe" }], { source: "stream" }));
     expect(onDataChange).toHaveBeenCalledTimes(1);
     expect(lastData(onDataChange)[0]!.name).toBe("Zoe");
   });
@@ -402,8 +402,8 @@ describe("updateCells — async validation", () => {
       onDataChange,
       columnsOverride: [...asyncColumns, { id: "note", header: "Note", accessorKey: "note", validate: syncNote as never }],
     });
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 11 }]));
-    act(() => result.current.actions.updateCells([{ rowId: "b", columnId: "note", value: "synced" }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 11 }], { source: "stream" }));
+    act(() => result.current.actions.updateCells([{ rowId: "b", columnId: "note", value: "synced" }], { source: "stream" }));
     await vi.waitFor(() => expect(onDataChange).toHaveBeenCalledTimes(2));
     const next = lastData(onDataChange);
     expect(next[0]!.price).toBe(11);
@@ -415,21 +415,21 @@ describe("updateCells — sort/filter reconciliation", () => {
   it("preserves viewIndex identity under the default defer", () => {
     const { result } = renderHarness({ sortState: [{ columnId: "name", direction: "asc" }] });
     const before = result.current.viewIndex;
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }], { source: "stream" }));
     expect(result.current.viewIndex).toBe(before);
   });
 
   it("flips viewStale when a touched column feeds the active sort", () => {
     const { result } = renderHarness({ sortState: [{ columnId: "name", direction: "asc" }] });
     expect(result.current.viewStale).toBe(false);
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }], { source: "stream" }));
     expect(result.current.viewStale).toBe(true);
   });
 
   it("keeps the view order and flips viewStale for a streamed sort-column write under sortMode server", () => {
     const { result } = renderHarness({ sortMode: "server", sortState: [{ columnId: "name", direction: "asc" }] });
     const before = result.current.viewIndex;
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }], { source: "stream" }));
     expect(result.current.viewIndex).toBe(before);
     expect(result.current.viewStale).toBe(true);
   });
@@ -438,26 +438,26 @@ describe("updateCells — sort/filter reconciliation", () => {
     const { result } = renderHarness({
       filterState: [{ columnId: "name", operator: "contains", value: "a" }],
     });
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Zed" }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Zed" }], { source: "stream" }));
     expect(result.current.viewStale).toBe(true);
   });
 
   it("does not flip viewStale when no touched column feeds the sort — the auto-downgrade to never", () => {
     const { result } = renderHarness({ sortState: [{ columnId: "name", direction: "asc" }] });
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 999 }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 999 }], { source: "stream" }));
     expect(result.current.viewStale).toBe(false);
   });
 
   it("does not flip viewStale when no sort or filter is active", () => {
     const { result } = renderHarness();
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Zed" }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Zed" }], { source: "stream" }));
     expect(result.current.viewStale).toBe(false);
   });
 
   it("reorder never keeps viewStale false even on a sort column", () => {
     const { result } = renderHarness({ sortState: [{ columnId: "name", direction: "asc" }] });
     act(() =>
-      result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }], { reorder: "never" }),
+      result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }], { source: "stream", reorder: "never" }),
     );
     expect(result.current.viewStale).toBe(false);
   });
@@ -466,7 +466,7 @@ describe("updateCells — sort/filter reconciliation", () => {
     const { result } = renderHarness({ sortState: [{ columnId: "name", direction: "asc" }] });
     expect(result.current.viewIndex).toEqual([1, 2, 0]);
     act(() =>
-      result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }], { reorder: "immediate" }),
+      result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }], { source: "stream", reorder: "immediate" }),
     );
     expect(result.current.viewIndex).toEqual([0, 1, 2]);
     expect(result.current.viewStale).toBe(false);
@@ -474,7 +474,7 @@ describe("updateCells — sort/filter reconciliation", () => {
 
   it("reconcileView applies the deferred reorder and clears the flag", () => {
     const { result } = renderHarness({ sortState: [{ columnId: "name", direction: "asc" }] });
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }], { source: "stream" }));
     expect(result.current.viewIndex).toEqual([1, 2, 0]);
     act(() => result.current.actions.reconcileView());
     expect(result.current.viewIndex).toEqual([0, 1, 2]);
@@ -493,7 +493,7 @@ describe("updateCells — sort/filter reconciliation", () => {
     const { result } = renderHarness({ defaultData: rows() });
     act(() => result.current.actions.setSorts([{ columnId: "name", direction: "asc" }]));
     expect(result.current.viewIndex).toEqual([1, 2, 0]);
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }], { source: "stream" }));
     expect(result.current.viewStale).toBe(true);
     act(() => result.current.actions.setSorts([{ columnId: "name", direction: "asc" }]));
     expect(result.current.viewIndex).toEqual([0, 1, 2]);
@@ -512,7 +512,7 @@ describe("updateCells — incremental view maintenance", () => {
     const { result } = renderHarness({ sortState: sortByName });
     const before = result.current.viewIndex;
     act(() =>
-      result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 999 }], { reorder: "immediate" }),
+      result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 999 }], { source: "stream", reorder: "immediate" }),
     );
     expect(result.current.viewIndex).toBe(before);
   });
@@ -523,7 +523,7 @@ describe("updateCells — incremental view maintenance", () => {
     });
     expect(result.current.viewIndex).toEqual([1]);
     act(() =>
-      result.current.actions.updateCells([{ rowId: "c", columnId: "name", value: "Anna" }], { reorder: "immediate" }),
+      result.current.actions.updateCells([{ rowId: "c", columnId: "name", value: "Anna" }], { source: "stream", reorder: "immediate" }),
     );
     expect(result.current.viewIndex).toEqual([1, 2]);
   });
@@ -533,7 +533,7 @@ describe("updateCells — incremental view maintenance", () => {
       filterState: [{ columnId: "name", operator: "startsWith", value: "A" }],
     });
     act(() =>
-      result.current.actions.updateCells([{ rowId: "b", columnId: "name", value: "Zed" }], { reorder: "immediate" }),
+      result.current.actions.updateCells([{ rowId: "b", columnId: "name", value: "Zed" }], { source: "stream", reorder: "immediate" }),
     );
     expect(result.current.viewIndex).toEqual([]);
   });
@@ -542,8 +542,8 @@ describe("updateCells — incremental view maintenance", () => {
     const { result } = renderHarness({ defaultData: rows() });
     act(() => result.current.actions.setSorts(sortByName));
     expect(result.current.viewIndex).toEqual([1, 2, 0]);
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }]));
-    act(() => result.current.actions.updateCells([{ rowId: "c", columnId: "name", value: "Zeta" }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }], { source: "stream" }));
+    act(() => result.current.actions.updateCells([{ rowId: "c", columnId: "name", value: "Zeta" }], { source: "stream" }));
     act(() => result.current.actions.reconcileView());
     // Aaron(a), Alice(b), Zeta(c)
     expect(result.current.viewIndex).toEqual([0, 1, 2]);
@@ -553,9 +553,9 @@ describe("updateCells — incremental view maintenance", () => {
   it("an immediate batch after a deferred one lands both rows correctly", () => {
     const { result } = renderHarness({ defaultData: rows() });
     act(() => result.current.actions.setSorts(sortByName));
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }], { source: "stream" }));
     act(() =>
-      result.current.actions.updateCells([{ rowId: "c", columnId: "name", value: "Zeta" }], { reorder: "immediate" }),
+      result.current.actions.updateCells([{ rowId: "c", columnId: "name", value: "Zeta" }], { source: "stream", reorder: "immediate" }),
     );
     expect(result.current.viewIndex).toEqual([0, 1, 2]);
   });
@@ -566,7 +566,7 @@ describe("updateCells — incremental view maintenance", () => {
       createRow: (index: number) => ({ id: `new-${index}`, name: "Aaa", price: 0 }),
     });
     act(() => result.current.actions.setSorts(sortByName));
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Yankee" }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Yankee" }], { source: "stream" }));
     act(() => result.current.actions.insertRow(0, "above"));
     act(() => result.current.actions.reconcileView());
     // The insert landed at data index 1 (view row 0 still points there while the view is stale), so
@@ -577,7 +577,7 @@ describe("updateCells — incremental view maintenance", () => {
   it("stays correct after a user edit between two streaming ticks", () => {
     const { result } = renderHarness({ defaultData: rows() });
     act(() => result.current.actions.setSorts(sortByName));
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Yankee" }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Yankee" }], { source: "stream" }));
     // commitCellValue writes a value outside updateCells, so the pending set can no longer be trusted.
     act(() => result.current.actions.commitCellValueAt({ col: 0, row: 0 }, "Xray"));
     act(() => result.current.actions.reconcileView());
@@ -590,11 +590,11 @@ describe("updateCells — incremental view maintenance", () => {
     act(() => result.current.actions.setSorts(sortByName));
     // The caller asserts nothing view-relevant changed, but `name` IS the sort column.
     act(() =>
-      result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }], { reorder: "never" }),
+      result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }], { source: "stream", reorder: "never" }),
     );
     expect(result.current.viewStale).toBe(false);
     act(() =>
-      result.current.actions.updateCells([{ rowId: "c", columnId: "name", value: "Zeta" }], { reorder: "immediate" }),
+      result.current.actions.updateCells([{ rowId: "c", columnId: "name", value: "Zeta" }], { source: "stream", reorder: "immediate" }),
     );
     // Aaron(a), Alice(b), Zeta(c) — the mis-declared row lands correctly anyway.
     expect(result.current.viewIndex).toEqual([0, 1, 2]);
@@ -608,7 +608,7 @@ describe("updateCells — incremental view maintenance", () => {
       act(() => result.current.actions.setSorts(sortByName));
       for (const value of ["Aaron", "Mike", "Zeta", "Bravo"]) {
         act(() =>
-          result.current.actions.updateCells([{ rowId: "a", columnId: "name", value }], { reorder: "immediate" }),
+          result.current.actions.updateCells([{ rowId: "a", columnId: "name", value }], { source: "stream", reorder: "immediate" }),
         );
       }
       expect(spy).not.toHaveBeenCalled();
@@ -635,12 +635,12 @@ describe("updateCells — incremental view maintenance", () => {
 
       // below the rate: this tick samples, so the reference rebuild runs once more.
       randomSpy.mockReturnValueOnce(INCREMENTAL_VIEW_ASSERT_RATE - 0.01);
-      act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }], { reorder: "immediate" }));
+      act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }], { source: "stream", reorder: "immediate" }));
       expect(buildSpy).toHaveBeenCalledTimes(1);
 
       // at/above the rate: this tick must skip sampling, so no extra rebuild call.
       randomSpy.mockReturnValueOnce(INCREMENTAL_VIEW_ASSERT_RATE);
-      act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Mike" }], { reorder: "immediate" }));
+      act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Mike" }], { source: "stream", reorder: "immediate" }));
       expect(buildSpy).toHaveBeenCalledTimes(1);
     } finally {
       randomSpy.mockRestore();
@@ -658,7 +658,7 @@ describe("updateCells — incremental view maintenance", () => {
     const { result } = renderHarness({ defaultData: many });
     act(() => result.current.actions.setSorts([{ columnId: "price", direction: "desc" }]));
     const patches: CellPatch[] = many.map((r, i) => ({ rowId: r.id, columnId: "price", value: many.length - i }));
-    act(() => result.current.actions.updateCells(patches, { reorder: "immediate" }));
+    act(() => result.current.actions.updateCells(patches, { source: "stream", reorder: "immediate" }));
     // every price inverted, so desc-by-price is now ascending data order
     expect(result.current.viewIndex).toEqual(many.map((_, i) => i));
   });
@@ -694,7 +694,7 @@ describe("updateCells — interaction state is never moved", () => {
     const activeCell = result.current.activeCell;
     const editing = result.current.editing;
 
-    act(() => result.current.actions.updateCells([{ rowId: "c", columnId: "price", value: 1 }]));
+    act(() => result.current.actions.updateCells([{ rowId: "c", columnId: "price", value: 1 }], { source: "stream" }));
 
     expect(result.current.selection).toBe(selection);
     expect(result.current.activeCell).toBe(activeCell);
@@ -713,7 +713,7 @@ describe("updateRows", () => {
   it("expands each changes entry into one patch", () => {
     const onDataChange = vi.fn();
     const { result } = renderHarness({ onDataChange });
-    act(() => result.current.actions.updateRows([{ rowId: "a", changes: { name: "Zed", price: 1 } }]));
+    act(() => result.current.actions.updateRows([{ rowId: "a", changes: { name: "Zed", price: 1 } }], { source: "stream" }));
     expect(lastData(onDataChange)[0]).toMatchObject({ id: "a", name: "Zed", price: 1 });
     const change = onDataChange.mock.calls.at(-1)![1] as DataChange<Row>;
     expect(change.ops).toHaveLength(1);
@@ -722,7 +722,7 @@ describe("updateRows", () => {
   it("does nothing for an empty update list", () => {
     const onDataChange = vi.fn();
     const { result } = renderHarness({ onDataChange });
-    act(() => result.current.actions.updateRows([]));
+    act(() => result.current.actions.updateRows([], { source: "stream" }));
     expect(onDataChange).not.toHaveBeenCalled();
   });
 });
@@ -730,7 +730,7 @@ describe("updateRows", () => {
 describe("updateCells — uncontrolled mode", () => {
   it("applies in place with no round-trip", () => {
     const { result } = renderHarness({ defaultData: rows() });
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 77 }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 77 }], { source: "stream" }));
     expect(result.current.firstRow).toMatchObject({ id: "a", price: 77 });
   });
 });
@@ -742,7 +742,7 @@ describe("updateCells — uncontrolled mode", () => {
 describe("rowId index maintenance — one case per mutation path", () => {
   /** Warms the cache with one patch, so every case below tests a cache that was already built. */
   function warm(result: { current: ReturnType<typeof useHarness> }) {
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 1 }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 1 }], { source: "stream" }));
   }
 
   it("insertRow: a patch after an insert lands on the named row", () => {
@@ -752,7 +752,7 @@ describe("rowId index maintenance — one case per mutation path", () => {
       defaultData: rows(),
     });
     warm(result);
-    act(() => result.current.actions.updateCells([{ rowId: "c", columnId: "price", value: 100 }]));
+    act(() => result.current.actions.updateCells([{ rowId: "c", columnId: "price", value: 100 }], { source: "stream" }));
     expect(result.current.firstRow).toMatchObject({ id: "a" });
     const before = lastData(onDataChange);
     expect(before.find((r) => r.id === "c")!.price).toBe(100);
@@ -763,7 +763,7 @@ describe("rowId index maintenance — one case per mutation path", () => {
     const { result } = renderHarness({ onDataChange, defaultData: rows() });
     warm(result);
     act(() => result.current.actions.deleteRowsAt(viewIndexes([0]))); // removes row "a"; b,c shift down one
-    act(() => result.current.actions.updateCells([{ rowId: "c", columnId: "price", value: 100 }]));
+    act(() => result.current.actions.updateCells([{ rowId: "c", columnId: "price", value: 100 }], { source: "stream" }));
     const next = lastData(onDataChange);
     expect(next.map((r) => r.id)).toEqual(["b", "c"]);
     expect(next.find((r) => r.id === "c")!.price).toBe(100);
@@ -788,7 +788,7 @@ describe("rowId index maintenance — one case per mutation path", () => {
     const { result } = renderHook(() => useHarness(), { wrapper: Wrapper });
     warm(result);
     act(() => result.current.actions.duplicateRowsAt(viewIndexes([0]))); // copy of "a" lands at index 1
-    act(() => result.current.actions.updateCells([{ rowId: "c", columnId: "price", value: 100 }]));
+    act(() => result.current.actions.updateCells([{ rowId: "c", columnId: "price", value: 100 }], { source: "stream" }));
     const next = lastData(onDataChange);
     expect(next.map((r) => r.id)).toEqual(["a", "a-copy1", "b", "c"]);
     expect(next.find((r) => r.id === "c")!.price).toBe(100);
@@ -799,7 +799,7 @@ describe("rowId index maintenance — one case per mutation path", () => {
     const { result } = renderHarness({ onDataChange, defaultData: rows() });
     warm(result);
     act(() => result.current.actions.commitCellValueAt({ col: 0, row: 1 }, "Renamed"));
-    act(() => result.current.actions.updateCells([{ rowId: "b", columnId: "price", value: 100 }]));
+    act(() => result.current.actions.updateCells([{ rowId: "b", columnId: "price", value: 100 }], { source: "stream" }));
     const next = lastData(onDataChange);
     expect(next.find((r) => r.id === "b")).toMatchObject({ name: "Renamed", price: 100 });
   });
@@ -809,7 +809,7 @@ describe("rowId index maintenance — one case per mutation path", () => {
     const { result } = renderHarness({ onDataChange, defaultData: rows() });
     warm(result);
     act(() => result.current.actions.applyCellUpdates([{ viewRowIndex: 2, columnId: "name", value: "Pasted" }], "paste"));
-    act(() => result.current.actions.updateCells([{ rowId: "c", columnId: "price", value: 100 }]));
+    act(() => result.current.actions.updateCells([{ rowId: "c", columnId: "price", value: 100 }], { source: "stream" }));
     const next = lastData(onDataChange);
     expect(next.find((r) => r.id === "c")).toMatchObject({ name: "Pasted", price: 100 });
   });
@@ -820,7 +820,7 @@ describe("rowId index maintenance — one case per mutation path", () => {
     warm(result);
     act(() => result.current.actions.selectCellAt({ col: 0, row: 1 }));
     act(() => result.current.actions.deleteSelection());
-    act(() => result.current.actions.updateCells([{ rowId: "b", columnId: "price", value: 100 }]));
+    act(() => result.current.actions.updateCells([{ rowId: "b", columnId: "price", value: 100 }], { source: "stream" }));
     expect(lastData(onDataChange).find((r) => r.id === "b")!.price).toBe(100);
   });
 
@@ -840,7 +840,7 @@ describe("rowId index maintenance — one case per mutation path", () => {
     // the consumer replaces the array with the SAME rows in a different order.
     data = [initial[2]!, initial[1]!, initial[0]!];
     rerender();
-    act(() => result.current.actions.updateCells([{ rowId: "c", columnId: "price", value: 100 }]));
+    act(() => result.current.actions.updateCells([{ rowId: "c", columnId: "price", value: 100 }], { source: "stream" }));
     const next = lastData(onDataChange);
     expect(next[0]).toMatchObject({ id: "c", price: 100 });
     expect(next[2]).toMatchObject({ id: "a" });
@@ -863,7 +863,7 @@ describe("rowId index maintenance — one case per mutation path", () => {
       { id: "a", name: "Moved", price: 2 },
     ];
     rerender();
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 100 }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 100 }], { source: "stream" }));
     const next = lastData(onDataChange);
     expect(next[1]).toMatchObject({ id: "a", price: 100 });
     expect(next[0]).toMatchObject({ id: "x", price: 1 });
@@ -894,7 +894,7 @@ describe("controlled echo detection", () => {
     }
     const { result, rerender } = renderHook(() => useHarness(), { wrapper: Wrapper });
     const before = result.current.viewIndex;
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }], { source: "stream" }));
     rerender();
     // The echo round-trip must not have rebuilt the view: same identity, order still stale.
     expect(result.current.viewIndex).toBe(before);
@@ -921,7 +921,7 @@ describe("controlled echo detection", () => {
       );
     }
     const { result, rerender } = renderHook(() => useHarness(), { wrapper: Wrapper });
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }], { source: "stream" }));
     rerender();
     expect(result.current.viewIndex).toEqual([0, 1, 2]);
   });
@@ -950,7 +950,7 @@ describe("controlled echo detection", () => {
     const { result, rerender } = renderHook(() => useHarness(), { wrapper: Wrapper });
     const viewSpy = vi.spyOn(compute, "computeViewIndex");
     const before = result.current.viewIndex;
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "note", value: "x" }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "note", value: "x" }], { source: "stream" }));
     const rebuildsAfterEdit = viewSpy.mock.calls.length;
     rerender();
     // the reference-equal filterState prop must not force a view rebuild on the echo sync
@@ -987,7 +987,7 @@ describe("controlled echo detection", () => {
     const viewSpy = vi.spyOn(compute, "computeViewIndex");
     const before = result.current.viewIndex;
     const filterId = result.current.filterState[0]!.filterId;
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "note", value: "x" }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "note", value: "x" }], { source: "stream" }));
     const rebuildsAfterEdit = viewSpy.mock.calls.length;
     rerender();
     expect(result.current.viewIndex).toBe(before);
@@ -1020,7 +1020,7 @@ describe("controlled echo detection", () => {
     const { result, rerender } = renderHook(() => ({ ...useHarness(), store: useDataGridStoreApi() }), { wrapper: Wrapper });
     const registry = result.current.store.getState().cellTypes;
     const before = result.current.viewIndex;
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }], { source: "stream" }));
     rerender();
     expect(result.current.viewIndex).toBe(before);
     expect(result.current.viewIndex).toEqual([1, 2, 0]);
@@ -1072,7 +1072,7 @@ describe("controlled echo detection", () => {
       );
     }
     const { result, rerender } = renderHook(() => useHarness(), { wrapper: Wrapper });
-    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }]));
+    act(() => result.current.actions.updateCells([{ rowId: "a", columnId: "name", value: "Aaron" }], { source: "stream" }));
     sortState = [{ columnId: "name", direction: "desc" }];
     rerender();
     // desc by name: Charlie->Aaron so order is Bob(c), Alice(b), Aaron(a)
@@ -1357,7 +1357,7 @@ describe("updateCells — verdict", () => {
   it("emits no DataChange when every patch is skipped", () => {
     const onDataChange = vi.fn();
     const { result } = renderHarness({ onDataChange });
-    const verdict = result.current.actions.updateCells([{ rowId: "missing", columnId: "price", value: 1 }]);
+    const verdict = result.current.actions.updateCells([{ rowId: "missing", columnId: "price", value: 1 }], { source: "stream" });
     expect(verdict).toEqual({ applied: 0, pending: false, skipped: [{ patchIndex: 0, reason: "unknown-row" }] });
     expect(onDataChange).not.toHaveBeenCalled();
   });
@@ -1401,7 +1401,7 @@ describe("updateCells — verdict", () => {
     const verdict = result.current.actions.updateCells([
       { rowId: "__lazy-unloaded-1", columnId: "price", value: 1 },
       { rowId: "a", columnId: "price", value: 31 },
-    ]);
+    ], { source: "stream" });
     expect(verdict).toEqual({
       applied: 1,
       pending: false,
@@ -1423,7 +1423,7 @@ describe("updateCells — verdict", () => {
       { id: "price", header: "Price", accessorKey: "price", validate: schema as never },
     ];
     const { result } = renderHarness({ columnsOverride: asyncColumns });
-    const verdict = result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 12.4 }]);
+    const verdict = result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 12.4 }], { source: "stream" });
     expect(verdict).toEqual({ applied: 0, skipped: [], pending: true, settled: expect.any(Promise) });
     await act(async () => {});
   });
@@ -1445,7 +1445,7 @@ describe("updateCells — verdict", () => {
       { rowId: "a", columnId: "price", value: -1 },
       { rowId: "b", columnId: "price", value: 26 },
       { rowId: "missing", columnId: "price", value: 1 },
-    ]);
+    ], { source: "stream" });
     expect(verdict).toEqual({
       applied: 1,
       pending: false,
@@ -1462,7 +1462,7 @@ describe("updateCells — verdict", () => {
       { rowId: "a", changes: { price: 31 } },
       { rowId: "missing", changes: { price: 1 } },
       { rowId: "c", changes: { price: 40 } },
-    ]);
+    ], { source: "stream" });
     expect(verdict).toEqual({
       applied: 1,
       pending: false,
@@ -1543,7 +1543,7 @@ describe("updateCells and updateRows — flash option", () => {
           { rowId: "a", columnId: "price", value: 31 },
           { rowId: "missing", columnId: "price", value: 1 },
         ],
-        { flash: true },
+        { source: "stream", flash: true },
       );
     });
     expect([...holder.flashing]).toHaveLength(1);
@@ -1552,7 +1552,7 @@ describe("updateCells and updateRows — flash option", () => {
   it("flashes nothing without the option", () => {
     const { result, holder } = harnessWithFlashState();
     act(() => {
-      result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 31 }]);
+      result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 31 }], { source: "stream" });
     });
     expect(holder.flashing.size).toBe(0);
   });
@@ -1560,7 +1560,7 @@ describe("updateCells and updateRows — flash option", () => {
   it("updateRows flashes the patched fields of visible columns", () => {
     const { result, holder } = harnessWithFlashState();
     act(() => {
-      result.current.actions.updateRows([{ rowId: "b", changes: { price: 1, name: "Zed" } }], { flash: true });
+      result.current.actions.updateRows([{ rowId: "b", changes: { price: 1, name: "Zed" } }], { source: "stream", flash: true });
     });
     expect(holder.flashing.size).toBe(2);
   });
@@ -1592,7 +1592,7 @@ describe("updateCells and updateRows — flash option", () => {
     );
     let verdict!: ReturnType<typeof result.current.actions.updateCells>;
     act(() => {
-      verdict = result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 31 }], { flash: true });
+      verdict = result.current.actions.updateCells([{ rowId: "a", columnId: "price", value: 31 }], { source: "stream", flash: true });
     });
     expect(verdict.pending).toBe(true);
     expect(holder.flashing.size).toBe(0);

@@ -39,7 +39,7 @@ function mount(overrides: Partial<InternalSyncProps> = {}) {
 afterEach(() => vi.restoreAllMocks());
 
 describe("validateRow async", () => {
-  const edit = (m: ReturnType<typeof mount>, value: string, rowId = "a") => m.state().actions.updateCells([{ rowId, columnId: "name", value }]);
+  const edit = (m: ReturnType<typeof mount>, value: string, rowId = "a") => m.state().actions.updateCells([{ rowId, columnId: "name", value }], { source: "stream" });
 
   it("sync verdict still lands in the same commit", () => {
     const m = mount({ validateRow: () => ({ name: "bad" }) });
@@ -254,16 +254,15 @@ describe("createRow async", () => {
     expect(m.ids()).toEqual(["a", "s1", "p2", "s3", "b", "c"]);
   });
 
-  it("a pending promise blocks a second insert and warns once", async () => {
-    const warn = warnings();
+  it("a new insert supersedes the pending one", async () => {
+    warnings();
     const d = deferred<Row>();
     const createRow = vi.fn(() => d.promise);
     const m = mount({ createRow });
     m.state().actions.insertRow(0, "below");
     m.state().actions.insertRow(0, "below");
     m.state().actions.insertRow(0, "below");
-    expect(createRow).toHaveBeenCalledTimes(1);
-    expect(warn.mock.calls.filter(([message]) => String(message).includes("createRow"))).toHaveLength(1);
+    expect(createRow).toHaveBeenCalledTimes(3);
     d.resolve({ id: "x", name: "X" });
     await settle();
     expect(m.ids()).toEqual(["a", "x", "b", "c"]);
@@ -360,19 +359,18 @@ describe("duplicateRow async", () => {
     expect(onDataChange).toHaveBeenCalledTimes(1);
   });
 
-  it("a pending promise blocks a second request and warns once", async () => {
-    const warn = warnings();
+  it("a new request supersedes the pending one", async () => {
+    warnings();
     const d = deferred<Row>();
     const duplicateRow = vi.fn(() => d.promise);
     const m = mount({ duplicateRow });
     m.state().actions.duplicateRowsAt(viewIndexes([0]));
     m.state().actions.duplicateRowsAt(viewIndexes([1]));
     m.state().actions.duplicateRowsAt(viewIndexes([2]));
-    expect(duplicateRow).toHaveBeenCalledTimes(1);
-    expect(warn.mock.calls.filter(([message]) => String(message).includes("duplicateRow"))).toHaveLength(1);
+    expect(duplicateRow).toHaveBeenCalledTimes(3);
     d.resolve({ id: "x", name: "X" });
     await settle();
-    expect(m.ids()).toEqual(["a", "x", "b", "c"]);
+    expect(m.ids()).toEqual(["a", "b", "c", "x"]);
   });
 
   it("a rejection writes nothing and leaves the gate usable", async () => {

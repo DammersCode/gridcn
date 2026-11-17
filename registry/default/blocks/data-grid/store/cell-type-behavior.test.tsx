@@ -107,7 +107,7 @@ describe("cell type `validate` on the updateCells path", () => {
 
     let verdict: ReturnType<typeof result.current.actions.updateCells> | undefined;
     act(() => {
-      verdict = result.current.actions.updateCells([{ rowId: "2", columnId: "qty", value: 8 }]);
+      verdict = result.current.actions.updateCells([{ rowId: "2", columnId: "qty", value: 8 }], { source: "stream" });
     });
 
     expect(verdict!.skipped).toHaveLength(1);
@@ -119,7 +119,7 @@ describe("cell type `validate` on the updateCells path", () => {
 
     let verdict: ReturnType<typeof result.current.actions.updateCells> | undefined;
     act(() => {
-      verdict = result.current.actions.updateCells([{ rowId: "2", columnId: "qty", value: 2 }]);
+      verdict = result.current.actions.updateCells([{ rowId: "2", columnId: "qty", value: 2 }], { source: "stream" });
     });
 
     expect(verdict!.skipped).toHaveLength(0);

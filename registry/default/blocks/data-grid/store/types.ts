@@ -45,8 +45,10 @@ import type { RowRangeGesture } from "../selection/row-range-gesture";
 import type { DataWriteContext } from "./data-write";
 import type { GateAbortReason, GateContext, GateName, GateTracker } from "./gate-signal";
 export type { GateAbortReason, GateContext, GateName } from "./gate-signal";
-import type { RowSaveStatus, SaveAck, SaveConflictContext, SaveRejectedContext, SaveResolution } from "./write-ack";
-export type { RowSaveStatus, SaveAck, SaveConflictContext, SaveRejectedContext, SaveRejection, SaveResolution } from "./write-ack";
+import type { UpdateCellsOptions, UpdateCellsVerdict } from "./update-cells-types";
+export type { UpdateCellsOptions, UpdateCellsReorder, UpdateCellsSkip, UpdateCellsVerdict } from "./update-cells-types";
+import type { RowSaveStatus, SaveAck, SaveConflictContext, SaveContext, SaveRejectedContext, SaveResolution } from "./write-ack";
+export type { RowSaveStatus, SaveAck, SaveConflictContext, SaveContext, SaveRejectedContext, SaveRejection, SaveResolution } from "./write-ack";
 
 /** The input that wrote the current selection. */
 export type SelectionPointer = "touch" | "mouse" | "pen" | "keyboard";
@@ -115,10 +117,17 @@ export type DataGridSyncProps<TData = unknown> = {
    * or rejects (the whole change is refused). While the promise is pending the rows are `saving`. A refusal
    * reverts the refused entries through `onDataChange` with `source: "rollback"`.
    *
+   * `ctx.signal` aborts when the grid unmounts or `saveTimeoutMs` runs out; `ctx.actions` is the grid's actions.
+   *
    * Call order: `onDataChange`, `onSave`, plugin observers. After a refusal: the rollback `onDataChange`,
    * then `onSaveRejected`.
    */
-  onSave?: (change: DataChange<TData>) => void | Promise<SaveAck<TData>>;
+  onSave?: (change: DataChange<TData>, ctx: SaveContext) => void | Promise<SaveAck<TData>>;
+  /**
+   * Refuses a save whose promise has not settled after this many ms: its `ctx.signal` aborts, the rows revert, and
+   * `onSaveRejected` receives `reason: "timeout"` on each rejection. A later answer is ignored. Default: off (a save waits for its promise).
+   */
+  saveTimeoutMs?: number;
   /**
    * Fired once per acknowledged change that the server refused, after the grid reverted it; see {@link SaveAck}.
    * A throw is logged and isolated.
@@ -216,7 +225,7 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   gateTimeoutMs?: number | Partial<Record<Exclude<GateName, "import">, number>>;
   /** Fires when a row action (`insertRows`, `duplicateRows`, `deleteRows`, `moveRows`) does nothing, with its name and the reason; the insert, duplicate, and delete actions also return it, and `reorderRows` and `moveRowsBy` (both report as `moveRows`) return `false`. `deleteRowsAt` reports as `deleteRows`, and its `source: "stream"` path never reports. Shortcuts and menu items run through the same actions, so one handler can toast every skip. */
-  onRowActionSkipped?: (ctx: { action: RowActionName; reason: RowActionSkipReason }) => void;
+  onRowActionSkipped?: (ctx: { action: RowActionName; reason: RowActionSkipReason; count?: number }) => void;
   /**
    * Fires once for every async gate the grid stopped waiting for, with the gate's name and why: `"timeout"` (see `gateTimeoutMs`),
    * `"changed"` (the rows, the checked rows, or `readOnly` changed, the active cell moved during `onBeforeEditStart`, or an edit started during `processPaste`), `"superseded"` (a newer run replaced it), `"cancelled"` (the user pressed Escape), or `"reset"`.
@@ -610,9 +619,6 @@ export type RowPatch<TColumnId extends string = string> = {
   changes: Readonly<Partial<Record<TColumnId, unknown>>>;
 };
 
-/** How a `updateCells`/`updateRows` batch reconciles with an active sort or filter. */
-export type UpdateCellsReorder = "defer" | "immediate" | "never";
-
 /** One rowId+columnId target, addressed the same STABLE-ROW-ID way as {@link CellPatch} (no `value` — used only to name a cell for {@link DataGridActions.setCellErrors}/{@link DataGridActions.clearCellErrors}). */
 export type CellErrorTarget = {
   /** The row's `getRowId()` value. An id not present in `data` is stored/cleared anyway (see `cellErrors`' doc) and simply never renders. */
@@ -627,72 +633,6 @@ export type CellErrorEntry = CellErrorTarget & { message: string };
 export type DeleteRowsOptions = {
   /** `"row-operation"` (default) runs the delete gate and reaches `onSave`. `"stream"` is a push from the server. */
   source?: "row-operation" | "stream";
-};
-
-/** Options for {@link DataGridActions.updateCells} and {@link DataGridActions.updateRows}. */
-export type UpdateCellsOptions = {
-  /**
-   * Default `"defer"`.
-   * - `"defer"` — values update in place and rows keep their view position; `viewStale` flips.
-   *   The view reconciles on the next sort/filter/search change, or on `reconcileView()`. A
-   *   `"defer"` batch that touches no active sort or filter column downgrades to `"never"`
-   *   automatically, so `viewStale` never flips for a ticker on a non-sort column.
-   * - `"immediate"` — moves the patched rows to their new positions now, by removing each one,
-   *   re-testing filter membership, and binary-searching it back in under the same comparator chain
-   *   a full sort uses. Cost scales with the batch size, not the row count: measured 0.3 / 0.9 /
-   *   7.6 ms for 1 / 20 / 256 patched rows at 100k. Batches over
-   *   {@link INCREMENTAL_PATCH_LIMIT} rows or a same-tick sort/filter change fall back to the full
-   *   O(n log n) rebuild; a column with its own comparator keeps the incremental path.
-   * - `"never"` — updates in place and never marks the view stale. The caller asserts that no
-   *   touched column feeds the sort or filter.
-   */
-  reorder?: UpdateCellsReorder;
-  /** `DataChange` source tag; default `"stream"`. Pass `"edit"` to make the batch undoable. */
-  source?: DataChange<unknown>["source"];
-  /** Skips each column's `validate`. Default `false`. */
-  skipValidation?: boolean;
-  /**
-   * Flashes the cells the call applied, as {@link DataGridActions.flashCells} does: at once for a synchronous
-   * batch, after `settled` for a held one. Only cells of visible columns flash. Default `false`.
-   */
-  flash?: boolean;
-};
-
-/** One entry of {@link UpdateCellsVerdict.skipped}: a patch that was not applied, with the reason. */
-export type UpdateCellsSkip = {
-  /** Index of the patch in the `patches` array the action received. */
-  patchIndex: number;
-  /**
-   * `"unknown-row"` — the row id is not in `data`; `"unknown-column"` — the column id is not a
-   * known column; `"hole"` — the row is an unloaded lazy hole; `"readonly"` — the grid, the column, or the
-   * row (via `readOnly(row)`) is read-only for a batch with a `source` other than `"stream"`, or a
-   * `"stream"` patch met a column with no write path (no `accessorKey` and no `setValue`); `"invalid"` — the column's `validate` rejected the
-   * value; `"no-op"` — the value is `Object.is`-equal to the current one; `"saving"` — a
-   * `"stream"` batch met a row whose save is in flight; the grid holds the patch and applies it once the save settles (after the acknowledgement or the rollback), and a later push to the same cell replaces the held value;
-   * `"limit"` — a `"stream"` call carried more than 100,000 patches, and this one came after them.
-   */
-  reason: "unknown-row" | "unknown-column" | "hole" | "readonly" | "invalid" | "no-op" | "saving" | "limit";
-};
-
-/**
- * Verdict of {@link DataGridActions.updateCells} / {@link DataGridActions.updateRows}: what the
- * batch actually did. `applied` counts the cell writes that landed; `skipped` names every patch
- * that did not land and why, so a streaming producer can observe its feed being silently dropped.
- *
- * `pending` is `true` when the batch is HELD for async validation — the verdict then reports
- * nothing about its outcome, and a held batch that is later superseded (a newer held batch, or most
- * other writes and view rebuilds; a plain deferred `updateCells` keeps it) is dropped silently by
- * design; track supersession on your own feed.
- */
-export type UpdateCellsVerdict = {
-  /** Cell writes applied (0 when nothing applied or the batch is `pending`). */
-  applied: number;
-  /** Patches that did not apply, with the reason. Empty when `pending`. */
-  skipped: UpdateCellsSkip[];
-  /** True when the batch is held for async validation. */
-  pending: boolean;
-  /** Present when `pending`: resolves with the final verdict, or with nothing applied when a newer write superseded the batch. */
-  settled?: Promise<UpdateCellsVerdict>;
 };
 
 /** Full per-grid interaction + derived state; internally typed over `unknown` rows. */
@@ -1153,12 +1093,12 @@ export type DataGridActions = {
    *
    * Unlike `applyCellUpdates` it never moves the selection, the active cell, or the editing session,
    * so a live feed cannot pull the grid out from under a user mid-edit. Emits one batched
-   * `DataChange` with `options.source` (default `"stream"`) through `onDataChange`, in both controlled and uncontrolled
+   * `DataChange` with `options.source` (required) through `onDataChange`, in both controlled and uncontrolled
    * mode. See {@link UpdateCellsOptions} for the sort/filter interaction.
    */
-  updateCells(patches: readonly CellPatch[], options?: UpdateCellsOptions): UpdateCellsVerdict;
+  updateCells(patches: readonly CellPatch[], options: UpdateCellsOptions): UpdateCellsVerdict;
   /** {@link updateCells} keyed by whole row: each {@link RowPatch}'s `changes` expands to one patch per column id. */
-  updateRows(updates: readonly RowPatch[], options?: UpdateCellsOptions): UpdateCellsVerdict;
+  updateRows(updates: readonly RowPatch[], options: UpdateCellsOptions): UpdateCellsVerdict;
   /** {@link updateRows} as a user edit: `source: "edit"` and `reorder: "immediate"`. One undo entry, one `onSave`, and the `readOnly`, read-only column, and `validate` checks apply. `options` takes the rest of {@link UpdateCellsOptions}, such as `flash`. */
   editRows(updates: readonly RowPatch[], options?: Omit<UpdateCellsOptions, "source" | "reorder">): UpdateCellsVerdict;
   /** Rebuilds the view index that a deferred `updateCells` postponed, and clears `viewStale`. With `useDataGridServerRows` it asks for a reshape instead, and `viewStale` stays `true` until the answer delivers the stale rows again. No-op when the view is not stale. */
@@ -1175,8 +1115,8 @@ export type DataGridActions = {
    * above/below `viewRowIndex` (view-index) as ONE `{source: 'row-operation'}` DataChange with one
    * row-id-based `insert` operation per row - a single undo entry. Does nothing and returns a skip reason:
    * `"readOnly"`, `"no-factory"` (no `createRow`, dev-warned), `"nothing-to-do"` (`count` is not a positive
-   * integer), `"gate-pending"` (an earlier `createRow` promise has not settled), or `"unloaded-rows"` (the
-   * target row is not loaded yet in scroll mode).
+   * integer), or `"unloaded-rows"` (the target row is not loaded yet in scroll mode). A new insert aborts a
+   * pending `createRow` promise (`onGateAborted` reason `"superseded"`); a rejected promise reports `"gate-threw"`.
    */
   insertRows(viewRowIndex: number, count: number, position?: "above" | "below"): RowActionResult;
   /** View-index variant of {@link DataGridActions.deleteRows}: deletes the rows at `viewRowIndexes` as one `{source: 'row-operation'}` DataChange with row-id-based `delete` operations. */
@@ -1197,7 +1137,7 @@ export type DataGridActions = {
    * source row, as one `{source: 'row-operation'}` DataChange with row-id-based `insert` operations. Returns
    * `"no-factory"` (dev-warned) when the `duplicateRow` prop is absent — required so
    * every duplicated row gets a distinct id, never colliding with its source's React key — and
-   * `"readOnly"`, `"gate-pending"`, `"unloaded-rows"`, or `"nothing-to-do"` when it does nothing else.
+   * `"readOnly"`, `"unloaded-rows"`, or `"nothing-to-do"` when it does nothing else. A new duplicate aborts a pending `duplicateRow` promise (`"superseded"`).
    */
   duplicateRowsAt(viewRowIndexes: readonly number[]): RowActionResult;
   /**
@@ -1343,8 +1283,8 @@ export type LiveAnnouncement = { kind: LiveAnnouncementKind; count: number; seq:
 /** Full store shape: interaction state + the stable actions object. */
 export type DataGridStore = DataGridStoreState;
 
-/** Why a row action did nothing: the grid is read-only, a target row is unloaded, a gate is still pending, the factory prop is missing, a sync `onBeforeDeleteRows` returned `false` (`"gate-declined"`) or threw (`"gate-threw"`), or no row matched. `"view-ordered"` marks a row move refused because an active sort (client or server) or client filter owns the row order, and `"disabled"` a row move shortcut without a reorder `rowMarkers` mode. `"all-matching"` and `"hidden-rows-only"` mark a key or menu row action refused because the checked rows are not in the grid: every matching row is checked, or every checked row is outside the view. */
-export type RowActionSkipReason = "readOnly" | "unloaded-rows" | "gate-pending" | "no-factory" | "gate-declined" | "gate-threw" | "nothing-to-do" | "view-ordered" | "disabled" | "all-matching" | "hidden-rows-only";
+/** Why a row action did nothing: the grid is read-only, a target row is unloaded, the factory prop is missing, an `onBeforeDeleteRows`, `createRow`, or `duplicateRow` gate returned `false` (`"gate-declined"`) or threw or rejected (`"gate-threw"`), or no row matched. `"view-ordered"` marks a row move refused because an active sort (client or server) or client filter owns the row order, and `"disabled"` a row move shortcut without a reorder `rowMarkers` mode. `"all-matching"` and `"hidden-rows-only"` mark a key or menu row action refused because the checked rows are not in the grid: every matching row is checked, or every checked row is outside the view. */
+export type RowActionSkipReason = "readOnly" | "unloaded-rows" | "no-factory" | "gate-declined" | "gate-threw" | "nothing-to-do" | "view-ordered" | "disabled" | "all-matching" | "hidden-rows-only";
 
 /** The row actions that report through `onRowActionSkipped`; `deleteRowsAt` reports as `deleteRows`, and `reorderRows` and `moveRowsBy` as `moveRows`. */
 export type RowActionName = "insertRows" | "duplicateRows" | "deleteRows" | "moveRows";

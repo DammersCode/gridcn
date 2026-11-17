@@ -17,7 +17,7 @@ describe("unloaded rows in mode Z (lazy rows)", () => {
     const grid = await mountMode("Z", { initialLoad: 3 });
     let verdict: { applied: number } | undefined;
     grid.act(() => {
-      verdict = grid.state().actions.updateCells([{ rowId: "r4", columnId: "n", value: 1 }]);
+      verdict = grid.state().actions.updateCells([{ rowId: "r4", columnId: "n", value: 1 }], { source: "stream" });
     });
     expect(verdict?.applied).toBe(0);
     expect(grid.changes).toHaveLength(0);

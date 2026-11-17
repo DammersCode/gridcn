@@ -66,6 +66,7 @@ export function QuotesGrid() {
           columnId: "price",
           value: price,
         })),
+        { source: "stream" },
       );
     };
     return () => socket.close();

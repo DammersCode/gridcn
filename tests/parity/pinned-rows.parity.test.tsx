@@ -33,7 +33,7 @@ describe.each(ALL_MODES)("aggregate band in mode %s", (mode) => {
     const aggregate = withAggregate();
     const grid = await mountMode(mode, { Child: aggregate.Child });
     const before = aggregate.view() as number;
-    grid.act(() => void grid.state().actions.updateCells([{ rowId: "r1", columnId: "n", value: 101 }]));
+    grid.act(() => void grid.state().actions.updateCells([{ rowId: "r1", columnId: "n", value: 101 }], { source: "stream" }));
     expect(aggregate.view()).toBe(before + 100);
   });
 });

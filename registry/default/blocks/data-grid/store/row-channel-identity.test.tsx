@@ -150,7 +150,7 @@ describe("row channel follows record identity", () => {
     act(() => store().getState().actions.setSorts([{ columnId: "age", direction: "asc" }]));
     check(store(), ["e"]);
 
-    act(() => store().getState().actions.updateCells([{ rowId: "e", columnId: "age", value: 99 }], { reorder: "immediate" }));
+    act(() => store().getState().actions.updateCells([{ rowId: "e", columnId: "age", value: 99 }], { source: "stream", reorder: "immediate" }));
 
     expect(store().getState().viewIndex.at(-1)).toBe(4);
     expect(checkedIds(store())).toEqual(["e"]);
@@ -161,7 +161,7 @@ describe("row channel follows record identity", () => {
     act(() => store().getState().actions.setSorts([{ columnId: "age", direction: "asc" }]));
     check(store(), ["e"]);
 
-    act(() => store().getState().actions.updateCells([{ rowId: "e", columnId: "age", value: 99 }]));
+    act(() => store().getState().actions.updateCells([{ rowId: "e", columnId: "age", value: 99 }], { source: "stream" }));
     act(() => store().getState().actions.reconcileView());
 
     expect(checkedIds(store())).toEqual(["e"]);

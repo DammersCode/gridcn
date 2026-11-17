@@ -771,7 +771,7 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
     const { _deleteCellsById, _commitCellEdit, _commitChange, _skipRowAction, _commitActivation, ...otherWriteActions } = dataWriteActions;
     const publicWriteActions = {
       ...otherWriteActions,
-      updateCells: (patches: readonly CellPatch[], options?: UpdateCellsOptions) => streamQueue.hold(patches, options, otherWriteActions.updateCells(patches, options)),
+      updateCells: (patches: readonly CellPatch[], options: UpdateCellsOptions) => streamQueue.hold(patches, options, otherWriteActions.updateCells(patches, options)),
       commitCellEdit: (value: unknown, movement?: { dx: number; dy: number }) => _commitCellEdit(value, movement),
     };
     const internal: DataGridInternalActions = {

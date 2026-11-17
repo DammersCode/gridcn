@@ -433,7 +433,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
         const name = `${id} push${editCount++}`;
         trace.push(`push ${id}`);
         let applied = 0;
-        act(() => void (applied = state().actions.updateCells([{ rowId: id, columnId: "name", value: name }]).applied));
+        act(() => void (applied = state().actions.updateCells([{ rowId: id, columnId: "name", value: name }], { source: "stream" }).applied));
         if (applied > 0) for (const request of held) request.pushed.set(id, name);
       }
     } else if (r < 0.985 && !variant.indexIds) {

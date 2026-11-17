@@ -1176,6 +1176,7 @@
         "Z": {
           "status": "supported",
           "evidence": [
+            "registry/default/blocks/data-grid/store/write-path.test.tsx",
             "tests/parity/row-ops.parity.test.tsx"
           ]
         },
@@ -1286,6 +1287,7 @@
         "onDataChange",
         "readOnly",
         "onSave",
+        "saveTimeoutMs",
         "refreshAfterSave",
         "onSaveRejected",
         "resolveSaveConflict"
@@ -1316,7 +1318,10 @@
         "Z": {
           "status": "supported",
           "evidence": [
+            "registry/default/blocks/data-grid/store/write-path.test.tsx",
             "registry/default/blocks/data-grid/store/write-ack.test.tsx",
+            "registry/default/blocks/data-grid/store/save-context.test.tsx",
+            "registry/default/blocks/data-grid-server/save-refresh.test.ts",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.refresh.test.tsx",
             "registry/default/blocks/data-grid/store/save-conflict.test.tsx"
           ]

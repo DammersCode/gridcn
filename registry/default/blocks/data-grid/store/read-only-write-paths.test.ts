@@ -19,17 +19,17 @@ function makeStore(overrides: Partial<InternalSyncProps> = {}) {
 }
 
 describe("readOnly write paths", () => {
-  it("refuses updateCells without a source on a readOnly grid", () => {
+  it("refuses updateCells without a source", () => {
     const { store } = makeStore({ readOnly: true });
-    const verdict = store.getState().actions.updateCells([{ rowId: "a", columnId: "price", value: 5 }]);
+    const verdict = store.getState().actions.updateCells([{ rowId: "a", columnId: "price", value: 5 }], undefined as never);
     expect(verdict.applied).toBe(0);
-    expect(verdict.skipped).toEqual([{ patchIndex: 0, reason: "readonly" }]);
+    expect(verdict.skipped).toEqual([{ patchIndex: 0, reason: "no-source" }]);
     expect((store.getState().data[0] as Row).price).toBe(10);
   });
 
-  it("refuses updateRows without a source on a readOnly grid", () => {
+  it("refuses updateRows without a source", () => {
     const { store } = makeStore({ readOnly: true });
-    store.getState().actions.updateRows([{ rowId: "a", changes: { price: 5 } }]);
+    store.getState().actions.updateRows([{ rowId: "a", changes: { price: 5 } }], undefined as never);
     expect((store.getState().data[0] as Row).price).toBe(10);
   });
 

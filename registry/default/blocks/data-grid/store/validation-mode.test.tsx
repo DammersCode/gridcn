@@ -54,7 +54,7 @@ describe("validationMode: 'warn' — commit + flag instead of block", () => {
       await result.current.actions.updateCells([
         { rowId: "1", columnId: "note", value: "way too long" },
         { rowId: "2", columnId: "note", value: "short" },
-      ]);
+      ], { source: "stream" });
     });
 
     const next = onDataChange.mock.calls[0]![0] as readonly Row[];

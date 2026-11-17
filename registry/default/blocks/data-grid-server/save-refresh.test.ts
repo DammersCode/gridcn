@@ -5,11 +5,12 @@ import { SAVE_REFRESH_MAX_WAIT_MS, useSaveRefresh, type SaveRefreshOptions } fro
 
 type Row = { id: string };
 const change = {} as DataChange<Row>;
+const saveCtx = { actions: {} as never, signal: new AbortController().signal };
 
 function mount(options: SaveRefreshOptions<Row>) {
   const refresh = vi.fn();
   const hook = renderHook(() => useSaveRefresh(options, refresh));
-  return { refresh, save: (c = change) => hook.result.current!(c), result: hook.result, unmount: hook.unmount };
+  return { refresh, save: (c = change) => hook.result.current!(c, saveCtx), result: hook.result, unmount: hook.unmount };
 }
 const flush = () => act(async () => void (await vi.advanceTimersByTimeAsync(5)));
 const deferred = () => {
@@ -193,9 +194,18 @@ describe("useSaveRefresh, bypass warning", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     let listener: (() => void) | null = null;
     const hook = renderHook(() => useSaveRefresh({ onSave: async () => {} }, vi.fn(), (next) => (listener = next)));
-    await hook.result.current!(change);
+    await hook.result.current!(change, saveCtx);
     listener!();
     await flush();
     expect(warn).not.toHaveBeenCalled();
+  });
+});
+
+describe("useSaveRefresh save context", () => {
+  it("hands the grid's save context to the caller's onSave", async () => {
+    const onSave = vi.fn(async () => {});
+    const hook = renderHook(() => useSaveRefresh({ onSave }, vi.fn()));
+    await hook.result.current!(change, saveCtx);
+    expect(onSave).toHaveBeenCalledWith(change, saveCtx);
   });
 });

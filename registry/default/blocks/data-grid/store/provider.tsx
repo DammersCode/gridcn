@@ -120,6 +120,7 @@ const CONFIG_KEYS = [
   "onRowActionSkipped",
   "onGateAborted",
   "onSave",
+  "saveTimeoutMs",
   "onSaveRejected",
   "resolveSaveConflict",
   "fetchFilterValues",

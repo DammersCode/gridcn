@@ -353,7 +353,7 @@ describe("auto-clear on successful commit", () => {
     });
 
     act(() => {
-      result.current.actions.updateCells([{ rowId: "1", columnId: "age", value: 99 }]);
+      result.current.actions.updateCells([{ rowId: "1", columnId: "age", value: 99 }], { source: "stream" });
     });
 
     expect(result.current.cellErrors.has("1:age")).toBe(false);
@@ -366,7 +366,7 @@ describe("auto-clear on successful commit", () => {
     });
 
     act(() => {
-      result.current.actions.updateCells([{ rowId: "1", columnId: "age", value: 99 }], { reorder: "immediate" });
+      result.current.actions.updateCells([{ rowId: "1", columnId: "age", value: 99 }], { source: "stream", reorder: "immediate" });
     });
 
     expect(result.current.cellErrors.has("1:age")).toBe(false);
@@ -382,7 +382,7 @@ describe("auto-clear on successful commit", () => {
     });
 
     act(() => {
-      result.current.actions.updateRows([{ rowId: "1", changes: { name: "New Name", age: 50 } }]);
+      result.current.actions.updateRows([{ rowId: "1", changes: { name: "New Name", age: 50 } }], { source: "stream" });
     });
 
     expect(result.current.cellErrors.size).toBe(0);
@@ -393,7 +393,7 @@ describe("auto-clear on successful commit", () => {
     const before = result.current.cellErrors;
 
     act(() => {
-      result.current.actions.updateCells([{ rowId: "1", columnId: "age", value: 99 }]);
+      result.current.actions.updateCells([{ rowId: "1", columnId: "age", value: 99 }], { source: "stream" });
     });
 
     expect(result.current.cellErrors).toBe(before);

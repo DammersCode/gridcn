@@ -61,6 +61,7 @@ function TickerFeed({ autoSort }: { autoSort: boolean }) {
         value: Number((Math.random() * 4 - 2).toFixed(2)),
       }));
       actions.updateCells(patches, {
+        source: "stream",
         reorder: autoSort ? "immediate" : "defer",
       });
     }, 250);

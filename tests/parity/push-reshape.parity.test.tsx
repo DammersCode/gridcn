@@ -14,7 +14,7 @@ function suite(mode: ModeId) {
     const grid = await mount();
     useSpec(grid);
     const order = grid.viewIds();
-    grid.act(() => void grid.state().actions.updateCells([{ rowId: "r2", columnId: "n", value: 99 }]));
+    grid.act(() => void grid.state().actions.updateCells([{ rowId: "r2", columnId: "n", value: 99 }], { source: "stream" }));
     expect([...grid.state().staleRowIds]).toEqual(["r2"]);
     expect(grid.state().viewStale).toBe(true);
     expect(grid.viewIds()).toEqual(order);
@@ -24,7 +24,7 @@ function suite(mode: ModeId) {
   it("marks nothing for a column the server spec does not read", async () => {
     const grid = await mount();
     useSpec(grid);
-    grid.act(() => void grid.state().actions.updateCells([{ rowId: "r2", columnId: "name", value: "Renamed" }]));
+    grid.act(() => void grid.state().actions.updateCells([{ rowId: "r2", columnId: "name", value: "Renamed" }], { source: "stream" }));
     expect(grid.state().staleRowIds.size).toBe(0);
     expect(grid.state().viewStale).toBe(false);
   });
@@ -32,7 +32,7 @@ function suite(mode: ModeId) {
   it("clears the marks on reconcileView() when no server rows hook is mounted", async () => {
     const grid = await mount();
     useSpec(grid);
-    grid.act(() => void grid.state().actions.updateCells([{ rowId: "r2", columnId: "n", value: 99 }]));
+    grid.act(() => void grid.state().actions.updateCells([{ rowId: "r2", columnId: "n", value: 99 }], { source: "stream" }));
     grid.act(() => grid.state().actions.reconcileView());
     expect(grid.state().staleRowIds.size).toBe(0);
     expect(grid.state().viewStale).toBe(false);
@@ -61,7 +61,7 @@ describe("a consumer that delivers a new row object in mode C (controlled state)
   it("unmarks the stale row", async () => {
     const grid = await mountMode("C", { props: { sortMode: "server" } });
     grid.setSorts(SORT);
-    grid.act(() => void grid.state().actions.updateCells([{ rowId: "r2", columnId: "n", value: 99 }]));
+    grid.act(() => void grid.state().actions.updateCells([{ rowId: "r2", columnId: "n", value: 99 }], { source: "stream" }));
     expect([...grid.state().staleRowIds]).toEqual(["r2"]);
     grid.replaceData(grid.held().map((row) => ({ ...row })));
     expect(grid.state().staleRowIds.size).toBe(0);

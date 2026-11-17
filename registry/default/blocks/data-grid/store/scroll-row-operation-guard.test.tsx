@@ -43,14 +43,22 @@ afterEach(() => vi.restoreAllMocks());
 const spyWarn = () => (warn = vi.spyOn(console, "warn").mockImplementation(() => {}));
 
 describe("row operations over unloaded lazy rows", () => {
-  it("deleteRows with a hole in the request deletes nothing and warns once", () => {
+  it("deleteRows with a hole in the request deletes the loaded rows and warns once", () => {
     spyWarn();
     const m = mount();
     act(() => m.actions().deleteRowsAt(viewIndexes([0, 2])));
     act(() => m.actions().deleteRowsAt(viewIndexes([1, 3])));
+    expect(m.length()).toBe(4);
+    expect(m.onDataChange).toHaveBeenCalledTimes(2);
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it("deleteRows over only holes deletes nothing", () => {
+    spyWarn();
+    const m = mount();
+    act(() => m.actions().deleteRowsAt(viewIndexes([2, 3])));
     expect(m.length()).toBe(6);
     expect(m.onDataChange).not.toHaveBeenCalled();
-    expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it("deleteRows over loaded rows only still deletes", () => {
@@ -60,12 +68,11 @@ describe("row operations over unloaded lazy rows", () => {
     expect(m.onDataChange).toHaveBeenCalledTimes(1);
   });
 
-  it("deleteRows over a placeholder id deletes nothing", () => {
+  it("deleteRows over a placeholder id deletes the loaded id", () => {
     spyWarn();
     const m = mount();
     act(() => m.actions().deleteRows(["r0", holeRowId(2)]));
-    expect(m.length()).toBe(6);
-    expect(m.onDataChange).not.toHaveBeenCalled();
+    expect(m.length()).toBe(5);
   });
 
   it("duplicateRows with a hole among the sources duplicates nothing", () => {

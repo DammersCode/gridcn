@@ -122,18 +122,16 @@ describe("onBeforeDeleteRows", () => {
     expect(m.dataIds()).toEqual(["b", "c", "d", "e"]);
   });
 
-  it("a pending promise blocks a second delete", async () => {
+  it("a second delete supersedes the pending one", async () => {
     const pending = deferred();
     const gate = vi.fn<Gate>(() => pending.promise);
     const m = mount(gate);
     act(() => m.state().actions.deleteRowsAt(viewIndexes([0])));
     act(() => m.state().actions.deleteRowsAt(viewIndexes([1])));
-    expect(gate).toHaveBeenCalledTimes(1);
+    expect(gate).toHaveBeenCalledTimes(2);
     pending.resolve(true);
     await flush();
-    expect(m.dataIds()).toEqual(["b", "c", "d", "e"]);
-    act(() => m.state().actions.deleteRowsAt(viewIndexes([0])));
-    expect(gate).toHaveBeenCalledTimes(2);
+    expect(m.dataIds()).toEqual(["a", "c", "d", "e"]);
   });
 
   it("drops the result when readOnly turned on while the promise was pending", async () => {
@@ -248,15 +246,6 @@ describe("onBeforeDeleteRows", () => {
     act(() => m.state().actions.deleteRowsAt(viewIndexes([0])));
     expect(warn.mock.calls.filter((c) => String(c[0]).includes("onBeforeDeleteRows"))).toHaveLength(1);
   });
-
-  it("warns once when a delete is requested while a promise is pending", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const m = mount(() => new Promise<boolean>(() => {}));
-    act(() => m.state().actions.deleteRowsAt(viewIndexes([0])));
-    act(() => m.state().actions.deleteRowsAt(viewIndexes([1])));
-    act(() => m.state().actions.deleteRowsAt(viewIndexes([2])));
-    expect(warn.mock.calls.filter((c) => String(c[0]).includes("pending"))).toHaveLength(1);
-  });
 });
 
 describe("gateTimeoutMs and onGateAborted", () => {
@@ -308,7 +297,7 @@ describe("row action results", () => {
     const d = deferred();
     const pending = mount(() => d.promise);
     expect(pending.state().actions.deleteRowsAt(viewIndexes([0]))).toEqual({ ok: true });
-    expect(pending.state().actions.deleteRowsAt(viewIndexes([1]))).toEqual({ ok: false, reason: "gate-pending" });
+    expect(pending.state().actions.deleteRowsAt(viewIndexes([1]))).toEqual({ ok: true });
     await flush();
   });
 

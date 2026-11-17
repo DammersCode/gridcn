@@ -83,8 +83,8 @@ function mountGrid(use: () => Server, strict = false) {
   return {
     server: () => server,
     view,
-    push: (rowId: string, value = "Aaron", options?: Parameters<ReturnType<typeof actions>["updateCells"]>[1]) => act(() => void actions().updateCells([{ rowId, columnId: "name", value }], options)),
-    pushNow: async (rowId: string, value: string | undefined, changes?: Partial<Row>) => void (changes ? actions().updateRows([{ rowId, changes }]) : actions().updateCells([{ rowId, columnId: "name", value }])),
+    push: (rowId: string, value = "Aaron", options: Partial<Parameters<ReturnType<typeof actions>["updateCells"]>[1]> = {}) => act(() => void actions().updateCells([{ rowId, columnId: "name", value }], { source: "stream", ...options })),
+    pushNow: async (rowId: string, value: string | undefined, changes?: Partial<Row>) => void (changes ? actions().updateRows([{ rowId, changes }], { source: "stream" }) : actions().updateCells([{ rowId, columnId: "name", value }], { source: "stream" })),
     deleteByServer: (...ids: string[]) => act(() => void actions().deleteRows(ids, { source: "stream" })),
     reconcile: () => act(() => void actions().reconcileView()),
     error: () => server.error,
@@ -92,7 +92,7 @@ function mountGrid(use: () => Server, strict = false) {
     goToPage: (page: number) => act(() => server.pager!.onPageChange(page)),
     stale: () => [...store.getState().staleRowIds].sort(),
     row: (rowId: string) => (store.getState().data as readonly (Row | undefined)[]).find((row) => row?.id === rowId),
-    pushCells: (rowId: string, changes: Partial<Row>) => act(() => void actions().updateRows([{ rowId, changes }])),
+    pushCells: (rowId: string, changes: Partial<Row>) => act(() => void actions().updateRows([{ rowId, changes }], { source: "stream" })),
     name: (rowId: string) => (store.getState().data as readonly (Row | undefined)[]).find((row) => row?.id === rowId)?.name,
     report: (range: RowRange) => act(() => server.gridProps.onRenderedRowsChange?.(range as never)),
   };

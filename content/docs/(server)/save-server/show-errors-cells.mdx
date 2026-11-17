@@ -12,27 +12,24 @@ A server can reject a value after the grid committed it, for example with a 422 
 
 ## Mark the cells that the server rejected [#server-errors]
 
-1. Keep a `ref` to the grid. The rejection arrives long after the grid mounted, so the handler reaches the actions through the ref.
-2. In `onSave`, read the field errors of the 422 answer and map them to `{ rowId, columnId, message }` entries.
-3. Call `setCellErrors` with the entries.
+1. In `onSave`, take `actions` from the second argument.
+2. Read the field errors of the 422 answer and map them to `{ rowId, columnId, message }` entries.
+3. Call `actions.setCellErrors` with the entries.
 
 The server answers a 422 with `{ "errors": [{ "rowId": "o-17", "field": "email", "message": "Not an address" }] }`:
 
 ```tsx
-import { useRef } from "react";
 import {
   DataGrid,
   type DataChange,
-  type DataGridApi,
+  type SaveContext,
 } from "@/components/data-grid/data-grid";
 import { columns, type Order } from "./orders";
 
 type FieldError = { rowId: string; field: string; message: string };
 
 export function OrdersGrid({ rows }: { rows: Order[] }) {
-  const gridRef = useRef<DataGridApi<Order>>(null);
-
-  async function onSave(change: DataChange<Order>) {
+  async function onSave(change: DataChange<Order>, { actions }: SaveContext) {
     const response = await fetch("/api/orders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -40,7 +37,7 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
     });
     if (response.status === 422) {
       const { errors }: { errors: FieldError[] } = await response.json();
-      gridRef.current?.actions.setCellErrors(
+      actions.setCellErrors(
         errors.map(({ rowId, field, message }) => ({
           rowId,
           columnId: field,
@@ -54,7 +51,6 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
 
   return (
     <DataGrid
-      ref={gridRef}
       defaultData={rows}
       columns={columns}
       getRowId={(row) => row.id}

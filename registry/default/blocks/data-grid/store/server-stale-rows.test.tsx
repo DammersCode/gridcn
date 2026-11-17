@@ -48,9 +48,9 @@ function renderGrid(initial: Props) {
   return {
     ...hook,
     stale: () => [...hook.result.current.store.getState().staleRowIds].sort(),
-    push: (patches: { rowId: string; columnId: string; value: unknown }[], options?: Parameters<typeof hook.result.current.actions.updateCells>[1]) =>
+    push: (patches: { rowId: string; columnId: string; value: unknown }[], options: Partial<Parameters<typeof hook.result.current.actions.updateCells>[1]> = {}) =>
       act(() => {
-        hook.result.current.actions.updateCells(patches, options);
+        hook.result.current.actions.updateCells(patches, { source: "stream", ...options });
       }),
     update: (next: Props) => {
       props = next;

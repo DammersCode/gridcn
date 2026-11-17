@@ -31,7 +31,7 @@ Each row is a callback prop of the grid. Add-on callbacks are on [Options A to Z
 | `onRetry` | Runs on a press of the Retry button. | [DataGrid props](/docs/components-props/data-grid-props#prop-onretry) |
 | `onRowActionSkipped` | Fires when a row action (`insertRows`, `duplicateRows`, `deleteRows`, `moveRows`) does nothing, with its name and the reason. The insert, duplicate, and delete actions also return `{ ok: false, reason }`. `reorderRows` and `moveRowsBy` (both report as `moveRows`) return `false`. | [Handle row action results](/docs/rows-live-data/handle-row-action-results#action-results) |
 | `onSave` | Sends a change to a server. | [Data change events](/docs/events-state/data-change-events#onsave) |
-| `onSaveRejected` | Fires after the grid reverted a refused change. | [Data change events](/docs/events-state/data-change-events#onsaverejected) |
+| `onSaveRejected` | Fires after the grid reverted a refused change, or kept it for `keep: true`. | [Data change events](/docs/events-state/data-change-events#onsaverejected) |
 | `onSearchTextChange` | Fires with the next text. | [Sort and filter events](/docs/events-state/sort-filter-events#onsearchtextchange) |
 | `onSelectionChange` | A committed selection change alters the selection. | [Selection and cell events](/docs/events-state/selection-cell-events#onselectionchange) |
 | `onSortChange` | Fires with the next sort. | [Sort and filter events](/docs/events-state/sort-filter-events#onsortchange) |

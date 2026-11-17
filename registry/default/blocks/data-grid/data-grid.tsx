@@ -90,6 +90,7 @@ export {
   type GateContext,
   type GateName,
   type SaveAck,
+  type SaveContext,
   type RowActionResult,
   type RowActionSkipReason,
   type ColumnOrderResult,

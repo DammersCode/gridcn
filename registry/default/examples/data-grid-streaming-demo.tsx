@@ -54,7 +54,7 @@ function TickerFeed({ running, autoSort }: { running: boolean; autoSort: boolean
         patches.push({ rowId: symbol, columnId: "change", value: change });
         patches.push({ rowId: symbol, columnId: "volume", value: 1_000_000 + Math.floor(Math.random() * 500_000) });
       }
-      actionsRef.current.updateCells(patches, { reorder: autoSortRef.current ? "immediate" : "defer" });
+      actionsRef.current.updateCells(patches, { source: "stream", reorder: autoSortRef.current ? "immediate" : "defer" });
     }, 250);
     return () => clearInterval(id);
   }, [running]);

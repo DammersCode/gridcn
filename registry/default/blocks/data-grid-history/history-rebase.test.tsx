@@ -53,7 +53,7 @@ function setup() {
     data: () => data,
     editName: (value: string) => act(() => store!.getState().actions.commitCellValueAt({ row: 0, col: 0 }, value)),
     editRows: (updates: Parameters<DataGridStoreState["actions"]["editRows"]>[0]) => act(() => void store!.getState().actions.editRows(updates)),
-    pushAge: (rowId: string, value: number) => act(() => void store!.getState().actions.updateCells([{ rowId, columnId: "age", value }])),
+    pushAge: (rowId: string, value: number) => act(() => void store!.getState().actions.updateCells([{ rowId, columnId: "age", value }], { source: "stream" })),
     swapData: (next: Row[]) => {
       data = next;
       act(() => view.rerender(<Harness />));

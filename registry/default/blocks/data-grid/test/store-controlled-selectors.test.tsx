@@ -358,7 +358,7 @@ describe("updateCells while an edit session is open", () => {
 
     // Charlie (data 0) renamed to "Aaron": the immediate re-sort moves him to the top of the view
     // and the open edit (Alice) shifts down from view 0 to view 1.
-    act(() => result.current.actions.updateCells([{ rowId: "1", columnId: "name", value: "Aaron" }], { reorder: "immediate" }));
+    act(() => result.current.actions.updateCells([{ rowId: "1", columnId: "name", value: "Aaron" }], { source: "stream", reorder: "immediate" }));
 
     const [next] = onDataChange.mock.calls[0] as [readonly EditRow[], DataChange<EditRow>];
     expect(next[0]).toMatchObject({ id: "1", name: "Aaron" }); // the value landed
@@ -409,7 +409,7 @@ describe("useDataGridSelector / typed useDataGridRow", () => {
       </DataGridProvider>,
     );
     const base = renders;
-    act(() => storeApi?.getState().actions.updateCells([{ rowId: "1", columnId: "age", value: 31 }]));
+    act(() => storeApi?.getState().actions.updateCells([{ rowId: "1", columnId: "age", value: 31 }], { source: "stream" }));
     expect(renders).toBe(base);
     // a length change still re-renders
     act(() => storeApi?.getState().actions.deleteRowsAt(viewIndexes([0])));

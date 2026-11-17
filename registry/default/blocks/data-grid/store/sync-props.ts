@@ -243,6 +243,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           onRowActionSkipped: props.onRowActionSkipped,
           onGateAborted: props.onGateAborted,
           onSave: props.onSave,
+          saveTimeoutMs: props.saveTimeoutMs,
           onSaveRejected: props.onSaveRejected,
           resolveSaveConflict: props.resolveSaveConflict,
           fetchFilterValues: props.fetchFilterValues,

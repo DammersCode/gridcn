@@ -72,7 +72,7 @@ describe("a function-form validate that throws", () => {
       verdict = grid.actions.updateCells([
         { rowId: "1", columnId: "name", value: "boom" },
         { rowId: "2", columnId: "name", value: "Bob" },
-      ]);
+      ], { source: "stream" });
     });
 
     expect(verdict).toEqual({ applied: 1, skipped: [{ patchIndex: 0, reason: "invalid" }], pending: false });

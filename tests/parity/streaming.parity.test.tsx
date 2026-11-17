@@ -6,7 +6,7 @@ describe.each(ALL_MODES)("updateCells streaming in mode %s", (mode) => {
     const grid = await mountMode(mode);
     let verdict: { applied: number } | undefined;
     grid.act(() => {
-      verdict = grid.state().actions.updateCells([{ rowId: "r2", columnId: "n", value: 222 }]);
+      verdict = grid.state().actions.updateCells([{ rowId: "r2", columnId: "n", value: 222 }], { source: "stream" });
     });
     expect(verdict?.applied).toBe(1);
     expect(grid.cell("r2", "n")).toBe(222);
@@ -16,7 +16,7 @@ describe.each(ALL_MODES)("updateCells streaming in mode %s", (mode) => {
   it("keeps writing to the same row while the view sorts", async () => {
     const grid = await mountMode(mode);
     grid.setSorts([{ columnId: "n", direction: "desc" }]);
-    grid.act(() => void grid.state().actions.updateCells([{ rowId: "r1", columnId: "n", value: 111 }]));
+    grid.act(() => void grid.state().actions.updateCells([{ rowId: "r1", columnId: "n", value: 111 }], { source: "stream" }));
     expect(grid.cell("r1", "n")).toBe(111);
   });
 
@@ -27,7 +27,7 @@ describe.each(ALL_MODES)("updateCells streaming in mode %s", (mode) => {
       verdict = grid.state().actions.updateCells([
         { rowId: "nope", columnId: "n", value: 1 },
         { rowId: "r0", columnId: "n", value: 0 },
-      ]);
+      ], { source: "stream" });
     });
     expect(verdict?.applied).toBe(0);
     expect(verdict?.skipped.map((s) => s.reason)).toEqual(["unknown-row", "no-op"]);
@@ -46,7 +46,7 @@ describe.each(ALL_MODES)("updateCells streaming in mode %s", (mode) => {
   it("does not send a stream change to onSave", async () => {
     const onSave = vi.fn();
     const grid = await mountMode(mode, { props: { onSave } });
-    grid.act(() => void grid.state().actions.updateCells([{ rowId: "r2", columnId: "n", value: 222 }]));
+    grid.act(() => void grid.state().actions.updateCells([{ rowId: "r2", columnId: "n", value: 222 }], { source: "stream" }));
     await grid.settle();
     expect(onSave).not.toHaveBeenCalled();
   });

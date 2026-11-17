@@ -36,7 +36,7 @@ function mount(mode: Mode, answerFrom: Answer = "onDataChange") {
   }
   const write = () => {
     answered = true;
-    api!.getState().actions.updateCells([{ rowId: "b", columnId: "note", value: "answered" }]);
+    api!.getState().actions.updateCells([{ rowId: "b", columnId: "note", value: "answered" }], { source: "stream" });
   };
   const answer = (change: DataChange<Row>) => {
     if (answerFrom !== "onDataChange" || answered || change.source === "stream") return;
@@ -162,7 +162,7 @@ describe("echo detection after a foreign sync", () => {
     const s = api!.getState();
     expect(s.viewIndex.map((dataRow) => getRowId(s.data[dataRow] as Row))).toEqual(["a", "b", "new"]);
     expect(s.rowIdentityVersion).toBeGreaterThan(versionAfterRefetch);
-    act(() => api!.getState().actions.updateCells([{ rowId: "new", columnId: "note", value: "found" }]));
+    act(() => api!.getState().actions.updateCells([{ rowId: "new", columnId: "note", value: "found" }], { source: "stream" }));
     expect(byId(api!.getState().data, "new").note).toBe("found");
   });
 });

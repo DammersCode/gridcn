@@ -47,7 +47,10 @@ function PriceFeed() {
     const socket = new WebSocket("wss://api.example.com/prices");
     socket.onmessage = (event: MessageEvent<string>) => {
       const { id, price } = JSON.parse(event.data) as Order;
-      actions.updateCells([{ rowId: id, columnId: "price", value: price }]);
+      actions.updateCells(
+        [{ rowId: id, columnId: "price", value: price }],
+        { source: "stream" },
+      );
     };
     return () => socket.close();
   }, [actions]);
