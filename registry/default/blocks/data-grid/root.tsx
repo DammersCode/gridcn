@@ -213,6 +213,8 @@ export const DATA_GRID_ROOT_PROP_KEYS = [
  */
 function suppressNativeTouchContextMenu(event: ReactMouseEvent<HTMLElement>) {
   if ((event.nativeEvent as PointerEvent).pointerType !== "touch") return;
+  // a portaled popup (comments, find and replace) bubbles through React; its fields keep the native menu
+  if (!event.currentTarget.contains(event.target as Node)) return;
   event.preventDefault();
   event.stopPropagation();
 }

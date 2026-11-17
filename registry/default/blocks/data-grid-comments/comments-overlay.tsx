@@ -4,7 +4,7 @@ import { memo, useLayoutEffect, useMemo, type ComponentType, type CSSProperties,
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 import { useDataGridVisibleColumns, type OverlayPluginCtx } from "@/registry/default/blocks/data-grid/data-grid";
-import { rowIdAtViewRow, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { GRID_LAYER, hasAnyPin, rowIdAtViewRow, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { cellComments } from "./comment-state";
 import type { CommentEngine } from "./comment-engine";
 import type { UseDataGridCommentsOptions } from "./types";
@@ -26,13 +26,18 @@ const CommentMarker = memo(function CommentMarker({ marker, windowStart, colOffs
     <div
       data-grid-comment-marker-cell=""
       data-pinned={pinStyle ? "" : undefined}
-      className="pointer-events-none relative z-[15]"
+      className="pointer-events-none"
       style={{
+        // out of flow when unpinned, so a marker change never re-lays out the rows canvas
+        position: "absolute",
+        inset: 0,
         gridColumnStart: marker.col + colOffset,
         gridColumnEnd: marker.col + colOffset + 1,
         gridRowStart: marker.viewRow - windowStart + 1,
         gridRowEnd: marker.viewRow - windowStart + 2,
-        ...pinStyle,
+        // one step above the active cell it marks, so a pinned cell still covers an unpinned marker
+        zIndex: (pinStyle ? GRID_LAYER.activePinnedCell : GRID_LAYER.activeCell) + 1,
+        ...(pinStyle ? { inset: undefined, ...pinStyle } : {}),
       }}
     >
       <span
@@ -119,7 +124,7 @@ export function createCommentsOverlay(engine: CommentEngine, getOptions: () => U
     return (
       <>
         {markers.map((marker) => {
-          const segments = pinTrack ? splitRectByPinZones({ x: marker.col, y: marker.viewRow, width: 1, height: 1 }, pinTrack) : [{ rect: { x: marker.col, y: marker.viewRow, width: 1, height: 1 }, pinStyle: undefined }];
+          const segments = hasAnyPin(pinTrack) ? splitRectByPinZones({ x: marker.col, y: marker.viewRow, width: 1, height: 1 }, pinTrack) : [{ rect: { x: marker.col, y: marker.viewRow, width: 1, height: 1 }, pinStyle: undefined }];
           const segment = segments[0];
           if (!segment) return null;
           return (

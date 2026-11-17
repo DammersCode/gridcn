@@ -184,6 +184,64 @@ describe("comments: context menu and grids", () => {
     expect(m.top).toBeGreaterThanOrEqual(c.top - 1);
     expect(m.top).toBeLessThanOrEqual(c.top + 12);
   });
+
+  it("an unpinned marker stays out of the rows canvas flow, so it never re-lays out the rows", async () => {
+    await render(<Harness options={{ defaultComments: [comment()] }} />);
+    await expect.poll(() => markers().length).toBe(1);
+    const holder = markers()[0]?.parentElement as HTMLElement;
+    expect(getComputedStyle(holder).position).toBe("absolute");
+    const cell = document.querySelector<HTMLElement>('[role="row"][aria-rowindex="3"] [role="gridcell"][aria-colindex="1"]') as HTMLElement;
+    const m = (markers()[0] as HTMLElement).getBoundingClientRect();
+    const c = cell.getBoundingClientRect();
+    expect(Math.abs(m.right - c.right)).toBeLessThanOrEqual(1);
+    expect(Math.abs(m.top - c.top)).toBeLessThanOrEqual(1);
+  });
+
+  it("a pinned column covers the marker of an unpinned cell scrolled under it", async () => {
+    type Wide = { id: string; name: string; a: string; b: string; c: string; d: string };
+    const wideColumns = defineColumns<Wide>()([
+      { id: "name", header: "Name", accessorKey: "name", type: "text", width: 200, pin: "start" },
+      { id: "a", header: "A", accessorKey: "a", type: "text", width: 200 },
+      { id: "b", header: "B", accessorKey: "b", type: "text", width: 200 },
+      { id: "c", header: "C", accessorKey: "c", type: "text", width: 200 },
+      { id: "d", header: "D", accessorKey: "d", type: "text", width: 200 },
+    ] as const);
+    const wideRows: Wide[] = Array.from({ length: 10 }, (_, i) => ({ id: `r${i}`, name: `n${i}`, a: "a", b: "b", c: "c", d: "d" }));
+    function Wide() {
+      const comments = useDataGridComments({ currentUser: alice, defaultComments: [comment({ columnId: "a" })] });
+      return (
+        <div style={{ height: 300, width: 500 }}>
+          <DataGridProvider data={wideRows} columns={wideColumns} getRowId={(r) => r.id} plugins={[comments.plugin]}>
+            <DataGridRoot className="h-[300px] w-[500px]">
+              <DataGridHeader />
+              <DataGridBody />
+            </DataGridRoot>
+          </DataGridProvider>
+        </div>
+      );
+    }
+    await render(<Wide />);
+    await expect.poll(() => markers().length).toBe(1);
+    const scroller = document.querySelector<HTMLElement>('[role="grid"]') as HTMLElement;
+    scroller.scrollLeft = 250;
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const m = (markers()[0] as HTMLElement).getBoundingClientRect();
+    const pinnedCell = document.querySelector<HTMLElement>('[role="gridcell"][aria-colindex="1"]') as HTMLElement;
+    expect(m.right).toBeLessThan(pinnedCell.getBoundingClientRect().right);
+    const top = document.elementFromPoint(m.left + m.width / 2, m.top + m.height / 2);
+    expect(top?.closest(gridAttrSelector("commentMarker"))).toBeNull();
+  });
+
+  it("a touch context menu inside the popover keeps the native menu of its text field", async () => {
+    await render(<Harness withMenu />);
+    await page.getByRole("gridcell").first().click();
+    await userEvent.keyboard("{Shift>}{F2}{/Shift}");
+    const field = page.getByRole("textbox", { name: "Write a comment" });
+    await expect.element(field).toBeInTheDocument();
+    const event = new PointerEvent("contextmenu", { bubbles: true, cancelable: true, pointerType: "touch" });
+    field.element().dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+  });
 });
 
 describe("comments: conflicts and retries", () => {
