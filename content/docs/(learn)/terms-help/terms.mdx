@@ -88,7 +88,7 @@ A term row links to the page that explains it.
 | resolved comment | A comment with `resolved: true`. `hideResolved` hides the comment marker of a cell that has only resolved comments. | [Add comments to cells](/docs/rows-pages-menus/add-comments#markers) |
 | result | Every row that matches the spec on the server. `data` holds the loaded rows of it. | [Data mode guide](/docs/data-modes) |
 | result count | The number of rows in the view after a filter or sort change. `announceResults` turns its announcement on. | [Screen reader support](/docs/accessibility/screen-reader-support) |
-| revalidation | A `refresh()` that the hook runs on a timer (`revalidateIntervalMs`). | [Tune row retention](/docs/scroll-mode/tune-row-retention#revalidate) |
+| revalidation | A `refresh()` that the hook runs on a timer (`revalidateIntervalMs`). | [Refresh server rows](/docs/scroll-mode/refresh-server-rows#revalidate) |
 | row count | The size of the result. `totalRowCount` names it on the pager, the pagination hooks, URL pagination, and the provider prop that the hook's `gridProps` carries. `null` means unknown. | [Load rows by page](/docs/server-pagination/load-rows-page) |
 | row id | The stable id of a row: its `id` field, or the value that `getRowId` returns. Selection, editing, undo, and redo address rows by it. | [DataGrid props](/docs/components-props/data-grid-props#rows-and-ids) |
 | row marker | The narrow column at the start side that shows a row number, a checkbox, or a drag handle. | [Row markers](/docs/rows-pages-menus/row-markers) |
@@ -148,8 +148,8 @@ A word in this table names a term from the first table.
 | `infinite rows` | sequential source | [Load without row count](/docs/scroll-mode/load-without-row-count) |
 | `open-ended source` | sequential source | [Load without row count](/docs/scroll-mode/load-without-row-count) |
 | `purge` | eviction | [Tune row retention](/docs/scroll-mode/tune-row-retention#max-loaded-rows) |
-| `polling` | revalidation | [Tune row retention](/docs/scroll-mode/tune-row-retention#revalidate) |
-| `auto-refresh` | revalidation | [Tune row retention](/docs/scroll-mode/tune-row-retention#revalidate) |
+| `polling` | revalidation | [Refresh server rows](/docs/scroll-mode/refresh-server-rows#revalidate) |
+| `auto-refresh` | revalidation | [Refresh server rows](/docs/scroll-mode/refresh-server-rows#revalidate) |
 | `preload` | prefetch | [Tune page loading](/docs/server-pagination/tune-page-loading#prefetch) |
 | `value search` | value query | [Server rows contract](/docs/contracts/server-rows-contract) |
 | `result set` | result | [Data mode guide](/docs/data-modes) |

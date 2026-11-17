@@ -87,7 +87,7 @@ The hook sets `sortMode="server"`, `filterMode="server"`, `totalRowCount`, and `
 | [Saves](/docs/save-server/save-edits#server-source) | `onSave` on the grid. | `onSave` in the hook options. The hook fetches again after the saves settle. |
 | [Undo and redo](/docs/save-server/undo-server-data) | Writes the old values to `data`. | An undo is one more change that `onSave` sends. |
 | [Row operations](/docs/rows-live-data/change-server-rows) | Change `data`. | Send each `insert`, `delete`, and `move` to your API. |
-| [Live pushes](/docs/rows-live-data/push-server-ordered-view) | `updateCells` keeps the row in place and sets `viewStale`. `reconcileView()` or `reorder: "immediate"` moves it. | The row keeps its place and turns stale. The hook reshapes the view with a `refresh()`. |
+| [Live pushes](/docs/rows-live-data/push-server-ordered-view) | `updateCells` keeps the row in place and sets `viewStale`. `reconcileView()` or `reorder: "immediate"` moves it. | The row keeps its place and turns stale. Call `server.reshape()`, or set `reshapeDelayMs`, so that the server places it again. |
 | [URL state](/docs/sort-filter-search/url-state#server-mode) | `<DataGridUrlState>` restores the sort, and the filter and search text when its `spec` lists them. | `<DataGridUrlState>` restores the spec, and the first request of the hook carries it. Your server applies it. |
 
 ## Check the server [#check-the-server]

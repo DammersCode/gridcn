@@ -3,8 +3,8 @@ export const SUBLINE = "Range selection, paste from Excel, a fill handle and und
 
 export const perfStats = [
   {
-    value: "Under 200 ms",
-    title: "Long-task time in a fast scroll",
+    value: "200 ms limit",
+    title: "Long-task budget of the fast-scroll test",
     detail: "The tests scroll 100,000 rows in real Chromium and fail when frame rate, long tasks or blank rows cross a limit.",
     source: "Benchmark results: thresholds",
     href: "/docs/performance/benchmark-results#thresholds",
@@ -45,7 +45,7 @@ export const faq = [
   },
   {
     question: "Which frameworks are tested?",
-    answer: "Install tests cover Next.js 16 and Vite. The Next.js test builds and renders the core demo in a fresh project. The Vite test builds a fresh Vite app.",
+    answer: "Install tests cover the latest Next.js and Vite. The Next.js test builds and renders the core demo in a fresh project. The Vite test builds a fresh Vite app.",
     links: [{ text: "Framework floors", href: "/docs/support-upgrades/browser-framework-support#framework-floors" }],
   },
   {

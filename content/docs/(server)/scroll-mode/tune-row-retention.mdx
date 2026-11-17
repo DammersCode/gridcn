@@ -10,7 +10,7 @@ Loaded rows stay in the sparse `data` array, and a long scroll through a large r
 
 ## Cap the loaded rows [#max-loaded-rows]
 
-Scroll mode keeps at most `maxLoadedRows` rows loaded on a random access source (default 10,000). When more are loaded, the hook unloads the blocks that the user viewed longest ago outside the keep range. Rows with an open edit, a pending save, or an unsaved change, and the row under the active cell, stay in `data`. They stop counting as loaded, so the next window fetches their block whole. Pass `maxLoadedRows: Infinity` to keep every row.
+Scroll mode keeps at most `maxLoadedRows` rows loaded on a random access source (default 10,000). When more are loaded, the hook unloads the blocks that the user viewed longest ago outside the keep range. Rows with an open edit, a pending save, or an unsaved change, and the row under the active cell, stay in `data`. They stop counting as loaded, so the next rendered rows fetch their block whole. Pass `maxLoadedRows: Infinity` to keep every row.
 
 ## Evict row ranges [#memory--retention]
 
@@ -73,7 +73,7 @@ The `onRenderedRowsChange` option runs after the hook has read the rendered row 
 Two behaviors matter for a policy of your own:
 
 - `evict` aborts the requests it covers, and a request that started before the evict drops its answer. It keeps rows with an open edit, a pending save, or an unsaved change, and the row under the active cell.
-- An unsaved change stays in the row until its block loads again. The answer then replaces the unsaved value, because the hook does not own persistence. When an edit targets a row that the hook evicted before the merge, the hook warns once in development. See [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling#editing-loaded-rows).
+- An unsaved change stays in the row until its block loads again. The answer then replaces the unsaved value, because the hook does not save. When an edit targets a row that the hook evicted before the merge, the hook warns once in development. See [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling#editing-loaded-rows).
 
 `evict` clamps the row range to `[0, totalRowCount)`. A sequential source ignores it.
 

@@ -68,7 +68,7 @@ describe("landing server cards and FAQ", () => {
 
   it("answers five questions and states the framework tests as the docs page does", () => {
     expect(faq).toHaveLength(5);
-    expect(faq.find((f) => f.question === "Which frameworks are tested?")?.answer).toContain("Install tests cover Next.js 16 and Vite");
+    expect(faq.find((f) => f.question === "Which frameworks are tested?")?.answer).toContain("Install tests cover the latest Next.js and Vite");
   });
 
   it("removes the what-is-new panel and the paid-tier sentence", () => {

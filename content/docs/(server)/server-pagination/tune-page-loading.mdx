@@ -7,7 +7,7 @@ demos: compare
 aliases: ["cursor paging", "keyset pagination", "prefetchNextPage", "revalidateIntervalMs", "next cursor"]
 ---
 
-These options belong to `useDataGridServerRows` in pages mode. Set them after the pager from [Load rows by page](/docs/server-pagination/load-rows-page) works. When the last pending insert or delete settles, the hook loads the page again, also with `refreshAfterSave: false`.
+These options belong to `useDataGridServerRows` in pages mode. Set them after the pager from [Load rows by page](/docs/server-pagination/load-rows-page) works. When the last pending insert or delete settles, the hook loads the page again, unless `refreshAfterSave` is `false`.
 
 ## Page through a cursor API [#cursor-chain]
 
@@ -55,7 +55,7 @@ export function OrdersGrid() {
 }
 ```
 
-With a fetch library, `useInfiniteQuery` or `useSWRInfinite` keeps the chain for you. These demos show infinite scroll and a pager over a cursor API:
+With a fetch library, `useInfiniteQuery` or `useSWRInfinite` keeps the chain for you. These demos show scroll mode and a pager over a cursor API and a pager over a cursor API:
 
 <ComponentPreview name="data-grid-cursor-react-query-demo" />
 

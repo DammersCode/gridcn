@@ -211,7 +211,7 @@ With SWR, replace `useQuery` with `useSWR`. The fetcher receives the key itself,
 ```tsx fragment="replaces useQuery in the sample above"
 const { data } = useSWR<{ rows: Order[]; total: number }>(
   ["orders", page, pageSize, spec],
-  ([, current, size, currentSpec]) =>
+  ([, current, size, currentSpec]: [string, number, number, Spec]) =>
     fetch("/api/orders/query", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
