@@ -11,8 +11,7 @@ import {
 import { ChevronDown, ChevronUp, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDebouncedInput } from "@/registry/default/hooks/use-debounce";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
-import { Button } from "@/components/ui/button";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import {
   isMacPlatform,
   useDataGridActions,
@@ -179,8 +178,8 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
           placeholder={placeholder ?? labels.toolbar.searchPlaceholder}
           aria-label={labels.toolbar.searchAriaLabel}
         />
-        {searchText.trim() !== "" && (
-          <InputGroupAddon align="inline-end">
+        <InputGroupAddon align="inline-end">
+          {searchText.trim() !== "" && (
             <span data-grid-search-count="" role="status" aria-live="polite" className="min-w-fit text-xs tabular-nums">
               {hasMatches
                 ? capped
@@ -188,29 +187,15 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
                   : labels.toolbar.searchMatches(matchIndex + 1, matches.length)
                 : labels.toolbar.searchNoMatches}
             </span>
-          </InputGroupAddon>
-        )}
+          )}
+          <InputGroupButton size="icon-xs" aria-label={labels.toolbar.searchPreviousMatch} disabled={!hasMatches} onClick={() => goToMatch(matchIndex - 1)}>
+            <ChevronUp />
+          </InputGroupButton>
+          <InputGroupButton size="icon-xs" aria-label={labels.toolbar.searchNextMatch} disabled={!hasMatches} onClick={() => goToMatch(matchIndex + 1)}>
+            <ChevronDown />
+          </InputGroupButton>
+        </InputGroupAddon>
       </InputGroup>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-sm"
-        aria-label={labels.toolbar.searchPreviousMatch}
-        disabled={!hasMatches}
-        onClick={() => goToMatch(matchIndex - 1)}
-      >
-        <ChevronUp />
-      </Button>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-sm"
-        aria-label={labels.toolbar.searchNextMatch}
-        disabled={!hasMatches}
-        onClick={() => goToMatch(matchIndex + 1)}
-      >
-        <ChevronDown />
-      </Button>
     </div>
   );
 }
