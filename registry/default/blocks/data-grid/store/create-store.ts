@@ -146,8 +146,7 @@ import { groupModeOf, groupingOf, withGroupLayout } from "./group-view";
 import { leafViewOf } from "./group-readers";
 import { pageUnitsOf } from "./group-pages";
 import { matchingRowTotal } from "./matching-total";
-
-const EMPTY_ROW_IDS: readonly string[] = [];
+import { isRelayoutOnly } from "./relayout-only";
 
 type CheckedState = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "allMatching" | "data" | "viewIndex" | "totalRowCount" | "groupLayout"> & Partial<Pick<DataGridStoreState, "groupMode">>;
 
@@ -941,7 +940,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
           const derived = deriveCurrentSelection(state);
           if (selectionStatesEqual(derived, memory.lastKnownSelection)) return;
           // A group re-layout moves checked rows in and out of the view; the cells and the checked rows stay the same.
-          if (state.groupLayout !== prev.groupLayout && selectionStatesEqual({ ...derived, rowIds: EMPTY_ROW_IDS }, { ...memory.lastKnownSelection, rowIds: EMPTY_ROW_IDS })) {
+          if (state.groupLayout !== prev.groupLayout && isRelayoutOnly(memory.lastKnownSelection, derived, prev, state)) {
             memory.lastKnownSelection = derived;
             return;
           }
