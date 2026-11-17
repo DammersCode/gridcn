@@ -2,6 +2,7 @@ import type { ComponentType, FC, ReactNode } from "react";
 import type { CellValidateContext } from "./validation/validate-context";
 import type { KeyBinding } from "./keyboard/key-syntax";
 import type { AnyColumnDef, DataGridActions, DataGridStoreState } from "./store/types";
+import type { DataGridSelectedRows } from "./store/selected-rows";
 import type { RowBandRenderCtx } from "./layout-context";
 import type { OverlayPluginCtx } from "./overlays";
 import type { StandardSchemaV1 } from "./standard-schema";
@@ -62,7 +63,7 @@ export type SelectionState = {
   range: CellRange | null;
   /** Earlier ctrl-click ranges, oldest first. */
   rangeStack: readonly CellRange[];
-  /** Row ids of the row channel, in view order. */
+  /** Row ids of the row channel, in view order: the checked rows in the view, without the remembered hidden ones that `getSelectedRows()` includes. */
   rowIds: readonly string[];
   /** Column ids of the column channel, in view order. */
   columnIds: readonly string[];
@@ -750,6 +751,8 @@ export type DataGridApi<TData> = {
   runShortcut(action: GridAction): void;
   /** A non-reactive snapshot of the current selection in stable {@link CellRef} terms. */
   getSelection(): SelectionState;
+  /** The checked rows for a bulk action, the same value `useDataGridSelectedRows()` returns: the remembered hidden checked rows included, or "all matching except these ids". */
+  getSelectedRows(): DataGridSelectedRows;
   /** The data row at a view (display) row index — the same read `useDataGridRow` performs, without a subscription. */
   getRow(viewRowIndex: number): TData | undefined;
   /**

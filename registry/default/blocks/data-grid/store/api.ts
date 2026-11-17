@@ -4,6 +4,7 @@ import type { DataGridStoreState } from "./types";
 import { holeRowId } from "./compute";
 import { getInternalActions } from "./internal-actions";
 import { resolveRefOrWarn } from "./data-write";
+import { readSelectedRows } from "./selected-rows";
 
 const handles = new WeakMap<StoreApi<DataGridStoreState>, DataGridApi<unknown>>();
 const wrappers = new WeakMap<StoreApi<DataGridStoreState>, DataGridStoreWrapper>();
@@ -75,6 +76,9 @@ function buildApiHandle(storeApi: StoreApi<DataGridStoreState>): DataGridApi<unk
     },
     getSelection() {
       return getInternalActions(storeApi)._deriveSelection();
+    },
+    getSelectedRows() {
+      return readSelectedRows(read());
     },
     getRow(viewRowIndex) {
       const s = read();
