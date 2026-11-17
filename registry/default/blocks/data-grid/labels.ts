@@ -417,6 +417,12 @@ export type DataGridFindReplaceLabels = {
   moreRemain: string;
   validating: string;
   scopeLoadedRows: string;
+  /** Scope note under the Find field when `findScope="result"`. */
+  scopeResult: string;
+  /** Count line when `findScope="result"`; `total` is the size of the narrowed result. */
+  resultRows: (total: number) => string;
+  /** Tooltip and description of Replace all when `findScope="result"`. */
+  replaceLoadedRows: string;
   /** Status line text when `processReplace` vetoed the replace or returned an unusable plan. */
   replaceCancelled: string;
 };

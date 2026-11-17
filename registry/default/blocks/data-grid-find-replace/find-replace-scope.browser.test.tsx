@@ -48,6 +48,21 @@ describe("find and replace scope note", () => {
     expect(find.getAttribute("aria-describedby")).toBe(note.element().id);
   });
 
+  it("findScope result on a grid that holds every row keeps the loaded note out and the position line", async () => {
+    await render(<Harness findScope="result" />);
+    await open();
+    await userEvent.keyboard("item");
+    await expect.element(page.getByText("Searches every row of the result")).not.toBeInTheDocument();
+    await expect.element(page.getByText("1 of 10 cells")).toBeInTheDocument();
+  });
+
+  it("findScope result on a server grid shows the result note and keeps Replace all to loaded rows", async () => {
+    await render(<Harness findScope="result" grid={{ totalRowCount: 100 }} />);
+    await open();
+    await expect.element(page.getByText("Searches every row of the result")).toBeInTheDocument();
+    await expect.element(page.getByText("Searches loaded rows only")).not.toBeInTheDocument();
+  });
+
   it("an empty labels.findReplace.scopeLoadedRows hides it", async () => {
     await render(<Harness grid={{ totalRowCount: 100, labels: { findReplace: { scopeLoadedRows: "" } } }} />);
     await open();

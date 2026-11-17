@@ -1917,6 +1917,7 @@
           "status": "supported",
           "evidence": [
             "tests/parity/find-replace.parity.test.tsx",
+            "tests/parity/find-result.parity.test.tsx",
             "registry/default/blocks/data-grid-find-replace/find-replace-scope.browser.test.tsx",
             "content/docs/(build)/sort-filter-search/find-replace.mdx"
           ]
@@ -1925,6 +1926,7 @@
           "status": "supported",
           "evidence": [
             "tests/parity/find-replace.parity.test.tsx",
+            "tests/parity/find-result.parity.test.tsx",
             "registry/default/blocks/data-grid-find-replace/find-replace-scope.browser.test.tsx",
             "content/docs/(build)/sort-filter-search/find-replace.mdx"
           ]
@@ -2212,7 +2214,7 @@
         "maxConcurrentFetches",
         "maxLoadedRows"
       ],
-            "note": "A finite `maxLoadedRows` evicts on a sequential source too. The hook stores the request that loaded each block (its `start`, `end` and the `cursor` the server returned for it). The hook sends that request again when the user scrolls back. `fetchRows` must answer a repeated cursor with the same rows. A block with an open edit, a pending save, or an unsaved change stays loaded. The chain goes on with the cursor of its last block.",
+      "note": "A finite `maxLoadedRows` evicts on a sequential source too. The hook stores the request that loaded each block (its `start`, `end` and the `cursor` the server returned for it). The hook sends that request again when the user scrolls back. `fetchRows` must answer a repeated cursor with the same rows. A block with an open edit, a pending save, or an unsaved change stays loaded. The chain goes on with the cursor of its last block.",
       "cells": {
         "L": {
           "status": "n/a",
