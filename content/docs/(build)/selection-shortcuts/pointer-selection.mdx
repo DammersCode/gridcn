@@ -92,7 +92,7 @@ export function People({ rows }: { rows: Person[] }) {
 | `enableMultiRange` | `boolean` | `true` |
 | `enableColumnSelection` | `boolean` | `true` |
 | `enableRowSelection` | `boolean` | `true` |
-| `headerClickBehavior` | `"select" \| "sort" \| "none"` | `"select"` |
+| `headerClickBehavior` | `"select" \| "sort" \| "none"` | `"sort"` with `totalRowCount`, else `"select"`. |
 
 - `enableRangeSelection={false}` limits a cell drag and <kbd>Shift</kbd>+click to the active cell.
 - `enableMultiRange={false}` turns <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+click into a plain click.

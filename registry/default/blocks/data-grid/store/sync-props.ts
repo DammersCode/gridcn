@@ -10,6 +10,7 @@ import {
   type Keymap,
 } from "../types";
 import { BUILTIN_ACTIONS, keymapContentEqual, validateKeymap, validateSharedBindings } from "../keyboard";
+import { warnUnknownKeymapActions } from "../keyboard/validate-action-names";
 import { CompactSelection } from "../selection/compact-selection";
 import { buildColumnGroupModel, columnGroupModelsEqual, type ColumnGroupModel } from "../columns/column-groups";
 import { cellTypes as defaultCellTypes } from "../cell-types/cell-types";
@@ -34,11 +35,13 @@ import {
   memoizedMergeLabels,
   normalizeColumnLayout as normalizeColumnLayoutBase,
   pruneCellErrors,
-  resolveSelectionConfig,
+  sanitizeColumnLayout,
+  holeSafeRowId,
   resolveSortMode,
   resolveFilterMode,
   withFilterIds,
 } from "./compute";
+import { resolveSelectionConfig } from "./selection-config";
 import { withMatchCase } from "./filter-match-case";
 import { createWarnOnce, isDev, warnDev } from "../is-dev";
 import { NO_REMEMBERED_ROWS, hiddenCheckedRowsActive } from "./hidden-checked-rows";
@@ -82,17 +85,25 @@ export function sortSpecKey(sorts: readonly unknown[]): string {
 
 export type ProvidedCellTypes = Record<string, CellType | null> | undefined;
 
-/** Whether two `getRowId` functions disagree on the first or the last loaded row (lazy holes are skipped). */
+const ROW_ID_SAMPLES = 32;
+const DEV_ROW_ID_SCAN_LIMIT = 10_000;
+
+/** Whether two `getRowId` functions disagree on a sample of loaded rows: 32 evenly spaced ones, every row up to 10,000 in development (lazy holes are skipped). */
 export function sampledRowIdsDiffer(
   data: readonly unknown[],
   before: (row: unknown, index: number) => string,
   after: (row: unknown, index: number) => string,
 ): boolean {
-  const differs = (index: number) => before(data[index], index) !== after(data[index], index);
+  const differs = (index: number) => data[index] !== undefined && before(data[index], index) !== after(data[index], index);
+  if (isDev() && data.length <= DEV_ROW_ID_SCAN_LIMIT) {
+    for (let i = 0; i < data.length; i++) if (differs(i)) return true;
+    return false;
+  }
   const first = data.findIndex((row) => row !== undefined);
   if (first === -1) return false;
-  const last = data.findLastIndex((row) => row !== undefined);
-  return differs(first) || differs(last);
+  if (differs(first) || differs(data.findLastIndex((row) => row !== undefined))) return true;
+  for (let k = 1; k < ROW_ID_SAMPLES - 1; k++) if (differs(Math.round((k * (data.length - 1)) / (ROW_ID_SAMPLES - 1)))) return true;
+  return false;
 }
 
 /** True when both `cellTypes` props hold the same keys with `===` entries (an inline literal re-created per render). */
@@ -213,17 +224,21 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
         memory.lastKeymapProp = props.keymap;
         memory.lastCommandsProp = props.commands;
       }
-      if (props.commands && !memory.warnedMovedCommands && isDev()) {
+      if (isDev()) {
         const keymap = (nextKeymap ?? get().keymap) as Record<string, readonly unknown[] | undefined>;
-        const unbound = (Object.keys(ADDON_COMMAND_KEYS) as (keyof typeof ADDON_COMMAND_KEYS)[]).filter((name) => props.commands && name in props.commands && !props.keymap?.[name as keyof Keymap] && !keymap[name]?.length);
-        if (unbound.length > 0) {
-          memory.warnedMovedCommands = true;
-          warnDev(`commands ${unbound.join(", ")} have no key: the add-on that binds the key is not mounted; bind the action in the keymap, for example keymap={{ ${unbound[0]}: ["${ADDON_COMMAND_KEYS[unbound[0]!]}"] }}`);
+        const commands = nextCommands ?? get().commands;
+        warnUnknownKeymapActions(keymap, commands, pluginWarnOnce);
+        if (commands && !memory.warnedMovedCommands) {
+          const unbound = (Object.keys(ADDON_COMMAND_KEYS) as (keyof typeof ADDON_COMMAND_KEYS)[]).filter((name) => name in commands && !props.keymap?.[name as keyof Keymap] && !keymap[name]?.length);
+          if (unbound.length > 0) {
+            memory.warnedMovedCommands = true;
+            warnDev(`commands ${unbound.join(", ")} have no key: the add-on that binds the key is not mounted; bind the action in the keymap, for example keymap={{ ${unbound[0]}: ["${ADDON_COMMAND_KEYS[unbound[0]!]}"] }}`);
+          }
         }
       }
       set((s) => {
         const selectionConfig = resolveSelectionConfig(props);
-        if (selectionConfig.checkedRowsLifetime === "across-filters" && selectionConfig.totalRowCount === undefined && (s.sortMode === "server" || s.filterMode === "server")) {
+        if (props.checkedRowsLifetime === "across-filters" && selectionConfig.totalRowCount === undefined && (s.sortMode === "server" || s.filterMode === "server")) {
           warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
         }
         const forgetsRemembered =
@@ -283,7 +298,8 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
       // already-closed session has nothing to cancel.
       if (props.readOnly && get().editing) get().actions.cancelEditing();
     },
-    syncProps(props: InternalSyncProps): void {
+    syncProps(rawProps: InternalSyncProps): void {
+      const props = rawProps.getRowId ? { ...rawProps, getRowId: holeSafeRowId(rawProps.getRowId) } : rawProps;
       set((s) => {
         // A defined controlled prop is the source of truth; otherwise the store keeps its own state.
         const nextSortState = props.sortState === undefined || sortSpecKey(props.sortState) === sortSpecKey(s.sortState) ? s.sortState : props.sortState;
@@ -397,13 +413,14 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
             memory.layoutEchoQueue.splice(0, echoIndex + 1);
           } else {
             const pins = pinsOf(nextColumns);
+            const given = sanitizeColumnLayout(props.columnLayout);
             const normalized = normalizeColumnLayout(
               nextColumns,
               {
-                widths: props.columnLayout.widths ?? s.columnWidths,
-                order: props.columnLayout.order !== undefined ? props.columnLayout.order : s.columnOrder,
-                pins: props.columnLayout.pins ?? pins,
-                hidden: props.columnLayout.hidden ?? nextHiddenColumns,
+                widths: given.widths ?? s.columnWidths,
+                order: given.order !== undefined ? given.order : s.columnOrder,
+                pins: given.pins ?? pins,
+                hidden: given.hidden ?? nextHiddenColumns,
               },
               defHiddenColumnIds(nextColumns),
             );

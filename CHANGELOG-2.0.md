@@ -322,3 +322,7 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - Fix: `setColumnOrder` returns `pin-zone` for a column group move across pin zones.
 - Fix: the comments add-on no longer warns about a stale rejection without `current` when `fetchComments` is set.
 - Fix: a column resize that ends in a cancel (`pointercancel`, `lostpointercapture`, or a window blur) restores the width the drag started from and stores nothing. It left the preview width as a stored width, so a flex column lost its flex share and the width entered the next `onColumnLayoutChange`. The new `cancelColumnResize(id, renderedWidth)` store action does the restore.
+- Fix: a `columnLayout`, `defaultColumnLayout`, or `setColumnLayout` part of the wrong shape (a string `widths`, a number `hidden`) counts as absent, so the stored widths, order, pins, and hidden columns stay. The wrong part used to reset its state.
+- Fix: a changed `getRowId` is detected on up to 32 evenly spaced loaded rows (every row up to 10,000 in development), not on the first and last row only. A function that changes only middle ids no longer keeps the old ids.
+- Fix: a consumer `getRowId` never receives `undefined`. An unloaded row of a lazy source gets its placeholder id before the function runs, so a plain `(row) => row.id` no longer throws on a hole.
+- New development warnings: a plugin `commands` entry named like an add-on action (`undo`, `openFind`) with no key, and a `keymap` action that is neither a built-in action nor a command, once per name.

@@ -333,4 +333,22 @@ describe("custom keymap commands through <DataGrid commands keymap>", () => {
     expect(warn.mock.calls.some((c) => String(c[0]).includes("have no key"))).toBe(false);
     warn.mockRestore();
   });
+  it("dev-warns for a plugin command named like a moved action with no key", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const plugin = { name: "keyless", commands: { undo: { run: vi.fn() } } };
+    render(<DataGrid data={rows()} columns={columns} getRowId={(r) => r.id} plugins={[plugin]} />);
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes('keymap={{ undo: ["mod+z"] }}'))).toHaveLength(1);
+    warn.mockRestore();
+  });
+
+  it("dev-warns once for a keymap action that is no built-in action and no command", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const keymap = { copyy: ["mod+k"], mine: ["mod+j"] } as Keymap;
+    const { rerender } = render(<DataGrid data={rows()} columns={columns} getRowId={(r) => r.id} keymap={keymap} commands={{ mine: { run: vi.fn() } }} />);
+    rerender(<DataGrid data={rows()} columns={columns} getRowId={(r) => r.id} keymap={{ ...keymap }} commands={{ mine: { run: vi.fn() } }} />);
+    const unknown = warn.mock.calls.map((c) => String(c[0])).filter((m) => m.includes("has no built-in handler and no custom command"));
+    expect(unknown).toHaveLength(1);
+    expect(unknown[0]).toContain('"copyy"');
+    warn.mockRestore();
+  });
 });

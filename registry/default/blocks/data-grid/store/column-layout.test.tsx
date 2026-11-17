@@ -340,3 +340,23 @@ describe("cancelColumnResize", () => {
     expect(onColumnResizing).not.toHaveBeenCalled();
   });
 });
+
+describe("a columnLayout part of the wrong shape counts as absent", () => {
+  const wrong = { widths: "wide", hidden: 7, pins: [], order: "a" } as never;
+
+  it("keeps the stored state in setColumnLayout", () => {
+    const { store } = mount({ columns: threeColumns, defaultColumnLayout: { widths: { a: 200 }, hidden: ["c"] } });
+    act(() => store().getState().actions.setColumnLayout(wrong));
+    expect(store().getState().columnWidths).toEqual({ a: 200 });
+    expect(visibleIds(store())).toEqual(["a", "b"]);
+  });
+
+  it("keeps the seeded state on mount and on a controlled sync", () => {
+    const { store, rerender } = mount({ columns: threeColumns, defaultColumnLayout: { widths: { a: 200 }, hidden: ["c"] }, columnLayout: wrong });
+    expect(store().getState().columnWidths).toEqual({ a: 200 });
+    expect(visibleIds(store())).toEqual(["a", "b"]);
+    rerender({ columns: threeColumns, columnLayout: { ...(wrong as object) } as never });
+    expect(store().getState().columnWidths).toEqual({ a: 200 });
+    expect(visibleIds(store())).toEqual(["a", "b"]);
+  });
+});

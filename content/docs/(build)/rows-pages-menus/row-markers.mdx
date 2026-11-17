@@ -70,7 +70,7 @@ The built-in checkboxes take their aria-labels from `labels.markers.selectRow` a
 | `renderMarkerHeader` | `MarkerHeaderRenderer` | built-in select-all checkbox |
 | `markerWidth` | `number` | width of the mode |
 
-`renderMarker` receives `rowId`, the 0-based `viewRowIndex`, and two flags. If the row is checked, `isChecked` is true. If the selection covers at least one cell of the row, `isCellSelected` is true. A cell click sets the second flag and never sets the first. With `'until-click'` (the default without `totalRowCount`), a cell click also clears the checked rows.
+`renderMarker` receives `rowId`, the 0-based `viewRowIndex`, and two flags. If the row is checked, `isChecked` is true. If the selection covers at least one cell of the row, `isCellSelected` is true. A cell click sets the second flag and never sets the first. With `'until-click'` (the default for markers without a checkbox), a cell click also clears the checked rows.
 
 In a mode of the `reorder` family, `renderMarker` also receives `reorderHandleProps`. Spread it onto an element of the marker to make that element the drag handle. `renderMarkerHeader` receives `allSelected`, which is `"checked"`, `"indeterminate"`, or `"unchecked"`. In modes without a checkbox, the header is blank, so the renderer fills the blank cell.
 

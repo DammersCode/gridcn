@@ -1,7 +1,7 @@
 {
   "registry/default/blocks/data-grid/interaction/use-grid-interaction.ts": 1534,
   "registry/default/blocks/data-grid/root.tsx": 829,
-  "registry/default/blocks/data-grid/store/compute.ts": 1185,
+  "registry/default/blocks/data-grid/store/compute.ts": 1176,
   "registry/default/blocks/data-grid/store/create-store.ts": 2045,
   "registry/default/blocks/data-grid/store/data-write.ts": 1476,
   "registry/default/blocks/data-grid/store/types.ts": 1418,

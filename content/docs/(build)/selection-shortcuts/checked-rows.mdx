@@ -74,7 +74,7 @@ A check or uncheck reads the checked-row count in the live region. <kbd>Esc</kbd
 
 | Value | The checked rows stay until |
 |---|---|
-| `'until-click'` (default without `totalRowCount`) | The user selects a cell or a column. |
+| `'until-click'` (default without `totalRowCount` and without a checkbox marker) | The user selects a cell or a column. |
 | `'until-cleared'` | <kbd>Esc</kbd>, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>A</kbd>, a click on a row number, a marker checkbox, the header checkbox, `clearSelection()`, or a row delete changes them. |
 | `'across-filters'` | Same as `'until-cleared'`. A filter or a page change that hides a checked row keeps its check, and the grid checks the row again when it shows again. |
 
@@ -148,7 +148,7 @@ Hidden checked rows stay out of the controlled `selection` and select all. Row o
 
 `useDataGridHiddenCheckedCount()` returns their number. [`DataGridStatusBar`](/docs/selection-shortcuts/status-bar) shows it as `(+3 hidden)` beside the selection stats. With fewer than two non-`undefined` cells selected, it shows `3 hidden checked rows`.
 
-The grid remembers at most 100,000 hidden checked rows. Without `totalRowCount`, a grid that sorts or filters on the server behaves like `'until-cleared'`, and so does a grid with unloaded rows. In development, the grid warns once about the cap and once about the fallback.
+The grid remembers at most 100,000 hidden checked rows. Without `totalRowCount`, a grid that sorts or filters on the server behaves like `'until-cleared'`, and so does a grid with unloaded rows. In development, the grid warns once about the cap and once about the fallback. `useDataGridSelectionConfig()` returns the lifetime that applies.
 
 ## Server mode
 
@@ -161,7 +161,7 @@ A server grid defaults to `checkedRowsLifetime="across-filters"` when it sets `t
 | Prop | Type | Default |
 |---|---|---|
 | `enableRowSelection` | `boolean` | `true` |
-| `checkedRowsLifetime` | `CheckedRowsLifetime` | `'across-filters'` with `totalRowCount`, else `'until-click'`. Without `totalRowCount`, a server-sorted or server-filtered grid treats `'across-filters'` as `'until-cleared'`. |
+| `checkedRowsLifetime` | `CheckedRowsLifetime` | `'across-filters'` with `totalRowCount`, else `'until-cleared'` with a checkbox marker, else `'until-click'`. Without `totalRowCount`, a server-sorted or server-filtered grid treats `'across-filters'` as `'until-cleared'`. |
 | `totalRowCount` | `number \| null` | none |
 | `announceResults` | `boolean` | `false` |
 | `onBeforeDeleteRows` | `(ctx: { rowIds: readonly string[]; hiddenCount: number; signal: AbortSignal }) => boolean \| Promise<boolean>` | none |
