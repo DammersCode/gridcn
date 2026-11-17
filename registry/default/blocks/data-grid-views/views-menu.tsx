@@ -5,6 +5,7 @@ import { Bookmark, Check, Pencil, Star, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
@@ -250,7 +251,7 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
               rows={4}
               className="max-h-40 resize-y font-mono text-xs"
             />
-            <div className="flex items-center gap-1">
+            <ButtonGroup>
               <Button
                 type="button"
                 variant="outline"
@@ -268,7 +269,7 @@ export function DataGridViews({ className, labels: labelOverrides, ...options }:
               <Button type="button" variant="outline" size="sm" disabled={fileText.trim() === ""} onClick={runImport}>
                 {labels.importView}
               </Button>
-            </div>
+            </ButtonGroup>
           </div>
           {atLimit ? <p className="text-muted-foreground">{labels.limit}</p> : null}
           {views.overLimit ? <p className="text-muted-foreground">{labels.overLimit(views.overLimit)}</p> : null}

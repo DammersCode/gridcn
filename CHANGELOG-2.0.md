@@ -97,6 +97,7 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 
 ## Sorting, filtering, and search
 
+- **Changed:** the views menu groups Export view and Import view into one button group. The `data-grid-views` item now depends on the shadcn `button-group` item.
 - **Changed:** the filter menu groups the column select, operator select, value input, and remove button of each row into one bordered control, with the drag handle outside it on the right. Group headers use an icon button group. The `isBetween` inputs and the footer "Add filter" and "Add group" buttons share a border too. The `data-grid-toolbar` item now depends on the shadcn `button-group` item.
 - A paged grid searches every page: `searchMatches` and the match count cover the whole view, the highlights show the matches on the shown page, and next and previous match (toolbar search, find and replace) jump to the page of the match. Find and replace's "replace all" covers every page. `reorderRows` and `moveRowsBy` work inside a paged grid with page-relative rows: a move stays on the shown page, a move past the page edge does nothing, and the checked rows and the active cell follow their rows (a sort or filter still blocks them).
 - The sort arrow and `aria-sort` show on every sorted column, including a `sortable: false` column that `setSorts` sorts, whatever `headerClickBehavior` says, so a sort restored from the URL is visible and no longer needs a docs workaround.

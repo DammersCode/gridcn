@@ -2016,6 +2016,7 @@
             "DammersCode/gridcn/data-grid",
             "popover",
             "button",
+            "button-group",
             "badge",
             "input",
             "textarea"
