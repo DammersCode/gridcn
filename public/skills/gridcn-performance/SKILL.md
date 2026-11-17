@@ -5,7 +5,7 @@ metadata:
   gridcn-version: "1.3.0"
 ---
 
-Almost every gridcn slowdown traces to one cause: an unstable prop or callback identity defeats row or cell memoization grid-wide, or the grid lacks a bounded height so virtualization never activates. Both fail silently in production — dev-mode console warnings are the only signal. Work the whole checklist top to bottom, cheapest check first; fix every hit, then remeasure.
+Almost every gridcn slowdown traces to one cause: an unstable value defeats row or cell memoization grid-wide (`columns`, controlled `data`, render props such as `renderMarker`, and plugin `Overlay` and `Mount`; `getRowClassName`, `getCellClassName`, and `getRowId` can be inline), or the grid lacks a bounded height so virtualization never activates. Both fail silently in production — dev-mode console warnings are the only signal. Work the whole checklist top to bottom, cheapest check first; fix every hit, then remeasure.
 
 Scope: render and scroll cost of an existing grid. Building a cell type → `gridcn-custom-cell-type`; choosing a data source → `gridcn-data-source`.
 
@@ -63,12 +63,12 @@ Grep the `data`/`onDataChange` (controlled mode) call sites. If `data` is rebuil
 
 ## 4. Unstable plugin members in `plugins`
 
-The grid compares the `plugins` array entry-wise — same length, same `name`, every member identity-equal — so an inline `plugins={[fill.plugin]}` is harmless while the `plugin` objects are stable, which every first-party hook's result is. The trap is a plugin MEMBER that churns: a rebuilt `Overlay` or `Mount` component, a fresh `onDataChange` closure, or a fresh `aggregateRow(...)` or row object in `topRows`/`bottomRows` created every render (an inline array of stable entries is fine). A changed member re-resolves the grid's plugin list and remounts the plugin components whose type changed, dropping their state.
+The grid compares the `plugins` array entry-wise — same length, same `name`, every member identity-equal — so an inline `plugins={[fill.plugin]}` is harmless while the `plugin` objects are stable, which every first-party hook's result is. The trap is a plugin MEMBER that churns: a rebuilt `Overlay` or `Mount` component, or a fresh `onDataChange` closure. A changed member re-resolves the grid's plugin list and remounts the plugin components whose type changed, dropping their state.
 
 - Symptoms:
   - `[data-grid] plugin "X"'s Overlay component identity changed; the overlay remounts and loses its state`
   - `[data-grid] plugin "X"'s Mount component identity changed; the mount remounts and loses its state`
-- Fix: keep the add-on hook's `plugin` as-is (its members are stable). For a custom plugin, hoist `Overlay`/`Mount` to module scope or memoize them on the data they close over. For pinned rows, memoize `topRows`/`bottomRows` so the hook's `plugin` changes only when the band contents change.
+- Fix: keep the add-on hook's `plugin` as-is (its members are stable). For a custom plugin, hoist `Overlay`/`Mount` to module scope or memoize them on the data they close over.
 
 ## 5. Custom `Cell`/`renderCell` allocating per render
 
@@ -106,7 +106,7 @@ Zero `[data-grid`-prefixed warnings appear in the dev console while scrolling an
 
 ## Do not
 
-- Do not wrap `columns`, `data`, or a callback prop in a fresh literal per render.
+- Do not wrap `columns`, `data`, or a render prop in a fresh literal per render.
 - Do not copy, `map`, or `filter` the array that `onDataChange` hands over before storing it.
 - Do not replace `data` wholesale on every live tick. Use `actions.updateCells` / `actions.updateRows`.
 - Do not pass `data` without `onDataChange`.

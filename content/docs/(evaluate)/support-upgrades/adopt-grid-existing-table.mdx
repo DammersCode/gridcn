@@ -19,7 +19,7 @@ The grid takes an array of rows and a list of column definitions. It has no tabl
 1. Run `npx shadcn add @gridcn/data-grid`.
 2. Keep the code that loads your rows. Pass the rows as `data` and your setter as `onDataChange`. If a row has no `id` field, pass `getRowId`.
 3. Map each column of the old table to a `ColumnDef`, as the table below shows.
-4. If your page holds the sort or the filters, pass them as `sortState` and `filterState` with `onSortChange` and `onFilterChange`. If your server sorts and filters, also set `sortMode="server"` and `filterMode="server"`.
+4. If your page holds the sort or the filters, pass them as `sortState` and `filterState` with `onSortChange` and `onFilterChange`. If your server sorts and filters, also set `sortMode="server"` and `filterMode="server"`; `totalRowCount` sets both to `"server"` by default. For a server table, [`useDataGridServerRows`](/docs/data-modes/query-server-rows) wires all of it.
 5. Give the grid a fixed height, for example `className="h-96"`.
 6. After the last page moves to the grid, delete the old table component.
 

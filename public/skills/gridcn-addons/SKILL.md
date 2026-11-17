@@ -133,7 +133,7 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
   read-only. `onCommentSave` answers nothing (stored as sent), `{ comment }`, `{ rejected: { reason: "stale", current } }`,
   or throws. Forward `onLocalChange` to your channel and feed arriving changes to `applyRemote`; the add-on drops
   its own echo by `writeId`. Comments are keyed by row id and column id, so keep `getRowId` stable.
-- **Pinned rows**: create `aggregateRow(...)` and `serverAggregateRow(...)` once, at module scope. The hook compares the entries of `topRows`/`bottomRows` by identity, so an inline `[TOTALS]` keeps the plugin. A plain row object must stay a stable value too.
+- **Pinned rows**: the hook compares a plain row object by its own values and an `aggregateRow` or `serverAggregateRow` by content, so an inline `[aggregateRow(...)]` keeps the plugin. A reducer function with a new identity reduces again; define it at module scope to skip that work.
 - **Server totals**: on a pages, scroll, or own-API grid put `serverAggregateRow({ fetchAggregates: ({ spec, signal }) => … })` in `bottomRows`. The band sets its own `status`, requests again on a filter or quick-search change, and fetches again after the pending saves settle (`refreshAfterSave: false` opts out). Pin one `serverAggregateRow` in one place only. To read the result outside the band, render `<DataGridServerAggregateReporter … onChange={setTotals} />` (start the state from `PENDING_SERVER_AGGREGATE`; it refreshes after saves like the band, `refreshAfterSave: false` opts out).
 - **Lookup cell**: register `cellTypes={{ lookup: lookupCellType }}`, set `type: "lookup"` and `options: { fetchOptions }` on the column. No `declare module` block is needed; type `fetchOptions` with `LookupOptions<Row>`.
 - **Totals row**: put `aggregateRow({ price: "sum" }, { cells: { id: "total", item: "Total" } })` in `bottomRows`. The band reads each value by column id, so no `accessorKey` has to match. `DataGridAggregateReporter` stays for a read outside the band.
@@ -224,5 +224,4 @@ Each add-on's full reference (props, edge cases, worked examples) is at the page
 - Do not pass view indexes to `deleteRows`, `duplicateRows`, or `setRowChecked`. They take stable row ids. The `At` actions (`deleteRowsAt`, `duplicateRowsAt`, `setRowCheckedAt`) take view row numbers; `viewIndex(n)` and `viewIndexes([...])` brand them.
 - Do not mount `DataGridUrlState` on a scroll-mode grid without both server modes, or nest a second `NuqsAdapter`.
 - Do not call `useDataGridPresence()` twice for one grid.
-- Do not create `aggregateRow`/`serverAggregateRow` inside a component body without `useMemo`.
 - Do not combine scroll mode and `data-grid-pagination` on one grid.

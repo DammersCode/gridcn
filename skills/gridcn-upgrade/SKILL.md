@@ -59,7 +59,7 @@ first: the next steps overwrite files. Sort the output into two piles:
   reconciliation, not a blind overwrite. `overwrite` only means the file differs from upstream.
   Without Git, ask the user which files they edited.
 
-If an installed item no longer exists (`data-grid-lazy` in 2.0), follow `https://gridcn.vercel.app/docs/support-upgrades/migrate-2-0.md#server-rows`, then delete its folder.
+If an installed item no longer exists (`data-grid-lazy` in 2.0), follow `https://gridcn.vercel.app/docs/support-upgrades/migrate-2-0.md#server-rows`, then delete its folder. For any 1.3-to-2.0 upgrade, also read `https://gridcn.vercel.app/docs/support-upgrades/migrate-2-0.md` step 5, the behavior changes that compile without an error.
 
 Done when every file the dry-run lists has a pile.
 

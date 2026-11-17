@@ -3,7 +3,7 @@ title: Upgrade gridcn
 icon: CircleArrowUp
 description: Update installed gridcn files to a newer release, keep your edits, and apply the breaking changes the changelog lists.
 type: task
-aliases: ["breaking changes", "migration", "update version"]
+aliases: ["migration", "update version"]
 ---
 
 Installed gridcn files are your source, so an upgrade reinstalls the registry files and asks before it replaces a file that differs. Follow these steps to keep your edits and apply each breaking change.
@@ -58,9 +58,9 @@ Each file that you overwrote matches the version from step 5. Each file that you
 
 When a file has many edits, create a scratch branch and run the install there with `--overwrite`. Compare it with your branch through `git diff <your-branch> -- 'components/data-grid*'`, and carry your edits into the new files on the scratch branch. `--overwrite` also replaces the shadcn components in `components/ui`. Restore each component that you changed, commit, and merge the scratch branch into your branch.
 
-## Views saved before 1.3.0 [#views-before-1-3]
+## Filters saved before 1.3.0 [#views-before-1-3]
 
-A view saved before gridcn 1.3.0 can hold a `joinOperator`. The filter list has no separate join, so wrap the filters in a group as you read the view:
+A filter state that you stored before gridcn 1.3.0 can hold a `joinOperator`. The filter list has no separate join, so wrap the filters in a group as you read it:
 
 ```ts
 import type { FilterNode } from "@/components/data-grid/data-grid";

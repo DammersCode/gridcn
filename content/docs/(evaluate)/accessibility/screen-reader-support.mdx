@@ -51,7 +51,7 @@ A cell with a validation error has `aria-invalid="true"` and the message in `ari
 
 The grid uses the roving tabindex pattern. Before a cell is active, the root of a grid with rows is the one tab stop (`tabindex="0"`). Once a cell is active, only that cell has `tabindex="0"`. The other cells and the root have `-1`. With zero rows, the root has `-1`.
 
-The filter button of each column is a tab stop, or the menu button when the column has no filter button. A header with neither has no tab stop. While the view has rows, no header is a tab stop.
+With zero rows, the filter button of each column is a tab stop, or the menu button when the column has no filter button. A header with neither has no tab stop. While the view has rows, no header is a tab stop.
 
 DOM focus follows the active cell. The active row stays mounted after it scrolls out of view, so focus stays. Pinned-row cells and skeleton cells have no `tabindex`.
 

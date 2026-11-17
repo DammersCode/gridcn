@@ -88,7 +88,7 @@ export function PeopleGrid() {
     <DataGrid
       defaultData={initialRows}
       columns={columns}
-      className="h-[400px]"
+      className="h-100"
     />
   );
 }

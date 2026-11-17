@@ -62,7 +62,7 @@ The ref applies to the item you name. The CLI fetches every registry dependency 
 
 To pin the whole install, install each dependency with the same ref first. Install `data-grid` before the others. Then install the add-on. If the CLI asks to overwrite a dependency file, answer no.
 
-To resolve a tag, a branch, or the default branch, the CLI runs `git ls-remote`. It then reads the files from `raw.githubusercontent.com`. If `git ls-remote` fails, the CLI resolves the ref through the GitHub API. It uses the `GH_TOKEN` or `GITHUB_TOKEN` variable, or the `gh` CLI when neither is set. A full commit SHA skips the lookup. Every `@gridcn` add-on that needs the core fetches it through the GitHub path. A core install from `@gridcn` needs neither `git` nor GitHub access.
+To resolve a tag, a branch, or the default branch, the CLI runs `git ls-remote`. It then reads the files from `raw.githubusercontent.com`. If `git ls-remote` fails, the CLI resolves the ref through the GitHub API. It uses the `GH_TOKEN` or `GITHUB_TOKEN` variable, or the `gh` CLI when neither is set. A full commit SHA skips the lookup. A `@gridcn` install, core or add-on, fetches every gridcn dependency from the hosted registry and needs neither `git` nor GitHub access. Only a GitHub-path install (`DammersCode/gridcn/<item>`) runs `git ls-remote`.
 
 ## Support [#support--security]
 
