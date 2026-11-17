@@ -14,11 +14,11 @@ gridcn ships as source through the shadcn registry, so it has no npm version. A 
 | Breaking change | Any release can carry one. The changelog marks it **Breaking:**. |
 | Public API | The props, hooks, and exports that the docs name, and `data-grid-sdk` |
 | Pinned release | `#<ref>` on the GitHub registry path |
-| Security fixes | Version 1.x, see [Supported versions](/docs/support-upgrades/security-policy#supported-versions) |
+| Security fixes | Version 2.x, and 1.x for 90 days after the 2.0.0 tag, see [Supported versions](/docs/support-upgrades/security-policy#supported-versions) |
 
 ## Release tags [#version]
 
-A release is a git tag named `vMAJOR.MINOR.PATCH`, for example `v1.3.0`. The changelog heading of each release has the same number and the release date. The docs follow the `main` branch, so a change under **Unreleased** in the changelog is in no release tag yet. The [tags page](https://github.com/DammersCode/gridcn/tags) lists every release.
+A release is a git tag named `vMAJOR.MINOR.PATCH`, for example `v2.0.0`. The changelog heading of each release has the same number and the release date. The docs follow the `main` branch, so a change under **Unreleased** in the changelog is in no release tag yet. The [tags page](https://github.com/DammersCode/gridcn/tags) lists every release.
 
 Any release can carry a change marked **Breaking:** in the changelog. Read the changelog of every release between your version and the target. [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn#updating-installed-code) shows how to find your version.
 
@@ -50,7 +50,7 @@ The `data-grid-pagination` barrel drops `pageCount`, `clampPage`, `pageRange`, `
 
 The hosted `@gridcn` registry serves the source of the most recent deployment of the `main` branch. To pin a release, add `#<ref>` to the GitHub registry path. The ref is a tag, a branch, or a full 40-character commit SHA. Without a ref, the CLI uses the default branch:
 
-<InstallCommand command="shadcn add DammersCode/gridcn/data-grid#v1.3.0" />
+<InstallCommand command="shadcn add DammersCode/gridcn/data-grid#v2.0.0" />
 
 The ref applies to the item you name. The CLI fetches every registry dependency of that item without the ref, from the default branch. Most add-ons depend on the core item, `data-grid`. These add-ons also depend on another gridcn item:
 

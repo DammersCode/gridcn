@@ -16,7 +16,8 @@ advisory is published.
 
 | Version | Supported |
 | --- | --- |
-| 1.x | Yes |
+| 2.x | Yes |
+| 1.x | Security fixes until 90 days after the 2.0.0 tag |
 | 0.x | No |
 
 ## Scope

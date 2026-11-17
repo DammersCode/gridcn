@@ -7,7 +7,7 @@ asks before overwriting a file that differs.
 
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## Unreleased
+## 2.0.0 - 2026-11-17
 
 The [2.0 breaking changes](https://gridcn.vercel.app/docs/support-upgrades/breaking-changes-2-0) page shows the 1.3 form, the 2.0 form, and the change for each breaking entry below.
 

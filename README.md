@@ -54,7 +54,7 @@ The CLI resolves the `@gridcn` registry from the hosted site, so there is no set
 To pin a tag, branch, or commit, use the GitHub registry path:
 
 ```bash
-npx shadcn add DammersCode/gridcn/data-grid#v1.3.0
+npx shadcn add DammersCode/gridcn/data-grid#v2.0.0
 ```
 
 The ref applies to the item you name only. The CLI resolves its `registryDependencies` without the ref, so a pinned add-on still installs its dependencies from the default branch. To pin the whole install, install each dependency with the same ref first, starting with the core. If the CLI then asks to overwrite a dependency file, answer no. A GitHub path install resolves the ref with `git ls-remote`, or through the GitHub API when that fails, and reads files from `raw.githubusercontent.com`. A full commit SHA skips the lookup.

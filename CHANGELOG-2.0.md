@@ -4,6 +4,7 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 
 ## Core
 
+- `api.getSelectedRows()` on the grid ref returns the checked rows for a bulk action, the same value `useDataGridSelectedRows()` returns, without a subscription.
 - Row ids that start with `__` belong to the grid, such as the ids of pinned and unloaded rows.
 - `DataGridHeaderFilter`, `DataGridHeaderDropdown`, and `DataGridKeybindingsDialog` accept `className`. It merges into the filter button, the menu content, and the dialog content.
 - A plugin whose `name` an earlier plugin already uses is ignored with all its members. Its `commands` and `keymap` still merged, and its command won a name conflict with the first plugin.
@@ -199,6 +200,7 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 
 ## Docs and tooling
 
+- The docs site runs on Next.js 16.4.6, which fixes a security advisory in 16.4.3. The registry payloads that consumers install do not depend on it.
 - Distribution: `npx shadcn add @gridcn/data-grid` no longer installs the `dropdown-menu`, `context-menu`, and `separator` components. The core never imported them. An add-on that needs one declares it.
 - New demos `data-grid-save-conflict-demo` (`resolveSaveConflict` with `"theirs"`, `"mine"`, or a merged row), `data-grid-id-swap-demo` (`actions.replaceRowId` and the `"id-swap"` change), and `data-grid-row-action-results-demo` (a slow `onBeforeDeleteRows` under `gateTimeoutMs`, with `onRowActionSkipped` and each `RowActionResult` in a log).
 - New demos `data-grid-cursor-react-query-demo`, `data-grid-cursor-swr-demo`, `data-grid-export-all-demo`, `data-grid-io-hooks-demo`, `data-grid-views-demo`, `data-grid-server-totals-demo`, and `data-grid-lookup-demo`.
