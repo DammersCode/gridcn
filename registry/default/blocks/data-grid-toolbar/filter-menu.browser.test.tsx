@@ -22,7 +22,7 @@ async function newRowOperatorText(filterMode: "client" | "server") {
     </DataGridProvider>,
   );
   await userEvent.click(document.querySelector<HTMLElement>('button[aria-label="Filters"]')!);
-  const add = [...document.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent?.includes("Add filter"));
+  const add = document.querySelector<HTMLButtonElement>('button[aria-label="Add filter"]');
   await userEvent.click(add!);
   return document.querySelector<HTMLElement>('[data-grid-filter-row] [aria-label*="perator" i]')?.textContent ?? "";
 }
@@ -45,7 +45,7 @@ describe("DataGridFilterMenu row grouping", () => {
       </DataGridProvider>,
     );
     await userEvent.click(document.querySelector<HTMLElement>('button[aria-label="Filters"]')!);
-    const add = [...document.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent?.includes("Add filter"));
+    const add = document.querySelector<HTMLButtonElement>('button[aria-label="Add filter"]');
     await userEvent.click(add!);
   }
 
@@ -92,7 +92,7 @@ describe("DataGridFilterMenu row alignment", () => {
       </DataGridProvider>,
     );
     await userEvent.click(document.querySelector<HTMLElement>('button[aria-label="Filters"]')!);
-    const add = [...document.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent?.includes("Add filter"));
+    const add = document.querySelector<HTMLButtonElement>('button[aria-label="Add filter"]');
     await userEvent.click(add!);
     await userEvent.click(add!);
     const edges = (row: Element) =>
