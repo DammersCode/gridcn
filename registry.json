@@ -303,6 +303,16 @@
                "target": "components/data-grid/interaction/safe-set-pointer-capture.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/interaction/portaled-events.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/interaction/portaled-events.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/interaction/editing-cell-type.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/interaction/editing-cell-type.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/interaction/use-cell-editor.ts",
                "type": "registry:component",
                "target": "components/data-grid/interaction/use-cell-editor.ts"
@@ -471,6 +481,11 @@
                "path": "registry/default/blocks/data-grid/rows/use-class-name-revision.ts",
                "type": "registry:component",
                "target": "components/data-grid/rows/use-class-name-revision.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/rows/use-latest-renderer.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/rows/use-latest-renderer.ts"
             },
             {
                "path": "registry/default/blocks/data-grid/rows/marker-width.ts",

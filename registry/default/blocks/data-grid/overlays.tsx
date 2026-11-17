@@ -1,6 +1,6 @@
 "use client";
 
-import { type CSSProperties, type ReactNode } from "react";
+import { useMemo, type CSSProperties, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { GRID_LAYER } from "./layers";
 import type { ViewCoord, CompactSelectionLike, GridRect } from "./types";
@@ -12,6 +12,7 @@ import {
   useDataGridPluginOverlays,
   useDataGridSelection,
   useDataGridSelectionPointer,
+  useDataGridVisibleColumns,
   type AnyColumnDef,
 } from "./store";
 import type { SelectionPointer } from "./store/types";
@@ -210,6 +211,8 @@ export type OverlayPluginCtx = {
   pinTrack?: PinTrackData;
   /** The input that wrote the current selection. A touch selection shows selection handles at the range corners. */
   selectionPointer: SelectionPointer;
+  /** The rect `x` of a column: its index among the visible columns, or `-1` for a hidden or unknown column. */
+  columnIndexOf: (columnId: string) => number;
   splitRectByPinZones: typeof splitRectByPinZones;
   clampRectToWindow: typeof clampRectToWindow;
 };
@@ -237,6 +240,11 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
   const activeCell = useDataGridActiveCell();
   const overlays = useDataGridPluginOverlays();
   const selectionPointer = useDataGridSelectionPointer();
+  const visibleColumns = useDataGridVisibleColumns();
+  const columnIndexOf = useMemo(() => {
+    const indexById = new Map(visibleColumns.map((column, index) => [column.id, index]));
+    return (columnId: string) => indexById.get(columnId) ?? -1;
+  }, [visibleColumns]);
   const editing = useDataGridEditing();
   const pinned = hasAnyPin(pinTrack) ? pinTrack : undefined;
 
@@ -312,6 +320,7 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
             colOffset={colOffset}
             pinTrack={pinTrack}
             selectionPointer={selectionPointer}
+            columnIndexOf={columnIndexOf}
             splitRectByPinZones={splitRectByPinZones}
             clampRectToWindow={clampRectToWindow}
           />

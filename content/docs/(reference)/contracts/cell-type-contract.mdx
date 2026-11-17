@@ -71,7 +71,7 @@ const compare = (a: string, b: string) => sortCollator().compare(a, b);
 - `pending` is true while an async Standard Schema validates the commit. Set the input to `readOnly`, never `disabled`, so that Escape and blur still work.
 - `rejectionCount` rises on each refused commit attempt. A new session resets it. If it rises, re-arm a commit guard.
 
-Content that the editor portals out of the cell, such as a popover, carries `data-grid-cell-editor`. Without the marker, a press in portaled content outside the grid clears the cell range. After the commit, the focus stays where it went and does not return to the cell. An editor that commits on blur also commits when the focus moves into its portaled content.
+Portaled editor content, such as a popover, keeps the edit and the cell range on a press, a double click, and a focus. The `data-grid-cell-editor` marker is optional. An editor that commits on blur also commits when the focus moves into its portaled content.
 
 ### toText, fromText, clearValue, and isEmpty [#totext-fromtext-clearvalue-and-isempty]
 
@@ -184,7 +184,7 @@ export function Orders({ rows }: { rows: Order[] }) {
 
 `useCellEditor(props, codec)` builds a text-input editor. It owns the draft state, the end-caret focus, and a one-shot commit guard. It binds Enter, Escape, and blur. Enter commits and moves down. Escape cancels. A blur commits in place. It skips keys during IME composition.
 
-The `codec` is a `CellEditorCodec`. It holds `toDraft(value)` and `toValue(draft)`. If `toValue` throws, the editor stays open with the draft unchanged, and the next commit runs again. The hook returns `ref`, `value`, `onChange`, `onKeyDown`, `onBlur`, `readOnly`, `aria-label`, `aria-busy`, and `dir`. Spread the result onto an input.
+The `codec` is a `CellEditorCodec`. It holds `toDraft(value)` and an optional `toValue(draft)`. Without `toValue`, the hook parses the draft with the `fromText` of the column's cell type. If the parser throws, for example through `rejectText()`, the editor stays open with the draft unchanged, and the next commit runs again. The hook returns `ref`, `value`, `onChange`, `onKeyDown`, `onBlur`, `readOnly`, `aria-label`, `aria-busy`, and `dir`. Spread the result onto an input.
 
 For an editor that is not a text input, import `useCommitGuard` and `useSeedFocus` from the same entry point. `tryCommit()` returns `true` once. `reset()` re-arms it.
 

@@ -56,6 +56,7 @@ import { DataGridLoadingSkeleton, DataGridLoadingBar, DataGridLoadingProgress } 
 import { Button } from "@/components/ui/button";
 import { useSecondRootWarning, useUnnamedGridWarning } from "./root-dev-warnings";
 import { useClassNameRevision, type RenderedRows } from "./rows/use-class-name-revision";
+import { useLatestRenderer } from "./rows/use-latest-renderer";
 import { GRID_ATTR, gridAttrSelector } from "./data-attributes";
 import { closestGridRoot } from "./interaction/closest-grid-root";
 
@@ -523,6 +524,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   );
 
   const renderedRowsRef = useRef<RenderedRows | null>(null);
+  const [stableRenderMarker, stableRenderMarkerHeader] = [useLatestRenderer(renderMarker), useLatestRenderer(renderMarkerHeader)];
   const classNames = useClassNameRevision({ getRowClassName: getRowClassName as GetRowClassName<unknown> | undefined, getCellClassName: getCellClassName as GetCellClassName<unknown> | undefined }, renderedRowsRef);
   // Stable context value on real deps (mustFix): DataGridRoot re-renders when the active
   // cell leaves the rendered column window, and cell.tsx/header.tsx read this context directly —
@@ -549,8 +551,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       direction,
       renderHeaderMenu,
       renderHeaderFilter,
-      renderMarker,
-      renderMarkerHeader,
+      renderMarker: stableRenderMarker,
+      renderMarkerHeader: stableRenderMarkerHeader,
       // Erasure boundary: DataGridRootContextValue is one shared non-generic context for every
       // DataGridRoot<TData>, so a typed caller's callbacks widen to <unknown> here — safe because
       // every row they ever receive at runtime came from this same subtree's DataGridProvider.
@@ -579,8 +581,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       direction,
       renderHeaderMenu,
       renderHeaderFilter,
-      renderMarker,
-      renderMarkerHeader,
+      stableRenderMarker, stableRenderMarkerHeader,
       classNames,
     ],
   );
@@ -616,7 +617,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
         onKeyDown={interaction.onKeyDown}
         onPointerDown={interaction.onRootPointerDown}
         onContextMenuCapture={suppressNativeTouchContextMenu}
-        onPointerDownCapture={() => {
+        onPointerDownCapture={(event) => {
+          interaction.onRootPointerDownCapture(event);
           pointerInteractionRef.current = true;
         }}
         onFocus={(event) => {

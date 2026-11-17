@@ -24,7 +24,7 @@ The marker column sits at the start of the grid, outside your `columns`. This gr
 
 A cell click sets `isCellSelected`. With `checkedRowsLifetime="until-click"` (the default for markers without a checkbox), a cell click also clears the checked rows.
 
-`renderMarkerHeader` receives `allSelected`. It runs inside the provider, so it can call `useDataGridActions`. A new renderer function re-renders every rendered row, so define both renderers at module scope:
+`renderMarkerHeader` receives `allSelected`, `ariaLabel`, and `toggleAll`. It runs inside the provider, so it can call `useDataGridActions`. A marker renders again when its row changes, so both renderers can be inline functions. The sample defines them at module scope:
 
 ```tsx
 import {

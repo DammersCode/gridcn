@@ -460,6 +460,16 @@ describe("textCellType.Editor lifecycle", () => {
     expect(cancel).not.toHaveBeenCalled();
   });
 
+  it("the number editor inherits the cell alignment instead of fixing it to the end", () => {
+    const { onChange, commit, commitValue, cancel } = editorSpies();
+    render(
+      <numberCellType.Editor value={1} initialText="1" row={{}} rowId="r" columnId="col" column={noopColumnOf<number | null>()} onChange={onChange} commit={commit} commitValue={commitValue} cancel={cancel} />,
+    );
+    const input = screen.getByRole("textbox");
+    expect(input.className).not.toContain("text-end");
+    expect(input.className).toContain("text-align:inherit");
+  });
+
   it("Escape cancels without calling onChange", async () => {
     const user = userEvent.setup();
     const { onChange, commit, commitValue, cancel } = editorSpies();

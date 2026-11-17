@@ -121,7 +121,6 @@ function Cell({ value, options }: CellRenderProps<unknown, Value, Options>) {
 function Editor(props: CellEditorProps<unknown, Value, Options>) {
   const { ref, ...bindings } = useCellEditor(props, {
     toDraft: (value) => (value === null ? "" : String(value)),
-    toValue: fromText,
   });
   return <Input ref={ref} {...bindings} className="h-full text-end" />;
 }

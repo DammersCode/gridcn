@@ -938,3 +938,24 @@ describe("fill plugin commands (mod+D / mod+R)", () => {
     expect(keymap.fillRight).toBeUndefined();
   });
 });
+
+describe("overlay ctx columnIndexOf", () => {
+  it("maps a column id to its visible index and a hidden or unknown id to -1", () => {
+    const seen = { name: 0, qty: 0, none: 0 };
+    const Overlay = (ctx: { columnIndexOf: (id: string) => number }) => {
+      seen.name = ctx.columnIndexOf("name");
+      seen.qty = ctx.columnIndexOf("qty");
+      seen.none = ctx.columnIndexOf("none");
+      return null;
+    };
+    render(
+      <DataGrid
+        data={rows}
+        columns={[{ ...columns[0]!, hidden: true }, columns[1]!]}
+        getRowId={getRowId}
+        plugins={[{ name: "idx", Overlay }]}
+      />,
+    );
+    expect(seen).toEqual({ name: -1, qty: 0, none: -1 });
+  });
+});

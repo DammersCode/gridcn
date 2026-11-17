@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useCellEditor, type CellEditorCodec } from "./use-cell-editor";
+import { EditingCellTypeContext } from "./editing-cell-type";
+import { rejectText } from "../cell-types/safe-from-text";
 import type { CellEditorProps, ColumnDef } from "../types";
 
 afterEach(cleanup);
@@ -203,3 +205,50 @@ describe("useCellEditor with a throwing toValue", () => {
   });
 });
 
+
+describe("useCellEditor without toValue", () => {
+  const ratingType = {
+    Cell: () => null,
+    Editor: () => null,
+    toText: (value: number | null) => (value === null ? "" : String(value)),
+    fromText: (text: string) => (/^[1-5]$/.test(text) ? Number(text) : rejectText()),
+  };
+
+  function DraftOnlyEditor(props: Props) {
+    const { ref, ...rest } = useCellEditor(props, { toDraft: (value) => (value == null ? "" : String(value)) });
+    return <input ref={ref} {...rest} aria-label="probe" />;
+  }
+
+  function renderInGrid(props: Props) {
+    return render(
+      <EditingCellTypeContext value={ratingType as never}>
+        <DraftOnlyEditor {...props} />
+      </EditingCellTypeContext>,
+    );
+  }
+
+  it("parses the draft with the column type's fromText", async () => {
+    const user = userEvent.setup();
+    const props = makeProps({ column: { id: "col", header: "Col", type: "rating" } as never });
+    renderInGrid(props);
+    await user.type(screen.getByRole("textbox"), "4");
+    await user.keyboard("{Enter}");
+    expect(props.onChange).toHaveBeenCalledWith(4);
+    expect(props.commit).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the editor open when fromText rejects the text, and a later commit runs again", async () => {
+    const user = userEvent.setup();
+    const props = makeProps({ column: { id: "col", header: "Col", type: "rating" } as never });
+    renderInGrid(props);
+    const input = screen.getByRole("textbox");
+    await user.type(input, "9");
+    await user.keyboard("{Enter}");
+    expect(props.onChange).not.toHaveBeenCalled();
+    expect(props.commit).not.toHaveBeenCalled();
+    await user.clear(input);
+    await user.type(input, "3");
+    await user.keyboard("{Enter}");
+    expect(props.onChange).toHaveBeenCalledWith(3);
+  });
+});

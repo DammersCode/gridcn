@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import type { RowMarkersMode } from "../types";
 import { GRID_LAYER } from "../layers";
 import { gridAttrSelector } from "../data-attributes";
-import type { MarkerCellRenderer } from "../layout-context";
+import type { MarkerCellRenderCtx, MarkerCellRenderer } from "../layout-context";
 import { isReorderMarkerMode, markerContent } from "./marker-width";
 import {
   useDataGridActions,
@@ -79,6 +79,30 @@ export const DataGridMarkerCell = memo(function DataGridMarkerCell(props: DataGr
   const showGrip = isReorderMarkerMode(mode);
   const swapOnHover = content === "both";
 
+  const handleRead = { current: false };
+  const markerCtx: MarkerCellRenderCtx = { rowId, viewRowIndex, isChecked: isRowChannelSelected, isRowChannelSelected, isCellSelected };
+  Object.defineProperty(markerCtx, "reorderHandleProps", {
+    enumerable: true,
+    get() {
+      handleRead.current = true;
+      return showGrip ? REORDER_HANDLE_PROPS : undefined;
+    },
+  });
+  const customContent = renderMarker?.(markerCtx);
+  const ownHandle = (
+    <span
+      data-grid-reorder-handle=""
+      aria-hidden="true"
+      className={cn(
+        "flex h-full touch-none items-center justify-center text-muted-foreground select-none",
+        renderMarker || showNumber || showCheckbox ? "w-5 shrink-0" : "flex-1",
+        isReorderDragging ? "cursor-grabbing" : "cursor-grab",
+      )}
+    >
+      <GripVertical className="size-3.5" />
+    </span>
+  );
+
   return (
     <div
       role="gridcell"
@@ -116,22 +140,13 @@ export const DataGridMarkerCell = memo(function DataGridMarkerCell(props: DataGr
       }}
     >
       {renderMarker ? (
-        renderMarker({ rowId, viewRowIndex, isChecked: isRowChannelSelected, isRowChannelSelected, isCellSelected, reorderHandleProps: showGrip ? REORDER_HANDLE_PROPS : undefined })
+        <>
+          {showGrip && !handleRead.current && ownHandle}
+          {customContent}
+        </>
       ) : (
         <>
-          {showGrip && (
-            <span
-              data-grid-reorder-handle=""
-              aria-hidden="true"
-              className={cn(
-                "flex h-full touch-none items-center justify-center text-muted-foreground select-none",
-                showNumber || showCheckbox ? "w-5 shrink-0" : "flex-1",
-                isReorderDragging ? "cursor-grabbing" : "cursor-grab",
-              )}
-            >
-              <GripVertical className="size-3.5" />
-            </span>
-          )}
+          {showGrip && ownHandle}
           {(showNumber || showCheckbox) && (
             <span className={cn("flex h-full items-center justify-center", showGrip ? "min-w-0 flex-1" : "flex-1")}>
               {showCheckbox && (
