@@ -3353,6 +3353,11 @@
                "target": "components/data-grid-comments/labels.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid-comments/own-cell.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-comments/validate.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid-comments/validate.ts",
                "type": "registry:component",
                "target": "components/data-grid-comments/validate.ts"
