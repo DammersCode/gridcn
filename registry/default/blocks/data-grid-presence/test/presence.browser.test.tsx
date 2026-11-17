@@ -3,7 +3,7 @@ import { page, userEvent } from "vitest/browser";
 import { render } from "vitest-browser-react";
 import { DataGridBody, DataGridHeader, DataGridProvider, DataGridRoot } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridPresence } from "../data-grid-presence";
-import type { PresenceHighlight } from "../data-grid-presence";
+import type { ViewRangePresenceHighlight } from "../data-grid-presence";
 import { gridAttrSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { cellAt, expectEdgesWithin, firstRowHeight, originRebased, scrollByTicks, unionRect } from "@/registry/default/blocks/data-grid/test/scroll-origin.test-helper";
 // real stylesheet so Tailwind's `grid`/color-mix()/CSS vars actually apply — paint placement is unverifiable without real layout
@@ -39,7 +39,7 @@ async function renderEngine(opts: {
   width?: number;
   height?: number;
 }) {
-  let setPresenceHighlights!: (h: PresenceHighlight[]) => void;
+  let setPresenceHighlights!: (h: ViewRangePresenceHighlight[]) => void;
 
   function Harness() {
     const { plugin, setPresenceHighlights: setHighlights } = useDataGridPresence();
@@ -59,7 +59,7 @@ async function renderEngine(opts: {
       <Harness />
     </div>,
   );
-  return { ...utils, setPresenceHighlights: (h: PresenceHighlight[]) => setPresenceHighlights(h) };
+  return { ...utils, setPresenceHighlights: (h: ViewRangePresenceHighlight[]) => setPresenceHighlights(h) };
 }
 
 describe("multiplayer presence — paint placement", () => {

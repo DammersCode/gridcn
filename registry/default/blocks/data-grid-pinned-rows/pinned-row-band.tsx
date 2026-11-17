@@ -4,9 +4,9 @@ import { useCallback, useState, type CSSProperties, type ReactNode } from "react
 import { GRID_LAYER, type GridColumnLayout, type RenderedColumn } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { cn } from "@/lib/utils";
 import { DataGridPinnedRow } from "./pinned-row";
-import { isPinnedRowSource } from "./pinned-row-source";
+import { isPinnedRowSource, type PinnedRowSource } from "./pinned-row-source";
 import { DataGridPinnedSourceRow } from "./pinned-source-row";
-import type { ServerAggregateStatus } from "./use-data-grid-server-aggregate";
+import type { ServerAggregateResult, ServerAggregateStatus } from "./use-data-grid-server-aggregate";
 
 const NO_STATUSES: ReadonlyMap<number, ServerAggregateStatus> = new Map();
 const STATUS_PRECEDENCE: readonly ServerAggregateStatus[] = ["loading", "stale", "error"];
@@ -35,6 +35,8 @@ export type DataGridPinnedRowBandProps = {
   ariaRowIndexBase: number;
   /** Server value state: anything but `"ready"` dims the band; `"loading"` and `"stale"` set `aria-busy`. Default: the status of the band's `serverAggregateRow` entries, else `"ready"`. */
   status?: ServerAggregateStatus;
+  /** Receives the result of each `serverAggregateRow` entry, and `undefined` when its row unmounts. */
+  onServerResult?: (source: PinnedRowSource, result: ServerAggregateResult | undefined) => void;
 };
 
 /**
@@ -98,7 +100,7 @@ export function DataGridPinnedRowBand(props: DataGridPinnedRowBandProps): ReactN
           className: position === "bottom" ? "border-t border-border" : undefined,
         };
         // oxlint-disable-next-line react/no-array-index-key -- a pinned row id can be a band id; band position is a stable key for a small consumer array.
-        return isPinnedRowSource(row) ? <DataGridPinnedSourceRow key={i} {...rowProps} source={row} onStatus={reportStatus} /> : <DataGridPinnedRow key={i} {...rowProps} row={row} />;
+        return isPinnedRowSource(row) ? <DataGridPinnedSourceRow key={i} {...rowProps} source={row} onStatus={reportStatus} onResult={props.onServerResult} /> : <DataGridPinnedRow key={i} {...rowProps} row={row} />;
       })}
     </div>
   );

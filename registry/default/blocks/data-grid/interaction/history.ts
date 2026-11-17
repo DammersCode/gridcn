@@ -236,6 +236,8 @@ export type History<TData> = {
   readonly canRedo: boolean;
   /** Clears both stacks. */
   clear(): void;
+  /** Changes the capacity; a smaller one drops the oldest undo entries now. */
+  setCapacity(capacity: number): void;
   /** Number of entries on the undo stack. */
   readonly size: number;
 };
@@ -262,7 +264,7 @@ function rowPatch(oldRow: unknown, newRow: unknown): { set: [string, unknown][];
 
 /** Creates a row-id-based undo/redo history. */
 export function createHistory<TData>(opts: HistoryOptions = {}): History<TData> {
-  const capacity = opts.capacity ?? 100;
+  let capacity = opts.capacity ?? 100;
   let undoStack: DataChange<TData>[] = [];
   let redoStack: DataChange<TData>[] = [];
   const applied = new WeakMap<DataChange<TData>, Applied<TData>>();
@@ -385,6 +387,10 @@ export function createHistory<TData>(opts: HistoryOptions = {}): History<TData> 
     clear() {
       undoStack = [];
       redoStack = [];
+    },
+    setCapacity(next) {
+      capacity = next;
+      if (undoStack.length > capacity) undoStack = undoStack.slice(undoStack.length - capacity);
     },
     get size() {
       return undoStack.length;

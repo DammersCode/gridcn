@@ -7,3 +7,11 @@ export function Probe() {
   const _status: "loading" | "stale" | "ready" | "error" = status;
   return [_row, _status];
 }
+
+import { useDataGridPinnedRows } from "./use-data-grid-pinned-rows";
+
+export function PinnedProbe() {
+  const { serverAggregates } = useDataGridPinnedRows();
+  const _status: "loading" | "stale" | "ready" | "error" | undefined = serverAggregates[0]?.status;
+  return _status;
+}

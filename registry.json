@@ -964,6 +964,11 @@
                "path": "registry/default/blocks/data-grid-presence/presence-overlay.tsx",
                "type": "registry:component",
                "target": "components/data-grid-presence/presence-overlay.tsx"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-presence/to-presence-entries.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-presence/to-presence-entries.ts"
             }
          ],
          "categories": [

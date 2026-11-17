@@ -4,7 +4,7 @@
  * useDataGridVisibleColumns/useDataGridAllColumns consumer callability, and a spot-check that the
  * barrel exports no accidental `any`. No runtime assertions live here; the tsc gate typechecks this
  * file (named so vitest's *.test.ts glob does not pick it up, matching
- * columns/column-helpers.type-test.ts). `PresenceHighlight`'s own type-test lives in the
+ * columns/column-helpers.type-test.ts). `ViewRangePresenceHighlight`'s own type-test lives in the
  * `data-grid-presence` add-on with the rest of presence.
  */
 import type { StoreApi } from "zustand/vanilla";

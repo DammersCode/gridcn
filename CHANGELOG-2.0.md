@@ -210,6 +210,10 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - `LookupOptions<TData>` and `LookupFetchRequest<TData>` type the edited row, and the lookup add-on registers its own `GridCellTypes` entry.
 - `useDataGridUrlState` and `DataGridUrlState` take `enableNavigationSync` (default `true`): back and forward apply the URL. `applyFromUrl()` stays the manual equivalent.
 - The presence barrel exports `ExcessRectsContext`. `history.record()` needs no `source`.
+- History: a change of `capacity` between renders keeps the undo and redo entries and trims the oldest to the new value. It started an empty history. `useDataGridHistory` warns once in development when its plugin never mounts. `undo` over a cursor source (`totalRowCount: null`) keeps the entry and reports `rows-not-loaded`, where it dropped it as `rows-gone`.
+- Presence: `toPresenceEntries(selection, details, { id, color, columnIds })` turns a local selection into the row-id range entry to send to peers.
+- **Breaking:** the presence type `PresenceHighlight` is `ViewRangePresenceHighlight`. The shape is the same.
+- Pinned rows: `useDataGridPinnedRows` returns `serverAggregates`, the result of each `serverAggregateRow` entry with `row`, `status`, `refresh()`, and `retry()`. A refresh button or a status label no longer needs a reporter and state above the hook.
 
 ## Accessibility and keyboard
 

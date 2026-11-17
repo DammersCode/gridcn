@@ -14,6 +14,7 @@ aliases: ["presence highlight", "remote cursors", "collaborator selection"]
 | [`setPresenceHighlights`](#usedatagridpresenceresult) | Replaces the whole list of highlights | [Show presence](/docs/rows-live-data/show-presence) |
 | [`removePresenceHighlight`](#usedatagridpresenceresult) | Removes one highlight by `id` | [Show presence](/docs/rows-live-data/show-presence) |
 | [`clearPresenceHighlights`](#usedatagridpresenceresult) | Removes every highlight | [Show presence](/docs/rows-live-data/show-presence) |
+| `toPresenceEntries` | Turns a local selection into the row-id range entry to send to peers | [Broadcast your selection](/docs/rows-live-data/broadcast-your-selection) |
 | [Highlight shapes](#highlight-shapes) | The cell, row-id range, and view range entries | [Show presence](/docs/rows-live-data/show-presence) |
 
 ## Options [#usedatagridpresenceoptions]
@@ -54,7 +55,7 @@ A highlight entry has one of three shapes. Every shape needs a unique `id`, a `c
 | --- | --- | --- |
 | `RowIdPresenceHighlight` | `rowId`, `columnId` | The row ids and column ids of the receiving grid |
 | `RowIdRangePresenceHighlight` | `rowIds`, `columnIds` | The row ids and column ids of the receiving grid |
-| `PresenceHighlight` | `range` | Nothing: the view indices paint as given. A receiver with another sort or filter paints wrong cells. |
+| `ViewRangePresenceHighlight` | `range` | Nothing: the view indices paint as given. A receiver with another sort or filter paints wrong cells. |
 
 ### Single cell [#rowidpresencehighlight]
 
@@ -70,9 +71,9 @@ A row-id range is a `RowIdRangePresenceHighlight`:
 
 ### View range [#presencehighlight]
 
-A view range is a `PresenceHighlight`:
+A view range is a `ViewRangePresenceHighlight`:
 
-<AutoTypeTable path="./registry/default/blocks/data-grid-presence/presence-store.ts" name="PresenceHighlight" />
+<AutoTypeTable path="./registry/default/blocks/data-grid-presence/presence-store.ts" name="ViewRangePresenceHighlight" />
 
 The overlay drops a row that a filter hides. For a single cell with a hidden or unknown column, it drops the entry and warns once in development. For a range, it drops the missing columns and warns once. A range with no resolved row or no resolved column paints nothing. A filter that splits a range paints one rect per contiguous fragment. An entry that carries both `rowId` and `rowIds` paints as a single cell.
 

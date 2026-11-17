@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { DataGridPlugin, RowBandRenderCtx } from "@/registry/default/blocks/data-grid/data-grid";
 import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { DataGridPinnedRowBand } from "./pinned-row-band";
-import { forwardSource, isPinnedRowSource } from "./pinned-row-source";
-import type { ServerAggregateStatus } from "./use-data-grid-server-aggregate";
+import { forwardSource, isPinnedRowSource, type PinnedRowSource } from "./pinned-row-source";
+import { PENDING_SERVER_AGGREGATE, type ServerAggregateResult, type ServerAggregateStatus } from "./use-data-grid-server-aggregate";
 
 /** Options for {@link useDataGridPinnedRows}. */
 export type UseDataGridPinnedRowsOptions = {
@@ -21,7 +21,29 @@ export type UseDataGridPinnedRowsOptions = {
 export type UseDataGridPinnedRowsResult = {
   /** Pass this into the grid's `plugins` prop (`plugins={[pinnedRows.plugin]}`). Stable across renders while `topRows` and `bottomRows` keep the same entries (a plain row object by its own values, an `aggregateRow` or `serverAggregateRow` by its content, so an inline array, an inline `aggregateRow`, and an inline `serverAggregateRow` are fine, also with inline functions) and `status` stays the same. */
   plugin: DataGridPlugin<unknown>;
+  /** The result of each `serverAggregateRow` entry (`row`, `status`, `error`, `loading`, `refresh()`, `retry()`), top band first, in entry order. Empty without such an entry. Each result starts as `PENDING_SERVER_AGGREGATE` until the band mounts. */
+  serverAggregates: readonly ServerAggregateResult[];
 };
+
+/** Holds the results that the bands report as an immutable map; a result is cleared when its row unmounts. */
+class ServerResults {
+  private results: ReadonlyMap<PinnedRowSource, ServerAggregateResult> = new Map();
+  private listeners = new Set<() => void>();
+
+  subscribe = (listener: () => void) => {
+    this.listeners.add(listener);
+    return () => void this.listeners.delete(listener);
+  };
+  getSnapshot = () => this.results;
+  report = (source: PinnedRowSource, result: ServerAggregateResult | undefined) => {
+    if (this.results.get(source) === result) return;
+    const next = new Map(this.results);
+    if (result) next.set(source, result);
+    else next.delete(source);
+    this.results = next;
+    this.listeners.forEach((listener) => listener());
+  };
+}
 
 const EMPTY_ROWS: readonly never[] = [];
 
@@ -102,22 +124,28 @@ export function useDataGridPinnedRows(options: UseDataGridPinnedRowsOptions = {}
   const topRows = useStableEntries(options.topRows ?? EMPTY_ROWS);
   const bottomRows = useStableEntries(options.bottomRows ?? EMPTY_ROWS);
   useWarnSharedServerRow(topRows, bottomRows);
+  const [serverResults] = useState(() => new ServerResults());
+  const results = useSyncExternalStore(serverResults.subscribe, serverResults.getSnapshot, serverResults.getSnapshot);
+  const serverAggregates = useMemo(
+    () => [...topRows, ...bottomRows].filter(isPinnedRowSource).flatMap((entry) => (entry.kind === "server-aggregate" ? [results.get(entry) ?? PENDING_SERVER_AGGREGATE] : [])),
+    [topRows, bottomRows, results],
+  );
   const plugin = useMemo<DataGridPlugin<unknown>>(
     () => ({
       name: "pinned-rows",
       rowBands: {
         top: topRows,
         bottom: bottomRows,
-        render: (ctx: RowBandRenderCtx) => renderPinnedRowBand(ctx, status),
+        render: (ctx: RowBandRenderCtx) => renderPinnedRowBand(ctx, status, serverResults.report),
       },
     }),
-    [topRows, bottomRows, status],
+    [topRows, bottomRows, status, serverResults],
   );
 
-  return { plugin };
+  return { plugin, serverAggregates };
 }
 
-function renderPinnedRowBand(ctx: RowBandRenderCtx, status: ServerAggregateStatus | undefined) {
+function renderPinnedRowBand(ctx: RowBandRenderCtx, status: ServerAggregateStatus | undefined, onServerResult: (source: PinnedRowSource, result: ServerAggregateResult | undefined) => void) {
   const { position, rows, renderedColumns, layout, rowHeight, template, headerHeight, ariaRowIndexBase } = ctx;
   return (
     <DataGridPinnedRowBand
@@ -130,6 +158,7 @@ function renderPinnedRowBand(ctx: RowBandRenderCtx, status: ServerAggregateStatu
       headerHeight={headerHeight}
       ariaRowIndexBase={ariaRowIndexBase}
       status={status}
+      onServerResult={onServerResult}
     />
   );
 }

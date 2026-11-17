@@ -6,7 +6,7 @@ import { GRID_LAYER, hasAnyPin } from "@/registry/default/blocks/data-grid/data-
 import {
   isRowIdPresenceHighlight,
   isRowIdRangePresenceHighlight,
-  type PresenceHighlight,
+  type ViewRangePresenceHighlight,
   type PresenceHighlightEntry,
   type RowIdPresenceHighlight,
   type RowIdRangePresenceHighlight,
@@ -103,7 +103,7 @@ const PresenceLabelChip = memo(function PresenceLabelChip({
 });
 
 /**
- * Resolves rowId-native entries to view-index {@link PresenceHighlight}s via the caller's
+ * Resolves rowId-native entries to view-index {@link ViewRangePresenceHighlight}s via the caller's
  * `rowId -> view row` map. A single-cell entry resolves to a 1×1 rect; a range entry paints one
  * rect per contiguous run of resolved rows × resolved columns.
  *
@@ -121,8 +121,8 @@ export function resolveHighlights(
   onUnresolvedColumns?: (entry: RowIdRangePresenceHighlight, unresolvedCount: number) => void,
   onExcessRects?: (entry: RowIdRangePresenceHighlight, kept: number, total: number) => void,
   maxRects: number = MAX_RESOLVED_RECTS,
-): PresenceHighlight[] {
-  const resolved: PresenceHighlight[] = [];
+): ViewRangePresenceHighlight[] {
+  const resolved: ViewRangePresenceHighlight[] = [];
   const columnIndex = new Map<string, number>();
   visibleColumns.forEach((c, i) => {
     if (!columnIndex.has(c.id)) columnIndex.set(c.id, i);
@@ -207,7 +207,7 @@ function contiguousRuns(values: number[]): { min: number; length: number }[] {
  * (`createPresenceOverlay`) does that resolution itself since it's the one already subscribed to core
  * hooks inside `DataGridOverlays`'s render, keeping this function a plain (hook-free) renderer.
  */
-export function renderPresenceOverlay(highlights: readonly PresenceHighlight[], ctx: OverlayPluginCtx): ReactNode {
+export function renderPresenceOverlay(highlights: readonly ViewRangePresenceHighlight[], ctx: OverlayPluginCtx): ReactNode {
   const { windowStart, clampRowStart, clampRowEnd, colCount, colOffset, pinTrack, splitRectByPinZones, clampRectToWindow } = ctx;
   const pinned = hasAnyPin(pinTrack) ? pinTrack : undefined;
   const segment = (rect: GridRect) => (pinned ? splitRectByPinZones(rect, pinned) : [{ rect, pinStyle: undefined }]);
