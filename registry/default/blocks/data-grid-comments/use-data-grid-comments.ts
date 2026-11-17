@@ -36,7 +36,8 @@ function readFunctionSeed(seed: UseDataGridCommentsOptions["defaultComments"]): 
   if (typeof seed !== "function") return undefined;
   try {
     return seed();
-  } catch {
+  } catch (error) {
+    if (isDev()) console.warn(`[data-grid-comments] defaultComments threw, so the comments start empty: ${String(error)}`);
     return undefined;
   }
 }
