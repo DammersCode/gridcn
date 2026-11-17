@@ -56,7 +56,7 @@ export function PeopleGrid() {
 
 ### processReplace [#processreplace]
 
-Runs after the panel builds the plan and before it writes. It gets `{ plan, signal }` and returns the plan to write, or `false` to cancel. The grid writes each returned patch value as given, with no `fromText`, and the column `validate` still runs. A plan longer than `replaceAllLimit`, a value that is not a plan, or a rejection cancels the replace. So does a patched row that changes or goes away, a `readOnly` grid, or an open cell editor. A change of the find text, the replacement, or an option aborts `signal` and drops a late answer.
+Runs after the panel builds the plan and before it writes. It gets `{ plan, signal }` and returns the plan to write, or `false` to cancel. The grid writes each returned patch value as given, except a string for a cell that holds a non-string: that string runs through the column `fromText`, and an unparseable one is skipped. The column `validate` still runs. A plan longer than `replaceAllLimit`, a value that is not a plan, or a rejection cancels the replace. So does a patched row that changes or goes away, a `readOnly` grid, or an open cell editor. A change of the find text, the replacement, or an option aborts `signal` and drops a late answer.
 
 ### scope [#scope]
 

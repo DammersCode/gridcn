@@ -61,6 +61,7 @@ The button shows on each column that offers `isAnyOf` or `isNoneOf` and is not `
 | `column` | `AnyColumnDef` | required | The column that the button filters. |
 | `index` | `number` | required | The index of the column in the header. |
 | `className` | `string` | none | Merged into the classes of the filter button. |
+| `setFilterOperator` | `"auto" \| "isAnyOf" \| "isNoneOf"` | `"auto"` | Operator of the set entry the popover writes. `"auto"` writes the shorter of the checked and unchecked lists. The other two always write that operator when the column allows it. |
 
 ## The popover
 

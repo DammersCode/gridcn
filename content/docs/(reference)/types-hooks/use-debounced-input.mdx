@@ -37,7 +37,7 @@ export function NameInput() {
 
 `name` changes 300 ms after the last keystroke. The input shows the typed text meanwhile.
 
-To run your own handler too, spread `getInputProps({ onKeyDown })` in place of `inputProps`. Your handler runs first, then the one of the hook. A handler that you place after a plain `inputProps` spread replaces the one of the hook.
+To run your own handler too, spread `getInputProps({ onKeyDown })` in place of `inputProps`. Your handler runs first, then the one of the hook. If your handler calls `event.preventDefault()`, the hook handler does not run for that event. A handler that you place after a plain `inputProps` spread replaces the one of the hook.
 
 ## Options [#options]
 
@@ -55,7 +55,7 @@ To run your own handler too, spread `getInputProps({ onKeyDown })` in place of `
 | Member | Type | Meaning |
 | --- | --- | --- |
 | `inputProps` | `DebouncedInputProps` | The props to spread: `value`, `onChange`, `onBlur`, `onKeyDown`, `onCompositionStart`, and `onCompositionEnd`. |
-| `getInputProps` | `(own?) => DebouncedInputProps` | `inputProps` with the handlers in `own` chained. Each handler in `own` runs first, then the one of the hook. Other props in `own`, such as `className`, pass through. |
+| `getInputProps` | `(own?) => DebouncedInputProps` | `inputProps` with the handlers in `own` chained. Each handler in `own` runs first, then the one of the hook, unless it calls `event.preventDefault()`. Other props in `own`, such as `className`, pass through. |
 | `inputValue` | `string` | The text in the input. It equals `inputProps.value`. |
 | `flush` | `() => void` | Calls `onCommit` with a pending value at once. |
 | `cancel` | `() => void` | Drops a pending value and shows `value` again. |

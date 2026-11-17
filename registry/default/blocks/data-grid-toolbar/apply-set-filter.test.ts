@@ -239,3 +239,26 @@ describe("planServerSetFilter with coded values", () => {
     expect(plan).toEqual({ status: "apply", filters: [{ columnId: "country", operator: "isAnyOf", value: ["DE"] }] });
   });
 });
+
+describe("operator choice", () => {
+  it("writes isNoneOf for a short checked list when the choice is isNoneOf", () => {
+    const result = planSetFilter({ filters: [], columnId: "city", keys, checked: new Set(["a", "b"]), allowed: BOTH, operator: "isNoneOf" });
+    expect(result).toEqual({ status: "apply", filters: [{ columnId: "city", operator: "isNoneOf", value: ["c", "d", "e", "f"] }] });
+  });
+
+  it("writes isAnyOf for a long checked list when the choice is isAnyOf", () => {
+    const result = planSetFilter({ filters: [], columnId: "city", keys, checked: new Set(["a", "b", "c", "d", "e"]), allowed: BOTH, operator: "isAnyOf" });
+    expect(result).toEqual({ status: "apply", filters: [{ columnId: "city", operator: "isAnyOf", value: ["a", "b", "c", "d", "e"] }] });
+  });
+
+  it("falls back to the automatic pick when the column does not allow the choice", () => {
+    const result = planSetFilter({ filters: [], columnId: "city", keys, checked: new Set(["a", "b"]), allowed: ["isAnyOf"], operator: "isNoneOf" });
+    expect(result).toEqual({ status: "apply", filters: [{ columnId: "city", operator: "isAnyOf", value: ["a", "b"] }] });
+  });
+
+  it("lists the unchecked texts of a server list under isNoneOf", () => {
+    const known = new Map([["a", "A"], ["b", "B"], ["c", "C"]]);
+    const result = planServerSetFilter({ filters: [], columnId: "city", known, checked: new Set(["a"]), allowed: BOTH, operator: "isNoneOf" });
+    expect(result).toEqual({ status: "apply", filters: [{ columnId: "city", operator: "isNoneOf", value: ["B", "C"] }] });
+  });
+});

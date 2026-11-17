@@ -54,6 +54,7 @@ export function buildDefaultLabels(locale: string): DataGridLabels {
       headerFilterSearchPlaceholder: "Search values…",
       headerFilterSelectedCount: (selected, total) => `${selected} of ${total} selected`,
       headerFilterBlanks: "(Blanks)",
+      columnsMenuActiveHint: "Filtered or sorted",
       headerFilterCapped: "Too many values. Showing the first values only.",
       headerFilterLoadedRowsOnly: "From loaded rows",
       headerFilterLoading: "Loading values…",

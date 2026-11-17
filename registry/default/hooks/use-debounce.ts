@@ -25,8 +25,9 @@ const DEFAULT_APPLY_TIMEOUT_MS = 1000;
 /** Commits remembered while the parent has not applied them yet. The echo of an older commit counts as an outside change. */
 const MAX_QUEUED = 64;
 
-/** The debounced copy of `value`: it follows `value` once `value` has stayed the same for `delayMs`. */
-export function useDebounce<T>(value: T, delayMs: number = DEFAULT_DELAY_MS): T {
+/** The debounced copy of `value`: it follows `value` once `value` has stayed the same for `delayMs`. `delayMs` is a number or `{ delayMs }`; `0` follows at once. */
+export function useDebounce<T>(value: T, delay: number | { delayMs?: number } = DEFAULT_DELAY_MS): T {
+  const delayMs = typeof delay === "number" ? delay : (delay.delayMs ?? DEFAULT_DELAY_MS);
   const [debounced, setDebounced] = useState(value);
   if (delayMs <= 0 && debounced !== value) setDebounced(value);
   useEffect(() => {
@@ -67,7 +68,7 @@ export type UseDebouncedInputResult = {
   /** The text in the input; the same as `inputProps.value`. */
   inputValue: string;
   inputProps: DebouncedInputProps;
-  /** `inputProps` with your own handlers chained: each handler in `own` runs first, then the hook's. Other props in `own` pass through, such as `className`. */
+  /** `inputProps` with your own handlers chained: each handler in `own` runs first, then the hook's. A handler that calls `event.preventDefault()` skips the hook's handler for that event. Other props in `own` pass through, such as `className`. */
   getInputProps: <Own extends Partial<Omit<DebouncedInputProps, "value">>>(own?: Own) => Omit<Own, keyof DebouncedInputProps> & DebouncedInputProps;
   /** Commits a pending value now. */
   flush: () => void;
@@ -186,7 +187,10 @@ export function useDebouncedInput(value: string, onCommit: (next: string) => voi
     for (const name of ["onChange", "onBlur", "onKeyDown", "onCompositionStart", "onCompositionEnd"] as const) {
       const ownHandler = own?.[name] as ((...args: unknown[]) => void) | undefined;
       const hookHandler = inputProps[name] as (...args: unknown[]) => void;
-      chained[name] = ownHandler ? (...args: unknown[]) => (ownHandler(...args), hookHandler(...args)) : hookHandler;
+      chained[name] = ownHandler ? (...args: unknown[]) => {
+        ownHandler(...args);
+        if (!(args[0] as { defaultPrevented?: boolean } | undefined)?.defaultPrevented) hookHandler(...args);
+      } : hookHandler;
     }
     return chained as Omit<Own, keyof DebouncedInputProps> & DebouncedInputProps;
   };

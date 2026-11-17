@@ -64,6 +64,8 @@ export type DataGridToolbarLabels = {
   headerFilterSelectedCount: (selected: number, total: number) => string;
   /** Label of the value for empty cells. */
   headerFilterBlanks: string;
+  /** Hint on a hidden column in the columns menu while a filter or sort still applies to it. */
+  columnsMenuActiveHint: string;
   /** Status line when the value list stopped collecting at its limit. */
   headerFilterCapped: string;
   headerFilterLoadedRowsOnly: string;

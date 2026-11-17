@@ -3,7 +3,7 @@ import { cellTypes } from "@/registry/default/blocks/data-grid/cell-types/cell-t
 import { CompactSelection } from "@/registry/default/blocks/data-grid/selection/compact-selection";
 import { emptySelection as emptySelectionOps } from "@/registry/default/blocks/data-grid/selection/selection-ops";
 import type { AnyColumnDef, GridSelection } from "@/registry/default/blocks/data-grid/data-grid";
-import { planReplace, type ReplaceState } from "./plan-replace";
+import { parseReturnedPatches, planReplace, type ReplaceState } from "./plan-replace";
 
 const CI_FACTOR = process.env["CI"] ? 2 : 1;
 
@@ -186,5 +186,24 @@ describe("planReplace", () => {
     const start = performance.now();
     planReplace(makeState(data), needle, "x", {});
     expect(performance.now() - start).toBeLessThan(500 * CI_FACTOR);
+  });
+});
+
+describe("parseReturnedPatches", () => {
+  const parse = (patches: { rowId: string; columnId: string; value: unknown }[]) => parseReturnedPatches(makeState(rows()), patches);
+
+  it("parses a string for a number cell with fromText", () => {
+    expect(parse([{ rowId: "a", columnId: "qty", value: "12" }]).patches).toEqual([{ rowId: "a", columnId: "qty", value: 12 }]);
+  });
+
+  it("skips an unparseable string for a number cell", () => {
+    const result = parse([{ rowId: "a", columnId: "qty", value: "abc" }]);
+    expect(result.patches).toEqual([]);
+    expect(result.skipped).toEqual([{ ref: { rowId: "a", columnId: "qty" }, reason: "unparseable" }]);
+  });
+
+  it("leaves a string for a string cell and a non-string value as given", () => {
+    const patches = [{ rowId: "a", columnId: "name", value: "x" }, { rowId: "a", columnId: "qty", value: 3 }, { rowId: "c", columnId: "tag", value: "g" }];
+    expect(parse(patches).patches).toEqual(patches);
   });
 });

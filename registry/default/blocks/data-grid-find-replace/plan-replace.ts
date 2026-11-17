@@ -190,3 +190,45 @@ export function planReplace(
   }
   return plan;
 }
+
+/**
+ * Parses each string patch value the `processReplace` hook returns for a cell that does not hold a string, with the
+ * column's `fromText`. An unparseable value drops the patch and lands in `skipped`.
+ */
+export function parseReturnedPatches(
+  state: Pick<ReplaceState, "data" | "visibleColumns" | "cellTypes" | "getRowId">,
+  patches: readonly CellPatch[],
+): Pick<ReplacePlan, "patches" | "skipped"> {
+  const wanted = new Set(patches.filter((patch) => typeof patch.value === "string").map((patch) => patch.rowId));
+  const rows = new Map<string, unknown>();
+  if (wanted.size > 0) {
+    state.data.forEach((row, index) => {
+      if (row === undefined) return;
+      const id = state.getRowId(row as never, index);
+      if (wanted.has(id) && !rows.has(id)) rows.set(id, row);
+    });
+  }
+  const columns = new Map<string, ColumnPlan | null>();
+  const out: CellPatch[] = [];
+  const skipped: ReplacePlan["skipped"] = [];
+  for (const patch of patches) {
+    if (typeof patch.value !== "string" || !rows.has(patch.rowId)) {
+      out.push(patch);
+      continue;
+    }
+    if (!columns.has(patch.columnId)) {
+      const column = state.visibleColumns.find((candidate) => candidate.id === patch.columnId);
+      columns.set(patch.columnId, column ? planColumn(column, state.cellTypes) : null);
+    }
+    const entry = columns.get(patch.columnId);
+    const current = entry?.readValue(rows.get(patch.rowId));
+    if (!entry || current == null || typeof current === "string") {
+      out.push(patch);
+      continue;
+    }
+    const { value, unparseable } = entry.fromText(patch.value);
+    if (unparseable) skipped.push({ ref: { rowId: patch.rowId, columnId: patch.columnId }, reason: "unparseable" });
+    else out.push({ ...patch, value });
+  }
+  return { patches: out, skipped };
+}

@@ -41,7 +41,7 @@ import {
   fullViewOf,
   pageStartOf,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { MAX_REPLACE_INPUT_LENGTH, planReplace, resolveReplaceLimit, type ReplaceOptions, type ReplacePlan } from "./plan-replace";
+import { MAX_REPLACE_INPUT_LENGTH, parseReturnedPatches, planReplace, resolveReplaceLimit, type ReplaceOptions, type ReplacePlan } from "./plan-replace";
 
 export type PanelStore = {
   getOptions(): PanelOptions;
@@ -354,7 +354,9 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
           const visible = new Set(latest.visibleColumns.map((column) => column.id));
           const hidden = result.patches.filter((patch) => !visible.has(patch.columnId));
           const skipped = [...(Array.isArray(result.skipped) ? result.skipped : []), ...hidden.map(({ rowId, columnId }) => ({ ref: { rowId, columnId }, reason: "hidden" as const }))];
-          run({ patches: hidden.length > 0 ? result.patches.filter((patch) => visible.has(patch.columnId)) : result.patches, skipped, remaining: result.remaining === true });
+          const shown = hidden.length > 0 ? result.patches.filter((patch) => visible.has(patch.columnId)) : result.patches;
+          const parsed = parseReturnedPatches(latest, shown);
+          run({ patches: parsed.patches, skipped: [...skipped, ...parsed.skipped], remaining: result.remaining === true });
         },
         (error: unknown) => {
           gates.settle(hookRun);

@@ -33,6 +33,7 @@ import {
   operatorsForColumnType,
   resolveCustomFilterOperators,
   resolveFilterOperators,
+  useDataGridSelector,
   useDataGridStoreApi,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { appendChild, locateNode, moveSibling, oppositeJoin, removeNode, updateNode } from "./filter-tree-edit";
@@ -102,12 +103,18 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
   const rowCount = countFilterSpecs(filters);
 
   // per-column operator list: the column's filter.operators > the cell type's declared operators > the name-based type default
+  const clientFiltering = useDataGridSelector((s) => s.filterMode !== "server");
   const operatorsFor = useCallback(
     (column: AnyColumnDef | undefined): readonly FilterOperator[] => {
       if (!column) return operatorsForColumnType(undefined);
-      return resolveFilterOperators(column, column.type ? cellTypes[column.type] : undefined);
+      const cellType = column.type ? cellTypes[column.type] : undefined;
+      const operators = resolveFilterOperators(column, cellType);
+      if (!clientFiltering) return operators;
+      // A custom operator without `match` cannot narrow rows on the client.
+      const custom = resolveCustomFilterOperators(column, cellType);
+      return operators.filter((operator) => !custom.has(operator) || custom.get(operator)!.match);
     },
-    [cellTypes],
+    [cellTypes, clientFiltering],
   );
 
   const customFor = useCallback(
@@ -533,7 +540,8 @@ function FilterRow(props: FilterRowProps): ReactNode {
   const operators = operatorsFor(column);
   const custom = customFor(column);
   const columnItems = rowColumns.map((c) => ({ value: c.id, label: columnLabelText(c) }));
-  const operatorItems = operators.map((op) => ({ value: op, label: operatorLabel(op, labels.filterOperators, custom) }));
+  const shownOperators = operators.includes(filter.operator) ? operators : [filter.operator, ...operators];
+  const operatorItems = shownOperators.map((op) => ({ value: op, label: operatorLabel(op, labels.filterOperators, custom) }));
   const { ref, handleRef, isDragSource, onGripKeyDown } = useNodeSortable(filterId, props);
 
   return (

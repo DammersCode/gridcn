@@ -44,4 +44,20 @@ describe("DataGridColumnsMenu", () => {
     await vi.waitFor(() => expect(screen.getByRole("menuitemcheckbox", { name: "Name" }).getAttribute("aria-checked")).toBe("true"));
     expect(screen.getByRole("menuitemcheckbox", { name: "Name" }).hasAttribute("data-disabled")).toBe(true);
   });
+
+  it("marks a hidden column that still has a filter or sort, and no other", async () => {
+    const cols = defineColumns<Row>()([
+      { id: "name", header: "Name", accessorKey: "name", hidden: true },
+      { id: "note", header: "Note", accessorKey: "note", hidden: true },
+    ] as const);
+    render(
+      <DataGridProvider defaultData={[]} columns={cols} getRowId={(r: Row) => r.id} defaultSortState={[{ columnId: "name", direction: "asc" }]}>
+        <DataGridColumnsMenu />
+      </DataGridProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /columns/i }));
+    const name = await screen.findByRole("menuitemcheckbox", { name: /Name/ });
+    expect(name.textContent).toContain("Filtered or sorted");
+    expect(screen.getByRole("menuitemcheckbox", { name: /Note/ }).textContent).not.toContain("Filtered or sorted");
+  });
 });
