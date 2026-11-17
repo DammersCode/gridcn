@@ -185,6 +185,26 @@ export type DataGridKeybindingsLabels = {
   actions: Partial<Record<GridAction | (string & {}), string>>;
 };
 
+/** Row-grouping strings: the group row toggle, the menu items, and the announcements. */
+export type DataGridGroupingLabels = {
+  /** Menu item that groups the rows by `column`. */
+  groupBy: (column: string) => string;
+  /** Menu item that removes `column` from the group columns. */
+  ungroup: (column: string) => string;
+  /** Accessible name of the toggle on a closed group row; `label` is the group's label. */
+  expand: (label: string) => string;
+  /** Accessible name of the toggle on an open group row. */
+  collapse: (label: string) => string;
+  expandAll: string;
+  collapseAll: string;
+  /** Label of the group that holds the rows without a value. */
+  empty: string;
+  /** Polite announcement after a group opens; `count` is the rows of the group. */
+  expanded: (label: string, count: number) => string;
+  /** Polite announcement after a group closes. */
+  collapsed: (label: string) => string;
+};
+
 /** Row-marker column strings (select-all header checkbox, per-row checkbox, reorder handle). */
 export type DataGridMarkerLabels = {
   /** Accessible name of the marker column header. */
@@ -500,6 +520,7 @@ export interface DataGridLabels {
   contextMenu: DataGridContextMenuLabels;
   keybindings: DataGridKeybindingsLabels;
   markers: DataGridMarkerLabels;
+  grouping: DataGridGroupingLabels;
   grid: DataGridGridLabels;
   io: DataGridIOLabels;
   pagination: DataGridPaginationLabels;

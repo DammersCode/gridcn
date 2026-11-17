@@ -41,7 +41,7 @@
     },
     {
       "path": "registry/default/blocks/data-grid-comments/own-cell.ts",
-      "content": "import { GRID_ATTR } from \"@/registry/default/components/data-grid/data-grid-sdk\";\r\n\r\n/** The cell of this grid at a view row and column; a nested grid's cell with the same coordinates never matches. */\r\nexport function findOwnCell(scroll: HTMLElement | null, viewRow: number, columnId: string): HTMLElement | null {\r\n  if (!scroll) return null;\r\n  const grid = scroll.closest('[role=\"grid\"]');\r\n  const cells = scroll.querySelectorAll<HTMLElement>(`[${GRID_ATTR.rowIndex}=\"${viewRow}\"] [data-column-id=\"${CSS.escape(columnId)}\"]`);\r\n  return Array.from(cells).find((cell) => cell.closest('[role=\"grid\"]') === grid) ?? null;\r\n}\r\n",
+      "content": "import { GRID_ATTR, GRID_ROLE_SELECTOR } from \"@/registry/default/components/data-grid/data-grid-sdk\";\n\n/** The cell of this grid at a view row and column; a nested grid's cell with the same coordinates never matches. */\nexport function findOwnCell(scroll: HTMLElement | null, viewRow: number, columnId: string): HTMLElement | null {\n  if (!scroll) return null;\n  const grid = scroll.closest(GRID_ROLE_SELECTOR);\n  const cells = scroll.querySelectorAll<HTMLElement>(`[${GRID_ATTR.rowIndex}=\"${viewRow}\"] [data-column-id=\"${CSS.escape(columnId)}\"]`);\n  return Array.from(cells).find((cell) => cell.closest(GRID_ROLE_SELECTOR) === grid) ?? null;\n}\n",
       "type": "registry:component",
       "target": "components/data-grid-comments/own-cell.ts"
     },

@@ -1,4 +1,5 @@
 import { createContext, use, useMemo, type CSSProperties, type ReactElement, type ReactNode, type RefObject } from "react";
+import type { GroupLabelCtx } from "./group-types";
 import type { CellClassNameReader, RowClassNameReader } from "./rows/use-class-name-revision";
 import { useDataGridColumnWidths, useDataGridRowMarkers, type AnyColumnDef } from "./store";
 import { resolveColumnWidth, distributeFlexWidths } from "./columns/resolve-column-width";
@@ -163,6 +164,9 @@ export type MarkerCellRenderer = (ctx: MarkerCellRenderCtx) => ReactNode;
 /** Custom marker-header renderer: replaces the built-in select-all checkbox; same track and width. */
 export type MarkerHeaderRenderer = (ctx: MarkerHeaderRenderCtx) => ReactNode;
 
+/** Renders the content of a group row label. The default is "column: key (count)". */
+export type GroupLabelRenderer = (ctx: GroupLabelCtx) => ReactNode;
+
 /** Layout context shared by header/body so they don't recompute widths independently and never desync on row height, and so both consume the SAME column window (no drift between two independent subscriptions). */
 export type DataGridRootContextValue = {
   scrollRef: RefObject<HTMLDivElement | null>;
@@ -201,6 +205,8 @@ export type DataGridRootContextValue = {
   renderMarker?: MarkerCellRenderer;
   /** Optional custom marker-header renderer; undefined renders the built-in select-all checkbox. */
   renderMarkerHeader?: MarkerHeaderRenderer;
+  /** Optional group row label renderer; undefined renders the default label. */
+  renderGroupLabel?: GroupLabelRenderer;
   /** Stable readers of the consumer's latest `getRowClassName` and `getCellClassName`; the context value stays unchanged when the consumer passes a new function. */
   getRowClassName?: RowClassNameReader;
   getCellClassName?: CellClassNameReader;

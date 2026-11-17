@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import type { GlobalShortcutsConfig } from "./global-shortcuts";
 import { bareGlobalBindings, enabledGlobalActions, globalShortcutsConfigKey, isMacPlatform, resolveGlobalShortcut } from "./global-shortcuts";
 import { isDev } from "../is-dev";
+import { GRID_ROLE_SELECTOR } from "../data-attributes";
 import { isPrintableKey } from "./is-printable-key";
 import { useDataGridContainer } from "../interaction/use-data-grid-container";
 import {
@@ -72,7 +73,7 @@ export function useDataGridGlobalShortcuts(config?: GlobalShortcutsConfig): void
           target.tagName === "TEXTAREA" ||
           target.tagName === "SELECT" ||
           target.isContentEditable);
-      const targetInAnyGrid = target instanceof Element ? target.closest('[role="grid"]') !== null : false;
+      const targetInAnyGrid = target instanceof Element ? target.closest(GRID_ROLE_SELECTOR) !== null : false;
       const targetInPopup = target instanceof Element ? target.closest(POPUP_SELECTOR) !== null : false;
       const action = resolveGlobalShortcut(event, {
         keymap: latest.keymap,

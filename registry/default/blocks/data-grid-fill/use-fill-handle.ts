@@ -30,6 +30,7 @@ import {
   type BulkResolution,
   type InteractionLayout,
   type DataGridReadState,
+  GRID_ROLE_SELECTOR,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { computeFillTarget, fillDirection, generateFill, rectRelativeTo, type FillDirection, type SeriesDescriptor } from "./fill";
 import type { FillStoreApi } from "./fill-store";
@@ -499,7 +500,7 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
       event.stopPropagation();
       // preventDefault above stops the native focus move, so undo shortcuts would miss the grid
       const grid = scrollRef.current;
-      const active = grid && [...grid.querySelectorAll<HTMLElement>(gridAttrSelector("active"))].find((cell) => cell.closest('[role="grid"]') === grid);
+      const active = grid && [...grid.querySelectorAll<HTMLElement>(gridAttrSelector("active"))].find((cell) => cell.closest(GRID_ROLE_SELECTOR) === grid);
       (active ?? grid)?.focus({ preventScroll: true });
       lastPointerRef.current = { clientX: event.clientX, clientY: event.clientY, altKey: event.altKey };
       // the handle unmounts when auto-scroll moves the source out of the window; the scroll element's capture outlives it

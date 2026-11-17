@@ -36,6 +36,8 @@ export type DataGridMarkerCellProps = {
   renderMarker?: MarkerCellRenderer;
   /** True while this row is the reorder-drag source (dims the marker, like the column reorder does to its header cell). */
   isReorderDragging: boolean;
+  /** The number the row shows and names itself with; default `viewRowIndex + 1`. A grouped grid passes the position inside the innermost group. */
+  rowNumber?: number;
 };
 
 /**
@@ -54,6 +56,7 @@ export type DataGridMarkerCellProps = {
  */
 export const DataGridMarkerCell = memo(function DataGridMarkerCell(props: DataGridMarkerCellProps): ReactNode {
   const { mode, viewRowIndex, rowId, onPointerDown, onCheckboxPointerDown, onReorderPointerDown, renderMarker, isReorderDragging } = props;
+  const rowNumber = props.rowNumber === undefined ? viewRowIndex + 1 : props.rowNumber;
   const actions = useDataGridActions();
   // chrome (wrapper tint/data-row-selected) keeps the rows-or-range union; the built-in checkbox shows the checked rows only
   const isSelected = useDataGridIsRowSelected(viewRowIndex);
@@ -109,7 +112,7 @@ export const DataGridMarkerCell = memo(function DataGridMarkerCell(props: DataGr
       data-grid-marker-cell=""
       data-row-selected={isSelected || undefined}
       data-dragging={isReorderDragging || undefined}
-      aria-label={showGrip ? labels.markers.reorderRow(viewRowIndex + 1) : undefined}
+      aria-label={showGrip ? labels.markers.reorderRow(rowNumber) : undefined}
       className={cn(
         "group flex items-center border-b border-border bg-background",
         COLUMN_BORDER,
@@ -168,7 +171,7 @@ export const DataGridMarkerCell = memo(function DataGridMarkerCell(props: DataGr
                   }}
                   // a stationary press toggles via onCheckedChange; a press that drags to another row selects a range and its click is swallowed (see use-grid-interaction.ts).
                   onPointerDown={(event) => onCheckboxPointerDown(viewRowIndex, event)}
-                  aria-label={labels.markers.selectRow(viewRowIndex + 1)}
+                  aria-label={labels.markers.selectRow(rowNumber)}
                 />
               )}
               {showNumber && (
@@ -181,7 +184,7 @@ export const DataGridMarkerCell = memo(function DataGridMarkerCell(props: DataGr
                     swapOnHover && isRowChannelSelected && "hidden",
                   )}
                 >
-                  {viewRowIndex + 1}
+                  {rowNumber}
                 </span>
               )}
             </span>
@@ -191,3 +194,15 @@ export const DataGridMarkerCell = memo(function DataGridMarkerCell(props: DataGr
     </div>
   );
 });
+
+/** The marker cell of a group row: empty, with no checkbox and no gesture, since a group row is never checked or moved. */
+export function DataGridGroupMarkerCell(): ReactNode {
+  return (
+    <div
+      role="gridcell"
+      data-grid-marker-cell=""
+      className={cn("border-b border-border bg-[color-mix(in_oklch,var(--color-muted)_40%,var(--color-background))]", COLUMN_BORDER)}
+      style={{ gridColumnStart: 1, position: "relative", insetInlineStart: "var(--grid-scroll-left, 0px)", zIndex: GRID_LAYER.markerCell }}
+    />
+  );
+}

@@ -188,3 +188,6 @@ export function gridAttrSelector<TName extends GridAttrName>(
   const attr = GRID_ATTR[name];
   return value === undefined ? `[${attr}]` : `[${attr}="${value}"]`;
 }
+
+/** Matches a grid root: `grid`, or `treegrid` while the rows are grouped. */
+export const GRID_ROLE_SELECTOR = '[role="grid"],[role="treegrid"]';

@@ -1,5 +1,5 @@
 import { useEffect, useRef, type RefObject } from "react";
-import { GRID_ATTR, gridAttrSelector } from "../data-attributes";
+import { GRID_ATTR, GRID_ROLE_SELECTOR, gridAttrSelector } from "../data-attributes";
 import { useDataGridStoreApi } from "../store";
 import { getElementStore } from "./use-scroll-snapshot";
 
@@ -47,7 +47,7 @@ export function useRowHover(scrollRef: RefObject<HTMLElement | null>, rowHeight:
 
     const rowOf = (target: Element | null) => {
       const row = target?.closest<HTMLElement>(ROW_SELECTOR) ?? null;
-      return row !== null && row.closest('[role="grid"]') === scrollElement ? row : null;
+      return row !== null && row.closest(GRID_ROLE_SELECTOR) === scrollElement ? row : null;
     };
 
     const setHovered = (row: HTMLElement | null) => {

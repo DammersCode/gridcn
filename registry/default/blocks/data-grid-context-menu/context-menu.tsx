@@ -8,7 +8,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { useDataGridActions } from "@/registry/default/blocks/data-grid/data-grid";
-import { gridAttrSelector, pluginCellMenuItems, useDataGridStoreApi, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { GRID_ROLE_SELECTOR, gridAttrSelector, pluginCellMenuItems, useDataGridStoreApi, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { resolveContextMenuTarget, type ContextMenuTarget } from "./resolve-context-menu-target";
 import { isCellInSelection } from "./selection-queries";
 import {
@@ -175,7 +175,7 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
       setTarget(next);
       // explicit type parameter: consumer TypeScript doesn't infer `E = HTMLElement` from the
       // setState context type and defaults `closest` to `Element`.
-      setScrollRoot(event.target instanceof Element ? event.target.closest<HTMLElement>('[role="grid"]') : null);
+      setScrollRoot(event.target instanceof Element ? event.target.closest<HTMLElement>(GRID_ROLE_SELECTOR) : null);
       if (next.kind === "cell" && !isCellInSelection(s.selection, { row: next.row, col: next.col })) {
         actions.selectCellAt({ row: next.row, col: next.col });
       }

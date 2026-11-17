@@ -17,6 +17,9 @@ import { useRowWindow } from "./virtualization/use-row-window";
 import { useCanvasOffset } from "./virtualization/use-scroll-snapshot";
 import { useDataGridRootContext, type RenderedColumn } from "./layout-context";
 import { DataGridRow } from "./row";
+import { DataGridGroupRow } from "./rows/group-row";
+import { groupPositionAt } from "./store/group-positions";
+import { groupIndexAt } from "./store/view-rows";
 import { DataGridOverlays } from "./overlays";
 import { predictBlockTarget, useRowReorder } from "./rows/use-row-reorder";
 import { CompactSelection } from "./selection";
@@ -110,12 +113,14 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
     classNameRevision,
     renderedRowsRef,
     renderMarker,
+    renderGroupLabel,
   } = useDataGridRootContext();
   const readOnly = useDataGridReadOnly();
   const storeApi = useDataGridStoreApi();
   const rowMarkers = useDataGridRowMarkers();
   const rowCount = useDataGridRowCount();
   const activeCell = useDataGridActiveCell();
+  const groupLayout = useDataGridSelector((s) => s.groupLayout);
   // Data row 0 starts below the header AND any pinned-top band (shrunken effective viewport);
   // the pinned-bottom band shrinks the window's bottom edge the same way.
   const effectiveHeaderHeight = headerHeight + pinnedTopHeight;
@@ -332,11 +337,29 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
         <CanvasOffsetAnchor scrollElement={scrollElement} baseOffset={canvasBaseOffset} />
         {viewRowIndices.map((viewRowIndex, i) => {
           const key = rowIds[i] ?? viewRowIndex;
+          const rowId = rowIds[i];
+          const state = groupLayout === null ? null : storeApi.getState();
+          if (state !== null && rowId !== undefined && groupIndexAt(state.viewIndex, viewRowIndex) !== undefined) {
+            return (
+              <DataGridGroupRow
+                key={key}
+                viewRowIndex={viewRowIndex}
+                renderedColumns={renderedColumns}
+                layout={layout}
+                rowMarkers={rowMarkers}
+                rowRef={rowRegistry.getCallback(key)}
+                getGridLine={rowRegistry.gridLine}
+                ariaRowIndexOffset={pinnedTopCount + headerRowCount - 1}
+                renderGroupLabel={renderGroupLabel}
+              />
+            );
+          }
+          const position = state === null ? null : groupPositionAt(state, viewRowIndex);
           return (
             <DataGridRow
               key={key}
               viewRowIndex={viewRowIndex}
-              rowId={rowIds[i]}
+              rowId={rowId}
               renderedColumns={renderedColumns}
               layout={layout}
               readOnly={readOnly}
@@ -352,6 +375,9 @@ export function DataGridBody({ className }: DataGridBodyProps): ReactNode {
               getRowClassName={getRowClassName}
               getCellClassName={getCellClassName}
               classNameRevision={classNameRevision}
+              groupLevel={position?.level}
+              groupPosInSet={position?.posInSet}
+              groupSetSize={position?.setSize}
             />
           );
         })}

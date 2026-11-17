@@ -77,3 +77,9 @@ export function rowIdAtViewRow(
   const row = s.data[dataIndex];
   return row === undefined ? undefined : s.getRowId(row, dataIndex);
 }
+
+/** The index into `groupLayout.rows` of the group row at `viewRow`; `undefined` for a data row or a missing row. */
+export function groupIndexAt(view: ArrayLike<number>, viewRow: number): number | undefined {
+  const entry = view[viewRow];
+  return entry !== undefined && entry < 0 ? -entry - 1 : undefined;
+}

@@ -473,6 +473,16 @@
                "target": "components/data-grid/rows/loading-skeleton.tsx"
             },
             {
+               "path": "registry/default/blocks/data-grid/rows/group-row.tsx",
+               "type": "registry:component",
+               "target": "components/data-grid/rows/group-row.tsx"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/rows/group-toggle.tsx",
+               "type": "registry:component",
+               "target": "components/data-grid/rows/group-toggle.tsx"
+            },
+            {
                "path": "registry/default/blocks/data-grid/rows/marker-cell.tsx",
                "type": "registry:component",
                "target": "components/data-grid/rows/marker-cell.tsx"
@@ -781,6 +791,11 @@
                "path": "registry/default/blocks/data-grid/store/group-view.ts",
                "type": "registry:component",
                "target": "components/data-grid/store/group-view.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/store/group-positions.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/group-positions.ts"
             },
             {
                "path": "registry/default/blocks/data-grid/store/group-patch.ts",
