@@ -1,0 +1,31 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "data-grid-server-query-kysely",
+  "title": "Data Grid Server Query Kysely",
+  "author": "gridcn",
+  "description": "Runs the grid's sort, filter tree, quick search, row range, row count, set values, and flat aggregates with Kysely on PostgreSQL and SQLite: createKyselyGridQuery returns fetchRows for useDataGridServerRows.",
+  "dependencies": [
+    "kysely@>=0.29.0 <1"
+  ],
+  "registryDependencies": [
+    "@gridcn/data-grid-server-query"
+  ],
+  "files": [
+    {
+      "path": "registry/default/blocks/data-grid-server-query-kysely/create-kysely-grid-query.ts",
+      "content": "import { type Expression, type Kysely, type RawBuilder, sql } from \"kysely\";\r\nimport type { AdapterCapabilities, ColumnMap, GridQuery, QueryLimits, RowCountMode, RowScope } from \"@/registry/default/components/data-grid-server-query/data-grid-server-query\";\r\nimport {\r\n  type CustomHandler,\r\n  type PlanColumn,\r\n  type SqlAlgebra,\r\n  assertCustomOperatorHandlers,\r\n  createGridQuery,\r\n  createSqlRenderer,\r\n} from \"@/registry/default/components/data-grid-server-query/data-grid-server-query-sdk\";\r\n\r\ntype Fragment = RawBuilder<unknown>;\r\ntype Rows = Record<string, unknown>[];\r\n\r\nexport type KyselyGridQueryOptions<TContext = never> = {\r\n  db: Kysely<any>;\r\n  /** The table name. */\r\n  table: string;\r\n  dialect: \"pg\" | \"sqlite\";\r\n  columns: ColumnMap;\r\n  /** Equalities on mapped columns that every query ANDs in. Needs `context` on every call. */\r\n  rowScope?: RowScope<TContext>;\r\n  /** When a rows request also counts the result. Default `\"firstBlock\"`. */\r\n  rowCount?: RowCountMode;\r\n  limits?: QueryLimits;\r\n  /** IANA zone or fixed offset of day filters on `time` columns. Default `\"UTC\"`. */\r\n  timeZone?: string;\r\n  /** Handlers for the custom operators the column map declares; each returns a Kysely expression and must bind `value` through it. */\r\n  customOperators?: Record<string, (ctx: { column: PlanColumn; value: unknown }) => Expression<unknown>>;\r\n};\r\n\r\nconst isExpression = (value: unknown): value is Expression<unknown> => typeof value === \"object\" && value !== null && \"toOperationNode\" in value;\r\n\r\n/** Reads and counts rows with Kysely, from the column map and a request body. */\r\nexport function createKyselyGridQuery<TRow = Record<string, unknown>, TContext = never>(options: KyselyGridQueryOptions<TContext>): GridQuery<TRow, TContext, Fragment, Fragment> {\r\n  const { db, table, dialect, columns } = options;\r\n  assertCustomOperatorHandlers(columns, options.customOperators);\r\n  const algebra: SqlAlgebra<Fragment> = {\r\n    dialect,\r\n    raw: (text) => sql.raw(text),\r\n    param: (value) => sql`${sql.val(value)}`,\r\n    column: (column) => sql.id(table, column.field),\r\n    cat: (...parts) => sql.join(parts, sql.raw(\"\")),\r\n    native: (value) => {\r\n      if (!isExpression(value)) throw new Error(\"customOperators: a handler must return a Kysely expression\");\r\n      return sql`${value}`;\r\n    },\r\n  };\r\n  const renderer = createSqlRenderer(algebra, new Map(Object.entries(options.customOperators ?? {})) as ReadonlyMap<string, CustomHandler>);\r\n  const run = async (query: Fragment): Promise<Rows> => (await query.execute(db)).rows as Rows;\r\n  const capabilities: AdapterCapabilities = {\r\n    caseInsensitiveText: dialect === \"pg\" ? \"collation\" : \"ascii\",\r\n    likeEscape: true,\r\n    literalAsterisk: true,\r\n    nullsLast: \"native\",\r\n    aggregates: true,\r\n    groupBy: true,\r\n    localDayGrouping: dialect === \"pg\",\r\n  };\r\n  const from = sql`from ${sql.id(table)}`;\r\n  const aliasList = (items: { alias: string; expr: Fragment }[]): Fragment => sql.join(items.map(({ alias, expr }) => sql`${expr} as ${sql.id(alias)}`));\r\n\r\n  return createGridQuery<TRow, TContext, Fragment, Fragment>({\r\n    columns,\r\n    rowScope: options.rowScope,\r\n    rowCount: options.rowCount,\r\n    limits: options.limits,\r\n    timeZone: options.timeZone,\r\n    executor: {\r\n      capabilities,\r\n      where: (plan) => renderer.predicate(plan.where),\r\n      orderBy: (plan) => renderer.orderBy(plan.orderBy),\r\n      selectRows: (plan, page) => {\r\n        const list = aliasList(plan.projection.map((column) => ({ alias: column.id, expr: sql.id(table, column.field) })));\r\n        return run(sql`select ${list} ${from} where ${renderer.predicate(plan.where)} order by ${renderer.orderBy(plan.orderBy)} limit ${sql.val(page.limit)} offset ${sql.val(page.offset)}`);\r\n      },\r\n      countRows: async (plan) => (await run(sql`select count(*) as ${sql.id(\"n\")} ${from} where ${renderer.predicate(plan.where)}`))[0]?.[\"n\"],\r\n      selectValues: (plan, { limit }) => {\r\n        const { key, value } = renderer.valueKey(plan.column, options.timeZone ?? \"UTC\");\r\n        return run(\r\n          sql`select ${value} as ${sql.id(\"value\")}, count(*) as ${sql.id(\"count\")} ${from} where ${renderer.valuesFilter(plan, options.timeZone ?? \"UTC\")} group by ${key} order by count(*) desc, ${value} asc limit ${sql.val(limit)}`,\r\n        ) as Promise<{ value: unknown; count: unknown }[]>;\r\n      },\r\n      aggregate: async (plan) => {\r\n        const list = aliasList(plan.columns.map(({ column, reducer }, index) => ({ alias: `c${index}`, expr: renderer.aggregate(column, reducer) })));\r\n        const rows = await run(sql`select ${list} ${from} where ${renderer.predicate(plan.where)}`);\r\n        const row = rows[0] ?? {};\r\n        return Object.fromEntries(plan.columns.map(({ column }, index) => [column.id, row[`c${index}`]]));\r\n      },\r\n    },\r\n  });\r\n}\r\n",
+      "type": "registry:component",
+      "target": "components/data-grid-server-query-kysely/create-kysely-grid-query.ts"
+    },
+    {
+      "path": "registry/default/blocks/data-grid-server-query-kysely/data-grid-server-query-kysely.ts",
+      "content": "export { createKyselyGridQuery, type KyselyGridQueryOptions } from \"./create-kysely-grid-query\";\r\n",
+      "type": "registry:component",
+      "target": "components/data-grid-server-query-kysely/data-grid-server-query-kysely.ts"
+    }
+  ],
+  "categories": [
+    "data"
+  ],
+  "type": "registry:block"
+}

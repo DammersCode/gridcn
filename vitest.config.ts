@@ -122,8 +122,18 @@ export default defineConfig({
           pool: "vmThreads",
           environment: "jsdom",
           include: ["registry/**/*.test.{ts,tsx}", "tests/**/*.test.{ts,tsx}"],
-          exclude: ["**/node_modules/**", "**/*.browser.test.{ts,tsx}"],
+          exclude: ["**/node_modules/**", "**/*.browser.test.{ts,tsx}", "tests/server-query/**"],
           setupFiles: ["./tests/setup.ts"],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "conformance",
+          environment: "node",
+          include: ["tests/server-query/**/*.test.ts"],
+          testTimeout: 60_000,
+          hookTimeout: 60_000,
         },
       },
       {
@@ -160,7 +170,7 @@ export default defineConfig({
           pool: "vmThreads",
           environment: "jsdom",
           include: ["registry/**/*.test.{ts,tsx}", "tests/**/*.test.{ts,tsx}"],
-          exclude: ["**/node_modules/**", "**/*.browser.test.{ts,tsx}"],
+          exclude: ["**/node_modules/**", "**/*.browser.test.{ts,tsx}", "tests/server-query/**"],
           setupFiles: ["./tests/setup.ts"],
         },
       },

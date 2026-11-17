@@ -4180,6 +4180,205 @@
          "categories": [
             "data"
          ]
-      }
-   ]
+      },
+    {
+      "name": "data-grid-server-query",
+      "type": "registry:block",
+      "title": "Data Grid Server Query",
+      "description": "The server half of a server-driven gridcn grid: a column map that is the allow-list and the projection, parseQuery that turns an untrusted grid request into a bounded, typed query plan (escaping, null and blank rules, number and day bounds, limits), handleGridRequest for a route handler, and describeFilterOperators so the filter UI offers only what the server accepts. Add an ORM adapter to run the plan.",
+      "author": "gridcn",
+      "dependencies": [],
+      "registryDependencies": [],
+      "files": [
+        {
+          "path": "registry/default/blocks/data-grid-server-query/column-map.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/column-map.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query/create-grid-query.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/create-grid-query.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query/data-grid-server-query-sdk.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/data-grid-server-query-sdk.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query/data-grid-server-query.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/data-grid-server-query.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query/describe-filter-operators.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/describe-filter-operators.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query/errors.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/errors.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query/handle-grid-request.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/handle-grid-request.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query/is-dev.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/is-dev.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query/like.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/like.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query/limits.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/limits.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query/operands.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/operands.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query/parse-query.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/parse-query.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query/plan.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/plan.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query/render-sql.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/render-sql.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query/row-scope.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/row-scope.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query/safe-text.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/safe-text.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query/serialize-row.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/serialize-row.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query/with-column-map.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/with-column-map.ts"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    },
+    {
+      "name": "data-grid-server-query-drizzle",
+      "type": "registry:block",
+      "title": "Data Grid Server Query Drizzle",
+      "description": "Runs the grid's sort, filter tree, quick search, row range, row count, set values, and flat aggregates with Drizzle on PostgreSQL and SQLite: columnsFromDrizzleTable builds the column map from a schema, createDrizzleGridQuery returns fetchRows for useDataGridServerRows.",
+      "author": "gridcn",
+      "dependencies": [
+        "drizzle-orm@>=0.45.0 <1"
+      ],
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid-server-query"
+      ],
+      "files": [
+        {
+          "path": "registry/default/blocks/data-grid-server-query-drizzle/columns.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query-drizzle/columns.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query-drizzle/create-drizzle-grid-query.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query-drizzle/create-drizzle-grid-query.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query-drizzle/data-grid-server-query-drizzle.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query-drizzle/data-grid-server-query-drizzle.ts"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    },
+    {
+      "name": "data-grid-server-query-kysely",
+      "type": "registry:block",
+      "title": "Data Grid Server Query Kysely",
+      "description": "Runs the grid's sort, filter tree, quick search, row range, row count, set values, and flat aggregates with Kysely on PostgreSQL and SQLite: createKyselyGridQuery returns fetchRows for useDataGridServerRows.",
+      "author": "gridcn",
+      "dependencies": [
+        "kysely@>=0.29.0 <1"
+      ],
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid-server-query"
+      ],
+      "files": [
+        {
+          "path": "registry/default/blocks/data-grid-server-query-kysely/create-kysely-grid-query.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query-kysely/create-kysely-grid-query.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query-kysely/data-grid-server-query-kysely.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query-kysely/data-grid-server-query-kysely.ts"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    },
+    {
+      "name": "data-grid-server-query-demo",
+      "type": "registry:example",
+      "title": "Data Grid Server Query Demo",
+      "description": "A scrolling grid over an in-browser PostgreSQL (PGlite) served by the query layer and Drizzle: the filter tree, quick search, sort, row count, and set values run as SQL, a panel shows the last statements with their bound parameters, and a switch adds a hostile filter value.",
+      "author": "gridcn",
+      "dependencies": [
+        "@electric-sql/pglite@^0.5.15",
+        "drizzle-orm@>=0.45.0 <1"
+      ],
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid",
+        "DammersCode/gridcn/data-grid-server",
+        "DammersCode/gridcn/data-grid-toolbar",
+        "DammersCode/gridcn/data-grid-server-query",
+        "DammersCode/gridcn/data-grid-server-query-drizzle",
+        "switch"
+      ],
+      "files": [
+        {
+          "path": "registry/default/examples/data-grid-server-query-demo.tsx",
+          "type": "registry:example",
+          "target": "components/data-grid-server-query-demo.tsx"
+        },
+        {
+          "path": "registry/default/examples/data-grid-server-query-demo-db.ts",
+          "type": "registry:example",
+          "target": "components/data-grid-server-query-demo-db.ts"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    }
+  ]
 }

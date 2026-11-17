@@ -11,7 +11,7 @@ const registry = JSON.parse(readFileSync(join(root, "registry.json"), "utf8"));
 const REGISTRY_BLOCK_ITEMS = registry.items.filter((item) => item.type === "registry:block").map((item) => item.name);
 // data-grid/data-grid-sdk is the core's add-on-facing SDK barrel (first-party add-ons import it;
 // consumers use data-grid/data-grid). pagination-math is the pagination add-on's shared helper module (not in its public barrel).
-const ALLOWED_BARRELS = new Set([...REGISTRY_BLOCK_ITEMS.map((item) => `${item}/${item}`), "data-grid/data-grid-sdk", "data-grid-pagination/pagination-math"]);
+const ALLOWED_BARRELS = new Set([...REGISTRY_BLOCK_ITEMS.map((item) => `${item}/${item}`), "data-grid/data-grid-sdk", "data-grid-pagination/pagination-math", "data-grid-server-query/data-grid-server-query-sdk"]);
 
 const BLOCKS_ROOT = join(root, "registry", "default", "blocks");
 const IMPORT_RE = /(?:from\s+|import\s+)["']([^"']+)["']/g;
