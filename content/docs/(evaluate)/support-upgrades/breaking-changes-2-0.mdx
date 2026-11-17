@@ -46,6 +46,7 @@ Each row is one **Breaking:** entry of the [changelog](https://github.com/Dammer
 | <span id="enable-row-reorder" />`enableRowReorder` | Turns off the row drag | Removed. A `reorder` family `rowMarkers` mode arms the drag. | Use a plain mode, such as `rowMarkers="checkbox"`. |
 | <span id="checked-rows-default" />Checked rows with a checkbox marker | `'until-click'` | `'until-cleared'` | Set `checkedRowsLifetime="until-click"`. |
 | <span id="header-click-default" />Header click with `totalRowCount` | Selects the column | Sorts | Set `headerClickBehavior="select"`. |
+| <span id="select-all-matching" />`selectAllMatching()` | Returns nothing, warns without `totalRowCount` | Returns `{ ok, reason }`, works on client grids | Read the result instead of the warning. |
 | <span id="move-server-sort" />Row move under `sortMode="server"` with a sort | Moves the loaded rows | Does nothing, reason `"view-ordered"` | Clear the sort before a move. |
 
 The props of 1.3 map to `checkedRowsLifetime` like this:
