@@ -531,10 +531,10 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
             disabled={readOnly}
           />
           <InputGroupAddon align="inline-end">
-          <InputGroupButton size="icon-xs" aria-label={labels.replace} title={labels.replace} disabled={!canReplace || !hasMatches} onClick={replaceOne}>
+          <InputGroupButton size="icon-xs" className="size-8" aria-label={labels.replace} title={labels.replace} disabled={!canReplace || !hasMatches} onClick={replaceOne}>
             <Replace />
           </InputGroupButton>
-          <InputGroupButton size="icon-xs" aria-label={labels.replaceAll} aria-description={resultScope ? labels.replaceLoadedRows : undefined} title={resultScope ? labels.replaceLoadedRows : labels.replaceAll} disabled={!canReplace || !hasMatches} onClick={() => apply(undefined)}>
+          <InputGroupButton size="icon-xs" className="size-8" aria-label={labels.replaceAll} aria-description={resultScope ? labels.replaceLoadedRows : undefined} title={resultScope ? labels.replaceLoadedRows : labels.replaceAll} disabled={!canReplace || !hasMatches} onClick={() => apply(undefined)}>
             <ReplaceAll />
           </InputGroupButton>
           </InputGroupAddon>

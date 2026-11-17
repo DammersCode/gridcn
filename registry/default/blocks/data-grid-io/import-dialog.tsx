@@ -78,8 +78,8 @@ const appendBlockOf = (state: { readOnly: boolean; totalRowCount?: number | null
 /** The label key that explains why import is unavailable: a read-only grid takes no import, and the default append needs a client grid, so a grid without `onImport` that holds a server result gets one. */
 export function useImportBlock(onImport: unknown, open = true): AppendBlock | null {
   const block = useDataGridSelector<unknown, AppendBlock | null>(appendBlockOf);
-  const storeApi = useDataGridStoreApi();
-  const sparse = useMemo(() => open && !onImport && hasUnloadedRows(storeApi.getState().data), [open, onImport, storeApi]);
+  const data = useDataGridSelector<unknown, readonly unknown[]>((s) => s.data as readonly unknown[]);
+  const sparse = useMemo(() => open && !onImport && hasUnloadedRows(data), [open, onImport, data]);
   return onImport && block !== "importReadOnly" ? null : (block ?? (sparse ? "importNeedsOnImport" : null));
 }
 

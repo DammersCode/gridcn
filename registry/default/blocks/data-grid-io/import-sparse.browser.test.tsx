@@ -41,8 +41,9 @@ async function pickCsv(content: string): Promise<void> {
 describe("import append gate on a sparse data array", () => {
   it("blocks the default append at open when rows are unloaded and no onImport is given", async () => {
     await render(<Grid data={sparseRows()} />);
-    await userEvent.click(page.getByRole("button", { name: "Import" }));
-    await expect.element(page.getByText(NOT_AVAILABLE)).toBeInTheDocument();
+    const trigger = page.getByRole("button", { name: "Import" });
+    await expect.element(trigger).toBeDisabled();
+    await expect.element(trigger).toHaveAttribute("title", NOT_AVAILABLE);
   });
 
   it("shows no block at open when onImport takes the rows", async () => {
@@ -59,10 +60,9 @@ describe("import append gate on a sparse data array", () => {
     await pickCsv("Name\nAlice\nBob");
 
     await screen.rerender(<Grid data={sparseRows()} />);
-    await userEvent.click(page.getByRole("button", { name: "Import", exact: true }));
 
-    await expect.element(page.getByText(NOT_AVAILABLE)).toBeInTheDocument();
-    await expect.element(page.getByText("Alice", { exact: true })).toBeInTheDocument();
+    await expect.element(page.getByRole("alert")).toHaveTextContent(NOT_AVAILABLE);
+    await expect.element(page.getByRole("dialog").getByRole("button", { name: "Import", exact: true })).toBeDisabled();
   });
 });
 

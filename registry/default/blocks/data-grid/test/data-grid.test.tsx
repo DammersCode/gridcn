@@ -7,6 +7,7 @@ import { DataGrid, DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody,
 import { useDataGridStoreApi, GRID_ATTR, gridAttrSelector, type DataGridStoreState } from "../data-grid-sdk";
 import { useDataGridInternalActions, useDataGridStoreApi as useRawStoreApi } from "../store";
 import type { StoreApi } from "zustand/vanilla";
+import "../cell-types/date-calendar";
 
 type Row = { id: string; name: string; qty: number };
 
@@ -18,7 +19,6 @@ const columns: readonly ColumnDef<Row, unknown>[] = [
 function makeRows(count: number): Row[] {
   return Array.from({ length: count }, (_, i) => ({ id: String(i), name: `Row ${i}`, qty: i }));
 }
-
 afterEach(cleanup);
 
 // jsdom performs no layout; drive useRowWindow's viewport math by stubbing clientHeight.

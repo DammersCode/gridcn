@@ -1260,7 +1260,7 @@ describe("DataGridFilterMenu reorder", () => {
     await openFilterMenu();
     const removeButton = document.querySelector<HTMLElement>('[aria-label="Remove filter"]');
     removeButton!.click();
-    await expect.poll(() => document.activeElement?.textContent).toContain("Add filter");
+    await expect.poll(() => document.activeElement?.getAttribute("aria-label")).toBe("Add filter");
   });
 });
 

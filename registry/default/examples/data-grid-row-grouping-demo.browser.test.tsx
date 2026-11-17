@@ -18,8 +18,8 @@ describe("data-grid-row-grouping-demo", () => {
     await vi.waitFor(() => expect(groupRows().every((row) => row.getAttribute("aria-expanded") === "true")).toBe(true));
 
     await userEvent.click(button("Collapse all"));
-    const first = groupRows()[0]!;
-    first.focus();
+    await userEvent.click(groupRows()[0]!.querySelector<HTMLElement>("[data-grid-group-label] > span:last-child")!);
+    await vi.waitFor(() => expect(groupRows()[0]!.querySelector("[data-active]")).toBeTruthy());
     await userEvent.keyboard("{Enter}");
     await vi.waitFor(() => expect(groupRows()[0]!.getAttribute("aria-expanded")).toBe("true"));
 

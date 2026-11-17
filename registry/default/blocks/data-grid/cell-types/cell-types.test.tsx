@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { StrictMode, type ReactNode } from "react";
 import { cleanup, render, screen, fireEvent } from "@testing-library/react";
 import { DataGridProvider } from "../store";
@@ -680,6 +680,10 @@ function DateEditorProvider({ children }: { children: ReactNode }) {
 }
 
 describe("dateCellType.Editor lifecycle", () => {
+  beforeAll(async () => {
+    await import("./date-calendar");
+  });
+
   it("opens a popover with a typed-input and a calendar", async () => {
     const { onChange, commit, commitValue, cancel } = editorSpies();
     render(
