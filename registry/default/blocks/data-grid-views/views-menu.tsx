@@ -84,17 +84,18 @@ function ViewRow({
   }
 
   return (
-    <li className="flex items-center gap-1" data-active={active ? "" : undefined}>
-      <Button type="button" variant={active ? "secondary" : "ghost"} size="sm" className="min-w-0 flex-1 justify-start" aria-current={active ? "true" : undefined} onClick={onSelect}>
+    <li data-active={active ? "" : undefined}>
+      <ButtonGroup className="w-full">
+      <Button type="button" variant={active ? "secondary" : "outline"} size="sm" className="min-w-0 flex-1 justify-start" aria-current={active ? "true" : undefined} onClick={onSelect}>
         {active ? <Check /> : null}
         <span className="truncate">{view.name}</span>
       </Button>
-      <Button type="button" variant="ghost" size="icon-sm" aria-pressed={isDefault} aria-label={isDefault ? labels.unsetDefault(view.name) : labels.setDefault(view.name)} onClick={onSetDefault}>
+      <Button type="button" variant="outline" size="icon-sm" aria-pressed={isDefault} aria-label={isDefault ? labels.unsetDefault(view.name) : labels.setDefault(view.name)} onClick={onSetDefault}>
         <Star className={cn(isDefault && "fill-current")} />
       </Button>
       <Button
         type="button"
-        variant="ghost"
+        variant="outline"
         size="icon-sm"
         ref={renameButton}
         aria-label={labels.rename(view.name)}
@@ -107,7 +108,7 @@ function ViewRow({
       </Button>
       <Button
         type="button"
-        variant={confirming ? "destructive" : "ghost"}
+        variant={confirming ? "destructive" : "outline"}
         size="icon-sm"
         aria-label={confirming ? labels.confirmDelete(view.name) : labels.delete(view.name)}
         onBlur={() => setConfirming(false)}
@@ -119,6 +120,7 @@ function ViewRow({
       >
         <Trash2 />
       </Button>
+      </ButtonGroup>
     </li>
   );
 }
