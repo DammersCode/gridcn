@@ -3,6 +3,7 @@ import type { AnyColumnDef } from "../store/types";
 import type { BuiltInFilterOperator, CellType, CellTypeValueInput, CustomFilterOperator, FilterOperator, FilterOperatorInput, FilterSpec, FilterValueInputProps } from "../types";
 import { isBuiltInOperator } from "../sort-filter/matches-filter";
 import { composeValidate, type CellValidate } from "../validation/validate-cell";
+import { withValidateMany, type ValidateMany } from "../validation/validate-batch";
 
 /** Text/general operators offered for every column type. */
 export const TEXT_FILTER_OPERATORS: readonly BuiltInFilterOperator[] = [
@@ -120,6 +121,19 @@ export function resolveColumnValidate<TData = unknown, TValue = unknown, TOption
   column: AnyColumnDef,
   cellType?: CellType<TData, TValue, TOptions>,
 ): CellValidate {
+  const base = resolveBaseValidate(column, cellType);
+  const many = column.validateMany;
+  if (!many) return base;
+  const cached = manyValidates.get(column);
+  if (cached && cached.base === base && cached.many === many) return cached.bound;
+  const bound = withValidateMany(base, many as ValidateMany);
+  manyValidates.set(column, { base, many, bound });
+  return bound;
+}
+
+const manyValidates = new WeakMap<AnyColumnDef, { base: CellValidate; many: unknown; bound: CellValidate }>();
+
+function resolveBaseValidate<TData, TValue, TOptions>(column: AnyColumnDef, cellType?: CellType<TData, TValue, TOptions>): CellValidate {
   const typeValidate = cellType?.validate;
   if (typeof typeValidate !== "function") return column.validate ?? (typeValidate as CellValidate);
   const cached = boundTypeValidates.get(column);

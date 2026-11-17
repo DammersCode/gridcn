@@ -492,6 +492,12 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
    */
   validate?: ((value: TValidate, row: TData, ctx: CellValidateContext<TData, TValidate>) => string | null) | StandardSchemaV1<TValidate>;
   /**
+   * Validates every cell of this column that one write sets, in one call: paste, fill, clear, import, `updateCells`, or a single edit (one cell).
+   * Returns one answer per cell in order (`null` accepts); a different count rejects every cell. It runs after `validate`, so a 10,000-cell paste calls it once.
+   * Beside a Standard Schema `validate` it is ignored.
+   */
+  validateMany?: (cells: readonly { value: TValidate; row: TData }[]) => readonly (string | null)[];
+  /**
    * What a `validate` rejection does. `"block"` (default): a single-cell commit is refused (the editor
    * stays open with the message); paste, fill, `updateCells`, import, Delete, and Cut drop or clear the value (Delete and Cut keep the cell as it is). `"warn"`:
    * every one of those writes commits the value and flags the cell in `cellErrors` (same ring/tint/tooltip as
