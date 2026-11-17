@@ -2139,6 +2139,7 @@
             "DammersCode/gridcn/data-grid",
             "button",
             "input",
+            "input-group",
             "DammersCode/gridcn/use-debounce",
             "DammersCode/gridcn/data-grid-pagination"
          ],
