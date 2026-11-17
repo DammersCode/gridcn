@@ -368,10 +368,7 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   toDisplayText?(value: TValue, options?: TOptions): string;
   /** Parse from paste/import/typing. Call `rejectText()` for text it cannot parse: the cell keeps its value on paste, fill, import, and replace, and the grid reports the text. Return `clearValue()`'s result only to empty the cell on purpose. */
   fromText(text: string, options?: TOptions): TValue;
-  /**
-   * Runs once per column before a paste calls `fromText`, with the column's distinct texts. A returned promise holds the paste as the `resolveTexts` gate
-   * (`useDataGridGatePending`, `gateTimeoutMs`); `fromText` then reads what the call learned. `signal` aborts when a newer paste supersedes this one.
-   */
+  /** Runs once per column before a paste calls `fromText`, with the column's distinct texts. A promise holds the paste as the `resolveTexts` gate. */
   resolveTexts?(texts: readonly string[], options: TOptions | undefined, ctx: GateContext): Promise<void> | void;
   clearValue(options?: TOptions): TValue;
   isEmpty(value: TValue): boolean;
@@ -485,23 +482,10 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
    * commit waits for it with the editor open, and a bulk write (paste, fill, `updateCells`) holds
    * the batch until every cell settles (at most 32 validations run at once).
    * On success the COMMITTED value is `result.value`: a schema may transform, but its output type is its input type, so a transform to another type does not type-check.
-   * `TValidate` (not `TValue` directly): a union of a function type and a non-callable schema
-   * object, as a plain property, is checked contravariantly as a WHOLE — unlike a pure
-   * method-shorthand function, TS can't special-case just the function branch bivariant anymore.
-   * That would break `defineColumns`' narrow-`TValue` columns widening into the shared
-   * `ColumnDef<TData, unknown>` array every consumer prop uses (verified: it also cascades to
-   * OTHER unrelated method-shorthand fields like `renderCell` in the same array literal — TS's
-   * structural check on the whole object type gets stricter once ANY sibling property stops being
-   * bivariant). Giving `validate` its own type parameter keeps that widening exact (`TValue` never
-   * becomes incompatible) while only `TValidate` erases at the store boundary — a documented,
-   * narrow, single-field cast (see `AnyColumnDef`), not a project-wide `any`.
+   * `TValidate` keeps `defineColumns` columns with a narrow `TValue` assignable to the shared `ColumnDef<TData, unknown>` array; it erases only at the store boundary (see `AnyColumnDef`).
    */
   validate?: ((value: TValidate, row: TData, ctx: CellValidateContext<TData, TValidate>) => string | null) | StandardSchemaV1<TValidate>;
-  /**
-   * Validates every cell of this column that one write sets, in one call: paste, fill, clear, import, `updateCells`, or a single edit (one cell).
-   * Returns one answer per cell in order (`null` accepts); a different count rejects every cell. It runs after `validate`, so a 10,000-cell paste calls it once.
-   * Beside a Standard Schema `validate` it is ignored.
-   */
+  /** Validates every cell of this column that one write sets in one call (`null` accepts), after `validate`; one answer per cell, in order. Ignored beside a Standard Schema. */
   validateMany?: (cells: readonly { value: TValidate; row: TData }[]) => readonly (string | null)[];
   /**
    * What a `validate` rejection does. `"block"` (default): a single-cell commit is refused (the editor

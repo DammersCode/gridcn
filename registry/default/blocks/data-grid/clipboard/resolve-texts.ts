@@ -14,7 +14,8 @@ export function resolveColumnTexts(s: DataGridStoreState, cells: readonly (reado
     const resolveTexts = s.cellTypes[column.type ?? "text"]?.resolveTexts;
     if (!resolveTexts) continue;
     const texts = new Set<string>();
-    for (const row of cells) if (row[c] !== undefined) texts.add(row[c]);
+    for (const row of cells) texts.add(row[c] ?? "");
+    texts.delete("");
     const answer = resolveTexts.call(s.cellTypes[column.type ?? "text"], [...texts], column.options, { signal: signal() });
     if (isThenable(answer)) pending.push(Promise.resolve(answer));
   }

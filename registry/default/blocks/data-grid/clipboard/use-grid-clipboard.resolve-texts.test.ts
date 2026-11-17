@@ -13,7 +13,7 @@ function mount(resolveTexts: NonNullable<typeof textCellType.resolveTexts>) {
   const known = new Map<string, string>();
   const codes = {
     ...textCellType,
-    resolveTexts: (texts: readonly string[], options: unknown, ctx: { signal: AbortSignal }) => resolveTexts(texts, options, ctx),
+    resolveTexts: (texts: readonly string[], options: Record<string, never> | undefined, ctx: { signal: AbortSignal }) => resolveTexts(texts, options, ctx),
     fromText: (text: string) => known.get(text) ?? text,
   };
   const onDataChange = vi.fn();

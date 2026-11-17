@@ -1,4 +1,4 @@
-import type { LookupOptions, LookupResolveRequest, LookupValue } from "./lookup-model";
+import type { LookupOptions, LookupValue } from "./lookup-model";
 
 // Relative on purpose: the shadcn CLI rewrites import paths, never augmentation module names.
 declare module "../data-grid/types" {

@@ -12,7 +12,7 @@ export const VALIDATE_CONCURRENCY = 32;
 /** A column's `validateMany`: one answer per cell of the write, in order; `null` accepts. */
 export type ValidateMany = (cells: readonly { value: unknown; row: unknown }[]) => readonly (string | null)[];
 
-const manyAnswers = new WeakMap<CellValidateContext, Map<unknown, string | null> | Error>();
+const manyAnswers = new WeakMap<CellValidateContext, Map<unknown, string | null> | { thrown: unknown }>();
 const manyWarned = new WeakSet<ValidateMany>();
 
 /** Adds a once-per-write `validateMany` after `validate`. Beside a Standard Schema it is skipped, with one development warning. */
@@ -34,11 +34,11 @@ export function withValidateMany(validate: CellValidate, many: ValidateMany): Ce
         if (!Array.isArray(out) || out.length !== ctx.batch.length) throw new TypeError(`validateMany must return one answer per cell: expected ${ctx.batch.length}`);
         answers = new Map(ctx.batch.map((cell, i) => [cell.row, out[i] ?? null]));
       } catch (error) {
-        answers = error instanceof Error ? error : new Error(toSafeText(error));
+        answers = { thrown: error };
       }
       manyAnswers.set(ctx, answers);
     }
-    if (answers instanceof Error) throw answers;
+    if (!(answers instanceof Map)) throw answers.thrown;
     return answers.get(row) ?? null;
   };
 }

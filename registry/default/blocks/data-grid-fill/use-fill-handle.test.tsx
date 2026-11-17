@@ -590,7 +590,7 @@ describe("useFillHandle staleness guard — async fill held against a real store
       const [firstResolve] = held.resolvers;
       act(() => result.current.fill.fillDown());
       expect(first.aborted).toBe(true);
-      firstResolve([["5"]]);
+      firstResolve?.([["5"]]);
       await settle();
       expect(onDataChange).not.toHaveBeenCalled();
     });

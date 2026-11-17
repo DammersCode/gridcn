@@ -73,9 +73,9 @@ export type UseFillHandleOptions = {
    * (`useDataGridGatePending`, `gateTimeoutMs`); the selection expands and the cells write once it resolves.
    */
   processFill?: (ctx: ProcessFillContext) => string[][] | false | Promise<string[][] | false>;
-  /** Replaces the built-in series detector (`detectSeries`) — the add-on's default remains the built-in one. */
+  /** Replaces the built-in series detector (`detectSeries`) â€” the add-on's default remains the built-in one. */
   detectSeries?: (values: readonly string[]) => SeriesDescriptor | null;
-  /** This add-on's local fill-preview store — owns the in-progress drag rect (kept out of core). */
+  /** This add-on's local fill-preview store â€” owns the in-progress drag rect (kept out of core). */
   fillStore: FillStoreApi;
 };
 
@@ -113,7 +113,7 @@ function tiledSourceCell(
   return { columnId: column.id, value: getCellValue<unknown, typeof column>(dataRow, column) };
 }
 
-/** Reads `rect` as a 2D string grid via each cell type's `toText` — the fill algorithm's raw input. */
+/** Reads `rect` as a 2D string grid via each cell type's `toText` â€” the fill algorithm's raw input. */
 export function readRectAsText(s: DataGridReadState, rect: GridRect): string[][] {
   const out: string[][] = [];
   for (let row = rect.y; row < rect.y + rect.height; row++) {
@@ -236,7 +236,7 @@ export function buildFillCandidates(
 
 /**
  * The fill resolution (accepted writes plus rejected cells) plus `generateFill`'s raw text grid.
- * `resolution` is a Promise when a filled column's schema validates asynchronously — the hook holds
+ * `resolution` is a Promise when a filled column's schema validates asynchronously â€” the hook holds
  * the batch until it resolves, then applies the passing cells as one `applyCellUpdates`.
  */
 export function buildFillWrites(
@@ -347,7 +347,7 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
           const flashed = flashCellsFor(current, applied);
           // rejected cells are reported by the write itself (same source, after the write's emit)
           actions.applyCellUpdates(applied, "fill", resolved.rejected, resolved.warnings);
-          // Pulse the cells that actually landed � the re-resolved batch, not the held one.
+          // Pulse the cells that actually landed — the re-resolved batch, not the held one.
           actions.flashCells(flashed);
         }, settle);
       } else {
@@ -382,7 +382,7 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
       const filled = generateFillText(s, source, strip, { ...opts, detect: detectSeries });
       if (heldRun.current && !heldRun.current.aborted) gates.abortRun(heldRun.current, "superseded");
       const run = gates.begin("processFill", (now) => now.readOnly);
-      const processed = processFill ? processFill({ source, target: strip, cells: filled, get signal() { return run.signal; } }) : filled;
+      const processed = processFill ? processFill({ source, target: strip, cells: filled, signal: run.signal }) : filled;
       if (!isThenable<string[][] | false>(processed)) {
         if (processed !== false) finishFill(s, source, strip, processed);
         return;
@@ -528,7 +528,7 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
     runFill(source, strip);
   }, [disabled, runFill, storeApi]);
 
-  // Stable object identity when none of the four callbacks changed — the add-on's own plugin
+  // Stable object identity when none of the four callbacks changed â€” the add-on's own plugin
   // closure and DataGridRoot's context value depend on this reference, so a fresh literal here
   // would defeat that memo on every render.
   return useMemo(

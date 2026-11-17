@@ -180,6 +180,10 @@ These sources apply:
 
 Each entry has `rowId`, `columnId`, `viewRowIndex`, `value`, and `message`. A row outside the view reports `viewRowIndex: -1`.
 
+## One call for a whole write [#validatemany]
+
+`validateMany` checks every cell of the column that one write sets, in one call. A 10,000-cell paste calls it once. It returns one answer per cell, in order, and `null` accepts. A different count rejects every cell. It runs after `validate` and is ignored beside a Standard Schema. A single edit calls it with one cell.
+
 ## Props [#props]
 
 {/* props: ColumnDef */}
@@ -187,6 +191,7 @@ Each entry has `rowId`, `columnId`, `viewRowIndex`, `value`, and `message`. A ro
 | Prop | Type | Default |
 |---|---|---|
 | `validate` | `(value, row, ctx) => string \| null` or Standard Schema | none |
+| `validateMany` | `(cells: { value, row }[]) => (string \| null)[]` | none |
 | `validationMode` | `"block" \| "warn"` | `"block"` |
 
 {/* props: DataGridSyncProps */}
