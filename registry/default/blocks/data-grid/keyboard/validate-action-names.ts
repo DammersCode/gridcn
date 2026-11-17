@@ -8,6 +8,6 @@ export function warnUnknownKeymapActions(
 ): void {
   for (const action of Object.keys(keymap)) {
     if ((BUILTIN_ACTIONS as readonly string[]).includes(action) || (commands && action in commands)) continue;
-    warnOnce(`keymap-unknown:${action}`, `keymap action "${action}" is neither a built-in action nor a command, so its keys do nothing; check the spelling or add it to commands`);
+    warnOnce(`keymap-unknown:${action}`, `keymap action "${action}" has no built-in handler and no custom command; the binding is a no-op`);
   }
 }

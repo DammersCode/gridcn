@@ -210,3 +210,40 @@ describe("checkedRowsLifetime until-click", () => {
     expect(mount({}).state().checkedRowsLifetime).toBe("until-click");
   });
 });
+
+describe("the effective checkedRowsLifetime", () => {
+  it("defaults to until-cleared when the markers show a checkbox", () => {
+    for (const rowMarkers of ["checkbox", "both", "reorder-checkbox"] as const) {
+      expect(mount({ rowMarkers }).state().checkedRowsLifetime).toBe("until-cleared");
+    }
+  });
+
+  it("defaults to until-click when no marker shows a checkbox", () => {
+    for (const rowMarkers of ["none", "number", "reorder"] as const) {
+      expect(mount({ rowMarkers }).state().checkedRowsLifetime).toBe("until-click");
+    }
+  });
+
+  it("lets an explicit value win over the marker default", () => {
+    expect(mount({ rowMarkers: "checkbox", checkedRowsLifetime: "until-click" }).state().checkedRowsLifetime).toBe("until-click");
+  });
+
+  it("reports until-cleared for across-filters on a server-sorted grid without totalRowCount", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(mount({ checkedRowsLifetime: "across-filters", sortMode: "server" }).state().checkedRowsLifetime).toBe("until-cleared");
+    expect(warn.mock.calls.filter((c) => String(c[0]).includes("falls back"))).toHaveLength(1);
+    warn.mockRestore();
+  });
+
+  it("keeps across-filters with totalRowCount", () => {
+    expect(mount({ checkedRowsLifetime: "across-filters", sortMode: "server", totalRowCount: 5 }).state().checkedRowsLifetime).toBe("across-filters");
+  });
+});
+
+describe("the headerClickBehavior default", () => {
+  it("sorts with totalRowCount and selects without", () => {
+    expect(mount({ totalRowCount: 5 }).state().headerClickBehavior).toBe("sort");
+    expect(mount({}).state().headerClickBehavior).toBe("select");
+    expect(mount({ totalRowCount: 5, headerClickBehavior: "select" }).state().headerClickBehavior).toBe("select");
+  });
+});

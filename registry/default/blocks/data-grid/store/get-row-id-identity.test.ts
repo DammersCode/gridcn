@@ -30,7 +30,7 @@ describe("syncing an inline getRowId", () => {
 
     getInternalActions(store)._syncProps({ data, columns, getRowId: swapped } as InternalSyncProps);
 
-    expect(store.getState().getRowId).toBe(holeSafeRowId(swapped));
+    expect(store.getState().getRowId).toBe(holeSafeRowId(swapped as (row: unknown) => string));
   });
 
   it("adopts a new function together with a new data array", () => {
@@ -39,7 +39,7 @@ describe("syncing an inline getRowId", () => {
 
     getInternalActions(store)._syncProps({ data: [...data], columns, getRowId: next } as InternalSyncProps);
 
-    expect(store.getState().getRowId).toBe(holeSafeRowId(next));
+    expect(store.getState().getRowId).toBe(holeSafeRowId(next as (row: unknown) => string));
   });
 });
 

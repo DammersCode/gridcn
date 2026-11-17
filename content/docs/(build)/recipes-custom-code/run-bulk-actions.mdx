@@ -17,7 +17,7 @@ A bulk bar needs the checked row ids and one write for each button. Checkbox row
 
 ## Steps
 
-1. Set `rowMarkers="checkbox"` and `checkedRowsLifetime="until-cleared"`. A checked marker adds its row id to `selection.rowIds`, and a cell range does not. With `'until-click'` (the default without `totalRowCount`), a click on a cell clears the checks.
+1. Set `rowMarkers="checkbox"`. A checked marker adds its row id to `selection.rowIds`, and a cell range does not. A checkbox marker makes `checkedRowsLifetime` default to `'until-cleared'`, so a click on a cell keeps the checks. With `'until-click'`, a click on a cell clears them.
 2. Keep a count in `onSelectionChange` and show the bar while the count is above zero.
 3. Hold the grid API in a ref and read `getSelection().rowIds` inside each click handler.
 4. Write the checked rows with one action per button.

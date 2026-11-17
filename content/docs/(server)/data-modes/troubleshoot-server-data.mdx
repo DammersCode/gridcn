@@ -10,7 +10,7 @@ Find your symptom below. In a development build, the grid logs a warning for sev
 
 ## Rows are wrong or missing [#rows]
 
-- **A header click selects the column and does not sort.** Without `server.gridProps`, `headerClickBehavior` is `"select"`. Set `headerClickBehavior="sort"`.
+- **A header click selects the column and does not sort.** Without `totalRowCount`, `headerClickBehavior` is `"select"`. Set `headerClickBehavior="sort"`.
 - **The grid sorts or filters the rows again.** Without `useDataGridServerRows`, the grid sorts and filters its `data`. Set `sortMode="server"` and `filterMode="server"`.
 - **`status` is `"error"` and the grid shows the last good rows.** `fetchRows` rejected, threw, or resolved without a `rows` array. Fix the cause, then call `server.retry()` or select Retry in the error bar.
 - **A page shows fewer rows than `pageSize`.** The answer repeats a row id, and the hook drops the later copies. [Make the sort order unique](/docs/data-modes/query-server-rows#sorting-a-scroll-grid).

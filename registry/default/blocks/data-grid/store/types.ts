@@ -180,7 +180,7 @@ export type DataGridSyncProps<TData = unknown> = {
   /** Whole-row selection channel gestures (marker click, Shift+Space); default true. */
   enableRowSelection?: boolean;
   /**
-   * How long the checked rows last. Default `'across-filters'` with `totalRowCount`, else `'until-click'`; an explicit value always wins.
+   * How long the checked rows last. Default `'across-filters'` with `totalRowCount`, else `'until-cleared'` when `rowMarkers` shows a checkbox, else `'until-click'`; an explicit value always wins. `useDataGridSelectionConfig` returns the value that applies.
    * - `'until-click'`: a cell or column selection (click, arrows, Shift or Ctrl click, a header click, Ctrl+Space) clears the checked rows.
    * - `'until-cleared'`: the checked rows stay across those gestures, and row operations (delete, duplicate, move, the cell menu's
    *   row items) act only on the checked rows while any exist. Escape, the checkboxes, Ctrl+A, a click on a row number, a row delete,
@@ -265,7 +265,7 @@ export type DataGridSyncProps<TData = unknown> = {
   enableColumnReorder?: boolean;
   /** Enables pin/unpin actions grid-wide; default true. `false` also makes `setColumnPin` do nothing. Per-column `pinnable: false` still wins. */
   enableColumnPinning?: boolean;
-  /** How a plain header click behaves; default 'select'. See {@link HeaderClickBehavior}. */
+  /** How a plain header click behaves; default 'sort' with `totalRowCount`, else 'select'. See {@link HeaderClickBehavior}. */
   headerClickBehavior?: HeaderClickBehavior;
   /** Partial i18n override, deep-merged over {@link DEFAULT_LABELS}; see {@link useDataGridLabels}. */
   labels?: DeepPartialLabels;

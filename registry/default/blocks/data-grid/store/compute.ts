@@ -1048,36 +1048,6 @@ export function clampIndex(n: number, max: number): number {
   return Math.max(0, Math.min(n, Math.max(0, max)));
 }
 
-/** Resolves the optional selection-config sync props to their defaults, and a non-finite or negative `totalRowCount` to `null`. */
-export function resolveSelectionConfig(props: InternalSyncProps): Pick<
-  DataGridStoreState,
-  | "rowMarkers"
-  | "enableRowSelection"
-  | "checkedRowsLifetime"
-  | "totalRowCount"
-  | "enableColumnSelection"
-  | "enableRangeSelection"
-  | "enableMultiRange"
-  | "enableColumnResize"
-  | "enableColumnReorder"
-  | "enableColumnPinning"
-  | "headerClickBehavior"
-> {
-  return {
-    rowMarkers: props.rowMarkers ?? "none",
-    enableRowSelection: props.enableRowSelection ?? true,
-    checkedRowsLifetime: props.checkedRowsLifetime ?? (props.totalRowCount !== undefined ? "across-filters" : "until-click"),
-    totalRowCount: typeof props.totalRowCount === "number" && !(Number.isFinite(props.totalRowCount) && props.totalRowCount >= 0) ? null : props.totalRowCount,
-    enableColumnSelection: props.enableColumnSelection ?? true,
-    enableRangeSelection: props.enableRangeSelection ?? true,
-    enableMultiRange: props.enableMultiRange ?? true,
-    enableColumnResize: props.enableColumnResize ?? true,
-    enableColumnReorder: props.enableColumnReorder ?? true,
-    enableColumnPinning: props.enableColumnPinning ?? true,
-    headerClickBehavior: props.headerClickBehavior ?? "select",
-  };
-}
-
 /** A column's own `resizable`/`reorderable`/`pinnable` flag, defaulted true when absent. */
 export function columnFlag(column: AnyColumnDef | undefined, key: "resizable" | "reorderable" | "pinnable"): boolean {
   return column?.[key] ?? true;

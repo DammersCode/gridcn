@@ -14,7 +14,7 @@ A server grid holds one page, or the loaded part of a scroll-mode source. Declar
 
 Set `totalRowCount` to the size of the whole result, or `null` when the size is unknown. `totalRowCount` makes `checkedRowsLifetime` default to `'across-filters'`, which keeps the checks across page changes and on a cell click. An explicit value overrides the default. `totalRowCount` also makes `sortMode` and `filterMode` default to `"server"`. See [Sorting](/docs/sort-filter-search/sorting). `useDataGridServerRows` sets `totalRowCount` and `checkedRowsLifetime="across-filters"` in `gridProps` and `providerProps`.
 
-A negative or non-finite `totalRowCount` counts as `null`. With `'across-filters'`, a cell selection keeps the checks, and row operations act on the checked rows only. Without `totalRowCount`, `checkedRowsLifetime` defaults to `'until-click'`.
+A negative or non-finite `totalRowCount` counts as `null`. With `'across-filters'`, a cell selection keeps the checks, and row operations act on the checked rows only. Without `totalRowCount`, the default follows `rowMarkers`.
 
 With `totalRowCount` and `checkedRowsLifetime="across-filters"` in effect:
 

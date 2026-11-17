@@ -35,13 +35,13 @@ import {
   memoizedMergeLabels,
   normalizeColumnLayout as normalizeColumnLayoutBase,
   pruneCellErrors,
-  resolveSelectionConfig,
   sanitizeColumnLayout,
   holeSafeRowId,
   resolveSortMode,
   resolveFilterMode,
   withFilterIds,
 } from "./compute";
+import { resolveSelectionConfig } from "./selection-config";
 import { withMatchCase } from "./filter-match-case";
 import { createWarnOnce, isDev, warnDev } from "../is-dev";
 import { NO_REMEMBERED_ROWS, hiddenCheckedRowsActive } from "./hidden-checked-rows";
@@ -238,7 +238,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
       }
       set((s) => {
         const selectionConfig = resolveSelectionConfig(props);
-        if (selectionConfig.checkedRowsLifetime === "across-filters" && selectionConfig.totalRowCount === undefined && (s.sortMode === "server" || s.filterMode === "server")) {
+        if (props.checkedRowsLifetime === "across-filters" && selectionConfig.totalRowCount === undefined && (s.sortMode === "server" || s.filterMode === "server")) {
           warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
         }
         const forgetsRemembered =

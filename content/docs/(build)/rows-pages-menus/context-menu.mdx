@@ -70,7 +70,7 @@ The header dropdown and the right-click header menu show the same items:
 
 ## Cell surface items [#cell-surface-row-operation-items]
 
-A right-click on a cell outside the selection selects that cell first. A right-click inside the selection keeps it. The row items act on every view row that the selection covers, or on the clicked row if nothing is selected. With a `checkedRowsLifetime` of `'until-cleared'` or `'across-filters'` and a checked row, they act on the checked rows only. With `'until-click'` (the default without `totalRowCount`), a right-click outside the selection ends the checks. Set `'until-cleared'` to keep them for bulk menu actions.
+A right-click on a cell outside the selection selects that cell first. A right-click inside the selection keeps it. The row items act on every view row that the selection covers, or on the clicked row if nothing is selected. With a `checkedRowsLifetime` of `'until-cleared'` or `'across-filters'` and a checked row, they act on the checked rows only. With `'until-click'` (the default without a checkbox marker or `totalRowCount`), a right-click outside the selection ends the checks. Set `'until-cleared'` to keep them for bulk menu actions.
 
 <kbd>Shift</kbd>+<kbd>F10</kbd> opens the cell menu of the active cell on Windows and Linux. The browser sends it as a right-click.
 

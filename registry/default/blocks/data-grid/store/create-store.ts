@@ -65,7 +65,6 @@ import {
   rectsKeepRecords,
   remapColumnChannel,
   remapRowChannel,
-  resolveSelectionConfig,
   sanitizeColumnLayout,
   holeSafeRowId,
   resolveSortMode,
@@ -81,6 +80,7 @@ import {
   EMPTY_CELL_ERRORS,
   EMPTY_FLASHING_CELLS,
 } from "./compute";
+import { resolveSelectionConfig } from "./selection-config";
 import { withMatchCase } from "./filter-match-case";
 import { toSafeText } from "../cell-types/safe-text";
 import { createWarnOnce, isDev, warnDev } from "../is-dev";

@@ -114,7 +114,7 @@ The grid shows the sort cycle, `aria-sort`, the sort indicator, and `DataGridSor
 
 In scroll mode, a sort change drops the loaded rows, because fetched blocks hold the old order. The hook fetches block 0 again with the new spec.
 
-With `server.gridProps`, a header click sorts. Without the hook, a header click selects the column until you set `headerClickBehavior="sort"`.
+With `server.gridProps`, a header click sorts. Without `totalRowCount`, a header click selects the column until you set `headerClickBehavior="sort"`.
 
 Make the sort order unique, for example by adding the row id as the last sort key. The hook keeps the first row of a repeated row id. In random access, scroll mode leaves the later copy as a skeleton row. A sequential source and pages mode drop it.
 

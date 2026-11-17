@@ -378,6 +378,11 @@
                "target": "components/data-grid/keyboard/global-shortcuts.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/keyboard/validate-action-names.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/keyboard/validate-action-names.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/keyboard/platform.ts",
                "type": "registry:component",
                "target": "components/data-grid/keyboard/platform.ts"
@@ -626,6 +631,11 @@
                "path": "registry/default/blocks/data-grid/store/commit.ts",
                "type": "registry:component",
                "target": "components/data-grid/store/commit.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/store/selection-config.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/selection-config.ts"
             },
             {
                "path": "registry/default/blocks/data-grid/store/compute.ts",

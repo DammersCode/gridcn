@@ -97,7 +97,8 @@
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/server-rows.parity.test.tsx"
+            "tests/parity/server-rows.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/checked-rows-lifetime.test.tsx"
           ]
         },
         "FS": {

@@ -346,7 +346,7 @@ describe("custom keymap commands through <DataGrid commands keymap>", () => {
     const keymap = { copyy: ["mod+k"], mine: ["mod+j"] } as Keymap;
     const { rerender } = render(<DataGrid data={rows()} columns={columns} getRowId={(r) => r.id} keymap={keymap} commands={{ mine: { run: vi.fn() } }} />);
     rerender(<DataGrid data={rows()} columns={columns} getRowId={(r) => r.id} keymap={{ ...keymap }} commands={{ mine: { run: vi.fn() } }} />);
-    const unknown = warn.mock.calls.map((c) => String(c[0])).filter((m) => m.includes("neither a built-in action nor a command"));
+    const unknown = warn.mock.calls.map((c) => String(c[0])).filter((m) => m.includes("has no built-in handler and no custom command"));
     expect(unknown).toHaveLength(1);
     expect(unknown[0]).toContain('"copyy"');
     warn.mockRestore();

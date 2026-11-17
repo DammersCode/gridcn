@@ -22,7 +22,7 @@ The marker column sits at the start of the grid, outside your `columns`. This gr
 
 `renderMarker` receives `rowId`, `viewRowIndex`, `isChecked`, and `isCellSelected`. `isChecked` is true for a checked row. A cell selection never checks a row.
 
-A cell click sets `isCellSelected`. With `checkedRowsLifetime="until-click"` (the default without `totalRowCount`), a cell click also clears the checked rows.
+A cell click sets `isCellSelected`. With `checkedRowsLifetime="until-click"` (the default for markers without a checkbox), a cell click also clears the checked rows.
 
 `renderMarkerHeader` receives `allSelected`. It runs inside the provider, so it can call `useDataGridActions`. A new renderer function re-renders every rendered row, so define both renderers at module scope:
 
