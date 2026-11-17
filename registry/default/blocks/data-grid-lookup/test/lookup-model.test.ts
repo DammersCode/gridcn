@@ -136,4 +136,25 @@ describe("rememberOption on a repeated render", () => {
     rememberOption(owner, { value: "c1", label: "Acme Corp" });
     expect(recallOption(owner, "Acme Corp")).toEqual({ value: "c1", label: "Acme Corp" });
   });
+
+  it("drops the remembered labels when the cache key changes, also for the same fetchOptions", () => {
+    const grid = {};
+    const fetchOptions = {};
+    adoptOwner(grid, "customer", fetchOptions, "tenant-a");
+    rememberOption(fetchOptions, acme);
+    adoptOwner(grid, "customer", fetchOptions, "tenant-a");
+    expect(recallOption(fetchOptions, "Acme")).toEqual(acme);
+    adoptOwner(grid, "customer", fetchOptions, "tenant-b");
+    expect(recallOption(fetchOptions, "Acme")).toBeUndefined();
+  });
+
+  it("does not carry labels to a new identity when the cache key changed", () => {
+    const grid = {};
+    const first = {};
+    const next = {};
+    adoptOwner(grid, "customer", first, 1);
+    rememberOption(first, acme);
+    adoptOwner(grid, "customer", next, 2);
+    expect(recallOption(next, "Acme")).toBeUndefined();
+  });
 });

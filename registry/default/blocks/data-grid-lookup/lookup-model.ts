@@ -42,6 +42,8 @@ export type LookupOptions<TData = unknown> = {
   maxResults?: number;
   /** A pasted or imported text that matches no known option: `"reject"` keeps the cell value and reports the text to `onValidationError`, `"clear"` empties the cell, `"keep"` stores the trimmed text as `{ value: text, label: "" }`, shown as unresolved. Default `"reject"`. */
   unresolvedPaste?: "reject" | "clear" | "keep";
+  /** Remembered labels drop when this value changes (a new tenant, a renamed record set). Default: labels stay for the life of the grid. */
+  labelCacheKey?: string | number;
   labels?: Partial<LookupLabels>;
 };
 
@@ -139,19 +141,25 @@ export function rememberOption(owner: object, option: LookupOption): void {
   dropOldest(index.byValue);
 }
 
-const columnOwners = new WeakMap<object, Map<string, object>>();
+type ColumnOwner = { owner: object; cacheKey: unknown };
+const columnOwners = new WeakMap<object, Map<string, ColumnOwner>>();
 
-/** Carries the options remembered for a column of one grid over to its next `fetchOptions` identity, so an inline function keeps its labels. */
-export function adoptOwner(grid: object, columnId: string, owner: object): void {
+/** Carries the options remembered for a column of one grid over to its next `fetchOptions` identity, so an inline function keeps its labels. A changed `cacheKey` drops them instead. */
+export function adoptOwner(grid: object, columnId: string, owner: object, cacheKey?: unknown): void {
   let owners = columnOwners.get(grid);
   if (!owners) {
     owners = new Map();
     columnOwners.set(grid, owners);
   }
   const previous = owners.get(columnId);
-  if (previous === owner) return;
-  owners.set(columnId, owner);
-  const inherited = previous && known.get(previous);
+  if (previous?.owner === owner && Object.is(previous.cacheKey, cacheKey)) return;
+  owners.set(columnId, { owner, cacheKey });
+  if (previous && !Object.is(previous.cacheKey, cacheKey)) {
+    known.delete(previous.owner);
+    known.delete(owner);
+    return;
+  }
+  const inherited = previous && known.get(previous.owner);
   if (!inherited) return;
   const own = known.get(owner);
   if (!own) known.set(owner, inherited);

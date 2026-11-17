@@ -9,7 +9,7 @@ import { adoptOwner, isUnresolved, MAX_LOOKUP_TEXT, readLookup, recallOption, re
 
 function LookupCell({ value, options, columnId }: CellRenderProps<unknown, LookupValue, LookupOptions>) {
   const grid = useOptionalDataGridStoreApi();
-  if (grid && options?.fetchOptions) adoptOwner(grid, columnId, options.fetchOptions);
+  if (grid && options?.fetchOptions) adoptOwner(grid, columnId, options.fetchOptions, options.labelCacheKey);
   const option = readLookup(value);
   if (!option) return <CellSpan text="" />;
   // a shown label pastes back to its key, also from outside the grid
