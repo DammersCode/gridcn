@@ -27,9 +27,9 @@ const COL_COUNT = columns.length;
 
 /** Fixed simulated users — stable id/name/color; the last has no valid color and paints with the primary fallback, matching the real transport's `PresenceHighlight.id` contract. */
 const SIMULATED_USERS: { id: string; name: string; color: string }[] = [
-  { id: "ada", name: "Ada", color: "var(--chart-2)" },
-  { id: "grace", name: "Grace", color: "var(--chart-3)" },
-  { id: "linus", name: "Linus", color: "var(--chart-5)" },
+  { id: "ada", name: "Ada", color: "oklch(0.62 0.19 255)" },
+  { id: "grace", name: "Grace", color: "oklch(0.68 0.19 150)" },
+  { id: "linus", name: "Linus", color: "oklch(0.68 0.2 25)" },
   { id: "guest", name: "No valid color", color: "not-a-color" },
 ];
 
