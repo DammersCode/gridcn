@@ -34,7 +34,13 @@ type Row = { id: string; role: string; score: number };
 
 const columns = defineColumns<Row>()([
   { id: "role", header: "Role", accessorKey: "role" },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", aggregate: "sum" },
+  {
+    id: "score",
+    header: "Score",
+    accessorKey: "score",
+    type: "number",
+    aggregate: "sum",
+  },
 ]);
 
 const rows: Row[] = [{ id: "1", role: "Admin", score: 90 }];

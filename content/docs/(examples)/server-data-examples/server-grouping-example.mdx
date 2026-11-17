@@ -33,7 +33,13 @@ type User = { id: number; role: string; score: number | null };
 
 const columns = defineColumns<User>()([
   { id: "role", header: "Role", accessorKey: "role" },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", aggregate: "avg" },
+  {
+    id: "score",
+    header: "Score",
+    accessorKey: "score",
+    type: "number",
+    aggregate: "avg",
+  },
 ]);
 
 export function UsersGrid() {

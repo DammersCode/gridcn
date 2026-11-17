@@ -6,7 +6,7 @@ type: feature
 aliases: ["group rows", "group by", "grouping", "expand all", "collapse all", "row group"]
 ---
 
-A long list reads better when rows that share a value sit together. `groupBy` names the columns, and the grid heads each row group with a group row that shows the key, the row count, and one reduced value for each `aggregate` column. The group rows open and close.
+A long list reads better when rows that share a value sit together. `groupBy` names the columns. The grid heads each row group with a group row. The group row shows the key, the row count, and one reduced value for each `aggregate` column. A group row opens and closes.
 
 <ComponentPreview name="data-grid-row-grouping-demo" />
 
@@ -24,13 +24,25 @@ type Row = { id: string; region: string; city: string; sales: number };
 const columns = defineColumns<Row>()([
   { id: "region", header: "Region", accessorKey: "region" },
   { id: "city", header: "City", accessorKey: "city" },
-  { id: "sales", header: "Sales", accessorKey: "sales", type: "number", aggregate: "sum" },
+  {
+    id: "sales",
+    header: "Sales",
+    accessorKey: "sales",
+    type: "number",
+    aggregate: "sum",
+  },
 ]);
 
 const rows: Row[] = [{ id: "1", region: "North", city: "Oslo", sales: 12 }];
 
 function SalesGrid() {
-  return <DataGrid defaultData={rows} columns={columns} defaultGroupBy={["region", "city"]} />;
+  return (
+    <DataGrid
+      defaultData={rows}
+      columns={columns}
+      defaultGroupBy={["region", "city"]}
+    />
+  );
 }
 ```
 
@@ -76,7 +88,7 @@ With `pageSize` set, a page holds `pageSize` top-level groups with the rows open
 
 ## Server mode [#server-mode]
 
-`useDataGridServerRows` groups on your server when the spec holds `groupBy`. The grid never holds every row, so the server sends one list at a time: the groups of one level, or the rows of one group. Each request names the list with `groupPath` and `childKind`. The hook works in scroll mode and in pages mode. In pages mode the top level is one page of groups.
+`useDataGridServerRows` groups on your server when the spec holds `groupBy`. The grid never holds every row. The server sends one list at a time: the groups of one level, or the rows of one group. Each request names the list with `groupPath` and `childKind`. The hook works in scroll mode and in pages mode. In pages mode the top level is one page of groups.
 
 The server answers `childKind: "groups"` with `groups`, `groupCount`, and, at the top level, `totalRowCount`. It answers `childKind: "rows"` with the rows of one group. [Group server rows](/docs/data-modes/group-server-rows) lists the request, the answer, and the checks.
 

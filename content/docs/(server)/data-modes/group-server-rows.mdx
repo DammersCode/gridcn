@@ -24,13 +24,24 @@ type Order = { id: string; region: string; total: number };
 
 const columns = defineColumns<Order>()([
   { id: "region", header: "Region", accessorKey: "region" },
-  { id: "total", header: "Total", accessorKey: "total", type: "number", aggregate: "sum" },
+  {
+    id: "total",
+    header: "Total",
+    accessorKey: "total",
+    type: "number",
+    aggregate: "sum",
+  },
 ]);
 
 export function OrdersGrid() {
   const server = useDataGridServerRows<Order>({
     mode: "scroll",
-    defaultSpec: { sorts: [], filters: [], searchText: "", groupBy: ["region"] },
+    defaultSpec: {
+      sorts: [],
+      filters: [],
+      searchText: "",
+      groupBy: ["region"],
+    },
     fetchRows: async (request) => {
       const response = await fetch("/api/orders/groups", {
         method: "POST",
@@ -64,7 +75,12 @@ Answer `childKind: "groups"` with the groups of one level in order, from `start`
 ```ts
 const answer = {
   groups: [
-    { key: "North", childCount: 3, totalRowCount: 40, aggregates: { total: 1250 } },
+    {
+      key: "North",
+      childCount: 3,
+      totalRowCount: 40,
+      aggregates: { total: 1250 },
+    },
     { key: null, childCount: 1, totalRowCount: 2, aggregates: { total: null } },
   ],
   groupCount: 2,
@@ -84,14 +100,14 @@ Answer `childKind: "rows"` with `{ rows, totalRowCount }` for the rows of that g
 
 `parseServerSpec` reads `groupBy` and `aggregates`, and `parseGroupPath(body, spec)` reads `{ groupPath, childKind }`. Both bound the input. The limits are 4 levels, 1,024 characters per key, and 32 aggregates. List the columns a client can group by with `groupable` and `aggregatable` in `ServerSpecColumnRules`. Pass every key to your query as a parameter and never build SQL text from it. See the [server rows contract](/docs/contracts/server-rows-contract#parse-group-path).
 
-The grid checks each answer. It throws on an answer without `groups`, a repeated key (`1` and `"1"` repeat), a count that is not a non-negative integer, and a top level without `totalRowCount`. It cuts a list that is longer than the request, and shows `null` for an aggregate that is not a finite number.
+The grid checks each answer. It throws on an answer with no `groups`. It throws on a repeated key (`1` and `"1"` repeat), on a bad count, and on a top level without `totalRowCount`. It cuts a list that is longer than the request, and shows `null` for an aggregate that is not a finite number.
 
 ## Behavior [#behavior]
 
 - Scroll mode loads the rows of an open group in blocks, and drops the blocks furthest from the screen past `maxLoadedRows`.
 - Pages mode makes the top level one page of groups. `pager.totalRowCount` counts groups, and `pager.unit` is `"groups"`.
 - A change of `groupBy`, the spec, or the page size returns to the first list.
-- `initialAnswer` may be the groups answer of the top level.
+- `initialAnswer` can be the groups answer of the top level.
 - An insert, a duplicate, a delete, and a move report the reason `server-groups`.
 - A save, a refusal, and `refresh()` keep the open groups.
 - `selectAllMatching()` counts the `totalRowCount` of the result.
