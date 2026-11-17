@@ -23,6 +23,7 @@ import DataGridPaginationDemo from "@/registry/default/examples/data-grid-pagina
 import DataGridSortListDemo from "@/registry/default/examples/data-grid-sort-list-demo";
 import DataGridPresenceDemo from "@/registry/default/examples/data-grid-presence-demo";
 import DataGridCommentsDemo from "@/registry/default/examples/data-grid-comments-demo";
+import DataGridCommentsServerDemo from "@/registry/default/examples/data-grid-comments-server-demo";
 import DataGridEventsDemo from "@/registry/default/examples/data-grid-events-demo";
 import DataGridCustomCellDemo from "@/registry/default/examples/data-grid-custom-cell-demo";
 import DataGridValidationDemo from "@/registry/default/examples/data-grid-validation-demo";
@@ -150,8 +151,13 @@ const SECTIONS: { title: string; description: string; demo: ReactNode }[] = [
   },
   {
     title: "data-grid-comments-demo",
-    description: "Cell comments with a simulated second user over an in-memory compare-and-swap server, an offline switch, and a forced stale conflict.",
+    description: "Cell comments on a client-only grid: anonymous, kept in local storage.",
     demo: <DataGridCommentsDemo />,
+  },
+  {
+    title: "data-grid-comments-server-demo",
+    description: "Cell comments with a simulated second user over an in-memory compare-and-swap server, an offline switch, and a forced stale conflict.",
+    demo: <DataGridCommentsServerDemo />,
   },
   {
     title: "data-grid-events-demo",

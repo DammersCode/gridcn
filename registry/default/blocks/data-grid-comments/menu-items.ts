@@ -15,6 +15,7 @@ export function createMenuItemsResolver(engine: CommentEngine, getOptions: () =>
       label,
       onClick: () => {
         requestAnimationFrame(() => {
+          if (engine.isDisposed()) return;
           engine.openComments({ rowId: ctx.rowId, columnId: ctx.columnId }, "menu");
         });
       },

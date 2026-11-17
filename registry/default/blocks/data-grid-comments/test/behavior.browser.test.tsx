@@ -119,6 +119,16 @@ describe("comments: accessibility and focus", () => {
     await expect.poll(() => document.activeElement?.closest('[role="grid"]') !== null).toBe(true);
   });
 
+  it("Escape returns focus to the grid after a pointer open", async () => {
+    await render(<Harness options={{ defaultComments: [comment()] }} />);
+    await expect.poll(() => markers().length).toBe(1);
+    markers()[0]?.click();
+    await expect.poll(() => popup()).not.toBeNull();
+    await userEvent.keyboard("{Escape}");
+    await expect.poll(() => popup()).toBeNull();
+    await expect.poll(() => document.activeElement?.closest('[role="grid"]') !== null).toBe(true);
+  });
+
   it("Tab past the last control closes the popover and continues from the grid; Shift+Tab past the first control goes back", async () => {
     await render(
       <div>

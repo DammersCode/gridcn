@@ -1,7 +1,7 @@
 import type { DataChange, DataGridPlugin } from "@/registry/default/blocks/data-grid/data-grid";
 import type { DataGridCommentsLabels } from "./labels";
 
-/** Who wrote or resolved a comment. The server should set it from the session; the add-on shows it as given. */
+/** Who wrote or resolved a comment. A per-record snapshot: the identity is `id`, and a later rename changes only new writes. */
 export type CommentAuthor = {
   /** 1..128 characters, no control characters. */
   id: string;
@@ -19,7 +19,8 @@ export type CellComment = {
   columnId: string;
   /** 1..`maxTextLength` characters after trim. */
   text: string;
-  author: CommentAuthor;
+  /** Absent for an anonymous comment. A server may add it once; it never changes or goes away after that. */
+  author?: CommentAuthor;
   /** Epoch milliseconds. */
   createdAt: number;
   /** Epoch milliseconds; the server should stamp it. */
@@ -81,11 +82,11 @@ export type CommentRejectedCtx = {
   error?: unknown;
 };
 
-/** Context of the `canEdit`, `canDelete`, and `canResolve` gates. `signal` aborts on unmount or when the request is superseded. */
-export type CommentGateCtx = { comment: CellComment; user: CommentAuthor; signal: AbortSignal };
+/** Context of the `canEdit`, `canDelete`, and `canResolve` gates. `action` tells resolve from reopen. `user` is absent without `currentUser`. `signal` aborts on unmount or when the request is superseded. */
+export type CommentGateCtx = { comment: CellComment; action: CommentAction; user?: CommentAuthor; signal: AbortSignal };
 
-/** Context of the `canCreate` gate. */
-export type CommentCreateGateCtx = { rowId: string; columnId: string; user: CommentAuthor; signal: AbortSignal };
+/** Context of the `canCreate` gate. `user` is absent without `currentUser`. */
+export type CommentCreateGateCtx = { rowId: string; columnId: string; user?: CommentAuthor; signal: AbortSignal };
 
 /** Context of `fetchComments`. */
 export type CommentFetchCtx = { rowIds: readonly string[]; signal: AbortSignal };
@@ -124,8 +125,12 @@ export type CommentMenuItemsResolver = <TItem extends { id: string }>(
 
 /** Options of {@link useDataGridComments}. */
 export type UseDataGridCommentsOptions = {
-  /** The user who writes. Without it the popover is read-only. */
+  /** The user who writes. Without it, writes are anonymous. Only `id` is required. A present but invalid value refuses every write. */
   currentUser?: CommentAuthor;
+  /** Blocks every comment write and hides the composer and the actions. Default `false`. */
+  readOnly?: boolean;
+  /** Shows resolve and reopen. `false` ignores the `resolved` state in the UI and refuses resolve and reopen. Default `true`. */
+  enableResolve?: boolean;
   /** Controlled confirmed comments. Keep the reference stable between renders. */
   comments?: readonly CellComment[];
   /** One-shot seed. */
@@ -140,11 +145,11 @@ export type UseDataGridCommentsOptions = {
   onLocalChange?: (change: CommentChange) => void;
   /** Gate for creating a comment. Default: anyone. */
   canCreate?: (ctx: CommentCreateGateCtx) => boolean | Promise<boolean>;
-  /** Gate for editing. Default: the author. */
+  /** Gate for editing. Default: the author, or anyone when the comment has no author. */
   canEdit?: (ctx: CommentGateCtx) => boolean | Promise<boolean>;
-  /** Gate for deleting. Default: the author. */
+  /** Gate for deleting. Default: the author, or anyone when the comment has no author. */
   canDelete?: (ctx: CommentGateCtx) => boolean | Promise<boolean>;
-  /** Gate for resolving and reopening. Default: anyone. */
+  /** Gate for resolving and reopening; `ctx.action` tells them apart. Default: anyone. */
   canResolve?: (ctx: CommentGateCtx) => boolean | Promise<boolean>;
   /** Loads the comments of the rendered rows. */
   fetchComments?: (ctx: CommentFetchCtx) => Promise<readonly CellComment[]>;

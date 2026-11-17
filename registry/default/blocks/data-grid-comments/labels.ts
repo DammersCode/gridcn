@@ -7,6 +7,7 @@ export type DataGridCommentsLabels = {
   locale: string;
   commentList: string;
   composer: string;
+  editComposer: string;
   composerPlaceholder: string;
   submit: string;
   cancel: string;
@@ -16,6 +17,7 @@ export type DataGridCommentsLabels = {
   confirmDeleteAction: string;
   resolveAction: string;
   reopenAction: string;
+  /** `name` is `""` for a comment without an author. */
   edit: (name: string, time: string) => string;
   remove: (name: string, time: string) => string;
   confirmRemove: (name: string, time: string) => string;
@@ -30,23 +32,30 @@ export type DataGridCommentsLabels = {
   saveMine: string;
   changedByOther: string;
   readOnlyHint: string;
-  noUserHint: string;
   rowBusyHint: string;
   refused: string;
   failed: string;
   counter: (used: number, max: number) => string;
   menuItem: string;
   noComments: string;
+  /** `chord` is `""` when the app unbinds `openComments`. */
   announce: (count: number, unresolved: number, chord: string) => string;
+  /** The announcement when `enableResolve` is `false`. */
+  announceCount: (count: number, chord: string) => string;
+  /** `name` is `""` for a comment without an author. */
   announceAdded: (name: string) => string;
   unknownAuthor: string;
 };
+
+const by = (name: string): string => (name ? ` by ${name}` : "");
+const openHint = (chord: string): string => (chord ? ` Press ${chord} to open.` : "");
 
 export const DEFAULT_COMMENTS_LABELS: DataGridCommentsLabels = {
   popover: (columnTitle, cellText) => (cellText ? `Comments on ${columnTitle}: ${cellText}` : `Comments on ${columnTitle}`),
   locale: "en-US",
   commentList: "Comments",
   composer: "Write a comment",
+  editComposer: "Edit comment",
   composerPlaceholder: "Write a comment…",
   submit: "Comment",
   cancel: "Cancel",
@@ -56,11 +65,11 @@ export const DEFAULT_COMMENTS_LABELS: DataGridCommentsLabels = {
   confirmDeleteAction: "Delete?",
   resolveAction: "Resolve",
   reopenAction: "Reopen",
-  edit: (name, time) => `Edit comment by ${name}, ${time}`,
-  remove: (name, time) => `Delete comment by ${name}, ${time}`,
-  confirmRemove: (name, time) => `Confirm delete of comment by ${name}, ${time}`,
-  resolve: (name, time) => `Resolve comment by ${name}, ${time}`,
-  reopen: (name, time) => `Reopen comment by ${name}, ${time}`,
+  edit: (name, time) => `Edit comment${by(name)}, ${time}`,
+  remove: (name, time) => `Delete comment${by(name)}, ${time}`,
+  confirmRemove: (name, time) => `Confirm delete of comment${by(name)}, ${time}`,
+  resolve: (name, time) => `Resolve comment${by(name)}, ${time}`,
+  reopen: (name, time) => `Reopen comment${by(name)}, ${time}`,
   resolved: "Resolved",
   saving: "Saving",
   loading: "Loading comments…",
@@ -70,15 +79,15 @@ export const DEFAULT_COMMENTS_LABELS: DataGridCommentsLabels = {
   saveMine: "Save my version",
   changedByOther: "Changed by someone else",
   readOnlyHint: "Comments are read-only.",
-  noUserHint: "Sign in to comment.",
   rowBusyHint: "This row is still saving. Try again in a moment.",
   refused: "You cannot do this.",
   failed: "The comment could not be saved.",
   counter: (used, max) => `${used} / ${max}`,
   menuItem: "Comments…",
   noComments: "No comments yet.",
-  announce: (count, unresolved, chord) => `${count} ${count === 1 ? "comment" : "comments"}, ${unresolved} unresolved. Press ${chord} to open.`,
-  announceAdded: (name) => `Comment added by ${name}`,
+  announce: (count, unresolved, chord) => `${count} ${count === 1 ? "comment" : "comments"}, ${unresolved} unresolved.${openHint(chord)}`,
+  announceCount: (count, chord) => `${count} ${count === 1 ? "comment" : "comments"}.${openHint(chord)}`,
+  announceAdded: (name) => (name ? `Comment added by ${name}` : "Comment added"),
   unknownAuthor: "Unknown",
 };
 

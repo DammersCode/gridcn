@@ -70,6 +70,7 @@ function computeMarkers(
   rowIds: readonly (string | undefined)[],
   columnIndex: ReadonlyMap<string, number>,
   hideResolved: boolean,
+  resolveEnabled: boolean,
   firstViewRow: number,
   revision: number,
 ): Marker[] {
@@ -85,7 +86,7 @@ function computeMarkers(
       if (col === undefined) continue;
       const entries = cellComments(core, rowId, columnId);
       if (entries.length === 0) continue;
-      const unresolved = entries.some((e) => !e.comment.resolved);
+      const unresolved = !resolveEnabled || entries.some((e) => !e.comment.resolved);
       if (!unresolved && hideResolved) continue;
       list.push({ key: `${rowId}\u0001${columnId}`, rowId, columnId, viewRow: firstViewRow + i, col, unresolved });
       if (list.length >= MAX_MARKERS) break;
@@ -112,11 +113,12 @@ export function createCommentsOverlay(engine: CommentEngine, getOptions: () => U
     }, [rowIds]);
 
     const hideResolved = getOptions().hideResolved === true;
+    const resolveEnabled = getOptions().enableResolve !== false;
     const columnIndex = useMemo(() => new Map(visibleColumns.map((c, i) => [c.id, i])), [visibleColumns]);
 
     const markers = useMemo(
-      () => computeMarkers(engine.store.core, rowIds, columnIndex, hideResolved, clampRowStart, revision),
-      [rowIds, columnIndex, hideResolved, clampRowStart, revision],
+      () => computeMarkers(engine.store.core, rowIds, columnIndex, hideResolved, resolveEnabled, clampRowStart, revision),
+      [rowIds, columnIndex, hideResolved, resolveEnabled, clampRowStart, revision],
     );
 
     const onOpen = useMemo(() => (rowId: string, columnId: string) => void engine.openComments({ rowId, columnId }, "pointer"), []);

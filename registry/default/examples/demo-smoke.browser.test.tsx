@@ -37,6 +37,7 @@ import PinningDemo from "./data-grid-pinning-demo";
 import PlaygroundDemo from "./data-grid-playground-demo";
 import PresenceDemo from "./data-grid-presence-demo";
 import CommentsDemo from "./data-grid-comments-demo";
+import CommentsServerDemo from "./data-grid-comments-server-demo";
 import RowMarkersDemo from "./data-grid-row-markers-demo";
 import RowOpsDemo from "./data-grid-row-ops-demo";
 import RowReorderDemo from "./data-grid-row-reorder-demo";
@@ -102,6 +103,7 @@ const DEMOS: readonly [string, ReactNode][] = [
   ["playground", <PlaygroundDemo key="playground" />],
   ["presence", <PresenceDemo key="presence" />],
   ["comments", <CommentsDemo key="comments" />],
+  ["comments-server", <CommentsServerDemo key="comments-server" />],
   ["row-markers", <RowMarkersDemo key="row-markers" />],
   ["row-ops", <RowOpsDemo key="row-ops" />],
   ["row-reorder", <RowReorderDemo key="row-reorder" />],

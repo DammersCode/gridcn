@@ -102,14 +102,38 @@ describe("comments: keyboard", () => {
     expect(popup()).toBeNull();
   });
 
-  it("opens read-only without currentUser and shows a hint instead of the composer", async () => {
-    await render(<Harness options={{ currentUser: undefined, defaultComments: [comment()] }} />);
+  it("the readOnly option shows a hint instead of the composer", async () => {
+    await render(<Harness options={{ readOnly: true, defaultComments: [comment()] }} />);
     await page.getByRole("gridcell").nth(2).click();
     await expect.poll(() => markers().length).toBe(1);
     markers()[0]?.click();
     await expect.poll(() => popup()).not.toBeNull();
     expect(popup()?.querySelector("textarea")).toBeNull();
-    expect(popup()?.textContent).toContain("Sign in to comment.");
+    expect(popup()?.textContent).toContain("Comments are read-only.");
+  });
+
+  it("useDataGridComments() with no user writes an anonymous comment: no name, no dot, unnamed buttons", async () => {
+    await render(<Harness options={{ currentUser: undefined, defaultComments: [comment({ author: undefined })] }} />);
+    await expect.poll(() => markers().length).toBe(1);
+    markers()[0]?.click();
+    await expect.poll(() => popup()).not.toBeNull();
+    expect(popup()?.querySelector("bdi.font-medium")).toBeNull();
+    expect(popup()?.querySelector("[aria-label^='Edit comment,']")).not.toBeNull();
+    
+    await page.getByRole("textbox", { name: "Write a comment" }).fill("anonymous note");
+
+    await page.getByRole("button", { name: "Comment", exact: true }).click();
+    await expect.poll(() => popup()?.textContent).toContain("anonymous note");
+  });
+
+  it("enableResolve false removes resolve, reopen, and the resolved badge, and fills every marker", async () => {
+    await render(<Harness options={{ enableResolve: false, defaultComments: [comment({ resolved: true })] }} />);
+    await expect.poll(() => markers().length).toBe(1);
+    expect(markers()[0]?.hasAttribute("data-unresolved")).toBe(true);
+    markers()[0]?.click();
+    await expect.poll(() => popup()).not.toBeNull();
+    expect(popup()?.textContent).not.toContain("Resolved");
+    expect(popup()?.querySelector("[aria-label^='Reopen']")).toBeNull();
   });
 
   it("a read-only grid blocks writes unless allowWhenReadOnly", async () => {

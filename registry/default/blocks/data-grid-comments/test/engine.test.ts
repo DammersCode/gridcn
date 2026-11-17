@@ -78,8 +78,8 @@ describe("local writes without onCommentSave", () => {
     expect(live(h)?.text).toBe("hello");
   });
 
-  it("refuses without a current user (invalid) and over the text bound (limit)", async () => {
-    const noUser = make({ currentUser: undefined });
+  it("refuses an invalid current user (invalid) and over the text bound (limit)", async () => {
+    const noUser = make({ currentUser: { id: "" } });
     expect((await noUser.engine.create({ rowId: "r1", columnId: "name", text: "x" })).ok).toBe(false);
     expect(noUser.rejected[0]?.reason).toBe("invalid");
     const small = make({ maxTextLength: 5 });
@@ -361,7 +361,7 @@ describe("applyRemote", () => {
       { kind: "upsert", comment: Object.create(null) as CellComment },
     ]);
     expect(verdict.applied).toBe(1);
-    expect(h.engine.store.core.confirmed.get("h1")?.author.name).toBe("EveX");
+    expect(h.engine.store.core.confirmed.get("h1")?.author?.name).toBe("EveX");
     expect(h.engine.store.core.confirmed.get("h1")?.text).toBe("<img src=x onerror=alert(1)>");
     expect(Object.isFrozen(h.engine.store.core.confirmed.get("h1"))).toBe(true);
   });
