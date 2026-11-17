@@ -65,12 +65,12 @@ A term row links to the page that explains it.
 | long-press | A touch press held for 500 ms without moving more than 10 px. It opens the context menu. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
 | lookup | A cell type whose options a server searches as the user types. | [Lookup cell](/docs/editing-cells/lookup-cell) |
 | `moveUpKeepSelection` | Moves the active cell and keeps the selection. | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
-| operation | One record of a change to one row: `insert`, `update`, `delete`, or `move`. `DataChange.ops` holds a batch. Write "operations (`ops`)" at first use on a page. | [Data change events](/docs/events-state/data-change-events#datachange) |
+| operation | One record of a change to one row: `insert`, `update`, `delete`, or `move`. `DataChange.ops` holds a batch. | [Data change events](/docs/events-state/data-change-events#datachange) |
 | optimistic write | A comment write that the popover shows at once, at `baseVersion + 1`, before `onCommentSave` answers. A refusal reverts it. | [Add comments to cells](/docs/rows-live-data/add-comments#save-comments) |
 | orphaned comments | The comments of a deleted row. They stay in the store, and `onOrphanedComments` reports them. | [Add comments to cells](/docs/rows-live-data/add-comments#addresses) |
 | override | A prop or callback that replaces default behavior. | [Display override](/docs/editing-cells/display-override) |
 | overscan | Extra rows or columns drawn beyond the viewport edge. | [Virtualization](/docs/performance/virtualization) |
-| paged view | A grid with `pageSize` or `defaultPageSize`. `data` stays whole. The sorted and filtered list is the full view, and `viewIndex` holds the shown page of it. `fullViewOf(viewIndex)` returns the full view. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
+| paged view | A grid with `pageSize` or `defaultPageSize`. `data` stays whole. The sorted and filtered list is the full view, and `viewIndex` holds the shown page of it. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | pages mode | The default mode of `useDataGridServerRows`: the server answers one page per request. | [Load rows by page](/docs/server-pagination/load-rows-page) |
 | paste result | The value `pasteFromClipboard` resolves: `"ok"`, `"permission-denied"`, `"empty"`, or `"refused"`. | [Clipboard](/docs/clipboard-undo/clipboard) |
 | pinned release | A release installed with `#<ref>` on the GitHub registry path. | [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn) |
@@ -82,7 +82,7 @@ A term row links to the page that explains it.
 | range | A rectangle of selected cells. | [Selection model](/docs/concepts/selection-model) |
 | rendered rows | The rows in the DOM. `onRenderedRowsChange` reports their range. The identifiers `windowStart` and `clampRectToWindow` call this range the window. | [Column and viewport events](/docs/events-state/column-viewport-events#onrenderedrowschange) |
 | request, answer | What `fetchRows` receives (`spec`, `start`, `end`, `cursor`, `signal`, plus `page` and `pageSize` in pages mode) and what it resolves (`rows`, `totalRowCount`, `hasMore`, `nextCursor`). The hook validates every answer. | [Server rows contract](/docs/contracts/server-rows-contract) |
-| reshape | A `refresh()` that `useDataGridServerRows` runs after a push, so the server places the rows again. `reshapeDelayMs` and `reshape()` control it. | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
+| reshape | A `refresh()` that asks the server to place pushed rows again. `reshape()` runs one, and `reshapeDelayMs` runs one after a push. | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
 | resolved comment | A comment with `resolved: true`. `hideResolved` hides the comment marker of a cell that has only resolved comments. | [Add comments to cells](/docs/rows-live-data/add-comments#markers) |
 | result | Every row that matches the spec on the server. `data` holds the loaded rows of it. | [Data mode guide](/docs/data-modes) |
 | result count | The number of rows in the view after a filter or sort change. `announceResults` turns its announcement on. | [Screen reader support](/docs/accessibility/screen-reader-support) |
@@ -279,7 +279,7 @@ A search word in this table opens the page that answers it.
 | `boolean column` | [Built-in cell types](/docs/editing-cells/built-cell-types) |
 | `border radius` | [Colors and radius](/docs/theme-style-language/colors-radius) |
 | `brand color` | [Colors and radius](/docs/theme-style-language/colors-radius) |
-| `breaking changes` | [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn) |
+| `breaking changes` | [2.0 breaking changes](/docs/support-upgrades/breaking-changes-2-0) |
 | `bug report` | [Version policy and changelog](/docs/support-upgrades/version-policy-changelog) |
 | `bulk replace` | [Find and replace](/docs/sort-filter-search/find-replace) |
 | `bundle cost` | [Bundle size](/docs/performance/bundle-cost) |
@@ -500,6 +500,7 @@ A search word in this table opens the page that answers it.
 | `huge data` | [Performance guidance](/docs/performance/performance-guidance) |
 | `hydration` | [Render the grid on the server](/docs/support-upgrades/server-rendering) |
 | `hydration mismatch` | [Render the grid on the server](/docs/support-upgrades/server-rendering) |
+| `i18n example` | [Right-to-left example](/docs/style-examples/right-left-example) |
 | `icon in cell` | [Display override](/docs/editing-cells/display-override) |
 | `id from api` | [Change server rows](/docs/rows-live-data/change-server-rows) |
 | `image in cell` | [Display override](/docs/editing-cells/display-override) |
@@ -725,6 +726,7 @@ A search word in this table opens the page that answers it.
 | `RowActionResult` | [Handle row action results](/docs/rows-live-data/handle-row-action-results) |
 | `rows per page` | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | `rtl` | [Labels and i18n](/docs/theme-style-language/labels-i18n) |
+| `rtl grid` | [Right-to-left example](/docs/style-examples/right-left-example) |
 | `save changes` | [Save edits](/docs/save-server/save-edits) |
 | `save column layout` | [Column and viewport events](/docs/events-state/column-viewport-events) |
 | `save column widths` | [Save a column layout](/docs/columns/column-layout) |
@@ -845,6 +847,7 @@ A search word in this table opens the page that answers it.
 | `totals row options` | [Pinned rows options](/docs/add-options/rows-pages-menus/pinned-rows-options) |
 | `toText fromText` | [Cell type model](/docs/concepts/cell-type-model) |
 | `translate` | [Labels and i18n](/docs/theme-style-language/labels-i18n) |
+| `translate labels` | [Right-to-left example](/docs/style-examples/right-left-example) |
 | `translate the ui` | [Labels and i18n](/docs/theme-style-language/labels-i18n) |
 | `translation` | [Labels and i18n](/docs/theme-style-language/labels-i18n) |
 | `translation keys` | [Labels](/docs/components-props/labels) |

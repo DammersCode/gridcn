@@ -39,7 +39,12 @@ type Row = { id: string; name: string };
 
 const TRANSLATIONS: Record<
   Locale,
-  { locale: string; dir: GridDirection; header: string; labels: DeepPartialLabels }
+  {
+    locale: string;
+    dir: GridDirection;
+    header: string;
+    labels: DeepPartialLabels;
+  }
 > = {
   en: { locale: "en-US", dir: "ltr", header: "Name", labels: {} },
   de: {

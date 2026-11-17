@@ -89,7 +89,9 @@ One call is one batch. The grid applies all patches together and calls `onDataCh
 
 ## What the grid skips [#what-the-grid-skips]
 
-`updateCells` returns a verdict. `applied` counts the cells it wrote. `skipped` lists a patch that the grid checked and left out, with a reason. A patch for a row that the grid has not loaded gets the reason `"unknown-row"`. A push to a row whose save is in flight gets `"saving"`: the grid holds it and applies it once the save settles. A call with more than 100,000 patches skips the extra patches with `"limit"`. When a column validates asynchronously, `pending` is `true` and the verdict reports nothing about the outcome. See [Read the push verdict](/docs/rows-live-data/read-push-verdict) for every reason.
+`updateCells` returns a verdict. `applied` counts the cells it wrote. `skipped` lists a patch that the grid checked and left out, with a reason. A patch for a row that the grid has not loaded gets the reason `"unknown-row"`. A push to a row whose save is in flight gets `"saving"`: the grid holds it and applies it once the save settles. A call with more than 100,000 patches skips the extra patches with `"limit"`.
+
+With async validation, `pending` is `true` and the verdict reports no outcome. See [Read the push verdict](/docs/rows-live-data/read-push-verdict) for every reason.
 
 A push writes into a `readOnly` grid too. A push skips a column that has no write path (an `accessorFn` without `setValue`) with the reason `"readonly"`. A call with another source, such as `{ source: "edit" }`, skips every patch for a read-only grid, column, or row with `"readonly"`.
 
@@ -99,7 +101,7 @@ The grid does not sort server rows, so a pushed value never moves its row. Your 
 
 ## Result
 
-When the socket sends a price, the cell in that row changes. The row keeps its position and the selection stays. A push sends no request. If the push changes a column that your server sorts or filters by, the row keeps its place and turns stale until you call `server.reshape()` or set `reshapeDelayMs`.
+When the socket sends a price, the cell in that row changes. The row keeps its position and the selection stays. A push sends no request. A push into a column that your server sorts or filters by leaves the row in place and stale. Call `server.reshape()` or set `reshapeDelayMs`.
 
 Where next: the [custom code path](/docs/custom-code-path/pick-code-route), the [task finder](/docs/terms-help/task-finder), or [Stream updates](/docs/rows-live-data/stream-updates) for undo of pushed values.
 

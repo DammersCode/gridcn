@@ -21,7 +21,7 @@ One grid uses all four pin zones. Name is pinned to the start side and Score to 
 
 ## Wire the zones
 
-Declare each computed row with `aggregateRow` and pass it to the hook. An inline `aggregateRow` keeps the band. A function reducer with a new identity reduces again after each render, so declare a row with a function reducer at module scope to skip that work. The `cells` option sets the fixed cells by column id:
+Declare each computed row with `aggregateRow` and pass it to the hook. An inline `aggregateRow` keeps the band. A function reducer with a new identity reduces again after each render. Declare such a row at module scope to skip that work. The `cells` option sets the fixed cells by column id:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";

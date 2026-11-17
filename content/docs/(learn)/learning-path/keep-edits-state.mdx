@@ -72,7 +72,14 @@ const initialPeople: Person[] = [
 export function PeopleGrid() {
   const grid = useDataGridState(initialPeople);
 
-  return <DataGrid {...grid} columns={columns} aria-label="People" className="h-96" />;
+  return (
+    <DataGrid
+      {...grid}
+      columns={columns}
+      aria-label="People"
+      className="h-96"
+    />
+  );
 }
 ```
 

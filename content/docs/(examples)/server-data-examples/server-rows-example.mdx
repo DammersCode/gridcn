@@ -91,18 +91,17 @@ export function OrdersGrid() {
 | --- | --- |
 | `data`, `totalRowCount` | The rows on screen and the row count of the whole result. |
 | `sortMode`, `filterMode`, `sortState`, `filterState`, `searchText`, and their change callbacks | Hand the sort, the filter, and the search to the server, and hold the spec. |
-| `loading`, `error`, `onRetry` | Show the loading state and the error state with Retry. |
+| `loading`, `error`, `onRetry` | Show the loading and error states. |
 | `onSave` | Runs your `onSave`. The hook fetches again after the saves settle (`refreshAfterSave`). |
-| `headerClickBehavior: "sort"` | Makes a header click sort. Set `headerClickBehavior` after the spread to change that. |
-| `getRowId` | The row id. The default reads `row.id`, and the `getRowId` option overrides it. |
-| `checkedRowsLifetime: "across-filters"` | Keeps checked rows by row id across pages, sorts, and filters. |
+| `headerClickBehavior: "sort"` | A header click sorts. Set it after the spread to change that. |
+| `getRowId`, `checkedRowsLifetime: "across-filters"` | The row id, and checked rows that stay across pages. |
 | `plugins` | Your `plugins` option, mounted after the refresh guard of the hook. |
 
-- An `onDataChange` after the spread replaces the handler of the hook, so the hook stops merging edits into its rows. Put your own `onDataChange` in the hook options instead.
+- Pass `onSave` and `plugins` to the hook, not as props after the spread. Such a prop replaces the hook wiring. An `onDataChange` after the spread runs next to the hook's merge.
 - A composed layout spreads `server.providerProps` onto `DataGridProvider` and `server.rootProps` onto `DataGridRoot`. The demo does this.
 
 <Callout type="warn">
-  Pass the request through `parseServerSpec(body.spec, { columns })` from `data-grid-server` before you build a query, and cap the request body size. The function throws a `ServerSpecError` for an unknown column, an unknown operator, a tree that is too large, or a long value. The [ORM examples](/docs/server-data-examples/orm-examples/drizzle-example) call it.
+  Pass the request through `parseServerSpec(body.spec, { columns })` from `data-grid-server` before you build a query, and cap the request body size. The function throws a `ServerSpecError` for an invalid spec. The [ORM examples](/docs/server-data-examples/orm-examples/drizzle-example) call it.
 </Callout>
 
 A failed request keeps the last good rows on screen and shows an error state with Retry. See [Handle failures](/docs/server-path/handle-failures). To own the spec or the page, see [Query server rows](/docs/data-modes/query-server-rows#control-the-spec-and-the-page) and [Load rows by page](/docs/server-pagination/load-rows-page).

@@ -27,7 +27,7 @@ On every scroll tick, the grid moves the canvas with one `translate`. It does no
 
 ### Overscan [#overscan]
 
-The base overscan covers the gap between one scroll tick and the next update of the rendered rows. During a fling or a scrollbar drag, the grid tracks the recent scroll speed. It grows the overscan on the leading edge only, by up to two viewports or 1,600 px of rows or columns, whichever is larger, on top of the base overscan. The trailing edge keeps the base overscan.
+The base overscan covers the gap between one scroll tick and the next update of the rendered rows. During a fling or a scrollbar drag, the grid tracks the recent scroll speed. It grows the overscan on the leading edge only. The growth is up to two viewports or 1,600 px of rows or columns, whichever is larger, on top of the base overscan. The trailing edge keeps the base overscan.
 
 A jump is a scroll of more than the viewport height plus 1,600 px in one scroll tick. After a jump, the grid mounts only the base overscan. A jump from the top to the middle of 100,000 rows mounts one screen of rows, not a screen plus a large buffer.
 

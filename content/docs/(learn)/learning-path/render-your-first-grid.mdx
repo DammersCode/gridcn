@@ -49,7 +49,14 @@ const people: Person[] = [
 ];
 
 export function PeopleGrid() {
-  return <DataGrid defaultData={people} columns={columns} aria-label="People" className="h-96" />;
+  return (
+    <DataGrid
+      defaultData={people}
+      columns={columns}
+      aria-label="People"
+      className="h-96"
+    />
+  );
 }
 ```
 

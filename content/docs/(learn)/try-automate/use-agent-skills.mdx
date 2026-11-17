@@ -13,7 +13,7 @@ Before you start, install a coding agent that supports skills, such as Claude Co
 
 <InstallCommand command="skills add DammersCode/gridcn" />
 
-2. Check that the five `gridcn-*` folders are in your agent's skills folder, for example `.claude/skills/` for Claude Code.
+2. Check that the five `gridcn-*` folders are in your agent's skills folder, such as `.claude/skills/`.
 3. Ask the agent by skill name, for example: `Use gridcn-performance to audit the grid on the orders page.`
 4. Read the **It is working if** line of that skill below. Stop when it holds.
 
@@ -47,10 +47,10 @@ Most identity traps show only as a development console warning. The skill gives 
 
 ## gridcn-custom-cell-type
 
-The skill builds a cell type in order. First the value pipeline: `toText`, `fromText`, `clearValue`, `isEmpty`, and `compare`. Then `Cell` and `Editor`. Then the registration and the `GridCellTypes` type augmentation. It also covers failures that are easy to miss:
+The skill builds a cell type in order. First the value pipeline: `toText`, `fromText`, `clearValue`, `isEmpty`, and `compare`. Then `Cell` and `Editor`. Then the registration and the `GridCellTypes` type augmentation. It also covers failures that are quiet:
 
 - A `cellTypes` entry merges over the built-in types. An entry set to `null` removes that type.
-- A `type` key that matches no entry renders the column as plain text and drops its edits, pastes, and deletes. Only a development warning reports it.
+- A `type` key that matches no entry renders the column as plain text, and only a development warning reports it.
 - Call `rejectText()` in `fromText` for text that does not parse. The cell keeps its value, and the grid reports the text, as the built-in types do. A `fromText` that throws another error rejects that cell too, and the paste continues. Return `clearValue()` only to empty the cell on purpose.
 - A portaled editor without `data-grid-cell-editor` closes on the first click.
 

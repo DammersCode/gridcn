@@ -65,7 +65,9 @@ The save status of a row:
 - Cleared after the promise resolves.
 - `"failed"` after a refusal.
 
-The `refreshAfterSave` option of the hook defaults to `"settled"`. When every save in flight has settled, the hook calls `refresh()` once. If a save is still in flight 10 seconds after the first one started, the hook refreshes for the saves that settled by then. It skips that refresh when no save has settled. When every save failed, no refresh runs. An `onSave` that returns no promise never triggers a refresh, and `refreshAfterSave: false` turns the refresh off. Then call `server.refresh()` yourself. The refresh brings in the server values. See [Save options](/docs/add-options/server/server-rows-options#save-options) for the other policies.
+The `refreshAfterSave` option of the hook defaults to `"settled"`. When every save in flight has settled, the hook calls `refresh()` once. If a save is still in flight 10 seconds after the first one started, the hook refreshes for the saves that settled by then.
+
+The hook skips that refresh when no save has settled. When every save failed, no refresh runs. An `onSave` that returns no promise never triggers a refresh, so call `server.refresh()` yourself. `refreshAfterSave: false` turns the refresh off. See [Save options](/docs/add-options/server/server-rows-options#save-options) for the other policies.
 
 `onSave` never receives the revert, which has the source `"rollback"`. It never receives a server push, which has the source `"stream"`.
 

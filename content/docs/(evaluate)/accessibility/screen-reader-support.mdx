@@ -39,7 +39,7 @@ The marker column sits outside this index space. It has no `aria-colindex`. `ari
 
 ### Sort and state [#sort-and-read-only-state]
 
-A sortable column header has `aria-sort` set to `ascending`, `descending`, or `none`. The attribute appears in every `headerClickBehavior` mode. The visual arrow shows on every sorted column that has a string header and is not `sortable: false`. A column with `sortable: false` has no `aria-sort` and no arrow.
+A sortable column header has `aria-sort` set to `ascending`, `descending`, or `none`. The attribute appears in every `headerClickBehavior` mode. The visual arrow shows on every sorted column that has a string header. A column with `sortable: false` has `aria-sort` and an arrow only while a sort that your code set applies to it. The header click never sorts it.
 
 With `readOnly`, the root has `aria-readonly`. While any of `enableRangeSelection`, `enableRowSelection`, `enableColumnSelection`, or `enableMultiRange` is true, the root has `aria-multiselectable`. All four default to `true`.
 
