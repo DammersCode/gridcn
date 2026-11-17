@@ -33,8 +33,22 @@ export type RowsPlan = {
 };
 export type ValuesPlan = { kind: "values"; where: Predicate; column: PlanColumn; query: string };
 export type AggregatesPlan = { kind: "aggregates"; where: Predicate; columns: readonly { column: PlanColumn; reducer: AggregateReducer }[] };
-export type QueryPlan = RowsPlan | ValuesPlan | AggregatesPlan;
-export type QueryRequestKind = QueryPlan["kind"];
+/** One page of the child groups of one level; `where` holds the filters, the search, and the path equalities. */
+export type GroupsPlan = {
+  kind: "groups";
+  where: Predicate;
+  level: PlanColumn;
+  nextLevel?: PlanColumn;
+  direction: "asc" | "desc";
+  rowRange: { start: number; end: number };
+  /** The top level also answers the row count of the whole result. */
+  countRows: boolean;
+  aggregates: readonly { column: PlanColumn; reducer: AggregateReducer }[];
+};
+export type QueryPlan = RowsPlan | ValuesPlan | AggregatesPlan | GroupsPlan;
+/** `"rows"` reads a rows request and refuses a grouped one; `"page"` reads either and yields a `GroupsPlan` or a `RowsPlan`. */
+export type QueryRequestKind = "rows" | "page" | "values" | "aggregates";
+export type PlanOf<R extends QueryRequestKind> = R extends "page" ? RowsPlan | GroupsPlan : Extract<QueryPlan, { kind: R }>;
 
 export const TRUE: Predicate = Object.freeze({ t: "true" });
 export const FALSE: Predicate = Object.freeze({ t: "false" });

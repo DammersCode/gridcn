@@ -3,7 +3,7 @@ import { isDev } from "./is-dev";
 import { QueryError } from "./errors";
 import type { QueryLimits } from "./limits";
 import { type RowCountMode, parseQuery } from "./parse-query";
-import type { AggregatesPlan, Operand, Predicate, RowsPlan, Test, ValuesPlan } from "./plan";
+import type { AggregatesPlan, GroupsPlan, Operand, Predicate, RowsPlan, Test, ValuesPlan } from "./plan";
 import { combine } from "./plan";
 import { type RowScope, rowScopePredicate } from "./row-scope";
 import { serializeRow, serializeValue } from "./serialize-row";
@@ -25,6 +25,9 @@ export type AdapterCapabilities = {
   localDayGrouping: boolean;
 };
 
+/** One group row as the database returns it; `aggregates` is keyed by column id. */
+export type RawGroupRow = { key: unknown; count: unknown; childCount: unknown; aggregates: Record<string, unknown> };
+
 /** The part of a query layer an ORM adapter supplies: it renders plans and runs them. */
 export type QueryExecutor<TWhere, TOrder> = {
   capabilities: AdapterCapabilities;
@@ -32,6 +35,9 @@ export type QueryExecutor<TWhere, TOrder> = {
   countRows(plan: RowsPlan, signal?: AbortSignal): Promise<unknown>;
   selectValues(plan: ValuesPlan, options: { limit: number; signal?: AbortSignal }): Promise<{ value: unknown; count: unknown }[]>;
   aggregate(plan: AggregatesPlan, signal?: AbortSignal): Promise<Record<string, unknown>>;
+  /** One page of the groups of `plan.level`, in key order with the empty key last; `childCount` is the row count, or the group count of the next level. */
+  selectGroups(plan: GroupsPlan, page: { offset: number; limit: number; signal?: AbortSignal }): Promise<RawGroupRow[]>;
+  countGroups(plan: GroupsPlan, signal?: AbortSignal): Promise<unknown>;
   where(plan: { where: Predicate }): TWhere;
   orderBy(plan: RowsPlan): TOrder;
 };
@@ -43,9 +49,16 @@ export type CallArgs<TContext> = [TContext] extends [never] ? [opts?: QueryCallO
 export type RowsAnswer<TRow> = { rows: TRow[]; totalRowCount?: number | null; hasMore?: boolean };
 export type ValuesAnswer = { values: { value: string; label?: string; count?: number }[] };
 export type AggregatesAnswer = Record<string, number | string | null>;
+export type GroupsAnswer = {
+  groups: { key: string | number | boolean | null; childCount: number; totalRowCount: number; aggregates?: Record<string, number | string | null> }[];
+  groupCount: number;
+  /** The top level: the row count of the whole result. */
+  totalRowCount?: number;
+};
 
 export interface GridQuery<TRow, TContext = never, TWhere = unknown, TOrder = unknown> {
-  fetchRows(input: unknown, ...opts: CallArgs<TContext>): Promise<RowsAnswer<TRow>>;
+  /** A request with `childKind: "groups"` answers a {@link GroupsAnswer}, every other request a {@link RowsAnswer}. */
+  fetchRows(input: unknown, ...opts: CallArgs<TContext>): Promise<RowsAnswer<TRow> | GroupsAnswer>;
   filterValues(input: unknown, ...opts: CallArgs<TContext>): Promise<ValuesAnswer>;
   aggregates(input: unknown, ...opts: CallArgs<TContext>): Promise<AggregatesAnswer>;
   parse(input: unknown, ...opts: CallArgs<TContext>): RowsPlan;
@@ -124,9 +137,8 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
     const scope = scoped(callOptions);
     return scope ? { ...plan, where: combine("and", [plan.where, scope]) } : plan;
   };
-  const planFor = (input: unknown, callOptions: { context?: unknown } | undefined): RowsPlan => withScope(parseQuery(input, { columns, request: "rows", rowCount, limits, timeZone }), callOptions);
   const parse = (input: unknown, callOptions?: { context?: unknown }): RowsPlan => {
-    const plan = deepFreeze(planFor(input, callOptions));
+    const plan = deepFreeze(withScope(parseQuery(input, { columns, request: "rows", rowCount, limits, timeZone }), callOptions));
     internal.set(plan, deepFreeze(clone(plan)));
     return plan;
   };
@@ -137,8 +149,34 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
   };
   const alive = (signal: AbortSignal | undefined): void => signal?.throwIfAborted();
 
-  const fetchRows = async (input: unknown, callOptions?: { signal?: AbortSignal; context?: unknown }): Promise<RowsAnswer<TRow>> => {
-    const plan = trusted(parse(input, callOptions));
+  const fetchGroups = async (plan: GroupsPlan, signal: AbortSignal | undefined): Promise<GroupsAnswer> => {
+    if (!executor.capabilities.groupBy) throw new QueryError("unsupported", ["spec", "groupBy"]);
+    alive(signal);
+    const size = plan.rowRange.end - plan.rowRange.start;
+    const topLevelRows: RowsPlan = { kind: "rows", where: plan.where, orderBy: [], rowRange: plan.rowRange, runCount: true, projection: [] };
+    const [found, groupCount, rowCount] = await Promise.all([
+      executor.selectGroups(plan, { offset: plan.rowRange.start, limit: size, signal }),
+      executor.countGroups(plan, signal),
+      plan.countRows ? executor.countRows(topLevelRows, signal) : Promise.resolve(undefined),
+    ]);
+    const groups = found.slice(0, size).map((entry) => {
+      const count = countOf(entry.count) ?? 0;
+      const group: GroupsAnswer["groups"][number] = { key: groupKeyValue(entry.key, plan.level), childCount: plan.nextLevel ? (countOf(entry.childCount) ?? 0) : count, totalRowCount: count };
+      if (plan.aggregates.length > 0) {
+        group.aggregates = {};
+        for (const { column, reducer } of plan.aggregates) group.aggregates[column.id] = aggregateValue(Object.hasOwn(entry.aggregates, column.id) ? entry.aggregates[column.id] : null, column, reducer);
+      }
+      return group;
+    });
+    const answer: GroupsAnswer = { groups, groupCount: countOf(groupCount) ?? 0 };
+    if (plan.countRows) answer.totalRowCount = countOf(rowCount) ?? 0;
+    return answer;
+  };
+
+  const fetchRows = async (input: unknown, callOptions?: { signal?: AbortSignal; context?: unknown }): Promise<RowsAnswer<TRow> | GroupsAnswer> => {
+    const planned = deepFreeze(withScope(parseQuery(input, { columns, request: "page", rowCount, limits, timeZone }), callOptions));
+    if (planned.kind === "groups") return fetchGroups(planned, callOptions?.signal);
+    const plan = planned;
     alive(callOptions?.signal);
     const size = plan.rowRange.end - plan.rowRange.start;
     const [rows, count] = await Promise.all([
@@ -189,6 +227,11 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
     orderBy: (plan: RowsPlan) => executor.orderBy(trusted(plan)),
     capabilities: executor.capabilities,
   } as unknown as GridQuery<TRow, TContext, TWhere, TOrder>;
+}
+
+function groupKeyValue(raw: unknown, column: PlanColumn): string | number | boolean | null {
+  const key = serializeValue(raw, column);
+  return key === "" || key === undefined ? null : (key as string | number | boolean | null);
 }
 
 function aggregateValue(raw: unknown, column: PlanColumn, reducer: string): number | string | null {

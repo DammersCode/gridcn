@@ -261,10 +261,8 @@ describe("tree, sorts, ranges, search", () => {
     expect(code(() => rows([], {}, { searchText: "x".repeat(501) }))).toBe("invalid-value");
   });
 
-  it("answers grouping with unsupported and ignores unknown top-level keys", () => {
-    expect(code(() => rows([], {}, { groupBy: ["name"] }))).toBe("unsupported");
-    expect(code(() => rows([], { groupPath: ["a"] }))).toBe("unsupported");
-    expect(code(() => rows([], { childKind: "groups" }))).toBe("unsupported");
+  it("answers a pivot with unsupported and ignores unknown top-level keys", () => {
+    expect(code(() => rows([], {}, { pivot: { columnId: "name" } }))).toBe("unsupported");
     expect(code(() => rows([], { signal: {}, extra: 1 }))).toBeUndefined();
     expect(code(() => rows([], {}, { groupBy: [] }))).toBeUndefined();
   });

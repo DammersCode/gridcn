@@ -1,6 +1,7 @@
 import type { FetchFilterValues } from "@/registry/default/blocks/data-grid/data-grid";
 import type { FetchAggregatesRequest } from "@/registry/default/blocks/data-grid-pinned-rows/data-grid-pinned-rows";
-import type { ServerRowsAnswer, ServerRowsPageRequest } from "@/registry/default/blocks/data-grid-server/data-grid-server";
+import type { ServerRowsPageRequest } from "@/registry/default/blocks/data-grid-server/data-grid-server";
+import type { ServerFetchAnswer } from "@/registry/default/blocks/data-grid-server/read-answer";
 import { type ColumnMap, type GridQuery, QueryError, defineColumnMap, describeFilterOperators, handleGridRequest } from "./data-grid-server-query";
 
 type Row = { id: number; name: string | null };
@@ -8,7 +9,7 @@ declare const plain: GridQuery<Row>;
 declare const scoped: GridQuery<Row, { tenantId: number }>;
 
 // the answer is what useDataGridServerRows reads, and the request it posts is what fetchRows takes
-export const fetchRows = async ({ signal, ...request }: ServerRowsPageRequest): Promise<ServerRowsAnswer<Row>> => plain.fetchRows(request, { signal });
+export const fetchRows = async ({ signal, ...request }: ServerRowsPageRequest): Promise<ServerFetchAnswer<Row>> => plain.fetchRows(request, { signal });
 
 export const fetchFilterValues: FetchFilterValues = async ({ signal, ...request }) => plain.filterValues(request, { signal });
 export const fetchAggregates = async ({ signal, ...request }: FetchAggregatesRequest): Promise<Record<string, unknown>> => plain.aggregates(request, { signal });

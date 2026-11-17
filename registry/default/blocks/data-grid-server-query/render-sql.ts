@@ -191,6 +191,16 @@ export function createSqlRenderer<S>(a: SqlAlgebra<S>, customHandlers: ReadonlyM
     }
   }
 
+  /** The group key of a column: the stored value, with `''` folded into NULL for text. A time column keeps the full instant. */
+  function groupKey(column: PlanColumn): S {
+    return isTextual(column) ? cat(raw("NULLIF("), subject(column), raw(", '')")) : ref(column);
+  }
+
+  /** Number of groups of a key over the matched rows: distinct keys, the empty key counted once. */
+  function keyCount(key: S): S {
+    return cat(raw("COUNT(DISTINCT "), key, raw(") + COALESCE(MAX(CASE WHEN "), key, raw(" IS NULL THEN 1 ELSE 0 END), 0)"));
+  }
+
   /** The filter of a set-values request: the plan's filter plus the value query as an escaped substring match. */
   function valuesFilter(plan: ValuesPlan, timeZone?: string): S {
     const where = predicate(plan.where);
@@ -198,5 +208,5 @@ export function createSqlRenderer<S>(a: SqlAlgebra<S>, customHandlers: ReadonlyM
     return group(cat(where, raw(" AND "), like(textForm(plan.column, timeZone), "contains", plan.query, false)));
   }
 
-  return { predicate, orderBy, textForm, valueKey, aggregate, like, valuesFilter };
+  return { predicate, orderBy, textForm, valueKey, aggregate, like, valuesFilter, groupKey, keyCount };
 }

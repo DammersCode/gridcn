@@ -6,5 +6,5 @@ export { QueryError, type QueryErrorCode } from "./errors";
 export { parseImportRows, type ParseImportRowsOptions, type ParsedImportRows, type ImportRowRefusal } from "./parse-import-rows";
 export type { QueryLimits } from "./limits";
 export type { RowCountMode } from "./parse-query";
-export type { GridQuery, QueryCallOptions, RowsAnswer, ValuesAnswer, AggregatesAnswer, AdapterCapabilities } from "./create-grid-query";
+export type { GridQuery, QueryCallOptions, RowsAnswer, ValuesAnswer, AggregatesAnswer, GroupsAnswer, AdapterCapabilities } from "./create-grid-query";
 export type { RowScope } from "./row-scope";

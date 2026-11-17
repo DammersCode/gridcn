@@ -81,6 +81,17 @@ export function createKyselyGridQuery<TRow = Record<string, unknown>, TContext =
           sql`select ${value} as ${sql.id("value")}, count(*) as ${sql.id("count")} ${from} where ${renderer.valuesFilter(plan, options.timeZone ?? "UTC")} group by ${key} order by count(*) desc, ${value} asc limit ${sql.val(limit)}`,
         ) as Promise<{ value: unknown; count: unknown }[]>;
       },
+      selectGroups: async (plan, page) => {
+        const key = renderer.groupKey(plan.level);
+        const child = plan.nextLevel ? renderer.keyCount(renderer.groupKey(plan.nextLevel)) : sql`count(*)`;
+        const aggregateList = plan.aggregates.map(({ column, reducer }, index) => sql`, ${renderer.aggregate(column, reducer)} as ${sql.id(`a${index}`)}`);
+        const order = sql.raw(plan.direction === "asc" ? "asc" : "desc");
+        const rows = await run(
+          sql`select ${key} as ${sql.id("k")}, count(*) as ${sql.id("n")}, ${child} as ${sql.id("c")}${sql.join(aggregateList, sql.raw(""))} ${from} where ${renderer.predicate(plan.where)} group by ${key} order by ${key} ${order} nulls last limit ${sql.val(page.limit)} offset ${sql.val(page.offset)}`,
+        );
+        return rows.map((row) => ({ key: row["k"], count: row["n"], childCount: row["c"], aggregates: Object.fromEntries(plan.aggregates.map(({ column }, index) => [column.id, row[`a${index}`]])) }));
+      },
+      countGroups: async (plan) => (await run(sql`select ${renderer.keyCount(renderer.groupKey(plan.level))} as ${sql.id("n")} ${from} where ${renderer.predicate(plan.where)}`))[0]?.["n"],
       aggregate: async (plan) => {
         const list = aliasList(plan.columns.map(({ column, reducer }, index) => ({ alias: `c${index}`, expr: renderer.aggregate(column, reducer) })));
         const rows = await run(sql`select ${list} ${from} where ${renderer.predicate(plan.where)}`);

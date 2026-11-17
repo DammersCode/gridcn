@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { operatorsForColumnType } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MAX_FILTER_GROUP_DEPTH } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { defineColumnMap } from "./column-map";
-import { assertCustomOperatorHandlers, createGridQuery, type QueryExecutor } from "./create-grid-query";
+import { assertCustomOperatorHandlers, createGridQuery, type GroupsAnswer, type QueryExecutor, type RowsAnswer } from "./create-grid-query";
 import { defaultOperatorsFor, describeFilterOperators } from "./describe-filter-operators";
 import { QueryError } from "./errors";
 import { handleGridRequest } from "./handle-grid-request";
@@ -17,7 +17,7 @@ import { withColumnMap } from "./with-column-map";
 const columns = defineColumnMap({
   id: { type: "number", numeric: "int8", primaryKey: true },
   name: { type: "text", searchable: true },
-  qty: { type: "number", numeric: "int4" },
+  qty: { type: "number", numeric: "int4", aggregate: "sum" },
   price: { type: "number", numeric: "decimal", scale: 2 },
   note: { type: "number", numeric: "decimal" },
   seen: { type: "date", time: true, storage: "epoch-s" },
@@ -198,6 +198,17 @@ function fakeExecutor() {
     },
     selectValues: async () => [],
     aggregate: async () => ({}),
+    selectGroups: async (plan, page) => {
+      calls.push(`groups:${plan.level.id}:${page.offset}:${page.limit}`);
+      return [
+        { key: "a", count: 3n, childCount: 2, aggregates: { qty: 7 } },
+        { key: null, count: "2", childCount: 2, aggregates: {} },
+      ];
+    },
+    countGroups: async () => {
+      calls.push("groupCount");
+      return 5;
+    },
     where: () => "where",
     orderBy: () => "order",
   };
@@ -210,15 +221,39 @@ describe("createGridQuery", () => {
   it("answers rows with a count on the first block and hasMore after", async () => {
     const { executor, calls } = fakeExecutor();
     const query = createGridQuery({ columns, executor });
-    const first = await query.fetchRows(request());
+    const first = (await query.fetchRows(request())) as RowsAnswer<Record<string, unknown>>;
     expect(first.totalRowCount).toBe(42);
     expect(first.rows).toHaveLength(5);
     expect(first.rows[0]).not.toHaveProperty("tenant");
-    const later = await query.fetchRows(request({ start: 5, end: 10 }));
+    const later = (await query.fetchRows(request({ start: 5, end: 10 }))) as RowsAnswer<Record<string, unknown>>;
     expect(later).toMatchObject({ hasMore: true });
     expect(later.totalRowCount).toBeUndefined();
     expect(later.rows).toHaveLength(5);
     expect(calls).toContain("rows:5:6");
+  });
+
+  it("answers the groups of one level with counts, child counts, and reduced aggregates", async () => {
+    const { executor, calls } = fakeExecutor();
+    const query = createGridQuery({ columns, executor });
+    const groupsRequest = { spec: { sorts: [], filters: [], searchText: "", groupBy: ["name", "active"], aggregates: [{ columnId: "qty", reducer: "sum" }] }, start: 0, end: 10 };
+    const answer = (await query.fetchRows(groupsRequest)) as GroupsAnswer;
+    expect(answer).toEqual({
+      groups: [
+        { key: "a", childCount: 2, totalRowCount: 3, aggregates: { qty: 7 } },
+        { key: null, childCount: 2, totalRowCount: 2, aggregates: { qty: null } },
+      ],
+      groupCount: 5,
+      totalRowCount: 42,
+    });
+    expect(calls).toContain("groups:name:0:10");
+    const inner = (await query.fetchRows({ ...groupsRequest, groupPath: [{ columnId: "name", key: "a" }], childKind: "groups" })) as GroupsAnswer;
+    expect(inner.totalRowCount).toBeUndefined();
+  });
+
+  it("answers unsupported for groups when the adapter cannot group", async () => {
+    const { executor } = fakeExecutor();
+    const query = createGridQuery({ columns, executor: { ...executor, capabilities: { ...executor.capabilities, groupBy: false } } });
+    await expect(query.fetchRows({ spec: { groupBy: ["name"] }, start: 0, end: 5 })).rejects.toMatchObject({ code: "unsupported" });
   });
 
   it("passes unbound methods and requires context with rowScope", async () => {

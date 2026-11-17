@@ -19,7 +19,7 @@ import {
   parseUuid,
   startOfLocalDay,
 } from "./operands";
-import { type AggregatesPlan, FALSE, type Operand, type OrderTerm, type Predicate, type QueryPlan, type QueryRequestKind, type RowsPlan, TRUE, type ValuesPlan, combine, leaf } from "./plan";
+import { type AggregatesPlan, FALSE, type GroupsPlan, type Operand, type OrderTerm, type PlanOf, type Predicate, type QueryRequestKind, type RowsPlan, TRUE, type ValuesPlan, combine, leaf } from "./plan";
 
 /** How often a rows request also counts the result: the first scroll block (default), every request, or never. */
 export type RowCountMode = "firstBlock" | "always" | "none";
@@ -55,16 +55,16 @@ function charge(ctx: Ctx, text: string, path: Path, max = ctx.limits.maxValueLen
  * `rows` reads `{ spec, start, end, page?, pageSize? }`, `values` reads `{ columnId, query, filters }`,
  * `aggregates` reads `{ spec, columnIds? }`. The plan holds no `rowScope`; the factory adds it.
  */
-export function parseQuery<R extends QueryRequestKind>(input: unknown, options: ParseQueryOptions<R>): Extract<QueryPlan, { kind: R }> {
+export function parseQuery<R extends QueryRequestKind>(input: unknown, options: ParseQueryOptions<R>): PlanOf<R> {
   const timeZone = options.timeZone ?? "UTC";
   assertTimeZone(timeZone);
   const ctx: Ctx = { map: mapOf(options.columns), limits: resolveLimits(options.limits), timeZone, budget: { nodes: 0, leaves: 0, listValues: 0, bytes: 0 } };
   if (!isRecord(input)) throw new QueryError("invalid-request", []);
-  let plan: QueryPlan;
-  if (options.request === "rows") plan = parseRows(input, ctx, options.rowCount ?? "firstBlock");
+  let plan: RowsPlan | GroupsPlan | ValuesPlan | AggregatesPlan;
+  if (options.request === "rows" || options.request === "page") plan = parseRows(input, ctx, options.rowCount ?? "firstBlock", options.request === "page");
   else if (options.request === "values") plan = parseValues(input, ctx);
   else plan = parseAggregates(input, ctx);
-  return plan as Extract<QueryPlan, { kind: R }>;
+  return plan as PlanOf<R>;
 }
 
 function specOf(input: Raw): Raw {
@@ -74,9 +74,89 @@ function specOf(input: Raw): Raw {
   return spec;
 }
 
-function rejectGrouping(input: Raw, spec: Raw): void {
-  const filled = (value: unknown) => (Array.isArray(value) ? value.length > 0 : value !== undefined && value !== null && !(isRecord(value) && Object.keys(value).length === 0));
-  if (filled(spec["groupBy"]) || filled(spec["pivot"]) || filled(input["groupPath"]) || input["childKind"] === "groups") throw new QueryError("unsupported", ["spec"]);
+function rejectPivot(spec: Raw): void {
+  const pivot = spec["pivot"];
+  const filled = Array.isArray(pivot) ? pivot.length > 0 : pivot !== undefined && pivot !== null && !(isRecord(pivot) && Object.keys(pivot).length === 0);
+  if (filled) throw new QueryError("unsupported", ["spec"]);
+}
+
+type GroupRequest = { levels: PlanColumn[]; path: Predicate[]; childKind: "groups" | "rows"; aggregates: GroupsPlan["aggregates"] };
+
+const isAbsent = (value: unknown): boolean => value === undefined || value === null;
+
+function parseGroupRequest(input: Raw, spec: Raw, ctx: Ctx): GroupRequest | null {
+  const by = spec["groupBy"];
+  const rawPath = input["groupPath"];
+  if (isAbsent(by) || (Array.isArray(by) && by.length === 0)) {
+    if (Array.isArray(rawPath) ? rawPath.length > 0 : !isAbsent(rawPath)) throw new QueryError("invalid-request", ["groupPath"]);
+    if (!isAbsent(input["childKind"])) throw new QueryError("invalid-request", ["childKind"]);
+    return null;
+  }
+  if (!Array.isArray(by)) throw new QueryError("invalid-request", ["spec", "groupBy"]);
+  if (by.length > ctx.limits.maxGroupLevels) throw new QueryError("limit-exceeded", ["spec", "groupBy"]);
+  const levels: PlanColumn[] = [];
+  by.forEach((id: unknown, index) => {
+    const path = ["spec", "groupBy", index] as const;
+    const column = typeof id === "string" ? ctx.map.byId.get(id) : undefined;
+    if (!column || column.serverOnly || !column.sortable) throw new QueryError("unknown-column", path);
+    if (levels.includes(column)) throw new QueryError("invalid-request", path);
+    if (column.keepBlankText) throw new QueryError("unsupported", path);
+    levels.push(column);
+  });
+  const segments: unknown = isAbsent(rawPath) ? [] : rawPath;
+  if (!Array.isArray(segments) || segments.length > levels.length) throw new QueryError("invalid-request", ["groupPath"]);
+  const path = segments.map((segment: unknown, index) => {
+    const at = ["groupPath", index] as const;
+    if (!isRecord(segment) || segment["columnId"] !== levels[index]!.id) throw new QueryError("invalid-request", [...at, "columnId"]);
+    return groupEquality(levels[index]!, segment["key"], [...at, "key"], ctx);
+  });
+  const childKind = segments.length < levels.length ? "groups" : "rows";
+  if (!isAbsent(input["childKind"]) && input["childKind"] !== childKind) throw new QueryError("invalid-request", ["childKind"]);
+  return { levels, path, childKind, aggregates: parseGroupAggregates(spec["aggregates"], ctx) };
+}
+
+function parseGroupAggregates(value: unknown, ctx: Ctx): GroupsPlan["aggregates"] {
+  if (isAbsent(value)) return [];
+  if (!Array.isArray(value)) throw new QueryError("invalid-request", ["spec", "aggregates"]);
+  if (value.length > ctx.limits.maxGroupAggregates) throw new QueryError("limit-exceeded", ["spec", "aggregates"]);
+  const seen = new Set<PlanColumn>();
+  return value.map((entry: unknown, index) => {
+    const path = ["spec", "aggregates", index] as const;
+    if (!isRecord(entry)) throw new QueryError("invalid-request", path);
+    const column = typeof entry["columnId"] === "string" ? ctx.map.byId.get(entry["columnId"]) : undefined;
+    if (!column || column.serverOnly) throw new QueryError("unknown-column", [...path, "columnId"]);
+    if (column.aggregate === undefined || entry["reducer"] !== column.aggregate || seen.has(column)) throw new QueryError("invalid-request", path);
+    seen.add(column);
+    return { column, reducer: column.aggregate };
+  });
+}
+
+/** The test that keeps the rows of one group: the key is the stored value, `null` and `""` the empty group. */
+function groupEquality(column: PlanColumn, key: unknown, path: Path, ctx: Ctx): Predicate {
+  if (key === null || key === "") return blank(column, false);
+  if (typeof key === "string") charge(ctx, key, path, ctx.limits.maxGroupKeyLength);
+  const equal = (value: Operand): Predicate => leaf(column, { k: "eq", value });
+  switch (column.kind) {
+    case "checkbox":
+      if (typeof key !== "boolean") throw new QueryError("invalid-value", path);
+      return equal({ kind: "boolean", v: key });
+    case "number": {
+      if (typeof key !== "number" && typeof key !== "string") throw new QueryError("invalid-value", path);
+      const parsed = numberText(String(key), path, ctx);
+      const operand = parsed ? numberOperand(column, parsed) : null;
+      return operand ? equal(operand) : FALSE;
+    }
+    case "date": {
+      if (typeof key !== "string") throw new QueryError("invalid-value", path);
+      const v = column.time ? parseInstant(key.trim()) : parseDate(key.trim());
+      return v === null ? FALSE : equal({ kind: column.time ? "instant" : "date", v });
+    }
+    default: {
+      if (typeof key !== "string") throw new QueryError("invalid-value", path);
+      const v = nativeText(column, key);
+      return v === null ? FALSE : equal({ kind: "text", v });
+    }
+  }
 }
 
 function parseWhere(spec: Raw, ctx: Ctx): Predicate {
@@ -85,12 +165,21 @@ function parseWhere(spec: Raw, ctx: Ctx): Predicate {
   return combine("and", [filters, search]);
 }
 
-function parseRows(input: Raw, ctx: Ctx, rowCount: RowCountMode): RowsPlan {
+function parseRows(input: Raw, ctx: Ctx, rowCount: RowCountMode, allowGroups: boolean): RowsPlan | GroupsPlan {
   const spec = specOf(input);
-  rejectGrouping(input, spec);
-  const where = parseWhere(spec, ctx);
-  const orderBy = parseSorts(spec["sorts"], ctx);
+  rejectPivot(spec);
+  const grouping = parseGroupRequest(input, spec, ctx);
+  if (grouping?.childKind === "groups" && !allowGroups) throw new QueryError("unsupported", ["childKind"]);
+  const filters = parseWhere(spec, ctx);
+  const where = grouping ? combine("and", [filters, ...grouping.path]) : filters;
+  const sorts = parseSorts(spec["sorts"], ctx);
   const { rowRange, paged } = parseRange(input, ctx);
+  if (grouping?.childKind === "groups") {
+    const level = grouping.levels[grouping.path.length]!;
+    const direction = sorts.find((term) => term.column === level)?.direction ?? "asc";
+    return { kind: "groups", where, level, nextLevel: grouping.levels[grouping.path.length + 1], direction, rowRange, countRows: grouping.path.length === 0, aggregates: grouping.aggregates };
+  }
+  const orderBy = grouping ? sorts.filter((term) => !grouping.levels.includes(term.column) || ctx.map.tieBreaker.includes(term.column)) : sorts;
   const runCount = paged ? rowCount !== "none" : rowCount === "always" || (rowCount === "firstBlock" && rowRange.start === 0);
   return { kind: "rows", where, orderBy, rowRange, runCount, projection: ctx.map.visible };
 }
@@ -105,7 +194,7 @@ function parseValues(input: Raw, ctx: Ctx): ValuesPlan {
 
 function parseAggregates(input: Raw, ctx: Ctx): AggregatesPlan {
   const spec = specOf(input);
-  rejectGrouping(input, spec);
+  rejectPivot(spec);
   const where = parseWhere(spec, ctx);
   const requested = input["columnIds"];
   let columns: PlanColumn[];

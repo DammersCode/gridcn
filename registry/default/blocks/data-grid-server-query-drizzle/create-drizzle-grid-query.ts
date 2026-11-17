@@ -102,6 +102,19 @@ export function createDrizzleGridQuery<TRow = Record<string, unknown>, TContext 
             .limit(limit),
         ) as Promise<{ value: unknown; count: unknown }[]>;
       },
+      selectGroups: async (plan, page) => {
+        const key = renderer.groupKey(plan.level);
+        const fields: Record<string, unknown> = { k: key, n: sql`count(*)`, c: plan.nextLevel ? renderer.keyCount(renderer.groupKey(plan.nextLevel)) : sql`count(*)` };
+        plan.aggregates.forEach(({ column, reducer }, index) => (fields[`a${index}`] = renderer.aggregate(column, reducer)));
+        const rows = await selectFrom(fields)
+          .where(renderer.predicate(plan.where))
+          .groupBy(key)
+          .orderBy(sql`${key} ${sql.raw(plan.direction === "asc" ? "ASC" : "DESC")} NULLS LAST`)
+          .limit(page.limit)
+          .offset(page.offset);
+        return rows.map((row) => ({ key: row["k"], count: row["n"], childCount: row["c"], aggregates: Object.fromEntries(plan.aggregates.map(({ column }, index) => [column.id, row[`a${index}`]])) }));
+      },
+      countGroups: async (plan) => (await selectFrom({ n: renderer.keyCount(renderer.groupKey(plan.level)) }).where(renderer.predicate(plan.where)))[0]?.["n"],
       aggregate: async (plan) => {
         const fields = Object.fromEntries(plan.columns.map(({ column, reducer }, index) => [`c${index}`, renderer.aggregate(column, reducer)]));
         const rows = await selectFrom(fields).where(renderer.predicate(plan.where));
