@@ -17,6 +17,7 @@ import { reportRowActionSkipped } from "../store/row-action-skip";
 import { COLUMN_WIDTH_STEP, shownColumnWidth } from "../columns/column-step";
 import { rowOperationTargets } from "../store/row-operation-targets";
 import { isReorderMarkerMode } from "../rows/marker-width";
+import { dataIndexAt } from "../store/view-rows";
 
 const warnedMissingTriggers = new WeakMap<object, Set<string>>();
 
@@ -65,7 +66,7 @@ export function dispatchGridAction(args: {
   if (command) {
     const api = apiHandleOf<unknown>(storeApi);
     const coord = state.activeCell;
-    const dataRowIndex = coord === null ? undefined : state.viewIndex[coord.row];
+    const dataRowIndex = coord === null ? undefined : dataIndexAt(state, coord.row);
     const row = dataRowIndex === undefined ? undefined : state.data[dataRowIndex];
     const cell =
       coord === null
@@ -420,7 +421,7 @@ export function dispatchGridAction(args: {
       const column = state.visibleColumns[active.col];
       const href = cellTypeAt(state, active)?.href;
       if (!column || !href) break;
-      const dataRowIndex = state.viewIndex[active.row];
+      const dataRowIndex = dataIndexAt(state, active.row);
       const row = dataRowIndex === undefined ? undefined : state.data[dataRowIndex];
       if (row === undefined) break; // lazy hole: nothing to link
       const link = href(getCellValue<unknown, typeof column>(row, column), column.options);
@@ -460,7 +461,7 @@ export function jumpToDataBoundary(state: DataGridStoreState, active: ViewCoord,
   const isEmptyAt = (coord: ViewCoord): boolean => {
     const column = state.visibleColumns[coord.col];
     if (!column) return true;
-    const dataRowIndex = state.viewIndex[coord.row];
+    const dataRowIndex = dataIndexAt(state, coord.row);
     const row = dataRowIndex === undefined ? undefined : state.data[dataRowIndex];
     if (row === undefined) return true;
     const cellType = state.cellTypes[column.type ?? "text"];

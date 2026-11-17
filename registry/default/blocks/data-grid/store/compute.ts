@@ -31,6 +31,7 @@ import { getCellValue } from "../columns/column-helpers";
 import { clampColumnWidth } from "../columns/resolve-column-width";
 import { selectCell } from "../selection/selection-ops";
 import { keepsCheckedRows } from "./hidden-checked-rows";
+import { dataIndexOf, rowAtViewRow, rowIdAtViewRow } from "./view-rows";
 import { CompactSelection, forEachMember } from "../selection/compact-selection";
 import { resolveCustomFilterOperators, resolveFilterMatch, resolveFilterMatchCase } from "../cell-types/capabilities";
 import { toSafeText } from "../cell-types/safe-text";
@@ -165,14 +166,14 @@ export function remapRowChannel(
   if (rows.length === 0 || (prevViewIndex === nextViewIndex && !toNextDataRow)) return rows;
   const wanted = new Set<number>();
   forEachMember(rows.runs(), (viewRow) => {
-    const prevDataRow = prevViewIndex[viewRow];
+    const prevDataRow = dataIndexOf(prevViewIndex, viewRow);
     if (prevDataRow === undefined) return;
     const nextDataRow = toNextDataRow ? toNextDataRow(prevDataRow) : prevDataRow;
     if (nextDataRow !== undefined) wanted.add(nextDataRow);
   });
   const found: number[] = [];
   for (let viewRow = 0; viewRow < nextViewIndex.length && found.length < wanted.size; viewRow++) {
-    if (wanted.has(nextViewIndex[viewRow]!)) found.push(viewRow);
+    if (wanted.has(dataIndexOf(nextViewIndex, viewRow)!)) found.push(viewRow);
   }
   const next = CompactSelection.fromArray(found);
   return rows.equals(next) ? rows : next;
@@ -215,9 +216,9 @@ export function rectsKeepRecords(
   const nextRecords = new Set<number | undefined>();
   for (const rect of rects) {
     for (let viewRow = rect.y; viewRow < rect.y + rect.height; viewRow++) {
-      const prevDataRow = prevViewIndex[viewRow];
+      const prevDataRow = dataIndexOf(prevViewIndex, viewRow);
       prevRecords.add(prevDataRow === undefined || !toNextDataRow ? prevDataRow : toNextDataRow(prevDataRow));
-      nextRecords.add(nextViewIndex[viewRow]);
+      nextRecords.add(dataIndexOf(nextViewIndex, viewRow));
     }
   }
   if (prevRecords.size !== nextRecords.size) return false;
@@ -245,16 +246,7 @@ function allRowsSame(rect: GridRect, sameRecordAt: (viewRow: number) => boolean)
   return true;
 }
 
-/** Row id shown at `viewRow`, or `undefined` for a missing or unloaded row. */
-export function rowIdAtViewRow(
-  s: { viewIndex: readonly number[]; data: readonly unknown[]; getRowId: DataGridStoreState["getRowId"] },
-  viewRow: number,
-): string | undefined {
-  const dataRowIndex = s.viewIndex[viewRow];
-  if (dataRowIndex === undefined) return undefined;
-  const row = s.data[dataRowIndex];
-  return row === undefined ? undefined : s.getRowId(row, dataRowIndex);
-}
+export { rowIdAtViewRow };
 
 export { cellErrorKey, clearErrorsForOps, EMPTY_CELL_ERRORS, mergeCellErrors, pruneCellErrors } from "./cell-errors";
 
@@ -930,9 +922,9 @@ export function computeSearchMatches(
   // viewRow is always < searched.length (findSearchMatches iterates 0..searched.length)
   const readSearchText = searchTextReader(dataAccessor);
   const viewAccessor: CellAccessor = {
-    getText: (viewRow, columnId) => dataAccessor.getText(searched[viewRow]!, columnId),
-    getSearchText: (viewRow, columnId) => readSearchText(searched[viewRow]!, columnId),
-    getValue: (viewRow, columnId) => dataAccessor.getValue?.(searched[viewRow]!, columnId),
+    getText: (viewRow, columnId) => dataAccessor.getText(dataIndexOf(searched, viewRow) ?? -1, columnId),
+    getSearchText: (viewRow, columnId) => readSearchText(dataIndexOf(searched, viewRow) ?? -1, columnId),
+    getValue: (viewRow, columnId) => dataAccessor.getValue?.(dataIndexOf(searched, viewRow) ?? -1, columnId),
     filterMatch: (columnId, operator) => dataAccessor.filterMatch?.(columnId, operator),
   };
   const scanned = findSearchMatches(
@@ -1049,8 +1041,7 @@ export function reorderGroupBlock(
 export function getRangeValues(s: DataGridStoreState, rect: GridRect): unknown[][] {
   const out: unknown[][] = [];
   for (let viewRow = rect.y; viewRow < rect.y + rect.height; viewRow++) {
-    const dataRowIndex = s.viewIndex[viewRow];
-    const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
+    const row = rowAtViewRow(s, viewRow);
     const cells: unknown[] = [];
     for (let col = rect.x; col < rect.x + rect.width; col++) {
       const column = s.visibleColumns[col];
@@ -1077,7 +1068,7 @@ export function getSelectedRowIds(s: DataGridStoreState): string[] {
   };
   for (let viewRow = 0; viewRow < s.viewIndex.length; viewRow++) {
     if (!covers(viewRow)) continue;
-    const dataRowIndex = s.viewIndex[viewRow];
+    const dataRowIndex = dataIndexOf(s.viewIndex, viewRow);
     const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
     if (row !== undefined) out.push(s.getRowId(row, dataRowIndex!));
   }

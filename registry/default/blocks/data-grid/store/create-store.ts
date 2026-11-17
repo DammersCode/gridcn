@@ -140,6 +140,7 @@ import { warnUnhandledServerSpec } from "./server-spec-warning";
 import { keepKnownFilters, keepKnownSorts } from "./known-columns";
 import { loadedRowCount, nextAnnouncement } from "./announcements";
 import { allMatchingCheckedCount } from "./selected-rows";
+import { dataIndexAt, dataIndexOf } from "./view-rows";
 
 type CheckedState = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "allMatching" | "data" | "viewIndex" | "totalRowCount">;
 
@@ -163,7 +164,7 @@ function checkedChange(
 const VIEW_STALE_ANNOUNCEMENT_INTERVAL_MS = 30_000;
 
 function viewHoldsUnloadedRows(s: Pick<DataGridStoreState, "viewIndex" | "data">): boolean {
-  return s.viewIndex.some((dataIndex) => s.data[dataIndex] === undefined);
+  return s.viewIndex.some((dataIndex) => dataIndex >= 0 && s.data[dataIndex] === undefined);
 }
 
 const UNKNOWN_COLUMN_MESSAGE = "a sort or filter names an unknown column (its id is not in `columns`), so the grid ignores it";
@@ -410,11 +411,11 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
   ): DataGridStoreState["activeCell"] | undefined => {
     const active = s.activeCell;
     if (active === null) return null;
-    const prevDataRow = s.viewIndex[active.row];
+    const prevDataRow = dataIndexAt(s, active.row);
     const columnId = s.visibleColumns[active.col]?.id;
     if (prevDataRow === undefined || columnId === undefined) return undefined;
     let row = active.row;
-    if (sameRecordAt ? !sameRecordAt(active.row) : viewIndex[active.row] !== prevDataRow) {
+    if (sameRecordAt ? !sameRecordAt(active.row) : dataIndexOf(viewIndex, active.row) !== prevDataRow) {
       const nextDataRow = toNextDataRow ? toNextDataRow(prevDataRow) : prevDataRow;
       row = nextDataRow === undefined ? -1 : viewRowOfDataIndex(viewIndex, nextDataRow);
     }
@@ -486,8 +487,8 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
     const current = s.selection.current;
     const sameRecordAt = toNextDataRow
       ? (viewRow: number) => {
-          const prevDataRow = s.viewIndex[viewRow];
-          const nextDataRow = viewIndex[viewRow];
+          const prevDataRow = dataIndexAt(s, viewRow);
+          const nextDataRow = dataIndexOf(viewIndex, viewRow);
           if (prevDataRow === undefined || nextDataRow === undefined) return false;
           const prevRow = s.data[prevDataRow];
           const nextRow = data[nextDataRow];
@@ -1172,7 +1173,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
         const isEmptyAt = (coord: ViewCoord): boolean => {
           const column = s.visibleColumns[coord.col];
           if (!column) return true;
-          const dataRowIndex = s.viewIndex[coord.row];
+          const dataRowIndex = dataIndexAt(s, coord.row);
           const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
           if (row === undefined) return true;
           const cellType = s.cellTypes[column.type ?? "text"];

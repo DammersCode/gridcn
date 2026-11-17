@@ -1,6 +1,7 @@
 import type { CompactSelectionLike } from "../types";
 import { CompactSelection } from "../selection/compact-selection";
 import type { DataGridStoreState } from "./types";
+import { dataIndexOf, forEachDataIndex } from "./view-rows";
 
 /** Whether cell and column selections leave the checked rows alone. */
 export function keepsCheckedRows(s: Pick<DataGridStoreState, "checkedRowsLifetime">): boolean {
@@ -87,7 +88,9 @@ export function carryCheckedRows(input: {
   if (!windowMode && nextData.includes(undefined)) return { rows, hidden: NO_HIDDEN_CHECKED_ROWS, allMatching: false, lazy: true, capped: false };
   const dataRowById = resolveNextRowIds();
   const viewRowOfDataRow = new Int32Array(nextData.length).fill(-1);
-  for (let viewRow = 0; viewRow < nextViewIndex.length; viewRow++) viewRowOfDataRow[nextViewIndex[viewRow]!] = viewRow;
+  forEachDataIndex(nextViewIndex, (dataIndex, viewRow) => {
+    viewRowOfDataRow[dataIndex] = viewRow;
+  });
 
   if (allMatching) {
     const excluded = new Set(hidden);
@@ -96,9 +99,9 @@ export function carryCheckedRows(input: {
     for (let viewRow = 0; viewRow < prevViewIndex.length; viewRow++) {
       while (run < runs.length && runs[run]![1] <= viewRow) run++;
       const wasChecked = run < runs.length && runs[run]![0] <= viewRow;
-      const prevDataRow = prevViewIndex[viewRow]!;
-      const record = prevData[prevDataRow];
-      if (record === undefined) continue;
+      const prevDataRow = dataIndexOf(prevViewIndex, viewRow);
+      const record = prevDataRow === undefined ? undefined : prevData[prevDataRow];
+      if (prevDataRow === undefined || record === undefined) continue;
       const id = prevGetRowId(record, prevDataRow);
       if (wasChecked) excluded.delete(id);
       else excluded.add(id);
@@ -108,7 +111,8 @@ export function carryCheckedRows(input: {
     }
     const checked: number[] = [];
     for (let viewRow = 0; viewRow < nextViewIndex.length; viewRow++) {
-      const nextDataRow = nextViewIndex[viewRow]!;
+      const nextDataRow = dataIndexOf(nextViewIndex, viewRow);
+      if (nextDataRow === undefined) continue;
       const record = nextData[nextDataRow];
       if (record === undefined || !excluded.has(nextGetRowId(record, nextDataRow))) checked.push(viewRow);
     }
@@ -141,7 +145,7 @@ export function carryCheckedRows(input: {
   }
   for (const [runStart, runEnd] of rows.runs()) {
     for (let viewRow = runStart; viewRow < runEnd; viewRow++) {
-      const prevDataRow = prevViewIndex[viewRow];
+      const prevDataRow = dataIndexOf(prevViewIndex, viewRow);
       if (prevDataRow === undefined) continue;
       const record = prevData[prevDataRow];
       if (record === undefined) {

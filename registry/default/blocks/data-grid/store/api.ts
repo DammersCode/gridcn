@@ -5,6 +5,7 @@ import { holeRowId } from "./compute";
 import { getInternalActions } from "./internal-actions";
 import { resolveRefOrWarn } from "./data-write";
 import { readSelectedRows } from "./selected-rows";
+import { dataIndexAt } from "./view-rows";
 
 const handles = new WeakMap<StoreApi<DataGridStoreState>, DataGridApi<unknown>>();
 const wrappers = new WeakMap<StoreApi<DataGridStoreState>, DataGridStoreWrapper>();
@@ -82,13 +83,14 @@ function buildApiHandle(storeApi: StoreApi<DataGridStoreState>): DataGridApi<unk
     },
     getRow(viewRowIndex) {
       const s = read();
-      const dataRowIndex = s.viewIndex[viewRowIndex];
+      const dataRowIndex = dataIndexAt(s, viewRowIndex);
       return dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
     },
     getViewRowIds(options) {
       const s = read();
       const ids: string[] = [];
       for (const dataRowIndex of s.viewIndex) {
+        if (dataRowIndex < 0) continue;
         const row = s.data[dataRowIndex];
         if (row !== undefined) ids.push(s.getRowId(row, dataRowIndex));
         else if (!options?.loaded) ids.push(holeRowId(dataRowIndex));

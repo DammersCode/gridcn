@@ -5,6 +5,7 @@ import { getCellValue } from "../columns/column-helpers";
 import type { AnyColumnDef } from "../store";
 import { useDataGridStoreApi } from "../store";
 import type { GetCellClassName, GetRowClassName } from "../types";
+import { dataIndexOf } from "../store/view-rows";
 
 type ClassNameHooks = {
   getRowClassName: GetRowClassName<unknown> | undefined;
@@ -24,7 +25,7 @@ function classNameSignature(
 ): string {
   const parts: (string | undefined)[] = [];
   viewRowIndices.forEach((viewRowIndex, i) => {
-    const dataIndex = viewIndex[viewRowIndex];
+    const dataIndex = dataIndexOf(viewIndex, viewRowIndex);
     const row = dataIndex === undefined ? undefined : data[dataIndex];
     const rowId = rowIds[i];
     if (row === undefined || rowId === undefined) return;

@@ -30,6 +30,7 @@ import type { RowSaveStatus } from "./write-ack";
 import { readSelectedRows, type DataGridSelectedRows } from "./selected-rows";
 import type { SelectionPointer } from "./types";
 import type { AnyColumnDef, ColumnDefOf, DataGridActions, DataGridCellState, DataGridInternalActions, DataGridRowCellState, DataGridStoreState, LiveAnnouncement, ResolvedPlugins } from "./types";
+import { dataIndexAt } from "./view-rows";
 
 /** The stable actions object for the current grid; never changes identity, so this hook never re-renders. */
 export function useDataGridActions(): DataGridActions {
@@ -392,7 +393,7 @@ export function useDataGridIsSearchMatch(coord: ViewCoord): boolean {
 /** The data row at a given view (display) row index; re-renders only when that row's identity changes. Annotate `TData` with the grid's row type (or let the return type infer it). */
 export function useDataGridRow<TData = unknown>(viewRowIndex: number): TData | undefined {
   return useDataGridStore((s) => {
-    const dataRowIndex = s.viewIndex[viewRowIndex];
+    const dataRowIndex = dataIndexAt(s, viewRowIndex);
     return dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
   }) as TData | undefined;
 }
@@ -400,7 +401,7 @@ export function useDataGridRow<TData = unknown>(viewRowIndex: number): TData | u
 /** Stable `getRowId` result for the row at a given view row index — a hole in `data` resolves to the index-derived placeholder id. Used as the React key so rows survive sort/filter/insert/delete. */
 export function useDataGridRowId(viewRowIndex: number): string | undefined {
   return useDataGridStore((s) => {
-    const dataRowIndex = s.viewIndex[viewRowIndex];
+    const dataRowIndex = dataIndexAt(s, viewRowIndex);
     if (dataRowIndex === undefined) return undefined;
     const row = s.data[dataRowIndex];
     return row === undefined ? holeRowId(dataRowIndex) : s.getRowId(row, dataRowIndex);
@@ -412,7 +413,7 @@ export function useDataGridRowIds(viewRowIndices: readonly number[]): (string | 
   return useDataGridStore(
     useShallow((s) =>
       viewRowIndices.map((viewRowIndex) => {
-        const dataRowIndex = s.viewIndex[viewRowIndex];
+        const dataRowIndex = dataIndexAt(s, viewRowIndex);
         if (dataRowIndex === undefined) return undefined;
         const row = s.data[dataRowIndex];
         return row === undefined ? holeRowId(dataRowIndex) : s.getRowId(row, dataRowIndex);
@@ -520,7 +521,7 @@ export function useDataGridCellState(coord: ViewCoord): DataGridCellState {
 
 /** Resolves `cellErrors`' message for a view coord's row + a known column id, or undefined when none. */
 function cellErrorAt(s: DataGridStoreState, viewRow: number, columnId: string): string | undefined {
-  const dataRowIndex = s.viewIndex[viewRow];
+  const dataRowIndex = dataIndexAt(s, viewRow);
   if (dataRowIndex === undefined) return undefined;
   const row = s.data[dataRowIndex];
   if (row === undefined) return undefined;
@@ -540,7 +541,7 @@ const EMPTY_COL_RANGES: readonly ColRange[] = [];
  */
 function rowErrorCols(s: DataGridStoreState, viewRow: number): ReadonlyMap<number, string> | null {
   if (s.cellErrors.size === 0) return null;
-  const dataRowIndex = s.viewIndex[viewRow];
+  const dataRowIndex = dataIndexAt(s, viewRow);
   if (dataRowIndex === undefined) return null;
   const row = s.data[dataRowIndex];
   if (row === undefined) return null;

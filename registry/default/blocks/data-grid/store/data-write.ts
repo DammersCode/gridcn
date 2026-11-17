@@ -63,6 +63,7 @@ import { markChangedRows } from "./changed-rows";
 import { nextAnnouncement } from "./announcements";
 import { clearStaleRows, followStaleRows, markStaleRows, pruneStaleRows, requestReshape, staleStateAfterPrune } from "./server-stale";
 import type { AnyColumnDef, CellErrorEntry, CellPatch, DataGridActions, DataGridInternalActions, DataGridStoreState, UpdateCellsSkip, RowActionName, RowActionResult, RowActionSkipReason, UpdateCellsVerdict } from "./types";
+import { dataIndexAt, rowAtViewRow } from "./view-rows";
 
 /**
  * The data-write cluster's streaming bookkeeping: the mutable `let` state shared by the write
@@ -325,7 +326,7 @@ export function followActiveRow(s: DataGridStoreState, nextData: readonly unknow
   if (checked.length > 0) {
     const records = new Set<unknown>();
     forEachMember(checked.runs(), (viewRow) => {
-      const record = s.data[s.viewIndex[viewRow] ?? -1];
+      const record = rowAtViewRow(s, viewRow);
       if (record !== undefined) records.add(record);
     });
     const nextIndexOf = new Map<unknown, number>();
@@ -334,8 +335,8 @@ export function followActiveRow(s: DataGridStoreState, nextData: readonly unknow
     });
     rows = remapRowChannel(checked, s.viewIndex, viewIndex, (prevDataRow) => nextIndexOf.get(s.data[prevDataRow]));
   }
-  const dataRow = s.activeCell ? s.viewIndex[s.activeCell.row] : undefined;
-  const row = dataRow === undefined || s.data[dataRow] === undefined ? -1 : viewIndex.indexOf(nextData.indexOf(s.data[dataRow]));
+  const activeRecord = s.activeCell ? rowAtViewRow(s, s.activeCell.row) : undefined;
+  const row = activeRecord === undefined ? -1 : viewIndex.indexOf(nextData.indexOf(activeRecord));
   if (!s.activeCell || row === -1) return { selection: { ...emptySelection(), rows }, activeCell: null };
   const cell = { col: s.activeCell.col, row };
   return { selection: { ...emptySelection(), rows, current: { cell, range: rectFromCorners(cell, cell), rangeStack: [] } }, activeCell: cell };
@@ -631,7 +632,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   };
 
   const insertDataIndex = (s: DataGridStoreState, viewRowIndex: number, position: "above" | "below"): number =>
-    clampIndex(position === "above" ? (s.viewIndex[viewRowIndex] ?? s.data.length) : (s.viewIndex[viewRowIndex] ?? s.data.length - 1) + 1, s.data.length);
+    clampIndex(position === "above" ? (dataIndexAt(s, viewRowIndex) ?? s.data.length) : (dataIndexAt(s, viewRowIndex) ?? s.data.length - 1) + 1, s.data.length);
   const commitInsertedRows = (
     s: DataGridStoreState,
     viewRowIndex: number,
@@ -672,7 +673,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     );
   };
   const finishDuplicate = (s: DataGridStoreState, viewRowIndexes: readonly number[], copies: ReadonlyMap<number, unknown>): void => {
-    const dataRowIndexes = viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined);
+    const dataRowIndexes = viewRowIndexes.map((viewRow) => dataIndexAt(s, viewRow)).filter((i): i is number => i !== undefined);
     const batch = computeDuplicateBatch(s, dataRowIndexes, copies);
     if (!batch) return;
     ctx.rowIndexCache.invalidate();
@@ -714,7 +715,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   let duplicateRun: GateRun | null = null;
   const holdInsertedRows = (s: DataGridStoreState, run: GateRun, viewRowIndex: number, position: "above" | "below", rows: unknown[]): void => {
     createRun = run;
-    const anchorDataIndex = s.viewIndex[viewRowIndex];
+    const anchorDataIndex = dataIndexAt(s, viewRowIndex);
     const anchorRowId = anchorDataIndex === undefined ? null : s.getRowId(s.data[anchorDataIndex], anchorDataIndex);
     run.watch = (now, prev) =>
       now.readOnly || (anchorRowId !== null && now.data !== prev.data && ctx.rowIndexCache.resolveOne(now.data, now.getRowId, anchorRowId) === undefined);
@@ -1082,8 +1083,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       // Resolve by rowId, so a view rebuild the remap missed discards the draft instead of writing another row.
       const dataRowIndex = ctx.rowIndexCache.resolve(s.data, s.getRowId).get(editing.rowId);
       const anchorStale =
-        dataRowIndex === undefined ||
-        s.viewIndex[editing.coord.row] !== dataRowIndex ||
+        dataRowIndex === undefined || dataIndexAt(s, editing.coord.row) !== dataRowIndex ||
         s.visibleColumns[editing.coord.col]?.id !== editing.columnId;
       if (anchorStale) {
         const onEditCell =
@@ -1296,7 +1296,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         return skippedBy("insertRows", "nothing-to-do");
       }
       if (createRun && !createRun.aborted) ctx.gates.abortRun(createRun, "superseded");
-      const anchor = s.viewIndex[viewRowIndex];
+      const anchor = dataIndexAt(s, viewRowIndex);
       if (anchor !== undefined && touchesUnloadedRow(s, [anchor], "insertRows")) return skippedBy("insertRows", "unloaded-rows");
       const dataRowIndex = insertDataIndex(s, viewRowIndex, position);
       const rows: unknown[] = [];
@@ -1312,7 +1312,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     deleteRowsAt(viewRowIndexes) {
       const s = get();
-      return requestDelete(viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined));
+      return requestDelete(viewRowIndexes.map((viewRow) => dataIndexAt(s, viewRow)).filter((i): i is number => i !== undefined));
     },
     deleteRows(rowIds, options) {
       const s = get();
@@ -1357,7 +1357,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         return skippedBy("duplicateRows", "no-factory");
       }
       if (duplicateRun && !duplicateRun.aborted) ctx.gates.abortRun(duplicateRun, "superseded");
-      const dataRowIndexes = viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined);
+      const dataRowIndexes = viewRowIndexes.map((viewRow) => dataIndexAt(s, viewRow)).filter((i): i is number => i !== undefined);
       if (touchesUnloadedRow(s, dataRowIndexes, "duplicateRows")) return skippedBy("duplicateRows", "unloaded-rows");
       const run = ctx.gates.begin("duplicateRow");
       const copies = startDuplicateCopies(s, dataRowIndexes, { signal: run.signal });

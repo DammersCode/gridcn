@@ -743,6 +743,11 @@
                "target": "components/data-grid/store/hole-view-guard.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/store/view-rows.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/view-rows.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/store/known-columns.ts",
                "type": "registry:component",
                "target": "components/data-grid/store/known-columns.ts"

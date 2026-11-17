@@ -18,10 +18,11 @@ import { toInternalSyncProps } from "./types";
 import { applyFunctionSeeds } from "./function-seed";
 import type { AnyColumnDef, DataGridActions, DataGridProviderProps, DataGridStoreState, DataGridStoreStateOf, DataGridSyncProps, InternalSyncProps } from "./types";
 import type { ViewCellRef, ViewCoord } from "../types";
+import { dataIndexAt } from "./view-rows";
 
 /** The event payload for a cursor: the record's stable id (the index-derived placeholder id for an unloaded hole) plus its view position. */
 function activeCellEvent(s: DataGridStoreState, coord: ViewCoord): ViewCellRef {
-  const dataRowIndex = s.viewIndex[coord.row];
+  const dataRowIndex = dataIndexAt(s, coord.row);
   const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
   return {
     rowId: dataRowIndex === undefined ? "" : row === undefined ? holeRowId(dataRowIndex) : s.getRowId(row, dataRowIndex),

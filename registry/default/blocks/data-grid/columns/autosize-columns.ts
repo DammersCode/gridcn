@@ -7,6 +7,7 @@ import { getCellValue } from "./column-helpers";
 import { columnHeaderText } from "./column-format-helpers";
 import { CELL_PADDING_BUFFER, DEFAULT_CELL_INLINE_PADDING, measureTextWidths } from "./measure-column-text";
 import { clampColumnWidth } from "./resolve-column-width";
+import { dataIndexOf } from "../store/view-rows";
 
 /** Default view rows sampled by one autosize pass. */
 export const DEFAULT_AUTOSIZE_SAMPLE_ROWS = 1_000;
@@ -55,7 +56,7 @@ export type AutosizeFonts = {
  * Computes an autosize width for every target column: the widest of (header text + header
  * affordances) and (sampled cell display texts) plus the cell's horizontal padding and a small buffer, clamped through
  * `clampColumnWidth`. Views only: `viewIndex` (sort/filter applied) defines what is measured and
- * lazy holes (`data[viewIndex[i]] === undefined`) are skipped. Sample = `sampleRows` view rows
+ * lazy holes (an unloaded row) are skipped. Sample = `sampleRows` view rows
  * evenly strided across the view plus the mounted window's rows; texts are cut to
  * `MAX_SAMPLE_TEXT_LENGTH` and deduped per column before measuring.
  */
@@ -104,8 +105,8 @@ export function computeAutosizeWidths(
     const cellType = cellTypes[column.type ?? "text"] ?? textFallback;
     const cellTexts = new Set<string>();
     for (const row of sampled) {
-      const dataRow = viewIndex[row]!;
-      const rowValue = data[dataRow];
+      const dataRow = dataIndexOf(viewIndex, row);
+      const rowValue = dataRow === undefined ? undefined : data[dataRow];
       if (rowValue === undefined) continue; // lazy hole
       const value = getCellValue<unknown, AnyColumnDef>(rowValue, column);
       const text = displayText(cellType, value, column.options).slice(0, MAX_SAMPLE_TEXT_LENGTH);

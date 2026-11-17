@@ -8,6 +8,7 @@ import { cellErrorKey, isColumnReadOnly } from "./compute";
 import { resolveColumnValidate } from "../cell-types/capabilities";
 import type { GateContext } from "./gate-signal";
 import type { AnyColumnDef, CellErrorEntry, CellPatch, CommitResult, DataGridStoreState, InternalSyncProps, RowEdit, UpdateCellsSkip } from "./types";
+import { dataIndexAt } from "./view-rows";
 
 /**
  * Warns once per instance (per passed Set) for every column whose `type` resolves to nothing in
@@ -235,7 +236,7 @@ export function resolveEditTarget(
 ): { column: AnyColumnDef; dataRowIndex: number; row: unknown; cellType: CellType } | null {
   const column = s.visibleColumns[coord.col];
   if (!column) return null;
-  const dataRowIndex = s.viewIndex[coord.row];
+  const dataRowIndex = dataIndexAt(s, coord.row);
   if (dataRowIndex === undefined) return null;
   const row = s.data[dataRowIndex];
   if (row === undefined) return null;
@@ -258,7 +259,7 @@ export function computeRowEditsBatch(
   const columnById = new Map(s.visibleColumns.map((column) => [column.id, column] as const));
 
   for (const write of writes) {
-    const dataRowIndex = s.viewIndex[write.viewRowIndex];
+    const dataRowIndex = dataIndexAt(s, write.viewRowIndex);
     if (dataRowIndex === undefined) continue;
     const column = columnById.get(write.columnId);
     if (!column) continue;
