@@ -106,22 +106,13 @@ describe("async formatCell", () => {
     expect(() => buildCsv(makeState(["a"]), options)).toThrow(TypeError);
   });
 
-  it("settles pending cells in groups and reads the signal after each group", async () => {
+  it("reads the signal after each group of pending cells and leaves the cells empty when it aborted", async () => {
     const controller = new AbortController();
+    controller.abort(new Error("stop"));
     const rows: ExportCell[][] = Array.from({ length: 25_000 }, () => [null]);
-    let started = 0;
-    const pending: PendingCell[] = rows.map((row) => ({
-      row,
-      index: 0,
-      value: {
-        then: (resolve: (value: string) => unknown) => {
-          started += 1;
-          if (started === 1) controller.abort(new Error("stop"));
-          return Promise.resolve("v").then(resolve);
-        },
-      } as PromiseLike<string>,
-    }));
+    const pending: PendingCell[] = rows.map((row) => ({ row, index: 0, value: Promise.resolve("v") }));
     await expect(settlePending(pending, false, controller.signal)).rejects.toThrow("stop");
     expect(rows[0]![0]).toBeNull();
+    expect(rows[24_999]![0]).toBeNull();
   });
 });

@@ -125,7 +125,7 @@ async function validateBuiltRows<TData>(
   for (let start = 0; start < rows.length; start += CHUNK_SIZE) {
     if (signal.aborted) throw new Error(IMPORT_CANCELLED_MESSAGE);
     const end = Math.min(start + CHUNK_SIZE, rows.length);
-    const verdicts: Verdict[] = new Array(end - start);
+    const verdicts = new Array<Verdict>(end - start);
     const settling: Promise<void>[] = [];
     for (let offset = 0; offset < end - start; offset++) {
       const row = rows[start + offset]!;

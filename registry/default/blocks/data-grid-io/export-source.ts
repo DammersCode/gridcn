@@ -304,23 +304,24 @@ export function mapExportRow<TData>(
   signal: AbortSignal = NEVER_ABORTED,
   pending?: PendingCell[],
 ): ExportCell[] {
-  const cells: ExportCell[] = [];
-  for (const column of columns) {
+  const cells = new Array<ExportCell>(columns.length);
+  for (let index = 0; index < columns.length; index++) {
+    const column = columns[index]!;
     const cellType = state.cellTypes[column.type ?? "text"];
     const value = getCellValue<unknown, AnyColumnDef>(row, column);
     const cellText = cellType ? (text === "display" ? displayText(cellType, value, column.options) : cellType.toText(value, column.options)) : "";
     if (!formatCell) {
-      cells.push(typed ? builtInTypedCell(column.type, value, cellText) : cellText);
+      cells[index] = typed ? builtInTypedCell(column.type, value, cellText) : cellText;
       continue;
     }
     const formatted = formatCell({ value, text: cellText, row, column, signal });
     if (isThenable<ExportCellValue>(formatted)) {
       if (!pending) throw new TypeError("[data-grid-io] formatCell returned a promise; use exportGrid or buildXlsx, which await it");
-      pending.push({ row: cells, index: cells.length, value: formatted });
-      cells.push(null);
+      pending.push({ row: cells, index, value: formatted });
+      cells[index] = null;
       continue;
     }
-    cells.push(typed ? toTypedCell(formatted) : toCsvCell(formatted));
+    cells[index] = typed ? toTypedCell(formatted) : toCsvCell(formatted);
   }
   return cells;
 }

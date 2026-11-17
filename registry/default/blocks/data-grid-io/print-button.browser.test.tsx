@@ -126,4 +126,60 @@ describe("DataGridPrintButton (browser)", () => {
       restore();
     }
   });
+
+  it("is busy while a source loads, and a second click replaces the run", async () => {
+    const { spy, restore } = stubIframePrint();
+    try {
+      const signals: AbortSignal[] = [];
+      let release: (rows: Row[]) => void = () => {};
+      const source = ({ signal }: { signal: AbortSignal }) => {
+        signals.push(signal);
+        return new Promise<Row[]>((resolve) => (release = resolve));
+      };
+      await render(
+        <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+          <DataGridPrintButton options={{ source }} />
+          <DataGridRoot className="h-[200px]">
+            <DataGridHeader />
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>,
+      );
+      const button = page.getByRole("button", { name: "Print" });
+      await userEvent.click(button);
+      await expect.element(button).toHaveAttribute("aria-busy", "true");
+      await userEvent.click(button);
+      await vi.waitFor(() => expect(signals).toHaveLength(2));
+      expect(signals[0]!.aborted).toBe(true);
+      release([{ id: "x", name: "From source", note: "n" }]);
+      await vi.waitFor(() => expect(spy).toHaveBeenCalledTimes(1));
+      await expect.element(button).not.toHaveAttribute("aria-busy");
+    } finally {
+      restore();
+      document.querySelectorAll("iframe").forEach((frame) => frame.remove());
+    }
+  });
+
+  it("aborts a loading source when the button unmounts", async () => {
+    const { spy, restore } = stubIframePrint();
+    try {
+      let seen: AbortSignal | undefined;
+      const source = ({ signal }: { signal: AbortSignal }) => {
+        seen = signal;
+        return new Promise<Row[]>(() => {});
+      };
+      const screen = await render(
+        <DataGridProvider data={makeRows()} columns={columns} getRowId={(r) => r.id}>
+          <DataGridPrintButton options={{ source }} />
+        </DataGridProvider>,
+      );
+      await userEvent.click(page.getByRole("button", { name: "Print" }));
+      await vi.waitFor(() => expect(seen).toBeDefined());
+      await screen.unmount();
+      expect(seen!.aborted).toBe(true);
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      restore();
+    }
+  });
 });

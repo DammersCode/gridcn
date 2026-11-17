@@ -124,20 +124,24 @@ export function useUploadWorkbook() {
 
 ## Print
 
-`printGrid(state, options)` fills a hidden frame with a plain table of the rows and opens the browser print dialog. The dialog's "Save as PDF" creates a PDF. Call `useDataGridPrint()` inside the provider, or place `DataGridPrintButton` in the toolbar. The [Print example](/docs/basic-examples/print-example) shows the button with a page size picker. Print takes the same `scope` as export. It prints visible columns in view order.
+`printGrid(state, options)` fills a hidden frame with a plain table of the rows and opens the browser print dialog. It returns a promise of `{ rowCount, truncated }`. The dialog's "Save as PDF" creates a PDF. Call `useDataGridPrint()` inside the provider, or place `DataGridPrintButton` in the toolbar. The [Print example](/docs/basic-examples/print-example) shows the button with a page size picker. Print takes the same `scope` as export. It prints visible columns in view order.
 
 - Each cell shows the display text of its cell type (`toDisplayText`, else `toText`), so a formatted value prints as it reads on screen.
 - A cell aligns with the `align` of its cell type, in reading direction, so an end-aligned number stays at the end in a right-to-left page.
 - A `cellClassName` does not reach the printed table.
-- A call while a print frame is open replaces that frame.
+- A call while a print frame is open replaces that frame and aborts a `source` that is still loading.
 - Print does nothing during server rendering.
 - `title` prints as a heading and sets the document title.
 - `orientation` defaults to `landscape` above 6 visible columns, else `portrait`.
-- `paperSize` is `"A4"` (default), `"A3"`, `"Letter"`, or `"Legal"`. `pageSize` is a deprecated name for `paperSize`.
+- `paperSize` is `"A4"` (default), `"A3"`, `"Letter"`, or `"Legal"`.
 - `maxRows` defaults to 10,000. A 500,000-cell ceiling cuts it further. `NaN` reads as the default, and a negative value counts as 0. A cut table ends with a note such as "Printed 10000 of 25000 rows".
 - `direction` is `"ltr"` or `"rtl"`. It defaults to the reading direction of the page that prints.
 - A cell text over 32,767 characters is cut, as in XLSX.
-- `DataGridPrintButton` passes its `options` prop to `printGrid`.
+- `headers` maps a column id to its header text.
+- `css` adds rules after the built-in ones, in a second `<style>` node. It is text only and at most 65,536 characters. Build it from constants: a cell value in `css` can load a remote URL.
+- `signal` cancels the print. The promise rejects with the reason and no dialog opens.
+- `source` prints the whole server result, as in [Export the whole result](/docs/import-export/export-whole-result). It takes the export bounds: 1,000-row slices, `maxRows`, and the 500,000-cell ceiling. A cut table ends with a note such as "Printed the first 10000 rows".
+- `DataGridPrintButton` passes its `options` prop to `printGrid`. It sets `aria-busy` while a `source` loads, aborts the load on unmount, and a second click replaces the run.
 
 ## Server mode
 
@@ -152,7 +156,7 @@ Without a `source`, export covers the rows the grid holds. It never asks the ser
 
 A `source` writes the whole server result. See [Export the whole result](/docs/import-export/export-whole-result).
 
-Print covers the rows the grid holds, in the same way. A grid fed by `useDataGridServerRows` prints its current page, or the loaded blocks in scroll mode, not the rest of the server result. To print the whole result, use a CSV or XLSX export of the whole result.
+Print covers the rows the grid holds, in the same way. A grid fed by `useDataGridServerRows` prints its current page, or the loaded blocks in scroll mode. Pass `source` to print the whole server result. The source receives the grid's `spec` and the printed `columnIds`.
 
 ## Related
 
