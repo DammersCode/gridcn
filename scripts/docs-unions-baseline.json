@@ -1,17 +1,5 @@
 [
   {
-    "id": "menu-item-ids",
-    "page": "content/docs/(reference)/add-options/rows-pages-menus/context-menu-options.mdx",
-    "missing": [
-      "sep-move",
-      "move-toward-start",
-      "move-toward-end",
-      "widen-column",
-      "narrow-column"
-    ],
-    "unknown": []
-  },
-  {
     "id": "gate-name-table",
     "page": "content/docs/(build)/editing-cells/cancel-async-gates.mdx",
     "missing": [

@@ -1,4 +1,5 @@
 import { isDev, isThenable } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import type { DataChange } from "@/registry/default/blocks/data-grid/data-grid";
 import {
   cellComments,
   confirmedSnapshot,
@@ -80,7 +81,7 @@ export type CommentEngine = {
   isRowBusy(rowId: string): boolean;
   fetchState(rowId: string): "idle" | "loading" | "failed" | "ready";
   retryFetch(rowId: string): void;
-  observeDataChange(next: readonly unknown[], change: import("@/registry/default/blocks/data-grid/data-grid").DataChange<unknown>, ctx: { getRowId(row: unknown, index: number): string }): void;
+  observeDataChange(next: readonly unknown[], change: DataChange<unknown>, ctx: { getRowId(row: unknown, index: number): string }): void;
   kickFetch(): void;
   noteRowsRendered(rowIds: readonly string[]): void;
   currentUser(): CommentAuthor | null;

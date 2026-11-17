@@ -99,7 +99,7 @@ A resolver keeps or drops a built-in item by its id. The `BuiltInMenuItemId` typ
 | Menu | Ids, in order |
 | --- | --- |
 | Cell | `cut`, `copy`, `paste`, `sep-clipboard`, `clear-contents`, `fill-down`, `fill-right`, `sep-rows`, `insert-row-above`, `insert-row-below`, `duplicate-rows`, `delete-rows` |
-| Header | `sort-asc`, `sort-desc`, `clear-sort`, `sep-sort`, `pin-start`, `pin-end`, `unpin`, `hide-column`, `sep-autosize`, `autosize`, `autosize-all` |
+| Header | `sort-asc`, `sort-desc`, `clear-sort`, `sep-sort`, `pin-start`, `pin-end`, `unpin`, `hide-column`, `sep-move`, `move-toward-start`, `move-toward-end`, `sep-autosize`, `widen-column`, `narrow-column`, `autosize`, `autosize-all` |
 
 These ids appear only under a condition:
 
@@ -112,7 +112,8 @@ These ids appear only under a condition:
 | `clear-sort` | On a sorted column |
 | `unpin` | On a pinned column |
 | `hide-column` | On a column that can hide |
-| `sep-autosize`, `autosize`, `autosize-all` | When the grid and the column allow resizing |
+| `sep-move`, `move-toward-start`, `move-toward-end` | On a column that can reorder, with column reorder on |
+| `sep-autosize`, `widen-column`, `narrow-column`, `autosize`, `autosize-all` | When the grid and the column allow resizing |
 
 A column that cannot pin gets disabled `pin-start`, `pin-end`, and `unpin` items.
 
