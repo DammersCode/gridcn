@@ -23,7 +23,7 @@ aliases: ["comment options", "onCommentSave", "applyRemote", "fetchComments", "c
 
 Records from `comments` and `defaultComments` pass through the same checks as remote records. The add-on drops an invalid record or a record over a bound, and warns once in development.
 
-`comments` is the controlled set of confirmed comments. Keep its reference stable between renders. `defaultComments` seeds an uncontrolled set once. In controlled mode, `onCommentsChange` receives confirmed records only, and the add-on keeps a confirmed record on screen until the prop returns it.
+`comments` is the controlled set of confirmed comments. Keep its reference stable between renders. `defaultComments` seeds an uncontrolled set once. A function runs once on the client after mount, so a seed that reads `localStorage` matches the server render. A throw starts the comments empty. In controlled mode, `onCommentsChange` receives confirmed records only, and the add-on keeps a confirmed record on screen until the prop returns it.
 
 `currentUser` is optional. Without it, a write is anonymous: the record has no `author` and no `resolvedBy`. A present `currentUser` with an invalid `id` refuses every write with the reason `"invalid"`. Pass `readOnly: !session` while a session loads.
 
@@ -45,7 +45,7 @@ Every gate receives `{ comment, action, user, signal }`, so one `canResolve` tel
 
 `openComments` scrolls to the cell, makes it the active cell, and waits up to 10 frames for it to render. If the cell still has not rendered, the add-on drops the request and warns in development. `removeComments` discards the pending writes, the comment drafts, and the open popover of the removed comments, and leaves a tombstone for each comment. `getComments` returns a bounded snapshot that does not update. Under the fetch cache, it holds only the cached rows.
 
-`getCommentMenuItems(ctx, defaults)` returns `defaults` followed by a `sep-comments` separator and a `comments` item. The item opens the popover on the next frame, after the menu has closed.
+The plugin adds a `sep-comments` separator and a `comments` item to the context menu. The item opens the popover on the next frame, after the menu has closed. `getCommentMenuItems(ctx, defaults)` is the manual path: pass it as `getCellMenuItems` to place the item yourself. It returns `defaults` unchanged when the menu already holds the `comments` item.
 
 ## Callback matrix [#callback-matrix]
 

@@ -6,8 +6,8 @@ import { createCommentEngine, type CommentEngine } from "./comment-engine";
 import { createCommentsMount } from "./comments-mount";
 import { createCommentsOverlay } from "./comments-overlay";
 import { sameRecord } from "./comment-state";
-import { createMenuItemsResolver } from "./menu-items";
-import type { UseDataGridCommentsOptions, UseDataGridCommentsResult } from "./types";
+import { commentMenuItems, createMenuItemsResolver } from "./menu-items";
+import type { CellComment, UseDataGridCommentsOptions, UseDataGridCommentsResult } from "./types";
 
 const RENDER_OPTION_KEYS = ["hideResolved", "labels", "className", "allowWhenReadOnly", "readOnly", "enableResolve", "enableEdit", "enableDelete", "canEdit", "canDelete", "canResolve", "canCreate", "fetchComments"] as const;
 
@@ -21,9 +21,31 @@ type Instance = {
   /** The latest options and the last controlled prop; written in an effect, read by callbacks. */
   live: { options: UseDataGridCommentsOptions; prop: UseDataGridCommentsOptions["comments"] };
   result: UseDataGridCommentsResult;
+  seeded: boolean;
 };
 
 type Live = Instance["live"];
+
+function plainSeed(seed: UseDataGridCommentsOptions["defaultComments"]): readonly CellComment[] | undefined {
+  return typeof seed === "function" ? undefined : seed;
+}
+
+/** A function seed runs once on the client after mount, so a seed that reads `localStorage` matches the server render; a throw starts the comments empty. */
+function readFunctionSeed(seed: UseDataGridCommentsOptions["defaultComments"]): readonly CellComment[] | undefined {
+  if (typeof seed !== "function") return undefined;
+  try {
+    return seed();
+  } catch {
+    return undefined;
+  }
+}
+
+function seedOnce(instance: Instance, seed: UseDataGridCommentsOptions["defaultComments"]): void {
+  if (instance.seeded) return;
+  instance.seeded = true;
+  const records = readFunctionSeed(seed);
+  if (records) instance.engine.seed(records);
+}
 
 function assignOptions(live: Live, options: UseDataGridCommentsOptions): UseDataGridCommentsOptions {
   const previous = live.options;
@@ -51,7 +73,7 @@ function createInstance(options: UseDataGridCommentsOptions): Instance {
   const engine = createCommentEngine({
     getOptions,
     controlled: options.comments !== undefined,
-    initialComments: options.comments ?? options.defaultComments,
+    initialComments: options.comments ?? plainSeed(options.defaultComments),
   });
   const plugin: DataGridPlugin = {
     name: "comments",
@@ -67,6 +89,7 @@ function createInstance(options: UseDataGridCommentsOptions): Instance {
       },
     },
     keymap: { openComments: ["shift+F2"] },
+    cellMenuItems: (ctx) => commentMenuItems(engine, ctx),
   };
   const result: UseDataGridCommentsResult = {
     plugin,
@@ -76,9 +99,9 @@ function createInstance(options: UseDataGridCommentsOptions): Instance {
     refetchComments: (target) => engine.refetch(target?.rowIds),
     openComments: (ref) => engine.openComments(ref, "keyboard"),
     closeComments: () => engine.store.close(),
-    getCommentMenuItems: createMenuItemsResolver(engine, getOptions),
+    getCommentMenuItems: createMenuItemsResolver(engine),
   };
-  return { engine, live, result };
+  return { engine, live, result, seeded: false };
 }
 
 /**
@@ -100,9 +123,10 @@ export function useDataGridComments(options: UseDataGridCommentsOptions = {}): U
   });
 
   useEffect(() => {
+    seedOnce(instance, options.defaultComments);
     engine.start();
     return () => engine.dispose();
-  }, [engine]);
+  }, [engine, instance]);
 
   return instance.result;
 }

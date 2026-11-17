@@ -44,7 +44,7 @@ const CommentMarker = memo(function CommentMarker({ marker, windowStart, colOffs
         aria-hidden="true"
         data-grid-comment-marker=""
         data-unresolved={marker.unresolved ? "" : undefined}
-        className="pointer-events-auto absolute end-0 top-0 block size-2 cursor-pointer pointer-coarse:size-6"
+        className="pointer-events-auto absolute end-[var(--data-grid-comment-marker-inset,0px)] top-0 block size-2 cursor-pointer pointer-coarse:size-6"
         onClick={(event) => {
           event.stopPropagation();
           onOpen(marker.rowId, marker.columnId);
@@ -53,7 +53,7 @@ const CommentMarker = memo(function CommentMarker({ marker, windowStart, colOffs
         onDoubleClick={(event) => event.stopPropagation()}
       >
         <span
-          className={`pointer-events-none absolute end-0 top-0 block size-2 ${
+          className={`pointer-events-none absolute end-[var(--data-grid-comment-marker-inset,0px)] top-0 block size-2 ${
             marker.unresolved
               ? "bg-primary [clip-path:polygon(0_0,100%_0,100%_100%)] rtl:[clip-path:polygon(0_0,100%_0,0_100%)] forced-colors:bg-[Highlight]"
               : "rounded-full border border-primary forced-colors:border-[CanvasText]"

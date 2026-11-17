@@ -18,7 +18,7 @@ import { createFetchScheduler } from "./comment-fetch";
 import { defaultCanModify, authorLabelName } from "./default-gate";
 import { createCommentStore, type CommentStore } from "./comment-store";
 import { createWriteIdGenerator, defaultCreateId } from "./create-id";
-import { resolveCommentsLabels } from "./labels";
+import { resolveCommentsLabels, type DataGridCommentsLabels, type GridCommentsLabelLayer } from "./labels";
 import type {
   ApplyRemoteVerdict,
   CellComment,
@@ -42,6 +42,8 @@ export type GridAdapter = {
   saveStatus(rowId: string): string | undefined;
   /** Scrolls to the cell, makes it active, and opens the popover once the cell renders; `false` for a hole, a filtered-out row, or a hidden column. */
   open(ref: { rowId: string; columnId: string }, by: "keyboard" | "pointer" | "menu"): boolean;
+  /** The grid's locale and its `labels.comments` overrides. */
+  gridLabels(): GridCommentsLabelLayer;
 };
 
 /** The writer: none (anonymous), a valid user, or a present but invalid `currentUser`. */
@@ -89,6 +91,10 @@ export type CommentEngine = {
   kickFetch(): void;
   noteRowsRendered(rowIds: readonly string[]): void;
   currentUser(): CommentUserState;
+  /** The comments labels: defaults, then the grid's locale and `labels.comments`, then the hook's `labels`. */
+  labels(): DataGridCommentsLabels;
+  /** Applies a function seed once after mount; a controlled engine ignores it. */
+  seed(records: readonly CellComment[]): void;
   isDisposed(): boolean;
   openComments(ref: { rowId: string; columnId: string }, by?: "keyboard" | "pointer" | "menu"): boolean;
   start(): void;
@@ -200,7 +206,7 @@ export function createCommentEngine(config: EngineConfig): CommentEngine {
       const c = change.comment;
       if (c.rowId !== open.rowId || c.columnId !== open.columnId) continue;
       if (c.version !== 1) continue;
-      const labels = resolveCommentsLabels(optionsOf().labels);
+      const labels = engine.labels();
       store.announce(labels.announceAdded(authorLabelName(c.author, labels.unknownAuthor)));
       return;
     }
@@ -214,14 +220,16 @@ export function createCommentEngine(config: EngineConfig): CommentEngine {
 
   // --- seed and prop ----------------------------------------------------------------------------
 
-  if (config.initialComments && config.initialComments.length > 0) {
-    dispatch({ type: "propChange", next: config.initialComments, now: 0 });
+  function applySeed(records: readonly CellComment[]): void {
+    if (records.length === 0) return;
+    dispatch({ type: "propChange", next: records, now: 0 });
     if (!config.controlled) {
       core.propRaw = new Map();
       core.rawOf = new Map();
     }
     if (core.dropped > 0) warnOnce("seed-dropped", `${core.dropped} seed record(s) were dropped (invalid or over a bound)`);
   }
+  if (config.initialComments) applySeed(config.initialComments);
 
   let expireTimer: ReturnType<typeof setInterval> | null = null;
   const startExpire = (): void => {
@@ -625,6 +633,10 @@ export function createCommentEngine(config: EngineConfig): CommentEngine {
       store.setVisibleRowIds(rowIds);
     },
     currentUser: userState,
+    labels: () => resolveCommentsLabels(grid?.gridLabels(), optionsOf().labels),
+    seed: (records) => {
+      if (!config.controlled) applySeed(records);
+    },
     isDisposed: () => disposed,
     openComments: (ref, by = "pointer") => grid?.open(ref, by) ?? false,
     start() {

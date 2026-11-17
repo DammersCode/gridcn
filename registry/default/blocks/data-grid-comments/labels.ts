@@ -46,7 +46,10 @@ export const DEFAULT_COMMENTS_LABELS: DataGridCommentsLabels = {
   unknownAuthor: "Unknown",
 };
 
-/** The default labels under `overrides`; a key set to `undefined` keeps its default. */
-export function resolveCommentsLabels(overrides: Partial<DataGridCommentsLabels> | undefined): DataGridCommentsLabels {
-  return mergeLabelLayers<DataGridCommentsLabels>(DEFAULT_COMMENTS_LABELS, overrides);
+/** What the grid contributes to the comments labels: its locale and its `labels.comments` overrides. */
+export type GridCommentsLabelLayer = { locale?: string; comments?: Partial<DataGridCommentsLabels> };
+
+/** The default labels, then the grid's locale and `labels.comments`, then `overrides`; a key set to `undefined` keeps the layer below. */
+export function resolveCommentsLabels(grid: GridCommentsLabelLayer | undefined, overrides?: Partial<DataGridCommentsLabels>): DataGridCommentsLabels {
+  return mergeLabelLayers<DataGridCommentsLabels>(DEFAULT_COMMENTS_LABELS, { locale: grid?.locale }, grid?.comments, overrides);
 }

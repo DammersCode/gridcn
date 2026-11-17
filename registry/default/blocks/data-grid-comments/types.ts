@@ -117,11 +117,14 @@ export type CommentMenuItem = {
   onClick: () => void;
 };
 
+/** The separator before the comments item. */
+export type CommentMenuSeparator = { id: string; separator: true };
+
 /** Structurally compatible with the context-menu add-on's `CellMenuItemsResolver`; pass it as `getCellMenuItems`. */
 export type CommentMenuItemsResolver = <TItem extends { id: string }>(
   ctx: { rowId: string; columnId: string; viewRowIndex: number },
   defaults: TItem[],
-) => (TItem | CommentMenuItem)[];
+) => (TItem | CommentMenuItem | CommentMenuSeparator)[];
 
 /** Options of {@link useDataGridComments}. */
 export type UseDataGridCommentsOptions = {
@@ -137,8 +140,8 @@ export type UseDataGridCommentsOptions = {
   enableDelete?: boolean;
   /** Controlled confirmed comments. Keep the reference stable between renders. */
   comments?: readonly CellComment[];
-  /** One-shot seed. */
-  defaultComments?: readonly CellComment[];
+  /** One-shot seed. A function runs once on the client after mount. */
+  defaultComments?: readonly CellComment[] | (() => readonly CellComment[]);
   /** State channel: one call per store write, `next` holds confirmed records only. With `fetchComments` it is a partial cache: save from `ctx.changes`. */
   onCommentsChange?: (next: readonly CellComment[], ctx: CommentsChangeCtx) => void;
   /** Saves one write. Return nothing to accept it as sent, `{ comment }` for the authoritative record, `{ rejected }` or throw to revert. */

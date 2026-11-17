@@ -13,7 +13,7 @@ The comments popover takes its text from `labels`, opens with a key, and exposes
 | Keys | Action |
 | --- | --- |
 | <kbd>Shift</kbd>+<kbd>F2</kbd> | Opens the popover for the active cell. A cell without comments opens the composer. The keymap name is `openComments`. |
-| <kbd>Shift</kbd>+<kbd>F10</kbd> or the menu key | With `DataGridContextMenu` and `getCellMenuItems={comments.getCommentMenuItems}`, opens the context menu. Its "Comments…" item opens the popover. |
+| <kbd>Shift</kbd>+<kbd>F10</kbd> or the menu key | With `DataGridContextMenu`, opens the context menu. Its "Comments…" item opens the popover. |
 | <kbd>Mod</kbd>+<kbd>Enter</kbd> | Submits the composer. |
 | <kbd>Escape</kbd> | Cancels a delete confirm. Otherwise it closes the popover and keeps the comment draft. |
 | <kbd>Tab</kbd> past the last control | Closes the popover. The Tab order goes on from the grid. |
@@ -22,7 +22,7 @@ The command `openComments` refuses holes and band rows. Viewing works on a read-
 
 ## Labels [#labels]
 
-`labels` takes a partial `DataGridCommentsLabels`. A function label receives the values to insert, so a translation owns its plural form. `locale` sets the language of the comment times.
+`labels` takes a partial `DataGridCommentsLabels`. A function label receives the values to insert, so a translation owns its plural form. The comments popover reads three layers, and a later layer wins: the English defaults, the grid `locale` and `labels.comments` of the grid, then `labels` of the hook. `locale` sets the language of the comment times and follows the grid `locale` unless you set it.
 
 | Label | Type | Use |
 | --- | --- | --- |
@@ -47,7 +47,7 @@ The command `openComments` refuses holes and band rows. Viewing works on a read-
 | `data-unresolved` | The marker | Present while any comment of the cell is unresolved. Absent on the ring. |
 | `data-grid-comments-popup` | The popover popup | Style the popover. The grid ignores presses inside it. |
 
-The marker uses `bg-primary` and `border-primary`. It stays visible in forced-colors mode. Under a coarse pointer, its hit area grows to 24 px, and the drawn corner stays the same. `className` merges into the popover root.
+The marker uses `bg-primary` and `border-primary`. Set `--data-grid-comment-marker-inset` on the grid (default `0px`) to move the marker away from the end edge, for example under an overlay scrollbar. It stays visible in forced-colors mode. Under a coarse pointer, its hit area grows to 24 px, and the drawn corner stays the same. `className` merges into the popover root.
 
 ## Related
 
