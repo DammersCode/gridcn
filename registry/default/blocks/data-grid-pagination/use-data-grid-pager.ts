@@ -8,7 +8,7 @@ import type { DataGridPaginationControls } from "./use-data-grid-pagination";
 
 /** Options of {@link useDataGridPager}. */
 export type UseDataGridPagerOptions = {
-  /** Page sizes the footer offers. Default 10, 25, 50, 100. */
+  /** Page sizes the footer offers. Default: the provider's `pageSizeOptions`, else 10, 25, 50, 100. */
   pageSizeOptions?: readonly number[];
 };
 
@@ -18,7 +18,8 @@ export type UseDataGridPagerOptions = {
  * A grid without `pageSize` reads as one page that holds every row.
  */
 export function useDataGridPager(options: UseDataGridPagerOptions = {}): { pager: DataGridPaginationControls } {
-  const { pageSizeOptions = DEFAULT_PAGE_SIZES } = options;
+  const providerSizes = useDataGridSelector<unknown, readonly number[] | undefined>((s) => s.pageSizeOptions);
+  const pageSizeOptions = options.pageSizeOptions ?? providerSizes ?? DEFAULT_PAGE_SIZES;
   const { actions } = useDataGridApi();
   const requestedPage = useDataGridSelector<unknown, number>((s) => s.page);
   const configuredSize = useDataGridSelector<unknown, number | null>((s) => s.pageSize);

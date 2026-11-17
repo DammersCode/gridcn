@@ -133,7 +133,7 @@ The `layout` option picks which parts of the column layout go into the URL. The 
 
 ## Pagination
 
-`useDataGridUrlPagination` syncs `page` and `pageSize` with the URL, apart from `<DataGridUrlState>`. It returns the controlled pair `page`, `pageSize`, `onPageChange`, and `onPageSizeChange`, plus the resolved `pageSizeOptions`. Take `pageSizeOptions` out of the result, spread the rest onto `DataGridProvider`, and pass `pageSizeOptions` to `DataGridPaginationBar`:
+`useDataGridUrlPagination` syncs `page` and `pageSize` with the URL, apart from `<DataGridUrlState>`. It returns the controlled pair `page`, `pageSize`, `onPageChange`, and `onPageSizeChange`, plus the resolved `pageSizeOptions`. Spread the result onto `DataGridProvider`. `DataGridPaginationBar` reads `pageSizeOptions` from the provider:
 
 ```tsx
 import {
@@ -153,7 +153,7 @@ type Order = { id: string };
 const columns = [{ id: "id", header: "Order", accessorKey: "id" }] as const;
 
 export function OrdersGrid({ rows }: { rows: Order[] }) {
-  const { pageSizeOptions, ...pagination } = useDataGridUrlPagination();
+  const pagination = useDataGridUrlPagination();
 
   return (
     <DataGridProvider data={rows} columns={columns} {...pagination}>
@@ -161,7 +161,7 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
         <DataGridHeader />
         <DataGridBody />
       </DataGridRoot>
-      <DataGridPaginationBar pageSizeOptions={pageSizeOptions} />
+      <DataGridPaginationBar />
     </DataGridProvider>
   );
 }

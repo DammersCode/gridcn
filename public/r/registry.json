@@ -1792,6 +1792,11 @@
           "target": "components/data-grid-pagination/use-data-grid-server-pager.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid-pagination/pager-stash.tsx",
+          "type": "registry:component",
+          "target": "components/data-grid-pagination/pager-stash.tsx"
+        },
+        {
           "path": "registry/default/blocks/data-grid-pagination/use-data-grid-pager.ts",
           "type": "registry:component",
           "target": "components/data-grid-pagination/use-data-grid-pager.ts"

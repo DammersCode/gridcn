@@ -79,7 +79,7 @@ When the last pending insert or delete settles, the hook loads the page again, u
 
 ## Fetch the pages yourself [#own-fetch]
 
-If you fetch with your own code, call `useDataGridServerPager` for the footer. It keeps no page state, so you control `page` and `pageSize`. Pass `totalRowCount`: it makes `sortMode` and `filterMode` default to `"server"`, so the grid neither sorts nor filters the page again. Control `sortState`, `filterState`, and `searchText`, and send them with each request.
+If you fetch with your own code, call `useDataGridServerPager` for the footer. It keeps no page state, so you control `page` and `pageSize`. Spread `gridProps` onto the grid: its `totalRowCount` sets `sortMode` and `filterMode` to `"server"`. Control `sortState`, `filterState`, and `searchText`, and send them with each request.
 
 If the page, the page size, the sort, the filters, or the search text change, this grid fetches again:
 
@@ -135,7 +135,7 @@ export function OrdersGrid() {
     setPage(1);
   }
 
-  const { pager } = useDataGridServerPager({
+  const { gridProps } = useDataGridServerPager({
     page,
     pageSize: PAGE_SIZE,
     totalRowCount: total,
@@ -154,10 +154,10 @@ export function OrdersGrid() {
         onFilterChange={(filters) => changeSpec({ filters })}
         searchText={spec.searchText}
         onSearchTextChange={(searchText) => changeSpec({ searchText })}
-        totalRowCount={total}
+        {...gridProps}
         className="h-96"
       />
-      <DataGridPaginationBar {...pager} />
+      <DataGridPaginationBar />
     </>
   );
 }

@@ -20,7 +20,7 @@ export type UseDataGridUrlPaginationOptions = {
 export type UseDataGridUrlPaginationResult = {
   page: number;
   pageSize: number;
-  /** The `pageSizeOptions` the URL parsing enforces (`pageSizeOptions` or the pager default) — include it so the bar's select and the URL allow-list never diverge. */
+  /** The `pageSizeOptions` the URL parsing enforces (`pageSizeOptions` or the pager default) — `DataGridProvider` takes it, so the bar's select and the URL allow-list never diverge. */
   pageSizeOptions: readonly number[];
   onPageChange: (page: number) => void;
   /** `null` (a grid that turns paging off) returns the URL to `defaultPageSize`; the URL has no "every row" size. */
@@ -43,7 +43,7 @@ export type UseDataGridUrlPaginationResult = {
  *
  * @example
  * const url = useDataGridUrlPagination();
- * <DataGridProvider data={rows} {...url}><DataGridPaginationBar pageSizeOptions={url.pageSizeOptions} /></DataGridProvider>
+ * <DataGridProvider data={rows} {...url}><DataGridPaginationBar /></DataGridProvider>
  */
 export function useDataGridUrlPagination(options: UseDataGridUrlPaginationOptions = {}): UseDataGridUrlPaginationResult {
   const { prefix, pageSizeOptions } = options;

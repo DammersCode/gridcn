@@ -31,8 +31,9 @@ describe("useDataGridServerRows options.plugins and the pager warning", () => {
     const { result } = make(server(), { plugins: [{ name: "mine" }] });
     await waitFor(() => expect(result.current.gridProps.loading).toBe(false));
     const names = result.current.gridProps.plugins.map((plugin) => plugin.name);
-    expect(names).toHaveLength(2);
-    expect(names[1]).toBe("mine");
+    expect(names).toHaveLength(3);
+    expect(names[1]).toBe("server-pager");
+    expect(names[2]).toBe("mine");
   });
 
   it("warns once when pages mode lands more rows than a page and no pager is read", async () => {

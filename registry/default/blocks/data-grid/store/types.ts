@@ -211,13 +211,13 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   inputDebounceMs?: number;
   /**
-   * Shows `pageSize` rows of the sorted and filtered view at a time. The grid keeps the whole `data`, so sort, filter, aggregates, and
-   * streamed patches work across every page; only the rows on screen are one page. Set it to turn paging on (`defaultPageSize` seeds it,
-   * `pageSize` controls it with `onPageSizeChange`). `null` shows every row. A filter change goes back to page 1. Leave it unset to show every row.
+   * Shows `pageSize` rows of the sorted and filtered view at a time. The grid keeps the whole `data`, so sort, filter, aggregates, and streamed patches work across every page. Set it to turn paging on (`defaultPageSize` seeds it, `pageSize` controls it with `onPageSizeChange`). `null` or unset shows every row. A filter change goes back to page 1.
+   * `pageSizeOptions` lists the sizes the footer offers (default 10, 25, 50, 100); the bar's own `pageSizeOptions` wins.
    */
   pageSize?: number | null;
   defaultPageSize?: number | null;
   onPageSizeChange?: (pageSize: number | null) => void;
+  pageSizeOptions?: readonly number[];
   /** The current page, 1-based. Controls it with `onPageChange`; `defaultPage` seeds it. A page past the last one shows the last. Default 1. */
   page?: number;
   defaultPage?: number;

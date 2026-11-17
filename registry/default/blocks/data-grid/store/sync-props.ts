@@ -254,6 +254,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           inputDebounceMs: props.inputDebounceMs,
           onPageChange: props.onPageChange,
           onPageSizeChange: props.onPageSizeChange,
+          pageSizeOptions: props.pageSizeOptions,
           gateTimeoutMs: props.gateTimeoutMs,
           onRowActionSkipped: props.onRowActionSkipped,
           onGateAborted: props.onGateAborted,

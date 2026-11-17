@@ -2389,14 +2389,17 @@
         "PC": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid-pagination/use-data-grid-pagination.test.ts"
+            "registry/default/blocks/data-grid-pagination/use-data-grid-pagination.test.ts",
+            "registry/default/blocks/data-grid-pagination/use-data-grid-pager.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
             "tests/parity/view.parity.test.tsx",
-            "registry/default/blocks/data-grid-pagination/use-data-grid-server-pager.test.ts"
+            "registry/default/blocks/data-grid-pagination/use-data-grid-server-pager.test.ts",
+            "registry/default/blocks/data-grid-pagination/pagination-footer.test.tsx",
+            "registry/default/blocks/data-grid-server/server-rows-bare-bar.test.tsx"
           ]
         },
         "Z": {

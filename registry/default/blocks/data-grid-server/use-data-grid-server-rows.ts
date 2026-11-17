@@ -579,7 +579,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
     },
     [setPageSize, setPage],
   );
-  const { pager } = useDataGridServerPager({
+  const { pager, gridProps: pagerGridProps } = useDataGridServerPager({
     page,
     pageSize,
     pageSizeOptions,
@@ -591,7 +591,12 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
 
   const { onSave, wrapSave } = useSaveRefresh(options, refreshAfterSave);
 
-  const plugins = useMountedPlugins(guardPlugins, options.plugins);
+  const pagerGuardPlugins = useMemo(() => {
+    // a bare DataGridPaginationBar under this grid reads the pager through the stash plugin
+    armPagerRead(pagerGridProps.plugins, pagerWatch);
+    return [...guardPlugins, ...pagerGridProps.plugins];
+  }, [guardPlugins, pagerGridProps.plugins, pagerWatch]);
+  const plugins = useMountedPlugins(pagerGuardPlugins, options.plugins);
 
   const providerProps = useMemo<UseDataGridServerRowsProviderProps<TData>>(
     () => ({
@@ -622,6 +627,12 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
 }
 
 /** Records whether the consumer read `pager`, so the hook can warn about a pager that nothing reads. */
+const PAGER_READ = Symbol.for("gridcn.pager-read");
+
+function armPagerRead(plugins: readonly object[], watch: PagerWatch) {
+  for (const plugin of plugins) Object.assign(plugin, { [PAGER_READ]: () => void (watch.seen = true) });
+}
+
 class PagerWatch {
   seen = false;
 
