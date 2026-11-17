@@ -108,7 +108,7 @@ One shared `{ ok: false, reason }` result for every mode-dependent row action to
 - A filter set through props reports `onPageChange(1)` (after the write).
 - Capability opt-outs: `scope: "page"` on `exportGrid`, `printGrid`, `useDataGridAggregate`; `setPageSize(null)` turns paging off.
 - The bar props are a union (all controls or none), so `page` without handlers no longer type-checks.
-- Not taken: moving the clamp into the store (the effective page already clamps the view; the stored page catches up when a pager is mounted); a mixed-state fix for a half-controlled `setPageSize`; following the active record across a page change; reorder across a page (a move stays on the shown page with page-relative rows; a move past the page edge does nothing); cross-page select all for client paging (needs `selectAllMatching` without `totalRowCount`).
+- Not taken: moving the clamp into the store (the effective page already clamps the view; the stored page catches up when a pager is mounted); a mixed-state fix for a half-controlled `setPageSize`; following the active record across a page change; reorder across a page (a move stays on the shown page with page-relative rows; a move past the page edge does nothing).
 
 ## API scorecard (0-10), third pass
 

@@ -46,7 +46,7 @@ Find your symptom below. In a development build, the grid logs a warning for sev
 
 ## Selection [#selection]
 
-**Checked rows vanish on a page change, or select all matching does nothing.** Both need `totalRowCount` and `checkedRowsLifetime="across-filters"`, the default with `totalRowCount`. The hook passes both. With your own fetch, pass `totalRowCount` to the grid. `actions.selectAllMatching()` warns in development builds when one is missing.
+**Checked rows vanish on a page change, or select all matching does nothing.** Both need `totalRowCount` and `checkedRowsLifetime="across-filters"`, the default with `totalRowCount`. The hook passes both. With your own fetch, pass `totalRowCount` to the grid. `actions.selectAllMatching()` returns the missing one as its `reason`.
 
 ## The hook setup [#setup]
 

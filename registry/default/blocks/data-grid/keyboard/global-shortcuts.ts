@@ -78,6 +78,8 @@ export type GlobalShortcutContext = {
   targetIsEditable: boolean;
   /** The event target is inside ANY `role="grid"` element (including another grid). */
   targetInAnyGrid: boolean;
+  /** The event target is inside a dialog, menu, or listbox; the popup owns its keys. */
+  targetInPopup?: boolean;
   /** This grid is the last focused opted-in grid (the multi-grid tie-break). */
   ownsFocus: boolean;
   /** An edit session is open; its editor, including a portaled popup, owns the keys. */
@@ -93,10 +95,11 @@ export type GlobalShortcutContext = {
  * 2. `defaultPrevented` — the in-grid handler (earlier in the bubble) or the page already handled it.
  * 3. `targetIsEditable` — the field's native undo/redo wins; never hijack it.
  * 4. `targetInAnyGrid` — a grid's in-grid handler owns the key (this also excludes other grids).
- * 5. `ownsFocus` — multi-grid: only the last focused opted-in grid proceeds.
- * 6. `editing` — an open edit session owns the keys, even from a popup outside the grid.
- * 7. The keymap resolves to one of the enabled actions.
- * 8. The event carries `ctrlKey` or `metaKey`; a bare key never fires page-wide.
+ * 5. `targetInPopup` — a dialog, menu, or listbox owns its keys, including a portaled popup of this grid.
+ * 6. `ownsFocus` — multi-grid: only the last focused opted-in grid proceeds.
+ * 7. `editing` — an open edit session owns the keys, even from a popup outside the grid.
+ * 8. The keymap resolves to one of the enabled actions.
+ * 9. The event carries `ctrlKey` or `metaKey`; a bare key never fires page-wide.
  */
 export function resolveGlobalShortcut(
   event: GlobalShortcutEvent,
@@ -106,6 +109,7 @@ export function resolveGlobalShortcut(
   if (event.defaultPrevented) return null;
   if (ctx.targetIsEditable) return null;
   if (ctx.targetInAnyGrid) return null;
+  if (ctx.targetInPopup) return null;
   if (!ctx.ownsFocus) return null;
   if (ctx.editing) return null;
   const action = matchKeymap(event, ctx.keymap, ctx.isMac, ctx.include);

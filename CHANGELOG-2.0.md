@@ -75,6 +75,11 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - A paste, fill, or clear that an async column `validate` holds marks the gate `"validate"` pending, and `gateTimeoutMs.validate` aborts it. A paste aborts an earlier paste whose gate or async schema is still pending (`onGateAborted` reason `"superseded"`).
 - The move-rows shortcuts report `"disabled"` to `onRowActionSkipped` without a reorder `rowMarkers` mode.
 - `api.getSelectedRows()` returns the checked rows as `useDataGridSelectedRows()` does, the remembered hidden ones included, so a ref reads the set the status bar counts.
+- **Breaking:** `actions.selectAllMatching()` returns `{ ok: true }` or `{ ok: false, reason }` (`"disabled"`, `"needs-across-filters"`, `"needs-total-row-count"`) instead of `void`, and no longer warns. It works without `totalRowCount`: on a client grid it checks every row, and on a client-paged grid every page, counted by `useDataGridSelectedRows()`. The status bar banner offers "Select all N matching" on a paged grid. The header checkbox still checks the shown page.
+- Escape cancels a pending `processPaste` and a held async `validate` batch; `onGateAborted` reports `"cancelled"`.
+- A newer edit start aborts the pending `onBeforeEditStart` run with `"superseded"`; the newest request wins, like every other gate. A second request used to be ignored.
+- `actions.resetColumnLayout()` restores the widths, order, pins, and hidden columns of the column definitions as one `onColumnLayoutChange`.
+- The global shortcut layer listens in the capture phase, so a page listener sees `defaultPrevented` once the grid handled the key, wherever the listener was registered. Events from a dialog, menu, or listbox are skipped. A page that stops propagation below the window to hide a key from the grid no longer hides it.
 
 ## Sorting, filtering, and search
 

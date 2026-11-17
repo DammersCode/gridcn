@@ -47,9 +47,10 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `reorderRows` | Moves rows as one block to a view index. Returns whether rows moved. | [Row order](/docs/rows-pages-menus/row-order) |
 | `replaceRowId` | Swaps the id of a row for the id that the server assigned, in one write. | [Save edits](/docs/save-server/save-edits) |
 | `replaceRowIds` | Swaps the ids of many rows in one write, with one `onDataChange`. | [Save edits](/docs/save-server/save-edits) |
+| `resetColumnLayout` | Restores the widths, order, pins, and hidden columns of the column definitions in one change. | [Save a column layout](/docs/columns/column-layout) |
 | `resetColumnWidth` | Drops the width override of a column, so the column gets its `width` from the definition again. | [Column sizing](/docs/columns/column-sizing) |
 | `selectAll` | Runs one step of the select-all shortcut. The first call selects the filled block around the active cell, and a repeat selects every cell. | [Global shortcuts](/docs/selection-shortcuts/global-shortcuts) |
-| `selectAllMatching` | Checks every row of the result, loaded or not. It does nothing without `totalRowCount` or without `checkedRowsLifetime='across-filters'`. | [Select server rows](/docs/rows-live-data/select-server-rows) |
+| `selectAllMatching` | Checks every row of the result: every page of a client-paged grid, or every row of a server result, loaded or not. It returns `{ ok: true }`, or `{ ok: false, reason }` and changes nothing. | [Select server rows](/docs/rows-live-data/select-server-rows) |
 | `selectCell` | Selects the cell named by the stable `CellRef` as a single-cell selection. | [Exported types](/docs/types-hooks/exported-types) |
 | `selectCellAt` | Takes a `ViewCoord` in place of the `CellRef` of `selectCell`. | [State and view index](/docs/concepts/state-view-index) |
 | `selectColumn` | Selects the column at a view column index, as a click on its header does. | [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) |

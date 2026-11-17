@@ -82,6 +82,10 @@ describe("resolveGlobalShortcut - gate rules", () => {
     expect(resolveGlobalShortcut(makeEvent({ ctrlKey: true }), makeCtx())).toBe("undo");
   });
 
+  it("ignores an event from inside a dialog, menu, or listbox", () => {
+    expect(resolveGlobalShortcut(makeEvent({ ctrlKey: true }), makeCtx({ targetInPopup: true }))).toBe(null);
+  });
+
   it("ignores a bare-key binding of an enabled action", () => {
     const keymap = { ...DEFAULT_KEYMAP, deleteRows: ["Delete"] } as GlobalShortcutContext["keymap"];
     const ctx = makeCtx({ keymap, actions: ["deleteRows"] });

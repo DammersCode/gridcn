@@ -92,7 +92,7 @@ The grid restores the saved widths, order, pins, and hidden columns after a relo
 
 Each part of `columnLayout` replaces that part. An omitted part stays under the control of the grid. So `columnLayout={{ widths }}` controls widths, and a user reorder survives.
 
-A user change applies at once. The grid applies `columnLayout` again only when the prop is a new object that differs from the current layout. Keep the object stable, for example in state, and store each `onColumnLayoutChange` snapshot in it. `actions.setColumnLayout(parts)` applies a partial layout from code as one change.
+A user change applies at once. The grid applies `columnLayout` again only when the prop is a new object that differs from the current layout. Keep the object stable, for example in state, and store each `onColumnLayoutChange` snapshot in it. `actions.setColumnLayout(parts)` applies a partial layout from code as one change. `actions.resetColumnLayout()` restores the widths, order, pins, and hidden columns of the column definitions as one change.
 
 The grid cleans a layout before it applies it:
 

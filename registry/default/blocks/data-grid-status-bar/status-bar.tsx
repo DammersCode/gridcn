@@ -14,7 +14,7 @@ import {
   numberCellType,
   type DataGridStatusBarLabels,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { mergeLabelLayers, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { matchingRowTotal, mergeLabelLayers, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MAX_STATUS_CELLS } from "./compute-selection-stats";
 import { useDataGridSelectionStats } from "./use-data-grid-selection-stats";
 
@@ -83,7 +83,7 @@ export function DataGridStatusBar({
   }, [stats.numericColumnId, visibleColumns, cellTypes, locale]);
 
   const showStats = stats.cells >= 2;
-  const total = useDataGridSelector((s) => s.totalRowCount);
+  const total = useDataGridSelector(matchingRowTotal);
   const canSelectAllMatching = useDataGridSelector((s) => s.checkedRowsLifetime === "across-filters");
   const allMatching = useDataGridSelector((s) => s.allMatching);
   const pageRows = useDataGridSelector((s) => s.viewIndex.length);

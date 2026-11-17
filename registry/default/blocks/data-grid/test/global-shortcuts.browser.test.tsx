@@ -71,6 +71,25 @@ describe("global keyboard shortcuts (focus outside the grid)", () => {
     expect(gridCells()[1]!.textContent).toBe("Edited");
   });
 
+  it("a page listener registered before the grid sees defaultPrevented once the grid handled the key", async () => {
+    const seen: boolean[] = [];
+    const listener = (event: KeyboardEvent) => seen.push(event.defaultPrevented);
+    window.addEventListener("keydown", listener);
+    try {
+      await render(<HistoryGrid withShortcuts toolbarId="toolbar" />);
+      await expect.element(page.getByRole("grid")).toBeInTheDocument();
+      await userEvent.click(gridCells()[1]!);
+      await userEvent.keyboard("Edited");
+      await userEvent.keyboard("{Enter}");
+      await userEvent.click(document.getElementById("toolbar")!);
+      seen.length = 0;
+      await userEvent.keyboard("{Control>}z{/Control}");
+      expect(seen.at(-1)).toBe(true);
+    } finally {
+      window.removeEventListener("keydown", listener);
+    }
+  });
+
   it("a stationary Ctrl+Z inside the toolbar input does not touch the grid (editable-target guard)", async () => {
     await render(
       <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>

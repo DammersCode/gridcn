@@ -851,6 +851,13 @@ export function fullViewOf(viewIndex: readonly number[]): number[] {
   return FULL_VIEW.get(viewIndex) ?? (viewIndex as number[]);
 }
 
+/** The size of the result "all matching" covers: `totalRowCount`, else the whole client list behind a paged view; `undefined` when `data` is the whole result. */
+export function matchingRowTotal(s: Pick<DataGridStoreState, "totalRowCount" | "viewIndex">): number | null | undefined {
+  if (s.totalRowCount !== undefined) return s.totalRowCount;
+  const full = fullViewOf(s.viewIndex);
+  return full === s.viewIndex ? undefined : full.length;
+}
+
 /** Where a paged `viewIndex` starts in its full list; 0 for a view without a window. */
 export function pageStartOf(viewIndex: readonly number[]): number {
   return PAGE_START.get(viewIndex) ?? 0;

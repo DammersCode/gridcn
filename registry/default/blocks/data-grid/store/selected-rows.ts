@@ -1,6 +1,7 @@
 import type { ServerSpec } from "../server-spec";
 import type { DataGridStoreState } from "./types";
 import { viewRowOfDataIndex } from "./row-index";
+import { matchingRowTotal } from "./compute";
 
 /** The selection as a value a bulk action sends to a server. */
 export type DataGridSelectedRows =
@@ -48,7 +49,7 @@ function excludedOutsideView(s: CountSource, resolveRowIds: () => ReadonlyMap<st
  * minus the unchecked loaded view rows and the exclusions outside the view. Linear in the unchecked view rows and the exclusions; the row-id map is built on a cache miss.
  */
 export function allMatchingCheckedCount(s: CountSource, resolveRowIds: () => ReadonlyMap<string, number>): number | null {
-  const total = s.totalRowCount;
+  const total = matchingRowTotal(s);
   if (typeof total !== "number") return null;
   const viewLength = s.viewIndex.length;
   let unchecked = 0;
@@ -99,7 +100,7 @@ export function readSelectedRows(s: Source): DataGridSelectedRows {
     cursor = Math.max(cursor, end);
   }
   uncheckedGap(cursor, s.viewIndex.length);
-  const total = s.totalRowCount;
+  const total = matchingRowTotal(s);
   return {
     mode: "allMatching",
     ids: [],

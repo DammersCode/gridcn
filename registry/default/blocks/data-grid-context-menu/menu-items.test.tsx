@@ -349,7 +349,9 @@ describe("row items with only hidden checked rows", () => {
     let cell: GridMenuItemSpec[] = [];
     function AllMatching() {
       const actions = useDataGridActions();
-      useEffect(() => actions.selectAllMatching(), [actions]);
+      useEffect(() => {
+        actions.selectAllMatching();
+      }, [actions]);
       cell = useDefaultCellMenuItems({ row: 0, canInsertRow: true, canDuplicateRow: true, pasteBlocked: false, onPasteBlocked: () => {} });
       return null;
     }
