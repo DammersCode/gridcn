@@ -88,6 +88,19 @@ describe("comments: accessibility and focus", () => {
     expect(popup()?.getAttribute("role")).toBe("dialog");
   });
 
+  it("the popover sits under its cell and follows it when the grid scrolls", async () => {
+    await render(<Harness />);
+    const cell = page.getByRole("gridcell").nth(2);
+    await cell.click();
+    await userEvent.keyboard("{Shift>}{F2}{/Shift}");
+    await expect.poll(() => popup()).not.toBeNull();
+    const below = () => (popup() as HTMLElement).getBoundingClientRect().top - cell.element().getBoundingClientRect().bottom;
+    await expect.poll(() => Math.abs(below() - 4) <= 2).toBe(true);
+    const scroller = document.querySelector<HTMLElement>('[role="grid"]') as HTMLElement;
+    scroller.scrollTop = 20;
+    await expect.poll(() => Math.abs(below() - 4) <= 2).toBe(true);
+  });
+
   it("Escape returns focus to the active cell when the keyboard opened the popover", async () => {
     await render(<Harness />);
     await page.getByRole("gridcell").first().click();

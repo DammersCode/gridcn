@@ -106,7 +106,8 @@ function OpenPopover({ engine, getOptions, rowId, columnId, by }: HostProps & { 
   const options = getOptions();
   const labels: DataGridCommentsLabels = { ...DEFAULT_COMMENTS_LABELS, ...options.labels };
 
-  const anchor = useMemo(() => createCellAnchor(locate, getScroll, lastRect), [locate, getScroll, lastRect]);
+  // a function anchor: Base UI builds the virtual element outside render, where it reads the scroll element
+  const anchor = useCallback(() => createCellAnchor(locate, getScroll, lastRect), [locate, getScroll, lastRect]);
 
   const closeWithFocusGrid = useCallback(
     (reason: "scroll-out" | "tab") => {
