@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ColumnDef } from "../types";
+import { holeSafeRowId } from "./compute";
 import { createDataGridStore } from "./create-store";
 import { getInternalActions } from "./internal-actions";
 import type { InternalSyncProps } from "./types";
@@ -29,7 +30,7 @@ describe("syncing an inline getRowId", () => {
 
     getInternalActions(store)._syncProps({ data, columns, getRowId: swapped } as InternalSyncProps);
 
-    expect(store.getState().getRowId).toBe(swapped);
+    expect(store.getState().getRowId).toBe(holeSafeRowId(swapped));
   });
 
   it("adopts a new function together with a new data array", () => {
@@ -38,7 +39,7 @@ describe("syncing an inline getRowId", () => {
 
     getInternalActions(store)._syncProps({ data: [...data], columns, getRowId: next } as InternalSyncProps);
 
-    expect(store.getState().getRowId).toBe(next);
+    expect(store.getState().getRowId).toBe(holeSafeRowId(next));
   });
 });
 

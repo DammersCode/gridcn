@@ -35,6 +35,8 @@ import {
   normalizeColumnLayout as normalizeColumnLayoutBase,
   pruneCellErrors,
   resolveSelectionConfig,
+  sanitizeColumnLayout,
+  holeSafeRowId,
   resolveSortMode,
   resolveFilterMode,
   withFilterIds,
@@ -82,17 +84,25 @@ export function sortSpecKey(sorts: readonly unknown[]): string {
 
 export type ProvidedCellTypes = Record<string, CellType | null> | undefined;
 
-/** Whether two `getRowId` functions disagree on the first or the last loaded row (lazy holes are skipped). */
+const ROW_ID_SAMPLES = 32;
+const DEV_ROW_ID_SCAN_LIMIT = 10_000;
+
+/** Whether two `getRowId` functions disagree on a sample of loaded rows: 32 evenly spaced ones, every row up to 10,000 in development (lazy holes are skipped). */
 export function sampledRowIdsDiffer(
   data: readonly unknown[],
   before: (row: unknown, index: number) => string,
   after: (row: unknown, index: number) => string,
 ): boolean {
-  const differs = (index: number) => before(data[index], index) !== after(data[index], index);
+  const differs = (index: number) => data[index] !== undefined && before(data[index], index) !== after(data[index], index);
+  if (isDev() && data.length <= DEV_ROW_ID_SCAN_LIMIT) {
+    for (let i = 0; i < data.length; i++) if (differs(i)) return true;
+    return false;
+  }
   const first = data.findIndex((row) => row !== undefined);
   if (first === -1) return false;
-  const last = data.findLastIndex((row) => row !== undefined);
-  return differs(first) || differs(last);
+  if (differs(first) || differs(data.findLastIndex((row) => row !== undefined))) return true;
+  for (let k = 1; k < ROW_ID_SAMPLES - 1; k++) if (differs(Math.round((k * (data.length - 1)) / (ROW_ID_SAMPLES - 1)))) return true;
+  return false;
 }
 
 /** True when both `cellTypes` props hold the same keys with `===` entries (an inline literal re-created per render). */
@@ -282,7 +292,8 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
       // already-closed session has nothing to cancel.
       if (props.readOnly && get().editing) get().actions.cancelEditing();
     },
-    syncProps(props: InternalSyncProps): void {
+    syncProps(rawProps: InternalSyncProps): void {
+      const props = rawProps.getRowId ? { ...rawProps, getRowId: holeSafeRowId(rawProps.getRowId) } : rawProps;
       set((s) => {
         // A defined controlled prop is the source of truth; otherwise the store keeps its own state.
         const nextSortState = props.sortState === undefined || sortSpecKey(props.sortState) === sortSpecKey(s.sortState) ? s.sortState : props.sortState;
@@ -396,13 +407,14 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
             memory.layoutEchoQueue.splice(0, echoIndex + 1);
           } else {
             const pins = pinsOf(nextColumns);
+            const given = sanitizeColumnLayout(props.columnLayout);
             const normalized = normalizeColumnLayout(
               nextColumns,
               {
-                widths: props.columnLayout.widths ?? s.columnWidths,
-                order: props.columnLayout.order !== undefined ? props.columnLayout.order : s.columnOrder,
-                pins: props.columnLayout.pins ?? pins,
-                hidden: props.columnLayout.hidden ?? nextHiddenColumns,
+                widths: given.widths ?? s.columnWidths,
+                order: given.order !== undefined ? given.order : s.columnOrder,
+                pins: given.pins ?? pins,
+                hidden: given.hidden ?? nextHiddenColumns,
               },
               defHiddenColumnIds(nextColumns),
             );

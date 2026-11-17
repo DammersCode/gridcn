@@ -66,6 +66,8 @@ import {
   remapColumnChannel,
   remapRowChannel,
   resolveSelectionConfig,
+  sanitizeColumnLayout,
+  holeSafeRowId,
   resolveSortMode,
   resolveFilterMode,
   selectCellOf,
@@ -169,7 +171,8 @@ const UNKNOWN_COLUMN_MESSAGE = "a sort or filter names an unknown column (its id
  * Creates one grid's vanilla store instance. Module-private: never export this
  * factory's result or a bound hook from this module — only the hooks below.
  */
-export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridStoreState> {
+export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGridStoreState> {
+  const init = { ...rawInit, getRowId: holeSafeRowId(rawInit.getRowId) };
   const initLocale = init.locale ?? DEFAULT_LOCALE;
   const warnStoreOnce = createWarnOnce();
   const initColumns = withGridLocale(init.columns, initLocale, warnStoreOnce);
@@ -199,15 +202,16 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
   // so the server render and the first client paint already show the controlled layout. Omitted
   // parts fall back to the seeded values (there is no store state yet).
   const seededPins = pinsOf(seeded.columns);
+  const initLayout = isColumnLayoutObject(init.columnLayout) ? sanitizeColumnLayout(init.columnLayout) : null;
   const effectiveLayout =
-    isColumnLayoutObject(init.columnLayout)
+    initLayout
       ? normalizeColumnLayout(
           initColumns,
           {
-            widths: init.columnLayout.widths ?? seeded.columnWidths,
-            order: init.columnLayout.order !== undefined ? init.columnLayout.order : seeded.columnOrder,
-            pins: init.columnLayout.pins ?? seededPins,
-            hidden: init.columnLayout.hidden ?? seeded.hiddenColumns,
+            widths: initLayout.widths ?? seeded.columnWidths,
+            order: initLayout.order !== undefined ? initLayout.order : seeded.columnOrder,
+            pins: initLayout.pins ?? seededPins,
+            hidden: initLayout.hidden ?? seeded.hiddenColumns,
           },
           defHidden,
         )
@@ -676,8 +680,9 @@ export function createDataGridStore(init: InternalSyncProps): StoreApi<DataGridS
      * visible columns/snapshot) plus one onColumnLayoutChange. Live resize frames never run
      * through here (previewColumnWidth).
      */
-    const commitLayout = (changedParts: Partial<ColumnLayout>): void => {
-      if (!isColumnLayoutObject(changedParts)) return;
+    const commitLayout = (given: Partial<ColumnLayout>): void => {
+      if (!isColumnLayoutObject(given)) return;
+      const changedParts = sanitizeColumnLayout(given);
       const s = get();
       const pins = pinsOf(s.columns);
       const merged: ColumnLayoutParts = {

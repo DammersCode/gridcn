@@ -102,6 +102,18 @@ export function holeRowId(dataRowIndex: number): string {
   return `${HOLE_ROW_ID_PREFIX}${dataRowIndex}`;
 }
 
+const holeSafeRowIds = new WeakMap<object, (row: unknown, index: number) => string>();
+
+/** Wraps a consumer `getRowId` so an unloaded hole gets its placeholder id and the function never sees `undefined`; one wrapper per function. */
+export function holeSafeRowId(getRowId: (row: unknown, index: number) => string): (row: unknown, index: number) => string {
+  let wrapped = holeSafeRowIds.get(getRowId);
+  if (!wrapped) {
+    wrapped = (row, index) => (row === undefined ? holeRowId(index) : getRowId(row, index));
+    holeSafeRowIds.set(getRowId, wrapped);
+  }
+  return wrapped;
+}
+
 /** Whether `rowId` is the placeholder id of an unloaded row (a hole of a lazy source). */
 export function isPlaceholderRowId(rowId: string): boolean {
   return holeRowIndex(rowId) >= 0;
@@ -762,6 +774,17 @@ export function normalizeColumnLayout(
 
 /** A stored layout is untrusted: `null` or a primitive from `JSON.parse` counts as no layout. */
 export const isColumnLayoutObject = (layout: unknown): layout is Partial<ColumnLayout> => layout !== null && typeof layout === "object";
+
+/** A stored layout with every wrong-shaped part set to `undefined`, so the caller's `??` fallbacks keep the current state. */
+export function sanitizeColumnLayout(layout: Partial<ColumnLayout>): Partial<ColumnLayout> {
+  const record = (value: unknown) => (typeof value === "object" && value !== null && !Array.isArray(value) ? value : undefined);
+  return {
+    widths: record(layout.widths) as ColumnLayout["widths"] | undefined,
+    order: layout.order === null || Array.isArray(layout.order) ? layout.order : undefined,
+    pins: record(layout.pins) as ColumnLayout["pins"] | undefined,
+    hidden: Array.isArray(layout.hidden) ? layout.hidden : undefined,
+  };
+}
 /**
  * Seeds `columnWidths`/`columnOrder`/`hiddenColumns`/per-column `pin` from `defaultColumnLayout` at
  * store-creation time only (never re-applied - see the sync prop's doc comment). Partial layouts
