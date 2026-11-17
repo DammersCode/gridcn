@@ -25,7 +25,7 @@ aliases: ["localization", "translation keys", "ui text"]
 
 The default labels format every number with the `locale` prop, such as the counts in the status bar. A label that you override formats its own numbers.
 
-`DataGridLabels` does not hold the labels of a lookup column. A lookup column takes `options.labels` ([lookup cell](/docs/editing-cells/lookup-cell)).
+`DataGridLabels` does not hold the labels of a lookup column. A lookup column takes `options.labels` ([lookup cell](/docs/editing-cells/lookup-cell)). The comments popover takes `labels` on `useDataGridComments`.
 
 A label is a string or a function. A function label receives the values that its text needs, such as a count or a page number, and returns the string. The type of each field names its arguments:
 

@@ -18,7 +18,7 @@ gridcn ships as source through the shadcn registry, so it has no npm version. A 
 
 ## Release tags [#version]
 
-A release is a git tag named `vMAJOR.MINOR.PATCH`, for example `v2.0.0`. The changelog heading of each release has the same number and the release date. The docs follow the `main` branch, so a change under **Unreleased** in the changelog is in no release tag yet. The [tags page](https://github.com/DammersCode/gridcn/tags) lists every release.
+A release is a git tag named `vMAJOR.MINOR.PATCH`, for example `v2.0.0`. The changelog heading of each release has the same number and the release date. The docs follow the `main` branch, so a change that the changelog lists above the newest release heading is in no release tag yet. The [tags page](https://github.com/DammersCode/gridcn/tags) lists every release.
 
 Any release can carry a change marked **Breaking:** in the changelog. Read the changelog of every release between your version and the target. [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn#updating-installed-code) shows how to find your version.
 
@@ -32,11 +32,11 @@ Installed files are your source. [Upgrade gridcn](/docs/support-upgrades/upgrade
 
 `CHANGELOG.md` is at the root of the [repository](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md). It follows these rules:
 
-- The top section, `Unreleased`, lists changes that no tag has shipped. An install without a ref already gets them.
+- The `## 2.0.0` section carries the release date. A section named `Unreleased` above the newest release lists changes that no tag has shipped. An install without a ref already gets them.
 - Each release has a heading with its number and date.
 - An entry that breaks a public prop, hook, export, or behavior carries the **Breaking:** marker. It names the replacement or describes the new behavior.
 - [2.0 breaking changes](/docs/support-upgrades/breaking-changes-2-0) lists the breaking entries of release 2.0 by area, with the 1.3 form and the 2.0 form.
-- The `Unreleased` section keeps the breaking entries and a short list of highlights. [`CHANGELOG-2.0.md`](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG-2.0.md) lists every other entry of release 2.0, grouped by area.
+- The `## 2.0.0` section keeps the breaking entries and a short list of highlights. [`CHANGELOG-2.0.md`](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG-2.0.md) lists every other entry of release 2.0, grouped by area.
 
 ### Removed exports
 

@@ -82,7 +82,7 @@ Apply writes the set filter of the column from the checks:
 | Fewer values than the unchecked ones | `isAnyOf` with the checked values |
 | More values than the unchecked ones | `isNoneOf` with the unchecked values |
 | As many as the unchecked ones | The operator of the current set filter of the column, or `isAnyOf` if there is none |
-| Every listed value | No set filter. Values outside the list that the filter held stay in an `isAnyOf` filter. |
+| Every listed value | No set filter. Values outside the list stay filtered. An `isAnyOf` filter keeps the listed values and its outside values. An `isNoneOf` filter keeps its outside values. |
 
 Apply keeps every other filter, including condition filters on the same column. It reads and writes only the top-level set filter of the column. Set filters inside a group belong to the filter menu, and a line under the list tells the user that the column has some.
 
