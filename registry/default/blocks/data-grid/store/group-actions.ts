@@ -6,7 +6,7 @@ import { computeSearchMatches, computeViewIndex, viewFilters, viewSorts, viewWin
 import { emitAfterWrites, resetDeferredRows, type DataWriteContext } from "./data-write";
 import { EXPANDED, COLLAPSED, normalizeExpanded, normalizeGroupBy, sameExpanded, sameGroupBy, toggleExpanded } from "./group-state";
 import { rememberEmitted } from "./group-sync";
-import { groupingOf } from "./group-view";
+import { groupingOf, warnGroupOnce } from "./group-view";
 import { viewRowOfDataIndex } from "./row-index";
 import { clearStaleRows } from "./server-stale";
 import type { FollowView, SyncMemory } from "./sync-props";
@@ -73,7 +73,9 @@ export function createGroupActions({ set, get, dataWrite, followView, memory }: 
 
   const commitExpanded = (requested: ExpandedState): void => {
     const s = get();
-    const expanded = normalizeExpanded(requested);
+    const normalized = normalizeExpanded(requested);
+    const expanded = s.groupMode === "server" && normalized.mode === "expanded" ? COLLAPSED : normalized;
+    if (expanded !== normalized) warnGroupOnce(s.dataWrite, "server expand all", 'expanded mode "expanded" is not available under groupMode="server": the grid keeps every group collapsed');
     if (sameExpanded(expanded, s.expanded)) return;
     set((s2) => reopen(s2, expanded));
     memory.lastSyncInputs = { ...memory.lastSyncInputs, expanded };
@@ -92,6 +94,7 @@ export function createGroupActions({ set, get, dataWrite, followView, memory }: 
       commitExpanded(toggleExpanded(get().expanded, groupId));
     },
     expandAll() {
+      if (get().groupMode === "server") return { ok: false, reason: "server-groups" };
       commitExpanded(EXPANDED);
       return { ok: true };
     },

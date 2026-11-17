@@ -63,6 +63,7 @@ A term row links to the page that explains it.
 | grid origin | The row that anchors the rows canvas. It trails the first rendered row and moves only when the rendered rows drift far from it. | [Virtualization](/docs/performance/virtualization) |
 | group key | The stored value that the rows of a row group share. `null`, `undefined`, and `""` form one empty key. | [Data mode support](/docs/data-modes/data-mode-support#row-grouping) |
 | group level | The place of a group column in `groupBy`. The first column is level 0. | [Data mode support](/docs/data-modes/data-mode-support#row-grouping) |
+| group path | The group keys from the outermost level down to one row group: one `{ columnId, key }` per level. A server request names the group whose children it reads with `groupPath`. | [Server rows contract](/docs/contracts/server-rows-contract#parse-group-path) |
 | group row | The view row that heads a row group. It holds no data. A `viewIndex` entry below 0 names it. | [Data mode support](/docs/data-modes/data-mode-support#row-grouping) |
 | header filter | The filter button in a column header. It opens a popover with the set filter of that column. `renderHeaderFilter` places it, and `DataGridHeaderFilter` is the built-in one. | [Header filter](/docs/sort-filter-search/header-filter) |
 | header row | One level of the header block. Group levels come first, and the column headers fill the last row. | [Column headers and groups](/docs/columns/column-headers-groups) |

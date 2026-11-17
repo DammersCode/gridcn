@@ -1,4 +1,5 @@
 import type { FilterGroup, FilterNode, FilterOperator, FilterOperatorInput, FilterSpec, ServerSpec, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import type { GroupKey, GroupPathSegment, ServerAggregate } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MAX_FILTER_GROUP_DEPTH, MAX_SPEC_SEARCH_LENGTH, MAX_SPEC_SORTS, filterOperatorInput, isBuiltInOperator } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** What a request may do with one column. Every field is optional. */
@@ -11,6 +12,10 @@ export type ServerSpecColumnRules = {
   operators?: readonly FilterOperator[];
   /** Custom operators the column accepts, with the value shape of each. */
   customOperators?: Readonly<Record<string, FilterOperatorInput>>;
+  /** `false` rejects `groupBy` on the column. Default `true`. */
+  groupable?: boolean;
+  /** `false` rejects an aggregate on the column. Default `true`. */
+  aggregatable?: boolean;
 };
 
 /** Bounds that apply to the whole request. Every field is optional; a negative or non-finite value keeps the default. Groups nest at most 2 levels deep. */
@@ -27,6 +32,12 @@ export type ServerSpecLimits = {
   maxListLength?: number;
   /** Longest `searchText`. Default 500. */
   maxSearchLength?: number;
+  /** Most `groupBy` columns. Default 4. */
+  maxGroupLevels?: number;
+  /** Longest group key of a group path. Default 1024. */
+  maxGroupKeyLength?: number;
+  /** Most `aggregates` entries. Default 32. */
+  maxGroupAggregates?: number;
 };
 
 export type ParseServerSpecOptions = {
@@ -45,11 +56,11 @@ export class ServerSpecError extends Error {
   }
 }
 
-const DEFAULT_LIMITS = { maxSorts: MAX_SPEC_SORTS, maxFilters: 64, maxGroups: 16, maxValueLength: 1000, maxListLength: 1000, maxSearchLength: MAX_SPEC_SEARCH_LENGTH } satisfies Required<ServerSpecLimits>;
+const DEFAULT_LIMITS = { maxSorts: MAX_SPEC_SORTS, maxFilters: 64, maxGroups: 16, maxValueLength: 1000, maxListLength: 1000, maxSearchLength: MAX_SPEC_SEARCH_LENGTH, maxGroupLevels: 4, maxGroupKeyLength: 1024, maxGroupAggregates: 32 } satisfies Required<ServerSpecLimits>;
 
 type Budget = { filters: number; groups: number };
 
-type Raw = { sorts?: unknown; filters?: unknown; searchText?: unknown; columnId?: unknown; direction?: unknown; join?: unknown; operator?: unknown; value?: unknown; matchCase?: unknown };
+type Raw = { sorts?: unknown; filters?: unknown; searchText?: unknown; groupBy?: unknown; aggregates?: unknown; columnId?: unknown; direction?: unknown; join?: unknown; operator?: unknown; value?: unknown; matchCase?: unknown };
 
 const isRecord = (value: unknown): value is Raw => typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -62,18 +73,97 @@ const isRecord = (value: unknown): value is Raw => typeof value === "object" && 
  * const spec = parseServerSpec(body.spec, { columns: ["name", "status", "age"] });
  */
 export function parseServerSpec(input: unknown, options: ParseServerSpecOptions): ServerSpec {
+  const limits = limitsOf(options);
+  const rules = columnRules(options.columns);
+  if (!isRecord(input)) throw new ServerSpecError("spec", "must be an object");
+  const spec: ServerSpec = {
+    sorts: parseSorts(input.sorts, rules, limits),
+    filters: parseFilters(input.filters, rules, limits),
+    searchText: parseSearch(input.searchText, limits),
+  };
+  const groupBy = parseGroupBy(input.groupBy, rules, limits);
+  const aggregates = parseAggregates(input.aggregates, groupBy.length > 0, rules, limits);
+  return { ...spec, ...(groupBy.length > 0 ? { groupBy } : null), ...(aggregates.length > 0 ? { aggregates } : null) };
+}
+
+/**
+ * Reads the `groupPath` and `childKind` of a grouped request against its parsed `spec`, or throws {@link ServerSpecError}. The path follows
+ * `spec.groupBy` in order and is not longer; the kind is `"groups"` while the path is shorter than `groupBy`, else `"rows"`.
+ * A spec without `groupBy` accepts an empty path only.
+ *
+ * @example
+ * const { groupPath, childKind } = parseGroupPath(body, spec);
+ */
+export function parseGroupPath(input: unknown, spec: ServerSpec, options: { limits?: ServerSpecLimits } = {}): { groupPath: GroupPathSegment[]; childKind: "groups" | "rows" } {
+  const groupBy = spec.groupBy ?? [];
+  const limits = limitsOf(options);
+  const body = isRecord(input) ? (input as { groupPath?: unknown; childKind?: unknown }) : {};
+  const rawPath = body.groupPath ?? [];
+  if (!Array.isArray(rawPath)) throw new ServerSpecError("groupPath", "must be an array");
+  if (rawPath.length > groupBy.length) throw new ServerSpecError("groupPath", "is longer than groupBy");
+  const groupPath = rawPath.map((segment: unknown, index): GroupPathSegment => {
+    const path = `groupPath[${index}]`;
+    if (!isRecord(segment)) throw new ServerSpecError(path, "must be an object");
+    const raw = segment as { columnId?: unknown; key?: unknown };
+    if (raw.columnId !== groupBy[index]) throw new ServerSpecError(`${path}.columnId`, "must follow groupBy in order");
+    return { columnId: groupBy[index]!, key: groupKey(raw.key, `${path}.key`, limits) };
+  });
+  const childKind = groupPath.length < groupBy.length ? "groups" : "rows";
+  if (body.childKind !== undefined && body.childKind !== childKind) throw new ServerSpecError("childKind", `must be "${childKind}" for a path of ${groupPath.length} of ${groupBy.length} levels`);
+  return { groupPath, childKind };
+}
+
+function limitsOf(options: { limits?: ServerSpecLimits }): Required<ServerSpecLimits> {
   const limits = { ...DEFAULT_LIMITS };
   for (const key of Object.keys(DEFAULT_LIMITS) as (keyof ServerSpecLimits)[]) {
     const wanted = options.limits?.[key];
     if (wanted !== undefined && Number.isFinite(wanted) && wanted >= 0) limits[key] = wanted;
   }
-  const rules = columnRules(options.columns);
-  if (!isRecord(input)) throw new ServerSpecError("spec", "must be an object");
-  return {
-    sorts: parseSorts(input.sorts, rules, limits),
-    filters: parseFilters(input.filters, rules, limits),
-    searchText: parseSearch(input.searchText, limits),
-  };
+  return limits;
+}
+
+function groupKey(value: unknown, path: string, limits: Required<ServerSpecLimits>): GroupKey {
+  if (value === null || typeof value === "boolean" || (typeof value === "number" && Number.isFinite(value))) return value;
+  if (typeof value !== "string") throw new ServerSpecError(path, "must be a string, a finite number, a boolean, or null");
+  if (value.length > limits.maxGroupKeyLength) throw new ServerSpecError(path, `is longer than ${limits.maxGroupKeyLength}`);
+  return value;
+}
+
+function parseGroupBy(value: unknown, rules: ReadonlyMap<string, ServerSpecColumnRules>, limits: Required<ServerSpecLimits>): string[] {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value)) throw new ServerSpecError("groupBy", "must be an array");
+  if (value.length > limits.maxGroupLevels) throw new ServerSpecError("groupBy", `holds more than ${limits.maxGroupLevels} columns`);
+  const seen = new Set<string>();
+  return value.map((entry: unknown, index) => {
+    const path = `groupBy[${index}]`;
+    const columnId = knownColumn(entry, rules, path);
+    if (rules.get(columnId)!.groupable === false) throw new ServerSpecError(path, `"${columnId}" cannot be grouped`);
+    if (seen.has(columnId)) throw new ServerSpecError(path, `repeats "${columnId}"`);
+    seen.add(columnId);
+    return columnId;
+  });
+}
+
+const REDUCERS: readonly string[] = ["sum", "avg", "min", "max", "count"];
+
+function parseAggregates(value: unknown, grouped: boolean, rules: ReadonlyMap<string, ServerSpecColumnRules>, limits: Required<ServerSpecLimits>): ServerAggregate[] {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value)) throw new ServerSpecError("aggregates", "must be an array");
+  if (value.length === 0) return [];
+  if (!grouped) throw new ServerSpecError("aggregates", "needs groupBy");
+  if (value.length > limits.maxGroupAggregates) throw new ServerSpecError("aggregates", `holds more than ${limits.maxGroupAggregates} entries`);
+  const seen = new Set<string>();
+  return value.map((entry: unknown, index) => {
+    const path = `aggregates[${index}]`;
+    if (!isRecord(entry)) throw new ServerSpecError(path, "must be an object");
+    const raw = entry as { columnId?: unknown; reducer?: unknown };
+    const columnId = knownColumn(raw.columnId, rules, `${path}.columnId`);
+    if (rules.get(columnId)!.aggregatable === false) throw new ServerSpecError(`${path}.columnId`, `"${columnId}" cannot be aggregated`);
+    if (seen.has(columnId)) throw new ServerSpecError(`${path}.columnId`, `repeats "${columnId}"`);
+    seen.add(columnId);
+    if (typeof raw.reducer !== "string" || !REDUCERS.includes(raw.reducer)) throw new ServerSpecError(`${path}.reducer`, `must be one of ${REDUCERS.join(", ")}`);
+    return { columnId, reducer: raw.reducer as ServerAggregate["reducer"] };
+  });
 }
 
 function columnRules(columns: ParseServerSpecOptions["columns"]): ReadonlyMap<string, ServerSpecColumnRules> {

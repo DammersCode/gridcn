@@ -21,6 +21,7 @@ mirror the change there.
 | row group | The rows that share one group key under `groupBy`. Not a column group and not a filter group. | |
 | group row | The view row that heads a row group. It holds no data. A `viewIndex` entry below 0 names it. | |
 | group key | The stored value that the rows of a row group share. `null`, `undefined`, and `""` form one empty key. | |
+| group path | The group keys from the outermost level down to one row group: one `{ columnId, key }` per level. A server request names the group whose children it reads with `groupPath`. | |
 | group level | The place of a group column in `groupBy`. The first column is level 0. | |
 | expanded state | `{ mode, ids }`: the row groups that differ from `mode`, named by group id. It decides which groups show their rows. | |
 | checked row | A row whose marker checkbox is on, kept in the row channel of the selection. | ticked row |

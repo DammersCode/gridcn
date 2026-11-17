@@ -558,7 +558,9 @@
         "onGroupByChange",
         "expanded",
         "defaultExpanded",
-        "onExpandedChange"
+        "onExpandedChange",
+        "groupMode",
+        "groupLayout"
       ],
       "cells": {
         "L": {
@@ -574,12 +576,12 @@
         "PS": {
           "status": "gap",
           "track": "#71",
-          "note": "Server grouping is not defined."
+          "note": "The request fields, the groups answer with its bounds, and the core layout exist; the hook does not group yet."
         },
         "Z": {
           "status": "gap",
           "track": "#71",
-          "note": "Server grouping is not defined."
+          "note": "The request fields, the groups answer with its bounds, and the core layout exist; the hook does not group yet."
         },
         "C": {
           "status": "supported",
@@ -590,17 +592,17 @@
         "SS": {
           "status": "gap",
           "track": "#71",
-          "note": "Server grouping is not defined."
+          "note": "The request fields, the groups answer with its bounds, and the core layout exist; the hook does not group yet."
         },
         "FS": {
           "status": "gap",
           "track": "#71",
-          "note": "Server grouping is not defined."
+          "note": "The request fields, the groups answer with its bounds, and the core layout exist; the hook does not group yet."
         },
         "API": {
           "status": "gap",
           "track": "#71",
-          "note": "Server grouping is not defined."
+          "note": "The request fields, the groups answer with its bounds, and the core layout exist; the hook does not group yet."
         }
       }
     },

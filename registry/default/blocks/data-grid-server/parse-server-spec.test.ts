@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ServerSpecError, parseServerSpec } from "./parse-server-spec";
+import { ServerSpecError, parseGroupPath, parseServerSpec } from "./parse-server-spec";
 
 const columns = ["name", "age", "status"];
 const parse = (input: unknown, extra = {}) => parseServerSpec(input, { columns, ...extra });
@@ -92,5 +92,71 @@ describe("parseServerSpec limits", () => {
 
   it("does not echo a long operator", () => {
     expect(() => parse({ filters: [{ columnId: "name", operator: "x".repeat(5000), value: "a" }] })).toThrow(/^(?:.{0,200})$/s);
+  });
+});
+
+describe("parseServerSpec grouping", () => {
+  const rules = { name: {}, age: { aggregatable: true }, status: { groupable: false, aggregatable: false } };
+
+  it("keeps the spec of today byte-equal when the request does not group", () => {
+    expect(Object.keys(parse({ groupBy: [], aggregates: [] }))).toEqual(["sorts", "filters", "searchText"]);
+  });
+
+  it("reads groupBy and aggregates", () => {
+    const spec = parse({ groupBy: ["name", "age"], aggregates: [{ columnId: "age", reducer: "sum", extra: 1 }] });
+    expect(spec.groupBy).toEqual(["name", "age"]);
+    expect(spec.aggregates).toEqual([{ columnId: "age", reducer: "sum" }]);
+  });
+
+  it("rejects an unknown, repeated, or ungroupable group column and too many levels", () => {
+    expect(() => parse({ groupBy: ["nope"] })).toThrow(/groupBy\[0\]/);
+    expect(() => parse({ groupBy: ["name", "name"] })).toThrow(/repeats/);
+    expect(() => parse({ groupBy: ["status"] }, { columns: rules })).toThrow(/cannot be grouped/);
+    expect(() => parse({ groupBy: ["name", "age", "status", "name", "age"] })).toThrow(/more than 4/);
+    expect(() => parse({ groupBy: "name" })).toThrow(/array/);
+    expect(parse({ groupBy: ["name", "age"] }, { limits: { maxGroupLevels: 2 } }).groupBy).toHaveLength(2);
+    expect(() => parse({ groupBy: ["name", "age"] }, { limits: { maxGroupLevels: 1 } })).toThrow(/more than 1/);
+  });
+
+  it("rejects an aggregate without groupBy, on an unknown column, repeated, or with an open reducer", () => {
+    expect(() => parse({ aggregates: [{ columnId: "age", reducer: "sum" }] })).toThrow(/needs groupBy/);
+    const grouped = { groupBy: ["name"] };
+    expect(() => parse({ ...grouped, aggregates: [{ columnId: "nope", reducer: "sum" }] })).toThrow(/unknown column/);
+    expect(() => parse({ ...grouped, aggregates: [{ columnId: "age", reducer: "sum" }, { columnId: "age", reducer: "max" }] })).toThrow(/repeats/);
+    for (const reducer of ["median", "constructor", 1, undefined]) expect(() => parse({ ...grouped, aggregates: [{ columnId: "age", reducer }] })).toThrow(/reducer/);
+    expect(() => parse({ ...grouped, aggregates: [{ columnId: "status", reducer: "sum" }] }, { columns: rules })).toThrow(/cannot be aggregated/);
+    const many = Array.from({ length: 33 }, () => ({ columnId: "age", reducer: "sum" }));
+    expect(() => parse({ ...grouped, aggregates: many })).toThrow(/more than 32/);
+  });
+});
+
+describe("parseGroupPath", () => {
+  const spec = parse({ groupBy: ["name", "age"] });
+
+  it("reads the top level, a middle level, and the rows of the last group", () => {
+    expect(parseGroupPath({}, spec)).toEqual({ groupPath: [], childKind: "groups" });
+    expect(parseGroupPath({ groupPath: [{ columnId: "name", key: "a" }], childKind: "groups" }, spec).childKind).toBe("groups");
+    expect(parseGroupPath({ groupPath: [{ columnId: "name", key: "a" }, { columnId: "age", key: 3 }] }, spec)).toEqual({ groupPath: [{ columnId: "name", key: "a" }, { columnId: "age", key: 3 }], childKind: "rows" });
+  });
+
+  it("rejects a childKind that disagrees with the path", () => {
+    expect(() => parseGroupPath({ groupPath: [], childKind: "rows" }, spec)).toThrow(/childKind/);
+    expect(() => parseGroupPath({ groupPath: [{ columnId: "name", key: "a" }], childKind: "rowChildren" }, spec)).toThrow(/childKind/);
+  });
+
+  it("rejects a path that is longer, out of order, or holds a bad key", () => {
+    const seg = (columnId: string, key: unknown) => ({ columnId, key });
+    expect(() => parseGroupPath({ groupPath: [seg("name", "a"), seg("age", 1), seg("name", "b")] }, spec)).toThrow(/longer/);
+    expect(() => parseGroupPath({ groupPath: [seg("age", 1)] }, spec)).toThrow(/in order/);
+    expect(() => parseGroupPath({ groupPath: [seg("name", { a: 1 })] }, spec)).toThrow(/key/);
+    expect(() => parseGroupPath({ groupPath: [seg("name", "x".repeat(1025))] }, spec)).toThrow(/longer than 1024/);
+    expect(() => parseGroupPath({ groupPath: [seg("name", Number.NaN)] }, spec)).toThrow(/key/);
+    expect(() => parseGroupPath({ groupPath: "x" }, spec)).toThrow(/array/);
+    expect(() => parseGroupPath({ groupPath: [null] }, spec)).toThrow(/object/);
+  });
+
+  it("answers an ungrouped spec with the rows of the whole result", () => {
+    expect(parseGroupPath(undefined, parse({}))).toEqual({ groupPath: [], childKind: "rows" });
+    expect(() => parseGroupPath({ groupPath: [{ columnId: "name", key: "a" }] }, parse({}))).toThrow(/longer/);
   });
 });

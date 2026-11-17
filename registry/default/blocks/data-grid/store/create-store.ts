@@ -143,7 +143,7 @@ import { allMatchingCheckedCount } from "./selected-rows";
 import { dataIndexAt, dataIndexOf, groupLayoutOfView, recordKeyAt, viewRowOfGroupId } from "./view-rows";
 import { createGroupActions } from "./group-actions";
 import { EXPANDED_CUT_MESSAGE, initGroupMemory, initialExpanded, initialGroupBy } from "./group-sync";
-import { groupingOf, withGroupLayout } from "./group-view";
+import { groupModeOf, groupingOf, withGroupLayout } from "./group-view";
 import { leafViewOf } from "./group-readers";
 
 type CheckedState = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "allMatching" | "data" | "viewIndex" | "totalRowCount">;
@@ -249,6 +249,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
     queueMicrotask(() => warnDev('totalRowCount makes sorting and filtering server-side by default, and nothing here handles onSortChange or onFilterChange, so the grid will not reorder or narrow its rows. Fetch rows for the spec, or set sortMode="client" and filterMode="client" to work on the loaded rows'));
   }
   const initGroupBy = initialGroupBy(init, effectiveLayout.columns);
+  const initGroupMode = groupModeOf(init);
   const initExpanded = initialExpanded(init, () => warnStoreOnce("expanded cut", EXPANDED_CUT_MESSAGE));
   const initSearchText = init.searchText ?? plainSeed(init.defaultSearchText) ?? "";
   const initSearchOptions = DEFAULT_SEARCH_OPTIONS;
@@ -271,6 +272,8 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       sortLocale: initSortLocale,
       groupBy: initGroupBy,
       expanded: initExpanded,
+      groupMode: initGroupMode,
+      serverGroupLayout: init.groupLayout ?? null,
     } satisfies SyncInputs,
     group: initGroupMemory(init),
     lastPropsColumnGroups: init.columnGroups,
@@ -629,7 +632,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
   if (init.checkedRowsLifetime === "across-filters" && init.totalRowCount === undefined && (initSortMode === "server" || initFilterMode === "server")) {
     warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
   }
-  const initGrouping = groupingOf({ groupBy: initGroupBy, expanded: initExpanded, totalRowCount: init.totalRowCount, sortMode: initSortMode, dataWrite });
+  const initGrouping = groupingOf({ groupBy: initGroupBy, expanded: initExpanded, groupMode: initGroupMode, serverGroupLayout: init.groupLayout ?? null, totalRowCount: init.totalRowCount, sortMode: initSortMode, dataWrite });
   const initViewIndex = computeViewIndex(initData, effectiveLayout.columns, viewSorts(initSortMode, initSortState), viewFilters(initFilterMode, initFilterState), undefined, initCellTypes, initPageSize === null ? null : { page: initPage, pageSize: initPageSize }, initSortLocale, initGrouping);
   // `selection` wins over `defaultSelection`, and both resolve here (not in the provider), so the
   // server render and the first client paint already show them.
@@ -1021,6 +1024,8 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
     filterControlled: init.filterState !== undefined,
     groupBy: initGroupBy,
     expanded: initExpanded,
+    groupMode: initGroupMode,
+    serverGroupLayout: init.groupLayout ?? null,
     groupLayout: groupLayoutOfView(initViewIndex),
     groupingEnabled: init.groupBy !== undefined || init.defaultGroupBy !== undefined || init.onGroupByChange !== undefined,
     groupByControlled: init.groupBy !== undefined,

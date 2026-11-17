@@ -43,7 +43,7 @@ import {
 } from "./compute";
 import { resolveSelectionConfig } from "./selection-config";
 import { EXPANDED_CUT_MESSAGE, syncGroupState, type GroupSyncMemory } from "./group-sync";
-import { groupingOf } from "./group-view";
+import { groupModeOf, groupingOf } from "./group-view";
 import { withMatchCase } from "./filter-match-case";
 import { createWarnOnce, isDev, warnDev } from "../is-dev";
 import { NO_REMEMBERED_ROWS, hiddenCheckedRowsActive } from "./hidden-checked-rows";
@@ -386,6 +386,8 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
         const nextCellTypes = sameCellTypeEntries(propsCellTypes, memory.lastPropsCellTypes) ? s.cellTypes : resolveCellTypes(propsCellTypes);
         memory.lastPropsCellTypes = propsCellTypes;
         const nextGroup = syncGroupState(s, props, nextColumns, memory.group, () => warnStoreOnce("expanded cut", EXPANDED_CUT_MESSAGE));
+        const nextGroupMode = groupModeOf(props);
+        const nextServerLayout = props.groupLayout ?? null;
         const nextSyncInputs: SyncInputs = {
           data: nextData,
           cellTypes: nextCellTypes,
@@ -400,6 +402,8 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           sortLocale: nextSortLocale,
           groupBy: nextGroup.groupBy,
           expanded: nextGroup.expanded,
+          groupMode: nextGroupMode,
+          serverGroupLayout: nextServerLayout,
         };
         // An echo skips the recompute only when `data` is the only input that moved.
         const echoOnly =
@@ -410,7 +414,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
         const nextVisibleColumns = unchanged ? s.visibleColumns : computeVisibleColumns(nextColumns, s.columnOrder, nextHiddenColumns);
         const nextViewIndex = unchanged
           ? s.viewIndex
-          : computeViewIndex(nextData, nextColumns, nextViewSorts, viewFilters(nextFilterMode, nextFilterState), s.viewIndex, nextCellTypes, nextPageSize === null ? null : { page: nextPage, pageSize: nextPageSize }, nextSortLocale, groupingOf({ ...nextGroup, totalRowCount: s.totalRowCount, sortMode: nextSortMode, dataWrite: s.dataWrite }));
+          : computeViewIndex(nextData, nextColumns, nextViewSorts, viewFilters(nextFilterMode, nextFilterState), s.viewIndex, nextCellTypes, nextPageSize === null ? null : { page: nextPage, pageSize: nextPageSize }, nextSortLocale, groupingOf({ ...nextGroup, groupMode: nextGroupMode, serverGroupLayout: nextServerLayout, totalRowCount: s.totalRowCount, sortMode: nextSortMode, dataWrite: s.dataWrite }));
         // Controlled columnLayout (decision 8): the same echo/structural-equal rule as selection,
         // merged over the incoming column state; a new `columns` array re-applies the controlled
         // parts over the new defs (normalize re-seeds def-hidden and ignores pins on `pinnable: false` columns).
@@ -546,6 +550,8 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           viewIndex: nextViewIndex,
           groupBy: nextGroup.groupBy,
           expanded: nextGroup.expanded,
+          groupMode: nextGroupMode,
+          serverGroupLayout: nextServerLayout,
           groupingEnabled: s.groupingEnabled || props.groupBy !== undefined,
           groupByControlled: nextGroup.groupByControlled,
           expandedControlled: nextGroup.expandedControlled,

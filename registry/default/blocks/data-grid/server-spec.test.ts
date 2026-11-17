@@ -12,3 +12,18 @@ describe("serverSpecKey", () => {
     expect(serverSpecKey({ ...EMPTY_SERVER_SPEC, searchText: "a" })).not.toBe(serverSpecKey(EMPTY_SERVER_SPEC));
   });
 });
+
+describe("serverSpecKey with groups", () => {
+  it("keeps the key of an ungrouped spec byte-equal to the spec of today", () => {
+    const today = JSON.stringify({ sorts: [], filters: [], searchText: "" });
+    expect(serverSpecKey(EMPTY_SERVER_SPEC)).toBe(today);
+    expect(serverSpecKey({ ...EMPTY_SERVER_SPEC, groupBy: [], aggregates: [] })).toBe(today);
+  });
+
+  it("differs when the group columns or the aggregates differ", () => {
+    const grouped: ServerSpec = { ...EMPTY_SERVER_SPEC, groupBy: ["region"] };
+    expect(serverSpecKey(grouped)).not.toBe(serverSpecKey(EMPTY_SERVER_SPEC));
+    expect(serverSpecKey({ ...grouped, groupBy: ["region", "team"] })).not.toBe(serverSpecKey(grouped));
+    expect(serverSpecKey({ ...grouped, aggregates: [{ columnId: "qty", reducer: "sum" }] })).not.toBe(serverSpecKey(grouped));
+  });
+});

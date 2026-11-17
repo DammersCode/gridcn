@@ -1,6 +1,6 @@
 import type { ColumnGroupModel } from "../columns/column-groups";
 import type { CellType, FilterNode, SortSpec } from "../types";
-import type { ExpandedState } from "../group-types";
+import type { ExpandedState, ServerGroupLayout } from "../group-types";
 import type { AnyColumnDef } from "./types";
 
 /**
@@ -26,6 +26,8 @@ export type SyncInputs = {
   sortLocale: string;
   groupBy: readonly string[];
   expanded: ExpandedState;
+  groupMode: "client" | "server";
+  serverGroupLayout: ServerGroupLayout | null;
 };
 
 export function syncInputsEqual(a: SyncInputs, b: SyncInputs): boolean {
@@ -42,6 +44,8 @@ export function syncInputsEqual(a: SyncInputs, b: SyncInputs): boolean {
     a.pageKey === b.pageKey &&
     a.sortLocale === b.sortLocale &&
     a.groupBy === b.groupBy &&
-    a.expanded === b.expanded
+    a.expanded === b.expanded &&
+    a.groupMode === b.groupMode &&
+    a.serverGroupLayout === b.serverGroupLayout
   );
 }
