@@ -35,6 +35,19 @@ describe("createLocalStorageViewsStorage", () => {
     expect(onChange).toHaveBeenCalledTimes(1);
   });
 
+  it("tells the other subscribers of the key on this page about a save, which fires no storage event here", async () => {
+    const onChange = vi.fn();
+    const onOtherKey = vi.fn();
+    const stop = createLocalStorageViewsStorage("k-page").subscribe!(onChange);
+    createLocalStorageViewsStorage("k-else").subscribe!(onOtherKey);
+    await createLocalStorageViewsStorage("k-page").save(doc);
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onOtherKey).not.toHaveBeenCalled();
+    stop();
+    await createLocalStorageViewsStorage("k-page").save(doc);
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
   it("round-trips through localStorage under the key", async () => {
     const storage = createLocalStorageViewsStorage("k1");
     await storage.save(doc);
