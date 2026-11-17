@@ -99,7 +99,8 @@ A resolver keeps or drops a built-in item by its id. The `BuiltInMenuItemId` typ
 | Menu | Ids, in order |
 | --- | --- |
 | Cell | `cut`, `copy`, `paste`, `sep-clipboard`, `clear-contents`, `fill-down`, `fill-right`, `sep-rows`, `insert-row-above`, `insert-row-below`, `duplicate-rows`, `delete-rows` |
-| Header | `sort-asc`, `sort-desc`, `clear-sort`, `sep-sort`, `pin-start`, `pin-end`, `unpin`, `hide-column`, `sep-move`, `move-toward-start`, `move-toward-end`, `sep-autosize`, `widen-column`, `narrow-column`, `autosize`, `autosize-all` |
+| Group row | `copy`, `sep-group`, `toggle-group`, `expand-all`, `collapse-all` |
+| Header | `sort-asc`, `sort-desc`, `clear-sort`, `sep-sort`, `group-by`, `ungroup`, `sep-group`, `pin-start`, `pin-end`, `unpin`, `hide-column`, `sep-move`, `move-toward-start`, `move-toward-end`, `sep-autosize`, `widen-column`, `narrow-column`, `autosize`, `autosize-all` |
 
 These ids appear only under a condition:
 
@@ -110,6 +111,8 @@ These ids appear only under a condition:
 | `duplicate-rows` | With the `duplicateRow` prop |
 | `sort-asc`, `sort-desc`, `sep-sort` | On a sortable column |
 | `clear-sort` | On a sorted column |
+| `group-by`, `ungroup`, `sep-group` | On a grid that groups, on a column that can group or that is a group column |
+| `expand-all` | When the client builds the groups |
 | `unpin` | On a pinned column |
 | `hide-column` | On a column that can hide |
 | `sep-move`, `move-toward-start`, `move-toward-end` | On a column that can reorder, with column reorder on |

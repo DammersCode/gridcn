@@ -45,18 +45,13 @@ export function checkChannelMaterialization(files, allowlist = CHANNEL_LIST_ALLO
   return problems;
 }
 
-const VIEW_INDEX_READ = /\b(?:viewIndex|prevViewIndex|nextViewIndex)\[/;
+const VIEW_INDEX_READ = /\b(?:viewIndex|prevViewIndex|nextViewIndex)\[|\bfullViewOf\([^()]*\)\[/;
 const VIEW_INDEX_READ_HOME = "registry/default/blocks/data-grid/store/view-rows.ts";
 const VIEW_INDEX_READ_SORT_FILTER = "registry/default/blocks/data-grid/sort-filter/";
 
-/** Add-on files that still index the view directly; the add-on packages empty this list. */
-export const VIEW_INDEX_READ_BASELINE = new Set([
-  "registry/default/blocks/data-grid-context-menu/context-menu.tsx",
-  "registry/default/blocks/data-grid-fill/use-fill-handle.ts",
-  "registry/default/blocks/data-grid-find-replace/plan-replace.ts",
-  "registry/default/blocks/data-grid-io/export-grid.ts",
-  "registry/default/blocks/data-grid-status-bar/use-data-grid-selection-stats.ts",
-]);
+/** Files that may still index the view directly; empty, so the baseline only shrinks. */
+/** @type {Set<string>} */
+export const VIEW_INDEX_READ_BASELINE = new Set();
 
 /**
  * Problems for reads of `viewIndex[...]` in `files` (`{ path, text }`): an entry below 0 names a group row, so a view row
@@ -74,7 +69,7 @@ export function checkViewIndexReads(files, baseline = VIEW_INDEX_READ_BASELINE) 
     });
   }
   for (const path of baseline) {
-    if (!reading.has(path)) problems.push(`${path} — listed in VIEW_INDEX_READ_BASELINE but reads no viewIndex[...]; remove the entry`);
+    if (!reading.has(path)) problems.push(`${path} — listed in VIEW_INDEX_READ_BASELINE but reads no view entry; remove the entry`);
   }
   return problems;
 }

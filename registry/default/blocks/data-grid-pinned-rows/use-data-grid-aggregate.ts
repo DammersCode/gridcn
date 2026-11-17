@@ -49,8 +49,8 @@ function warnUnknownSpecKey(owner: object, columnId: string): void {
 
 function computeAggregate<TData>(owner: object, state: DataGridReadState, specs: AggregateSpecs<TData>, scope: "view" | "page" | "all"): Record<string, unknown> {
   const byId = new Map(state.columns.map((c) => [c.id, c] as const));
-  const scoped = scope === "all" ? state.data : (scope === "page" ? state.viewIndex.filter((i) => i >= 0) : leafViewOf(state)).map((i) => state.data[i]);
-  // undefined rows are unloaded holes of a lazy grid; reduce over the loaded rows only.
+  const scoped = scope === "all" ? state.data : (scope === "page" ? state.viewIndex : leafViewOf(state)).filter((i) => i >= 0).map((i) => state.data[i]);
+  // group rows (entries below 0) are dropped above; undefined rows are unloaded holes of a lazy grid
   const rows = scoped.filter((row) => row !== undefined);
   if (rows.length !== scoped.length) warnSparseData(owner, scope, scoped.length - rows.length);
   const result: [string, unknown][] = [];

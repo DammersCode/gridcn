@@ -39,6 +39,7 @@ import {
   useDataGridSearchCapped,
   useDataGridSearchMatches,
   effectivePage,
+  dataIndexOf,
   fullViewOf,
   pageStartOf,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
@@ -262,7 +263,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const refOfIndex = (s: ReturnType<typeof api.store.getState>, index: number): { rowId: string; columnId: string } | null => {
     const match = s.searchMatches[index];
     if (!match) return null;
-    const dataIndex = fullViewOf(s.viewIndex)[match.row];
+    const dataIndex = dataIndexOf(fullViewOf(s.viewIndex), match.row);
     const row = dataIndex === undefined ? undefined : s.data[dataIndex];
     if (dataIndex === undefined || row === undefined) return null;
     return { rowId: s.getRowId(row, dataIndex), columnId: match.columnId };
@@ -304,9 +305,11 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
         if (only) {
           const after = api.store.getState();
           const columnOrder = (columnId: string) => after.visibleColumns.findIndex((c) => c.id === columnId);
-          const replacedRow = replacedAt ? fullViewOf(after.viewIndex).findIndex((dataIndex) => {
-            const row = after.data[dataIndex];
-            return row !== undefined && after.getRowId(row, dataIndex) === replacedAt.rowId;
+          const afterView = fullViewOf(after.viewIndex);
+          const replacedRow = replacedAt ? afterView.findIndex((_, viewRow) => {
+            const dataIndex = dataIndexOf(afterView, viewRow);
+            const row = dataIndex === undefined ? undefined : after.data[dataIndex];
+            return dataIndex !== undefined && row !== undefined && after.getRowId(row, dataIndex) === replacedAt.rowId;
           }) : -1;
           const next =
             replacedAt && replacedRow !== -1

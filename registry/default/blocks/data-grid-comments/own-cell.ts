@@ -1,4 +1,12 @@
-import { GRID_ATTR, GRID_ROLE_SELECTOR } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { GRID_ATTR, GRID_ROLE_SELECTOR, dataIndexAt, rowIdAtViewRow, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+
+/** The view row that shows the data row `rowId`, or -1; a group row never matches (it is not a place for a comment). */
+export function viewRowOfRowId(state: DataGridReadState, rowId: string): number {
+  for (let viewRow = 0; viewRow < state.viewIndex.length; viewRow++) {
+    if (dataIndexAt(state, viewRow) !== undefined && rowIdAtViewRow(state, viewRow) === rowId) return viewRow;
+  }
+  return -1;
+}
 
 /** The cell of this grid at a view row and column; a nested grid's cell with the same coordinates never matches. */
 export function findOwnCell(scroll: HTMLElement | null, viewRow: number, columnId: string): HTMLElement | null {

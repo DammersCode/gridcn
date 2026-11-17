@@ -14,8 +14,11 @@ import {
   Clipboard,
   Copy,
   CopyPlus,
+  ChevronsDownUp,
+  ChevronsUpDown,
   Eraser,
   EyeOff,
+  Group,
   Maximize2,
   Minus,
   MoveHorizontal,
@@ -24,6 +27,7 @@ import {
   Plus,
   Scissors,
   Trash2,
+  Ungroup,
   X,
 } from "lucide-react";
 import { ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
@@ -46,7 +50,7 @@ import {
   useDataGridSortState,
   useDataGridVisibleColumns,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { rowOperationTargets, useDataGridStoreApi, useDataGridCommands, useDataGridSelector, useDataGridSelectionConfig, useDataGridSelectionPointer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { MAX_GROUP_LEVELS, columnLabelText, rowIdAtViewRow, rowOperationTargets, useDataGridGroupRow, useDataGridStoreApi, useDataGridCommands, useDataGridSelector, useDataGridSelectionConfig, useDataGridSelectionPointer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MenuShortcut } from "./menu-shortcut";
 import { COLUMN_WIDTH_STEP, shownColumnWidth, useDataGridColumnFeatureFlags } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
@@ -62,6 +66,11 @@ export type BuiltInMenuItemId =
   | "insert-row-below"
   | "duplicate-rows"
   | "delete-rows"
+  | "toggle-group"
+  | "expand-all"
+  | "collapse-all"
+  | "group-by"
+  | "ungroup"
   | "sort-asc"
   | "sort-desc"
   | "clear-sort"
@@ -78,6 +87,7 @@ export type BuiltInMenuItemId =
   | "sep-clipboard"
   | "sep-rows"
   | "sep-sort"
+  | "sep-group"
   | "sep-autosize"
   | "sep-move";
 
@@ -164,6 +174,29 @@ export function useRowOperationTargets(row: number) {
   return rowOperationTargets({ checkedRowsLifetime, selection, hiddenCheckedRowIds, allMatching }, row);
 }
 
+function viewRowOfId(state: Parameters<typeof rowIdAtViewRow>[0], rowId: string): number {
+  for (let viewRow = 0; viewRow < state.viewIndex.length; viewRow++) if (rowIdAtViewRow(state, viewRow) === rowId) return viewRow;
+  return -1;
+}
+
+/** The items of a group row's menu: copy, open or close the group, open or close every group. */
+export function useDefaultGroupRowMenuItems(row: number): GridMenuItemSpec[] {
+  const actions = useDataGridActions();
+  const clipboard = useDataGridClipboard();
+  const labels = useDataGridLabels();
+  const meta = useDataGridGroupRow(row);
+  const groupMode = useDataGridSelector((s) => s.groupMode);
+  const specs: GridMenuItemSpec[] = [{ id: "copy", label: labels.contextMenu.copy, icon: <Copy className="size-4 text-muted-foreground" />, shortcut: "mod+c", onClick: () => void clipboard.copy() }];
+  if (!meta) return specs;
+  specs.push(
+    { id: "sep-group", separator: true },
+    { id: "toggle-group", label: meta.expanded ? labels.grouping.collapse(meta.node.label) : labels.grouping.expand(meta.node.label), icon: meta.expanded ? <ChevronsDownUp className="size-4 text-muted-foreground" /> : <ChevronsUpDown className="size-4 text-muted-foreground" />, onClick: () => actions.toggleGroup(meta.node.id) },
+  );
+  if (groupMode === "client") specs.push({ id: "expand-all", label: labels.grouping.expandAll, icon: <ChevronsUpDown className="size-4 text-muted-foreground" />, onClick: () => void actions.expandAll() });
+  specs.push({ id: "collapse-all", label: labels.grouping.collapseAll, icon: <ChevronsDownUp className="size-4 text-muted-foreground" />, onClick: () => void actions.collapseAll() });
+  return specs;
+}
+
 /** The built-in cell-surface set as specs, resolved for the current grid state (labels, keymap, selection, clipboard gating). */
 export function useDefaultCellMenuItems(args: {
   row: number;
@@ -186,14 +219,12 @@ export function useDefaultCellMenuItems(args: {
   const commands = useDataGridCommands();
   const selectionPointer = useDataGridSelectionPointer();
   const enableRowDelete = useDataGridSelector((s) => s.enableRowDelete);
+  const serverGroups = useDataGridSelector((s) => s.groupMode === "server" && s.groupBy.length > 0);
   const api = useDataGridApi();
   const storeApi = useDataGridStoreApi();
   const insertRow = (position: "above" | "below") => {
     const state = storeApi.getState();
-    const anchor = rowId === undefined ? row : state.viewIndex.findIndex((dataIndex) => {
-      const dataRow = state.data[dataIndex];
-      return dataRow !== undefined && state.getRowId(dataRow, dataIndex) === rowId;
-    });
+    const anchor = rowId === undefined ? row : viewRowOfId(state, rowId);
     if (anchor !== -1) actions.insertRow(anchor, position);
   };
 
@@ -246,16 +277,16 @@ export function useDefaultCellMenuItems(args: {
       { id: "fill-right", label: labels.contextMenu.fillRight, disabled: readOnly, onClick: () => api.runShortcut("fillRight" as GridAction) },
     );
   }
-  if (canInsertRow) {
+  if (canInsertRow && !serverGroups) {
     specs.push(
       { id: "insert-row-above", label: labels.contextMenu.insertRowAbove, icon: <Plus className="size-4 text-muted-foreground" />, shortcut: keymap.insertRowAbove?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : undefined, disabled: readOnly, onClick: () => insertRow("above") },
       { id: "insert-row-below", label: labels.contextMenu.insertRowBelow, icon: <Plus className="size-4 text-muted-foreground" />, shortcut: keymap.insertRowBelow?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : undefined, disabled: readOnly, onClick: () => insertRow("below") },
     );
   }
-  if (canDuplicateRow) {
+  if (canDuplicateRow && !serverGroups) {
     specs.push({ id: "duplicate-rows", label: labels.contextMenu.duplicateRows(rows.length), icon: <CopyPlus className="size-4 text-muted-foreground" />, shortcut: keymap.duplicateRow?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : blockedTooltip, disabled: readOnly || rowActionsBlocked, onClick: () => actions.duplicateRowsAt(viewIndexes(rows)) });
   }
-  if (enableRowDelete) specs.push({ id: "delete-rows", label: labels.contextMenu.deleteRows(rows.length), icon: <Trash2 className="size-4" />, shortcut: keymap.deleteRows?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : blockedTooltip, disabled: readOnly || rowActionsBlocked, destructive: true, onClick: () => actions.deleteRowsAt(viewIndexes(rows)) });
+  if (enableRowDelete && !serverGroups) specs.push({ id: "delete-rows", label: labels.contextMenu.deleteRows(rows.length), icon: <Trash2 className="size-4" />, shortcut: keymap.deleteRows?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : blockedTooltip, disabled: readOnly || rowActionsBlocked, destructive: true, onClick: () => actions.deleteRowsAt(viewIndexes(rows)) });
   return specs;
 }
 
@@ -272,6 +303,8 @@ export function useDefaultHeaderMenuItems(args: { columnId: string; scrollRoot: 
   const savedWidth = useDataGridColumnWidth(columnId);
   const { enableColumnPinning, enableColumnResize, enableColumnReorder } = useDataGridColumnFeatureFlags();
   const labels = useDataGridLabels();
+  const groupBy = useDataGridSelector((s) => s.groupBy);
+  const canGroup = useDataGridSelector((s) => s.groupingEnabled && (s.groupMode === "server" || (s.totalRowCount === undefined && s.sortMode !== "server")));
 
   const column = columns.find((c) => c.id === columnId);
   if (!column) return [];
@@ -293,6 +326,16 @@ export function useDefaultHeaderMenuItems(args: { columnId: string; scrollRoot: 
       specs.push({ id: "clear-sort", label: labels.contextMenu.clearSort, icon: <X className="size-4 text-muted-foreground" />, onClick: () => actions.setSorts(sortState.filter((s) => s.columnId !== columnId)) });
     }
     specs.push({ id: "sep-sort", separator: true });
+  }
+  const grouped = groupBy.includes(columnId);
+  if (canGroup && (grouped || (column.groupable !== false && groupBy.length < MAX_GROUP_LEVELS))) {
+    const name = columnLabelText(column);
+    specs.push(
+      grouped
+        ? { id: "ungroup", label: labels.grouping.ungroup(name), icon: <Ungroup className="size-4 text-muted-foreground" />, onClick: () => actions.toggleGroupBy(columnId) }
+        : { id: "group-by", label: labels.grouping.groupBy(name), icon: <Group className="size-4 text-muted-foreground" />, onClick: () => actions.toggleGroupBy(columnId) },
+      { id: "sep-group", separator: true },
+    );
   }
   specs.push(
     { id: "pin-start", label: labels.contextMenu.pinStart, icon: <Pin className="size-4 text-muted-foreground" />, disabled: !pinnable, onClick: () => actions.setColumnPin(columnId, "start") },
