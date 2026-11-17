@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { DataGridPlugin } from "@/registry/default/blocks/data-grid/data-grid";
+import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { createCommentEngine, type CommentEngine } from "./comment-engine";
 import { createCommentsMount } from "./comments-mount";
 import { createCommentsOverlay } from "./comments-overlay";
