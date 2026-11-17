@@ -6,6 +6,7 @@
     "row-order",
     "row-markers",
     "pinned-rows",
+    "row-grouping",
     "client-pagination",
     "context-menu",
     "add-comments"

@@ -179,6 +179,18 @@ const query = createDrizzleGridQuery({
 
 The factory throws at creation when a declared operator has no handler.
 
+### Group rows [#groups]
+
+`fetchRows` answers a request that holds `groupBy` and `childKind: "groups"` with the groups of one level. Each group has `key`, `childCount`, `totalRowCount`, and one reduced value for each aggregate column. A request with `childKind: "rows"` and a full `groupPath` answers the rows of one group. See [Group server rows](/docs/data-modes/group-server-rows) for the grid side.
+
+- A group key is the stored value. A text column keys `""` as the empty group, and a date-time column keys the stored instant.
+- A `serverOnly` column cannot group, and a `keepBlankText` column cannot group. Both answer `unsupported`.
+- A filter applies before grouping, and the group column sorts the groups. The empty group comes last.
+- `rowScope` applies to every group list and every row list.
+- The adapter runs one `group by` statement for each page of groups, and counts the groups and the child lists in the same pass. The group queries have no performance measurement.
+- `fetchRows` resolves `RowsAnswer | GroupsAnswer`. A direct caller narrows with `"groups" in answer`.
+- Text keys sort by the collation of the database. The client orders text keys with a locale collator, so the order can differ.
+
 ## Factory options [#options]
 
 | Prop | Type | Default |

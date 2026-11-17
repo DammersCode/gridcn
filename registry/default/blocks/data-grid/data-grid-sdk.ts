@@ -196,4 +196,4 @@ export { isGroupRowId, groupIdOf, groupKeyText, MAX_GROUP_LEVELS, COLLAPSED, exp
 export { buildGroupView } from "./sort-filter/build-group-view";
 export { useDataGridGroupRow } from "./store/hooks";
 export { aggregateValues } from "./aggregate";
-export type { AggregateReducer, AggregateSpecs, ExpandedState, GroupKey, GroupLayout, GroupNode, GroupPathSegment, ServerGroupLayout, ServerGroupSlot } from "./group-types";
+export type { AggregateReducer, AggregateSpecs, ExpandedState, GroupActionResult, GroupKey, GroupLabelCtx, GroupLayout, GroupNode, GroupPathSegment, ServerGroupLayout, ServerGroupSlot } from "./group-types";

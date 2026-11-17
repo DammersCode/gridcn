@@ -169,7 +169,7 @@ export type DataGridRootProps<TData = unknown> = {
   renderMarker?: MarkerCellRenderer;
   /** Custom marker-header renderer: replaces the built-in select-all checkbox; same track and width. See {@link MarkerHeaderRenderer}. Pass a stable identity. */
   renderMarkerHeader?: MarkerHeaderRenderer;
-  /** @internal Renders the content of a group row label; the default is "column: key (count)". Pass a stable identity. */
+  /** Renders the content of a group row label; the default is "column: key (count)". Pass a stable identity. */
   renderGroupLabel?: GroupLabelRenderer;
   /** Row class hook, merged via `cn()` after the built-in row classes. An inline function is fine — see {@link GetRowClassName}. */
   getRowClassName?: GetRowClassName<TData>;

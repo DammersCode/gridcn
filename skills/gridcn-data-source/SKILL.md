@@ -140,6 +140,16 @@ Applies to streaming on top of either:
 - Do not build your own spinner for block fetches. `server.rootProps` carries `loading`, `error`, and `onRetry` for `DataGridRoot`.
 - Do not rely on the quick-search box to search server-side. It only highlights rows already in `data`. Send `searchText` to your fetch.
 
+## Grouped server rows
+
+- Put `groupBy` in `defaultSpec` (or `spec`) of `useDataGridServerRows`, scroll or pages mode. Each `aggregate` column adds a reducer to `spec.aggregates`. A request then carries `groupPath` (`[{ columnId, key }]`, `[]` is the top level) and `childKind`: `"groups"` while the path is shorter than `groupBy`, else `"rows"`.
+- Answer `"groups"` with `{ groups: [{ key, childCount, totalRowCount, aggregates? }], groupCount, totalRowCount }` (`totalRowCount` at the top level only). `key` is the stored value, `null` and `""` are one empty group, last. Answer `"rows"` with `{ rows, totalRowCount }`. Filter before grouping; a sort on a group column orders the groups.
+- On the server read the request with `parseServerSpec` and `parseGroupPath(body, spec)`; limits are 4 levels, 1,024-character keys, 32 aggregates. Pass every key to the query as a parameter. List groupable columns with `groupable` and `aggregatable` in `ServerSpecColumnRules`.
+- The grid throws on an answer without `groups`, a repeated key (`1` and `"1"` repeat), a bad count, or a top level without `totalRowCount`.
+- With the query layer, `fetchRows` answers group requests itself (Drizzle and Kysely) and resolves `RowsAnswer | GroupsAnswer`; narrow with `"groups" in answer` when you call it directly.
+- Pages mode: the top level is one page of groups (`pager.unit` is `"groups"`). `initialAnswer` may be the groups answer. While the server lays out groups, insert, duplicate, delete, and move report `server-groups`.
+- Known limits: a save refreshes the whole open list; a swap between grouped and ungrouped ends an open edit; group queries are not performance measured.
+
 ## Selection over a server result
 
 - A grid whose `data` is a page or a loaded window needs `totalRowCount={total}` (or `null` when unknown); `totalRowCount` makes `checkedRowsLifetime` default to `"across-filters"` (an explicit value wins), which keeps and acts on the checks. It makes checks survive page changes, evictions, and server sort or filter changes, by row id.

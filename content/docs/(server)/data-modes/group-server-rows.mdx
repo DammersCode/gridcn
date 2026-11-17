@@ -1,0 +1,105 @@
+---
+title: Group server rows
+icon: ListTree
+description: Let your server group a large result, so the grid loads the groups of one level and the rows of the groups the user opens.
+type: task
+aliases: ["server grouping", "server group by", "grouped server rows", "groupPath", "childKind", "group answer"]
+---
+
+The grid never holds a whole server result, so it cannot bucket rows into groups. When the spec holds `groupBy`, the server groups the result and sends one list at a time. A list is the groups of one level or the rows of one group.
+
+<ComponentPreview name="data-grid-server-grouping-demo" />
+
+## Send the group spec [#request]
+
+Put `groupBy` in `defaultSpec` of `useDataGridServerRows`, in scroll mode or in pages mode. An empty array turns grouping on with no group column. Each `aggregate` column adds one reducer to `spec.aggregates`:
+
+```tsx
+"use client";
+
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
+
+type Order = { id: string; region: string; total: number };
+
+const columns = defineColumns<Order>()([
+  { id: "region", header: "Region", accessorKey: "region" },
+  { id: "total", header: "Total", accessorKey: "total", type: "number", aggregate: "sum" },
+]);
+
+export function OrdersGrid() {
+  const server = useDataGridServerRows<Order>({
+    mode: "scroll",
+    defaultSpec: { sorts: [], filters: [], searchText: "", groupBy: ["region"] },
+    fetchRows: async (request) => {
+      const response = await fetch("/api/orders/groups", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(request),
+        signal: request.signal,
+      });
+      return response.json();
+    },
+  });
+
+  return <DataGrid {...server.gridProps} columns={columns} />;
+}
+```
+
+A request carries these fields next to `spec`, `start`, and `end`:
+
+| Field | Meaning |
+|---|---|
+| `groupPath` | The group whose children the request reads, outermost first. Each segment is `{ columnId, key }`. `[]` is the top level. |
+| `childKind` | `"groups"` while `groupPath` is shorter than `spec.groupBy`. Otherwise `"rows"`. |
+| `spec.groupBy` | The group columns, outermost first. |
+| `spec.aggregates` | `{ columnId, reducer }` for each reduced column. |
+
+A request without `groupBy` is a flat request. Your handler for flat rows keeps working.
+
+## Answer a list [#answer]
+
+Answer `childKind: "groups"` with the groups of one level in order, from `start` to `end`:
+
+```ts
+const answer = {
+  groups: [
+    { key: "North", childCount: 3, totalRowCount: 40, aggregates: { total: 1250 } },
+    { key: null, childCount: 1, totalRowCount: 2, aggregates: { total: null } },
+  ],
+  groupCount: 2,
+  totalRowCount: 42, // the top level only
+};
+```
+
+- `key` is the stored value. `null` is the empty group. The server merges `null` and `""` into one group, and puts it last.
+- `childCount` counts the groups of the next level, or the rows of the last level.
+- `totalRowCount` counts the rows of the result under the group.
+- `aggregates` holds a finite number for each requested column id, or `null` when no value counted.
+- `label` is optional display text. The default is the text of the column's cell type.
+
+Answer `childKind: "rows"` with `{ rows, totalRowCount }` for the rows of that group, as for a flat request. Sort and filter the groups and the rows with the same spec. A sort on a group column orders the groups. A filter applies before grouping.
+
+## Check the request on your server [#checks]
+
+`parseServerSpec` reads `groupBy` and `aggregates`, and `parseGroupPath(body, spec)` reads `{ groupPath, childKind }`. Both bound the input. The limits are 4 levels, 1,024 characters per key, and 32 aggregates. List the columns a client can group by with `groupable` and `aggregatable` in `ServerSpecColumnRules`. Pass every key to your query as a parameter and never build SQL text from it. See the [server rows contract](/docs/contracts/server-rows-contract#parse-group-path).
+
+The grid checks each answer. It throws on an answer without `groups`, a repeated key (`1` and `"1"` repeat), a count that is not a non-negative integer, and a top level without `totalRowCount`. It cuts a list that is longer than the request, and shows `null` for an aggregate that is not a finite number.
+
+## Behavior [#behavior]
+
+- Scroll mode loads the rows of an open group in blocks, and drops the blocks furthest from the screen past `maxLoadedRows`.
+- Pages mode makes the top level one page of groups. `pager.totalRowCount` counts groups, and `pager.unit` is `"groups"`.
+- A change of `groupBy`, the spec, or the page size returns to the first list.
+- `initialAnswer` may be the groups answer of the top level.
+- An insert, a duplicate, a delete, and a move report the reason `server-groups`.
+- A save, a refusal, and `refresh()` keep the open groups.
+- `selectAllMatching()` counts the `totalRowCount` of the result.
+
+A server that groups with the query layer needs no handler. See [Query layer](/docs/data-modes/query-layer#groups).
+
+## Related
+
+- [Row grouping](/docs/rows-pages-menus/row-grouping): the props, the keys, and the client mode
+- [Server rows contract](/docs/contracts/server-rows-contract#parse-group-path): the limits and the checks
+- [Server grouping example](/docs/server-data-examples/server-grouping-example): the query layer on a database

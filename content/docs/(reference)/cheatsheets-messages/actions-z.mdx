@@ -23,6 +23,7 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `clearCellSelection` | Clears the cell ranges and the column selection, and keeps the checked rows. | [Store hooks](/docs/types-hooks/store-hooks#handle) |
 | `clearSaveStatus` | Drops the `"failed"` mark of each row whose save the server refused. A row that is still `"saving"` keeps its mark. | [Save edits](/docs/save-server/save-edits) |
 | `clearSelection` | Clears the cell ranges, the column selection, and the checked rows. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
+| `collapseAll` | Closes every group. | [Row grouping](/docs/rows-pages-menus/row-grouping#control) |
 | `commitCellEdit` | Validates and commits the open edit. A refused value keeps the editor open. A commit moves the active cell by `movement`. | [Store hooks](/docs/types-hooks/store-hooks#handle) |
 | `commitCellValue` | Validates and writes a value at a `CellRef` without an edit session, as a checkbox does. | [Store hooks](/docs/types-hooks/store-hooks#handle) |
 | `commitCellValueAt` | Takes a `ViewCoord` in place of the `CellRef` of `commitCellValue`. | [Store hooks](/docs/types-hooks/store-hooks#handle) |
@@ -33,6 +34,7 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `duplicateRows` | Duplicates the rows with the given ids through `duplicateRow`, as one change. Returns a `RowActionResult`. | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `duplicateRowsAt` | Duplicates the rows at the given view indexes through `duplicateRow`, as one change. Returns a `RowActionResult`. | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `editRows` | Writes whole-row patches as a user edit: `source: "edit"`, one undo entry, and one `onSave`. The `readOnly`, read-only column, and `validate` checks apply. | [Edit rows in forms](/docs/editing-cells/edit-rows-forms) |
+| `expandAll` | Opens every group. | [Row grouping](/docs/rows-pages-menus/row-grouping#control) |
 | `extendSelection` | Grows or shrinks the main range by one cell in a direction, or moves its edge to the edge of the view with `toEdge`. | [Store hooks](/docs/types-hooks/store-hooks#handle) |
 | `extendTo` | Extends the selection to the cell named by the stable `CellRef`. | [Store hooks](/docs/types-hooks/store-hooks#handle) |
 | `extendToAt` | Takes a `ViewCoord` in place of the `CellRef` of `extendTo`. | [Store hooks](/docs/types-hooks/store-hooks#handle) |
@@ -64,7 +66,9 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `setColumnOrder` | Moves a column, or a column group, before or after another column. Returns `{ ok: true }`, or `{ ok: false, reason }` when the order stays. | [Column order and pinning](/docs/columns/column-order-pinning) |
 | `setColumnPin` | Pins a column to `"start"` or `"end"`, or unpins it with `null`. | [Column order and pinning](/docs/columns/column-order-pinning) |
 | `setColumnWidth` | Sets a column width and fires `onColumnLayoutChange` once, as a resize release does. | [Column sizing](/docs/columns/column-sizing) |
+| `setExpanded` | Sets the open groups. | [Row grouping](/docs/rows-pages-menus/row-grouping#control) |
 | `setFilters` | Replaces the filter tree. | [Filtering](/docs/sort-filter-search/filtering) |
+| `setGroupBy` | Sets the group columns. Unknown, `groupable: false`, and repeated ids drop. | [Row grouping](/docs/rows-pages-menus/row-grouping#control) |
 | `setPage` | Shows a page of the view. Pages start at 1. Calls `onPageChange`. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | `setPageSize` | Shows `pageSize` rows per page and keeps the first row of the page on screen. `null` shows every row for an uncontrolled page size. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | `setRowChecked` | Checks or unchecks one row by id. It sets the state and never toggles. | [State and view index](/docs/concepts/state-view-index) |
@@ -74,6 +78,8 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `setSorts` | Replaces the active sorts. | [Sorting](/docs/sort-filter-search/sorting) |
 | `startEditing` | Opens an editor at a `CellRef`, with optional first text. | [Edit and validation events](/docs/events-state/edit-validation-events) |
 | `startEditingAt` | Takes a `ViewCoord` in place of the `CellRef` of `startEditing`. | [Store hooks](/docs/types-hooks/store-hooks#handle) |
+| `toggleGroup` | Opens a closed group and closes an open one. | [Row grouping](/docs/rows-pages-menus/row-grouping#control) |
+| `toggleGroupBy` | Adds the column as the innermost group level, or removes it. | [Row grouping](/docs/rows-pages-menus/row-grouping#control) |
 | `toggleSort` | Steps the sort of a column to the next direction or to no sort, as a header click does. `{ additive: true }` keeps the other sorts. | [Sort and filter events](/docs/events-state/sort-filter-events) |
 | `updateCells` | Writes cell patches by row id in one write, without a view rebuild. Default `source` is `"stream"`. | [Push live values](/docs/rows-live-data/stream-updates) |
 | `updateRows` | Writes whole-row patches by row id. Each `RowPatch` expands to one cell patch per column, as in `updateCells`. | [Push live values](/docs/rows-live-data/stream-updates) |

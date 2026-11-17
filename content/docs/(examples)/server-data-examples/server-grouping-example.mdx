@@ -1,0 +1,63 @@
+---
+title: "Server grouping example"
+description: Group 5,000 database rows on the server with the query layer, open a group to load its rows, and read the statement of the last request.
+icon: ListTree
+type: example
+---
+
+One grid shows 5,000 users grouped by role, on an in-browser PostgreSQL. The [query layer](/docs/data-modes/query-layer) answers each request with one statement. The panel under the grid shows the last statement and its bound parameters.
+
+<ComponentPreview name="data-grid-server-grouping-demo" />
+
+<InstallCommand item="data-grid-server-grouping-demo" />
+
+## What the demo shows [#whats-in-the-demo]
+
+- `defaultSpec: { groupBy: ["role"] }` makes the first request ask for the groups of the top level.
+- Opening a group sends a request with `groupPath` and `childKind: "rows"`. The grid loads the rows in blocks of 50.
+- `aggregate: "avg"` on Score adds an average to each group row. The database computes it.
+- The buttons call `setGroupBy`. A new `groupBy` returns the grid to the first list.
+- `fetchRows` passes the request to `demo.query.fetchRows`. The route needs no group code.
+
+## Wire the grid
+
+Pass the whole request to the query layer. The request carries `groupPath` and `childKind`:
+
+```tsx
+"use client";
+
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
+
+type User = { id: number; role: string; score: number | null };
+
+const columns = defineColumns<User>()([
+  { id: "role", header: "Role", accessorKey: "role" },
+  { id: "score", header: "Score", accessorKey: "score", type: "number", aggregate: "avg" },
+]);
+
+export function UsersGrid() {
+  const server = useDataGridServerRows<User>({
+    mode: "scroll",
+    getRowId: (row) => String(row.id),
+    defaultSpec: { sorts: [], filters: [], searchText: "", groupBy: ["role"] },
+    fetchRows: async (request) => {
+      const response = await fetch("/api/users", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(request),
+        signal: request.signal,
+      });
+      return response.json();
+    },
+  });
+
+  return <DataGrid {...server.gridProps} columns={columns} readOnly />;
+}
+```
+
+## Related
+
+- [Group server rows](/docs/data-modes/group-server-rows): the request, the answer, and the checks
+- [Query layer](/docs/data-modes/query-layer#groups): answer group requests from Drizzle or Kysely
+- [Row grouping example](/docs/row-examples/row-grouping-example): the same groups on a local array

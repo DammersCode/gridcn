@@ -1,0 +1,65 @@
+---
+title: "Row grouping example"
+description: Group 200 rows by role, show a count and two reduced values on each group row, and change the groups with buttons and the header menu.
+icon: ListTree
+type: example
+---
+
+One grid groups its rows by role. Each group row shows the row count, the average age, and the total score. The [row grouping](/docs/rows-pages-menus/row-grouping) feature owns the props.
+
+<ComponentPreview name="data-grid-row-grouping-demo" />
+
+<InstallCommand item="data-grid-row-grouping-demo" />
+
+## What the demo shows [#whats-in-the-demo]
+
+- `defaultGroupBy={["role"]}` groups the rows. Every group starts closed.
+- `aggregate: "avg"` on Age and `aggregate: "sum"` on Score set the reduced values of the group rows.
+- `groupable: false` on Name keeps it out of the Group by items.
+- The buttons call `expandAll`, `collapseAll`, and `setGroupBy` from `useDataGridActions`.
+- The header menu has Group by and Ungroup items. The cell menu has a menu for each group row.
+
+## Wire the groups
+
+Set `defaultGroupBy` on the provider and call the actions inside it:
+
+```tsx
+import {
+  DataGrid,
+  defineColumns,
+  useDataGridActions,
+} from "@/components/data-grid/data-grid";
+
+type Row = { id: string; role: string; score: number };
+
+const columns = defineColumns<Row>()([
+  { id: "role", header: "Role", accessorKey: "role" },
+  { id: "score", header: "Score", accessorKey: "score", type: "number", aggregate: "sum" },
+]);
+
+const rows: Row[] = [{ id: "1", role: "Admin", score: 90 }];
+
+function OpenAll() {
+  const actions = useDataGridActions();
+  return <button onClick={() => actions.expandAll()}>Expand all</button>;
+}
+
+function GroupedGrid() {
+  return (
+    <DataGrid defaultData={rows} columns={columns} defaultGroupBy={["role"]}>
+      <OpenAll />
+    </DataGrid>
+  );
+}
+```
+
+## Behavior [#behavior-reference]
+
+- On a group row, Enter and Space open or close the group. ArrowRight opens it and ArrowLeft closes it.
+- The grid takes the role `treegrid` while it groups.
+- The row marker numbers the rows inside each innermost group.
+
+## Related
+
+- [Row grouping](/docs/rows-pages-menus/row-grouping): the props, the keys, and the pages of groups
+- [Server grouping example](/docs/server-data-examples/server-grouping-example): the same groups on a database

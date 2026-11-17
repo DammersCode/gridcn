@@ -328,21 +328,21 @@ export type DataGridSyncProps<TData = unknown> = {
   defaultSortState?: SortSpec[] | (() => SortSpec[] | null | undefined);
   /** Fires after the user (or `actions.toggleSort`/`setSorts`) changes the sort: uncontrolled, after the grid writes it; controlled, with the next sort. See `sortState`. */
   onSortChange?: (next: SortSpec[]) => void;
-  /** @internal Controlled group columns, outermost first. Unknown, `groupable: false`, and repeated ids drop; at most 4 levels. */
+  /** Controlled group columns, outermost first. Unknown, `groupable: false`, and repeated ids drop; at most 4 levels. */
   groupBy?: readonly string[];
-  /** @internal Seeds the group columns once at store creation. A function runs once on the client after mount. */
+  /** Seeds the group columns once at store creation. A function runs once on the client after mount. */
   defaultGroupBy?: readonly string[] | (() => readonly string[] | null | undefined);
-  /** @internal Fires after the user (or `setGroupBy`, `toggleGroupBy`) changes the group columns. */
+  /** Fires after the user (or `setGroupBy`, `toggleGroupBy`) changes the group columns. */
   onGroupByChange?: (next: readonly string[]) => void;
-  /** @internal Controlled open groups. A toggle applies at once and emits. Default: every group collapsed. */
+  /** Controlled open groups. A toggle applies at once and emits. Default: every group collapsed. */
   expanded?: ExpandedState;
-  /** @internal Seeds the open groups once at store creation. */
+  /** Seeds the open groups once at store creation. */
   defaultExpanded?: ExpandedState;
-  /** @internal `"server"` shows the group rows of `groupLayout` and never buckets rows. Default: `"server"` when `groupLayout` is set, else `"client"`. The server hook sets it. */
+  /** `"server"` shows the group rows of `groupLayout` and never buckets rows. Default: `"server"` when `groupLayout` is set, else `"client"`. The server hook sets it. */
   groupMode?: "client" | "server";
-  /** @internal The group rows of a server grid, laid out by the server hook. Without it `groupMode="server"` renders ungrouped. */
+  /** The group rows of a server grid, laid out by the server hook. Without it `groupMode="server"` renders ungrouped. */
   groupLayout?: ServerGroupLayout;
-  /** @internal Fires after the user (or `toggleGroup`, `expandAll`, `collapseAll`) changes the open groups. */
+  /** Fires after the user (or `toggleGroup`, `expandAll`, `collapseAll`) changes the open groups. */
   onExpandedChange?: (next: ExpandedState) => void;
   /** Controlled filter tree; same controlled/uncontrolled semantics as `sortState`. The top level combines with "and"; a {@link FilterGroup} holds an "or". */
   filterState?: FilterNode[];
@@ -1059,17 +1059,17 @@ export type DataGridActions = {
   /** Steps the column to its next sort direction, or to no sort. `{ additive: true }` keeps the other sorts, as a Shift-click on the header does. */
   toggleSort(columnId: string, options?: { additive?: boolean }): void;
   setSorts(sorts: SortSpec[]): void;
-  /** @internal Sets the group columns; unknown, `groupable: false`, and repeated ids drop. */
+  /** Sets the group columns; unknown, `groupable: false`, and repeated ids drop. */
   setGroupBy(next: readonly string[]): void;
-  /** @internal Adds the column as the innermost group level, or removes it. */
+  /** Adds the column as the innermost group level, or removes it. */
   toggleGroupBy(columnId: string): void;
-  /** @internal Sets the open groups. */
+  /** Sets the open groups. */
   setExpanded(next: ExpandedState): void;
-  /** @internal Opens a closed group and closes an open one. */
+  /** Opens a closed group and closes an open one. */
   toggleGroup(groupId: string): void;
-  /** @internal Opens every group. */
+  /** Opens every group. */
   expandAll(): GroupActionResult;
-  /** @internal Closes every group. */
+  /** Closes every group. */
   collapseAll(): GroupActionResult;
   setFilters(filters: FilterNode[]): void;
   /** Sets quick-search text (and, when given, the search options) and recomputes `searchMatches`/`searchMatchSet`/`searchMatchesCapped` once; never touches `viewIndex`. Omitted options keep the current ones. */

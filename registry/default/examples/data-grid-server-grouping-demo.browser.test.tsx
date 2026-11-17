@@ -1,0 +1,22 @@
+import { userEvent } from "vitest/browser";
+import { describe, expect, it, vi } from "vitest";
+import { render } from "vitest-browser-react";
+import DataGridServerGroupingDemo from "./data-grid-server-grouping-demo";
+import "@/app/global.css";
+
+const groupRows = () => [...document.querySelectorAll<HTMLElement>("[data-grid-group-row]")];
+const button = (name: string) => [...document.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === name)!;
+
+describe("data-grid-server-grouping-demo", () => {
+  it("shows the groups of the database, loads the rows of an open group, and shows the group statement", async () => {
+    await render(<DataGridServerGroupingDemo />);
+    await vi.waitFor(() => expect(groupRows()).toHaveLength(3), { timeout: 20_000 });
+
+    await userEvent.click(groupRows()[0]!.querySelector("button")!);
+    await vi.waitFor(() => expect(groupRows()[0]!.getAttribute("aria-expanded")).toBe("true"));
+    await vi.waitFor(() => expect(document.querySelectorAll('[role="row"]').length).toBeGreaterThan(groupRows().length + 2));
+
+    await userEvent.click(button("Ungroup"));
+    await vi.waitFor(() => expect(groupRows()).toHaveLength(0));
+  });
+});

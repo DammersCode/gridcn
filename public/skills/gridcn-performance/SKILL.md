@@ -92,6 +92,13 @@ Grep for a feed/interval/subscription that calls `setData(wholeArrayRebuilt)` or
   - Code outside the provider reads them on demand (a Save button, a socket): `useDataGridStoreProps` with `defaultData`, and read `store.getState().data` at that moment.
   - Never `data` without `onDataChange`.
 
+## 7. Grouped grids
+
+- A client grid buckets every row on each rebuild, so group only a local array. Past a few ten thousand rows, group on the server (`useDataGridServerRows` with `groupBy`), where the grid holds one child list per open group.
+- Pass `renderGroupLabel` and `aggregate` functions with a stable identity; an inline function rebuilds the group rows each render.
+- `expanded` holds at most 10,000 open groups. Opening everything with `expandAll` on a large array renders every row.
+- The grouped scroll and re-layout budgets, and the group queries of the query layer, have no performance measurement. Measure a grouped grid before you ship it.
+
 ## Done when
 
 Zero `[data-grid`-prefixed warnings appear in the dev console while scrolling and editing, every checklist item above is either fixed or confirmed not applicable, and the React DevTools Profiler recording from step 2 of section 0 now shows at most about two rows of cells (the entering row plus one row of slack) re-rendering per scroll tick or keystroke.

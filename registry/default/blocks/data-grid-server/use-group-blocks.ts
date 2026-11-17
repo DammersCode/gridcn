@@ -22,7 +22,7 @@ const DEFAULT_LOAD_DELAY_MS = 100;
 const DEFAULT_MAX_LOADED_ROWS = 10_000;
 const NO_GROUPS: readonly string[] = [];
 
-/** @internal The open groups of a grouped server source. */
+/** The open groups of a grouped server source. */
 export type UseDataGridServerRowsGroupOptions = {
   /** Controls the open groups; pair it with `onExpandedChange`. Only `mode: "collapsed"` applies: the server lists the children of an open group, so every other group stays closed. */
   expanded?: ExpandedState;

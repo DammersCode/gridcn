@@ -1,0 +1,101 @@
+---
+title: Row grouping
+description: Group rows by one or more columns into row groups that open and close, with a count and a reduced value on each group row, on a local array or on your server.
+icon: ListTree
+type: feature
+aliases: ["group rows", "group by", "grouping", "expand all", "collapse all", "row group"]
+---
+
+A long list reads better when rows that share a value sit together. `groupBy` names the columns, and the grid heads each row group with a group row that shows the key, the row count, and one reduced value for each `aggregate` column. The group rows open and close.
+
+<ComponentPreview name="data-grid-row-grouping-demo" />
+
+<InstallCommand item="data-grid-row-grouping-demo" />
+
+## Group the rows [#group-rows]
+
+Set `groupBy` to column ids, outermost first. A grid with no `groupBy` is unchanged. `groupable: false` keeps a column out of the group menu, and `aggregate` sets the reducer that a group row shows for the column:
+
+```tsx
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+
+type Row = { id: string; region: string; city: string; sales: number };
+
+const columns = defineColumns<Row>()([
+  { id: "region", header: "Region", accessorKey: "region" },
+  { id: "city", header: "City", accessorKey: "city" },
+  { id: "sales", header: "Sales", accessorKey: "sales", type: "number", aggregate: "sum" },
+]);
+
+const rows: Row[] = [{ id: "1", region: "North", city: "Oslo", sales: 12 }];
+
+function SalesGrid() {
+  return <DataGrid defaultData={rows} columns={columns} defaultGroupBy={["region", "city"]} />;
+}
+```
+
+A grid takes at most four group levels. An unknown column, a `groupable: false` column, and a repeated column drop out of `groupBy`. A group key is the stored value. `null`, `undefined`, and `""` form one empty group that reads `labels.grouping.empty`.
+
+## Control the groups [#control]
+
+| Prop | Type | Default |
+|---|---|---|
+| `groupBy` | `readonly string[]` | Uncontrolled |
+| `defaultGroupBy` | `readonly string[]` or a function | `[]` |
+| `onGroupByChange` | `(next) => void` | None |
+| `expanded` | `{ mode, ids }` | Uncontrolled |
+| `defaultExpanded` | `{ mode, ids }` | Every group closed |
+| `onExpandedChange` | `(next) => void` | None |
+| `renderGroupLabel` | `(ctx) => ReactNode` | `column: key (count)` |
+
+`ExpandedState` is `{ mode: "collapsed" | "expanded", ids }`. The `ids` are the groups that differ from `mode`. Read the group ids from `onExpandedChange`. Pass a stable `renderGroupLabel`.
+
+The actions `setGroupBy`, `toggleGroupBy`, `setExpanded`, `toggleGroup`, `expandAll`, and `collapseAll` change the groups. A server grid answers each of them with `{ ok: false, reason: "server-groups" }` when the server lays out the groups.
+
+## Keys and menus [#keys]
+
+On a group row:
+
+| Key | Result |
+|---|---|
+| Enter, Space | Opens a closed group and closes an open one. |
+| ArrowRight | Opens a closed group. Otherwise moves right. |
+| ArrowLeft | Closes an open group. Otherwise moves left. |
+
+Right-to-left layouts mirror the arrows. The keymap actions are `toggleGroupRow`, `expandGroupRow`, and `collapseGroupRow`. The [context menu](/docs/rows-pages-menus/context-menu) adds Group by and Ungroup to the header menu and a menu to each group row. The live region reads `labels.grouping.expanded`, `collapsed`, and `loadFailed`.
+
+While the grid groups, it takes the role `treegrid`. The row marker numbers each row inside its innermost group. Export, find and replace, fill, comments, the status bar, and `useDataGridAggregate` read rows and skip group rows. A group row holds no data, so a row operation that starts on one reports the reason `"group-row"`. Read a view row through `dataIndexAt`: `viewIndex` holds an entry below 0 for a group row.
+
+## Pages of groups [#pages]
+
+With `pageSize` set, a page holds `pageSize` top-level groups with the rows opened under them. `pager.unit` is `"groups"`, and the footer reads `labels.pagination.rangeGroups`. A change of `groupBy` returns to page 1. See [Client pagination](/docs/rows-pages-menus/client-pagination).
+
+## Group in the URL and in saved views [#url-views]
+
+[URL state](/docs/sort-filter-search/url-state) writes `groupBy` as the `group` param. A [saved view](/docs/sort-filter-search/saved-views) keeps `groupBy`. The open groups stay out of both.
+
+## Server mode [#server-mode]
+
+`useDataGridServerRows` groups on your server when the spec holds `groupBy`. The grid never holds every row, so the server sends one list at a time: the groups of one level, or the rows of one group. Each request names the list with `groupPath` and `childKind`. The hook works in scroll mode and in pages mode. In pages mode the top level is one page of groups.
+
+The server answers `childKind: "groups"` with `groups`, `groupCount`, and, at the top level, `totalRowCount`. It answers `childKind: "rows"` with the rows of one group. [Group server rows](/docs/data-modes/group-server-rows) lists the request, the answer, and the checks.
+
+- The core shows the group rows of `groupLayout` and never buckets rows (`groupMode="server"`). The hook sets both props.
+- While the server lays out the groups, an insert, a duplicate, a delete, and a move report the reason `server-groups`.
+- A save, a refusal, and `refresh()` keep the open groups in place.
+- `selectAllMatching()` counts the rows of the result that `totalRowCount` reports.
+- The query layer answers group requests for Drizzle and Kysely. See [Query layer](/docs/data-modes/query-layer).
+
+## Limits [#limits]
+
+- A save refreshes the whole open list. The refresh does not narrow to the group and aggregate columns.
+- A swap between a grouped and an ungrouped source ends an open edit.
+- The group queries of the query layer have no performance measurement.
+- At most 10,000 groups stay open. A further toggle shows `labels.grouping.tooManyOpen`.
+
+## Related
+
+- [Row grouping example](/docs/row-examples/row-grouping-example): both wirings in full
+- [Group server rows](/docs/data-modes/group-server-rows): the server request and answer
+- [Pinned rows](/docs/rows-pages-menus/pinned-rows): the same reducers over a band
+- [Client pagination](/docs/rows-pages-menus/client-pagination): pages of groups
