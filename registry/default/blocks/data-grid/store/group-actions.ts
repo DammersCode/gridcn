@@ -98,7 +98,12 @@ export function createGroupActions({ set, get, dataWrite, followView, memory }: 
       const s = get();
       const node = s.groupLayout?.rows.find((row) => row.id === groupId);
       const opens = !expandedTest(s.expanded)(groupId);
-      commitExpanded(toggleExpanded(s.expanded, groupId));
+      const next = toggleExpanded(s.expanded, groupId);
+      if (next === s.expanded) {
+        if (opens) set((s2) => ({ liveAnnouncement: nextAnnouncement(s2.liveAnnouncement, "groupTooManyOpen", 0) }));
+        return;
+      }
+      commitExpanded(next);
       if (!node) return;
       set((s2) => ({ liveAnnouncement: nextAnnouncement(s2.liveAnnouncement, opens ? "groupExpanded" : "groupCollapsed", node.count, false, groupAnnouncementLabel(s2, node)) }));
     },

@@ -230,6 +230,7 @@ export function buildDefaultLabels(locale: string): DataGridLabels {
       expanded: (label, count) => `${label} expanded, ${count.toLocaleString(locale)} ${count === 1 ? "row" : "rows"}`,
       collapsed: (label) => `${label} collapsed`,
       loadFailed: (label) => `${label} failed to load`,
+      tooManyOpen: "Too many groups are open. Close one first.",
     },
     markers: {
       columnHeader: "Row markers",

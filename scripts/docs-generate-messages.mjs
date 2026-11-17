@@ -346,6 +346,7 @@ export const MESSAGES = [
       { text: "Saved views could not be loaded.", file: "registry/default/blocks/data-grid/label-defaults.ts", find: 'loadFailed: "Saved views could not be loaded."', fix: "Shows in the views popover when `load` fails. The `labels` prop of `DataGridViews` replaces it.", page: "/docs/sort-filter-search/saved-views#storage" },
       { text: "Your last change could not be saved.", file: "registry/default/blocks/data-grid/label-defaults.ts", find: 'saveFailed: "Your last change could not be saved."', fix: "Shows in the views popover when `save` fails. The `labels` prop of `DataGridViews` replaces it.", page: "/docs/sort-filter-search/saved-views#storage" },
       { text: "<n> rows not saved", file: `${CORE}/label-defaults.ts`, find: 'saveRejected: (count) => `${count', fix: "The live region reads it when `onSave` refuses rows. `labels.grid.saveRejected` replaces it.", page: "/docs/save-server/save-edits#what-onsave-receives" },
+      { text: "Too many groups are open. Close one first.", file: `${CORE}/label-defaults.ts`, find: "tooManyOpen: \"Too many groups are open. Close one first.\"", fix: "The live region reads it when a group stays closed because 10,000 groups are open. Close a group, then open the next. `labels.grouping.tooManyOpen` replaces it.", page: "/docs/components-props/data-grid-props#rows-and-ids" },
     ],
   },
 ];

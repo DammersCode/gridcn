@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { applyChangeWith, holeRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { isGroupsAnswer } from "./group-pages";
+import type { ServerGroupsAnswer } from "./read-groups-answer";
 import { readAnswer, type FetchReason, type ReadAnswer, type ServerFetchAnswer, type ServerRowsAnswer, type ServerRowsRequest, type WithRowId } from "./read-answer";
 import { pruneIds, stashGuardedRows, trackDeletes, unionIds, useRefreshGuard, writeBlocks, type ProtectedRows } from "./refresh-guard";
 import { cursorKey, MAX_SEEN_CURSORS, needsNextBlock, skeletonCount, startsSequence, stepSequence } from "./scroll-sequence";
@@ -50,9 +52,10 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
    * The answer of block 0, rows `[0, blockSize)`, for the first spec (`defaultSpec`, or the empty spec when `defaultSpec` is a function), for example from a Server Component.
    * The hook shows it without a request, so the server HTML holds the rows; the first answer picks random access or a sequential source as `fetchRows` does, and a cursor continues the chain.
    * Rows past `blockSize` are cut. Another first spec drops it and fetches. `refresh()` and a spec change fetch as usual.
+   * While the first spec groups, it is the groups answer of the top level (`{ groups, groupCount, totalRowCount }`).
    * It counts as untrusted input like any answer. `onLoaded` does not fire for it.
    */
-  initialAnswer?: ServerRowsAnswer<TData, TCursor>;
+  initialAnswer?: ServerRowsAnswer<TData, TCursor> | ServerGroupsAnswer;
   /** Rows per request. Requests align to multiples of it, so small scrolls reuse the same block. Default 50. */
   blockSize?: number;
   /** Rows fetched beyond the rendered rows on each side. Default 30. */
@@ -159,7 +162,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     if (coreRef.current === null) coreRef.current = createCore<TData>();
     return coreRef.current;
   }, []);
-  const [seed] = useState(() => readScrollSeed(options.initialAnswer, serverSpecKey(spec), positiveInteger(options.blockSize, DEFAULT_BLOCK_SIZE, 1), options.source));
+  const [seed] = useState(() => readScrollSeed(isGroupsAnswer(options.initialAnswer) ? undefined : (options.initialAnswer as ServerRowsAnswer<TData, TCursor> | undefined), serverSpecKey(spec), positiveInteger(options.blockSize, DEFAULT_BLOCK_SIZE, 1), options.source));
   const seedRef = useRef(seed);
   const [rows, setRows] = useState<(TData | undefined)[]>(() => seed?.rows ?? []);
   const [count, setCount] = useState<number | null>(() => seed?.count ?? null);

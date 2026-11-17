@@ -205,6 +205,8 @@ export type DataGridGroupingLabels = {
   expanded: (label: string, count: number) => string;
   /** Polite announcement after a group closes. */
   collapsed: (label: string) => string;
+  /** Announcement when a group stays closed because 10,000 groups are open already. */
+  tooManyOpen: string;
 };
 
 /** Row-marker column strings (select-all header checkbox, per-row checkbox, reorder handle). */

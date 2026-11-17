@@ -147,7 +147,7 @@ import { leafViewOf } from "./group-readers";
 import { pageUnitsOf } from "./group-pages";
 import { matchingRowTotal } from "./matching-total";
 
-type CheckedState = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "allMatching" | "data" | "viewIndex" | "totalRowCount" | "groupLayout">;
+type CheckedState = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "allMatching" | "data" | "viewIndex" | "totalRowCount" | "groupLayout"> & Partial<Pick<DataGridStoreState, "groupMode">>;
 
 /** The checked total: the rows channel plus the hidden checked rows, or the "all matching" count (`null` for a result of unknown size). */
 function checkedTotal(s: CheckedState, resolveRowIds: () => ReadonlyMap<string, number>): number | null {

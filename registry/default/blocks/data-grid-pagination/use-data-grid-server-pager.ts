@@ -6,7 +6,10 @@ import { usePagerStashPlugin } from "./pager-stash";
 import { clampPage, DEFAULT_PAGE_SIZES, pageCount } from "./pagination-math";
 import type { DataGridPaginationControls, UseDataGridPaginationServerOptions } from "./use-data-grid-pagination";
 
-export type UseDataGridServerPagerOptions = UseDataGridPaginationServerOptions;
+export type UseDataGridServerPagerOptions = UseDataGridPaginationServerOptions & {
+  /** @internal What a page counts. Default `"rows"`. */
+  unit?: "rows" | "groups";
+};
 
 const NO_PAGE_SIZE_OPTIONS: readonly number[] = [];
 const noop = () => {};
@@ -23,7 +26,7 @@ export type UseDataGridServerPagerResult = {
 
 /** The pager for rows your own data layer fetches page by page. Spread `pager` onto `DataGridPaginationBar`, or `gridProps` onto `DataGridProvider` for a bar without props. Without `onPageSizeChange` the bar hides the page-size select. */
 export function useDataGridServerPager(options: UseDataGridServerPagerOptions): UseDataGridServerPagerResult {
-  const { page, pageSize, totalRowCount, onPageChange, pageSizeOptions = DEFAULT_PAGE_SIZES, onPageSizeChange } = options;
+  const { page, pageSize, totalRowCount, onPageChange, pageSizeOptions = DEFAULT_PAGE_SIZES, onPageSizeChange, unit } = options;
   const clampedPage = clampPage(page, totalRowCount, pageSize);
   const lastPage = totalRowCount === null ? null : pageCount(totalRowCount, pageSize);
   const hasMore = lastPage === null ? options.hasMore === true : clampedPage < lastPage;
@@ -51,6 +54,7 @@ export function useDataGridServerPager(options: UseDataGridServerPagerOptions): 
     pageSizeOptions: onPageSizeChange ? pageSizeOptions : NO_PAGE_SIZE_OPTIONS,
     totalRowCount,
     hasMore,
+    ...(unit === "groups" ? { unit } : {}),
     onPageChange,
     onPageSizeChange: onPageSizeChange ?? noop,
   };
