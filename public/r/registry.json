@@ -1556,6 +1556,11 @@
           "target": "components/data-grid-url-state/page-param.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid-url-state/group-param.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-url-state/group-param.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid-url-state/prefixed-key.ts",
           "type": "registry:component",
           "target": "components/data-grid-url-state/prefixed-key.ts"

@@ -126,6 +126,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
   const actions = useDataGridActions();
   const allColumns = useDataGridAllColumns();
   const sortState = useDataGridSortState();
+  const groupBy = useDataGridSelector((s) => s.groupBy);
   const filterState = useDataGridFilterState();
   const searchText = useDataGridSearchText();
   const searchOptions = useDataGridSelector((s) => s.searchOptions);
@@ -139,7 +140,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
     [cellTypes],
   );
   const choiceValues = useCallback((columnId: string) => () => setFilterValuesOf(storeApi.getState())(columnId), [storeApi]);
-  const columnMap: ViewColumns = useMemo(() => new Map(allColumns.map((c) => [c.id, { sortable: c.sortable, filterable: c.filterable, operators: registeredOperators(c), choices: choiceValues(c.id) }])), [allColumns, registeredOperators, choiceValues]);
+  const columnMap: ViewColumns = useMemo(() => new Map(allColumns.map((c) => [c.id, { sortable: c.sortable, groupable: c.groupable, filterable: c.filterable, operators: registeredOperators(c), choices: choiceValues(c.id) }])), [allColumns, registeredOperators, choiceValues]);
   // opting a column out of sort or filter UI does not stop programmatic specs, so applying a saved view skips those flags
   const knownColumns: ViewColumns = useMemo(() => new Map(allColumns.map((c) => [c.id, { operators: registeredOperators(c), choices: choiceValues(c.id) }])), [allColumns, registeredOperators, choiceValues]);
   const latest = useRef({ columnMap, knownColumns, onValueChange, onError, value, enableDefaultView, defaultValue });
@@ -168,7 +169,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
 
   const readState = useCallback((): DataGridViewState => {
     const s = storeApi.getState();
-    return captureViewState({ sorts: s.sortState, filters: s.filterState, searchText: s.searchText, searchOptions: s.searchOptions, columnLayout: s.columnLayout });
+    return captureViewState({ sorts: s.sortState, groupBy: [...s.groupBy], filters: s.filterState, searchText: s.searchText, searchOptions: s.searchOptions, columnLayout: s.columnLayout });
   }, [storeApi]);
 
   const readSavableState = useCallback(() => savableViewState(readState()), [readState]);
@@ -192,6 +193,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
       const wanted = viewPartKeys(clean);
       const now = viewPartKeys(readState());
       if (wanted.sorts !== now.sorts) actions.setSorts(clean.sorts);
+      if (wanted.group !== now.group) actions.setGroupBy(clean.groupBy);
       if (wanted.filters !== now.filters) actions.setFilters(clean.filters);
       if (wanted.search !== now.search) actions.setSearch(clean.searchText, clean.searchOptions);
       if (wanted.layout !== now.layout) actions.setColumnLayout(clean.columnLayout);
@@ -277,7 +279,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
       const initial = storeApi.getInitialState();
       const untouched =
         viewStateKey(readState()) ===
-        viewStateKey(captureViewState({ sorts: initial.sortState, filters: initial.filterState, searchText: initial.searchText, searchOptions: initial.searchOptions, columnLayout: initial.columnLayout }));
+        viewStateKey(captureViewState({ sorts: initial.sortState, groupBy: [...initial.groupBy], filters: initial.filterState, searchText: initial.searchText, searchOptions: initial.searchOptions, columnLayout: initial.columnLayout }));
       const view = useDefault && controlled === undefined && seed === undefined && untouched ? parsed.views.find((v) => v.id === parsed.defaultViewId) : undefined;
       if (view) {
         applyState(view.state);
@@ -326,13 +328,13 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
   const activeView = views.find((v) => v.id === activeViewId) ?? null;
 
   const currentKey = useMemo(
-    () => (activeView ? viewStateKey({ sorts: sortState, filters: filterState, searchText, searchOptions, columnLayout }) : null),
-    [activeView, sortState, filterState, searchText, searchOptions, columnLayout],
+    () => (activeView ? viewStateKey({ sorts: sortState, groupBy: [...groupBy], filters: filterState, searchText, searchOptions, columnLayout }) : null),
+    [activeView, sortState, groupBy, filterState, searchText, searchOptions, columnLayout],
   );
 
   const overLimit = useMemo(
-    () => overLimitPart(captureViewState({ sorts: sortState, filters: filterState, searchText, searchOptions, columnLayout })),
-    [sortState, filterState, searchText, searchOptions, columnLayout],
+    () => overLimitPart(captureViewState({ sorts: sortState, groupBy: [...groupBy], filters: filterState, searchText, searchOptions, columnLayout })),
+    [sortState, groupBy, filterState, searchText, searchOptions, columnLayout],
   );
 
   const activeIdNow = useCallback(() => (latest.current.value !== undefined ? latest.current.value : appliedIdRef.current) ?? null, []);

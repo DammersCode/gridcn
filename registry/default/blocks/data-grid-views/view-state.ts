@@ -1,5 +1,5 @@
 import type { ColumnLayout, ColumnPin, BuiltInFilterOperator, FilterNode, FilterOperator, FilterOperatorInput, FilterSpec, SearchOptions, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { MAX_FILTER_GROUP_DEPTH, MAX_SPEC_SEARCH_LENGTH, MAX_SPEC_SORTS, countFilterSpecs, isFilterGroup, pruneFilterSpecs } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { MAX_FILTER_GROUP_DEPTH, MAX_SPEC_SEARCH_LENGTH, MAX_GROUP_LEVELS, MAX_SPEC_SORTS, countFilterSpecs, isFilterGroup, pruneFilterSpecs } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 export const MAX_VIEWS = 50;
 /** Largest stored document, in characters; a save over it is refused so the next load can read it. */
@@ -8,6 +8,7 @@ export const MAX_VIEW_NAME_LENGTH = 80;
 /** Largest view file `parseViewFile` reads, in characters. */
 export const MAX_VIEW_FILE_LENGTH = 100_000;
 const MAX_SORTS = MAX_SPEC_SORTS;
+const LIMIT_PARTS = ["sorts", "filters", "search", "layout"] as const;
 const MAX_FILTERS = 64;
 const MAX_FILTER_GROUPS = 16;
 const MAX_LIST_ENTRIES = 1000;
@@ -17,9 +18,10 @@ const MAX_COLUMN_WIDTH = 10_000;
 const MAX_VIEW_ID_LENGTH = 64;
 const FILE_FORMAT = "gridcn-view";
 
-/** The grid state a saved view restores. */
+/** The grid state a saved view restores. `groupBy` holds the group columns, outermost first; which groups are open is not saved. */
 export type DataGridViewState = {
   sorts: SortSpec[];
+  groupBy: string[];
   filters: FilterNode[];
   searchText: string;
   searchOptions: Required<SearchOptions>;
@@ -32,7 +34,7 @@ export type DataGridView = { id: string; name: string; state: DataGridViewState 
 export type DataGridViewsDocument = { version: 1; views: DataGridView[]; defaultViewId: string | null };
 
 /** The live columns a view is checked against; `undefined` checks structure and limits only, so any column id passes. */
-export type ViewColumns = ReadonlyMap<string, { sortable?: boolean; filterable?: boolean; operators?: ReadonlyMap<string, FilterOperatorInput>; choices?: () => ReadonlySet<string> | undefined }>;
+export type ViewColumns = ReadonlyMap<string, { sortable?: boolean; filterable?: boolean; groupable?: boolean; operators?: ReadonlyMap<string, FilterOperatorInput>; choices?: () => ReadonlySet<string> | undefined }>;
 
 export type ViewFileResult = { ok: true; name: string; state: DataGridViewState; dropped: number } | { ok: false; reason: "too-large" | "invalid" };
 
@@ -61,7 +63,7 @@ void operatorsAreExhaustive;
 const FILTER_OPERATOR_IDS: ReadonlySet<string> = new Set(OPERATORS);
 
 export function emptyViewState(): DataGridViewState {
-  return { sorts: [], filters: [], searchText: "", searchOptions: { matchCase: false, wholeCell: false }, columnLayout: { widths: {}, order: [], pins: {}, hidden: [] } };
+  return { sorts: [], groupBy: [], filters: [], searchText: "", searchOptions: { matchCase: false, wholeCell: false }, columnLayout: { widths: {}, order: [], pins: {}, hidden: [] } };
 }
 
 export function emptyViewsDocument(): DataGridViewsDocument {
@@ -86,6 +88,7 @@ export function captureViewState(source: DataGridViewState): DataGridViewState {
   const { widths, order, pins, hidden } = source.columnLayout;
   return {
     sorts: source.sorts.map((s) => ({ columnId: s.columnId, direction: s.direction })),
+    groupBy: [...source.groupBy],
     filters: stripFilterIds(source.filters, 0),
     searchText: source.searchText,
     searchOptions: { matchCase: source.searchOptions.matchCase, wholeCell: source.searchOptions.wholeCell },
@@ -111,13 +114,14 @@ export type ViewStatePart = "sorts" | "filters" | "search" | "layout";
 export type OverLimitPart = ViewStatePart;
 
 /** One string per part of a state; equal strings mean the part restores the same grid. */
-export function viewPartKeys(state: DataGridViewState): Record<ViewStatePart, string> {
+export function viewPartKeys(state: DataGridViewState): Record<ViewStatePart | "group", string> {
   // lossless except for the one thing storage drops: the unused `value` of `empty` and `notEmpty`
   const captured = captureViewState(state);
   captured.filters = withoutUnusedValues(captured.filters);
   captured.columnLayout.hidden.sort();
   return {
     sorts: JSON.stringify(captured.sorts),
+    group: JSON.stringify(captured.groupBy),
     filters: JSON.stringify(captured.filters, sortKeys),
     search: JSON.stringify([captured.searchText, captured.searchOptions]),
     layout: JSON.stringify(captured.columnLayout, sortKeys),
@@ -133,7 +137,7 @@ export function viewStateKey(state: DataGridViewState): string {
 export function overLimitPart(state: DataGridViewState): OverLimitPart | false {
   const kept = viewPartKeys(sanitizeViewState(state).state);
   const wanted = viewPartKeys(state);
-  return (Object.keys(wanted) as ViewStatePart[]).find((part) => kept[part] !== wanted[part]) ?? false;
+  return LIMIT_PARTS.find((part) => kept[part] !== wanted[part]) ?? false;
 }
 
 /** The state in the form that reloads unchanged, or `null` when a view limit would cut or drop part of it. */
@@ -145,7 +149,7 @@ export function savableViewState(state: DataGridViewState): DataGridViewState | 
 type RawSort = { columnId?: unknown; direction?: unknown };
 type RawFilter = { columnId?: unknown; operator?: unknown; value?: unknown; join?: unknown; filters?: unknown };
 type RawLayout = { widths?: unknown; order?: unknown; pins?: unknown; hidden?: unknown };
-type RawState = { sorts?: unknown; filters?: unknown; searchText?: unknown; searchOptions?: unknown; columnLayout?: unknown };
+type RawState = { sorts?: unknown; groupBy?: unknown; filters?: unknown; searchText?: unknown; searchOptions?: unknown; columnLayout?: unknown };
 type RawSearchOptions = { matchCase?: unknown; wholeCell?: unknown };
 type RawView = { id?: unknown; name?: unknown; state?: unknown };
 type RawDocument = { version?: unknown; views?: unknown; defaultViewId?: unknown };
@@ -168,6 +172,17 @@ type Tally = { dropped: number };
 function acceptsColumnId(id: unknown, columns: ViewColumns | undefined): id is string {
   if (typeof id !== "string" || id === "") return false;
   return columns ? columns.has(id) : true;
+}
+
+/** Ids of live groupable columns, once each, at most {@link MAX_GROUP_LEVELS}; a longer list is cut and counted. */
+function sanitizeGroupBy(raw: unknown, columns: ViewColumns | undefined, tally: Tally): string[] {
+  if (!Array.isArray(raw)) return [];
+  const ids: string[] = [];
+  for (const id of boundedEntries(raw, MAX_LIST_ENTRIES, tally)) {
+    if (!acceptsColumnId(id, columns) || columns?.get(id)?.groupable === false || ids.includes(id) || ids.length >= MAX_GROUP_LEVELS) tally.dropped++;
+    else ids.push(id);
+  }
+  return ids;
 }
 
 function sanitizeSorts(raw: unknown, columns: ViewColumns | undefined, tally: Tally): SortSpec[] {
@@ -324,6 +339,7 @@ export function sanitizeViewState(raw: unknown, columns?: ViewColumns): { state:
   return {
     state: {
       sorts: sanitizeSorts(source.sorts, columns, tally),
+      groupBy: sanitizeGroupBy(source.groupBy, columns, tally),
       filters: sanitizeFilterNodes(source.filters, 0, columns, { leaves: 0, groups: 0 }, tally),
       searchText: typeof source.searchText === "string" ? source.searchText.slice(0, MAX_SPEC_SEARCH_LENGTH) : "",
       searchOptions: { matchCase: options.matchCase === true, wholeCell: options.wholeCell === true },
@@ -375,7 +391,8 @@ export function parseViewFile(text: string, columns: ViewColumns): ViewFileResul
   const sanitized = sanitizeViewState(file.state, columns);
   const hidden = new Set(sanitized.state.columnLayout.hidden);
   const sorts = sanitized.state.sorts.filter((s) => !hidden.has(s.columnId));
+  const groupBy = sanitized.state.groupBy.filter((id) => !hidden.has(id));
   const filters = pruneFilterSpecs(sanitized.state.filters, (spec) => !hidden.has(spec.columnId));
-  const dropped = sanitized.dropped + (sanitized.state.sorts.length - sorts.length) + (countFilterSpecs(sanitized.state.filters) - countFilterSpecs(filters));
-  return { ok: true, name: cleanViewName(file.name), state: { ...sanitized.state, sorts, filters }, dropped };
+  const dropped = sanitized.dropped + (sanitized.state.sorts.length - sorts.length) + (sanitized.state.groupBy.length - groupBy.length) + (countFilterSpecs(sanitized.state.filters) - countFilterSpecs(filters));
+  return { ok: true, name: cleanViewName(file.name), state: { ...sanitized.state, sorts, groupBy, filters }, dropped };
 }

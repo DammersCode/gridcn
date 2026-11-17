@@ -17,10 +17,11 @@ import {
 const columns: ViewColumns = new Map([
   ["name", {}],
   ["age", {}],
-  ["secret", { sortable: false, filterable: false }],
+  ["secret", { sortable: false, filterable: false, groupable: false }],
 ]);
 
 const state: DataGridViewState = {
+  groupBy: ["name"],
   sorts: [{ columnId: "age", direction: "desc" }],
   filters: [{ columnId: "name", operator: "contains", value: "a" }],
   searchText: "bob",
@@ -215,6 +216,7 @@ describe("sanitizeViewState", () => {
   it("falls back to an empty state for a non-object", () => {
     expect(sanitizeViewState("nope", columns).state).toEqual({
       sorts: [],
+      groupBy: [],
       filters: [],
       searchText: "",
       searchOptions: { matchCase: false, wholeCell: false },
@@ -309,7 +311,7 @@ describe("view files", () => {
 
 describe("a long column id", () => {
   const long = "c".repeat(300);
-  const empty = { sorts: [], filters: [], searchText: "", searchOptions: { matchCase: false, wholeCell: false }, columnLayout: { widths: {}, order: [], pins: {}, hidden: [] } } as DataGridViewState;
+  const empty = { sorts: [], groupBy: [], filters: [], searchText: "", searchOptions: { matchCase: false, wholeCell: false }, columnLayout: { widths: {}, order: [], pins: {}, hidden: [] } } as DataGridViewState;
   it.each([
     ["a sort", { sorts: [{ columnId: long, direction: "asc" }] }],
     ["a nested filter", { filters: [{ join: "and", filters: [{ columnId: long, operator: "contains", value: "a" }] }] }],
@@ -324,6 +326,7 @@ describe("a long column id", () => {
   });
   it("survives save then reload of a stored document", () => {
     const state = {
+      groupBy: [],
       sorts: [{ columnId: long, direction: "desc" }],
       filters: [{ join: "and", filters: [{ columnId: long, operator: "contains", value: "a" }] }],
       searchText: "",
@@ -368,5 +371,42 @@ describe("a long column id", () => {
   it("saves 64 sorts", () => {
     const sorts = Array.from({ length: 64 }, (_, i) => ({ columnId: `c${i}`, direction: "asc" as const }));
     expect(overLimitPart({ ...empty, sorts })).toBe(false);
+  });
+});
+
+describe("groupBy in a view", () => {
+  const live = new Map<string, { groupable?: boolean }>([["name", {}], ["age", {}], ["secret", { groupable: false }]]);
+
+  it("changes the state key", () => {
+    expect(viewStateKey(state)).not.toBe(viewStateKey({ ...state, groupBy: [] }));
+  });
+
+  it("reads a stored view without the field as no group", () => {
+    const { groupBy: _omitted, ...stored } = state;
+    expect(sanitizeViewState(stored, live).state.groupBy).toEqual([]);
+  });
+
+  it("drops unknown, ungroupable, repeated, non-string, and past-four-level ids", () => {
+    const wide = new Map([...live, ["c", {}], ["d", {}], ["e", {}]]);
+    const raw = { ...state, groupBy: ["name", "name", "gone", "secret", 7, "age", "c", "d", "e"] };
+    const { state: clean, dropped } = sanitizeViewState(raw, wide);
+    expect(clean.groupBy).toEqual(["name", "age", "c", "d"]);
+    expect(dropped).toBe(5);
+  });
+
+  it("bounds a hostile list", () => {
+    const raw = { ...state, groupBy: Array.from({ length: 50_000 }, (_, i) => `c${i}`) };
+    expect(sanitizeViewState(raw).state.groupBy).toHaveLength(4);
+  });
+
+  it("an imported file drops a group column that its layout hides", () => {
+    const file = serializeViewFile({ name: "v", state: { ...state, groupBy: ["name", "age"], columnLayout: { ...state.columnLayout, hidden: ["age"] } } });
+    const result = parseViewFile(file, live);
+    expect(result.ok && result.state.groupBy).toEqual(["name"]);
+  });
+
+  it("is saved with the view", () => {
+    expect(savableViewState(state)?.groupBy).toEqual(["name"]);
+    expect(parseViewDocument(JSON.parse(JSON.stringify({ version: 1, defaultViewId: null, views: [{ id: "v", name: "G", state }] })))?.views[0]?.state.groupBy).toEqual(["name"]);
   });
 });

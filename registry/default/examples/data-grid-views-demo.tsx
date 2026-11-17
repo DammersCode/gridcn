@@ -41,12 +41,13 @@ const SEED: DataGridViewsDocument = {
   version: 1,
   defaultViewId: null,
   views: [
-    { id: "top-scores", name: "Top scores", state: { sorts: [{ columnId: "score", direction: "desc" }], filters: [], searchText: "", searchOptions: noSearch, columnLayout: emptyLayout } },
+    { id: "top-scores", name: "Top scores", state: { sorts: [{ columnId: "score", direction: "desc" }], groupBy: [], filters: [], searchText: "", searchOptions: noSearch, columnLayout: emptyLayout } },
     {
       id: "admins",
       name: "Admins, compact",
       state: {
         sorts: [{ columnId: "name", direction: "asc" }],
+        groupBy: [],
         filters: [{ columnId: "role", operator: "equals", value: "Admin" }],
         searchText: "",
         searchOptions: noSearch,

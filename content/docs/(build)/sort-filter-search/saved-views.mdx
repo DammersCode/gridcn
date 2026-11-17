@@ -56,7 +56,7 @@ With no props, views persist in `localStorage` under `gridcn-views`. Grids with 
 
 ## What a view holds [#what-a-view-holds]
 
-A view holds the sort and the filters, with their groups and custom operators. It holds the search text with its two options, match case and whole cell. It holds the column layout: order, hidden columns, pins, and widths. A view holds no rows, no selection, no page, and no scroll position.
+A view holds the sort, the `groupBy` columns, and the filters, with their groups and custom operators. It holds the search text with its two options, match case and whole cell. It holds the column layout: order, hidden columns, pins, and widths. A view holds no rows, no selection, no page, and no scroll position.
 
 Opening a view runs the same actions as a user gesture, and only for the parts that differ from the grid. The change callbacks of a controlled `sortState`, `filterState`, `searchText`, or `columnLayout` fire for those parts.
 
@@ -79,7 +79,7 @@ The star marks one view as the default. After the views load, the default view a
 - `value` and `defaultValue` are both unset.
 - The grid still holds its first state.
 
-A grid that something else already changed keeps its state. When you mount both add-ons, a link from [URL state](/docs/sort-filter-search/url-state) with any param that changes the first state wins over the default view.
+A grid that something else already changed keeps its state. With both add-ons mounted, a [URL state](/docs/sort-filter-search/url-state) link with a param that changes the first state wins over the default view.
 
 `value` and `onValueChange` control which view is active, and `defaultValue` seeds it once:
 
@@ -138,13 +138,13 @@ The default adapter listens to the `storage` event, so a save in one tab reloads
 "Export active view" writes the view as JSON into the text area. "Import view" reads that text and adds it as a new view. Import bounds the text and checks it against the live columns:
 
 - Import refuses text over 100,000 characters, and anything but a gridcn view file.
-- A sort, filter, or layout entry for a column that does not exist, or that opted out with `sortable: false` or `filterable: false`, goes away. A sort or filter on a column that the file hides goes away too. The status message reports how many entries it left out.
+- An entry for a column that does not exist, or that opted out with `sortable`, `groupable`, or `filterable` set to `false`, goes away. A sort or filter on a column that the file hides goes away too. The status message reports how many entries it left out.
 - A built-in operator with a value of the wrong shape goes away. An operator that a column or its cell type registers in `filter.operators` keeps a value of the shape its `input` names. Any other shape drops the filter.
 - A column with `choices` keeps the blank entry and the set filter values that match a choice or a loaded value. The match ignores case. With `filterMode="server"` or `fetchFilterValues`, the server lists the values, so every value stays.
 - An `isAnyOf` list is cut to 1,000 entries. An `isNoneOf` list or a custom operator list over 1,000 entries drops the filter.
-- A view keeps at most 64 sorts, 64 filters, and 16 filter groups. A filter value over 1,000 characters drops the filter.
+- A view keeps at most 64 sorts, 4 group columns, 64 filters, and 16 filter groups. A filter value over 1,000 characters drops the filter.
 - The name of a view has at most 80 characters, and a stored view needs an id of at most 64 characters.
-- A column id has no length limit. A stored view keeps the ids of columns that the grid lacks, and applying the view skips them. A column width over 10,000 px goes away. Each of `order`, `hidden`, `widths`, and `pins` in a layout is cut to 1,000 entries. The search text is cut to 500 characters. The document keeps at most 50 views.
+- A column id has no length limit. A stored view keeps ids of columns the grid lacks, and applying the view skips them. A column width over 10,000 px goes away. Each layout list is cut to 1,000 entries. The search text is cut to 500 characters. The document keeps at most 50 views.
 
 ## Use the hook [#use-the-hook]
 
@@ -178,7 +178,7 @@ A view stores the grid state only, so it works in every data mode:
 - **Server pagination and scroll mode** with `sortMode="server"` or `filterMode="server"`. Opening a view calls `onSortChange`, `onFilterChange`, and `onSearchTextChange` for the parts that differ, and `useDataGridServerRows` sends the new spec. Every set filter value stays, and your server checks the values.
 - **Controlled state.** Your props receive the change callbacks.
 
-A view saves no page number. A view that changes the sort, the filters, or the search text sends server rows back to page 1. A view that changes only the layout keeps the page.
+A view saves no page number. A view that changes the sort, the filters, or the search text sends server rows back to page 1. A layout-only view keeps the page.
 
 ## Related
 
