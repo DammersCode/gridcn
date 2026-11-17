@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { LandingBackground } from "@/components/landing/background";
-import { LandingPage } from "@/components/landing/landing-page";
+import { FooterLinks, LandingPage } from "@/components/landing/landing-page";
 
 const title = "gridcn: a React data grid you own";
 const description =
@@ -16,9 +16,12 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <div className="relative flex flex-1 flex-col items-center">
-      <LandingBackground />
-      <LandingPage />
-    </div>
+    <>
+      <main id="main" className="relative flex flex-1 flex-col items-center">
+        <LandingBackground />
+        <LandingPage />
+      </main>
+      <FooterLinks />
+    </>
   );
 }
