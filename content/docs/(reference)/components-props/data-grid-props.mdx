@@ -167,6 +167,7 @@ export function OrderGrid() {
 | `focus()` | Scrolls the active cell into view and focuses it. With no active cell, it focuses the grid, and the first cell becomes active. It does nothing during an edit. |
 | `runShortcut(action)` | Runs what the key bound to a keymap action runs, whether or not a key is bound. A `commands` entry runs with its `when` and `scope`. Otherwise the built-in action runs with its guards. It does nothing before the grid mounts. |
 | `getSelection()` | Returns the selection as a snapshot. |
+| `getSelectedRows()` | Returns the checked rows as a `DataGridSelectedRows` value, the same value as `useDataGridSelectedRows()`. It includes checked rows that a filter hides. |
 | `getRow()` | Takes a view index and returns the row there, or `undefined`. |
 | `getViewRowIds()` | Returns the row id of every view row, in view order. With `pageSize`, it returns the rows of the shown page only. `getViewRowIds({ loaded: true })` leaves the placeholder ids out. |
 
