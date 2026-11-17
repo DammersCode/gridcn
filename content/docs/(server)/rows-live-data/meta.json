@@ -9,7 +9,6 @@
     "push-server-ordered-view",
     "read-push-verdict",
     "show-presence",
-    "broadcast-your-selection",
-    "add-comments"
+    "broadcast-your-selection"
   ]
 }

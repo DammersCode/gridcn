@@ -350,7 +350,7 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="supported" /></td>
     </tr>
     <tr id="parity-comments">
-      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal"><a href="/docs/rows-live-data/add-comments">Cell comments</a></th>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal"><a href="/docs/rows-pages-menus/add-comments">Cell comments</a></th>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
@@ -725,7 +725,7 @@ Mode-neutral by design.
 
 ### Cell comments
 
-Mode-neutral by design. Comments are addressed by row id and column id, so a sort, a filter, a page change, or an eviction moves markers and never comments. `fetchComments` loads the comments of the rendered rows. `onCommentSave` and `applyRemote` cover your own API.
+Mode-neutral by design. Comments are addressed by row id and column id, so a sort, a filter, a page change, or an eviction moves markers and never comments. `fetchComments` loads the comments of the rendered rows. Without `currentUser` and `onCommentSave`, comments are anonymous and stay on the client. `onCommentSave` covers your own API, and `applyRemote` takes the changes of other clients.
 
 ### Scroll row fetching
 

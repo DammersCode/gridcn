@@ -1078,5 +1078,13 @@
   {
     "source": "/docs/server-pagination.md",
     "destination": "/docs/server-pagination/load-rows-page.md"
+  },
+  {
+    "source": "/docs/rows-live-data/add-comments",
+    "destination": "/docs/rows-pages-menus/add-comments"
+  },
+  {
+    "source": "/docs/rows-live-data/add-comments.md",
+    "destination": "/docs/rows-pages-menus/add-comments.md"
   }
 ]

@@ -6,7 +6,7 @@ type: reference
 aliases: ["comment options", "onCommentSave", "applyRemote", "fetchComments", "cell notes options"]
 ---
 
-`useDataGridComments` returns a plugin that shows comments on cells, and the functions that control them. Call it once for each grid, above the grid (`DataGrid` or `DataGridProvider`). The steps are on [Add comments to cells](/docs/rows-live-data/add-comments).
+`useDataGridComments` returns a plugin that shows comments on cells, and the functions that control them. Call it once for each grid, above the grid (`DataGrid` or `DataGridProvider`). The steps are on [Add comments to cells](/docs/rows-pages-menus/add-comments).
 
 | Symbol | Kind | Section |
 | --- | --- | --- |
@@ -25,7 +25,15 @@ Records from `comments` and `defaultComments` pass through the same checks as re
 
 `comments` is the controlled set of confirmed comments. Keep its reference stable between renders. `defaultComments` seeds an uncontrolled set once. In controlled mode, `onCommentsChange` receives confirmed records only, and the add-on keeps a confirmed record on screen until the prop returns it.
 
-`canEdit` and `canDelete` default to the author of the comment. `canCreate` and `canResolve` default to anyone. The popover shows an action when `readOnly` and `currentUser` allow it and the default gate passes. With a custom gate, it shows the action whenever `readOnly` and `currentUser` allow it, and the gate runs when the user acts. A refusal shows an inline message. A gate that throws or rejects refuses with the reason `"error"`.
+`currentUser` is optional. Without it, a write is anonymous: the record has no `author` and no `resolvedBy`. A present `currentUser` with an invalid `id` refuses every write with the reason `"invalid"`. Pass `readOnly: !session` while a session loads.
+
+`author` is a snapshot per record, and `author.id` is the identity. A later change of `name` or `color` affects new writes only. A record without `author` is anonymous and shows no name and no color dot. A record whose `author` is present but invalid is dropped. A server can add an author to an anonymous comment once. Every other author change is invalid.
+
+`canEdit` and `canDelete` default to the author of the comment, or to anyone when the comment has no author. `canCreate` and `canResolve` default to anyone.
+
+Every gate receives `{ comment, action, user, signal }`, so one `canResolve` tells `"resolve"` from `"reopen"`. `user` is absent without `currentUser`. The popover shows an action when `readOnly` and `currentUser` allow it and the default gate passes. With a custom gate, it shows the action whenever they allow it, and the gate runs when the user acts. A refusal shows an inline message. A gate that throws or rejects refuses with the reason `"error"`.
+
+`enableResolve: false` refuses resolve and reopen with the reason `"forbidden"`. The popover then ignores `resolved`. A remote change of `resolved` still reaches the data.
 
 `createId` and `normalizeText` apply to local writes only. The add-on checks the output of both against the bounds.
 
@@ -115,7 +123,7 @@ An invalid value (NaN, zero, a negative, or a fraction) falls back to the defaul
 | `maxComments` | 50,000 | 500,000 | The add-on refuses the write and drops a remote record. |
 | `maxCachedRows` | 2,000 | 20,000 | The add-on drops the comments of the rows that rendered longest ago. |
 
-The add-on also limits a batch of `applyRemote` to 10,000 changes, a fetch answer to 10,000 records, and the comment drafts to 50. It refuses a local text longer than four times `maxTextLength` before `normalizeText` runs, and drops a remote record whose text is that long. A `currentUser` or a `createId` result that is invalid refuses the write with the reason `"invalid"`.
+The add-on also limits a batch of `applyRemote` to 10,000 changes, a fetch answer to 10,000 records, and the comment drafts to 50. It refuses a local text longer than four times `maxTextLength` before `normalizeText` runs, and drops a remote record whose text is that long. A `createId` result that is invalid refuses the write with the reason `"invalid"`.
 
 ### Record fields [#record-fields]
 
@@ -124,56 +132,19 @@ The add-on also limits a batch of `applyRemote` to 10,000 changes, a fetch answe
 | `id`, `rowId`, `columnId` | 1 to 128 characters, no control characters. |
 | `text` | 1 to `maxTextLength` characters after trim. |
 | `version` | An integer from 1 to 1,000,000,000. |
-| `createdAt`, `updatedAt` | Finite epoch milliseconds. |
+| `createdAt`, `updatedAt` | Epoch milliseconds within the JavaScript date range (±8.64e15). |
+| `author` | Optional. When present, it needs a valid `id`. |
 | `author.name` | At most 80 characters. The add-on strips control and bidi-override characters. |
 | `author.color` | A CSS color of at most 64 characters. An invalid color paints as a theme token. |
 
-The address and `author.id` of a known comment never change. The add-on drops a record that changes them, except through an id swap. Comment times show in the `labels.locale` locale.
+The address and `author.id` of a known comment never change, and an author never goes away once set. The add-on drops a record that changes them, except through an id swap. Comment times show in the `labels.locale` locale.
 
-## Keyboard and DOM hooks [#keyboard]
-
-| Keys | Action |
-| --- | --- |
-| <kbd>Shift</kbd>+<kbd>F2</kbd> | Opens the popover for the active cell. A cell without comments opens the composer. The keymap name is `openComments`. |
-| <kbd>Shift</kbd>+<kbd>F10</kbd> or the menu key | Opens the context menu. The "Comments…" item opens the popover. |
-| <kbd>Mod</kbd>+<kbd>Enter</kbd> | Submits the composer. |
-| <kbd>Escape</kbd> | Cancels a delete confirm. Otherwise it closes the popover and keeps the comment draft. |
-| <kbd>Tab</kbd> past the last control | Closes the popover. The Tab order goes on from the grid. |
-
-The command `openComments` refuses holes and band rows. Viewing works on a read-only grid, and each write checks `readOnly` itself.
-
-## Labels [#labels]
-
-`labels` takes a partial `DataGridCommentsLabels`. A function label receives the values to insert, so a translation owns its plural form. `locale` sets the language of the comment times.
-
-| Label | Type | Use |
-| --- | --- | --- |
-| `popover` | `(columnTitle, cellText) => string` | The accessible name of the popover. |
-| `locale` | `string` | The locale of the comment times. |
-| `commentList`, `composer`, `composerPlaceholder` | `string` | The list, the textarea label, and its placeholder. |
-| `submit`, `cancel`, `save`, `retry`, `discard`, `saveMine` | `string` | Button text. |
-| `editAction`, `deleteAction`, `confirmDeleteAction`, `resolveAction`, `reopenAction` | `string` | Visible action text. |
-| `edit`, `remove`, `confirmRemove`, `resolve`, `reopen` | `(name, time) => string` | The accessible name of an action. |
-| `resolved`, `saving`, `loading`, `loadFailed`, `changedByOther`, `noComments` | `string` | Status text. |
-| `readOnlyHint`, `noUserHint`, `rowBusyHint`, `refused`, `failed` | `string` | Hints and inline errors. |
-| `counter` | `(used, max) => string` | The length counter near the limit. |
-| `menuItem` | `string` | The context menu item. |
-| `announce`, `announceAdded` | `(count, unresolved, chord)`, `(name)` | The live region text. |
-| `unknownAuthor` | `string` | The name of an author without one. |
-
-### DOM hooks [#dom-hooks]
-
-| Hook | Where | Use |
-| --- | --- | --- |
-| `data-grid-comment-marker` | The corner element of a commented cell | Style the marker. It is `aria-hidden`. |
-| `data-unresolved` | The marker | Present while any comment of the cell is unresolved. Absent on the ring. |
-| `data-grid-comments-popup` | The popover popup | Style the popover. The grid ignores presses inside it. |
-
-The marker uses `bg-primary` and `border-primary`. It stays visible in forced-colors mode. Under a coarse pointer, its hit area grows to 24 px, and the drawn corner stays the same. `className` merges into the popover root.
+Labels, keyboard shortcuts, and DOM hooks are on [Comments labels and hooks](/docs/add-options/server/comments-labels).
 
 ## Related
 
-- [Add comments to cells](/docs/rows-live-data/add-comments): wiring, conflicts, and sharing.
+- [Comments labels and hooks](/docs/add-options/server/comments-labels): labels, keys, and DOM hooks.
+- [Add comments to cells](/docs/rows-pages-menus/add-comments): wiring, conflicts, and sharing.
 - [Context menu](/docs/rows-pages-menus/context-menu): the resolver that `getCommentMenuItems` plugs into.
 - [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts): the `openComments` add-on action.
 - [Presence options](/docs/add-options/server/presence-options): the sibling add-on for remote selections.
