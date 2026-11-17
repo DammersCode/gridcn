@@ -14,12 +14,12 @@ type: example
 ## What the demo shows [#whats-in-the-demo]
 
 - `headerClickBehavior="sort"` makes a header click sort the column up, then down, then clear the sort.
-- `header` on Name and Score is a node. A node header renders as it is and owns its display, so the grid adds no sort arrow to it.
+- `header` on Name and Score is a node. A node header renders as it is and owns its display. Both set `sortIndicator: false` because their own icon replaces the built-in arrow.
 - `SortStateIcon` calls `useDataGridSortState()` to read the sort list and picks an icon from the entry of its column.
 - No demo column sets `headerText`. The plain-text label of a node header is the text of its HTML elements, or the column id when they hold no text. A component inside the node adds no text. Set `headerText` to give the label directly.
-- Email keeps a string header. The grid appends the built-in sort arrow to it.
+- Email keeps a string header and the built-in sort arrow.
 
-To keep the built-in arrow in a node header, render `DataGridSortIndicator` inside it:
+A node header shows the built-in arrow after its content. To place the arrow inside the node, set `sortIndicator: false` and render `DataGridSortIndicator` there:
 
 ```tsx
 import {
@@ -34,6 +34,7 @@ export const columns = defineColumns<Row>()([
     id: "score",
     accessorKey: "score",
     type: "number",
+    sortIndicator: false,
     header: (
       <span>
         Score <DataGridSortIndicator columnId="score" />

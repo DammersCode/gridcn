@@ -19,7 +19,7 @@ export type ColumnResizeHandlers = {
  * Pointer-capture column resize: drag the handle to live-update the column's
  * width via `previewColumnWidth`, clamped to `[max(32, minWidth), maxWidth ?? Infinity]`; commits on
  * `pointerup`, and `pointercancel`, `lostpointercapture`, or a window blur end the drag, restore the
- * stored width the drag started from (none, for an unresized column), and commit nothing. Double-click sizes this column to its content through the store's `autosizeColumns`
+ * stored width the drag started from (none, for an unresized column), and commit nothing; Escape cancels the same way. Double-click sizes this column to its content through the store's `autosizeColumns`
  * action, which samples the view (one commit, one `onColumnLayoutChange`).
  */
 export function useColumnResize(args: {
@@ -79,7 +79,11 @@ export function useColumnResize(args: {
         document.removeEventListener("pointercancel", handleEnd);
         target.removeEventListener("lostpointercapture", handleEnd);
         window.removeEventListener("blur", cancelDrag);
+        document.removeEventListener("keydown", handleKeyDown);
         cleanupRef.current = null;
+      };
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") cancelDrag();
       };
       const cancelDrag = () => {
         const drag = dragRef.current;
@@ -106,6 +110,7 @@ export function useColumnResize(args: {
       document.addEventListener("pointercancel", handleEnd);
       target.addEventListener("lostpointercapture", handleEnd);
       window.addEventListener("blur", cancelDrag);
+      document.addEventListener("keydown", handleKeyDown);
       cleanupRef.current = cleanup;
     },
     [clamp, column.id],

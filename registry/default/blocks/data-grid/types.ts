@@ -448,11 +448,7 @@ export type ColumnFilter = CellTypeFilter;
 export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   /** Stable identity — never derived from the header label. */
   id: string;
-  /**
-   * String headers render truncated and get the built-in sort-direction arrow
-   * while the column is sorted, in every header-click mode; a ReactNode header renders as-is and owns its own display (the built-in
-   * arrow is NOT appended — embed DataGridSortIndicator inside it when you still want it).
-   */
+  /** String headers render truncated. Every header gets the sort arrow while the column is sorted; see `sortIndicator`. */
   header: string | ReactNode;
   /** Plain-text header when `header` is a ReactNode: names the column in export, import matching, autosize, menus, and assistive technology. */
   headerText?: string;
@@ -515,6 +511,8 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   pin?: ColumnPin;
   /** Removes the column from click-to-sort (header clicks no longer sort it); programmatic `setSorts`/`toggleSort` still apply, and the header shows their arrow and `aria-sort`. Default true. */
   sortable?: boolean;
+  /** Draws the built-in sort arrow in the header, for string and node headers alike. Set `false` when a node header draws its own arrow, such as `DataGridSortIndicator`. Default true. */
+  sortIndicator?: boolean;
   /** Excludes the column from the filter menu's column picker. Existing filter specs on it keep applying. Default true. */
   filterable?: boolean;
   /** Filter capabilities of this column; each member overrides the same member of the cell type's `filter`. */

@@ -111,6 +111,7 @@ const withIconHeaders = (columns: readonly ColumnDef<DemoRow, unknown>[]): reado
     if (column.id === "name") {
       return {
         ...column,
+        sortIndicator: false,
         header: (
           <LiveSortHeader
             columnId="name"
@@ -126,6 +127,7 @@ const withIconHeaders = (columns: readonly ColumnDef<DemoRow, unknown>[]): reado
     if (column.id === "score") {
       return {
         ...column,
+        sortIndicator: false,
         header: (
           <LiveSortHeader
             columnId="score"

@@ -29,6 +29,7 @@ const unsortedIcon = <Minus className="size-3.5 shrink-0 text-muted-foreground" 
 const columns = defineColumns<DemoRow>()([
   {
     id: "name",
+    sortIndicator: false,
     header: (
       <span className="flex items-center gap-1.5">
         <User className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -48,6 +49,7 @@ const columns = defineColumns<DemoRow>()([
   { id: "email", header: "Email", accessorKey: "email", type: "text", width: 140 },
   {
     id: "score",
+    sortIndicator: false,
     header: (
       <span className="flex items-center gap-1.5">
         Score

@@ -111,6 +111,34 @@ describe("column resize", () => {
     expect(onColumnLayoutChange).not.toHaveBeenCalled();
   });
 
+  it("Escape ends the resize without committing the layout and restores the width", async () => {
+    const onColumnLayoutChange = vi.fn();
+    await render(
+      <div style={{ height: 400 }}>
+        <DataGrid data={makeRows(20)} columns={columns} getRowId={(r) => r.id} className="h-[400px]" onColumnLayoutChange={onColumnLayoutChange} />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const header = headerCells()[0]!;
+    const widthBefore = header.getBoundingClientRect().width;
+    const handle = header.querySelector<HTMLElement>(gridAttrSelector("resizeHandle"))!;
+    const handleRect = handle.getBoundingClientRect();
+
+    handle.dispatchEvent(
+      new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1, clientX: handleRect.left, clientY: handleRect.top }),
+    );
+    document.dispatchEvent(
+      new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientX: handleRect.left + 60, clientY: handleRect.top }),
+    );
+    await new Promise((r) => requestAnimationFrame(r));
+    document.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Escape" }));
+    document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerId: 1 }));
+    await new Promise((r) => requestAnimationFrame(r));
+
+    expect(onColumnLayoutChange).not.toHaveBeenCalled();
+    expect(header.getBoundingClientRect().width).toBe(widthBefore);
+  });
+
   it("a resize drag with a synthetic pointer id (capture refused) still changes the width", async () => {
     await render(
       <div style={{ height: 400 }}>
