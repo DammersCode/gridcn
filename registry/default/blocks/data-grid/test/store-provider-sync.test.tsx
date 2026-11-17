@@ -126,7 +126,7 @@ describe("_syncProps recompute", () => {
   });
 
   it("changed data that actually reorders the view DOES produce a new viewIndex reference on resync", () => {
-    let captured: number[] | null = null;
+    let captured: readonly number[] | null = null;
 
     function Harness({ data }: { data: Row[] }) {
       return (

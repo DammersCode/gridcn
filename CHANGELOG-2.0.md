@@ -45,6 +45,8 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - A node `header` shows the built-in sort arrow, like a string header. `sortIndicator: false` on the column removes it, so a header that draws its own arrow (`DataGridSortIndicator`, a custom icon) sets the opt-out. In development, a node header with no plain text and no `headerText` warns once for each header.
 - Escape ends a column resize drag, restores the width, and fires no `onColumnLayoutChange`.
 - `renderHeaderFilter` accepts a component (`renderHeaderFilter={DataGridHeaderFilter}`); the header renders the slot through a stable wrapper, so hooks in the slot keep their state.
+- `defineColumns<Row, typeof extraTypes>()` types a column of a custom cell type from the value and options of `defineCellType(type)`, with no `GridCellTypes` augmentation. `defineCellType(key, type)` works as before.
+- `useDataGridViewIndex()` returns `readonly number[]`. The selector state of `useDataGridSelector` and `createDataGridSelector` no longer lists the engine fields.
 
 ## Selection and editing
 

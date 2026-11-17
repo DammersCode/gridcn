@@ -1,4 +1,4 @@
-import type { AccessorKeyOf, CellOptionsOf, CellTypeKey, CellValueOf, ColumnDef } from "../types";
+import type { AccessorKeyOf, CellOptionsOf, CellType, CellTypeKey, CellValueOf, ColumnDef } from "../types";
 import { isDev } from "../is-dev";
 
 /** Keys of `T` whose value extends `V` (nullable `V` also matches the non-null key type). */
@@ -34,17 +34,34 @@ export type TypedTextColumnDef<TData> = Omit<TypedColumnDef<TData, "text">, "typ
   type?: "text";
 };
 
+/** Custom cell types by name, as `defineColumns<Row, typeof extraTypes>()` takes them; no `GridCellTypes` augmentation needed. */
+export type ExtraCellTypes = Record<string, CellType<any, any, any>>;
+
+/** A column of the custom cell type named `K` in `TExtra`: `options` and the accessor follow that type's options and value. */
+export type ExtraTypedColumnDef<TData, TExtra extends ExtraCellTypes, K extends keyof TExtra & string> = Omit<
+  ColumnDef<TData, ExtraValueOf<TExtra[K]>>,
+  "type" | "options" | "accessorKey"
+> & {
+  type: K;
+  options?: ExtraOptionsOf<TExtra[K]>;
+  accessorKey?: KeysMatching<TData, ExtraValueOf<TExtra[K]>>;
+};
+
+type ExtraValueOf<T> = T extends CellType<any, infer V, any> ? V : never;
+type ExtraOptionsOf<T> = T extends CellType<any, any, infer O> ? O : never;
+
 /** A `TypedColumnDef` for some cell-type key, used where the specific `K` need not be named. */
-export type AnyTypedColumn<TData> =
+export type AnyTypedColumn<TData, TExtra extends ExtraCellTypes = {}> =
   | TypedTextColumnDef<TData>
-  | { [K in Exclude<CellTypeKey, "text">]: TypedColumnDef<TData, K> }[Exclude<CellTypeKey, "text">];
+  | { [K in Exclude<CellTypeKey, "text">]: TypedColumnDef<TData, K> }[Exclude<CellTypeKey, "text">]
+  | { [K in Exclude<keyof TExtra & string, CellTypeKey>]: ExtraTypedColumnDef<TData, TExtra, K> }[Exclude<keyof TExtra & string, CellTypeKey>];
 
 /** All keys any `AnyTypedColumn<TData>` branch may carry (for excess-property rejection). */
-type KnownColumnKey<TData> = keyof AnyTypedColumn<TData>;
+type KnownColumnKey<TData, TExtra extends ExtraCellTypes> = keyof AnyTypedColumn<TData, TExtra>;
 
 /** Every key of a column literal in `T` that lies outside the known column shape. */
-type ExcessColumnKeys<TData, T extends readonly unknown[]> = {
-  [I in keyof T]: Exclude<keyof T[I], KnownColumnKey<TData>>;
+type ExcessColumnKeys<TData, TExtra extends ExtraCellTypes, T extends readonly unknown[]> = {
+  [I in keyof T]: Exclude<keyof T[I], KnownColumnKey<TData, TExtra>>;
 }[number];
 
 /**
@@ -53,21 +70,23 @@ type ExcessColumnKeys<TData, T extends readonly unknown[]> = {
  * literals. An unknown key turns this into a required argument, so the call fails to compile and
  * the missing argument's type names the key.
  */
-type RejectExcessColumnKeys<TData, T extends readonly unknown[]> = [ExcessColumnKeys<TData, T>] extends [never]
+type RejectExcessColumnKeys<TData, TExtra extends ExtraCellTypes, T extends readonly unknown[]> = [ExcessColumnKeys<TData, TExtra, T>] extends [never]
   ? []
-  : [unknownColumnKey: `unknown column key: ${ExcessColumnKeys<TData, T> & string}`];
+  : [unknownColumnKey: `unknown column key: ${ExcessColumnKeys<TData, TExtra, T> & string}`];
 
 /**
  * Identity helper that gives each column literal in the array its own
  * `TValue`/`options` inference (via `type`) while returning `columns`
- * unchanged at runtime. In dev mode it warns on columns missing both
+ * unchanged at runtime. Pass the custom cell types as the second type argument
+ * (`defineColumns<Row, typeof extraTypes>()`) and a column with `type: "currency"` gets that
+ * type's value and options. In dev mode it warns on columns missing both
  * `accessorKey` and `accessorFn` (duplicate ids are warned once per instance
  * by the provider instead).
  */
-export function defineColumns<TData>(): <const T extends readonly AnyTypedColumn<TData>[]>(
+export function defineColumns<TData, TExtra extends ExtraCellTypes = {}>(): <const T extends readonly AnyTypedColumn<TData, TExtra>[]>(
   columns: T,
   // A check on `columns` itself (`T & ...`) drops callback contextual typing on TypeScript 5.x.
-  ...excessKeyCheck: RejectExcessColumnKeys<TData, T>
+  ...excessKeyCheck: RejectExcessColumnKeys<TData, TExtra, T>
 ) => T {
   return (columns, ..._excessKeyCheck) => {
     if (isDev()) {

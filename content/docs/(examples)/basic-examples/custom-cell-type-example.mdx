@@ -50,6 +50,15 @@ declare module "@/components/data-grid/types" {
 }
 ```
 
+Without the augmentation, pass the types as the second type argument of `defineColumns`. `defineCellType(type)` keeps the value and options types of the type it receives:
+
+```ts fragment="uses the currencyCellType and Order of the demo"
+const extraTypes = { currency: defineCellType(currencyCellType) };
+const columns = defineColumns<Order, typeof extraTypes>()([
+  { id: "price", header: "Price", accessorKey: "price", type: "currency", options: { currency: "EUR" } },
+]);
+```
+
 ## Related
 
 - [Write a cell type](/docs/recipes-custom-code/write-cell-type): the steps to write a type and its `GridCellTypes` key
