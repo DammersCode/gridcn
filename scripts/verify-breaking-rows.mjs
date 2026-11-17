@@ -5,7 +5,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const PAGE = "content/docs/(evaluate)/support-upgrades/breaking-changes-2-0.mdx";
+const PAGES = ["breaking-changes-2-0", "breaking-changes-2-0-addons"].map((slug) => `content/docs/(evaluate)/support-upgrades/${slug}.mdx`);
+const PAGE = "a 2.0 breaking changes page";
 const RELEASE_SECTION = /^## (?:Unreleased|2\.0\.\d+)\b/;
 
 /** The `**Breaking` entries of the 2.0 section of `changelog`: `{ line, id }`, `id` null without a row comment. */
@@ -52,7 +53,7 @@ export function breakingRowProblems({ changelog, changelog20, page }) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const read = (path) => readFileSync(join(root, path), "utf8");
-  const problems = breakingRowProblems({ changelog: read("CHANGELOG.md"), changelog20: read("CHANGELOG-2.0.md"), page: read(PAGE) });
+  const problems = breakingRowProblems({ changelog: read("CHANGELOG.md"), changelog20: read("CHANGELOG-2.0.md"), page: PAGES.map(read).join("\n") });
   if (problems.length) {
     console.error(`breaking rows: ${problems.length} problems\n${problems.map((p) => `  ${p}`).join("\n")}`);
     process.exit(1);
