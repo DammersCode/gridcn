@@ -1,15 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type Ref } from "react";
 import { AutoScroller } from "@dnd-kit/dom";
 import { DragDropProvider } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
-import { Filter, FolderPlus, GripVertical, Plus, Trash2 } from "lucide-react";
+import { Eraser, Filter, FolderPlus, GripVertical, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   useDataGridActions,
@@ -81,8 +82,8 @@ type FilterMenuContext = {
  * Popover listing the filter tree. The top level is a list of rows and groups joined by "and"; a
  * group is a bordered box with its own rows; each row after the first shows an "And"/"Or" select
  * that sets the join of the whole group. Every row and group has a drag handle and a trash
- * icon-button; a row adds a field select, an operator select, and a typed value input. Footers hold
- * "Add filter" and "Add group" (a group nests one more group at most). Built from this repo's own
+ * icon-button; a row adds a field select, an operator select, and a typed value input. The title row
+ * holds "Add filter", "Add group" (a group nests one more group at most), and "Clear all". Built from this repo's own
  * Base UI components. Reordering uses `@dnd-kit/react`'s sortable primitives (handle-initiated
  * pointer drag with a lifted-row overlay feel via `isDragSource` and a landing line at the target
  * slot), plus a plain ArrowUp/ArrowDown-on-drag handle fallback that always wins over the library's
@@ -279,30 +280,42 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
       />
       <PopoverContent align="start" className="flex w-full min-w-[min(26.25rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] flex-col gap-3.5 p-4">
         <div data-grid-filter-menu="" className="flex flex-col gap-3.5">
-          <h4 className="font-medium leading-none text-muted-foreground">{labels.toolbar.filter}</h4>
+          <div className="@container flex items-center justify-between gap-2">
+            <PopoverTitle className="leading-none text-muted-foreground">{labels.toolbar.filter}</PopoverTitle>
+            <ButtonGroup>
+              <MenuAction label={labels.toolbar.addFilter} text={labels.toolbar.addFilterShort} icon={<Plus />} buttonRef={addButtonRef} onClick={() => context.onAddFilter(undefined)} disabled={noColumns} />
+              <MenuAction label={labels.toolbar.addFilterGroup} text={labels.toolbar.addFilterGroupShort} icon={<FolderPlus />} onClick={() => context.onAddGroup(undefined)} disabled={noColumns} />
+              {filters.length > 0 && <MenuAction label={labels.toolbar.clearFilters} text={labels.toolbar.clearFiltersShort} icon={<Eraser />} onClick={() => actions.setFilters([])} />}
+            </ButtonGroup>
+          </div>
           {filters.length === 0 && <p className="text-sm text-muted-foreground">{labels.toolbar.noFiltersApplied}</p>}
           <div aria-live="polite" role="status" className="sr-only">
             {announcement}
           </div>
           {filters.length > 0 && <FilterList nodes={filters} parent={undefined} depth={0} path="" ctx={context} className="max-h-75 overflow-y-auto" />}
-          <div className="flex w-full flex-wrap items-center gap-2">
-            <ButtonGroup>
-              <Button type="button" ref={addButtonRef} onClick={() => context.onAddFilter(undefined)} disabled={noColumns}>
-                {labels.toolbar.addFilter}
-              </Button>
-              <Button type="button" variant="outline" onClick={() => context.onAddGroup(undefined)} disabled={noColumns}>
-                {labels.toolbar.addFilterGroup}
-              </Button>
-            </ButtonGroup>
-            {filters.length > 0 && (
-              <Button type="button" variant="outline" onClick={() => actions.setFilters([])}>
-                {labels.toolbar.clearFilters}
-              </Button>
-            )}
-          </div>
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+type MenuActionProps = { label: string; text: string; icon: ReactNode; onClick: () => void; disabled?: boolean; buttonRef?: Ref<HTMLButtonElement> };
+
+/** A title-row action: icon and short text. The text hides in a narrow row; the tooltip and aria-label carry the full label. */
+function MenuAction(props: MenuActionProps): ReactNode {
+  const { label, text, icon, onClick, disabled, buttonRef } = props;
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button type="button" ref={buttonRef} variant="outline" size="sm" aria-label={label} onClick={onClick} disabled={disabled}>
+            {icon}
+            <span className="@max-sm:sr-only">{text}</span>
+          </Button>
+        }
+      />
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   );
 }
 

@@ -1349,6 +1349,7 @@
             "checkbox",
             "input-group",
             "button-group",
+            "tooltip",
             "DammersCode/gridcn/use-debounce"
          ],
          "files": [

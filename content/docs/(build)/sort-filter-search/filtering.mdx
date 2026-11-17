@@ -143,7 +143,7 @@ With `filterMode="server"`, the grid never calls `match`, so leave it out. In cl
 
 The popover lists the filter tree. The first entry of the top level and of each group reads "Where". Later top-level entries read "And". Later entries of a group show a select with "And" and "Or". That select sets the join of the whole group, so all its entries show the same word.
 
-Each row is one bordered control (column, operator, value, remove) with the drag handle to its right. The popover foot holds "Add filter" and "Add group". Each group header has icon buttons to add a filter, add a group, and remove the group.
+Each row is one bordered control (column, operator, value, remove) with the drag handle to its right. The popover title row holds "Add filter", "Add group", and "Clear all" buttons. Each group header has icon buttons to add a filter, add a group, and remove the group.
 
 A new group takes the opposite join of its parent, so a group in the top level starts as "Or". `isBetween` shows two inputs, and `isAnyOf` and `isNoneOf` show a checkbox list.
 

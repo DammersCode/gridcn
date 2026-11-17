@@ -949,7 +949,7 @@ describe("DataGridFilterMenu groups", () => {
     await click(buttons("Add group")[0]);
     await expect.poll(() => document.querySelectorAll("[data-grid-filter-group]").length).toBe(1);
     await userEvent.fill(valueInputs()[1]!, "Ali");
-    await click(buttons("Add filter")[0]); // the group footer precedes the top-level footer in DOM order
+    await click(buttons("Add filter")[1]); // the top-level title row precedes the group header in DOM order
     await expect.poll(() => valueInputs().length).toBe(3);
     await userEvent.fill(valueInputs()[2]!, "Bo");
     await expect.poll(rowCount).toBe(2);
@@ -994,7 +994,7 @@ describe("DataGridFilterMenu groups", () => {
 
   it("changing the connector on one row sets it on every row of that group and re-filters", async () => {
     await buildNestedFilterTree();
-    await click(buttons("Add filter")[0]); // third row in the group
+    await click(buttons("Add filter")[1]); // third row in the group
     await expect.poll(() => valueInputs().length).toBe(4);
     const selects = () => [...document.querySelectorAll<HTMLElement>('[data-grid-filter-group] [role="combobox"][aria-label^="Connector of filter"]')];
     expect(selects().map((s) => s.textContent)).toEqual(["Or", "Or"]);
@@ -1039,7 +1039,7 @@ describe("DataGridFilterMenu groups", () => {
   it("hides Add group inside a subgroup", async () => {
     await buildNestedFilterTree();
     expect(buttons("Add group")).toHaveLength(2);
-    await click(buttons("Add group")[0]);
+    await click(buttons("Add group")[1]);
     await expect.poll(() => document.querySelectorAll("[data-grid-filter-group]").length).toBe(2);
     expect(buttons("Add group")).toHaveLength(2);
     const subgroup = document.querySelectorAll<HTMLElement>("[data-grid-filter-group] [data-grid-filter-group]")[0]!;
@@ -1146,7 +1146,7 @@ describe("DataGridFilterMenu drag landing indicator", () => {
     await page.getByRole("button", { name: "Filters" }).click();
     await page.getByRole("button", { name: "Add group" }).first().click();
     await expect.poll(() => rowElements().length).toBe(1);
-    await page.getByRole("button", { name: "Add filter" }).first().click();
+    await page.getByRole("button", { name: "Add filter" }).nth(1).click();
     await expect.poll(() => rowElements().length).toBe(2);
     const group = document.querySelector("[data-grid-filter-group]")!;
     const [, second] = [...rowElements()];

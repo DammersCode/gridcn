@@ -42,6 +42,12 @@ export type DataGridToolbarLabels = {
   filterReorderAnnouncement: (column: string, position: number, total: number) => string;
   addFilter: string;
   clearFilters: string;
+  /** Visible text of the "Add filter" button in the filter popover title row; `addFilter` stays its accessible name. */
+  addFilterShort: string;
+  /** Visible text of the "Add group" button; `addFilterGroup` stays its accessible name. */
+  addFilterGroupShort: string;
+  /** Visible text of the "Clear all" button; `clearFilters` stays its accessible name. */
+  clearFiltersShort: string;
   noFiltersApplied: string;
   /** Static "Where" label shown in the first filter row's join cell. */
   filterWhere: string;
