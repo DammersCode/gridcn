@@ -203,6 +203,8 @@ export type DataGridMarkerLabels = {
 
 /** Core grid strings not owned by a specific add-on. */
 export type DataGridGridLabels = {
+  /** Accessible name of a grid that sets neither `aria-label` nor `aria-labelledby`. */
+  gridName: string;
   /** Shown when the source has no rows and nothing filters; the `emptyState` prop on `DataGridRoot`, when provided, wins over this default. */
   emptyState: string;
   /** Shown instead of `emptyState` when a filter or a server search leaves zero rows. */
@@ -250,8 +252,6 @@ export type DataGridIOLabels = {
   importDialogTitle: string;
   importDialogDescription: string;
   chooseFile: string;
-  /** @deprecated The empty drop zone reads `emptyDropzoneCaption`. */
-  noFileChosen: string;
   /** Size limit in the empty drop zone caption; `bytes` is the import's `maxFileBytes`. */
   maxFileSize: (bytes: number) => string;
   /** Caption of the empty import drop zone; `maxSize` is the `maxFileSize` text. */
@@ -417,6 +417,53 @@ export type DataGridFindReplaceLabels = {
   replaceCancelled: string;
 };
 
+/** Every string of the comments UI. Functions take the values to insert; the plural form is the function's job. */
+export type DataGridCommentsLabels = {
+  popover: (columnTitle: string, cellText: string) => string;
+  /** Locale of the comment times. Pinned so the server and the client render the same text. */
+  locale: string;
+  commentList: string;
+  composer: string;
+  editComposer: string;
+  composerPlaceholder: string;
+  submit: string;
+  cancel: string;
+  save: string;
+  editAction: string;
+  deleteAction: string;
+  confirmDeleteAction: string;
+  resolveAction: string;
+  reopenAction: string;
+  /** `name` is `""` for a comment without an author. */
+  edit: (name: string, time: string) => string;
+  remove: (name: string, time: string) => string;
+  confirmRemove: (name: string, time: string) => string;
+  resolve: (name: string, time: string) => string;
+  reopen: (name: string, time: string) => string;
+  resolved: string;
+  saving: string;
+  loading: string;
+  loadFailed: string;
+  retry: string;
+  discard: string;
+  saveMine: string;
+  changedByOther: string;
+  readOnlyHint: string;
+  rowBusyHint: string;
+  refused: string;
+  failed: string;
+  counter: (used: number, max: number) => string;
+  menuItem: string;
+  noComments: string;
+  /** `chord` is `""` when the app unbinds `openComments`. */
+  announce: (count: number, unresolved: number, chord: string) => string;
+  /** The announcement when `enableResolve` is `false`. */
+  announceCount: (count: number, chord: string) => string;
+  /** `name` is `""` for a comment without an author. */
+  announceAdded: (name: string) => string;
+  unknownAuthor: string;
+};
+
 /** Every user-facing default string across core + every add-on, grouped by owning surface. */
 export interface DataGridLabels {
   toolbar: DataGridToolbarLabels;
@@ -431,6 +478,8 @@ export interface DataGridLabels {
   statusBar: DataGridStatusBarLabels;
   views: DataGridViewsLabels;
   findReplace: DataGridFindReplaceLabels;
+  /** Overrides for the comments add-on; the add-on holds the defaults. */
+  comments?: Partial<DataGridCommentsLabels>;
 }
 
 /** English defaults — nearly every string in the shipped UI, verbatim (so adopting `labels` never changes visible copy without an explicit override). */

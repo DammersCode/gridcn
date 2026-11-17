@@ -358,6 +358,7 @@ export const HOOK_GROUPS = [
       ["useDataGridIsColumnHidden", "Returns whether a column is hidden.", "/docs/types-hooks/store-hooks#usedatagridiscolumnhidden"],
       ["useDataGridKeymap", "Returns the effective keymap without bindings that never match.", "/docs/types-hooks/store-hooks#usedatagridkeymap"],
       ["useDataGridLabels", "Returns the merged labels.", "/docs/types-hooks/store-hooks#usedatagridlabels"],
+      ["useDataGridLiveAnnouncement", "Returns the current live region announcement, or `null`.", "/docs/accessibility/live-region-messages#read-message"],
       ["useDataGridPendingSaveCount", "Returns the count of pending saves.", "/docs/types-hooks/store-hooks#usedatagridpendingsavecount"],
       ["useDataGridReadOnly", "Returns the `readOnly` flag.", "/docs/types-hooks/store-hooks#usedatagridreadonly"],
       ["useDataGridRow", "Returns the row at a view index.", "/docs/types-hooks/store-hooks#usedatagridrow"],

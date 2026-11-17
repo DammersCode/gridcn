@@ -325,3 +325,13 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - Fix: a changed `getRowId` is detected on up to 32 evenly spaced loaded rows (every row up to 10,000 in development), not on the first and last row only. A function that changes only middle ids no longer keeps the old ids.
 - Fix: a consumer `getRowId` never receives `undefined`. An unloaded row of a lazy source gets its placeholder id before the function runs, so a plain `(row) => row.id` no longer throws on a hole.
 - New development warnings: a plugin `commands` entry named like an add-on action (`undo`, `openFind`) with no key, and a `keymap` action that is neither a built-in action nor a command, once per name.
+- A grid whose viewport holds more than 200 rows sets `data-grid-unbounded` on its root and limits its height to `var(--data-grid-fallback-height, 100dvh)`, so every row stays reachable. The development warning for an unbounded height is gone.
+- A grid with a measured height of 0, such as one in jsdom, renders the first 10 rows.
+- A grid with `loading` and `error` set shows the error, without the loading skeleton.
+- A grid without `aria-label` and `aria-labelledby` takes its name from `labels.grid.gridName` ("Data grid"). The development warning stays.
+- In development, a second `DataGridRoot` on a store that another root already serves warns once.
+- The default header height follows `density`: 32, 36, and 40 px for `compact`, `default`, and `comfortable`. `headerHeight` overrides it.
+- `DataGrid` takes `toolbar`, a node that renders inside the provider before the grid.
+- `useDataGridLiveAnnouncement()` is exported from the barrel.
+- An inline function in `labels` no longer rebuilds the labels on every render, and the grid calls the function of the latest render.
+- `labels.comments` types the comments add-on overrides in the grid `labels`.

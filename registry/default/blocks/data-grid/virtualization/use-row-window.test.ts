@@ -663,9 +663,16 @@ describe("useRowWindow render cap warning", () => {
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it("warns once for a viewport that holds more than 200 rows", async () => {
+  it("never warns: the root bounds a viewport that holds more than 200 rows", async () => {
     const { warn } = await flingWindow(4200);
-    expect(warn).toHaveBeenCalledTimes(1);
-    expect(String(warn.mock.calls[0]![0])).toContain("viewport shows more than 200 rows");
+    expect(warn).not.toHaveBeenCalled();
+  });
+});
+
+describe("useRowWindow zero-height viewport", () => {
+  it("renders the first 10 rows when the measured height is 0", () => {
+    const ref = { current: makeScrollElement(0, 0) };
+    const { result } = renderHook(() => useRowWindow(ref, { rowCount: 10000, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }));
+    expect(result.current).toMatchObject({ start: 0, end: 10, measured: true });
   });
 });

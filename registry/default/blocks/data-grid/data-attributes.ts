@@ -151,6 +151,8 @@ export const GRID_ATTR = {
   rowChanged: "data-row-changed",
   /** root.tsx: the names of the consumer hooks whose promise is pending, space separated; absent while none is. */
   gatePending: "data-gate-pending",
+  /** root.tsx: present (`""`) once the viewport held more rows than the render cap; the root then takes `max-height: var(--data-grid-fallback-height, 100dvh)`. */
+  unbounded: "data-grid-unbounded",
 } as const;
 
 /** A key of {@link GRID_ATTR}. */

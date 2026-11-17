@@ -53,6 +53,7 @@ export {
   useDataGridReadOnly,
   useDataGridKeymap,
   useDataGridLabels,
+  useDataGridLiveAnnouncement,
   useDataGridActiveCell,
   useDataGridActiveColumn,
   useDataGridCellTypes,
@@ -262,6 +263,8 @@ export type DataGridProps<TData> = (ExternalStoreProps | OwnedStoreProps<TData>)
     ref?: Ref<DataGridApi<TData>>;
     /** Per-column header cell slot of the default header — see {@link HeaderCellRenderer}. With `children`, pass it to `DataGridHeader` instead. */
     renderHeaderCell?: HeaderCellRenderer;
+    /** Rendered inside the provider, above the grid: a toolbar, a search field, or a status bar that reads the grid's store. */
+    toolbar?: ReactNode;
   };
 
 /**
@@ -321,10 +324,12 @@ export function DataGrid<TData>(props: DataGridProps<TData>): ReactNode {
     getRowClassName,
     getCellClassName,
     children,
+    toolbar,
     ...rest
   } = props;
   return (
     <DataGridProvider {...rest}>
+      {toolbar}
       <DataGridRoot
         className={className}
         aria-label={ariaLabel}

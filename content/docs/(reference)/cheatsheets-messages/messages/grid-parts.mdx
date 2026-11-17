@@ -28,7 +28,6 @@ These warnings come from the size of the grid.
 
 | Message | What to do | Page |
 | --- | --- | --- |
-| <span id="the-grid-viewport-shows-more-than-200-rows" />`[data-grid] the grid viewport shows more than 200 rows at once — its height is probably unbounded, which disables virtualization. Give the grid a bounded height (e.g. className="h-150" or h-full inside a sized parent). Rendering is capped at 200 rows.` | Give the grid a bounded height with `className` or a sized parent. | [Virtualization](/docs/performance/virtualization) |
 | <span id="rowcount-rows-at-rowheight-px-need-height-px" />`[data-grid] <rowCount> rows at <rowHeight>px need <height>px of scroll height, which is above the browser height limit ...` | Show fewer rows at once. Page them with server pagination, or narrow the view with a filter. | [Row limits](/docs/performance/row-limits) |
 | <span id="rendered-row-count-n-does-not-match-the" />`[data-grid] rendered row count (<n>) does not match the expected window size (<expected>) — start=<start> end=<end> activeRowOffWindow=<flag>.` | Report this as a bug with the values in the text. | [Virtualization](/docs/performance/virtualization) |
 | <span id="pin-left-is-now-start-and-pin-right" />`[data-grid] pin: "left" is now "start" and pin: "right" is now "end"; "<value>" is read as "<name>"` | Rename the `pin` value to `"start"` or `"end"`. The grid still reads the old value. | [Column order and pinning](/docs/columns/column-order-pinning) |

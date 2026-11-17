@@ -33,9 +33,9 @@ A jump is a scroll of more than the viewport height plus 1,600 px in one scroll 
 
 ## Give the grid a bounded height [#bounded-height]
 
-Virtualization needs a scroll area with a fixed height. Without one, the viewport covers every row. The grid then caps rendering at 200 rows. A development build logs a warning once per page load, for the first grid whose viewport holds more than 200 rows. The warning names an unbounded height as the likely cause.
+Virtualization needs a scroll area with a fixed height. Without one, the viewport covers every row. When the viewport holds more than 200 rows, the grid sets `data-grid-unbounded` on its root and limits its height to `var(--data-grid-fallback-height, 100dvh)`. Set the variable, or give the grid a `className` with its own height, to change the limit.
 
-To fix this, give the grid, or a sized parent, an explicit height. Set `className="h-150"` on the grid, or use `h-full` inside a parent that has its own height:
+To choose the height, give the grid, or a sized parent, an explicit height. Set `className="h-150"` on the grid, or use `h-full` inside a parent that has its own height:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";

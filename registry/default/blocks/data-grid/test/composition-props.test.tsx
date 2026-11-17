@@ -132,7 +132,7 @@ describe("DataGridHeader composition props", () => {
 
   it("without renderHeaderCell the default header cells render (regression guard)", () => {
     const { container } = render(compose({}));
-    expect(container.querySelectorAll("[data-column-id]").length).toBe(2);
+    expect(container.querySelectorAll('[role="columnheader"][data-column-id]').length).toBe(2);
     expect(screen.queryByTestId("custom-header")).toBeNull();
   });
 });

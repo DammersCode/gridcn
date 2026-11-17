@@ -223,6 +223,7 @@ export function buildDefaultLabels(locale: string): DataGridLabels {
       reorderRowsAnnouncement: (count, position, total) => `${count} rows moved to position ${position} of ${total}`,
     },
     grid: {
+      gridName: "Data grid",
       emptyState: "No rows",
       noResults: "No results",
       errorState: "Could not load rows.",
@@ -253,7 +254,6 @@ export function buildDefaultLabels(locale: string): DataGridLabels {
       importDialogTitle: "Import file",
       importDialogDescription: "Choose a CSV or Excel file, then map its columns to the grid.",
       chooseFile: "Choose file",
-      noFileChosen: "No file chosen",
       maxFileSize: (bytes) => `up to ${formatFileSize(bytes)}`,
       emptyDropzoneCaption: (maxSize) => `No file chosen — ${maxSize}`,
       dropzoneDescription: (types, maxSize) => (types.length === 0 ? `All file types accepted — ${maxSize}` : `Accepted types: ${types.join(", ")} — ${maxSize}`),

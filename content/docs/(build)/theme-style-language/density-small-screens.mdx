@@ -12,7 +12,7 @@ A dense table shows more rows, and a roomy table is easier to tap. `density` pic
 
 ## Density and row height [#density-and-row-height]
 
-`density` takes `compact`, `default`, or `comfortable`. The presets give rows a height of 28, 36, and 44 px. `rowHeight` sets exact pixels and wins over `density`. Header rows do not follow either one. `headerHeight` sets the height of one header row. [Column groups](/docs/columns/column-headers-groups#column-groups) add header rows of the same height.
+`density` takes `compact`, `default`, or `comfortable`. The presets give rows a height of 28, 36, and 44 px. `rowHeight` sets exact pixels and wins over `density`. The header rows follow `density` and have a height of 32, 36, and 40 px. `headerHeight` sets the height of one header row. [Column groups](/docs/columns/column-headers-groups#column-groups) add header rows of the same height.
 
 This grid starts compact and switches to comfortable when you click the button:
 
@@ -55,7 +55,7 @@ export function DenseGrid() {
 | --- | --- | --- |
 | `density` | `"compact" \| "default" \| "comfortable"` | `"default"` |
 | `rowHeight` | `number` | none |
-| `headerHeight` | `number` | `36` |
+| `headerHeight` | `number` | `32`, `36`, or `40` by `density` |
 
 Set the heights with these props. The grid writes `--grid-row-height` itself and uses the same numbers to place the rows. A CSS rule on the row height does not reach that calculation.
 

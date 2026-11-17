@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type RefObject } from "react";
-import { isDev } from "../is-dev";
 import { getElementStore, INITIAL_SNAPSHOT, type ScrollSnapshot } from "./use-scroll-snapshot";
 import { createVelocityEstimator, updateVelocityEstimate, VELOCITY_OVERSCAN_CAP_PX, type VelocityEstimator } from "./velocity-estimator";
 
@@ -35,13 +34,14 @@ export type UseRowWindowOptions = {
   overscan?: number;
 };
 
-/** Hard cap on rendered rows — an unbounded-height grid degrades to this instead of freezing the tab. */
-const MAX_RENDERED_ROWS = 200;
+/** Hard cap on rendered rows. The root bounds an unbounded-height grid, so only a huge viewport reaches it. */
+export const MAX_RENDERED_ROWS = 200;
+
+/** Rows rendered while the measured viewport height is 0 (a test environment without layout, or a hidden grid). */
+const ZERO_HEIGHT_ROWS = 10;
 
 /** Rows the server renders (and the client hydrates) before the scroll element's height is known. */
 const SERVER_PREVIEW_ROWS = 30;
-
-let warnedUnboundedHeight = false;
 
 const subscribeNever = () => () => {};
 
@@ -62,7 +62,7 @@ function computeWindow(
     return { start: 0, end: Math.min(rowCount, previewRows), windowTop: 0, measured: false, element: null };
   }
   const { scrollTop, clientHeight: rawClientHeight, deltaTop } = snapshot;
-  const clientHeight = Math.max(0, rawClientHeight - bottomInset);
+  const clientHeight = rawClientHeight === 0 ? ZERO_HEIGHT_ROWS * rowHeight : Math.max(0, rawClientHeight - bottomInset);
   // Velocity overscan biases the LEADING edge only (the direction of travel) — the trailing edge
   // a fling is scrolling away from keeps the floor.
   // -1 row: the base `overscan` already covers one row of gap, so sub-row jitter (e.g. a 1px
@@ -84,12 +84,6 @@ function computeWindow(
   let end = Math.min(rowCount, Math.ceil((scrollTop + clientHeight - dataRowTop) / rowHeight) + endOverscan);
   if (end - start > MAX_RENDERED_ROWS) {
     end = start + MAX_RENDERED_ROWS;
-    if (isDev() && !warnedUnboundedHeight && clientHeight / rowHeight > MAX_RENDERED_ROWS) {
-      warnedUnboundedHeight = true;
-      console.warn(
-        `[data-grid] the grid viewport shows more than ${MAX_RENDERED_ROWS} rows at once — its height is probably unbounded, which disables virtualization. Give the grid a bounded height (e.g. className="h-150" or h-full inside a sized parent). Rendering is capped at ${MAX_RENDERED_ROWS} rows.`,
-      );
-    }
   }
   return { start, end: Math.max(start, end), windowTop: start * rowHeight, measured: true, element };
 }

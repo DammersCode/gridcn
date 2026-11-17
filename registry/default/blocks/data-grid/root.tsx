@@ -46,20 +46,19 @@ import {
   type MarkerCellRenderer,
   type MarkerHeaderRenderer,
 } from "./layout-context";
-import { resolveRowHeight } from "./rows/density";
+import { MAX_RENDERED_ROWS } from "./virtualization/use-row-window";
+import { resolveHeaderHeight, resolveRowHeight } from "./rows/density";
 import { useScrolledEdges } from "./virtualization/use-scrolled-edges";
 import { usePinShadowEdges } from "./virtualization/use-pin-shadow-edges";
 import { GRID_LAYER } from "./layers";
 import { useLoadAnnouncement } from "./use-load-announcement";
 import { DataGridLoadingSkeleton, DataGridLoadingBar, DataGridLoadingProgress } from "./rows/loading-skeleton";
 import { Button } from "@/components/ui/button";
-import { isDev } from "./is-dev";
+import { useSecondRootWarning, useUnnamedGridWarning } from "./root-dev-warnings";
 import { useClassNameRevision, type RenderedRows } from "./rows/use-class-name-revision";
 import { GRID_ATTR, gridAttrSelector } from "./data-attributes";
 import { closestGridRoot } from "./interaction/closest-grid-root";
 
-/** Default sticky header track height (px); density/rowHeight only affect data rows, never the header. */
-const HEADER_HEIGHT = 36;
 // The item's cssVars theme this token on CLI install; the fallback covers a manual copy without them.
 const PIN_SHADOW = "var(--grid-pin-shadow, oklch(0 0 0 / 10%))";
 // Edge shadows default to the pin color; `--grid-scroll-shadow: transparent` hides them and keeps pinned-band shadows.
@@ -99,7 +98,7 @@ export type DataGridRootProps<TData = unknown> = {
   markerWidth?: number;
   /** Row-height preset: compact 28 / default 36 / comfortable 44. Ignored when `rowHeight` is set. */
   density?: DensityMode;
-  /** Sticky header track height (px); `density` and `rowHeight` affect data rows only. Default 36. */
+  /** Sticky header track height (px) of one header row. Default follows `density`: 32, 36, or 40. */
   headerHeight?: number;
   /** Extra unpinned columns rendered beyond the visible viewport on each side. Default 1. */
   columnOverscan?: number;
@@ -243,7 +242,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     children,
   } = props;
   const rowHeight = resolveRowHeight(density, rowHeightProp);
-  const headerRowHeight = headerHeightProp ?? HEADER_HEIGHT;
+  const headerRowHeight = resolveHeaderHeight(density, headerHeightProp);
   const instanceId = useDataGridInstanceId();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -297,10 +296,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   }));
   const pinnedTopHeight = topBandRowCount * rowHeight;
   const pinnedBottomHeight = bottomBandRowCount * rowHeight;
-  // Effective header height: the sticky header track PLUS any pinned-top band — every "data row 0
-  // starts here" computation (row window, scroll-into-view, canvas transform) uses this, not
-  // HEADER_HEIGHT alone, so the pinned-top band is treated as part of the fixed chrome above the
-   // scrollable data rows.
+  // Where data row 0 starts: the header track plus the pinned-top band.
   const effectiveHeaderHeight = headerHeight + pinnedTopHeight;
   // primitive boolean, not the full activeCell — see useDataGridHasActiveCell's doc for why this
   // matters (a full ViewCoord subscription here would re-render the root, and thus the whole tree
@@ -354,20 +350,17 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
 
   // Registers this mount's scroll-into-view on the store so add-ons outside this subtree (e.g.
   // data-grid-toolbar's search, a DataGridRoot sibling) can reach it; cleared on unmount.
+  const warnSecondRoot = useSecondRootWarning();
   const actions = useDataGridActions();
   const internalActions = useDataGridInternalActions();
   useEffect(() => {
+    warnSecondRoot(storeApi.getState().scrollToCellImpl !== null);
     internalActions._registerScrollToCell(interaction.scrollCellIntoView);
     scrollRef.current?.setAttribute(GRID_ATTR.settled, "");
     return () => internalActions._registerScrollToCell(null);
   }, [internalActions, interaction.scrollCellIntoView]);
 
-  const warnedNameRef = useRef(false);
-  useEffect(() => {
-    if (!isDev() || warnedNameRef.current || ariaLabel || ariaLabelledBy) return;
-    warnedNameRef.current = true;
-    console.warn("[data-grid] The grid has no accessible name. Set aria-label or aria-labelledby on the grid.");
-  }, [ariaLabel, ariaLabelledBy]);
+  useUnnamedGridWarning(ariaLabel, ariaLabelledBy);
 
   useEffect(() => {
     internalActions._registerFocus(() => {
@@ -465,13 +458,17 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
 
   // loading+empty: enough skeleton rows to fill the viewport below the header, plus
   // one so a partial row is visible at the bottom edge like the real virtualized body would show.
-  const showLoadingSkeleton = loading && rowCount === 0;
+  const showLoadingSkeleton = loading && rowCount === 0 && !hasError;
   const skeletonRowCount = showLoadingSkeleton
     ? Math.max(1, Math.ceil((dimensions.clientHeight - effectiveHeaderHeight) / rowHeight) + 1)
     : 0;
   const showLoadingBar = loading && rowCount > 0;
 
+  const [unbounded, setUnbounded] = useState(false);
+  if (!unbounded && dimensions.clientHeight / rowHeight > MAX_RENDERED_ROWS) setUnbounded(true);
+
   const rootStyle: CSSProperties = {
+    ...(unbounded && { maxHeight: "var(--data-grid-fallback-height, 100dvh)" }),
     contain: "content",
     // Explicit, not incidental: contain's paint containment happens to create a stacking
     // context, but the guarantee the grid RELIES on is isolation — no internal GRID_LAYER
@@ -598,7 +595,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       <div
         ref={scrollRef}
         role="grid"
-        aria-label={ariaLabel}
+        aria-label={ariaLabel ?? (ariaLabelledBy ? undefined : gridLabels.gridName)}
         aria-labelledby={ariaLabelledBy}
         dir={direction}
         {...{ [GRID_ATTR.instance]: instanceId }}
@@ -613,6 +610,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
         aria-readonly={readOnly || undefined}
         aria-busy={loading || undefined}
         {...{ [GRID_ATTR.gatePending]: gatesPending || undefined }}
+        {...{ [GRID_ATTR.unbounded]: unbounded ? "" : undefined }}
         className={cn("relative touch-manipulation select-none overflow-auto rounded-md border border-border bg-background text-sm", className)}
         style={rootStyle}
         onKeyDown={interaction.onKeyDown}
