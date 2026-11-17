@@ -104,8 +104,8 @@ export function isPinnedRowSource(value: unknown): value is PinnedRowSource {
 /**
  * A pinned totals row that reduces `specs` over the grid's rows (see {@link useDataGridAggregate}). Put it in
  * `useDataGridPinnedRows`'s `topRows` or `bottomRows`. The band reads each value by column id, so it needs no
- * `accessorKey` that matches the id. An inline call is fine: equal specs, `scope`, and `cells` keep the band. An inline
- * reducer function keeps the band too; the band calls the newest one when it next reduces, after a data or view change.
+ * `accessorKey` that matches the id. An inline call is fine: equal specs, `scope`, and `cells` keep the band. A reducer
+ * function with a new identity keeps the band but reduces again, so define the reducer at module scope or memoize it.
  */
 export function aggregateRow<TData = unknown>(specs: AggregateSpecs<TData>, options: AggregateRowOptions = {}): PinnedRowSource {
   const { scope = "view", cells } = options;
