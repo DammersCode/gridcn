@@ -108,6 +108,19 @@ describe("exportGrid with a source", () => {
     expect(result).toEqual({ rowCount: 2, truncated: false });
   });
 
+  it("is not truncated when the last slice crosses maxBytes and the source ends", async () => {
+    captureDownload();
+    const result = await exportGrid(makeState(), { source: () => batches([row("a"), row("b")]), csvBom: false, maxBytes: 5 });
+    expect(result).toEqual({ rowCount: 2, truncated: false });
+  });
+
+  it("is truncated when a batch with rows follows the slice that crossed maxBytes", async () => {
+    captureDownload();
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const result = await exportGrid(makeState(), { source: () => batches([row("a"), row("b")], [], [row("c")]), csvBom: false, maxBytes: 5 });
+    expect(result).toEqual({ rowCount: 2, truncated: true });
+  });
+
   it("stops at maxBytes within one slice of rows", async () => {
     captureDownload();
     vi.spyOn(console, "warn").mockImplementation(() => {});
