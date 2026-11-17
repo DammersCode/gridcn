@@ -2,7 +2,11 @@ import { describe, it, expect, vi } from "vitest";
 import { isDefaultBinding } from "./match-keymap";
 import { FILL_KEYMAP } from "../../data-grid-fill/fill-keymap";
 import { HISTORY_KEYMAP } from "../../data-grid-history/history-keymap";
-import { DEFAULT_KEYMAP as CORE_KEYMAP, keymapContentEqual, matchKeymap, parseBinding, isPrintableKey, sharedKeymapBindings, validateSharedBindings, type KeymapEvent } from ".";
+import { DEFAULT_KEYMAP as CORE_KEYMAP, keymapContentEqual, matchKeymap as matchKeymapFor, parseBinding, isPrintableKey, sharedKeymapBindings, validateSharedBindings, type KeymapEvent } from ".";
+
+const GROUP_ROW_ACTIONS: readonly GridAction[] = ["toggleGroupRow", "expandGroupRow", "collapseGroupRow"];
+// the grid offers the group row actions on a group row only
+const matchKeymap = (...[event, keymap, isMac, include = (action) => !GROUP_ROW_ACTIONS.includes(action)]: Parameters<typeof matchKeymapFor>) => matchKeymapFor(event, keymap, isMac, include);
 import type { GridAction, Keymap } from "../types";
 
 function makeEvent(overrides: Partial<KeymapEvent> & { key: string }): KeymapEvent {
@@ -382,6 +386,15 @@ describe("isPrintableKey", () => {
 
   it("rejects space and enter (not single printable char intent here)", () => {
     expect(isPrintableKey(makeEvent({ key: "Enter" }))).toBe(false);
+  });
+});
+
+describe("group row actions", () => {
+  it("take Enter, Space, and the plain arrows before edit and the moves when offered", () => {
+    const only = (action: GridAction) => (a: GridAction) => a === action || a === "edit" || a === "moveRight" || a === "moveLeft";
+    expect(matchKeymapFor(makeEvent({ key: "Enter" }), DEFAULT_KEYMAP, false, only("toggleGroupRow"))).toBe("toggleGroupRow");
+    expect(matchKeymapFor(makeEvent({ key: "ArrowRight" }), DEFAULT_KEYMAP, false, only("expandGroupRow"))).toBe("expandGroupRow");
+    expect(matchKeymapFor(makeEvent({ key: "ArrowLeft" }), DEFAULT_KEYMAP, false, only("collapseGroupRow"))).toBe("collapseGroupRow");
   });
 });
 

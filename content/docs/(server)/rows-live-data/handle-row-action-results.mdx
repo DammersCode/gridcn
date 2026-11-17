@@ -26,6 +26,7 @@ Each of the six row actions returns `{ ok: true }` once it ran or an async gate 
 | `"nothing-to-do"` | No target row matched, `count` was 0, or a row move had nowhere to go. |
 | `"view-ordered"` | A row move was refused because an active sort or filter owns the row order. |
 | `"group-row"` | An insert or a duplicate started on a group row, which holds no data. |
+| `"server-groups"` | Insert, duplicate, delete, or move ran while the server owns the groups (`groupMode="server"`). The grid does not hold the rows of a whole group. |
 | `"all-matching"` | A key or menu row action found all matching on, so the checked rows are not in the grid. |
 | `"hidden-rows-only"` | A key or menu row action found only checked rows that the view does not show. |
 | `"disabled"` | A row move shortcut ran without a reorder `rowMarkers` mode. |

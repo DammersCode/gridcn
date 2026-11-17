@@ -13,6 +13,8 @@ import {
   candidateRowIds,
   gridAttrSelector,
   pointerToCoord,
+  dataIndexAt,
+  rowAtViewRow,
   rowIdAtViewRow,
   safeSetPointerCapture,
   resolveBulkWrites,
@@ -84,8 +86,7 @@ export type UseFillHandleOptions = {
 function cellText(s: DataGridReadState, viewRow: number, colIndex: number): string {
   const column = s.visibleColumns[colIndex];
   if (!column) return "";
-  const dataRowIndex = s.viewIndex[viewRow];
-  const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
+  const row = rowAtViewRow(s, viewRow);
   if (row === undefined) return "";
   const cellType = s.cellTypes[column.type ?? "text"];
   if (!cellType) return "";
@@ -108,8 +109,7 @@ function tiledSourceCell(
   const sourceRow = vertical ? wrap(relativeStrip.y + row, source.height) : relativeStrip.y + row;
   const sourceCol = vertical ? relativeStrip.x + col : wrap(relativeStrip.x + col, source.width);
   const column = s.visibleColumns[source.x + sourceCol];
-  const dataRowIndex = s.viewIndex[source.y + sourceRow];
-  const dataRow = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
+  const dataRow = rowAtViewRow(s, source.y + sourceRow);
   if (!column || dataRow === undefined) return undefined;
   return { columnId: column.id, value: getCellValue<unknown, typeof column>(dataRow, column) };
 }
@@ -171,7 +171,7 @@ export function buildFillCandidatesFromText(s: DataGridReadState, strip: GridRec
   let skippedHoleRows = 0;
   for (let row = 0; row < strip.height; row++) {
     const viewRow = strip.y + row;
-    const dataRowIndex = s.viewIndex[viewRow];
+    const dataRowIndex = dataIndexAt(s, viewRow);
     if (dataRowIndex === undefined) continue;
     const dataRow = s.data[dataRowIndex];
     if (dataRow === undefined) {

@@ -14,9 +14,24 @@ import {
   numberCellType,
   type DataGridStatusBarLabels,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { matchingRowTotal, mergeLabelLayers, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { forEachDataIndex, matchingRowTotal, mergeLabelLayers, useDataGridSelector, type DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MAX_STATUS_CELLS } from "./compute-selection-stats";
 import { useDataGridSelectionStats } from "./use-data-grid-selection-stats";
+
+const dataRowCounts = new WeakMap<object, number>();
+
+/** The rows of the shown view; the group rows of a grouped view are not rows. */
+function dataRowsInView(s: Pick<DataGridStoreState, "viewIndex" | "groupLayout">): number {
+  if (!s.groupLayout) return s.viewIndex.length;
+  const cached = dataRowCounts.get(s.viewIndex);
+  if (cached !== undefined) return cached;
+  let count = 0;
+  forEachDataIndex(s.viewIndex, () => {
+    count++;
+  });
+  dataRowCounts.set(s.viewIndex, count);
+  return count;
+}
 
 /** One of the aggregates the bar can show. */
 export type StatusBarAggregate = "count" | "sum" | "avg" | "min" | "max";
@@ -86,7 +101,7 @@ export function DataGridStatusBar({
   const total = useDataGridSelector(matchingRowTotal);
   const canSelectAllMatching = useDataGridSelector((s) => s.checkedRowsLifetime === "across-filters");
   const allMatching = useDataGridSelector((s) => s.allMatching);
-  const pageRows = useDataGridSelector((s) => s.viewIndex.length);
+  const pageRows = useDataGridSelector(dataRowsInView);
   const pageChecked = useDataGridSelector((s) => s.viewIndex.length > 0 && s.selection.rows.hasAll([0, s.viewIndex.length]));
   const actions = useDataGridActions();
   const escalate = canSelectAllMatching && !allMatching && pageChecked && total !== undefined && (total === null || total > pageRows);

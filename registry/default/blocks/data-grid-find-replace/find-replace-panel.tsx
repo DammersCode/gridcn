@@ -39,8 +39,11 @@ import {
   useDataGridSearchCapped,
   useDataGridSearchMatches,
   effectivePage,
+  dataIndexOf,
   fullViewOf,
+  pageOfFullRow,
   pageStartOf,
+  pageUnitsOf,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { useFindResultWalk } from "./use-find-result-walk";
 import { MAX_REPLACE_INPUT_LENGTH, parseReturnedPatches, planReplace, resolveReplaceLimit, type ReplaceOptions, type ReplacePlan } from "./plan-replace";
@@ -215,8 +218,9 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
       const state = api.store.getState();
       let row = match.row;
       if (state.pageSize !== null) {
-        const page = Math.floor(match.row / state.pageSize) + 1;
-        if (effectivePage(state.page, fullViewOf(state.viewIndex).length, state.pageSize) !== page) api.actions.setPage(page);
+        const full = fullViewOf(state.viewIndex);
+        const page = pageOfFullRow(full, match.row, state.pageSize);
+        if (effectivePage(state.page, pageUnitsOf(full), state.pageSize) !== page) api.actions.setPage(page);
         if (api.store.getState().page !== page) return;
         row = match.row - pageStartOf(api.store.getState().viewIndex);
       }
@@ -262,7 +266,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const refOfIndex = (s: ReturnType<typeof api.store.getState>, index: number): { rowId: string; columnId: string } | null => {
     const match = s.searchMatches[index];
     if (!match) return null;
-    const dataIndex = fullViewOf(s.viewIndex)[match.row];
+    const dataIndex = dataIndexOf(fullViewOf(s.viewIndex), match.row);
     const row = dataIndex === undefined ? undefined : s.data[dataIndex];
     if (dataIndex === undefined || row === undefined) return null;
     return { rowId: s.getRowId(row, dataIndex), columnId: match.columnId };
@@ -304,9 +308,11 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
         if (only) {
           const after = api.store.getState();
           const columnOrder = (columnId: string) => after.visibleColumns.findIndex((c) => c.id === columnId);
-          const replacedRow = replacedAt ? fullViewOf(after.viewIndex).findIndex((dataIndex) => {
-            const row = after.data[dataIndex];
-            return row !== undefined && after.getRowId(row, dataIndex) === replacedAt.rowId;
+          const afterView = fullViewOf(after.viewIndex);
+          const replacedRow = replacedAt ? afterView.findIndex((_, viewRow) => {
+            const dataIndex = dataIndexOf(afterView, viewRow);
+            const row = dataIndex === undefined ? undefined : after.data[dataIndex];
+            return dataIndex !== undefined && row !== undefined && after.getRowId(row, dataIndex) === replacedAt.rowId;
           }) : -1;
           const next =
             replacedAt && replacedRow !== -1

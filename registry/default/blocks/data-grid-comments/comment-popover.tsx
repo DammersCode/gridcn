@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useDataGridApi, useDataGridReadOnly } from "@/registry/default/blocks/data-grid/data-grid";
 import { GRID_ATTR, isComposingKey, rowIdAtViewRow, toSafeText, useDataGridContainer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { findOwnCell } from "./own-cell";
+import { findOwnCell, viewRowOfRowId } from "./own-cell";
 import { cellComments, editDraftKey, newDraftKey } from "./comment-state";
 import { authorLabelName, defaultCanModify } from "./default-gate";
 import type { CommentEngine, WriteResult } from "./comment-engine";
@@ -69,7 +69,7 @@ function useLocateCell(rowId: string, columnId: string): Locate {
     const state = api.store.getState();
     let viewRow = viewRowCache.current;
     if (viewRow < 0 || rowIdAtViewRow(state, viewRow) !== rowId) {
-      viewRow = api.getViewRowIds().indexOf(rowId);
+      viewRow = viewRowOfRowId(state, rowId);
       setHolder(viewRowCache, viewRow);
     }
     if (viewRow < 0) return null;

@@ -33,7 +33,9 @@ import {
   useDataGridSearchMatches,
   effectivePage,
   fullViewOf,
+  pageOfFullRow,
   pageStartOf,
+  pageUnitsOf,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Props for {@link DataGridSearch}. */
@@ -122,8 +124,9 @@ export function DataGridSearch(props: DataGridSearchProps): ReactNode {
       const paged = storeApi.getState().pageSize;
       let row = match.row;
       if (paged !== null) {
-        const page = Math.floor(match.row / paged) + 1;
-        if (effectivePage(storeApi.getState().page, fullViewOf(storeApi.getState().viewIndex).length, paged) !== page) actions.setPage(page);
+        const full = fullViewOf(storeApi.getState().viewIndex);
+        const page = pageOfFullRow(full, match.row, paged);
+        if (effectivePage(storeApi.getState().page, pageUnitsOf(full), paged) !== page) actions.setPage(page);
         if (storeApi.getState().page !== page) return;
         row = match.row - pageStartOf(storeApi.getState().viewIndex);
       }

@@ -209,3 +209,21 @@ describe("the layout prop", () => {
     expect(state().groupLayout!.rows[1]!.status).toBe("failed");
   });
 });
+
+describe("row actions under a server layout", () => {
+  it("refuse insert, duplicate, delete, and move with server-groups", () => {
+    const onRowActionSkipped = vi.fn();
+    const { state } = make({ createRow: () => row("n", "EU"), duplicateRow: (r: Row) => ({ ...r, id: `${r.id}c` }), onRowActionSkipped } as Partial<InternalSyncProps>);
+    const { actions } = state();
+    expect(actions.insertRows(1, 1)).toEqual({ ok: false, reason: "server-groups" });
+    expect(actions.duplicateRowsAt([1])).toEqual({ ok: false, reason: "server-groups" });
+    expect(actions.deleteRowsAt([1])).toEqual({ ok: false, reason: "server-groups" });
+    expect(actions.reorderRows(1, 2)).toBe(false);
+    expect(onRowActionSkipped.mock.calls.map(([event]) => event.reason)).toEqual(["server-groups", "server-groups", "server-groups", "server-groups"]);
+  });
+
+  it("leave a grid that does not group to its own rules", () => {
+    const { state } = make({ groupBy: undefined, groupLayout: undefined, createRow: () => row("n", "EU") } as Partial<InternalSyncProps>);
+    expect(state().actions.insertRows(1, 1).ok).toBe(true);
+  });
+});

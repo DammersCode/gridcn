@@ -1,5 +1,5 @@
 import { sanitizeFormulaCell } from "@/registry/default/blocks/data-grid/data-grid";
-import { columnLabelText, fullViewOf, getSelectedViewRows, isDev, keepsCheckedRows, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { columnLabelText, dataIndexAt, getSelectedViewRows, isDev, keepsCheckedRows, leafViewOf, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { normalizeLimit } from "./normalize-limit";
 import type { CsvDelimiter } from "./parse-import-file";
 import {
@@ -170,25 +170,26 @@ function rangeViewRows(selection: DataGridReadState["selection"]): number[] {
 }
 
 /**
- * Resolves the data indices a scope covers (lazy holes excluded): `'view'` walks the whole sorted and filtered view (every page)
+ * Resolves the data indices a scope covers (lazy holes excluded): `'view'` walks the whole sorted and filtered view (every page, collapsed groups included, group rows left out)
  * (current sort/filter order), `'page'` walks the shown page only, `'all'` walks `data` as-is, `'selection'` walks only the selected
  * rows in view order.
  */
 export function exportDataIndices(state: DataGridReadState, scope: ExportScope): number[] {
-  const scoped =
+  const dataIndexOfViewRow = (viewRow: number) => dataIndexAt(state, viewRow) ?? -1;
+  const scoped: readonly number[] =
     scope === "all"
       ? state.data.map((_, i) => i)
       : scope === "checked-rows"
-        ? checkedViewRows(state.selection).map((viewRow) => state.viewIndex[viewRow]!)
+        ? checkedViewRows(state.selection).map(dataIndexOfViewRow)
         : scope === "ranges"
-          ? rangeViewRows(state.selection).map((viewRow) => state.viewIndex[viewRow]!)
-      : scope === "selection"
-        ? getSelectedViewRows(state.selection, { checkedRowsOnly: keepsCheckedRows(state) }).map((viewRow) => state.viewIndex[viewRow]!)
-        : scope === "page"
-          ? state.viewIndex
-          : fullViewOf(state.viewIndex);
-  // lazy grids keep `data` sparse: skip holes before any accessor runs
-  return scoped.filter((dataRowIndex) => state.data[dataRowIndex] !== undefined);
+          ? rangeViewRows(state.selection).map(dataIndexOfViewRow)
+          : scope === "selection"
+            ? getSelectedViewRows(state.selection, { checkedRowsOnly: keepsCheckedRows(state) }).map(dataIndexOfViewRow)
+            : scope === "page"
+              ? state.viewIndex
+              : leafViewOf(state);
+  // lazy grids keep `data` sparse and a grouped view holds group rows (entries below 0): skip both before any accessor runs
+  return scoped.filter((dataRowIndex) => dataRowIndex >= 0 && state.data[dataRowIndex] !== undefined);
 }
 
 /**
