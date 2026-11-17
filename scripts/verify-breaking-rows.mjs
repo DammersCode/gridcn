@@ -21,8 +21,8 @@ function breakingEntries(changelog) {
     }
     if (!inRelease) return;
     if (/^\S/.test(text)) entry = null;
-    if (/^- \*\*Breaking\b/.test(text)) entries.push((entry = { line: i + 1, id: null }));
-    else if (text.includes("**Breaking")) entries.push({ line: i + 1, id: null, inline: true });
+    if (/^- \*\*breaking\b/i.test(text)) entries.push((entry = { line: i + 1, id: null }));
+    else if (/\*\*breaking\b/i.test(text)) entries.push({ line: i + 1, id: null, inline: true });
     const id = /<!-- row: ([a-z0-9-]+) -->/.exec(text)?.[1];
     if (entry && id) entry.id ??= id;
   });
@@ -45,7 +45,7 @@ export function breakingRowProblems({ changelog, changelog20, page }) {
   }
   for (const id of rows) if (!named.has(id)) problems.push(`${PAGE}: row "${id}" names no Breaking entry of CHANGELOG.md; delete the row or add the entry`);
   changelog20.split(/\r?\n/).forEach((text, i) => {
-    if (text.includes("**Breaking")) problems.push(`CHANGELOG-2.0.md line ${i + 1}: a Breaking change; move it to CHANGELOG.md under ## Unreleased with a row`);
+    if (/\*\*breaking\b/i.test(text)) problems.push(`CHANGELOG-2.0.md line ${i + 1}: a Breaking change; move it to CHANGELOG.md under ## Unreleased with a row`);
   });
   return problems;
 }
