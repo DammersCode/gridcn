@@ -52,7 +52,7 @@ A term row links to the page that explains it.
 | filter node | One entry of `filterState`: a filter row or a filter group. | [Filtering](/docs/sort-filter-search/filtering) |
 | find and replace | The add-on panel that finds text through the quick search and replaces it in one match or in all matches. A replace writes one change with the source `"replace"`. | [Find and replace](/docs/sort-filter-search/find-replace) |
 | gate | A prop function that the grid calls before it acts, for example `processPaste` or `createRow`. It returns a value or a promise. | [Event shapes](/docs/events-state/event-shapes#gates) |
-| gate pending | The state of a gate whose promise has not settled. `useDataGridGatePending()` reads the gate names. The root carries `data-gate-pending`. | [Cancel async gates](/docs/editing-cells/cancel-async-gates#show-the-pending-state) |
+| gate pending | The state of a gate whose promise has not settled. `useDataGridGatePending()` reads the gate names. The root carries `data-gate-pending`. | [Gate cancellation and timeouts](/docs/editing-cells/cancel-async-gates#show-the-pending-state) |
 | grid origin | The row that anchors the rows canvas. It trails the first rendered row and moves only when the rendered rows drift far from it. | [Virtualization](/docs/performance/virtualization) |
 | header filter | The filter button in a column header. It opens a popover with the set filter of that column. `renderHeaderFilter` places it, and `DataGridHeaderFilter` is the built-in one. | [Header filter](/docs/sort-filter-search/header-filter) |
 | header row | One level of the header block. Group levels come first, and the column headers fill the last row. | [Column headers and groups](/docs/columns/column-headers-groups) |
@@ -157,8 +157,8 @@ A word in this table names a term from the first table.
 | `page slice` | paged view | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | `select everything` | all matching | [Select server rows](/docs/rows-live-data/select-server-rows) |
 | `interceptor` | gate | [Event shapes](/docs/events-state/event-shapes#gates) |
-| `gate busy` | gate pending | [Cancel async gates](/docs/editing-cells/cancel-async-gates#show-the-pending-state) |
-| `gate loading` | gate pending | [Cancel async gates](/docs/editing-cells/cancel-async-gates#show-the-pending-state) |
+| `gate busy` | gate pending | [Gate cancellation and timeouts](/docs/editing-cells/cancel-async-gates#show-the-pending-state) |
+| `gate loading` | gate pending | [Gate cancellation and timeouts](/docs/editing-cells/cancel-async-gates#show-the-pending-state) |
 | `stream update` | push | [Push live values](/docs/rows-live-data/stream-updates) |
 | `live update` | push | [Push live values](/docs/rows-live-data/stream-updates) |
 | `outdated row` | stale row | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
@@ -235,7 +235,7 @@ A search word in this table opens the page that answers it.
 | `2.0 breaking changes` | [2.0 breaking changes](/docs/support-upgrades/breaking-changes-2-0) |
 | `429` | [Recover from load errors](/docs/scroll-mode/recover-load-errors) |
 | `a11y` | [Screen reader support](/docs/accessibility/screen-reader-support) |
-| `abort signal` | [Cancel async gates](/docs/editing-cells/cancel-async-gates) |
+| `abort signal` | [Gate cancellation and timeouts](/docs/editing-cells/cancel-async-gates) |
 | `access control` | [Lock cells by role](/docs/editing-cells/lock-cells-role) |
 | `accessibility` | [Screen reader support](/docs/accessibility/screen-reader-support) |
 | `action column` | [Row actions example](/docs/row-examples/row-actions-example) |
@@ -262,7 +262,7 @@ A search word in this table opens the page that answers it.
 | `asian language typing` | [isComposingKey](/docs/types-hooks/is-composing-key) |
 | `assistive technology` | [Screen reader support](/docs/accessibility/screen-reader-support) |
 | `async select` | [Lookup cell](/docs/editing-cells/lookup-cell) |
-| `async validation` | [Validate rows and async checks](/docs/editing-cells/validate-rows-cross-field) |
+| `async validation` | [Row validation and async checks](/docs/editing-cells/validate-rows-cross-field) |
 | `auth gated cells` | [Lock cells by role](/docs/editing-cells/lock-cells-role) |
 | `auto size columns` | [Column sizing](/docs/columns/column-sizing) |
 | `autocomplete cell` | [Lookup cell](/docs/editing-cells/lookup-cell) |
@@ -288,7 +288,7 @@ A search word in this table opens the page that answers it.
 | `button column` | [Row actions example](/docs/row-examples/row-actions-example) |
 | `callback log` | [Event log example](/docs/basic-examples/event-log-example) |
 | `callbacks` | [Events A to Z](/docs/cheatsheets-messages/events-z) |
-| `cancel paste request` | [Cancel async gates](/docs/editing-cells/cancel-async-gates) |
+| `cancel paste request` | [Gate cancellation and timeouts](/docs/editing-cells/cancel-async-gates) |
 | `cell class` | [Style overrides](/docs/theme-style-language/style-overrides) |
 | `cell click` | [Selection and cell events](/docs/events-state/selection-cell-events) |
 | `cell comments` | [Add comments to cells](/docs/rows-live-data/add-comments) |
@@ -348,7 +348,7 @@ A search word in this table opens the page that answers it.
 | `copy paste` | [Clipboard](/docs/clipboard-undo/clipboard) |
 | `copy row` | [Row operations](/docs/rows-pages-menus/row-operations) |
 | `copy to excel` | [Clipboard](/docs/clipboard-undo/clipboard) |
-| `cross field validation` | [Validate rows and async checks](/docs/editing-cells/validate-rows-cross-field) |
+| `cross field validation` | [Row validation and async checks](/docs/editing-cells/validate-rows-cross-field) |
 | `css variables` | [Style contract](/docs/contracts/style-contract) |
 | `csv export` | [Export](/docs/import-export/export) |
 | `csv import` | [Import](/docs/import-export/import) |
@@ -465,7 +465,7 @@ A search word in this table opens the page that answers it.
 | `from 1.3` | [Migrate to 2.0](/docs/support-upgrades/migrate-2-0) |
 | `frozen columns` | [Column order and pinning](/docs/columns/column-order-pinning) |
 | `gate pending` | [Handle row action results](/docs/rows-live-data/handle-row-action-results) |
-| `gate timeout` | [Cancel async gates](/docs/editing-cells/cancel-async-gates) |
+| `gate timeout` | [Gate cancellation and timeouts](/docs/editing-cells/cancel-async-gates) |
 | `gateTimeoutMs` | [Handle row action results](/docs/rows-live-data/handle-row-action-results) |
 | `generics` | [TypeScript generics](/docs/types-hooks/typescript-generics) |
 | `getCellMenuItems` | [Context menu items example](/docs/row-examples/context-menu-items-example) |
@@ -863,7 +863,7 @@ A search word in this table opens the page that answers it.
 | `undo from toolbar` | [Global shortcuts](/docs/selection-shortcuts/global-shortcuts) |
 | `undo save` | [Undo with server data](/docs/save-server/undo-server-data) |
 | `undo scroll mode` | [Undo with server data](/docs/save-server/undo-server-data) |
-| `unique value check` | [Validate rows and async checks](/docs/editing-cells/validate-rows-cross-field) |
+| `unique value check` | [Row validation and async checks](/docs/editing-cells/validate-rows-cross-field) |
 | `unit test` | [Test a grid in your app](/docs/recipes-custom-code/test-grid-in-app) |
 | `unknown registry` | [Fix install problems](/docs/terms-help/fix-install-problems) |
 | `unknown total` | [Load without row count](/docs/scroll-mode/load-without-row-count) |
@@ -881,8 +881,8 @@ A search word in this table opens the page that answers it.
 | `usestate` | [Keep edits in state](/docs/learning-path/keep-edits-state) |
 | `validate cell` | [Validation](/docs/editing-cells/validation) |
 | `validate email` | [Validation](/docs/editing-cells/validation) |
-| `validate row` | [Validate rows and async checks](/docs/editing-cells/validate-rows-cross-field) |
-| `validaterow` | [Validate rows and async checks](/docs/editing-cells/validate-rows-cross-field) |
+| `validate row` | [Row validation and async checks](/docs/editing-cells/validate-rows-cross-field) |
+| `validaterow` | [Row validation and async checks](/docs/editing-cells/validate-rows-cross-field) |
 | `validation error` | [Edit and validation events](/docs/events-state/edit-validation-events) |
 | `validation from server` | [Show errors on cells](/docs/save-server/show-errors-cells) |
 | `veto a paste` | [Change copy and paste](/docs/clipboard-undo/change-copy-paste) |
@@ -912,7 +912,7 @@ A search word in this table opens the page that answers it.
 | `xlsx options` | [Export options](/docs/add-options/import-export/export-options) |
 | `zip bomb` | [Import options](/docs/add-options/import-export/import-options) |
 | `zod` | [Validation](/docs/editing-cells/validation) |
-| `zod refine` | [Validate rows and async checks](/docs/editing-cells/validate-rows-cross-field) |
+| `zod refine` | [Row validation and async checks](/docs/editing-cells/validate-rows-cross-field) |
 
 ## Related
 

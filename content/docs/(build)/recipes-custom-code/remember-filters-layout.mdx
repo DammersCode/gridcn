@@ -86,7 +86,7 @@ The [saved views add-on](/docs/sort-filter-search/saved-views) saves several nam
 
 ## Server mode
 
-A grid fed by `useDataGridServerRows` takes its sort, filters, and search from the hook. The grid ignores the three default props and their callbacks there. Seed the hook with `defaultSpec`, and save from its `onSpecChange`. `defaultSpec` is a plain value that the hook reads when it is created, also during server rendering, so read the saved spec on the client only. The column layout stays browser state: seed it with `defaultColumnLayout` and save it from `onColumnLayoutChange`.
+A grid fed by `useDataGridServerRows` takes its sort, filters, and search from the hook. The grid ignores the three default props and their callbacks there. Seed the hook with `defaultSpec`, and save from its `onSpecChange`. `defaultSpec` is a plain value. The hook reads it when it is created, also during server rendering, so read the saved spec on the client only. The column layout stays browser state: seed it with `defaultColumnLayout` and save it from `onColumnLayoutChange`.
 
 An `onSortChange`, `onFilterChange`, or `onSearchTextChange` that you pass after `{...server.gridProps}` replaces the hook's handler, and sorting stops fetching.
 

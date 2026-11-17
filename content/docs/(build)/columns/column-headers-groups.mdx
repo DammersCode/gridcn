@@ -14,7 +14,7 @@ The header row stays fixed at the top of the grid while the rows scroll under it
 
 `header` takes a string or a React node. The grid truncates a string. A node renders as it is and owns its display. A node can be a component that reads grid state, for example the sort direction.
 
-A string header shows the built-in sort arrow on a sorted column, whatever `sortable` says; `sortable: false` only stops the header click from sorting. With more than one sort, the arrow also shows the priority number. A node header shows no arrow.
+A string header shows the built-in sort arrow on a sorted column, whatever `sortable` says. `sortable: false` only stops the header click from sorting. With more than one sort, the arrow also shows the priority number. A node header shows no arrow.
 
 `<DataGridSortIndicator columnId="score" />` inside the node adds the arrow. It reads the sort of the grid and renders nothing for an unsorted column.
 

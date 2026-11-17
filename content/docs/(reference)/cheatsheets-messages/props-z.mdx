@@ -48,7 +48,7 @@ Props of DataGrid, DataGridProvider.
 | `fetchFilterValues` | Supplies the values of the header filter popover and the `isAnyOf` input from a backend, one list per search. | [Header filter](/docs/sort-filter-search/header-filter) |
 | `filterMode` | Who filters: `"client"` filters `data`, `"server"` only tracks the filters. Default `"server"` with `totalRowCount`, else `"client"`. | [Sort and filter events](/docs/events-state/sort-filter-events#prop-filtermode) |
 | `filterState` | The filter tree, controlled by your code. | [Sort and filter events](/docs/events-state/sort-filter-events#prop-filterstate) |
-| `gateTimeoutMs` | Aborts an async gate that has not settled after this many ms. Default: off. | [Cancel async gates](/docs/editing-cells/cancel-async-gates#gate-timeout) |
+| `gateTimeoutMs` | Aborts an async gate that has not settled after this many ms. Default: off. | [Gate cancellation and timeouts](/docs/editing-cells/cancel-async-gates#gate-timeout) |
 | `getRowId` | Stable, unique id of a row. | [DataGrid props](/docs/components-props/data-grid-props#rows-and-ids) |
 | `headerClickBehavior` | Sets what a plain header click does. Default `"select"`. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
 | `inputDebounceMs` | Sets the wait in ms before a text input commits. It covers the toolbar search, the filter value inputs, the set-filter search, find and replace, and the lookup editor. | [Quick search](/docs/sort-filter-search/quick-search) |
@@ -71,7 +71,7 @@ Props of DataGrid, DataGridProvider.
 | `sortMode` | Who sorts: `"client"` sorts `data`, `"server"` only tracks the sort. Default `"server"` with `totalRowCount`, else `"client"`. | [Sort and filter events](/docs/events-state/sort-filter-events#prop-sortmode) |
 | `sortState` | The sort, controlled by your code. | [Sort and filter events](/docs/events-state/sort-filter-events#prop-sortstate) |
 | `totalRowCount` | Declares that `data` is a window of a larger result of this many rows. `null` means the size is unknown. | [Server rows contract](/docs/contracts/server-rows-contract) |
-| `validateRow` | Validates a whole row once after a write gesture commits. The row already has every cell of the gesture applied. | [Validate rows and async checks](/docs/editing-cells/validate-rows-cross-field) |
+| `validateRow` | Validates a whole row once after a write gesture commits. The row already has every cell of the gesture applied. | [Row validation and async checks](/docs/editing-cells/validate-rows-cross-field) |
 
 ## Root props [#root-props]
 
