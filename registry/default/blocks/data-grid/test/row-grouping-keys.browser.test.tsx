@@ -31,6 +31,7 @@ function Fixture({ props = {} }: { props?: Record<string, unknown> }) {
 }
 
 const groupRows = () => [...document.querySelectorAll<HTMLElement>("[data-grid-group-row]")];
+const settle = () => new Promise((resolve) => setTimeout(resolve, 300));
 const activeCell = () => document.querySelector<HTMLElement>('[role="gridcell"][data-active]');
 
 async function violations(): Promise<axe.Result[]> {
@@ -54,7 +55,8 @@ describe("keys on a group row", () => {
   it("opens with Enter, keeps the focus on the active cell, and closes with ArrowLeft", async () => {
     await render(<Fixture />);
     await expect.poll(() => groupRows().length).toBe(4);
-    await userEvent.click(groupRows()[0]!.querySelector('[role="gridcell"]')!);
+    await settle();
+    await userEvent.click(groupRows()[0]!.querySelector('[data-grid-group-label] > span')!);
     await userEvent.keyboard("{Enter}");
     await expect.poll(() => groupRows()[0]!.getAttribute("aria-expanded")).toBe("true");
     expect(document.activeElement).toBe(activeCell());
@@ -84,7 +86,8 @@ describe("keys on a group row", () => {
       </main>,
     );
     await expect.poll(() => groupRows().length).toBe(4);
-    await userEvent.click(groupRows()[0]!.querySelector('[role="gridcell"]')!);
+    await settle();
+    await userEvent.click(groupRows()[0]!.querySelector('[data-grid-group-label] > span')!);
     await userEvent.keyboard("{ArrowLeft}");
     await expect.poll(() => groupRows()[0]!.getAttribute("aria-expanded")).toBe("true");
   });
