@@ -69,14 +69,16 @@ function ViewRow({
 
   if (editing) {
     return (
-      <li className="flex items-center gap-1">
-        <Input value={name} maxLength={MAX_VIEW_NAME_LENGTH} aria-label={labels.rename(view.name)} autoFocus onChange={(e) => setName(e.target.value)} onKeyDown={onKeyDown} />
-        <Button type="button" size="sm" onClick={commitRename}>
-          {labels.confirmRename}
-        </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={stopEditing}>
-          {labels.cancel}
-        </Button>
+      <li>
+        <InputGroup>
+          <InputGroupInput value={name} maxLength={MAX_VIEW_NAME_LENGTH} aria-label={labels.rename(view.name)} autoFocus onChange={(e) => setName(e.target.value)} onKeyDown={onKeyDown} />
+          <InputGroupAddon align="inline-end">
+            <InputGroupButton variant="secondary" onClick={commitRename}>
+              {labels.confirmRename}
+            </InputGroupButton>
+            <InputGroupButton onClick={stopEditing}>{labels.cancel}</InputGroupButton>
+          </InputGroupAddon>
+        </InputGroup>
       </li>
     );
   }
