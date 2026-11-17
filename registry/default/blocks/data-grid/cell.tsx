@@ -469,7 +469,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   if (errorMessage && !isEditing) {
     return (
       <Tooltip>
-        <TooltipTrigger render={cell} />
+        <TooltipTrigger delay={300} render={cell} />
         <TooltipContent>{errorMessage}</TooltipContent>
       </Tooltip>
     );

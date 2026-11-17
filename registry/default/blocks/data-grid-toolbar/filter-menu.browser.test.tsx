@@ -37,6 +37,25 @@ describe("DataGridFilterMenu custom operators", () => {
   });
 });
 
+describe("DataGridFilterMenu custom operator list", () => {
+  async function operatorOptions(filterMode: "client" | "server") {
+    await newRowOperatorText(filterMode);
+    await userEvent.click(document.querySelector<HTMLElement>('[data-grid-filter-row] [aria-label="Filter operator"]')!);
+    return [...document.querySelectorAll<HTMLElement>('[role="option"]')].map((option) => option.textContent ?? "");
+  }
+
+  it("hides a custom operator from the operator list under client filtering", async () => {
+    const options = await operatorOptions("client");
+    expect(options.length).toBeGreaterThan(0);
+    expect(options.some((text) => text.includes("In region"))).toBe(false);
+  });
+
+  it("lists a custom operator under server filtering", async () => {
+    const options = await operatorOptions("server");
+    expect(options.some((text) => text.includes("In region"))).toBe(true);
+  });
+});
+
 describe("DataGridFilterMenu row grouping", () => {
   async function openWithOneRow() {
     await render(

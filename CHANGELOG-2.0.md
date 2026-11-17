@@ -383,3 +383,4 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - Fix: comment text drops bidi override and isolate characters (U+202A to U+202E, U+2066 to U+2069); direction marks stay.
 - Fix: `onCommentRejected` fires when `edit`, `remove`, or `setResolved` get an unknown comment id (reason `"invalid"`).
 - Fix: the comments popover shows Retry only for a write that threw or failed with the reason `"error"`.
+- Fix: the cell error tooltip and the context menu tooltips open after 300 ms on their own. A grid in an app without a `TooltipProvider` no longer takes the Base UI default delay.

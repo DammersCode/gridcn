@@ -407,7 +407,7 @@ function surfaceItem(
   if (!tooltipDisabled) return item;
   return (
     <Tooltip>
-      <TooltipTrigger render={item} />
+      <TooltipTrigger delay={300} render={item} />
       <TooltipContent>{spec.tooltip}</TooltipContent>
     </Tooltip>
   );

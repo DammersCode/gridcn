@@ -6,13 +6,13 @@ Status: 2.0. One prop, `checkedRowsLifetime`, replaces `keepCheckedRows`, `keepH
 
 | Value | Meaning |
 |---|---|
-| `'until-click'` (default without `totalRowCount`) | A cell or column selection clears the checked rows. |
-| `'until-cleared'` | Checks stay across cell and column selections. Only Escape, Ctrl+A, a click on a row number, marker and header checkboxes, `clearSelection()`, and row deletes change them. Row operations act on the checked rows only. |
+| `'until-click'` (default without a checkbox row marker and without `totalRowCount`) | A cell or column selection clears the checked rows. |
+| `'until-cleared'` (default when `rowMarkers` shows a checkbox) | Checks stay across cell and column selections. Only Escape, Ctrl+A, a click on a row number, marker and header checkboxes, `clearSelection()`, and row deletes change them. Row operations act on the checked rows only. |
 | `'across-filters'` | `'until-cleared'`, and a checked row that leaves the view is remembered by row id and checked again when it returns. |
 
 ## Mapping from 1.x
 
-- Neither prop: `'until-click'`, or `'across-filters'` with `totalRowCount` (the default follows `totalRowCount`; an explicit value wins).
+- Neither prop: `'across-filters'` with `totalRowCount`, else `'until-cleared'` when `rowMarkers` shows a checkbox (`'checkbox'`, `'both'`, or a `reorder-` mode with one), else `'until-click'`. An explicit value wins.
 - `keepCheckedRows`: `'until-cleared'`.
 - `keepCheckedRows` and `keepHiddenCheckedRows`: `'across-filters'`.
 - `keepHiddenCheckedRows` alone had no effect in 1.x; drop it.
