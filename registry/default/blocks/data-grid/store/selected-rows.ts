@@ -1,4 +1,4 @@
-import type { ServerSpec } from "../server-spec";
+import { serverSpecOf, type ServerSpec } from "../server-spec";
 import type { DataGridStoreState } from "./types";
 import { viewRowOfDataIndex } from "./row-index";
 import { matchingRowTotal } from "./matching-total";
@@ -24,7 +24,7 @@ export type DataGridSelectedRows =
       spec: ServerSpec;
     };
 
-type Source = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "allMatching" | "data" | "viewIndex" | "getRowId" | "totalRowCount" | "sortState" | "filterState" | "searchText" | "groupLayout"> & Partial<Pick<DataGridStoreState, "groupMode">>;
+type Source = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "allMatching" | "data" | "viewIndex" | "getRowId" | "totalRowCount" | "sortState" | "filterState" | "filterJoin" | "searchText" | "groupLayout"> & Partial<Pick<DataGridStoreState, "groupMode">>;
 
 type CountSource = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "data" | "viewIndex" | "totalRowCount" | "groupLayout"> & Partial<Pick<DataGridStoreState, "groupMode">>;
 
@@ -107,6 +107,6 @@ export function readSelectedRows(s: Source): DataGridSelectedRows {
     ids: [],
     excludedIds: [...excluded],
     count: typeof total === "number" ? Math.max(0, total - excluded.size) : null,
-    spec: { sorts: s.sortState, filters: s.filterState, searchText: s.searchText },
+    spec: serverSpecOf(s),
   };
 }

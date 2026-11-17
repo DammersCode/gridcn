@@ -12,6 +12,7 @@ import type {
   DataChange,
   DataGridApi,
   DataGridPlugin,
+  FilterJoinOperator,
   FilterNode,
   FetchFilterValues,
   GridAction,
@@ -344,8 +345,14 @@ export type DataGridSyncProps<TData = unknown> = {
   groupLayout?: ServerGroupLayout;
   /** Fires after the user (or `toggleGroup`, `expandAll`, `collapseAll`) changes the open groups. */
   onExpandedChange?: (next: ExpandedState) => void;
-  /** Controlled filter tree; same controlled/uncontrolled semantics as `sortState`. The top level combines with "and"; a {@link FilterGroup} holds an "or". */
+  /** Controlled filter tree; same controlled/uncontrolled semantics as `sortState`. The top level combines with `filterJoin`; a {@link FilterGroup} has its own join. */
   filterState?: FilterNode[];
+  /** Controlled join of the top-level filters: `"and"` (default) matches every entry, `"or"` any one. Same controlled/uncontrolled semantics as `filterState`. */
+  filterJoin?: FilterJoinOperator;
+  /** Seeds the top-level join ONCE at store creation. Default: `"and"`. */
+  defaultFilterJoin?: FilterJoinOperator;
+  /** Fires after the user (or `actions.setFilterJoin`) changes the top-level join: uncontrolled, after the grid writes it; controlled, with the next join. */
+  onFilterJoinChange?: (next: FilterJoinOperator) => void;
   /**
    * Who filters the rows. `"client"`: the grid filters `data` by `filterState`. `"server"`:
    * the grid only tracks the spec (filter menu, header filters, `data-filtered`, `onFilterChange`) and
@@ -675,6 +682,7 @@ export type DataGridStoreState = Omit<
   | "defaultSelection"
   | "defaultSortState"
   | "defaultFilterState"
+  | "defaultFilterJoin"
   | "defaultSearchText"
   | "pageSize"
   | "page"
@@ -803,6 +811,8 @@ export type DataGridStoreState = Omit<
   /** Mirrors the `filterMode` sync prop; `"server"` keeps `filterState` out of every view rebuild. */
   filterMode: "client" | "server";
   filterState: FilterNode[];
+  /** How the top-level `filterState` entries combine. */
+  filterJoin: FilterJoinOperator;
   /** Quick-search text; never affects `viewIndex` (search highlights + navigates, it doesn't filter). */
   searchText: string;
   /** How `searchText` matches; set through `actions.setSearch` and kept across searches. */
@@ -818,6 +828,8 @@ export type DataGridStoreState = Omit<
    */
   sortControlled: boolean;
   filterControlled: boolean;
+  /** Whether `filterJoin` is controlled; same rule as `filterControlled`. */
+  filterJoinControlled: boolean;
   searchControlled: boolean;
   /** Rows per page; `null` shows every row. */
   pageSize: number | null;
@@ -920,7 +932,7 @@ export type DataGridStoreState = Omit<
 /** `DataGridStoreState` with `data` typed as `readonly TData[]` — the state view {@link useDataGridSelector} hands its selector. Every row in `data` originated from the grid's own `TData`-typed `data`/`defaultData` prop, so the widening is safe. */
 export type DataGridStoreStateOf<TData> = Omit<DataGridStoreState, "data" | DataGridInternalStateKey> & { data: readonly TData[] };
 
-type DataGridInternalStateKey = "dataControlled" | "selectAllStage" | "editingRejectionCount" | "selectionPointer" | "lastHighlightedRow" | "lastHighlightedCol" | "rowRangeGesture" | "sortControlled" | "filterControlled" | "searchControlled" | "pageControlled" | "pageSizeControlled" | "searchMatchSet" | "groupByControlled" | "expandedControlled" | "serverGroupLayout" | "rowIdentityVersion" | "scrollToCellImpl" | "focusImpl" | "runShortcutImpl" | "focusSearchImpl" | "measureFonts" | "dataWrite";
+type DataGridInternalStateKey = "dataControlled" | "selectAllStage" | "editingRejectionCount" | "selectionPointer" | "lastHighlightedRow" | "lastHighlightedCol" | "rowRangeGesture" | "sortControlled" | "filterControlled" | "filterJoinControlled" | "searchControlled" | "pageControlled" | "pageSizeControlled" | "searchMatchSet" | "groupByControlled" | "expandedControlled" | "serverGroupLayout" | "rowIdentityVersion" | "scrollToCellImpl" | "focusImpl" | "runShortcutImpl" | "focusSearchImpl" | "measureFonts" | "dataWrite";
 
 /** Mutations for a single grid instance, nested under the stable `actions` key. */
 export type DataGridActions = {
@@ -1072,6 +1084,8 @@ export type DataGridActions = {
   /** Closes every group. */
   collapseAll(): GroupActionResult;
   setFilters(filters: FilterNode[]): void;
+  /** Sets how the top-level filters combine and emits `onFilterJoinChange`; a controlled grid only emits. */
+  setFilterJoin(join: FilterJoinOperator): void;
   /** Sets quick-search text (and, when given, the search options) and recomputes `searchMatches`/`searchMatchSet`/`searchMatchesCapped` once; never touches `viewIndex`. Omitted options keep the current ones. */
   setSearch(text: string, options?: SearchOptions): void;
   /** Enters edit mode at the cell named by the stable {@link CellRef}, cancelling an open session first; no-op when the grid or column is readOnly, or its type is unregistered or declares `activate`. */

@@ -1,5 +1,5 @@
-import type { FilterNode, FilterSpec, SortSpec } from "../types";
-import { groupChildren, isFilterGroup } from "./filter-tree";
+import type { FilterJoinOperator, FilterNode, FilterSpec, SortSpec } from "../types";
+import { groupChildren, isFilterGroup, withRootJoin } from "./filter-tree";
 import { isDev } from "../is-dev";
 import { sortCollator } from "./sort-collator";
 import { createFilterMatcher, createNumberMatcher, isBuiltInOperator } from "./matches-filter";
@@ -116,8 +116,9 @@ export function isEmptyCell(accessor: CellAccessor, rowIndex: number, columnId: 
  */
 export type ViewIndexOptions = {
   sorts: SortSpec[];
-  /** The top level always combines with `"and"`; `"or"` lives inside a {@link FilterGroup}. */
   filters: readonly FilterNode[];
+  /** How the top-level `filters` combine. Default: `"and"`. */
+  filterJoin?: FilterJoinOperator;
   search?: string;
   searchColumnIds?: string[];
 };
@@ -136,10 +137,11 @@ export function buildViewIndex(
   let indices: number[] = [];
   for (let i = 0; i < rowCount; i++) indices.push(i);
 
-  if (opts.filters.length > 0) {
+  const filters = withRootJoin(opts.filters, opts.filterJoin);
+  if (filters.length > 0) {
     // One test per top-level node, built once outside the per-row loop: a numeric bound is parsed here, not per row.
     // Narrowing node by node keeps a flat list on the short-circuiting path it always had.
-    for (const node of opts.filters) {
+    for (const node of filters) {
       const test = makeFilterNodeTest(accessor, node);
       indices = indices.filter((row) => test(row));
     }

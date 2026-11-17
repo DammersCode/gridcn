@@ -9,6 +9,7 @@ import {
   useDataGridSearchText,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { DataGridUrlState, useDataGridUrlState, type UseDataGridUrlStateOptions, type UseDataGridUrlStateResult } from "./data-grid-url-state";
 
 afterEach(cleanup);
@@ -26,11 +27,12 @@ const columns = defineColumns<Row>()([
 ] as const);
 
 /** Reads out the store's sort/filter/search state as plain data, for assertions. */
-function StateProbe(props: { onState: (state: { sort: unknown; filter: unknown; search: string }) => void }) {
+function StateProbe(props: { onState: (state: { sort: unknown; filter: unknown; filterJoin: string; search: string }) => void }) {
   const sort = useDataGridSortState();
   const filter = useDataGridFilterState();
+  const filterJoin = useDataGridSelector((s) => s.filterJoin);
   const search = useDataGridSearchText();
-  props.onState({ sort, filter, search });
+  props.onState({ sort, filter, filterJoin, search });
   return null;
 }
 
@@ -72,7 +74,7 @@ function renderGrid(options: {
   onUrlUpdate?: (event: UrlUpdateEvent) => void;
   exposeUrlState?: (result: UseDataGridUrlStateResult) => void;
 }) {
-  let latestState: { sort: unknown; filter: unknown; search: string } | undefined;
+  let latestState: { sort: unknown; filter: unknown; filterJoin: string; search: string } | undefined;
   let actions: ReturnType<typeof useDataGridActions> | undefined;
   const spec = options.defaultSpec ? undefined : (options.spec ?? ALL_SPEC_PARTS);
   const utils = render(
@@ -347,22 +349,33 @@ describe("DataGridUrlState filter groups", () => {
     ]);
   });
 
-  it("wraps a flat list in one or group for a legacy join=or", () => {
+  it("reads join=or as the top-level join of a flat list", () => {
     const { getState } = renderGrid({ searchParams: "?filter=name%3Acontains%3AAli,age%3Agt%3A35&join=or" });
-    expect(getState().filter).toEqual([
-      { filterId: expect.any(String), join: "or", filters: [nameId("name", "contains", "Ali"), nameId("age", "gt", "35")] },
-    ]);
+    expect(getState().filter).toEqual([nameId("name", "contains", "Ali"), nameId("age", "gt", "35")]);
+    expect(getState().filterJoin).toBe("or");
   });
 
-  it("ignores join=or when the filter already holds a group", () => {
+  it("reads join=or as the top-level join beside a group", () => {
     const { getState } = renderGrid({ searchParams: "?filter=age%3Agt%3A26,[and,name%3Acontains%3AAli,]&join=or" });
-    expect(getState().filter).toEqual([
-      nameId("age", "gt", "26"),
-      { filterId: expect.any(String), join: "and", filters: [nameId("name", "contains", "Ali")] },
-    ]);
+    expect(getState().filter).toEqual([nameId("age", "gt", "26"), { filterId: expect.any(String), join: "and", filters: [nameId("name", "contains", "Ali")] }]);
+    expect(getState().filterJoin).toBe("or");
   });
 
-  it("writes the tree to the URL and clears a legacy join param", async () => {
+  it.each(["", "?join=and", "?join=OR", "?join=xor"])("reads %j as an and join", (query) => {
+    expect(renderGrid({ searchParams: `${query ? `${query}&` : "?"}filter=age%3Agt%3A26` }).getState().filterJoin).toBe("and");
+  });
+
+  it("writes join=or while the top level joins with or and drops it for and", async () => {
+    const onUrlUpdate = vi.fn();
+    const { getActions } = renderGrid({ searchParams: "?filter=age%3Agt%3A26,age%3Alt%3A90", onUrlUpdate });
+    const lastParams = () => (onUrlUpdate.mock.calls.at(-1)?.[0] as UrlUpdateEvent | undefined)?.searchParams;
+    await act(async () => getActions().setFilterJoin("or"));
+    await vi.waitFor(() => expect(lastParams()?.get("join")).toBe("or"));
+    await act(async () => getActions().setFilterJoin("and"));
+    await vi.waitFor(() => expect(lastParams()?.has("join")).toBe(false));
+  });
+
+  it("keeps join=or when the tree changes", async () => {
     const onUrlUpdate = vi.fn();
     const { getActions } = renderGrid({ searchParams: "?join=or", onUrlUpdate });
     await act(async () => {
@@ -371,7 +384,7 @@ describe("DataGridUrlState filter groups", () => {
     await vi.waitFor(() => {
       const last = onUrlUpdate.mock.calls.at(-1)?.[0] as UrlUpdateEvent | undefined;
       expect(last?.searchParams.get("filter")).toBe("age:gt:30,[or,name:equals:A,]");
-      expect(last?.searchParams.has("join")).toBe(false);
+      expect(last?.searchParams.get("join")).toBe("or");
     });
   });
 });
@@ -623,7 +636,7 @@ describe("DataGridUrlState spec", () => {
 
   it("applies nothing for an empty list", () => {
     const { getState } = renderGrid({ searchParams: url, spec: [] });
-    expect(getState()).toEqual({ sort: [], filter: [], search: "" });
+    expect(getState()).toEqual({ sort: [], filter: [], filterJoin: "and", search: "" });
   });
 
   it("writes only the listed parts to the URL", async () => {

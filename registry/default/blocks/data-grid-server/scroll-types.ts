@@ -21,6 +21,8 @@ export type UseDataGridServerRowsScrollProviderProps<TData> = {
   onSortChange: (next: SortSpec[]) => void;
   filterState: FilterNode[];
   onFilterChange: (next: FilterNode[]) => void;
+  filterJoin: "and" | "or";
+  onFilterJoinChange: (next: "and" | "or") => void;
   searchText: string;
   onSearchTextChange: (next: string) => void;
   /** The row count of the result; `null` until the first block lands, and for a sequential source until it ends or the server sends one. */

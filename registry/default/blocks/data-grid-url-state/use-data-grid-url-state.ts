@@ -54,7 +54,7 @@ export type UseDataGridUrlStateOptions = {
   /** Namespaces the `sort`/`group`/`filter`/`join`/`q` URL keys and the layout keys (`cols`, `hide`, `widths`, `pins`) as `<prefix>_<key>`, so multiple grids can coexist on one page. */
   prefix?: string;
   /**
-   * View-spec parts synced to the URL: `sort` (`sort`), `group` (`group`: the `groupBy` columns; expanded groups stay out), `filter` (`filter` and the legacy `join`), and `search` (`q`).
+   * View-spec parts synced to the URL: `sort` (`sort`), `group` (`group`: the `groupBy` columns; expanded groups stay out), `filter` (`filter` and the top-level `join`), and `search` (`q`).
    * `[]` turns spec sync off. Default `["sort", "group"]`: filter values and search text reach the URL, browser history, server logs, and `Referer` only when you list `"filter"` and `"search"`.
    */
   spec?: readonly UrlSpecPart[];
@@ -90,9 +90,8 @@ export type UseDataGridUrlStateResult = {
  * nuqs: applies any URL params to the store once on mount, then writes store changes back to the
  * URL (replacing, never pushing, history entries). Requires a `NuqsAdapter` (or the testing
  * adapter) above it in the tree — nuqs itself is router-agnostic. Writes are not delayed: the search
- * input debounces typing and nuqs coalesces the `history.replaceState` calls. A filter group lives inside the `filter` param. A legacy
- * `join=or` param is read once (it wraps a flat filter list in one `or` group) and every filter
- * write removes it.
+ * input debounces typing and nuqs coalesces the `history.replaceState` calls. A filter group lives inside the `filter` param. The join of the top-level
+ * list is the `join` param: `join=or` when the list joins with "or", absent for "and".
  *
  * The URL→store direction runs on mount and on back/forward (`enableNavigationSync`); otherwise the store
  * wins. `applyFromUrl()` re-runs the apply when the URL changed outside the grid's own writes.
@@ -121,6 +120,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   const sortState = useDataGridSortState();
   const groupBy = useDataGridSelector((s) => s.groupBy);
   const filterState = useDataGridFilterState();
+  const filterJoin = useDataGridSelector((s) => s.filterJoin);
   const searchText = useDataGridSearchText();
   const columnLayout = useDataGridSelector((s) => s.columnLayout);
 
@@ -225,8 +225,8 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
       warnedChoiceColumns.current.add(columnId);
       warnDev(`dropped ${count} URL filter values outside the column choices and data values of "${columnId}"`);
     }
-    const legacyOr = parsedFilters.length > 0 && parseLegacyJoin(params.join) === "or" && !parsedFilters.some(isFilterGroup);
-    const filters = pruneFilterSpecs(legacyOr ? [{ join: "or", filters: parsedFilters }] : parsedFilters, (spec) => {
+    const rootJoin = parseLegacyJoin(params.join);
+    const filters = pruneFilterSpecs(parsedFilters, (spec) => {
       if (filterableIds.has(spec.columnId)) return true;
       warnDev(`dropped URL filter spec for removed, hidden, or unfilterable column "${spec.columnId}"`);
       return false;
@@ -234,7 +234,10 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
     // On mount an absent param keeps the grid's initial state; a re-apply mirrors the URL, so a removed param clears its state.
     if (syncSort && (sorts.length > 0 || !keepMountDefaults)) actions.setSorts(sorts);
     if (syncGroup && storeApi.getState().groupingEnabled && (groups.length > 0 || !keepMountDefaults)) actions.setGroupBy(groups);
-    if (syncFilter && (filters.length > 0 || !keepMountDefaults)) actions.setFilters(filters);
+    if (syncFilter && (filters.length > 0 || rootJoin === "or" || !keepMountDefaults)) {
+      actions.setFilters(filters);
+      actions.setFilterJoin(rootJoin);
+    }
     if (syncSearch && (params.q || !keepMountDefaults)) actions.setSearch(params.q.slice(0, MAX_SPEC_SEARCH_LENGTH));
 
     if (Object.keys(layoutPatch).length > 0) actions.setColumnLayout(layoutPatch);
@@ -291,9 +294,9 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
     if (!appliedRef.current || !syncFilter) return;
     const choiceBounds = choiceBoundsOf(allColumns, storeApi.getState());
     noteWrite(setFilterParamRef.current(serializeFilterState(filterState, { operatorInput, maxChoices: (columnId) => choiceBounds.get(columnId) }) || null));
-    noteWrite(setJoinParamRef.current(null));
+    noteWrite(setJoinParamRef.current(filterJoin === "or" ? "or" : null));
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterState]);
+  }, [filterState, filterJoin]);
 
   const lastWrittenLayoutRef = useRef<Partial<Record<UrlLayoutPart, string>> | null>(null);
   useEffect(() => {

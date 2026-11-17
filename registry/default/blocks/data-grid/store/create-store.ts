@@ -259,6 +259,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
   // storage widens each per-column CellType<TData, TValue, TOptions> to the untyped registry shape; narrowed back per column at lookup (cell.tsx/store's column-op helpers).
   const initCellTypes = resolveCellTypes(init.cellTypes as unknown as ProvidedCellTypes);
   const initFilterState = withMatchCase(withFilterIds(init.filterState ?? dropUnknownFilters(plainSeed(init.defaultFilterState) ?? [], init.columns)), init.columns, initCellTypes);
+  const initFilterJoin = (init.filterJoin ?? init.defaultFilterJoin) === "or" ? "or" : "and";
   Object.assign(memory, {
     lastPropsCellTypes: init.cellTypes as unknown as ProvidedCellTypes,
     lastSyncInputs: {
@@ -266,7 +267,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       cellTypes: initCellTypes,
       columns: effectiveLayout.columns,
       sortState: viewSorts(initSortMode, initSortState),
-      filterState: viewFilters(initFilterMode, initFilterState),
+      filterState: viewFilters(initFilterMode, initFilterState, initFilterJoin),
       searchText: initSearchText,
       columnOrder: effectiveLayout.columnOrder,
       hiddenColumns: effectiveLayout.hiddenColumns,
@@ -339,7 +340,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
   const rebuildPageView = (s2: DataGridStoreState, page: number, pageSize: number | null): Partial<DataGridStoreState> => {
     const window = pageSize === null ? null : { page, pageSize };
     const viewIndex = s2.viewStale
-      ? computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, s2.sortState), viewFilters(s2.filterMode, s2.filterState), s2.viewIndex, s2.cellTypes, window, s2.sortLocale, groupingOf(s2))
+      ? computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, s2.sortState), viewFilters(s2.filterMode, s2.filterState, s2.filterJoin), s2.viewIndex, s2.cellTypes, window, s2.sortLocale, groupingOf(s2))
       : windowView(fullViewOf(s2.viewIndex), window, s2.viewIndex);
     resetDeferredRows(dataWrite);
     return {
@@ -636,7 +637,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
     warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
   }
   const initGrouping = groupingOf({ groupBy: initGroupBy, expanded: initExpanded, groupMode: initGroupMode, serverGroupLayout: init.groupLayout ?? null, totalRowCount: init.totalRowCount, sortMode: initSortMode, dataWrite });
-  const initViewIndex = computeViewIndex(initData, effectiveLayout.columns, viewSorts(initSortMode, initSortState), viewFilters(initFilterMode, initFilterState), undefined, initCellTypes, initPageSize === null ? null : { page: initPage, pageSize: initPageSize }, initSortLocale, initGrouping);
+  const initViewIndex = computeViewIndex(initData, effectiveLayout.columns, viewSorts(initSortMode, initSortState), viewFilters(initFilterMode, initFilterState, initFilterJoin), undefined, initCellTypes, initPageSize === null ? null : { page: initPage, pageSize: initPageSize }, initSortLocale, initGrouping);
   // `selection` wins over `defaultSelection`, and both resolve here (not in the provider), so the
   // server render and the first client paint already show them.
   const initSelectionValue = init.selection ?? init.defaultSelection;
@@ -745,7 +746,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       // Controlled: _syncProps writes the consumer's next `sortState` prop.
       if (!s.sortControlled) {
         set((s2) => {
-          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, sorts), viewFilters(s2.filterMode, s2.filterState), s2.viewIndex, s2.cellTypes, viewWindowOf(s2), s2.sortLocale, groupingOf(s2));
+          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, sorts), viewFilters(s2.filterMode, s2.filterState, s2.filterJoin), s2.viewIndex, s2.cellTypes, viewWindowOf(s2), s2.sortLocale, groupingOf(s2));
           resetDeferredRows(dataWrite);
           return {
             sortState: sorts,
@@ -1026,10 +1027,12 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
     sortLocale: initSortLocale,
     filterMode: initFilterMode,
     filterState: initFilterState,
+    filterJoin: initFilterJoin,
     searchText: initSearchText,
     searchOptions: initSearchOptions,
     sortControlled: init.sortState !== undefined,
     filterControlled: init.filterState !== undefined,
+    filterJoinControlled: init.filterJoin !== undefined,
     groupBy: initGroupBy,
     expanded: initExpanded,
     groupMode: initGroupMode,
@@ -1472,6 +1475,31 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
           if (resetPage) s.onPageChange?.(1);
         });
       },
+      setFilterJoin(join) {
+        const s = get();
+        const next = join === "or" ? "or" : "and";
+        if (next === s.filterJoin) return;
+        const resetPage = s.pageSize !== null && s.page !== 1;
+        if (!s.filterJoinControlled) {
+          set((s2) => {
+            const page = resetPage && !s2.pageControlled ? 1 : s2.page;
+            const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, s2.sortState), viewFilters(s2.filterMode, s2.filterState, next), s2.viewIndex, s2.cellTypes, s2.pageSize === null ? null : { page, pageSize: s2.pageSize }, s2.sortLocale, groupingOf(s2));
+            resetDeferredRows(dataWrite);
+            return {
+              page,
+              filterJoin: next,
+              viewIndex,
+              ...clearStaleRows(dataWrite),
+              ...followView(s2, viewIndex, s2.visibleColumns),
+              ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
+              ...(s2.allMatching ? endAllMatching(s2.selection) : {}),
+            };
+          });
+        }
+        emitAfterWrites(dataWrite, () => s.onFilterJoinChange?.(next), () => {
+          if (resetPage) s.onPageChange?.(1);
+        });
+      },
       setSearch(text, options) {
         const s = get();
         const searchOptions = options ? { ...s.searchOptions, ...options } : s.searchOptions;
@@ -1583,7 +1611,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       return;
     }
     if (!resultsAnnouncementArmed || !state.announceResults) return;
-    const filterMoved = state.filterMode === "client" && state.filterState !== prev.filterState;
+    const filterMoved = state.filterMode === "client" && (state.filterState !== prev.filterState || state.filterJoin !== prev.filterJoin);
     const sortMoved = state.sortMode === "client" && state.sortState !== prev.sortState;
     if (!filterMoved && !sortMoved) return;
     // A paged grid counts every page, like the footer, so a filter that changes only later pages announces too.

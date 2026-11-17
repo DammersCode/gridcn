@@ -187,7 +187,7 @@ export { useOptionalDataGridColumnSource, useOptionalDataGridLabels } from "./st
 export type { DataGridFilterOperatorLabels, DataGridCommentsLabels } from "./labels";
 export { deepMergeLabels } from "./labels";
 export { GRID_ATTR, GRID_ROLE_SELECTOR, gridAttrSelector, type GridAttrName, type GridAttr, type GridAttrValue } from "./data-attributes";
-export { EMPTY_SERVER_SPEC, type ServerAggregate } from "./server-spec";
+export { EMPTY_SERVER_SPEC, serverSpecOf, type ServerAggregate } from "./server-spec";
 export { defaultGetRowId } from "./store/types";
 export { dataIndexAt, dataIndexOf, forEachDataIndex, rowAtViewRow, viewEntryAt, type ViewEntry } from "./store/view-rows";
 export { groupLayoutOfView } from "./store/view-rows";

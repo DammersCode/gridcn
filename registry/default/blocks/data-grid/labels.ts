@@ -55,11 +55,11 @@ export type DataGridToolbarLabels = {
   removeFilterGroupAriaLabel: string;
   /** Name of a filter group in the reorder announcement. */
   filterGroupName: string;
-  /** aria-label of the connector select of a node after the first in a group; it sets the join of the whole group. `position` is the 1-based node position, `group` the dotted 1-based group path such as "1.2". */
+  /** aria-label of the connector select, shown on the second node of a list; it sets the join of the whole list. `position` is the 1-based node position, `group` the dotted 1-based group path such as "1.2", `""` for the top level. */
   filterGroupJoinAriaLabel: (position: number, group: string) => string;
-  /** "and" option of the connector select; static text at the top level. */
+  /** "and" option of the connector select; also the text on later nodes of an "and" list. */
   filterConnectorAnd: string;
-  /** "or" option of the connector select. */
+  /** "or" option of the connector select; also the text on later nodes of an "or" list. */
   filterConnectorOr: string;
   columns: string;
   columnsAriaLabel: string;

@@ -48,7 +48,7 @@ export function buildDefaultLabels(locale: string): DataGridLabels {
       addFilterGroup: "Add group",
       removeFilterGroupAriaLabel: "Remove group",
       filterGroupName: "Group",
-      filterGroupJoinAriaLabel: (position, group) => `Connector of filter ${position} in group ${group}`,
+      filterGroupJoinAriaLabel: (position, group) => (group ? `Connector of filter ${position} in group ${group}` : `Connector of filter ${position}`),
       filterConnectorAnd: "And",
       filterConnectorOr: "Or",
       columns: "Columns",

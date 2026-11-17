@@ -79,6 +79,16 @@ describe("parseServerSpec", () => {
   it("rejects a join other than and/or", () => {
     expect(() => parse({ filters: [{ join: "xor", filters: [] }] })).toThrow(/join/);
   });
+
+  it("keeps filterJoin only as or and reads and or none as and", () => {
+    expect(parse({ filterJoin: "or" }).filterJoin).toBe("or");
+    expect("filterJoin" in parse({ filterJoin: "and" })).toBe(false);
+    expect("filterJoin" in parse({})).toBe(false);
+  });
+
+  it.each(["xor", "OR", 1, null, true, {}, []])("rejects filterJoin %j", (bad) => {
+    expect(() => parse({ filterJoin: bad })).toThrow(/filterJoin/);
+  });
 });
 
 describe("parseServerSpec limits", () => {

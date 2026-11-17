@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useStore } from "zustand";
 import { serverSpecKey, type ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { isDev, serverSpecOf, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Longest text a server value keeps; longer strings are cut. */
 const MAX_SERVER_AGGREGATE_TEXT = 1000;
@@ -55,7 +55,7 @@ const EMPTY_ROW: Record<string, unknown> = {};
 export const PENDING_SERVER_AGGREGATE: ServerAggregateResult = { row: EMPTY_ROW, status: "loading", error: null, loading: true, refresh: () => {}, retry: () => {} };
 
 function aggregateKey(spec: ServerSpec): string {
-  return serverSpecKey({ sorts: [], filters: spec.filters, searchText: spec.searchText });
+  return serverSpecKey({ sorts: [], filters: spec.filters, ...(spec.filterJoin ? { filterJoin: spec.filterJoin } : null), searchText: spec.searchText });
 }
 
 function reportChange(onChange: (result: ServerAggregateResult) => void, result: ServerAggregateResult): void {
@@ -102,11 +102,12 @@ export function useDataGridServerAggregate(options: UseDataGridServerAggregateOp
   const { debounceMs = 150, refreshAfterSave = "settled" } = options;
   const storeApi = useDataGridStoreApi();
   const filters = useStore(storeApi, (s) => s.filterState);
+  const filterJoin = useStore(storeApi, (s) => s.filterJoin);
   const sorts = useStore(storeApi, (s) => s.sortState);
   const searchText = useStore(storeApi, (s) => s.searchText);
   const columns = useStore(storeApi, (s) => s.columns);
 
-  const spec = useMemo<ServerSpec>(() => ({ sorts, filters, searchText }), [sorts, filters, searchText]);
+  const spec = useMemo<ServerSpec>(() => serverSpecOf({ sortState: sorts, filterState: filters, filterJoin, searchText }), [sorts, filters, filterJoin, searchText]);
   const key = aggregateKey(spec);
   const columnIds = useMemo(() => options.columnIds ?? columns.map((c) => c.id), [options.columnIds, columns]);
   const columnKey = columnIds.join("\u0000");

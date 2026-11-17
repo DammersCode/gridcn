@@ -705,6 +705,7 @@ export type DataGridReadState = Omit<
   | "onEditEnd"
   | "onSortChange"
   | "onFilterChange"
+  | "onFilterJoinChange"
   | "onSearchTextChange"
   | "onColumnLayoutChange"
   | "onColumnResizing"

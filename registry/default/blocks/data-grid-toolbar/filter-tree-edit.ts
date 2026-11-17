@@ -48,9 +48,9 @@ export function moveSibling(nodes: readonly FilterNode[], parentId: string | und
   });
 }
 
-/** The join a new group takes: the opposite of its parent's, with the top level counting as "and". */
-export function oppositeJoin(parent: FilterGroup | undefined): FilterGroup["join"] {
-  return parent?.join === "or" ? "and" : "or";
+/** The join a new group takes: the opposite of its parent's; a root-level group reads `rootJoin`. */
+export function oppositeJoin(parent: FilterGroup | undefined, rootJoin: FilterGroup["join"] = "and"): FilterGroup["join"] {
+  return (parent?.join ?? rootJoin) === "or" ? "and" : "or";
 }
 
 export type NodeLocation = { parentId: string | undefined; siblings: readonly FilterNode[]; index: number };

@@ -160,7 +160,7 @@ function groupEquality(column: PlanColumn, key: unknown, path: Path, ctx: Ctx): 
 }
 
 function parseWhere(spec: Raw, ctx: Ctx): Predicate {
-  const filters = parseFilters(spec["filters"], ctx);
+  const filters = parseFilters(spec["filters"], ctx, spec["filterJoin"] === "or" ? "or" : "and");
   const search = parseSearch(spec["searchText"], ctx);
   return combine("and", [filters, search]);
 }
@@ -265,9 +265,10 @@ function parseSorts(value: unknown, ctx: Ctx): OrderTerm[] {
   return terms;
 }
 
-function parseFilters(value: unknown, ctx: Ctx): Predicate {
+function parseFilters(value: unknown, ctx: Ctx, join: "and" | "or" = "and"): Predicate {
   if (value === undefined || value === null) return TRUE;
-  return combine("and", parseNodes(value, ["spec", "filters"], 0, ctx));
+  const nodes = parseNodes(value, ["spec", "filters"], 0, ctx);
+  return nodes.length === 0 ? TRUE : combine(join, nodes);
 }
 
 function parseNodes(value: unknown, path: Path, depth: number, ctx: Ctx): Predicate[] {

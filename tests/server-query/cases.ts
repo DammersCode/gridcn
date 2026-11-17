@@ -69,6 +69,15 @@ add("no filters", []);
 
 export const ORACLE_CASES = oracleCases;
 
+/** Top-level lists the client evaluates with `filterJoin: "or"`; the server must return the same rows. */
+export const ROOT_OR_CASES: { name: string; filters: FilterTree }[] = [
+  { name: "two rows", filters: [leaf("name", "equals", "alpha"), leaf("qty", "gt", "50")] },
+  { name: "a row and a group", filters: [leaf("tag", "equals", "red"), { join: "and", filters: [leaf("qty", "lt", "50"), leaf("active", "equals", "true")] }] },
+  { name: "an or group inside", filters: [{ join: "or", filters: [leaf("name", "contains", "a"), leaf("name", "contains", "e")] }, leaf("score", "gt", "0")] },
+  { name: "one row", filters: [leaf("qty", "gt", "50")] },
+  { name: "no filters", filters: [] },
+];
+
 const day = (iso: string) => iso.slice(0, 10);
 export const SERVER_CASES: Case[] = [
   { name: "decimal equals is numeric", filters: [leaf("price", "equals", "12.5")], expect: { because: "the client compares text", ids: ids((r) => r.price !== null && Number(r.price) === 12.5) } },

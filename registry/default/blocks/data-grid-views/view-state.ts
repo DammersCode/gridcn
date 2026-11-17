@@ -23,6 +23,8 @@ export type DataGridViewState = {
   sorts: SortSpec[];
   groupBy: string[];
   filters: FilterNode[];
+  /** How the top-level `filters` combine. A capture stores it only as `"or"`; absent means `"and"`. */
+  filterJoin?: "and" | "or";
   searchText: string;
   searchOptions: Required<SearchOptions>;
   columnLayout: ColumnLayout;
@@ -90,6 +92,7 @@ export function captureViewState(source: DataGridViewState): DataGridViewState {
     sorts: source.sorts.map((s) => ({ columnId: s.columnId, direction: s.direction })),
     groupBy: [...source.groupBy],
     filters: stripFilterIds(source.filters, 0),
+    ...(source.filterJoin === "or" ? { filterJoin: "or" as const } : null),
     searchText: source.searchText,
     searchOptions: { matchCase: source.searchOptions.matchCase, wholeCell: source.searchOptions.wholeCell },
     columnLayout: { widths: { ...widths }, order: [...order], pins: { ...pins }, hidden: [...hidden] },
@@ -122,7 +125,7 @@ export function viewPartKeys(state: DataGridViewState): Record<ViewStatePart | "
   return {
     sorts: JSON.stringify(captured.sorts),
     group: JSON.stringify(captured.groupBy),
-    filters: JSON.stringify(captured.filters, sortKeys),
+    filters: JSON.stringify(captured.filters, sortKeys) + (captured.filterJoin === "or" ? "|or" : ""),
     search: JSON.stringify([captured.searchText, captured.searchOptions]),
     layout: JSON.stringify(captured.columnLayout, sortKeys),
   };
@@ -149,7 +152,7 @@ export function savableViewState(state: DataGridViewState): DataGridViewState | 
 type RawSort = { columnId?: unknown; direction?: unknown };
 type RawFilter = { columnId?: unknown; operator?: unknown; value?: unknown; join?: unknown; filters?: unknown };
 type RawLayout = { widths?: unknown; order?: unknown; pins?: unknown; hidden?: unknown };
-type RawState = { sorts?: unknown; groupBy?: unknown; filters?: unknown; searchText?: unknown; searchOptions?: unknown; columnLayout?: unknown };
+type RawState = { sorts?: unknown; groupBy?: unknown; filters?: unknown; filterJoin?: unknown; searchText?: unknown; searchOptions?: unknown; columnLayout?: unknown };
 type RawSearchOptions = { matchCase?: unknown; wholeCell?: unknown };
 type RawView = { id?: unknown; name?: unknown; state?: unknown };
 type RawDocument = { version?: unknown; views?: unknown; defaultViewId?: unknown };
@@ -341,6 +344,7 @@ export function sanitizeViewState(raw: unknown, columns?: ViewColumns): { state:
       sorts: sanitizeSorts(source.sorts, columns, tally),
       groupBy: sanitizeGroupBy(source.groupBy, columns, tally),
       filters: sanitizeFilterNodes(source.filters, 0, columns, { leaves: 0, groups: 0 }, tally),
+      ...(source.filterJoin === "or" ? { filterJoin: "or" as const } : null),
       searchText: typeof source.searchText === "string" ? source.searchText.slice(0, MAX_SPEC_SEARCH_LENGTH) : "",
       searchOptions: { matchCase: options.matchCase === true, wholeCell: options.wholeCell === true },
       columnLayout: sanitizeLayout(source.columnLayout, columns, tally),

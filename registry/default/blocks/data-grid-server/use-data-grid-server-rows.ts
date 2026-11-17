@@ -133,6 +133,8 @@ export type UseDataGridServerRowsProviderProps<TData> = {
   onSortChange: (next: SortSpec[]) => void;
   filterState: FilterNode[];
   onFilterChange: (next: FilterNode[]) => void;
+  filterJoin: "and" | "or";
+  onFilterJoinChange: (next: "and" | "or") => void;
   searchText: string;
   onSearchTextChange: (next: string) => void;
   /** The row count of the result; `null` when the server sends none. */
@@ -245,7 +247,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
     },
     grouping,
   );
-  const { spec, ready: specReady, onSortChange, onFilterChange, onSearchTextChange } = specState;
+  const { spec, ready: specReady, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange } = specState;
   const grouped = grouping && (spec.groupBy?.length ?? 0) > 0;
   const chainKey = `${serverSpecKey(spec)}|${pageSize}`;
   const chain = useRef<CursorChain<TCursor>>({ key: chainKey, cursors: new Map([[1, undefined]]) });
@@ -642,6 +644,8 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
       onSortChange,
       filterState: spec.filters as FilterNode[],
       onFilterChange,
+      filterJoin: spec.filterJoin ?? "and",
+      onFilterJoinChange,
       searchText: spec.searchText,
       onSearchTextChange,
       totalRowCount: shown.totalRowCount,
@@ -649,7 +653,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
       headerClickBehavior: "sort",
       plugins,
     }),
-    [shown.rows, shown.totalRowCount, spec, getRowId, onDataChange, onSave, onSortChange, onFilterChange, onSearchTextChange, plugins],
+    [shown.rows, shown.totalRowCount, spec, getRowId, onDataChange, onSave, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, plugins],
   );
   useRegisteredWiring(providerProps, wrapSave);
   const rootProps = useMemo<UseDataGridServerRowsRootProps>(() => ({ loading, error, onRetry: retry }), [loading, error, retry]);

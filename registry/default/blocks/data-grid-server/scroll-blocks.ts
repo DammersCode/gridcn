@@ -156,7 +156,7 @@ function positiveInteger(value: number | undefined, fallback: number, min: numbe
 
 /** Scroll mode of `useDataGridServerRows`: random access over a counted result, or a sequential chain of blocks. */
 export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDataGridServerRowsScrollOptions<TData, TCursor>, TData>, specState: ServerSpecState): UseDataGridServerRowsScrollResult<TData> {
-  const { spec, ready: specReady, onSortChange, onFilterChange, onSearchTextChange } = specState;
+  const { spec, ready: specReady, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange } = specState;
   const coreRef = useRef<Core<TData> | null>(null);
   const getCore = useCallback((): Core<TData> => {
     if (coreRef.current === null) coreRef.current = createCore<TData>();
@@ -954,6 +954,8 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       onSortChange,
       filterState: spec.filters as FilterNode[],
       onFilterChange,
+      filterJoin: spec.filterJoin ?? "and",
+      onFilterJoinChange,
       searchText: spec.searchText,
       onSearchTextChange,
       totalRowCount: count,
@@ -961,7 +963,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       headerClickBehavior: "sort",
       plugins,
     }),
-    [rows, count, spec, getRowId, onDataChange, onSave, onRenderedRowsChange, onSortChange, onFilterChange, onSearchTextChange, plugins],
+    [rows, count, spec, getRowId, onDataChange, onSave, onRenderedRowsChange, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, plugins],
   );
   useRegisteredWiring(providerProps, wrapSave);
   const rootProps = useMemo<UseDataGridServerRowsRootProps>(() => ({ loading, error, onRetry: retry }), [loading, error, retry]);

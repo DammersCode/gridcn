@@ -68,7 +68,10 @@ type FilterMenuContext = {
   customFor: (column: AnyColumnDef | undefined) => CustomOperators;
   labels: DataGridLabels;
   onUpdate: (filterId: string, next: Partial<FilterSpec>) => void;
-  onJoinChange: (filterId: string, join: FilterGroup["join"]) => void;
+  /** The join of the top-level list. */
+  rootJoin: FilterGroup["join"];
+  /** A `parentId` of `undefined` sets the top-level join. */
+  onJoinChange: (parentId: string | undefined, join: FilterGroup["join"]) => void;
   onRemove: (filterId: string) => void;
   onAddFilter: (parent: FilterGroup | undefined) => void;
   onAddGroup: (parent: FilterGroup | undefined) => void;
@@ -79,9 +82,9 @@ type FilterMenuContext = {
 };
 
 /**
- * Popover listing the filter tree. The top level is a list of rows and groups joined by "and"; a
- * group is a bordered box with its own rows; each row after the first shows an "And"/"Or" select
- * that sets the join of the whole group. Every row and group has a drag handle and a trash
+ * Popover listing the filter tree. The top level is a list of rows and groups joined by `filterJoin`; a
+ * group is a bordered box with its own rows; in every list the second row shows an "And"/"Or" select
+ * that sets the join of the whole list, and later rows show that join as text. Every row and group has a drag handle and a trash
  * icon-button; a row adds a field select, an operator select, and a typed value input. The title row
  * holds "Add filter", "Add group" (a group nests one more group at most), and "Clear all". Built from this repo's own
  * Base UI components. Reordering uses `@dnd-kit/react`'s sortable primitives (handle-initiated
@@ -96,6 +99,7 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
   const actions = useDataGridActions();
   const storeApi = useDataGridStoreApi();
   const filters = useDataGridFilterState();
+  const rootJoin = useDataGridSelector((s) => s.filterJoin);
   const visibleColumns = useDataGridVisibleColumns();
   const gridColumns = useDataGridAllColumns();
   const columns = allColumns ? gridColumns : visibleColumns;
@@ -212,7 +216,8 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
     customFor,
     labels,
     onUpdate: (filterId, next) => actions.setFilters(updateNode(latest(), filterId, (node) => ({ ...node, ...next }) as FilterNode)),
-    onJoinChange: (filterId, join) => actions.setFilters(updateNode(latest(), filterId, (node) => ({ ...node, join }) as FilterNode)),
+    rootJoin,
+    onJoinChange: (parentId, join) => (parentId === undefined ? actions.setFilterJoin(join) : actions.setFilters(updateNode(latest(), parentId, (node) => ({ ...node, join }) as FilterNode))),
     onRemove: (filterId) => {
       const current = latest();
       const at = locateNode(current, filterId);
@@ -233,7 +238,7 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
     onAddGroup: (parent) => {
       const row = newRow();
       if (row) rememberFilterIds();
-      if (row) actions.setFilters(appendChild(latest(), parent?.filterId, { join: oppositeJoin(parent), filters: [row] }));
+      if (row) actions.setFilters(appendChild(latest(), parent?.filterId, { join: oppositeJoin(parent, rootJoin), filters: [row] }));
     },
     onReorder: (parentId, fromIndex, toIndex, filterId) => {
       if (fromIndex === toIndex) return;
@@ -321,7 +326,7 @@ function MenuAction(props: MenuActionProps): ReactNode {
 
 type FilterListProps = {
   nodes: readonly FilterNode[];
-  /** The group that owns the list; undefined for the top level, whose connector is "and". */
+  /** The group that owns the list; undefined for the top level, which joins by `ctx.rootJoin`. */
   parent: FilterGroup | undefined;
   /** Group levels above this list: 0 for the top level. */
   depth: number;
@@ -342,7 +347,7 @@ function dropEdgeAt(index: number, slot: DragSlot | null): DropEdge | undefined 
 /** One sibling list with its own drag context, so a drag never leaves its level. */
 function FilterList(props: FilterListProps): ReactNode {
   const { nodes, parent, depth, path, ctx, className } = props;
-  const join: FilterGroup["join"] = parent?.join === "or" ? "or" : "and";
+  const join: FilterGroup["join"] = (parent?.join ?? ctx.rootJoin) === "or" ? "or" : "and";
   const parentId = parent?.filterId;
   const [slot, setSlot] = useState<DragSlot | null>(null);
   return (
@@ -389,7 +394,7 @@ function FilterList(props: FilterListProps): ReactNode {
   );
 }
 
-/** The first cell of a row or group: "Where" on the first, a select that sets the group's join after it; the top level is always "and". */
+/** The first cell of a row or group: "Where" on the first; the second holds the select that sets the list's join; later ones show that join as text. */
 function ConnectorCell(props: { index: number; join: FilterGroup["join"]; parentId: string | undefined; path: string; ctx: FilterMenuContext }): ReactNode {
   const { index, join, parentId, path, ctx } = props;
   const { labels } = ctx;
@@ -398,7 +403,7 @@ function ConnectorCell(props: { index: number; join: FilterGroup["join"]; parent
     { value: "or", label: labels.toolbar.filterConnectorOr },
   ];
   const connector =
-    parentId === undefined || index === 0 ? undefined : (
+    index === 1 ? (
       <Select
         items={items}
         value={join}
@@ -418,10 +423,11 @@ function ConnectorCell(props: { index: number; join: FilterGroup["join"]; parent
           ))}
         </SelectContent>
       </Select>
-    );
+    ) : undefined;
+  const text = index === 0 ? labels.toolbar.filterWhere : join === "or" ? labels.toolbar.filterConnectorOr : labels.toolbar.filterConnectorAnd;
   return (
     <div className="flex h-8 w-18 shrink-0 items-center justify-center text-center">
-      {connector ?? <span className="text-sm text-muted-foreground">{index === 0 ? labels.toolbar.filterWhere : labels.toolbar.filterConnectorAnd}</span>}
+      {connector ?? <span className="text-sm text-muted-foreground">{text}</span>}
     </div>
   );
 }

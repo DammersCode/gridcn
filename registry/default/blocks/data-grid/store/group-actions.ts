@@ -48,7 +48,7 @@ export function createGroupActions({ set, get, dataWrite, followView, memory }: 
   const regroup = (s: DataGridStoreState, groupBy: readonly string[]): Partial<DataGridStoreState> => {
     const grouping = groupingOf({ ...s, groupBy });
     const page = s.pageSize === null || s.pageControlled ? s.page : 1;
-    const viewIndex = computeViewIndex(s.data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, s.cellTypes, viewWindowOf({ ...s, page }), s.sortLocale, grouping);
+    const viewIndex = computeViewIndex(s.data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState, s.filterJoin), s.viewIndex, s.cellTypes, viewWindowOf({ ...s, page }), s.sortLocale, grouping);
     resetDeferredRows(dataWrite);
     return { groupBy, page, ...clearStaleRows(dataWrite), ...patchFor(s, viewIndex) };
   };

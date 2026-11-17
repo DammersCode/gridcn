@@ -1,4 +1,4 @@
-import type { FilterNode, SortSpec } from "./types";
+import type { FilterJoinOperator, FilterNode, SortSpec } from "./types";
 
 /** A half-open row range: `start` is included, `end` is excluded. */
 export type RowRange = { start: number; end: number };
@@ -7,6 +7,8 @@ export type RowRange = { start: number; end: number };
 export type ServerSpec = {
   sorts: readonly SortSpec[];
   filters: readonly FilterNode[];
+  /** How the top-level `filters` combine. Present only as `"or"`; absent means `"and"`. */
+  filterJoin?: "or";
   searchText: string;
   /** Group column ids, outermost first. Present only while the grid is grouped. */
   groupBy?: readonly string[];
@@ -18,6 +20,11 @@ export type ServerSpec = {
 export type ServerAggregate = { columnId: string; reducer: "sum" | "avg" | "min" | "max" | "count" };
 
 export const EMPTY_SERVER_SPEC: ServerSpec = { sorts: [], filters: [], searchText: "" };
+
+/** The spec of a grid state: `filterJoin` is set only for `"or"`. */
+export function serverSpecOf(state: { sortState: readonly SortSpec[]; filterState: readonly FilterNode[]; filterJoin?: FilterJoinOperator; searchText: string }): ServerSpec {
+  return { sorts: state.sortState, filters: state.filterState, ...(state.filterJoin === "or" ? { filterJoin: "or" as const } : null), searchText: state.searchText };
+}
 
 const isEmptyGroupField = (key: string, value: unknown) => (key === "groupBy" || key === "aggregates") && Array.isArray(value) && value.length === 0;
 

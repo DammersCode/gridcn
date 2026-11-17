@@ -3,6 +3,7 @@ import type {
   CellType,
   ColumnLayout,
   CompactSelectionLike,
+  FilterJoinOperator,
   FilterNode,
   GridRect,
   GridSelection,
@@ -23,6 +24,7 @@ import {
   type CellAccessor,
   type SearchMatch,
 } from "../sort-filter";
+import { withRootJoin } from "../sort-filter/filter-tree";
 import { builtinKeyPlan } from "../sort-filter/builtin-sort-keys";
 import { withSortLocale } from "../sort-filter/sort-collator";
 import { EMPTY_SORT_VALUE, type SortKeyReader } from "../sort-filter/keyed-sort";
@@ -762,8 +764,8 @@ export function viewSorts(mode: "client" | "server", sorts: SortSpec[]): SortSpe
 const NO_FILTERS: FilterNode[] = [];
 
 /** The filters a view rebuild applies: none in `"server"` mode, where the consumer's rows arrive pre-filtered. */
-export function viewFilters(mode: "client" | "server", filters: FilterNode[]): FilterNode[] {
-  return mode === "server" ? NO_FILTERS : filters;
+export function viewFilters(mode: "client" | "server", filters: FilterNode[], join?: FilterJoinOperator): FilterNode[] {
+  return mode === "server" ? NO_FILTERS : (withRootJoin(filters, join) as FilterNode[]);
 }
 
 export function computeViewIndex(
