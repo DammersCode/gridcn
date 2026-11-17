@@ -524,7 +524,7 @@ export const OPTION_GROUPS = [
       { names: ["source","blockSize","overscan","loadDelayMs","maxConcurrentFetches","maxLoadedRows","plugins","onRenderedRowsChange"], owners: ["useDataGridServerRows scroll mode"], page: "/docs/add-options/server/server-rows-options#usedatagridserverrowsscrolloptions" },
       { names: ["maxRects","onExcessRects"], owners: ["useDataGridPresence"], page: "/docs/add-options/server/presence-options" },
       { names: ["currentUser","comments","defaultComments","onCommentsChange","onCommentSave","onCommentRejected","onLocalChange","canCreate","canEdit","canDelete","canResolve"], owners: ["useDataGridComments"], page: "/docs/add-options/server/comments-options" },
-      { names: ["fetchComments","onFetchError","onOrphanedComments","createId","normalizeText","maxTextLength","maxCommentsPerCell","maxComments","maxCachedRows","allowWhenReadOnly","readOnly","enableResolve","hideResolved","labels","className"], owners: ["useDataGridComments"], page: "/docs/add-options/server/comments-options" },
+      { names: ["fetchComments","onFetchError","onOrphanedComments","createId","normalizeText","maxTextLength","maxCommentsPerCell","maxComments","maxCachedRows","allowWhenReadOnly","readOnly","enableResolve","enableEdit","enableDelete","hideResolved","labels","className"], owners: ["useDataGridComments"], page: "/docs/add-options/server/comments-options" },
     ],
   },
 ];

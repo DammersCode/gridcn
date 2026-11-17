@@ -325,6 +325,7 @@ export function createCommentEngine(config: EngineConfig): CommentEngine {
     const blocked = writeIsBlocked(spec.rowId);
     if (blocked) return rejectBeforeWrite(spec.action, blocked);
     if ((spec.action === "resolve" || spec.action === "reopen") && o.enableResolve === false) return rejectBeforeWrite(spec.action, "forbidden");
+    if ((spec.action === "update" && o.enableEdit === false) || (spec.action === "delete" && o.enableDelete === false)) return rejectBeforeWrite(spec.action, "forbidden");
     const user = userOf(userState());
 
     let id = spec.id;

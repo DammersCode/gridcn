@@ -35,6 +35,8 @@ Every gate receives `{ comment, action, user, signal }`, so one `canResolve` tel
 
 `enableResolve: false` refuses resolve and reopen with the reason `"forbidden"`. The popover then ignores `resolved`. A remote change of `resolved` still reaches the data.
 
+`enableEdit: false` and `enableDelete: false` remove the Edit and Delete actions and refuse the write with the reason `"forbidden"`. `applyRemote` still applies remote edits and deletes.
+
 `createId` and `normalizeText` apply to local writes only. The add-on checks the output of both against the bounds.
 
 ## Result [#result]

@@ -136,6 +136,7 @@ If another client changed the comment first, answer `{ rejected: { reason: "stal
 - The add-on renders comment text and author names as plain text.
 - `readOnly: true` refuses every comment write and hides the composer and the actions. A `readOnly` grid also refuses them, unless you set `allowWhenReadOnly`.
 - `enableResolve: false` removes resolve and reopen. The popover then ignores the resolved state: no resolved badge, a filled marker on every commented cell, and `hideResolved` has no effect.
+- `enableEdit: false` and `enableDelete: false` remove the Edit and Delete actions for every comment.
 - Anyone can edit and delete an anonymous comment. A comment with an author is open to that author only. Set `canEdit` and `canDelete` to change the rule.
 
 <Callout type="warn">

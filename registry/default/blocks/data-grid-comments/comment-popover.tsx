@@ -307,8 +307,8 @@ function PopoverBody({ engine, getOptions, rowId, columnId, labels, composerEl, 
   };
 
   const hasCustomGate = (name: "canEdit" | "canDelete"): boolean => options[name] !== undefined;
-  const canShowEdit = (c: CellComment): boolean => writable && (hasCustomGate("canEdit") || defaultCanModify(c, currentUser));
-  const canShowDelete = (c: CellComment): boolean => writable && (hasCustomGate("canDelete") || defaultCanModify(c, currentUser));
+  const canShowEdit = (c: CellComment): boolean => writable && options.enableEdit !== false && (hasCustomGate("canEdit") || defaultCanModify(c, currentUser));
+  const canShowDelete = (c: CellComment): boolean => writable && options.enableDelete !== false && (hasCustomGate("canDelete") || defaultCanModify(c, currentUser));
   const max = engine.bounds().maxTextLength;
   const anySaving = entries.some((e) => e.saving);
 
