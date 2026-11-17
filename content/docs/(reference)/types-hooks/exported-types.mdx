@@ -66,7 +66,7 @@ export function deleteTopTwo(actions: DataGridActions) {
 | --- | --- | --- |
 | `GateName` | A union of the gate names | `processPaste`, `processCellFromClipboard`, `validateRow`, `onBeforeEditStart`, `createRow`, `duplicateRow`, `onBeforeDeleteRows`, `import`, `mapColumn`, `processReplace`, `validate`, `processFill`, and `resolveTexts`. |
 | `GateContext` | `{ signal }` | The argument of an async gate. `signal` aborts when the grid stops waiting. |
-| `RowActionSkipReason` | A union of the skip reasons | Why a row action did nothing: `readOnly`, `unloaded-rows`, `no-factory`, `gate-declined`, `gate-threw`, `nothing-to-do`, `view-ordered`, `disabled`, `all-matching`, or `hidden-rows-only`. |
+| `RowActionSkipReason` | A union of the skip reasons | Why a row action did nothing: `readOnly`, `unloaded-rows`, `no-factory`, `gate-declined`, `gate-threw`, `nothing-to-do`, `view-ordered`, `group-row`, `disabled`, `all-matching`, or `hidden-rows-only`. |
 | `RowActionResult` | `{ ok: true } \| { ok: false, reason }` | What the insert, duplicate, and delete actions return: `ok` once the action ran or an async gate started, else the `RowActionSkipReason`. |
 | `ColumnOrderSkipReason` | A union of the skip reasons | Why `setColumnOrder` did not move: `disabled`, `unknown-column`, `not-reorderable`, `pin-zone`, or `nothing-to-do`. `pin-zone` means the target sits in another pin zone, or a group's members span two zones. |
 | `ColumnOrderResult` | `{ ok: true } \| { ok: false, reason }` | What `setColumnOrder` and `canSetColumnOrder` return: `ok` when the move changes the order, else the `ColumnOrderSkipReason`. |

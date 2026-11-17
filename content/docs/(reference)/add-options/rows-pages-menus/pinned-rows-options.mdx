@@ -67,8 +67,8 @@ A reducer has the type `AggregateReducer`: a name or a function.
 
 | Reducer | Result |
 | --- | --- |
-| `"sum"`, `"avg"`, `"min"`, `"max"` | The reducer uses finite numbers only. It skips numeric strings, `NaN`, dates, `null`, and `undefined`. With no number left, the result is `undefined`. |
-| `"count"` | The number of values that are not `null` or `undefined` |
+| `"sum"`, `"avg"`, `"min"`, `"max"` | The reducer uses finite numbers only. It skips numeric strings, `NaN`, dates, `null`, and `undefined`. With no number left, the result is `null`. |
+| `"count"` | The number of values that are not `null`, `undefined`, or `""` |
 | `(values, rows) => unknown` | Your result. `values` holds every resolved value, empty ones included. `rows` holds the source rows. |
 
 The grid resolves values through `accessorKey` or `accessorFn`, so a computed column aggregates correctly. The result uses column ids as keys. `aggregateRow` shows it in the band. See [Totals row](/docs/rows-pages-menus/pinned-rows#computing-a-totals-row). The hook ignores a key of `specs` that matches no column id, and development builds warn once. `scope: "view"` (default) covers every row that the sort and filter leave, all pages of a client-paged grid.

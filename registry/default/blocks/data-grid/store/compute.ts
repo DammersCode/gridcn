@@ -31,7 +31,8 @@ import { getCellValue } from "../columns/column-helpers";
 import { clampColumnWidth } from "../columns/resolve-column-width";
 import { selectCell } from "../selection/selection-ops";
 import { keepsCheckedRows } from "./hidden-checked-rows";
-import { dataIndexOf, rowAtViewRow, rowIdAtViewRow } from "./view-rows";
+import { dataIndexOf, groupLayoutOfView, recordKeyAt, registerGroupLayout, rowAtViewRow, rowIdAtViewRow } from "./view-rows";
+import { computeGroupedView, type GroupingInput } from "./group-view";
 import { CompactSelection, forEachMember } from "../selection/compact-selection";
 import { resolveCustomFilterOperators, resolveFilterMatch, resolveFilterMatchCase } from "../cell-types/capabilities";
 import { toSafeText } from "../cell-types/safe-text";
@@ -164,16 +165,16 @@ export function remapRowChannel(
   toNextDataRow?: (prevDataRow: number) => number | undefined,
 ): CompactSelectionLike {
   if (rows.length === 0 || (prevViewIndex === nextViewIndex && !toNextDataRow)) return rows;
-  const wanted = new Set<number>();
+  const wanted = new Set<number | string>();
   forEachMember(rows.runs(), (viewRow) => {
-    const prevDataRow = dataIndexOf(prevViewIndex, viewRow);
-    if (prevDataRow === undefined) return;
-    const nextDataRow = toNextDataRow ? toNextDataRow(prevDataRow) : prevDataRow;
-    if (nextDataRow !== undefined) wanted.add(nextDataRow);
+    const prevRecord = recordKeyAt(prevViewIndex, viewRow);
+    if (prevRecord === undefined) return;
+    const nextRecord = typeof prevRecord === "number" && toNextDataRow ? toNextDataRow(prevRecord) : prevRecord;
+    if (nextRecord !== undefined) wanted.add(nextRecord);
   });
   const found: number[] = [];
   for (let viewRow = 0; viewRow < nextViewIndex.length && found.length < wanted.size; viewRow++) {
-    if (wanted.has(dataIndexOf(nextViewIndex, viewRow)!)) found.push(viewRow);
+    if (wanted.has(recordKeyAt(nextViewIndex, viewRow)!)) found.push(viewRow);
   }
   const next = CompactSelection.fromArray(found);
   return rows.equals(next) ? rows : next;
@@ -212,13 +213,13 @@ export function rectsKeepRecords(
 ): boolean {
   if (prevViewIndex === nextViewIndex && !toNextDataRow) return true;
   if (sameRecordAt && rects.every((rect) => allRowsSame(rect, sameRecordAt))) return true;
-  const prevRecords = new Set<number | undefined>();
-  const nextRecords = new Set<number | undefined>();
+  const prevRecords = new Set<number | string | undefined>();
+  const nextRecords = new Set<number | string | undefined>();
   for (const rect of rects) {
     for (let viewRow = rect.y; viewRow < rect.y + rect.height; viewRow++) {
-      const prevDataRow = dataIndexOf(prevViewIndex, viewRow);
-      prevRecords.add(prevDataRow === undefined || !toNextDataRow ? prevDataRow : toNextDataRow(prevDataRow));
-      nextRecords.add(dataIndexOf(nextViewIndex, viewRow));
+      const prevRecord = recordKeyAt(prevViewIndex, viewRow);
+      prevRecords.add(typeof prevRecord !== "number" || !toNextDataRow ? prevRecord : toNextDataRow(prevRecord));
+      nextRecords.add(recordKeyAt(nextViewIndex, viewRow));
     }
   }
   if (prevRecords.size !== nextRecords.size) return false;
@@ -774,8 +775,14 @@ export function computeViewIndex(
   cellTypes?: Record<string, CellType>,
   window: ViewWindow = null,
   sortLocale?: string,
+  grouping?: GroupingInput | null,
 ): number[] {
   const accessor = textAccessorFor(allColumns, data, cellTypes);
+  const grouped = grouping && withSortLocale(sortLocale, () => computeGroupedView({ data, columns: allColumns, accessor, sortState, filterState, cellTypes, grouping }));
+  if (grouped) {
+    registerGroupLayout(grouped.viewIndex, grouped.layout);
+    return windowView(grouped.viewIndex, window, prevViewIndex);
+  }
   // Quick-search never narrows viewIndex — it only highlights/navigates.
   const next = withSortLocale(sortLocale, () => buildViewIndex(data.length, accessor, { sorts: sortState, filters: filterState }));
   const prevFull = prevViewIndex ? fullViewOf(prevViewIndex) : undefined;
@@ -829,6 +836,8 @@ export function windowView(full: number[], window: ViewWindow, prev?: readonly n
   if (prev && FULL_VIEW.get(prev) === full && sameElements(slice, prev)) return prev as number[];
   FULL_VIEW.set(slice, full);
   PAGE_START.set(slice, start);
+  const layout = groupLayoutOfView(full);
+  if (layout) registerGroupLayout(slice, layout);
   return slice;
 }
 

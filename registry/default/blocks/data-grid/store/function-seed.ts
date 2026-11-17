@@ -27,6 +27,8 @@ export function applyFunctionSeeds(store: StoreApi<DataGridStoreState>, init: In
   const { actions } = store.getState();
   const sorts = init.sortState === undefined ? readSeed("defaultSortState", init.defaultSortState) : undefined;
   if (Array.isArray(sorts)) actions.setSorts(sorts as SortSpec[]);
+  const groupBy = init.groupBy === undefined ? readSeed("defaultGroupBy", init.defaultGroupBy) : undefined;
+  if (Array.isArray(groupBy)) actions.setGroupBy(groupBy as string[]);
   const filters = init.filterState === undefined ? readSeed("defaultFilterState", init.defaultFilterState) : undefined;
   if (Array.isArray(filters)) actions.setFilters(filters as FilterNode[]);
   const search = init.searchText === undefined ? readSeed("defaultSearchText", init.defaultSearchText) : undefined;
@@ -39,6 +41,8 @@ const CONTROLLED_SEEDS = [
   ["defaultSortState", "sortState"],
   ["defaultFilterState", "filterState"],
   ["defaultSearchText", "searchText"],
+  ["defaultGroupBy", "groupBy"],
+  ["defaultExpanded", "expanded"],
 ] as const;
 
 function warnIgnoredSeeds(init: InternalSyncProps): void {

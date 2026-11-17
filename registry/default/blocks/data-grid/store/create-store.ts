@@ -140,7 +140,11 @@ import { warnUnhandledServerSpec } from "./server-spec-warning";
 import { keepKnownFilters, keepKnownSorts } from "./known-columns";
 import { loadedRowCount, nextAnnouncement } from "./announcements";
 import { allMatchingCheckedCount } from "./selected-rows";
-import { dataIndexAt, dataIndexOf } from "./view-rows";
+import { dataIndexAt, dataIndexOf, groupLayoutOfView, recordKeyAt, viewRowOfGroupId } from "./view-rows";
+import { createGroupActions } from "./group-actions";
+import { EXPANDED_CUT_MESSAGE, initGroupMemory, initialExpanded, initialGroupBy } from "./group-sync";
+import { groupingOf, withGroupLayout } from "./group-view";
+import { leafViewOf } from "./group-readers";
 
 type CheckedState = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "allMatching" | "data" | "viewIndex" | "totalRowCount">;
 
@@ -244,6 +248,8 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
   if (warnsUnhandledSpecAtMount) {
     queueMicrotask(() => warnDev('totalRowCount makes sorting and filtering server-side by default, and nothing here handles onSortChange or onFilterChange, so the grid will not reorder or narrow its rows. Fetch rows for the spec, or set sortMode="client" and filterMode="client" to work on the loaded rows'));
   }
+  const initGroupBy = initialGroupBy(init, effectiveLayout.columns);
+  const initExpanded = initialExpanded(init, () => warnStoreOnce("expanded cut", EXPANDED_CUT_MESSAGE));
   const initSearchText = init.searchText ?? plainSeed(init.defaultSearchText) ?? "";
   const initSearchOptions = DEFAULT_SEARCH_OPTIONS;
   // storage widens each per-column CellType<TData, TValue, TOptions> to the untyped registry shape; narrowed back per column at lookup (cell.tsx/store's column-op helpers).
@@ -263,7 +269,10 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       columnGroupModel: memory.groupModel,
       pageKey: `${initPage}|${initPageSize}`,
       sortLocale: initSortLocale,
+      groupBy: initGroupBy,
+      expanded: initExpanded,
     } satisfies SyncInputs,
+    group: initGroupMemory(init),
     lastPropsColumnGroups: init.columnGroups,
     lastPropsColumns: init.columns,
     lastColumnsLocale: initLocale,
@@ -324,7 +333,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
   const rebuildPageView = (s2: DataGridStoreState, page: number, pageSize: number | null): Partial<DataGridStoreState> => {
     const window = pageSize === null ? null : { page, pageSize };
     const viewIndex = s2.viewStale
-      ? computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, s2.sortState), viewFilters(s2.filterMode, s2.filterState), s2.viewIndex, s2.cellTypes, window, s2.sortLocale)
+      ? computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, s2.sortState), viewFilters(s2.filterMode, s2.filterState), s2.viewIndex, s2.cellTypes, window, s2.sortLocale, groupingOf(s2))
       : windowView(fullViewOf(s2.viewIndex), window, s2.viewIndex);
     resetDeferredRows(dataWrite);
     return {
@@ -411,12 +420,14 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
   ): DataGridStoreState["activeCell"] | undefined => {
     const active = s.activeCell;
     if (active === null) return null;
-    const prevDataRow = dataIndexAt(s, active.row);
+    const prevRecord = recordKeyAt(s.viewIndex, active.row);
     const columnId = s.visibleColumns[active.col]?.id;
-    if (prevDataRow === undefined || columnId === undefined) return undefined;
+    if (prevRecord === undefined || columnId === undefined) return undefined;
     let row = active.row;
-    if (sameRecordAt ? !sameRecordAt(active.row) : dataIndexOf(viewIndex, active.row) !== prevDataRow) {
-      const nextDataRow = toNextDataRow ? toNextDataRow(prevDataRow) : prevDataRow;
+    if (typeof prevRecord === "string") {
+      row = viewRowOfGroupId(viewIndex, prevRecord);
+    } else if (sameRecordAt ? !sameRecordAt(active.row) : dataIndexOf(viewIndex, active.row) !== prevRecord) {
+      const nextDataRow = toNextDataRow ? toNextDataRow(prevRecord) : prevRecord;
       row = nextDataRow === undefined ? -1 : viewRowOfDataIndex(viewIndex, nextDataRow);
     }
     const col = visibleColumns[active.col]?.id === columnId ? active.col : visibleColumns.findIndex((column) => column.id === columnId);
@@ -618,7 +629,8 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
   if (init.checkedRowsLifetime === "across-filters" && init.totalRowCount === undefined && (initSortMode === "server" || initFilterMode === "server")) {
     warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
   }
-  const initViewIndex = computeViewIndex(initData, effectiveLayout.columns, viewSorts(initSortMode, initSortState), viewFilters(initFilterMode, initFilterState), undefined, initCellTypes, initPageSize === null ? null : { page: initPage, pageSize: initPageSize }, initSortLocale);
+  const initGrouping = groupingOf({ groupBy: initGroupBy, expanded: initExpanded, totalRowCount: init.totalRowCount, sortMode: initSortMode, dataWrite });
+  const initViewIndex = computeViewIndex(initData, effectiveLayout.columns, viewSorts(initSortMode, initSortState), viewFilters(initFilterMode, initFilterState), undefined, initCellTypes, initPageSize === null ? null : { page: initPage, pageSize: initPageSize }, initSortLocale, initGrouping);
   // `selection` wins over `defaultSelection`, and both resolve here (not in the provider), so the
   // server render and the first client paint already show them.
   const initSelectionValue = init.selection ?? init.defaultSelection;
@@ -637,7 +649,8 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
     memory.lastKnownSelection = resolved.selection;
   }
   let resultsAnnouncementArmed = false;
-  const store = createStore<DataGridStoreState>((set, get, api) => {
+  const store = createStore<DataGridStoreState>((rawSet, get, api) => {
+    const set = withGroupLayout(rawSet);
     /**
      * Derives the public SelectionState with per-channel caches (decision 4): a range-drag step
      * re-derives the three corner refs only, and the rowIds/columnIds arrays keep their identity
@@ -726,7 +739,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       // Controlled: _syncProps writes the consumer's next `sortState` prop.
       if (!s.sortControlled) {
         set((s2) => {
-          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, sorts), viewFilters(s2.filterMode, s2.filterState), s2.viewIndex, s2.cellTypes, viewWindowOf(s2), s2.sortLocale);
+          const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, sorts), viewFilters(s2.filterMode, s2.filterState), s2.viewIndex, s2.cellTypes, viewWindowOf(s2), s2.sortLocale, groupingOf(s2));
           resetDeferredRows(dataWrite);
           return {
             sortState: sorts,
@@ -1005,6 +1018,12 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
     searchOptions: initSearchOptions,
     sortControlled: init.sortState !== undefined,
     filterControlled: init.filterState !== undefined,
+    groupBy: initGroupBy,
+    expanded: initExpanded,
+    groupLayout: groupLayoutOfView(initViewIndex),
+    groupingEnabled: init.groupBy !== undefined || init.defaultGroupBy !== undefined || init.onGroupByChange !== undefined,
+    groupByControlled: init.groupBy !== undefined,
+    expandedControlled: init.expanded !== undefined,
     page: initPage,
     pageSize: initPageSize,
     pageControlled: init.page !== undefined,
@@ -1035,6 +1054,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
     liveAnnouncement: null,
     announceResults: init.announceResults ?? false,
     actions: {
+      ...createGroupActions({ set, get, dataWrite, followView, memory }),
       setActiveCell(ref) {
         if (ref === null) {
           set({ activeCell: null });
@@ -1421,7 +1441,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
         if (!s.filterControlled) {
           set((s2) => {
             const page = resetPage && !s2.pageControlled ? 1 : s2.page;
-            const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, s2.sortState), viewFilters(s2.filterMode, withIds), s2.viewIndex, s2.cellTypes, s2.pageSize === null ? null : { page, pageSize: s2.pageSize }, s2.sortLocale);
+            const viewIndex = computeViewIndex(s2.data, s2.columns, viewSorts(s2.sortMode, s2.sortState), viewFilters(s2.filterMode, withIds), s2.viewIndex, s2.cellTypes, s2.pageSize === null ? null : { page, pageSize: s2.pageSize }, s2.sortLocale, groupingOf(s2));
             resetDeferredRows(dataWrite);
             return {
               page,
@@ -1548,8 +1568,8 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
     const sortMoved = state.sortMode === "client" && state.sortState !== prev.sortState;
     if (!filterMoved && !sortMoved) return;
     // A paged grid counts every page, like the footer, so a filter that changes only later pages announces too.
-    const view = fullViewOf(state.viewIndex);
-    if (sameRows(view, fullViewOf(prev.viewIndex)) && sortKey(state) === sortKey(prev)) return;
+    const view = leafViewOf(state);
+    if (sameRows(view, leafViewOf(prev)) && sortKey(state) === sortKey(prev)) return;
     const loaded = loadedRowCount(view, state.data);
     store.setState({ liveAnnouncement: nextAnnouncement(state.liveAnnouncement, "results", loaded, loaded < view.length) });
   });

@@ -15,8 +15,13 @@ mirror the change there.
 | row operation | The `source` value `"row-operation"` marks a change from an insert, duplicate, delete, or move of rows. | row-op |
 | change | One `onDataChange` call: a batch of operations plus its `source`. | |
 | row id | The stable id of a row: its `id` field, or the value that `getRowId` returns. Selection, editing, undo, and redo address rows by it. | id-keyed (write "by row id") |
-| view index | A row's position in the sorted and filtered list the user sees, on the shown page of a paged grid. | view space, display index |
+| view index | A row's position in the sorted and filtered list the user sees, on the shown page of a paged grid. With `groupBy`, an entry below 0 names a group row. | view space, display index |
 | data index | A row's position in your `data` array. | |
+| row group | The rows that share one group key under `groupBy`. Not a column group and not a filter group. | |
+| group row | The view row that heads a row group. It holds no data. A `viewIndex` entry below 0 names it. | |
+| group key | The stored value that the rows of a row group share. `null`, `undefined`, and `""` form one empty key. | |
+| group level | The place of a group column in `groupBy`. The first column is level 0. | |
+| expanded state | `{ mode, ids }`: the row groups that differ from `mode`, named by group id. It decides which groups show their rows. | |
 | checked row | A row whose marker checkbox is on, kept in the row channel of the selection. | ticked row |
 | data mode | One way the grid gets its rows: local array, client pagination, server pagination (pages mode), scroll mode, controlled state, server sort, server filter, or write-through to your own API. `research/parity-matrix.json` lists each feature against each data mode. | source kind |
 | checked rows lifetime | How long the checked rows last: `'until-click'`, `'until-cleared'`, or `'across-filters'`. Set by the prop `checkedRowsLifetime`. | keep checks, remember checks |

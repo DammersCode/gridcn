@@ -400,3 +400,33 @@ describe("useDataGridAggregate with a __proto__ column id", () => {
     expect(Object.entries(result)).toEqual([["__proto__", 3]]);
   });
 });
+
+describe("useDataGridAggregate — empty values", () => {
+  const capture = (data: Row[], specs: AggregateSpecs): Record<string, unknown> => {
+    const results: Record<string, unknown>[] = [];
+    render(<Capture data={data} specs={specs} onResult={(r) => results.push(r)} />);
+    return results.at(-1)!;
+  };
+
+  it("count skips the empty string", () => {
+    expect(capture([{ id: "a", name: "A", qty: 1, note: "" }, { id: "b", name: "B", qty: 1, note: "x" }], { note: "count" })["note"]).toBe(1);
+  });
+
+  it("a reducer with no counted value gives null, and count gives 0", () => {
+    const result = capture([{ id: "a", name: "A", qty: 1, note: null }], { name: "sum", note: "count" });
+    expect(result["name"]).toBeNull();
+    expect(result["note"]).toBe(0);
+  });
+});
+
+describe("useDataGridAggregate — grouped grid", () => {
+  it("scope view reduces over every row of the result and never over a group row", () => {
+    const results: Record<string, unknown>[] = [];
+    render(
+      <DataGrid aria-label="Test" data={makeRows([1, 2, 3, 4])} columns={columns} getRowId={(r) => r.id} defaultGroupBy={["note"]}>
+        <Inner specs={{ qty: "sum" }} onResult={(r) => results.push(r)} />
+      </DataGrid>,
+    );
+    expect(results.at(-1)!["qty"]).toBe(10);
+  });
+});

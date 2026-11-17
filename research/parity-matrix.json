@@ -550,7 +550,14 @@
     {
       "id": "grouping",
       "feature": "Row grouping",
-      "options": [],
+      "options": [
+        "groupBy",
+        "defaultGroupBy",
+        "onGroupByChange",
+        "expanded",
+        "defaultExpanded",
+        "onExpandedChange"
+      ],
       "cells": {
         "L": {
           "status": "gap",
@@ -573,8 +580,10 @@
           "note": "Server grouping is not defined."
         },
         "C": {
-          "status": "n/a",
-          "reason": "Grouping has no controlled state."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid/store/row-grouping.test.tsx"
+          ]
         },
         "SS": {
           "status": "gap",

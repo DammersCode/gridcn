@@ -46,14 +46,9 @@ import { NO_REMEMBERED_ROWS, withoutHiddenCheckedRows } from "./hidden-checked-r
 import { applyChange } from "../interaction/history";
 import { planBlockMove, planShiftMove, type RowMovePlan } from "../rows/plan-row-moves";
 import { resolveCellRef, patchesLeaveViewAlone, resolveReorder, viewRowOfDataIndex, touchesViewInputs, type RowIndexCache } from "./row-index";
-import {
-  emptySelection,
-  offsetSelectionForRows,
-  rectFromCorners,
-  remapSelectionRows,
-  selectCell as selectCellPure,
-  selectionRects,
-} from "../selection";
+import { emptySelection, offsetSelectionForRows, rectFromCorners, remapSelectionRows, selectCell as selectCellPure, selectionRects } from "../selection";
+import { refreshedGroups, viewInputSorts } from "./group-patch";
+import { groupingOf } from "./group-view";
 import { forEachMember } from "../selection/compact-selection";
 import { viewIndexes, type CellRef, type CompactSelectionLike, type DataChange, type DataGridApi, type DataOp, type GridBulkValidationError, type GridValidationErrorEvent, type ViewCoord } from "../types";
 import type { BulkResolution } from "../validation/validate-batch";
@@ -63,7 +58,7 @@ import { markChangedRows } from "./changed-rows";
 import { nextAnnouncement } from "./announcements";
 import { clearStaleRows, followStaleRows, markStaleRows, pruneStaleRows, requestReshape, staleStateAfterPrune } from "./server-stale";
 import type { AnyColumnDef, CellErrorEntry, CellPatch, DataGridActions, DataGridInternalActions, DataGridStoreState, UpdateCellsSkip, RowActionName, RowActionResult, RowActionSkipReason, UpdateCellsVerdict } from "./types";
-import { dataIndexAt, rowAtViewRow } from "./view-rows";
+import { dataIndexAt, rowAtViewRow, viewEntryAt } from "./view-rows";
 
 /**
  * The data-write cluster's streaming bookkeeping: the mutable `let` state shared by the write
@@ -270,11 +265,11 @@ export function pendingRows(ctx: DataWriteContext, touchedRows: readonly number[
  */
 export function resolveViewIndex(s: DataGridStoreState, data: readonly unknown[], pending: readonly number[] | null): number[] {
   const prevFull = fullViewOf(s.viewIndex);
-  const incremental = pending
+  const incremental = pending && s.groupLayout === null
     ? incrementalViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), prevFull, pending, s.cellTypes, s.sortLocale)
     : null;
   if (incremental) return windowView(sameElements(incremental, prevFull) ? prevFull : incremental, viewWindowOf(s), s.viewIndex);
-  return computeViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, s.cellTypes, viewWindowOf(s), s.sortLocale);
+  return computeViewIndex(data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, s.cellTypes, viewWindowOf(s), s.sortLocale, groupingOf(s));
 }
 
 /**
@@ -285,14 +280,12 @@ export function resolveViewIndex(s: DataGridStoreState, data: readonly unknown[]
  * recomputed in place. Both halves no-op unless a search or a view-feeding column is involved.
  */
 export function reconcileAfterWrite(s: DataGridStoreState, nextData: readonly unknown[], ops: readonly DataOp<unknown>[]): Partial<DataGridStoreState> {
-  const written: CellPatch[] = [];
-  for (const op of ops) {
-    if (op.type !== "update" || !op.cells) continue;
-    for (const cell of op.cells) written.push({ rowId: op.rowId, columnId: cell.columnId, value: cell.value });
-  }
-  const viewStale = s.viewStale || touchesViewInputs(written, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState));
-  if (s.searchText.trim() === "") return viewStale === s.viewStale ? {} : { viewStale };
+  const written: CellPatch[] = ops.flatMap((op) => (op.type === "update" && op.cells ? op.cells.map((cell) => ({ rowId: op.rowId, columnId: cell.columnId, value: cell.value })) : []));
+  const viewStale = s.viewStale || touchesViewInputs(written, viewInputSorts(s), viewFilters(s.filterMode, s.filterState));
+  const groups = refreshedGroups(s, nextData, null, written);
+  if (s.searchText.trim() === "") return viewStale === s.viewStale ? groups : { ...groups, viewStale };
   return {
+    ...groups,
     ...(viewStale === s.viewStale ? {} : { viewStale }),
     ...computeSearchMatches(nextData, s.columns, s.viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
   };
@@ -305,7 +298,7 @@ export function reconcileAfterWrite(s: DataGridStoreState, nextData: readonly un
  * `activeCell` (it follows or clears the cursor itself).
  */
 export function rebuildRowOpView(s: DataGridStoreState, nextData: readonly unknown[]): Partial<DataGridStoreState> {
-  const viewIndex = computeViewIndex(nextData, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, s.cellTypes, viewWindowOf(s), s.sortLocale);
+  const viewIndex = computeViewIndex(nextData, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, s.cellTypes, viewWindowOf(s), s.sortLocale, groupingOf(s));
   const staleRowIds = s.dataWrite.staleRows.size > 0 ? staleStateAfterPrune(s.dataWrite, s.staleRowIds, pruneStaleRows(s.dataWrite, nextData, s.getRowId)) : s.staleRowIds;
   return {
     viewIndex,
@@ -933,7 +926,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     }
     const applied = batch.ops.reduce((n, op) => (op.type === "update" ? n + (op.cells?.length ?? 0) : n), 0);
 
-    const reorder = resolveReorder(options?.reorder, patches, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState));
+    const reorder = resolveReorder(options?.reorder, patches, viewInputSorts(s), viewFilters(s.filterMode, s.filterState));
     ctx.rowIndexCache.rebase(nextData);
     ctx.lastEmittedData = nextData;
     const marks = markStaleRows(ctx, s, batch.ops, batch.touchedRows, (options?.reorder ?? "defer") !== "never");
@@ -957,8 +950,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       writeThenEmit(ctx, s, nextData, change, () =>
         set(
           reorder === "defer" && !s.viewStale
-            ? { data: nextData, viewStale: true, cellErrors, ...stale }
-            : { data: nextData, cellErrors, ...stale },
+            ? { data: nextData, viewStale: true, cellErrors, ...stale, ...refreshedGroups(s, nextData, batch.touchedRows, patches) }
+            : { data: nextData, cellErrors, ...stale, ...refreshedGroups(s, nextData, batch.touchedRows, patches) },
         ),
       );
       if (marks.touched && options?.reorder !== "never") ctx.reshape?.("stale");
@@ -967,8 +960,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     }
     // A tick that cannot touch a sort or filter input leaves a settled, search-free view where it is.
     const settled = !s.viewStale && ctx.deferredRows?.size === 0 && s.searchText.trim() === "";
-    if (settled && !marks.touched && patchesLeaveViewAlone(s.columns, patches, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState))) {
-      writeThenEmit(ctx, s, nextData, change, () => set({ data: nextData, cellErrors }));
+    if (settled && !marks.touched && patchesLeaveViewAlone(s.columns, patches, viewInputSorts(s), viewFilters(s.filterMode, s.filterState))) {
+      writeThenEmit(ctx, s, nextData, change, () => set({ data: nextData, cellErrors, ...refreshedGroups(s, nextData, batch.touchedRows, patches) }));
       emitStreamRejections(patches, batch.rejected, options?.source);
       return { applied, skipped: batch.skipped, pending: false };
     }
@@ -1264,7 +1257,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         if (ctx.reshape) ctx.reshape("urgent");
         else stale = clearStaleRows(ctx);
       }
-      if (s.pageSize === null && viewSorts(s.sortMode, s.sortState).length === 0 && viewFilters(s.filterMode, s.filterState).length === 0) {
+      if (s.pageSize === null && s.groupLayout === null && viewSorts(s.sortMode, s.sortState).length === 0 && viewFilters(s.filterMode, s.filterState).length === 0) {
         resetDeferredRows(ctx);
         set({ viewStale: stale.staleRowIds.size > 0, staleRowIds: stale.staleRowIds });
         return;
@@ -1297,6 +1290,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       }
       if (createRun && !createRun.aborted) ctx.gates.abortRun(createRun, "superseded");
       const anchor = dataIndexAt(s, viewRowIndex);
+      if (anchor === undefined && viewEntryAt(s, viewRowIndex).kind === "group") return skippedBy("insertRows", "group-row");
       if (anchor !== undefined && touchesUnloadedRow(s, [anchor], "insertRows")) return skippedBy("insertRows", "unloaded-rows");
       const dataRowIndex = insertDataIndex(s, viewRowIndex, position);
       const rows: unknown[] = [];
@@ -1358,6 +1352,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       }
       if (duplicateRun && !duplicateRun.aborted) ctx.gates.abortRun(duplicateRun, "superseded");
       const dataRowIndexes = viewRowIndexes.map((viewRow) => dataIndexAt(s, viewRow)).filter((i): i is number => i !== undefined);
+      if (dataRowIndexes.length === 0 && viewRowIndexes.length > 0 && s.groupLayout) return skippedBy("duplicateRows", "group-row");
       if (touchesUnloadedRow(s, dataRowIndexes, "duplicateRows")) return skippedBy("duplicateRows", "unloaded-rows");
       const run = ctx.gates.begin("duplicateRow");
       const copies = startDuplicateCopies(s, dataRowIndexes, { signal: run.signal });

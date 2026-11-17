@@ -528,7 +528,7 @@ function propsZ() {
   const sections = [];
   for (const src of PROP_SOURCES) {
     const rows = members(src.file, src.type)
-      .filter((name) => !isCallback(name))
+      .filter((name) => !isCallback(name) && !isInternal(jsdocOf(src.file, src.type, name)))
       .sort((a, b) => a.localeCompare(b))
       .map((name) => {
         const { entry, target } = propRow(src, name, index);
@@ -561,7 +561,7 @@ function eventsZ() {
   const rows = [];
   for (const src of PROP_SOURCES.slice(0, 2)) {
     for (const name of members(src.file, src.type)) {
-      if (!isCallback(name)) continue;
+      if (!isCallback(name) || isInternal(jsdocOf(src.file, src.type, name))) continue;
       const { entry, target: tableTarget } = propRow(src, name, index);
       const eventPage = [...pages.keys()].find((u) => u.startsWith("/docs/events-state/") && pages.get(u).anchors.has(name.toLowerCase()));
       const target = EVENT_PAGES[name] ?? (eventPage ? `${eventPage}#${name.toLowerCase()}` : tableTarget);

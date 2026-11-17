@@ -3,16 +3,12 @@ import type { StoreApi } from "zustand/vanilla";
 import type { ColumnGroupModel } from "../columns/column-groups";
 import type { ColumnOrderResult } from "./column-order";
 import type { SelectionChangeDetails } from "./selection-change";
+import type { ExpandedState, GroupActionResult, GroupStoreState } from "../group-types";
 import type {
-  CellRef,
-  ViewCellRef,
-  ViewCoord,
+  CellRef, ViewCellRef, ViewCoord,
   AutosizeOptions,
   CellType,
-  ColumnDef,
-  ColumnGroupDef,
-  ColumnLayout,
-  ColumnPin,
+  ColumnDef, ColumnGroupDef, ColumnLayout, ColumnPin,
   DataChange,
   DataGridApi,
   DataGridPlugin,
@@ -332,6 +328,18 @@ export type DataGridSyncProps<TData = unknown> = {
   defaultSortState?: SortSpec[] | (() => SortSpec[] | null | undefined);
   /** Fires after the user (or `actions.toggleSort`/`setSorts`) changes the sort: uncontrolled, after the grid writes it; controlled, with the next sort. See `sortState`. */
   onSortChange?: (next: SortSpec[]) => void;
+  /** @internal Controlled group columns, outermost first. Unknown, `groupable: false`, and repeated ids drop; at most 4 levels. */
+  groupBy?: readonly string[];
+  /** @internal Seeds the group columns once at store creation. A function runs once on the client after mount. */
+  defaultGroupBy?: readonly string[] | (() => readonly string[] | null | undefined);
+  /** @internal Fires after the user (or `setGroupBy`, `toggleGroupBy`) changes the group columns. */
+  onGroupByChange?: (next: readonly string[]) => void;
+  /** @internal Controlled open groups. A toggle applies at once and emits. Default: every group collapsed. */
+  expanded?: ExpandedState;
+  /** @internal Seeds the open groups once at store creation. */
+  defaultExpanded?: ExpandedState;
+  /** @internal Fires after the user (or `toggleGroup`, `expandAll`, `collapseAll`) changes the open groups. */
+  onExpandedChange?: (next: ExpandedState) => void;
   /** Controlled filter tree; same controlled/uncontrolled semantics as `sortState`. The top level combines with "and"; a {@link FilterGroup} holds an "or". */
   filterState?: FilterNode[];
   /**
@@ -673,7 +681,7 @@ export type DataGridStoreState = Omit<
   | "columnLayout"
   | "readOnly"
   | "keymap"
-> & {
+> & GroupStoreState & {
   /** Always defined: controlled mode mirrors the `data` prop every sync; uncontrolled mode seeds from `defaultData` once and the store owns it thereafter (mutated in place by the commit actions). */
   data: readonly unknown[];
   /** Whether `data` is controlled (the `data` prop was defined on the last `_syncProps`/init) — see `data`'s doc comment and `defaultData`. Mirrors the `sortControlled`-style pattern below. */
@@ -828,7 +836,7 @@ export type DataGridStoreState = Omit<
   searchMatchRows: ReadonlyMap<number, ReadonlySet<number>>;
   /** True when more than 1000 cells match; `searchMatches` then holds the first 1000. */
   searchMatchesCapped: boolean;
-  /** Recomputed by _syncProps/toggleSort/setSorts/setFilters only — search no longer affects it. */
+  /** Recomputed by _syncProps/toggleSort/setSorts/setFilters only — search no longer affects it. With `groupBy` set, an entry below 0 names a group row (`groupLayout.rows[-entry - 1]`); read a row through `dataIndexAt`. */
   viewIndex: number[];
   /**
    * Bumped at every row-moving or row-replacing write (insert/delete/duplicate/reorder, a
@@ -907,7 +915,7 @@ export type DataGridStoreState = Omit<
 /** `DataGridStoreState` with `data` typed as `readonly TData[]` — the state view {@link useDataGridSelector} hands its selector. Every row in `data` originated from the grid's own `TData`-typed `data`/`defaultData` prop, so the widening is safe. */
 export type DataGridStoreStateOf<TData> = Omit<DataGridStoreState, "data" | DataGridInternalStateKey> & { data: readonly TData[] };
 
-type DataGridInternalStateKey = "dataControlled" | "selectAllStage" | "editingRejectionCount" | "selectionPointer" | "lastHighlightedRow" | "lastHighlightedCol" | "rowRangeGesture" | "sortControlled" | "filterControlled" | "searchControlled" | "pageControlled" | "pageSizeControlled" | "searchMatchSet" | "rowIdentityVersion" | "scrollToCellImpl" | "focusImpl" | "runShortcutImpl" | "focusSearchImpl" | "measureFonts" | "dataWrite";
+type DataGridInternalStateKey = "dataControlled" | "selectAllStage" | "editingRejectionCount" | "selectionPointer" | "lastHighlightedRow" | "lastHighlightedCol" | "rowRangeGesture" | "sortControlled" | "filterControlled" | "searchControlled" | "pageControlled" | "pageSizeControlled" | "searchMatchSet" | "groupByControlled" | "expandedControlled" | "rowIdentityVersion" | "scrollToCellImpl" | "focusImpl" | "runShortcutImpl" | "focusSearchImpl" | "measureFonts" | "dataWrite";
 
 /** Mutations for a single grid instance, nested under the stable `actions` key. */
 export type DataGridActions = {
@@ -1046,6 +1054,18 @@ export type DataGridActions = {
   /** Steps the column to its next sort direction, or to no sort. `{ additive: true }` keeps the other sorts, as a Shift-click on the header does. */
   toggleSort(columnId: string, options?: { additive?: boolean }): void;
   setSorts(sorts: SortSpec[]): void;
+  /** @internal Sets the group columns; unknown, `groupable: false`, and repeated ids drop. */
+  setGroupBy(next: readonly string[]): void;
+  /** @internal Adds the column as the innermost group level, or removes it. */
+  toggleGroupBy(columnId: string): void;
+  /** @internal Sets the open groups. */
+  setExpanded(next: ExpandedState): void;
+  /** @internal Opens a closed group and closes an open one. */
+  toggleGroup(groupId: string): void;
+  /** @internal Opens every group. */
+  expandAll(): GroupActionResult;
+  /** @internal Closes every group. */
+  collapseAll(): GroupActionResult;
   setFilters(filters: FilterNode[]): void;
   /** Sets quick-search text (and, when given, the search options) and recomputes `searchMatches`/`searchMatchSet`/`searchMatchesCapped` once; never touches `viewIndex`. Omitted options keep the current ones. */
   setSearch(text: string, options?: SearchOptions): void;
@@ -1291,8 +1311,8 @@ export type LiveAnnouncement = { kind: LiveAnnouncementKind; count: number; seq:
 /** Full store shape: interaction state + the stable actions object. */
 export type DataGridStore = DataGridStoreState;
 
-/** Why a row action did nothing: the grid is read-only, a target row is unloaded, the factory prop is missing, an `onBeforeDeleteRows`, `createRow`, or `duplicateRow` gate returned `false` (`"gate-declined"`) or threw or rejected (`"gate-threw"`), or no row matched. `"view-ordered"` marks a row move refused because an active sort (client or server) or client filter owns the row order, and `"disabled"` a row move shortcut without a reorder `rowMarkers` mode. `"all-matching"` and `"hidden-rows-only"` mark a key or menu row action refused because the checked rows are not in the grid: every matching row is checked, or every checked row is outside the view. */
-export type RowActionSkipReason = "readOnly" | "unloaded-rows" | "no-factory" | "gate-declined" | "gate-threw" | "nothing-to-do" | "view-ordered" | "disabled" | "all-matching" | "hidden-rows-only";
+/** Why a row action did nothing: the grid is read-only, a target row is unloaded, the factory prop is missing, an `onBeforeDeleteRows`, `createRow`, or `duplicateRow` gate returned `false` (`"gate-declined"`) or threw or rejected (`"gate-threw"`), or no row matched. `"group-row"` marks an insert or duplicate refused on a group row. `"view-ordered"` marks a row move refused because an active sort (client or server) or client filter owns the row order, and `"disabled"` a row move shortcut without a reorder `rowMarkers` mode. `"all-matching"` and `"hidden-rows-only"` mark a key or menu row action refused because the checked rows are not in the grid: every matching row is checked, or every checked row is outside the view. */
+export type RowActionSkipReason = "readOnly" | "unloaded-rows" | "no-factory" | "gate-declined" | "gate-threw" | "nothing-to-do" | "view-ordered" | "group-row" | "disabled" | "all-matching" | "hidden-rows-only";
 
 /** The row actions that report through `onRowActionSkipped`; `deleteRowsAt` reports as `deleteRows`, and `reorderRows` and `moveRowsBy` as `moveRows`. */
 export type RowActionName = "insertRows" | "duplicateRows" | "deleteRows" | "moveRows";
@@ -1300,44 +1320,8 @@ export type RowActionName = "insertRows" | "duplicateRows" | "deleteRows" | "mov
 /** What `deleteRows`, `deleteRowsAt`, `insertRow(s)`, `duplicateRows`, and `duplicateRowsAt` return: `ok` once the action ran or an async gate started, else the reason it did nothing. */
 export type RowActionResult = { ok: true } | { ok: false; reason: RowActionSkipReason };
 
-/**
- * Everything `computeViewIndex`/`computeSearchMatches`/`computeVisibleColumns` read on a
- * `_syncProps` sync, captured by reference. All fields `===`-equal to the previous sync's means
- * their outputs (`viewIndex`/`searchMatches`/`visibleColumns`) are also unchanged, so `_syncProps`
- * can skip recomputing them and reuse the previous references (a controlled parent re-rendering
- * for unrelated reasons — e.g. its own local state — shouldn't pay full buildViewIndex cost).
- */
-export type SyncInputs = {
-  data: readonly unknown[];
-  columns: readonly AnyColumnDef[];
-  /** Sort reads each column's cell-type `compare`, so a swapped registry changes `viewIndex`. */
-  cellTypes: Record<string, CellType>;
-  sortState: SortSpec[];
-  filterState: FilterNode[];
-  searchText: string;
-  columnOrder: string[] | null;
-  hiddenColumns: readonly string[];
-  columnGroupModel: ColumnGroupModel | null;
-  /** `"<page>|<pageSize>"`: a page change rebuilds the paged view. */
-  pageKey: string;
-  sortLocale: string;
-};
-
-export function syncInputsEqual(a: SyncInputs, b: SyncInputs): boolean {
-  return (
-    a.data === b.data &&
-    a.columns === b.columns &&
-    a.cellTypes === b.cellTypes &&
-    a.sortState === b.sortState &&
-    a.filterState === b.filterState &&
-    a.searchText === b.searchText &&
-    a.columnOrder === b.columnOrder &&
-    a.hiddenColumns === b.hiddenColumns &&
-    a.columnGroupModel === b.columnGroupModel &&
-    a.pageKey === b.pageKey &&
-    a.sortLocale === b.sortLocale
-  );
-}
+export type { SyncInputs } from "./sync-inputs";
+export { syncInputsEqual } from "./sync-inputs";
 
 /**
  * `warnings` (only on the success/noop arms) carries `validationMode: "warn"` rejections that committed

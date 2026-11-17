@@ -33,6 +33,7 @@ Each row is one **Breaking:** entry of the [changelog](https://github.com/Dammer
 | <span id="unknown-column-spec" />Sort or filter on an unknown column | A filter matches no row | Dropped | Fix the column id. |
 | <span id="equal-spec-no-callback" />Equal sort or filter spec | Fires the callback | No callback | Refetch yourself. |
 | <span id="set-filter-match" />Set operators with a custom match | With `filterMatch`, a `text` or untyped column drops the set operators and the header filter. | Every column keeps them, and the built-in match runs them. | To run your `match` for them, list `isAnyOf` and `isNoneOf` in `filter.operators`. |
+| <span id="view-index-group-entries" />`viewIndex` of a grouped grid | Holds data indexes only | Holds an entry below 0 for each group row. `rowIdAtViewRow` answers the group id. | Read a row through `dataIndexAt`. A grid without `groupBy` is unchanged. |
 
 ## Selection and row actions [#selection-rows]
 

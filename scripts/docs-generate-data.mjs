@@ -80,7 +80,7 @@ export const ADDONS = [
  */
 export const FEATURE_SINCE = {
   "1.2.0": ["find-replace", "filter-values", "column-groups", "touch"],
-  "2.0.0": ["import-check", "comments", "unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "server-initial-answer", "error-state", "input-debounce", "lookup-cell", "server-aggregate", "zero-row-header", "server-query"],
+  "2.0.0": ["import-check", "grouping", "comments", "unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "server-initial-answer", "error-state", "input-debounce", "lookup-cell", "server-aggregate", "zero-row-header", "server-query"],
 };
 
 const F = (guide, reference, item) => ({ item, guide, reference });
@@ -171,6 +171,11 @@ export const TERM_PAGES = {
   "row id": "/docs/components-props/data-grid-props#rows-and-ids",
   "view index": "/docs/concepts/state-view-index",
   "data index": "/docs/concepts/state-view-index",
+  "row group": "/docs/data-modes/data-mode-support#row-grouping",
+  "group row": "/docs/data-modes/data-mode-support#row-grouping",
+  "group key": "/docs/data-modes/data-mode-support#row-grouping",
+  "group level": "/docs/data-modes/data-mode-support#row-grouping",
+  "expanded state": "/docs/data-modes/data-mode-support#row-grouping",
   "checked row": "/docs/selection-shortcuts/checked-rows",
   "checked rows lifetime": "/docs/selection-shortcuts/checked-rows",
   "data mode": ["/docs/data-modes", "One way the grid gets its rows, such as a local array or server pages."],
