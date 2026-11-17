@@ -238,7 +238,7 @@ function StreamingFeed({ enabled, reorder, rowIds }: { enabled: boolean; reorder
         columnId: "score",
         value: Math.floor(Math.random() * 100),
       }));
-      updateCellsRef.current(patches, { reorder: reorderRef.current });
+      updateCellsRef.current(patches, { source: "stream", reorder: reorderRef.current });
     }, 250);
     return () => clearInterval(id);
   }, [enabled, rowIdsRef, reorderRef, updateCellsRef]);

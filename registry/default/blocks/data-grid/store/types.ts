@@ -225,7 +225,7 @@ export type DataGridSyncProps<TData = unknown> = {
    */
   gateTimeoutMs?: number | Partial<Record<Exclude<GateName, "import">, number>>;
   /** Fires when a row action (`insertRows`, `duplicateRows`, `deleteRows`, `moveRows`) does nothing, with its name and the reason; the insert, duplicate, and delete actions also return it, and `reorderRows` and `moveRowsBy` (both report as `moveRows`) return `false`. `deleteRowsAt` reports as `deleteRows`, and its `source: "stream"` path never reports. Shortcuts and menu items run through the same actions, so one handler can toast every skip. */
-  onRowActionSkipped?: (ctx: { action: RowActionName; reason: RowActionSkipReason }) => void;
+  onRowActionSkipped?: (ctx: { action: RowActionName; reason: RowActionSkipReason; count?: number }) => void;
   /**
    * Fires once for every async gate the grid stopped waiting for, with the gate's name and why: `"timeout"` (see `gateTimeoutMs`),
    * `"changed"` (the rows, the checked rows, or `readOnly` changed, the active cell moved during `onBeforeEditStart`, or an edit started during `processPaste`), `"superseded"` (a newer run replaced it), `"cancelled"` (the user pressed Escape), or `"reset"`.
@@ -1093,12 +1093,12 @@ export type DataGridActions = {
    *
    * Unlike `applyCellUpdates` it never moves the selection, the active cell, or the editing session,
    * so a live feed cannot pull the grid out from under a user mid-edit. Emits one batched
-   * `DataChange` with `options.source` (default `"stream"`) through `onDataChange`, in both controlled and uncontrolled
+   * `DataChange` with `options.source` (required) through `onDataChange`, in both controlled and uncontrolled
    * mode. See {@link UpdateCellsOptions} for the sort/filter interaction.
    */
-  updateCells(patches: readonly CellPatch[], options?: UpdateCellsOptions): UpdateCellsVerdict;
+  updateCells(patches: readonly CellPatch[], options: UpdateCellsOptions): UpdateCellsVerdict;
   /** {@link updateCells} keyed by whole row: each {@link RowPatch}'s `changes` expands to one patch per column id. */
-  updateRows(updates: readonly RowPatch[], options?: UpdateCellsOptions): UpdateCellsVerdict;
+  updateRows(updates: readonly RowPatch[], options: UpdateCellsOptions): UpdateCellsVerdict;
   /** {@link updateRows} as a user edit: `source: "edit"` and `reorder: "immediate"`. One undo entry, one `onSave`, and the `readOnly`, read-only column, and `validate` checks apply. `options` takes the rest of {@link UpdateCellsOptions}, such as `flash`. */
   editRows(updates: readonly RowPatch[], options?: Omit<UpdateCellsOptions, "source" | "reorder">): UpdateCellsVerdict;
   /** Rebuilds the view index that a deferred `updateCells` postponed, and clears `viewStale`. With `useDataGridServerRows` it asks for a reshape instead, and `viewStale` stays `true` until the answer delivers the stale rows again. No-op when the view is not stale. */
@@ -1115,8 +1115,8 @@ export type DataGridActions = {
    * above/below `viewRowIndex` (view-index) as ONE `{source: 'row-operation'}` DataChange with one
    * row-id-based `insert` operation per row - a single undo entry. Does nothing and returns a skip reason:
    * `"readOnly"`, `"no-factory"` (no `createRow`, dev-warned), `"nothing-to-do"` (`count` is not a positive
-   * integer), `"gate-pending"` (an earlier `createRow` promise has not settled), or `"unloaded-rows"` (the
-   * target row is not loaded yet in scroll mode).
+   * integer), or `"unloaded-rows"` (the target row is not loaded yet in scroll mode). A new insert aborts a
+   * pending `createRow` promise (`onGateAborted` reason `"superseded"`); a rejected promise reports `"gate-threw"`.
    */
   insertRows(viewRowIndex: number, count: number, position?: "above" | "below"): RowActionResult;
   /** View-index variant of {@link DataGridActions.deleteRows}: deletes the rows at `viewRowIndexes` as one `{source: 'row-operation'}` DataChange with row-id-based `delete` operations. */
@@ -1137,7 +1137,7 @@ export type DataGridActions = {
    * source row, as one `{source: 'row-operation'}` DataChange with row-id-based `insert` operations. Returns
    * `"no-factory"` (dev-warned) when the `duplicateRow` prop is absent — required so
    * every duplicated row gets a distinct id, never colliding with its source's React key — and
-   * `"readOnly"`, `"gate-pending"`, `"unloaded-rows"`, or `"nothing-to-do"` when it does nothing else.
+   * `"readOnly"`, `"unloaded-rows"`, or `"nothing-to-do"` when it does nothing else. A new duplicate aborts a pending `duplicateRow` promise (`"superseded"`).
    */
   duplicateRowsAt(viewRowIndexes: readonly number[]): RowActionResult;
   /**
@@ -1283,8 +1283,8 @@ export type LiveAnnouncement = { kind: LiveAnnouncementKind; count: number; seq:
 /** Full store shape: interaction state + the stable actions object. */
 export type DataGridStore = DataGridStoreState;
 
-/** Why a row action did nothing: the grid is read-only, a target row is unloaded, a gate is still pending, the factory prop is missing, a sync `onBeforeDeleteRows` returned `false` (`"gate-declined"`) or threw (`"gate-threw"`), or no row matched. `"view-ordered"` marks a row move refused because an active sort (client or server) or client filter owns the row order, and `"disabled"` a row move shortcut without a reorder `rowMarkers` mode. `"all-matching"` and `"hidden-rows-only"` mark a key or menu row action refused because the checked rows are not in the grid: every matching row is checked, or every checked row is outside the view. */
-export type RowActionSkipReason = "readOnly" | "unloaded-rows" | "gate-pending" | "no-factory" | "gate-declined" | "gate-threw" | "nothing-to-do" | "view-ordered" | "disabled" | "all-matching" | "hidden-rows-only";
+/** Why a row action did nothing: the grid is read-only, a target row is unloaded, the factory prop is missing, an `onBeforeDeleteRows`, `createRow`, or `duplicateRow` gate returned `false` (`"gate-declined"`) or threw or rejected (`"gate-threw"`), or no row matched. `"view-ordered"` marks a row move refused because an active sort (client or server) or client filter owns the row order, and `"disabled"` a row move shortcut without a reorder `rowMarkers` mode. `"all-matching"` and `"hidden-rows-only"` mark a key or menu row action refused because the checked rows are not in the grid: every matching row is checked, or every checked row is outside the view. */
+export type RowActionSkipReason = "readOnly" | "unloaded-rows" | "no-factory" | "gate-declined" | "gate-threw" | "nothing-to-do" | "view-ordered" | "disabled" | "all-matching" | "hidden-rows-only";
 
 /** The row actions that report through `onRowActionSkipped`; `deleteRowsAt` reports as `deleteRows`, and `reorderRows` and `moveRowsBy` as `moveRows`. */
 export type RowActionName = "insertRows" | "duplicateRows" | "deleteRows" | "moveRows";

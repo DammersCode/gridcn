@@ -1,5 +1,5 @@
 import { act, render } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
 import type { ColumnDef, DataChange } from "../types";
 import { createDataGridStore } from "./create-store";
@@ -33,6 +33,8 @@ function makeStore(overrides: Partial<InternalSyncProps> = {}) {
 const cellValues = (change: DataChange<unknown>) =>
   change.ops.flatMap((op) => (op.type === "update" ? (op.cells ?? []).map((cell) => cell.value) : []));
 
+beforeEach(() => void vi.spyOn(console, "error").mockImplementation(() => {}));
+
 describe("a throwing validateRow on a delete", () => {
   it("emits the delete, adds no verdict, and emits the later edit after it", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -53,19 +55,19 @@ describe("a throwing validateRow on a delete", () => {
 });
 
 describe("an onDataChange that throws", () => {
-  it("still delivers the emit a store subscriber queued, then rethrows the first error", () => {
+  it("still delivers the emit a store subscriber queued, then reports the error", () => {
     const { store, onDataChange } = makeStore();
     let answered = false;
     store.subscribe((state, prev) => {
       if (answered || state.data === prev.data) return;
       answered = true;
-      state.actions.updateCells([{ rowId: "b", columnId: "note", value: "answered" }]);
+      state.actions.updateCells([{ rowId: "b", columnId: "note", value: "answered" }], { source: "stream" });
     });
     onDataChange.mockImplementationOnce(() => {
       throw new Error("consumer crashed");
     });
 
-    expect(() => store.getState().actions.commitCellValueAt({ row: 0, col: 0 }, "Changed")).toThrow("consumer crashed");
+    expect(() => store.getState().actions.commitCellValueAt({ row: 0, col: 0 }, "Changed")).not.toThrow();
 
     expect(onDataChange).toHaveBeenCalledTimes(2);
     expect(cellValues(onDataChange.mock.calls[1]![1])).toEqual(["answered"]);
@@ -77,7 +79,7 @@ describe("an onDataChange that throws", () => {
       throw new Error("consumer crashed");
     });
 
-    expect(() => store.getState().actions.commitCellValueAt({ row: 0, col: 0 }, "first")).toThrow("consumer crashed");
+    expect(() => store.getState().actions.commitCellValueAt({ row: 0, col: 0 }, "first")).not.toThrow();
     store.getState().actions.commitCellValueAt({ row: 1, col: 0 }, "second");
 
     expect(onDataChange).toHaveBeenCalledTimes(2);

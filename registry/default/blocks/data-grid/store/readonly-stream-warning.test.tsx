@@ -7,7 +7,7 @@ import { DataGridProvider, useDataGridActions } from ".";
 type Row = { id: string; price: number };
 const columns: readonly ColumnDef<Row, unknown>[] = [{ id: "price", header: "Price", accessorKey: "price" }];
 
-it("refuses a source-less push on a readOnly grid, and asks once in development to name the source", () => {
+it("refuses a source-less push, and asks once in development to name the source", () => {
   const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
   function Wrapper({ children }: { children: ReactNode }) {
     return (
@@ -17,11 +17,11 @@ it("refuses a source-less push on a readOnly grid, and asks once in development 
     );
   }
   const { result } = renderHook(() => useDataGridActions(), { wrapper: Wrapper });
-  expect(result.current.updateCells([{ rowId: "a", columnId: "price", value: 1 }])).toEqual({ applied: 0, skipped: [{ patchIndex: 0, reason: "readonly" }], pending: false });
-  act(() => void result.current.updateCells([{ rowId: "a", columnId: "price", value: 2 }], { source: "stream" }));
-  const readOnlyWarnings = warn.mock.calls.filter(([message]) => String(message).includes("the grid is readOnly"));
+  expect(result.current.updateCells([{ rowId: "a", columnId: "price", value: 1 }], undefined as never)).toEqual({ applied: 0, skipped: [{ patchIndex: 0, reason: "no-source" }], pending: false });
+  act(() => void result.current.updateCells([{ rowId: "a", columnId: "price", value: 2 }], undefined as never));
+  const readOnlyWarnings = warn.mock.calls.filter(([message]) => String(message).includes("need a source"));
   expect(readOnlyWarnings).toHaveLength(1);
-  expect(String(readOnlyWarnings[0]![0])).toContain('Pass source: "stream" to push into a readOnly grid');
+  expect(String(readOnlyWarnings[0]![0])).toContain('Pass source: "stream" for a push');
   warn.mockRestore();
 });
 

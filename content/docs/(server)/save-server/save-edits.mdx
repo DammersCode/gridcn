@@ -88,11 +88,11 @@ While the promise is pending, each row of the change is `saving`. The row elemen
 - `useDataGridRowSaveStatus(rowId)` returns `"saving"`, `"failed"`, or `undefined`.
 - `useDataGridPendingSaveCount()` returns the number of `onSave` promises that have not settled.
 
-Call both hooks under `DataGridProvider`. Style `[data-save-status="saving"]` to dim a saving row.
+Call both hooks under `DataGridProvider`.
 
-`onSave` takes a second argument, `{ actions, signal }`. `actions` is the actions of the grid. `signal` aborts when the grid unmounts or when `saveTimeoutMs` runs out. Pass it to `fetch`.
+`onSave` takes a second argument, `{ actions, signal }`. `signal` aborts when the grid unmounts or `saveTimeoutMs` runs out. Pass it to `fetch`.
 
-The grid sets no time limit on a save. Set `saveTimeoutMs` to refuse a save that has not settled after that many milliseconds. The grid aborts `signal`, reverts the rows, and calls `onSaveRejected` with `reason: "timeout"` on each rejection. An answer that arrives later is ignored, so a server that applied the save late keeps its row while the grid shows the old value. Leave `saveTimeoutMs` off when the server can apply a late save.
+`saveTimeoutMs` (off by default) refuses a save that has not settled in time. The grid reverts the rows and sets `reason: "timeout"` on each rejection. Leave it off when your server can apply a save late.
 
 ## Save rows from a server source [#server-source]
 
@@ -125,7 +125,7 @@ A refresh needs at least one `onSave` promise that resolved, with nothing or wit
 
 ## Swap a client id for the server id [#id-swap]
 
-A row that the user creates carries a client id. After the server saves it, call `actions.replaceRowId(oldId, row)` with the server row. The second argument of `onSave` gives it the actions. This handler sends inserts only. Send the other operations as in [Revert or refetch after a save](/docs/save-server/save-revert#translate-operations-into-api-calls):
+A row that the user creates carries a client id. After the server saves it, call `actions.replaceRowId(oldId, row)` with the server row. The second argument of `onSave` carries the actions. This handler sends inserts only. Send the other operations as in [Revert or refetch after a save](/docs/save-server/save-revert#translate-operations-into-api-calls):
 
 ```tsx
 "use client";
@@ -134,17 +134,17 @@ import { DataGrid, type DataChange, type SaveContext } from "@/components/data-g
 import { columns, type Order } from "./orders";
 
 export function OrdersGrid({ rows }: { rows: Order[] }) {
-  async function save(change: DataChange<Order>, { actions, signal }: SaveContext) {
+  async function save(change: DataChange<Order>, ctx: SaveContext) {
     for (const op of change.ops) {
       if (op.type !== "insert") continue;
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(op.row),
-        signal,
+        signal: ctx.signal,
       });
       if (!response.ok) throw new Error(`Save failed: ${response.status}`);
-      actions.replaceRowId(op.rowId, await response.json());
+      ctx.actions.replaceRowId(op.rowId, await response.json());
     }
   }
 
@@ -156,11 +156,11 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
 
 One `onDataChange` call fires, with `source: "id-swap"`, and history does not record it. The state keyed by the row id follows the new id. That covers the open edit, the cell errors, the checked rows, the save status, the saves in flight, and the undo steps. Flashes of the row end, and `validateRow` runs again.
 
-After a batch create, call `actions.replaceRowIds([{ oldId, row }])` to swap many rows in one write. A `readOnly` grid skips the swap. An unknown `oldId`, or a new id that another row holds, warns once in development.
+After a batch create, call `actions.replaceRowIds([{ oldId, row }])` to swap many rows in one write. A `readOnly` grid skips the swap.
 
 ## Server mode [#server-mode]
 
-`onSave` works the same on a local array, a page, and scroll mode. The grid sends no spec, page, or row count to `onSave`. Your server applies each operation by `rowId`.
+`onSave` works the same on a local array, a page, and scroll mode. Your server applies each operation by `rowId`.
 
 ## Related
 

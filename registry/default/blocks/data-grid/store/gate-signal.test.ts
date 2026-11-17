@@ -116,7 +116,7 @@ describe("gate tracker", () => {
 });
 
 describe("validateRow signal", () => {
-  const edit = (m: ReturnType<typeof mount>, value: string, rowId = "a") => m.state().actions.updateCells([{ rowId, columnId: "name", value }]);
+  const edit = (m: ReturnType<typeof mount>, value: string, rowId = "a") => m.state().actions.updateCells([{ rowId, columnId: "name", value }], { source: "stream" });
 
   it("hands every run a signal that stays live for a sync verdict", () => {
     const signals: AbortSignal[] = [];
@@ -669,7 +669,7 @@ describe("controlled data (server path)", () => {
         return new Promise<Record<string, string> | null>(() => {});
       },
     });
-    m.state().actions.updateCells([{ rowId: "a", columnId: "name", value: "x" }]);
+    m.state().actions.updateCells([{ rowId: "a", columnId: "name", value: "x" }], { source: "stream" });
     m.sync({ data: rows(["b", "c"]) });
     expect(signal.aborted).toBe(true);
   });

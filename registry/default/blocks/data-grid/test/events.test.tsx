@@ -391,7 +391,7 @@ describe("onActiveCellChange — columns, writes, and clamps", () => {
     const { result } = renderHook(() => useDataGridActions(), { wrapper: makeWrapper({ onActiveCellChange }) });
     act(() => result.current.selectCellAt({ col: 1, row: 0 }));
     act(() => {
-      result.current.updateCells([{ rowId: "1", columnId: "qty", value: 9 }], { reorder: "immediate" });
+      result.current.updateCells([{ rowId: "1", columnId: "qty", value: 9 }], { source: "stream", reorder: "immediate" });
     });
     expect(onActiveCellChange).toHaveBeenCalledTimes(1);
   });
@@ -483,7 +483,7 @@ describe("onActiveCellChange — columns, writes, and clamps", () => {
     act(() => result.current.actions.selectCellAt({ col: 0, row: 1 }));
     expect(onActiveCellChange).toHaveBeenLastCalledWith({ rowId: "3", columnId: "name", viewRowIndex: 1, viewColumnIndex: 0 });
     act(() => {
-      result.current.actions.updateCells([{ rowId: "3", columnId: "qty", value: -5 }], { reorder: "immediate" });
+      result.current.actions.updateCells([{ rowId: "3", columnId: "qty", value: -5 }], { source: "stream", reorder: "immediate" });
     });
     const s = result.current.store.getState();
     expect(s.viewIndex).toHaveLength(1);

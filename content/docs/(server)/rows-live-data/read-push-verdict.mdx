@@ -22,6 +22,7 @@ aliases: ["UpdateCellsVerdict", "skipped patches", "skip reason", "updateCells r
 | `readonly` | A call with no `source` on a `readOnly` grid gets it. A call with another `source` gets it when the grid is `readOnly`, the column is read-only, or the row is read-only through `readOnly(row)`. A `"stream"` call gets this reason for a column with no write path (`accessorFn` without `setValue`). |
 | `saving` | A stream call: the row has a save in flight. The grid holds the patch and applies it once the row's save settles. A later push to the same cell replaces it. |
 | `limit` | A stream call: the call carried more than 100,000 patches, and this patch came after them. |
+| `no-source` | The call passed no `source`. The grid writes nothing. Pass `{ source: "stream" }` or `{ source: "edit" }`. |
 | `invalid` | The column's `validate` rejected the value. |
 | `no-op` | The value equals the current value. |
 
@@ -43,7 +44,7 @@ export function usePush() {
 
   return useCallback(
     async (patches: CellPatch[]) => {
-      const verdict = actions.updateCells(patches);
+      const verdict = actions.updateCells(patches, { source: "stream" });
       const final = (await verdict.settled) ?? verdict;
       for (const skip of final.skipped) {
         console.warn(`Patch ${skip.patchIndex} skipped: ${skip.reason}`);

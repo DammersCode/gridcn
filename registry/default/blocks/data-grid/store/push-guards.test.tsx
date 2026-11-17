@@ -45,10 +45,10 @@ function mount(onSave?: (change: DataChange<Row>) => void | Promise<SaveAck<Row>
   return {
     state,
     value: (rowId: string, field: "name" | "note" | "locked" | "byRow") => (state().data as Row[]).find((r) => r.id === rowId)![field],
-    push: (...args: Parameters<DataGridStoreState["actions"]["updateCells"]>) => {
+    push: (patches: Parameters<DataGridStoreState["actions"]["updateCells"]>[0], options: Partial<Parameters<DataGridStoreState["actions"]["updateCells"]>[1]> = {}) => {
       let verdict!: ReturnType<DataGridStoreState["actions"]["updateCells"]>;
       act(() => {
-        verdict = state().actions.updateCells(...args);
+        verdict = state().actions.updateCells(patches, { source: "stream", ...options });
       });
       return verdict;
     },
@@ -117,7 +117,7 @@ describe("bound on one stream call", () => {
   it("counts the cells that updateRows expands", () => {
     const m = mount();
     const updates = Array.from({ length: 50_001 }, () => ({ rowId: "a", changes: { name: "x", note: "y" } }));
-    const verdict = m.state().actions.updateRows(updates);
+    const verdict = m.state().actions.updateRows(updates, { source: "stream" });
     expect(verdict.skipped.filter((skip) => skip.reason === "limit")).toEqual([
       { patchIndex: 100_000, reason: "limit" },
       { patchIndex: 100_001, reason: "limit" },
@@ -227,14 +227,14 @@ describe("stream into read-only targets", () => {
 });
 
 describe("a source-less write into a readOnly grid", () => {
-  const readOnlyWarnings = (warn: { mock: { calls: unknown[][] } }) => warn.mock.calls.filter(([m]) => String(m).includes("the write is refused"));
+  const readOnlyWarnings = (warn: { mock: { calls: unknown[][] } }) => warn.mock.calls.filter(([m]) => String(m).includes("need a source"));
 
   it("refuses and warns once when updateCells and updateRows pass no source", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const m = mount(undefined, { readOnly: true });
     act(() => {
-      m.state().actions.updateCells([{ rowId: "a", columnId: "note", value: "1" }]);
-      m.state().actions.updateRows([{ rowId: "a", changes: { note: "2" } }]);
+      m.state().actions.updateCells([{ rowId: "a", columnId: "note", value: "1" }], undefined as never);
+      m.state().actions.updateRows([{ rowId: "a", changes: { note: "2" } }], undefined as never);
     });
     expect(readOnlyWarnings(warn)).toHaveLength(1);
   });
@@ -244,7 +244,7 @@ describe("a source-less write into a readOnly grid", () => {
     const readOnly = mount(undefined, { readOnly: true });
     act(() => readOnly.state().actions.updateCells([{ rowId: "a", columnId: "note", value: "1" }], { source: "stream" }));
     const writable = mount();
-    act(() => writable.state().actions.updateCells([{ rowId: "a", columnId: "note", value: "1" }]));
+    act(() => writable.state().actions.updateCells([{ rowId: "a", columnId: "note", value: "1" }], { source: "stream" }));
     expect(readOnlyWarnings(warn)).toHaveLength(0);
   });
 });
@@ -256,7 +256,7 @@ describe("stream limit warnings", () => {
     const patches = Array.from({ length: 100_001 }, () => ({ rowId: "a", columnId: "note", value: "x" }));
     const many = Array.from({ length: 100_001 }, (_, i) => `x${i}`);
     act(() => {
-      m.state().actions.updateCells(patches);
+      m.state().actions.updateCells(patches, { source: "stream" });
       m.state().actions.deleteRows(many, { source: "stream" });
     });
     expect(warn.mock.calls.filter(([message]) => String(message).includes("100000"))).toHaveLength(2);

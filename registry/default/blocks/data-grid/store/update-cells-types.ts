@@ -21,8 +21,8 @@ export type UpdateCellsOptions = {
    *   touched column feeds the sort or filter.
    */
   reorder?: UpdateCellsReorder;
-  /** `DataChange` source tag; default `"stream"`. Pass `"edit"` to make the batch undoable. */
-  source?: DataChange<unknown>["source"];
+  /** `DataChange` source tag. `"stream"` is a push from the server; `"edit"` is a user edit and makes the batch undoable. A call without it writes nothing and skips each patch with reason `"no-source"`. */
+  source: DataChange<unknown>["source"];
   /** Skips each column's `validate`. Default `false`. */
   skipValidation?: boolean;
   /**
@@ -43,9 +43,10 @@ export type UpdateCellsSkip = {
    * `"stream"` patch met a column with no write path (no `accessorKey` and no `setValue`); `"invalid"` — the column's `validate` rejected the
    * value; `"no-op"` — the value is `Object.is`-equal to the current one; `"saving"` — a
    * `"stream"` batch met a row whose save is in flight; the grid holds the patch and applies it once the save settles (after the acknowledgement or the rollback), and a later push to the same cell replaces the held value;
-   * `"limit"` — a `"stream"` call carried more than 100,000 patches, and this one came after them.
+   * `"limit"` — a `"stream"` call carried more than 100,000 patches, and this one came after them;
+   * `"no-source"` — the call passed no `source`.
    */
-  reason: "unknown-row" | "unknown-column" | "hole" | "readonly" | "invalid" | "no-op" | "saving" | "limit";
+  reason: "unknown-row" | "unknown-column" | "hole" | "readonly" | "invalid" | "no-op" | "saving" | "limit" | "no-source";
 };
 
 /**

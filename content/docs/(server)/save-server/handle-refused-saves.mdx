@@ -59,7 +59,8 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
 | --- | --- | --- |
 | `rowId` | The row the server refused. | none |
 | `columnId` | Refuses one cell of an update that lists `cells`. Any other operation is refused whole. | whole row |
-| `message` | Text for `onSaveRejected`. The grid does not render it. | none |
+| `message` | Text for `onSaveRejected`, and the error text of the cells that `keep` marks. | none |
+| `keep` | Keeps the value and marks its cells with `message`. | `false` |
 | `current` | The row with the values the server holds. | none |
 
 ## Put the server row in place [#current]
@@ -146,12 +147,12 @@ A change that took server content has `DataChange.serverRowIds`. `useDataGridHis
 ## React to a refusal [#react-to-a-refusal]
 
 - The revert is one `onDataChange` call with `source: "rollback"`. The `reverts` field names the refused change. `onSave` never receives that call.
-- `onSaveRejected({ change, rejected, error })` runs once per refused change, after the revert. If the promise resolved with `{ rejected }`, `error` is `null`. Otherwise `error` is the rejection reason.
+- `onSaveRejected({ change, rejected, error, reverted })` runs once per refused change, after the revert. `reverted` is `false` when every entry set `keep`. If the promise resolved with `{ rejected }`, `error` is `null`. Otherwise `error` is the rejection reason.
 - The row element carries `data-save-status="failed"` after a refusal. See [Save edits](/docs/save-server/save-edits#read-the-save-status).
 - When the revert writes, `useDataGridHistory` removes the whole refused entry from its undo stack, also for rows the server accepted.
-- A `readOnly` grid skips the revert, warns once in development, and still calls `onSaveRejected`.
-- If you replace the data before the answer, a refused update of a row that left reverts nothing. A refused delete puts the row back.
-- A throw in one callback does not stop the next.
+- The revert runs on a `readOnly` grid too.
+- If you replace the data before the answer, a refused update of a row that left reverts nothing.
+- A throw in one callback goes to `reportError` and does not stop the next.
 
 ## Related
 

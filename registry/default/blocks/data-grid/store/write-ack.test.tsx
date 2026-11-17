@@ -218,17 +218,15 @@ describe("save acknowledgement", () => {
     expect(m.state().cellErrors.size).toBe(0);
   });
 
-  it("skips the revert on a readOnly grid, warns once, and still marks the row failed", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  it("reverts on a readOnly grid and marks the row failed", async () => {
     const d = deferred<SaveAck>();
     const m = mount(() => d.promise);
     m.edit("a", "name", "X");
     m.rerender({ readOnly: true });
     d.resolve({ rejected: [{ rowId: "a" }] });
     await flush();
-    expect(m.value("a", "name")).toBe("X");
+    expect(m.value("a", "name")).toBe("A");
     expect(m.status("a")).toBe("failed");
-    expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it("a throwing onSaveRejected does not break the settle", async () => {
@@ -463,13 +461,14 @@ describe("onSave", () => {
   it("never receives a stream change, and receives replace and history sources", () => {
     const saved: string[] = [];
     const m = mount((_next, change) => void saved.push(change.source));
-    act(() => m.state().actions.updateCells([{ rowId: "a", columnId: "name", value: "S" }]));
+    act(() => m.state().actions.updateCells([{ rowId: "a", columnId: "name", value: "S" }], { source: "stream" }));
     act(() => m.state().actions.updateCells([{ rowId: "a", columnId: "name", value: "R" }], { source: "replace" }));
     act(() => m.state().actions.commitChange({ source: "history", ops: [{ type: "update", rowId: "a", row: { id: "a", name: "H", note: "a" }, prev: { id: "a", name: "R", note: "a" } }] }));
     expect(saved).toEqual(["replace", "history"]);
   });
 
   it("runs after onDataChange and before plugin observers, each isolated", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
     const order: string[] = [];
     const m = mount(() => void order.push("save"), {
       onDataChange: () => {
@@ -478,7 +477,7 @@ describe("onSave", () => {
       },
       plugins: [{ name: "obs", onDataChange: () => void order.push("observer") }],
     });
-    expect(() => m.edit("a", "name", "X")).toThrow("consumer threw");
+    expect(() => m.edit("a", "name", "X")).not.toThrow();
     expect(order).toEqual(["data", "save", "observer"]);
   });
 
@@ -534,7 +533,7 @@ describe("onSave", () => {
     expect(onSaveRejected.mock.calls[0]![0].rejected[0].message).toBe("boom");
   });
 
-  it("still fires onSaveRejected on a readOnly grid and keeps the refused value", async () => {
+  it("fires onSaveRejected on a readOnly grid and takes the server row", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const d = deferred<SaveAck>();
     const onSaveRejected = vi.fn();
@@ -543,7 +542,7 @@ describe("onSave", () => {
     m.rerender({ readOnly: true, onSaveRejected });
     d.resolve({ rejected: [{ rowId: "a", current: { id: "a", name: "SERVER", note: "a" } }] });
     await flush();
-    expect(m.value("a", "name")).toBe("X");
+    expect(m.value("a", "name")).toBe("SERVER");
     expect(onSaveRejected).toHaveBeenCalledTimes(1);
   });
 });

@@ -19,11 +19,10 @@ Each of the six row actions returns `{ ok: true }` once it ran or an async gate 
 | `reason` | Meaning |
 | --- | --- |
 | `"readOnly"` | The grid is read-only. |
-| `"unloaded-rows"` | A target row is not loaded. |
-| `"gate-pending"` | The promise of `createRow`, `duplicateRow`, or `onBeforeDeleteRows` has not settled. |
+| `"unloaded-rows"` | A target row is not loaded. A delete still removes the loaded rows. It returns this reason only when no target row is loaded. |
 | `"no-factory"` | `createRow` or `duplicateRow` is missing. |
-| `"gate-declined"` | `onBeforeDeleteRows` returned `false` synchronously. |
-| `"gate-threw"` | `onBeforeDeleteRows` threw synchronously. |
+| `"gate-declined"` | `onBeforeDeleteRows` returned `false`, or its promise resolved with `false`. |
+| `"gate-threw"` | `onBeforeDeleteRows`, `createRow`, or `duplicateRow` threw or rejected. |
 | `"nothing-to-do"` | No target row matched, `count` was 0, or a row move had nowhere to go. |
 | `"view-ordered"` | A row move was refused because an active sort or filter owns the row order. |
 | `"all-matching"` | A key or menu row action found all matching on, so the checked rows are not in the grid. |
@@ -32,7 +31,11 @@ Each of the six row actions returns `{ ok: true }` once it ran or an async gate 
 
 A call with `source: "stream"` returns `{ ok: true }` when no id matched, because a server push can repeat a delete.
 
-`onRowActionSkipped({ action, reason })` fires for every skip of `insertRows`, `duplicateRows`, `deleteRows`, or `moveRows`. A shortcut, a drag, a menu item, or a call can start the action. One handler shows a message for all four.
+`onRowActionSkipped({ action, reason, count })` fires for every skip of `insertRows`, `duplicateRows`, `deleteRows`, or `moveRows`. A shortcut, a drag, a menu item, or a call can start the action. One handler shows a message for all four.
+
+`count` holds the number of unloaded rows that a delete skipped.
+
+A new insert, duplicate, or delete aborts the previous one while its promise has not settled. `onGateAborted` reports `"superseded"`, and the grid drops the earlier result.
 
 These cases differ:
 

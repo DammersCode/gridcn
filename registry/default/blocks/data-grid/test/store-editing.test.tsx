@@ -725,7 +725,7 @@ describe("consumer data swap while editing (exactly one sync)", () => {
     // View row 0 is now Bob (id "3"); the value write rebases the rowId map onto its new array.
     act(() => grid.actions.commitCellValueAt({ col: 1, row: 0 }, 50));
     act(() => {
-      grid.actions.updateCells([{ rowId: "1", columnId: "age", value: 77 }]);
+      grid.actions.updateCells([{ rowId: "1", columnId: "age", value: 77 }], { source: "stream" });
     });
 
     const byId = Object.fromEntries((grid.state().data as EditRow[]).map((r) => [r.id, r.age]));
@@ -835,7 +835,7 @@ describe("validateRow verdict ownership across row deletion", () => {
     const { result } = renderHook(() => ({ actions: useDataGridInternalActions(), errors: useDataGridCellErrors() }), { wrapper });
 
     act(() => {
-      result.current.actions.updateCells([{ rowId: "1", columnId: "age", value: 31 }]);
+      result.current.actions.updateCells([{ rowId: "1", columnId: "age", value: 31 }], { source: "stream" });
     });
     expect(result.current.errors.get(cellErrorKey("1", "name"))).toBe("Charlie is banned");
 
@@ -847,7 +847,7 @@ describe("validateRow verdict ownership across row deletion", () => {
       result.current.actions.setCellErrors([{ rowId: "1", columnId: "name", message: "consumer error" }]);
     });
     act(() => {
-      result.current.actions.updateCells([{ rowId: "1", columnId: "age", value: 51 }]);
+      result.current.actions.updateCells([{ rowId: "1", columnId: "age", value: 51 }], { source: "stream" });
     });
 
     expect(result.current.errors.get(cellErrorKey("1", "name"))).toBe("consumer error");

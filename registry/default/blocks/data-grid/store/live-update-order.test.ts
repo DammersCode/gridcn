@@ -69,7 +69,7 @@ describe("immediate live updates keep the view equal to a full re-sort", () => {
             const value = column === "name" ? NAMES[Math.floor(rand() * NAMES.length)] : rand() < 0.05 ? null : Math.floor(rand() * (column === "age" ? 70 : 40));
             return { rowId, columnId: column, value };
           });
-          store.getState().actions.updateCells(patches, { reorder: "immediate" });
+          store.getState().actions.updateCells(patches, { source: "stream", reorder: "immediate" });
           expect(store.getState().viewIndex, `tick ${tick}`).toEqual(freshView(store, scenario.sorts, scenario.filters));
         }
       });
@@ -80,7 +80,7 @@ describe("immediate live updates keep the view equal to a full re-sort", () => {
     const { store } = makeStore(800, [{ columnId: "score", direction: "asc" }], []);
     const before = store.getState().viewIndex;
     const row = store.getState().data[before[400]!] as Row;
-    store.getState().actions.updateCells([{ rowId: row.id, columnId: "score", value: row.score }], { reorder: "immediate" });
+    store.getState().actions.updateCells([{ rowId: row.id, columnId: "score", value: row.score }], { source: "stream", reorder: "immediate" });
     expect(store.getState().viewIndex).toBe(before);
   });
 
@@ -103,7 +103,7 @@ describe("immediate live updates keep the view equal to a full re-sort", () => {
     store.getState().actions.setSorts(sorts);
     for (let tick = 0; tick < 20; tick++) {
       const rowId = `l${Math.floor(rand() * 600)}`;
-      store.getState().actions.updateCells([{ rowId, columnId: "price", value: Math.floor(rand() * 500) }], { reorder: "immediate" });
+      store.getState().actions.updateCells([{ rowId, columnId: "price", value: Math.floor(rand() * 500) }], { source: "stream", reorder: "immediate" });
       const s = store.getState();
       expect(s.viewIndex, `tick ${tick}`).toEqual(computeViewIndex(s.data, s.columns, sorts, [], undefined, s.cellTypes));
     }
@@ -127,7 +127,7 @@ describe("immediate live updates keep the view equal to a full re-sort", () => {
     store.getState().actions.setSorts(sorts);
     for (let tick = 0; tick < 20; tick++) {
       const rowId = `l${Math.floor(rand() * 600)}`;
-      store.getState().actions.updateCells([{ rowId, columnId: "qty", value: Math.floor(rand() * 90) }], { reorder: "immediate" });
+      store.getState().actions.updateCells([{ rowId, columnId: "qty", value: Math.floor(rand() * 90) }], { source: "stream", reorder: "immediate" });
       const s = store.getState();
       expect(s.viewIndex, `tick ${tick}`).toEqual(computeViewIndex(s.data, s.columns, sorts, [], undefined, s.cellTypes));
     }

@@ -44,7 +44,7 @@ describe("onValidationError for updateCells", () => {
     store.getState().actions.updateCells([
       { rowId: "a", columnId: "price", value: -1 },
       { rowId: "b", columnId: "price", value: 5 },
-    ]);
+    ], { source: "stream" });
 
     expect(order).toEqual(["data", "validation"]);
     expect(onValidationError).toHaveBeenCalledWith({
@@ -64,7 +64,7 @@ describe("onValidationError for updateCells", () => {
   it("does not fire when every patch passes", () => {
     const { store, onValidationError } = makeStore(nonNegative);
 
-    store.getState().actions.updateCells([{ rowId: "a", columnId: "price", value: 1 }]);
+    store.getState().actions.updateCells([{ rowId: "a", columnId: "price", value: 1 }], { source: "stream" });
 
     expect(onValidationError).not.toHaveBeenCalled();
   });
@@ -74,7 +74,7 @@ describe("onValidationError for updateCells", () => {
       filterState: [{ filterId: "f", columnId: "name", operator: "equals", value: "Bravo" }],
     });
 
-    store.getState().actions.updateCells([{ rowId: "a", columnId: "price", value: -1 }]);
+    store.getState().actions.updateCells([{ rowId: "a", columnId: "price", value: -1 }], { source: "stream" });
 
     expect(onValidationError).toHaveBeenCalledWith({
       source: "stream",
@@ -88,7 +88,7 @@ describe("onValidationError for updateCells", () => {
     store.getState().actions.updateCells([
       { rowId: "a", columnId: "price", value: 7 },
       { rowId: "b", columnId: "price", value: -3 },
-    ]);
+    ], { source: "stream" });
     expect(onValidationError).not.toHaveBeenCalled();
     await settle();
 
@@ -102,7 +102,7 @@ describe("onValidationError for updateCells", () => {
   it("fires when an async batch rejects every patch", async () => {
     const { store, onDataChange, onValidationError } = makeStore(asyncNonNegative);
 
-    store.getState().actions.updateCells([{ rowId: "a", columnId: "price", value: -1 }]);
+    store.getState().actions.updateCells([{ rowId: "a", columnId: "price", value: -1 }], { source: "stream" });
     await settle();
 
     expect(onDataChange).not.toHaveBeenCalled();
@@ -112,8 +112,8 @@ describe("onValidationError for updateCells", () => {
   it("fires nothing for an async batch that a newer updateCells supersedes", async () => {
     const { store, onValidationError } = makeStore(asyncNonNegative);
 
-    store.getState().actions.updateCells([{ rowId: "a", columnId: "price", value: -1 }]);
-    store.getState().actions.updateCells([{ rowId: "b", columnId: "price", value: -2 }]);
+    store.getState().actions.updateCells([{ rowId: "a", columnId: "price", value: -1 }], { source: "stream" });
+    store.getState().actions.updateCells([{ rowId: "b", columnId: "price", value: -2 }], { source: "stream" });
     await settle();
 
     expect(onValidationError).toHaveBeenCalledTimes(1);
@@ -126,7 +126,7 @@ describe("onValidationError for updateCells", () => {
   it("reports the async rejections of a stream batch that lands in a read-only grid", async () => {
     const { store, onValidationError } = makeStore(asyncNonNegative);
 
-    store.getState().actions.updateCells([{ rowId: "a", columnId: "price", value: -1 }]);
+    store.getState().actions.updateCells([{ rowId: "a", columnId: "price", value: -1 }], { source: "stream" });
     store.setState({ readOnly: true });
     await settle();
 
@@ -166,7 +166,7 @@ describe("onValidationError cost on a streaming tick", () => {
       store.getState().actions.updateCells([
         { rowId: `r${tick}`, columnId: "price", value: -1 },
         { rowId: `r${tick + 1}`, columnId: "price", value: tick },
-      ]);
+      ], { source: "stream" });
     }
     const perTick = (performance.now() - start) / ticks;
     expect(perTick).toBeLessThan(2 * CI_FACTOR);

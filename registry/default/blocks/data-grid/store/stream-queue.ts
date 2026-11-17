@@ -1,16 +1,16 @@
 import type { CellPatch, UpdateCellsOptions, UpdateCellsVerdict } from "./types";
 
-type HeldPatch = { patch: CellPatch; options: UpdateCellsOptions | undefined };
+type HeldPatch = { patch: CellPatch; options: UpdateCellsOptions };
 
 /**
  * Holds `"stream"` patches whose row has a save in flight (verdict reason `"saving"`) and applies
  * them when the row's save settles, after the acknowledgement or the rollback. A later push to a
  * held cell replaces the held value.
  */
-export function createStreamQueue(apply: (patches: readonly CellPatch[], options: UpdateCellsOptions | undefined) => void) {
+export function createStreamQueue(apply: (patches: readonly CellPatch[], options: UpdateCellsOptions) => void) {
   const held = new Map<string, Map<string, HeldPatch>>();
 
-  const holdQueued = (patches: readonly CellPatch[], options: UpdateCellsOptions | undefined, verdict: UpdateCellsVerdict): void => {
+  const holdQueued = (patches: readonly CellPatch[], options: UpdateCellsOptions, verdict: UpdateCellsVerdict): void => {
     for (const skip of verdict.skipped) {
       if (skip.reason !== "saving") continue;
       const patch = patches[skip.patchIndex]!;
@@ -22,7 +22,7 @@ export function createStreamQueue(apply: (patches: readonly CellPatch[], options
   };
 
   return {
-    hold(patches: readonly CellPatch[], options: UpdateCellsOptions | undefined, verdict: UpdateCellsVerdict): UpdateCellsVerdict {
+    hold(patches: readonly CellPatch[], options: UpdateCellsOptions, verdict: UpdateCellsVerdict): UpdateCellsVerdict {
       if (verdict.settled) void verdict.settled.then((settled) => holdQueued(patches, options, settled), () => {});
       else holdQueued(patches, options, verdict);
       return verdict;
@@ -30,7 +30,7 @@ export function createStreamQueue(apply: (patches: readonly CellPatch[], options
     /** Applies the held patches of every row that is no longer `"saving"` in `saveStatus`. */
     release(saveStatus: ReadonlyMap<string, string>): void {
       if (held.size === 0) return;
-      const byOptions = new Map<UpdateCellsOptions | undefined, CellPatch[]>();
+      const byOptions = new Map<UpdateCellsOptions, CellPatch[]>();
       for (const [rowId, cells] of held) {
         if (saveStatus.get(rowId) === "saving") continue;
         held.delete(rowId);

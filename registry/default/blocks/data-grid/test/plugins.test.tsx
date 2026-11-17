@@ -670,7 +670,7 @@ describe("plugin onDataChange observers", () => {
   });
 
   it("a throwing observer logs and does not stop the next observer", () => {
-    const warn = vi.spyOn(console, "warn");
+    const warn = vi.spyOn(console, "error");
     const ran: string[] = [];
     const h = mountGrid(
       [

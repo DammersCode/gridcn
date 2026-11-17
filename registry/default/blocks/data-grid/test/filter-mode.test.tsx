@@ -77,7 +77,7 @@ describe("filterMode", () => {
     const { state } = mount({ filterMode: "server", defaultFilterState: alice });
     act(() => state().actions.toggleSort("name"));
     expect(state().viewIndex).toEqual([1, 2, 0]);
-    act(() => state().actions.updateCells([{ rowId: "1", columnId: "name", value: "Zed" }]));
+    act(() => state().actions.updateCells([{ rowId: "1", columnId: "name", value: "Zed" }], { source: "stream" }));
     expect(state().viewIndex).toHaveLength(3);
   });
 

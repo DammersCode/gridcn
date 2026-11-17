@@ -8,6 +8,8 @@ export type SaveRejection<TData = unknown> = {
   columnId?: string;
   /** Display text for `onSaveRejected`; the grid does not render it. */
   message?: string;
+  /** Keeps the refused value and marks its cells with `message` instead of reverting. Default `false`. */
+  keep?: boolean;
   /** Set by the grid: `"timeout"` marks a refusal because `onSave` outlived `saveTimeoutMs`. */
   reason?: "timeout";
   /**
@@ -25,6 +27,13 @@ export type SaveContext = {
   /** Aborts when the grid unmounts or `saveTimeoutMs` runs out; pass it to `fetch`. */
   signal: AbortSignal;
 };
+
+/** Hands a throw of a consumer callback to the page (`reportError`), or to `console.error` where the platform has none. */
+export function reportCallbackError(message: string, error: unknown): void {
+  const report = (globalThis as { reportError?: (error: unknown) => void }).reportError;
+  if (typeof report === "function") report(error);
+  else console.error(`[data-grid] ${message}`, error);
+}
 
 /** The error a save that outlived `saveTimeoutMs` settles with. */
 export class SaveTimeoutError extends Error {
@@ -45,6 +54,8 @@ export type SaveRejectedContext<TData> = {
   rejected: readonly SaveRejection<TData>[];
   /** The rejection reason of the `onSave` promise; `null` when it resolved with `{ rejected }`. */
   error: unknown;
+  /** `true` when the grid wrote a revert; `false` when every refused entry set `keep` or nothing was left to revert. */
+  reverted: boolean;
 };
 
 /** What `resolveSaveConflict` receives for one refused row that has a usable `current`. */
@@ -89,11 +100,12 @@ export function readRejections(change: DataChange<unknown>, ack: SaveAck, error:
   const out: SaveRejection[] = [];
   for (const entry of rejected as readonly unknown[]) {
     if (typeof entry !== "object" || entry === null || typeof (entry as SaveRejection).rowId !== "string") continue;
-    const { rowId, columnId, message, current } = entry as SaveRejection;
+    const { rowId, columnId, message, current, keep } = entry as SaveRejection;
     out.push({
       rowId,
       ...(typeof columnId === "string" ? { columnId } : {}),
       ...(typeof message === "string" ? { message } : {}),
+      ...(keep === true ? { keep } : {}),
       ...(current !== undefined && current !== null ? { current } : {}),
     });
   }

@@ -1,5 +1,5 @@
 import { act, cleanup, render } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
 import type { ColumnDef, FilterNode } from "../types";
 import { DataGridProvider, useDataGridStoreApi, type DataGridStoreState, type DataGridSyncProps } from ".";
@@ -26,7 +26,12 @@ const boom = () => {
   throw new Error("boom");
 };
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
+
+beforeEach(() => void vi.spyOn(console, "error").mockImplementation(() => {}));
 
 describe("consumer callbacks of the view actions", () => {
   it("onSortChange sees the written sort in uncontrolled mode", () => {
@@ -38,9 +43,9 @@ describe("consumer callbacks of the view actions", () => {
     expect(seen).toEqual([{ columnId: "n", direction: "desc" }]);
   });
 
-  it("a throwing onSortChange keeps the sort and rethrows after the write", () => {
+  it("a throwing onSortChange keeps the sort and reports the error", () => {
     const state = mount({ onSortChange: boom });
-    expect(() => act(() => state().actions.setSorts([{ columnId: "n", direction: "desc" }]))).toThrow("boom");
+    expect(() => act(() => state().actions.setSorts([{ columnId: "n", direction: "desc" }]))).not.toThrow();
     expect(state().sortState).toEqual([{ columnId: "n", direction: "desc" }]);
     expect(state().viewIndex[0]).toBe(9);
   });
@@ -57,7 +62,7 @@ describe("consumer callbacks of the view actions", () => {
     const onPageChange = vi.fn();
     const state = mount({ defaultPageSize: 3, defaultPage: 2, onFilterChange: boom, onPageChange });
     const filter: FilterNode = { columnId: "n", operator: "equals", value: "4" };
-    expect(() => act(() => state().actions.setFilters([filter]))).toThrow("boom");
+    expect(() => act(() => state().actions.setFilters([filter]))).not.toThrow();
     expect(state().filterState).toMatchObject([filter]);
     expect(state().page).toBe(1);
     expect(onPageChange.mock.calls).toEqual([[1]]);
@@ -78,7 +83,7 @@ describe("consumer callbacks of the view actions", () => {
   it("a throwing onPageSizeChange keeps the page size and still fires onPageChange", () => {
     const onPageChange = vi.fn();
     const state = mount({ defaultPageSize: 2, defaultPage: 3, onPageSizeChange: boom, onPageChange });
-    expect(() => act(() => state().actions.setPageSize(4))).toThrow("boom");
+    expect(() => act(() => state().actions.setPageSize(4))).not.toThrow();
     expect(state().pageSize).toBe(4);
     expect(state().page).toBe(2);
     expect(onPageChange.mock.calls).toEqual([[2]]);
@@ -94,13 +99,13 @@ describe("consumer callbacks of the view actions", () => {
 
   it("a throwing onSearchTextChange keeps the search text", () => {
     const state = mount({ onSearchTextChange: boom });
-    expect(() => act(() => state().actions.setSearch("5"))).toThrow("boom");
+    expect(() => act(() => state().actions.setSearch("5"))).not.toThrow();
     expect(state().searchText).toBe("5");
   });
 
   it("a throwing onColumnLayoutChange keeps the layout", () => {
     const state = mount({ onColumnLayoutChange: boom });
-    expect(() => act(() => state().actions.setColumnWidth("n", 240))).toThrow("boom");
+    expect(() => act(() => state().actions.setColumnWidth("n", 240))).not.toThrow();
     expect(state().columnWidths["n"]).toBe(240);
   });
 });
@@ -121,7 +126,7 @@ describe("consumer callbacks of store listeners", () => {
     const onEditEnd = vi.fn();
     const state = mount({ onDataChange: boom, onEditEnd });
     act(() => state().actions.startEditingAt({ col: 0, row: 0 }));
-    expect(() => act(() => state().actions.commitCellEdit("7"))).toThrow("boom");
+    expect(() => act(() => state().actions.commitCellEdit("7"))).not.toThrow();
     expect(onEditEnd).toHaveBeenCalledWith(expect.objectContaining({ rowId: "r0", result: "commit" }));
   });
 });

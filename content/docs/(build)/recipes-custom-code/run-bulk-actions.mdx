@@ -102,7 +102,7 @@ export function OrdersGrid({ initialOrders }: { initialOrders: Order[] }) {
 
 `editRows` writes every row in one batch. `onDataChange` fires once, `onSave` fires once, and [undo](/docs/clipboard-undo/undo-redo) records one entry. The patched rows move to their sorted position at once.
 
-`editRows` is `updateRows` with `source: "edit"` and `reorder: "immediate"`. A plain `updateRows` call uses the `"stream"` source. That source stays off the undo stack and never reaches `onSave`.
+`editRows` is `updateRows` with `source: "edit"` and `reorder: "immediate"`. An `updateRows` call with `source: "stream"` stays off the undo stack and never reaches `onSave`.
 
 `editRows` returns `{ applied, skipped, pending }`. `applied` counts the cells it wrote. `skipped` lists each patch that did not land, with a `reason` such as `"readonly"` or `"invalid"`. `pending` is `true` while an async `validate` holds the batch.
 

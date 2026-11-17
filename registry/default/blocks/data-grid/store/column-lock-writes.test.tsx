@@ -96,7 +96,7 @@ describe("a validateRow that throws", () => {
     const api = mount([{ id: "name", header: "Name", accessorKey: "name" }], { validateRow: () => Promise.reject(Object.create(null)) });
     const unhandled = vi.fn();
     process.on("unhandledRejection", unhandled);
-    api.getState().actions.updateRows([{ rowId: "r0", changes: { name: "y" } }]);
+    api.getState().actions.updateRows([{ rowId: "r0", changes: { name: "y" } }], { source: "stream" });
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
     });
@@ -114,19 +114,19 @@ describe("a validateRow that throws", () => {
         return Promise.reject(new Error("no"));
       },
     });
-    api.getState().actions.updateRows([{ rowId: "r0", changes: { name: "a1" } }]);
+    api.getState().actions.updateRows([{ rowId: "r0", changes: { name: "a1" } }], { source: "stream" });
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
     });
     mode = "throw";
-    api.getState().actions.updateRows([{ rowId: "r0", changes: { name: "a2" } }]);
+    api.getState().actions.updateRows([{ rowId: "r0", changes: { name: "a2" } }], { source: "stream" });
     expect(warn.mock.calls.map((call) => String(call[0]).includes("rejected") ? "rejected" : "threw")).toEqual(["rejected", "threw"]);
   });
 
   it("keeps a multi-row write whole", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const api = mount([{ id: "name", header: "Name", accessorKey: "name" }], { validateRow: throwing });
-    expect(() => api.getState().actions.updateRows([{ rowId: "r0", changes: { name: "c" } }])).not.toThrow();
+    expect(() => api.getState().actions.updateRows([{ rowId: "r0", changes: { name: "c" } }], { source: "stream" })).not.toThrow();
     expect((api.getState().data[0] as Row).name).toBe("c");
   });
 });

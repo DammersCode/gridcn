@@ -907,7 +907,7 @@ describe("stale view-space entry warning (plugin Mount)", () => {
       setPresenceHighlights!([rowIdEntry]);
     });
     act(() => actions!.reorderRows(0, 2));
-    act(() => actions!.updateCells([{ rowId: "1", columnId: "qty", value: 31 }]));
+    act(() => actions!.updateCells([{ rowId: "1", columnId: "qty", value: 31 }], { source: "stream" }));
     expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
   });
@@ -920,7 +920,7 @@ describe("stale view-space entry warning (plugin Mount)", () => {
     });
     act(() => actions!.reorderRows(0, 2));
     act(() => actions!.reorderRows(2, 0));
-    act(() => actions!.updateCells([{ rowId: "1", columnId: "qty", value: 31 }]));
+    act(() => actions!.updateCells([{ rowId: "1", columnId: "qty", value: 31 }], { source: "stream" }));
     expect(warn).toHaveBeenCalledTimes(1);
     expect(String(warn.mock.calls[0]?.[0])).toContain(STALE);
     warn.mockRestore();

@@ -21,7 +21,7 @@ describe("validateRow on the sync path", () => {
     const controllers = vi.spyOn(globalThis, "AbortController");
     const updates = data.map((row) => ({ rowId: row.id, columnId: "name", value: "x" }));
     const start = performance.now();
-    store.getState().actions.updateCells(updates);
+    store.getState().actions.updateCells(updates, { source: "stream" });
     const elapsed = performance.now() - start;
     controllers.mockRestore();
     expect(validateRow).toHaveBeenCalledTimes(ROW_COUNT);

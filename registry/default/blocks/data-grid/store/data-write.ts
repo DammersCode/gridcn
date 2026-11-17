@@ -39,7 +39,7 @@ import { isThenable } from "./async-gate";
 import { reportRowActionSkipped } from "./row-action-skip";
 import type { GateRun, GateTracker } from "./gate-signal";
 import { createSaveTracker } from "./save-tracker";
-import type { SaveAck } from "./write-ack";
+import { reportCallbackError, type SaveAck } from "./write-ack";
 import { withMoveNeighbors } from "./move-neighbors";
 import { INCREMENTAL_PATCH_LIMIT } from "../sort-filter";
 import { NO_REMEMBERED_ROWS, withoutHiddenCheckedRows } from "./hidden-checked-rows";
@@ -147,8 +147,8 @@ export function warnViewIndexIds(ctx: DataWriteContext, rowIds: readonly unknown
  * Runs `write` and queues its `onDataChange`. The queue flushes FIFO once the outermost write
  * returns, so a write that a store subscriber makes during `write` emits after it, in gesture order.
  * The consumer's `onDataChange` runs first, then `onSave` (never for a rollback, a stream, or an id swap), then each
- * resolved plugin observer. Each runs isolated: a throw in `onDataChange` is rethrown after the rest ran,
- * a throwing `onSave` refuses the change, and a throwing observer logs.
+ * resolved plugin observer. Each runs isolated: a throw goes to `reportCallbackError` and the rest still run,
+ * and a throwing `onSave` refuses the change.
  */
 export function writeThenEmit(
   ctx: DataWriteContext,
@@ -168,11 +168,10 @@ export function writeThenEmit(
   const observers = s.plugins.observers;
   const pluginApi = ctx.pluginApi;
   ctx.pendingEmits.push(() => {
-    let failure: { error: unknown } | null = null;
     try {
       onDataChange?.(next, change);
     } catch (error) {
-      failure = { error };
+      reportCallbackError("onDataChange threw:", error);
     }
     if (onSave) {
       const controller = new AbortController();
@@ -189,11 +188,10 @@ export function writeThenEmit(
         try {
           observer(next, change, observerCtx);
         } catch (error) {
-          console.warn("[data-grid] a plugin onDataChange observer threw; the change was applied and the remaining observers still run", error);
+          reportCallbackError("a plugin onDataChange observer threw; the change was applied and the remaining observers still run", error);
         }
       }
     }
-    if (failure) throw failure.error;
   });
   ctx.writeDepth += 1;
   try {
@@ -209,7 +207,7 @@ export function emitFromListener(label: string, emit: () => void): void {
   try {
     emit();
   } catch (error) {
-    console.error(`[data-grid] ${label} threw:`, error);
+    reportCallbackError(`${label} threw:`, error);
   }
 }
 
@@ -225,17 +223,15 @@ export function emitAfterWrites(ctx: DataWriteContext, ...emits: (() => void)[])
   if (ctx.writeDepth === 0) flushEmits(ctx);
 }
 
-/** Delivers every queued emit even when one throws, then rethrows the first error. */
+/** Delivers every queued emit even when one throws; a throw goes to `reportCallbackError`. */
 function flushEmits(ctx: DataWriteContext): void {
-  let failure: { error: unknown } | null = null;
   for (let emit = ctx.pendingEmits.shift(); emit; emit = ctx.pendingEmits.shift()) {
     try {
       emit();
     } catch (error) {
-      failure ??= { error };
+      reportCallbackError("a callback threw:", error);
     }
   }
-  if (failure) throw failure.error;
 }
 
 /** Any path that writes values or moves rows outside a held batch: give up tracking and drop the token. */
@@ -576,21 +572,23 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   };
   const OK: RowActionResult = { ok: true };
   const skippedBy = (action: RowActionName, reason: RowActionSkipReason): RowActionResult => reportRowActionSkipped(get(), action, reason);
-  const requestDelete = (dataRowIndexes: number[]): RowActionResult => {
+  const requestDelete = (requested: number[]): RowActionResult => {
     const s = get();
     if (s.readOnly) return skippedBy("deleteRows", "readOnly");
-    if (touchesUnloadedRow(s, dataRowIndexes, "deleteRows")) return skippedBy("deleteRows", "unloaded-rows");
-    if (!dataRowIndexes.some((i) => s.data[i] !== undefined)) return skippedBy("deleteRows", "nothing-to-do");
+    const dataRowIndexes = requested.filter((i) => s.data[i] !== undefined);
+    const unloaded = requested.filter((i) => s.data[i] === undefined && i >= 0 && i < s.data.length).length;
+    if (unloaded > 0) {
+      warnGateOnce("unloaded rows", "deleteRows skips the target rows that are still unloaded (scroll mode) and deletes the loaded ones");
+      reportRowActionSkipped(s, "deleteRows", "unloaded-rows", unloaded);
+    }
+    if (dataRowIndexes.length === 0) return unloaded > 0 ? { ok: false, reason: "unloaded-rows" } : skippedBy("deleteRows", "nothing-to-do");
     const confirm = s.onBeforeDeleteRows;
     if (!confirm) {
       deleteDataRows(dataRowIndexes);
       return OK;
     }
     const rowIds = [...new Set(dataRowIndexes.flatMap((i) => (s.data[i] === undefined ? [] : [s.getRowId(s.data[i], i)])))];
-    if (deleteRun && !deleteRun.aborted) {
-      warnGateOnce("pending", "a row delete was requested while the promise of onBeforeDeleteRows is still pending, so it is ignored; the promise must settle");
-      return skippedBy("deleteRows", "gate-pending");
-    }
+    if (deleteRun && !deleteRun.aborted) ctx.gates.abortRun(deleteRun, "superseded");
     // In "all matching" mode the set holds exclusions, and the delete ends the mode, so no hidden check stays.
     const hiddenCount = s.allMatching ? 0 : s.hiddenCheckedRowIds.size - rowIds.filter((id) => s.hiddenCheckedRowIds.has(id)).length;
     const run = ctx.gates.begin("onBeforeDeleteRows");
@@ -621,9 +619,12 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       (confirmed) => {
         if (!finish()) return;
         if (confirmed === true && !changed(get())) deleteDataRows(dataRowIndexes);
+        else if (confirmed !== true) skippedBy("deleteRows", "gate-declined");
       },
       (error: unknown) => {
-        if (finish()) warnGateOnce("rejected", () => `onBeforeDeleteRows rejected, so the delete is cancelled: ${toSafeText(error)}`);
+        if (!finish()) return;
+        warnGateOnce("rejected", () => `onBeforeDeleteRows rejected, so the delete is cancelled: ${toSafeText(error)}`);
+        skippedBy("deleteRows", "gate-threw");
       },
     );
     return OK;
@@ -739,6 +740,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       (error: unknown) => {
         if (!finish()) return;
         warnGateOnce("createRow rejected", () => `createRow rejected, so the insert is cancelled: ${toSafeText(error)}`);
+        skippedBy("insertRows", "gate-threw");
       },
     );
   };
@@ -777,6 +779,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       (error: unknown) => {
         if (!finish()) return;
         warnGateOnce("duplicateRow rejected", () => `duplicateRow rejected, so the duplicate is cancelled: ${toSafeText(error)}`);
+        skippedBy("duplicateRows", "gate-threw");
       },
     );
   };
@@ -882,9 +885,12 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   const updateCellsCore = (patches: Parameters<DataWriteActions["updateCells"]>[0], options?: Parameters<DataWriteActions["updateCells"]>[1], prevalidatedWarnings?: readonly CellErrorEntry[]): UpdateCellsVerdict => {
     const s = get();
     if (patches.length === 0) return { applied: 0, skipped: [], pending: false };
-    if (s.readOnly && options?.source === undefined) warnGateOnce("readOnly stream write", 'the grid is readOnly and this call has no source, so the write is refused. Pass source: "stream" to push into a readOnly grid');
-    if (s.readOnly && options?.source !== "stream") return { applied: 0, skipped: patches.map((_, patchIndex) => ({ patchIndex, reason: "readonly" })), pending: false };
-    if (patches.length > MAX_STREAM_PATCHES && (options?.source ?? "stream") === "stream") {
+    if (options?.source === undefined) {
+      warnGateOnce("updateCells source", 'updateCells and updateRows need a source, so this call is refused. Pass source: "stream" for a push from your server, or source: "edit" for a user edit');
+      return { applied: 0, skipped: patches.map((_, patchIndex) => ({ patchIndex, reason: "no-source" })), pending: false };
+    }
+    if (s.readOnly && options.source !== "stream") return { applied: 0, skipped: patches.map((_, patchIndex) => ({ patchIndex, reason: "readonly" })), pending: false };
+    if (patches.length > MAX_STREAM_PATCHES && options.source === "stream") {
       warnGateOnce("stream patch limit", `a "stream" call takes at most ${MAX_STREAM_PATCHES} patches; the ${patches.length - MAX_STREAM_PATCHES} after them skip with reason "limit". Send smaller batches`);
       const beyond: UpdateCellsSkip[] = [];
       for (let patchIndex = MAX_STREAM_PATCHES; patchIndex < patches.length; patchIndex++) beyond.push({ patchIndex, reason: "limit" });
@@ -931,7 +937,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     ctx.lastEmittedData = nextData;
     const marks = markStaleRows(ctx, s, batch.ops, batch.touchedRows, (options?.reorder ?? "defer") !== "never");
     const stale = marks.state;
-    const change = { source: options?.source ?? "stream", ops: batch.ops };
+    const change = { source: options.source, ops: batch.ops };
     // With no cell errors, clearErrorsForOps returns the same map, so the streaming hot path pays nothing.
     const validated = applyRowValidation(s, clearErrorsForOps(s.cellErrors, batch.ops), nextData, batch.ops);
     let writtenWarnings: readonly CellErrorEntry[] = [];
@@ -986,7 +992,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
 
   const commitChangeCore = (change: DataChange<unknown>, flags?: readonly CellErrorEntry[]): void => {
     const s = get();
-    if (s.readOnly && change.source !== "stream") return;
+    if (s.readOnly && change.source !== "stream" && change.source !== "rollback") return;
     if (change.ops.length === 0) return;
     const nextData = applyChange(s.data, change, s.getRowId);
     followStaleRows(ctx, change.ops);
@@ -1289,10 +1295,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         if (count > 0) warnGateOnce("insertRows count", `insertRows: count must be an integer (got ${count})`);
         return skippedBy("insertRows", "nothing-to-do");
       }
-      if (createRun && !createRun.aborted) {
-        warnGateOnce("createRow pending", "a row insert was requested while the promise of createRow is still pending, so it is ignored; the promise must settle");
-        return skippedBy("insertRows", "gate-pending");
-      }
+      if (createRun && !createRun.aborted) ctx.gates.abortRun(createRun, "superseded");
       const anchor = s.viewIndex[viewRowIndex];
       if (anchor !== undefined && touchesUnloadedRow(s, [anchor], "insertRows")) return skippedBy("insertRows", "unloaded-rows");
       const dataRowIndex = insertDataIndex(s, viewRowIndex, position);
@@ -1353,10 +1356,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         warnGateOnce("no duplicateRow", "duplicateRows is a no-op because no `duplicateRow` prop was provided");
         return skippedBy("duplicateRows", "no-factory");
       }
-      if (duplicateRun && !duplicateRun.aborted) {
-        warnGateOnce("duplicateRow pending", "a row duplicate was requested while the promise of duplicateRow is still pending, so it is ignored; the promise must settle");
-        return skippedBy("duplicateRows", "gate-pending");
-      }
+      if (duplicateRun && !duplicateRun.aborted) ctx.gates.abortRun(duplicateRun, "superseded");
       const dataRowIndexes = viewRowIndexes.map((viewRow) => s.viewIndex[viewRow]).filter((i): i is number => i !== undefined);
       if (touchesUnloadedRow(s, dataRowIndexes, "duplicateRows")) return skippedBy("duplicateRows", "unloaded-rows");
       const run = ctx.gates.begin("duplicateRow");

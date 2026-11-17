@@ -3,7 +3,7 @@ import { isThenable } from "./async-gate";
 import { buildRollback } from "../interaction/rollback";
 import { createWarnOnce, warnDev } from "../is-dev";
 import type { DataWriteContext } from "./data-write";
-import { EMPTY_SAVE_STATUS, readRejections, refusedOps, SaveTimeoutError, type RowSaveStatus, type SaveAck, type SaveRejection, type SaveResolution } from "./write-ack";
+import { EMPTY_SAVE_STATUS, readRejections, refusedOps, reportCallbackError, SaveTimeoutError, type RowSaveStatus, type SaveAck, type SaveRejection, type SaveResolution } from "./write-ack";
 import type { DataChange, DataOp } from "../types";
 import type { DataGridStoreState } from "./types";
 
@@ -26,7 +26,6 @@ export function createSaveTracker(set: SetState, get: GetState, ctx: DataWriteCo
   const failedRows = new Set<string>();
   let writeSeq = 0;
   let pendingSaves = 0;
-  let warnedReadOnlyRevert = false;
   // Refused cell value -> the value it replaced, so a second refusal on the same cell reverts past the first refused value.
   const refusedPrev = new Map<string, Map<string, Map<unknown, unknown>>>();
   const MAX_FAILED_ROWS = 10_000;
@@ -154,6 +153,21 @@ export function createSaveTracker(set: SetState, get: GetState, ctx: DataWriteCo
     for (const rowId of latestWriteOfRow.keys()) if (!status.has(rowId)) latestWriteOfRow.delete(rowId);
     set({ saveStatus: status.size === 0 ? EMPTY_SAVE_STATUS : status, pendingSaveCount: pendingSaves });
   };
+  /** Marks the cells of `keep` entries: the entry's column, or every refused cell of its row. */
+  const markKeptCells = (s: DataGridStoreState, change: DataChange<unknown>, kept: readonly SaveRejection[]): void => {
+    if (kept.length === 0) return;
+    const entries: { rowId: string; columnId: string; message: string }[] = [];
+    const fallback = s.labels.grid.saveRejected(1);
+    for (const entry of kept) {
+      const message = entry.message ?? fallback;
+      if (entry.columnId !== undefined) {
+        entries.push({ rowId: entry.rowId, columnId: entry.columnId, message });
+        continue;
+      }
+      for (const op of refusedOps(change, [entry])) if (op.type === "update") for (const cell of op.cells ?? []) entries.push({ rowId: op.rowId, columnId: cell.columnId, message });
+    }
+    if (entries.length > 0) s.actions.setCellErrors(entries);
+  };
   const normalizeResolution = (answer: unknown): SaveResolution<unknown> => {
     if (answer === "mine") return "mine";
     if (typeof answer === "object" && answer !== null && (answer as { row?: unknown }).row != null) return answer as { row: unknown };
@@ -221,7 +235,7 @@ export function createSaveTracker(set: SetState, get: GetState, ctx: DataWriteCo
           try {
             answer = resolver({ rowId, mine: first.data[index], theirs, change: start.aliased, ...(message === undefined ? {} : { message }), signal: controller.signal });
           } catch (callbackError) {
-            console.error("[data-grid] resolveSaveConflict threw, so the server's row is taken:", callbackError);
+            reportCallbackError("resolveSaveConflict threw, so the server's row is taken:", callbackError);
             continue;
           }
           if (!isThenable<SaveResolution<unknown>>(answer)) {
@@ -237,7 +251,7 @@ export function createSaveTracker(set: SetState, get: GetState, ctx: DataWriteCo
               aborted,
               Promise.resolve(answer).then(
                 (resolved) => void (entry.answer = normalizeResolution(resolved)),
-                (callbackError: unknown) => void console.error("[data-grid] resolveSaveConflict rejected, so the server's row is taken:", callbackError),
+                (callbackError: unknown) => void reportCallbackError("resolveSaveConflict rejected, so the server's row is taken:", callbackError),
               ),
             ]),
           );
@@ -246,15 +260,13 @@ export function createSaveTracker(set: SetState, get: GetState, ctx: DataWriteCo
       const finish = (): void => {
         const { rejected, aliased, deleteOps, refusedRows } = view();
         const s = get();
-        if (s.readOnly) {
-          if (!warnedReadOnlyRevert) {
-            warnedReadOnlyRevert = true;
-            warnDev("a write was refused while the grid is readOnly, so it was not reverted; the data keeps the refused value");
-          }
-        } else {
-          try {
+        const kept = rejected.filter((entry) => entry.keep === true);
+        const reverting = kept.length === 0 ? rejected : rejected.filter((entry) => entry.keep !== true);
+        let reverted = false;
+        markKeptCells(s, aliased, kept);
+        try {
           if (refusedPrev.size > MAX_CHAINED_ROWS) refusedPrev.clear();
-          const currentRows = usableCurrentRows(s, aliased, rejected, seq, deleteOps);
+          const currentRows = usableCurrentRows(s, aliased, reverting, seq, deleteOps);
           const answers = new Map<string, SaveResolution<unknown>>();
           for (const [origin, entry] of asked) {
             const id = liveId(origin);
@@ -263,23 +275,23 @@ export function createSaveTracker(set: SetState, get: GetState, ctx: DataWriteCo
           }
           const mergeOps = mergeOpsOf(s, currentRows, answers);
           // A row with a usable `current` gets its content from it; only a move of it reverts in place.
-          const plainOps = refusedOps(aliased, rejected).filter((op) => !(currentRows.has(op.rowId) && (op.type === "update" || op.type === "delete")));
+          const plainOps = refusedOps(aliased, reverting).filter((op) => !(currentRows.has(op.rowId) && (op.type === "update" || op.type === "delete")));
           const revert = buildRollback({ ops: chainRefusedPrev(plainOps), source: "rollback" }, s);
           const ops = [...revert.ops, ...currentRowOps(s, currentRows, deleteOps)];
           const serverRowIds = [...currentRows.keys()];
+          reverted = ops.length > 0;
           try {
             if (ops.length > 0) s.actions.commitChange({ ...revert, ops, reverts: change, ...(serverRowIds.length > 0 ? { serverRowIds } : {}) });
           } catch (error) {
-            console.error("[data-grid] the revert of a refused save threw in a callback:", error);
+            reportCallbackError("the revert of a refused save threw in a callback:", error);
           }
           try {
             if (mergeOps.length > 0) s.actions.commitChange({ source: "merge", ops: mergeOps, reverts: change, serverRowIds: mergeOps.map((op) => op.rowId) });
           } catch (error) {
-            console.error("[data-grid] the merge of a save conflict threw in a callback:", error);
+            reportCallbackError("the merge of a save conflict threw in a callback:", error);
           }
-          } catch (error) {
-            console.error("[data-grid] the revert of a refused save failed:", error);
-          }
+        } catch (error) {
+          reportCallbackError("the revert of a refused save failed:", error);
         }
         for (const [origin, entry] of asked) if (conflictAborts.get(liveId(origin)) === entry.controller) conflictAborts.delete(liveId(origin));
         for (const rowId of refusedRows) if (!pendingByRow.has(rowId)) dropChains(rowId);
@@ -296,9 +308,9 @@ export function createSaveTracker(set: SetState, get: GetState, ctx: DataWriteCo
         const onSaveRejected = get().onSaveRejected;
         if (!onSaveRejected) return;
         try {
-          onSaveRejected({ change, rejected, error: failed ? error : null });
+          onSaveRejected({ change, rejected, error: failed ? error : null, reverted });
         } catch (callbackError) {
-          console.error("[data-grid] onSaveRejected threw:", callbackError);
+          reportCallbackError("onSaveRejected threw:", callbackError);
         }
       };
       if (waiting.length === 0) {

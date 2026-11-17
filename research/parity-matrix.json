@@ -1176,6 +1176,7 @@
         "Z": {
           "status": "supported",
           "evidence": [
+            "registry/default/blocks/data-grid/store/write-path.test.tsx",
             "tests/parity/row-ops.parity.test.tsx"
           ]
         },
@@ -1317,6 +1318,7 @@
         "Z": {
           "status": "supported",
           "evidence": [
+            "registry/default/blocks/data-grid/store/write-path.test.tsx",
             "registry/default/blocks/data-grid/store/write-ack.test.tsx",
             "registry/default/blocks/data-grid/store/save-context.test.tsx",
             "registry/default/blocks/data-grid-server/save-refresh.test.ts",

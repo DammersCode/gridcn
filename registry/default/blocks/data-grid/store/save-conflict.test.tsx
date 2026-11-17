@@ -210,7 +210,7 @@ describe("resolveSaveConflict", () => {
     expect(m.row("a")).toEqual(theirs);
   });
 
-  it("is not called on a readOnly grid, which keeps the refused value", async () => {
+  it("is not called on a readOnly grid, which still takes the server row", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const resolver = vi.fn();
     const ack = deferred<SaveAck<Row>>();
@@ -220,7 +220,7 @@ describe("resolveSaveConflict", () => {
     ack.resolve(refuse());
     await flush();
     expect(resolver).not.toHaveBeenCalled();
-    expect(m.row("a").name).toBe("X");
+    expect(m.row("a").name).not.toBe("X");
   });
 
   it("onSaveRejected still reports the refusal after a resolution", async () => {

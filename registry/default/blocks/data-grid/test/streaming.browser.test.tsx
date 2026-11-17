@@ -118,12 +118,12 @@ describe("updateCells: the fast path skips derived-state rebuilds", () => {
     // DIFFERENT order. A deferred tick must show neither.
     // The first patch builds the rowId map (measured 10.1 ms at 100k, once per data identity), so
     // warm it outside the window — this arm times the steady-state tick, not store construction.
-    api.getState().actions.updateCells(makePatches(20, "name", 0));
+    api.getState().actions.updateCells(makePatches(20, "name", 0), { source: "stream" });
     const viewIndexBefore = api.getState().viewIndex;
 
     // one sample per tick is a single GC spike away from the ratio below, so batch it like the other arms
     const deferredMs = medianPerTickMs(
-      (t) => api.getState().actions.updateCells(makePatches(20, "name", t + 1)),
+      (t) => api.getState().actions.updateCells(makePatches(20, "name", t + 1), { source: "stream" }),
       5,
       10,
     );
@@ -146,7 +146,7 @@ describe("updateCells: the fast path skips derived-state rebuilds", () => {
   it("preserves viewIndex and search-state identity across a deferred tick", { timeout: 120_000 }, async () => {
     const api = await mountGrid({ sorted: true });
     const before = api.getState();
-    api.getState().actions.updateCells(makePatches(20, "price", 1));
+    api.getState().actions.updateCells(makePatches(20, "price", 1), { source: "stream" });
     const after = api.getState();
     expect(after.viewIndex).toBe(before.viewIndex);
     expect(after.searchMatchSet).toBe(before.searchMatchSet);
@@ -167,8 +167,8 @@ describe("updateCells: per-tick cost at 100k rows", () => {
     const sortedApi = await mountGrid({ sorted: true });
     const unsortedApi = await mountGrid({ sorted: false });
 
-    const tickSorted = (tick: number) => sortedApi.getState().actions.updateCells(makePatches(20, "price", tick));
-    const tickUnsorted = (tick: number) => unsortedApi.getState().actions.updateCells(makePatches(20, "price", tick));
+    const tickSorted = (tick: number) => sortedApi.getState().actions.updateCells(makePatches(20, "price", tick), { source: "stream" });
+    const tickUnsorted = (tick: number) => unsortedApi.getState().actions.updateCells(makePatches(20, "price", tick), { source: "stream" });
 
     // warm both arms so neither pays first-call map construction inside a timed window.
     tickSorted(0);
@@ -211,8 +211,8 @@ describe("updateCells: per-tick cost at 100k rows", () => {
 
   it("scales with touched cells, not row count", { timeout: 180_000 }, async () => {
     const api = await mountGrid({ sorted: true });
-    const tick20 = (tick: number) => api.getState().actions.updateCells(makePatches(20, "price", tick));
-    const tick200 = (tick: number) => api.getState().actions.updateCells(makePatches(200, "price", tick));
+    const tick20 = (tick: number) => api.getState().actions.updateCells(makePatches(20, "price", tick), { source: "stream" });
+    const tick200 = (tick: number) => api.getState().actions.updateCells(makePatches(200, "price", tick), { source: "stream" });
     tick20(0);
     tick200(0);
 
@@ -226,12 +226,12 @@ describe("updateCells: per-tick cost at 100k rows", () => {
 
   it("shows no steady-state heap growth over 10k ticks", { timeout: 180_000 }, async () => {
     const api = await mountGrid({ sorted: true });
-    for (let t = 0; t < 500; t++) api.getState().actions.updateCells(makePatches(20, "price", t));
+    for (let t = 0; t < 500; t++) api.getState().actions.updateCells(makePatches(20, "price", t), { source: "stream" });
     const memory = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory;
     // This assertion's whole point is measuring the heap, so an unavailable/zero API must fail loudly, not no-op green.
     expect(memory?.usedJSHeapSize, "performance.memory.usedJSHeapSize unavailable in this browser — cannot verify heap growth").toBeGreaterThan(0);
     const before = memory!.usedJSHeapSize;
-    for (let t = 500; t < 10_500; t++) api.getState().actions.updateCells(makePatches(20, "price", t));
+    for (let t = 500; t < 10_500; t++) api.getState().actions.updateCells(makePatches(20, "price", t), { source: "stream" });
     const after = memory!.usedJSHeapSize;
     // 10k ticks each copying a 100k pointer array churn ~8 GB total; a leak shows as retention.
     console.log(`[streaming] heap ${(before / 1e6).toFixed(1)} MB -> ${(after / 1e6).toFixed(1)} MB over 10k ticks`);
@@ -254,7 +254,7 @@ describe("updateCells: wasted-render bar", () => {
     const observer = new MutationObserver((list) => records.push(...list));
     observer.observe(grid!, { subtree: true, childList: true, characterData: true, attributes: true });
     try {
-      api.getState().actions.updateCells([{ rowId: "row-3", columnId: "price", value: 12345 }]);
+      api.getState().actions.updateCells([{ rowId: "row-3", columnId: "price", value: 12345 }], { source: "stream" });
       await new Promise((r) => setTimeout(r, 50));
     } finally {
       observer.disconnect();
@@ -284,7 +284,7 @@ describe("updateCells: concurrent scroll", () => {
     const measure = (withUpdates: boolean) =>
       medianPerTickMs((tick) => {
         scrollStep();
-        if (withUpdates && tick % 3 === 0) api.getState().actions.updateCells(makePatches(20, "price", tick));
+        if (withUpdates && tick % 3 === 0) api.getState().actions.updateCells(makePatches(20, "price", tick), { source: "stream" });
       }, 5, 60);
 
     // interleaved, both orders — the scroll path's own cost is the noisy part here.
@@ -350,7 +350,7 @@ describe("updateCells: controlled echo path", () => {
     const before = store.getState().viewIndex;
     const start = performance.now();
     for (let t = 1; t <= 20; t++) {
-      store.getState().actions.updateCells(makePatches(20, "price", t));
+      store.getState().actions.updateCells(makePatches(20, "price", t), { source: "stream" });
       await new Promise((r) => setTimeout(r, 5)); // let React flush the controlled round-trip
     }
     const perTickMs = (performance.now() - start) / 20;
@@ -376,7 +376,7 @@ describe("updateCells: editing is never disturbed", () => {
     const editingBefore = api.getState().editing;
 
     for (let t = 1; t <= 20; t++) {
-      api.getState().actions.updateCells(makePatches(20, "price", t));
+      api.getState().actions.updateCells(makePatches(20, "price", t), { source: "stream" });
       await new Promise((r) => setTimeout(r, 5));
     }
 
