@@ -97,7 +97,7 @@ const comments = useDataGridComments({
 Three paths open the comments popover:
 
 - Press <kbd>Shift</kbd>+<kbd>F2</kbd> on the active cell. The key runs the `openComments` command.
-- Choose "Comments…" in the context menu.
+- Choose "Comments…" in the context menu. The item appears when you pass `getCommentMenuItems` to `DataGridContextMenu`.
 - Click the comment marker of a commented cell.
 
 In code, `openComments({ rowId, columnId })` opens the popover. It returns `false` for a hidden column and for a row outside the view. The popover is not modal. <kbd>Escape</kbd> closes it, and the comment draft stays.

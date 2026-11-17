@@ -16,7 +16,7 @@ Three paths change the column order: drag a header, use the header menu, or call
 - `enableColumnReorder` lets the user drag a header. The grid shows a drop indicator. The prop defaults to `true`.
 - `reorderable: false` on Name keeps that column in place, while `enableColumnReorder` is `true`.
 - A column moves only inside its pin zone. A drop across zones does nothing. Score is the only column pinned to the end side, so it has nowhere to move.
-- With `DataGridContextMenu`, the header menu has the items Move toward start and Move toward end. From the keyboard, the commands `moveColumnTowardStart` and `moveColumnTowardEnd` have no default key. Bind them with `keybindings`, as [Column order and pinning](/docs/columns/column-order-pinning) shows.
+- With `DataGridContextMenu`, the header menu has the items Move toward start and Move toward end. From the keyboard, the commands `moveColumnTowardStart` and `moveColumnTowardEnd` have no default key. Bind them with the `keymap` prop, as [Column order and pinning](/docs/columns/column-order-pinning) shows.
 - The picker and the Left and Right buttons call `setColumnOrder(selectedId, neighborId, "before" | "after")`. The buttons call `setColumnOrder` and `canSetColumnOrder` from `useDataGridActions()`. A button is off when the move is not possible. That is the case at the ends of the order, next to a column with `reorderable: false`, and across a pin zone.
 
 This grid keeps Name in place and moves Email one step later with a button:

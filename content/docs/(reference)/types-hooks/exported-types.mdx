@@ -139,9 +139,9 @@ export function deleteTopTwo(actions: DataGridActions) {
 
 | Type | Shape | Meaning |
 | --- | --- | --- |
-| `GridEditEndEvent` | `ViewCellRef & { result }` | The payload of `onEditEnd`. `result` is `"commit"`, `"cancel"`, or `"rejected"`. |
+| `GridEditEndEvent` | `ViewCellRef & { result }` | The argument of `onEditEnd`. `result` is `"commit"`, `"cancel"`, or `"rejected"`. |
 | `GridBulkValidationError` | `{ rowId, columnId, viewRowIndex, value, message }` | One cell that a bulk write refused. |
-| `GridValidationErrorEvent` | `{ source, rejected }` | The payload of `onValidationError`. `source` is `"paste"`, `"fill"`, `"stream"`, `"replace"`, `"delete"`, `"cut"`, or `"edit"`. |
+| `GridValidationErrorEvent` | `{ source, rejected }` | The argument of `onValidationError`. `source` is `"paste"`, `"fill"`, `"stream"`, `"replace"`, `"delete"`, `"cut"`, or `"edit"`. |
 | `ClipboardProcessCtx<TData>` | `{ row, column }` | The row and the column that `processCellForClipboard` and `processCellFromClipboard` share. |
 | `UseDataGridClipboardOptions` | `{ sanitizeFormulas? }` | The options of `useDataGridClipboard`. `sanitizeFormulas` prefixes formula-like cells with `'` in the copied text. |
 
