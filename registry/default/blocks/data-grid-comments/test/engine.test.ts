@@ -548,7 +548,7 @@ describe("row-busy gate", () => {
   it("refuses a write on a row whose insert is still saving and allows it after the status clears", async () => {
     const h = make({}, { initial: [record({ rowId: "temp-1" })] });
     let status: string | undefined = "saving";
-    h.engine.attachGrid({ readOnly: () => false, saveStatus: () => status, open: () => true });
+    h.engine.attachGrid({ readOnly: () => false, saveStatus: () => status, open: () => true, gridLabels: () => ({}) });
     h.engine.observeDataChange([], { source: "row-operation", ops: [{ type: "insert", rowId: "temp-1", row: {}, index: 0 }] }, { getRowId: () => "temp-1" });
     expect(await h.engine.edit("c1", "x")).toEqual({ ok: false, reason: "row-busy" });
     expect(h.rejected[0]?.reason).toBe("row-busy");
@@ -558,7 +558,7 @@ describe("row-busy gate", () => {
 
   it("refuses with read-only unless allowWhenReadOnly", async () => {
     const h = make({}, { initial: [record()] });
-    h.engine.attachGrid({ readOnly: () => true, saveStatus: () => undefined, open: () => true });
+    h.engine.attachGrid({ readOnly: () => true, saveStatus: () => undefined, open: () => true, gridLabels: () => ({}) });
     expect(await h.engine.edit("c1", "x")).toEqual({ ok: false, reason: "read-only" });
     h.options.allowWhenReadOnly = true;
     expect((await h.engine.edit("c1", "x")).ok).toBe(true);

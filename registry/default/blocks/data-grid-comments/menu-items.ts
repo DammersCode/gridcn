@@ -1,25 +1,34 @@
 import type { CommentEngine } from "./comment-engine";
-import { resolveCommentsLabels } from "./labels";
-import type { CommentMenuItem, CommentMenuItemsResolver, UseDataGridCommentsOptions } from "./types";
+import type { CommentMenuItem, CommentMenuItemsResolver, CommentMenuSeparator } from "./types";
 
-/** Appends a "Comments…" item to the cell menu. The popover opens on the next frame, after the menu has closed and returned focus. */
-export function createMenuItemsResolver(engine: CommentEngine, getOptions: () => UseDataGridCommentsOptions): CommentMenuItemsResolver {
-  return function getCommentMenuItems<TItem extends { id: string }>(
-    ctx: { rowId: string; columnId: string; viewRowIndex: number },
-    defaults: TItem[],
-  ): (TItem | CommentMenuItem)[] {
-    const label = resolveCommentsLabels(getOptions().labels).menuItem;
-    const separator = { id: "sep-comments", separator: true } as unknown as TItem;
-    const item: CommentMenuItem = {
-      id: "comments",
-      label,
+const COMMENTS_ITEM_ID = "comments";
+
+type MenuCtx = { rowId: string; columnId: string };
+
+/** The separator and the "Comments…" item. The popover opens on the next frame, after the menu has closed and returned focus. */
+export function commentMenuItems(engine: CommentEngine, ctx: MenuCtx): [CommentMenuSeparator, CommentMenuItem] {
+  return [
+    { id: "sep-comments", separator: true },
+    {
+      id: COMMENTS_ITEM_ID,
+      label: engine.labels().menuItem,
       onClick: () => {
         requestAnimationFrame(() => {
           if (engine.isDisposed()) return;
           engine.openComments({ rowId: ctx.rowId, columnId: ctx.columnId }, "menu");
         });
       },
-    };
-    return [...defaults, separator, item];
+    },
+  ];
+}
+
+/** The manual path for a menu that does not read plugin items; it adds nothing when the plugin's item is already there. */
+export function createMenuItemsResolver(engine: CommentEngine): CommentMenuItemsResolver {
+  return function getCommentMenuItems<TItem extends { id: string }>(
+    ctx: { rowId: string; columnId: string; viewRowIndex: number },
+    defaults: TItem[],
+  ): (TItem | CommentMenuItem | CommentMenuSeparator)[] {
+    if (defaults.some((item) => item.id === COMMENTS_ITEM_ID)) return defaults;
+    return [...defaults, ...commentMenuItems(engine, ctx)];
   };
 }

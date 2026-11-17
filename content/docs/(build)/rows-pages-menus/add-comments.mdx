@@ -16,7 +16,7 @@ The `data-grid-comments` add-on attaches comments to cells. It shows a comment m
 
 1. Call `useDataGridComments()` once for each grid, in a component above the grid.
 2. Pass the returned `plugin` to the `plugins` prop of the grid.
-3. Mount `DataGridContextMenu` and pass `getCommentMenuItems` as its `getCellMenuItems`. The menu gets a "Comments…" item. It is the pointer path to a cell without comments.
+3. Mount `DataGridContextMenu` around the grid. The plugin adds a "Comments…" item to its menu. It is the pointer path to a cell without comments.
 
 This grid keeps its comments in memory. Each comment has no author:
 
@@ -49,7 +49,7 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
       getRowId={(row) => row.id}
       plugins={[comments.plugin]}
     >
-      <DataGridContextMenu getCellMenuItems={comments.getCommentMenuItems}>
+      <DataGridContextMenu>
         <DataGridRoot aria-label="Orders">
           <DataGridHeader />
           <DataGridBody />
@@ -97,7 +97,7 @@ const comments = useDataGridComments({
 Three paths open the comments popover:
 
 - Press <kbd>Shift</kbd>+<kbd>F2</kbd> on the active cell. The key runs the `openComments` command.
-- Choose "Comments…" in the context menu. The item appears when you pass `getCommentMenuItems` to `DataGridContextMenu`.
+- Choose "Comments…" in the context menu. The item appears when `DataGridContextMenu` wraps the grid.
 - Click the comment marker of a commented cell.
 
 In code, `openComments({ rowId, columnId })` opens the popover. It returns `false` for a hidden column and for a row outside the view. The popover is not modal. <kbd>Escape</kbd> closes it, and the comment draft stays.

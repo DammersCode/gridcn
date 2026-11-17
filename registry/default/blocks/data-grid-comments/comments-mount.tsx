@@ -9,7 +9,6 @@ import { CommentPopoverHost } from "./comment-popover";
 import { findOwnCell } from "./own-cell";
 import { cellComments } from "./comment-state";
 import type { CommentEngine, GridAdapter } from "./comment-engine";
-import { resolveCommentsLabels } from "./labels";
 import type { UseDataGridCommentsOptions } from "./types";
 
 const ANNOUNCE_DEBOUNCE_MS = 250;
@@ -79,7 +78,7 @@ function Announcer({ engine, getOptions }: { engine: CommentEngine; getOptions: 
       const key = `${rowId}\u0001${columnId}`;
       if (last.key === key) return;
       last.key = key;
-      const labels = resolveCommentsLabels(options.labels);
+      const labels = engine.labels();
       if (options.enableResolve === false) speaker.say(labels.announceCount(entries.length, chord));
       else speaker.say(labels.announce(entries.length, entries.filter((e) => !e.comment.resolved).length, chord));
     }, ANNOUNCE_DEBOUNCE_MS);
@@ -151,6 +150,10 @@ export function createCommentsMount(engine: CommentEngine, getOptions: () => Use
         readOnly: () => gridState.readOnly,
         saveStatus: (rowId) => api.store.getState().saveStatus.get(rowId),
         open: (ref, by) => openCell(engine, api, scrollRef.current, ref, by),
+        gridLabels: () => {
+          const { locale, labels } = api.store.getState();
+          return { locale, comments: labels.comments };
+        },
       };
       return engine.attachGrid(adapter);
     }, [api, scrollRef, gridState]);
