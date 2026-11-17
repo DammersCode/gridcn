@@ -10,7 +10,6 @@ Internal record. Each item below came out of the 2.0 review as an API improvemen
 | `defineCommands<Row>()` | Infer command keys without module augmentation |
 | One warning prefix | `[<item>]` everywhere |
 | `useDebounce({ delayMs })` | Options object beside the number overload |
-| Sequential source eviction | Unload rows from the front |
 | `defineColumns<TRow, ExtraTypes>()` | Custom cell types without augmentation |
 | `useDataGridRowTargets()` | Public row-target resolution |
 | `RowActionResult` from `reorderRows` and `moveRowsBy` | Uniform row action results |
@@ -20,3 +19,13 @@ Internal record. Each item below came out of the 2.0 review as an API improvemen
 | Sort keys for date, select, checkbox, url, longText; coalesced `immediate` ticks | Accepted, see `perf-sort-1m.md` |
 | Header override, async `formatCell`, import `valueMode: "raw"`, print `source` and `css`, import `validateRow` | See `io-hooks-2.0.md` |
 | Server import preview, streaming XLSX writer, server search | See `io-server-scope.md` |
+
+## Built after the review
+
+| Item | Where it lives |
+|---|---|
+| Sequential (cursor) source eviction | `use-data-grid-server-rows.sequence-eviction.test.tsx`; a cursor scroll source evicts past `maxLoadedRows` like a random access one |
+| Row grouping on the client, in `useDataGridServerRows` (scroll and pages), and in the query layer (`fetchRows` with `groupBy`) | `row-grouping-spec.md`, `server-grouping-spec.md`, `orm-query-layer-spec.md` |
+| Root filter join (`filterJoin`) on the client, the server spec, URL state, and saved views | `filter-root-join.md` |
+
+Chunked row storage stays stopped at stage 0: the copy is about 90% of a live edit tick at 100k rows, and the prototype accessor reads 40 to 70% slower (`perf-row-storage.md`).

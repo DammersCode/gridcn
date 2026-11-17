@@ -35,6 +35,7 @@ Range selection, spreadsheet clipboard, typed cell editors, validation, and virt
 - **Row operations.** Insert above or below, duplicate, and delete, each with a default key binding. Insert and duplicate need the `createRow` / `duplicateRow` props; the `data-grid-context-menu` add-on adds the menu entries.
 - **Touch.** A tap selects, a double-tap edits, a long-press opens the context menu, and selection handles extend a range. Touch targets grow under a coarse pointer.
 - **Column groups.** The `columnGroups` prop adds header rows that group columns, which reorder and select together.
+- **Row grouping.** `groupBy` groups the rows of a client grid, a server grid (scroll and pages mode), and the query layer (`fetchRows`) into row groups with a count and aggregates.
 - **Global shortcuts.** The opt-in `DataGridGlobalShortcuts` layer (inside `DataGridRoot`) keeps key bindings active while focus is outside the grid. Undo and redo by default; per-action flags enable more.
 - **Controlled or uncontrolled.** Data, sort, filter, search text, selection, and column layout are uncontrolled by default. Pass `data`, `sortState`, `filterState`, `searchText`, `selection`, or `columnLayout` with the matching `on*Change` callback to control them. Each callback fires after the grid writes the change.
 - **Server data and saves.** `onSave` acknowledges each change, and the grid reverts only the rows that the server refuses. The `data-grid-server` add-on loads server pages or scroll-loaded row blocks and sends the sort, filters, and search text with each request.

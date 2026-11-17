@@ -143,6 +143,7 @@ Applies to streaming on top of either:
 ## Grouped server rows
 
 - Put `groupBy` in `defaultSpec` (or `spec`) of `useDataGridServerRows`, scroll or pages mode. Each `aggregate` column adds a reducer to `spec.aggregates`. A request then carries `groupPath` (`[{ columnId, key }]`, `[]` is the top level) and `childKind`: `"groups"` while the path is shorter than `groupBy`, else `"rows"`.
+- A spec carries `filterJoin: "or"` when the top-level filters join with or; absent means `"and"`. `parseServerSpec` checks it. Evaluate `rowScope AND (filters joined by filterJoin)`.
 - Answer `"groups"` with `{ groups: [{ key, childCount, totalRowCount, aggregates? }], groupCount, totalRowCount }` (`totalRowCount` at the top level only). `key` is the stored value, `null` and `""` are one empty group, last. Answer `"rows"` with `{ rows, totalRowCount }`. Filter before grouping; a sort on a group column orders the groups.
 - On the server read the request with `parseServerSpec` and `parseGroupPath(body, spec)`; limits are 4 levels, 1,024-character keys, 32 aggregates. Pass every key to the query as a parameter. List groupable columns with `groupable` and `aggregatable` in `ServerSpecColumnRules`.
 - The grid throws on an answer without `groups`, a repeated key (`1` and `"1"` repeat), a bad count, or a top level without `totalRowCount`.

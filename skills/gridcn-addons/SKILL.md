@@ -175,6 +175,8 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
 - `data-grid-url-state` writes `groupBy` as the `group` param (4 column ids at most) and `spec` takes `"group"`; the default is `["sort", "group"]`. A saved view of `data-grid-views` keeps `groupBy` (`DataGridViewState.groupBy`); the open groups stay out of both.
 - `useDataGridAggregate` and `aggregateRow` share the reducers of the group rows: `count` skips `""`, and a reducer with no value gives `null`.
 - `data-grid-pagination` counts groups while `groupBy` is set (`pager.unit` `"groups"`, label `labels.pagination.rangeGroups`). Export, find and replace, fill, comments, and the status bar skip group rows.
+- The top-level filters join with `"and"` (default) or `"or"`: `filterJoin` with `onFilterJoinChange`, a one-shot `defaultFilterJoin`, and `actions.setFilterJoin`. `filterState` stays a list. The filter menu shows the join as a select on the second row. `data-grid-url-state` writes `join=or`, and a saved view keeps it.
+- `data-grid-toolbar`, `data-grid-sort-list`, and `data-grid-views` group controls with the shadcn `button-group` item, and `data-grid-find-replace` with `input-group` (the registry installs both). The filter menu actions use the short labels `labels.toolbar.addFilterShort`, `addFilterGroupShort`, and `clearFiltersShort`. The group strings are in `labels.grouping`.
 
 ## 4. When an add-on renders nothing or has no effect
 

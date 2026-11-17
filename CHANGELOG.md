@@ -127,7 +127,7 @@ The [2.0 breaking changes](https://gridcn.vercel.app/docs/support-upgrades/break
 
 - **Server data:** a sequential (cursor) scroll source evicts like a random access one. Past `maxLoadedRows` (default 10,000) it unloads the blocks furthest from the rendered rows, and reloads a block with its stored cursor when the user scrolls back. Before, a finite `maxLoadedRows` ended the chain. Pass `maxLoadedRows: Infinity` to keep every row.
 - **Server data:** `useDataGridServerRows` (new `data-grid-server` item) fetches rows by scroll window or by page, with save acknowledgement, conflict resolution, and selection over a server result.
-- **Sorting and filtering:** server modes for both, custom filter operators, and faster client-side sorting and live updates.
+- **Sorting and filtering:** server modes for both, custom filter operators, a root join of `"and"` or `"or"` for the top-level filters (`filterJoin`), controls that group each filter, sort, search, and saved view row into one bordered control, and faster client-side sorting and live updates.
 - **Saved views:** the `data-grid-views` add-on names, stores, and restores a grid view.
 - **Pagination:** `DataGridProvider` pages its view with `pageSize`, `page`, and `pager`.
 - **Server grouping contract:** `ServerSpec` carries `groupBy` and `aggregates` (absent while the grid does not group, so the key of an ungrouped spec is unchanged). A request may carry `groupPath` and `childKind`. `parseServerSpec` bounds the two spec fields, `parseGroupPath` reads the path, and `maxGroupLevels`, `maxGroupKeyLength`, and `maxGroupAggregates` set the limits. The core takes `groupMode` and `groupLayout`; under `"server"` it shows the group rows of the layout and never buckets rows.

@@ -141,3 +141,13 @@ Reaching 9 needs every criterion at 9 or above on average. Three APIs do. The re
 - **Cap (8) on the sort arrow and the barrel lint:** no opt-out for the arrow (a column's `sortable: false` hides it); the barrel baseline can be regenerated but not bypassed per name.
 - **Docs (8):** `source`, `isPlaceholderRowId`, `gateTimeoutMs`, `labels` each have one docs section and no demo of their own.
 - **Types (8) on `onSave`, the paged view, `useDataGridServerRows`:** the option sets are unions of optional fields; a discriminated union per mode would remove the `mode` overload but break the single hook of F9.
+
+## Release candidate additions
+
+**filterJoin.** Before: the top-level filters always combined with "and", and a grid could combine with "or" only inside a filter group. After: `filterJoin` (`"and"` default), `defaultFilterJoin`, `onFilterJoinChange`, and `actions.setFilterJoin` set the join. A filter group and `filterState` keep their shape, so every earlier call works unchanged.
+
+**Grid tooltip delay.** Before: the cell error tooltip and the context menu tooltips took the Base UI default delay or the delay of a `TooltipProvider` above the grid. After: the same. The grid sets no delay of its own, because a local delay would shadow the consumer's provider.
+
+**useImportBlock.** Before: the import trigger memoized the block check without the `data` dependency, so holes that appeared after the dialog opened did not block the append. After: the check reads `data` again on each change. The block reasons and the `onImport` override are unchanged.
+
+**Grouping props.** `groupBy`, `defaultGroupBy`, `expanded`, `defaultExpanded`, `renderGroupLabel`, and `ColumnDef.groupable` and `aggregate` are additive. Without `groupBy` the grid renders, sorts, and requests as before. `GridQuery.fetchRows` resolves `RowsAnswer | GroupsAnswer`; a direct caller narrows with `"groups" in answer`, and the Breaking row names the change.
