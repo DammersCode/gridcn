@@ -66,6 +66,7 @@ exports[`lists the runtime names of the \`data-grid\` barrel so an addition is a
   "useDataGridIsColumnHidden",
   "useDataGridKeymap",
   "useDataGridLabels",
+  "useDataGridLiveAnnouncement",
   "useDataGridPendingSaveCount",
   "useDataGridReadOnly",
   "useDataGridRow",
