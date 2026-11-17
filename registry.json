@@ -1348,6 +1348,7 @@
             "select",
             "checkbox",
             "input-group",
+            "button-group",
             "DammersCode/gridcn/use-debounce"
          ],
          "files": [

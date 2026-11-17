@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useDebouncedInput } from "@/registry/default/hooks/use-debounce";
 import { Input } from "@/components/ui/input";
+import { ButtonGroup } from "@/components/ui/button-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   useDataGridCellTypes,
@@ -83,10 +84,10 @@ function BetweenValueInput(props: {
   });
 
   return (
-    <div className="flex items-center gap-1.5">
+    <ButtonGroup className="w-full">
       <Input type={type} {...fromInput.inputProps} aria-label={fromAriaLabel} className="h-8 w-full" />
       <Input type={type} {...toInput.inputProps} aria-label={toAriaLabel} className="h-8 w-full" />
-    </div>
+    </ButtonGroup>
   );
 }
 
