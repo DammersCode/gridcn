@@ -21,7 +21,7 @@ export function DataGridImportButton<TData>(props: DataGridImportButtonProps<TDa
   const { className, ...dialogProps } = props;
   const labels = useDataGridLabels();
   const [open, setOpen] = useState(false);
-  const importBlock = useImportBlock(dialogProps.onImport);
+  const importBlock = useImportBlock(dialogProps.onImport, true);
 
   return (
     <>

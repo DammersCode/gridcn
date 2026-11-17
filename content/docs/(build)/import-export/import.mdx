@@ -93,7 +93,7 @@ Pass `importLimits={{ maxRows: 10_000 }}` to the button or the dialog to change 
 - `defaultDelimiter` sets the delimiter and skips detection.
 - `defaultHeaderRow` sets the header toggle. A number names the 0-based header row and drops the rows above it. See [Control the import](/docs/import-export/control-import).
 - `defaultSkipColumns` skips source columns by header text (any case) or 0-based index.
-- `mapColumn(header, index, { signal })` returns a grid column id, `null` to skip, or `undefined` to keep the built-in match. It wins over `defaultSkipColumns` and can return a promise. A rejected promise falls back to the built-in match with `defaultSkipColumns`. The dialog does not compare the answers. When two answers name one grid column, the later one wins on import.
+- `mapColumn(header, index, { signal })` returns a grid column id, `null` to skip, or `undefined` to keep the built-in match. It wins over `defaultSkipColumns` and can return a promise. A rejected promise falls back to the built-in match with `defaultSkipColumns`. When two answers name one grid column, the first keeps it and the later import column maps to "skip".
 
 [Import options](/docs/add-options/import-export/import-options) lists every field.
 

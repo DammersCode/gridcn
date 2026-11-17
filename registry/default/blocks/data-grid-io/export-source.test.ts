@@ -3,6 +3,7 @@ import type { CellType, ColumnDef, ServerSpec } from "@/registry/default/blocks/
 import type { DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { DEFAULT_LABELS } from "@/registry/default/blocks/data-grid/labels";
 import { exportGrid } from "./export-grid";
+import { exportRows } from "./export-source";
 import { parseImportFile } from "./parse-import-file";
 
 type Row = { id: string; name: string };
@@ -74,6 +75,14 @@ describe("exportGrid with a source", () => {
     const read = captureDownload();
     await exportGrid(makeState(), { source: () => Promise.resolve([row("=1+1")]), csvBom: false });
     expect(await read()).toBe("Name\r\n'=1+1");
+  });
+
+  it("counts a non-finite onBatch return as 0 bytes and warns once", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const result = await exportRows(makeState(), { source: () => batches([row("a")], [row("b")]), maxBytes: 1 }, () => Number.NaN);
+    expect(result).toEqual({ rowCount: 2, truncated: false });
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
   });
 
   it("skips null rows", async () => {

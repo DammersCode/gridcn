@@ -229,7 +229,7 @@ describe("buildImportedRows", () => {
     expect(rows).toEqual([{ id: "row-0", name: "Alice", age: null }]);
   });
 
-  it("a duplicate mapping (two source columns on one grid column) lets the later one win, once per column", async () => {
+  it("a duplicate mapping (two source columns on one grid column) lets the first one win, once per column", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const rows = await buildImportedRows({
       dataRows: [["Alice", "Bob"]],
@@ -241,14 +241,13 @@ describe("buildImportedRows", () => {
       cellTypes: { text: textCellType, number: numberCellType } as never,
       createRow: makeRow,
     });
-    // mapping order is importColumnIndex ascending, so index 1 ("Bob") writes last and wins
-    expect(rows).toEqual([{ id: "row-0", name: "Bob", age: null }]);
+    expect(rows).toEqual([{ id: "row-0", name: "Alice", age: null }]);
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("is mapped by more than one import column"));
     warn.mockRestore();
   });
 
-  it("applies the later-mapping-wins rule without the dev warning when NODE_ENV is production", async () => {
+  it("applies the first-mapping-wins rule without the dev warning when NODE_ENV is production", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.stubEnv("NODE_ENV", "production");
     try {
@@ -262,7 +261,7 @@ describe("buildImportedRows", () => {
         cellTypes: { text: textCellType, number: numberCellType } as never,
         createRow: makeRow,
       });
-      expect(rows).toEqual([{ id: "row-0", name: "Bob", age: null }]);
+      expect(rows).toEqual([{ id: "row-0", name: "Alice", age: null }]);
       expect(warn).not.toHaveBeenCalled();
     } finally {
       vi.unstubAllEnvs();
@@ -541,5 +540,74 @@ describe("buildImportedRows unique() against existing rows", () => {
   it("compares the imported rows with each other only, without existing rows", async () => {
     const result = await buildImportedRowsRaw(options());
     expect(result.flagged).toEqual([]);
+  });
+
+  describe("validateRow", () => {
+    const run = (validateRow: BuildImportedRowsOptions<Row>["validateRow"], extra: Partial<BuildImportedRowsOptions<Row>> = {}) =>
+      buildImportedRowsRaw({
+        dataRows: [["Alice", "30"], ["Bob", "40"]],
+        mapping: [
+          { importColumnIndex: 0, gridColumnId: "name" },
+          { importColumnIndex: 1, gridColumnId: "age" },
+        ],
+        columns: makeColumns(),
+        cellTypes: { text: textCellType, number: numberCellType } as never,
+        createRow: makeRow,
+        validateRow,
+        ...extra,
+      });
+
+    it("clears a refused mapped cell and lists it in rejected", async () => {
+      const result = await run((row) => (row.name === "Bob" ? { name: "taken" } : null));
+      expect(result.rows.map((row) => row.name)).toEqual(["Alice", ""]);
+      expect(result.rejected).toEqual([{ rowIndex: 1, importColumnIndex: 0, gridColumnId: "name", message: "taken" }]);
+    });
+
+    it("passes the row id from getRowId and awaits an async verdict", async () => {
+      const ids: string[] = [];
+      const result = await run(
+        async (_row, id) => {
+          ids.push(id);
+          return { age: "no" };
+        },
+        { getRowId: (_row, index) => `r${index + 10}` },
+      );
+      expect(ids).toEqual(["r10", "r11"]);
+      expect(result.rejected).toHaveLength(2);
+    });
+
+    it("flags a verdict for an unmapped column and ignores a throw and unknown keys", async () => {
+      const result = await buildImportedRowsRaw({
+        dataRows: [["Alice"], ["Bob"]],
+        mapping: [{ importColumnIndex: 0, gridColumnId: "name" }],
+        columns: makeColumns(),
+        cellTypes: { text: textCellType, number: numberCellType } as never,
+        createRow: makeRow,
+        validateRow: (row) => {
+          if (row.name === "Bob") throw new Error("boom");
+          return { age: "bad", nope: "x" };
+        },
+      });
+      expect(result.rejected).toEqual([]);
+      expect(result.flagged).toEqual([{ rowIndex: 0, importColumnIndex: -1, gridColumnId: "age", message: "bad" }]);
+    });
+
+    it("cancels between chunks", async () => {
+      const controller = new AbortController();
+      const dataRows = Array.from({ length: 4_100 }, () => ["x"]);
+      const pending = buildImportedRowsRaw({
+        dataRows,
+        mapping: [{ importColumnIndex: 0, gridColumnId: "name" }],
+        columns: makeColumns(),
+        cellTypes: { text: textCellType, number: numberCellType } as never,
+        createRow: makeRow,
+        signal: controller.signal,
+        validateRow: () => {
+          controller.abort();
+          return null;
+        },
+      });
+      await expect(pending).rejects.toThrow(IMPORT_CANCELLED_MESSAGE);
+    });
   });
 });

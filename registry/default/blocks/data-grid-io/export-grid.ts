@@ -37,8 +37,13 @@ export { MAX_CELL_TEXT, exportRows };
 /** Where an export delivers its file instead of the browser download. */
 export type ExportOutput = (file: Blob, ctx: { fileName: string; format: "csv" | "xlsx"; signal: AbortSignal }) => void | Promise<void>;
 
+/** Which rows an export covers; see {@link ExportGridOptions.scope}. */
+export type ExportScope = "view" | "page" | "all" | "selection" | "checked-rows" | "ranges";
+
 /** Column selection and cell formatting shared by every export. */
 export type ExportShapeOptions<TData = unknown> = {
+  /** Header text per column id, replacing the column's label in the header row. A column without an entry keeps its label. */
+  headers?: Readonly<Record<string, string>>;
   /** Column ids to export, in this order. Hidden grid columns are allowed. Default: the visible columns in view order. An unknown id throws a `RangeError` before any row is read or fetched. With `source`, the source receives the same ids as `columnIds`. */
   columns?: readonly string[];
   /** Replaces the value of each exported cell. Runs once per cell after the cell type made its text (`text` holds that default). Return `null` or `undefined` for an empty cell. CSV writes numbers and booleans as text and Dates as ISO 8601; XLSX keeps numbers, booleans and Dates typed. Without `formatCell`, XLSX writes `number`, `date`, and `checkbox` columns typed and every other column as text. A string stays text, cut at 32,767 characters. A number that is not finite and an invalid Date make an empty cell. A throw rejects the export. */
@@ -48,7 +53,7 @@ export type ExportShapeOptions<TData = unknown> = {
 /** Options for {@link buildCsv}. */
 export type BuildCsvOptions<TData = unknown> = ExportShapeOptions<TData> & {
   /** Row scope, same semantics as {@link ExportGridOptions.scope}; default 'view'. */
-  scope?: "view" | "page" | "all" | "selection";
+  scope?: ExportScope;
   /** Whether to emit a header row; default true. */
   includeHeaders?: boolean;
   /** CSV field delimiter; default ','. */
@@ -67,8 +72,8 @@ export type ExportGridOptions<TData = unknown> = ExportShapeOptions<TData> & {
   output?: ExportOutput;
   /** 'xlsx' via lazily-imported hucre, or hand-rolled RFC4180 'csv' (default). */
   format?: "xlsx" | "csv";
-  /** 'view' (default) exports the current sort/filter order, every page of a paged grid; 'page' exports only the shown page; 'all' ignores view order and exports every row in `data` order; 'selection' exports only the selected rows, in view order. */
-  scope?: "view" | "page" | "all" | "selection";
+  /** 'view' (default) exports the current sort/filter order, every page of a paged grid; 'page' exports only the shown page; 'all' ignores view order and exports every row in `data` order; 'selection' exports only the selected rows, in view order; 'checked-rows' exports only the checked rows; 'ranges' exports only the rows the cell ranges cover, and ignores checked rows. */
+  scope?: ExportScope;
   /** Whether to emit a header row; default true. */
   includeHeaders?: boolean;
   /** CSV field delimiter; default ','. Ignored for xlsx. */
@@ -140,15 +145,33 @@ export type BuildExportRowsOptions = {
   maxRows?: number;
 };
 
+function checkedViewRows(selection: DataGridReadState["selection"]): number[] {
+  const rows: number[] = [];
+  for (const [start, end] of selection.rows.runs()) for (let row = start; row < end; row++) rows.push(row);
+  return rows;
+}
+
+function rangeViewRows(selection: DataGridReadState["selection"]): number[] {
+  const rows = new Set<number>();
+  if (selection.current) {
+    for (const { y, height } of [selection.current.range, ...selection.current.rangeStack]) for (let row = y; row < y + height; row++) rows.add(row);
+  }
+  return [...rows].sort((a, b) => a - b);
+}
+
 /**
  * Resolves the data indices a scope covers (lazy holes excluded): `'view'` walks the whole sorted and filtered view (every page)
  * (current sort/filter order), `'page'` walks the shown page only, `'all'` walks `data` as-is, `'selection'` walks only the selected
  * rows in view order.
  */
-export function exportDataIndices(state: DataGridReadState, scope: "view" | "page" | "all" | "selection"): number[] {
+export function exportDataIndices(state: DataGridReadState, scope: ExportScope): number[] {
   const scoped =
     scope === "all"
       ? state.data.map((_, i) => i)
+      : scope === "checked-rows"
+        ? checkedViewRows(state.selection).map((viewRow) => state.viewIndex[viewRow]!)
+        : scope === "ranges"
+          ? rangeViewRows(state.selection).map((viewRow) => state.viewIndex[viewRow]!)
       : scope === "selection"
         ? getSelectedViewRows(state.selection, { checkedRowsOnly: keepsCheckedRows(state) }).map((viewRow) => state.viewIndex[viewRow]!)
         : scope === "page"
@@ -165,7 +188,7 @@ export function exportDataIndices(state: DataGridReadState, scope: "view" | "pag
  * row-shaped export always matches its header row. Hole rows (unloaded indices of a lazy grid's
  * sparse `data`) are skipped in every scope. `options.maxRows` caps the number of rows built.
  */
-export function buildExportRows(state: DataGridReadState, scope: "view" | "page" | "all" | "selection", options: BuildExportRowsOptions = {}): string[][] {
+export function buildExportRows(state: DataGridReadState, scope: ExportScope, options: BuildExportRowsOptions = {}): string[][] {
   const { text = "export" } = options;
   const dataIndices = exportDataIndices(state, scope);
   const maxRows = options.maxRows === undefined ? undefined : normalizeLimit(options.maxRows, Number.POSITIVE_INFINITY);
@@ -186,7 +209,7 @@ function buildRowsAt<TData>(
 type ExportColumn = DataGridReadState["visibleColumns"][number];
 
 /** Builds at most `maxRows` rows, with a dev-only warning when the scope exceeds the cap. */
-function buildCappedExportRows<TData>(state: DataGridReadState, scope: "view" | "page" | "all" | "selection", rawMaxRows: number | undefined, shape: ExportShapeOptions<TData>, typed: boolean): ExportCell[][] {
+function buildCappedExportRows<TData>(state: DataGridReadState, scope: ExportScope, rawMaxRows: number | undefined, shape: ExportShapeOptions<TData>, typed: boolean): ExportCell[][] {
   const maxRows = rawMaxRows === undefined ? undefined : normalizeLimit(rawMaxRows, Number.POSITIVE_INFINITY);
   const columns = resolveExportColumns(state, shape.columns);
   const dataIndices = exportDataIndices(state, scope);
@@ -195,8 +218,8 @@ function buildCappedExportRows<TData>(state: DataGridReadState, scope: "view" | 
 }
 
 /** Header row text for each exported column: the visible columns, or the columns named by `columnIds`. */
-export function buildExportHeaders(state: DataGridReadState, columnIds?: readonly string[]): string[] {
-  return resolveExportColumns(state, columnIds).map((column) => columnLabelText(column));
+export function buildExportHeaders(state: DataGridReadState, columnIds?: readonly string[], overrides?: Readonly<Record<string, string>>): string[] {
+  return resolveExportColumns(state, columnIds).map((column) => (overrides && Object.hasOwn(overrides, column.id) ? overrides[column.id]! : columnLabelText(column)));
 }
 
 /** Triggers a browser download of `blob` named `fileName`, via a temporary anchor + object URL (revoke deferred — see below). */
@@ -216,7 +239,7 @@ export function downloadBlob(blob: Blob, fileName: string): void {
 /** Options for {@link buildXlsx}. */
 export type BuildXlsxOptions<TData = unknown> = ExportShapeOptions<TData> & {
   /** Row scope, same semantics as {@link ExportGridOptions.scope}; default 'view'. */
-  scope?: "view" | "page" | "all" | "selection";
+  scope?: ExportScope;
   /** Whether to emit a header row; default true. */
   includeHeaders?: boolean;
   /** Name of the single sheet inside the workbook; default 'Sheet1'. An invalid Excel sheet name (empty, over 31 characters, `[]:*?/\`, a leading or trailing `'`, `history` in any case) rejects. */
@@ -243,7 +266,7 @@ async function writeSheet(name: string, rows: ExportCell[][]): Promise<Blob> {
 export async function buildXlsx<TData = unknown>(state: DataGridReadState, options: BuildXlsxOptions<TData> = {}): Promise<Blob> {
   const { scope = "view", includeHeaders = true, sheetName = "Sheet1", maxRows } = options;
   const rows = buildCappedExportRows(state, scope, maxRows, options, true);
-  const table = includeHeaders ? [buildExportHeaders(state, options.columns), ...rows] : rows;
+  const table = includeHeaders ? [buildExportHeaders(state, options.columns, options.headers), ...rows] : rows;
   return writeSheet(sheetName, table.map((row) => row.map((cell) => (typeof cell === "string" ? cutCell(cell) : cell))));
 }
 
@@ -254,7 +277,7 @@ export async function buildXlsx<TData = unknown>(state: DataGridReadState, optio
 export function buildCsv<TData = unknown>(state: DataGridReadState, options: BuildCsvOptions<TData> = {}): Blob {
   const { scope = "view", includeHeaders = true, csvDelimiter = ",", csvBom = true, sanitizeFormulas = true } = options;
   const rows = buildCappedExportRows(state, scope, options.maxRows, options, false) as string[][];
-  const table = includeHeaders ? [buildExportHeaders(state, options.columns), ...rows] : rows;
+  const table = includeHeaders ? [buildExportHeaders(state, options.columns, options.headers), ...rows] : rows;
   return new Blob([(csvBom ? BOM : "") + rowsToCsv(table, { delimiter: csvDelimiter, sanitizeFormulas })], { type: "text/csv;charset=utf-8;" });
 }
 
@@ -270,7 +293,7 @@ function throwIfAborted(signal: AbortSignal | undefined): void {
   if (signal?.aborted) throw signal.reason ?? new DOMException("The export was aborted.", "AbortError");
 }
 
-function loadedResult(state: DataGridReadState, scope: "view" | "page" | "all" | "selection", maxRows: number | undefined): ExportResult {
+function loadedResult(state: DataGridReadState, scope: ExportScope, maxRows: number | undefined): ExportResult {
   const total = exportDataIndices(state, scope).length;
   return { rowCount: maxRows === undefined ? total : Math.min(total, maxRows), truncated: maxRows !== undefined && total > maxRows };
 }
@@ -289,7 +312,7 @@ async function exportFromSource<TData>(state: DataGridReadState, source: ExportS
   const { format = "csv", includeHeaders = true, csvDelimiter = ",", csvBom = true, sanitizeFormulas = true, sheetName = "Sheet1", onProgress } = options;
   const xlsx = format === "xlsx";
   if (xlsx && !isValidSheetName(sheetName)) throw new Error(`[data-grid-io] invalid xlsx sheet name: ${sheetName}`);
-  const headers = buildExportHeaders(state, options.columns).map(cutCell);
+  const headers = buildExportHeaders(state, options.columns, options.headers).map(cutCell);
   const requested = normalizeLimit(options.maxRows, DEFAULT_SOURCE_MAX_ROWS);
   const maxRows = xlsx ? Math.min(requested, XLSX_MAX_ROWS - (includeHeaders ? 1 : 0), Math.floor(XLSX_MAX_CELLS / Math.max(headers.length, 1))) : requested;
   const run: ExportRowsOptions<TData> = {
