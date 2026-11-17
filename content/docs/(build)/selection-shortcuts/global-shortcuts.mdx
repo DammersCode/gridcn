@@ -14,7 +14,7 @@ The component ships with the core `data-grid` item. Undo and redo need the [Undo
 
 ## How it works [#how-it-works]
 
-`DataGridGlobalShortcuts` renders nothing. It listens for `keydown` on the window. A gate of eight rules decides whether an event reaches the grid. The rules run in this order, and the first hit skips the event:
+`DataGridGlobalShortcuts` renders nothing. It listens for `keydown` on the window. Eight checks decide whether an event reaches the grid. The rules run in this order, and the first hit skips the event:
 
 1. IME composition is in progress.
 2. The event is already `defaultPrevented`. The page or the grid handled it first.
@@ -102,7 +102,7 @@ A grid without the component never claims the shortcut. If you add the component
 The last DOM focus decides. When your app switches tabs without a focus change, call the history API of the active grid, for example `grid.history.undo()`.
 
 <Callout type="warn" title="Page-wide mod+z">
-Your app can register its own window-level <kbd>Mod</kbd>+<kbd>Z</kbd> handler. Both listeners then see the same event. The layer skips an event that is already `defaultPrevented`, and it calls `preventDefault` when it handles one. Check `event.defaultPrevented` in your handler.
+Your app can register its own window-level <kbd>Mod</kbd>+<kbd>Z</kbd> handler. Both listeners then see the same event. The layer skips an event that is already `defaultPrevented`, and it calls `preventDefault` when it handles one. Check `event.defaultPrevented` in your handler. Register your listener after the grid mounts, in the bubble phase. Otherwise your handler runs first.
 </Callout>
 
 ## Out of scope [#out-of-scope]

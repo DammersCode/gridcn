@@ -64,9 +64,9 @@ export function PeopleGrid({ rows }: { rows: Person[] }) {
 
 The default `headerClickBehavior` is `"select"`, so a header click selects the column. With `"sort"`, a plain click cycles the column: ascending first, then descending, then no sort. <kbd>Shift</kbd>+click adds the column to the sort. A new column joins at the end, so the first sort stays primary. Another <kbd>Shift</kbd>+click cycles that column in place.
 
-A string header shows a sort arrow on every sorted column that is not `sortable: false`, whatever `headerClickBehavior` says. A sort from the sort list or the URL shows the arrow too.
+A string header shows a sort arrow on every sorted column, whatever `headerClickBehavior` says. A sort from the sort list, the URL, or code shows the arrow too.
 
-`sortable: false` on a column removes it from the header click and from the sort list. Code can still sort it with `actions.setSorts()`. Read the sorts with `useDataGridSortState()`.
+`sortable: false` on a column removes it from the header click and from the sort list. Code can still sort it with `actions.setSorts()`, and the header then shows the arrow and `aria-sort`. Read the sorts with `useDataGridSortState()`.
 
 ## Sort order
 
@@ -76,7 +76,7 @@ A column compares two rows with the first of these that applies:
 
 1. The column `sortCompare(rowA, rowB)`. A result of `0`, `NaN`, or a thrown error passes the pair to the text compare.
 2. The `compare` of the column's declared cell type. Numbers sort by value, dates in date order, and `select` columns by choice label. The `text`, `longText`, and `url` types use the text compare of the next step.
-3. A text compare that ignores case and accents and reads digit runs as numbers, so `item2` comes before `item10`. A column that omits `type` uses it for text. It orders finite numbers by value and puts them before any text.
+3. A text compare that ignores case and accents and reads digit runs as numbers, so `item2` comes before `item10`. A column that omits `type` uses it for text.
 
 A column without `type` sorts numbers by value and puts them before any text. In development, a column that holds both numbers and text warns once. Set `type: "number"` to also get the number editor, alignment, and filters.
 
