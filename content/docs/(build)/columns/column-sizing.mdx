@@ -53,7 +53,7 @@ During a drag, `onColumnResizing({ columnId, width })` fires on every pointer mo
 
 A drag that ends in a pointer cancel, a lost pointer capture, or a window blur restores the width it started at. If the width moved, `onColumnResizing` fires once with that width. `onColumnLayoutChange` does not fire.
 
-**Widen column** and **Narrow column** in the header menu change the width by 16 px, within `minWidth` and `maxWidth`. Two `keymap` actions do the same for the active column, and both are unbound by default. This chord pair is free in the browsers and the OSes:
+**Widen column** and **Narrow column** in the header menu change the width by 16 px, within `minWidth` and `maxWidth`. Two `keymap` actions do the same for the active column, and both are unbound by default. This chord pair has no default binding in the grid:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";

@@ -5,9 +5,9 @@
     "editable-columns",
     "built-cell-types",
     "lookup-cell",
-    "cancel-async-gates",
     "validation",
     "validate-rows-cross-field",
+    "cancel-async-gates",
     "display-override",
     "edit-rows-forms",
     "lock-cells-role"

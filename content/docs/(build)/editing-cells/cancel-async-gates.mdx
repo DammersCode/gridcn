@@ -1,5 +1,5 @@
 ---
-title: Cancel async gates
+title: Gate cancellation and timeouts
 description: Abort the request of a slow gate with its signal, set a timeout for every gate, and show the pending state while a gate waits.
 icon: Timer
 type: feature
@@ -17,7 +17,7 @@ Every gate receives an `AbortSignal` as its last argument. The signal aborts in 
 - The grid unmounts.
 - The result cannot apply. For example, the grid turned `readOnly`, or the row is gone.
 - `gateTimeoutMs` runs out.
-- The user presses <kbd>Escape</kbd>.
+- The user presses <kbd>Escape</kbd> while `onBeforeEditStart` waits.
 
 Pass the signal to `fetch`, and the request stops when the signal aborts. Pass the function as the `processPaste` prop:
 
@@ -113,7 +113,7 @@ export function TimedGrid({ rows }: { rows: Row[] }) {
 | `"timeout"` | The gate ran longer than `gateTimeoutMs`. |
 | `"changed"` | The rows, the checked rows, or `readOnly` changed while the gate waited. The active cell moved while `onBeforeEditStart` waited, or an edit started while `processPaste` waited. |
 | `"superseded"` | A newer run of the same gate replaced it. |
-| `"cancelled"` | The user pressed <kbd>Escape</kbd>. |
+| `"cancelled"` | The user pressed <kbd>Escape</kbd> while `onBeforeEditStart` waited. |
 | `"reset"` | The grid reset or unmounted. |
 
 `gateTimeoutMs` is off by default: a gate waits for its promise.

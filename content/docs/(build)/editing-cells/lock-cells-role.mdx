@@ -75,7 +75,7 @@ export function useOrderColumns(): ColumnDef<Order>[] {
 
 `price` combines two conditions: only an `admin` can edit it, and a `locked` order accepts no edits from anyone. A locked cell rejects typed edits, paste, fill, and clear. A `guest` gets no `internalNote` column. A removed column hides the field in the grid only. The field stays in every row object that the browser holds, so strip it on the server.
 
-Column `readOnly` does not stop row operations. For a role that must not change rows, set `readOnly` on the grid, or leave out the row operations and the context menu.
+Column `readOnly` does not stop row operations. For a role that must not change rows, set `readOnly` on the grid. Otherwise unbind the row keys, `keymap={{ deleteRows: [], insertRowAbove: [], insertRowBelow: [], duplicateRow: [], moveRowsUp: [], moveRowsDown: [] }}`, and leave out the context menu. `onBeforeDeleteRows` can also refuse a delete. A grid `readOnly` turns off delete too.
 
 When the role changes, the new array replaces the columns, and the new `readOnly` rule applies from then on.
 

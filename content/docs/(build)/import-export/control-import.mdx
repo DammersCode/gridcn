@@ -6,12 +6,12 @@ type: task
 aliases: ["import hooks", "parseFile", "processImportRows", "processCellFromText", "csvEncoding", "import encoding"]
 ---
 
-These props shape the import. Pass them to `DataGridImportButton` or `DataGridImportDialog`. Every prop is optional. This list shows where each one runs:
+These props shape the import. Pass them to `DataGridImportButton` or `DataGridImportDialog`. Every prop is optional. The import runs in this order:
 
 1. `parseFile` reads the file.
 2. `defaultHeaderRow` drops the rows above the header.
 3. `processImportRows` rewrites the rows.
-4. The column mapping assigns file columns to grid columns.
+4. The dialog applies the column mapping.
 5. `processCellFromText` parses each cell.
 6. `validate` checks each value.
 7. `onImport` receives the rows.
@@ -20,7 +20,7 @@ These props shape the import. Pass them to `DataGridImportButton` or `DataGridIm
 
 ## Before you start
 
-Install `data-grid-io`. See [Import](/docs/import-export/import). A prop cannot raise a bound. Every result passes the same bounds as a built-in result. Raise a bound with `importLimits`. The dialog rejects a file over `maxFileBytes` before `parseFile` runs.
+Install `data-grid-io`. See [Import](/docs/import-export/import). `parseFile` and `processImportRows` cannot raise a bound: their results pass the same bounds as a built-in result. Raise a bound with `importLimits`. The dialog rejects a file over `maxFileBytes` before `parseFile` runs.
 
 ## Import props
 
@@ -33,7 +33,7 @@ Install `data-grid-io`. See [Import](/docs/import-export/import). A prop cannot 
 | `csvEncoding` | when a CSV file is read | Decodes the CSV with this label instead of UTF-8. `parseFile` replaces it. |
 | `importDefaults.defaultHeaderRow` | after the parse | A number is the 0-based index of the header row. The dialog drops the rows above it. |
 | `importDefaults.mapColumn` | for each file header | Receives `(header, index, { signal })`. The `signal` aborts when a newer parse replaces the run or the dialog unmounts. The dialog ignores an aborted result. Inside a grid, `gateTimeoutMs.mapColumn` also aborts it, and the built-in match applies. |
-| `processImportRows` | on confirm, before the column mapping | Returns the rows to import, or `false` to cancel. It gets `rows` (header excluded), `headers`, `mapping`, and `signal`. |
+| `processImportRows` | on confirm, before the dialog applies the mapping | Returns the rows to import, or `false` to cancel. It gets `rows` (header excluded), `headers`, `mapping`, and `signal`. |
 | `processCellFromText` | for each mapped cell | Returns the cell value instead of the column's `fromText`. The context holds `fromText`, the column's own parser. |
 | `onImport` | after the build | Gets `rows` and `{ signal, rejected, flagged, fileName, sheetName, mapping }`. |
 | `onImportError` | when `onImport` rejects | Gets the rejection. The dialog stays open. |

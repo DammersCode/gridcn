@@ -107,7 +107,7 @@ The dialog's drop target is the `dropzone` item, which `data-grid-io` installs. 
 
 ## Server mode
 
-Import reads no sort, filter, page, or server state. A grid with a `totalRowCount` or unloaded rows cannot take appended rows, so it needs `onImport`. Without `onImport`, the import button is disabled. Send the rows to your API there, and call `server.refresh()`. See [Import into a server grid](/docs/import-export/import-server-grid).
+Import reads no sort, filter, page, or server state. A grid with a `totalRowCount` cannot take appended rows, so it needs `onImport`. Without `onImport`, the import button is disabled. Send the rows to your API there, and call `server.refresh()`. See [Import into a server grid](/docs/import-export/import-server-grid).
 
 ## Related
 

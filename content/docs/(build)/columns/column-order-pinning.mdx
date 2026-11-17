@@ -35,7 +35,7 @@ function MoveEmailFirst() {
 
 Render the button inside `DataGridProvider`. `setColumnOrder` returns `{ ok: true }`, or `{ ok: false, reason }` when the order stays. `canSetColumnOrder` takes the same arguments and returns the same result without the move, for the `disabled` state of a button.
 
-Two `keymap` actions move the active column, and both are unbound by default. This chord pair is free in the browsers and the OSes:
+Two `keymap` actions move the active column, and both are unbound by default. This chord pair has no default binding in the grid:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
@@ -151,6 +151,10 @@ export function MarkedGrid({ rows }: { rows: Row[] }) {
 | `enableColumnReorder` | `boolean` | `true` |
 
 A pin or reorder that changes the layout fires `onColumnLayoutChange` once. [Save a column layout](/docs/columns/column-layout) shows how to store it.
+
+## Server mode
+
+Pins and order are browser state in every data mode. `fetchRows` and `onSave` get no column order. Save them with `onColumnLayoutChange`.
 
 ## Related
 

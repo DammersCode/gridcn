@@ -8,15 +8,13 @@ aliases: ["write a plugin", "highlight plugin"]
 
 Write a plugin to paint on the grid, observe data changes, or add a command. This task builds a plugin that tints one column. A plugin object holds the parts it needs, and `name` is the only required part.
 
-## Before you start
-
-Mount a grid with `columns` and `data`.
-
 ## Coordinates
 
 A view index is a row position in the sorted and filtered order. A rect is `{ x, y, width, height }`: `x` is a visible column index and `y` is a view index. A pin zone is the start side, the unpinned middle, or the end side of the grid.
 
-A plugin object attaches to one grid, so create one object per grid. Pick the part you need:
+## Plugin parts
+
+A plugin object attaches to one grid, so create one object per grid. A plugin with a `name` that another plugin of the grid holds is ignored, with a development warning. Pick the part you need:
 
 - `Overlay` paints.
 - `rowBands` adds rows.

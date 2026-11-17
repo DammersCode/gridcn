@@ -40,7 +40,7 @@ function copyText(value: unknown, { column, text }: ClipboardCopyCtx<Row>) {
 
 function pasteValue(text: string, ctx: ClipboardPasteCtx<Row>) {
   if (ctx.column.id !== "price") return ctx.fromText(text);
-  return Number(text.replace("$", ""));
+  return ctx.fromText(text.replace("$", ""));
 }
 
 function MyGrid() {
@@ -64,7 +64,7 @@ function MyGrid() {
 
 `signal` is an `AbortSignal`. It aborts when the grid turns `readOnly`, an edit starts, `gateTimeoutMs` runs out, or the grid unmounts. See [Async gates](/docs/editing-cells/cancel-async-gates#cancel-a-request-with-the-signal).
 
-`processPaste` and `processCellFromClipboard` also accept a promise. `ctx.signal` aborts when `gateTimeoutMs` runs out, the grid turns `readOnly`, or an edit starts. This function sends the pasted block to your server:
+`processPaste` and `processCellFromClipboard` also accept a promise. `ctx.signal` is the same signal. This function sends the pasted block to your server:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
@@ -115,7 +115,7 @@ The grid drops a late result when one of these happens:
 - The row or the column under the paste is gone.
 - A sort or a filter changed.
 
-If the row moved, the paste follows it. The [Async gates example](/docs/validation-examples/async-gates-example) shows the gate.
+If a row operation moved the target row, the paste follows it. The [Async gates example](/docs/validation-examples/async-gates-example) shows the gate.
 
 ## Result
 

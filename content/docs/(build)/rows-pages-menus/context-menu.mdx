@@ -51,18 +51,18 @@ function MyGrid() {
 }
 ```
 
-`DataGridContextMenu` belongs inside `DataGridProvider`. Outside it, the grid throws an error that names the provider.
+`DataGridContextMenu` belongs inside `DataGridProvider`.
 
 ## Header surface
 
 The header dropdown and the right-click header menu show the same items:
 
 - **Sort ascending** and **Sort descending**. A column with `sortable: false` shows neither, and no sort group.
-- **Clear sort**, only for a sorted column.
 - **Pin to start** and **Pin to end**. If the column cannot pin, they stay but turn off.
-- **Unpin**, only for a pinned column.
+- **Clear sort**, only for a sorted column. **Unpin**, only for a pinned column.
 - **Hide column**. A column with `hideable: false` does not show it.
-- **Autosize column** and **Autosize all columns**, only while column resize is on and the column is resizable.
+- **Move toward start** and **Move toward end**, only while column reorder is on and the column is reorderable. Each one turns off when no neighbor takes the move.
+- **Widen column**, **Narrow column**, **Autosize column**, and **Autosize all columns**, only while column resize is on and the column is resizable.
 
 [Column order and pinning](/docs/columns/column-order-pinning) owns the pin behavior.
 
@@ -72,7 +72,7 @@ The header dropdown and the right-click header menu show the same items:
 
 A right-click on a cell outside the selection selects that cell first. A right-click inside the selection keeps it. The row items act on every view row that the selection covers, or on the clicked row if nothing is selected. With a `checkedRowsLifetime` of `'until-cleared'` or `'across-filters'` and a checked row, they act on the checked rows only. With `'until-click'` (the default without `totalRowCount`), a right-click outside the selection ends the checks. Set `'until-cleared'` to keep them for bulk menu actions.
 
-<kbd>Shift</kbd>+<kbd>F10</kbd> opens the cell menu of the active cell on Windows and Linux. The browser sends it to the focused cell as a right-click.
+<kbd>Shift</kbd>+<kbd>F10</kbd> opens the cell menu of the active cell on Windows and Linux. The browser sends it as a right-click.
 
 The cell menu holds these items, in order:
 
@@ -115,7 +115,7 @@ Built-in items have stable ids, so a resolver can keep or drop them by id:
 | Surface | Built-in ids, in order |
 | --- | --- |
 | Cell | `cut`, `copy`, `paste`, `sep-clipboard`, `clear-contents`, `fill-down`, `fill-right`, `sep-rows`, `insert-row-above`, `insert-row-below`, `duplicate-rows`, `delete-rows` |
-| Header | `sort-asc`, `sort-desc`, `clear-sort`, `sep-sort`, `pin-start`, `pin-end`, `unpin`, `hide-column`, `sep-autosize`, `autosize`, `autosize-all` |
+| Header | `sort-asc`, `sort-desc`, `clear-sort`, `sep-sort`, `pin-start`, `pin-end`, `unpin`, `hide-column`, `sep-move`, `move-toward-start`, `move-toward-end`, `sep-autosize`, `widen-column`, `narrow-column`, `autosize`, `autosize-all` |
 
 The fill items exist only for a touch selection while the fill add-on runs. An item is an object with `id`, `label`, `icon`, `shortcut`, `disabled`, `destructive`, `tooltip`, and `onClick`. `shortcut` is a keymap binding that the menu shows as keycaps. `tooltip` shows on hover while the item is off. A separator is `{ id, separator: true }`. The types are `GridMenuItemSpec`, `CellMenuItemsResolver`, and `HeaderMenuItemsResolver`.
 
@@ -189,17 +189,15 @@ A resolver is a plain function. Read grid state from `ctx`. Read hook values in 
 
 On a server grid, **All matching** turns off Duplicate and Delete. A row item on unloaded rows does nothing, with the reason `"unloaded-rows"`. See [Row operations](/docs/rows-pages-menus/row-operations#server-mode).
 
-## Touch
+## Touch and paste
 
-Long-press a cell or a header for 500 ms to open its menu. The grid raises one `contextmenu` event, so `onCellContextMenu` fires as it does for a right-click. While the fill add-on runs, the cell menu of a touch selection also lists **Fill down** and **Fill right**. Their text comes from `labels.contextMenu.fillDown` and `labels.contextMenu.fillRight`. The click that follows a long press does nothing.
+Long-press a cell or a header for 500 ms to open its menu. `onCellContextMenu` fires as it does for a right-click. While the fill add-on runs, the cell menu of a touch selection also lists **Fill down** and **Fill right**.
 
-## Paste permission
-
-The Paste item reads the system clipboard, which needs the `clipboard-read` permission. If the browser denies it, the item turns disabled and shows the `labels.contextMenu.pasteBlocked` hint, which points to <kbd>Ctrl</kbd>+<kbd>V</kbd>, or <kbd>Cmd</kbd>+<kbd>V</kbd> on macOS. 
+The Paste item reads the system clipboard, which needs the `clipboard-read` permission. If the browser denies it, the item turns off and shows the `labels.contextMenu.pasteBlocked` hint.
 
 ## Labels [#internationalization]
 
-Every item text comes from `labels.contextMenu`. See [Labels](/docs/components-props/labels).
+Every item text comes from `labels.contextMenu`, including `fillDown` and `fillRight`. See [Labels](/docs/components-props/labels).
 
 ## Related
 
