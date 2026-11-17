@@ -16,7 +16,7 @@ const rowAt = (index: number, shift: number, suffix: string): Row => (index < sh
 
 type Source = "counted" | "cursor" | "offset" | "countedCursor";
 
-function setup(source: Source, { getRowId = (row: Row) => row.id, total = TOTAL, repeat = false }: { getRowId?: (row: Row) => string; total?: number; repeat?: boolean } = {}) {
+function setup(source: Source, { getRowId = (row: Row) => row.id, total = TOTAL, repeat = false, settleRefresh = false }: { getRowId?: (row: Row) => string; total?: number; repeat?: boolean; settleRefresh?: boolean } = {}) {
   let shift = 0;
   let suffix = "";
   let hold = false;
@@ -41,7 +41,7 @@ function setup(source: Source, { getRowId = (row: Row) => row.id, total = TOTAL,
     return null;
   }
   function Harness() {
-    server = useDataGridServerRows<Row, number>({ mode: "scroll", loadDelayMs: 0, getRowId, fetchRows, blockSize: SIZE, overscan: 0 });
+    server = useDataGridServerRows<Row, number>({ mode: "scroll", loadDelayMs: 0, getRowId, fetchRows, blockSize: SIZE, overscan: 0, ...(settleRefresh ? {} : { refreshAfterSave: false as const }) });
     return (
       <DataGridProvider {...server.providerProps} columns={columns} onSave={onSave} createRow={() => ({ id: "loc", name: "Local" })}>
         <DataGridRoot>
@@ -416,7 +416,7 @@ describe("a local row operation on a random-access source", () => {
   });
 
   it("shows no row twice while an insert is pending, and refreshes once when its save settles", async () => {
-    const t = setup("counted");
+    const t = setup("counted", { settleRefresh: true });
     await loadTwoBlocks(t);
     act(() => t.state().actions.insertRow(3, "below"));
     await t.ready();
@@ -463,7 +463,7 @@ describe("a local row operation on a random-access source", () => {
   });
 
   it("still refreshes when an insert settles after a streamed insert that never saved", async () => {
-    const t = setup("counted");
+    const t = setup("counted", { settleRefresh: true });
     await loadTwoBlocks(t);
     act(() => t.server().gridProps.onDataChange(t.server().gridProps.data as Row[], streamedInsert("s1", 2)));
     await t.ready();
@@ -478,7 +478,7 @@ describe("a local row operation on a random-access source", () => {
   });
 
   it("refreshes once when a delete settles", async () => {
-    const t = setup("counted");
+    const t = setup("counted", { settleRefresh: true });
     await loadTwoBlocks(t);
     act(() => t.state().actions.deleteRows(["r1"]));
     await t.ready();

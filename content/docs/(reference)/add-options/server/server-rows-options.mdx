@@ -19,7 +19,7 @@ aliases: ["blocksize", "usedatagridserverrows", "server rows options", "request 
 
 Both modes set `sortMode` and `filterMode` to `"server"`. To sort or filter the loaded rows in the browser, set `sortMode="client"` or `filterMode="client"`.
 
-Pass `onSave`, `onRenderedRowsChange`, and `plugins` to the hook, not as props after the `gridProps` spread. Such a prop replaces that hook wiring. An `onDataChange` after the spread runs next to the hook's merge.
+A handler or `plugins` prop after the `gridProps` spread joins the hook wiring. `onDataChange`, `onSortChange`, `onFilterChange`, `onSearchTextChange`, and `onRenderedRowsChange` run next to the hook's handler. `plugins` mount after the refresh guard. An `onSave` prop runs in place of the `onSave` option, and the hook still refreshes after it settles.
 
 ## Pages mode [#server-mode]
 
@@ -86,7 +86,7 @@ Set `source: "random"` or `source: "sequential"` to fix the order. A random sour
 | `maxConcurrentFetches` | `3` | Most block requests in flight on a random access source. At most 16. |
 | `maxLoadedRows` | `10000` | Most rows kept loaded. On a random access source, old blocks unload past it. A finite value ends a sequential source once that many rows loaded, and development builds warn once. A value below `blockSize` counts as `blockSize`. `Infinity` keeps every row. |
 | `revalidateIntervalMs` | off | Milliseconds between timed `refresh()` calls while the page is visible. At least 1000. A sequential source skips a tick while the rendered rows plus `overscan` end beyond 10 blocks. |
-| `reshapeDelayMs` | off | Milliseconds after a push marked a row stale before one `refresh()`. At least 250. A sequential source skips it while the rendered rows plus `overscan` end beyond 10 blocks. |
+| `reshapeDelayMs` | 1000 with a sort or a filter, else off | Milliseconds after a push marked a row stale before one `refresh()`. At least 250. `false` turns it off. A sequential source skips it while the rendered rows plus `overscan` end beyond 10 blocks. |
 
 The limits and the timers are on [Tune row retention](/docs/scroll-mode/tune-row-retention).
 
@@ -113,7 +113,7 @@ Both modes take `onSave` and `refreshAfterSave`. `gridProps.onSave` runs your ha
 - `"each"` refreshes after saves settle, without waiting for the saves still in flight.
 - `false` never refreshes.
 - A function of the save report returns whether to refresh. It runs once after every save in flight has settled, or after the same 10 seconds.
-- A sequential source skips the refresh while the rendered rows plus `overscan` end beyond 10 blocks. Call `server.refresh()` there.
+- A sequential source skips the refresh while the rendered rows plus `overscan` end beyond 10 blocks. `server.canRevalidate()` returns `false` then, and the hook warns once in development. Call `server.refresh()` there.
 - Only an `onSave` that returns a promise triggers a refresh.
 - When every save failed, no refresh runs.
 

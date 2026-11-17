@@ -3,6 +3,9 @@ import type { RowRange, ServerSpec } from "@/registry/default/blocks/data-grid/d
 /** Largest row count the server contract accepts; a bigger count clamps to it. */
 export const MAX_ROW_COUNT = 10_000_000;
 
+/** Why a request runs: `"load"` for a window, page, or spec; `"refresh"` for `refresh()`, a timed refresh, or a reshape; `"save"` after a save settled; `"retry"` for `retry()`. */
+export type FetchReason = "load" | "refresh" | "save" | "retry";
+
 /** What `fetchRows` receives in every mode. */
 export type ServerRowsRequest<TCursor = never> = {
   /** The sort, filter, and search of this request. */
@@ -13,6 +16,8 @@ export type ServerRowsRequest<TCursor = never> = {
   end: number;
   /** Cursor sources: the `nextCursor` of the block or page before; `undefined` for the first one and for every other source. */
   cursor: TCursor | undefined;
+  /** Why this request runs. The hook sends it to nobody: read it to bypass a cache on a refresh. */
+  reason: FetchReason;
   /** Aborted when a newer request replaces this one, when a scroll-mode block leaves the rendered rows by more than `overscan` plus one block, on a spec change, and on unmount. */
   signal: AbortSignal;
 };

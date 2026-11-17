@@ -85,7 +85,7 @@ The first request is always block 0, the rows `[0, blockSize)`. The first answer
 
 ## Edit loaded rows [#editing-loaded-rows]
 
-`gridProps.onDataChange` merges each edit, insert, and delete into the loaded rows. Put your own handler in the `onDataChange` option of the hook. An `onDataChange` prop after the spread runs next to the merge. Send changes to your backend from `onSave`.
+`gridProps.onDataChange` merges each edit, insert, and delete into the loaded rows. Put your own handler in the `onDataChange` option of the hook, or in an `onDataChange` prop after the spread. Both run next to the merge. Send changes to your backend from `onSave`.
 
 When the block of an unsaved row loads again, the answer replaces the unsaved value. See [Tune row retention](/docs/scroll-mode/tune-row-retention).
 

@@ -18,7 +18,7 @@ In the demo, the Pages and Scroll buttons switch the mode of the hook. Sort a he
 - Pages and Scroll switch the `mode` of the hook. Pages mode sets `prefetchNextPage`, so Next shows the next page with no wait.
 - Revalidate every 10 s sets `revalidateIntervalMs` and fetches the rows again on that timer. See [Tune row retention](/docs/scroll-mode/tune-row-retention).
 - Server pushes changes three scores every 500 ms with `updateRows`. A row whose score the sort reads keeps its place and carries `data-row-stale` (the demo dims it) until a refresh places it. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
-- The Reshape select sets `reshapeDelayMs`. With Reshape off, a refresh places the pushed rows. With Reshape 1 s, the hook refreshes one second after the pushes.
+- The Reshape select sets `reshapeDelayMs`. With Reshape off (`reshapeDelayMs: false`), a refresh places the pushed rows. With Reshape 1 s, the hook refreshes one second after the pushes.
 - Delete on server removes the first row on the server and deletes it in the grid with `source: "stream"`.
 - The grid starts sorted by Score, highest first.
 
@@ -95,9 +95,9 @@ export function OrdersGrid() {
 | `onSave` | Runs your `onSave`. The hook fetches again after the saves settle (`refreshAfterSave`). |
 | `headerClickBehavior: "sort"` | A header click sorts. Set it after the spread to change that. |
 | `getRowId`, `checkedRowsLifetime: "across-filters"` | The row id, and checked rows that stay across pages. |
-| `plugins` | Your `plugins` option, mounted after the refresh guard of the hook. |
+| `plugins` | The refresh guard of the hook, then your `plugins` option. |
 
-- Pass `onSave` and `plugins` to the hook, not as props after the spread. Such a prop replaces the hook wiring. An `onDataChange` after the spread runs next to the hook's merge.
+- A handler or `plugins` prop after the spread joins the hook wiring. An `onSave` prop runs in place of the `onSave` option.
 - A composed layout spreads `server.providerProps` onto `DataGridProvider` and `server.rootProps` onto `DataGridRoot`. The demo does this.
 
 <Callout type="warn">

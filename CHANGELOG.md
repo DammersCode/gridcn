@@ -132,6 +132,11 @@ The [2.0 breaking changes](https://gridcn.vercel.app/docs/support-upgrades/break
 - **Add-ons:** the `lookup` cell type, cell comments (`data-grid-comments`), `useDataGridServerAggregate`, and the `gridcn-upgrade` agent skill.
 - **Focus:** a grid that mounts with a seeded selection no longer takes focus on page load, so the first Tab starts at the page start. The fill handle takes focus on pointer down, so Ctrl+Z undoes a fill right after a drag, and its hit area is 24 px.
 - **Dependencies:** the validation demo (`data-grid-validation-demo`) installs `zod@^4.6.7`. The core grid has no zod dependency.
+- **Breaking:** `reshapeDelayMs` of `useDataGridServerRows` defaults to 1000 ms while the spec has a sort or a filter, so a pushed row that the server may place elsewhere starts one `refresh()` a second after the push. Before, it was off. Pass `reshapeDelayMs: false` to keep the old behavior. `reshape()` and a stream delete still refresh on the next frame. <!-- row: reshape-delay-default -->
+- `defaultSpec` of `useDataGridServerRows` takes a function. It runs once on the client after mount, so it can read `localStorage`, and the first request waits for it.
+- The request of `fetchRows` carries `reason` (`"load"`, `"refresh"`, `"save"`, or `"retry"`), so a cache layer can bypass its cache for a refresh. Scroll mode adds `canRevalidate()` to the result, which reports whether a timed refresh would run.
+- `refreshAfterSave: false` in scroll mode stops the refresh after an insert or a delete settles, as it does in pages mode.
+- A handler or `plugins` prop after the `server.gridProps` spread joins the hook wiring in pages and scroll mode. `onDataChange`, `onSortChange`, `onFilterChange`, `onSearchTextChange`, and `onRenderedRowsChange` run next to the hook's handler, `plugins` mount after the refresh guard, and an `onSave` prop runs in place of the `onSave` option with `refreshAfterSave` still applied. Before, such a prop replaced the hook's wiring, with a development warning.
 
 Every other 2.0 entry is in [CHANGELOG-2.0.md](CHANGELOG-2.0.md).
 

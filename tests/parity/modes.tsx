@@ -198,6 +198,7 @@ export async function mountMode(mode: ModeId, options: MountOptions = {}): Promi
       getRowId,
       blockSize: options.initialLoad ?? rows.length,
       overscan: 0,
+      refreshAfterSave: false,
       fetchRows: async ({ start, end }) => ({ rows: served.slice(start, end), totalRowCount: served.length }),
     });
     const { data, onRenderedRowsChange, totalRowCount } = server.providerProps;

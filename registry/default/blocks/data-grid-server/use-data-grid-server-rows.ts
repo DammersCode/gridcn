@@ -6,14 +6,14 @@ import { serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, t
 import { useDataGridServerPager, type DataGridPaginationControls } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import { DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-pagination/pagination-math";
 import { readRevalidateInterval } from "./fetch-hygiene";
-import { MAX_ROW_COUNT, readAnswer, type ReadAnswer, type ServerRowsAnswer, type ServerRowsPageRequest, type WithRowId } from "./read-answer";
+import { MAX_ROW_COUNT, readAnswer, type FetchReason, type ReadAnswer, type ServerRowsAnswer, type ServerRowsPageRequest, type WithRowId } from "./read-answer";
 import { useScrollBlocks, type UseDataGridServerRowsScrollOptions, type UseDataGridServerRowsScrollResult } from "./scroll-blocks";
-import { GUARD_MISSING_MESSAGE, keepProtectedRows, pruneIds, trackDeletes, unionIds, useRefreshGuard, type GuardHandlers, type ProtectedRows } from "./refresh-guard";
+import { keepProtectedRows, pruneIds, trackDeletes, unionIds, useRefreshGuard, type ProtectedRows } from "./refresh-guard";
 import { useSaveRefresh, type SaveRefreshOptions, type SaveRefreshPolicy } from "./save-refresh";
-import { isolate, scheduleFrame, useControlled, useMountedPlugins, useReshape, useRevalidation, useServerSpec } from "./server-state";
+import { isolate, scheduleFrame, useControlled, useMountedPlugins, useRegisteredWiring, useReshape, useRevalidation, useServerSpec } from "./server-state";
 
 export type { DataSourceState } from "./server-state";
-export type { ServerRowsAnswer, ServerRowsPageRequest, ServerRowsRequest } from "./read-answer";
+export type { FetchReason, ServerRowsAnswer, ServerRowsPageRequest, ServerRowsRequest } from "./read-answer";
 export type { UseDataGridServerRowsScrollOptions, UseDataGridServerRowsScrollProviderProps, UseDataGridServerRowsScrollResult } from "./scroll-blocks";
 
 /** Options of {@link useDataGridServerRows} in pages mode. */
@@ -35,8 +35,11 @@ export type UseDataGridServerRowsOptions<TData, TCursor = never> = {
   /** Controls the current page; pair it with `onPageChange`. A page that is not a whole number of at least 1 reads as page 1. */
   page?: number;
   onPageChange?: (page: number) => void;
-  /** The sort, filter, and search while `spec` is not controlled. */
-  defaultSpec?: Partial<ServerSpec>;
+  /**
+   * The sort, filter, and search while `spec` is not controlled. A function runs once on the client after mount, so it can read
+   * `localStorage`; it returns the spec or `undefined`. The first request waits for it. An `initialAnswer` is the answer for the empty spec in that case.
+   */
+  defaultSpec?: Partial<ServerSpec> | (() => Partial<ServerSpec> | undefined);
   /** Controls the sort, filter, and search; pair it with `onSpecChange`. */
   spec?: ServerSpec;
   onSpecChange?: (spec: ServerSpec) => void;
@@ -50,10 +53,10 @@ export type UseDataGridServerRowsOptions<TData, TCursor = never> = {
   /**
    * Milliseconds to wait after a push marked a row stale before the hook runs a `refresh()` (a reshape) so the server places the
    * rows again. The first push starts the wait and later pushes join it, so a steady feed reshapes at most once per delay. A
-   * reshape that falls due during a request, or while the page is hidden, waits and runs once. At least 250. Off by default:
-   * a stale row then waits for `reshape()`, `refresh()`, or a spec change.
+   * reshape that falls due during a request, or while the page is hidden, waits and runs once. At least 250. Default 1000 while the
+   * spec has a sort or a filter, and off otherwise; `false` turns it off, and a stale row then waits for `reshape()`, `refresh()`, or a spec change.
    */
-  reshapeDelayMs?: number;
+  reshapeDelayMs?: number | false;
   /**
    * Fetches the page after the current one in the background once the current page has landed. The pager shows that page with no
    * request. The prefetch is a plain page request; a failure is silent. A refresh, a revalidation tick, a spec or page size change,
@@ -63,7 +66,7 @@ export type UseDataGridServerRowsOptions<TData, TCursor = never> = {
   prefetchNextPage?: boolean;
   /** Fires after the rows of a request land, with the range they cover. */
   onLoaded?: (range: RowRange) => void;
-  /** Fires after the hook keeps an edit, insert, delete, or revert. Put your handler here; a provider `onDataChange` after the spread runs next to the merge. */
+  /** Fires after the hook keeps an edit, insert, delete, or revert. A provider `onDataChange` after the spread runs next to the merge. */
   onDataChange?: (next: readonly TData[], change: DataChange<TData>) => void;
   /** Saves a change; spread to the provider through `gridProps.onSave`, where it behaves as the `DataGridProvider` prop of the same name. The hook refreshes after saves settle by `refreshAfterSave`. */
   onSave?: SaveRefreshOptions<TData>["onSave"];
@@ -215,7 +218,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   const maxPage = Math.max(1, Math.ceil(MAX_ROW_COUNT / Math.max(1, pageSize)));
   const wantedPage = Number.isSafeInteger(rawPage) && rawPage >= 1 ? Math.min(rawPage, maxPage) : 1;
   const live = useRef({ options, spec: EMPTY_LIVE_SPEC, page: wantedPage, pageSize, settledOnce: false, requested: false, error: null as unknown, leftInitial: false });
-  const { spec, onSortChange, onFilterChange, onSearchTextChange } = useServerSpec(options, () => {
+  const { spec, ready: specReady, onSortChange, onFilterChange, onSearchTextChange } = useServerSpec(options, () => {
     if (live.current.settledOnce) setPage(1);
   });
   const chainKey = `${serverSpecKey(spec)}|${pageSize}`;
@@ -241,16 +244,17 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   const awaitingChain = !cursorSource && settled.cursorSource;
   const page = cursorSource ? Math.min(wantedPage, settled.furthestPage) : awaitingChain ? 1 : wantedPage;
   const [tick, setTick] = useState(0);
-  const { setHandlers, setSaveCheckListener, plugins: guardPlugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, savingRows, setSaveStartListener, setSavesSettledListener, setReshapeListener, setSettleListener } = useRefreshGuard();
+  const { plugins: guardPlugins, protectedRows, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, savingRows, setSaveStartListener, setSavesSettledListener, setReshapeListener, setSettleListener } = useRefreshGuard();
   const [landed, setLanded] = useState<Landed<TData, TCursor> | null>(null);
 
   const specKey = serverSpecKey(spec);
   const view = `${specKey}|${page}|${pageSize}`;
-  const key = `${view}|${tick}`;
+  const key = `${view}|${tick}${specReady ? "" : "|seeding"}`;
   const deleted = useRef(new Set<string>());
   const prefetch = useRef<PrefetchEntry | null>(null);
   const openMarks = useRef<{ main: number | null; prefetch: number | null }>({ main: null, prefetch: null });
   const adoptedKey = useRef<string | null>(null);
+  const nextReason = useRef<FetchReason>("load");
 
   const warned = useRef(new Set<string>());
   const warn = useCallback((kind: string, message: string) => {
@@ -325,6 +329,9 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   }, [setSavesSettledListener]);
 
   useEffect(() => {
+    if (!specReady) return;
+    const reason = nextReason.current;
+    nextReason.current = "load";
     const adoptedRequest = adoptedKey.current === key;
     adoptedKey.current = null;
     if (adoptedRequest) return;
@@ -365,7 +372,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
     settleMountState
       .then(() => {
         if (controller.signal.aborted) return Promise.reject(controller.signal.reason);
-        return live.current.options.fetchRows({ spec: requestSpec, page: requestPage, pageSize: requestSize, start, end: range.end, cursor: chain.current.cursors.get(requestPage), signal: controller.signal });
+        return live.current.options.fetchRows({ spec: requestSpec, page: requestPage, pageSize: requestSize, start, end: range.end, cursor: chain.current.cursors.get(requestPage), reason, signal: controller.signal });
       })
       .then((answer) => {
         if (controller.signal.aborted) return;
@@ -397,7 +404,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
     openMarks.current.prefetch = entry.mark;
     const start = current * size;
     const range: RowRange = { start, end: start + size };
-    new Promise<ServerRowsAnswer<TData, TCursor>>((resolve) => resolve(live.current.options.fetchRows({ spec: currentSpec, page: current + 1, pageSize: size, start, end: range.end, cursor: chain.current.cursors.get(current + 1), signal: controller.signal })))
+    new Promise<ServerRowsAnswer<TData, TCursor>>((resolve) => resolve(live.current.options.fetchRows({ spec: currentSpec, page: current + 1, pageSize: size, start, end: range.end, cursor: chain.current.cursors.get(current + 1), reason: "load", signal: controller.signal })))
       .then((answer) => {
         if (controller.signal.aborted) return;
         const read = readAnswer<TData, TCursor>(answer, range, warn, live.current.options.getRowId);
@@ -498,25 +505,32 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   }, [specKey, page, setPage]);
 
   const retry = useCallback(() => {
-    if (live.current.error !== null) setTick((n) => n + 1);
+    if (live.current.error === null) return;
+    nextReason.current = "retry";
+    setTick((n) => n + 1);
   }, []);
   const restartClockRef = useRef<() => void>(() => {});
-  const refreshRef = useRef<() => void>(() => {});
-  const { request: requestReshape, cancel: cancelReshape } = useReshape({ delay: options.reshapeDelayMs, run: () => refreshRef.current(), busy: loading, resetKey: view, warn });
+  const refreshRef = useRef<(reason: FetchReason) => void>(() => {});
+  const { request: requestReshape, cancel: cancelReshape } = useReshape({ delay: options.reshapeDelayMs, ordered: spec.sorts.length + spec.filters.length > 0, run: () => refreshRef.current("refresh"), busy: loading, resetKey: view, warn });
   const reshape = useCallback(() => requestReshape("soon"), [requestReshape]);
   useEffect(() => {
     setReshapeListener(requestReshape);
     return () => setReshapeListener(null);
   }, [setReshapeListener, requestReshape]);
-  const refresh = useCallback(() => {
-    cancelReshape();
-    restartClockRef.current();
-    if (live.current.settledOnce && guardMissing()) warn("guard", GUARD_MISSING_MESSAGE);
-    setTick((n) => n + 1);
-  }, [guardMissing, warn, cancelReshape]);
+  const refreshFor = useCallback(
+    (reason: FetchReason) => {
+      cancelReshape();
+      restartClockRef.current();
+      nextReason.current = reason;
+      setTick((n) => n + 1);
+    },
+    [cancelReshape],
+  );
+  const refresh = useCallback(() => refreshFor("refresh"), [refreshFor]);
+  const refreshAfterSave = useCallback(() => refreshFor("save"), [refreshFor]);
   useLayoutEffect(() => {
-    refreshRef.current = refresh;
-  }, [refresh]);
+    refreshRef.current = refreshFor;
+  }, [refreshFor]);
   const keyRef = useRef(key);
   useLayoutEffect(() => {
     keyRef.current = key;
@@ -529,7 +543,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
       const keyAtSettle = keyRef.current;
       cancel = scheduleFrame(() => {
         cancel = null;
-        if (keyRef.current === keyAtSettle) refreshRef.current();
+        if (keyRef.current === keyAtSettle) refreshRef.current("save");
       });
     });
     return () => {
@@ -537,14 +551,16 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
       cancel?.();
     };
   }, [setSettleListener]);
-  const restartClock = useRevalidation({ interval: options.revalidateIntervalMs, onTick: () => refreshRef.current(), busy: loading, resetKey: specKey });
+  const restartClock = useRevalidation({ interval: options.revalidateIntervalMs, onTick: () => refreshRef.current("refresh"), busy: loading, resetKey: specKey });
   useLayoutEffect(() => {
     restartClockRef.current = restartClock;
   }, [restartClock]);
 
+  const handledChanges = useRef(new WeakSet<object>());
   const onDataChange = useCallback(
     (next: readonly TData[], change: DataChange<TData>) => {
-      markEdited();
+      if (handledChanges.current.has(change)) return;
+      handledChanges.current.add(change);
       trackDeletes(deleted.current, change);
       if (((change.ops as typeof change.ops | undefined) ?? []).some((op) => op.type !== "update")) dropPrefetch();
       // `next` is the grid's snapshot and can predate a page that landed since; replaying the operations on the latest rows keeps it.
@@ -552,7 +568,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
       if (change.source === "stream" && ((change.ops as typeof change.ops | undefined) ?? []).some((op) => op.type === "delete")) requestReshape("soon");
       live.current.options.onDataChange?.(next, change);
     },
-    [markEdited, dropPrefetch, requestReshape, streamUpdateRow],
+    [dropPrefetch, requestReshape, streamUpdateRow],
   );
   const getRowId = useCallback((row: TData, index: number) => live.current.options.getRowId(row, index), []);
 
@@ -573,10 +589,9 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
     onPageSizeChange,
   });
 
-  const onSave = useSaveRefresh(options, refresh, setSaveCheckListener);
+  const { onSave, wrapSave } = useSaveRefresh(options, refreshAfterSave);
 
   const plugins = useMountedPlugins(guardPlugins, options.plugins);
-  useLayoutEffect(() => setHandlers({ onDataChange: onDataChange as GuardHandlers["onDataChange"] }));
 
   const providerProps = useMemo<UseDataGridServerRowsProviderProps<TData>>(
     () => ({
@@ -599,6 +614,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
     }),
     [shown.rows, shown.totalRowCount, spec, getRowId, onDataChange, onSave, onSortChange, onFilterChange, onSearchTextChange, plugins],
   );
+  useRegisteredWiring(providerProps, wrapSave);
   const rootProps = useMemo<UseDataGridServerRowsRootProps>(() => ({ loading, error, onRetry: retry }), [loading, error, retry]);
   const gridProps = useMemo(() => ({ ...providerProps, ...rootProps }), [providerProps, rootProps]);
 

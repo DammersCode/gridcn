@@ -3040,7 +3040,8 @@
           "status": "supported",
           "evidence": [
             "tests/parity/view.parity.test.tsx",
-            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.page-reset.test.tsx"
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.page-reset.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.spread.test.tsx"
           ]
         },
         "Z": {
@@ -3050,7 +3051,8 @@
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.test.tsx",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.browser.test.tsx",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.sequence.test.tsx",
-            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.refresh.test.tsx"
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.refresh.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.spread.test.tsx"
           ]
         },
         "C": {

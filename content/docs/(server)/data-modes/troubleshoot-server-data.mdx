@@ -16,7 +16,7 @@ Find your symptom below. In a development build, the grid logs a warning for sev
 - **A page shows fewer rows than `pageSize`.** The answer repeats a row id, and the hook drops the later copies. [Make the sort order unique](/docs/data-modes/query-server-rows#sorting-a-scroll-grid).
 - **Your route answers 400 with a `ServerSpecError` message.** `parseServerSpec` rejected the body, and the message names the part, for example `filters[2].value`. Fix the value that the client sends, or your `columns` and `limits`. See [Check the spec on your server](/docs/data-modes/query-server-rows#parse-the-spec).
 - **A number or date filter matches the wrong rows.** Every filter value is text, such as `"5"`. Convert it on your server for number and date columns. See [Operators](/docs/sort-filter-search/filtering#operators).
-- **A pushed row stays in its old place.** With a server sort or filter, the grid marks a pushed row stale and never moves it. Call `server.reshape()`, or set `reshapeDelayMs`. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
+- **A pushed row stays in its old place.** With a server sort or filter, the grid marks a pushed row stale and never moves it. The hook reshapes one second after the push. Call `server.reshape()` to reshape at once, or set `reshapeDelayMs`. See [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view).
 - **Rows at the end of an answer do not show.** The answer holds more than `end - start` rows, and the hook uses the first `end - start`. Make your server honor the limit.
 - **A slow answer replaces a newer page.** With your own fetch, abort the request of a replaced page, as [Load rows by page](/docs/server-pagination/load-rows-page#own-fetch) does. The hook does it for you when `fetchRows` passes `signal` to `fetch`.
 
@@ -30,8 +30,6 @@ Find your symptom below. In a development build, the grid logs a warning for sev
 
 ## Edits and saves [#saves]
 
-- **Scroll mode loads no more blocks, and a warning names `onRenderedRowsChange`.** An `onRenderedRowsChange` prop after the spread of `server.gridProps` replaces the handler of the hook. Pass it as the `onRenderedRowsChange` option of the hook. An `onDataChange` prop after the spread runs next to the merge of the hook.
-- **A warning says that the refresh guard never mounted.** A `plugins` prop after the spread replaced the guard. Pass your plugins in the `plugins` option of the hook. Without the guard, `refresh` cannot keep a row with a pending save or an open edit.
 - **A failed save does not revert the edit.** Your `onSave` returns no promise and does not throw. Or the grid is `readOnly` at the refusal and keeps the refused value. Return a promise that rejects or resolves with `{ rejected }`. See [Save edits](/docs/save-server/save-edits).
 - **A row stays marked `failed`.** The mark clears at the next save of the row, or with `actions.clearSaveStatus()`.
 - **Two users edit the same row, and the later save overwrites the first.** Your server accepts every write. Compare `prev` with the stored row and refuse the row. See [Handle refused saves](/docs/save-server/handle-refused-saves#detect-a-conflict).

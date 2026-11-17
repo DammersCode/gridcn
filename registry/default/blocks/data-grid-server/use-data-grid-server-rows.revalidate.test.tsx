@@ -283,4 +283,19 @@ describe("revalidateIntervalMs, sequential source", () => {
     await advance(100);
     expect(s.fetchRows.mock.calls.length).toBeGreaterThan(0);
   });
+  it("reports the skip through canRevalidate() and warns once in development", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const s = sequence();
+    const view = await mountSequence(s);
+    expect(view.result.current.canRevalidate()).toBe(true);
+    for (let end = 10; end <= 130; end += 10) {
+      act(() => view.result.current.gridProps.onRenderedRowsChange({ start: end - 10, end }));
+      await advance(20);
+    }
+    expect(view.result.current.canRevalidate()).toBe(false);
+    await advance(7000);
+    expect(warn.mock.calls.filter(([message]) => String(message).includes("timed refresh was skipped"))).toHaveLength(1);
+    act(() => view.result.current.gridProps.onRenderedRowsChange({ start: 0, end: 10 }));
+    expect(view.result.current.canRevalidate()).toBe(true);
+  });
 });

@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { applyChangeWith, holeRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { readAnswer, type ReadAnswer, type ServerRowsAnswer, type ServerRowsRequest, type WithRowId } from "./read-answer";
-import { GUARD_MISSING_MESSAGE, pruneIds, stashGuardedRows, trackDeletes, unionIds, useRefreshGuard, writeBlocks, type GuardedBlock, type GuardHandlers, type ProtectedRows } from "./refresh-guard";
+import { readAnswer, type FetchReason, type ReadAnswer, type ServerRowsAnswer, type ServerRowsRequest, type WithRowId } from "./read-answer";
+import { pruneIds, stashGuardedRows, trackDeletes, unionIds, useRefreshGuard, writeBlocks, type GuardedBlock, type ProtectedRows } from "./refresh-guard";
 import { cursorKey, MAX_SEEN_CURSORS, needsNextBlock, skeletonCount, startsSequence, stepSequence } from "./scroll-sequence";
 import { chunkAligned, chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes } from "./range-math";
-import { DEFAULT_MAX_LOADED_ROWS, MAX_SEQUENTIAL_REVALIDATE_BLOCKS, distanceToCentre, dueWanted, keepRange, pickEvictions, pruneViewed, rangesIntersect, readFetchLimits, trackWanted, unloadRangesOf, type FetchLimits, type Wanted } from "./fetch-hygiene";
+import { DEFAULT_MAX_LOADED_ROWS, MAX_SEQUENTIAL_REVALIDATE_BLOCKS, distanceToCentre, dueWanted, keepRange, rangesIntersect, readFetchLimits, trackWanted, type FetchLimits, type Wanted } from "./fetch-hygiene";
+import { evictRows, forgetUnloaded, stampLanded, stampViewed, unloadRows } from "./scroll-eviction";
 import { useSaveRefresh, type SaveRefreshOptions, type SaveRefreshPolicy } from "./save-refresh";
-import { isolate, scheduleFrame, useMountedPlugins, useReshape, useRevalidation, useServerSpec } from "./server-state";
+import { isolate, scheduleFrame, useMountedPlugins, useRegisteredWiring, useReshape, useRevalidation, useServerSpec } from "./server-state";
 import type { UseDataGridServerRowsRootProps } from "./use-data-grid-server-rows";
 
 const DEFAULT_OVERSCAN = 30;
@@ -34,8 +35,11 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
    *   `hasMore: false`, or an empty block ends the source. Without a cursor, `hasMore` defaults to a full block.
    */
   fetchRows: (request: ServerRowsRequest<TCursor>) => Promise<ServerRowsAnswer<TData, TCursor>>;
-  /** The sort, filter, and search while `spec` is not controlled. */
-  defaultSpec?: Partial<ServerSpec>;
+  /**
+   * The sort, filter, and search while `spec` is not controlled. A function runs once on the client after mount, so it can read
+   * `localStorage`; it returns the spec or `undefined`. The first request waits for it.
+   */
+  defaultSpec?: Partial<ServerSpec> | (() => Partial<ServerSpec> | undefined);
   /** Controls the sort, filter, and search; pair it with `onSpecChange`. A content change starts the blocks over. */
   spec?: ServerSpec;
   onSpecChange?: (spec: ServerSpec) => void;
@@ -68,14 +72,15 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
    * Milliseconds to wait after a push marked a row stale before the hook runs a `refresh()` (a reshape) so the server places the
    * rows again. The first push starts the wait and later pushes join it, so a steady feed reshapes at most once per delay. A
    * reshape that falls due during a request, or while the page is hidden, waits and runs once; a sequential source skips it while the
-   * rendered rows plus `overscan` end beyond 10 blocks. At least 250. Off by default: a stale row then waits for `reshape()`, `refresh()`, or a spec change.
+   * rendered rows plus `overscan` end beyond 10 blocks. At least 250. Default 1000 while the spec has a sort or a filter, and off otherwise;
+   * `false` turns it off, and a stale row then waits for `reshape()`, `refresh()`, or a spec change.
    */
-  reshapeDelayMs?: number;
+  reshapeDelayMs?: number | false;
   /** Fires after a request fails. */
   onError?: (error: unknown) => void;
   /** Fires after the rows of a block land, with the range they cover. The grid shows them on the next frame. */
   onLoaded?: (range: RowRange) => void;
-  /** Fires after the hook merged an edit, insert, delete, or revert. Put your handler here; a provider `onDataChange` after the spread runs next to the merge. */
+  /** Fires after the hook merged an edit, insert, delete, or revert. A provider `onDataChange` after the spread runs next to the merge. */
   onDataChange?: (next: readonly TData[], change: DataChange<TData>) => void;
   /** Saves a change; spread to the provider through `gridProps.onSave`, where it behaves as the `DataGridProvider` prop of the same name. The hook refreshes after saves settle by `refreshAfterSave`. */
   onSave?: SaveRefreshOptions<TData>["onSave"];
@@ -145,6 +150,12 @@ export type UseDataGridServerRowsScrollResult<TData> = {
   refresh: () => void;
   /** Asks the server to place the pushed rows again: one `refresh()` on the next frame, or after `reshapeDelayMs` when it is set. Calls in one frame join. A sequential source skips it while the rendered rows plus `overscan` end beyond 10 blocks. */
   reshape: () => void;
+  /**
+   * Whether a timed refresh would run now. A sequential source skips `revalidateIntervalMs`, `reshapeDelayMs`, and `refreshAfterSave`
+   * refreshes while the rendered rows plus `overscan` end beyond 10 blocks, and then returns `false`; call `refresh()` yourself there.
+   * Not reactive: read it in an effect or a handler.
+   */
+  canRevalidate: () => boolean;
   /** Rows with no data yet; they render as skeletons. A sequential source reports its one block of skeletons. */
   unloadedCount: number;
   /** The loaded ranges, merged and ascending. Not reactive: read it in an effect or a handler. */
@@ -180,7 +191,7 @@ type Sequence = {
 
 const freshSequence = (): Sequence => ({ cursor: undefined, ended: false, length: 0, offset: 0, sentCount: null, refresh: null, seen: new Set() });
 
-type Core<TData> = {
+export type Core<TData> = {
   count: number | null;
   /** The first block of the current spec landed. */
   ready: boolean;
@@ -217,6 +228,8 @@ type Core<TData> = {
   /** Uncovered blocks of the wanted range with the time each entered it; one entry for a sequential source. */
   wanted: Wanted;
   delayTimer: ReturnType<typeof setTimeout> | null;
+  /** Why the requests that start now run; back to `"load"` when none is owed or in flight. */
+  reason: FetchReason;
   /** Blocks of a refresh or retry that wait for a free request slot. */
   owed: RowRange[];
   /** Block index -> stamp of the latest report that had the block in its keep range. */
@@ -235,7 +248,7 @@ type Core<TData> = {
 };
 
 function createCore<TData>(): Core<TData> {
-  return { count: null, ready: false, loaded: [], kind: "unknown", seq: freshSequence(), inFlight: new Map(), failed: new Map(), pending: [], cancelFrame: null, lastWindow: null, rowsLength: 0, warned: new Set(), displaced: new Map(), absent: new Set(), deleted: new Set(), cancelQueuedRefresh: null, orphans: new Map(), carried: new Set(), empty: [], stale: [], cleared: new Set(), restored: new Set(), wanted: new Map(), delayTimer: null, owed: [], viewed: new Map(), tick: 0, keep: null, evictedBlocks: new Set(), unloaded: false, reportAfterUnload: false, pumping: false, pumpAgain: false };
+  return { count: null, ready: false, loaded: [], kind: "unknown", seq: freshSequence(), inFlight: new Map(), failed: new Map(), pending: [], cancelFrame: null, lastWindow: null, rowsLength: 0, warned: new Set(), displaced: new Map(), absent: new Set(), deleted: new Set(), cancelQueuedRefresh: null, orphans: new Map(), carried: new Set(), empty: [], stale: [], cleared: new Set(), restored: new Set(), wanted: new Map(), delayTimer: null, reason: "load", owed: [], viewed: new Map(), tick: 0, keep: null, evictedBlocks: new Set(), unloaded: false, reportAfterUnload: false, pumping: false, pumpAgain: false };
 }
 
 function oldestMark<TData>(core: Core<TData>): number | null {
@@ -285,7 +298,7 @@ function positiveInteger(value: number | undefined, fallback: number, min: numbe
 
 /** Scroll mode of `useDataGridServerRows`: random access over a counted result, or a sequential chain of blocks. */
 export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDataGridServerRowsScrollOptions<TData, TCursor>, TData>): UseDataGridServerRowsScrollResult<TData> {
-  const { spec, onSortChange, onFilterChange, onSearchTextChange } = useServerSpec(options, noop);
+  const { spec, ready: specReady, onSortChange, onFilterChange, onSearchTextChange } = useServerSpec(options, noop);
   const coreRef = useRef<Core<TData> | null>(null);
   const getCore = useCallback((): Core<TData> => {
     if (coreRef.current === null) coreRef.current = createCore<TData>();
@@ -295,7 +308,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
   const [count, setCount] = useState<number | null>(null);
   const [loadedCount, setLoadedCount] = useState(0);
   const [skeletons, setSkeletons] = useState<number | null>(null);
-  const { setHandlers, setSaveCheckListener, plugins: guardPlugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, setSettleListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows } = useRefreshGuard({ trackUnacknowledged: true });
+  const { plugins: guardPlugins, protectedRows, savingRows, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, setSettleListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows } = useRefreshGuard({ trackUnacknowledged: true });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const live = useRef({ options, spec });
@@ -615,6 +628,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
         // Rows still waiting for the next frame count as loading, so "ready" means the rows are on screen.
         setLoading(busy(core));
         pumpRef.current();
+        if (core.inFlight.size === 0 && core.owed.length === 0 && !core.seq.refresh) core.reason = "load";
       };
       const fail = (cause: unknown) => {
         if (controller.signal.aborted) return;
@@ -624,7 +638,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
         const onError = live.current.options.onError;
         if (onError) isolate("onError", () => onError(failure));
       };
-      const request = { spec: live.current.spec, start: range.start, end: range.end, cursor, signal: controller.signal } as ServerRowsRequest<TCursor>;
+      const request = { spec: live.current.spec, start: range.start, end: range.end, cursor, reason: core.reason, signal: controller.signal } as ServerRowsRequest<TCursor>;
       let landed = false;
       // A landed sequential block re-checks the rendered window once its request has settled, so the chain goes on while the window stays near the end.
       const afterSettle = () => {
@@ -775,6 +789,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
 
   const specKey = serverSpecKey(spec);
   useLayoutEffect(() => {
+    if (!specReady) return;
     const core = getCore();
     const wasSequence = core.kind === "sequence";
     dropBlocks(wasSequence ? 0 : (core.count ?? 0));
@@ -796,7 +811,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     };
     // `specKey` stands for the spec content.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [specKey]);
+  }, [specKey, specReady]);
 
   const evictRange = useCallback(
     (range: RowRange) => {
@@ -828,6 +843,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     if (core.failed.size === 0) return;
     const failures = Array.from(core.failed.values());
     core.failed.clear();
+    core.reason = "retry";
     setError(null);
     if (core.kind === "random" && core.ready) {
       for (const { range } of failures) if (!core.owed.some((block) => rangeKey(block) === rangeKey(range))) core.owed.push(range);
@@ -865,30 +881,35 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
   }, [rows, getCore]);
 
   const restartClockRef = useRef<() => void>(noop);
-  const refreshRef = useRef<() => void>(noop);
+  const refreshRef = useRef<(reason: FetchReason) => void>(noop);
   const canRevalidate = useCallback(() => {
     const core = getCore();
     if (core.kind !== "sequence") return true;
     const size = blockSize();
     return Math.ceil(Math.max(size, (core.lastWindow?.end ?? 0) + overscanOf()) / size) <= MAX_SEQUENTIAL_REVALIDATE_BLOCKS;
   }, [getCore, blockSize, overscanOf]);
-  const { request: requestReshape, cancel: cancelReshape } = useReshape({ delay: options.reshapeDelayMs, run: () => refreshRef.current(), busy: loading, canRun: canRevalidate, resetKey: specKey, warn });
+  const canRunTimed = useCallback(() => {
+    const ok = canRevalidate();
+    if (!ok) warn("revalidate-skipped", "a timed refresh was skipped because the rendered rows of a sequential source end beyond 10 blocks; call refresh() yourself, and read canRevalidate() to know when it applies");
+    return ok;
+  }, [canRevalidate, warn]);
+  const { request: requestReshape, cancel: cancelReshape } = useReshape({ delay: options.reshapeDelayMs, ordered: spec.sorts.length + spec.filters.length > 0, run: () => refreshRef.current("refresh"), busy: loading, canRun: canRunTimed, resetKey: specKey, warn });
   const reshape = useCallback(() => requestReshape("soon"), [requestReshape]);
   useEffect(() => {
     setReshapeListener(requestReshape);
     return () => setReshapeListener(null);
   }, [setReshapeListener, requestReshape]);
-  const refresh = useCallback(() => {
+  const refreshFor = useCallback((reason: FetchReason) => {
     cancelReshape();
     restartClockRef.current();
     const core = getCore();
+    core.reason = reason;
     if (!core.ready || (core.kind !== "sequence" && core.count === null)) {
       core.failed.clear();
       setError(null);
       runFetch({ start: 0, end: blockSize() });
       return;
     }
-    if (guardMissing()) warn("guard", GUARD_MISSING_MESSAGE);
     commit();
     const size = blockSize();
     if (core.kind === "sequence") {
@@ -911,13 +932,14 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     core.owed = chunkRange(keep, size);
     setLoading(core.owed.length > 0);
     pumpRef.current();
-  }, [getCore, runFetch, evictRange, abortRequests, blockSize, overscanOf, guardMissing, warn, commit, cancelReshape]);
+  }, [getCore, runFetch, evictRange, abortRequests, blockSize, overscanOf, commit, cancelReshape]);
+  const refresh = useCallback(() => refreshFor("refresh"), [refreshFor]);
 
   useLayoutEffect(() => {
-    refreshRef.current = refresh;
-  }, [refresh]);
+    refreshRef.current = refreshFor;
+  }, [refreshFor]);
 
-  const restartClock = useRevalidation({ interval: options.revalidateIntervalMs, onTick: () => refreshRef.current(), busy: loading, canTick: canRevalidate, resetKey: specKey });
+  const restartClock = useRevalidation({ interval: options.revalidateIntervalMs, onTick: () => refreshRef.current("refresh"), busy: loading, canTick: canRunTimed, resetKey: specKey });
   useLayoutEffect(() => {
     restartClockRef.current = restartClock;
   }, [restartClock]);
@@ -925,7 +947,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
   useEffect(() => {
     const core = getCore();
     setSettleListener(() => {
-      if (core.kind !== "sequence") refreshRef.current();
+      if (core.kind !== "sequence" && live.current.options.refreshAfterSave !== false) refreshRef.current("save");
     });
     return () => {
       setSettleListener(null);
@@ -956,10 +978,12 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     [getCore],
   );
 
+  const handledChanges = useRef(new WeakSet<object>());
   const onDataChange = useCallback(
     (next: readonly TData[], change: DataChange<TData>) => {
+      if (handledChanges.current.has(change)) return;
+      handledChanges.current.add(change);
       const core = getCore();
-      markEdited();
       commit();
       // `next` is the grid's snapshot and can predate rows a landed block wrote; replaying the operations on the latest rows keeps them.
       setRows((prev) => {
@@ -979,7 +1003,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
         else if (core.cancelQueuedRefresh === null) {
           core.cancelQueuedRefresh = scheduleFrame(() => {
             core.cancelQueuedRefresh = null;
-            refreshRef.current();
+            refreshRef.current("refresh");
           });
         }
       } else if (core.kind === "sequence" && change.source === "stream" && change.ops.some((op) => op.type !== "update")) {
@@ -988,16 +1012,15 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       const onDataChange = live.current.options.onDataChange;
       if (onDataChange) isolate("onDataChange", () => onDataChange(next, change));
     },
-    [getCore, commit, getRowId, warn, followRowOperations, markEdited, requestReshape, streamUpdateRow],
+    [getCore, commit, getRowId, warn, followRowOperations, requestReshape, streamUpdateRow],
   );
 
   const refreshAfterSave = useCallback(() => {
-    if (canRevalidate()) refresh();
-  }, [canRevalidate, refresh]);
-  const onSave = useSaveRefresh(options, refreshAfterSave, setSaveCheckListener);
+    if (canRunTimed()) refreshFor("save");
+  }, [canRunTimed, refreshFor]);
+  const { onSave, wrapSave } = useSaveRefresh(options, refreshAfterSave);
 
   const plugins = useMountedPlugins(guardPlugins, options.plugins);
-  useLayoutEffect(() => setHandlers({ onDataChange: onDataChange as GuardHandlers["onDataChange"], onRenderedRowsChange }));
   const providerProps = useMemo<UseDataGridServerRowsScrollProviderProps<TData>>(
     () => ({
       data: rows as TData[],
@@ -1020,12 +1043,13 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     }),
     [rows, count, spec, getRowId, onDataChange, onSave, onRenderedRowsChange, onSortChange, onFilterChange, onSearchTextChange, plugins],
   );
+  useRegisteredWiring(providerProps, wrapSave);
   const rootProps = useMemo<UseDataGridServerRowsRootProps>(() => ({ loading, error, onRetry: retry }), [loading, error, retry]);
   const gridProps = useMemo(() => ({ ...providerProps, ...rootProps }), [providerProps, rootProps]);
 
   const status = error !== null ? "error" : loading ? "loading" : "ready";
   const unloadedCount = skeletons ?? (count ?? 0) - loadedCount;
-  return { gridProps, providerProps, rootProps, spec, totalRowCount: count, status, loading, error, retry, refresh, reshape, unloadedCount, getLoadedRanges, evict };
+  return { gridProps, providerProps, rootProps, spec, totalRowCount: count, status, loading, error, retry, refresh, reshape, canRevalidate, unloadedCount, getLoadedRanges, evict };
 }
 
 function noop() {}
@@ -1053,69 +1077,6 @@ function runPumps<TData>(core: Core<TData>, step: () => void) {
   } finally {
     core.pumping = false;
   }
-}
-
-function stampViewed<TData>(core: Core<TData>, keep: RowRange, size: number, cap: number) {
-  const stamp = ++core.tick;
-  for (let index = Math.floor(keep.start / size); index * size < keep.end; index++) core.viewed.set(index, stamp);
-  if (core.viewed.size > Math.ceil(cap / size) * 2 + 256) pruneViewed(core.viewed, core.loaded, keep, size);
-}
-
-function stampLanded<TData>(core: Core<TData>, start: number, length: number, size: number, cap: number) {
-  if (!Number.isFinite(cap)) return;
-  for (let index = Math.floor(start / size); index * size < start + length; index++) if (!core.viewed.has(index)) core.viewed.set(index, core.tick);
-}
-
-/** Unloads the target slots of `prev` except protected rows; `cleared` lists the slots that were unloaded. Pure. */
-function unloadRows<TData>(prev: readonly (TData | undefined)[], targets: readonly RowRange[], protectedIds: ProtectedRows, idOf: (row: TData, index: number) => string): { rows: (TData | undefined)[]; cleared: RowRange[]; kept: RowRange[] } {
-  let next: (TData | undefined)[] | null = null;
-  const kept: RowRange[] = [];
-  for (const { start, end } of targets) {
-    for (let index = start; index < Math.min(end, prev.length); index++) {
-      const row = prev[index];
-      if (row === undefined) continue;
-      if (protectedIds?.has(idOf(row, index))) kept.push({ start: index, end: index + 1 });
-      else (next ??= prev.slice())[index] = undefined;
-    }
-  }
-  return { rows: next ?? (prev as (TData | undefined)[]), cleared: kept.length === 0 ? targets.slice() : targets.flatMap((target) => subtractRanges(target, kept)), kept };
-}
-
-/**
- * Removes unloaded slots from the ranges the hook claims. A kept slot (a protected row that stays) moves from `loaded` to `stale`,
- * so the next window fetches its block whole and the answer replaces or moves the row. Idempotent: a StrictMode updater may run twice.
- */
-function forgetUnloaded<TData>(core: Core<TData>, cleared: readonly RowRange[], kept: readonly RowRange[] = []) {
-  if (cleared.length === 0 && kept.length === 0) return;
-  core.loaded = mergeRanges(core.loaded.flatMap((range) => subtractRanges(range, [...cleared, ...kept])));
-  core.stale = mergeRanges([...core.stale.flatMap((range) => subtractRanges(range, cleared)), ...kept]);
-  core.empty = core.empty.flatMap((range) => subtractRanges(range, cleared));
-  core.unloaded = true;
-}
-
-type EvictInput<TData> = { loaded: readonly RowRange[]; keep: RowRange; size: number; cap: number; protectedIds: ProtectedRows; idOf: (row: TData, index: number) => string };
-
-/** Unloads the least recently viewed blocks outside the keep range until the loaded rows fit the cap. Pure in `rows`; the core updates are idempotent. */
-function evictRows<TData>(core: Core<TData>, rows: (TData | undefined)[], { loaded, keep, size, cap, protectedIds, idOf }: EvictInput<TData>): (TData | undefined)[] {
-  const protectedSlots = protectedIds === null ? undefined : (block: RowRange) => protectedSlotsIn(rows, block, protectedIds, idOf);
-  const picks = pickEvictions({ loaded, viewed: core.viewed, keep, blockSize: size, cap, protectedSlots });
-  if (picks.length === 0) return rows;
-  const ranges = picks.flatMap(unloadRangesOf);
-  // `rows` is the fresh copy that `writeBlocks` returned, so the slots are written in place.
-  for (const { start, end } of ranges) rows.fill(undefined, start, Math.min(end, rows.length));
-  forgetUnloaded(core, ranges, picks.flatMap((pick) => pick.kept.map((slot) => ({ start: slot, end: slot + 1 }))));
-  core.reportAfterUnload = true;
-  for (const pick of picks) if (pick.kept.length === 0) core.evictedBlocks.add(pick.block.start / size);
-  return rows;
-}
-
-function protectedSlotsIn<TData>(rows: readonly (TData | undefined)[], block: RowRange, protectedIds: ReadonlySet<string>, idOf: (row: TData, index: number) => string): number[] {
-  const slots: number[] = [];
-  for (let index = block.start; index < Math.min(block.end, rows.length); index++) {
-    const row = rows[index];
-    if (row !== undefined && protectedIds.has(idOf(row, index))) slots.push(index);
-  }
-  return slots;
 }
 
 function abortRequestsExcept<TData>(core: Core<TData>, keep: RowRange) {
