@@ -5,7 +5,7 @@ import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { normalizePayloadText } from "../scripts/normalize-payload-eol.mjs";
 
-type PayloadFile = { path: string; content: string };
+type PayloadFile = { path: string; content: string; target?: string };
 
 function payloadText(files: PayloadFile[]): string {
   return JSON.stringify({ name: "demo", files }, null, 2).replace(/\n/g, "\r\n") + "\r\n";
@@ -17,6 +17,12 @@ function contents(text: string): Record<string, string> {
 }
 
 describe("normalizePayloadText", () => {
+  it("keeps a payload whose file target changed with identical content", () => {
+    const head = payloadText([{ path: "a.ts", content: "one", target: "components/x/a.ts" }]);
+    const work = payloadText([{ path: "a.ts", content: "one", target: "components/y/a.ts" }]);
+    expect(normalizePayloadText(head, work).status).toBe("real-kept");
+  });
+
   it("discards a payload that differs only in line endings", () => {
     const head = payloadText([{ path: "a.ts", content: "one\r\ntwo\r\n" }]);
     const work = payloadText([{ path: "a.ts", content: "one\ntwo\n" }]);

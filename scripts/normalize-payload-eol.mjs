@@ -8,12 +8,17 @@ const toLf = (s) => s.replace(/\r\n/g, "\n");
 export function normalizePayloadText(headText, workText) {
   const head = JSON.parse(headText);
   const work = JSON.parse(workText);
-  const headByPath = new Map((head.files ?? []).map((file) => [file.path, file.content]));
+  const headFiles = new Map((head.files ?? []).map((file) => [file.path, file]));
+  const headByPath = new Map([...headFiles].map(([path, file]) => [path, file.content]));
+  const metaOf = (file) => JSON.stringify({ ...file, content: undefined });
   const payloadIsCrlf = [...headByPath.values()].some((content) => content.includes("\r\n"));
   let changed = false;
   work.files = (work.files ?? []).map((file) => {
     const committed = headByPath.get(file.path);
-    if (committed !== undefined && toLf(committed) === toLf(file.content)) return { ...file, content: committed };
+    if (committed !== undefined && toLf(committed) === toLf(file.content)) {
+      if (metaOf(headFiles.get(file.path)) !== metaOf(file)) changed = true;
+      return { ...file, content: committed };
+    }
     changed = true;
     const keepsCrlf = committed === undefined ? payloadIsCrlf : committed.includes("\r\n");
     return { ...file, content: keepsCrlf ? file.content : toLf(file.content) };
