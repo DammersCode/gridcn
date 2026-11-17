@@ -813,6 +813,11 @@
                "target": "components/data-grid/standard-schema.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/filter-spec.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/filter-spec.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/server-spec.ts",
                "type": "registry:component",
                "target": "components/data-grid/server-spec.ts"
