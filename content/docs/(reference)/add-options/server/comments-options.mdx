@@ -1,0 +1,179 @@
+---
+title: Comments options
+icon: MessageSquare
+description: Look up the options and result of useDataGridComments, the callback matrix, the save answers, the bounds, the labels, and the DOM hooks.
+type: reference
+aliases: ["comment options", "onCommentSave", "applyRemote", "fetchComments", "cell notes options"]
+---
+
+`useDataGridComments` returns a plugin that shows comments on cells, and the functions that control them. Call it once for each grid, above the grid (`DataGrid` or `DataGridProvider`). The steps are on [Add comments to cells](/docs/rows-live-data/add-comments).
+
+| Symbol | Kind | Section |
+| --- | --- | --- |
+| `useDataGridComments` | Hook | [Options](#usedatagridcommentsoptions) |
+| `applyRemote`, `getComments`, `removeComments`, `refetchComments`, `openComments`, `closeComments`, `getCommentMenuItems` | Result members | [Result](#result) |
+| `onCommentSave` | Save callback | [Save answers](#save-answers) |
+| `onLocalChange`, `onCommentsChange` | Change callbacks | [Callback matrix](#callback-matrix) |
+| `fetchComments` | Fetch callback | [Fetch comments](#fetch-comments) |
+| `maxTextLength`, `maxCommentsPerCell`, `maxComments`, `maxCachedRows` | Bounds | [Bounds](#bounds) |
+
+## Options [#usedatagridcommentsoptions]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-comments/types.ts" name="UseDataGridCommentsOptions" />
+
+Records from `comments` and `defaultComments` pass through the same checks as remote records. The add-on drops an invalid record or a record over a bound, and warns once in development.
+
+`comments` is the controlled set of confirmed comments. Keep its reference stable between renders. `defaultComments` seeds an uncontrolled set once. In controlled mode, `onCommentsChange` receives confirmed records only, and the add-on keeps a confirmed record on screen until the prop returns it.
+
+`canEdit` and `canDelete` default to the author of the comment. `canCreate` and `canResolve` default to anyone. The popover shows an action when `readOnly` and `currentUser` allow it and the default gate passes. With a custom gate, it shows the action whenever `readOnly` and `currentUser` allow it, and the gate runs when the user acts. A refusal shows an inline message. A gate that throws or rejects refuses with the reason `"error"`.
+
+`createId` and `normalizeText` apply to local writes only. The add-on checks the output of both against the bounds.
+
+## Result [#result]
+
+<AutoTypeTable path="./registry/default/blocks/data-grid-comments/types.ts" name="UseDataGridCommentsResult" />
+
+`openComments` scrolls to the cell, makes it the active cell, and waits up to 10 frames for it to render. If the cell still has not rendered, the add-on drops the request and warns in development. `removeComments` discards the pending writes, the comment drafts, and the open popover of the removed comments, and leaves a tombstone for each comment. `getComments` returns a bounded snapshot that does not update. Under the fetch cache, it holds only the cached rows.
+
+`getCommentMenuItems(ctx, defaults)` returns `defaults` followed by a `sep-comments` separator and a `comments` item. The item opens the popover on the next frame, after the menu has closed.
+
+## Callback matrix [#callback-matrix]
+
+`onCommentsChange` is the state channel. It makes one call for each store write with the batch of changes, and its `next` array holds confirmed records only. `onLocalChange` is the broadcast seam. It fires once for each confirmed local write and cannot refuse. The add-on calls each callback after the outermost store write and isolates each call, so one throw does not stop the others.
+
+| Event | `onCommentsChange` source | `onLocalChange` | `onCommentSave` | `onCommentRejected` |
+| --- | --- | --- | --- | --- |
+| Local write applied | none | no | runs | no |
+| Local write without `onCommentSave` | `"ack"` | once | no | no |
+| Save acknowledgement accepted | `"ack"` | once | no | no |
+| Echo of the pending write, before the acknowledgement | `"remote"` or `"fetch"` | once | no | no |
+| Refusal, throw, gate, bound, `readOnly`, or row-busy | none, except `stale` with `current`: `"ack"` | no | no | yes |
+| Controlled prop change or seed | none | only for a prop echo of a pending write | no | no |
+| `applyRemote` | `"remote"` | no | no | no |
+| `fetchComments` answer | `"fetch"` | no | no | no |
+| Fetch cache eviction | none | no | no | no |
+| Id swap | `"id-swap"` | no | no | no |
+| `removeComments` | `"remove"` | no | no | no |
+
+With `fetchComments`, `next` is a partial cache. Save from `ctx.changes`, not from `next`.
+
+## Save answers [#save-answers]
+
+`onCommentSave` receives `{ action, change, prev }`. `action` is `"create"`, `"update"`, `"delete"`, `"resolve"`, or `"reopen"`. `change` carries `baseVersion`, `writeId`, and the new record. `prev` is the last confirmed record.
+
+| Answer | Effect |
+| --- | --- |
+| Nothing (`void`) | The server stored the write exactly as sent. The record becomes confirmed at `baseVersion + 1`. |
+| `{ comment }` | The record replaces the optimistic one. `{ comment: null }` on an edit is a delete. |
+| `{ rejected: { reason, message?, current? } }` | The add-on reverts the write and calls `onCommentRejected`. |
+| A thrown error | The add-on reverts the write. The outcome is unknown, so the popover offers Retry with the same `writeId`. |
+
+A `stale` rejection shows Save my version and Discard. Save my version writes the text again on top of the version that the popover shows. A `forbidden` rejection shows Discard. Every other rejection and a thrown error show Retry and Discard.
+
+`reason` is `"stale"`, `"forbidden"`, `"invalid"`, or `"limit"`. `onCommentRejected` also receives `"read-only"`, `"row-busy"`, and `"error"` for refusals before the save. A `stale` answer with `current` replaces the confirmed record and emits it with the source `"ack"`.
+
+A write is never aborted. One write per comment is in flight, so the popover marks the actions of a saving comment `aria-disabled`. A stuck `onCommentSave` keeps the comment in "Saving". Your code owns the timeout.
+
+An accepted write confirms at `baseVersion + 1`. A server that stamps `createdAt`, `updatedAt`, `author`, or another version must answer `{ comment }`. The server must keep the client `id` of the comment. A transport without compare-and-swap resolves a tie by `updatedAt`, so stamp it on the server. Such a transport converges only after a fetch.
+
+## Apply remote changes [#apply-remote-verdict]
+
+`applyRemote(changes)` takes a batch of at most 10,000 changes and returns an `ApplyRemoteVerdict`:
+
+| Member | Meaning |
+| --- | --- |
+| `applied` | The number of changes that changed the store. |
+| `skippedCount` | The number of changes that the add-on skipped. |
+| `skipped` | The first 100 skipped changes, each as `{ index, reason }`. |
+| `truncated` | The number of changes beyond the batch limit that the add-on ignored. |
+
+`reason` is one of `"stale"` (an older version), `"duplicate"`, `"invalid"`, `"limit"`, `"tombstoned"`, or `"unknown"`. A deleted comment leaves a tombstone for 10 minutes, up to 10,000 tombstones. The tombstone blocks an upsert at or below its version.
+
+`applyRemote` is not a user write. It ignores `readOnly` and works in controlled and uncontrolled mode. Transports must keep the order per comment.
+
+## Fetch comments [#fetch-comments]
+
+`fetchComments({ rowIds, signal })` resolves the comments of the rendered rows that are not loaded. Holes and band rows are skipped.
+
+- The add-on debounces requests by 150 ms, sends at most 200 row ids in a batch, and runs at most 2 requests at once.
+- A batch aborts only when none of its rows renders. A request that does not settle in 30 seconds counts as a failure.
+- A failure calls `onFetchError` and retries on the next scroll, at least 2 seconds later. An answer of more than 10,000 records is a failure with the reason `"limit"`. The add-on retries it with half the batch.
+- A row counts as loaded after the first successful answer. A comment that the answer omits is removed, unless it has a pending write, a comment draft, or a comment conflict, or is a local write that the add-on confirmed in the last 30 seconds.
+- In uncontrolled mode, `maxCachedRows` bounds the cache. The add-on drops the comments of the rows that rendered longest ago first. It keeps a comment with a pending write, a comment draft, a comment conflict, or an open popover.
+- The popover of a row that is loading shows the `loading` label. A failed row shows the `loadFailed` label and a Retry control.
+
+In controlled mode, your code owns the eviction. The add-on drops fetched records beyond `maxComments` and reports them through `onFetchError`. Fetch-based removal of absent comments needs a transport that saves in order.
+
+## Bounds [#bounds]
+
+An invalid value (NaN, zero, a negative, or a fraction) falls back to the default. A value above the ceiling clamps to the ceiling.
+
+| Option | Default | Ceiling | On breach |
+| --- | --- | --- | --- |
+| `maxTextLength` | 2,000 | 20,000 | The add-on refuses the write with the reason `"limit"` and drops a remote record. |
+| `maxCommentsPerCell` | 50 | 500 | The add-on refuses the write and drops a remote record. |
+| `maxComments` | 50,000 | 500,000 | The add-on refuses the write and drops a remote record. |
+| `maxCachedRows` | 2,000 | 20,000 | The add-on drops the comments of the rows that rendered longest ago. |
+
+The add-on also limits a batch of `applyRemote` to 10,000 changes, a fetch answer to 10,000 records, and the comment drafts to 50. It refuses a local text longer than four times `maxTextLength` before `normalizeText` runs, and drops a remote record whose text is that long. A `currentUser` or a `createId` result that is invalid refuses the write with the reason `"invalid"`.
+
+### Record fields [#record-fields]
+
+| Field | Rule |
+| --- | --- |
+| `id`, `rowId`, `columnId` | 1 to 128 characters, no control characters. |
+| `text` | 1 to `maxTextLength` characters after trim. |
+| `version` | An integer from 1 to 1,000,000,000. |
+| `createdAt`, `updatedAt` | Finite epoch milliseconds. |
+| `author.name` | At most 80 characters. The add-on strips control and bidi-override characters. |
+| `author.color` | A CSS color of at most 64 characters. An invalid color paints as a theme token. |
+
+The address and `author.id` of a known comment never change. The add-on drops a record that changes them, except through an id swap. Comment times show in the `labels.locale` locale.
+
+## Keyboard and DOM hooks [#keyboard]
+
+| Keys | Action |
+| --- | --- |
+| <kbd>Shift</kbd>+<kbd>F2</kbd> | Opens the popover for the active cell. A cell without comments opens the composer. The keymap name is `openComments`. |
+| <kbd>Shift</kbd>+<kbd>F10</kbd> or the menu key | Opens the context menu. The "Comments…" item opens the popover. |
+| <kbd>Mod</kbd>+<kbd>Enter</kbd> | Submits the composer. |
+| <kbd>Escape</kbd> | Cancels a delete confirm. Otherwise it closes the popover and keeps the comment draft. |
+| <kbd>Tab</kbd> past the last control | Closes the popover. The Tab order goes on from the grid. |
+
+The command `openComments` refuses holes and band rows. Viewing works on a read-only grid, and each write checks `readOnly` itself.
+
+## Labels [#labels]
+
+`labels` takes a partial `DataGridCommentsLabels`. A function label receives the values to insert, so a translation owns its plural form. `locale` sets the language of the comment times.
+
+| Label | Type | Use |
+| --- | --- | --- |
+| `popover` | `(columnTitle, cellText) => string` | The accessible name of the popover. |
+| `locale` | `string` | The locale of the comment times. |
+| `commentList`, `composer`, `composerPlaceholder` | `string` | The list, the textarea label, and its placeholder. |
+| `submit`, `cancel`, `save`, `retry`, `discard`, `saveMine` | `string` | Button text. |
+| `editAction`, `deleteAction`, `confirmDeleteAction`, `resolveAction`, `reopenAction` | `string` | Visible action text. |
+| `edit`, `remove`, `confirmRemove`, `resolve`, `reopen` | `(name, time) => string` | The accessible name of an action. |
+| `resolved`, `saving`, `loading`, `loadFailed`, `changedByOther`, `noComments` | `string` | Status text. |
+| `readOnlyHint`, `noUserHint`, `rowBusyHint`, `refused`, `failed` | `string` | Hints and inline errors. |
+| `counter` | `(used, max) => string` | The length counter near the limit. |
+| `menuItem` | `string` | The context menu item. |
+| `announce`, `announceAdded` | `(count, unresolved, chord)`, `(name)` | The live region text. |
+| `unknownAuthor` | `string` | The name of an author without one. |
+
+### DOM hooks [#dom-hooks]
+
+| Hook | Where | Use |
+| --- | --- | --- |
+| `data-grid-comment-marker` | The corner element of a commented cell | Style the marker. It is `aria-hidden`. |
+| `data-unresolved` | The marker | Present while any comment of the cell is unresolved. Absent on the ring. |
+| `data-grid-comments-popup` | The popover popup | Style the popover. The grid ignores presses inside it. |
+
+The marker uses `bg-primary` and `border-primary`. It stays visible in forced-colors mode. Under a coarse pointer, its hit area grows to 24 px, and the drawn corner stays the same. `className` merges into the popover root.
+
+## Related
+
+- [Add comments to cells](/docs/rows-live-data/add-comments): wiring, conflicts, and sharing.
+- [Context menu](/docs/rows-pages-menus/context-menu): the resolver that `getCommentMenuItems` plugs into.
+- [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts): the `openComments` add-on action.
+- [Presence options](/docs/add-options/server/presence-options): the sibling add-on for remote selections.

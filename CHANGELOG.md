@@ -118,7 +118,7 @@ The [2.0 breaking changes](https://gridcn.vercel.app/docs/support-upgrades/break
 - **Saved views:** the `data-grid-views` add-on names, stores, and restores a grid view.
 - **Pagination:** `DataGridProvider` pages its view with `pageSize`, `page`, and `pager`.
 - **Selection:** `checkedRowsLifetime` controls how long checked rows live, with a select-all banner for server results.
-- **Add-ons:** the `lookup` cell type, `useDataGridServerAggregate`, and the `gridcn-upgrade` agent skill.
+- **Add-ons:** the `lookup` cell type, cell comments (`data-grid-comments`), `useDataGridServerAggregate`, and the `gridcn-upgrade` agent skill.
 - **Focus:** a grid that mounts with a seeded selection no longer takes focus on page load, so the first Tab starts at the page start. The fill handle takes focus on pointer down, so Ctrl+Z undoes a fill right after a drag, and its hit area is 24 px.
 - **Dependencies:** the validation demo (`data-grid-validation-demo`) installs `zod@^4.6.7`. The core grid has no zod dependency.
 

@@ -32,6 +32,11 @@ A term row links to the page that explains it.
 | `clearContents` | Empties the selected cells. | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
 | coarse pointer | An input whose `(pointer: coarse)` media query matches, such as a finger. Hit areas grow under it. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
 | column group | A named set of columns, or of other groups, that share one header above their own headers. `columnGroups` defines it. | [Column headers and groups](/docs/columns/column-headers-groups) |
+| comment address | The pair `rowId` and `columnId` that names the cell of a comment. A comment never holds a view index. | [Add comments to cells](/docs/rows-live-data/add-comments#addresses) |
+| comment conflict | The state of a comment write that a newer version from another client made stale. The popover offers the text again with Retry, Discard, or Save my version. Not the save conflict of a row. | [Add comments to cells](/docs/rows-live-data/add-comments#save-comments) |
+| comment draft | Text in the composer, an edit, or a delete confirm that the user has not submitted. It stays when the popover closes. | [Add comments to cells](/docs/rows-live-data/add-comments#markers) |
+| comment marker | The small corner shape on a cell that has comments: a filled corner while a comment is unresolved, a ring when every comment is resolved. Not the row marker. | [Add comments to cells](/docs/rows-live-data/add-comments#markers) |
+| comments popover | The non-modal dialog that lists the comments of one cell and holds the composer. `Shift+F2`, the comment marker, or the "Comments…" menu item opens it. | [Add comments to cells](/docs/rows-live-data/add-comments#markers) |
 | commit | Check a value with `validate` and write it to the data. | [Validation](/docs/editing-cells/validation) |
 | controlled / uncontrolled | `data` puts the state in your code. `defaultData` seeds the grid once. | [Event shapes](/docs/events-state/event-shapes#controlled-pairs) |
 | core | The `data-grid` item. Add-ons build on it. | [Install gridcn](/docs/learning-path/install-gridcn) |
@@ -39,6 +44,7 @@ A term row links to the page that explains it.
 | data index | A row's position in your `data` array. | [State and view index](/docs/concepts/state-view-index) |
 | data mode | One way the grid gets its rows, such as a local array or server pages. | [Data mode guide](/docs/data-modes) |
 | drag handle | The control you drag to reorder a row or a sort entry. | [Row order](/docs/rows-pages-menus/row-order) |
+| echo | A record that comes back through `applyRemote`, a fetch answer, or the `comments` prop with the write id of a pending write. It confirms the write. | [Add comments to cells](/docs/rows-live-data/add-comments#share-changes) |
 | eviction | Unloading loaded rows back to holes, so a hole renders as a skeleton again. `maxLoadedRows` and `evict()` do it. | [Tune row retention](/docs/scroll-mode/tune-row-retention#max-loaded-rows) |
 | export source | The function that returns the rows of the whole result for an all-rows export. It gets the `spec` and a `signal`. | [Export the whole result](/docs/import-export/export-whole-result) |
 | filter group | A box of filter nodes that match together. Its join is `and` or `or`. A group holds one more group at most. The top level of `filterState` always combines with `and`. | [Filtering](/docs/sort-filter-search/filtering) |
@@ -60,6 +66,8 @@ A term row links to the page that explains it.
 | lookup | A cell type whose options a server searches as the user types. | [Lookup cell](/docs/editing-cells/lookup-cell) |
 | `moveUpKeepSelection` | Moves the active cell and keeps the selection. | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
 | operation | One record of a change to one row: `insert`, `update`, `delete`, or `move`. `DataChange.ops` holds a batch. Write "operations (`ops`)" at first use on a page. | [Data change events](/docs/events-state/data-change-events#datachange) |
+| optimistic write | A comment write that the popover shows at once, at `baseVersion + 1`, before `onCommentSave` answers. A refusal reverts it. | [Add comments to cells](/docs/rows-live-data/add-comments#save-comments) |
+| orphaned comments | Comments whose row was deleted. They stay in the store, and `onOrphanedComments` reports them. | [Add comments to cells](/docs/rows-live-data/add-comments#addresses) |
 | override | A prop or callback that replaces default behavior. | [Display override](/docs/editing-cells/display-override) |
 | overscan | Extra rows or columns drawn beyond the viewport edge. | [Virtualization](/docs/performance/virtualization) |
 | paged view | A grid with `pageSize` or `defaultPageSize`. `data` stays whole. The sorted and filtered list is the full view, and `viewIndex` holds the shown page of it. `fullViewOf(viewIndex)` returns the full view. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
@@ -75,6 +83,7 @@ A term row links to the page that explains it.
 | rendered rows | The rows in the DOM. `onRenderedRowsChange` reports their range. The identifiers `windowStart` and `clampRectToWindow` call this range the window. | [Column and viewport events](/docs/events-state/column-viewport-events#onrenderedrowschange) |
 | request, answer | What `fetchRows` receives (`spec`, `start`, `end`, `cursor`, `signal`, plus `page` and `pageSize` in pages mode) and what it resolves (`rows`, `totalRowCount`, `hasMore`, `nextCursor`). The hook validates every answer. | [Server rows contract](/docs/contracts/server-rows-contract) |
 | reshape | A `refresh()` that `useDataGridServerRows` runs after a push, so the server places the rows again. `reshapeDelayMs` and `reshape()` control it. | [Push into a server-ordered view](/docs/rows-live-data/push-server-ordered-view) |
+| resolved comment | A comment with `resolved: true`. `hideResolved` hides the comment marker of a cell that has only resolved comments. | [Add comments to cells](/docs/rows-live-data/add-comments#markers) |
 | result | Every row that matches the spec on the server. `data` holds the loaded rows of it. | [Data mode guide](/docs/data-modes) |
 | result count | The number of rows in the view after a filter or sort change. `announceResults` turns its announcement on. | [Screen reader support](/docs/accessibility/screen-reader-support) |
 | revalidation | A `refresh()` that the hook runs on a timer (`revalidateIntervalMs`). | [Tune row retention](/docs/scroll-mode/tune-row-retention#revalidate) |
@@ -83,8 +92,8 @@ A term row links to the page that explains it.
 | row marker | The narrow column at the start side that shows a row number, a checkbox, or a drag handle. | [Row markers](/docs/rows-pages-menus/row-markers) |
 | row operation | The `source` value `"row-operation"` marks a change from an insert, duplicate, delete, or move of rows. | [Data change events](/docs/events-state/data-change-events#sources) |
 | row range | `RowRange`: `{ start, end }` over rows, `end` excluded. A scroll-mode request asks for one. | [Server rows contract](/docs/contracts/server-rows-contract) |
-| save | Sending a change to a server through `onSave`. A save is accepted or refused. A refusal is reverted. | [Save edits](/docs/save-server/save-edits) |
-| save acknowledgement | The answer of `onSave`: nothing, `{ rejected }`, or a rejected promise. | [Save edits](/docs/save-server/save-edits) |
+| save | Sending a change to a server through `onSave`, or a comment write through `onCommentSave`. A save is accepted or refused. A refusal is reverted. | [Save edits](/docs/save-server/save-edits) |
+| save acknowledgement | The answer of `onSave`: nothing, `{ rejected }`, or a rejected promise. `onCommentSave` answers a comment save the same way: nothing, `{ comment }`, `{ rejected }`, or a throw. | [Save edits](/docs/save-server/save-edits) |
 | save conflict | A refused save for which the server sent its current row. `resolveSaveConflict` decides whether the row becomes the server's row, stays as it is, or becomes a merged row. | [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict) |
 | save status | `"saving"` while an `onSave` promise is pending and `"failed"` after a refusal. `useDataGridRowSaveStatus` reads it. | [Save edits](/docs/save-server/save-edits) |
 | saved view | A named copy of the sort, filters, search, and column layout, kept by `data-grid-views` in a storage adapter. It holds no rows and no selection. Not the view index. | [Saved views](/docs/sort-filter-search/saved-views) |
@@ -104,11 +113,14 @@ A term row links to the page that explains it.
 | Standard Schema | The shared validator interface that Zod and Valibot implement. | [Validation](/docs/editing-cells/validation) |
 | start side, end side | The two ends of the inline axis. The start side is the `pin: "start"` zone, the end side the `pin: "end"` zone. In a left-to-right page start is left and end is right, in a right-to-left page the reverse. | [Column order and pinning](/docs/columns/column-order-pinning) |
 | tap | A touch press that lifts within 10 px and under 500 ms. A tap selects. Two taps on one cell edit. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
+| tombstone | The record of a deleted comment: an id, an address, and a version, with no text. It blocks an older upsert for 10 minutes. | [Comments options](/docs/add-options/server/comments-options#apply-remote-verdict) |
 | `typeToReplace` | Typing over a cell replaces its value. | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
+| unresolved comment | A comment with `resolved: false`. A cell counts as unresolved while one of its comments is unresolved. | [Add comments to cells](/docs/rows-live-data/add-comments#markers) |
 | value query | The text a `fetchFilterValues` request carries as `query`. The server lists the values that match it. | [Server rows contract](/docs/contracts/server-rows-contract) |
 | view index | A row's position in the sorted and filtered list the user sees, on the shown page of a paged grid. | [State and view index](/docs/concepts/state-view-index) |
 | virtualization | Draw only the rows and columns in view, plus overscan. | [Virtualization](/docs/performance/virtualization) |
 | wanted range | The rendered rows grown by `overscan` on each side and rounded out to blocks. Scroll mode loads the blocks of it. | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
+| write id | The random id (`writeId`) that the add-on puts on each comment write. A record with the pending write id is the echo of that write. | [Add comments to cells](/docs/rows-live-data/add-comments#share-changes) |
 
 ## Other words for a term [#other-words]
 
@@ -196,6 +208,21 @@ A word in this table names a term from the first table.
 | `edit conflict` | save conflict | [Handle refused saves](/docs/save-server/handle-refused-saves#resolve-a-conflict) |
 | `rekey` | id swap | [Save edits](/docs/save-server/save-edits#id-swap) |
 | `rename id` | id swap | [Save edits](/docs/save-server/save-edits#id-swap) |
+| `comment badge` | comment marker | [Add comments to cells](/docs/rows-live-data/add-comments#markers) |
+| `comment flag` | comment marker | [Add comments to cells](/docs/rows-live-data/add-comments#markers) |
+| `cell key` | comment address | [Add comments to cells](/docs/rows-live-data/add-comments#addresses) |
+| `comment panel` | comments popover | [Add comments to cells](/docs/rows-live-data/add-comments#markers) |
+| `comment thread` | comments popover | [Add comments to cells](/docs/rows-live-data/add-comments#markers) |
+| `pending edit` | optimistic write | [Add comments to cells](/docs/rows-live-data/add-comments#save-comments) |
+| `open comment` | unresolved comment | [Add comments to cells](/docs/rows-live-data/add-comments#markers) |
+| `closed comment` | resolved comment | [Add comments to cells](/docs/rows-live-data/add-comments#markers) |
+| `unsaved comment` | comment draft | [Add comments to cells](/docs/rows-live-data/add-comments#markers) |
+| `collision` | comment conflict | [Add comments to cells](/docs/rows-live-data/add-comments#save-comments) |
+| `dangling comments` | orphaned comments | [Add comments to cells](/docs/rows-live-data/add-comments#addresses) |
+| `request id` | write id | [Add comments to cells](/docs/rows-live-data/add-comments#share-changes) |
+| `deleted marker` | tombstone | [Comments options](/docs/add-options/server/comments-options#apply-remote-verdict) |
+| `reflection` | echo | [Add comments to cells](/docs/rows-live-data/add-comments#share-changes) |
+| `loopback` | echo | [Add comments to cells](/docs/rows-live-data/add-comments#share-changes) |
 
 ## Search words [#search-words]
 
@@ -225,10 +252,12 @@ A search word in this table opens the page that answers it.
 | `all props` | [Props A to Z](/docs/cheatsheets-messages/props-z) |
 | `already exists` | [Fix install problems](/docs/terms-help/fix-install-problems) |
 | `and or filter` | [Filtering](/docs/sort-filter-search/filtering) |
+| `annotations` | [Add comments to cells](/docs/rows-live-data/add-comments) |
 | `announcements` | [Live region messages](/docs/accessibility/live-region-messages) |
 | `announceResults example` | [Screen reader announcements example](/docs/basic-examples/screen-reader-announcements-example) |
 | `api.actions` | [Actions A to Z](/docs/cheatsheets-messages/actions-z) |
 | `apply change` | [Operation engine contract](/docs/contracts/operation-engine-contract) |
+| `applyRemote` | [Comments options](/docs/add-options/server/comments-options) |
 | `arrow keys` | [Keyboard navigation](/docs/selection-shortcuts/keyboard-navigation) |
 | `asian language typing` | [isComposingKey](/docs/types-hooks/is-composing-key) |
 | `assistive technology` | [Screen reader support](/docs/accessibility/screen-reader-support) |
@@ -262,9 +291,12 @@ A search word in this table opens the page that answers it.
 | `cancel paste request` | [Cancel async gates](/docs/editing-cells/cancel-async-gates) |
 | `cell class` | [Style overrides](/docs/theme-style-language/style-overrides) |
 | `cell click` | [Selection and cell events](/docs/events-state/selection-cell-events) |
+| `cell comments` | [Add comments to cells](/docs/rows-live-data/add-comments) |
 | `cell count` | [Status bar options](/docs/add-options/selection-shortcuts/status-bar-options) |
 | `cell editor` | [Editable columns](/docs/editing-cells/editable-columns) |
 | `cell menu` | [Context menu](/docs/rows-pages-menus/context-menu) |
+| `cell notes` | [Add comments to cells](/docs/rows-live-data/add-comments) |
+| `cell notes options` | [Comments options](/docs/add-options/server/comments-options) |
 | `cell ref` | [Exported types](/docs/types-hooks/exported-types) |
 | `cell renderer` | [Display override](/docs/editing-cells/display-override) |
 | `cell type api` | [CellType contract](/docs/contracts/cell-type-contract) |
@@ -298,6 +330,7 @@ A search word in this table opens the page that answers it.
 | `column options` | [ColumnDef](/docs/components-props/column-def) |
 | `column state` | [Column and viewport events](/docs/events-state/column-viewport-events) |
 | `column width` | [Column sizing](/docs/columns/column-sizing) |
+| `comment options` | [Comments options](/docs/add-options/server/comments-options) |
 | `commit on pause` | [useDebouncedInput](/docs/types-hooks/use-debounced-input) |
 | `compact` | [Density and small screens](/docs/theme-style-language/density-small-screens) |
 | `compatibility` | [Browser and framework support](/docs/support-upgrades/browser-framework-support) |
@@ -408,6 +441,7 @@ A search word in this table opens the page that answers it.
 | `extension point` | [Plugin model](/docs/plugins/plugin-shape) |
 | `fetch data from api` | [Load server rows](/docs/server-path/load-server-rows) |
 | `fetchAggregates` | [Show totals from a server](/docs/data-modes/show-server-totals) |
+| `fetchComments` | [Comments options](/docs/add-options/server/comments-options) |
 | `fetchoptions` | [Lookup options](/docs/add-options/editing-cells/lookup-options) |
 | `fetchrows answer` | [Server rows contract](/docs/contracts/server-rows-contract) |
 | `fill options` | [Fill handle options](/docs/add-options/clipboard-undo/fill-handle-options) |
@@ -550,6 +584,7 @@ A search word in this table opens the page that answers it.
 | `observe edits` | [Plugin events](/docs/plugins/plugin-events) |
 | `ok false` | [Handle row action results](/docs/rows-live-data/handle-row-action-results) |
 | `onbeforeeditstart` | [Edit and validation events](/docs/events-state/edit-validation-events) |
+| `onCommentSave` | [Comments options](/docs/add-options/server/comments-options) |
 | `ondatachange` | [Data change events](/docs/events-state/data-change-events) |
 | `one million rows` | [Row limits](/docs/performance/row-limits) |
 | `oneditend` | [Edit and validation events](/docs/events-state/edit-validation-events) |
@@ -663,6 +698,7 @@ A search word in this table opens the page that answers it.
 | `retry failed fetch` | [Recover from load errors](/docs/scroll-mode/recover-load-errors) |
 | `revalidateIntervalMs` | [Tune page loading](/docs/server-pagination/tune-page-loading) |
 | `revert edit` | [Undo and redo](/docs/clipboard-undo/undo-redo) |
+| `review comments` | [Add comments to cells](/docs/rows-live-data/add-comments) |
 | `right align` | [Style overrides](/docs/theme-style-language/style-overrides) |
 | `right click menu` | [Context menu](/docs/rows-pages-menus/context-menu) |
 | `right to left` | [Labels and i18n](/docs/theme-style-language/labels-i18n) |

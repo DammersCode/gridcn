@@ -26,12 +26,12 @@ export const FINDER = [
   {
     id: "ui-patterns",
     title: "UI patterns",
-    pages: [["/docs/recipes-custom-code/open-detail-panel", "Open a detail panel from a row"], ["/docs/rows-pages-menus/context-menu", "Add a right-click menu to cells"]],
+    pages: [["/docs/recipes-custom-code/open-detail-panel", "Open a detail panel from a row"], ["/docs/rows-pages-menus/context-menu", "Add a right-click menu to cells"], ["/docs/rows-live-data/add-comments", "Add comments to cells"]],
   },
   {
     id: "select-copy-undo",
     title: "Select, copy, and undo",
-    pages: [["/docs/clipboard-undo/clipboard", "Copy and paste cells, and change how they convert"], ["/docs/clipboard-undo/fill-handle", "Fill cells by dragging"], ["/docs/clipboard-undo/undo-redo", "Undo and redo edits"], ["/docs/clipboard-undo/undo-code-changes", "Undo code changes"], ["/docs/selection-shortcuts/status-bar", "Show totals of the selected cells"], ["/docs/selection-shortcuts/checked-rows", "Check rows and run a bulk action on them"], ["/docs/rows-live-data/select-server-rows", "Select every row of a server result"], ["/docs/selection-shortcuts/keyboard-navigation", "Move around the grid with the keyboard"]],
+    pages: [["/docs/clipboard-undo/clipboard", "Copy and paste cells, and change how they convert"], ["/docs/clipboard-undo/fill-handle", "Fill cells by dragging"], ["/docs/clipboard-undo/undo-redo", "Undo and redo edits"], ["/docs/selection-shortcuts/status-bar", "Show totals of the selected cells"], ["/docs/selection-shortcuts/checked-rows", "Check rows and run a bulk action on them"], ["/docs/rows-live-data/select-server-rows", "Select every row of a server result"], ["/docs/selection-shortcuts/keyboard-navigation", "Move around the grid with the keyboard"]],
   },
   {
     id: "columns-rows",
@@ -50,6 +50,7 @@ const A = (url, text) => [url, text];
 export const ADDONS = [
   { name: "data-grid", adds: "The core grid: selection, clipboard, editing, validation, sort, filter, pinning, and streaming updates.", guides: [A("/docs/learning-path/install-gridcn", "Install gridcn")], options: [A("/docs/components-props/data-grid-props", "DataGrid props")] },
   { name: "data-grid-presence", adds: "Named highlights of the cells that remote users select.", guides: [A("/docs/rows-live-data/show-presence", "Show presence")], options: [A("/docs/add-options/server/presence-options", "Presence options")] },
+  { name: "data-grid-comments", adds: "Comments on cells, with a marker, a popover, and optimistic saves that your server confirms.", guides: [A("/docs/rows-live-data/add-comments", "Add comments to cells")], options: [A("/docs/add-options/server/comments-options", "Comments options")] },
   { name: "data-grid-fill", adds: "The fill handle: drag to tile a selection, with series inference.", guides: [A("/docs/clipboard-undo/fill-handle", "Fill handle")], options: [A("/docs/add-options/clipboard-undo/fill-handle-options", "Fill handle options")] },
   { name: "data-grid-pinned-rows", adds: "Row bands above or below the body, and aggregates for them.", guides: [A("/docs/rows-pages-menus/pinned-rows", "Pinned rows")], options: [A("/docs/add-options/rows-pages-menus/pinned-rows-options", "Pinned rows options")] },
   { name: "data-grid-history", adds: "Undo and redo by row id.", guides: [A("/docs/clipboard-undo/undo-redo", "Undo and redo")], options: [A("/docs/add-options/clipboard-undo/undo-redo-options", "Undo and redo options")] },
@@ -76,7 +77,7 @@ export const ADDONS = [
  */
 export const FEATURE_SINCE = {
   "1.2.0": ["find-replace", "filter-values"],
-  Unreleased: ["unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "server-initial-answer", "error-state", "input-debounce", "lookup-cell", "server-aggregate", "zero-row-header"],
+  Unreleased: ["comments", "unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "server-initial-answer", "error-state", "input-debounce", "lookup-cell", "server-aggregate", "zero-row-header"],
 };
 
 const F = (guide, reference, item) => ({ item, guide, reference });
@@ -106,6 +107,7 @@ export const FEATURES = {
   "url-state": F(["/docs/sort-filter-search/url-state"], ["/docs/add-options/sort-filter-search/url-state-options"], "data-grid-url-state"),
   announce: F(["/docs/accessibility/screen-reader-support"], ["/docs/components-props/data-grid-props"]),
   presence: F(["/docs/rows-live-data/show-presence"], ["/docs/add-options/server/presence-options"], "data-grid-presence"),
+  comments: F(["/docs/rows-live-data/add-comments"], ["/docs/add-options/server/comments-options"], "data-grid-comments"),
   loading: F(["/docs/theme-style-language/loading-state"], ["/docs/components-props/data-grid-props#states"]),
   "find-replace": F(["/docs/sort-filter-search/find-replace"], ["/docs/add-options/sort-filter-search/find-replace-options"], "data-grid-find-replace"),
   "export-hooks": F(["/docs/import-export/shape-export-file"], ["/docs/add-options/import-export/export-options"], "data-grid-io"),
@@ -137,6 +139,18 @@ export const FEATURES = {
 };
 
 export const TERM_PAGES = {
+  "comment marker": "/docs/rows-live-data/add-comments#markers",
+  "comment address": "/docs/rows-live-data/add-comments#addresses",
+  "comments popover": "/docs/rows-live-data/add-comments#markers",
+  "optimistic write": "/docs/rows-live-data/add-comments#save-comments",
+  "unresolved comment": "/docs/rows-live-data/add-comments#markers",
+  "resolved comment": "/docs/rows-live-data/add-comments#markers",
+  "comment draft": "/docs/rows-live-data/add-comments#markers",
+  "comment conflict": "/docs/rows-live-data/add-comments#save-comments",
+  "orphaned comments": "/docs/rows-live-data/add-comments#addresses",
+  "write id": "/docs/rows-live-data/add-comments#share-changes",
+  tombstone: "/docs/add-options/server/comments-options#apply-remote-verdict",
+  echo: "/docs/rows-live-data/add-comments#share-changes",
   operation: "/docs/events-state/data-change-events#datachange",
   "export source": "/docs/import-export/export-whole-result",
   "row id": "/docs/components-props/data-grid-props#rows-and-ids",
@@ -382,6 +396,7 @@ export const HOOK_GROUPS = [
       ["useDataGridExport", "Exports the grid to a file.", "/docs/add-options/import-export/export-options"],
       ["useDataGridFill", "Mounts the fill handle plugin.", "/docs/clipboard-undo/fill-handle"],
       ["useDataGridFindReplace", "Mounts find and replace.", "/docs/sort-filter-search/find-replace"],
+      ["useDataGridComments", "Adds comments to cells, with a marker and a popover.", "/docs/rows-live-data/add-comments"],
       ["useDataGridHistory", "Mounts undo and redo on a state you own.", "/docs/clipboard-undo/undo-redo"],
       ["useDataGridImportPreview", "Parses a file into a preview.", "/docs/add-options/import-export/import-options"],
       ["useDataGridPager", "Returns the pager of the provider.", "/docs/rows-pages-menus/client-pagination"],
@@ -499,13 +514,14 @@ export const OPTION_GROUPS = [
   },
   {
     title: "Server",
-    intro: "Options of the server rows and presence add-ons.",
+    intro: "Options of the server rows, presence, and comments add-ons.",
     rows: [
       { names: ["mode","getRowId","fetchRows","defaultSpec","spec","onSpecChange","onError","onLoaded","onDataChange","revalidateIntervalMs","reshapeDelayMs","plugins","initialAnswer"], owners: ["useDataGridServerRows"], page: "/docs/add-options/server/server-rows-options" },
       { names: ["onSave","refreshAfterSave"], owners: ["useDataGridServerRows"], page: "/docs/add-options/server/server-rows-options#save-options" },
       { names: ["page","defaultPage","pageSize","defaultPageSize","pageSizeOptions","onPageChange","onPageSizeChange","prefetchNextPage"], owners: ["useDataGridServerRows pages mode"], page: "/docs/add-options/server/server-rows-options#server-mode" },
       { names: ["source","blockSize","overscan","loadDelayMs","maxConcurrentFetches","maxLoadedRows","plugins","onRenderedRowsChange"], owners: ["useDataGridServerRows scroll mode"], page: "/docs/add-options/server/server-rows-options#usedatagridserverrowsscrolloptions" },
       { names: ["maxRects","onExcessRects"], owners: ["useDataGridPresence"], page: "/docs/add-options/server/presence-options" },
+      { names: ["currentUser","comments","defaultComments","onCommentsChange","onCommentSave","onCommentRejected","onLocalChange","canCreate","canEdit","canDelete","canResolve","fetchComments","onFetchError","onOrphanedComments","createId","normalizeText","maxTextLength","maxCommentsPerCell","maxComments","maxCachedRows","allowWhenReadOnly","hideResolved","labels","className"], owners: ["useDataGridComments"], page: "/docs/add-options/server/comments-options" },
     ],
   },
 ];

@@ -6,6 +6,7 @@
     "large-data-example",
     "scroll-mode-example",
     "server-pagination-example",
+    "comments-example",
     "orm-examples"
   ]
 }

@@ -349,6 +349,17 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
     </tr>
+    <tr id="parity-comments">
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal"><a href="/docs/rows-live-data/add-comments">Cell comments</a></th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
     <tr id="parity-loading">
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal"><a href="/docs/theme-style-language/loading-state">Loading and error state</a></th>
       <td className="text-center"><ParityCell status="supported" /></td>
@@ -711,6 +722,10 @@ Delete and Cut run the column `validate` on the empty value in every mode. A ser
 ### Presence
 
 Mode-neutral by design.
+
+### Cell comments
+
+Mode-neutral by design. Comments are addressed by row id and column id, so a sort, a filter, a page change, or an eviction moves markers and never comments. `fetchComments` loads the comments of the rendered rows; `onCommentSave` and `applyRemote` cover your own API.
 
 ### Scroll row fetching
 

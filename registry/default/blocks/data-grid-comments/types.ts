@@ -168,6 +168,7 @@ export type UseDataGridCommentsOptions = {
   allowWhenReadOnly?: boolean;
   /** Hide the markers of resolved-only cells. Default `false`. */
   hideResolved?: boolean;
+  /** Overrides the strings of the comments UI. A key set to `undefined` keeps its default. */
   labels?: Partial<DataGridCommentsLabels>;
   /** Class of the popover root, merged with `cn`. */
   className?: string;

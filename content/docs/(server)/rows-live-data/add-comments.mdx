@@ -1,0 +1,147 @@
+---
+title: "Add comments to cells"
+description: Attach comments to cells with the data-grid-comments add-on, save them through your own server, and share them between clients.
+icon: MessageSquare
+type: task
+aliases: ["cell comments", "cell notes", "review comments", "annotations"]
+---
+
+The `data-grid-comments` add-on attaches comments to cells. It shows a comment marker on a commented cell and a comments popover to write, edit, delete, resolve, and reopen comments. Your code owns the transport and the save. The add-on owns the local state, the optimistic writes, the versions, and the echo of each write.
+
+<ComponentPreview name="data-grid-comments-demo" />
+
+<InstallCommand item="data-grid-comments" manual manualSlot={<ManualInstall item="data-grid-comments" />} />
+
+## Add comments to a grid [#wiring-it-up]
+
+1. Call `useDataGridComments` once for each grid, in a component above the grid. Pass `currentUser`. Without it, the popover is read-only.
+2. Pass the returned `plugin` to the `plugins` prop of the grid.
+3. Mount `DataGridContextMenu` and pass `getCommentMenuItems` as its `getCellMenuItems`. The menu gets a "Comments…" item. It is the pointer path to a cell without comments.
+4. Pass `onCommentSave` to send each write to your server.
+5. Send each confirmed write to the other clients, and call `applyRemote` for the writes that you receive.
+
+This grid saves each comment write through a `fetch` call:
+
+```tsx
+"use client";
+
+import {
+  DataGridBody,
+  DataGridHeader,
+  DataGridProvider,
+  DataGridRoot,
+  defineColumns,
+} from "@/components/data-grid/data-grid";
+import { DataGridContextMenu } from "@/components/data-grid-context-menu/data-grid-context-menu";
+import { useDataGridComments } from "@/components/data-grid-comments/data-grid-comments";
+
+type Order = { id: string; customer: string; total: number };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+  { id: "total", header: "Total", accessorKey: "total", type: "number" },
+]);
+
+export function OrdersGrid({ orders }: { orders: Order[] }) {
+  const comments = useDataGridComments({
+    currentUser: { id: "u1", name: "Ada" },
+    onCommentSave: async ({ change }) => {
+      const response = await fetch("/api/comments", {
+        method: "POST",
+        body: JSON.stringify(change),
+      });
+      if (response.status === 409) {
+        const current = await response.json();
+        return { rejected: { reason: "stale", current } };
+      }
+      if (!response.ok) throw new Error("The comment was not saved");
+    },
+  });
+
+  return (
+    <DataGridProvider
+      defaultData={orders}
+      columns={columns}
+      getRowId={(row) => row.id}
+      plugins={[comments.plugin]}
+    >
+      <DataGridContextMenu getCellMenuItems={comments.getCommentMenuItems}>
+        <DataGridRoot aria-label="Orders">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridContextMenu>
+    </DataGridProvider>
+  );
+}
+```
+
+The `plugin` keeps its identity for the life of the component, so the inline `[comments.plugin]` array is safe. With `useDataGridServerRows`, pass the plugin in the `plugins` option of the hook: `useDataGridServerRows({ fetchRows, plugins: [comments.plugin] })`.
+
+## Open the popover and read the markers [#markers]
+
+Three paths open the comments popover:
+
+- Press <kbd>Shift</kbd>+<kbd>F2</kbd> on the active cell. The key runs the `openComments` command.
+- Choose "Comments…" in the context menu.
+- Click the comment marker of a commented cell.
+
+In code, `openComments({ rowId, columnId })` opens the popover. It returns `false` for a row that is not in the view, such as an unloaded row or a row that a filter hides, and for a hidden column. The popover is not modal. <kbd>Escape</kbd> closes it, and the comment draft stays.
+
+A filled corner marks a cell with an unresolved comment. A ring marks a cell whose comments are all resolved. Set `hideResolved` to hide the ring. The comment marker is `aria-hidden`. A screen reader reaches the comments through the active cell, <kbd>Shift</kbd>+<kbd>F2</kbd>, and a status announcement. A press on the comment marker opens the popover and never reaches the cell, so a Shift-click or a range drag that starts there does not select.
+
+## Address comments by row id [#addresses]
+
+Every comment holds a `rowId` and a `columnId`, its comment address. A sort, a filter, a page change, or a hidden column moves the marker and never the comment. Use stable row ids from `getRowId`.
+
+While an inserted row waits for its `onSave` promise, the add-on refuses a comment write on it with the reason `"row-busy"`. After the id swap, the comments of the row move to its server id.
+
+A deleted row keeps its comments in the store. `onOrphanedComments` reports them with the deleted row ids. Remove the comments on your server only after the delete is saved. If an undo brings the row back, its comments show again.
+
+## Save comments and resolve conflicts [#save-comments]
+
+A write shows at once as an optimistic write, and the comment reads "Saving" until `onCommentSave` answers. The answer takes one of four forms:
+
+| Answer | Result |
+| --- | --- |
+| Nothing | The server stored the write as sent. |
+| `{ comment }` | The server stamped the record. The add-on keeps this record. |
+| `{ rejected }` | The add-on reverts the write and calls `onCommentRejected`. |
+| A thrown error | The add-on reverts the write and offers Retry. The outcome is unknown. |
+
+Accept a write on your server only when its `baseVersion` equals the stored version. If your server stamps `createdAt`, `updatedAt`, `author`, or the version, answer `{ comment }`. Set `author` from the session on the server, because the add-on shows it as given.
+
+If another client changed the comment first, answer `{ rejected: { reason: "stale", current } }`. The popover keeps the text as a comment conflict and offers Save my version and Discard. Without `current`, it offers Discard only, and it loads the row again when `fetchComments` is set.
+
+## Share changes with other clients [#share-changes]
+
+`onLocalChange` fires once for each confirmed local write. Forward its change to your channel. `applyRemote` takes the changes that arrive and returns a verdict with the applied and the skipped changes. The add-on matches the echo of its own write by the write id, so a write never shows twice:
+
+```tsx fragment="inside the component that calls useDataGridComments"
+useEffect(() => {
+  const socket = connectToRoom(roomId);
+  socket.on("comment", (change) => comments.applyRemote([change]));
+  return () => socket.close();
+}, [comments, roomId]);
+```
+
+To load comments on demand, pass `fetchComments`. The add-on calls it with the ids of the rendered rows, in batches. After a server refresh that can change comments, call `refetchComments()`.
+
+## Limits and privacy [#limits]
+
+- Undo and redo leave comments alone. Copy, cut, paste, and fill move cell values and never comments.
+- The add-on renders comment text and author names as plain text. It never renders HTML or links.
+- On a `readOnly` grid, every comment write is refused, unless you set `allowWhenReadOnly`.
+
+<Callout type="warn">
+Treat comment text as personal data. A comment is free text and can hold names or other personal details. The add-on keeps comments only in memory and in your own `comments`. Retention, erasure, and access control belong to your app and your server.
+</Callout>
+
+## Related
+
+- [Comments options](/docs/add-options/server/comments-options)
+- [Cell comments example](/docs/server-data-examples/comments-example)
+- [Show presence](/docs/rows-live-data/show-presence)
+- [Save edits](/docs/save-server/save-edits)
+- [Context menu](/docs/rows-pages-menus/context-menu)
+- [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts)

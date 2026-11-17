@@ -119,6 +119,8 @@ Built-in items have stable ids, so a resolver can keep or drop them by id:
 
 The fill items exist only for a touch selection while the fill add-on runs. An item is an object with `id`, `label`, `icon`, `shortcut`, `disabled`, `destructive`, `tooltip`, and `onClick`. `shortcut` is a keymap binding that the menu shows as keycaps. `tooltip` shows on hover while the item is off. A separator is `{ id, separator: true }`. The types are `GridMenuItemSpec`, `CellMenuItemsResolver`, and `HeaderMenuItemsResolver`.
 
+The `data-grid-comments` add-on returns a cell resolver, `getCommentMenuItems`. It appends a `sep-comments` separator and a `comments` item that opens the comments popover of the clicked cell. See [Add comments to cells](/docs/rows-live-data/add-comments).
+
 This menu keeps two row items for cells and one sort item for headers. Render it inside `DataGridProvider`:
 
 ```tsx

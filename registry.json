@@ -3251,6 +3251,136 @@
          ]
       },
       {
+         "name": "data-grid-comments",
+         "type": "registry:block",
+         "title": "Data Grid Comments",
+         "description": "Cell comments add-on for the gridcn data grid: useDataGridComments adds comments addressed by row id and column id, a corner marker, a comments popover with keyboard access (Shift+F2), optimistic versioned saves through onCommentSave, echo matching for applyRemote, and fetchComments for the rendered rows.",
+         "author": "gridcn",
+         "dependencies": [
+            "zustand@^5.0.15",
+            "@base-ui/react@^1.8.0"
+         ],
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "button",
+            "textarea",
+            "separator"
+         ],
+         "files": [
+            {
+               "path": "registry/default/blocks/data-grid-comments/data-grid-comments.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-comments/data-grid-comments.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-comments/use-data-grid-comments.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-comments/use-data-grid-comments.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-comments/types.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-comments/types.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-comments/labels.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-comments/labels.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-comments/validate.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-comments/validate.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-comments/create-id.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-comments/create-id.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-comments/comment-state.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-comments/comment-state.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-comments/comment-reducer.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-comments/comment-reducer.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-comments/comment-store.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-comments/comment-store.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-comments/comment-fetch.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-comments/comment-fetch.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-comments/comment-engine.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-comments/comment-engine.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-comments/comments-overlay.tsx",
+               "type": "registry:component",
+               "target": "components/data-grid-comments/comments-overlay.tsx"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-comments/comments-mount.tsx",
+               "type": "registry:component",
+               "target": "components/data-grid-comments/comments-mount.tsx"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-comments/comment-popover.tsx",
+               "type": "registry:component",
+               "target": "components/data-grid-comments/comment-popover.tsx"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-comments/menu-items.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-comments/menu-items.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-comments-demo",
+         "type": "registry:example",
+         "title": "Data Grid Comments Demo",
+         "description": "Cell comments with a simulated second user over an in-memory compare-and-swap server: add, edit, resolve, and delete comments, take the connection offline, and force a stale conflict.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-comments",
+            "DammersCode/gridcn/data-grid-context-menu",
+            "button"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-comments-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-comments-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/data-grid-comments-demo-server.ts",
+               "type": "registry:example",
+               "target": "components/data-grid-comments-demo-server.ts"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
          "name": "data-grid-presence-demo",
          "type": "registry:example",
          "title": "Data Grid Presence Demo",

@@ -22,6 +22,7 @@ import DataGridLazyDemo from "@/registry/default/examples/data-grid-lazy-demo";
 import DataGridPaginationDemo from "@/registry/default/examples/data-grid-pagination-demo";
 import DataGridSortListDemo from "@/registry/default/examples/data-grid-sort-list-demo";
 import DataGridPresenceDemo from "@/registry/default/examples/data-grid-presence-demo";
+import DataGridCommentsDemo from "@/registry/default/examples/data-grid-comments-demo";
 import DataGridEventsDemo from "@/registry/default/examples/data-grid-events-demo";
 import DataGridCustomCellDemo from "@/registry/default/examples/data-grid-custom-cell-demo";
 import DataGridValidationDemo from "@/registry/default/examples/data-grid-validation-demo";
@@ -146,6 +147,11 @@ const SECTIONS: { title: string; description: string; demo: ReactNode }[] = [
     title: "data-grid-presence-demo",
     description: "3 simulated users move cell/range selections on a timer via useDataGridPresence's setPresenceHighlights.",
     demo: <DataGridPresenceDemo />,
+  },
+  {
+    title: "data-grid-comments-demo",
+    description: "Cell comments with a simulated second user over an in-memory compare-and-swap server, an offline switch, and a forced stale conflict.",
+    demo: <DataGridCommentsDemo />,
   },
   {
     title: "data-grid-events-demo",

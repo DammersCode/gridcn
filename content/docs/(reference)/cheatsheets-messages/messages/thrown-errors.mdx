@@ -40,6 +40,8 @@ The grid throws these errors, or hands them to an error callback. Fix the cause 
 | <span id="unknown-export-column-id" />`[data-grid-io] unknown export column: <id>` | Pass column ids that exist in the grid. | [Export options](/docs/add-options/import-export/export-options) |
 | <span id="unsupported-csvencoding-name" />`[data-grid-io] unsupported csvEncoding: <name>` | Pass a supported encoding name as `csvEncoding`, for example `utf-8` or `windows-1252`. | [Import options](/docs/add-options/import-export/import-options) |
 | <span id="fetchaggregates-must-resolve-an-object-of-columnid-value" />`fetchAggregates must resolve an object of { [columnId]: value }` | Resolve an object keyed by column id from `fetchAggregates`. `useDataGridServerAggregate` catches the error, sets the status `"error"`, and calls `onError`. | [Show totals from a server](/docs/data-modes/show-server-totals) |
+| <span id="comments-fetch-timed-out" />`comments fetch timed out` | Reaches `onFetchError` when a `fetchComments` request does not settle within 30 seconds. Answer faster, or answer fewer rows. | [Comments options](/docs/add-options/server/comments-options#fetch-comments) |
+| <span id="fetchcomments-must-resolve-to-an-array" />`fetchComments must resolve to an array` | Resolve an array of `CellComment` records from `fetchComments`. | [Comments options](/docs/add-options/server/comments-options#fetch-comments) |
 | <span id="fetchoptions-must-resolve-an-array-of-value-label" />`fetchOptions must resolve an array of { value, label }` | Resolve an array of `{ value, label }` objects from `fetchOptions`. The lookup editor catches the error and shows the error line with a Retry button. | [Lookup cell](/docs/editing-cells/lookup-cell) |
 
 ## Related

@@ -467,3 +467,14 @@ Eight review rounds ran with fresh reviewers. Round 8 had no blocker. Its two ma
 - `{ comment: null }` for a delete carries no version, so the client tombstones at `baseVersion + 1`. A server that bumps versions past that heals through the next fetch.
 - An own-write grace of 30 s applies only while the confirmed record is still that write; any later remote or fetched record clears it.
 - The compiler bail-out baseline gains `OpenPopover` (a Base UI anchor object reads the scroll element lazily).
+
+## 25. Port to the 2.0 line
+
+- `openComments` is an add-on action like `openFind` and `openKeybindings`: the barrel declares it in `GridActions`, the plugin binds `shift+F2` in its own `keymap`, and core lists it only in `labels.keybindings.actions`, `ADDON_COMMAND_KEYS`, and the keybindings category map. Core no longer has `BUILTIN_ACTIONS`/`PLUGGABLE_ACTIONS` entries for add-on actions.
+- With `useDataGridServerRows`, the plugin goes into the hook's `plugins` option, not a spread of `gridProps.plugins`.
+- Markers sit absolutely on the grid lines (out of the rows canvas flow), at `GRID_LAYER.activeCell + 1` unpinned and `GRID_LAYER.activePinnedCell + 1` pinned, so a pinned column covers an unpinned marker scrolled under it.
+- The popover passes Base UI a function anchor, so the React Compiler compiles `OpenPopover` and the bail-out baseline stays unchanged.
+- Labels merge through `mergeLabelLayers`: a key set to `undefined` keeps its default.
+- Development warnings dedupe per engine instance.
+- The reducer state helpers live in `comment-state.ts` and the fetch scheduler in `comment-fetch.ts`, inside the 800-line source budget.
+- Not ported: a function seed for `defaultComments` (comments come from the app or the server, not from `localStorage` or the URL).

@@ -2,6 +2,7 @@
   "title": "Server",
   "icon": "Server",
   "pages": [
+    "comments-options",
     "presence-options",
     "server-rows-options"
   ]
