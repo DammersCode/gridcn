@@ -1306,7 +1306,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     ctx.lastEmittedData = nextData;
     pruneRowValidationKeys(nextData, s.getRowId);
     const cleared = clearErrorsForOps(s.cellErrors, change.ops);
-    const opFlags = change.source !== UNVALIDATED_SOURCE ? warnFlagsForOps(s, change.ops) : [];
+    const opFlags = change.source !== UNVALIDATED_SOURCE ? warnFlagsForOps(s, change.ops, nextData) : [];
     const allFlags = flags ? [...opFlags, ...flags] : opFlags;
     const pruned = pruneCellErrors(allFlags.length > 0 ? mergeCellErrors(cleared, allFlags) : cleared, nextData, s.getRowId);
     const cellErrors = change.source !== UNVALIDATED_SOURCE ? applyRowValidation(s, pruned, nextData, rowsToValidate(change.ops)) : pruned;

@@ -34,11 +34,17 @@ function readStorage(): Storage | undefined {
 }
 
 const memoryByKey = new Map<string, DataGridViewsDocument>();
+// The storage event reaches other tabs only, so a save tells the subscribers of its key on this page itself.
+const pageListenersByKey = new Map<string, Set<() => void>>();
+
+function notifyPage(key: string): void {
+  pageListenersByKey.get(key)?.forEach((listener) => listener());
+}
 
 export const DEFAULT_VIEWS_KEY = "gridcn-views";
 
 /**
- * Stores views as one JSON entry in `localStorage`. A save in another tab reloads the views here through the `storage` event. When the browser blocks or fills the store,
+ * Stores views as one JSON entry in `localStorage`. A save in another tab, or in another grid of this page with the same key, reloads the views here. When the browser blocks or fills the store,
  * `save` keeps the document in memory for this page and throws, so the hook reports the failure; `load`
  * returns the memory copy until a save succeeds. Malformed text counts as no document; text over the size limit throws.
  * `key` defaults to `"gridcn-views"`.
@@ -67,7 +73,14 @@ export function createLocalStorageViewsStorage(key = DEFAULT_VIEWS_KEY): DataGri
         if (event.key === key || event.key === null) onChange();
       };
       globalThis.addEventListener?.("storage", onStorage);
-      return () => globalThis.removeEventListener?.("storage", onStorage);
+      const listeners = pageListenersByKey.get(key) ?? new Set();
+      pageListenersByKey.set(key, listeners);
+      listeners.add(onChange);
+      return () => {
+        globalThis.removeEventListener?.("storage", onStorage);
+        listeners.delete(onChange);
+        if (listeners.size === 0) pageListenersByKey.delete(key);
+      };
     },
     save: (next) => {
       try {
@@ -78,6 +91,8 @@ export function createLocalStorageViewsStorage(key = DEFAULT_VIEWS_KEY): DataGri
       } catch (cause) {
         memoryByKey.set(key, next);
         throw cause;
+      } finally {
+        notifyPage(key);
       }
     },
   };

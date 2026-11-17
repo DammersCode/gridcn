@@ -80,3 +80,45 @@ describe("seeded selection and the fill handle", () => {
     expect(parseFloat(hit.height)).toBeGreaterThanOrEqual(24);
   });
 });
+
+const nestedSeed: SelectionState = { ...seed, anchor: { rowId: "n1", columnId: "value" }, range: { start: { rowId: "n1", columnId: "value" }, end: { rowId: "n1", columnId: "value" } } };
+const hostSeed: SelectionState = { ...seed, anchor: { rowId: "r2", columnId: "value" }, range: { start: { rowId: "r2", columnId: "value" }, end: { rowId: "r2", columnId: "value" } } };
+
+function NestedGrid() {
+  return (
+    <DataGridProvider defaultData={[{ id: "n1", value: "x" }]} defaultSelection={nestedSeed} columns={columns}>
+      <DataGridRoot aria-label="Nested" className="h-20">
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+
+const hostColumns = defineColumns<Row>()([
+  { id: "detail", header: "Detail", accessorKey: "id", width: 200, renderCell: ({ row }) => (row.id === "r1" ? <NestedGrid /> : null) },
+  { id: "value", header: "Value", accessorKey: "value", type: "text", width: 120 },
+] as const);
+
+function HostHarness() {
+  const { plugin: fill } = useDataGridFill();
+  return (
+    <DataGridProvider defaultData={rows} defaultSelection={hostSeed} columns={hostColumns} plugins={[fill]}>
+      <DataGridRoot aria-label="Host" className="h-60">
+        <DataGridHeader />
+        <DataGridBody />
+      </DataGridRoot>
+    </DataGridProvider>
+  );
+}
+
+describe("the fill handle beside a nested grid", () => {
+  it("moves focus to the host grid's own active cell, not the nested grid's", async () => {
+    await render(<HostHarness />);
+    await expect.element(page.getByRole("grid", { name: "Nested" })).toBeInTheDocument();
+    const host = page.getByRole("grid", { name: "Host" }).element();
+    const handle = [...host.querySelectorAll<HTMLElement>(gridAttrSelector("fillHandle"))].find((el) => el.closest('[aria-label="Host"]') === host)!;
+    handle.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerId: 1 }));
+    document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0, pointerId: 1 }));
+    expect(document.activeElement?.closest('[role="grid"]')).toBe(host);
+  });
+});

@@ -248,7 +248,7 @@ describe("pages mode after a row operation settles", () => {
     return { fetchRows, saves, wait, state: () => store.getState(), ready: () => waitFor(() => expect(server.loading).toBe(false)) };
   }
 
-  it("refreshes once when the last pending delete settles, also with refreshAfterSave false", async () => {
+  it("sends no request when the last pending delete settles with refreshAfterSave false", async () => {
     const t = setupPages(false);
     await t.ready();
     act(() => t.state().actions.deleteRows(["r1"]));
@@ -257,8 +257,9 @@ describe("pages mode after a row operation settles", () => {
     await act(async () => t.saves.splice(0).forEach((resolve) => resolve()));
     await t.wait();
     await t.ready();
-    expect(t.fetchRows.mock.calls.length - before).toBe(1);
+    expect(t.fetchRows.mock.calls.length - before).toBe(0);
   });
+
 
   it("sends one request when the save policy refreshes too", async () => {
     const t = setupPages();

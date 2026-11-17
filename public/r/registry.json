@@ -73,6 +73,11 @@
           "target": "components/data-grid/cell-types/date.tsx"
         },
         {
+          "path": "registry/default/blocks/data-grid/cell-types/date-calendar.tsx",
+          "type": "registry:component",
+          "target": "components/data-grid/cell-types/date-calendar.tsx"
+        },
+        {
           "path": "registry/default/blocks/data-grid/cell-types/safe-href.ts",
           "type": "registry:component",
           "target": "components/data-grid/cell-types/safe-href.ts"
@@ -393,6 +398,11 @@
           "target": "components/data-grid/labels.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/label-defaults.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/label-defaults.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/layout-context.ts",
           "type": "registry:component",
           "target": "components/data-grid/layout-context.ts"
@@ -623,6 +633,11 @@
           "target": "components/data-grid/store/compute.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/store/filter-match-case.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/store/filter-match-case.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/store/create-store.ts",
           "type": "registry:component",
           "target": "components/data-grid/store/create-store.ts"
@@ -791,6 +806,16 @@
           "path": "registry/default/blocks/data-grid/types.ts",
           "type": "registry:component",
           "target": "components/data-grid/types.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid/standard-schema.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/standard-schema.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid/filter-spec.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/filter-spec.ts"
         },
         {
           "path": "registry/default/blocks/data-grid/server-spec.ts",

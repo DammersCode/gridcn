@@ -63,7 +63,7 @@ export type UseDataGridServerRowsOptions<TData, TCursor = never> = {
   prefetchNextPage?: boolean;
   /** Fires after the rows of a request land, with the range they cover. */
   onLoaded?: (range: RowRange) => void;
-  /** Fires after the hook keeps an edit, insert, delete, or revert. Put your handler here; a spread override drops the merge. */
+  /** Fires after the hook keeps an edit, insert, delete, or revert. Put your handler here; a provider `onDataChange` after the spread runs next to the merge. */
   onDataChange?: (next: readonly TData[], change: DataChange<TData>) => void;
   /** Saves a change; spread to the provider through `gridProps.onSave`, where it behaves as the `DataGridProvider` prop of the same name. The hook refreshes after saves settle by `refreshAfterSave`. */
   onSave?: SaveRefreshOptions<TData>["onSave"];
@@ -103,7 +103,7 @@ export type UseDataGridServerRowsResult<TData> = {
   retry: () => void;
   /**
    * Fetches the current page again and keeps the rows on screen until the answer lands. A row with a pending edit, delete, or in-flight save keeps its local state.
-   * A pending insert stays at the end of the page, so the page can exceed `pageSize` until its save settles; when the last pending insert or delete settles, the hook calls it once, whatever `refreshAfterSave` says.
+   * A pending insert stays at the end of the page, so the page can exceed `pageSize` until its save settles; when the last pending insert or delete settles, the hook calls it once, unless `refreshAfterSave` is `false`.
    * The hook also calls it after saves settle by `refreshAfterSave`; call it yourself with `refreshAfterSave: false` or a void `onSave`.
    */
   refresh: () => void;
@@ -525,7 +525,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   useEffect(() => {
     let cancel: (() => void) | null = null;
     setSettleListener(() => {
-      if (cancel !== null) return;
+      if (cancel !== null || live.current.options.refreshAfterSave === false) return;
       const keyAtSettle = keyRef.current;
       cancel = scheduleFrame(() => {
         cancel = null;

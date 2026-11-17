@@ -30,6 +30,15 @@ describe("breakingRowProblems", () => {
     expect(problems).toEqual([expect.stringMatching(/CHANGELOG-2\.0\.md line 3/)]);
   });
 
+  it.each(["**breaking:**", "**BREAKING:**"])("reads a %s entry and an inline marker in any letter case", (marker) => {
+    const log = changelog(`- ${marker} one.
+- Two. ${marker} inline.
+`);
+    const problems = breakingRowProblems({ changelog: log, changelog20: `- ${marker} 2.0 entry.
+`, page: page([]) });
+    expect(problems).toHaveLength(3);
+  });
+
   it("reads the 2.0 release section once Unreleased became a version", () => {
     const log = "## 2.0.0 - 2026-12-01\n\n- **Breaking:** one.\n";
     expect(breakingRowProblems({ changelog: log, changelog20: "", page: page([]) })).toHaveLength(1);

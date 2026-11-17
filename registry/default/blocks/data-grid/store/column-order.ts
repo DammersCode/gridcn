@@ -5,7 +5,7 @@ import type { AnyColumnDef } from "./types";
 /**
  * Why `setColumnOrder` did not move: `"disabled"` — `enableColumnReorder` is `false`; `"unknown-column"` — `id` or
  * `targetId` names no column or group; `"not-reorderable"` — the column, the target, or a group member has
- * `reorderable: false`; `"pin-zone"` — the target sits in another pin zone; `"nothing-to-do"` — the move keeps the order.
+ * `reorderable: false`; `"pin-zone"` — the target sits in another pin zone, or a group's members span two zones; `"nothing-to-do"` — the move keeps the order.
  */
 export type ColumnOrderSkipReason = "disabled" | "unknown-column" | "not-reorderable" | "pin-zone" | "nothing-to-do";
 
@@ -36,6 +36,7 @@ export function planColumnOrder(
     const members = s.columns.filter((c) => groups.paths.get(c.id)?.includes(id));
     if (!target) return skip("unknown-column");
     if (!columnFlag(target, "reorderable") || members.some((c) => !columnFlag(c, "reorderable"))) return skip("not-reorderable");
+    if (members.some((c) => pinZone(c) !== pinZone(target))) return skip("pin-zone");
     const order = reorderGroupBlock(currentIds, s.columns, groups, id, targetId, position);
     return sameOrder(order, currentIds) ? skip("nothing-to-do") : { result: { ok: true }, order };
   }

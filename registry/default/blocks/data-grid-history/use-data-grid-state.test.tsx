@@ -240,4 +240,11 @@ describe("useDataGridState plugins option", () => {
     rerender();
     expect(result.current.plugins).toBe(first);
   });
+
+  it("settles with an inline plugin object, which is a new entry on every render", () => {
+    const { result, rerender } = renderHook(() => useDataGridState(defaultRows, { plugins: [{ name: "inline" }] }));
+    rerender();
+    rerender();
+    expect(result.current.plugins.map((plugin) => plugin.name)).toEqual(["inline", "history"]);
+  });
 });

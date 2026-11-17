@@ -94,7 +94,7 @@ export type ExportGridOptions<TData = unknown> = ExportShapeOptions<TData> & {
   maxRows?: number;
   /** Where the rows of the whole result come from, for a grid that holds one page or some loaded blocks. With `source` the export ignores `scope` and the held rows; the grid's `spec` goes to the source. */
   source?: ExportSource;
-  /** With `source`: stop after this many bytes of file text (xlsx: characters); default 256 MiB. The export keeps what it has and reports `truncated`. */
+  /** With `source`: stop after the slice of rows that passes this many bytes of file text (xlsx: characters); default 256 MiB. The export keeps what it has and reports `truncated` when more rows follow. */
   maxBytes?: number;
   /** Cancels the export. The promise rejects with the signal's reason, no file downloads, and `output` does not run. */
   signal?: AbortSignal;

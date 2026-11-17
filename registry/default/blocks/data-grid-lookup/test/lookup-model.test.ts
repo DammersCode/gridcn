@@ -125,3 +125,15 @@ describe("adoptOwner", () => {
     expect(recallOption(otherColumn, "Acme")).toBeUndefined();
   });
 });
+
+describe("rememberOption on a repeated render", () => {
+  it("keeps the stored option when an equal option is shown again", () => {
+    const owner = {};
+    const first = { value: "c1", label: "Acme" };
+    rememberOption(owner, first);
+    rememberOption(owner, { value: "c1", label: "Acme" });
+    expect(recallOption(owner, "Acme")).toBe(first);
+    rememberOption(owner, { value: "c1", label: "Acme Corp" });
+    expect(recallOption(owner, "Acme Corp")).toEqual({ value: "c1", label: "Acme Corp" });
+  });
+});

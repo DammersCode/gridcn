@@ -44,7 +44,9 @@ describe("exportRows limits", () => {
   });
 
   it("stops at a negative maxBytes after the first batch", async () => {
-    const { result } = await run({ maxBytes: -1 });
+    const out: string[][] = [];
+    const result = await exportRows<Row>(state, { source: async function* () { yield rows.slice(0, 2); yield rows.slice(2); }, maxBytes: -1 }, (batch) => (out.push(...batch), 1));
+    expect(out.map((row) => row[0])).toEqual(["a", "b"]);
     expect(result.truncated).toBe(true);
   });
 });

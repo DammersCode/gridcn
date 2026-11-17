@@ -75,7 +75,7 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
   onError?: (error: unknown) => void;
   /** Fires after the rows of a block land, with the range they cover. The grid shows them on the next frame. */
   onLoaded?: (range: RowRange) => void;
-  /** Fires after the hook merged an edit, insert, delete, or revert. Put your handler here; a spread override drops the merge. */
+  /** Fires after the hook merged an edit, insert, delete, or revert. Put your handler here; a provider `onDataChange` after the spread runs next to the merge. */
   onDataChange?: (next: readonly TData[], change: DataChange<TData>) => void;
   /** Saves a change; spread to the provider through `gridProps.onSave`, where it behaves as the `DataGridProvider` prop of the same name. The hook refreshes after saves settle by `refreshAfterSave`. */
   onSave?: SaveRefreshOptions<TData>["onSave"];

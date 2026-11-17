@@ -2,80 +2,20 @@ import type { ComponentType, FC, ReactNode } from "react";
 import type { CellValidateContext } from "./validation/validate-context";
 import type { KeyBinding } from "./keyboard/key-syntax";
 import type { AnyColumnDef, DataGridActions, DataGridStoreState } from "./store/types";
+import type { DataGridSelectedRows } from "./store/selected-rows";
 import type { RowBandRenderCtx } from "./layout-context";
 import type { OverlayPluginCtx } from "./overlays";
+import type { StandardSchemaV1 } from "./standard-schema";
+import type {
+  BuiltInFilterOperator,
+  FilterOperator,
+  CustomFilterOperator,
+  FilterSpec,
+} from "./filter-spec";
 
 export type { KeyBinding };
 
-/**
- * Vendored from `@standard-schema/spec` v1 (https://github.com/standard-schema/standard-schema) so
- * shipped registry code has zero runtime/type dependency on the package — the spec is
- * frozen at version 1, so drift risk is ~nil; a type-level conformance test (data-grid.type-test.ts)
- * asserts this vendored copy stays assignable to/from the real package's type in both directions,
- * so any future drift fails `tsc` instead of silently diverging. `@standard-schema/spec` is still a
- * repo devDependency (types-only, for that conformance test) — never imported by shipped code.
- */
-export type StandardSchemaV1<Input = unknown, Output = Input> = {
-  /** The Standard Schema properties. */
-  readonly "~standard": StandardSchemaV1Props<Input, Output>;
-};
-
-interface StandardSchemaV1Props<Input = unknown, Output = Input> {
-  /** The version number of the standard. */
-  readonly version: 1;
-  /** The vendor name of the schema library. */
-  readonly vendor: string;
-  /** Validates unknown input values. */
-  readonly validate: (value: unknown) => StandardSchemaV1Result<Output> | Promise<StandardSchemaV1Result<Output>>;
-  /** Inferred types associated with the schema. */
-  readonly types?: StandardSchemaV1Types<Input, Output> | undefined;
-}
-
-/** Result of one `"~standard".validate()` call: `issues` set means failure, never thrown. */
-export type StandardSchemaV1Result<Output> = StandardSchemaV1SuccessResult<Output> | StandardSchemaV1FailureResult;
-
-interface StandardSchemaV1SuccessResult<Output> {
-  /** The typed output value. */
-  readonly value: Output;
-  /** A falsy value for `issues` indicates success. */
-  readonly issues?: undefined;
-}
-
-interface StandardSchemaV1FailureResult {
-  /** The issues of failed validation. */
-  readonly issues: ReadonlyArray<StandardSchemaV1Issue>;
-}
-
-/** One validation failure; cell values are scalars so `path` (when present) is a flat dot-joined prefix. */
-export interface StandardSchemaV1Issue {
-  /** The error message of the issue. */
-  readonly message: string;
-  /** The path of the issue, if any. */
-  readonly path?: ReadonlyArray<PropertyKey | StandardSchemaV1PathSegment> | undefined;
-}
-
-interface StandardSchemaV1PathSegment {
-  /** The key representing a path segment. */
-  readonly key: PropertyKey;
-}
-
-interface StandardSchemaV1Types<Input = unknown, Output = Input> {
-  /** The input type of the schema. */
-  readonly input: Input;
-  /** The output type of the schema. */
-  readonly output: Output;
-}
-
-// Namespace-merged onto the `StandardSchemaV1` type (matching the official package's own
-// declaration, and how consumers write `StandardSchemaV1.InferInput<S>`) — not a general-purpose
-// namespace, so the lint rule's usual "prefer ES modules" concern doesn't apply here.
-// eslint-disable-next-line @typescript-eslint/no-namespace
-export namespace StandardSchemaV1 {
-  /** Infers the input type of a Standard Schema. */
-  export type InferInput<Schema extends StandardSchemaV1> = NonNullable<Schema["~standard"]["types"]>["input"];
-  /** Infers the output type of a Standard Schema. */
-  export type InferOutput<Schema extends StandardSchemaV1> = NonNullable<Schema["~standard"]["types"]>["output"];
-}
+export type { StandardSchemaV1, StandardSchemaV1Issue, StandardSchemaV1Result } from "./standard-schema";
 
 // `keyof TData & string` alone resolves to `never` (not `string`) when TData=unknown — unlike
 // `never`, where `keyof never` is the universal key type `string | number | symbol` — so the
@@ -129,7 +69,7 @@ export type SelectionState = {
   range: CellRange | null;
   /** Earlier ctrl-click ranges, oldest first. */
   rangeStack: readonly CellRange[];
-  /** Row ids of the row channel, in view order. */
+  /** Row ids of the row channel, in view order: the checked rows in the view, without the remembered hidden ones that `getSelectedRows()` includes. */
   rowIds: readonly string[];
   /** Column ids of the column channel, in view order. */
   columnIds: readonly string[];
@@ -438,9 +378,10 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   /** The quick-search text for a stored value; the default is `toText`. select declares the choice label. */
   toSearchText?(value: TValue, options?: TOptions): string;
   /**
-   * Validation for every column of this type; same shape as {@link ColumnDef.validate}. Every validation path (commit, paste, fill,
-   * updateCells, import) runs the function form first, then the column's own `validate` (beside a column Standard Schema, it receives
-   * no row). A Standard Schema type `validate` applies only to a column without its own.
+   * Validation for every column of this type; same shape as {@link ColumnDef.validate}. Every
+   * validation path (commit, paste, fill, updateCells, import) runs the function form first, then
+   * the column's own `validate` (beside a column Standard Schema, it receives no row). A Standard
+   * Schema type `validate` applies only to a column without its own.
    */
   validate?: ((value: TValue, row: TData, options?: TOptions) => string | null) | StandardSchemaV1<TValue>;
   /**
@@ -476,17 +417,21 @@ export type FilterValueInputProps = {
 
 /**
  * Filter capabilities a cell type declares instead of the toolbar's name-derived defaults:
- * `operators` beats the type-name operator table, `match` replaces the built-in text matcher (it receives the cell's RAW
- * value and the spec and returns whether the row passes; a throw fails the row; a custom operator uses its own `match`;
- * `isAnyOf` and `isNoneOf` reach it only when the same `filter` lists them in `operators`), `compare` orders cell text against a filter bound for
- * `gt`, `gte`, `lt`, `lte`, and `isBetween` (a NaN result or a throw falls back to the default order for that pair), `valueInput` picks the
- * filter row's widget: a built-in one by name, or a component that renders for every operator with a value, and `matchCase` (default `false`) makes the built-in text and set operators and the header filter list respect letter case. `ColumnDef.filter` takes the same shape and wins per member.
+ * `operators` beats the type-name operator table, `match` replaces the built-in text matcher
+ * (it receives the cell's RAW value and the spec and returns whether the row passes; a throw fails
+ * the row; a custom operator uses its own `match`; `isAnyOf` and `isNoneOf` reach it only when the
+ * same `filter` lists them in `operators`), `compare` orders cell text against a filter bound for
+ * `gt`, `gte`, `lt`, `lte`, and `isBetween` (a NaN result or a throw falls back to the default order
+ * for that pair), and `valueInput` picks the filter row's widget: a built-in one by name, or a
+ * component that renders for every operator with a value. `ColumnDef.filter` takes the same shape
+ * and wins per member.
  */
 export type CellTypeFilter = {
   operators?: readonly (BuiltInFilterOperator | CustomFilterOperator)[];
   match?: (value: unknown, filter: FilterSpec) => boolean;
   compare?: (text: string, bound: string) => number;
   valueInput?: CellTypeValueInput | ComponentType<FilterValueInputProps>;
+  /** The built-in text and set operators, and the header filter's value list, respect letter case. Default `false`. */
   matchCase?: boolean;
 };
 
@@ -505,7 +450,7 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   id: string;
   /**
    * String headers render truncated and get the built-in sort-direction arrow
-   * while the column is sorted and not `sortable: false`, in every header-click mode; a ReactNode header renders as-is and owns its own display (the built-in
+   * while the column is sorted, in every header-click mode; a ReactNode header renders as-is and owns its own display (the built-in
    * arrow is NOT appended — embed DataGridSortIndicator inside it when you still want it).
    */
   header: string | ReactNode;
@@ -568,7 +513,7 @@ export type ColumnDef<TData, TValue = unknown, TValidate = TValue> = {
   flex?: number;
   /** Initial pin side, applied when the column id first appears; `"start"` and `"end"` follow the inline axis, so both flip in a right-to-left page; change it at runtime through `setColumnPin` or the context menu. Pinned columns only reorder within their own pin zone. */
   pin?: ColumnPin;
-  /** Removes the column from click-to-sort (header clicks no longer sort it); programmatic `setSorts`/`toggleSort` still apply. Default true. */
+  /** Removes the column from click-to-sort (header clicks no longer sort it); programmatic `setSorts`/`toggleSort` still apply, and the header shows their arrow and `aria-sort`. Default true. */
   sortable?: boolean;
   /** Excludes the column from the filter menu's column picker. Existing filter specs on it keep applying. Default true. */
   filterable?: boolean;
@@ -619,87 +564,19 @@ export type HeaderClickBehavior = "select" | "sort" | "none";
 
 export type SortSpec = { columnId: string; direction: "asc" | "desc" };
 
-export type BuiltInFilterOperator =
-  | "contains"
-  | "notContains"
-  | "equals"
-  | "notEquals"
-  | "startsWith"
-  | "endsWith"
-  | "empty"
-  | "notEmpty"
-  | "gt"
-  | "gte"
-  | "lt"
-  | "lte"
-  | "isBetween"
-  | "isAnyOf"
-  | "isNoneOf";
-
-/** A built-in operator or the id of a {@link CustomFilterOperator} the column registers in `filter.operators`. */
-export type FilterOperator = BuiltInFilterOperator | (string & {});
-
-/** The value shape a filter operator takes: no value, one text, an inclusive `[min, max]` pair, or a list of texts. */
-export type FilterOperatorInput = "none" | "single" | "range" | "list";
-
-/**
- * An operator a column registers next to the built-ins, usually to name a server vocabulary
- * (`"inRegion"`, `"matchesQuery"`). List it in `ColumnDef.filter.operators` or `CellTypeFilter.operators`;
- * `filterMode="server"` sends `{ columnId, operator: id, value }` in the spec and never calls `match`.
- */
-export type CustomFilterOperator = {
-  /** Stored in `FilterSpec.operator` and in the URL. Must not equal a built-in operator. */
-  id: string;
-  /** Text of the operator select. */
-  label: string;
-  /** Value shape of the filter row; default `"single"`. */
-  input?: FilterOperatorInput;
-  /**
-   * Local evaluator over the cell text. A throw fails the row. Without it a client-side filter does not
-   * narrow rows and warns once in development.
-   */
-  match?: (text: string, filter: FilterSpec) => boolean;
-};
-
-/** How a {@link FilterGroup} combines its children: `"and"` requires every child to match, `"or"` requires any one. */
-export type FilterJoinOperator = "and" | "or";
-
-/**
- * One filter row: `{ columnId: "age", operator: "gt", value: "30" }`. `value` holds text for every operator,
- * numbers and dates included (`"30"`, `"2025-01-31"`); the operators `empty` and `notEmpty` take no value.
- * `value` is a single string for most operators. `isBetween` carries an inclusive `[min, max]`
- * tuple (either bound may be `""` for an open-ended range); `isAnyOf` carries a `string[]` of
- * accepted values and matches when the cell text equals any of them; `isNoneOf` carries a
- * `string[]` of excluded values and matches when the cell text equals none of them (an empty list
- * matches every row). `filterId` is a stable
- * identity for list rendering/updates independent of array position (multiple filter rows on the
- * same column are allowed and meaningful under `"or"`/mixed joins); optional at the input boundary
- * for backward compatibility — the store auto-assigns one when absent (see `genFilterId`).
- */
-export type FilterSpec = { filterId?: string; columnId: string; operator: FilterOperator; value?: string | [string, string] | string[] };
-
-/**
- * A box of filters that match together: with `join: "and"` every child must match, with `"or"` any one.
- * A group nests one more group at most (see `MAX_FILTER_GROUP_DEPTH`). An empty group matches every row.
- * `filterId` is assigned by the store when absent.
- */
-export type FilterGroup = { filterId?: string; join: FilterJoinOperator; filters: FilterNode[] };
-
-/** One value a server offers for a set filter: `value` is what a filter entry stores (a code or id); `label` is the text the list shows, `value` when absent; `count` is the matching row count. */
-export type FilterValue = { value: string; label?: string; count?: number };
-
-/**
- * The request `fetchFilterValues` receives. `query` is the raw text of the popover search box (untrusted).
- * `filters` is the open filter tree without the column's own top-level set entry. `signal` aborts when the
- * search changes, the popover closes, or the grid unmounts.
- */
-export type FetchFilterValuesContext = { columnId: string; query: string; filters: readonly FilterNode[]; signal: AbortSignal };
-
-/** Resolves the values of a column for the header filter and the `isAnyOf` input; the grid keeps at most 1,000 values. */
-export type FetchFilterValues = (ctx: FetchFilterValuesContext) => Promise<{ values: readonly FilterValue[] }>;
-
-/** One entry of `filterState`: a {@link FilterSpec} row or a {@link FilterGroup}. Narrow with `"filters" in node`. The top level always combines with `"and"`. */
-export type FilterNode = FilterSpec | FilterGroup;
+export type {
+  BuiltInFilterOperator,
+  FilterOperator,
+  FilterOperatorInput,
+  CustomFilterOperator,
+  FilterJoinOperator,
+  FilterSpec,
+  FilterGroup,
+  FilterValue,
+  FetchFilterValuesContext,
+  FetchFilterValues,
+  FilterNode,
+} from "./filter-spec";
 
 /**
  * Named keyboard actions, as an interface so consumers can ADD actions by declaration-merging
@@ -769,8 +646,10 @@ export interface GridActions {
   deleteRows: true;
   moveRowsUp: true;
   moveRowsDown: true;
-  moveColumnTowardStart: true; moveColumnTowardEnd: true;
-  widenColumn: true; narrowColumn: true;
+  moveColumnTowardStart: true;
+  moveColumnTowardEnd: true;
+  widenColumn: true;
+  narrowColumn: true;
   openLink: true;
   focusSearch: true;
 }
@@ -803,6 +682,8 @@ export type DataGridApi<TData> = {
   runShortcut(action: GridAction): void;
   /** A non-reactive snapshot of the current selection in stable {@link CellRef} terms. */
   getSelection(): SelectionState;
+  /** The checked rows for a bulk action, the same value `useDataGridSelectedRows()` returns: the remembered hidden checked rows included, or "all matching except these ids". */
+  getSelectedRows(): DataGridSelectedRows;
   /** The data row at a view (display) row index — the same read `useDataGridRow` performs, without a subscription. */
   getRow(viewRowIndex: number): TData | undefined;
   /**

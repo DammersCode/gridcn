@@ -8,7 +8,7 @@ import { useDataGridHistory, type RecordedChange, type UseDataGridHistoryOptions
 export type UseDataGridStateOptions<TData> = UseDataGridHistoryOptions<TData> & {
   /** Row identity; defaults to the row's `id` field, like `DataGrid`'s `getRowId`. */
   getRowId?: (row: TData, index: number) => string;
-  /** Other plugins of the grid. The returned `plugins` holds them, then the history plugin, so the spread stays complete. An inline array is fine: equal entries keep the identity. */
+  /** Other plugins of the grid. The returned `plugins` holds them, then the history plugin, so the spread stays complete. An inline array is fine: equal entries keep the identity. An inline plugin object is a new plugin on every render, so define it at module scope or memoize it. */
   plugins?: readonly DataGridPlugin<TData>[];
 };
 
@@ -47,11 +47,30 @@ export type UseDataGridStateResult<TData> = {
 
 const NO_PLUGINS: readonly never[] = [];
 
-function useStableEntries<T>(entries: readonly T[]): readonly T[] {
-  const [held, setHeld] = useState(entries);
-  if (held.length === entries.length && held.every((entry, i) => entry === entries[i])) return held;
-  setHeld(entries);
-  return entries;
+const entryIds = new WeakMap<object, number>();
+let nextEntryId = 0;
+
+function entryIdOf(entry: object): number {
+  let id = entryIds.get(entry);
+  if (id === undefined) entryIds.set(entry, (id = nextEntryId++));
+  return id;
+}
+
+class EntriesHolder<T> {
+  private key: string | null = null;
+  private entries: readonly T[] = [];
+
+  /** The entries held for `key`: the last entries with an equal key, so a new array of equal entries keeps the identity. */
+  hold(key: string, entries: readonly T[]): readonly T[] {
+    if (key !== this.key) [this.key, this.entries] = [key, entries];
+    return this.entries;
+  }
+}
+
+// Keyed by entry identity and held outside state, so a new inline entry on every render gives a new array instead of a render loop.
+function useStableEntries<T extends object>(entries: readonly T[]): readonly T[] {
+  const [holder] = useState(() => new EntriesHolder<T>());
+  return holder.hold(entries.map(entryIdOf).join(","), entries);
 }
 
 /**

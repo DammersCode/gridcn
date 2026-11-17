@@ -162,12 +162,13 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
     [headerClickBehavior, column.sortable, onSort, column.id],
   );
 
+  const sorted = sortState.some((sort) => sort.columnId === column.id);
   const defaultContent = (
     <>
       {typeof column.header === "string" ? <span className="truncate">{column.header}</span> : column.header}
       {/* A custom (ReactNode) header owns its display, so the built-in arrow is only appended for string headers;
-          embed DataGridSortIndicator inside a custom header when you still want it. */}
-      {(headerClickBehavior === "sort" || sortState.some((sort) => sort.columnId === column.id)) && column.sortable !== false && typeof column.header === "string" && (
+          embed DataGridSortIndicator inside a custom header when you still want it. A programmatic sort shows on a sortable: false column too. */}
+      {typeof column.header === "string" && (
         <DataGridSortIndicator columnId={column.id} sortState={sortState} />
       )}
       {showHeaderFilter && renderHeaderFilter && (
@@ -223,7 +224,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
       aria-rowspan={rowSpan > 1 ? rowSpan : undefined}
       aria-label={typeof column.header === "string" ? undefined : headerLabelText(column)}
       // sort state is announced to AT in every click behavior
-      aria-sort={column.sortable !== false ? ariaSortFor(column.id, sortState) : undefined}
+      aria-sort={column.sortable !== false || sorted ? ariaSortFor(column.id, sortState) : undefined}
       data-column-id={column.id}
       data-pinned={pinned || undefined}
       data-filtered={filtered || undefined}

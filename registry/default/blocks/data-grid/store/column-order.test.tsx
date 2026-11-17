@@ -37,6 +37,12 @@ describe("setColumnOrder result", () => {
     expect(ids(state())).toEqual(["a", "d", "b", "c"]);
   });
 
+  it('returns "pin-zone" for a group that spans two pin zones or moves onto another zone', () => {
+    const state = mount({ columnGroups: [{ id: "split", header: "Split", children: ["a", "b"] }, { id: "end", header: "End", children: ["d"] }] });
+    expect(state().actions.setColumnOrder("split", "d", "after")).toEqual({ ok: false, reason: "pin-zone" });
+    expect(state().actions.canSetColumnOrder("end", "a", "before")).toEqual({ ok: false, reason: "pin-zone" });
+  });
+
   it('returns "disabled" with enableColumnReorder false', () => {
     const state = mount({ enableColumnReorder: false });
     expect(state().actions.setColumnOrder("d", "b", "before")).toEqual({ ok: false, reason: "disabled" });

@@ -114,6 +114,8 @@ export async function exportRows<TData = unknown, TCell extends ExportCell = str
   let rowCount = 0;
   let byteCount = 0;
   let truncated = false;
+  // The slice that crosses maxBytes is written whole; the export is truncated only if more rows follow it.
+  let overBytes = false;
   let skippedRows = 0;
   let emptyBatches = 0;
   const maxSkippedRows = Math.max(maxRows, 1) * 2;
@@ -144,6 +146,10 @@ export async function exportRows<TData = unknown, TCell extends ExportCell = str
     for (let from = 0; from < batch.length && !truncated; from += SLICE_ROWS) {
       const slice = batch.slice(from, from + SLICE_ROWS);
       const present = slice.filter((row) => row !== undefined && row !== null);
+      if (overBytes && present.length > 0) {
+        truncated = true;
+        break;
+      }
       skippedRows += slice.length - present.length;
       const room = maxRows - rowCount;
       if (present.length > room) truncated = true;
@@ -151,7 +157,7 @@ export async function exportRows<TData = unknown, TCell extends ExportCell = str
       const rows = present.slice(0, room).map((row) => mapExportRow(state, columns, row as TData, "export", formatCell, typed) as TCell[]);
       rowCount += rows.length;
       byteCount += onBatch(rows);
-      if (byteCount > maxBytes) truncated = true;
+      if (byteCount > maxBytes) overBytes = true;
       if (performance.now() - sliceStarted > YIELD_AFTER_MS) {
         await yieldToEventLoop();
         if (outer?.aborted) throw abortReason(outer);

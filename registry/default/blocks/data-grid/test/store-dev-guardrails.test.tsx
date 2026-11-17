@@ -138,6 +138,50 @@ describe("dev-mode guardrails", () => {
     warn.mockRestore();
   });
 
+  it("does NOT warn when a rebuilt columns array carries a new function, such as a renderCell over new state", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const columnsFor = (suffix: string): readonly ColumnDef<Row, unknown>[] => [{ id: "name", header: "Name", accessorKey: "name", renderCell: ({ value }) => `${String(value)}${suffix}` }];
+
+    function Harness({ columns }: { columns: readonly ColumnDef<Row, unknown>[] }) {
+      return (
+        <DataGridProvider data={rows()} columns={columns} getRowId={(r) => r.id}>
+          <div />
+        </DataGridProvider>
+      );
+    }
+
+    const { rerender } = render(<Harness columns={columnsFor("!")} />);
+    rerender(<Harness columns={columnsFor("?")} />);
+
+    expect(warn).not.toHaveBeenCalledWith(expect.stringContaining("columns array identity changed"));
+    warn.mockRestore();
+  });
+
+  it("warns once per grid while the columns and data arrays churn on every render", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const initial = rows();
+    const freshColumns = (): readonly ColumnDef<Row, unknown>[] => [{ id: "name", header: "Name", accessorKey: "name" }];
+
+    // The caller builds the churn, so the compiler has no render-scoped array to memoize.
+    function Harness({ data, columns }: { data: readonly Row[]; columns: readonly ColumnDef<Row, unknown>[] }) {
+      return (
+        <DataGridProvider data={data} columns={columns} getRowId={(r) => r.id}>
+          <div />
+        </DataGridProvider>
+      );
+    }
+
+    const { rerender } = render(<Harness data={[...initial]} columns={freshColumns()} />);
+    rerender(<Harness data={[...initial]} columns={freshColumns()} />);
+    rerender(<Harness data={[...initial]} columns={freshColumns()} />);
+    rerender(<Harness data={[...initial]} columns={freshColumns()} />);
+
+    const calls = warn.mock.calls.map((call) => String(call[0]));
+    expect(calls.filter((text) => text.includes("columns array identity changed"))).toHaveLength(1);
+    expect(calls.filter((text) => text.includes("data array identity changed"))).toHaveLength(1);
+    warn.mockRestore();
+  });
+
   it("does NOT warn when the columns array changes on purpose (different header or ids) or stays stable", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const stable: readonly ColumnDef<Row, unknown>[] = [{ id: "name", header: "Name", accessorKey: "name" }];

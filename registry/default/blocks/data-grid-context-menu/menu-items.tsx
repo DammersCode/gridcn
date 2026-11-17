@@ -71,10 +71,15 @@ export type BuiltInMenuItemId =
   | "hide-column"
   | "autosize"
   | "autosize-all"
+  | "move-toward-start"
+  | "move-toward-end"
+  | "widen-column"
+  | "narrow-column"
   | "sep-clipboard"
   | "sep-rows"
   | "sep-sort"
-  | "sep-autosize";
+  | "sep-autosize"
+  | "sep-move";
 
 /** An item id: a built-in id (the editor completes it) or your own string. */
 export type MenuItemId = BuiltInMenuItemId | (string & {});
