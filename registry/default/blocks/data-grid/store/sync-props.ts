@@ -111,7 +111,7 @@ export function resolveSortLocale(props: { sortLocale?: string; locale?: string 
 
 
 /** The add-on command names and the key each add-on binds: a `commands` entry for one of them has no key unless the add-on or the keymap binds it. */
-export const ADDON_COMMAND_KEYS = { undo: "mod+z", redo: "mod+shift+z", fillDown: "mod+d", fillRight: "mod+r", openFind: "mod+f", openFindReplace: "shift+alt+Enter", openKeybindings: "?" } as const;
+export const ADDON_COMMAND_KEYS = { undo: "mod+z", redo: "mod+shift+z", fillDown: "mod+d", fillRight: "mod+r", openFind: "mod+f", openFindReplace: "shift+alt+Enter", openKeybindings: "?", openComments: "shift+F2" } as const;
 
 
 /** The patch that ends "all matching" with the old result: the rows are unchecked and the exclusions forgotten. */
