@@ -127,6 +127,8 @@ export function rememberOption(owner: object, option: LookupOption): void {
     known.set(owner, index);
   }
   const labelKey = option.label.toLowerCase();
+  // runs on every render of a shown cell, the scroll hot path
+  if (index.byValue.get(option.value)?.label === option.label && index.byLabel.has(labelKey)) return;
   const same = index.byLabel.get(labelKey);
   index.byLabel.delete(labelKey);
   // a label shared by two keys is ambiguous and resolves to nothing
