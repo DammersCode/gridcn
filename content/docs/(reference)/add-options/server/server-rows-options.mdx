@@ -29,7 +29,7 @@ The default mode fetches one page for each state. If the sort, the filter, the s
 
 The hook keeps `page` between 1 and the last page of 10,000,000 rows at the current page size. A `page` that is not a positive integer becomes 1. At mount, it waits one timer tick before the first request, so a spec that your URL state restores replaces that request before it leaves. If `onError` or `onLoaded` throws, the hook logs the error and carries on.
 
-`initialAnswer` is the answer for the first state. The hook shows it without a request, so the server HTML holds the rows. `onLoaded` does not fire for it, and the next state fetches as usual.
+`initialAnswer` is the answer for the first state. The hook shows it without a request, so the server HTML holds the rows. `onLoaded` does not fire for it, and the next state fetches as usual. In scroll mode, it is the answer of block 0 for the first spec. Rows past `blockSize` are cut, and another first spec drops it.
 
 ### Result
 
@@ -92,11 +92,11 @@ The limits and the timers are on [Tune row retention](/docs/scroll-mode/tune-row
 
 ### Scroll result [#usedatagridserverrowsscrollresult]
 
-<AutoTypeTable path="./registry/default/blocks/data-grid-server/scroll-blocks.ts" name="UseDataGridServerRowsScrollResult" />
+<AutoTypeTable path="./registry/default/blocks/data-grid-server/scroll-types.ts" name="UseDataGridServerRowsScrollResult" />
 
 In scroll mode, `providerProps` holds:
 
-<AutoTypeTable path="./registry/default/blocks/data-grid-server/scroll-blocks.ts" name="UseDataGridServerRowsScrollProviderProps" />
+<AutoTypeTable path="./registry/default/blocks/data-grid-server/scroll-types.ts" name="UseDataGridServerRowsScrollProviderProps" />
 
 ## Save options [#save-options]
 

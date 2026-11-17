@@ -74,7 +74,7 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
 }
 ```
 
-With [`useDataGridServerRows`](/docs/data-modes/query-server-rows) in pages mode, pass the first page as `initialAnswer`, for example from a Server Component. The server HTML then holds the rows, and the hook sends no request until the state changes. Scroll mode takes no first answer.
+With [`useDataGridServerRows`](/docs/data-modes/query-server-rows) in pages mode, pass the first page as `initialAnswer`, for example from a Server Component. The server HTML then holds the rows, and the hook sends no request until the state changes. In scroll mode, `initialAnswer` is block 0, rows `[0, blockSize)`. The hook sends no request for block 0, and it fetches block 1 when the rendered rows reach it.
 
 ## Keep the first render equal [#hydration-rules]
 

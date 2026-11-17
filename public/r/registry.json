@@ -1732,6 +1732,16 @@
           "target": "components/data-grid-server/scroll-core.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid-server/scroll-seed.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server/scroll-seed.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server/scroll-types.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server/scroll-types.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid-server/sequence-eviction.ts",
           "type": "registry:component",
           "target": "components/data-grid-server/sequence-eviction.ts"

@@ -3109,9 +3109,10 @@
           ]
         },
         "Z": {
-          "status": "gap",
-          "track": "K",
-          "note": "Scroll mode takes no first answer; its first block always fetches."
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.initial-answer.scroll.test.tsx"
+          ]
         },
         "C": {
           "status": "supported",

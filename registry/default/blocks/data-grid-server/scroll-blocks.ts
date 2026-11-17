@@ -8,6 +8,7 @@ import { pruneIds, stashGuardedRows, trackDeletes, unionIds, useRefreshGuard, wr
 import { cursorKey, MAX_SEEN_CURSORS, needsNextBlock, skeletonCount, startsSequence, stepSequence } from "./scroll-sequence";
 import { chunkAligned, chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes } from "./range-math";
 import { DEFAULT_MAX_LOADED_ROWS, MAX_SEQUENTIAL_REVALIDATE_BLOCKS, distanceToCentre, dueWanted, keepRange, rangesIntersect, readFetchLimits, trackWanted, type FetchLimits } from "./fetch-hygiene";
+import { readScrollSeed } from "./scroll-seed";
 import { createCore, freshSequence, type Core, type Guard } from "./scroll-core";
 import { evictedBlocksIn, evictSequenceRows, sequenceLoaded, shiftBlocks } from "./sequence-eviction";
 import { evictRows, forgetUnloaded, stampLanded, stampViewed, unloadRows } from "./scroll-eviction";
@@ -45,6 +46,13 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
   /** Controls the sort, filter, and search; pair it with `onSpecChange`. A content change starts the blocks over. */
   spec?: ServerSpec;
   onSpecChange?: (spec: ServerSpec) => void;
+  /**
+   * The answer of block 0, rows `[0, blockSize)`, for the first spec (`defaultSpec`, or the empty spec when `defaultSpec` is a function), for example from a Server Component.
+   * The hook shows it without a request, so the server HTML holds the rows; the first answer picks random access or a sequential source as `fetchRows` does, and a cursor continues the chain.
+   * Rows past `blockSize` are cut. Another first spec drops it and fetches. `refresh()` and a spec change fetch as usual.
+   * It counts as untrusted input like any answer. `onLoaded` does not fire for it.
+   */
+  initialAnswer?: ServerRowsAnswer<TData, TCursor>;
   /** Rows per request. Requests align to multiples of it, so small scrolls reuse the same block. Default 50. */
   blockSize?: number;
   /** Rows fetched beyond the rendered rows on each side. Default 30. */
@@ -94,80 +102,8 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
   onRenderedRowsChange?: (range: RowRange) => void;
 };
 
-/** Props of {@link UseDataGridServerRowsScrollResult.gridProps} that belong to `DataGridProvider`. */
-export type UseDataGridServerRowsScrollProviderProps<TData> = {
-  /** Sparse at runtime: an unloaded row is a hole, typed as `TData` to match `DataGridProps`. */
-  data: readonly TData[];
-  /** Gives an unloaded row a placeholder id and a loaded row its own. */
-  getRowId: (row: TData, index: number) => string;
-  /** Keeps the rows in step with edits, inserts, deletes, and reverts of a refused save. Send changes to your API from `onSave`. */
-  onDataChange: (next: readonly TData[], change: DataChange<TData>) => void;
-  /** Present when the hook got an `onSave`. */
-  onSave?: SaveRefreshOptions<TData>["onSave"];
-  /** Reports the rendered rows so the hook can fetch the blocks they need. */
-  onRenderedRowsChange: (range: RowRange) => void;
-  sortMode: "server";
-  filterMode: "server";
-  sortState: SortSpec[];
-  onSortChange: (next: SortSpec[]) => void;
-  filterState: FilterNode[];
-  onFilterChange: (next: FilterNode[]) => void;
-  searchText: string;
-  onSearchTextChange: (next: string) => void;
-  /** The row count of the result; `null` until the first block lands, and for a sequential source until it ends or the server sends one. */
-  totalRowCount: number | null;
-  /** Keeps checks by row id across window moves, evictions, and server sorts and filters. */
-  checkedRowsLifetime: "across-filters";
-  /** The refresh guard that keeps a refresh from overwriting a row with a pending save or an open edit, then the `plugins` option. */
-  plugins: readonly DataGridPlugin<unknown>[];
-  /** Sorts on a header click. Override it after the spread. */
-  headerClickBehavior: "sort";
-};
-
-/** Return value of `useDataGridServerRows` in scroll mode. */
-export type UseDataGridServerRowsScrollResult<TData> = {
-  /** Spread onto `<DataGrid {...server.gridProps} columns={columns} />`. */
-  gridProps: UseDataGridServerRowsScrollProviderProps<TData> & UseDataGridServerRowsRootProps;
-  /** The part of `gridProps` for `<DataGridProvider>` in a composed layout. */
-  providerProps: UseDataGridServerRowsScrollProviderProps<TData>;
-  /** The part of `gridProps` for `<DataGridRoot>` in a composed layout: the loading flag and the error state. */
-  rootProps: UseDataGridServerRowsRootProps;
-  /** The sort, filter, and search text of the current requests. */
-  spec: ServerSpec;
-  /** The row count of the result; `null` until the first block lands, and for a sequential source until it ends or the server sends one. */
-  totalRowCount: number | null;
-  /** `"error"` wins over `"loading"`. */
-  status: "loading" | "error" | "ready";
-  /** A request of the current spec is in flight. */
-  loading: boolean;
-  /** The latest failure of the current spec that no landed block has replaced, or `null`. */
-  error: unknown;
-  /** Repeats the blocks that failed. Does nothing without an error. */
-  retry: () => void;
-  /**
-   * Fetches the rendered rows again and keeps them on screen until the answers land. Drops every other loaded row. A sequential
-   * source refetches from the first block up to the rendered rows. A row with a pending edit, delete, or in-flight save keeps its local state.
-   * The hook calls it after saves settle by `refreshAfterSave`; call it yourself with `refreshAfterSave: false` or a void `onSave`.
-   */
-  refresh: () => void;
-  /** Asks the server to place the pushed rows again: one `refresh()` on the next frame, or after `reshapeDelayMs` when it is set. Calls in one frame join. A sequential source skips it while the rendered rows plus `overscan` end beyond 10 blocks. */
-  reshape: () => void;
-  /**
-   * Whether a timed refresh would run now. A sequential source skips `revalidateIntervalMs`, `reshapeDelayMs`, and `refreshAfterSave`
-   * refreshes while the rendered rows plus `overscan` end beyond 10 blocks, and then returns `false`; call `refresh()` yourself there.
-   * Not reactive: read it in an effect or a handler.
-   */
-  canRevalidate: () => boolean;
-  /** Rows with no data yet; they render as skeletons. A sequential source reports its one block of skeletons. */
-  unloadedCount: number;
-  /** The loaded ranges, merged and ascending. Not reactive: read it in an effect or a handler. */
-  getLoadedRanges: () => readonly RowRange[];
-  /**
-   * Unloads the rows in `range` and aborts the requests it covers; the next rendered window that covers them fetches them again.
-   * Rows with an open edit, a pending save, or an unsaved change, and the row under the active cell, stay in `data` but stop counting as loaded. Does nothing on a sequential source.
-   */
-  evict: (range: RowRange) => void;
-};
+import type { UseDataGridServerRowsScrollProviderProps, UseDataGridServerRowsScrollResult } from "./scroll-types";
+export type { UseDataGridServerRowsScrollProviderProps, UseDataGridServerRowsScrollResult } from "./scroll-types";
 
 function oldestMark<TData>(core: Core<TData>): number | null {
   let oldest: number | null = null;
@@ -223,12 +159,14 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     if (coreRef.current === null) coreRef.current = createCore<TData>();
     return coreRef.current;
   }, []);
-  const [rows, setRows] = useState<(TData | undefined)[]>([]);
-  const [count, setCount] = useState<number | null>(null);
-  const [loadedCount, setLoadedCount] = useState(0);
-  const [skeletons, setSkeletons] = useState<number | null>(null);
+  const [seed] = useState(() => readScrollSeed(options.initialAnswer, serverSpecKey(spec), positiveInteger(options.blockSize, DEFAULT_BLOCK_SIZE, 1), options.source));
+  const seedRef = useRef(seed);
+  const [rows, setRows] = useState<(TData | undefined)[]>(() => seed?.rows ?? []);
+  const [count, setCount] = useState<number | null>(() => seed?.count ?? null);
+  const [loadedCount, setLoadedCount] = useState(() => seed?.loadedCount ?? 0);
+  const [skeletons, setSkeletons] = useState<number | null>(() => seed?.skeletons ?? null);
   const { plugins: guardPlugins, protectedRows, savingRows, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, setSettleListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows } = useRefreshGuard({ trackUnacknowledged: true });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(seed === null);
   const [error, setError] = useState<unknown>(null);
   const live = useRef({ options, spec });
   useLayoutEffect(() => {
@@ -251,7 +189,9 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     if (read.maxLoadedRowsInvalid) warn("maxLoadedRows", `maxLoadedRows must be a number of rows or Infinity, so the hook uses ${DEFAULT_MAX_LOADED_ROWS}`);
     return read;
   }, [blockSize, warn]);
+  const seeding = useRef(false);
   const notifyLoaded = useCallback((start: number, end: number) => {
+    if (seeding.current) return;
     const onLoaded = live.current.options.onLoaded;
     if (end > start && onLoaded) isolate("onLoaded", () => onLoaded({ start, end }));
   }, []);
@@ -756,8 +696,23 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       setCount(null);
     }
     core.ready = false;
-    setLoading(true);
     setError(null);
+    const seeded = seedRef.current;
+    if (seeded !== null && seeded.specKey !== specKey) seedRef.current = null;
+    if (seedRef.current !== null) {
+      const { answer, cut } = seedRef.current;
+      if (cut) warn("seed-long", `initialAnswer holds more than blockSize (${blockSize()}) rows; only the first block is used`);
+      seeding.current = true;
+      land({ start: 0, end: blockSize() }, answer, undefined, { ids: savingRows(), mark: saveMark() });
+      seeding.current = false;
+      return () => {
+        resetQueues(core);
+        abortRequests();
+        core.cancelFrame?.();
+        core.cancelFrame = null;
+      };
+    }
+    setLoading(true);
     // The first request waits a tick, so a StrictMode remount and a spec restored in a mount effect replace it before it leaves.
     const timer = setTimeout(() => runFetch({ start: 0, end: blockSize() }), 0);
     return () => {
