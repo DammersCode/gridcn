@@ -833,6 +833,11 @@
                "target": "components/data-grid/store/matching-total.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/store/relayout-only.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/relayout-only.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/store/sync-inputs.ts",
                "type": "registry:component",
                "target": "components/data-grid/store/sync-inputs.ts"
@@ -1867,6 +1872,11 @@
                "path": "registry/default/blocks/data-grid-server/group-pages.ts",
                "type": "registry:component",
                "target": "components/data-grid-server/group-pages.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-server/group-save-scope.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-server/group-save-scope.ts"
             },
             {
                "path": "registry/default/blocks/data-grid-server/use-group-blocks.ts",
