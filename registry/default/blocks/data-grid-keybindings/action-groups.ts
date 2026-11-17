@@ -68,6 +68,7 @@ export const ACTION_CATEGORY: Partial<Record<GridAction | (string & {}), Keybind
   openFind: "selection",
   focusSearch: "selection",
   openFindReplace: "selection",
+  openComments: "selection",
 
   edit: "editing",
   typeToReplace: "editing",

@@ -1,6 +1,6 @@
 ---
 name: gridcn-addons
-description: "gridcn add-ons (fill, undo/redo, pinned rows, presence, toolbar, header filter, find & replace, context menu, keybindings, sort list, saved views, URL state, import/export): install and wiring. Use when adding an add-on, combining several in one grid, or when an installed add-on renders nothing."
+description: "gridcn add-ons (fill, undo/redo, pinned rows, presence, comments, toolbar, header filter, find & replace, context menu, keybindings, sort list, saved views, URL state, import/export): install and wiring. Use when adding an add-on, combining several in one grid, or when an installed add-on renders nothing."
 metadata:
   gridcn-version: "1.3.0"
 ---
@@ -26,6 +26,7 @@ npx shadcn add @gridcn/<item>
 | Pinned rows | `data-grid-pinned-rows` | none |
 | Lookup cell | `data-grid-lookup` (installs `use-debounce` too) | none |
 | Presence | `data-grid-presence` | none |
+| Cell comments | `data-grid-comments` | none |
 | Undo & redo | `data-grid-history` | none |
 | Toolbar | `data-grid-toolbar` (installs `use-debounce` too) | `@dnd-kit/react`, `@dnd-kit/dom` |
 | Context menu | `data-grid-context-menu` | none |
@@ -56,6 +57,7 @@ must run in the component that renders `<DataGridProvider>`, above it, not insid
 |---|---|---|---|
 | Fill | `useDataGridFill()` | `{ plugin }` | `plugin` → `plugins` on the provider (the `Mount` member runs the drag engine inside the root) |
 | Presence | `useDataGridPresence()` | `{ plugin, setPresenceHighlights, ... }` | `plugin` → `plugins` on the provider |
+| Comments | `useDataGridComments({ currentUser?, onCommentSave?, onLocalChange?, fetchComments? })` | `{ plugin, applyRemote, openComments, getCommentMenuItems, ... }` | `plugin` → `plugins` on the provider (with `useDataGridServerRows`, its `plugins` option); `getCommentMenuItems` → `getCellMenuItems` of `DataGridContextMenu`; `Shift+F2` opens the popover |
 | Pinned rows | `useDataGridPinnedRows({ topRows?, bottomRows?, status? })`; a totals row is `aggregateRow(specs, { cells?, scope? })` or `serverAggregateRow({ fetchAggregates, cells?, refreshAfterSave? })` in `topRows`/`bottomRows` | `{ plugin }` | `plugin` → `plugins` on the provider |
 | Keybindings | `useDataGridKeybindings({ className? })` | `{ plugin, open, close }` | `plugin` → `plugins` on the provider (`?` opens the dialog; rebind with `keymap={{ openKeybindings: [...] }}`) |
 | Find & replace | `useDataGridFindReplace({ scope?, replaceAllLimit?, processReplace?, className? })` | `{ plugin, open, close }` | `plugin` → `plugins` on the provider (`Mod+F` opens the panel with Find only, `Shift+Alt+Enter` with Replace; `open("find" \| "replace")` opens it from code) |
@@ -127,6 +129,10 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
 - **Presence**: call `useDataGridPresence()` exactly once per grid. A second call mints a separate
   store whose `setPresenceHighlights` writes into nothing the grid reads; share the first call's
   return values as props instead.
+- **Comments**: call `useDataGridComments()` once per grid and pass `currentUser`, or the popover is
+  read-only. `onCommentSave` answers nothing (stored as sent), `{ comment }`, `{ rejected: { reason: "stale", current } }`,
+  or throws. Forward `onLocalChange` to your channel and feed arriving changes to `applyRemote`; the add-on drops
+  its own echo by `writeId`. Comments are keyed by row id and column id, so keep `getRowId` stable.
 - **Pinned rows**: create `aggregateRow(...)` and `serverAggregateRow(...)` once, at module scope. The hook compares the entries of `topRows`/`bottomRows` by identity, so an inline `[TOTALS]` keeps the plugin. A plain row object must stay a stable value too.
 - **Server totals**: on a pages, scroll, or own-API grid put `serverAggregateRow({ fetchAggregates: ({ spec, signal }) => … })` in `bottomRows`. The band sets its own `status`, requests again on a filter or quick-search change, and fetches again after the pending saves settle (`refreshAfterSave: false` opts out). Pin one `serverAggregateRow` in one place only. To read the result outside the band, render `<DataGridServerAggregateReporter … onChange={setTotals} />` (start the state from `PENDING_SERVER_AGGREGATE`; it refreshes after saves like the band, `refreshAfterSave: false` opts out).
 - **Lookup cell**: register `cellTypes={{ lookup: lookupCellType }}`, set `type: "lookup"` and `options: { fetchOptions }` on the column. No `declare module` block is needed; type `fetchOptions` with `LookupOptions<Row>`.
@@ -192,7 +198,7 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
 The add-on's item folder exists under your components path, its npm dependency (if any) is in
 `package.json`, its output is wired at the location named in the table above, the browser console
 shows no dev warning, and its documented visible behavior confirms it (drag the fill handle, undo a
-paste, see the pinned band render, see a remote presence highlight, click a toolbar button, right-click
+paste, see the pinned band render, see a remote presence highlight, press `Shift+F2` on a cell and add a comment, click a toolbar button, right-click
 a cell/header, press `?`, drag a sort row, reload the page and see the URL state restored, import or
 export a file, scroll a scroll-mode grid past the first block, or change pages).
 
@@ -202,6 +208,7 @@ Each add-on's full reference (props, edge cases, worked examples) is at the page
 
 - Fill: `/docs/clipboard-undo/fill-handle.md` · Pinned rows: `/docs/rows-pages-menus/pinned-rows.md`
 - Presence: `/docs/rows-live-data/show-presence.md`, `/docs/rows-live-data/broadcast-your-selection.md`
+- Comments: `/docs/rows-live-data/add-comments.md`, `/docs/add-options/server/comments-options.md`
 - Undo & redo: `/docs/clipboard-undo/undo-redo.md` · Toolbar: `/docs/sort-filter-search/toolbar.md`
 - Context menu: `/docs/rows-pages-menus/context-menu.md` · Keybindings: `/docs/selection-shortcuts/shortcut-remapping.md`
 - Find & replace: `/docs/sort-filter-search/find-replace.md`

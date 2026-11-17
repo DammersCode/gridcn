@@ -1,0 +1,25 @@
+---
+title: "Cell comments example"
+description: Write, edit, resolve, and delete comments on cells, with a simulated second user, a forced conflict, and an offline switch.
+icon: MessageSquare
+type: example
+---
+
+The grid saves each comment write to an in-memory server with about 400 ms of latency. The server accepts a write only when its `baseVersion` equals the stored version. Press <kbd>Shift</kbd>+<kbd>F2</kbd> on a cell, or right-click a cell and choose "Comments…". A second user, Grace, writes comments through `applyRemote`.
+
+<ComponentPreview name="data-grid-comments-demo" />
+
+<InstallCommand item="data-grid-comments-demo" />
+
+The buttons above the grid try the other paths:
+
+- **Grace adds a comment** sends a change from another client through `applyRemote`. The comment marker shows without a reload.
+- **Grace edits a comment** changes your first comment on the server. Write a comment first, press the button, and then edit your comment. The server refuses the save as stale, and the popover offers Save my version and Discard.
+- **Go offline** makes every save throw. The popover keeps your text and offers Retry.
+
+The demo passes `onCommentSave` to call the server, `onLocalChange` and `onCommentRejected` to log each result, and `getCommentMenuItems` to the context menu. For the same wiring in your own app, see [Add comments to cells](/docs/rows-live-data/add-comments).
+
+## Related
+
+- [Add comments to cells](/docs/rows-live-data/add-comments)
+- [Comments options](/docs/add-options/server/comments-options)

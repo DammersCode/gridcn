@@ -14,7 +14,9 @@ const landingSources = readdirSync(landingDir)
   .filter((f) => /\.(ts|tsx)$/.test(f))
   .map((f) => ({ file: f, text: readFileSync(join(landingDir, f), "utf8") }));
 
-const BLOCKS_WITHOUT_TILE: Record<string, string> = {};
+const BLOCKS_WITHOUT_TILE: Record<string, string> = {
+  "data-grid-comments": "ships in 2.0 without a landing tile (owner decision); the add-ons A to Z page and the feature matrix list it",
+};
 
 function resolves(href: string): boolean {
   const [path = "", anchor] = href.split("#");

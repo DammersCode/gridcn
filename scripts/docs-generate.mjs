@@ -308,6 +308,9 @@ function keyboardShortcuts() {
   bindings.set("openFind", [findKeymap?.[2] ?? ""]);
   const openKeybindings = /keymap: \{ openKeybindings: \["([^"]+)"\] \}/.exec(read(`${BLOCKS}/data-grid-keybindings/use-data-grid-keybindings.tsx`))?.[1];
   if (!openKeybindings) problems.push("keyboard shortcuts: the keybindings keymap line changed");
+  const commentsKeymap = /keymap: \{ openComments: \["([^"]+)"\] \}/.exec(read(`${BLOCKS}/data-grid-comments/use-data-grid-comments.ts`))?.[1];
+  if (!commentsKeymap) problems.push("keyboard shortcuts: the comments keymap line changed");
+  bindings.set("openComments", [commentsKeymap ?? ""]);
   for (const action of [...bindings.keys(), "typeToReplace"]) {
     const group = groups.get(action);
     if (!group || group === "other") problems.push(`keyboard shortcuts: action ${action} has no category in action-groups.ts`);
@@ -321,10 +324,10 @@ function keyboardShortcuts() {
     history: "/docs/clipboard-undo/undo-redo",
     other: "/docs/selection-shortcuts/shortcut-remapping",
   };
-  const rowPage = { focusSearch: "/docs/sort-filter-search/quick-search", insertRowBelow: "/docs/rows-pages-menus/row-operations", insertRowAbove: "/docs/rows-pages-menus/row-operations", duplicateRow: "/docs/rows-pages-menus/row-operations", deleteRows: "/docs/rows-pages-menus/row-operations", moveRowsUp: "/docs/rows-pages-menus/row-order", moveRowsDown: "/docs/rows-pages-menus/row-order", moveColumnTowardStart: "/docs/columns/column-order-pinning", moveColumnTowardEnd: "/docs/columns/column-order-pinning", widenColumn: "/docs/columns/column-sizing", narrowColumn: "/docs/columns/column-sizing", openLink: "/docs/editing-cells/built-cell-types", openColumnMenu: "/docs/columns/column-headers-groups", openColumnFilter: "/docs/sort-filter-search/header-filter", toggleRow: "/docs/selection-shortcuts/checked-rows", toggleAllRows: "/docs/selection-shortcuts/checked-rows", openFind: "/docs/sort-filter-search/find-replace", openFindReplace: "/docs/sort-filter-search/find-replace", extendRowsToStart: "/docs/selection-shortcuts/checked-rows", extendRowsToEnd: "/docs/selection-shortcuts/checked-rows", extendRowsPageUp: "/docs/selection-shortcuts/checked-rows", extendRowsPageDown: "/docs/selection-shortcuts/checked-rows" };
+  const rowPage = { openComments: "/docs/rows-live-data/add-comments", focusSearch: "/docs/sort-filter-search/quick-search", insertRowBelow: "/docs/rows-pages-menus/row-operations", insertRowAbove: "/docs/rows-pages-menus/row-operations", duplicateRow: "/docs/rows-pages-menus/row-operations", deleteRows: "/docs/rows-pages-menus/row-operations", moveRowsUp: "/docs/rows-pages-menus/row-order", moveRowsDown: "/docs/rows-pages-menus/row-order", moveColumnTowardStart: "/docs/columns/column-order-pinning", moveColumnTowardEnd: "/docs/columns/column-order-pinning", widenColumn: "/docs/columns/column-sizing", narrowColumn: "/docs/columns/column-sizing", openLink: "/docs/editing-cells/built-cell-types", openColumnMenu: "/docs/columns/column-headers-groups", openColumnFilter: "/docs/sort-filter-search/header-filter", toggleRow: "/docs/selection-shortcuts/checked-rows", toggleAllRows: "/docs/selection-shortcuts/checked-rows", openFind: "/docs/sort-filter-search/find-replace", openFindReplace: "/docs/sort-filter-search/find-replace", extendRowsToStart: "/docs/selection-shortcuts/checked-rows", extendRowsToEnd: "/docs/selection-shortcuts/checked-rows", extendRowsPageUp: "/docs/selection-shortcuts/checked-rows", extendRowsPageDown: "/docs/selection-shortcuts/checked-rows" };
   const keyName = (part) => (part === " " ? "Space" : part === "mod" ? "Mod" : part.length === 1 ? part.toUpperCase() : part[0].toUpperCase() + part.slice(1));
   const chord = (binding) => (binding === " " ? "Space" : binding.endsWith("+ ") ? `${binding.slice(0, -2).split("+").map(keyName).join("+")}+Space` : binding.split("+").map(keyName).join("+"));
-  const addOnOf = { openFind: "data-grid-find-replace", openFindReplace: "data-grid-find-replace", focusSearch: "DataGridSearch", undo: "data-grid-history", redo: "data-grid-history", fillDown: "data-grid-fill", fillRight: "data-grid-fill" };
+  const addOnOf = { openComments: "data-grid-comments", openFind: "data-grid-find-replace", openFindReplace: "data-grid-find-replace", focusSearch: "DataGridSearch", undo: "data-grid-history", redo: "data-grid-history", fillDown: "data-grid-fill", fillRight: "data-grid-fill" };
   const COMMON = ["moveDown", "extendDown", "selectAll", "edit", "cancel", "clearContents", "undo", "redo", "fillDown"];
   const commonRows = COMMON.map((action) => {
     if (!bindings.has(action)) problems.push(`keyboard shortcuts: common action ${action} is not in the keymap`);
@@ -885,7 +888,7 @@ const MESSAGE_PAGES = [
   { slug: "grid-parts", title: "Clipboard, layout, and plugin messages", description: "Look up the warnings about the clipboard, the layout, plugins, and column groups, and fix their cause.", sections: ["clipboard-warnings", "layout-warnings", "plugin-warnings", "column-group-warnings"] },
   { slug: "thrown-errors", title: "Thrown errors", description: "Look up the errors that the grid throws, and fix their cause.", sections: ["thrown-errors"] },
   { slug: "server", title: "Server rows messages", description: "Look up the warnings and errors of useDataGridServerRows, and fix their cause.", sections: ["server-warnings"] },
-  { slug: "addons", title: "Add-on messages", description: "Look up the warnings of the history, pinned rows, saved views, URL state, presence, import and export, fill, and find and replace add-ons.", sections: ["addon-warnings"] },
+  { slug: "addons", title: "Add-on messages", description: "Look up the warnings of the history, pinned rows, saved views, URL state, presence, comments, import and export, fill, and find and replace add-ons.", sections: ["addon-warnings"] },
   { slug: "shown-text", title: "Shown text", description: "Look up the default text that the grid shows the user after a failure.", sections: ["shown-text"] },
 ];
 

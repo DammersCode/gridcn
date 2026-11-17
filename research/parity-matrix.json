@@ -1761,6 +1761,72 @@
       "doc": "/docs/rows-live-data/show-presence"
     },
     {
+      "id": "comments",
+      "feature": "Cell comments",
+      "options": [],
+      "note": "Mode-neutral by design. Comments are addressed by row id and column id, so a sort, a filter, a page change, or an eviction moves markers and never comments. `fetchComments` loads the comments of the rendered rows. `onCommentSave` and `applyRemote` cover your own API.",
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(server)/rows-live-data/add-comments.mdx",
+            "tests/parity/comments.parity.test.tsx"
+          ]
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(server)/rows-live-data/add-comments.mdx",
+            "tests/parity/comments.parity.test.tsx"
+          ]
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(server)/rows-live-data/add-comments.mdx",
+            "tests/parity/comments.parity.test.tsx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(server)/rows-live-data/add-comments.mdx",
+            "tests/parity/comments.parity.test.tsx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(server)/rows-live-data/add-comments.mdx",
+            "tests/parity/comments.parity.test.tsx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(server)/rows-live-data/add-comments.mdx",
+            "tests/parity/comments.parity.test.tsx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(server)/rows-live-data/add-comments.mdx",
+            "tests/parity/comments.parity.test.tsx"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "content/docs/(server)/rows-live-data/add-comments.mdx",
+            "tests/parity/comments.parity.test.tsx"
+          ]
+        }
+      },
+      "modeNeutral": true,
+      "doc": "/docs/rows-live-data/add-comments"
+    },
+    {
       "id": "loading",
       "feature": "Loading and error state",
       "options": [

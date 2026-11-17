@@ -60,6 +60,10 @@ export const GRID_ATTR = {
   headerFilterPopup: "data-grid-header-filter-popup",
   /** data-grid-find-replace/find-replace-panel.tsx: the find and replace panel root; a press inside it keeps the cell range. */
   findReplacePanel: "data-grid-find-replace-panel",
+  /** data-grid-comments/comment-popover.tsx: the comments popover popup; a press inside it keeps the cell range. */
+  commentsPopup: "data-grid-comments-popup",
+  /** data-grid-comments/comments-overlay.tsx: the corner marker of a commented cell (`data-unresolved` while any comment is unresolved). */
+  commentMarker: "data-grid-comment-marker",
   /** header-cell.tsx: present (`""`) on a column header whose column has an active filter. */
   filtered: "data-filtered",
   /** use-grid-interaction.ts: set on a menu trigger while the keyboard action programmatically clicks it. */

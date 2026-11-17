@@ -19,6 +19,7 @@ import MinimalDemo from "@/registry/default/examples/data-grid-minimal-demo";
 import PaginationDemo from "@/registry/default/examples/data-grid-pagination-demo";
 import PinnedRowsDemo from "@/registry/default/examples/data-grid-pinned-rows-demo";
 import PresenceDemo from "@/registry/default/examples/data-grid-presence-demo";
+import CommentsDemo from "@/registry/default/examples/data-grid-comments-demo";
 import RowMarkersDemo from "@/registry/default/examples/data-grid-row-markers-demo";
 import HeaderFilterDemo from "@/registry/default/examples/data-grid-header-filter-demo";
 import ServerFilterDemo from "@/registry/default/examples/data-grid-server-filter-demo";
@@ -53,6 +54,7 @@ const DEMOS = [
   ["pagination", <PaginationDemo key="pagination" />],
   ["pinned-rows", <PinnedRowsDemo key="pinned-rows" />],
   ["presence", <PresenceDemo key="presence" />],
+  ["comments", <CommentsDemo key="comments" />],
   ["row-markers", <RowMarkersDemo key="row-markers" />],
   ["header-filter", <HeaderFilterDemo key="header-filter" />],
   ["server-filter", <ServerFilterDemo key="server-filter" />],

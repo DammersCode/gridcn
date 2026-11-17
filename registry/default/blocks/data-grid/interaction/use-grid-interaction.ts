@@ -47,7 +47,7 @@ function leavesGridOnTab(action: GridAction, key: string, state: DataGridStoreSt
   return (action === "moveRight" || action === "moveRightKeepSelection") ? col >= state.visibleColumns.length - 1 : (action === "moveLeft" || action === "moveLeftKeepSelection") && col <= 0;
 }
 
-const KEEP_RANGE_SURFACES = (["cellEditor", "headerFilterPopup", "headerMenuPopup", "findReplacePanel", "contextMenu"] as const).map((name) => gridAttrSelector(name)).join(", ");
+const KEEP_RANGE_SURFACES = (["cellEditor", "headerFilterPopup", "headerMenuPopup", "findReplacePanel", "commentsPopup", "contextMenu"] as const).map((name) => gridAttrSelector(name)).join(", ");
 /** Options for {@link useGridInteraction}. */
 export type UseGridInteractionOptions = {
   scrollRef: RefObject<HTMLElement | null>;

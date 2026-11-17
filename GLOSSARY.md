@@ -124,9 +124,26 @@ mirror the change there.
 | paste result | The value `pasteFromClipboard` resolves: `"ok"` (a paste started), `"permission-denied"` (the browser denied the clipboard read), `"empty"` (the clipboard held no text), or `"refused"` (the grid started no paste). | paste outcome |
 | blocking rule | A column rule that stops the commit of a value it rejects. It is the default of `validationMode`. | |
 | soft rule | A column rule that commits the value it rejects and flags the cell. `validationMode: "warn"` turns it on. | |
-| save acknowledgement | The answer of `onSave`: nothing (accepted), `{ rejected }` (named rows or cells refused), or a rejected promise (everything refused). | write result |
+| save acknowledgement | The answer of `onSave`: nothing (accepted), `{ rejected }` (named rows or cells refused), or a rejected promise (everything refused). `onCommentSave` answers a comment save the same way: nothing, `{ comment }`, `{ rejected }`, or a throw. | write result |
 | save status | `"saving"` while an `onSave` promise is pending and `"failed"` after a refusal. `useDataGridRowSaveStatus` reads it. | save state |
 | save conflict | A refused save for which the server sent its current row. `resolveSaveConflict` decides whether the row becomes the server's row, stays as it is, or becomes a merged row. | edit conflict |
 | id swap | Replacing the client id of a row with the id the server assigned, through `actions.replaceRowId`. | rekey, rename id |
-| save | Sending a change to a server through `onSave`. A save is accepted or refused; a refusal is reverted. | persist, sync |
+| save | Sending a change to a server through `onSave`, or a comment write through `onCommentSave`. A save is accepted or refused; a refusal is reverted. | persist, sync |
 | Standard Schema | The shared validator interface that Zod and Valibot implement. | |
+
+## Comments
+
+| Use | Meaning | Do not use |
+|---|---|---|
+| comment marker | The corner shape on a commented cell: filled for an unresolved comment, a ring for resolved comments only. Not the row marker. | comment badge, comment flag |
+| comment address | The pair `rowId` and `columnId` that names the cell of a comment. A comment never holds a view index. | cell key |
+| comments popover | The non-modal dialog that lists the comments of one cell and holds the composer. `Shift+F2`, the comment marker, or the "Comments…" menu item opens it. | comment panel, comment thread |
+| optimistic write | A comment write that the popover shows at once, at `baseVersion + 1`, before `onCommentSave` answers. A refusal reverts it. | pending edit |
+| unresolved comment | A comment with `resolved: false`. A cell with one unresolved comment counts as unresolved. | open comment |
+| resolved comment | A comment with `resolved: true`. `hideResolved` hides the comment marker of a cell that has only resolved comments. | closed comment |
+| comment draft | Text in the composer, an edit, or a delete confirm that the user has not submitted. It stays when the popover closes. | unsaved comment |
+| comment conflict | The state of a comment write that a newer version from another client made stale. The popover offers the text again with Retry, Discard, or Save my version. Not the save conflict of a row. | collision |
+| orphaned comments | The comments of a deleted row. They stay in the store, and `onOrphanedComments` reports them. | dangling comments |
+| write id | The random id (`writeId`) that the add-on puts on each comment write. A record with the pending write id is the echo of that write. | request id |
+| tombstone | The record of a deleted comment: an id, an address, and a version, with no text. It blocks an older upsert for 10 minutes. | deleted marker |
+| echo | A record that comes back through `applyRemote`, a fetch answer, or the `comments` prop with the write id of a pending write. It confirms the write. | reflection, loopback |
