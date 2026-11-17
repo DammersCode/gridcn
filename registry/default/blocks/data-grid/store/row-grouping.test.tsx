@@ -75,6 +75,17 @@ describe("a grid that groups", () => {
     expect(ids()).toEqual([NORTH, SOUTH, EMPTY]);
   });
 
+  it("keeps a group closed and announces it when 10,000 groups are open already", () => {
+    const onExpandedChange = vi.fn();
+    const ids = Array.from({ length: 10_000 }, (_, i) => `__group:region=x${i}`);
+    const { actions, state } = make({ defaultExpanded: { mode: "collapsed", ids }, onExpandedChange });
+    actions.toggleGroup(SOUTH);
+    expect(state().expanded.ids).toHaveLength(10_000);
+    expect(state().expanded.ids).not.toContain(SOUTH);
+    expect(onExpandedChange).not.toHaveBeenCalled();
+    expect(state().liveAnnouncement?.kind).toBe("groupTooManyOpen");
+  });
+
   it("expands and collapses every group in one step and emits nothing for a no-op", () => {
     const onExpandedChange = vi.fn();
     const { actions, ids } = make({ onExpandedChange });

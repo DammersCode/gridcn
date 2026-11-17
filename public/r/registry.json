@@ -1862,6 +1862,11 @@
           "target": "components/data-grid-server/group-lists.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid-server/group-pages.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server/group-pages.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid-server/use-group-blocks.ts",
           "type": "registry:component",
           "target": "components/data-grid-server/use-group-blocks.ts"

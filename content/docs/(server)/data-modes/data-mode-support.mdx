@@ -133,12 +133,12 @@ A grid feature can behave differently on a local array, on server pages and on s
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Row grouping</th>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="gap" note={"The request fields, the groups answer with its bounds, and the core layout exist; the hook does not group yet."} /></td>
-      <td className="text-center"><ParityCell status="gap" note={"The request fields, the groups answer with its bounds, and the core layout exist; the scroll hook groups random-access and sequential sources alike (registry/default/blocks/data-grid-server/use-data-grid-server-rows.groups.scroll.test.tsx); the cell flips with the pages mode, saves, and checks."} /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="gap" note={"The request fields, the groups answer with its bounds, and the core layout exist; the scroll hook groups random-access and sequential sources alike (registry/default/blocks/data-grid-server/use-data-grid-server-rows.groups.scroll.test.tsx); the cell flips with the pages mode, saves, and checks."} /></td>
-      <td className="text-center"><ParityCell status="gap" note={"The request fields, the groups answer with its bounds, and the core layout exist; the hook does not group yet."} /></td>
-      <td className="text-center"><ParityCell status="gap" note={"The request fields, the groups answer with its bounds, and the core layout exist; the hook does not group yet."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="gap" note={"A grouped server source saves and refreshes in place (registry/default/blocks/data-grid-server/use-data-grid-server-rows.groups-save.test.tsx); the cell flips when a parity test mounts the mode with groups."} /></td>
     </tr>
     <tr id="parity-pinned-rows">
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal"><a href="/docs/rows-pages-menus/pinned-rows">Pinned rows and aggregates</a></th>
@@ -695,8 +695,7 @@ A development warning names `totalRowCount` above the loaded rows under a client
 
 ### Row grouping
 
-- **PS, FS, API**: Gap (#71): The request fields, the groups answer with its bounds, and the core layout exist. The hook does not group yet.
-- **Z, SS**: Gap (#71): The request fields, the groups answer with its bounds, and the core layout exist. The scroll hook groups random-access and sequential sources alike (`registry/default/blocks/data-grid-server/use-data-grid-server-rows.groups.scroll.test.tsx`). The cell flips with the pages mode, saves, and checks.
+**API**: Gap (#71): A grouped server source saves and refreshes in place (`registry/default/blocks/data-grid-server/use-data-grid-server-rows.groups-save.test.tsx`). The cell flips when a parity test mounts the mode with groups.
 
 ### Server totals (`useDataGridServerAggregate`)
 

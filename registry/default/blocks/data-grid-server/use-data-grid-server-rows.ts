@@ -1,16 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { applyChangeWith, defaultGetRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { applyChangeWith, defaultGetRowId, isDev, type ExpandedState, type ServerGroupLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridServerPager, type DataGridPaginationControls } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import { DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-pagination/pagination-math";
 import { readRevalidateInterval } from "./fetch-hygiene";
-import { MAX_ROW_COUNT, readAnswer, type FetchReason, type ReadAnswer, type ServerRowsAnswer, type ServerRowsPageRequest, type WithRowId } from "./read-answer";
+import { MAX_ROW_COUNT, readAnswer, type FetchReason, type ReadAnswer, type ServerFetchAnswer, type ServerRowsAnswer, type ServerRowsPageRequest, type WithRowId } from "./read-answer";
+import { isGroupsAnswer } from "./group-pages";
+import type { ServerGroupsAnswer } from "./read-groups-answer";
 import type { UseDataGridServerRowsScrollOptions } from "./scroll-blocks";
 import type { UseDataGridServerRowsScrollResult } from "./scroll-types";
 import { useScrollRows } from "./use-scroll-rows";
-import type { UseDataGridServerRowsGroupOptions } from "./use-group-blocks";
+import { groupsEnabled, useGroupBlocks, type UseDataGridServerRowsGroupOptions } from "./use-group-blocks";
 import { keepProtectedRows, pruneIds, trackDeletes, unionIds, useRefreshGuard, type ProtectedRows } from "./refresh-guard";
 import { useSaveRefresh, type SaveRefreshOptions, type SaveRefreshPolicy } from "./save-refresh";
 import { isolate, scheduleFrame, useControlled, useMountedPlugins, useRegisteredWiring, useReshape, useRevalidation, useServerSpec } from "./server-state";
@@ -25,7 +27,7 @@ export type UseDataGridServerRowsOptions<TData, TCursor = never> = {
   mode?: "pages";
   /** Identifies a row. Default: the row's `id` field (a string or number), the same default as `DataGridProvider`; a row without one throws. */
   getRowId?: (row: TData, index: number) => string;
-  fetchRows: (request: ServerRowsPageRequest<TCursor>) => Promise<ServerRowsAnswer<TData, TCursor>>;
+  fetchRows: (request: ServerRowsPageRequest<TCursor>) => Promise<ServerFetchAnswer<TData, TCursor>>;
   /** Rows per page while `pageSize` is not controlled. Default: the first of `pageSizeOptions`. */
   defaultPageSize?: number;
   /** Controls the page size; pair it with `onPageSizeChange`. */
@@ -82,7 +84,7 @@ export type UseDataGridServerRowsOptions<TData, TCursor = never> = {
    * The hook shows it without a request, so the server HTML holds the rows; the next state fetches as usual. It counts as
    * untrusted input like any answer. `onLoaded` does not fire for it.
    */
-  initialAnswer?: ServerRowsAnswer<TData, TCursor>;
+  initialAnswer?: ServerRowsAnswer<TData, TCursor> | ServerGroupsAnswer;
 };
 
 /** Return value of {@link useDataGridServerRows}. */
@@ -141,6 +143,20 @@ export type UseDataGridServerRowsProviderProps<TData> = {
   plugins: readonly DataGridPlugin<unknown>[];
   /** Sorts on a header click. Override it after the spread. */
   headerClickBehavior: "sort";
+  /** @internal Present while the source groups: reports the rendered rows so the open groups load their rows. */
+  onRenderedRowsChange?: (range: RowRange) => void;
+  /** @internal Present while the source groups: the group columns, outermost first. */
+  groupBy?: readonly string[];
+  /** @internal Present while the source groups. */
+  onGroupByChange?: (next: readonly string[]) => void;
+  /** @internal Present while the source groups: the open groups. */
+  expanded?: ExpandedState;
+  /** @internal Present while the source groups. */
+  onExpandedChange?: (next: ExpandedState) => void;
+  /** @internal Present while `groupBy` is not empty. */
+  groupMode?: "server";
+  /** @internal Present while `groupBy` is not empty. */
+  groupLayout?: ServerGroupLayout;
 };
 
 /** Props of {@link UseDataGridServerRowsResult.gridProps} that belong to `DataGridRoot`. */
@@ -199,8 +215,8 @@ type PrefetchEntry = {
  * The mode is fixed for the life of the hook.
  */
 export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGridServerRowsScrollOptions<TData, TCursor> & UseDataGridServerRowsGroupOptions): UseDataGridServerRowsScrollResult<TData>;
-export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGridServerRowsOptions<TData, TCursor>): UseDataGridServerRowsResult<TData>;
-export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGridServerRowsOptions<TData, TCursor> | (UseDataGridServerRowsScrollOptions<TData, TCursor> & UseDataGridServerRowsGroupOptions)) {
+export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGridServerRowsOptions<TData, TCursor> & UseDataGridServerRowsGroupOptions): UseDataGridServerRowsResult<TData>;
+export function useDataGridServerRows<TData, TCursor = never>(options: (UseDataGridServerRowsOptions<TData, TCursor> & UseDataGridServerRowsGroupOptions) | (UseDataGridServerRowsScrollOptions<TData, TCursor> & UseDataGridServerRowsGroupOptions)) {
   const firstMode = useRef({ mode: options.mode ?? "pages", warned: false });
   if (isDev() && !firstMode.current.warned && (options.mode ?? "pages") !== firstMode.current.mode) {
     firstMode.current.warned = true;
@@ -211,25 +227,32 @@ export function useDataGridServerRows<TData, TCursor = never>(options: UseDataGr
   // oxlint-disable-next-line react-hooks/rules-of-hooks
   const [pagerWatch] = useState(() => new PagerWatch());
   const resolved = options.getRowId ? options : { ...options, getRowId: defaultGetRowId };
-  return resolved.mode === "scroll" ? useScrollRows(resolved as WithRowId<UseDataGridServerRowsScrollOptions<TData, TCursor> & UseDataGridServerRowsGroupOptions, TData>) : pagerWatch.attach(usePagesRows(resolved as WithRowId<UseDataGridServerRowsOptions<TData, TCursor>, TData>, pagerWatch));
+  return resolved.mode === "scroll" ? useScrollRows(resolved as WithRowId<UseDataGridServerRowsScrollOptions<TData, TCursor> & UseDataGridServerRowsGroupOptions, TData>) : pagerWatch.attach(usePagesRows(resolved as WithRowId<UseDataGridServerRowsOptions<TData, TCursor> & UseDataGridServerRowsGroupOptions, TData>, pagerWatch));
 }
 
-function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOptions<TData, TCursor>, TData>, pagerWatch: PagerWatch): UseDataGridServerRowsResult<TData> {
+function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOptions<TData, TCursor> & UseDataGridServerRowsGroupOptions, TData>, pagerWatch: PagerWatch): UseDataGridServerRowsResult<TData> {
   const { pageSizeOptions = DEFAULT_PAGE_SIZES } = options;
   const [pageSize, setPageSize] = useControlled(options.pageSize, () => options.defaultPageSize ?? pageSizeOptions[0] ?? DEFAULT_PAGE_SIZES[0], options.onPageSizeChange);
   const [rawPage, setPage] = useControlled(options.page, () => options.defaultPage ?? 1, options.onPageChange);
   const maxPage = Math.max(1, Math.ceil(MAX_ROW_COUNT / Math.max(1, pageSize)));
   const wantedPage = Number.isSafeInteger(rawPage) && rawPage >= 1 ? Math.min(rawPage, maxPage) : 1;
   const live = useRef({ options, spec: EMPTY_LIVE_SPEC, page: wantedPage, pageSize, settledOnce: false, requested: false, error: null as unknown, leftInitial: false });
-  const { spec, ready: specReady, onSortChange, onFilterChange, onSearchTextChange } = useServerSpec(options, () => {
-    if (live.current.settledOnce) setPage(1);
-  });
+  const [grouping] = useState(() => groupsEnabled(options));
+  const specState = useServerSpec(
+    options,
+    () => {
+      if (live.current.settledOnce) setPage(1);
+    },
+    grouping,
+  );
+  const { spec, ready: specReady, onSortChange, onFilterChange, onSearchTextChange } = specState;
+  const grouped = grouping && (spec.groupBy?.length ?? 0) > 0;
   const chainKey = `${serverSpecKey(spec)}|${pageSize}`;
   const chain = useRef<CursorChain<TCursor>>({ key: chainKey, cursors: new Map([[1, undefined]]) });
   const [initial] = useState(() => {
-    if (options.initialAnswer === undefined) return null;
+    if (options.initialAnswer === undefined || isGroupsAnswer(options.initialAnswer)) return null;
     const start = (wantedPage - 1) * pageSize;
-    const read = readAnswer<TData, TCursor>(options.initialAnswer, { start, end: start + pageSize }, (_, message) => isDev() && console.warn(`[data-grid-server] ${message}`), options.getRowId);
+    const read = readAnswer<TData, TCursor>(options.initialAnswer as ServerRowsAnswer<TData, TCursor>, { start, end: start + pageSize }, (_, message) => isDev() && console.warn(`[data-grid-server] ${message}`), options.getRowId);
     const view = `${serverSpecKey(spec)}|${wantedPage}|${pageSize}`;
     return { read, view, key: `${view}|0`, page: wantedPage };
   });
@@ -332,7 +355,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   }, [setSavesSettledListener]);
 
   useEffect(() => {
-    if (!specReady) return;
+    if (!specReady || grouped) return;
     const reason = nextReason.current;
     nextReason.current = "load";
     const adoptedRequest = adoptedKey.current === key;
@@ -395,7 +418,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
-  const prefetchOn = options.prefetchNextPage === true;
+  const prefetchOn = options.prefetchNextPage === true && !grouped;
   const startPrefetch = useCallback(() => {
     const { page: current, pageSize: size, spec: currentSpec } = live.current;
     const ahead = `${serverSpecKey(currentSpec)}|${current + 1}|${size}`;
@@ -407,7 +430,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
     openMarks.current.prefetch = entry.mark;
     const start = current * size;
     const range: RowRange = { start, end: start + size };
-    new Promise<ServerRowsAnswer<TData, TCursor>>((resolve) => resolve(live.current.options.fetchRows({ spec: currentSpec, page: current + 1, pageSize: size, start, end: range.end, cursor: chain.current.cursors.get(current + 1), reason: "load", signal: controller.signal })))
+    new Promise<ServerFetchAnswer<TData, TCursor>>((resolve) => resolve(live.current.options.fetchRows({ spec: currentSpec, page: current + 1, pageSize: size, start, end: range.end, cursor: chain.current.cursors.get(current + 1), reason: "load", signal: controller.signal })))
       .then((answer) => {
         if (controller.signal.aborted) return;
         const read = readAnswer<TData, TCursor>(answer, range, warn, live.current.options.getRowId);
@@ -514,7 +537,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   }, []);
   const restartClockRef = useRef<() => void>(() => {});
   const refreshRef = useRef<(reason: FetchReason) => void>(() => {});
-  const { request: requestReshape, cancel: cancelReshape } = useReshape({ delay: options.reshapeDelayMs, ordered: spec.sorts.length + spec.filters.length > 0, run: () => refreshRef.current("refresh"), busy: loading, resetKey: view, warn });
+  const { request: requestReshape, cancel: cancelReshape } = useReshape({ delay: grouped ? false : options.reshapeDelayMs, ordered: spec.sorts.length + spec.filters.length > 0, run: () => refreshRef.current("refresh"), busy: loading, resetKey: view, warn });
   const reshape = useCallback(() => requestReshape("soon"), [requestReshape]);
   useEffect(() => {
     setReshapeListener(requestReshape);
@@ -554,7 +577,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
       cancel?.();
     };
   }, [setSettleListener]);
-  const restartClock = useRevalidation({ interval: options.revalidateIntervalMs, onTick: () => refreshRef.current("refresh"), busy: loading, resetKey: specKey });
+  const restartClock = useRevalidation({ interval: grouped ? undefined : options.revalidateIntervalMs, onTick: () => refreshRef.current("refresh"), busy: loading, resetKey: specKey });
   useLayoutEffect(() => {
     restartClockRef.current = restartClock;
   }, [restartClock]);
@@ -594,6 +617,12 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
 
   const { onSave, wrapSave } = useSaveRefresh(options, refreshAfterSave);
 
+  const groupPages = useGroupBlocks(options as unknown as Parameters<typeof useGroupBlocks<TData, TCursor>>[0], specState, grouped, { page, pageSize, pageSizeOptions, onPageChange: setPage, onPageSizeChange });
+  useLayoutEffect(() => {
+    if (groupPages.groupCount !== null) live.current.settledOnce = true;
+  });
+  useMemo(() => armPagerRead(groupPages.pagerPlugins, pagerWatch), [groupPages.pagerPlugins, pagerWatch]);
+
   const pagerGuardPlugins = useMemo(() => {
     // a bare DataGridPaginationBar under this grid reads the pager through the stash plugin
     armPagerRead(pagerGridProps.plugins, pagerWatch);
@@ -626,6 +655,10 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   const rootProps = useMemo<UseDataGridServerRowsRootProps>(() => ({ loading, error, onRetry: retry }), [loading, error, retry]);
   const gridProps = useMemo(() => ({ ...providerProps, ...rootProps }), [providerProps, rootProps]);
 
+  if (grouped) {
+    const { gridProps: groupedGrid, providerProps: groupedProvider, rootProps: groupedRoot, totalRowCount, status: groupedStatus, loading: groupedLoading, error: groupedError, retry: groupedRetry, refresh: groupedRefresh, reshape: groupedReshape } = groupPages.result;
+    return { gridProps: groupedGrid, providerProps: groupedProvider, rootProps: groupedRoot, spec, totalRowCount, pager: groupPages.pager, status: groupedStatus, loading: groupedLoading, error: groupedError, retry: groupedRetry, refresh: groupedRefresh, reshape: groupedReshape } as UseDataGridServerRowsResult<TData>;
+  }
   return { gridProps, providerProps, rootProps, spec, totalRowCount: shown.totalRowCount, pager, status, loading, error, retry, refresh, reshape };
 }
 

@@ -104,8 +104,8 @@ export function evictBlock<TData>(store: GroupStore<TData>, list: GroupList<TDat
   for (let offset = start; offset < end; offset++) list.entries[offset] = undefined;
 }
 
-/** Lays the open lists out as view rows. A child list that is not loaded yet shows as unloaded rows, sized by the `childCount` of its group. */
-export function layoutView<TData>(store: GroupStore<TData>, isOpen: (groupId: string) => boolean, statusOf: (groupId: string) => "loading" | "failed" | undefined): GroupView<TData> {
+/** Lays the open lists out as view rows. A child list that is not loaded yet shows as unloaded rows, sized by the `childCount` of its group. `topWindow` cuts the top level to one page of groups. */
+export function layoutView<TData>(store: GroupStore<TData>, isOpen: (groupId: string) => boolean, statusOf: (groupId: string) => "loading" | "failed" | undefined, topWindow?: { start: number; end: number }): GroupView<TData> {
   const view: GroupView<TData> = { data: [], slots: [], owners: [], offsets: [], leafCount: store.leafCount ?? 0, holes: 0 };
   const top = store.lists.get("");
   if (top?.count) walk(top);
@@ -113,7 +113,8 @@ export function layoutView<TData>(store: GroupStore<TData>, isOpen: (groupId: st
 
   function walk(list: GroupList<TData>) {
     const count = list.count ?? 0;
-    for (let offset = 0; offset < count; offset++) {
+    const window = list.id === "" ? topWindow : undefined;
+    for (let offset = window?.start ?? 0; offset < (window ? Math.min(count, window.end) : count); offset++) {
       const entry = list.entries[offset];
       view.owners.push(list);
       view.offsets.push(offset);

@@ -712,7 +712,7 @@ export function useDataGridSelectedRows(): DataGridSelectedRows {
   const storeApi = useDataGridStoreApi();
   // Value writes keep the row ids, so `data` is read at compute time and is not a dependency.
   return useMemo(
-    () => readSelectedRows({ selection: { rows } as DataGridStoreState["selection"], hiddenCheckedRowIds, allMatching, data: storeApi.getState().data, viewIndex, getRowId, totalRowCount, sortState, filterState, searchText, groupLayout: storeApi.getState().groupLayout }),
+    () => readSelectedRows({ selection: { rows } as DataGridStoreState["selection"], hiddenCheckedRowIds, allMatching, data: storeApi.getState().data, viewIndex, getRowId, totalRowCount, sortState, filterState, searchText, groupLayout: storeApi.getState().groupLayout, groupMode: storeApi.getState().groupMode }),
     // oxlint-disable-next-line react-hooks/exhaustive-deps
     [rows, hiddenCheckedRowIds, allMatching, viewIndex, getRowId, totalRowCount, sortState, filterState, searchText, rowIdentityVersion, storeApi],
   );
