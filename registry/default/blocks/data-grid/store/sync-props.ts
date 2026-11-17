@@ -10,6 +10,7 @@ import {
   type Keymap,
 } from "../types";
 import { BUILTIN_ACTIONS, keymapContentEqual, validateKeymap, validateSharedBindings } from "../keyboard";
+import { warnUnknownKeymapActions } from "../keyboard/validate-action-names";
 import { CompactSelection } from "../selection/compact-selection";
 import { buildColumnGroupModel, columnGroupModelsEqual, type ColumnGroupModel } from "../columns/column-groups";
 import { cellTypes as defaultCellTypes } from "../cell-types/cell-types";
@@ -223,12 +224,16 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
         memory.lastKeymapProp = props.keymap;
         memory.lastCommandsProp = props.commands;
       }
-      if (props.commands && !memory.warnedMovedCommands && isDev()) {
+      if (isDev()) {
         const keymap = (nextKeymap ?? get().keymap) as Record<string, readonly unknown[] | undefined>;
-        const unbound = (Object.keys(ADDON_COMMAND_KEYS) as (keyof typeof ADDON_COMMAND_KEYS)[]).filter((name) => props.commands && name in props.commands && !props.keymap?.[name as keyof Keymap] && !keymap[name]?.length);
-        if (unbound.length > 0) {
-          memory.warnedMovedCommands = true;
-          warnDev(`commands ${unbound.join(", ")} have no key: the add-on that binds the key is not mounted; bind the action in the keymap, for example keymap={{ ${unbound[0]}: ["${ADDON_COMMAND_KEYS[unbound[0]!]}"] }}`);
+        const commands = nextCommands ?? get().commands;
+        warnUnknownKeymapActions(keymap, commands, pluginWarnOnce);
+        if (commands && !memory.warnedMovedCommands) {
+          const unbound = (Object.keys(ADDON_COMMAND_KEYS) as (keyof typeof ADDON_COMMAND_KEYS)[]).filter((name) => name in commands && !props.keymap?.[name as keyof Keymap] && !keymap[name]?.length);
+          if (unbound.length > 0) {
+            memory.warnedMovedCommands = true;
+            warnDev(`commands ${unbound.join(", ")} have no key: the add-on that binds the key is not mounted; bind the action in the keymap, for example keymap={{ ${unbound[0]}: ["${ADDON_COMMAND_KEYS[unbound[0]!]}"] }}`);
+          }
         }
       }
       set((s) => {
