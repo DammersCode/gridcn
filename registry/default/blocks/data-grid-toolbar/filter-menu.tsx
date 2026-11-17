@@ -426,7 +426,7 @@ function ConnectorCell(props: { index: number; join: FilterGroup["join"]; parent
     ) : undefined;
   const text = index === 0 ? labels.toolbar.filterWhere : join === "or" ? labels.toolbar.filterConnectorOr : labels.toolbar.filterConnectorAnd;
   return (
-    <div className="flex h-8 w-18 shrink-0 items-center justify-center text-center">
+    <div className={cn("flex h-8 w-18 shrink-0 items-center justify-center text-center", parentId !== undefined && "max-sm:w-full max-sm:justify-start")}>
       {connector ?? <span className="text-sm text-muted-foreground">{text}</span>}
     </div>
   );
@@ -522,7 +522,7 @@ function FilterGroupBox(props: FilterGroupBoxProps): ReactNode {
       ref={ref}
       data-grid-filter-group=""
       role="listitem"
-      className={cn("relative flex items-start gap-1.5 transition-transform", isDragSource && "z-10 scale-[1.01] opacity-60 shadow-lg")}
+      className={cn("relative flex items-start gap-1.5 transition-transform", parentId !== undefined && "max-sm:flex-wrap", isDragSource && "z-10 scale-[1.01] opacity-60 shadow-lg")}
     >
       {dropEdge && <DropIndicator edge={dropEdge} />}
       <ConnectorCell index={index} join={join} parentId={parentId} path={path} ctx={ctx} />
@@ -547,10 +547,10 @@ function FilterGroupBox(props: FilterGroupBoxProps): ReactNode {
   );
 }
 
-const SEGMENT_TRIGGER = "h-8 min-w-0 flex-[0_0_30%] bg-muted dark:bg-muted dark:hover:bg-muted/80 max-sm:flex-[1_1_0%]";
+const SEGMENT_TRIGGER = "h-8 min-w-0 flex-[0_0_30%] bg-muted dark:bg-muted dark:hover:bg-muted/80 max-sm:flex-[1_1_50%]";
 // Value inputs sit in a wrapper: they inherit its square corners and drop the left border so the divider is the neighbour's border.
 const VALUE_SEGMENT =
-  "flex min-w-0 flex-1 [&>*]:min-w-0 [&>*]:flex-1 [&_:is(input,button)]:rounded-[inherit] [&_:is(input,button)]:border-s-0 max-sm:order-last max-sm:basis-full max-sm:rounded-b-md max-sm:[&_:is(input,button)]:border-s max-sm:[&_:is(input,button)]:border-t-0";
+  "flex min-w-0 flex-1 [&>*]:min-w-0 [&>*]:flex-1 [&_:is(input,button)]:rounded-[inherit] [&_:is(input,button)]:border-s-0 max-sm:basis-[calc(100%-2rem)] max-sm:rounded-es-md! max-sm:[&_:is(input,button)]:border-s max-sm:[&_:is(input,button)]:border-t-0";
 
 type FilterRowProps = NodePosition & { filter: FilterSpec };
 
@@ -575,6 +575,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
       role="listitem"
       className={cn(
         "relative flex items-start gap-1.5 transition-transform",
+        parentId !== undefined && "max-sm:flex-wrap",
         isDragSource && "z-10 scale-[1.01] opacity-60 shadow-lg",
       )}
     >
@@ -592,7 +593,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
           ctx.onUpdate(filterId, { columnId: value, operator: nextOperator, value: emptyValueFor(nextOperator, customFor(nextColumn)) });
         }}
       >
-        <SelectTrigger className={cn(SEGMENT_TRIGGER, "max-sm:rounded-bl-none")} aria-label={labels.toolbar.filterColumnAriaLabel}>
+        <SelectTrigger className={cn(SEGMENT_TRIGGER, "max-sm:rounded-es-none")} aria-label={labels.toolbar.filterColumnAriaLabel}>
           <SelectValue className="truncate" />
         </SelectTrigger>
         <SelectContent>
@@ -613,7 +614,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
           ctx.onUpdate(filterId, { operator: nextOperator, value: emptyValueFor(nextOperator, custom) });
         }}
       >
-        <SelectTrigger className={SEGMENT_TRIGGER} aria-label={labels.toolbar.filterOperatorAriaLabel}>
+        <SelectTrigger className={cn(SEGMENT_TRIGGER, "max-sm:rounded-se-md!")} aria-label={labels.toolbar.filterOperatorAriaLabel}>
           <SelectValue className="truncate" />
         </SelectTrigger>
         <SelectContent>
@@ -631,7 +632,7 @@ function FilterRow(props: FilterRowProps): ReactNode {
           <div className="h-8 w-full border border-input" />
         )}
       </div>
-      <Button type="button" variant="outline" size="icon" className="size-8 shrink-0 max-sm:rounded-br-none" aria-label={labels.toolbar.removeFilterAriaLabel} onClick={() => ctx.onRemove(filterId)}>
+      <Button type="button" variant="outline" size="icon" className="size-8 shrink-0 max-sm:rounded-se-none max-sm:border-t-0" aria-label={labels.toolbar.removeFilterAriaLabel} onClick={() => ctx.onRemove(filterId)}>
         <Trash2 />
       </Button>
       </ButtonGroup>

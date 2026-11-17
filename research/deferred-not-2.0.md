@@ -19,6 +19,7 @@ Internal record. Each item below came out of the 2.0 review as an API improvemen
 | Sort keys for date, select, checkbox, url, longText; coalesced `immediate` ticks | Accepted, see `perf-sort-1m.md` |
 | Header override, async `formatCell`, import `valueMode: "raw"`, print `source` and `css`, import `validateRow` | See `io-hooks-2.0.md` |
 | Server import preview, streaming XLSX writer, server search | See `io-server-scope.md` |
+| "Not" toggle and a summary sentence in the filter group header | `FilterGroup` has no negation in the model, the server spec, or the query layer; the toggle needs all three |
 
 ## Built after the review
 
