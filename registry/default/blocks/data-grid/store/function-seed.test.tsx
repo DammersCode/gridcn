@@ -1,4 +1,5 @@
 import { render } from "@testing-library/react";
+import { StrictMode } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { DataGridProvider, useDataGridStoreApi } from ".";
@@ -27,6 +28,12 @@ function mount(props: Record<string, unknown>) {
 }
 
 describe("function seeds for the default sort, filters, search, and layout", () => {
+  it("calls a function seed once under StrictMode, which runs layout effects twice", () => {
+    const readSort = vi.fn(() => [{ columnId: "age", direction: "asc" as const }]);
+    render(<StrictMode>{mount({ defaultSortState: readSort }).tree}</StrictMode>);
+    expect(readSort).toHaveBeenCalledTimes(1);
+  });
+
   it("calls a function seed once after mount on the client, never during the server render", () => {
     const readSort = vi.fn(() => [{ columnId: "age", direction: "asc" as const }]);
     const readFilters = vi.fn(() => [{ columnId: "name", operator: "contains" as const, value: "o" }]);

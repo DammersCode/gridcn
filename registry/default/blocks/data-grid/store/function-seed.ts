@@ -17,8 +17,12 @@ function readSeed(name: string, seed: unknown): unknown {
   }
 }
 
-/** Calls each function seed once on the client after mount and applies what it returns; a controlled prop wins as with a plain seed. */
+const seededStores = new WeakSet<object>();
+
+/** Calls each function seed once per store on the client after mount and applies what it returns; a controlled prop wins as with a plain seed. */
 export function applyFunctionSeeds(store: StoreApi<DataGridStoreState>, init: InternalSyncProps): void {
+  if (seededStores.has(store)) return;
+  seededStores.add(store);
   const { actions } = store.getState();
   const sorts = init.sortState === undefined ? readSeed("defaultSortState", init.defaultSortState) : undefined;
   if (Array.isArray(sorts)) actions.setSorts(sorts as SortSpec[]);
