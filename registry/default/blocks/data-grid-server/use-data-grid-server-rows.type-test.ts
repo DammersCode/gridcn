@@ -78,3 +78,19 @@ export function defaultSpecFunction() {
   useDataGridServerRows<Row>({ getRowId, fetchRows: async () => ({ rows: [] as Row[] }), defaultSpec: () => undefined });
   useDataGridServerRows<Row>({ getRowId, fetchRows: async () => ({ rows: [] as Row[] }), defaultSpec: () => ({ searchText: "a" }) });
 }
+
+export function groupedScrollMode() {
+  const server = useDataGridServerRows<Row>({
+    mode: "scroll",
+    getRowId,
+    defaultSpec: { groupBy: ["region"] },
+    defaultExpanded: { mode: "collapsed", ids: [] },
+    fetchRows: async ({ groupPath, childKind }) => {
+      groupPath satisfies readonly { columnId: string; key: string | number | boolean | null }[] | undefined;
+      if (childKind === "groups") return { groups: [{ key: "a", childCount: 1, totalRowCount: 1 }], groupCount: 1, totalRowCount: 1 };
+      return { rows: [] as Row[], totalRowCount: 0 };
+    },
+  });
+  server.gridProps.groupBy satisfies readonly string[] | undefined;
+  server.gridProps.groupMode satisfies "server" | undefined;
+}

@@ -192,7 +192,7 @@ export { defaultGetRowId } from "./store/types";
 export { dataIndexAt, dataIndexOf, forEachDataIndex, rowAtViewRow, viewEntryAt, type ViewEntry } from "./store/view-rows";
 export { groupLayoutOfView } from "./store/view-rows";
 export { leafCountOf, leafViewOf, groupRowsOf } from "./store/group-readers";
-export { isGroupRowId, groupIdOf, groupKeyText, MAX_GROUP_LEVELS } from "./store/group-state";
+export { isGroupRowId, groupIdOf, groupKeyText, MAX_GROUP_LEVELS, COLLAPSED, expandedTest, normalizeExpanded } from "./store/group-state";
 export { buildGroupView } from "./sort-filter/build-group-view";
 export { useDataGridGroupRow } from "./store/hooks";
 export { aggregateValues } from "./aggregate";

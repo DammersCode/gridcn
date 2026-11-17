@@ -1,5 +1,6 @@
 import type { RowRange, ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import type { GroupPathSegment } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import type { ServerGroupsAnswer } from "./read-groups-answer";
 
 /** Largest row count the server contract accepts; a bigger count clamps to it. */
 export const MAX_ROW_COUNT = 10_000_000;
@@ -45,6 +46,9 @@ export type ServerRowsAnswer<TData, TCursor = never> = {
   /** Cursor sources: passed back as `cursor`. `null` ends the source. */
   nextCursor?: TCursor | null;
 };
+
+/** What `fetchRows` of a grouped scroll source resolves with: groups for `childKind: "groups"`, rows for `"rows"`. */
+export type ServerFetchAnswer<TData, TCursor = never> = ServerRowsAnswer<TData, TCursor> | ServerGroupsAnswer;
 
 /** An answer after validation. */
 export type ReadAnswer<TData, TCursor = never> = {

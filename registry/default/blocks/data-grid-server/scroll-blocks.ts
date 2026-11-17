@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { applyChangeWith, holeRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { readAnswer, type FetchReason, type ReadAnswer, type ServerRowsAnswer, type ServerRowsRequest, type WithRowId } from "./read-answer";
+import { readAnswer, type FetchReason, type ReadAnswer, type ServerFetchAnswer, type ServerRowsAnswer, type ServerRowsRequest, type WithRowId } from "./read-answer";
 import { pruneIds, stashGuardedRows, trackDeletes, unionIds, useRefreshGuard, writeBlocks, type ProtectedRows } from "./refresh-guard";
 import { cursorKey, MAX_SEEN_CURSORS, needsNextBlock, skeletonCount, startsSequence, stepSequence } from "./scroll-sequence";
 import { chunkAligned, chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes } from "./range-math";
@@ -13,7 +13,7 @@ import { createCore, freshSequence, type Core, type Guard } from "./scroll-core"
 import { evictedBlocksIn, evictSequenceRows, sequenceLoaded, shiftBlocks } from "./sequence-eviction";
 import { evictRows, forgetUnloaded, stampLanded, stampViewed, unloadRows } from "./scroll-eviction";
 import { useSaveRefresh, type SaveRefreshOptions, type SaveRefreshPolicy } from "./save-refresh";
-import { isolate, scheduleFrame, useMountedPlugins, useRegisteredWiring, useReshape, useRevalidation, useServerSpec } from "./server-state";
+import { isolate, scheduleFrame, useMountedPlugins, useRegisteredWiring, useReshape, useRevalidation, type ServerSpecState } from "./server-state";
 import type { UseDataGridServerRowsRootProps } from "./use-data-grid-server-rows";
 
 const DEFAULT_OVERSCAN = 30;
@@ -37,7 +37,7 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
    *   the next block starts when the rendered rows come near the end. `nextCursor` comes back as `cursor`; `nextCursor: null`,
    *   `hasMore: false`, or an empty block ends the source. Without a cursor, `hasMore` defaults to a full block.
    */
-  fetchRows: (request: ServerRowsRequest<TCursor>) => Promise<ServerRowsAnswer<TData, TCursor>>;
+  fetchRows: (request: ServerRowsRequest<TCursor>) => Promise<ServerFetchAnswer<TData, TCursor>>;
   /**
    * The sort, filter, and search while `spec` is not controlled. A function runs once on the client after mount, so it can read
    * `localStorage`; it returns the spec or `undefined`. The first request waits for it.
@@ -152,8 +152,8 @@ function positiveInteger(value: number | undefined, fallback: number, min: numbe
 }
 
 /** Scroll mode of `useDataGridServerRows`: random access over a counted result, or a sequential chain of blocks. */
-export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDataGridServerRowsScrollOptions<TData, TCursor>, TData>): UseDataGridServerRowsScrollResult<TData> {
-  const { spec, ready: specReady, onSortChange, onFilterChange, onSearchTextChange } = useServerSpec(options, noop);
+export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDataGridServerRowsScrollOptions<TData, TCursor>, TData>, specState: ServerSpecState): UseDataGridServerRowsScrollResult<TData> {
+  const { spec, ready: specReady, onSortChange, onFilterChange, onSearchTextChange } = specState;
   const coreRef = useRef<Core<TData> | null>(null);
   const getCore = useCallback((): Core<TData> => {
     if (coreRef.current === null) coreRef.current = createCore<TData>();
