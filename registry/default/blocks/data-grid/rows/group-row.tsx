@@ -48,11 +48,26 @@ export function groupLabelSpan(columns: readonly Pick<AnyColumnDef, "aggregate">
   return Math.max(1, firstAggregate === -1 ? columns.length : firstAggregate);
 }
 
+// srgb mixes composite exactly like the translucent row tint and selection overlay they stand in for.
+const GROUP_TINT = "bg-[color-mix(in_srgb,var(--color-muted)_40%,var(--color-background))] group-data-hovered/row:bg-[color-mix(in_srgb,var(--color-muted)_60%,var(--color-background))]";
+// An unpinned label sits above the selection overlay, so it paints the overlay's tint itself.
+const GROUP_LABEL_SELECTED_TINT =
+  "data-[selected]:bg-[color-mix(in_srgb,var(--color-primary)_10%,color-mix(in_srgb,var(--color-muted)_40%,var(--color-background)))] group-data-hovered/row:data-[selected]:bg-[color-mix(in_srgb,var(--color-primary)_10%,color-mix(in_srgb,var(--color-muted)_60%,var(--color-background)))]";
+
+const DEFAULT_AGGREGATE_FORMAT: Intl.NumberFormatOptions = { maximumFractionDigits: 2 };
+
+/** An average has no natural precision, so a number column without its own `format` or `decimals` shows at most two fraction digits. */
+function withDefaultAggregateFormat(options: unknown): unknown {
+  const own = (options ?? {}) as { format?: unknown; decimals?: unknown };
+  return own.format === undefined && own.decimals === undefined ? { ...own, format: DEFAULT_AGGREGATE_FORMAT } : options;
+}
+
 function aggregateText(column: AnyColumnDef, value: unknown, cellTypes: ReturnType<typeof useDataGridCellTypes>): string {
   if (value === null || value === undefined) return "";
   const cellType = cellTypes[column.type ?? "text"];
   try {
-    return toSafeText(cellType ? displayText(cellType as Parameters<typeof displayText>[0], value, column.options) : value);
+    const options = column.type === "number" && typeof value === "number" ? withDefaultAggregateFormat(column.options) : column.options;
+    return toSafeText(cellType ? displayText(cellType as Parameters<typeof displayText>[0], value, options) : value);
   } catch {
     return toSafeText(value);
   }
@@ -141,7 +156,9 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
   const labelText = node.label || labels.grouping.empty;
   const ctx: GroupLabelCtx = { groupId: node.id, columnId: node.columnId, key: node.key, label: labelText, count: node.count, depth: node.depth, expanded };
   const labelActive = cellState.activeCol !== null && cellState.activeCol < span;
-  const labelSelected = labelActive || cellState.selectedColRanges.some(([start]) => start < span);
+  const labelRangeSelected = cellState.selectedColRanges.some(([start]) => start < span);
+  const labelSelected = labelActive || labelRangeSelected;
+  const labelPinned = visibleColumns[0]?.pin !== undefined;
   return (
     <div
       ref={rowRef}
@@ -170,7 +187,8 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
         <span
           data-grid-group-label=""
           style={{ paddingInlineStart: `calc(var(--grid-group-indent, 1rem) * ${node.depth})`, insetInlineStart: "var(--grid-scroll-left, 0px)" }}
-          className="relative flex min-w-0 items-center gap-1 bg-[color-mix(in_oklch,var(--color-muted)_40%,var(--color-background))] group-data-hovered/row:bg-[color-mix(in_oklch,var(--color-muted)_60%,var(--color-background))]"
+          data-selected={(labelRangeSelected && !labelPinned) || undefined}
+          className={cn("relative flex min-w-0 items-center gap-1", GROUP_TINT, GROUP_LABEL_SELECTED_TINT)}
         >
           <DataGridGroupToggle groupId={node.id} label={labelText} expanded={expanded} />
           <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
@@ -194,7 +212,7 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
             pin={column.pin}
             className={cn(
               cellTypes[column.type ?? "text"]?.numeric === true && "justify-end tabular-nums",
-              pinned && "bg-[color-mix(in_oklch,var(--color-muted)_40%,var(--color-background))] group-data-hovered/row:bg-[color-mix(in_oklch,var(--color-muted)_60%,var(--color-background))]",
+              pinned && GROUP_TINT,
             )}
           >
             <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{column.aggregate === undefined ? null : aggregateText(column, node.aggregates[column.id], cellTypes)}</span>

@@ -121,6 +121,7 @@ square, colorless site look is its preset, not the library's contract.
 - Build on `components/ui` primitives (Checkbox, Popover, Dialog, Button, Input, Select, DropdownMenu). Do not hand-draw a checkbox, popover, or dialog. An exception (cell display, for scroll cost) carries a one-line comment with the reason.
 - Accept `className` on every public component root and merge it with `cn`. Do not hard-code the look of the outermost element where a consumer cannot override it.
 - Do not hard-wire a look into the structure: no layout that works only with square corners, tight padding, or a monochrome palette.
+- Every element inside a cell or row paints no background of its own, or one derived from the same state tokens as the row and selection layers (`color-mix(in_srgb, ...)` composites like the translucent layers). Verify the selected, active, hovered, and checked states with `expectNoPaintMismatch` from `registry/default/blocks/data-grid/test/paint-parity.test-helper.ts` before a UI change is done.
 - Test: before a UI change is done, view it with `--radius 0` and `1rem`, a tinted primary, and a larger base font (the `/dev/header-filter-designs` page has a preset switcher to copy). A component that breaks in one of them is not done.
 
 ## Security
@@ -166,7 +167,8 @@ Bugs that shipped or reached review more than once. Check each against your chan
 - Fire consumer callbacks after the outermost store write, and isolate each call so that one throw cannot drop the rest.
 - Skip a controlled-prop sync when the value is unchanged, not only when the reference is. An equal `filterState` rebuilt the view on every sync.
 - Warn in development only (`isDev`), once per instance, and only on a proven misuse. False identity and presence warnings took five fixes.
-- Render display cells as plain elements with `role` and `aria-*`. A mounted control in every cell doubled the scroll cost.
+- Render display cells as plain elements with `role` and `aria-*`.
+- Check a new row kind or cell element with `expectNoPaintMismatch` (`registry/default/blocks/data-grid/test/paint-parity.test-helper.ts`) in the default, hovered, active, selected, and checked states. An opaque group label showed as a darker box inside a selected range. A mounted control in every cell doubled the scroll cost.
 
 ### Security and untrusted data
 

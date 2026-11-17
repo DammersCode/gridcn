@@ -116,9 +116,9 @@ export const DataGridMarkerCell = memo(function DataGridMarkerCell(props: DataGr
       className={cn(
         "group flex items-center border-b border-border bg-background",
         COLUMN_BORDER,
-        // Opaque over scrolled content: color-mix() pre-composites the tint instead of a translucent overlay.
-        "group-data-hovered/row:bg-[color-mix(in_oklch,var(--color-muted)_50%,var(--color-background))]",
-        isSelected && "bg-[color-mix(in_oklch,var(--color-muted)_50%,var(--color-background))]",
+        // Opaque over scrolled content: srgb color-mix() pre-composites the row hover and selection tints exactly as the translucent layers do.
+        "group-data-hovered/row:bg-[color-mix(in_srgb,var(--color-muted)_50%,var(--color-background))]",
+        isSelected && "bg-[color-mix(in_srgb,var(--color-primary)_10%,var(--color-background))] group-data-hovered/row:bg-[color-mix(in_srgb,var(--color-primary)_10%,color-mix(in_srgb,var(--color-muted)_50%,var(--color-background)))]",
         !showGrip && "justify-center",
         isReorderDragging && "opacity-50",
       )}
@@ -201,7 +201,7 @@ export function DataGridGroupMarkerCell(): ReactNode {
     <div
       role="gridcell"
       data-grid-marker-cell=""
-      className={cn("border-b border-border bg-[color-mix(in_oklch,var(--color-muted)_40%,var(--color-background))]", COLUMN_BORDER)}
+      className={cn("border-b border-border bg-[color-mix(in_srgb,var(--color-muted)_40%,var(--color-background))]", COLUMN_BORDER)}
       style={{ gridColumnStart: 1, position: "relative", insetInlineStart: "var(--grid-scroll-left, 0px)", zIndex: GRID_LAYER.markerCell }}
     />
   );

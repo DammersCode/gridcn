@@ -28,4 +28,11 @@ describe("data-grid-row-grouping-demo", () => {
     await userEvent.click(button("Ungroup"));
     await vi.waitFor(() => expect(groupRows()).toHaveLength(0));
   });
+
+  it("shows the average age with at most two fraction digits", async () => {
+    await render(<DataGridRowGroupingDemo />);
+    await vi.waitFor(() => expect(groupRows()).toHaveLength(5));
+    const ages = groupRows().map((row) => row.querySelector('[data-column-id="age"]')!.textContent!);
+    expect(ages.every((text) => /^\d+(\.\d{1,2})?$/.test(text))).toBe(true);
+  });
 });
