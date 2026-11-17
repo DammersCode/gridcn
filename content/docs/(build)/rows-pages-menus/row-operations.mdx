@@ -97,7 +97,7 @@ What the operations do to the view:
 | Duplicate rows | <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd> | `duplicateRow` |
 | Delete rows | <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Backspace</kbd> | `deleteRows` |
 
-Insert works at the active cell. Duplicate and delete work on every row that the selection covers. With no selection, they work on the active row. With `'until-cleared'` or `'across-filters'` and at least one checked row, they work on the checked rows only. A `readOnly` grid ignores all four keys. With `enableRowDelete={false}`, the key does nothing and the context menu hides Delete rows. [`onRowActionSkipped`](/docs/rows-live-data/handle-row-action-results#action-results) tells why a key did nothing. The <kbd>Delete</kbd> key clears cell contents and never deletes rows.
+Insert works at the active cell. Duplicate and delete work on every row that the selection covers. With no selection, they work on the active row. With `'until-cleared'` or `'across-filters'` and at least one checked row, they work on the checked rows only. A `readOnly` grid ignores all four keys, and `enableRowDelete={false}` turns off the delete key and the Delete rows menu item. [`onRowActionSkipped`](/docs/rows-live-data/handle-row-action-results#action-results) tells why a key did nothing. The <kbd>Delete</kbd> key clears cell contents and never deletes rows.
 
 Remap or remove these `DEFAULT_KEYMAP` keys through the `keymap` prop, as [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping) shows.
 
