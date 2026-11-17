@@ -75,7 +75,7 @@ The hook keeps the page and the page size in its own state. `defaultPage` and `d
 
 If your server sends no count, answer `{ rows, hasMore }` and omit `totalRowCount`, or send `totalRowCount: null`. The footer then shows "Page 3" in place of a range, Next stays enabled while `hasMore` is `true`, and Last stays disabled. Without `hasMore`, a full page means that another page exists. For a cursor API, see [Tune page loading](/docs/server-pagination/tune-page-loading).
 
-When the last pending insert or delete settles, the hook loads the page again, also with `refreshAfterSave: false`.
+When the last pending insert or delete settles, the hook loads the page again, unless `refreshAfterSave` is `false`. Then call `refresh()`.
 
 ## Fetch the pages yourself [#own-fetch]
 

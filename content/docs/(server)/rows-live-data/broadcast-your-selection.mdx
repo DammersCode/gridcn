@@ -110,12 +110,21 @@ The sample takes the column span from the order of `columns`. If users reorder o
 `setPresenceHighlights` replaces the whole list. So your server answers every `selection` or `leave` message with the full list of peers. Each entry is a row-id range entry with the `id`, `color`, `rowIds`, and `columnIds` that the peer sent. The sample above filters out the entry of the local user. This relay keeps the last message of each peer:
 
 ```ts fragment="server side; socket is one client of a ws server"
-const peers = new Map<string, unknown>();
+const peers = new Map<WebSocket, unknown>();
 
 socket.on("message", (data) => {
-  const message = JSON.parse(String(data));
-  if (message.type === "leave") peers.delete(message.id);
-  else peers.set(message.id, message);
+  let message;
+  try {
+    message = JSON.parse(String(data));
+  } catch {
+    return;
+  }
+  if (message?.type === "leave") peers.delete(socket);
+  else {
+    const { id, color, rowIds, columnIds } = message ?? {};
+    // Cap the list lengths here as well.
+    peers.set(socket, { id, color, rowIds, columnIds });
+  }
   const snapshot = JSON.stringify([...peers.values()]);
   for (const client of server.clients) client.send(snapshot);
 });

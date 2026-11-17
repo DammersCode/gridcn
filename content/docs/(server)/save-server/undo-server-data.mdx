@@ -94,6 +94,13 @@ These rules keep the combination safe:
 
 When `undo` needs a row that a hole hides, it warns once in development. An `undo` whose rows are all loaded does not warn.
 
+## Run history with pages mode [#with-pages-mode]
+
+Pages mode holds one page in `data`. The same rules apply, with these differences:
+
+- A page change leaves entries whose rows are not in `data`. Such an entry applies nothing, stays on its stack, and calls `onSkip` with `"rows-not-loaded"`. Go back to that page, then undo again.
+- Pass `datasetKey: serverSpecKey` here too. A new sort, filter, or search text clears the stacks.
+
 ## Related
 
 - [Undo and redo](/docs/clipboard-undo/undo-redo): the history add-on

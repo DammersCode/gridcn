@@ -78,7 +78,7 @@ function readSavedLayout(): Partial<ColumnLayout> | undefined {
 function Grid({ rows }: { rows: Row[] }) {
   return (
     <DataGrid
-      data={rows}
+      defaultData={rows}
       columns={columns}
       defaultColumnLayout={readSavedLayout()}
       onColumnLayoutChange={(layout) => {

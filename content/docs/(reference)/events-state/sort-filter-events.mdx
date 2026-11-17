@@ -48,7 +48,7 @@ function Grid({ rows }: { rows: Row[] }) {
   const [sorts, setSorts] = useState<SortSpec[]>([]);
   return (
     <DataGrid
-      data={rows}
+      defaultData={rows}
       columns={columns}
       sortState={sorts}
       onSortChange={setSorts}

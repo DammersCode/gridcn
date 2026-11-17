@@ -70,8 +70,8 @@ Keep the `columns` array stable: define it outside the component or memoize it. 
 | `type` | `string` | `"text"` | Key of the cell type. A column without a `type` renders and edits as `text`. Its sort ignores case and accents and reads digit runs as numbers. See [Sort order](/docs/sort-filter-search/sorting#sort-order). A key that names no registered cell type renders as text and drops edits, pastes, and deletes. A development build warns once. |
 | `options` | `unknown` | none | Settings for the cell type, such as the choices of a select. |
 | `readOnly` | `boolean \| (row) => boolean` | none | Blocks edits. The function form decides per row. |
-| `validate` | `(value, row) => string \| null` or a schema | none | Rejects a value. |
-| `validationMode` | `"block" \| "warn"` | `"block"` | What a rejection does to a commit: a single-cell edit, a paste, a fill, `updateCells`, and an import. |
+| `validate` | `(value, row, ctx) => string \| null` or a schema | none | Rejects a value. |
+| `validationMode` | `"block" \| "warn"` | `"block"` | What a rejection does to a commit: a single-cell edit, a paste, a fill, `updateCells`, an import, Delete, and Cut. |
 | `width` | `number` | `150` | Width in px. |
 | `minWidth` | `number` | none | Smallest width in px. |
 | `maxWidth` | `number` | none | Largest width in px. |

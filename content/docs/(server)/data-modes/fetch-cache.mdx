@@ -118,7 +118,7 @@ export function OrdersGrid() {
 
 `queryFn` uses the `signal` of TanStack Query, not the `signal` of the request. A spec change aborts the request `signal`, but the fetch runs on and fills the cache. The hook ignores its late answer.
 
-`fetchRows` runs again on `server.refresh()`. A scroll-mode `refresh()` fetches the rendered rows and drops every other loaded row. The hook also refreshes by itself when saves settle (`refreshAfterSave`, default `"settled"`), in pages and in scroll mode, once `onSave` returns promises. In random access it also refreshes after a row operation and after the last pending insert or delete save settles.
+`fetchRows` runs again on `server.refresh()`. A scroll-mode `refresh()` fetches the rendered rows and drops every other loaded row. The hook also refreshes by itself when saves settle (`refreshAfterSave`, default `"settled"`), in pages and in scroll mode, once `onSave` returns promises. In pages mode and random access it also refreshes after a row operation and after the last pending insert or delete save settles.
 
 Those refreshes go through `fetchQuery` too, so they get the cached blocks while those are fresh. To reach the server, call `queryClient.invalidateQueries({ queryKey: ["orders"] })` in `onSave` before its promise settles, and before a manual `refresh()`.
 

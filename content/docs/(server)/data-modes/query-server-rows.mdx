@@ -78,7 +78,7 @@ import {
 
 // The blockSize of the hook: one request asks for at most one block.
 const MAX_ROWS = 50;
-const MAX_BODY_BYTES = 64 * 1024;
+const MAX_BODY_CHARS = 64 * 1024;
 
 const toIndex = (value: unknown) => {
   const index = Math.floor(Number(value));
@@ -87,7 +87,7 @@ const toIndex = (value: unknown) => {
 
 export async function POST(request: Request) {
   const text = await request.text();
-  if (text.length > MAX_BODY_BYTES) {
+  if (text.length > MAX_BODY_CHARS) {
     return Response.json({ error: "Body too large" }, { status: 413 });
   }
   try {

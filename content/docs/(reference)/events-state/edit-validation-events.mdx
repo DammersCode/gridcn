@@ -17,7 +17,7 @@ Three callbacks cover the edit lifecycle. `onBeforeEditStart` runs before an edi
 
 ## onBeforeEditStart [#onbeforeeditstart]
 
-The callback fires right before an editor opens. Enter, F2, type-to-replace, and a double-click open an editor. The payload is a `ViewCellRef`: `rowId`, `columnId`, `viewRowIndex`, and `viewColumnIndex`. Return `false` to stop the edit. The grid then makes no state change. This sample stops the edit of a locked row:
+The callback fires right before an editor opens. Enter, F2, Space, type-to-replace, and a double-click open an editor. The payload is a `ViewCellRef`: `rowId`, `columnId`, `viewRowIndex`, and `viewColumnIndex`. Return `false` to stop the edit. The grid then makes no state change. This sample stops the edit of a locked row:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";

@@ -70,7 +70,7 @@ The grid ignores `current` when a newer write to the row exists. It also ignores
 
 ## Detect a conflict on the server [#detect-a-conflict]
 
-An `update` operation carries `prev`, the row before the edit, and its edited `cells`. If a stored field of an edited cell differs from `prev`, another user changed it. Refuse the row with `current`. Otherwise write only the edited cells. This handler assumes that each column id names a row field:
+An `update` operation carries `prev`, the row before the edit, and its edited `cells`. If a stored field of an edited cell differs from `prev`, another user changed it. Refuse the row with `current`. Otherwise write only the edited cells. This handler refuses a cell outside `EDITABLE` and assumes that each editable column id names a row field:
 
 ```ts
 import type {
@@ -85,19 +85,23 @@ export async function POST(request: Request) {
   if (!Array.isArray(body)) {
     return Response.json({ error: "Expected a list" }, { status: 400 });
   }
+  const EDITABLE = new Set(["customer", "total"]);
   const rejected: SaveRejection<Order>[] = [];
   for (const op of body as DataOp<Order>[]) {
     if (op?.type !== "update" || typeof op.rowId !== "string") continue;
     const stored = await db.orders.find(op.rowId);
-    const before = op.prev as Record<string, unknown>;
-    const fields =
-      op.cells?.map((cell) => cell.columnId) ?? Object.keys(before);
-    if (!stored || fields.some((field) => stored[field] !== before[field])) {
+    const before = op.prev as Record<string, unknown> | undefined;
+    const cells = op.cells ?? [];
+    if (
+      !stored ||
+      !before ||
+      cells.some((cell) => !EDITABLE.has(cell.columnId)) ||
+      cells.some((cell) => stored[cell.columnId] !== before[cell.columnId])
+    ) {
       rejected.push({ rowId: op.rowId, current: stored ?? undefined });
     } else {
-      const patch = op.cells
-        ? Object.fromEntries(op.cells.map((c) => [c.columnId, c.value]))
-        : op.row;
+      const entries = cells.map((c) => [c.columnId, c.value]);
+      const patch = Object.fromEntries(entries);
       await db.orders.update(op.rowId, patch);
     }
   }

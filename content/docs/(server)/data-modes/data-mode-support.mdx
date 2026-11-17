@@ -18,7 +18,7 @@ A grid feature can behave differently on a local array, on server pages and on s
 - **C**: Controlled state. The app owns `sortState`, `filterState` or `searchText`.
 - **SS**: Server sort. `sortMode="server"`: the grid never reorders `data`.
 - **FS**: Server filter. `filterMode="server"`: the grid never filters `data`.
-- **API**: Own API. `onDataChange` writes through to the app's backend.
+- **API**: Own API. `onSave` (or your `onDataChange`) writes each change to the app's backend.
 
 ## Matrix
 
@@ -419,7 +419,7 @@ A grid feature can behave differently on a local array, on server pages and on s
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal"><a href="/docs/scroll-mode/load-rows-while-scrolling">Scroll row fetching</a></th>
       <td className="text-center"><ParityCell status="n/a" note={"Rows are in memory."} /></td>
       <td className="text-center"><ParityCell status="n/a" note={"Rows are in memory."} /></td>
-      <td className="text-center"><ParityCell status="n/a" note={"The consumer supplies each page."} /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Pages mode requests one page per state; see Load rows by page."} /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="n/a" note={"Not a sort concern."} /></td>
@@ -438,7 +438,7 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="supported" /></td>
     </tr>
     <tr id="parity-revalidate">
-      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal"><a href="/docs/scroll-mode/tune-row-retention">Revalidation on a timer</a></th>
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal"><a href="/docs/scroll-mode/refresh-server-rows#revalidate">Revalidation on a timer</a></th>
       <td className="text-center"><ParityCell status="n/a" note={"Rows are in memory."} /></td>
       <td className="text-center"><ParityCell status="n/a" note={"Rows are in memory."} /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
@@ -730,7 +730,7 @@ Mode-neutral by design. Comments are addressed by row id and column id, so a sor
 ### Scroll row fetching
 
 - **L, PC**: n/a: Rows are in memory.
-- **PS**: n/a: The consumer supplies each page.
+- **PS**: n/a: Pages mode requests one page per state. See Load rows by page.
 - **SS**: n/a: Not a sort concern.
 - **FS**: n/a: Not a filter concern.
 - **API**: n/a: Not a write concern.

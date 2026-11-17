@@ -44,7 +44,7 @@ These actions have no feature page:
 - `commitCellEdit` validates and commits the value of the open edit, then moves the active cell by an optional `{ dx, dy }`. A rejected value keeps the edit open and sets the editing error.
 - `commitCellValueAt` validates and writes a value at a `ViewCoord` without an edit session, like a checkbox click.
 - `deleteSelection` clears every writable cell of the selection to the empty value of its cell type, as one change.
-- `applyCellUpdates` writes a list of `{ viewRowIndex, columnId, value }` updates as one change with a `source`. It skips read-only cells and unchanged values.
+- `applyCellUpdates` writes a list of `{ viewRowIndex, columnId, value }` updates as one change with a `source`. It skips read-only cells and unchanged values. It runs no column `validate`: pass the cells that your validator refused in `rejected`.
 
 ## Rows and addresses [#rows]
 
@@ -147,6 +147,7 @@ Hooks for text, keys, and server results.
 Sum a column in a component below the provider:
 
 ```tsx
+import { useMemo } from "react";
 import { createDataGridSelector } from "@/components/data-grid/data-grid";
 
 type Order = { id: string; total: number };
@@ -154,8 +155,10 @@ type Order = { id: string; total: number };
 const useOrderSelector = createDataGridSelector<Order>();
 
 export function TotalBadge() {
-  const total = useOrderSelector((state) =>
-    state.data.reduce((sum, row) => sum + (row?.total ?? 0), 0),
+  const data = useOrderSelector((state) => state.data);
+  const total = useMemo(
+    () => data.reduce((sum, row) => sum + (row?.total ?? 0), 0),
+    [data],
   );
   return <span>{total}</span>;
 }

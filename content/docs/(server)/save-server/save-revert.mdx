@@ -108,7 +108,7 @@ export function opsToRequests(ops: DataOp<Order>[]) {
 
 A cell edit, paste, or fill carries `op.cells`. A whole-row update has no `cells`. Send all moves of one change in one request. Each `to` is the final index of the row after the whole batch, counted in `data`.
 
-In pages mode, `data` is the current page, so `to` counts from the first row of the page. In scroll mode, `data` is the sparse array, so `to` counts unloaded rows too. The server removes every moved row, then inserts the rows in ascending `to` order. Moves applied one at a time end in the wrong order.
+In pages mode, `data` is the current page, so `to` counts from the first row of the page. In scroll mode, a move needs every row loaded, so `to` counts in the full `data`. The server removes every moved row, then inserts the rows in ascending `to` order. Moves applied one at a time end in the wrong order.
 
 Each move also carries `afterRowId` and `beforeRowId`, the ids of the rows around it after the batch. A server that holds more rows than the grid places the row next to those ids. A move from undo or redo carries `beforeRowId` and `afterRowId` like any other move.
 
