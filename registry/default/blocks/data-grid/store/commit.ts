@@ -72,10 +72,9 @@ function isPlainContainer(value: unknown): value is Record<string, unknown> {
   return proto === Object.prototype || proto === Array.prototype;
 }
 
-// Inline callbacks are rebuilt with each array, so functions compare by source text; plain objects, arrays, and JSX elements compare by content up to a depth cap (a deeper difference reads as unequal, so no false warning).
+// Functions compare by identity: a rebuilt closure may capture new state, so only a proven churn warns. Plain objects, arrays, and JSX elements compare by content up to a depth cap (a deeper difference reads as unequal, so no false warning).
 function sameColumnValue(a: unknown, b: unknown, depth = 0): boolean {
   if (Object.is(a, b)) return true;
-  if (typeof a === "function" && typeof b === "function") return String(a) === String(b);
   if (depth >= MAX_COLUMN_COMPARE_DEPTH || !isPlainContainer(a) || !isPlainContainer(b)) return false;
   if (Array.isArray(a) !== Array.isArray(b)) return false;
   const keys = Object.keys(a);
@@ -121,14 +120,15 @@ export function checkDevGuardrails(
     }
   }
 
-  if (prevColumns !== undefined && prevColumns !== props.columns && columnsStructurallyEqual(prevColumns, props.columns)) {
+  if (!warned.has("columns identity") && prevColumns !== undefined && prevColumns !== props.columns && columnsStructurallyEqual(prevColumns, props.columns)) {
+    warned.add("columns identity");
     warnDev(
       "columns array identity changed since the last render; pass a stable reference (e.g. useMemo) or every row re-renders",
     );
   }
   // Controlled mode only: in uncontrolled mode props.data is undefined (data lives in the store),
   // and the store's own array legitimately gets a new reference on every mutation — not a bug.
-  if (props.data !== undefined && prevData !== undefined && prevData !== props.data && prevData.length === props.data.length) {
+  if (!warned.has("data identity") && props.data !== undefined && prevData !== undefined && prevData !== props.data && prevData.length === props.data.length) {
     // Only identity churn with zero row changes is the anti-pattern (array rebuilt per render);
     // a legitimate immutable edit swaps ≥1 row reference — the early exit keeps this cheap for it.
     const data = props.data;
@@ -140,6 +140,7 @@ export function checkDevGuardrails(
       }
     }
     if (!anyRowChanged) {
+      warned.add("data identity");
       warnDev("data array identity changed with no row changes; pass a stable reference (rebuilding it every render defeats row memoization)");
     }
   }
