@@ -422,10 +422,22 @@ if (opts.live) {
     const stores = impls.map((impl) => liveStore(impl, rowCount, scenario));
     const optionsOf = (k) => (impls[k] === baseline ? (scenario.baselineOptions ?? scenario.options) : scenario.options);
     stores.forEach((store, k) => liveRound(store, scenario, rowCount, 1, optionsOf(k)));
+    let liveSession;
+    if (opts.profile && !profiled) {
+      liveSession = new inspector.Session();
+      liveSession.connect();
+      await liveSession.post("Profiler.enable");
+      await liveSession.post("Profiler.start");
+    }
     const times = impls.map(() => []);
     for (let round = 0; round < opts.runs; round++) {
       const order = round % 2 === 0 ? [...impls.keys()] : [...impls.keys()].reverse();
       for (const k of order) times[k].push(liveRound(stores[k], scenario, rowCount, 100 + round, optionsOf(k)));
+    }
+    if (liveSession) {
+      const { profile } = await liveSession.post("Profiler.stop");
+      await writeFile(opts.profileOut, JSON.stringify(profile));
+      profiled = true;
     }
     let identical = true;
     if (baseline) {

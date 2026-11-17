@@ -30,7 +30,7 @@ Internal record. Each item below came out of the 2.0 review as an API improvemen
 | `toolbar` prop on `<DataGrid>` | Render inside the provider before the root |
 | Keyboard column move and resize | `moveColumnStart`, `moveColumnEnd`, header-menu items |
 | Tab hand-off at the last cell | Actions that return Tab to the browser |
-| Persistent or chunked data and view structure | Removes the array copies on a live edit at 100k rows |
+| Persistent or chunked data and view structure | Removes the array copies on a live edit at 100k rows. Stage 0 measured the copy at about 90% of the tick, but the prototype accessor turns the state object into dictionary mode (reads 40 to 70% slower); see `perf-row-storage.md` |
 | Date editor lazy-load | Accepted cost, see `perf-mount.md` |
 | Sort keys for date, select, checkbox, url, longText; coalesced `immediate` ticks | Accepted, see `perf-sort-1m.md` |
 | Header override, async `formatCell`, import `valueMode: "raw"`, print `source` and `css`, import `validateRow` | See `io-hooks-2.0.md` |
