@@ -62,11 +62,11 @@ describe("grouped pages source", () => {
     const { result } = mount(server);
     await waitFor(() => expect(keysOf(result)).toEqual(["A", "B"]));
     act(() => result.current.gridProps.onExpandedChange!(open(idOf("A"))));
-    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 4 }));
+    act(() => result.current.gridProps.onRenderedRowsChange!({ start: 0, end: 4 }));
     await waitFor(() => expect(result.current.gridProps.data[1]?.id).toBe("A0"));
     const rowCalls = server.calls.filter((call) => call.childKind === "rows");
     expect(rowCalls[0]).toMatchObject({ start: 0, end: 2, page: 1, pageSize: 2 });
-    expect(rowCalls.every((call) => call.start % 2 === 0 && call.pageSize === 2)).toBe(true);
+    expect(rowCalls.every((call) => call.start % 2 === 0 && (call as { pageSize?: number }).pageSize === 2)).toBe(true);
     expect(result.current.gridProps.data).toHaveLength(2 + 7);
     expect(result.current.gridProps.groupLayout!.rows.map((slot) => slot.viewRow)).toEqual([0, 8]);
     act(() => result.current.pager.onPageChange(2));
@@ -129,7 +129,7 @@ describe("grouped pages source", () => {
     const server = fakeServer(rowsOf(REGIONS));
     const { result } = mount(server, { defaultExpanded: open(idOf("B")) });
     await waitFor(() => expect(keysOf(result)).toEqual(["A", "B"]));
-    act(() => result.current.gridProps.onRenderedRowsChange({ start: 0, end: 6 }));
+    act(() => result.current.gridProps.onRenderedRowsChange!({ start: 0, end: 6 }));
     await waitFor(() => expect(result.current.gridProps.data[2]?.id).toBe("B0"));
     act(() => result.current.gridProps.onSearchTextChange("x"));
     await waitFor(() => expect(server.calls.at(-1)!.spec.searchText).toBe("x"));

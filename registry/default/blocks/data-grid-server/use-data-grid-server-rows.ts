@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { applyChangeWith, defaultGetRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { applyChangeWith, defaultGetRowId, isDev, type ExpandedState, type ServerGroupLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridServerPager, type DataGridPaginationControls } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import { DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-pagination/pagination-math";
@@ -143,6 +143,20 @@ export type UseDataGridServerRowsProviderProps<TData> = {
   plugins: readonly DataGridPlugin<unknown>[];
   /** Sorts on a header click. Override it after the spread. */
   headerClickBehavior: "sort";
+  /** @internal Present while the source groups: reports the rendered rows so the open groups load their rows. */
+  onRenderedRowsChange?: (range: RowRange) => void;
+  /** @internal Present while the source groups: the group columns, outermost first. */
+  groupBy?: readonly string[];
+  /** @internal Present while the source groups. */
+  onGroupByChange?: (next: readonly string[]) => void;
+  /** @internal Present while the source groups: the open groups. */
+  expanded?: ExpandedState;
+  /** @internal Present while the source groups. */
+  onExpandedChange?: (next: ExpandedState) => void;
+  /** @internal Present while `groupBy` is not empty. */
+  groupMode?: "server";
+  /** @internal Present while `groupBy` is not empty. */
+  groupLayout?: ServerGroupLayout;
 };
 
 /** Props of {@link UseDataGridServerRowsResult.gridProps} that belong to `DataGridRoot`. */

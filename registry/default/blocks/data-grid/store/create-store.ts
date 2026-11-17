@@ -147,6 +147,8 @@ import { leafViewOf } from "./group-readers";
 import { pageUnitsOf } from "./group-pages";
 import { matchingRowTotal } from "./matching-total";
 
+const EMPTY_ROW_IDS: readonly string[] = [];
+
 type CheckedState = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "allMatching" | "data" | "viewIndex" | "totalRowCount" | "groupLayout"> & Partial<Pick<DataGridStoreState, "groupMode">>;
 
 /** The checked total: the rows channel plus the hidden checked rows, or the "all matching" count (`null` for a result of unknown size). */
@@ -937,6 +939,11 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
           if (!state.onSelectionChange && !memory.selectionControlled) return;
           const derived = deriveCurrentSelection(state);
           if (selectionStatesEqual(derived, memory.lastKnownSelection)) return;
+          // A group re-layout moves checked rows in and out of the view; the cells and the checked rows stay the same.
+          if (state.groupLayout !== prev.groupLayout && selectionStatesEqual({ ...derived, rowIds: EMPTY_ROW_IDS }, { ...memory.lastKnownSelection, rowIds: EMPTY_ROW_IDS })) {
+            memory.lastKnownSelection = derived;
+            return;
+          }
           // Updated BEFORE the callback so a gesture fired from inside onSelectionChange compares
           // against the value it just read, and an applied controlled value re-derives equal and
           // stays silent (decisions 3 and 4).

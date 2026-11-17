@@ -94,3 +94,19 @@ export function groupedScrollMode() {
   server.gridProps.groupBy satisfies readonly string[] | undefined;
   server.gridProps.groupMode satisfies "server" | undefined;
 }
+
+export function groupedPagesMode() {
+  const server = useDataGridServerRows<Row>({
+    getRowId,
+    defaultPageSize: 10,
+    defaultSpec: { groupBy: ["region"] },
+    defaultExpanded: { mode: "collapsed", ids: [] },
+    fetchRows: async ({ page, pageSize, childKind }) => {
+      page satisfies number;
+      pageSize satisfies number;
+      if (childKind === "groups") return { groups: [{ key: "a", childCount: 1, totalRowCount: 1 }], groupCount: 1, totalRowCount: 1 };
+      return { rows: [] as Row[], totalRowCount: 0 };
+    },
+  });
+  server.pager.page satisfies number;
+}

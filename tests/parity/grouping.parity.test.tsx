@@ -1,6 +1,11 @@
-import { cleanup } from "@testing-library/react";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
+import type { StoreApi } from "zustand/vanilla";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { DataGridBody } from "@/registry/default/blocks/data-grid/data-grid";
+import { DataGridBody, DataGridProvider, DataGridRoot } from "@/registry/default/blocks/data-grid/data-grid";
+import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import type { DataGridStoreState } from "@/registry/default/blocks/data-grid/store";
+import { fakeServer } from "@/registry/default/blocks/data-grid-server/group-fake-server.test-helper";
+import { useDataGridServerRows, type UseDataGridServerRowsResult } from "@/registry/default/blocks/data-grid-server/use-data-grid-server-rows";
 import { fullViewOf } from "@/registry/default/blocks/data-grid/store/compute";
 import { matchingRowTotal } from "@/registry/default/blocks/data-grid/store/matching-total";
 import { pageUnitsOf } from "@/registry/default/blocks/data-grid/store/group-pages";
@@ -102,5 +107,99 @@ describe("row grouping in mode PC", () => {
     expect(grid.state().page).toBe(2);
     grid.act(() => grid.state().actions.setGroupBy(["n"]));
     expect(grid.state().page).toBe(1);
+  });
+});
+
+type ServerKind = "PS" | "Z" | "SS" | "FS";
+
+const SERVER_SPECS: Record<ServerKind, Record<string, unknown>> = {
+  PS: {},
+  Z: { mode: "scroll", blockSize: 20, overscan: 0, loadDelayMs: 0 },
+  SS: { defaultPageSize: 10, defaultSpec: { sorts: [{ columnId: "n", direction: "asc" }] } },
+  FS: { defaultPageSize: 10, defaultSpec: { filters: [{ columnId: "name", operator: "contains", value: "a" }] } },
+};
+
+async function mountServer(kind: ServerKind) {
+  const server = fakeServer(rows);
+  let store!: StoreApi<DataGridStoreState>;
+  let hook!: UseDataGridServerRowsResult<Row>;
+  function Probe() {
+    store = useDataGridStoreApi() as unknown as StoreApi<DataGridStoreState>;
+    return null;
+  }
+  function Harness() {
+    const base = SERVER_SPECS[kind];
+    hook = useDataGridServerRows<Row>({
+      defaultPageSize: 10,
+      ...base,
+      fetchRows: server.fetchRows as never,
+      defaultSpec: { groupBy: ["name"], aggregates: [{ columnId: "n", reducer: "sum" }], ...(base["defaultSpec"] as object | undefined) },
+      defaultExpanded: { mode: "collapsed", ids: ["__group:name=alpha", "__group:name=beta"] },
+    } as never) as unknown as UseDataGridServerRowsResult<Row>;
+    return (
+      <DataGridProvider {...hook.providerProps} columns={groupColumns as never}>
+        <DataGridRoot aria-label="Rows" {...hook.rootProps}>
+          <DataGridBody />
+          <Probe />
+        </DataGridRoot>
+      </DataGridProvider>
+    );
+  }
+  render(<Harness />);
+  await waitFor(() => expect(hook.providerProps.data.length).toBeGreaterThan(0));
+  act(() => hook.providerProps.onRenderedRowsChange?.({ start: 0, end: 12 }));
+  await waitFor(() => expect(hook.providerProps.data.filter((row) => row !== undefined)).toHaveLength(5));
+  return { server, state: () => store.getState(), hook: () => hook };
+}
+
+const SERVER_TITLES: Record<ServerKind, string> = {
+  PS: "row grouping in mode PS (a server pages the groups)",
+  Z: "row grouping in mode Z (a server lays out lazy groups)",
+  SS: "row grouping in mode SS (a server sorts the groups)",
+  FS: "row grouping in mode FS (a server filters the groups)",
+};
+
+describe.each((Object.keys(SERVER_TITLES) as ServerKind[]).map((kind) => ({ kind, title: SERVER_TITLES[kind] })))("$title", ({ kind }) => {
+  it("shows the same group ids, labels, counts, and aggregates as the client", async () => {
+    const grid = await mountServer(kind);
+    expect(grid.state().viewIndex.map((_, row) => rowIdAtViewRow(grid.state(), row))).toEqual(["__group:name=alpha", "r0", "r2", "r4", "__group:name=beta", "r1", "r3"]);
+    expect(groupRows().map((row) => row.textContent)).toEqual(["Name: alpha (3)9", "Name: beta (2)6"]);
+  });
+
+  it("describes the tree through ARIA", async () => {
+    await mountServer(kind);
+    expect(document.querySelector('[role="treegrid"]')).not.toBeNull();
+    expect(groupRows().map((row) => [row.getAttribute("aria-level"), row.getAttribute("aria-expanded"), row.getAttribute("aria-posinset"), row.getAttribute("aria-setsize")])).toEqual([
+      ["1", "true", "1", "2"],
+      ["1", "true", "2", "2"],
+    ]);
+    const dataRows = [...document.querySelectorAll('[role="row"][data-grid-row-index]:not([data-grid-group-row])')];
+    expect(dataRows.map((row) => row.getAttribute("aria-level"))).toEqual(["2", "2", "2", "2", "2"]);
+    expect(dataRows.map((row) => row.getAttribute("aria-posinset"))).toEqual(["1", "2", "3", "1", "2"]);
+  });
+
+  it("closes a group through toggleGroup and keeps the rows of the other group", async () => {
+    const grid = await mountServer(kind);
+    grid.hook();
+    act(() => grid.state().actions.toggleGroup("__group:name=alpha"));
+    expect(grid.state().viewIndex.map((_, row) => rowIdAtViewRow(grid.state(), row))).toEqual(["__group:name=alpha", "__group:name=beta", "r1", "r3"]);
+    expect(groupRows()[0]!.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("counts all matching rows by the rows of the result, not by the rows shown", async () => {
+    const grid = await mountServer(kind);
+    expect(matchingRowTotal(grid.state())).toBe(5);
+    let verdict: unknown;
+    act(() => void (verdict = grid.state().actions.selectAllMatching()));
+    expect(verdict).toEqual({ ok: true });
+  });
+
+  it("sends the spec and the group path with every request", async () => {
+    const grid = await mountServer(kind);
+    const first = grid.server.calls[0]!;
+    expect(first).toMatchObject({ childKind: "groups", groupPath: [], spec: { groupBy: ["name"], aggregates: [{ columnId: "n", reducer: "sum" }] } });
+    if (kind === "SS") expect(first.spec.sorts).toEqual([{ columnId: "n", direction: "asc" }]);
+    if (kind === "FS") expect(first.spec.filters).toHaveLength(1);
+    expect(grid.server.calls.some((call) => call.childKind === "rows" && call.groupPath?.length === 1)).toBe(true);
   });
 });
