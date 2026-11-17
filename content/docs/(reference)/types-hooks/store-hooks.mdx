@@ -100,7 +100,7 @@ Hooks that read the selection. [Selection model](/docs/concepts/selection-model)
 
 | Hook | Returns | Meaning |
 | --- | --- | --- |
-| <a id="usedatagridselection"></a>`useDataGridSelection` | `GridSelection` | The selection in view indexes. |
+| <a id="usedatagridselection"></a>`useDataGridSelection` | `GridSelection` | The selection in view indexes. The `selection` prop, `onSelectionChange`, and `getSelection()` use ids (`SelectionState`), so they survive a sort or a filter. |
 | <a id="usedatagridgetselectionvalues"></a>`useDataGridGetSelectionValues` | `() => unknown[][]` | A stable callback. Each call reads the values of the main range at call time, or `[]` without a range. |
 | <a id="usedatagridselectedrows"></a>`useDataGridSelectedRows` | `DataGridSelectedRows` | The checked rows as a value for a bulk action. Mode `"ids"` holds `ids` and `count`. Mode `"allMatching"` holds `excludedIds`, `count` (or `null`), and the `spec` to send. See [Select server rows](/docs/rows-live-data/select-server-rows). |
 | <a id="usedatagridhiddencheckedcount"></a>`useDataGridHiddenCheckedCount` | `number` | The count of checked rows that left the view (a filter, a page change, or a window move) and `checkedRowsLifetime="across-filters"` remembers. It is `0` after `selectAllMatching()`. |

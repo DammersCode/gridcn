@@ -93,7 +93,7 @@ The cell type stays `text`, so copy, paste, and export use the URL.
 
 ## When a cell re-renders [#re-render]
 
-The grid skips a cell whose props did not change. A `renderCell` that reads other state, such as a role or a theme, draws again only after you build a new `columns` array.
+The grid skips a cell whose props did not change. A `renderCell` that reads other state, such as a role or a theme, draws again only after you build a new `columns` array. A component that `renderCell` returns re-renders on its own state, so read changing state inside it.
 
 ## Related
 

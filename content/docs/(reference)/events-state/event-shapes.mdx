@@ -84,7 +84,7 @@ A gate runs before the grid acts and can stop the action:
 
 `onSave` is a save acknowledgement. It is neither a reporting callback nor a gate: see [onSave](/docs/events-state/data-change-events#onsave).
 
-`onBeforeEditStart`, `onBeforeDeleteRows`, `processPaste`, `processReplace`, `processCellFromClipboard`, `createRow`, and `duplicateRow` accept a promise. `processFill` alone is synchronous. A pending promise of `onBeforeEditStart`, `onBeforeDeleteRows`, `createRow`, or `duplicateRow` blocks a second request of the same kind. A second paste aborts a pending `processPaste` or `processCellFromClipboard`, and `onGateAborted` reports the reason `"superseded"`. A rejection cancels the action. `validateRow` also accepts a promise. When it rejects, the row gets no verdict.
+`onBeforeEditStart`, `onBeforeDeleteRows`, `processPaste`, `processReplace`, `processCellFromClipboard`, `createRow`, and `duplicateRow` accept a promise. `processFill` alone is synchronous. A newer request aborts the pending run of the same gate and runs instead, and `onGateAborted` reports the reason `"superseded"`. A rejection cancels the action. `validateRow` also accepts a promise. When it rejects, the row gets no verdict.
 
 ## Callback timing and errors [#callback-errors]
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DataGridProvider,
@@ -19,9 +19,8 @@ import { generateDemoRows, type DemoRow } from "./demo-data";
 
 const STORAGE_KEY = "gridcn-column-layout-demo";
 
-/** Reads the persisted layout from localStorage; safe on the server (returns undefined). */
+/** Reads the persisted layout from localStorage. */
 function readLayout(): ColumnLayout | undefined {
-  if (typeof window === "undefined") return undefined;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     return raw ? (JSON.parse(raw) as ColumnLayout) : undefined;
@@ -62,17 +61,11 @@ const columns = defineColumns<DemoRow>()([
  */
 export default function DataGridColumnLayoutDemo(): ReactNode {
   const rows = useMemo(() => generateDemoRows(10), []);
-  // null = storage not read yet (SSR-safe gate: server and first client render show the
-  // placeholder, then the effect seeds the grid exactly once with the stored layout).
-  const [layout, setLayout] = useState<ColumnLayout | undefined | null>(null);
+  const [order, setOrder] = useState<string[] | undefined>();
   const [generation, setGeneration] = useState(0);
 
-  useEffect(() => {
-    setLayout(readLayout());
-  }, []);
-
   const persist = useCallback((next: ColumnLayout) => {
-    setLayout(next);
+    setOrder(next.order);
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     } catch {
@@ -86,31 +79,23 @@ export default function DataGridColumnLayoutDemo(): ReactNode {
     } catch {
       // ignore
     }
-    setLayout(undefined);
+    setOrder(undefined);
     setGeneration((g) => g + 1);
   };
-
-  if (layout === null) {
-    return (
-      <div className="flex h-[340px] w-full items-center justify-center rounded-md border border-border text-sm text-muted-foreground">
-        Restoring saved layout…
-      </div>
-    );
-  }
 
   return (
     <div className="w-full flex flex-col gap-3">
       <p className="text-sm text-muted-foreground">
         Resize a header edge, drag a header, or pin/hide a column (header menu / columns menu) —
         every change persists and is restored on the next reload. Current order:{" "}
-        <span className="font-mono text-xs">{layout ? layout.order.join(" → ") : "(defaults)"}</span>
+        <span className="font-mono text-xs">{order ? order.join(" → ") : "(defaults or saved)"}</span>
       </p>
       <div className="flex h-[400px] flex-col overflow-hidden rounded-md border border-border">
         <DataGridProvider
           key={generation}
           defaultData={rows}
           columns={columns}
-          defaultColumnLayout={layout}
+          defaultColumnLayout={readLayout}
           onColumnLayoutChange={persist}
         >
           <DataGridContextMenu className="flex min-h-0 flex-1 flex-col">

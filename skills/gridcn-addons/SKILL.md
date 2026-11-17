@@ -149,7 +149,7 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
 
 ## Async gates
 
-- `processPaste`, `processCellFromClipboard`, `validateRow`, `onBeforeEditStart`, `createRow`, `duplicateRow`, `onBeforeDeleteRows`, and the import `mapColumn` and `createRow` accept a promise. The grid holds the gesture until it settles, then writes once. A pending gate blocks a second gesture of its kind, and the grid drops a result for a row that left `data`.
+- `processPaste`, `processCellFromClipboard`, `validateRow`, `onBeforeEditStart`, `createRow`, `duplicateRow`, `onBeforeDeleteRows`, and the import `mapColumn` and `createRow` accept a promise. The grid holds the gesture until it settles, then writes once. A newer gesture of the same kind aborts the pending gate and runs instead, and the grid drops a result for a row that left `data`.
 - `actions.commitChange` runs `validateRow` for the rows it inserts or updates (every source except `"stream"`), so an import applied through it needs no extra validation.
 - Every gate gets an `AbortSignal` as its last argument (`processPaste({ cells, target, signal })`, `validateRow(row, rowId, { signal })`, `onBeforeEditStart(cell, { signal })`, `createRow(index, { signal })`, `duplicateRow(row, index, { signal })`, `onBeforeDeleteRows({ rowIds, hiddenCount, signal })`). Pass it to `fetch`. It aborts when a newer run replaces the gate, when the result cannot apply, and on unmount.
 - `useDataGridGatePending()` returns the names of the gates that wait for a promise. The grid root carries `data-gate-pending` meanwhile.

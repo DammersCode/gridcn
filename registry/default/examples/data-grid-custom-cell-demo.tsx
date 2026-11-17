@@ -89,8 +89,7 @@ function CurrencyCell({ value, options }: CellRenderProps<unknown, number | null
   );
 }
 
-// `useCellEditor` owns the draft state, the seed-focus, the one-shot commit guard and the
-// Enter/Escape/blur bindings — the same pair of primitives every built-in editor uses.
+// `useCellEditor` owns the draft, the commit guard, and the Enter, Escape, and blur keys.
 function CurrencyEditor(props: CellEditorProps<unknown, number | null, CurrencyOptions>) {
   const { ref, ...bindings } = useCellEditor(props, {
     toDraft: (value) => currencyCellType.toText(value),
@@ -131,11 +130,7 @@ const typedColumns = defineColumns<Product>()([
   { id: "name", header: "Product", accessorKey: "name", type: "text", width: 130, flex: 2 },
 ] as const);
 
-// With the guide's real `declare module` augmentation in a consumer app, `defineColumns` narrows
-// `type: "currency"` / `options: CurrencyOptions` the same way it does for the built-ins above,
-// and `defineCellType("currency", currencyCellType)` gains a compile-time key/value/options
-// check — written by hand here only because this repo's shared tsconfig can't carry the
-// augmentation.
+// A `declare module` augmentation narrows `type` and `options` here; this repo's shared tsconfig cannot carry it.
 const currencyColumns: ColumnDef<Product, number | null>[] = [
   {
     id: "priceUsd",

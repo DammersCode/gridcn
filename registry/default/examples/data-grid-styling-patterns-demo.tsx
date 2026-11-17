@@ -64,8 +64,8 @@ const columns = defineColumns<Deal>()([
     type: "number",
     width: 75,
     flex: 1,
-    cellClassName: "text-right tabular-nums",
-    headerClassName: "text-right",
+    cellClassName: "text-end tabular-nums",
+    headerClassName: "text-end",
   },
   {
     id: "stage",

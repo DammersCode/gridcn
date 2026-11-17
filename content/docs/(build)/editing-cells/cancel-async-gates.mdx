@@ -13,7 +13,7 @@ A gate is a callback that runs before the grid acts, such as `processPaste` or `
 
 Every gate receives an `AbortSignal` as its last argument. The signal aborts in these cases:
 
-- A newer run of the same gate replaces the run. For example, the user edits a row again before `validateRow` settles for the row, or the user pastes again before `processPaste` settles.
+- A newer run of the same gate replaces the run. The newer request always wins. For example, the user edits a row again before `validateRow` settles for the row, or the user pastes again before `processPaste` settles.
 - The grid unmounts.
 - The result cannot apply. For example, the grid turned `readOnly`, or the row is gone.
 - `gateTimeoutMs` runs out.
