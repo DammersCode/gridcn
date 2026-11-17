@@ -545,6 +545,75 @@ describe("useFillHandle staleness guard — async fill held against a real store
     expect(onDataChange.mock.calls[0]![1].ops).toEqual([expect.objectContaining({ rowId: "2", cells: [expect.objectContaining({ columnId: "qty", value: 99 })] })]);
   });
 
+  describe("async processFill", () => {
+    const heldProcess = () => {
+      const resolvers: ((cells: string[][] | false) => void)[] = [];
+      const seen: { signal?: AbortSignal } = {};
+      const processFill = vi.fn((ctx: { cells: string[][]; signal: AbortSignal }) => {
+        seen.signal = ctx.signal;
+        return new Promise<string[][] | false>((r) => resolvers.push(r));
+      });
+      return { processFill, resolve: (cells: string[][] | false) => resolvers.at(-1)!(cells), resolvers, seen };
+    };
+
+    it("holds the write as a gate until the promise resolves, then writes the answer", async () => {
+      const onDataChange = vi.fn();
+      const held = heldProcess();
+      const result = setUpFill(makeWrapper(columns, { onDataChange }), held.processFill);
+      act(() => result.current.fill.fillDown());
+      expect(onDataChange).not.toHaveBeenCalled();
+      expect(result.current.storeApi.getState().gatesPending.has("processFill")).toBe(true);
+
+      held.resolve([["77"]]);
+      await settle();
+
+      expect(result.current.storeApi.getState().gatesPending.has("processFill")).toBe(false);
+      expect(onDataChange.mock.calls[0]![1].ops).toEqual([expect.objectContaining({ rowId: "2", cells: [expect.objectContaining({ columnId: "qty", value: 77 })] })]);
+    });
+
+    it("vetoes the fill when the promise resolves false", async () => {
+      const onDataChange = vi.fn();
+      const held = heldProcess();
+      const result = setUpFill(makeWrapper(columns, { onDataChange }), held.processFill);
+      act(() => result.current.fill.fillDown());
+      held.resolve(false);
+      await settle();
+      expect(onDataChange).not.toHaveBeenCalled();
+    });
+
+    it("drops the answer and aborts the signal when a newer fill supersedes it", async () => {
+      const onDataChange = vi.fn();
+      const held = heldProcess();
+      const result = setUpFill(makeWrapper(columns, { onDataChange }), held.processFill);
+      act(() => result.current.fill.fillDown());
+      const first = held.seen.signal!;
+      const [firstResolve] = held.resolvers;
+      act(() => result.current.fill.fillDown());
+      expect(first.aborted).toBe(true);
+      firstResolve([["5"]]);
+      await settle();
+      expect(onDataChange).not.toHaveBeenCalled();
+    });
+
+    it("drops the answer when the grid turns read-only first, and a rejection cancels the fill", async () => {
+      const onDataChange = vi.fn();
+      const held = heldProcess();
+      const result = setUpFill(makeWrapper(columns, { onDataChange }), held.processFill);
+      act(() => result.current.fill.fillDown());
+      act(() => result.current.storeApi.setState({ readOnly: true }));
+      held.resolve([["5"]]);
+      await settle();
+      expect(onDataChange).not.toHaveBeenCalled();
+
+      const rejecting = setUpFill(makeWrapper(columns, { onDataChange }), () => Promise.reject(new Error("down")));
+      vi.spyOn(console, "warn").mockImplementation(() => {});
+      act(() => rejecting.current.fill.fillDown());
+      await settle();
+      expect(onDataChange).not.toHaveBeenCalled();
+      expect(rejecting.current.storeApi.getState().gatesPending.has("processFill")).toBe(false);
+    });
+  });
+
   it("drops a held fill and its rejections when the grid turns read-only before it settles", async () => {
     const onDataChange = vi.fn();
     const onValidationError = vi.fn();

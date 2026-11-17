@@ -7,6 +7,8 @@ import {
   combineRects,
   isColumnReadOnly,
   isDev,
+  isThenable,
+  toSafeText,
   inlineAutoScrollStep,
   candidateRowIds,
   gridAttrSelector,
@@ -32,6 +34,8 @@ import {
 import { computeFillTarget, fillDirection, generateFill, rectRelativeTo, type FillDirection, type SeriesDescriptor } from "./fill";
 import type { FillStoreApi } from "./fill-store";
 
+const rowsOf = (rect: GridRect) => Array.from({ length: rect.height }, (_, i) => ({ viewRowIndex: rect.y + i }));
+
 /** Cells a fill is about to write, resolved before the write so a re-sort cannot shift them. */
 function flashCellsFor(s: DataGridReadState, writes: readonly { viewRowIndex: number; columnId: string }[]): CellRef[] {
   return writes.flatMap((w) => {
@@ -53,6 +57,8 @@ export type ProcessFillContext = {
   target: GridRect;
   /** The fill text for `target`, before parsing and validation. */
   cells: string[][];
+  /** Aborts when a newer fill supersedes this one, the grid turns read-only, or the grid unmounts. Pass it to the request an async `processFill` makes. */
+  signal: AbortSignal;
 };
 
 /** Options for {@link useFillHandle}. */
@@ -62,11 +68,11 @@ export type UseFillHandleOptions = {
   /** Turns the whole fill feature off (handle hidden, `fillDown`/`fillRight` no-op). Default `false`; a read-only grid disables fill regardless of this option. */
   disabled?: boolean;
   /**
-   * Runs before a fill writes (drag release, fill down, fill right). Synchronous: it cannot return a
-   * promise. Return the text grid to write, which goes through each column's `fromText` and `validate` like a paste, or `false` to veto the
-   * fill: nothing is written and the selection does not expand.
+   * Runs before a fill writes (drag release, fill down, fill right). Return the text grid to write, which goes through each column's `fromText` and `validate` like a paste, or `false` to veto the
+   * fill: nothing is written and the selection does not expand. A promise holds the fill as the `processFill` gate
+   * (`useDataGridGatePending`, `gateTimeoutMs`); the selection expands and the cells write once it resolves.
    */
-  processFill?: (ctx: ProcessFillContext) => string[][] | false;
+  processFill?: (ctx: ProcessFillContext) => string[][] | false | Promise<string[][] | false>;
   /** Replaces the built-in series detector (`detectSeries`) — the add-on's default remains the built-in one. */
   detectSeries?: (values: readonly string[]) => SeriesDescriptor | null;
   /** This add-on's local fill-preview store — owns the in-progress drag rect (kept out of core). */
@@ -317,23 +323,9 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
     rafRef.current = requestAnimationFrame(runFrame);
   }, [fillStore, scrollRef, storeApi]);
 
-  /**
-    * Runs the shared fill pipeline: generates the fill text for `strip` (extending `source`), runs
-    * `processFill` (which can rewrite or veto), parses, validates, applies one `applyCellUpdates` batch, and expands
-   * the selection to `combineRects(source, strip)`.
-   *
-   * With an async schema on a filled column the write batch is HELD: the selection still expands
-   * right away (the gesture's own feedback, unrelated to validation), and the cells commit in one
-   * batch once every validator resolves. `guard` drops that resolution when a newer fill has started
-   * or the rows it targeted are gone.
-   */
-  const runFill = useCallback(
-    (source: GridRect, strip: GridRect, opts: { forceCopy?: boolean } = {}) => {
-      const s = storeApi.getState();
-      const { processFill, detectSeries } = callbacksRef.current;
-      const filled = generateFillText(s, source, strip, { ...opts, detect: detectSeries });
-      const processed = processFill ? processFill({ source, target: strip, cells: filled }) : filled;
-      if (processed === false) return;
+  const finishFill = useCallback(
+    (s: ReturnType<typeof storeApi.getState>, source: GridRect, strip: GridRect, processed: string[][]) => {
+      const { detectSeries } = callbacksRef.current;
       const candidates = buildFillCandidatesFromText(s, strip, processed, plainFillOf(s, source, strip, { detect: detectSeries }));
 
       const resolution = resolveBulkWrites(candidates, s);
@@ -355,7 +347,7 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
           const flashed = flashCellsFor(current, applied);
           // rejected cells are reported by the write itself (same source, after the write's emit)
           actions.applyCellUpdates(applied, "fill", resolved.rejected, resolved.warnings);
-          // Pulse the cells that actually landed — the re-resolved batch, not the held one.
+          // Pulse the cells that actually landed � the re-resolved batch, not the held one.
           actions.flashCells(flashed);
         }, settle);
       } else {
@@ -371,6 +363,52 @@ export function useFillHandle(options: UseFillHandleOptions): FillHandleHandlers
       actions.extendToAt({ col: combined.x + combined.width - 1, row: combined.y + combined.height - 1 });
     },
     [actions, gates, guard, storeApi],
+  );
+
+  /**
+   * Runs the shared fill pipeline: generates the fill text for `strip` (extending `source`), runs
+   * `processFill` (which can rewrite or veto, and may answer with a promise), parses, validates, applies one `applyCellUpdates` batch, and expands
+   * the selection to `combineRects(source, strip)`.
+   *
+   * With an async schema on a filled column the write batch is HELD: the selection still expands
+   * right away (the gesture's own feedback, unrelated to validation), and the cells commit in one
+   * batch once every validator resolves. `guard` drops that resolution when a newer fill has started
+   * or the rows it targeted are gone. An async `processFill` holds the whole fill, selection included, under the same rules.
+   */
+  const runFill = useCallback(
+    (source: GridRect, strip: GridRect, opts: { forceCopy?: boolean } = {}) => {
+      const s = storeApi.getState();
+      const { processFill, detectSeries } = callbacksRef.current;
+      const filled = generateFillText(s, source, strip, { ...opts, detect: detectSeries });
+      if (heldRun.current && !heldRun.current.aborted) gates.abortRun(heldRun.current, "superseded");
+      const run = gates.begin("processFill", (now) => now.readOnly);
+      const processed = processFill ? processFill({ source, target: strip, cells: filled, get signal() { return run.signal; } }) : filled;
+      if (!isThenable<string[][] | false>(processed)) {
+        if (processed !== false) finishFill(s, source, strip, processed);
+        return;
+      }
+
+      heldRun.current = run;
+      gates.hold(run);
+      const token = guard.begin();
+      const snapshot = snapshotBulkBatch(s, candidateRowIds(s, [...rowsOf(source), ...rowsOf(strip)]));
+      const settle = () => {
+        gates.settle(run);
+        if (heldRun.current === run) heldRun.current = null;
+        return !run.aborted;
+      };
+      void processed.then(
+        (final) => {
+          const current = storeApi.getState();
+          if (!settle() || final === false || current.readOnly || !guard.isCurrent(token, current, snapshot)) return;
+          finishFill(current, source, strip, final);
+        },
+        (error: unknown) => {
+          if (settle() && isDev()) console.warn(`[data-grid] processFill rejected, so the fill is cancelled: ${toSafeText(error)}`);
+        },
+      );
+    },
+    [finishFill, gates, guard, storeApi],
   );
 
   /** Releases pointer capture and clears all drag refs/listeners/rAF loop; returns the drag that was active, if any. */
