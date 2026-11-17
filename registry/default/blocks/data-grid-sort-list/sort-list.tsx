@@ -7,6 +7,7 @@ import { useSortable } from "@dnd-kit/react/sortable";
 import { ArrowUpDown, GripVertical, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { ButtonGroup } from "@/components/ui/button-group";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -274,10 +275,11 @@ function SortRow(props: SortRowProps): ReactNode {
       data-grid-sort-row=""
       role="listitem"
       className={cn(
-        "grid grid-cols-[minmax(0,1fr)_minmax(0,0.75fr)_auto_auto] items-center gap-1.5 transition-transform",
+        "flex items-center gap-1.5 transition-transform",
         isDragSource && "z-10 scale-[1.01] opacity-90 shadow-lg",
       )}
     >
+      <ButtonGroup className="min-w-0 flex-1">
       <Select
         value={sort.columnId}
         onValueChange={(value) => {
@@ -286,7 +288,7 @@ function SortRow(props: SortRowProps): ReactNode {
           onUpdate(index, { columnId: value });
         }}
       >
-        <SelectTrigger className="h-8 w-full" aria-label={labels.sort.columnAriaLabel}>
+        <SelectTrigger className="h-8 min-w-0 flex-[0_0_55%] bg-muted dark:bg-muted dark:hover:bg-muted/80" aria-label={labels.sort.columnAriaLabel}>
           {/* explicit label lookup: SelectValue only resolves a mounted SelectItem's label, which
               the popup content isn't until first opened — this control's own trigger text must be
               correct on first render (no open required), same rationale as the filter menu's group select. */}
@@ -307,7 +309,7 @@ function SortRow(props: SortRowProps): ReactNode {
           onUpdate(index, { direction: value as SortSpec["direction"] });
         }}
       >
-        <SelectTrigger className="h-8 w-full" aria-label={labels.sort.directionAriaLabel}>
+        <SelectTrigger className="h-8 min-w-0 flex-1 bg-muted dark:bg-muted dark:hover:bg-muted/80" aria-label={labels.sort.directionAriaLabel}>
           {/* explicit label lookup, same rationale as the column select above. */}
           <SelectValue className="truncate">{(value: SortSpec["direction"]) => (value === "desc" ? labels.sort.descending : labels.sort.ascending)}</SelectValue>
         </SelectTrigger>
@@ -319,6 +321,7 @@ function SortRow(props: SortRowProps): ReactNode {
       <Button type="button" variant="outline" size="icon" className="size-8 shrink-0" aria-label={labels.sort.removeSortAriaLabel} onClick={() => onRemove(index)}>
         <Trash2 />
       </Button>
+      </ButtonGroup>
       <Button
         type="button"
         variant="outline"
