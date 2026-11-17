@@ -142,6 +142,8 @@ The [2.0 breaking changes](https://gridcn.vercel.app/docs/support-upgrades/break
 - `refreshAfterSave: false` in scroll mode stops the refresh after an insert or a delete settles, as it does in pages mode.
 - A handler or `plugins` prop after the `server.gridProps` spread joins the hook wiring in pages and scroll mode. `onDataChange`, `onSortChange`, `onFilterChange`, `onSearchTextChange`, and `onRenderedRowsChange` run next to the hook's handler, `plugins` mount after the refresh guard, and an `onSave` prop runs in place of the `onSave` option with `refreshAfterSave` still applied. Before, such a prop replaced the hook's wiring, with a development warning.
 - **Fixed:** a URL link or a saved view keeps up to 1,000 set filter values on a column with static `choices` when the server lists the values (`filterMode="server"` or `fetchFilterValues`). Before, the grid cut the list at the larger of 64 and the number of choices, and an `isNoneOf` list past that bound dropped whole. With `fetchFilterValues` and a client filter mode, the grid no longer checks the values against `choices` and the loaded rows.
+- Sorting a date, select, or checkbox column is faster: 100,000 rows sort 2 to 10 times faster. The row order is unchanged.
+- `updateCells` and `updateRows` take `reorder: "frame"`. The values write at once, the rows keep their place, and one re-place at the next animation frame covers every patched row. `reconcileView()` runs it now.
 
 Every other 2.0 entry is in [CHANGELOG-2.0.md](CHANGELOG-2.0.md).
 

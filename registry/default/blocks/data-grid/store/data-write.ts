@@ -41,10 +41,12 @@ import type { GateRun, GateTracker } from "./gate-signal";
 import { createSaveTracker } from "./save-tracker";
 import { reportCallbackError, type SaveAck } from "./write-ack";
 import { withMoveNeighbors } from "./move-neighbors";
-import { INCREMENTAL_PATCH_LIMIT } from "../sort-filter";
 import { NO_REMEMBERED_ROWS, withoutHiddenCheckedRows } from "./hidden-checked-rows";
 import { applyChange } from "../interaction/history";
 import { planBlockMove, planShiftMove, type RowMovePlan } from "../rows/plan-row-moves";
+import { createFrameTimer, type FrameTimer } from "./frame-timer";
+import { forgetDeferredRows, pendingRows, rememberDeferredRows, resetDeferredRows } from "./deferred-rows";
+export { forgetDeferredRows, pendingRows, rememberDeferredRows, resetDeferredRows };
 import { resolveCellRef, patchesLeaveViewAlone, resolveReorder, viewRowOfDataIndex, touchesViewInputs, type RowIndexCache } from "./row-index";
 import {
   emptySelection,
@@ -87,6 +89,8 @@ export type DataWriteContext = {
    * caller falls back to the full rebuild.
    */
   deferredRows: Set<number> | null;
+  /** The animation-frame timer behind `reorder: "frame"`. */
+  frame: FrameTimer;
   /** `rowId -> dataIndex` map for `updateCells`; every row-moving path invalidates it, a value patch rebases it. */
   rowIndexCache: RowIndexCache;
   /**
@@ -123,7 +127,7 @@ export type DataWriteContext = {
 };
 
 export function createDataWriteContext(rowIndexCache: RowIndexCache, gates: GateTracker): DataWriteContext {
-  return { streamGeneration: 0, deferredRows: new Set(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, warnedViewIndexIds: false, warnedUnreceivedWrite: false, pendingEmits: [], writeDepth: 0, pluginApi: null, trackWrite: null, disposed: false, staleRows: new Map(), reshape: null, warnedReshape: false, abortConflicts: null, gates };
+  return { streamGeneration: 0, deferredRows: new Set(), frame: createFrameTimer(), rowIndexCache, lastEmittedData: null, warnedStaleCellRef: false, warnedViewIndexIds: false, warnedUnreceivedWrite: false, pendingEmits: [], writeDepth: 0, pluginApi: null, trackWrite: null, disposed: false, staleRows: new Map(), reshape: null, warnedReshape: false, abortConflicts: null, gates };
 }
 
 /** {@link resolveCellRef} plus the once-per-grid dev-warn for a ref that no longer resolves. */
@@ -233,34 +237,6 @@ function flushEmits(ctx: DataWriteContext): void {
       reportCallbackError("a callback threw:", error);
     }
   }
-}
-
-/** Any path that writes values or moves rows outside a held batch: give up tracking and drop the token. */
-export function forgetDeferredRows(ctx: DataWriteContext): void {
-  ctx.streamGeneration += 1;
-  ctx.deferredRows = null;
-}
-
-/** A full view rebuild leaves nothing pending for the incremental path to replay. */
-export function resetDeferredRows(ctx: DataWriteContext): void {
-  ctx.streamGeneration += 1;
-  ctx.deferredRows = new Set();
-}
-
-/** Records a non-reordering batch's rows, giving up once the set is bigger than the incremental path serves. */
-export function rememberDeferredRows(ctx: DataWriteContext, touchedRows: readonly number[]): void {
-  if (!ctx.deferredRows) return;
-  for (const row of touchedRows) ctx.deferredRows.add(row);
-  if (ctx.deferredRows.size > INCREMENTAL_PATCH_LIMIT) forgetDeferredRows(ctx);
-}
-
-/** This batch's touched rows plus anything an earlier batch left unreconciled; `null` when untrackable. */
-export function pendingRows(ctx: DataWriteContext, touchedRows: readonly number[]): readonly number[] | null {
-  if (!ctx.deferredRows) return null;
-  if (ctx.deferredRows.size === 0) return touchedRows;
-  const union = new Set(ctx.deferredRows);
-  for (const row of touchedRows) union.add(row);
-  return Array.from(union);
 }
 
 /**
@@ -444,6 +420,31 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   const { ctx, applyRowValidation, pruneRowValidationKeys, followView, carryRows, remapEditing, endEditSession, renameRowKeys } = deps;
 
   const saveTracker = createSaveTracker(set, get, ctx);
+  /** Re-places the rows that deferred or frame batches touched, then clears `viewStale`. */
+  const reconcileNow = (settleStale: boolean): void => {
+    const s = get();
+    let stale: Pick<DataGridStoreState, "staleRowIds"> = s;
+    if (settleStale && s.staleRowIds.size > 0) {
+      if (ctx.reshape) ctx.reshape("urgent");
+      else stale = clearStaleRows(ctx);
+    }
+    if (s.pageSize === null && viewSorts(s.sortMode, s.sortState).length === 0 && viewFilters(s.filterMode, s.filterState).length === 0) {
+      resetDeferredRows(ctx);
+      set({ viewStale: stale.staleRowIds.size > 0, staleRowIds: stale.staleRowIds });
+      return;
+    }
+    // Same incremental path an `"immediate"` batch takes, over whatever the deferred batches touched.
+    const viewIndex = resolveViewIndex(s, s.data, pendingRows(ctx, []));
+    resetDeferredRows(ctx);
+    set({
+      viewIndex,
+      staleRowIds: stale.staleRowIds,
+      viewStale: stale.staleRowIds.size > 0,
+      ...followView(s, viewIndex, s.visibleColumns),
+      ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
+    });
+  };
+
   /** Reports the patches a validator refused through `onValidationError`; a row outside the view reports `viewRowIndex: -1`. */
   const emitStreamRejections = (patches: readonly CellPatch[], rejected: readonly PatchRejection[], batchSource?: DataChange<unknown>["source"]): void => {
     const s = get();
@@ -961,6 +962,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
             : { data: nextData, cellErrors, ...stale },
         ),
       );
+      if (reorder === "frame") ctx.frame.schedule(() => reconcileNow(false));
       if (marks.touched && options?.reorder !== "never") ctx.reshape?.("stale");
       emitStreamRejections(patches, batch.rejected, options?.source);
       return { applied, skipped: batch.skipped, pending: false };
@@ -1257,28 +1259,9 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       return get().actions.updateRows(updates, { ...options, source: "edit", reorder: "immediate" });
     },
     reconcileView() {
-      const s = get();
-      if (!s.viewStale) return;
-      let stale: Pick<DataGridStoreState, "staleRowIds"> = s;
-      if (s.staleRowIds.size > 0) {
-        if (ctx.reshape) ctx.reshape("urgent");
-        else stale = clearStaleRows(ctx);
-      }
-      if (s.pageSize === null && viewSorts(s.sortMode, s.sortState).length === 0 && viewFilters(s.filterMode, s.filterState).length === 0) {
-        resetDeferredRows(ctx);
-        set({ viewStale: stale.staleRowIds.size > 0, staleRowIds: stale.staleRowIds });
-        return;
-      }
-      // Same incremental path an `"immediate"` batch takes, over whatever the deferred batches touched.
-      const viewIndex = resolveViewIndex(s, s.data, pendingRows(ctx, []));
-      resetDeferredRows(ctx);
-      set({
-        viewIndex,
-        staleRowIds: stale.staleRowIds,
-        viewStale: stale.staleRowIds.size > 0,
-        ...followView(s, viewIndex, s.visibleColumns),
-        ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
-      });
+      const framePending = ctx.frame.cancel();
+      if (!get().viewStale && !framePending) return;
+      reconcileNow(true);
     },
     insertRow(viewRowIndex, position) {
       // single implementation path: the 1-row case of the batch action (same one undo step).

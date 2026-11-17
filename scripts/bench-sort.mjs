@@ -127,7 +127,32 @@ function makeDatasetColumns(count) {
   return { dname, dage, dscore };
 }
 
+/** Date, select, checkbox, url, and long text columns; url and long text are mostly unique strings. */
+function makeTypedColumns(count) {
+  const rand = mulberry32(7);
+  const STATUS = ["open", "wip", "done", "blocked", "review", "closed"];
+  const date = new Array(count);
+  const status = new Array(count);
+  const flag = new Array(count);
+  const url = new Array(count);
+  const note = new Array(count);
+  for (let i = 0; i < count; i++) {
+    const day = (rand() * 3000) | 0;
+    date[i] = rand() < 0.05 ? null : new Date(Date.UTC(2015, 0, 1 + day)).toISOString().slice(0, 10);
+    status[i] = rand() < 0.03 ? null : STATUS[(rand() * STATUS.length) | 0];
+    flag[i] = rand() < 0.03 ? null : rand() < 0.5;
+    url[i] = rand() < 0.03 ? "" : `https://example.com/${["docs", "blog", "app", "shop"][(rand() * 4) | 0]}/${(rand() * 1e9) | 0}`;
+    note[i] = rand() < 0.03 ? "" : `Note ${(rand() * 1e9) | 0} about ${FIRST[(rand() * FIRST.length) | 0]}`;
+  }
+  return { date, status, flag, url, note };
+}
+
 const columnDefs = [
+  { id: "date", accessorKey: "date", type: "date" },
+  { id: "status", accessorKey: "status", type: "select", options: { choices: [{ value: "open", label: "Open" }, { value: "wip", label: "In progress" }, { value: "done", label: "Done" }, { value: "blocked", label: "Blocked" }, { value: "review", label: "Review" }, { value: "closed", label: "Closed" }] } },
+  { id: "flag", accessorKey: "flag", type: "checkbox" },
+  { id: "url", accessorKey: "url", type: "url" },
+  { id: "note", accessorKey: "note", type: "longText" },
   { id: "dname", accessorKey: "dname", type: "text" },
   { id: "dage", accessorKey: "dage", type: "number" },
   { id: "dscore", accessorKey: "dscore", type: "number" },
@@ -161,6 +186,12 @@ const CASES = [
   { name: "number float asc, input sorted", sorts: [asc("float")], order: "sorted", column: "float", direction: "asc" },
   { name: "number float asc, input reversed", sorts: [asc("float")], order: "reversed", column: "float", direction: "asc" },
   { name: "number with NaN asc", sorts: [asc("dirty")] },
+  ...["date", "status", "flag"].flatMap((column) => [
+    { name: `${column} asc`, sorts: [asc(column)] },
+    { name: `${column} desc`, sorts: [desc(column)] },
+    { name: `${column} asc, input sorted`, sorts: [asc(column)], order: "sorted", column, direction: "asc" },
+    { name: `${column} asc, input reversed`, sorts: [asc(column)], order: "reversed", column, direction: "asc" },
+  ]),
   { name: "2 keys: text asc, int desc", sorts: [asc("name"), desc("int")] },
   { name: "2 keys: int asc, text asc", sorts: [asc("int"), asc("name")] },
 ];
@@ -242,8 +273,8 @@ const fmt = (x) => x.toFixed(1).padStart(8);
 const results = [];
 let profiled = false;
 for (const rowCount of opts.live ? [] : opts.rows) {
-  const columns = { ...makeColumns(rowCount, 42), ...makeDatasetColumns(rowCount) };
-  const base = Array.from({ length: rowCount }, (_, i) => ({ dname: columns.dname[i], dage: columns.dage[i], dscore: columns.dscore[i], name: columns.name[i], free: columns.free[i], digits: columns.digits[i], int: columns.int[i], float: columns.float[i], dirty: columns.dirty[i] }));
+  const columns = { ...makeColumns(rowCount, 42), ...makeDatasetColumns(rowCount), ...makeTypedColumns(rowCount) };
+  const base = Array.from({ length: rowCount }, (_, i) => ({ dname: columns.dname[i], dage: columns.dage[i], dscore: columns.dscore[i], name: columns.name[i], free: columns.free[i], digits: columns.digits[i], int: columns.int[i], float: columns.float[i], dirty: columns.dirty[i], date: columns.date[i], status: columns.status[i], flag: columns.flag[i], url: columns.url[i], note: columns.note[i] }));
   for (const testCase of CASES) {
     if (opts.filter && !testCase.name.includes(opts.filter)) continue;
     const rows = orderRows(base, testCase.order, testCase.column, testCase.direction);
@@ -303,6 +334,7 @@ const liveScenarios = [
   { name: "live, immediate, 10 batches x 100, sort column", batch: 100, options: { reorder: "immediate" }, column: "dscore" },
   { name: "live, immediate, 1000 x 1, sort column", batch: 1, options: { reorder: "immediate" }, column: "dscore" },
   { name: "live, immediate, 1000 x 1, filtered view, sort column", batch: 1, options: { reorder: "immediate" }, column: "dscore", filter: true },
+  { name: "live, frame, 1000 x 1, sort column", batch: 1, options: { reorder: "frame" }, baselineOptions: { reorder: "immediate" }, column: "dscore" },
   { name: "live, immediate, 1000 x 1, non-sort column", batch: 1, options: { reorder: "immediate" }, column: "dname" },
 ];
 
@@ -315,7 +347,7 @@ function liveStore(impl, rowCount, scenario) {
   return store;
 }
 
-function liveRound(store, scenario, rowCount, seed) {
+function liveRound(store, scenario, rowCount, seed, options) {
   const rand = mulberry32(seed);
   const names = ["Eager Eagle", "Quick Lion", "Silent Tiger", "Bold Bear", "Swift Wolf"];
   const batches = [];
@@ -330,7 +362,9 @@ function liveRound(store, scenario, rowCount, seed) {
   const { actions } = store.getState();
   gc();
   const start = performance.now();
-  for (const patches of batches) actions.updateCells(patches, { source: "stream", ...scenario.options });
+  for (const patches of batches) actions.updateCells(patches, { source: "stream", ...options });
+  // a frame scenario pays its one re-place inside the timed window, as the next animation frame would
+  actions.reconcileView();
   return performance.now() - start;
 }
 
@@ -340,11 +374,12 @@ if (opts.live) {
     if (opts.filter && !scenario.name.includes(opts.filter)) continue;
     const impls = baseline ? [baseline, current] : [current];
     const stores = impls.map((impl) => liveStore(impl, rowCount, scenario));
-    for (const store of stores) liveRound(store, scenario, rowCount, 1);
+    const optionsOf = (k) => (impls[k] === baseline ? (scenario.baselineOptions ?? scenario.options) : scenario.options);
+    stores.forEach((store, k) => liveRound(store, scenario, rowCount, 1, optionsOf(k)));
     const times = impls.map(() => []);
     for (let round = 0; round < opts.runs; round++) {
       const order = round % 2 === 0 ? [...impls.keys()] : [...impls.keys()].reverse();
-      for (const k of order) times[k].push(liveRound(stores[k], scenario, rowCount, 100 + round));
+      for (const k of order) times[k].push(liveRound(stores[k], scenario, rowCount, 100 + round, optionsOf(k)));
     }
     let identical = true;
     if (baseline) {

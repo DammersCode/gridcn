@@ -3,6 +3,7 @@ import { CheckIcon } from "lucide-react";
 import type { CellEditorProps, CellRenderProps, CellType, GridCellTypes } from "../types";
 import { useCommitGuard } from "../interaction/use-commit-guard";
 import { columnLabelText } from "../columns/column-format-helpers";
+import { compareChecked } from "../sort-filter/builtin-compare";
 import { GRID_ATTR } from "../data-attributes";
 
 function CheckboxCell({ value, column }: CellRenderProps<unknown, boolean>) {
@@ -47,7 +48,7 @@ export const checkboxCellType: CellType<unknown, boolean, GridCellTypes["checkbo
   fromText: (text) => CHECKBOX_TRUE_TOKENS.has(text.trim().toLowerCase()),
   clearValue: () => false,
   isEmpty: (value) => value == null,
-  compare: (a, b) => Number(a) - Number(b),
+  compare: compareChecked,
   align: "center",
   // the edit gestures toggle in place instead of opening an editor (the type owns the gesture, not the name)
   activate: (value) => !value,

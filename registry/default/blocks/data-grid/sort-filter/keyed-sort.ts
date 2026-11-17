@@ -10,14 +10,14 @@ export const EMPTY_SORT_VALUE: unique symbol = Symbol("empty-sort-value");
 
 /**
  * Reads one column's raw sort values for the keyed sort. `kind: "number"` promises that the column
- * orders finite numbers by `a - b`; `kind: "text"` promises that it orders strings by `localeCompare`.
- * `kind: "untyped"` orders finite numbers by `a - b` before any other value, which orders by its text.
+ * orders finite numbers by `a - b`; `kind: "text"` promises that it orders strings by `localeCompare`;
+ * `kind: "ranked"` promises that it orders strings by its own consistent `compare`, and strings that compare
+ * as equal share a rank. `kind: "untyped"` orders finite numbers by `a - b` before any other value, which orders by its text.
  * `read` returns {@link EMPTY_SORT_VALUE} for a cell that sorts last in both directions.
  */
-export type SortKeyReader = {
-  kind: "number" | "text" | "untyped";
-  read(rowIndex: number): unknown;
-};
+export type SortKeyReader =
+  | { kind: "number" | "text" | "untyped"; read(rowIndex: number): unknown }
+  | { kind: "ranked"; compare: (a: string, b: string) => number; read(rowIndex: number): unknown };
 
 /** A value the untyped sort orders by number: a finite `number`. */
 export const isSortNumber = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
@@ -208,6 +208,7 @@ function keysFor(indices: readonly number[], accessor: CellAccessor, sort: SortS
   }
   if (reader) {
     if (reader.kind === "number") return numberKeys(indices, reader.read, descending);
+    const compare = reader.kind === "ranked" ? reader.compare : sortCollator().compare;
     return textKeys(
       indices.length,
       (position) => {
@@ -215,7 +216,7 @@ function keysFor(indices: readonly number[], accessor: CellAccessor, sort: SortS
         if (value === EMPTY_SORT_VALUE) return null;
         return typeof value === "string" ? value : undefined;
       },
-      sortCollator().compare,
+      compare,
       descending,
     );
   }

@@ -124,10 +124,10 @@ export function resolveReorder(
   patches: readonly CellPatch[],
   sortState: readonly SortSpec[],
   filterState: readonly FilterNode[],
-): "defer" | "immediate" | "never" {
+): "defer" | "immediate" | "frame" | "never" {
   const mode = requested ?? "defer";
-  if (mode !== "defer") return mode;
-  return touchesViewInputs(patches, sortState, filterState) ? "defer" : "never";
+  if (mode !== "defer" && mode !== "frame") return mode;
+  return touchesViewInputs(patches, sortState, filterState) ? mode : "never";
 }
 
 /** True when any patch writes a column that the active sort or filter reads. */

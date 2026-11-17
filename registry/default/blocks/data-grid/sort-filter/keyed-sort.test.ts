@@ -6,6 +6,7 @@ import type { CellType, FilterSpec, SortSpec } from "../types";
 import { isEmptyCell, makeFilterNodeTest, type CellAccessor } from "./build-view-index";
 import { buildViewIndex } from "./build-view-index";
 import { KEYED_SORT_MIN_ROWS, sortByKeys } from "./keyed-sort";
+import { withSortLocale } from "./sort-collator";
 
 function seededRandom(seed: number): () => number {
   let state = seed >>> 0;
@@ -67,7 +68,15 @@ type Row = Record<string, unknown>;
 const FIRST = ["Anna", "ben", "CARLA", "dave", "Émile", "émile", "Zoë", "zoe", "Ångström", "naïve", "Oscar", "oscar", "Maria", "maría", "Jörg", "jorg", "Ünal", "ünal"];
 const LAST = ["Smith", "smith", "Müller", "muller", "O'Brien", "Núñez", "nunez", "Lee", "Černý", "cerny", "de la Cruz", "Van Dyk", "Åberg", "Zhang"];
 const DIGIT_STRINGS = ["item-1", "item-10", "item-9", "item-009", "v1.2.3", "v1.10.0", "v1.9.9", "007", "7", "a01", "a1", "a1b", "a01b", "-5", "5", "x", "X", "", "10", "2", "1.5", "1.25"];
-const DATES = ["2020-01-05", "2019-12-31", "2020-01-05", null, "2021-07-04"];
+const DATES = ["2020-01-05", "2019-12-31", "2020-01-05", null, "2021-07-04", "", "2020-01-05T10:00", "0026-01-01"];
+const PICKS = ["open", "done", "blocked", "wip", "other", "unknown", "OPEN", "", null];
+const CHOICES = [
+  { value: "open", label: "Open" },
+  { value: "wip", label: "In progress" },
+  { value: "done", label: "Done" },
+  { value: "blocked", label: "done" },
+  { value: "other", label: "Émile" },
+];
 
 function makeRows(count: number, seed: number): Row[] {
   const rand = seededRandom(seed);
@@ -89,6 +98,11 @@ function makeRows(count: number, seed: number): Row[] {
       mixed: n < 0.1 ? 42 : n < 0.2 ? null : pick(FIRST),
       custom: Math.floor(rand() * 8),
       when: pick(DATES),
+      whenDirty: n < 0.1 ? 20200105 : pick(DATES),
+      pick: pick(PICKS),
+      pickDirty: n < 0.1 ? 7 : pick(PICKS),
+      flag: n < 0.1 ? null : rand() < 0.5,
+      flagDirty: n < 0.1 ? "yes" : n < 0.2 ? 2 : n < 0.3 ? null : rand() < 0.5,
     });
   }
   return rows;
@@ -105,6 +119,12 @@ const columns: AnyColumnDef[] = [
   { id: "mixed", header: "Mixed", accessorKey: "mixed", type: "text" },
   { id: "custom", header: "Custom", accessorKey: "custom", sortCompare: (a: unknown, b: unknown) => (((b as Row)["custom"] as number) % 3) - (((a as Row)["custom"] as number) % 3) },
   { id: "when", header: "When", accessorKey: "when", type: "date" },
+  { id: "whenDirty", header: "When dirty", accessorKey: "whenDirty", type: "date" },
+  { id: "pick", header: "Pick", accessorKey: "pick", type: "select", options: { choices: CHOICES } },
+  { id: "pickPlain", header: "Pick plain", accessorKey: "pick", type: "select" },
+  { id: "pickDirty", header: "Pick dirty", accessorKey: "pickDirty", type: "select", options: { choices: CHOICES } },
+  { id: "flag", header: "Flag", accessorKey: "flag", type: "checkbox" },
+  { id: "flagDirty", header: "Flag dirty", accessorKey: "flagDirty", type: "checkbox" },
 ] as AnyColumnDef[];
 
 const COLUMN_IDS = columns.map((c) => c.id);
@@ -130,8 +150,16 @@ describe("keyed sort coverage", () => {
     for (const columnId of ["name", "free", "digits", "int", "float"]) expect(keyed(columnId), columnId).toBe(true);
   });
 
+  it("keys the built-in date, select, and checkbox columns", () => {
+    for (const columnId of ["when", "pick", "pickPlain", "flag"]) expect(keyed(columnId), columnId).toBe(true);
+  });
+
+  it("declines a date, select, or checkbox column that holds a value it cannot rank", () => {
+    for (const columnId of ["whenDirty", "pickDirty", "flagDirty"]) expect(keyed(columnId), columnId).toBe(false);
+  });
+
   it("declines a column the plain comparator treats as unordered or custom", () => {
-    for (const columnId of ["wide", "dirty", "mixed", "custom", "when"]) expect(keyed(columnId), columnId).toBe(false);
+    for (const columnId of ["wide", "dirty", "mixed", "custom"]) expect(keyed(columnId), columnId).toBe(false);
   });
 
   it("declines when any sort key is declined", () => {
@@ -161,6 +189,35 @@ describe("keyed sort matches the comparator-chain sort", () => {
           expect(actual(ordered, [spec(columnId, direction)])).toEqual(expected(ordered, [spec(columnId, direction)]));
         }
       }
+    }
+  });
+
+  it("matches for already-sorted and reversed date, select, and checkbox input", () => {
+    const rows = makeRows(1200, 12);
+    for (const columnId of ["when", "pick", "pickPlain", "flag"]) {
+      const sortedOrder = expected(rows, [spec(columnId, "asc")]);
+      for (const ordered of [sortedOrder.map((i) => rows[i]!), sortedOrder.map((i) => rows[i]!).reverse()]) {
+        for (const direction of ["asc", "desc"] as const) {
+          expect(actual(ordered, [spec(columnId, direction)]), `${columnId} ${direction}`).toEqual(expected(ordered, [spec(columnId, direction)]));
+        }
+      }
+    }
+  });
+
+  it("matches under a changed sort locale for a select column", () => {
+    const rows = makeRows(1200, 13).map((row, i) => ({ ...row, pick: i % 3 === 0 ? "other" : row["pick"] }));
+    const sorts = [spec("pickPlain", "asc")];
+    const sv = <T,>(run: () => T) => withSortLocale("sv", run);
+    expect(sv(() => actual(rows, sorts))).toEqual(sv(() => expected(rows, sorts)));
+  });
+
+  it("matches when a consumer replaces the date, select, or checkbox compare", () => {
+    const rows = makeRows(1200, 14);
+    for (const [type, columnId] of [["date", "when"], ["select", "pick"], ["checkbox", "flag"]] as const) {
+      const own = { ...builtinCellTypes[type], compare: (a: unknown, b: unknown) => String(b).length - String(a).length } as unknown as CellType;
+      const types = { ...(builtinCellTypes as unknown as Record<string, CellType>), [type]: own };
+      const sorts = [spec(columnId, "asc")];
+      expect(actual(rows, sorts, [], types), type).toEqual(expected(rows, sorts, [], types));
     }
   });
 

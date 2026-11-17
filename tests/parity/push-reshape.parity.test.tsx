@@ -21,6 +21,16 @@ function suite(mode: ModeId) {
     expect(grid.cell("r2", "n")).toBe(99);
   });
 
+  it('follows the "defer" rule for reorder: "frame"', async () => {
+    const grid = await mount();
+    useSpec(grid);
+    const order = grid.viewIds();
+    grid.act(() => void grid.state().actions.updateCells([{ rowId: "r2", columnId: "n", value: 99 }], { source: "stream", reorder: "frame" }));
+    expect([...grid.state().staleRowIds]).toEqual(["r2"]);
+    expect(grid.viewIds()).toEqual(order);
+    expect(grid.cell("r2", "n")).toBe(99);
+  });
+
   it("marks nothing for a column the server spec does not read", async () => {
     const grid = await mount();
     useSpec(grid);

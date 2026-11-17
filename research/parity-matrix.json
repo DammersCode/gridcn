@@ -66,14 +66,16 @@
           "status": "supported",
           "evidence": [
             "registry/default/blocks/data-grid/sort-filter/index.test.ts",
-            "registry/default/blocks/data-grid/store/sort-locale.test.ts"
+            "registry/default/blocks/data-grid/store/sort-locale.test.ts",
+            "registry/default/blocks/data-grid/sort-filter/keyed-sort.test.ts"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
             "tests/parity/view.parity.test.tsx",
-            "registry/default/blocks/data-grid/store/sort-locale.test.ts"
+            "registry/default/blocks/data-grid/store/sort-locale.test.ts",
+            "registry/default/blocks/data-grid/sort-filter/keyed-sort.test.ts"
           ]
         },
         "PS": {
@@ -1449,13 +1451,15 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "tests/parity/streaming.parity.test.tsx"
+            "tests/parity/streaming.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/frame-reorder.test.ts"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/streaming.parity.test.tsx"
+            "tests/parity/streaming.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/frame-reorder.test.ts"
           ]
         },
         "PS": {
@@ -1477,7 +1481,8 @@
           "status": "supported",
           "evidence": [
             "tests/parity/streaming.parity.test.tsx",
-            "tests/parity/push-reshape.parity.test.tsx"
+            "tests/parity/push-reshape.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/frame-reorder.test.ts"
           ]
         },
         "SS": {
@@ -1502,7 +1507,8 @@
           ]
         }
       },
-      "doc": "/docs/rows-live-data/stream-updates"
+      "doc": "/docs/rows-live-data/stream-updates",
+      "note": "`reorder: \"frame\"` re-places the patched rows once per animation frame on a client view. Where a server owns the order, it follows the `\"defer\"` rule (`tests/parity/push-reshape.parity.test.tsx`)."
     },
     {
       "id": "push-reshape",

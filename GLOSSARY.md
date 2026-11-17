@@ -17,6 +17,7 @@ mirror the change there.
 | row id | The stable id of a row: its `id` field, or the value that `getRowId` returns. Selection, editing, undo, and redo address rows by it. | id-keyed (write "by row id") |
 | view index | A row's position in the sorted and filtered list the user sees, on the shown page of a paged grid. | view space, display index |
 | data index | A row's position in your `data` array. | |
+| frame reorder | The `reorder: "frame"` value of `updateCells`: the values write at once, and one re-place at the next animation frame covers every patched row. | batched reorder |
 | checked row | A row whose marker checkbox is on, kept in the row channel of the selection. | ticked row |
 | data mode | One way the grid gets its rows: local array, client pagination, server pagination (pages mode), scroll mode, controlled state, server sort, server filter, or write-through to your own API. `research/parity-matrix.json` lists each feature against each data mode. | source kind |
 | checked rows lifetime | How long the checked rows last: `'until-click'`, `'until-cleared'`, or `'across-filters'`. Set by the prop `checkedRowsLifetime`. | keep checks, remember checks |

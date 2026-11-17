@@ -16,6 +16,7 @@ import { useCellTextInsets } from "../interaction/use-cell-editor";
 import { isComposingKey } from "../interaction/is-composing-key";
 import { DataGridStoreContext } from "../store/store-context";
 import { columnLabelText } from "../columns/column-format-helpers";
+import { compareIsoDates } from "../sort-filter/builtin-compare";
 
 const IMPLIED_DATE_FORMAT: Intl.DateTimeFormatOptions = { dateStyle: "medium" };
 // react-day-picker and date-fns load on the first calendar open, not with every grid
@@ -260,11 +261,6 @@ export const dateCellType: CellType<unknown, string | null, GridCellTypes["date"
   fromText: (text, options) => toIsoDatePart(text, options),
   clearValue: () => null,
   isEmpty: (value) => value == null,
-  compare: (a, b) => {
-    if (a == null && b == null) return 0;
-    if (a == null) return -1;
-    if (b == null) return 1;
-    return a < b ? -1 : a > b ? 1 : 0;
-  },
+  compare: compareIsoDates,
   align: "end",
 };
