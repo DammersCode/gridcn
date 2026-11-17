@@ -84,3 +84,37 @@ describe("saved views under a server filter with fetchFilterValues", () => {
     await waitFor(() => expect(api!.getState().filterState).toMatchObject([{ columnId: "name", operator: "isAnyOf", value: ["x", "y", "z"] }]));
   });
 });
+
+describe.each(ALL_MODES)("saved views keep the group columns in mode %s", (mode) => {
+  const mountGrouped = async () => {
+    let latest: UseDataGridViewsResult | null = null;
+    const storage = createMemoryViewsStorage({ version: 1, defaultViewId: null, views: [{ id: "g", name: "By name", state: { ...emptyViewState(), groupBy: ["name", "gone"] } }] });
+    function Child() {
+      latest = useDataGridViews({ storage });
+      return null;
+    }
+    const grid = await mountMode(mode, { Child, props: { defaultGroupBy: [] } });
+    await waitFor(() => expect(latest?.loading).toBe(false));
+    return { grid, views: () => latest! };
+  };
+
+  it("opening a view sets groupBy and drops a column the grid lacks", async () => {
+    const { grid, views } = await mountGrouped();
+    grid.act(() => views().selectView("g"));
+    await waitFor(() => expect(grid.state().groupBy).toEqual(["name"]));
+    expect(views().modified).toBe(false);
+  });
+
+  it("a saved view restores the group columns and leaves the expanded state out", async () => {
+    const { grid, views } = await mountGrouped();
+    act(() => grid.state().actions.setGroupBy(["n"]));
+    act(() => grid.state().actions.setExpanded({ mode: "expanded", ids: [] }));
+    grid.act(() => void views().saveView("Grouped"));
+    act(() => grid.state().actions.setGroupBy([]));
+    await waitFor(() => expect(views().modified).toBe(true));
+    const saved = views().views.find((v) => v.name === "Grouped")!;
+    expect(JSON.stringify(saved.state)).not.toContain("expanded");
+    grid.act(() => views().selectView(saved.id));
+    await waitFor(() => expect(grid.state().groupBy).toEqual(["n"]));
+  });
+});

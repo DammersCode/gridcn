@@ -12,17 +12,18 @@ import {
 import { MAX_SPEC_SEARCH_LENGTH, isDev, isFilterGroup, pruneFilterSpecs, resolveCustomFilterOperators, setFilterListBound, setFilterValuesOf, useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { ColumnLayout, FilterOperatorInput } from "@/registry/default/blocks/data-grid/data-grid";
 import { serializeSortState, parseSortState } from "./sort-param";
+import { serializeGroupBy, parseGroupBy } from "./group-param";
 import { parseLayoutPart, serializeLayoutPart, type UrlLayoutPart } from "./layout-param";
 import { serializeFilterState, parseFilterState } from "./filter-param";
 import { parseLegacyJoin } from "./join-param";
 import { prefixedKey, useWarnSharedPrefix } from "./prefixed-key";
 
-type UrlSpecPart = "sort" | "filter" | "search";
+type UrlSpecPart = "sort" | "filter" | "search" | "group";
 
-type UrlParams = Record<"sort" | "filter" | "join" | "q" | UrlLayoutPart, string>;
+type UrlParams = Record<"sort" | "group" | "filter" | "join" | "q" | UrlLayoutPart, string>;
 
 // Filter values and search text can hold personal data; a URL leaks them into history, logs, and Referer, so they sync only on request.
-const DEFAULT_SPEC_PARTS: readonly UrlSpecPart[] = ["sort"];
+const DEFAULT_SPEC_PARTS: readonly UrlSpecPart[] = ["sort", "group"];
 
 function choiceBoundsOf(columns: readonly { id: string; options?: unknown }[], state: Parameters<typeof setFilterListBound>[0]): Map<string, number | undefined> {
   return new Map(columns.map((c) => [c.id, setFilterListBound(state, c)]));
@@ -35,7 +36,7 @@ const LAYOUT_KEYS: Record<UrlLayoutPart, string> = { order: "cols", hidden: "hid
 function readUrlParams(prefix: string | undefined): UrlParams {
   const query = new URLSearchParams(window.location.search);
   const read = (key: string) => query.get(prefixedKey(prefix, key)) ?? "";
-  return { sort: read("sort"), filter: read("filter"), join: read("join"), q: read("q"), order: read(LAYOUT_KEYS.order), hidden: read(LAYOUT_KEYS.hidden), widths: read(LAYOUT_KEYS.widths), pins: read(LAYOUT_KEYS.pins) };
+  return { sort: read("sort"), group: read("group"), filter: read("filter"), join: read("join"), q: read("q"), order: read(LAYOUT_KEYS.order), hidden: read(LAYOUT_KEYS.hidden), widths: read(LAYOUT_KEYS.widths), pins: read(LAYOUT_KEYS.pins) };
 }
 
 function countUnknownLayoutIds(part: Partial<ColumnLayout>, known: ReadonlySet<string>): number {
@@ -50,11 +51,11 @@ function warnDev(message: string): void {
 
 /** Options for {@link useDataGridUrlState}. */
 export type UseDataGridUrlStateOptions = {
-  /** Namespaces the `sort`/`filter`/`join`/`q` URL keys and the layout keys (`cols`, `hide`, `widths`, `pins`) as `<prefix>_<key>`, so multiple grids can coexist on one page. */
+  /** Namespaces the `sort`/`group`/`filter`/`join`/`q` URL keys and the layout keys (`cols`, `hide`, `widths`, `pins`) as `<prefix>_<key>`, so multiple grids can coexist on one page. */
   prefix?: string;
   /**
-   * View-spec parts synced to the URL: `sort` (`sort`), `filter` (`filter` and the legacy `join`), and `search` (`q`).
-   * `[]` turns spec sync off. Default `["sort"]`: filter values and search text reach the URL, browser history, server logs, and `Referer` only when you list `"filter"` and `"search"`.
+   * View-spec parts synced to the URL: `sort` (`sort`), `group` (`group`: the `groupBy` columns; expanded groups stay out), `filter` (`filter` and the legacy `join`), and `search` (`q`).
+   * `[]` turns spec sync off. Default `["sort", "group"]`: filter values and search text reach the URL, browser history, server logs, and `Referer` only when you list `"filter"` and `"search"`.
    */
   spec?: readonly UrlSpecPart[];
   /**
@@ -99,6 +100,7 @@ export type UseDataGridUrlStateResult = {
 export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): UseDataGridUrlStateResult {
   const { prefix, layout = DEFAULT_LAYOUT_PARTS, spec: specParts = DEFAULT_SPEC_PARTS, enableNavigationSync = true } = options;
   const syncSort = specParts.includes("sort");
+  const syncGroup = specParts.includes("group");
   const syncFilter = specParts.includes("filter");
   const syncSearch = specParts.includes("search");
   useWarnSharedPrefix("useDataGridUrlState", prefix);
@@ -117,11 +119,18 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
     [allColumns, storeApi],
   );
   const sortState = useDataGridSortState();
+  const groupBy = useDataGridSelector((s) => s.groupBy);
   const filterState = useDataGridFilterState();
   const searchText = useDataGridSearchText();
   const columnLayout = useDataGridSelector((s) => s.columnLayout);
 
   const [sortParam, setSortParam] = useQueryState(prefixedKey(prefix, "sort"), {
+    defaultValue: "",
+    parse: (v) => v,
+    serialize: (v) => v,
+    history: "replace",
+  });
+  const [groupParam, setGroupParam] = useQueryState(prefixedKey(prefix, "group"), {
     defaultValue: "",
     parse: (v) => v,
     serialize: (v) => v,
@@ -150,7 +159,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   const [hiddenParam, setHiddenParam] = useQueryState(prefixedKey(prefix, LAYOUT_KEYS.hidden), layoutQueryOptions);
   const [widthsParam, setWidthsParam] = useQueryState(prefixedKey(prefix, LAYOUT_KEYS.widths), layoutQueryOptions);
   const [pinsParam, setPinsParam] = useQueryState(prefixedKey(prefix, LAYOUT_KEYS.pins), layoutQueryOptions);
-  const currentParams: UrlParams = { sort: sortParam, filter: filterParam, join: joinParam, q: searchParam, order: orderParam, hidden: hiddenParam, widths: widthsParam, pins: pinsParam };
+  const currentParams: UrlParams = { sort: sortParam, group: groupParam, filter: filterParam, join: joinParam, q: searchParam, order: orderParam, hidden: hiddenParam, widths: widthsParam, pins: pinsParam };
 
   // The nuqs setters are NOT stable across external URL changes (back/forward, setSearchParams,
   // the testing adapter's searchParams prop) — the adapter re-renders and the query hook rebuilds
@@ -159,6 +168,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
   // refs keep a live handle to the latest setter so the effects only re-run when the STORE state
   // (the actual source of truth) changes.
   const setSortParamRef = useRef(setSortParam);
+  const setGroupParamRef = useRef(setGroupParam);
   const setFilterParamRef = useRef(setFilterParam);
   const setJoinParamRef = useRef(setJoinParam);
   const setSearchParamRef = useRef(setSearchParam);
@@ -196,6 +206,12 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
       warnDev(`dropped URL sort spec for removed, hidden, or unsortable column "${spec.columnId}"`);
       return false;
     });
+    const groupableIds = new Set(allColumns.filter((c) => usable(c) && c.groupable !== false).map((c) => c.id));
+    const groups = parseGroupBy(params.group).filter((id) => {
+      if (groupableIds.has(id)) return true;
+      warnDev(`dropped URL group for removed, hidden, or ungroupable column "${id}"`);
+      return false;
+    });
     const choiceBounds = choiceBoundsOf(allColumns, storeApi.getState());
     const unknownChoices = new Map<string, number>();
     const parsedFilters = parseFilterState(params.filter, {
@@ -217,15 +233,17 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
     });
     // On mount an absent param keeps the grid's initial state; a re-apply mirrors the URL, so a removed param clears its state.
     if (syncSort && (sorts.length > 0 || !keepMountDefaults)) actions.setSorts(sorts);
+    if (syncGroup && storeApi.getState().groupingEnabled && (groups.length > 0 || !keepMountDefaults)) actions.setGroupBy(groups);
     if (syncFilter && (filters.length > 0 || !keepMountDefaults)) actions.setFilters(filters);
     if (syncSearch && (params.q || !keepMountDefaults)) actions.setSearch(params.q.slice(0, MAX_SPEC_SEARCH_LENGTH));
 
     if (Object.keys(layoutPatch).length > 0) actions.setColumnLayout(layoutPatch);
-  }, [actions, allColumns, operatorInput, storeApi, syncSort, syncFilter, syncSearch, layoutParts]);
+  }, [actions, allColumns, operatorInput, storeApi, syncSort, syncGroup, syncFilter, syncSearch, layoutParts]);
   const applyUrlRef = useRef(applyUrl);
   const currentParamsRef = useRef(currentParams);
   useLayoutEffect(() => {
     setSortParamRef.current = setSortParam;
+    setGroupParamRef.current = setGroupParam;
     setFilterParamRef.current = setFilterParam;
     setJoinParamRef.current = setJoinParam;
     setSearchParamRef.current = setSearchParam;
@@ -262,6 +280,12 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
     noteWrite(setSortParamRef.current(serializeSortState(sortState) || null));
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [sortState]);
+
+  useEffect(() => {
+    if (!appliedRef.current || !syncGroup) return;
+    noteWrite(setGroupParamRef.current(serializeGroupBy(groupBy) || null));
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupBy]);
 
   useEffect(() => {
     if (!appliedRef.current || !syncFilter) return;

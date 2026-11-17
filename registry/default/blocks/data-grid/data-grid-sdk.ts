@@ -191,7 +191,7 @@ export { defaultGetRowId } from "./store/types";
 export { dataIndexAt, dataIndexOf, forEachDataIndex, rowAtViewRow, viewEntryAt, type ViewEntry } from "./store/view-rows";
 export { groupLayoutOfView } from "./store/view-rows";
 export { leafCountOf, leafViewOf, groupRowsOf } from "./store/group-readers";
-export { isGroupRowId, groupIdOf, groupKeyText } from "./store/group-state";
+export { isGroupRowId, groupIdOf, groupKeyText, MAX_GROUP_LEVELS } from "./store/group-state";
 export { buildGroupView } from "./sort-filter/build-group-view";
 export { aggregateValues } from "./aggregate";
 export type { AggregateReducer, AggregateSpecs, ExpandedState, GroupKey, GroupLayout, GroupNode, GroupPathSegment, ServerGroupLayout, ServerGroupSlot } from "./group-types";

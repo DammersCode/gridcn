@@ -1586,8 +1586,10 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid-url-state/data-grid-url-state.test.tsx"
-          ]
+            "registry/default/blocks/data-grid-url-state/data-grid-url-state.test.tsx",
+            "registry/default/blocks/data-grid-url-state/data-grid-url-state.group.test.tsx"
+          ],
+          "note": "The `group` param holds the `groupBy` columns; a client grid reads them against its live, visible, groupable columns. The open groups stay out."
         },
         "PC": {
           "status": "supported",
@@ -1615,8 +1617,10 @@
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/url-state.parity.test.tsx"
-          ]
+            "tests/parity/url-state.parity.test.tsx",
+            "registry/default/blocks/data-grid-url-state/data-grid-url-state.group.test.tsx"
+          ],
+          "note": "A server sort keeps the server order; the `group` param still sets and tracks `groupBy`, and a server grouping hook reads it from the store."
         },
         "FS": {
           "status": "supported",
@@ -1645,7 +1649,8 @@
           "evidence": [
             "tests/parity/saved-views.parity.test.tsx",
             "registry/default/blocks/data-grid-views/use-data-grid-views.test.tsx"
-          ]
+          ],
+          "note": "A view keeps `groupBy`, validated against live, groupable columns and capped at 4 levels. The open groups stay out."
         },
         "PC": {
           "status": "supported",

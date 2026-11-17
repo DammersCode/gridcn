@@ -119,3 +119,46 @@ describe("URL state in mode FS (server filter with fetchFilterValues)", () => {
     await waitFor(() => expect(state().filterState).toEqual([]));
   });
 });
+
+describe("URL state group param in mode Z (lazy rows) and SS (sortMode server)", () => {
+  it("a deep-linked group is tracked and the loaded rows stay ungrouped", async () => {
+    function Grid() {
+      const server = useDataGridServerRows<Row>({
+        mode: "scroll",
+        getRowId: (r) => r.id,
+        blockSize: 6,
+        fetchRows: async ({ start, end }) => ({ rows: makeRows().slice(start, end), totalRowCount: 6 }),
+      });
+      return (
+        <DataGridProvider columns={columns} defaultGroupBy={[]} {...server.providerProps}>
+          <DataGridUrlState spec={["group"]} />
+          <Capture />
+        </DataGridProvider>
+      );
+    }
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render(
+      <NuqsTestingAdapter searchParams="?group=name">
+        <Grid />
+      </NuqsTestingAdapter>,
+    );
+    await waitFor(() => expect(state().groupBy).toEqual(["name"]));
+    await waitFor(() => expect(state().data).toHaveLength(6));
+    expect(state().viewIndex).toEqual([0, 1, 2, 3, 4, 5]);
+    warn.mockRestore();
+  });
+
+  it("with a server sort the group still reaches the URL", async () => {
+    const onUrlUpdate = vi.fn();
+    render(
+      <NuqsTestingAdapter onUrlUpdate={onUrlUpdate}>
+        <DataGridProvider columns={columns} defaultData={makeRows()} getRowId={(r: Row) => r.id} sortMode="server" defaultGroupBy={[]}>
+          <DataGridUrlState spec={["sort", "group"]} />
+          <Capture />
+        </DataGridProvider>
+      </NuqsTestingAdapter>,
+    );
+    act(() => state().actions.setGroupBy(["name"]));
+    await waitFor(() => expect(onUrlUpdate.mock.calls.at(-1)?.[0].searchParams.get("group")).toBe("name"));
+  });
+});

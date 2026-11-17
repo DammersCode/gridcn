@@ -68,11 +68,12 @@ The prefix and an underscore start every key of the grid. `prefix="people"` give
 
 ### spec [#spec]
 
-The option picks which parts of the view spec go into the URL. The default is `["sort"]`. List `"filter"` and `"search"` to share filters and search text. They then reach the browser history, server logs, and the `Referer` header of the next request. See [What leaves the page](/docs/support-upgrades/security-policy#data-egress). `spec={[]}` turns spec sync off.
+The option picks which parts of the view spec go into the URL. The default is `["sort", "group"]`. List `"filter"` and `"search"` to share filters and search text. They then reach the browser history, server logs, and the `Referer` header of the next request. See [What leaves the page](/docs/support-upgrades/security-policy#data-egress). `spec={[]}` turns spec sync off.
 
 | Part | Keys |
 | --- | --- |
 | `sort` | `sort` |
+| `group` | `group`, the `groupBy` column ids. The open groups stay out. |
 | `filter` | `filter`, and `join`, which the add-on reads once and removes |
 | `search` | `q` |
 
@@ -112,11 +113,12 @@ A hand-edited URL cannot grow the view state without bound. Every write uses `hi
 - `filter` value length: A value, a choice, or a range bound over 1,000 characters drops the segment.
 - `q`: The grid cuts the search text to 500 characters.
 - `sort`: 64 sorts, 256 segments, one direction for each column.
+- `group`: 4 segments, one for each column.
 - `cols`, `hide`, `widths`, `pins`: 1,024 entries. The grid ignores a key over 16,384 characters.
 - `pageSize`: a value outside `pageSizeOptions` reads as `defaultPageSize`.
 - `page`: An integer from 1 to 1,000,000. Anything else reads as 1.
 
-A sort row for a missing, hidden, or unsortable column drops from the URL state. A filter row for a missing, hidden, or unfilterable column does the same. Ids that match no column drop from the layout.
+A sort row for a missing, hidden, or unsortable column drops from the URL state. A group column that is missing, hidden, or `groupable: false` does the same. A filter row for a missing, hidden, or unfilterable column does the same. Ids that match no column drop from the layout.
 
 ## Server mode
 

@@ -14,7 +14,7 @@ aliases: ["query string", "bookmark view", "share view", "persist sort and filte
 
 ## Usage
 
-Mount `<DataGridUrlState>` once inside `<DataGridProvider>`. It syncs only the sort until you list `filter` and `search` in `spec`. The sample uses the [toolbar add-on](/docs/sort-filter-search/toolbar) for the search box and the filter menu:
+Mount `<DataGridUrlState>` once inside `<DataGridProvider>`. It syncs only the sort and the group columns until you list `filter` and `search` in `spec`. The sample uses the [toolbar add-on](/docs/sort-filter-search/toolbar) for the search box and the filter menu:
 
 ```tsx
 "use client";
@@ -81,7 +81,7 @@ The [nuqs adapter docs](https://nuqs.dev/docs/adapters) list the adapters for ot
 
 ## Keys and prefix [#prefix]
 
-The add-on writes the keys `sort`, `filter`, `q`, `cols`, `hide`, `widths`, and `pins`. `prefix` namespaces them, so several grids can share one page. `<DataGridUrlState prefix="orders" />` writes `orders_sort`, `orders_filter`, and `orders_q`.
+The add-on writes the keys `sort`, `group`, `filter`, `q`, `cols`, `hide`, `widths`, and `pins`. `prefix` namespaces them, so several grids can share one page. `<DataGridUrlState prefix="orders" />` writes `orders_sort`, `orders_filter`, and `orders_q`.
 
 A filter group is a segment `[or` or `[and`, then its rows, then a `]` segment:
 
@@ -91,16 +91,16 @@ A filter group is a segment `[or` or `[and`, then its rows, then a `]` segment:
 
 The characters `[` and `]` are always percent-encoded inside ids and values, so a value cannot imitate a group. A group holds one more group at most. A deeper group drops with the filter rows in it. The parser skips a stray `]`, closes a group left open at the end, and drops an empty group.
 
-A link with a `join=or` param is read once: when the `filter` param has no group, the rows wrap in one `or` group. Every filter write removes the param. With a `prefix`, the grid reads `<prefix>_join` the same way.
+A link with `join=or` is read once: when `filter` has no group, the rows wrap in one `or` group. Every filter write removes the param.
 
 ## Behavior
 
 - URL params apply to the store on mount and on back and forward navigation. `enableNavigationSync` (default `true`) controls the navigation apply. A missing param keeps the initial state on mount. After navigation it clears the sort, filter, or search, and resets the layout part.
 - `useDataGridUrlState()` returns `applyFromUrl()`, the manual form of the navigation apply. Call it when the URL changed in another way, such as a framework `setSearchParams`. It reads the params of the current render, so call it after your router has updated them.
-- `spec` lists the synced parts: `"sort"`, `"filter"`, and `"search"`. The default is `["sort"]`, which keeps filter values and search text out of the URL.
+- `spec` lists the synced parts: `"sort"`, `"group"`, `"filter"`, and `"search"`. The default is `["sort", "group"]`, which keeps filter values and search text out of the URL. `group` holds the `groupBy` column ids, such as `?group=region,team`.
 - Writes use `history: "replace"` and add no history entries.
 - Sort and filter writes are immediate. The search input waits for the typing to pause (`inputDebounceMs`) before the store changes.
-- The grid drops a sort or filter for a removed or hidden column. It drops a sort for a `sortable: false` column, and a filter for a `filterable: false` column. In development, a warning names each dropped column.
+- The grid drops a sort, group column, or filter for a removed or hidden column. It also drops one for a column that set `sortable`, `groupable`, or `filterable` to `false`. In development, a warning names each dropped column.
 
 A hand-edited URL cannot express an unbounded view. [URL state options](/docs/add-options/sort-filter-search/url-state-options#limits) lists every bound. The main ones:
 
@@ -112,7 +112,7 @@ A hand-edited URL cannot express an unbounded view. [URL state options](/docs/ad
 
 A sort from the URL (`?sort=name:asc`) shows its arrow in a string header. Set `headerClickBehavior="sort"` to let a header click change it, or add the sort list.
 
-A column with `choices` keeps the blank entry and the set filter values that match a choice or a loaded value. The match ignores case. With `filterMode="server"` or `fetchFilterValues`, the server lists the values, so every value stays.
+A column with `choices` keeps the blank entry and the set filter values that match a choice or a loaded value, ignoring case. With `filterMode="server"` or `fetchFilterValues`, every value stays.
 
 ## Column layout
 
