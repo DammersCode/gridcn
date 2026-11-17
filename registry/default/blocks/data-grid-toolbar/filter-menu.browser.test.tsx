@@ -1,6 +1,6 @@
 import axe from "axe-core";
 import { userEvent } from "vitest/browser";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { DataGridProvider, type ColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridFilterMenu } from "./filter-menu";
@@ -10,10 +10,6 @@ type Row = { id: string; name: string };
 const columns: readonly ColumnDef<Row, unknown>[] = [
   { id: "name", header: "Name", accessorKey: "name", filter: { operators: [{ id: "inRegion", label: "In region" }, "contains"] } },
 ];
-
-afterEach(() => {
-  document.body.innerHTML = "";
-});
 
 async function newRowOperatorText(filterMode: "client" | "server") {
   await render(

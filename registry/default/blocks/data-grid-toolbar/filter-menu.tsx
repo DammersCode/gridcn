@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -281,7 +281,7 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
       <PopoverContent align="start" className="flex w-full min-w-[min(26.25rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] flex-col gap-3.5 p-4">
         <div data-grid-filter-menu="" className="flex flex-col gap-3.5">
           <div className="@container flex items-center justify-between gap-2">
-            <h4 className="font-medium leading-none text-muted-foreground">{labels.toolbar.filter}</h4>
+            <PopoverTitle className="leading-none text-muted-foreground">{labels.toolbar.filter}</PopoverTitle>
             <ButtonGroup>
               <MenuAction label={labels.toolbar.addFilter} text={labels.toolbar.addFilterShort} icon={<Plus />} buttonRef={addButtonRef} onClick={() => context.onAddFilter(undefined)} disabled={noColumns} />
               <MenuAction label={labels.toolbar.addFilterGroup} text={labels.toolbar.addFilterGroupShort} icon={<FolderPlus />} onClick={() => context.onAddGroup(undefined)} disabled={noColumns} />
