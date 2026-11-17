@@ -194,11 +194,11 @@ function createGuardPlugin(holder: Holder): DataGridPlugin<unknown> {
     Mount: RefreshGuardMount,
     onDataChange: (next, change) => {
       holder.seen += 1;
-      // A provider onDataChange after the spread replaced the hook's merge; the merge runs here instead.
+      // A provider onDataChange after the spread replaced the hook's handler; the merge runs here instead.
       if (holder.merged < holder.seen && holder.handlers) holder.handlers.onDataChange(next as readonly never[], change as DataChange<never>);
       if (isDev() && holder.merged < holder.seen && !holder.mergeWarned) {
         holder.mergeWarned = true;
-        console.warn("[data-grid-server] a change reached the grid, but the hook's onDataChange merge did not run: an onDataChange prop on DataGridProvider after {...gridProps} replaced it, so edits vanish on the next render. Pass your handler to the hook's onDataChange option instead");
+        console.warn("[data-grid-server] a change reached the grid, but the hook's onDataChange merge did not run, so edits vanish on the next render. Mount this grid with the hook's gridProps, whose plugins carry the merge");
       }
       trackStructural(holder, change);
       trackUnacknowledgedRows(holder, change);
