@@ -48,6 +48,20 @@ describe("URL state in mode Z (lazy rows)", () => {
   });
 });
 
+describe("URL state join in mode Z (lazy rows)", () => {
+  it("a deep-linked join=or reaches the server spec and the rows stay whole", async () => {
+    render(
+      <NuqsTestingAdapter searchParams="?filter=n%3Alt%3A1,n%3Agt%3A4&join=or">
+        <LazyGrid />
+      </NuqsTestingAdapter>,
+    );
+    await waitFor(() => expect(state().filterJoin).toBe("or"));
+    expect(state().filterState).toHaveLength(2);
+    await waitFor(() => expect(state().data).toHaveLength(6));
+    expect(state().viewIndex).toEqual([0, 1, 2, 3, 4, 5]);
+  });
+});
+
 describe("URL state in mode SS (sortMode server)", () => {
   it("a deep-linked sort is tracked and the server's order stays", async () => {
     render(

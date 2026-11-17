@@ -67,6 +67,7 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `setColumnPin` | Pins a column to `"start"` or `"end"`, or unpins it with `null`. | [Column order and pinning](/docs/columns/column-order-pinning) |
 | `setColumnWidth` | Sets a column width and fires `onColumnLayoutChange` once, as a resize release does. | [Column sizing](/docs/columns/column-sizing) |
 | `setExpanded` | Sets the open groups. | [Row grouping](/docs/rows-pages-menus/row-grouping#control) |
+| `setFilterJoin` | Sets how the top-level filters combine and emits `onFilterJoinChange`. A controlled grid only emits. | [Filtering](/docs/sort-filter-search/filtering#filter-join) |
 | `setFilters` | Replaces the filter tree. | [Filtering](/docs/sort-filter-search/filtering) |
 | `setGroupBy` | Sets the group columns. Unknown, `groupable: false`, and repeated ids drop. | [Row grouping](/docs/rows-pages-menus/row-grouping#control) |
 | `setPage` | Shows a page of the view. Pages start at 1. Calls `onPageChange`. | [Client pagination](/docs/rows-pages-menus/client-pagination) |

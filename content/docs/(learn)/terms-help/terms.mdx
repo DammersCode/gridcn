@@ -54,7 +54,8 @@ A term row links to the page that explains it.
 | eviction | Unloading loaded rows back to holes, so a hole renders as a skeleton again. `maxLoadedRows` and `evict()` do it. | [Tune row retention](/docs/scroll-mode/tune-row-retention#max-loaded-rows) |
 | expanded state | `{ mode, ids }`: the row groups that differ from `mode`, named by group id. It decides which groups show their rows. | [Row grouping](/docs/rows-pages-menus/row-grouping) |
 | export source | The function that returns the rows of the whole result for an all-rows export. It gets the `spec` and a `signal`. | [Export the whole result](/docs/import-export/export-whole-result) |
-| filter group | A box of filter nodes that match together. Its join is `and` or `or`. A group holds one more group at most. The top level of `filterState` always combines with `and`. | [Filtering](/docs/sort-filter-search/filtering) |
+| filter group | A box of filter nodes that match together. Its join is `and` or `or`. A group holds one more group at most. The top level of `filterState` combines with the filter join. | [Filtering](/docs/sort-filter-search/filtering) |
+| filter join | How the top-level entries of `filterState` combine: `and` or `or`. `filterJoin` sets it. A filter group has its own join. | [Filtering](/docs/sort-filter-search/filtering#filter-join) |
 | filter menu | The toolbar menu where the user builds filters from filter rows and filter groups. `DataGridFilterMenu` is the built-in one. | [Toolbar](/docs/sort-filter-search/toolbar#the-pieces) |
 | filter node | One entry of `filterState`: a filter row or a filter group. | [Filtering](/docs/sort-filter-search/filtering) |
 | find and replace | The add-on panel that finds text through the quick search and replaces it in one match or in all matches. A replace writes one change with the source `"replace"`. | [Find and replace](/docs/sort-filter-search/find-replace) |
@@ -209,6 +210,7 @@ A word in this table names a term from the first table.
 | `value filter` | set filter | [Header filter](/docs/sort-filter-search/header-filter) |
 | `filter item` | filter node | [Filtering](/docs/sort-filter-search/filtering) |
 | `filter entry` | filter node | [Filtering](/docs/sort-filter-search/filtering) |
+| `top-level connector` | filter join | [Filtering](/docs/sort-filter-search/filtering#filter-join) |
 | `filter bracket` | filter group | [Filtering](/docs/sort-filter-search/filtering) |
 | `nested filter` | filter group | [Filtering](/docs/sort-filter-search/filtering) |
 | `join operator` | filter group | [Filtering](/docs/sort-filter-search/filtering) |

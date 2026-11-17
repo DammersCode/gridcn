@@ -681,8 +681,7 @@ export type DataGridStoreState = Omit<
   | "defaultColumnLayout"
   | "defaultSelection"
   | "defaultSortState"
-  | "defaultFilterState"
-  | "defaultFilterJoin"
+  | "defaultFilterState" | "defaultFilterJoin"
   | "defaultSearchText"
   | "pageSize"
   | "page"
@@ -811,7 +810,6 @@ export type DataGridStoreState = Omit<
   /** Mirrors the `filterMode` sync prop; `"server"` keeps `filterState` out of every view rebuild. */
   filterMode: "client" | "server";
   filterState: FilterNode[];
-  /** How the top-level `filterState` entries combine. */
   filterJoin: FilterJoinOperator;
   /** Quick-search text; never affects `viewIndex` (search highlights + navigates, it doesn't filter). */
   searchText: string;
@@ -828,7 +826,6 @@ export type DataGridStoreState = Omit<
    */
   sortControlled: boolean;
   filterControlled: boolean;
-  /** Whether `filterJoin` is controlled; same rule as `filterControlled`. */
   filterJoinControlled: boolean;
   searchControlled: boolean;
   /** Rows per page; `null` shows every row. */

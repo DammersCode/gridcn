@@ -32,6 +32,7 @@ Props of DataGrid, DataGridProvider.
 | `defaultColumnLayout` | The layout, seeded once at mount. | [Column and viewport events](/docs/events-state/column-viewport-events#prop-defaultcolumnlayout) |
 | `defaultData` | The rows, seeded once and then owned by the grid. | [Data change events](/docs/events-state/data-change-events#prop-defaultdata) |
 | `defaultExpanded` | Seeds the open groups once at store creation. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `defaultFilterJoin` | The join of the top-level filters, seeded once. | [Sort and filter events](/docs/events-state/sort-filter-events#prop-defaultfilterjoin) |
 | `defaultFilterState` | The filters, seeded once. | [Sort and filter events](/docs/events-state/sort-filter-events#prop-defaultfilterstate) |
 | `defaultGroupBy` | Seeds the group columns once at store creation. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `defaultPage` | Seeds the page of a paged grid once. Default `1`. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
@@ -50,6 +51,7 @@ Props of DataGrid, DataGridProvider.
 | `enableRowSelection` | Turns on whole-row selection by a row marker click and Shift+Space. Default `true`. | [Row markers](/docs/rows-pages-menus/row-markers) |
 | `expanded` | Controlled open groups. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `fetchFilterValues` | Supplies the values of the header filter popover and the `isAnyOf` input from a backend, one list per search. | [Header filter](/docs/sort-filter-search/header-filter) |
+| `filterJoin` | The join of the top-level filters, controlled by your code. | [Sort and filter events](/docs/events-state/sort-filter-events#prop-filterjoin) |
 | `filterMode` | Who filters: `"client"` filters `data`, `"server"` only tracks the filters. Default `"server"` with `totalRowCount`, else `"client"`. | [Sort and filter events](/docs/events-state/sort-filter-events#prop-filtermode) |
 | `filterState` | The filter tree, controlled by your code. | [Sort and filter events](/docs/events-state/sort-filter-events#prop-filterstate) |
 | `gateTimeoutMs` | Aborts an async gate that has not settled after this many ms. Default: off. | [Gate cancellation and timeouts](/docs/editing-cells/cancel-async-gates#gate-timeout) |

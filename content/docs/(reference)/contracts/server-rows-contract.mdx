@@ -144,6 +144,8 @@ loaded rows. Pass `fetchFilterValues` to list the values of the whole column fro
 
 URL state drops a filter value over 1,000 characters and cuts the search text to 500 characters. `maxValueLength` and `maxSearchLength` bound them on the server.
 
+The top-level entries combine with "and", or with "or" when the spec holds `filterJoin: "or"`. `parseServerSpec` reads `filterJoin` too: `"and"` or `"or"`. Any other value throws a `ServerSpecError` at the path `filterJoin`. The result holds the key only when it is `"or"`, so a spec without it means "and".
+
 #### Check a group request [#parse-group-path]
 
 A grouped request adds `groupBy` and `aggregates` to the spec, and `groupPath` and `childKind` to the request. `parseServerSpec` reads `groupBy` (at most `maxGroupLevels`, 4) and `aggregates` (at most `maxGroupAggregates`, 32, one reducer per column). `ServerSpecColumnRules` takes `groupable` and `aggregatable`.

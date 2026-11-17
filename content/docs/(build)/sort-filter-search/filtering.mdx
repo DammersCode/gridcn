@@ -6,7 +6,7 @@ type: feature
 aliases: ["filter", "filter rows", "filter groups", "and or filter", "filter operators"]
 ---
 
-A filter hides the rows that fail a condition on one column. `filterState` holds the filters as a list. The top level combines its entries with "and". A group inside the list combines its own entries with "and" or "or". Users build the list in the `DataGridFilterMenu` popover, and **Clear all** empties it. Code sets it with `actions.setFilters()`, and `setFilters([])` clears it.
+A filter hides the rows that fail a condition on one column. `filterState` holds the filters as a list. The top level combines its entries with "and" or "or", as `filterJoin` says. A group inside the list combines its own entries with "and" or "or". Users build the list in the `DataGridFilterMenu` popover, and **Clear all** empties it. Code sets it with `actions.setFilters()`, and `setFilters([])` clears it.
 
 <ComponentPreview name="data-grid-sorting-filtering-demo" />
 
@@ -19,15 +19,8 @@ A `FilterSpec` is one condition: `columnId`, `operator`, and `value`. A `FilterG
 ```tsx
 "use client";
 
-import {
-  DataGridBody,
-  DataGridHeader,
-  DataGridProvider,
-  DataGridRoot,
-  defineColumns,
-  useDataGridActions,
-  type FilterNode,
-} from "@/components/data-grid/data-grid";
+import { DataGridBody, DataGridHeader, DataGridProvider, DataGridRoot } from "@/components/data-grid/data-grid";
+import { defineColumns, useDataGridActions, type FilterNode } from "@/components/data-grid/data-grid";
 
 type Order = { id: string; country: string; name: string };
 
@@ -38,13 +31,10 @@ const columns = defineColumns<Order>()([
 
 const filters: FilterNode[] = [
   { columnId: "country", operator: "equals", value: "NL" },
-  {
-    join: "or",
-    filters: [
-      { columnId: "name", operator: "contains", value: "A" },
-      { columnId: "name", operator: "contains", value: "B" },
-    ],
-  },
+  { join: "or", filters: [
+    { columnId: "name", operator: "contains", value: "A" },
+    { columnId: "name", operator: "contains", value: "B" },
+  ] },
 ];
 
 function ApplyButton() {
@@ -65,7 +55,7 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
 }
 ```
 
-After the click, a row stays if its country is NL and its name contains A or B. A group with `join: "and"` needs every child to match. A group with `join: "or"` needs one child. Any other `join` value acts as `"and"`, and an empty group matches every row.
+After the click, a row stays if its country is NL and its name contains A or B. A `join: "and"` group needs every child to match, and `"or"` needs one. Any other value acts as `"and"`, and an empty group matches every row.
 
 A group can contain one level of nested groups. `setFilters` drops a group nested deeper, with the filter rows in it. `filterId` is an optional stable key. The store adds one when it is missing.
 
@@ -107,16 +97,12 @@ import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
 type Order = { id: string; city: string };
 
 const inRegion = {
-  id: "inRegion",
-  label: "is in region",
-  input: "single",
+  id: "inRegion", label: "is in region", input: "single",
 } as const;
 
 const columns = defineColumns<Order>()([
   {
-    id: "city",
-    header: "City",
-    accessorKey: "city",
+    id: "city", header: "City", accessorKey: "city",
     filter: { operators: ["contains", inRegion] },
   },
 ]);
@@ -139,13 +125,21 @@ With `filterMode="server"`, the grid never calls `match`, so leave it out. In cl
 
 [Custom operators on the server](/docs/contracts/server-rows-contract#custom-operators) maps the `id` to a query.
 
+## Join the top level [#filter-join]
+
+`filterJoin` sets how the top-level entries combine. `"and"` (default) keeps a row that passes every entry. `"or"` keeps a row that passes any entry. An empty list filters nothing.
+
+`onFilterJoinChange` fires with the next join ([props](/docs/events-state/sort-filter-events)). `actions.setFilterJoin(join)` sets the join from code. A join change resets a paged grid to page 1. With `filterMode="server"`, the spec holds `filterJoin: "or"` for "or" and no `filterJoin` for "and".
+
+A header filter leaves the join as it is. Under "or", its value list shows every value.
+
 ## Filter menu
 
-The popover lists the filter tree. The first entry of the top level and of each group reads "Where". Later top-level entries read "And". Later entries of a group show a select with "And" and "Or". That select sets the join of the whole group, so all its entries show the same word.
+The popover lists the filter tree. The first entry of a list reads "Where". The second entry shows a select with "And" and "Or". That select sets the join of the whole list, so every later entry shows the same word as plain text. Each group is a list, and so is the top level.
 
-Each row is one bordered control (column, operator, value, remove) with the drag handle to its right. The popover title row holds "Add filter", "Add group", and "Clear all" buttons. Each group header has icon buttons to add a filter, add a group, and remove the group.
+Each row holds a column, an operator, a value, and a remove button, with a drag handle to its right. The title row has "Add filter", "Add group", and "Clear all". Each group has buttons to add a filter, add a group, and remove the group.
 
-A new group takes the opposite join of its parent, so a group in the top level starts as "Or". `isBetween` shows two inputs, and `isAnyOf` and `isNoneOf` show a checkbox list.
+A new group takes the opposite join of its parent, so a group in an "and" list starts as "Or". `isBetween` shows two inputs, and `isAnyOf` and `isNoneOf` show a checkbox list.
 
 The menu offers the visible columns. A filter on a hidden column keeps applying and shows its column. Pass `allColumns` to offer hidden columns for new filters.
 

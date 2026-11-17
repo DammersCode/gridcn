@@ -84,5 +84,5 @@ export type FetchFilterValuesContext = { columnId: string; query: string; filter
 /** Resolves the values of a column for the header filter and the `isAnyOf` input; the grid keeps at most 1,000 values. */
 export type FetchFilterValues = (ctx: FetchFilterValuesContext) => Promise<{ values: readonly FilterValue[] }>;
 
-/** One entry of `filterState`: a {@link FilterSpec} row or a {@link FilterGroup}. Narrow with `"filters" in node`. The top level always combines with `"and"`. */
+/** One entry of `filterState`: a {@link FilterSpec} row or a {@link FilterGroup}. Narrow with `"filters" in node`. The top level combines with `filterJoin`. */
 export type FilterNode = FilterSpec | FilterGroup;

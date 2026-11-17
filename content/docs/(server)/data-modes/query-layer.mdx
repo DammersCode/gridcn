@@ -89,6 +89,8 @@ Keep the column map in a module without the database. Then the client can import
 
 ## Limit rows to a tenant [#row-scope]
 
+The layer joins the top-level filters with `filterJoin`: "or" when the spec holds `filterJoin: "or"`, else "and". `rowScope` still applies on top, so a row must pass the scope and any one of the filters.
+
 `rowScope` returns equalities on mapped columns. Every query of the factory adds them with AND:
 
 ```ts title="lib/scoped-users-query.ts"

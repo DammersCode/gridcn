@@ -18,6 +18,9 @@ Sort, filters, and quick search text each have a controlled prop. The callback r
 | `onSortChange` | Fires with the next sort | none |
 | `filterState` | The filter tree, controlled by your code | none |
 | `defaultFilterState` | The filters, seeded once | none |
+| `filterJoin` | The join of the top-level filters, controlled by your code | none |
+| `defaultFilterJoin` | The join of the top-level filters, seeded once | `"and"` |
+| `onFilterJoinChange` | Fires with the next join of the top-level filters | none |
 | `filterMode` | `"client"` filters `data`. `"server"` only tracks the filters | `"client"`, or `"server"` with `totalRowCount` |
 | `onFilterChange` | Fires with the next filter tree | none |
 | `searchText` | The quick search text, controlled by your code | none |
@@ -72,7 +75,7 @@ All callbacks follow one timing rule. See [Callback timing and errors](/docs/eve
 
 ## onFilterChange [#onfilterchange]
 
-The callback receives the whole filter tree as `FilterNode[]`. A node is a filter row (`FilterSpec`) or a group (`FilterGroup`). The top level combines with `"and"`. A group holds `join` (`"and"` or `"or"`) and its own `filters`. A group nests one more group at most. An empty group matches every row. If you leave out a `filterId`, the store assigns one.
+The callback receives the whole filter tree as `FilterNode[]`. A node is a filter row (`FilterSpec`) or a group (`FilterGroup`). The top level combines with `filterJoin`, `"and"` by default. A group holds `join` (`"and"` or `"or"`) and its own `filters`. A group nests one more group at most. An empty group matches every row. If you leave out a `filterId`, the store assigns one.
 
 A `FilterSpec` holds `columnId`, `operator`, and `value`. The `value` is a string for most operators. Numbers and dates are text, such as `"30"` and `"2025-01-31"`. These operators differ:
 

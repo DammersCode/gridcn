@@ -126,6 +126,7 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - The columns menu marks a hidden column that still has a filter or a sort, with the label `columnsMenuActiveHint`.
 - The filter menu does not offer a custom operator without `match` under client filtering, so a new row never starts on an operator that cannot narrow rows.
 - A string patch that `processReplace` returns for a cell holding a non-string value runs through the column `fromText`. An unparseable value is skipped.
+- **Added:** the top-level filters combine with `"and"` or `"or"`. `filterJoin`, `defaultFilterJoin`, `onFilterJoinChange`, and `actions.setFilterJoin` set the join; `filterState` stays a list. In every filter list the connector of the second row is a select that sets the join of the whole list, and later rows show it as text. A server spec carries `filterJoin: "or"` (`parseServerSpec` checks it and the query layer applies it), `useDataGridUrlState` writes the join as the `join` param (a link with `join=or` and groups now joins the top level with `or`), and a saved view keeps it. A header filter value list shows every value under `"or"`.
 
 ## Server and data modes
 

@@ -12,7 +12,7 @@ The top level of `filterState` combines with `"and"` or `"or"`. Groups keep thei
 
 - Client: `viewFilters(mode, filters, join)` evaluates the list as one `or` group when `join` is `"or"` and the list holds two or more entries. `buildViewIndex` takes the same `filterJoin` option.
 - Quick search never filters. `rowScope` ANDs on top: `rowScope AND (root filters joined by or)`.
-- Header filters edit their own top-level entry (a set entry for their column). The join does not change. Under `"or"` that entry widens the result like any other root entry.
+- Header filters edit their own top-level entry (a set entry for their column). The join does not change. Under `"or"` that entry widens the result like any other root entry, and the value list of a header filter (client and `fetchFilterValues`) is not narrowed by the other entries.
 
 ## Modes
 
@@ -32,7 +32,7 @@ The top level of `filterState` combines with `"and"` or `"or"`. Groups keep thei
 
 ## URL state and saved views
 
-- URL: the root join is the `join` param when `"or"`. `"and"` is omitted. An old link with a flat list and `join=or` loads as `filterJoin: "or"` with that list, the same result as before. A link with groups and `join=or` keeps its previous meaning (one `or` wrapper is not added: the root join reads `"or"` directly). Values other than `and` or `or` are dropped.
+- URL: the root join is the `join` param when `"or"`. `"and"` is omitted. An old link with a flat list and `join=or` loads as `filterJoin: "or"` with that list, the same result as before. A link with groups and `join=or` also reads as a root `"or"`; before, the param was ignored beside a group. Writes never produced that link, so no saved link changes meaning. Values other than `or` read as `"and"`.
 - Saved views keep `filterJoin` beside `filters`. A view without it loads as `"and"`.
 
 ## Parity
