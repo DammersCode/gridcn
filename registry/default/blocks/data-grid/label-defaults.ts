@@ -291,6 +291,7 @@ export function buildDefaultLabels(locale: string): DataGridLabels {
       importBuildFailed: "The rows could not be prepared for import. Check the file and try again.",
       printButtonAriaLabel: "Print",
       printTruncated: (printed, total) => `Printed ${printed} of ${total} rows`,
+      printTruncatedSource: (printed) => `Printed the first ${printed} rows`,
     },
     pagination: {
       firstPage: "First page",

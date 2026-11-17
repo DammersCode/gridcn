@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi, type MockInstance } from
 import { DEFAULT_LABELS, CompactSelection, type CellType, type ColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
 import type { DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { printGrid } from "./print-grid";
+import type { ExportSourceContext } from "./export-source";
 
 type Row = { id: string; name: string; note: string };
 
@@ -448,4 +449,127 @@ describe("printGrid", () => {
     }
   });
 
+});
+
+describe("printGrid with a source and the extra options", () => {
+  const sourceRows = (count: number): Row[] => Array.from({ length: count }, (_, i) => ({ id: String(i), name: `n${i}`, note: `t${i}` }));
+
+  it("prints the rows the source returns and reports them", async () => {
+    const { spy, restore } = stubIframePrint();
+    try {
+      const source = vi.fn((_ctx: ExportSourceContext) => sourceRows(2));
+      const result = await printGrid(makeState({ sortState: [], filterState: [], searchText: "q" } as never), { source });
+      expect(result).toEqual({ rowCount: 2, truncated: false });
+      expect(tableOf(lastIframe()).rows).toEqual([["n0", "t0"], ["n1", "t1"]]);
+      expect(source.mock.calls[0]![0]).toMatchObject({ columnIds: ["name", "note"], spec: { sorts: [], filters: [], searchText: "q" } });
+      expect(spy).toHaveBeenCalledTimes(1);
+    } finally {
+      restore();
+      document.querySelectorAll("iframe").forEach((frame) => frame.remove());
+    }
+  });
+
+  it("opens the dialog before the call returns when there is no source", () => {
+    const { spy, restore } = stubIframePrint();
+    try {
+      const pending = printGrid(makeState());
+      expect(spy).toHaveBeenCalledTimes(1);
+      return pending.then((result) => expect(result).toEqual({ rowCount: 3, truncated: false }));
+    } finally {
+      restore();
+      document.querySelectorAll("iframe").forEach((frame) => frame.remove());
+    }
+  });
+
+  it("cuts a source at maxRows and ends the table with the truncation note", async () => {
+    const { restore } = stubIframePrint();
+    try {
+      const result = await printGrid(makeState(), { source: () => sourceRows(10), maxRows: 4 });
+      expect(result).toEqual({ rowCount: 4, truncated: true });
+      expect(tableOf(lastIframe())).toMatchObject({ note: "Printed the first 4 rows" });
+    } finally {
+      restore();
+      document.querySelectorAll("iframe").forEach((frame) => frame.remove());
+    }
+  });
+
+  it("rejects a source batch that is not an array and opens no dialog", async () => {
+    const { spy, restore } = stubIframePrint();
+    try {
+      await expect(printGrid(makeState(), { source: () => ({}) as never })).rejects.toThrow(TypeError);
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      restore();
+    }
+  });
+
+  it("rejects with the signal's reason when aborted while the source runs", async () => {
+    const { spy, restore } = stubIframePrint();
+    try {
+      const controller = new AbortController();
+      const reason = new Error("stop");
+      const pending = printGrid(makeState(), { signal: controller.signal, source: () => new Promise<Row[]>((resolve) => setTimeout(() => resolve(sourceRows(1)), 10)) });
+      const outcome = pending.catch((error: unknown) => error);
+      controller.abort(reason);
+      await vi.advanceTimersByTimeAsync(20);
+      expect(await outcome).toBe(reason);
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      restore();
+    }
+  });
+
+  it("aborts the pending source run when a second print replaces it", async () => {
+    const { restore } = stubIframePrint();
+    try {
+      let seen: AbortSignal | undefined;
+      const first = printGrid(makeState(), {
+        source: ({ signal }) => {
+          seen = signal;
+          return new Promise<Row[]>((resolve) => setTimeout(() => resolve(sourceRows(1)), 10));
+        },
+      });
+      const firstOutcome = first.catch((error: unknown) => error);
+      await printGrid(makeState());
+      await vi.advanceTimersByTimeAsync(20);
+      expect(await firstOutcome).toBeDefined();
+      expect(seen?.aborted).toBe(true);
+      expect(document.querySelectorAll("iframe")).toHaveLength(1);
+    } finally {
+      restore();
+      document.querySelectorAll("iframe").forEach((frame) => frame.remove());
+    }
+  });
+
+  it("replaces header labels per column id", async () => {
+    const { restore } = stubIframePrint();
+    try {
+      await printGrid(makeState(), { headers: { name: "Person" } });
+      expect(tableOf(lastIframe()).headers).toEqual(["Person", "Note"]);
+    } finally {
+      restore();
+      document.querySelectorAll("iframe").forEach((frame) => frame.remove());
+    }
+  });
+
+  it("appends css as text in a second style node after the built-in rules", async () => {
+    const { restore } = stubIframePrint();
+    try {
+      const css = "td { font-size: 8pt; } /* <script>x</script> */";
+      await printGrid(makeState(), { css });
+      const styles = lastIframe().contentDocument!.querySelectorAll("head > style");
+      expect(styles).toHaveLength(2);
+      expect(styles[0]!.textContent).toContain("@page");
+      expect(styles[1]!.textContent).toBe(css);
+      expect(lastIframe().contentDocument!.querySelector("script")).toBeNull();
+    } finally {
+      restore();
+      document.querySelectorAll("iframe").forEach((frame) => frame.remove());
+    }
+  });
+
+  it("rejects css over 65,536 characters with a RangeError before it opens a frame", async () => {
+    await expect(printGrid(makeState(), { css: "a".repeat(65_537) })).rejects.toThrow(RangeError);
+    expect(document.querySelector("iframe")).toBeNull();
+  });
 });

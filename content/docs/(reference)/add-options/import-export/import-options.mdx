@@ -69,6 +69,8 @@ A file with an `.xlsx` or `.xls` name goes to the Excel parser. The parser then 
 - A boolean comes in as `TRUE` or `FALSE`. An error cell comes in as its code, such as `#DIV/0!`.
 - An XLS cell has no number format. A date comes in as an ISO date such as `2024-01-15`, and a date with a time comes in as `2024-01-15 13:45:00`.
 
+`valueMode: "raw"` in `importDefaults` (or in the options of `parseImportFile`) reads the stored value of each cell instead of its formatted text. A number comes in as `String(n)`, a date as ISO 8601 (`2024-01-15`, or `2024-01-15T13:45:00` with a time), and a boolean as `true` or `false`. An XLSX error cell comes in empty. A string stays as it is. CSV files ignore `valueMode`. The default is `"formatted"`.
+
 The dialog rejects an HTML table, Excel 2003 XML, or an Excel 5.0 file with an `.xls` name. The message asks for an `.xlsx` file.
 
 If its number format meets one of these rules, an XLSX cell comes in as its plain value (Excel's General format), not as formatted text:
@@ -190,7 +192,7 @@ The root carries `data-drag-active` during a drag and `data-disabled` while `dis
 - `ProcessCellFromText` converts the text of one imported cell. It receives the text and `{ row, column, source, signal, fromText }`. `fromText` is the own parser of the column, for the cells you do not change. The column `validate` still checks the value that the hook returns. The hook can throw or reject, and `fromText` can throw on text it cannot read. In both cases the grid rejects that one cell and reports it like unreadable text. The rest of the import goes on.
 - `ProcessImportRows` rewrites or drops the data rows before the grid maps them. It receives `{ rows, headers, mapping, signal }` and returns the rows, or `false` to cancel.
 - `BuildImportOptions` are the options of `build()` in `useDataGridImportPreview`. They add `processImportRows`.
-- `ParseFile` parses a `File` into rows. It receives the file and `{ signal, limits, sheetName, csvDelimiter }`.
+- `ParseFile` parses a `File` into rows. It receives the file and `{ signal, limits, sheetName, csvDelimiter, valueMode }`.
 - `ImportContext` is the second argument of `onImport`. It holds `signal`, `rejected`, `flagged`, `fileName`, `sheetName`, and `mapping` (a list of `ImportColumnMapping` entries).
 
 ## Related

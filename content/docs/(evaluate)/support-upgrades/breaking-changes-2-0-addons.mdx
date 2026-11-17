@@ -30,6 +30,7 @@ Each row is one **Breaking:** entry of the [changelog](https://github.com/Dammer
 | <span id="rows-to-csv" />`rowsToCsv` arguments | `rowsToCsv(rows, ";", false)` | `rowsToCsv(rows, { delimiter: ";", sanitizeFormulas: false })` | Pass an options object. |
 | <span id="print-page-size" />`printGrid` paper size | `pageSize: "A3"` | `paperSize: "A3"` | Rename it. |
 | <span id="import-duplicate-mapping" />Two import columns on one grid column | The later column wins | The first wins | Map a grid column once. |
+| <span id="print-promise" />`printGrid` result | `void` | `Promise<{ rowCount, truncated }>` | Await it to catch a rejection. |
 | <span id="xlsx-typed" />XLSX cell types | Every cell is text | `number`, `date`, and `checkbox` columns write typed cells | For text, set `formatCell: ({ text }) => text`. |
 
 ## Find and replace and presence [#find-presence]

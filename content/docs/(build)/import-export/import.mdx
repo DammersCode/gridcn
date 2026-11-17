@@ -92,6 +92,7 @@ Pass `importLimits={{ maxRows: 10_000 }}` to the button or the dialog to change 
 
 - `defaultDelimiter` sets the delimiter and skips detection.
 - `defaultHeaderRow` sets the header toggle. A number names the 0-based header row and drops the rows above it. See [Control the import](/docs/import-export/control-import).
+- `valueMode` is `"formatted"` (default) or `"raw"`. `"raw"` reads an Excel cell as its stored value, without the number format.
 - `defaultSkipColumns` skips source columns by header text (any case) or 0-based index.
 - `mapColumn(header, index, { signal })` returns a grid column id, `null` to skip, or `undefined` to keep the built-in match. It wins over `defaultSkipColumns` and can return a promise. A rejected promise falls back to the built-in match with `defaultSkipColumns`. When two answers name one grid column, the first keeps it and the later import column maps to "skip".
 

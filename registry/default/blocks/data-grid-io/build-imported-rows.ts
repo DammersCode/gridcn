@@ -104,6 +104,11 @@ export async function buildImportedRows<TData>(options: BuildImportedRowsOptions
   return options.validateRow ? validateBuiltRows(built, options, options.validateRow) : built;
 }
 
+/** Validation yields to the event loop after this much work; a timer turn costs up to 16 ms on Windows. */
+const VALIDATE_YIELD_AFTER_MS = 40;
+
+type Verdict = Record<string, string> | null | undefined;
+
 /** Runs `validateRow` over the built rows, `CHUNK_SIZE` rows at a time. A verdict reads only the keys of known columns, so a hostile object costs at most one lookup per column. */
 async function validateBuiltRows<TData>(
   built: BuildImportedRowsResult<TData>,
@@ -116,18 +121,23 @@ async function validateBuiltRows<TData>(
   const importIndexOf = new Map<string, number>();
   for (const m of mapping) if (m.gridColumnId !== null && !importIndexOf.has(m.gridColumnId)) importIndexOf.set(m.gridColumnId, m.importColumnIndex);
 
+  let lastYield = performance.now();
   for (let start = 0; start < rows.length; start += CHUNK_SIZE) {
     if (signal.aborted) throw new Error(IMPORT_CANCELLED_MESSAGE);
     const end = Math.min(start + CHUNK_SIZE, rows.length);
-    const verdicts = await Promise.all(
-      rows.slice(start, end).map(async (row, offset) => {
-        try {
-          return await validateRow(row, getRowId(row, start + offset), gateCtx);
-        } catch {
-          return null;
-        }
-      }),
-    );
+    const verdicts = new Array<Verdict>(end - start);
+    const settling: Promise<void>[] = [];
+    for (let offset = 0; offset < end - start; offset++) {
+      const row = rows[start + offset]!;
+      try {
+        const verdict = validateRow(row, getRowId(row, start + offset), gateCtx);
+        if (isThenable(verdict)) settling.push(Promise.resolve(verdict as Promise<Verdict>).then((value) => void (verdicts[offset] = value), () => undefined));
+        else verdicts[offset] = verdict;
+      } catch {
+        // a throw gives the row no verdict
+      }
+    }
+    if (settling.length > 0) await Promise.all(settling);
     if (signal.aborted) throw new Error(IMPORT_CANCELLED_MESSAGE);
     verdicts.forEach((verdict, offset) => {
       if (!verdict || typeof verdict !== "object") return;
@@ -146,7 +156,10 @@ async function validateBuiltRows<TData>(
         rejected.push({ rowIndex, importColumnIndex, gridColumnId: column.id, message });
       }
     });
-    await yieldToEventLoop();
+    if (performance.now() - lastYield > VALIDATE_YIELD_AFTER_MS) {
+      await yieldToEventLoop();
+      lastYield = performance.now();
+    }
   }
   return built;
 }

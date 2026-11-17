@@ -6,14 +6,14 @@ import { ALL_MODES, mountMode, type Mounted } from "./modes";
 const firstColumn = (rows: string[][]) => rows.map((row) => row[0]);
 
 /** Prints into the hidden iframe without the print dialog and returns the printed first column. */
-function printedNames(grid: Mounted, options?: PrintGridOptions): string[] {
+async function printedNames(grid: Mounted, options?: PrintGridOptions): Promise<string[]> {
   const append = document.body.append.bind(document.body);
   const spy = vi.spyOn(document.body, "append").mockImplementation((...nodes) => {
     append(...nodes);
     for (const node of nodes) if (node instanceof HTMLIFrameElement && node.contentWindow) node.contentWindow.print = () => {};
   });
   try {
-    printGrid(grid.state(), options);
+    await printGrid(grid.state(), options);
   } finally {
     spy.mockRestore();
   }
@@ -52,8 +52,20 @@ describe.each(ALL_MODES)("export and print rows in mode %s", (mode) => {
   it("printGrid prints the rows of the view, every page of a paged grid", async () => {
     const grid = await mountMode(mode);
     grid.setSorts([{ columnId: "n", direction: "desc" }]);
-    expect(printedNames(grid)).toEqual(firstColumn(buildExportRows(grid.state(), "view")));
-    expect(printedNames(grid)).toEqual(grid.fullViewIds().map((id) => String(grid.cell(id, "name"))));
+    expect(await printedNames(grid)).toEqual(firstColumn(buildExportRows(grid.state(), "view")));
+    expect(await printedNames(grid)).toEqual(grid.fullViewIds().map((id) => String(grid.cell(id, "name"))));
+  });
+
+  it("printGrid with a source hands the mode's spec and the printed column ids to the source and prints only its rows", async () => {
+    const grid = await mountMode(mode);
+    grid.setSorts([{ columnId: "n", direction: "desc" }]);
+    grid.setFilters([{ filterId: "f", columnId: "n", operator: "gt", value: "1" }]);
+    const source = vi.fn((_ctx: { spec: { sorts: unknown; filters: unknown }; columnIds: readonly string[] }) => [{ n: 1, name: "from-source" }]);
+    expect(await printedNames(grid, { source })).toEqual(["from-source"]);
+    const { spec, columnIds } = source.mock.calls[0]![0];
+    expect(spec.sorts).toEqual([{ columnId: "n", direction: "desc" }]);
+    expect(spec.filters).toHaveLength(1);
+    expect(columnIds).toEqual(grid.state().visibleColumns.map((column) => column.id));
   });
 
   it("a source export hands the mode's current spec to the source and exports only the source rows", async () => {
@@ -115,8 +127,8 @@ describe("export and print with client pagination", () => {
     grid.goToPage(2);
     const every = ["Name 0", "Name 1", "Name 2", "Name 3", "Name 4", "Name 5"];
     expect(firstColumn(buildExportRows(grid.state(), "view"))).toEqual(every);
-    expect(printedNames(grid)).toEqual(every);
+    expect(await printedNames(grid)).toEqual(every);
     expect(firstColumn(buildExportRows(grid.state(), "page"))).toEqual(["Name 4", "Name 5"]);
-    expect(printedNames(grid, { scope: "page" })).toEqual(["Name 4", "Name 5"]);
+    expect(await printedNames(grid, { scope: "page" })).toEqual(["Name 4", "Name 5"]);
   });
 });

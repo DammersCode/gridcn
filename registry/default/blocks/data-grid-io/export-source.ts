@@ -1,6 +1,6 @@
 import { getCellValue, type AnyColumnDef, type ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { normalizeLimit } from "./normalize-limit";
-import { displayText, isDev, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { displayText, isDev, isThenable, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Longest cell text an Excel worksheet holds; XLSX export and print cut longer text to it, CSV only a `formatCell` string. */
 export const MAX_CELL_TEXT = 32_767;
@@ -16,10 +16,18 @@ export type ExportCellContext<TData = unknown> = {
   text: string;
   row: TData;
   column: AnyColumnDef;
+  /** Aborts when the export is cancelled, fails, or stops at a limit. Pass it to a request. */
+  signal: AbortSignal;
 };
 
 /** Replaces the exported value of every cell. Runs once per cell, after the cell type made its text. */
-export type FormatExportCell<TData = unknown> = (ctx: ExportCellContext<TData>) => ExportCellValue;
+export type FormatExportCellSync<TData = unknown> = (ctx: ExportCellContext<TData>) => ExportCellValue;
+
+/** {@link FormatExportCellSync}, or a hook that returns a promise. The promises of one slice of rows settle together. */
+export type FormatExportCell<TData = unknown> = (ctx: ExportCellContext<TData>) => ExportCellValue | PromiseLike<ExportCellValue>;
+
+/** The signal of an export that cannot be cancelled. */
+export const NEVER_ABORTED: AbortSignal = new AbortController().signal;
 
 /** One exported cell after the format step: CSV rows hold strings only, XLSX rows keep typed values. */
 export type ExportCell = string | number | boolean | Date | null;
@@ -37,7 +45,9 @@ export type ExportSourceContext = {
 /** Rows of the whole result for an "all rows" export. Return one array, or an async iterable of batches (an async generator that pages through your API). */
 export type ExportSource<TData = unknown> = (ctx: ExportSourceContext) => readonly TData[] | Promise<readonly TData[]> | AsyncIterable<readonly TData[]>;
 
-const SLICE_ROWS = 1000;
+export const SLICE_ROWS = 1000;
+/** Most `formatCell` promises awaited together. */
+const ASYNC_GROUP_CELLS = 10_000;
 const MAX_EMPTY_BATCHES = 1000;
 const YIELD_AFTER_MS = 40;
 
@@ -60,6 +70,8 @@ export type ExportRowsOptions<TData = unknown> = {
   /** Column ids to write, in order; default the visible columns. An unknown id throws before the source runs. */
   columns?: readonly string[];
   formatCell?: FormatExportCell<TData>;
+  /** Cell text source: `"export"` uses the cell type's `toText` (default), `"display"` its display text (print). */
+  text?: "export" | "display";
   /** Keep numbers, booleans and Dates typed (XLSX). Default: every cell becomes a string (CSV). */
   typed?: boolean;
   /** Most data rows to write. Default `1_000_000`; a negative or fractional value rounds to a non-negative integer. */
@@ -87,7 +99,7 @@ function yieldToEventLoop(): Promise<void> {
   });
 }
 
-function abortReason(signal: AbortSignal): unknown {
+export function abortReason(signal: AbortSignal): unknown {
   return signal.reason ?? new DOMException("The export was aborted.", "AbortError");
 }
 
@@ -155,7 +167,9 @@ export async function exportRows<TData = unknown, TCell extends ExportCell = str
       const room = maxRows - rowCount;
       if (present.length > room) truncated = true;
       else if (skippedRows > maxSkippedRows) throw new RangeError("[data-grid-io] an export source returned too many empty rows");
-      const rows = present.slice(0, room).map((row) => mapExportRow(state, columns, row as TData, "export", formatCell, typed) as TCell[]);
+      const pending: PendingCell[] = [];
+      const rows = present.slice(0, room).map((row) => mapExportRow(state, columns, row as TData, options.text ?? "export", formatCell, typed, inner.signal, pending) as TCell[]);
+      if (pending.length > 0) await settlePending(pending, typed, inner.signal);
       rowCount += rows.length;
       const batchBytes = onBatch(rows);
       if (Number.isFinite(batchBytes)) byteCount += batchBytes;
@@ -259,7 +273,27 @@ export function exportCellSize(cell: ExportCell): number {
   return cell instanceof Date ? cell.toISOString().length : String(cell).length;
 }
 
-/** Maps one row through the cell types, then `formatCell`; the loaded rows and the source rows share it. */
+/** A cell whose `formatCell` returned a promise: the value lands in `row[index]` once it settles. */
+export type PendingCell = { row: ExportCell[]; index: number; value: PromiseLike<ExportCellValue> };
+
+/** Awaits the promises together in groups, converts each value like a sync one, and reads `signal` after every group. */
+export async function settlePending(pending: readonly PendingCell[], typed: boolean, signal: AbortSignal): Promise<void> {
+  // a later group's rejection must not surface as an unhandled rejection while an earlier group is awaited
+  for (const cell of pending) Promise.resolve(cell.value).catch(() => {});
+  for (let from = 0; from < pending.length; from += ASYNC_GROUP_CELLS) {
+    const group = pending.slice(from, from + ASYNC_GROUP_CELLS);
+    const values = await Promise.all(group.map((cell) => cell.value));
+    if (signal.aborted) throw abortReason(signal);
+    group.forEach((cell, i) => {
+      cell.row[cell.index] = typed ? toTypedCell(values[i]) : toCsvCell(values[i]);
+    });
+  }
+}
+
+/**
+ * Maps one row through the cell types, then `formatCell`; the loaded rows and the source rows share it.
+ * A promise from `formatCell` goes to `pending` and leaves the cell empty until `settlePending`; without `pending` it throws.
+ */
 export function mapExportRow<TData>(
   state: DataGridReadState,
   columns: readonly AnyColumnDef[],
@@ -267,13 +301,27 @@ export function mapExportRow<TData>(
   text: "export" | "display",
   formatCell: FormatExportCell<TData> | undefined,
   typed: boolean,
+  signal: AbortSignal = NEVER_ABORTED,
+  pending?: PendingCell[],
 ): ExportCell[] {
-  return columns.map((column) => {
+  const cells = new Array<ExportCell>(columns.length);
+  for (let index = 0; index < columns.length; index++) {
+    const column = columns[index]!;
     const cellType = state.cellTypes[column.type ?? "text"];
     const value = getCellValue<unknown, AnyColumnDef>(row, column);
     const cellText = cellType ? (text === "display" ? displayText(cellType, value, column.options) : cellType.toText(value, column.options)) : "";
-    if (!formatCell) return typed ? builtInTypedCell(column.type, value, cellText) : cellText;
-    const formatted = formatCell({ value, text: cellText, row, column });
-    return typed ? toTypedCell(formatted) : toCsvCell(formatted);
-  });
+    if (!formatCell) {
+      cells[index] = typed ? builtInTypedCell(column.type, value, cellText) : cellText;
+      continue;
+    }
+    const formatted = formatCell({ value, text: cellText, row, column, signal });
+    if (isThenable<ExportCellValue>(formatted)) {
+      if (!pending) throw new TypeError("[data-grid-io] formatCell returned a promise; use exportGrid or buildXlsx, which await it");
+      pending.push({ row: cells, index, value: formatted });
+      cells[index] = null;
+      continue;
+    }
+    cells[index] = typed ? toTypedCell(formatted) : toCsvCell(formatted);
+  }
+  return cells;
 }

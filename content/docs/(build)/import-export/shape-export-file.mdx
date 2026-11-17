@@ -53,7 +53,7 @@ export function UploadReport() {
 
 ## Cell values [#cell-values]
 
-`formatCell` returns a string, a number, a boolean, a `Date`, or `null` for an empty cell. It runs synchronously, once for every cell, after the cell type made its text. `text` is that default. To use data you fetch, load it in the `source`.
+`formatCell` returns a string, a number, a boolean, a `Date`, or `null` for an empty cell. It runs once for every cell, after the cell type made its text. `text` is that default. `ctx.signal` aborts on a cancel or a failure. Load data for many cells in the `source`. For data that one cell needs, return a promise. The export awaits the promises of each slice of rows together, in groups of at most 10,000 cells.
 
 | Value | CSV | XLSX |
 |---|---|---|
