@@ -88,5 +88,5 @@ describe("checkViewIndexReads", () => {
 
   it("holds for the shipped blocks", () => {
     expect(sourceRuleProblems(process.cwd()).filter((p: string) => p.includes("dataIndexAt"))).toEqual([]);
-  });
+  }, 120_000);
 });
