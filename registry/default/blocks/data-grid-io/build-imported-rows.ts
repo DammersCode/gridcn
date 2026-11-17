@@ -66,7 +66,7 @@ export type BuildImportedRowsOptions<TData> = {
   signal?: AbortSignal;
   /** The rows the import joins. `unique()` compares each imported value with them and with the other imported rows. The default append passes the grid's `data`. Default `[]`. */
   existingRows?: readonly TData[];
-  /** Runs once per built row after its cells are set, like the grid's `validateRow`. A verdict entry for a mapped column clears that cell and lands in `rejected`; an entry for an unmapped column lands in `flagged` with `importColumnIndex` `-1`. A throw or a rejection gives that row no verdict. Rows run in chunks, so `signal` cancels between chunks. */
+  /** Runs once per built row after the build parses its cells, like the grid's `validateRow`. A verdict entry for a mapped column clears that cell and lands in `rejected`; an entry for an unmapped column lands in `flagged` with `importColumnIndex` `-1`. A throw or a rejection gives that row no verdict. Rows run in chunks, so `signal` cancels between chunks. */
   validateRow?: (row: TData, rowId: string, ctx: GateContext) => Record<string, string> | null | undefined | Promise<Record<string, string> | null | undefined>;
   /** The id `validateRow` receives for built row `index`. Default: `String(index)`. */
   getRowId?: (row: TData, index: number) => string;

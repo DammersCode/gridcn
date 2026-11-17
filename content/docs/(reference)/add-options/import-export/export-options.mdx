@@ -73,7 +73,9 @@ Render the button inside `DataGridProvider`.
 
 <AutoTypeTable path="./registry/default/blocks/data-grid-io/export-grid.ts" name="ExportGridOptions" />
 
-Without a `source`, `scope: "view"` and `scope: "all"` cover the rows the grid holds. That is all pages of a client grid that pages its view, the current page of server pages, and the loaded rows in scroll mode. `scope: "page"` covers the shown page. `scope: "selection"` covers the selected rows. `scope: "checked-rows"` covers the checked rows only. `scope: "ranges"` covers the rows of the cell ranges and ignores checked rows. With a `source`, `scope` does not apply. See [Export: server mode](/docs/import-export/export#server-mode) and [Export the whole result](/docs/import-export/export-whole-result). `csvDelimiter` takes a `CsvDelimiter`: `","`, `";"`, `"|"`, or a tab.
+Without a `source`, `scope: "view"` and `scope: "all"` cover the rows the grid holds. That is all pages of a client grid that pages its view, the current page of server pages, and the loaded rows in scroll mode. `scope: "page"` covers the shown page. `scope: "selection"` covers the selected rows. With a `source`, `scope` does not apply. See [Export: server mode](/docs/import-export/export#server-mode) and [Export the whole result](/docs/import-export/export-whole-result). `csvDelimiter` takes a `CsvDelimiter`: `","`, `";"`, `"|"`, or a tab.
+
+`scope: "checked-rows"` covers the checked rows only. `scope: "ranges"` covers the rows of the cell ranges and ignores checked rows.
 
 ## Shape and output [#shape-output]
 
