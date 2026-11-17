@@ -51,6 +51,7 @@ A term row links to the page that explains it.
 | driver adapter | The Prisma layer that connects the client to a database driver. It is not an ORM adapter. | [Query layer](/docs/data-modes/query-layer) |
 | echo | A record that comes back through `applyRemote`, a fetch answer, or the `comments` prop with the write id of a pending write. It confirms the write. | [Add comments to cells](/docs/rows-pages-menus/add-comments#share-changes) |
 | eviction | Unloading loaded rows back to holes, so a hole renders as a skeleton again. `maxLoadedRows` and `evict()` do it. | [Tune row retention](/docs/scroll-mode/tune-row-retention#max-loaded-rows) |
+| expanded state | `{ mode, ids }`: the row groups that differ from `mode`, named by group id. It decides which groups show their rows. | [Data mode support](/docs/data-modes/data-mode-support#row-grouping) |
 | export source | The function that returns the rows of the whole result for an all-rows export. It gets the `spec` and a `signal`. | [Export the whole result](/docs/import-export/export-whole-result) |
 | filter group | A box of filter nodes that match together. Its join is `and` or `or`. A group holds one more group at most. The top level of `filterState` always combines with `and`. | [Filtering](/docs/sort-filter-search/filtering) |
 | filter menu | The toolbar menu where the user builds filters from filter rows and filter groups. `DataGridFilterMenu` is the built-in one. | [Toolbar](/docs/sort-filter-search/toolbar#the-pieces) |
@@ -60,6 +61,9 @@ A term row links to the page that explains it.
 | gate | A prop function that the grid calls before it acts, for example `processPaste` or `createRow`. It returns a value or a promise. | [Event shapes](/docs/events-state/event-shapes#gates) |
 | gate pending | The state of a gate whose promise has not settled. `useDataGridGatePending()` reads the gate names. The root carries `data-gate-pending`. | [Gate cancellation and timeouts](/docs/editing-cells/cancel-async-gates#show-the-pending-state) |
 | grid origin | The row that anchors the rows canvas. It trails the first rendered row and moves only when the rendered rows drift far from it. | [Virtualization](/docs/performance/virtualization) |
+| group key | The stored value that the rows of a row group share. `null`, `undefined`, and `""` form one empty key. | [Data mode support](/docs/data-modes/data-mode-support#row-grouping) |
+| group level | The place of a group column in `groupBy`. The first column is level 0. | [Data mode support](/docs/data-modes/data-mode-support#row-grouping) |
+| group row | The view row that heads a row group. It holds no data. A `viewIndex` entry below 0 names it. | [Data mode support](/docs/data-modes/data-mode-support#row-grouping) |
 | header filter | The filter button in a column header. It opens a popover with the set filter of that column. `renderHeaderFilter` places it, and `DataGridHeaderFilter` is the built-in one. | [Header filter](/docs/sort-filter-search/header-filter) |
 | header row | One level of the header block. Group levels come first, and the column headers fill the last row. | [Column headers and groups](/docs/columns/column-headers-groups) |
 | hidden checked row | A checked row that a filter, a page change, or a window move takes out of the view. `checkedRowsLifetime="across-filters"` remembers it by row id, outside the row channel. The grid's row operations never act on it. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
@@ -98,6 +102,7 @@ A term row links to the page that explains it.
 | result count | The number of rows in the view after a filter or sort change. `announceResults` turns its announcement on. | [Screen reader support](/docs/accessibility/screen-reader-support) |
 | revalidation | A `refresh()` that the hook runs on a timer (`revalidateIntervalMs`). | [Refresh server rows](/docs/scroll-mode/refresh-server-rows#revalidate) |
 | row count | The size of the result. `totalRowCount` names it on the pager, the pagination hooks, URL pagination, and the provider prop that the hook's `gridProps` carries. `null` means unknown. | [Load rows by page](/docs/server-pagination/load-rows-page) |
+| row group | The rows that share one group key under `groupBy`. Not a column group and not a filter group. | [Data mode support](/docs/data-modes/data-mode-support#row-grouping) |
 | row id | The stable id of a row: its `id` field, or the value that `getRowId` returns. Selection, editing, undo, and redo address rows by it. | [DataGrid props](/docs/components-props/data-grid-props#rows-and-ids) |
 | row marker | The narrow column at the start side that shows a row number, a checkbox, or a drag handle. | [Row markers](/docs/rows-pages-menus/row-markers) |
 | row operation | The `source` value `"row-operation"` marks a change from an insert, duplicate, delete, or move of rows. | [Data change events](/docs/events-state/data-change-events#sources) |
@@ -128,7 +133,7 @@ A term row links to the page that explains it.
 | `typeToReplace` | Typing over a cell replaces its value. | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
 | unresolved comment | A comment with `resolved: false`. A cell with one unresolved comment counts as unresolved. | [Add comments to cells](/docs/rows-pages-menus/add-comments#markers) |
 | value query | The text a `fetchFilterValues` request carries as `query`. The server lists the values that match it. | [Server rows contract](/docs/contracts/server-rows-contract) |
-| view index | A row's position in the sorted and filtered list the user sees, on the shown page of a paged grid. | [State and view index](/docs/concepts/state-view-index) |
+| view index | A row's position in the sorted and filtered list the user sees, on the shown page of a paged grid. With `groupBy`, an entry below 0 names a group row. | [State and view index](/docs/concepts/state-view-index) |
 | virtualization | Draw only the rows and columns in view, plus overscan. | [Virtualization](/docs/performance/virtualization) |
 | wanted range | The rendered rows grown by `overscan` on each side and rounded out to blocks. Scroll mode loads the blocks of it. | [Load rows while scrolling](/docs/scroll-mode/load-rows-while-scrolling) |
 | write id | The random id (`writeId`) that the add-on puts on each comment write. A record with the pending write id is the echo of that write. | [Add comments to cells](/docs/rows-pages-menus/add-comments#share-changes) |

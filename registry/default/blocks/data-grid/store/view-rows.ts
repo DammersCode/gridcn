@@ -1,4 +1,31 @@
+import type { GroupLayout } from "../group-types";
 import type { DataGridStoreState } from "./types";
+
+const layoutsByView = new WeakMap<object, GroupLayout>();
+
+/** Remembers the group rows that the entries below 0 of `view` name. */
+export function registerGroupLayout(view: readonly number[], layout: GroupLayout): void {
+  layoutsByView.set(view, layout);
+}
+
+/** The group rows of a grouped view; `null` for a view that holds none. */
+export function groupLayoutOfView(view: ArrayLike<number>): GroupLayout | null {
+  return layoutsByView.get(view) ?? null;
+}
+
+/** What a view row stands for across rebuilds: a data index, or the group id of a group row. `undefined` for a missing row. */
+export function recordKeyAt(view: ArrayLike<number>, viewRow: number): number | string | undefined {
+  const entry = view[viewRow];
+  if (entry === undefined || entry >= 0) return entry;
+  return groupLayoutOfView(view)?.rows[-entry - 1]?.id;
+}
+
+/** The view row that shows the group `groupId`, or -1. */
+export function viewRowOfGroupId(view: readonly number[], groupId: string): number {
+  const rows = groupLayoutOfView(view)?.rows;
+  const at = rows ? rows.findIndex((row) => row.id === groupId) : -1;
+  return at === -1 ? -1 : view.indexOf(-at - 1);
+}
 
 type ViewRowsState = { readonly viewIndex: ArrayLike<number>; readonly data: readonly unknown[] };
 
@@ -40,13 +67,13 @@ export function forEachDataIndex(view: ArrayLike<number>, fn: (dataIndex: number
   }
 }
 
-/** Row id shown at `viewRow`, or `undefined` for a missing or unloaded row. */
+/** Row id shown at `viewRow`: the group id for a group row, `undefined` for a missing or unloaded row. */
 export function rowIdAtViewRow(
   s: ViewRowsState & { getRowId: DataGridStoreState["getRowId"] },
   viewRow: number,
 ): string | undefined {
   const dataIndex = dataIndexOf(s.viewIndex, viewRow);
-  if (dataIndex === undefined) return undefined;
+  if (dataIndex === undefined) return recordKeyAt(s.viewIndex, viewRow) as string | undefined;
   const row = s.data[dataIndex];
   return row === undefined ? undefined : s.getRowId(row, dataIndex);
 }

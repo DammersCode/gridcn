@@ -758,6 +758,56 @@
                "target": "components/data-grid/store/hole-view-guard.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/group-types.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/group-types.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/aggregate.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/aggregate.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/sort-filter/build-group-view.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/sort-filter/build-group-view.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/store/group-state.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/group-state.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/store/group-view.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/group-view.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/store/group-patch.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/group-patch.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/store/group-sync.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/group-sync.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/store/group-actions.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/group-actions.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/store/group-readers.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/group-readers.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/store/sync-inputs.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/sync-inputs.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid/store/view-rows.ts",
                "type": "registry:component",
                "target": "components/data-grid/store/view-rows.ts"

@@ -267,7 +267,7 @@ export function useDataGridCellErrors(): ReadonlyMap<string, string> {
   return useDataGridStore((s) => s.cellErrors);
 }
 
-/** The sorted and filtered row-index view (the current page when paged), in display order; quick search never narrows it. */
+/** The sorted and filtered row-index view (the current page when paged), in display order; quick search never narrows it. With `groupBy` set, an entry below 0 names a group row; read a row through `dataIndexAt`. */
 export function useDataGridViewIndex(): readonly number[] {
   return useDataGridStore(useShallow((s) => s.viewIndex));
 }

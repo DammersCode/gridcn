@@ -3,14 +3,10 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { useStore } from "zustand";
 import { getCellValue, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
-import { fullViewOf, isDev, useDataGridStoreApi, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { aggregateValues, isDev, leafViewOf, useDataGridStoreApi, type AggregateReducer, type AggregateSpecs, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { shallowEqual } from "./pinned-row-source";
 
-/** `count` counts every value that is not `null` or `undefined`. `sum`/`avg`/`min`/`max` reduce over finite numbers only (a numeric string, `NaN`, or a `Date` is skipped) and give `undefined` when none is left. A function receives every resolved value plus its source rows (empty values included, so a custom reducer owns its own empty handling). Use a function to aggregate dates or numeric strings. `TData` is the grid's row type: pass it at the hook call (or annotate `specs` as `AggregateSpecs<Row>`) so `rows` is typed. */
-export type AggregateReducer<TData = unknown> = "sum" | "avg" | "min" | "max" | "count" | ((values: readonly unknown[], rows: readonly TData[]) => unknown);
-
-/** One reducer per column id to aggregate. */
-export type AggregateSpecs<TData = unknown> = Record<string, AggregateReducer<TData>>;
+export type { AggregateReducer, AggregateSpecs };
 
 /** Options for {@link useDataGridAggregate}. */
 export type UseDataGridAggregateOptions = {
@@ -18,30 +14,9 @@ export type UseDataGridAggregateOptions = {
   scope?: "view" | "page" | "all";
 };
 
-const NUMERIC_REDUCERS = new Set(["sum", "avg", "min", "max"]);
-
-function reduceNumeric(reducer: "sum" | "avg" | "min" | "max", values: readonly number[]): number | undefined {
-  if (values.length === 0) return undefined;
-  switch (reducer) {
-    case "sum":
-      return values.reduce((a, b) => a + b, 0);
-    case "avg":
-      return values.reduce((a, b) => a + b, 0) / values.length;
-    case "min":
-      return values.reduce((a, b) => Math.min(a, b));
-    case "max":
-      return values.reduce((a, b) => Math.max(a, b));
-  }
-}
-
 function aggregateColumn<TData>(reducer: AggregateReducer<TData>, column: AnyColumnDef, rows: readonly unknown[]): unknown {
-  const values = rows.map((row) => getCellValue(row, column));
   // Boundary cast: the store keeps rows as unknown[], the user's reducer gets them typed.
-  if (typeof reducer === "function") return reducer(values, rows as readonly TData[]);
-
-  if (reducer === "count") return values.filter((v) => v !== null && v !== undefined).length;
-  if (NUMERIC_REDUCERS.has(reducer)) return reduceNumeric(reducer, values.filter((v): v is number => typeof v === "number" && Number.isFinite(v)));
-  return undefined;
+  return aggregateValues(reducer, rows.map((row) => getCellValue(row, column)), rows as readonly TData[]);
 }
 
 const warnedKinds = new WeakMap<object, Set<string>>();
@@ -74,7 +49,7 @@ function warnUnknownSpecKey(owner: object, columnId: string): void {
 
 function computeAggregate<TData>(owner: object, state: DataGridReadState, specs: AggregateSpecs<TData>, scope: "view" | "page" | "all"): Record<string, unknown> {
   const byId = new Map(state.columns.map((c) => [c.id, c] as const));
-  const scoped = scope === "all" ? state.data : (scope === "page" ? state.viewIndex : fullViewOf(state.viewIndex)).map((i) => state.data[i]);
+  const scoped = scope === "all" ? state.data : (scope === "page" ? state.viewIndex.filter((i) => i >= 0) : leafViewOf(state)).map((i) => state.data[i]);
   // undefined rows are unloaded holes of a lazy grid; reduce over the loaded rows only.
   const rows = scoped.filter((row) => row !== undefined);
   if (rows.length !== scoped.length) warnSparseData(owner, scope, scoped.length - rows.length);

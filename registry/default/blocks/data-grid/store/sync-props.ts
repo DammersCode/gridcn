@@ -42,6 +42,8 @@ import {
   withFilterIds,
 } from "./compute";
 import { resolveSelectionConfig } from "./selection-config";
+import { EXPANDED_CUT_MESSAGE, syncGroupState, type GroupSyncMemory } from "./group-sync";
+import { groupingOf } from "./group-view";
 import { withMatchCase } from "./filter-match-case";
 import { createWarnOnce, isDev, warnDev } from "../is-dev";
 import { NO_REMEMBERED_ROWS, hiddenCheckedRowsActive } from "./hidden-checked-rows";
@@ -154,6 +156,7 @@ export type SyncMemory = {
   /** The pointer press that drives the selection: `pressed` after its first change, `changed` after a later one. */
   selectionPress: { pressed: boolean; changed: boolean } | null;
   layoutEchoQueue: Partial<ColumnLayout>[];
+  group: GroupSyncMemory;
 };
 
 export type SyncPhaseDeps = {
@@ -277,6 +280,9 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           createRow: props.createRow,
           duplicateRow: props.duplicateRow,
           onSortChange: props.onSortChange,
+          onGroupByChange: props.onGroupByChange,
+          onExpandedChange: props.onExpandedChange,
+          groupingEnabled: s.groupingEnabled || props.onGroupByChange !== undefined,
           onFilterChange: props.onFilterChange,
           onSearchTextChange: props.onSearchTextChange,
           onColumnLayoutChange: props.onColumnLayoutChange,
@@ -379,6 +385,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
         const propsCellTypes = props.cellTypes as unknown as ProvidedCellTypes;
         const nextCellTypes = sameCellTypeEntries(propsCellTypes, memory.lastPropsCellTypes) ? s.cellTypes : resolveCellTypes(propsCellTypes);
         memory.lastPropsCellTypes = propsCellTypes;
+        const nextGroup = syncGroupState(s, props, nextColumns, memory.group, () => warnStoreOnce("expanded cut", EXPANDED_CUT_MESSAGE));
         const nextSyncInputs: SyncInputs = {
           data: nextData,
           cellTypes: nextCellTypes,
@@ -391,6 +398,8 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           columnGroupModel: memory.groupModel,
           pageKey: `${nextPage}|${nextPageSize}`,
           sortLocale: nextSortLocale,
+          groupBy: nextGroup.groupBy,
+          expanded: nextGroup.expanded,
         };
         // An echo skips the recompute only when `data` is the only input that moved.
         const echoOnly =
@@ -401,7 +410,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
         const nextVisibleColumns = unchanged ? s.visibleColumns : computeVisibleColumns(nextColumns, s.columnOrder, nextHiddenColumns);
         const nextViewIndex = unchanged
           ? s.viewIndex
-          : computeViewIndex(nextData, nextColumns, nextViewSorts, viewFilters(nextFilterMode, nextFilterState), s.viewIndex, nextCellTypes, nextPageSize === null ? null : { page: nextPage, pageSize: nextPageSize }, nextSortLocale);
+          : computeViewIndex(nextData, nextColumns, nextViewSorts, viewFilters(nextFilterMode, nextFilterState), s.viewIndex, nextCellTypes, nextPageSize === null ? null : { page: nextPage, pageSize: nextPageSize }, nextSortLocale, groupingOf({ ...nextGroup, totalRowCount: s.totalRowCount, sortMode: nextSortMode, dataWrite: s.dataWrite }));
         // Controlled columnLayout (decision 8): the same echo/structural-equal rule as selection,
         // merged over the incoming column state; a new `columns` array re-applies the controlled
         // parts over the new defs (normalize re-seeds def-hidden and ignores pins on `pinnable: false` columns).
@@ -494,7 +503,9 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           s.filterState !== nextFilterState ||
           s.sortState !== nextSortState ||
           s.filterControlled !== (props.filterState !== undefined) ||
-          s.searchControlled !== (props.searchText !== undefined);
+          s.searchControlled !== (props.searchText !== undefined) ||
+          s.groupBy !== nextGroup.groupBy ||
+          s.expanded !== nextGroup.expanded;
         if (unchanged && nextGetRowId === s.getRowId && layoutApply === null && selectionApply === null && !flagsChanged) return s;
         // A layout-only apply still remaps the selection's column channel (its visible columns
         // moved), so the remap runs whenever a layout apply is in flight.
@@ -533,6 +544,11 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           pageControlled: props.page !== undefined,
           pageSizeControlled: props.pageSize !== undefined,
           viewIndex: nextViewIndex,
+          groupBy: nextGroup.groupBy,
+          expanded: nextGroup.expanded,
+          groupingEnabled: s.groupingEnabled || props.groupBy !== undefined,
+          groupByControlled: nextGroup.groupByControlled,
+          expandedControlled: nextGroup.expandedControlled,
           // A real recompute reconciles a deferred updateCells; an echo or unchanged sync keeps the flag. Stale rows stay until the server delivers them.
           viewStale: !staleChanged && unchanged ? s.viewStale : nextStaleRowIds.size > 0 || (unchanged && s.viewStale && clientViewActive),
           staleRowIds: nextStaleRowIds,

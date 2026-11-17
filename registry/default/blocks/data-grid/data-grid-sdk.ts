@@ -189,3 +189,9 @@ export { GRID_ATTR, gridAttrSelector, type GridAttrName, type GridAttr, type Gri
 export { EMPTY_SERVER_SPEC } from "./server-spec";
 export { defaultGetRowId } from "./store/types";
 export { dataIndexAt, dataIndexOf, forEachDataIndex, rowAtViewRow, viewEntryAt, type ViewEntry } from "./store/view-rows";
+export { groupLayoutOfView } from "./store/view-rows";
+export { leafCountOf, leafViewOf, groupRowsOf } from "./store/group-readers";
+export { isGroupRowId, groupIdOf } from "./store/group-state";
+export { buildGroupView } from "./sort-filter/build-group-view";
+export { aggregateValues } from "./aggregate";
+export type { AggregateReducer, AggregateSpecs, ExpandedState, GroupKey, GroupLayout, GroupNode, GroupPathSegment } from "./group-types";

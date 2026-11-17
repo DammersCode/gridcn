@@ -9,6 +9,7 @@
 //   --baseline-root <dir>  checkout of the baseline commit. Each case then runs baseline and current
 //                    alternately in this process on the same rows (so machine load hits both equally),
 //                    compares their results element by element, and reports the paired speedup.
+//   --grouped        measure the group build, a toggle, and an expand all against the flat sort of the same rows (current checkout only)
 //   --live           measure live updates into a sorted view through the store (see liveScenarios) instead of
 //                    the one-shot sort
 //   --out <file>     write all results as JSON
@@ -16,6 +17,7 @@
 // Columns: "text" and "num" declare the built-in cell types (the grid's default sort path); "free" declares
 // none (default collator path). Data is seeded, so every run and every checkout sees the same rows.
 import { build } from "esbuild";
+import { existsSync } from "node:fs";
 import { writeFile, mkdir } from "node:fs/promises";
 import { performance, PerformanceObserver } from "node:perf_hooks";
 import { Worker } from "node:worker_threads";
@@ -23,7 +25,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import inspector from "node:inspector/promises";
 
-const opts = { rows: [100_000, 1_000_000], runs: 5, filter: "", root: process.cwd(), baselineRoot: undefined, live: false, profile: false, profileOut: "sort.cpuprofile" };
+const opts = { rows: [100_000, 1_000_000], runs: 5, filter: "", root: process.cwd(), baselineRoot: undefined, live: false, grouped: false, profile: false, profileOut: "sort.cpuprofile" };
 const argv = process.argv.slice(2);
 for (let i = 0; i < argv.length; i++) {
   const arg = argv[i];
@@ -32,6 +34,7 @@ for (let i = 0; i < argv.length; i++) {
   else if (arg === "--case") opts.filter = argv[++i];
   else if (arg === "--baseline-root") opts.baselineRoot = path.resolve(argv[++i]);
   else if (arg === "--live") opts.live = true;
+  else if (arg === "--grouped") opts.grouped = true;
   else if (arg === "--out") opts.out = argv[++i];
   else if (arg === "--profile") opts.profile = true;
   else if (arg === "--profile-out") opts.profileOut = argv[++i];
@@ -49,7 +52,10 @@ async function loadImpl(root, name) {
     stdin: {
       contents: `export { computeViewIndex } from "${blocks}/store/compute.ts";
 export { cellTypes } from "${blocks}/cell-types/cell-types.ts";
-export { createDataGridStore } from "${blocks}/store/create-store.ts";`,
+export { createDataGridStore } from "${blocks}/store/create-store.ts";
+${existsSync(`${blocks}/store/group-view.ts`) ? `export { groupingOf } from "${blocks}/store/group-view.ts";
+export { flattenGroupTree } from "${blocks}/sort-filter/build-group-view.ts";
+export { groupLayoutOfView } from "${blocks}/store/view-rows.ts";` : ""}`,
       resolveDir: root,
       loader: "ts",
     },
@@ -272,7 +278,7 @@ function sameOrder(a, b) {
 const fmt = (x) => x.toFixed(1).padStart(8);
 const results = [];
 let profiled = false;
-for (const rowCount of opts.live ? [] : opts.rows) {
+for (const rowCount of opts.live || opts.grouped ? [] : opts.rows) {
   const columns = { ...makeColumns(rowCount, 42), ...makeDatasetColumns(rowCount), ...makeTypedColumns(rowCount) };
   const base = Array.from({ length: rowCount }, (_, i) => ({ dname: columns.dname[i], dage: columns.dage[i], dscore: columns.dscore[i], name: columns.name[i], free: columns.free[i], digits: columns.digits[i], int: columns.int[i], float: columns.float[i], dirty: columns.dirty[i], date: columns.date[i], status: columns.status[i], flag: columns.flag[i], url: columns.url[i], note: columns.note[i] }));
   for (const testCase of CASES) {
@@ -317,6 +323,46 @@ for (const rowCount of opts.live ? [] : opts.rows) {
     }
     results.push(row);
     console.log(line);
+  }
+}
+
+// Grouping: 40 x 25 = 1,000 inner groups over the dataset columns, three aggregates. The build is timed against the flat
+// sort of the same rows (budget: 1.5x plus 20 ms); a toggle and an expand all re-flatten the kept buckets.
+if (opts.grouped) {
+  const groupedColumns = [
+    ...columnDefs.map((column) => (column.id === "dscore" ? { ...column, aggregate: "sum" } : column.id === "dage" ? { ...column, aggregate: "avg" } : column.id === "int" ? { ...column, aggregate: "max" } : column)),
+    { id: "g1", accessorKey: "g1", type: "text" },
+    { id: "g2", accessorKey: "g2", type: "text" },
+  ];
+  for (const rowCount of opts.rows) {
+    const columns = { ...makeColumns(rowCount, 42), ...makeDatasetColumns(rowCount) };
+    const rows = Array.from({ length: rowCount }, (_, i) => ({ dname: columns.dname[i], dage: columns.dage[i], dscore: columns.dscore[i], int: columns.int[i], g1: `a${i % 40}`, g2: `b${(i / 40 | 0) % 25}` }));
+    const sorts = [asc("dscore")];
+    const collapsed = { mode: "collapsed", ids: [] };
+    const owner = {};
+    const grouping = (expanded) => current.groupingOf({ groupBy: ["g1", "g2"], expanded, totalRowCount: undefined, sortMode: "client", dataWrite: owner });
+    const run = (grouped) => current.computeViewIndex(rows, groupedColumns, sorts, [], undefined, current.cellTypes, null, undefined, grouped ? grouping(collapsed) : null);
+    const timeOf = (fn) => {
+      const times = [];
+      for (let i = 0; i < 2; i++) fn();
+      for (let i = 0; i < opts.runs; i++) {
+        gc();
+        const start = performance.now();
+        fn();
+        times.push(performance.now() - start);
+      }
+      return { medianMs: median(times), madMs: mad(times) };
+    };
+    const flat = timeOf(() => run(false));
+    const grouped = timeOf(() => run(true));
+    const tree = current.groupLayoutOfView(run(true)).tree;
+    const firstGroup = current.groupLayoutOfView(run(true)).rows[0].id;
+    const toggle = timeOf(() => current.flattenGroupTree(tree, { mode: "collapsed", ids: [firstGroup] }));
+    const expandAll = timeOf(() => current.flattenGroupTree(tree, { mode: "expanded", ids: [] }));
+    const budget = flat.medianMs * 1.5 + 20;
+    const row = { rows: rowCount, case: "group build: 40 x 25 groups, 3 aggregates, sort on dscore", flat, grouped, toggle, expandAll, budgetMs: budget, ok: grouped.medianMs <= budget && toggle.medianMs <= 8 };
+    results.push(row);
+    console.log(`${String(rowCount).padStart(8)}  group build   flat ${fmt(flat.medianMs)} ms ±${flat.madMs.toFixed(1)}  grouped ${fmt(grouped.medianMs)} ms ±${grouped.madMs.toFixed(1)}  budget ${fmt(budget)} ms | toggle ${fmt(toggle.medianMs)} ms  expand all ${fmt(expandAll.medianMs)} ms  ${row.ok ? "ok" : "OVER"}`);
   }
 }
 

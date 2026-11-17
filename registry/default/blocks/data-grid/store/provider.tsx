@@ -97,9 +97,9 @@ export function useDataGridStoreProps<TData>(props: DataGridSyncProps<TData>): {
 }
 
 /** The recompute-phase slice: the inputs of derived state (`_syncProps` rebuilds the view index and search matches over them). */
-const RECOMPUTE_KEYS = ["data", "columns", "getRowId", "cellTypes", "sortState", "sortMode", "sortLocale", "filterMode", "filterState", "searchText", "selection", "columnLayout", "columnGroups", "locale", "totalRowCount", "pageSize", "page"] as const satisfies readonly (keyof DataGridSyncProps)[];
+const RECOMPUTE_KEYS = ["data", "columns", "getRowId", "cellTypes", "sortState", "sortMode", "sortLocale", "filterMode", "filterState", "searchText", "selection", "columnLayout", "columnGroups", "locale", "totalRowCount", "pageSize", "page", "groupBy", "expanded"] as const satisfies readonly (keyof DataGridSyncProps)[];
 /** Seed-only props: applied once at store creation, ignored on later renders — in neither sync phase. */
-const SEED_KEYS = ["defaultData", "defaultColumnLayout", "defaultSelection", "defaultSortState", "defaultFilterState", "defaultSearchText", "defaultPageSize", "defaultPage"] as const satisfies readonly (keyof DataGridSyncProps)[];
+const SEED_KEYS = ["defaultData", "defaultColumnLayout", "defaultSelection", "defaultSortState", "defaultFilterState", "defaultSearchText", "defaultPageSize", "defaultPage", "defaultGroupBy", "defaultExpanded"] as const satisfies readonly (keyof DataGridSyncProps)[];
 /** The config-phase slice: everything that feeds no derived state — `readOnly`, `keymap`, the `enable*` flags, and every callback. */
 const CONFIG_KEYS = [
   "readOnly",
@@ -155,7 +155,7 @@ const CONFIG_KEYS = [
   "onCellDoubleClick",
   "onCellContextMenu",
   "onCellClick",
-  "onRenderedRowsChange",
+  "onRenderedRowsChange", "onGroupByChange", "onExpandedChange",
 ] as const satisfies readonly (keyof DataGridSyncProps)[];
 
 /** Fails the compile when a new sync prop lands in no slice list (a silently-unsynced prop). */
