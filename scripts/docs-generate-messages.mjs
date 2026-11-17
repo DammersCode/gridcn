@@ -325,6 +325,7 @@ export const MESSAGES = [
 
 const B = "registry/default/blocks";
 const FORWARD = "forwards a message that a row above quotes";
+const QUERY_LAYER = "a server-side setup or call error of the query layer; the Query layer reference names the option";
 const CODE = "throws an internal code that the import dialog maps to a label in Text the grid shows";
 
 /** Call sites that print or throw a message without a row. `line` is a fragment of the call line. */
@@ -357,4 +358,29 @@ export const OMITTED = [
   ...["UNREADABLE_ZIP_MESSAGE", "PART_TOO_LARGE_MESSAGE", "IMPORT_TOO_MANY_CELLS_MESSAGE", "UNSUPPORTED_EXCEL_FORMAT_MESSAGE", "FILE_TOO_LARGE_MESSAGE", '"unsupported-file-type"'].map((line) => ({ file: `${B}/data-grid-io/parse-import-file.ts`, line, reason: CODE })),
   { file: `${B}/data-grid/sort-filter/sort-collator.ts`, line: "console.warn(message);", reason: "forwards the sortLocale messages that the rows above quote" },
   { file: `${B}/data-grid/keyboard/key-syntax.ts`, line: "issues.push(", reason: "builds the <issues> part of the keymap binding warning" },
+  { file: `${B}/data-grid-server-query/column-map.ts`, line: "throw new Error(`defineColumnMap: column \"${id}\" ${message}`", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query/column-map.ts`, line: "throw new Error(\"defineColumnMap: the map needs at least one", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query/column-map.ts`, line: "throw new Error(\"defineColumnMap: at most one primaryKey; us", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query/column-map.ts`, line: "throw new Error(\"defineColumnMap: pass `primaryKey` or `tieB", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query/column-map.ts`, line: "throw new Error(`defineColumnMap: tieBreaker \"${id}\" is unkn", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query/column-map.ts`, line: "throw new Error(\"defineColumnMap: mark one column `primaryKe", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query/column-map.ts`, line: "throw new Error(`defineColumnMap: at most ${MAX_SEARCH_COLUM", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query/create-grid-query.ts`, line: "console.warn(\"gridcn query layer: no column sets `searchable", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query/create-grid-query.ts`, line: "throw new Error(\"rowScope is set and the call has no `contex", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query/create-grid-query.ts`, line: "throw new Error(\"This plan was not made by this query's `par", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query/create-grid-query.ts`, line: "throw new Error(`customOperators: no handler for the declare", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query/create-grid-query.ts`, line: "throw new Error(`customOperators: \"${id}\" is not declared on", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query/render-sql.ts`, line: "throw new Error(`customOperators: no handler for \"${t.id}\"`)", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query/render-sql.ts`, line: "throw new Error(\"Set values on a time column need native tim", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query/render-sql.ts`, line: "throw new Error(\"Set values on PostgreSQL need an IANA time ", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query/render-sql.ts`, line: "throw new Error(\"timeZone holds characters a zone name never", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query/row-scope.ts`, line: "throw new Error(`rowScope: the value for \"${column.id}\" is m", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query/row-scope.ts`, line: "throw new Error(\"rowScope: must return a plain object\");", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query/row-scope.ts`, line: "throw new Error(\"rowScope: returned no keys, which would mat", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query/row-scope.ts`, line: "throw new Error(`rowScope: \"${key}\" is not in the column map", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query-drizzle/columns.ts`, line: "console.warn(`gridcn query layer: column \"${id}\" has the typ", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query-drizzle/columns.ts`, line: "throw new Error(`columnsFromDrizzleTable: the table has no c", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query-drizzle/create-drizzle-grid-query.ts`, line: "throw new Error(`createDrizzleGridQuery: the table has no co", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query-drizzle/create-drizzle-grid-query.ts`, line: "throw new Error(\"customOperators: a handler must return a Dr", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query-kysely/create-kysely-grid-query.ts`, line: "throw new Error(\"customOperators: a handler must return a Ky", reason: QUERY_LAYER },
 ];

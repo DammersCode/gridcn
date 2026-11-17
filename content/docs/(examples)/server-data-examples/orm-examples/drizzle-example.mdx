@@ -5,122 +5,50 @@ icon: Droplet
 type: example
 ---
 
-This recipe needs a server and is not a registry item. A server grid sends its spec (`sorts`, `filters`, `searchText`) and a row range (`start`, `end`) to your route. The route checks the request with `parseServerSpec`. It answers `{ rows, totalRowCount }` from a `users` table with a serial `id` and the text columns `name`, `email`, and `role`.
+A server grid sends its spec (`sorts`, `filters`, `searchText`) and a row range (`start`, `end`) to your route. The [query layer](/docs/data-modes/query-layer) checks the request and runs it with Drizzle. This route serves a `users` table with a serial `id` and the text columns `name`, `email`, and `role`.
+
+<InstallCommand item="data-grid-server-query-drizzle" />
 
 ## The route [#the-route]
 
-The route follows the [server rows contract](/docs/contracts/server-rows-contract). It rejects a request that fails the check with status 400. It adds the row id as the last sort, so no two rows tie and a page never repeats a row:
+The column map lists the columns a request can name. The route follows the [server rows contract](/docs/contracts/server-rows-contract). A request that fails the check gets status 400:
 
-```ts fragment="needs drizzle-orm" title="app/api/grid/route.ts"
-import {
-  isFilterGroup,
-  type FilterNode,
-} from "@/components/data-grid/data-grid";
-import {
-  parseServerSpec,
-} from "@/components/data-grid-server/data-grid-server";
-import {
-  and, asc, count, desc, eq, gt, gte, ilike, inArray, lt, lte, ne,
-  notIlike, notInArray, or, sql, type SQL,
-} from "drizzle-orm";
-import type { PgColumn } from "drizzle-orm/pg-core";
-import { db } from "~/db";
-import { users } from "~/db/schema";
+```ts title="lib/users-query.ts"
+import { columnsFromDrizzleTable, createDrizzleGridQuery } from "@/components/data-grid-server-query-drizzle/data-grid-server-query-drizzle";
+import { db } from "./db";
+import { users } from "./schema";
 
-const { name, email, role } = users;
-const COLUMNS: Record<string, PgColumn> = { name, email, role };
-const escapeLike = (text: string) => text.replace(/[\\%_]/g, "\\$&");
-const infix = (value: string) => `%${escapeLike(value)}%`;
-const lower = (c: PgColumn) => sql`lower(${c})`;
-const lowered = (v: string[]) => v.map((x) => x.toLowerCase());
-const OPERATORS: Record<string, (c: PgColumn, v: any) => SQL> = {
-  contains: (c, v) => ilike(c, infix(v)),
-  notContains: (c, v) => notIlike(c, infix(v)),
-  startsWith: (c, v) => ilike(c, `${escapeLike(v)}%`),
-  endsWith: (c, v) => ilike(c, `%${escapeLike(v)}`),
-  equals: (c, v) => sql`${lower(c)} = ${v.toLowerCase()}`,
-  notEquals: (c, v) => sql`${lower(c)} <> ${v.toLowerCase()}`,
-  gt, gte, lt, lte,
-  empty: (c) => eq(c, ""),
-  notEmpty: (c) => ne(c, ""),
-  isAnyOf: (c, v) => (v.length ? inArray(lower(c), lowered(v)) : sql`false`),
-  isNoneOf: (c, v) => (v.length ? notInArray(lower(c), lowered(v)) : sql`true`),
-};
+const columns = columnsFromDrizzleTable(users, {
+  pick: ["id", "name", "email", "role"],
+  overrides: { name: { searchable: true }, email: { searchable: true } },
+});
 
-const columnRules = Object.fromEntries(
-  Object.keys(COLUMNS).map((id) => [id, { operators: Object.keys(OPERATORS) }]),
-);
-
-function readRange(body: any): { start: number; end: number } | null {
-  const { start, end } = body ?? {};
-  const valid =
-    Number.isSafeInteger(start) && start >= 0 && start <= 10_000_000 &&
-    Number.isSafeInteger(end) && end > start;
-  return valid ? { start, end } : null;
-}
-
-function toWhere(node: FilterNode): SQL | undefined {
-  if (!isFilterGroup(node)) {
-    return OPERATORS[node.operator](COLUMNS[node.columnId], node.value);
-  }
-  const parts: (SQL | undefined)[] = node.filters.map(toWhere);
-  if (parts.length === 0) return sql`true`;
-  return node.join === "or" ? or(...parts) : and(...parts);
-}
-
-export async function POST(request: Request) {
-  const body = await request.json().catch(() => null);
-  const range = readRange(body);
-  if (!range) return new Response("Invalid request", { status: 400 });
-  const { start, end } = range;
-  let spec;
-  try {
-    spec = parseServerSpec(body.spec, { columns: columnRules });
-  } catch {
-    return new Response("Invalid request", { status: 400 });
-  }
-  const pattern = infix(spec.searchText);
-  const where = and(
-    spec.searchText
-      ? or(ilike(name, pattern), ilike(email, pattern))
-      : undefined,
-    ...spec.filters.map(toWhere),
-  );
-  const orderBy = spec.sorts.map((s) =>
-    (s.direction === "asc" ? asc : desc)(COLUMNS[s.columnId]),
-  );
-
-  const [[total], rows] = await Promise.all([
-    db.select({ value: count() }).from(users).where(where),
-    db.select().from(users).where(where).orderBy(...orderBy, asc(users.id))
-      .limit(Math.min(end - start, 500)).offset(start),
-  ]);
-  return Response.json({ rows, totalRowCount: total.value });
-}
+export const usersQuery = createDrizzleGridQuery({ db, table: users, columns });
 ```
 
-About the sample:
+```ts title="app/api/grid/route.ts"
+import { handleGridRequest } from "@/components/data-grid-server-query/data-grid-server-query";
+import { usersQuery } from "./users-query";
 
-- The grid sends every value as text, so a numeric column needs `Number(value)`.
-- The sample compares text without case with `ilike` and `lower(column)`.
-- `parseServerSpec` checks the column ids, the operators, the value shapes, and the tree size. Its default caps are 64 sorts, 500 search characters, 64 filters, 16 groups, 1,000 characters per value, and 1,000 list values. A request over a cap gets status 400.
-- A number or date column also gets `isBetween`, a `[min, max]` pair. The sample refuses it.
-- A null cell reads as empty text, so `empty`, `notContains`, `notEquals`, and `isNoneOf` match it. Add an `IS NULL` test to these four for a nullable column.
-- The route caps a page at 500 rows, so a larger page returns fewer rows than the grid asked for.
-- Cap the request body size at the framework or proxy. The limits of `parseServerSpec` do not bound a large JSON text.
+export const POST = (req: Request) =>
+  handleGridRequest(req, usersQuery.fetchRows);
+```
+
+About the route:
+
+- The layer escapes the LIKE wildcards of every text value and binds every value as a parameter.
+- A filter on an empty value follows the grid: `contains` with no text matches every row.
+- `notEquals`, `notContains`, and `isNoneOf` match the rows with NULL. `empty` matches NULL and the empty string.
+- A page holds at most 1,000 rows. The primary key ends every sort, so a page never repeats a row.
 
 ## The client [#the-client]
 
-`fetchRows` posts the spec and the range to the route and returns the JSON:
+The grid posts the spec and the range to the route. `fetchRows` returns the JSON as the answer:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
 import {
-  DataGridPaginationBar,
-} from "@/components/data-grid-pagination/data-grid-pagination";
-import {
   useDataGridServerRows,
-  type UseDataGridServerRowsOptions,
 } from "@/components/data-grid-server/data-grid-server";
 
 type User = { id: number; name: string };
@@ -129,35 +57,28 @@ const columns = defineColumns<User>()([
   { id: "name", header: "Name", accessorKey: "name" },
 ]);
 
-const fetchRows: UseDataGridServerRowsOptions<User>["fetchRows"] = async ({
-  spec,
-  start,
-  end,
-  signal,
-}) => {
-  const body = JSON.stringify({ spec, start, end });
-  const init = { method: "POST", body, signal };
-  const response = await fetch("/api/grid", init);
-  if (!response.ok) throw new Error("Request failed");
-  return response.json();
-};
-
 export function UsersGrid() {
-  const server = useDataGridServerRows<User>({ fetchRows });
-  return (
-    <>
-      <DataGrid {...server.gridProps} columns={columns} />
-      <DataGridPaginationBar {...server.pager} />
-    </>
-  );
+  const server = useDataGridServerRows<User>({
+    getRowId: (row) => String(row.id),
+    fetchRows: async ({ signal, ...request }) => {
+      const body = JSON.stringify(request);
+      const init = { method: "POST", body, signal };
+      const response = await fetch("/api/grid", init);
+      if (!response.ok) throw new Error("Request failed");
+      return response.json();
+    },
+  });
+  return <DataGrid {...server.gridProps} columns={columns} />;
 }
 ```
 
+Save edits from `onSave`. See [Handle refused saves](/docs/save-server/handle-refused-saves).
+
 ## Shareable state [#shareable-state]
 
-`useDataGridUrlPagination()` keeps the page and the page size in the URL. `DataGridUrlState` keeps the sort, the filters, and the search text. The route stays as it is:
+To restore the sort, the filters, the search text, the page, and the page size from the URL, spread `useDataGridUrlPagination()` into the hook options. Mount `DataGridUrlState` in the provider and spread `server.providerProps` and `server.rootProps`. The first request carries the restored spec, so the route stays as it is:
 
-```tsx fragment="renders under NuqsAdapter"
+```tsx fragment="inside a component under NuqsAdapter"
 import {
   DataGridBody,
   DataGridHeader,
@@ -165,34 +86,26 @@ import {
   DataGridRoot,
 } from "@/components/data-grid/data-grid";
 import {
-  DataGridPaginationBar,
-} from "@/components/data-grid-pagination/data-grid-pagination";
-import {
-  useDataGridServerRows,
-} from "@/components/data-grid-server/data-grid-server";
-import {
   DataGridUrlState,
   useDataGridUrlPagination,
 } from "@/components/data-grid-url-state/data-grid-url-state";
 
-function UsersGrid() {
-  const url = useDataGridUrlPagination();
-  const server = useDataGridServerRows<User>({
-    fetchRows, // the function of the client above
-    ...url,
-  });
+const url = useDataGridUrlPagination();
+const server = useDataGridServerRows<User>({
+  getRowId: (row) => String(row.id),
+  fetchRows, // the function of the client above
+  ...url,
+});
 
-  return (
-    <DataGridProvider columns={columns} {...server.providerProps}>
-      <DataGridUrlState />
-      <DataGridRoot {...server.rootProps} className="h-96">
-        <DataGridHeader />
-        <DataGridBody />
-      </DataGridRoot>
-      <DataGridPaginationBar {...server.pager} />
-    </DataGridProvider>
-  );
-}
+return (
+  <DataGridProvider columns={columns} {...server.providerProps}>
+    <DataGridUrlState />
+    <DataGridRoot {...server.rootProps} className="h-96">
+      <DataGridHeader />
+      <DataGridBody />
+    </DataGridRoot>
+  </DataGridProvider>
+);
 ```
 
 [URL state](/docs/sort-filter-search/url-state) lists the keys and the adapter setup.
@@ -201,6 +114,5 @@ function UsersGrid() {
 
 - [Server rows example](/docs/server-data-examples/server-rows-example): the grid side of this route
 - [Server rows contract](/docs/contracts/server-rows-contract): the request and the answer
-- [Handle refused saves](/docs/save-server/handle-refused-saves): the `onSave` round trip
 - [Prisma example](/docs/server-data-examples/orm-examples/prisma-example)
 - [Supabase example](/docs/server-data-examples/orm-examples/supabase-example)

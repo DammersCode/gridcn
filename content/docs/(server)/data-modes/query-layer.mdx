@@ -1,0 +1,199 @@
+---
+title: Query layer
+icon: DatabaseZap
+description: Turn the request of a server grid into a safe query for Drizzle or Kysely, and answer it in one route handler.
+type: feature
+aliases: ["orm", "drizzle", "kysely", "sql injection", "column map", "row scope", "tenant", "fetchRows server", "query plan"]
+---
+
+A server grid sends its sort, filter tree, search text, and row range to your route. Your route must turn them into a query. A hand-written translation misses cases: LIKE wildcards, empty values, NULL rows, number bounds, and columns that must stay hidden. The query layer does this work once. A column map lists the columns a request can name. The layer checks the request against the map and builds a query plan. An ORM adapter runs the plan.
+
+<ComponentPreview name="data-grid-server-query-demo" />
+
+<InstallCommand item="data-grid-server-query-drizzle" />
+
+Install `data-grid-server-query-kysely` instead to use Kysely. Both items install `data-grid-server-query`, which has no dependency. Use the layer on a server only.
+
+## Define the column map [#column-map]
+
+The column map is the allow-list and the projection. A request can use only the columns in the map. `columnsFromDrizzleTable` builds the map from a Drizzle table. It needs `pick`, so no helper maps a whole table:
+
+```ts title="lib/users-query.ts"
+import { columnsFromDrizzleTable, createDrizzleGridQuery } from "@/components/data-grid-server-query-drizzle/data-grid-server-query-drizzle";
+import { db } from "./db";
+import { users } from "./schema";
+
+export const columns = columnsFromDrizzleTable(users, {
+  pick: ["id", "name", "email", "role", "score", "tenantId"],
+  overrides: {
+    name: { searchable: true },
+    email: { searchable: true },
+    tenantId: { serverOnly: true },
+  },
+});
+
+export const usersQuery = createDrizzleGridQuery({
+  db, table: users, columns,
+});
+```
+
+A column with `serverOnly` is never selected, filtered, sorted, or searched for the client. A request that names it gets the same `unknown-column` error as a column that does not exist. With Kysely, write the map with `defineColumnMap` and pass the table name and the dialect to `createKyselyGridQuery`. The [reference](/docs/contracts/query-layer-reference#column-map) lists every column option.
+
+## Add the route [#route]
+
+`handleGridRequest` reads the body with a size cap, runs the query, and answers JSON. It passes `req.signal` to the query, which stops before it starts when the request is already aborted. A running statement is not cancelled, so set a `statement_timeout` in PostgreSQL. A refused request becomes a 400 with an error code and no value. Any other error becomes a 500 with no message:
+
+```ts title="app/api/users/route.ts"
+import { handleGridRequest } from "@/components/data-grid-server-query/data-grid-server-query";
+import { usersQuery } from "./users-query";
+
+export const POST = (req: Request) =>
+  handleGridRequest(req, usersQuery.fetchRows);
+```
+
+## Connect the grid [#connect-the-grid]
+
+`fetchRows` accepts the request that `useDataGridServerRows` posts. It returns the answer the hook reads. Send `describeFilterOperators(columns)` to the client as JSON. Pass it to `withColumnMap`, so the filter menu offers only operators the server accepts:
+
+```tsx
+"use client";
+
+import { useMemo } from "react";
+import { withColumnMap, type ColumnMapDescriptor } from "@/components/data-grid-server-query/data-grid-server-query";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
+
+export function useUsers(
+  descriptor: ColumnMapDescriptor,
+  columnDefs: { id: string }[],
+) {
+  const columns = useMemo(
+    () => withColumnMap(columnDefs, descriptor),
+    [columnDefs, descriptor],
+  );
+  const server = useDataGridServerRows<{ id: number }>({
+    mode: "scroll",
+    getRowId: (row) => String(row.id),
+    fetchRows: async ({ signal, ...request }) => {
+      const body = JSON.stringify(request);
+      const init = { method: "POST", body, signal };
+      const response = await fetch("/api/users", init);
+      if (!response.ok) throw new Error("The request failed");
+      return response.json();
+    },
+  });
+  return { columns, server };
+}
+```
+
+Keep the column map in a module without the database. Then the client can import it. Do not import the module that holds `db` into a client component.
+
+## Limit rows to a tenant [#row-scope]
+
+`rowScope` returns equalities on mapped columns. Every query of the factory adds them with AND:
+
+```ts title="lib/scoped-users-query.ts"
+import { createDrizzleGridQuery } from "@/components/data-grid-server-query-drizzle/data-grid-server-query-drizzle";
+import { columns } from "./users-query";
+import { db } from "./db";
+import { users } from "./schema";
+
+export const usersQuery = createDrizzleGridQuery({
+  db, table: users, columns,
+  rowScope: (session: { tenantId: number }) => ({
+    tenantId: session.tenantId,
+  }),
+});
+```
+
+The route reads the session and passes it as `context`:
+
+```ts title="app/api/users/route.ts"
+import { handleGridRequest } from "@/components/data-grid-server-query/data-grid-server-query";
+import { getSession } from "./session";
+import { usersQuery } from "./scoped-users-query";
+
+export const POST = async (req: Request) => {
+  const session = await getSession(req);
+  if (!session) return new Response(null, { status: 401 });
+  const options = { context: session };
+  return handleGridRequest(req, usersQuery.fetchRows, options);
+};
+```
+
+The route must pass `context` when the factory sets `rowScope`. A missing value, an empty result, or an unknown column throws. The request then fails with a 500 and returns no row. `rowScope` narrows the queries of this route. The database stays the place for row-level security. A case-insensitive collation, such as `citext` or `COLLATE NOCASE`, lets the tenants `Acme` and `acme` see each other. Scope on a case-sensitive column.
+
+## How a request becomes a query [#behavior]
+
+- A filter row that the user has not filled in yet means what it means in the grid. `contains` with no text matches every row. `equals` with no text matches the empty rows.
+- `notEquals`, `notContains`, and `isNoneOf` match the rows with NULL. `empty` matches NULL and, for text columns, the empty string.
+- A number column parses the value with the HTML number grammar. An integer column rounds a bound the exact way: `gt 2.5` becomes `gt 2`. A bound outside the width of the column matches all rows or none.
+- A text operator on a number, date, or checkbox column fails with `operator-not-allowed`. Use `describeFilterOperators` so the filter menu never offers it.
+- A `date` column with `time: true` holds instants. A day filter covers the local day in the `timeZone` option, which defaults to `UTC`.
+- Text tests ignore letter case. A filter row of a column with `matchCase` carries `matchCase: true`, and the layer then compares case. Set `caseSensitive` on the column to compare case for every request.
+- Quick search is a case-insensitive substring match over the columns with `searchable`. The search narrows the result.
+- Every sort ends with the primary key, so a page never repeats a row. NULL values sort last in both directions.
+- The count runs for the first scroll block and for every page. `rowCount: "always"` counts every request. Use it on a scroll grid that writes rows, because the first-block count goes stale after a save. `rowCount: "none"` never counts, and the answer carries `hasMore`.
+
+Values reach the database only as bound parameters. A column, an operator, and a direction come from closed tables, never from the request. The request limits cap the size of the filter tree, the lists, and the text.
+
+## More queries [#more-queries]
+
+### Set values and totals [#values-and-totals]
+
+`filterValues` answers `fetchFilterValues`: it lists the values of one column with their counts, for the filters the user set on the other columns. `aggregates` answers `fetchAggregates` with one value per column that sets `aggregate`:
+
+```ts title="app/api/users/values/route.ts"
+import { handleGridRequest } from "@/components/data-grid-server-query/data-grid-server-query";
+import { usersQuery } from "../users-query";
+
+export const POST = (req: Request) =>
+  handleGridRequest(req, usersQuery.filterValues);
+```
+
+### Custom operators [#custom-operators]
+
+Declare the operator in the column map. Give the factory a handler with the same id. The handler returns a fragment of the ORM and must bind the value through the ORM:
+
+```ts
+import { sql } from "drizzle-orm";
+import { db } from "./db";
+import { sites } from "./schema";
+import { defineColumnMap } from "@/components/data-grid-server-query/data-grid-server-query";
+import { createDrizzleGridQuery } from "@/components/data-grid-server-query-drizzle/data-grid-server-query-drizzle";
+
+const columns = defineColumnMap({
+  id: { type: "number", numeric: "int8", primaryKey: true },
+  region: {
+    type: "select",
+    operators: [{ id: "inRegion", label: "In region", input: "single" }],
+  },
+});
+
+const query = createDrizzleGridQuery({
+  db, table: sites, columns,
+  customOperators: {
+    inRegion: ({ value }) => sql`${sites.region} = ${String(value)}`,
+  },
+});
+```
+
+The factory throws at creation when a declared operator has no handler.
+
+## Factory options [#options]
+
+| Prop | Type | Default |
+|---|---|---|
+| `columns` | `ColumnMap` | Required |
+| `rowScope` | `(context) => Record<columnId, value>` | None |
+| `rowCount` | `"firstBlock" \| "always" \| "none"` | `"firstBlock"` |
+| `timeZone` | IANA zone or fixed offset | `"UTC"` |
+| `limits` | `QueryLimits` | See the [reference](/docs/contracts/query-layer-reference#limits) |
+| `customOperators` | `{ [id]: ({ column, value }) => fragment }` | None |
+
+## Related
+
+- [Query layer reference](/docs/contracts/query-layer-reference)
+- [Query server rows](/docs/data-modes/query-server-rows)
+- [Server rows contract](/docs/contracts/server-rows-contract)
+- [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example)
+- [Kysely example](/docs/server-data-examples/orm-examples/kysely-example)

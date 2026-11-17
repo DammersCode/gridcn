@@ -1,0 +1,125 @@
+---
+title: "Query layer reference"
+description: The column map options, the operators per column kind, the request limits, and the error codes of the query layer.
+icon: DatabaseZap
+type: reference
+---
+
+This page lists the exact rules of the [query layer](/docs/data-modes/query-layer).
+
+| Part | Where |
+|---|---|
+| Column options | [Column map](#column-map) |
+| Operators and values | [Operators](#operators) |
+| Bounds of a request | [Limits](#limits) |
+| Error codes | [Errors](#errors) |
+| Differences from the client | [Client differences](#client-differences) |
+
+## Column map [#column-map]
+
+`defineColumnMap(columns, { tieBreaker })` returns the map. Each column sets `type` or `kind`. A `number` column also sets `numeric`.
+
+| Option | Meaning | Default |
+|---|---|---|
+| `type` | `text`, `number`, `checkbox`, `select`, `date`, `url`, or `longText`. `url` and `longText` behave as `text`. | Required |
+| `kind` | The behavior of a custom cell type: `text`, `number`, `checkbox`, `select`, or `date`. | From `type` |
+| `numeric` | The stored number type: `int2`, `int4`, `int8`, `float`, or `decimal`. | Required on `number` |
+| `scale` | Decimal places of a `decimal` column. A column with `scale` returns decimal strings. | None |
+| `field` | The physical column name when it differs from the id. | The id |
+| `primaryKey` | The final sort key. At most one column. | `false` |
+| `serverOnly` | Never selected, filtered, sorted, searched, or aggregated for the client. `rowScope` can use it. | `false` |
+| `searchable` | Quick search covers the column. At most 16 columns. | `false` |
+| `filterable`, `sortable` | `false` rejects a filter or a sort on the column. | `true` |
+| `required` | The column is NOT NULL. | `false` |
+| `caseSensitive` | Text tests compare case. A filter row with `matchCase: true`, which the grid sets for a `matchCase` column, compares case on any text column. | `false` |
+| `keepBlankText` | A stored empty string is a value, not empty. | `false` |
+| `time` | A `date` column that holds instants. Day filters use local days. | `false` |
+| `storage` | How a `date` column stores instants: `native`, `iso-text`, `epoch-ms`, or `epoch-s`. | `native` |
+| `native` | The PostgreSQL type of a `text` or `select` column: `enum` or `uuid`. | None |
+| `choices` | The values of a `select` column. A native enum needs them. | None |
+| `aggregate` | The reducer of the flat totals: `sum`, `avg`, `min`, `max`, or `count`. | None |
+| `operators` | Custom operators: `{ id, label, input }`. `input` is `none`, `single`, `range`, or `list`. | None |
+
+A table without a primary key passes `tieBreaker`, a list of unique columns that are not null and not `serverOnly`. The sort of every request ends with the primary key or the tie-breaker.
+
+## Operators [#operators]
+
+| Operator | Number | Date | Checkbox | Select | Text |
+|---|---|---|---|---|---|
+| `contains`, `notContains`, `startsWith`, `endsWith` | Refused | Refused | Refused | Allowed | Allowed |
+| `equals`, `notEquals`, `empty`, `notEmpty` | Allowed | Allowed | Allowed | Allowed | Allowed |
+| `gt`, `gte`, `lt`, `lte`, `isBetween` | Allowed | Allowed | Refused | Refused | Allowed |
+| `isAnyOf`, `isNoneOf` | Allowed | Allowed | Allowed | Allowed | Allowed |
+
+A native `enum` or `uuid` column refuses the ordering operators.
+
+The layer reads an empty value before it checks the kind of the column:
+
+| Operator with an empty value | Result |
+|---|---|
+| `equals` | The empty rows |
+| `notEquals` | The rows that are not empty |
+| `contains`, `startsWith`, `endsWith` | Every row |
+| `notContains`, `gt`, `gte` | No row |
+| `lt`, `lte` | The rows that are not empty |
+| `isAnyOf` with no entry | No row |
+| `isNoneOf` with no entry | Every row |
+
+An empty entry in a list stands for the empty rows. `isAnyOf ["a", ""]` matches `a` and the empty rows.
+
+A value that cannot parse never fails the request. A positive test matches no row. `notEquals` matches every row. A day on a `time` column matches from the local midnight to the next one in `timeZone`.
+
+## Limits [#limits]
+
+Set `limits` on the factory to change a bound. A request over a bound fails with `limit-exceeded` or `invalid-value`. The defaults accept every spec that URL state and saved views restore.
+
+| Limit | Default |
+|---|---|
+| `maxFilterNodes` | 128 |
+| `maxFilterLeaves` | 64 |
+| `maxSorts` | 64 |
+| `maxValueLength` | 1000 |
+| `maxNumberLength` | 40 |
+| `maxListLength` | 1000 |
+| `maxTreeListValues` | 5000 |
+| `maxTreeStringBytes` | 262144 |
+| `maxSearchLength` | 500 |
+| `maxValueQueryLength` | 128 |
+| `maxPageSize` | 1000 |
+| `maxOffset` | None |
+| `maxColumnIds` | 10000 |
+
+A group nests one group at most. A deeper group fails with `limit-exceeded`. With `maxOffset`, a `start` above the bound fails with `offset-too-deep`.
+
+## Errors [#errors]
+
+The query layer throws `QueryError` with a `code` and a `path`. The path holds field names and indices, never request text. `handleGridRequest` answers `{ error, path }`.
+
+| Code | Status | Meaning |
+|---|---|---|
+| `invalid-request` | 400 | The body has the wrong shape. |
+| `unknown-column` | 400 | The column is not in the map, or is `serverOnly`. |
+| `unknown-operator` | 400 | The operator is not built in and the column does not declare it. |
+| `operator-not-allowed` | 400 | The operator does not fit the kind of the column, or the column is not filterable or sortable. |
+| `invalid-value` | 400 | A value is over its length, or a range does not match the page. |
+| `limit-exceeded` | 400 | The tree or a list is over a bound. |
+| `offset-too-deep` | 400 | `start` is above `maxOffset`. |
+| `unsupported` | 501 | The request asks for row groups or a pivot. |
+| `payload-too-large` | 413 | The body is over `maxBodyBytes`. |
+
+## Client differences [#client-differences]
+
+| Topic | Client | Server |
+|---|---|---|
+| Case folding | JavaScript lower case | PostgreSQL by collation, SQLite for ASCII only |
+| Text order | Locale compare | Database collation |
+| Number equality | Text equality | Numeric equality |
+| Blank sorting | Empty values last | NULL last, empty text not moved |
+| Quick search | Marks matches and keeps every row | Narrows the result to the substring |
+| Day filter on a timestamp | Text order | Local day in `timeZone` |
+| Group deeper than 2 | The grid drops the group | `limit-exceeded` |
+
+## Related
+
+- [Query layer](/docs/data-modes/query-layer)
+- [Server rows contract](/docs/contracts/server-rows-contract)

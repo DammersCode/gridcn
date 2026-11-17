@@ -1,0 +1,47 @@
+---
+title: "Kysely example"
+description: "Answer a server grid from a Kysely table with the query layer: one column map and one route handler."
+icon: Database
+type: example
+---
+
+A server grid sends its spec (`sorts`, `filters`, `searchText`) and a row range (`start`, `end`) to your route. The [query layer](/docs/data-modes/query-layer) checks the request and runs it with Kysely. Kysely has no schema at run time, so you write the column map with `defineColumnMap`. This route serves a `users` table.
+
+<InstallCommand item="data-grid-server-query-kysely" />
+
+## The route [#the-route]
+
+Name the table and the dialect, `"pg"` or `"sqlite"`. Every column reference is qualified with the table name:
+
+```ts title="lib/users-query.ts"
+import { defineColumnMap } from "@/components/data-grid-server-query/data-grid-server-query";
+import { createKyselyGridQuery } from "@/components/data-grid-server-query-kysely/data-grid-server-query-kysely";
+import { db } from "./db";
+
+const columns = defineColumnMap({
+  id: { type: "number", numeric: "int8", primaryKey: true },
+  name: { type: "text", searchable: true },
+  email: { type: "text", searchable: true },
+  role: { type: "select", choices: ["admin", "member"] },
+  createdAt: { type: "date", time: true },
+});
+
+export const usersQuery = createKyselyGridQuery({
+  db, table: "users", dialect: "pg", columns,
+});
+```
+
+```ts title="app/api/grid/route.ts"
+import { handleGridRequest } from "@/components/data-grid-server-query/data-grid-server-query";
+import { usersQuery } from "./users-query";
+
+export const POST = (req: Request) =>
+  handleGridRequest(req, usersQuery.fetchRows);
+```
+
+The client is the one in the [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example#the-client).
+
+## Related
+
+- [Query layer](/docs/data-modes/query-layer)
+- [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example)
