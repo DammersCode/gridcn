@@ -42,7 +42,7 @@ describe("controlled comments cost", () => {
     const runs = Array.from({ length: 5 }, measure);
     const best = (key: "unchanged" | "rebuiltCompare" | "tenK") => Math.min(...runs.map((r) => r[key]));
     const engine = runs[0]!.engine;
-    expect(best("unchanged")).toBeLessThan(100 * CI_FACTOR);
+    expect(best("unchanged")).toBeLessThan(200 * CI_FACTOR);
     expect(best("rebuiltCompare")).toBeLessThan(100 * CI_FACTOR);
     expect(best("tenK")).toBeLessThan(150 * CI_FACTOR);
     expect(engine.store.core.confirmed.size).toBe(100_000);

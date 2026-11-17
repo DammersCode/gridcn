@@ -314,7 +314,7 @@ export function useReshape({ delay: raw, ordered, run, busy, canRun, resetKey, w
 
 type WiringSave = Parameters<typeof registerServerWiring>[1]["wrapSave"];
 
-/** Registers the hook's provider props before the grid renders, so props after the `gridProps` spread join them. */
+/** Registers during render, not in `useMemo`: the React Compiler drops a memo whose result is unused. */
 export function useRegisteredWiring(props: { data: readonly unknown[] }, wrapSave: unknown) {
-  useMemo(() => registerServerWiring(props.data, { props, wrapSave: wrapSave as WiringSave }), [props, wrapSave]);
+  registerServerWiring(props.data, { props, wrapSave: wrapSave as WiringSave });
 }

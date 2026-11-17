@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDataGridApi, useDataGridScrollToCellAt } from "@/registry/default/blocks/data-grid/data-grid";
+import { viewEntryAt } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { useStashedPager } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import { matchPast, nextHoleRow, type WalkDirection } from "./result-walk";
 
@@ -52,7 +53,7 @@ export function useFindResultWalk({ enabled, resetKey, goTo }: Options) {
     if (!wait) return;
     const s = api.store.getState();
     const byPage = wait.hole < 0;
-    if (byPage ? s.data === wait.data : s.data[s.viewIndex[wait.hole]!] === undefined) return;
+    if (byPage ? s.data === wait.data : viewEntryAt(s, wait.hole).kind === "hole") return;
     const found = matchPast(s.searchMatches, wait.origin, wait.direction);
     if (found >= 0) {
       cancel();

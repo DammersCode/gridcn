@@ -12,6 +12,9 @@ describe("nextHoleRow", () => {
     expect(nextHoleRow(view, 3, 1)).toBe(-1);
     expect(nextHoleRow(view, 1, -1)).toBe(-1);
   });
+  it("skips group rows, which are negative view entries", () => {
+    expect(nextHoleRow({ viewIndex: [0, -1, 2], data: ["a", "b", undefined] }, 0, 1)).toBe(2);
+  });
 });
 
 describe("matchPast", () => {
