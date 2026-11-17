@@ -84,7 +84,7 @@ Set `source: "random"` or `source: "sequential"` to fix the order. A random sour
 | --- | --- | --- |
 | `loadDelayMs` | `100` | Milliseconds a block stays in the wanted range before its request starts. At most 2000. `0` starts at once. |
 | `maxConcurrentFetches` | `3` | Most block requests in flight on a random access source. At most 16. |
-| `maxLoadedRows` | `10000` | Most rows kept loaded. Random access only: a sequential source keeps every row. A value below `blockSize` counts as `blockSize`. `Infinity` keeps every row. |
+| `maxLoadedRows` | `10000` | Most rows kept loaded. On a random access source, old blocks unload past it. A finite value ends a sequential source once that many rows loaded, and development builds warn once. A value below `blockSize` counts as `blockSize`. `Infinity` keeps every row. |
 | `revalidateIntervalMs` | off | Milliseconds between timed `refresh()` calls while the page is visible. At least 1000. A sequential source skips a tick while the rendered rows plus `overscan` end beyond 10 blocks. |
 | `reshapeDelayMs` | off | Milliseconds after a push marked a row stale before one `refresh()`. At least 250. A sequential source skips it while the rendered rows plus `overscan` end beyond 10 blocks. |
 

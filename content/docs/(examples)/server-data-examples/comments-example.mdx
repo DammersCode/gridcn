@@ -22,7 +22,7 @@ The second grid saves each comment write to an in-memory server with about 400 m
 The buttons above the grid try the other paths:
 
 - **Grace adds a comment** sends a change from another client through `applyRemote`. The comment marker shows without a reload.
-- **Grace edits a comment** changes your first comment on the server. Write a comment first, press the button, and then edit your comment. The server refuses the save as stale, and the popover offers Save my version and Discard.
+- **Grace edits a comment (force a conflict)** changes your first comment on the server. Write a comment first, press the button, and then edit your comment. The server refuses the save as stale, and the popover offers Save my version and Discard.
 - **Go offline** makes every save throw. The popover keeps your text and offers Retry.
 
 The server demo passes `onCommentSave` to call the server, `onLocalChange` and `onCommentRejected` to log each result, and `getCommentMenuItems` to the context menu. For the same wiring in your own app, see [Add comments to cells](/docs/rows-pages-menus/add-comments).

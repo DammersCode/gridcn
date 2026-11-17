@@ -80,7 +80,7 @@ A grid hook called outside the provider throws an error that names the provider.
 Without `store`, the provider creates its store and keeps it in sync with its props. After mount, the ref handle reaches the actions and the state from anywhere. Create the store yourself in two cases:
 
 - Code outside the provider needs the actions or the state on the first render.
-- Several provider trees share one store.
+- A control in a second React tree, such as a portal root, wraps its own `DataGridProvider store={store}`. Mount one `DataGridRoot` per store.
 
 `useDataGridStoreProps(props)` takes the provider props and returns `{ store, actions }`. Pass the same live props that the grid renders from, because the hook syncs the store whenever a prop changes. Then pass `store` to `DataGridProvider` or `DataGrid`:
 
