@@ -388,3 +388,6 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - Fix: comment text drops bidi override and isolate characters (U+202A to U+202E, U+2066 to U+2069); direction marks stay.
 - Fix: `onCommentRejected` fires when `edit`, `remove`, or `setResolved` get an unknown comment id (reason `"invalid"`).
 - Fix: the comments popover shows Retry only for a write that threw or failed with the reason `"error"`.
+- Fix: the default labels format the counts of the page range, the import preview, the print note, the replace status, and the row reorder announcements with the grid `locale`. English text shows a thousands separator, such as `Showing 50 of 1,000 rows`.
+- Fix: the option counts of the filter value list use the grid `locale`, and the columns menu hint sits on the inline end in a right-to-left grid.
+- Fix: the Replace all status joins its two sentences through `labels.findReplace.replacedAndMore`.

@@ -46,7 +46,7 @@ describe("DEFAULT_LABELS", () => {
     expect(DEFAULT_LABELS.sort.sortReorderAnnouncement("Age", 1, 4)).toBe("Age sort moved to position 1 of 4");
     expect(DEFAULT_LABELS.io.columnFallback(3)).toBe("Column 3");
     expect(DEFAULT_LABELS.io.mapColumnAriaLabel("Email")).toBe('Map "Email" to grid column');
-    expect(DEFAULT_LABELS.io.previewTruncated(50, 1000)).toBe("Showing 50 of 1000 rows");
+    expect(DEFAULT_LABELS.io.previewTruncated(50, 1000)).toBe("Showing 50 of 1,000 rows");
     expect(DEFAULT_LABELS.io.sheet).toBe("Sheet");
     expect(DEFAULT_LABELS.io.dropzoneDescription([".csv", ".xlsx"], "up to 50 MB")).toBe("Accepted types: .csv, .xlsx — up to 50 MB");
     expect(DEFAULT_LABELS.io.dropzoneDescription([], "up to 50 MB")).toBe("All file types accepted — up to 50 MB");

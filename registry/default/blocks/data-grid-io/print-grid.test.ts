@@ -262,9 +262,9 @@ describe("printGrid", () => {
   });
 
   it.each([
-    ["NaN", Number.NaN, "Printed 10000 of 10001 rows"],
-    ["-1", -1, "Printed 0 of 10001 rows"],
-    ["0", 0, "Printed 0 of 10001 rows"],
+    ["NaN", Number.NaN, "Printed 10,000 of 10,001 rows"],
+    ["-1", -1, "Printed 0 of 10,001 rows"],
+    ["0", 0, "Printed 0 of 10,001 rows"],
   ])("maxRows %s is read as a finite cap", (_name, maxRows, expectedNote) => {
     const { restore } = stubIframePrint();
     try {
@@ -312,7 +312,7 @@ describe("printGrid", () => {
       );
       const { rows, note } = tableOf(lastIframe());
       expect(rows).toHaveLength(Math.floor(500_000 / columnCount));
-      expect(note).toBe(`Printed ${Math.floor(500_000 / columnCount)} of ${rowCount} rows`);
+      expect(note).toBe(`Printed ${Math.floor(500_000 / columnCount).toLocaleString("en-US")} of ${rowCount.toLocaleString("en-US")} rows`);
     } finally {
       restore();
     }

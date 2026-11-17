@@ -43,7 +43,7 @@ function ColumnRow(props: { column: AnyColumnDef }): ReactNode {
       onCheckedChange={(checked) => actions.setColumnHidden(column.id, checked !== true)}
     >
       {columnLabelText(column)}
-      {hidden && (filtered || sorted) && <span className="ml-auto text-xs text-muted-foreground">{hint}</span>}
+      {hidden && (filtered || sorted) && <span className="ms-auto text-xs text-muted-foreground">{hint}</span>}
     </DropdownMenuCheckboxItem>
   );
 }

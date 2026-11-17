@@ -25,5 +25,5 @@ export function newlyFailedGroup(state: Pick<DataGridStoreState, "groupLayout" |
 /** How a group reads in an announcement: its column, then its key. */
 export function groupAnnouncementLabel(s: Pick<DataGridStoreState, "columns" | "labels">, node: GroupNode): string {
   const column = s.columns.find((candidate) => candidate.id === node.columnId);
-  return `${column ? columnLabelText(column) : node.columnId}: ${node.label || s.labels.grouping.empty}`;
+  return s.labels.grouping.groupName(column ? columnLabelText(column) : node.columnId, node.label || s.labels.grouping.empty);
 }

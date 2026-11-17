@@ -12,7 +12,7 @@ import {
   type FilterOperator,
   type GridCellTypes,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { resolveCustomFilterOperators, resolveFilterValueInput, resolveSelectChoices, useDataGridInputDebounce, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { resolveCustomFilterOperators, resolveFilterValueInput, resolveSelectChoices, useDataGridInputDebounce, useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { columnMatchCase, distinctColumnValues } from "./distinct-values";
 import { setFilterKey } from "./apply-set-filter";
@@ -141,6 +141,7 @@ function AnyOfValueInput(props: {
 function SetValueBody(props: { column: AnyColumnDef; selected: readonly string[]; onValueChange: (value: string[]) => void }): ReactNode {
   const { column, selected, onValueChange } = props;
   const labels = useDataGridLabels().toolbar;
+  const locale = useDataGridSelector((s) => s.locale);
   const storeApi = useDataGridStoreApi();
   const listId = useId();
   const search = useDebouncedSearch();
@@ -170,7 +171,7 @@ function SetValueBody(props: { column: AnyColumnDef; selected: readonly string[]
         aria-label={labels.headerFilterSearchPlaceholder}
         className="h-8 w-full"
       />
-      <SetFilterList key={search.query} options={visible} checked={checked} onToggle={toggle} onEnter={() => {}} idPrefix={listId} ariaLabel={labels.filterValueAriaLabel} />
+      <SetFilterList key={search.query} options={visible} checked={checked} onToggle={toggle} onEnter={() => {}} locale={locale} idPrefix={listId} ariaLabel={labels.filterValueAriaLabel} />
       {serverLine && (
         <div aria-live="polite" className="text-xs text-muted-foreground">
           {serverLine}

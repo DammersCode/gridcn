@@ -433,7 +433,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const statusText = (() => {
     if (status?.kind === "validating") return labels.validating;
     if (status?.kind === "cancelled") return labels.replaceCancelled;
-    if (status?.kind === "replaced") return status.more ? `${labels.replaced(status.replaced, status.skipped)}. ${labels.moreRemain}` : labels.replaced(status.replaced, status.skipped);
+    if (status?.kind === "replaced") return status.more ? labels.replacedAndMore(labels.replaced(status.replaced, status.skipped), labels.moreRemain) : labels.replaced(status.replaced, status.skipped);
     if (find.trim() === "") return labels.typeToSearch;
     if (searchedText !== find) return "";
     if (resultScope && typeof totalRowCount === "number") return totalRowCount > 0 ? labels.resultRows(totalRowCount) : labels.noMatches;

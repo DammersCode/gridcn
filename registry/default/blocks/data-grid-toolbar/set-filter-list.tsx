@@ -11,7 +11,13 @@ const OVERSCAN = 8;
 const VIEWPORT_ROWS = 8;
 const VIEWPORT_HEIGHT = SET_FILTER_ROW_HEIGHT * VIEWPORT_ROWS;
 
-const countFormat = new Intl.NumberFormat("en-US");
+const countFormats = new Map<string, Intl.NumberFormat>();
+
+function formatCount(count: number, locale: string): string {
+  let format = countFormats.get(locale);
+  if (!format) countFormats.set(locale, (format = new Intl.NumberFormat(locale)));
+  return format.format(count);
+}
 
 export type SetFilterOption = { key: string; label: string; count?: number };
 
@@ -38,11 +44,13 @@ export type SetFilterListProps = {
   ariaLabel: string;
   className?: string;
   listRef?: Ref<HTMLDivElement>;
+  /** BCP 47 tag that formats the option counts. Default `"en-US"`. */
+  locale?: string;
 };
 
 /** Virtualized multi-select listbox with fixed-height rows; only the rows near the viewport mount. */
 export function SetFilterList(props: SetFilterListProps): ReactNode {
-  const { options, checked, onToggle, onEnter, idPrefix, ariaLabel, className, listRef } = props;
+  const { options, checked, onToggle, onEnter, idPrefix, ariaLabel, className, listRef, locale = "en-US" } = props;
   const [scrollTop, setScrollTop] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const lastIndex = options.length - 1;
@@ -106,6 +114,7 @@ export function SetFilterList(props: SetFilterListProps): ReactNode {
         optionKey={option.key}
         label={option.label}
         count={option.count}
+        locale={locale}
         index={index}
         setSize={options.length}
         selected={checked.has(option.key)}
@@ -140,6 +149,7 @@ type SetFilterRowProps = {
   optionKey: string;
   label: string;
   count: number | undefined;
+  locale: string;
   index: number;
   setSize: number;
   selected: boolean;
@@ -147,7 +157,7 @@ type SetFilterRowProps = {
   onSelect: (index: number, key: string) => void;
 };
 
-const SetFilterRow = memo(function SetFilterRow({ id, optionKey, label, count, index, setSize, selected, isActive, onSelect }: SetFilterRowProps) {
+const SetFilterRow = memo(function SetFilterRow({ id, optionKey, label, count, locale, index, setSize, selected, isActive, onSelect }: SetFilterRowProps) {
   return (
     <div
       id={id}
@@ -163,7 +173,7 @@ const SetFilterRow = memo(function SetFilterRow({ id, optionKey, label, count, i
     >
       <Checkbox checked={selected} tabIndex={-1} aria-hidden className="pointer-events-none" />
       <span className="min-w-0 flex-1 truncate">{label}</span>
-      <span className="min-w-14 shrink-0 text-end text-xs text-muted-foreground tabular-nums">{count === undefined ? null : countFormat.format(count)}</span>
+      <span className="min-w-14 shrink-0 text-end text-xs text-muted-foreground tabular-nums">{count === undefined ? null : formatCount(count, locale)}</span>
     </div>
   );
 });

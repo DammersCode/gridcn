@@ -57,16 +57,16 @@ const GROUP_LABEL_SELECTED_TINT =
 const DEFAULT_AGGREGATE_FORMAT: Intl.NumberFormatOptions = { maximumFractionDigits: 2 };
 
 /** An average has no natural precision, so a number column without its own `format` or `decimals` shows at most two fraction digits. */
-function withDefaultAggregateFormat(options: unknown): unknown {
-  const own = (options ?? {}) as { format?: unknown; decimals?: unknown };
-  return own.format === undefined && own.decimals === undefined ? { ...own, format: DEFAULT_AGGREGATE_FORMAT } : options;
+function withDefaultAggregateFormat(options: unknown, locale: string): unknown {
+  const own = (options ?? {}) as { format?: unknown; decimals?: unknown; locale?: string };
+  return own.format === undefined && own.decimals === undefined ? { ...own, format: DEFAULT_AGGREGATE_FORMAT, locale: own.locale ?? locale } : options;
 }
 
-function aggregateText(column: AnyColumnDef, value: unknown, cellTypes: ReturnType<typeof useDataGridCellTypes>): string {
+function aggregateText(column: AnyColumnDef, value: unknown, cellTypes: ReturnType<typeof useDataGridCellTypes>, locale: string): string {
   if (value === null || value === undefined) return "";
   const cellType = cellTypes[column.type ?? "text"];
   try {
-    const options = column.type === "number" && typeof value === "number" ? withDefaultAggregateFormat(column.options) : column.options;
+    const options = column.type === "number" && typeof value === "number" ? withDefaultAggregateFormat(column.options, locale) : column.options;
     return toSafeText(cellType ? displayText(cellType as Parameters<typeof displayText>[0], value, options) : value);
   } catch {
     return toSafeText(value);
@@ -143,6 +143,7 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
   const meta = useDataGridGroupRow(viewRowIndex);
   const cellState = useDataGridRowCellState(viewRowIndex);
   const labels = useDataGridLabels();
+  const locale = useDataGridSelector((s) => s.locale);
   const cellTypes = useDataGridCellTypes();
   const visibleColumns = useDataGridVisibleColumns();
   const columnHeader = useDataGridSelector((s) => {
@@ -192,7 +193,7 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
         >
           <DataGridGroupToggle groupId={node.id} label={labelText} expanded={expanded} />
           <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
-            {renderGroupLabel ? renderGroupLabel(ctx) : `${columnHeader}: ${labelText} (${node.count.toLocaleString()})`}
+            {renderGroupLabel ? renderGroupLabel(ctx) : labels.grouping.rowLabel(columnHeader, labelText, node.count)}
           </span>
         </span>
       </GroupCell>
@@ -215,7 +216,7 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
               pinned && GROUP_TINT,
             )}
           >
-            <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{column.aggregate === undefined ? null : aggregateText(column, node.aggregates[column.id], cellTypes)}</span>
+            <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{column.aggregate === undefined ? null : aggregateText(column, node.aggregates[column.id], cellTypes, locale)}</span>
           </GroupCell>
         );
       })}

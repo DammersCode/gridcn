@@ -40,6 +40,7 @@ export type DataGridHeaderFilterProps = {
 function HeaderFilterBody(props: { column: AnyColumnDef; setFilterOperator?: SetFilterOperatorChoice; onClose: () => void; searchRef: RefObject<HTMLInputElement | null> }): ReactNode {
   const { column, onClose, searchRef, setFilterOperator } = props;
   const labels = useDataGridLabels().toolbar;
+  const locale = useDataGridSelector((s) => s.locale);
   const cellTypes = useDataGridCellTypes();
   const storeApi = useDataGridStoreApi();
   const actions = useDataGridActions();
@@ -166,7 +167,7 @@ function HeaderFilterBody(props: { column: AnyColumnDef; setFilterOperator?: Set
           aria-label={labels.headerFilterSearchPlaceholder}
         />
       </InputGroup>
-      <SetFilterList key={query} options={visible} checked={checked} onToggle={toggle} onEnter={apply} idPrefix={listId} ariaLabel={columnLabelText(column)} listRef={listRef} />
+      <SetFilterList key={query} options={visible} checked={checked} onToggle={toggle} onEnter={apply} locale={locale} idPrefix={listId} ariaLabel={columnLabelText(column)} listRef={listRef} />
       <div aria-live="polite" className={cn("text-xs text-muted-foreground", tooMany && "text-destructive")}>
         <bdi>{status}</bdi>
       </div>

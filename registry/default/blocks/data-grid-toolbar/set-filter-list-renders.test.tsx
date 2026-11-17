@@ -30,3 +30,11 @@ describe("SetFilterList rendering", () => {
     expect(checkboxRenders.count).toBe(1);
   });
 });
+
+describe("SetFilterList counts", () => {
+  it("formats an option count in the given locale", async () => {
+    const counted = [{ key: "a", label: "A", count: 12345 }];
+    const view = await render(<SetFilterList options={counted} checked={new Set()} onToggle={noop} onEnter={noop} idPrefix="c" ariaLabel="Values" locale="de-DE" />);
+    expect(view.container.textContent).toContain("12.345");
+  });
+});

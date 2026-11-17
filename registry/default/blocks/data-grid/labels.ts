@@ -211,6 +211,10 @@ export type DataGridGroupingLabels = {
   loadFailed: (label: string) => string;
   /** Label of the group that holds the rows without a value. */
   empty: string;
+  /** Name of a group in announcements, such as "Role: Admin"; `column` is the column label, `label` the group label. */
+  groupName: (column: string, label: string) => string;
+  /** Text of a group row, such as "Role: Admin (34)"; `count` is the rows of the group. */
+  rowLabel: (column: string, label: string, count: number) => string;
   /** Polite announcement after a group opens; `count` is the rows of the group. */
   expanded: (label: string, count: number) => string;
   /** Polite announcement after a group closes. */
@@ -471,6 +475,8 @@ export type DataGridFindReplaceLabels = {
   position: (index: number, total: number, capped: boolean) => string;
   replaced: (replaced: number, skipped: number) => string;
   moreRemain: string;
+  /** Status line after a Replace all that left matches; joins the `replaced` text and `moreRemain`. */
+  replacedAndMore: (replacedText: string, moreRemainText: string) => string;
   validating: string;
   scopeLoadedRows: string;
   /** Scope note under the Find field when `findScope="result"`. */

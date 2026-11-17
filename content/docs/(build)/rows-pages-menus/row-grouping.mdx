@@ -58,7 +58,7 @@ A grid takes at most four group levels. An unknown column, a `groupable: false` 
 | `expanded` | `{ mode, ids }` | Uncontrolled |
 | `defaultExpanded` | `{ mode, ids }` | Every group closed |
 | `onExpandedChange` | `(next) => void` | None |
-| `renderGroupLabel` | `(ctx) => ReactNode` | `column: key (count)` |
+| `renderGroupLabel` | `(ctx) => ReactNode` | `labels.grouping.rowLabel`: `column: key (count)` |
 
 `ExpandedState` is `{ mode: "collapsed" | "expanded", ids }`. The `ids` are the groups that differ from `mode`. Read the group ids from `onExpandedChange`. Pass a stable `renderGroupLabel`.
 
