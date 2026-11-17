@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import { use, useCallback, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import type { CellEditorProps } from "../types";
 import { useCommitGuard } from "./use-commit-guard";
 import { useSeedFocus } from "./use-seed-focus";
 import { columnLabelText } from "../columns/column-format-helpers";
 import { isComposingKey } from "./is-composing-key";
+import { EditingCellTypeContext } from "./editing-cell-type";
 
 /** Class set that makes a text input look like the cell text it replaces: no box, no tint, inherited font size. Other classes merge on top. */
 export const CELL_INPUT_CLASS =
@@ -31,8 +32,8 @@ export function useCellTextInsets() {
 export type CellEditorCodec<TValue> = {
   /** Initial draft text for the committed `value`. */
   toDraft(value: TValue): string;
-  /** Parse a draft into the type's value. Throwing keeps the editor open with the draft unchanged. */
-  toValue(draft: string): TValue;
+  /** Parse a draft into the type's value. Throwing keeps the editor open with the draft unchanged. Defaults to the column type's `fromText`. */
+  toValue?(draft: string): TValue;
 };
 
 /**
@@ -51,11 +52,16 @@ export function useCellEditorDraft<TValue>(props: CellEditorProps<unknown, TValu
     lastRejectionCount.current = props.rejectionCount ?? 0;
   }, [props.rejectionCount, guard]);
 
+  const cellType = use(EditingCellTypeContext);
+  const parseDraft =
+    codec.toValue ??
+    ((draft: string) => (cellType ? cellType.fromText(draft, props.options) : draft) as TValue);
+
   const commitText = (movement?: { dx: number; dy: number }) => {
     if (!guard.tryCommit()) return;
     let value: TValue;
     try {
-      value = codec.toValue(text);
+      value = parseDraft(text);
     } catch {
       guard.reset();
       return;

@@ -194,6 +194,27 @@ describe("renderMarker (custom row marker cell content)", () => {
     expect(markers[0]).toHaveAttribute("data-marker-cell-selected", "true");
   });
 
+  it("renders its own reorder handle beside a custom marker that never reads reorderHandleProps", () => {
+    const plain = (): ReactNode => <span data-testid="plain-marker" />;
+    render(<DataGrid data={makeRows(3)} columns={columns} getRowId={(r) => r.id} rowMarkers="reorder" renderMarker={plain} />);
+    const cell = markerCells()[0]!;
+    expect(cell.querySelectorAll(gridAttrSelector("reorderHandle")).length).toBe(1);
+    expect(cell.querySelector('[data-testid="plain-marker"]')).not.toBeNull();
+  });
+
+  it("passes ariaLabel and toggleAll to a custom marker header", () => {
+    const header = ({ ariaLabel, toggleAll }: MarkerHeaderRenderCtx): ReactNode => (
+      <button type="button" aria-label={ariaLabel} data-testid="hdr" onClick={toggleAll} />
+    );
+    render(<DataGrid data={makeRows(3)} columns={columns} getRowId={(r) => r.id} rowMarkers="checkbox" renderMarkerHeader={header} />);
+    const button = screen.getByTestId("hdr");
+    expect(button.getAttribute("aria-label")).toBeTruthy();
+    fireEvent.click(button);
+    expect(document.querySelectorAll('[data-row-selected]').length).toBe(3);
+    fireEvent.click(button);
+    expect(document.querySelectorAll('[data-row-selected]').length).toBe(0);
+  });
+
   it("hands a reorder handle to a custom marker in a reorder mode only", () => {
     const handleMarker = ({ reorderHandleProps }: MarkerCellRenderCtx): ReactNode => <span data-testid="custom-handle" {...reorderHandleProps} />;
     render(<DataGrid data={makeRows(3)} columns={columns} getRowId={(r) => r.id} rowMarkers="reorder" renderMarker={handleMarker} />);
@@ -314,5 +335,30 @@ describe("rowMarkers='none' with renderers", () => {
     expect(document.querySelector(gridAttrSelector("markerHeader"))).toBeNull();
     expect(renderMarkerSpy).not.toHaveBeenCalled();
     expect(renderMarkerHeaderSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("inline marker renderers", () => {
+  it("render no extra marker cells when the parent re-renders with a new function identity", () => {
+    let calls = 0;
+    const grid = (tick: number) => (
+      <DataGrid
+        data={makeRows(5)}
+        columns={columns}
+        getRowId={(r) => r.id}
+        rowMarkers="checkbox"
+        renderMarker={() => {
+          calls += 1;
+          return <span data-testid="inline-marker">{tick >= 0 ? "m" : ""}</span>;
+        }}
+        renderMarkerHeader={() => <span>h</span>}
+      />
+    );
+    const { rerender } = render(grid(0));
+    const after = calls;
+    expect(after).toBeGreaterThan(0);
+    rerender(grid(1));
+    rerender(grid(2));
+    expect(calls).toBe(after);
   });
 });

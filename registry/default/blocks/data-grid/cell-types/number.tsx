@@ -135,7 +135,7 @@ function NumberEditor(props: CellEditorProps<unknown, number | null, GridCellTyp
               : clamped;
         setDraft(String(next));
       }}
-      className={cn(CELL_INPUT_CLASS, "text-end [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none")}
+      className={cn(CELL_INPUT_CLASS, "[text-align:inherit] [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none")}
     />
   );
 }

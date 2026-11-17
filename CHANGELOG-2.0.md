@@ -86,6 +86,14 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - A newer edit start aborts the pending `onBeforeEditStart` run with `"superseded"`; the newest request wins, like every other gate. A second request used to be ignored.
 - `actions.resetColumnLayout()` restores the widths, order, pins, and hidden columns of the column definitions as one `onColumnLayoutChange`.
 - The global shortcut layer listens in the capture phase, so a page listener sees `defaultPrevented` once the grid handled the key, wherever the listener was registered. Events from a dialog, menu, or listbox are skipped. A page that stops propagation below the window to hide a key from the grid no longer hides it.
+- `renderMarker` and `renderMarkerHeader` can be inline functions: they render through a stable wrapper, so a new function identity no longer re-renders every row. A marker renders again when its row changes.
+- A custom `renderMarker` that never reads `reorderHandleProps` in a `reorder` mode gets the grid's own drag handle next to its content.
+- `MarkerHeaderRenderCtx` has `ariaLabel` (the built-in select-all name) and `toggleAll()` (checks every row, or clears the checked rows when all are checked).
+- The number editor follows the alignment of its cell instead of always aligning to the end.
+- A pinned-row cell always carries `data-readonly`; `readOnly: false` on its column no longer removes it. Pinned cells never edit.
+- `OverlayPluginCtx.columnIndexOf(columnId)` returns the rect `x` of a column, or `-1` for a hidden or unknown column.
+- `toValue` of the `useCellEditor` codec is optional. Without it, the hook parses the draft with `fromText` of the column's cell type, and a text that `fromText` rejects keeps the editor open.
+- Fix: a portaled custom editor without `data-grid-cell-editor` no longer takes its presses, double clicks, and focus for the cell it sits in. A press in it keeps the edit and the selection.
 
 ## Sorting, filtering, and search
 

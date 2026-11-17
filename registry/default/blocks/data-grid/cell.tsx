@@ -8,6 +8,7 @@ import {
   useMemo,
   useRef,
   type CSSProperties,
+  type FocusEvent as ReactFocusEvent,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
@@ -26,6 +27,8 @@ import { cellLayer, GRID_LAYER } from "./layers";
 import { cellTypes as defaultCellTypes } from "./cell-types/cell-types";
 import { resolveColumnValidate } from "./cell-types/capabilities";
 import { useAsyncValidate } from "./interaction/use-async-validate";
+import { EditingCellTypeContext } from "./interaction/editing-cell-type";
+import { isPortaledEvent } from "./interaction/portaled-events";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 /** The "highlight-what-changed" fade pulse `flashCells` plays on the cells it marks; the keyframes `DataGridBody` injects once per grid (self-contained, no app global.css step). Duration reads `--grid-flash-duration` (default 1.2s; `0s` disables the pulse). */
@@ -111,9 +114,9 @@ function keepsFocusOutsideGrid(doc: Document): boolean {
 // True when a cell DOM event originates from the cell's own editor: inline editors' form controls
 // bubble through the DOM, and the portaled popovers (date/select/long-text) bubble up the React
 // tree from outside the cell's div.
-function isEditorEvent(target: EventTarget | null): boolean {
-  const el = target as HTMLElement | null;
-  return el !== null && el.closest(`${gridAttrSelector("cellEditor")}, input, textarea, select, [contenteditable]`) !== null;
+function isEditorEvent(event: { currentTarget: Element; target: EventTarget | null }): boolean {
+  const el = event.target as HTMLElement | null;
+  return isPortaledEvent(event) || (el !== null && el.closest(`${gridAttrSelector("cellEditor")}, input, textarea, select, [contenteditable]`) !== null);
 }
 
 // The grid scroller clips the inline error line: flip it above the cell at the bottom edge and
@@ -175,8 +178,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         ? undefined
         : column.readOnly(row)
       : column.readOnly);
-  // A pinned cell never edits (no handlers below); the column's readOnly sets only its data-readonly flag.
-  const readOnly = isPinnedRow ? (columnReadOnly ?? true) : Boolean(gridReadOnly || columnReadOnly);
+  const readOnly = isPinnedRow || Boolean(gridReadOnly || columnReadOnly);
   const opaque = pinned || isPinnedRow;
 
   const style: CSSProperties = {
@@ -204,6 +206,10 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
     document.addEventListener("focusout", onFocusOut, true);
     return () => document.removeEventListener("focusout", onFocusOut, true);
   }, [isEditing]);
+  // focus that lands in the cell's own portaled editor never left the grid
+  const onEditorFocus = useCallback((event: ReactFocusEvent<HTMLDivElement>) => {
+    if (isPortaledEvent(event)) focusLeftGridRef.current = false;
+  }, []);
 
   // A commit caused by focus moving to a control outside the grid (Tab) must not pull focus back.
   useLayoutEffect(() => {
@@ -244,7 +250,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   // sensitivity) — fired regardless of readOnly and of whatever the gesture also does.
   const onDoubleClick = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
-      if (isEditorEvent(event.target)) return;
+      if (isEditorEvent(event)) return;
       interaction.onCellDoubleClick(coord, event);
       storeApi.getState().onCellDoubleClick?.({ value, row, column, rowId, columnId: column.id, viewRowIndex: viewRowIndex, viewColumnIndex: viewColumnIndex }, event.nativeEvent);
     },
@@ -252,7 +258,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
   );
   const onContextMenu = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
-      if (isEditorEvent(event.target)) return;
+      if (isEditorEvent(event)) return;
       storeApi.getState().onCellContextMenu?.({ value, row, column, rowId, columnId: column.id, viewRowIndex: viewRowIndex, viewColumnIndex: viewColumnIndex }, event.nativeEvent);
     },
     [storeApi, value, row, column, rowId, viewRowIndex, viewColumnIndex],
@@ -334,6 +340,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       rejectionCount?: number;
     }) => ReactNode;
     content = (
+      <EditingCellTypeContext value={cellType}>
       <Editor
         key={editSession}
         value={value}
@@ -350,6 +357,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         pending={asyncValidate.pending}
         rejectionCount={editingRejectionCount}
       />
+      </EditingCellTypeContext>
     );
   } else if (column.renderCell) {
     content = column.renderCell({ value, row, rowId, columnId: column.id, viewRowIndex: viewRowIndex, column, options: column.options, isActive });
@@ -429,6 +437,7 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
       // and skipping it avoids the guaranteed no-op round-trip through resolveEditTarget.
       onDoubleClick={isPinnedRow || isSkeleton ? undefined : onDoubleClick}
       onContextMenu={isPinnedRow || isSkeleton ? undefined : onContextMenu}
+      onFocus={isEditing ? onEditorFocus : undefined}
     >
       {isEditing ? (
         content

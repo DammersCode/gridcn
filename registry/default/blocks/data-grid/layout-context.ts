@@ -147,16 +147,20 @@ export type MarkerCellRenderCtx = {
 export type MarkerHeaderRenderCtx = {
   /** The select-all state the built-in header checkbox shows. */
   allSelected: "checked" | "indeterminate" | "unchecked";
+  /** The built-in header checkbox's accessible name; use it as the `aria-label` of a custom control. */
+  ariaLabel: string;
+  /** Checks every row, or clears the checked rows when all are checked: what the built-in checkbox does on a click. */
+  toggleAll(): void;
 };
 
 /**
  * Custom row-marker cell renderer: replaces the built-in row number/checkbox CONTENT inside the
  * marker column (requires a non-`'none'` `rowMarkers` mode; the mode still drives the track width,
- * and the cell's own press/drag row-selection gesture stays on the wrapper). Pass a stable identity.
+ * and the cell's own press/drag row-selection gesture stays on the wrapper).
  */
 export type MarkerCellRenderer = (ctx: MarkerCellRenderCtx) => ReactNode;
 
-/** Custom marker-header renderer: replaces the built-in select-all checkbox; same track and width. Pass a stable identity. */
+/** Custom marker-header renderer: replaces the built-in select-all checkbox; same track and width. */
 export type MarkerHeaderRenderer = (ctx: MarkerHeaderRenderCtx) => ReactNode;
 
 /** Layout context shared by header/body so they don't recompute widths independently and never desync on row height, and so both consume the SAME column window (no drift between two independent subscriptions). */

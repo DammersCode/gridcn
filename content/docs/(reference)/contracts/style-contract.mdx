@@ -81,7 +81,7 @@ Use these in CSS or with the Tailwind `data-[attr]:` variant.
 | `data-editing` | Cell | The cell is in edit mode |
 | `data-pinned` | Cell, header | `"start"` or `"end"`, the pin side |
 | `data-pinned` | Overlay | An empty value. The overlay segment sits in a pinned zone |
-| `data-readonly` | Cell | The cell is not editable: the grid or its column is `readOnly`, or the column has no `accessorKey` and no `setValue`. Pinned-row cells carry it, and a column can set `readOnly: false` to remove it, unless it has no `accessorKey` and no `setValue` |
+| `data-readonly` | Cell | The cell is not editable: the grid or its column is `readOnly`, or the column has no `accessorKey` and no `setValue`. Pinned-row cells always carry it |
 | `data-type` | Cell | The cell type key. `text` is the key of a column with no type |
 | `data-search-match` | Cell | The cell matches the quick search |
 | `data-flash` | Cell | The cell flash plays |

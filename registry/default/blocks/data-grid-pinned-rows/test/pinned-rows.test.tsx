@@ -233,14 +233,14 @@ describe("pinned rows — readOnly default", () => {
     pinnedCells.forEach((cell) => expect(cell).toHaveAttribute("data-readonly"));
   });
 
-  it("a column's own readOnly: false overrides the pinned-row default", () => {
+  it("a column's own readOnly: false does not make a pinned cell editable", () => {
     const editableColumns: readonly ColumnDef<Row, unknown>[] = [
       { id: "name", header: "Name", accessorKey: "name", width: 120, readOnly: false },
       { id: "qty", header: "Qty", accessorKey: "qty", type: "number", width: 80 },
     ];
     render(<PinnedGrid data={makeRows(5)} columns={editableColumns} topRows={[totals]} />);
     const nameCell = document.querySelector(`${gridAttrSelector("pinnedRow")}[data-column-id="name"]`);
-    expect(nameCell).not.toHaveAttribute("data-readonly");
+    expect(nameCell).toHaveAttribute("data-readonly");
     const qtyCell = document.querySelector(`${gridAttrSelector("pinnedRow")}[data-column-id="qty"]`);
     expect(qtyCell).toHaveAttribute("data-readonly");
   });

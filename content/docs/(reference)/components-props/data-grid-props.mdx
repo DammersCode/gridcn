@@ -90,7 +90,7 @@ These props set the look and the states of the grid. When you compose the parts 
 | `getCellClassName` | `GetCellClassName<TData>` | none | Adds classes to a cell. |
 | `children` | `ReactNode` | header and body (`DataGrid` only) | The parts inside the root. |
 
-`DataGrid` also takes `renderHeaderCell`, a `HeaderCellRenderer` that its default `DataGridHeader` uses. With children, pass it to `DataGridHeader`. `toolbar` takes a node that renders inside the provider, above the grid, so a toolbar or status bar can read the grid store. Pass a stable function to `renderMarker` and `renderMarkerHeader`. `getRowClassName` and `getCellClassName` can be inline functions. Rows and cells re-render only when the function returns different classes for the rendered rows.
+`DataGrid` also takes `renderHeaderCell`, a `HeaderCellRenderer` that its default `DataGridHeader` uses. With children, pass it to `DataGridHeader`. `toolbar` takes a node that renders inside the provider, above the grid, so a toolbar or status bar can read the grid store. `renderMarker` and `renderMarkerHeader` can be inline functions. A marker renders again when its row changes, so state outside the grid reaches it only through the row. `getRowClassName` and `getCellClassName` can be inline functions. Rows and cells re-render only when the function returns different classes for the rendered rows.
 
 ### Render slot arguments [#render-slots]
 

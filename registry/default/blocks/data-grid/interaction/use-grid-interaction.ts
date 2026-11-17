@@ -25,6 +25,7 @@ import {
   visualArrowKey,
 } from "../virtualization/direction";
 import { GRID_ATTR, gridAttrSelector } from "../data-attributes";
+import { isCellEditorEvent, markPortaledPointerDown, wasPortaledPointerDown } from "./portaled-events";
 import { type RowRangeGesture } from "../selection/row-range-gesture";
 import { getInternalActions } from "../store/internal-actions";
 import { isComposingKey } from "./is-composing-key";
@@ -102,6 +103,8 @@ export type GridInteractionHandlers = {
   onMarkerCheckboxPointerDown: (viewRowIndex: number, event: ReactPointerEvent<HTMLElement>) => void;
   /** Attach to the root's pointerdown to clear selection on click-outside-cells. */
   onRootPointerDown: (event: ReactPointerEvent<HTMLElement>) => void;
+  /** Flags a press that reaches the root from portaled content. */
+  onRootPointerDownCapture: (event: ReactPointerEvent<HTMLElement>) => void;
   /**
    * Ends an in-progress header column-select drag (mode "column") without affecting a cell/row
    * drag. Column reorder (use-column-reorder.ts) calls this the moment it arms, so the two
@@ -572,7 +575,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       // parent, not the DOM tree — so a press inside a cell's own popup editor (Select/Date,
       // rendered via a portal to document.body) still reaches this handler even though the
       // DOM target is nowhere under this cell. Ignore it; the editor's own handlers own it.
-      if ((event.target as HTMLElement | null)?.closest(gridAttrSelector("cellEditor"))) return;
+      if (isCellEditorEvent(event)) return;
       pressedCoordRef.current = coord;
       if (event.pointerType === "touch") {
         onCellTouchPress(coord, event);
@@ -659,8 +662,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
 
   const onCellDoubleClick = useCallback(
     (coord: ViewCoord, event: ReactMouseEvent<HTMLElement>) => {
-      // same portal-bubbling concern as onCellPointerDown above.
-      if ((event.target as HTMLElement | null)?.closest(gridAttrSelector("cellEditor"))) return;
+      if (isCellEditorEvent(event)) return;
       editCellAt(coord);
     },
     [editCellAt],
@@ -821,6 +823,8 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
     [actions, beginSelectionHandleDrag],
   );
 
+  const onRootPointerDownCapture = markPortaledPointerDown;
+
   const cancelColumnSelectDrag = useCallback(() => {
     if (dragRef.current?.mode === "column") endDrag();
   }, [endDrag]);
@@ -830,13 +834,22 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
   // Click-outside clears the cell range and columns, never the checked rows; attached only while one exists.
   useEffect(() => {
     let attached = false;
+    let deferredClear: ReturnType<typeof setTimeout> | undefined;
     const onPointerDown = (event: PointerEvent) => {
       if (event.button !== 0) return;
       const target = event.target as Element | null;
       if (!target || !(target instanceof Element)) return;
       if (scrollRef.current?.contains(target)) return;
       if (target.closest(KEEP_RANGE_SURFACES)) return;
-      actions.clearCellSelection();
+      if (!storeApi.getState().editing) {
+        actions.clearCellSelection();
+        return;
+      }
+      // a portaled editor without the marker attribute reaches React after this capture listener
+      clearTimeout(deferredClear);
+      deferredClear = setTimeout(() => {
+        if (!wasPortaledPointerDown(event)) actions.clearCellSelection();
+      }, 0);
     };
     const setAttached = (attach: boolean) => {
       if (attach === attached) return;
@@ -851,6 +864,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
     });
     return () => {
       unsubscribe();
+      clearTimeout(deferredClear);
       setAttached(false);
     };
   }, [actions, scrollRef, storeApi]);
@@ -866,6 +880,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       onMarkerPointerDown,
       onMarkerCheckboxPointerDown,
       onRootPointerDown,
+      onRootPointerDownCapture,
       cancelColumnSelectDrag,
       scrollCellIntoView: scrollActiveCellIntoView,
     }),
@@ -879,6 +894,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       onMarkerPointerDown,
       onMarkerCheckboxPointerDown,
       onRootPointerDown,
+      onRootPointerDownCapture,
       cancelColumnSelectDrag,
       scrollActiveCellIntoView,
     ],

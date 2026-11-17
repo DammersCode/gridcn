@@ -54,7 +54,7 @@ export function DataGridMarkerHeader(props: DataGridMarkerHeaderProps): ReactNod
       style={style}
     >
       {renderMarkerHeader ? (
-        renderMarkerHeader({ allSelected: state })
+        renderMarkerHeader({ allSelected: state, ariaLabel: labels.markers.selectAll, toggleAll: () => actions.setAllRowsChecked(state !== "checked") })
       ) : (
         <>
           <span className="sr-only">{labels.markers.columnHeader}</span>

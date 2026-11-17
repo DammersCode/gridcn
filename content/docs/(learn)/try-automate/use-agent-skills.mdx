@@ -52,7 +52,7 @@ The skill builds a cell type in order. First the value pipeline: `toText`, `from
 - A `cellTypes` entry merges over the built-in types. An entry set to `null` removes that type.
 - A `type` key that matches no entry renders the column as plain text, and only a development warning reports it.
 - Call `rejectText()` in `fromText` for text that does not parse. The cell keeps its value, and the grid reports the text, as the built-in types do. A `fromText` that throws another error rejects that cell too, and the paste continues. Return `clearValue()` only to empty the cell on purpose.
-- A portaled editor without `data-grid-cell-editor` closes on the first click.
+- A portaled editor without `data-grid-cell-editor` commits on blur when the focus moves into its portaled content.
 
 **It is working if** `fromText(toText(value))` returns the value, pasted garbage leaves the cell unchanged, Enter commits and moves down, and Escape keeps the original value.
 
