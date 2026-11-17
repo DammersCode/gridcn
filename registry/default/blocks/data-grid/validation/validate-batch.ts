@@ -1,12 +1,47 @@
 import type { CellErrorEntry } from "../store/types";
 import type { GridBulkValidationError, StandardSchemaV1Result } from "../types";
 import { toSafeText } from "../cell-types/safe-text";
-import { resolveSchemaResult, runValidatePending, type CellValidate, type ValidateResult } from "./validate-cell";
+import { isDev } from "../is-dev";
+import { isStandardSchema, resolveSchemaResult, runValidatePending, type CellValidate, type ValidateResult } from "./validate-cell";
 import { validateContextsFor, type CellValidateContext } from "./validate-context";
 import type { AnyColumnDef } from "../store/types";
 
 /** How many async cell validations may be in flight at once. A 10k-cell paste against a network-backed schema must not open 10k requests. */
 export const VALIDATE_CONCURRENCY = 32;
+
+/** A column's `validateMany`: one answer per cell of the write, in order; `null` accepts. */
+export type ValidateMany = (cells: readonly { value: unknown; row: unknown }[]) => readonly (string | null)[];
+
+const manyAnswers = new WeakMap<CellValidateContext, Map<unknown, string | null> | { thrown: unknown }>();
+const manyWarned = new WeakSet<ValidateMany>();
+
+/** Adds a once-per-write `validateMany` after `validate`. Beside a Standard Schema it is skipped, with one development warning. */
+export function withValidateMany(validate: CellValidate, many: ValidateMany): CellValidate {
+  if (isStandardSchema(validate)) {
+    if (isDev() && !manyWarned.has(many)) {
+      manyWarned.add(many);
+      console.warn("[data-grid] validateMany is ignored on a column whose validate is a Standard Schema; move the rule into the schema or use a function validate.");
+    }
+    return validate;
+  }
+  return (value, row, ctx) => {
+    const own = validate?.(value, row, ctx);
+    if (own) return own;
+    let answers = manyAnswers.get(ctx);
+    if (!answers) {
+      try {
+        const out = many(ctx.batch);
+        if (!Array.isArray(out) || out.length !== ctx.batch.length) throw new TypeError(`validateMany must return one answer per cell: expected ${ctx.batch.length}`);
+        answers = new Map(ctx.batch.map((cell, i) => [cell.row, out[i] ?? null]));
+      } catch (error) {
+        answers = { thrown: error };
+      }
+      manyAnswers.set(ctx, answers);
+    }
+    if (!(answers instanceof Map)) throw answers.thrown;
+    return answers.get(row) ?? null;
+  };
+}
 
 /** One cell queued for validation: the validator to run plus the `(value, row)` it runs against. */
 export type ValidateBatchItem = {

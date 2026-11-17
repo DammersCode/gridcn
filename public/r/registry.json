@@ -138,6 +138,11 @@
           "target": "components/data-grid/clipboard/parse-clipboard.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/clipboard/resolve-texts.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/clipboard/resolve-texts.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/clipboard/serialize-cells.ts",
           "type": "registry:component",
           "target": "components/data-grid/clipboard/serialize-cells.ts"

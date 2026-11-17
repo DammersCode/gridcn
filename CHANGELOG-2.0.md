@@ -47,6 +47,8 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - `renderHeaderFilter` accepts a component (`renderHeaderFilter={DataGridHeaderFilter}`); the header renders the slot through a stable wrapper, so hooks in the slot keep their state.
 - `defineColumns<Row, typeof extraTypes>()` types a column of a custom cell type from the value and options of `defineCellType(type)`, with no `GridCellTypes` augmentation. `defineCellType(key, type)` works as before.
 - `useDataGridViewIndex()` returns `readonly number[]`. The selector state of `useDataGridSelector` and `createDataGridSelector` no longer lists the engine fields.
+- `ColumnDef.validateMany(cells)` validates every cell of a column that one write sets in one call, after `validate`. A paste, fill, clear, import, or `updateCells` of 10,000 cells calls it once; a single edit calls it with one cell. Before, a rule that needed the whole batch ran per cell or had to hand-roll a cache on `ctx`.
+- A cell type can declare `resolveTexts(texts, options, { signal })`. A paste calls it once per column with the distinct texts and holds the paste as the `resolveTexts` gate (`useDataGridGatePending`, `gateTimeoutMs`, `onGateAborted`) until it resolves, then parses with `fromText`.
 
 ## Selection and editing
 
@@ -214,6 +216,8 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - Presence: `toPresenceEntries(selection, details, { id, color, columnIds })` turns a local selection into the row-id range entry to send to peers.
 - **Breaking:** the presence type `PresenceHighlight` is `ViewRangePresenceHighlight`. The shape is the same.
 - Pinned rows: `useDataGridPinnedRows` returns `serverAggregates`, the result of each `serverAggregateRow` entry with `row`, `status`, `refresh()`, and `retry()`. A refresh button or a status label no longer needs a reporter and state above the hook.
+- `useDataGridFill({ processFill })` may return a promise. The fill is held as the new `processFill` gate and its `ctx.signal` aborts when a newer fill supersedes it; the cells write and the selection expands when it resolves. Before, `processFill` was synchronous only.
+- `lookup` column option `resolveLabels({ labels, signal })` resolves the pasted labels that no option, cell, or copy has shown, once per paste. `labelCacheKey` drops the remembered labels of the column when it changes. `isAnyOf` and `isNoneOf` filter a lookup column by the stored key or the label, so a server set filter that lists keys works.
 
 ## Accessibility and keyboard
 

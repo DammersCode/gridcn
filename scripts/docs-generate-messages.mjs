@@ -136,6 +136,10 @@ export const MESSAGES = [
       dev("processPaste rejected, so the paste is cancelled: <error>", "clipboard/use-grid-clipboard.ts", "rejected, so the paste is cancelled", "Fix the error in `processPaste`, or catch it inside the function.", "/docs/clipboard-undo/clipboard"),
       dev("processCellFromClipboard rejected, so the paste is cancelled: <error>", "clipboard/use-grid-clipboard.ts", "processCellFromClipboard rejected, so the paste is cancelled", "Fix the error in `processCellFromClipboard`, or catch it inside the function.", "/docs/clipboard-undo/clipboard"),
       dev("processCellFromClipboard threw, so the paste is cancelled: <error>", "clipboard/use-grid-clipboard.ts", "threw, so the paste is cancelled", "Fix the error in `processCellFromClipboard`.", "/docs/clipboard-undo/clipboard"),
+      dev("resolveTexts rejected, so the paste is cancelled: <error>", "clipboard/use-grid-clipboard.ts", "resolveTexts rejected, so the paste is cancelled", "Fix the error in the `resolveTexts` of the cell type, or catch it inside the function. The `lookup` type calls `resolveLabels` from it.", "/docs/editing-cells/lookup-cell"),
+      { text: "[data-grid] processFill rejected, so the fill is cancelled: <error>", file: "registry/default/blocks/data-grid-fill/use-fill-handle.ts", find: "processFill rejected, so the fill is cancelled", fix: "Fix the error in `processFill`, or catch it inside the function.", page: "/docs/clipboard-undo/fill-handle" },
+      dev("validateMany is ignored on a column whose validate is a Standard Schema; move the rule into the schema or use a function validate.", "validation/validate-batch.ts", "validateMany is ignored on a column", "Use a function `validate`, or put the rule in the schema.", "/docs/editing-cells/validation"),
+      { text: "validateMany must return one answer per cell: expected <n>", file: `${CORE}/validation/validate-batch.ts`, find: "validateMany must return one answer per cell", fix: "Return an array with one entry per cell, `null` for a cell that passes. The grid rejects every cell of the write with this text.", page: "/docs/editing-cells/validation" },
     ],
   },
   {

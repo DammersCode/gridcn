@@ -108,7 +108,11 @@ Pass these options to `useDataGridFill`. Every option is optional:
 
 ### processFill
 
-`processFill` runs on drag release and on both keyboard commands, before the grid applies the fill. It is synchronous: it returns the text grid to write, or `false` to cancel the fill, and never a promise. The grid parses the returned text with the `fromText` of each column and validates it, like a paste. After `false`, the grid writes nothing and the selection does not expand. This option cancels large fills:
+`processFill` runs on drag release and on both keyboard commands, before the grid applies the fill. It returns the text grid to write, or `false` to cancel the fill. The grid parses the returned text with the `fromText` of each column and validates it, like a paste. After `false`, the grid writes nothing and the selection does not expand.
+
+A promise holds the fill as the `processFill` gate. When it resolves, the selection expands and the cells write. A newer fill, `readOnly`, or a changed row set drops the answer. `useDataGridGatePending` and `gateTimeoutMs` cover the gate.
+
+This option cancels large fills:
 
 ```tsx
 import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
@@ -134,7 +138,7 @@ function MyGrid() {
 }
 ```
 
-`ProcessFillContext` also carries `source`, the rectangle of the source cells, and `cells`, the text grid for the target before parsing. For Ctrl/Cmd+D, `source` is the top row. For Ctrl/Cmd+R, it is the left column. `target` covers the new cells only. `onDataChange` with the `"fill"` source reports each fill that the grid writes.
+`ProcessFillContext` also carries `source`, the rectangle of the source cells. `cells` is the text grid for the target before parsing. `signal` aborts when a newer fill supersedes this one. For Ctrl/Cmd+D, `source` is the top row. For Ctrl/Cmd+R, it is the left column. `target` covers the new cells only. `onDataChange` with the `"fill"` source reports each fill that the grid writes.
 
 ### detectSeries [#custom-series-detection]
 

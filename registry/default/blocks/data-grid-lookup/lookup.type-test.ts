@@ -19,3 +19,10 @@ export const columns = defineColumns<Order>()([
 
 const untypedRow: LookupOptions = { fetchOptions: async ({ row }) => [{ value: String(row), label: "x" }] };
 void untypedRow;
+
+const resolving: LookupOptions<Order> = {
+  fetchOptions: async () => [],
+  resolveLabels: async ({ labels, signal }) => (signal.aborted ? [] : labels.map((label) => ({ value: label, label }))),
+  labelCacheKey: "tenant-a",
+};
+void resolving;

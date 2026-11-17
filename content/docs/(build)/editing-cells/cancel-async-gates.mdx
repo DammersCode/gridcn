@@ -51,6 +51,8 @@ The grid drops an aborted gate result. A rejection after an abort adds no warnin
 | `onBeforeDeleteRows` | `({ rowIds, hiddenCount, signal })` |
 | `processReplace` | `({ plan, signal })` |
 | `mapColumn` | `(header, index, { signal })` |
+| `processFill` | `({ source, target, cells, signal })` |
+| `resolveTexts` | `(texts, options, { signal })` |
 
 `gateTimeoutMs` covers every gate in the table. It also covers an async schema in `validate` that holds a paste, a fill, or a clear. That schema receives no signal, so the grid drops its late answer. A gate that ignores the extra argument keeps working.
 

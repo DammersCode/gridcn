@@ -20,6 +20,7 @@ import { holdValidateGate, settleValidateGate } from "../store/validate-gate";
 import { exportText } from "../cell-types/display-text";
 import { toSafeText } from "../cell-types/safe-text";
 import { resolveColumnValidate } from "../cell-types/capabilities";
+import { resolveColumnTexts } from "./resolve-texts";
 import { parseWithHook, safeFromText, settleHookFailure } from "../cell-types/safe-from-text";
 import { candidateRowIds, reresolveBulkWrites, snapshotBulkBatch, useBulkGeneration, type BulkGeneration } from "../validation/bulk-generation";
 
@@ -389,7 +390,7 @@ function applyParsedPaste(
   return true;
 }
 
-type PasteLatch = { gate: "processPaste" | "processCellFromClipboard" | "validate" | null; run: GateRun | null; warnOnce: ReturnType<typeof createWarnOnce> };
+type PasteLatch = { gate: "processPaste" | "processCellFromClipboard" | "validate" | "resolveTexts" | null; run: GateRun | null; warnOnce: ReturnType<typeof createWarnOnce> };
 const pasteLatches = new WeakMap<object, PasteLatch>();
 
 /** One latch per grid: the pending paste, whatever surface it comes from; a newer paste aborts it. */
@@ -444,6 +445,7 @@ function runPaste(
   guard?: BulkGeneration,
   storeApi?: { getState: () => DataGridStoreState },
   gateToken?: number,
+  warmed = false,
 ): boolean {
   if (finalCells === false) return false;
 
@@ -451,6 +453,12 @@ function runPaste(
   const cappedCells = truncatePasteGrid(finalCells, MAX_PASTE_CELLS);
   if (cappedCells.length < finalCells.length && isDev()) {
     console.warn(`[data-grid] paste truncated to ${cappedCells.length} of ${finalCells.length} rows (MAX_PASTE_CELLS)`);
+  }
+
+  if (!warmed) {
+    const textsRun = new GateRun("resolveTexts", (now) => now.readOnly || now.editing !== null);
+    const resolving = resolveColumnTexts(s, cappedCells, target, () => textsRun.signal);
+    if (resolving) return holdForTexts(s, actions, cappedCells, target, latch, textsRun, resolving, guard, storeApi, gateToken);
   }
 
   const run = new GateRun("processCellFromClipboard", (now) => now.readOnly || now.editing !== null);
@@ -486,6 +494,53 @@ function runPaste(
     return true;
   }
   return applyResolution(s, actions, candidates, guard, storeApi, gateToken, false);
+}
+
+/** Holds the paste while a column's `resolveTexts` runs, then parses with what it learned. */
+function holdForTexts(
+  s: DataGridStoreState,
+  actions: DataGridActions,
+  cells: string[][],
+  target: ViewCoord,
+  latch: PasteLatch,
+  run: GateRun,
+  resolving: Promise<void>,
+  guard: BulkGeneration | undefined,
+  storeApi: { getState: () => DataGridStoreState } | undefined,
+  gateToken: number | undefined,
+): boolean {
+  const gates = storeApi ? gateTrackerOf(storeApi) : undefined;
+  if (latch.run && latch.run !== run && !latch.run.aborted) {
+    if (gates) gates.abortRun(latch.run, "superseded");
+    else latch.run.cancel();
+  }
+  latch.gate = "resolveTexts";
+  latch.run = run;
+  gates?.hold(run);
+  const token = gateToken ?? guard?.begin();
+  const anchor = pasteAnchor(s, target);
+  const snapshot = snapshotBulkBatch(s, anchor ? [anchor.rowId] : []);
+  const finish = (): boolean => {
+    gates?.settle(run);
+    if (latch.run === run) {
+      latch.gate = null;
+      latch.run = null;
+    }
+    return !run.aborted;
+  };
+  void resolving.then(
+    () => {
+      if (!finish()) return;
+      const current = storeApi?.getState() ?? s;
+      const now = stillPastable(current, anchor, target, guard, token, snapshot);
+      if (now) runPaste(current, actions, cells, now, latch, guard, storeApi, token, true);
+    },
+    (error: unknown) => {
+      if (!finish()) return;
+      latch.warnOnce("resolve rejected", () => `resolveTexts rejected, so the paste is cancelled: ${toSafeText(error)}`);
+    },
+  );
+  return true;
 }
 
 /** Validates the candidates and applies them; an async schema holds the batch, still one commit. */

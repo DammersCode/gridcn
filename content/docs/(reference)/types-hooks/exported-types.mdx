@@ -64,7 +64,7 @@ export function deleteTopTwo(actions: DataGridActions) {
 
 | Type | Shape | Meaning |
 | --- | --- | --- |
-| `GateName` | A union of the gate names | `processPaste`, `processCellFromClipboard`, `validateRow`, `onBeforeEditStart`, `createRow`, `duplicateRow`, `onBeforeDeleteRows`, `import`, `mapColumn`, `processReplace`, and `validate`. |
+| `GateName` | A union of the gate names | `processPaste`, `processCellFromClipboard`, `validateRow`, `onBeforeEditStart`, `createRow`, `duplicateRow`, `onBeforeDeleteRows`, `import`, `mapColumn`, `processReplace`, `validate`, `processFill`, and `resolveTexts`. |
 | `GateContext` | `{ signal }` | The argument of an async gate. `signal` aborts when the grid stops waiting. |
 | `RowActionSkipReason` | A union of the skip reasons | Why a row action did nothing: `readOnly`, `unloaded-rows`, `no-factory`, `gate-declined`, `gate-threw`, `nothing-to-do`, `view-ordered`, `disabled`, `all-matching`, or `hidden-rows-only`. |
 | `RowActionResult` | `{ ok: true } \| { ok: false, reason }` | What the insert, duplicate, and delete actions return: `ok` once the action ran or an async gate started, else the `RowActionSkipReason`. |

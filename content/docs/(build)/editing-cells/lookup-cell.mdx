@@ -58,7 +58,7 @@ export function Orders({ orders }: { orders: Order[] }) {
 }
 ```
 
-Each lookup column of a grid remembers the labels that its editor listed and its cells showed. An inline `fetchOptions` keeps them. To drop them, for example after `fetchOptions` switches to another source, give the grid a new `key`.
+Each lookup column of a grid remembers the labels that its editor listed and its cells showed. An inline `fetchOptions` keeps them. To drop them, for example after `fetchOptions` switches to another source, change `labelCacheKey`.
 
 ## The stored value
 
@@ -93,6 +93,8 @@ A new request aborts the one before it through `signal`. The editor drops a late
 | `minQueryLength` | Fewest typed characters that start a request. | `0` |
 | `maxResults` | Most options shown. The limit is `200`. | `50` |
 | `unresolvedPaste` | A pasted text that matches no known option keeps the cell value and reaches `onValidationError`. With `"clear"`, it empties the cell. With `"keep"`, the grid stores `{ value: text, label: "" }` with the pasted text trimmed, and shows it as unresolved. | `"reject"` |
+| `resolveLabels` | Resolves the pasted labels that no option, cell, or copy has shown. A paste calls it once with the distinct unknown labels and holds the paste until it answers. | none |
+| `labelCacheKey` | The grid forgets the remembered labels of the column when this value changes. | none |
 | `labels` | Text for `searching`, `noResults`, `error`, `retry`, and `typeMore`. | English |
 
 [Lookup options](/docs/add-options/editing-cells/lookup-options) lists every option, the request fields, and the label defaults.
@@ -132,6 +134,7 @@ export const cityOptions: LookupOptions<Address> = {
 
 - Copy and export write the label.
 - A pasted or imported label resolves when the grid showed it. The grid shows labels in the editor list and in cells. It also writes them for copy, export, print, a fill source, autosize, and the filter value list. The grid remembers up to 5,000 labels for each lookup column, and the oldest leave first.
+- With `resolveLabels`, a paste first asks it for the labels that the grid does not know. The paste is held as the `resolveTexts` gate, so `useDataGridGatePending` and `gateTimeoutMs` cover it. The call gets the `signal` of the paste. A rejected call cancels the paste.
 - Other text follows `unresolvedPaste`. By default, it keeps the cell value and reaches `onValidationError`. A label that no cell, editor, or copy has shown follows `unresolvedPaste` too, so a paste from another spreadsheet keeps the cell value by default.
 - A fill inside the lookup column follows this table:
 
@@ -148,11 +151,11 @@ Clear and <kbd>Delete</kbd> store `null`.
 
 ## Sort, search, and filter
 
-Sort, quick search, and the filter menu use the label. A filter value is the label text.
+Sort, quick search, and the text filter operators use the label. The set operators `isAnyOf` and `isNoneOf` match the stored key or the label.
 
 ## Server mode
 
-The cell calls your `fetchOptions` in every data mode, because the options live on your server and not in the grid rows. It receives `{ query, signal, row, rowId, columnId }` and resolves `{ value, label }[]`. A filter on a lookup column sends the label text as its value, so a server that filters a lookup column compares labels. Local data, pagination, scroll mode, and a server-sorted grid all use the same column definition.
+The cell calls your `fetchOptions` in every data mode, because the options live on your server and not in the grid rows. It receives `{ query, signal, row, rowId, columnId }` and resolves `{ value, label }[]`. A text operator on a lookup column sends the label text, so the server compares labels. A set filter sends the entries of its list. Fill the list with `fetchFilterValues` and return the key as `value`, so the server compares keys. Local data, pagination, scroll mode, and a server-sorted grid all use the same column definition.
 
 ## Types [#types]
 
@@ -160,6 +163,7 @@ The cell calls your `fetchOptions` in every data mode, because the options live 
 - `LookupValue` is the stored value: a `LookupOption`, a bare key string without a label, or `null`.
 - `LookupFetchRequest<TData>` is the argument of `fetchOptions`: `query`, `signal`, and the edited `row`, `rowId`, and `columnId`. `TData` is your row type and defaults to `unknown`.
 - `LookupOptions<TData>` takes the same row type.
+- `LookupResolveRequest` is the argument of `resolveLabels`: `labels` and `signal`.
 - `LookupLabels` holds the strings of the editor: `searching`, `noResults`, `error`, `retry`, and `typeMore`.
 
 Type the column with `defineColumns`. `accessorKey` takes `LookupValue`, and `options` takes `LookupOptions<Row>`.

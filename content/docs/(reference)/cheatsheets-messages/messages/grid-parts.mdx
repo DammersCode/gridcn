@@ -21,6 +21,10 @@ These warnings come from copy and paste.
 | <span id="processpaste-rejected-so-the-paste-is-cancelled-error" />`[data-grid] processPaste rejected, so the paste is cancelled: <error>` | Fix the error in `processPaste`, or catch it inside the function. | [Clipboard](/docs/clipboard-undo/clipboard) |
 | <span id="processcellfromclipboard-rejected-so-the-paste-is-cancelled-error" />`[data-grid] processCellFromClipboard rejected, so the paste is cancelled: <error>` | Fix the error in `processCellFromClipboard`, or catch it inside the function. | [Clipboard](/docs/clipboard-undo/clipboard) |
 | <span id="processcellfromclipboard-threw-so-the-paste-is-cancelled-error" />`[data-grid] processCellFromClipboard threw, so the paste is cancelled: <error>` | Fix the error in `processCellFromClipboard`. | [Clipboard](/docs/clipboard-undo/clipboard) |
+| <span id="resolvetexts-rejected-so-the-paste-is-cancelled-error" />`[data-grid] resolveTexts rejected, so the paste is cancelled: <error>` | Fix the error in the `resolveTexts` of the cell type, or catch it inside the function. The `lookup` type calls `resolveLabels` from it. | [Lookup cell](/docs/editing-cells/lookup-cell) |
+| <span id="processfill-rejected-so-the-fill-is-cancelled-error" />`[data-grid] processFill rejected, so the fill is cancelled: <error>` | Fix the error in `processFill`, or catch it inside the function. | [Fill handle](/docs/clipboard-undo/fill-handle) |
+| <span id="validatemany-is-ignored-on-a-column-whose-validate" />`[data-grid] validateMany is ignored on a column whose validate is a Standard Schema; move the rule into the schema or use a function validate.` | Use a function `validate`, or put the rule in the schema. | [Validation](/docs/editing-cells/validation) |
+| <span id="validatemany-must-return-one-answer-per-cell-expected" />`validateMany must return one answer per cell: expected <n>` | Return an array with one entry per cell, `null` for a cell that passes. The grid rejects every cell of the write with this text. | [Validation](/docs/editing-cells/validation) |
 
 ## Layout warnings [#layout-warnings]
 

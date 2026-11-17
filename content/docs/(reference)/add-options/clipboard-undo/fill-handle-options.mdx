@@ -52,7 +52,7 @@ Every option is optional.
 
 ## ProcessFillContext [#processfillcontext]
 
-`processFill` receives one `ProcessFillContext` object before the grid writes. It is synchronous and never returns a promise. It returns a text grid, or `false` to cancel the fill. A text grid is a `string[][]` with one row of texts per row of `target`.
+`processFill` receives one `ProcessFillContext` object before the grid writes. It returns a text grid, or `false` to cancel the fill. A promise holds the fill as the `processFill` gate until it resolves, and `signal` aborts when a newer fill supersedes it. A text grid is a `string[][]` with one row of texts per row of `target`.
 
 `processFill` runs on:
 
