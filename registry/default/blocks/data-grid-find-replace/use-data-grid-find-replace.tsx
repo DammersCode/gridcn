@@ -16,6 +16,12 @@ export type UseDataGridFindReplaceOptions = Pick<ReplaceOptions, "scope" | "repl
   processReplace?: PanelOptions["processReplace"];
   /** Merged into the class list of the panel root. */
   className?: string;
+  /**
+   * `"loaded"` (default) steps through the matches of the loaded rows. `"result"` states that the server narrows the result by `spec.searchText`:
+   * the count line shows the size of the result, and Next and Previous go on into rows that are not loaded (scroll scrolls there, pages asks for the next page).
+   * Replace and Replace all stay on loaded rows. A grid that holds every row behaves the same in both.
+   */
+  findScope?: "loaded" | "result";
 };
 
 export type UseDataGridFindReplaceResult = {
@@ -33,7 +39,7 @@ function createPanelStore(): PanelStore {
   return {
     getOptions: () => options,
     setOptions(next) {
-      const classNameChanged = options.className !== next.className;
+      const classNameChanged = options.className !== next.className || options.findScope !== next.findScope;
       options = next;
       if (!classNameChanged) return;
       state = { ...state };

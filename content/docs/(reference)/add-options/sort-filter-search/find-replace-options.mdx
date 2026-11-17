@@ -13,6 +13,7 @@ aliases: ["replace all", "replace in cells"]
 | [`scope`](#scope) | Picks the cells that Replace covers | [Find and replace](/docs/sort-filter-search/find-replace) |
 | [`replaceAllLimit`](#replacealllimit) | Caps the cells one Replace all changes | [Find and replace](/docs/sort-filter-search/find-replace) |
 | [`processReplace`](#processreplace) | Checks or changes the plan before it writes | [Find and replace](/docs/sort-filter-search/find-replace#check-a-replace-before-it-runs) |
+| [`findScope`](#findscope) | Steps Next and Previous through the whole server result | [Find and replace](/docs/sort-filter-search/find-replace#find-over-the-result) |
 | [`className`](#classname) | Adds classes to the panel root | [Find and replace](/docs/sort-filter-search/find-replace) |
 | [`open`](#open) | Opens the panel | [Find and replace](/docs/sort-filter-search/find-replace) |
 | [`close`](#close) | Closes the panel | [Find and replace](/docs/sort-filter-search/find-replace) |
@@ -65,6 +66,10 @@ Runs after the panel builds the plan and before it writes. It gets `{ plan, sign
 ### replaceAllLimit [#replacealllimit]
 
 `planReplace` clamps the value to 1 through 100,000. The default is 10,000. When more cells match, Replace all changes the first cells up to the limit. A second click skips the cells the first click changed and continues.
+
+### findScope [#findscope]
+
+`"loaded"` steps through the matches of the loaded rows. `"result"` states that the server narrows the result by `spec.searchText`. The count line then shows the size of the result. Next and Previous go on into unloaded rows: scroll mode scrolls to the next block, and pages mode asks for the next page. Replace and Replace all stay on loaded rows. In pages mode, the panel reads the pager through `useStashedPager`.
 
 ### className [#classname]
 

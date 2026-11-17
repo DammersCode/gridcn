@@ -2006,7 +2006,8 @@
         "@gridcn/data-grid",
         "button",
         "input",
-        "@gridcn/use-debounce"
+        "@gridcn/use-debounce",
+        "@gridcn/data-grid-pagination"
       ],
       "files": [
         {
@@ -2023,6 +2024,16 @@
           "path": "registry/default/blocks/data-grid-find-replace/find-replace-panel.tsx",
           "type": "registry:component",
           "target": "components/data-grid-find-replace/find-replace-panel.tsx"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-find-replace/result-walk.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-find-replace/result-walk.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-find-replace/use-find-result-walk.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-find-replace/use-find-result-walk.ts"
         },
         {
           "path": "registry/default/blocks/data-grid-find-replace/plan-replace.ts",

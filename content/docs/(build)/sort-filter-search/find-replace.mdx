@@ -96,8 +96,6 @@ One Replace all changes at most `replaceAllLimit` cells. When more cells match, 
 
 The chevron button at the start of the Find row shows and hides the Replace field. Every open sets it: <kbd>Mod</kbd>+<kbd>F</kbd>, `open()`, and `open("find")` hide it, and <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>Enter</kbd> and `open("replace")` show it. In a `readOnly` grid, the Find field works, the chevron is hidden, and Replace stays disabled. While a cell editor is open, Replace does nothing.
 
-A sort or filter on a replaced column does not move rows while the panel is open. The view reconciles on the next sort or filter change.
-
 ### Check a replace before it runs
 
 `processReplace` runs after the panel builds the list of changes and before it writes them. It gets the `plan` and a `signal`. Return the plan to write, or `false` to cancel:
@@ -130,8 +128,6 @@ The replace is cancelled, and the status line says `Replace cancelled`, when:
 - a row that the plan writes changes or goes away while the hook runs,
 - the grid turns `readOnly`, or a cell editor opens, while the hook runs.
 
-A change of the find text, the replacement, or an option, a newer replace, or closing the panel aborts `signal` and drops a late answer.
-
 ## Keyboard
 
 | Key | Where | Action |
@@ -150,9 +146,13 @@ With `DataGridSearch` also on screen, <kbd>Mod</kbd>+<kbd>F</kbd> opens this pan
 
 ## Server mode
 
-Find and Replace work on the rows the grid holds: the loaded rows in scroll mode, and the current page in pages mode. A client grid that pages its view holds every row. Its search and "Replace all" cover every page. A jump to a match changes the page. A search that finds nothing does not mean the server result has no match. To search the whole result, set the grid's `searchText`. Your server narrows the rows by `spec.searchText`.
+Find and Replace work on the rows the grid holds: the loaded rows in scroll mode, and the current page in pages mode. A client grid that pages its view holds every row. Its search and "Replace all" cover every page. A jump to a match changes the page. A search that finds nothing does not mean the server result has no match.
 
-A grid with a `totalRowCount`, or with a server `sortMode` or `filterMode`, shows "Searches loaded rows only" under the fields. The Find field points to the note with `aria-describedby`. A local grid shows no note. To hide the note, set `labels.findReplace.scopeLoadedRows` to `""`.
+A grid with a `totalRowCount`, or with a server `sortMode` or `filterMode`, shows "Searches loaded rows only" under the fields. To hide the note, set `labels.findReplace.scopeLoadedRows` to `""`.
+
+### Find over the result
+
+Set `findScope: "result"` when your server narrows the rows by `spec.searchText`. The count line then shows the size of the result, such as "11 rows match". Next and Previous go on into unloaded rows. Scroll mode scrolls to the next block. Pages mode asks for the next page. Replace and Replace all change loaded rows only.
 
 Replace writes through the same path as an edit. `onDataChange` and `onSave` receive each Replace as one change with the source `"replace"`. A refused save reverts the refused cells. See [Save edits](/docs/save-server/save-edits).
 
@@ -165,6 +165,7 @@ Replace writes through the same path as an edit. `onDataChange` and `onSave` rec
 | `scope` | `"view" \| "selection"` | `"view"` | Which cells Replace covers. |
 | `replaceAllLimit` | `number` | `10000` | Most cells one Replace all changes. Clamped to 1 to 100,000. |
 | `processReplace` | `({ plan, signal }) => plan \| false \| Promise` | none | Checks or changes the plan before it writes. `false` cancels. |
+| `findScope` | `"loaded" | "result"` | `"loaded"` | `"result"` steps through the whole server result. See [Find over the result](#find-over-the-result). |
 | `className` | `string` | none | Classes merged into the panel root. |
 
 ### planReplace

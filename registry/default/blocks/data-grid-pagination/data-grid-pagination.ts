@@ -15,3 +15,5 @@ export {
   DataGridPaginationNext,
   DataGridPaginationLast,
 } from "./pagination-footer";
+
+export { useStashedPager } from "./pager-stash";

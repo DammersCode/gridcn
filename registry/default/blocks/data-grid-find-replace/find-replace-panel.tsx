@@ -5,6 +5,7 @@ import {
   useEffect,
   useLayoutEffect,
   useId,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -41,6 +42,7 @@ import {
   fullViewOf,
   pageStartOf,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { useFindResultWalk } from "./use-find-result-walk";
 import { MAX_REPLACE_INPUT_LENGTH, parseReturnedPatches, planReplace, resolveReplaceLimit, type ReplaceOptions, type ReplacePlan } from "./plan-replace";
 
 export type PanelStore = {
@@ -57,6 +59,7 @@ export type PanelStore = {
 export type PanelOptions = ReplaceOptions & {
   processReplace?: (ctx: { plan: ReplacePlan; signal: AbortSignal }) => ReplacePlan | false | Promise<ReplacePlan | false>;
   className?: string;
+  findScope?: "loaded" | "result";
 };
 
 type PanelProps = { panelStore: PanelStore };
@@ -109,7 +112,12 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const searchedText = useDataGridSearchText();
   const scrollToCell = useDataGridScrollToCellAt();
   const resultExceedsLoaded = useDataGridSelector<unknown, boolean>((state) => state.totalRowCount !== undefined || state.sortMode === "server" || state.filterMode === "server");
-  const showScope = resultExceedsLoaded && labels.scopeLoadedRows !== "";
+  const resultScope = resultExceedsLoaded && panelStore.getOptions().findScope === "result";
+  const scopeText = resultScope ? labels.scopeResult : labels.scopeLoadedRows;
+  const showScope = resultExceedsLoaded && scopeText !== "";
+  const totalRowCount = useDataGridSelector<unknown, number | null | undefined>((state) => state.totalRowCount);
+  const sortState = useDataGridSelector<unknown, unknown>((state) => state.sortState);
+  const filterState = useDataGridSelector<unknown, unknown>((state) => state.filterState);
   const scopeId = useId();
 
   const delayMs = useDataGridInputDebounce();
@@ -218,9 +226,16 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     [api, scrollToCell],
   );
 
+  const walkResetKey = useMemo(() => ({}), [queryKey, sortState, filterState]); // eslint-disable-line react-hooks/exhaustive-deps
+  const walk = useFindResultWalk({ enabled: resultScope, resetKey: walkResetKey, goTo });
+  const stepBy = (direction: 1 | -1) => {
+    if (!walk.step(direction, cursor)) goTo(cursor + direction);
+  };
+
   // A controlled parent applies the committed text later, so the first match is known only once searchedText has caught up.
   useEffect(() => {
     if (jumpOnCommitRef.current === null || jumpOnCommitRef.current !== searchedText) return;
+    if (matches.length === 0) return;
     jumpOnCommitRef.current = null;
     goTo(0);
   }, [searchedText, matches, goTo]);
@@ -394,7 +409,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     if (findInput.inputValue !== searchedText) {
       jumpOnCommitRef.current = findInput.inputValue;
       findInput.flush();
-    } else goTo(cursor + (event.shiftKey ? -1 : 1));
+    } else stepBy(event.shiftKey ? -1 : 1);
   };
 
   const onReplaceKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
@@ -405,13 +420,16 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   };
 
   const hasMatches = matches.length > 0;
-  const noResults = status === null && find.trim() !== "" && searchedText === find && !hasMatches;
+  const resultHasRows = resultScope && typeof totalRowCount === "number" && totalRowCount > 0;
+  const canStep = hasMatches || (resultHasRows && find.trim() !== "" && searchedText === find);
+  const noResults = status === null && find.trim() !== "" && searchedText === find && !hasMatches && !resultHasRows;
   const statusText = (() => {
     if (status?.kind === "validating") return labels.validating;
     if (status?.kind === "cancelled") return labels.replaceCancelled;
     if (status?.kind === "replaced") return status.more ? `${labels.replaced(status.replaced, status.skipped)}. ${labels.moreRemain}` : labels.replaced(status.replaced, status.skipped);
     if (find.trim() === "") return labels.typeToSearch;
     if (searchedText !== find) return "";
+    if (resultScope && typeof totalRowCount === "number") return totalRowCount > 0 ? labels.resultRows(totalRowCount) : labels.noMatches;
     return hasMatches ? labels.position(cursor + 1, matches.length, capped) : labels.noMatches;
   })();
 
@@ -476,10 +494,10 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
           {optionToggle("matchCase", labels.matchCase, <CaseSensitive />)}
           {optionToggle("wholeCell", labels.wholeCell, <WholeWord />)}
         </div>
-        <Button type="button" variant="ghost" size="icon-sm" className="size-8 shrink-0" aria-label={labels.previous} title={labels.previousTitle} disabled={!hasMatches} onClick={() => goTo(cursor - 1)}>
+        <Button type="button" variant="ghost" size="icon-sm" className="size-8 shrink-0" aria-label={labels.previous} title={labels.previousTitle} disabled={!canStep} onClick={() => stepBy(-1)}>
           <ChevronUp />
         </Button>
-        <Button type="button" variant="ghost" size="icon-sm" className="size-8 shrink-0" aria-label={labels.next} title={labels.nextTitle} disabled={!hasMatches} onClick={() => goTo(cursor + 1)}>
+        <Button type="button" variant="ghost" size="icon-sm" className="size-8 shrink-0" aria-label={labels.next} title={labels.nextTitle} disabled={!canStep} onClick={() => stepBy(1)}>
           <ChevronDown />
         </Button>
         <Button type="button" variant="ghost" size="icon-sm" className="size-8 shrink-0" aria-label={labels.close} title={labels.close} onClick={closePanel}>
@@ -508,17 +526,17 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
           <Button type="button" variant="ghost" size="icon-sm" className="size-8 shrink-0" aria-label={labels.replace} title={labels.replace} disabled={!canReplace || !hasMatches} onClick={replaceOne}>
             <Replace />
           </Button>
-          <Button type="button" variant="ghost" size="icon-sm" className="size-8 shrink-0" aria-label={labels.replaceAll} title={labels.replaceAll} disabled={!canReplace || !hasMatches} onClick={() => apply(undefined)}>
+          <Button type="button" variant="ghost" size="icon-sm" className="size-8 shrink-0" aria-label={labels.replaceAll} aria-description={resultScope ? labels.replaceLoadedRows : undefined} title={resultScope ? labels.replaceLoadedRows : labels.replaceAll} disabled={!canReplace || !hasMatches} onClick={() => apply(undefined)}>
             <ReplaceAll />
           </Button>
         </div>
       )}
       {showScope && (
         <p id={scopeId} className="px-1 text-xs text-muted-foreground">
-          {labels.scopeLoadedRows}
+          {scopeText}
         </p>
       )}
-      <div role="status" aria-live="polite" title={statusText} className={cn("h-5 truncate px-1 font-mono text-xs tabular-nums", noResults ? "text-destructive" : "text-muted-foreground")}>
+      <div role="status" aria-live="polite" aria-busy={walk.busy} title={statusText} className={cn("h-5 truncate px-1 font-mono text-xs tabular-nums", noResults ? "text-destructive" : "text-muted-foreground")}>
         {statusText}
       </div>
     </div>

@@ -392,6 +392,9 @@ export function buildDefaultLabels(locale: string): DataGridLabels {
       moreRemain: "More matches remain. Run Replace all again.",
       validating: "Validating…",
       scopeLoadedRows: "Searches loaded rows only",
+      scopeResult: "Searches every row of the result",
+      resultRows: (total) => `${total.toLocaleString(locale)} ${total === 1 ? "row" : "rows"} match`,
+      replaceLoadedRows: "Replace all changes loaded rows only",
       replaceCancelled: "Replace cancelled",
     },
   };

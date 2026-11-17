@@ -106,6 +106,7 @@ The first table has one row for each option. The Purpose column gives the first 
 | <span id="fetchrows-usedatagridserverrows" />`fetchRows` | Resolves the rows of the requested range or page. | `useDataGridServerRows` | [Server rows options](/docs/add-options/server/server-rows-options) |
 | <span id="file-datagridimportbutton" />`file` | A file to load when the dialog opens, as if the user had chosen it. | `DataGridImportButton`, `DataGridImportDialog` | [Import options](/docs/add-options/import-export/import-options#datagridimportdialogprops) |
 | <span id="filename-exportgrid" />`fileName` | Download file name, without extension. Default 'export'. | `exportGrid` | [Export options](/docs/add-options/import-export/export-options#exportgridoptions) |
+| <span id="findscope-usedatagridfindreplace" />`findScope` | Sets whether Next and Previous step through the loaded rows or the whole server result. | `useDataGridFindReplace` | [Find and replace options](/docs/add-options/sort-filter-search/find-replace-options#usedatagridfindreplace) |
 | <span id="format-exportgrid" />`format` | 'xlsx' via lazily-imported hucre, or hand-rolled RFC4180 'csv'. | `exportGrid` | [Export options](/docs/add-options/import-export/export-options#exportgridoptions) |
 | <span id="formatcell-exportgrid" />`formatCell` | Replaces the value of each exported cell after its cell type made the text. | `exportGrid` | [Export options](/docs/add-options/import-export/export-options#shape-output) |
 | <span id="formats-datagridexportbutton" />`formats` | The formats the button offers. One format exports on click, several open a menu. | `DataGridExportButton` | [Export options](/docs/add-options/import-export/export-options) |
@@ -279,7 +280,7 @@ Options of the sort, filter, search, saved views, and URL add-ons.
 | `className` | `DataGridColumnsMenu` | [Toolbar options](/docs/add-options/sort-filter-search/toolbar-options#datagridcolumnsmenu) |
 | `className` | `DataGridSortList` | [Sort list options](/docs/add-options/sort-filter-search/sort-list-options) |
 | `column`, `index`, `className`, `setFilterOperator` | `DataGridHeaderFilter` | [Toolbar options](/docs/add-options/sort-filter-search/toolbar-options#datagridheaderfilter) |
-| `scope`, `replaceAllLimit`, `processReplace`, `className` | `useDataGridFindReplace` | [Find and replace options](/docs/add-options/sort-filter-search/find-replace-options#usedatagridfindreplace) |
+| `scope`, `replaceAllLimit`, `processReplace`, `findScope`, `className` | `useDataGridFindReplace` | [Find and replace options](/docs/add-options/sort-filter-search/find-replace-options#usedatagridfindreplace) |
 | `matchCase`, `wholeCell`, `only`, `skip`, `scope`, `replaceAllLimit` | `planReplace` | [Find and replace options](/docs/add-options/sort-filter-search/find-replace-options#planreplace) |
 | `storage`, `value`, `defaultValue`, `onValueChange`, `enableDefaultView`, `onError` | `useDataGridViews`, `DataGridViews` | [Saved views options](/docs/add-options/sort-filter-search/saved-views-options#options) |
 | `className`, `labels` | `DataGridViews` | [Saved views options](/docs/add-options/sort-filter-search/saved-views-options#options) |
