@@ -598,6 +598,11 @@
           "target": "components/data-grid/sort-filter/builtin-compare.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/sort-filter/builtin-sort-keys.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/sort-filter/builtin-sort-keys.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/sort-filter/keyed-sort.ts",
           "type": "registry:component",
           "target": "components/data-grid/sort-filter/keyed-sort.ts"
@@ -721,6 +726,16 @@
           "path": "registry/default/blocks/data-grid/store/data-write.ts",
           "type": "registry:component",
           "target": "components/data-grid/store/data-write.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid/store/deferred-rows.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/store/deferred-rows.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid/store/frame-timer.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/store/frame-timer.ts"
         },
         {
           "path": "registry/default/blocks/data-grid/store/hooks.ts",

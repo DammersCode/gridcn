@@ -46,11 +46,11 @@ export function TickerFeed({ url }: { url: string }) {
 
 One call is one batch. The grid applies all patches together and calls `onDataChange` once, with one `update` operation per touched row. Rows you do not patch keep their object identity and do not render again. The grid skips a patch for an unknown row id. To add a row to a local `data` array, pass a new array. With `useDataGridServerRows`, call `server.reshape()` after the server reports the row.
 
-A call with `source: "stream"` (the default) takes at most 100,000 patches. The grid skips the patches after the limit. A stream `deleteRows` call takes at most 100,000 ids under the same rule.
+A call with `source: "stream"` takes at most 100,000 patches. The grid skips the patches after the limit. A stream `deleteRows` call takes at most 100,000 ids under the same rule.
 
 A hidden column takes patches like a visible one. In controlled mode, pass the array that `onDataChange` gives you back as `data` unchanged. The grid recognizes its own array and keeps the sort, filter, and search results.
 
-A call with `source: "stream"` writes into a `readOnly` grid and into read-only columns and rows. Another `source`, such as `"edit"`, keeps every read-only check. A call without `source` counts as `"stream"`, except on a `readOnly` grid, which refuses it and warns once in development.
+A call with `source: "stream"` writes into a `readOnly` grid and into read-only columns and rows. Another `source`, such as `"edit"`, keeps every read-only check.
 
 To patch several columns of one row at once, call `actions.updateRows([{ rowId: "AAPL", changes: { price: 214.5 } }])`. Each entry in `changes` becomes one patch. The options are the same as for `updateCells`.
 
@@ -80,9 +80,10 @@ The `reorder` option of `UpdateCellsOptions` takes an `UpdateCellsReorder` value
 | --- | --- |
 | `"defer"` (default) | The value changes, the row holds its position, and `viewStale` becomes true. |
 | `"immediate"` | The grid moves the patched rows to their new positions in the same call. |
+| `"frame"` | The value changes at once. The next animation frame moves every row patched since the last one. |
 | `"never"` | The value changes and `viewStale` stays false. |
 
-If no patched column feeds the active sort or filter, `"defer"` acts as `"never"`.
+If no patched column feeds the active sort or filter, `"defer"` and `"frame"` act as `"never"`. `reconcileView()` runs a pending `"frame"` move at once.
 
 `"immediate"` keeps the order when every patched row still sits between its neighbors. Otherwise it puts the patched rows at the positions a full sort gives them.
 

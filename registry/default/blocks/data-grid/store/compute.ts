@@ -23,9 +23,9 @@ import {
   type CellAccessor,
   type SearchMatch,
 } from "../sort-filter";
-import { compareLocaleText, compareNumbers } from "../sort-filter/builtin-compare";
+import { builtinKeyPlan } from "../sort-filter/builtin-sort-keys";
 import { withSortLocale } from "../sort-filter/sort-collator";
-import { EMPTY_SORT_VALUE } from "../sort-filter/keyed-sort";
+import { EMPTY_SORT_VALUE, type SortKeyReader } from "../sort-filter/keyed-sort";
 import { untypedSort } from "../sort-filter/untyped-sort";
 import { getCellValue } from "../columns/column-helpers";
 import { clampColumnWidth } from "../columns/resolve-column-width";
@@ -505,17 +505,16 @@ export function textAccessorFor(
     if (!column || column.sortCompare) return undefined;
     if (column.type === undefined) return untypedSort(column.id, data, (row) => rawCellValue(column, row)).sortKeys;
     const cellType = declaredType(column);
-    const kind = cellType?.compare === compareNumbers ? "number" : cellType?.compare === compareLocaleText ? "text" : undefined;
-    if (!cellType || !kind) return undefined;
-    return {
-      kind,
-      read: (rowIndex) => {
-        const row = data[rowIndex];
-        if (row === undefined) return EMPTY_SORT_VALUE;
-        const value = rawCellValue(column, row);
-        return cellType.isEmpty(value) ? EMPTY_SORT_VALUE : value;
-      },
+    const plan = cellType && builtinKeyPlan(cellType, column.options);
+    if (!cellType || !plan) return undefined;
+    const { value: mapValue, ...rest } = plan;
+    const read = (rowIndex: number) => {
+      const row = data[rowIndex];
+      if (row === undefined) return EMPTY_SORT_VALUE;
+      const value = rawCellValue(column, row);
+      return cellType.isEmpty(value) ? EMPTY_SORT_VALUE : mapValue ? mapValue(value) : value;
     };
+    return { ...rest, read } as SortKeyReader;
   };
 
   accessor.isEmpty = (rowIndex, columnId) => {

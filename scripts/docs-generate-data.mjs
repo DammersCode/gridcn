@@ -198,6 +198,7 @@ export const TERM_PAGES = {
   prefetch: "/docs/server-pagination/tune-page-loading#prefetch",
   "paged view": ["/docs/rows-pages-menus/client-pagination", "A grid with `pageSize` or `defaultPageSize`. `data` stays whole. The sorted and filtered list is the full view, and `viewIndex` holds the shown page of it."],
   push: "/docs/rows-live-data/stream-updates",
+  "frame reorder": "/docs/rows-live-data/stream-updates",
   "stale row": "/docs/rows-live-data/push-server-ordered-view",
   reshape: "/docs/rows-live-data/push-server-ordered-view",
   "saved view": "/docs/sort-filter-search/saved-views",

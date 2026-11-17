@@ -895,6 +895,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       },
       _disposeWrites() {
         dataWrite.disposed = true;
+        dataWrite.frame.cancel();
         dataWrite.abortConflicts?.();
         gates.abort();
       },

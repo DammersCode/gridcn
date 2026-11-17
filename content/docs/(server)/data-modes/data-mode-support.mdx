@@ -736,6 +736,10 @@ Delete and Cut run the column `validate` on the empty value in every mode. A ser
 
 `editRows` writes with source `edit`, so a server grid receives it in `onSave`.
 
+### Streaming updates
+
+`reorder: "frame"` re-places the patched rows once per animation frame on a client view. Where a server owns the order, it follows the `"defer"` rule (`tests/parity/push-reshape.parity.test.tsx`).
+
 ### Pushes into a server-ordered view
 
 **L, PC**: n/a: The client sorts and filters the pushed rows itself. With the default `reorder: "defer"`, a pushed row keeps its position and `viewStale` turns on. `reconcileView()` or the next sort, filter, or search change moves the row. `reorder: "immediate"` moves it at once. See [Stream updates](/docs/rows-live-data/stream-updates).

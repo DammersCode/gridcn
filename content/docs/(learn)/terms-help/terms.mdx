@@ -56,6 +56,7 @@ A term row links to the page that explains it.
 | filter menu | The toolbar menu where the user builds filters from filter rows and filter groups. `DataGridFilterMenu` is the built-in one. | [Toolbar](/docs/sort-filter-search/toolbar#the-pieces) |
 | filter node | One entry of `filterState`: a filter row or a filter group. | [Filtering](/docs/sort-filter-search/filtering) |
 | find and replace | The add-on panel that finds text through the quick search and replaces it in one match or in all matches. A replace writes one change with the source `"replace"`. | [Find and replace](/docs/sort-filter-search/find-replace) |
+| frame reorder | The `reorder: "frame"` value of `updateCells`: the values write at once, and one re-place at the next animation frame covers every patched row. | [Push live values](/docs/rows-live-data/stream-updates) |
 | gate | A prop function that the grid calls before it acts, for example `processPaste` or `createRow`. It returns a value or a promise. | [Event shapes](/docs/events-state/event-shapes#gates) |
 | gate pending | The state of a gate whose promise has not settled. `useDataGridGatePending()` reads the gate names. The root carries `data-gate-pending`. | [Gate cancellation and timeouts](/docs/editing-cells/cancel-async-gates#show-the-pending-state) |
 | grid origin | The row that anchors the rows canvas. It trails the first rendered row and moves only when the rendered rows drift far from it. | [Virtualization](/docs/performance/virtualization) |
@@ -143,6 +144,7 @@ A word in this table names a term from the first table.
 | `id-keyed` | row id | [DataGrid props](/docs/components-props/data-grid-props#rows-and-ids) |
 | `view space` | view index | [State and view index](/docs/concepts/state-view-index) |
 | `display index` | view index | [State and view index](/docs/concepts/state-view-index) |
+| `batched reorder` | frame reorder | [Push live values](/docs/rows-live-data/stream-updates) |
 | `ticked row` | checked row | [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | `source kind` | data mode | [Data mode guide](/docs/data-modes) |
 | `keep checks` | checked rows lifetime | [Checked rows](/docs/selection-shortcuts/checked-rows) |

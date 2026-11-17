@@ -439,7 +439,7 @@ void patch;
 const indexKeyedPatch: CellPatch = { rowIndex: 0, columnId: "price", value: 1 };
 void indexKeyedPatch;
 
-assertEqual<"defer" | "immediate" | "never", UpdateCellsReorder>(true);
+assertEqual<"defer" | "immediate" | "frame" | "never", UpdateCellsReorder>(true);
 assertEqual<UpdateCellsReorder | undefined, UpdateCellsOptions["reorder"]>(true);
 assertEqual<boolean | undefined, UpdateCellsOptions["skipValidation"]>(true);
 

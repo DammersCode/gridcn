@@ -79,6 +79,21 @@ function findChoice(choices: ChoiceInput | undefined, raw: string): Choice | und
   return index.byValue.get(raw) ?? index.byLowerLabel.get(toSafeText(raw).toLowerCase());
 }
 
+/** The built-in `select` cell type's `compare`; the keyed sort recognizes a column that uses it by identity. */
+export function compareSelect(a: string | null, b: string | null, options?: GridCellTypes["select"]["options"]): number {
+  if (a == null && b == null) return 0;
+  if (a == null) return -1;
+  if (b == null) return 1;
+  const choices = options?.choices;
+  if (choices) {
+    const ranks = choiceRank(resolveSelectChoices(choices));
+    const rankA = ranks.get(a);
+    const rankB = ranks.get(b);
+    if (rankA !== undefined && rankB !== undefined) return rankA - rankB;
+  }
+  return defaultCompareText(findChoice(choices, a)?.label ?? a, findChoice(choices, b)?.label ?? b);
+}
+
 function SelectCell({ value, options }: CellRenderProps<unknown, string | null, GridCellTypes["select"]["options"]>) {
   const key = toSafeText(value);
   return <CellSpan text={findChoice(options?.choices, key)?.label ?? key} />;
@@ -151,18 +166,6 @@ export const selectCellType: CellType<unknown, string | null, GridCellTypes["sel
   clearValue: () => null,
   isEmpty: (value) => value == null,
   // sort by the label the user sees, not the opaque stored value
-  compare: (a, b, options) => {
-    if (a == null && b == null) return 0;
-    if (a == null) return -1;
-    if (b == null) return 1;
-    const choices = options?.choices;
-    if (choices) {
-      const ranks = choiceRank(resolveSelectChoices(choices));
-      const rankA = ranks.get(a);
-      const rankB = ranks.get(b);
-      if (rankA !== undefined && rankB !== undefined) return rankA - rankB;
-    }
-    return defaultCompareText(findChoice(choices, a)?.label ?? a, findChoice(choices, b)?.label ?? b);
-  },
+  compare: compareSelect,
   align: "start",
 };

@@ -136,6 +136,79 @@ arrays require: the `data` array copy on every tick and the copy of the order ar
 moves. A feed of 1,000 separate one-row ticks per second cannot reach a
 small ms/s figure at 1M rows without changing those arrays.
 
+## Sort keys for date, select, and checkbox; `reorder: "frame"`
+
+Same method as above (`scripts/bench-sort.mjs`, baseline worktree of the commit before this work, alternating runs, median and MAD), measured on 2026-11-17 while another lane ran tests on the machine. 100k rows: 7 runs; 1M rows: 5 runs. The `select` column has 6 choices, the `date` column about 3,000 distinct ISO dates, the `checkbox` column `true`, `false`, and empty.
+
+- `date` and `select` use the dense-rank key (`kind: "ranked"`): only the distinct values are sorted, with the type's own `compare`; equal values share a rank. `checkbox` uses the number key (`true` reads 1, `false` reads 0). A column that holds a value the key cannot rank (a non-string date or select value, a string or other number in a checkbox column) takes the comparator path. A consumer-replaced `compare` takes it too.
+- Every existing case stays within 10% of the baseline at 100k and at 1M (the code path did not change). Cases under 10 ms and the 1M `number int asc` case showed 0.86x to 0.92x in the first pass because of timer noise (MAD up to 10 ms); a rerun with 9 runs gave 0.98x to 1.12x.
+
+### Sort step, 1M rows
+
+| Case | Baseline ms (MAD) | Now ms (MAD) | Speedup | Peak RSS delta MB (baseline / now) |
+| --- | --- | --- | --- | --- |
+| date asc | 959 (±13) | 66 (±1) | 14.4x | 61 / 57 |
+| date desc | 1053 (±21) | 69 (±1) | 15.3x | 62 / 52 |
+| date asc, input sorted | 343 (±2) | 182 (±2) | 1.9x | 46 / 51 |
+| date asc, input reversed | 370 (±6) | 183 (±1) | 2.0x | 54 / 49 |
+| select asc | 435 (±4) | 53 (±1) | 8.2x | 61 / 51 |
+| select desc | 446 (±15) | 53 (±1) | 8.5x | 63 / 53 |
+| select asc, input sorted | 235 (±1) | 89 (±0) | 2.7x | 47 / 39 |
+| select asc, input reversed | 257 (±1) | 94 (±1) | 2.7x | 60 / 34 |
+| checkbox asc | 239 (±2) | 69 (±1) | 3.5x | 59 / 60 |
+| checkbox desc | 242 (±2) | 56 (±2) | 4.3x | 57 / 51 |
+| checkbox asc, input sorted | 144 (±2) | 90 (±2) | 1.6x | 50 / 61 |
+| checkbox asc, input reversed | 155 (±7) | 91 (±2) | 1.7x | 54 / 61 |
+
+### Sort step, 100k rows
+
+| Case | Baseline ms (MAD) | Now ms (MAD) | Speedup | Peak RSS delta MB (baseline / now) |
+| --- | --- | --- | --- | --- |
+| date asc | 79 (±1) | 8 (±0) | 9.9x | 5 / 0 |
+| date desc | 81 (±1) | 9 (±1) | 9.0x | 5 / 0 |
+| date asc, input sorted | 32 (±4) | 16 (±0) | 1.9x | 4 / 3 |
+| date asc, input reversed | 42 (±1) | 14 (±1) | 2.9x | 4 / 0 |
+| select asc | 44 (±1) | 5 (±0) | 8.1x | 5 / 0 |
+| select desc | 45 (±1) | 6 (±1) | 7.4x | 5 / 0 |
+| select asc, input sorted | 23 (±1) | 10 (±1) | 2.3x | 4 / 0 |
+| select asc, input reversed | 25 (±1) | 10 (±1) | 2.4x | 4 / 0 |
+| checkbox asc | 26 (±1) | 7 (±1) | 3.6x | 4 / 0 |
+| checkbox desc | 26 (±1) | 6 (±1) | 4.4x | 4 / 0 |
+| checkbox asc, input sorted | 15 (±1) | 8 (±1) | 1.8x | 0 / 0 |
+| checkbox asc, input reversed | 16 (±1) | 10 (±0) | 1.6x | 5 / 0 |
+
+No `ORDER DIFFERS` in any case. Peak RSS delta at 1M stays within 60 MB of the baseline for every new key.
+
+### `url` and `longText`: tried and dropped
+
+Both columns hold mostly unique strings. Keys for them (`kind: "text"`, the dense rank of the distinct strings) were built and measured against the gate (random input 1.5x or faster at 100k, no case under 0.9x):
+
+| Case | 100k speedup | 1M speedup |
+| --- | --- | --- |
+| url asc | 1.13x | 1.27x |
+| url asc, input sorted | 0.67x | 0.44x |
+| url asc, input reversed | 0.66x | 0.44x |
+| longText asc | 1.15x | 1.36x |
+| longText asc, input sorted | 0.69x | 0.48x |
+| longText asc, input reversed | 0.64x | 0.47x |
+
+Both fail the gate on random and on sorted input, and the 1M peak RSS delta grew by about 50 MB. The keys were removed; both types keep the comparator path.
+
+### Live updates, `reorder: "frame"`, 100k rows
+
+1,000 single-cell patches per second to random rows on the sorted column, as in the table above. The `frame` row compares against `"immediate"` of the baseline (the baseline has no `"frame"`); both stores end on the same view. The frame scenario includes the one re-place that the next animation frame runs.
+
+| Case | Baseline ms/s (MAD) | Now ms/s (MAD) | Speedup |
+| --- | --- | --- | --- |
+| 100k: deferred (default), 10 batches x 100, sort column | 9 (±1) | 9 (±1) | 0.9x |
+| 100k: immediate, 10 batches x 100, sort column | 27 (±3) | 27 (±0) | 1.0x |
+| 100k: immediate, 1000 x 1, sort column | 804 (±13) | 818 (±26) | 1.0x |
+| 100k: immediate, 1000 x 1, filtered view, sort column | 815 (±38) | 840 (±29) | 1.0x |
+| 100k: frame, 1000 x 1, sort column | 807 (±33) | 207 (±2) | 3.9x |
+| 100k: immediate, 1000 x 1, non-sort column | 200 (±1) | 201 (±1) | 1.0x |
+
+`"frame"` costs about 207 ms/s against 805 ms/s for `"immediate"`. The target was 150 ms/s; the floor is the 1,000 copies of the 100k-row `data` array that the immutable store takes per second (the non-sort-column row, 201 ms/s, pays only that). The merge limit was 500 ms/s. The deferred and immediate scenarios did not change.
+
 ## Comparing with an external table
 
 The maintainer supplied a table from another grid (conditions unknown: machine, data, what is
@@ -154,11 +227,11 @@ copy does not state a 1M-row figure for the whole interaction.
 | Dense ranks of distinct strings for text | Kept. 2-11x. Costs a string map; already-sorted text input got 0.7x slower at 1M (the map pass costs more than the old run detection). |
 | Collation keys for mostly unique text (ASCII fast path, normalized key strings sorted with `<`, then a verifying pass) | Dropped. Unique strings gain only 1-2x without it, and the key table depends on the locale (contractions), so it needs a verify-and-fall-back layer. More code and risk than the maintainer asked for. |
 | 32-bit keys for small integers, an already-sorted early exit | Dropped. Saves about 10-30 ms at 1M; extra branches for no clear need. |
-| Keying `date`, `select`, `checkbox`, `url`, and `longText` columns | Not done. Their comparators stay on the old path; a select column is now the slowest typed sort relative to number. Accepted for 2.0. |
 | Cache of the unfiltered sorted order for filter-only changes | Dropped. A filter change sorts only the surviving rows, which is already cheaper than the full sort, and the cache would hold 8 bytes per row per grid. |
 | Worker thread for the sort | Dropped. The sort is under 0.2 s for numbers; a worker needs the row data copied across threads. |
 | Position map for live updates | Dropped. Costs 4 bytes per row plus upkeep on every move; the `indexOf` scan is 0.5 ms at 1M. |
-| Coalescing `"immediate"` ticks inside one frame | Not done. It changes the documented "moves now" contract; propose it as a separate option if needed. Accepted for 2.0. |
+| Keying `url` and `longText` columns | Dropped after a second try: 1.1-1.4x on random input and 0.4-0.7x on sorted input (see above). |
+| Coalescing `"immediate"` ticks inside one frame | Not done to `"immediate"`, which keeps its "moves now" contract. Built as the separate value `reorder: "frame"`. |
 
 ## Equivalence
 

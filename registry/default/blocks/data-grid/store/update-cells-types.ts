@@ -1,7 +1,7 @@
 import type { DataChange } from "../types";
 
 /** How a `updateCells`/`updateRows` batch reconciles with an active sort or filter. */
-export type UpdateCellsReorder = "defer" | "immediate" | "never";
+export type UpdateCellsReorder = "defer" | "immediate" | "frame" | "never";
 
 /** Options for {@link DataGridActions.updateCells} and {@link DataGridActions.updateRows}. */
 export type UpdateCellsOptions = {
@@ -17,6 +17,11 @@ export type UpdateCellsOptions = {
    *   7.6 ms for 1 / 20 / 256 patched rows at 100k. Batches over
    *   {@link INCREMENTAL_PATCH_LIMIT} rows or a same-tick sort/filter change fall back to the full
    *   O(n log n) rebuild; a column with its own comparator keeps the incremental path.
+   * - `"frame"` — values update in place now and the patched rows keep their position until the next
+   *   animation frame, when one re-place covers every row touched since the last one (without
+   *   `requestAnimationFrame`, after 16 ms). `viewStale` stays `false`. `reconcileView()` runs the
+   *   pending re-place now. A batch that touches no active sort or filter column downgrades to
+   *   `"never"`. With a server-sorted view it follows the `"defer"` rule.
    * - `"never"` — updates in place and never marks the view stale. The caller asserts that no
    *   touched column feeds the sort or filter.
    */
