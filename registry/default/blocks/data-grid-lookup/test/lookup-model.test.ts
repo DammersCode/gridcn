@@ -124,18 +124,6 @@ describe("adoptOwner", () => {
     expect(recallOption(otherGrid, "Acme")).toBeUndefined();
     expect(recallOption(otherColumn, "Acme")).toBeUndefined();
   });
-});
-
-describe("rememberOption on a repeated render", () => {
-  it("keeps the stored option when an equal option is shown again", () => {
-    const owner = {};
-    const first = { value: "c1", label: "Acme" };
-    rememberOption(owner, first);
-    rememberOption(owner, { value: "c1", label: "Acme" });
-    expect(recallOption(owner, "Acme")).toBe(first);
-    rememberOption(owner, { value: "c1", label: "Acme Corp" });
-    expect(recallOption(owner, "Acme Corp")).toEqual({ value: "c1", label: "Acme Corp" });
-  });
 
   it("drops the remembered labels when the cache key changes, also for the same fetchOptions", () => {
     const grid = {};
@@ -156,5 +144,17 @@ describe("rememberOption on a repeated render", () => {
     rememberOption(first, acme);
     adoptOwner(grid, "customer", next, 2);
     expect(recallOption(next, "Acme")).toBeUndefined();
+  });
+});
+
+describe("rememberOption on a repeated render", () => {
+  it("keeps the stored option when an equal option is shown again", () => {
+    const owner = {};
+    const first = { value: "c1", label: "Acme" };
+    rememberOption(owner, first);
+    rememberOption(owner, { value: "c1", label: "Acme" });
+    expect(recallOption(owner, "Acme")).toBe(first);
+    rememberOption(owner, { value: "c1", label: "Acme Corp" });
+    expect(recallOption(owner, "Acme Corp")).toEqual({ value: "c1", label: "Acme Corp" });
   });
 });
