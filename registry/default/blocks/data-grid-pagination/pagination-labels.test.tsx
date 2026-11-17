@@ -45,3 +45,12 @@ describe("DataGridPaginationBar labels", () => {
     expect(screen.getByLabelText("First page")).toBeTruthy();
   });
 });
+
+describe("DataGridPaginationBar over groups", () => {
+  it("names the unit in the range and the page-size select", () => {
+    const controls = { page: 1, pageCount: 5, pageSize: 10, pageSizeOptions: DEFAULT_PAGE_SIZES, totalRowCount: 42, hasMore: true, unit: "groups" as const, onPageChange: () => {}, onPageSizeChange: () => {} };
+    render(<DataGridPaginationBar {...controls} />);
+    expect(screen.getByText("1–10 of 42 groups")).toBeTruthy();
+    expect(screen.getByLabelText("Groups per page")).toBeTruthy();
+  });
+});

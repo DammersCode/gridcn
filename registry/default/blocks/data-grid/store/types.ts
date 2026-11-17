@@ -1308,10 +1308,10 @@ export type DataGridInternalActions = {
   _pruneFlashingCells(keptViewRows: readonly number[]): void;
 };
 
-export type LiveAnnouncementKind = "rowMove" | "rowsChecked" | "results" | "viewStale" | "saveRejected" | "historyBlocked";
+export type LiveAnnouncementKind = "rowMove" | "rowsChecked" | "results" | "viewStale" | "saveRejected" | "historyBlocked" | "groupExpanded" | "groupCollapsed" | "groupFailed";
 
 /** `count` is the moved rows, the checked rows, the view's loaded rows, or the rows a save refused, the rows a blocked history step names, by `kind`; `partial` marks a result count that leaves out unloaded rows, a `rowsChecked` announcement of "all matching" for a result of unknown size (`count` is unused), or a `historyBlocked` step whose rows are not loaded yet (absent: the rows are gone). */
-export type LiveAnnouncement = { kind: LiveAnnouncementKind; count: number; seq: number; partial?: true };
+export type LiveAnnouncement = { kind: LiveAnnouncementKind; count: number; seq: number; partial?: true; /** The group a `groupExpanded`, `groupCollapsed`, or `groupFailed` announcement names. */ label?: string };
 
 /** Full store shape: interaction state + the stable actions object. */
 export type DataGridStore = DataGridStoreState;

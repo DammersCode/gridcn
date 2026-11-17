@@ -7,6 +7,10 @@ import type { GridAction, Keymap } from "../types";
  * override/extend via the `keymap` prop.
  */
 export const DEFAULT_KEYMAP: Keymap = {
+  // first, so they win a tie with edit and the arrows; the grid offers them on a group row only
+  toggleGroupRow: ["Enter", " "],
+  expandGroupRow: ["ArrowRight"],
+  collapseGroupRow: ["ArrowLeft"],
   moveUp: ["ArrowUp"],
   moveDown: ["ArrowDown"],
   moveLeft: ["ArrowLeft"],

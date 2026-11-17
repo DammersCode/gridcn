@@ -40,6 +40,30 @@ describe("useDataGridPager", () => {
   });
 });
 
+describe("useDataGridPager over groups", () => {
+  const grouped = Array.from({ length: 23 }, (_, i) => ({ id: `r${i}`, n: i % 5 }));
+  const setupGrouped = () => {
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <DataGridProvider data={grouped} columns={columns} getRowId={(row) => row.id} defaultPageSize={2} defaultGroupBy={["n"]}>
+        {children}
+      </DataGridProvider>
+    );
+    return renderHook(() => ({ pager: useDataGridPager().pager, api: useDataGridApi() }), { wrapper });
+  };
+
+  it("counts top-level groups and says so", () => {
+    const { result } = setupGrouped();
+    expect(result.current.pager).toMatchObject({ page: 1, pageSize: 2, pageCount: 3, totalRowCount: 5, hasMore: true, unit: "groups" });
+  });
+
+  it("counts rows again once the grid stops grouping", () => {
+    const { result } = setupGrouped();
+    act(() => result.current.api.actions.setGroupBy([]));
+    expect(result.current.pager).toMatchObject({ totalRowCount: 23, pageCount: 12 });
+    expect(result.current.pager.unit).toBeUndefined();
+  });
+});
+
 describe("useDataGridPager, edge cases", () => {
   it("keeps a deep-linked page while the total is 0", () => {
     const wrapper = ({ children }: { children: ReactNode }) => (

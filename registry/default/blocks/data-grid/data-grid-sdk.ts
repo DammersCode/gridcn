@@ -99,7 +99,8 @@ export {
 
 export { combineRects, getSelectedViewRows, selectionContainsCell, selectionRects } from "./selection";
 export { holeRowId, isColumnReadOnly, rowIdAtViewRow, viewRowsMoved, visibleColumnsMoved, fullViewOf, effectivePage, pageStartOf } from "./store/compute";
-export { matchingRowTotal } from "./store/compute";
+export { matchingRowTotal } from "./store/matching-total";
+export { pageOfFullRow, pageUnitsOf } from "./store/group-pages";
 export { measureColumnAutosizeWidth } from "./columns/measure-column-text";
 export { groupPathOf, type ColumnGroupModel } from "./columns/column-groups";
 export { isDev } from "./is-dev";

@@ -1,6 +1,10 @@
 import { cleanup } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { DataGridBody } from "@/registry/default/blocks/data-grid/data-grid";
+import { fullViewOf } from "@/registry/default/blocks/data-grid/store/compute";
+import { matchingRowTotal } from "@/registry/default/blocks/data-grid/store/matching-total";
+import { pageUnitsOf } from "@/registry/default/blocks/data-grid/store/group-pages";
+import { isGroupRowId } from "@/registry/default/blocks/data-grid/store/group-state";
 import { rowIdAtViewRow } from "@/registry/default/blocks/data-grid/store/view-rows";
 import { mountMode, type ModeId, type MountOptions, type Mounted, type Row } from "./modes";
 
@@ -8,6 +12,7 @@ const MOUNT: Partial<Record<ModeId, (options: MountOptions) => Promise<Mounted>>
   L: (options) => mountMode("L", options),
   C: (options) => mountMode("C", options),
   API: (options) => mountMode("API", options),
+  PC: (options) => mountMode("PC", options),
 };
 const GROUPING_MODES = Object.keys(MOUNT) as ModeId[];
 
@@ -64,10 +69,38 @@ describe.each(GROUPING_MODES)("row grouping in mode %s", (mode) => {
   });
 });
 
-describe("row grouping in a mode that does not group", () => {
-  it("leaves a client-paged grid ungrouped until the pager groups pages", async () => {
-    const grid = await mountMode("PC", { rows, Child: DataGridBody });
-    expect(document.querySelector('[role="treegrid"]')).toBeNull();
-    expect(grid.state().groupLayout).toBeNull();
+describe("row grouping in mode PC", () => {
+  const paged: Row[] = Array.from({ length: 12 }, (_, i) => ({ id: `p${i}`, name: `g${Math.floor(i / 2)}`, n: i }));
+  const mountPaged = (props: Record<string, unknown> = {}) =>
+    mountMode("PC", { rows: paged, Child: DataGridBody, props: { columns: groupColumns, defaultGroupBy: ["name"], ...props } });
+
+  it("pages top-level groups, with the rows opened under them", async () => {
+    const grid = await mountPaged({ defaultExpanded: { mode: "expanded", ids: [] } });
+    expect(idsOf(grid).filter((id) => id !== undefined && isGroupRowId(id))).toEqual(["__group:name=g0", "__group:name=g1", "__group:name=g2", "__group:name=g3"]);
+    expect(idsOf(grid)).toHaveLength(12);
+    grid.goToPage(2);
+    expect(idsOf(grid).filter((id) => id !== undefined && isGroupRowId(id))).toEqual(["__group:name=g4", "__group:name=g5"]);
+    expect(fullViewOf(grid.state().viewIndex)).toHaveLength(18);
+  });
+
+  it("keeps a closed group as one entry of its page", async () => {
+    const grid = await mountPaged();
+    expect(idsOf(grid)).toEqual(["__group:name=g0", "__group:name=g1", "__group:name=g2", "__group:name=g3"]);
+    grid.act(() => grid.state().actions.toggleGroup("__group:name=g1"));
+    expect(idsOf(grid)).toEqual(["__group:name=g0", "__group:name=g1", "p2", "p3", "__group:name=g2", "__group:name=g3"]);
+  });
+
+  it("counts groups in the pager and rows in the all-matching total", async () => {
+    const grid = await mountPaged();
+    expect(pageUnitsOf(fullViewOf(grid.state().viewIndex))).toBe(6);
+    expect(matchingRowTotal(grid.state())).toBe(12);
+  });
+
+  it("goes back to page 1 when the group columns change", async () => {
+    const grid = await mountPaged();
+    grid.goToPage(2);
+    expect(grid.state().page).toBe(2);
+    grid.act(() => grid.state().actions.setGroupBy(["n"]));
+    expect(grid.state().page).toBe(1);
   });
 });

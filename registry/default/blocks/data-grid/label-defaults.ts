@@ -214,6 +214,9 @@ export function buildDefaultLabels(locale: string): DataGridLabels {
 
         openLink: "Open link",
         openCellMenu: "Open cell menu",
+        toggleGroupRow: "Open or close group",
+        expandGroupRow: "Open group",
+        collapseGroupRow: "Close group",
       },
     },
     grouping: {
@@ -226,6 +229,7 @@ export function buildDefaultLabels(locale: string): DataGridLabels {
       empty: "(empty)",
       expanded: (label, count) => `${label} expanded, ${count.toLocaleString(locale)} ${count === 1 ? "row" : "rows"}`,
       collapsed: (label) => `${label} collapsed`,
+      loadFailed: (label) => `${label} failed to load`,
     },
     markers: {
       columnHeader: "Row markers",
@@ -325,6 +329,8 @@ export function buildDefaultLabels(locale: string): DataGridLabels {
       pageSizeOption: (size) => `${size} / page`,
       range: (from, to, totalRowCount) => `${from}–${to} of ${totalRowCount}`,
       rangeEmpty: "0 of 0",
+      rangeGroups: (from, to, totalGroups) => `${from}–${to} of ${totalGroups} ${totalGroups === 1 ? "group" : "groups"}`,
+      pageSizeGroupsAriaLabel: "Groups per page",
       rangeUnknown: (page) => `Page ${page}`,
     },
     statusBar: {

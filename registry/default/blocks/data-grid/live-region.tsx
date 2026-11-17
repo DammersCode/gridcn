@@ -9,7 +9,7 @@ const ANNOUNCEMENT_DEBOUNCE_MS = 500;
 
 export function LiveRegion(): ReactNode {
   const record = useDataGridLiveAnnouncement();
-  const { grid } = useDataGridLabels();
+  const { grid, grouping } = useDataGridLabels();
   const rowMoveText = useDataGridRowMoveAnnouncement();
   const [shown, setShown] = useState<LiveAnnouncement | null>(null);
   // role="status" may not live inside role="grid" (axe aria-required-children), so the region portals to <body> after mount.
@@ -25,7 +25,7 @@ export function LiveRegion(): ReactNode {
     return () => clearTimeout(t);
   }, [record]);
 
-  const text = shown && (shown.kind === "rowMove" ? rowMoveText : shown.kind === "viewStale" ? grid.viewStale : shown.kind === "saveRejected" ? grid.saveRejected(shown.count) : shown.kind === "historyBlocked" ? (shown.partial ? grid.historyRowsNotLoaded : grid.historyRowsGone) : shown.kind === "rowsChecked" ? (shown.partial ? grid.allMatchingChecked : grid.rowsChecked(shown.count)) : shown.partial ? grid.resultsCountLoaded(shown.count) : shown.count === 0 ? grid.noResults : grid.resultsCount(shown.count));
+  const text = shown && (shown.kind === "rowMove" ? rowMoveText : shown.kind === "viewStale" ? grid.viewStale : shown.kind === "saveRejected" ? grid.saveRejected(shown.count) : shown.kind === "historyBlocked" ? (shown.partial ? grid.historyRowsNotLoaded : grid.historyRowsGone) : shown.kind === "groupExpanded" ? grouping.expanded(shown.label ?? "", shown.count) : shown.kind === "groupCollapsed" ? grouping.collapsed(shown.label ?? "") : shown.kind === "groupFailed" ? grouping.loadFailed(shown.label ?? "") : shown.kind === "rowsChecked" ? (shown.partial ? grid.allMatchingChecked : grid.rowsChecked(shown.count)) : shown.partial ? grid.resultsCountLoaded(shown.count) : shown.count === 0 ? grid.noResults : grid.resultsCount(shown.count));
   if (!target) return null;
   return createPortal(
     <div aria-live="polite" role="status" data-grid-live-region="" className="sr-only">

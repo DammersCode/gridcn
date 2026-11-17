@@ -74,7 +74,6 @@ import {
   windowView,
   effectivePage,
   fullViewOf,
-  matchingRowTotal,
   rowIdAtViewRow,
   toggleSortAdditive,
   withFilterIds,
@@ -138,15 +137,17 @@ import { planColumnOrder } from "./column-order";
 import { plainSeed } from "./function-seed";
 import { warnUnhandledServerSpec } from "./server-spec-warning";
 import { keepKnownFilters, keepKnownSorts } from "./known-columns";
-import { loadedRowCount, nextAnnouncement } from "./announcements";
+import { groupAnnouncementLabel, loadedRowCount, newlyFailedGroup, nextAnnouncement } from "./announcements";
 import { allMatchingCheckedCount } from "./selected-rows";
 import { dataIndexAt, dataIndexOf, groupLayoutOfView, recordKeyAt, viewRowOfGroupId } from "./view-rows";
 import { createGroupActions } from "./group-actions";
 import { EXPANDED_CUT_MESSAGE, initGroupMemory, initialExpanded, initialGroupBy } from "./group-sync";
 import { groupModeOf, groupingOf, withGroupLayout } from "./group-view";
 import { leafViewOf } from "./group-readers";
+import { pageUnitsOf } from "./group-pages";
+import { matchingRowTotal } from "./matching-total";
 
-type CheckedState = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "allMatching" | "data" | "viewIndex" | "totalRowCount">;
+type CheckedState = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "allMatching" | "data" | "viewIndex" | "totalRowCount" | "groupLayout">;
 
 /** The checked total: the rows channel plus the hidden checked rows, or the "all matching" count (`null` for a result of unknown size). */
 function checkedTotal(s: CheckedState, resolveRowIds: () => ReadonlyMap<string, number>): number | null {
@@ -1426,7 +1427,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
         if (!Number.isFinite(pageSize) || pageSize < 1) return;
         const size = Math.floor(pageSize);
         if (size === s.pageSize) return;
-        const firstRow = s.pageSize === null ? 0 : (effectivePage(s.page, fullViewOf(s.viewIndex).length, s.pageSize) - 1) * s.pageSize;
+        const firstRow = s.pageSize === null ? 0 : (effectivePage(s.page, pageUnitsOf(fullViewOf(s.viewIndex)), s.pageSize) - 1) * s.pageSize;
         const page = Math.floor(firstRow / size) + 1;
         if (!s.pageSizeControlled || !s.pageControlled) {
           set((s2) => rebuildPageView(s2, s2.pageControlled ? s2.page : page, s2.pageSizeControlled ? s2.pageSize : size));
@@ -1560,6 +1561,11 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
   store.subscribe((state, prev) => {
     if (state.saveStatus !== prev.saveStatus) streamQueue.release(state.saveStatus);
     if (state.totalRowCount !== undefined && !warnsUnhandledSpecAtMount) warnUnhandledServerSpec(state, prev, warnStoreOnce);
+    const failedGroup = newlyFailedGroup(state, prev);
+    if (failedGroup) {
+      store.setState({ liveAnnouncement: nextAnnouncement(state.liveAnnouncement, "groupFailed", 0, false, groupAnnouncementLabel(state, failedGroup)) });
+      return;
+    }
     if (state.viewStale && !prev.viewStale && Date.now() - staleAnnouncedAt >= VIEW_STALE_ANNOUNCEMENT_INTERVAL_MS) {
       staleAnnouncedAt = Date.now();
       store.setState({ liveAnnouncement: nextAnnouncement(state.liveAnnouncement, "viewStale", 0) });

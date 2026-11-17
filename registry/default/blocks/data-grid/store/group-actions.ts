@@ -4,7 +4,8 @@ import { selectCell } from "../selection";
 import { flattenGroupTree, groupIdsOfRow, type GroupTree } from "../sort-filter/build-group-view";
 import { computeSearchMatches, computeViewIndex, viewFilters, viewSorts, viewWindowOf, windowView } from "./compute";
 import { emitAfterWrites, resetDeferredRows, type DataWriteContext } from "./data-write";
-import { EXPANDED, COLLAPSED, normalizeExpanded, normalizeGroupBy, sameExpanded, sameGroupBy, toggleExpanded } from "./group-state";
+import { groupAnnouncementLabel, nextAnnouncement } from "./announcements";
+import { EXPANDED, COLLAPSED, expandedTest, normalizeExpanded, normalizeGroupBy, sameExpanded, sameGroupBy, toggleExpanded } from "./group-state";
 import { rememberEmitted } from "./group-sync";
 import { groupingOf, warnGroupOnce } from "./group-view";
 import { viewRowOfDataIndex } from "./row-index";
@@ -46,9 +47,10 @@ export function createGroupActions({ set, get, dataWrite, followView, memory }: 
 
   const regroup = (s: DataGridStoreState, groupBy: readonly string[]): Partial<DataGridStoreState> => {
     const grouping = groupingOf({ ...s, groupBy });
-    const viewIndex = computeViewIndex(s.data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, s.cellTypes, viewWindowOf(s), s.sortLocale, grouping);
+    const page = s.pageSize === null || s.pageControlled ? s.page : 1;
+    const viewIndex = computeViewIndex(s.data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState), s.viewIndex, s.cellTypes, viewWindowOf({ ...s, page }), s.sortLocale, grouping);
     resetDeferredRows(dataWrite);
-    return { groupBy, ...clearStaleRows(dataWrite), ...patchFor(s, viewIndex) };
+    return { groupBy, page, ...clearStaleRows(dataWrite), ...patchFor(s, viewIndex) };
   };
 
   const reopen = (s: DataGridStoreState, expanded: ExpandedState): Partial<DataGridStoreState> => {
@@ -68,7 +70,9 @@ export function createGroupActions({ set, get, dataWrite, followView, memory }: 
     set((s2) => regroup(s2, groupBy));
     memory.lastSyncInputs = { ...memory.lastSyncInputs, groupBy };
     if (s.groupByControlled) rememberEmitted(memory.group.groupByEcho, groupBy);
-    emitAfterWrites(dataWrite, () => s.onGroupByChange?.(groupBy));
+    emitAfterWrites(dataWrite, () => s.onGroupByChange?.(groupBy), () => {
+      if (s.pageSize !== null && s.page !== 1) s.onPageChange?.(1);
+    });
   };
 
   const commitExpanded = (requested: ExpandedState): void => {
@@ -91,7 +95,12 @@ export function createGroupActions({ set, get, dataWrite, followView, memory }: 
     },
     setExpanded: commitExpanded,
     toggleGroup(groupId) {
-      commitExpanded(toggleExpanded(get().expanded, groupId));
+      const s = get();
+      const node = s.groupLayout?.rows.find((row) => row.id === groupId);
+      const opens = !expandedTest(s.expanded)(groupId);
+      commitExpanded(toggleExpanded(s.expanded, groupId));
+      if (!node) return;
+      set((s2) => ({ liveAnnouncement: nextAnnouncement(s2.liveAnnouncement, opens ? "groupExpanded" : "groupCollapsed", node.count, false, groupAnnouncementLabel(s2, node)) }));
     },
     expandAll() {
       if (get().groupMode === "server") return { ok: false, reason: "server-groups" };

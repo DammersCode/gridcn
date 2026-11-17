@@ -197,6 +197,8 @@ export type DataGridGroupingLabels = {
   collapse: (label: string) => string;
   expandAll: string;
   collapseAll: string;
+  /** Announcement when the rows of a server group fail to load; `label` is the group's label. */
+  loadFailed: (label: string) => string;
   /** Label of the group that holds the rows without a value. */
   empty: string;
   /** Polite announcement after a group opens; `count` is the rows of the group. */
@@ -366,6 +368,10 @@ export type DataGridPaginationLabels = {
   /** Footer range label, e.g. "1–25 of 240". `totalRowCount === 0` renders {@link DataGridPaginationLabels.rangeEmpty} instead. */
   range: (from: number, to: number, totalRowCount: number) => string;
   rangeEmpty: string;
+  /** Footer range label of a grouped grid, e.g. "1–10 of 42 groups": a page holds top-level groups. */
+  rangeGroups: (from: number, to: number, totalGroups: number) => string;
+  /** aria-label of the page-size select of a grouped grid. */
+  pageSizeGroupsAriaLabel: string;
   /** Footer range label when the server sends no row count, e.g. "Page 3". */
   rangeUnknown: (page: number) => string;
 };

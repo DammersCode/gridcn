@@ -14,6 +14,8 @@ export type DataGridPaginationControls = {
   totalRowCount: number | null;
   /** True when a page after the current one exists. */
   hasMore: boolean;
+  /** What a page counts: `"groups"` while the grid is grouped (a page holds top-level groups, `totalRowCount` counts them), else `"rows"`. Default `"rows"`. */
+  unit?: "rows" | "groups";
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
 };

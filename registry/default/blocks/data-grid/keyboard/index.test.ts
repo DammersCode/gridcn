@@ -423,6 +423,7 @@ describe("GridAction coverage", () => {
     moveColumnTowardStart: true, moveColumnTowardEnd: true, widenColumn: true, narrowColumn: true,
     openLink: true,
     openCellMenu: true,
+    toggleGroupRow: true, expandGroupRow: true, collapseGroupRow: true,
     openFindReplace: true,
     openFind: true,
     openKeybindings: true,

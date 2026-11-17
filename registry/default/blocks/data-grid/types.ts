@@ -568,8 +568,7 @@ export type {
   FilterSpec,
   FilterGroup,
   FilterValue,
-  FetchFilterValuesContext,
-  FetchFilterValues,
+  FetchFilterValuesContext, FetchFilterValues,
   FilterNode,
 } from "./filter-spec";
 
@@ -648,6 +647,7 @@ export interface GridActions {
   openLink: true;
   openCellMenu: true;
   focusSearch: true;
+  toggleGroupRow: true; expandGroupRow: true; collapseGroupRow: true;
 }
 
 /** Every named keyboard action — the built-ins of {@link GridActions} plus any the consumer merged in. */

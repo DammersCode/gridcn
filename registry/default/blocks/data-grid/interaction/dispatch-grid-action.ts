@@ -18,6 +18,7 @@ import { COLUMN_WIDTH_STEP, shownColumnWidth } from "../columns/column-step";
 import { rowOperationTargets } from "../store/row-operation-targets";
 import { isReorderMarkerMode } from "../rows/marker-width";
 import { dataIndexAt } from "../store/view-rows";
+import { groupRowMetaAt } from "../store/group-positions";
 
 const warnedMissingTriggers = new WeakMap<object, Set<string>>();
 
@@ -401,6 +402,17 @@ export function dispatchGridAction(args: {
       if (!column || column.resizable === false) break;
       const width = shownColumnWidth(scrollRef.current, column, state.columnWidths);
       actions.setColumnWidth(column.id, width + (action === "widenColumn" ? COLUMN_WIDTH_STEP : -COLUMN_WIDTH_STEP));
+      break;
+    }
+    case "toggleGroupRow":
+    case "expandGroupRow":
+    case "collapseGroupRow": {
+      const group = state.activeCell ? groupRowMetaAt(state, state.activeCell.row) : null;
+      if (!group) break;
+      preventDefault();
+      const changesState = action === "toggleGroupRow" || (action === "expandGroupRow") !== group.expanded;
+      if (changesState) actions.toggleGroup(group.node.id);
+      else dispatchGridAction({ ...args, action: action === "expandGroupRow" ? "moveRight" : "moveLeft" });
       break;
     }
     case "openCellMenu": {

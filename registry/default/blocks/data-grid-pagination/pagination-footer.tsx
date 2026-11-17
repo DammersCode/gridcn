@@ -119,23 +119,23 @@ function PaginationBarView(props: DataGridPaginationBarProps & { controls: DataG
 /** The "x–y of z" range label, {@link DataGridPaginationLabels.rangeEmpty} when `totalRowCount` is 0, or {@link DataGridPaginationLabels.rangeUnknown} ("Page 3") when `totalRowCount` is `null`. */
 export function DataGridPaginationRange(): ReactNode {
   const { controls, labels } = usePaginationBarContext("DataGridPaginationRange");
-  const { page, pageSize, totalRowCount } = controls;
+  const { page, pageSize, totalRowCount, unit } = controls;
   if (totalRowCount === null) return <span className="text-xs tabular-nums text-muted-foreground">{labels.rangeUnknown(page)}</span>;
   const from = totalRowCount === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, totalRowCount);
 
-  return <span className="text-xs tabular-nums text-muted-foreground">{totalRowCount === 0 ? labels.rangeEmpty : labels.range(from, to, totalRowCount)}</span>;
+  return <span className="text-xs tabular-nums text-muted-foreground">{totalRowCount === 0 ? labels.rangeEmpty : (unit === "groups" ? labels.rangeGroups : labels.range)(from, to, totalRowCount)}</span>;
 }
 
 /** The rows-per-page `Select`. */
 export function DataGridPaginationPageSize(): ReactNode {
   const { controls, labels } = usePaginationBarContext("DataGridPaginationPageSize");
-  const { pageSize, pageSizeOptions, onPageSizeChange } = controls;
+  const { pageSize, pageSizeOptions, onPageSizeChange, unit } = controls;
   if (pageSizeOptions.length === 0) return null;
 
   return (
     <Select value={String(pageSize)} onValueChange={(value) => onPageSizeChange(Number(value))}>
-      <SelectTrigger className="h-8 w-fit" aria-label={labels.pageSizeAriaLabel}>
+      <SelectTrigger className="h-8 w-fit" aria-label={unit === "groups" ? labels.pageSizeGroupsAriaLabel : labels.pageSizeAriaLabel}>
         {/* explicit label lookup: SelectValue only resolves a mounted SelectItem's label, which the popup content isn't until first opened. */}
         <SelectValue>{(value: string) => labels.pageSizeOption(Number(value))}</SelectValue>
       </SelectTrigger>

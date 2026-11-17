@@ -570,9 +570,11 @@
           ]
         },
         "PC": {
-          "status": "gap",
-          "track": "#71",
-          "note": "Row grouping is not available."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/grouping.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/group-pages.test.ts"
+          ]
         },
         "PS": {
           "status": "gap",

@@ -28,6 +28,7 @@ import { GRID_ATTR, gridAttrSelector } from "../data-attributes";
 import { isCellEditorEvent, markPortaledPointerDown, wasPortaledPointerDown } from "./portaled-events";
 import { type RowRangeGesture } from "../selection/row-range-gesture";
 import { getInternalActions } from "../store/internal-actions";
+import { groupIndexAt } from "../store/view-rows";
 import { isComposingKey } from "./is-composing-key";
 import { createLongPressTimer, isDoubleTap, isTap, movedBeyondSlop, type TapSample } from "./touch-gestures";
 import { dispatchGridAction, hasActivateCell, hasCellSelection } from "./dispatch-grid-action";
@@ -37,6 +38,8 @@ export { dispatchGridAction, jumpToDataBoundary, type JumpDirection } from "./di
 export { pointerToCoord, type InteractionLayout } from "./pointer-geometry";
 
 const MODIFIER_KEYS: ReadonlySet<string> = new Set(["Shift", "Control", "Alt", "Meta", "AltGraph"]);
+
+const GROUP_ROW_ACTIONS: ReadonlySet<GridAction> = new Set(["toggleGroupRow", "expandGroupRow", "collapseGroupRow"]);
 
 const isActivationKey = (event: ReactKeyboardEvent<HTMLElement>) =>
   (event.key === "Enter" || event.key === " ") && !event.ctrlKey && !event.metaKey && !event.altKey;
@@ -389,7 +392,7 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
         (/^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName) ||
           target.isContentEditable ||
           target.closest(gridAttrSelector("cellEditor")) !== null ||
-          (isActivationKey(event) && target.closest(`${gridAttrSelector("headerMenuTrigger")}, ${gridAttrSelector("headerFilterTrigger")}`) !== null) ||
+          (isActivationKey(event) && target.closest(`${gridAttrSelector("headerMenuTrigger")}, ${gridAttrSelector("headerFilterTrigger")}, [data-grid-group-toggle]`) !== null) ||
           !event.currentTarget.contains(target));
 
       const state = storeApi.getState();
@@ -439,10 +442,11 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       }
 
       const commands = state.commands;
-      const notEditorOnly = commands ? (a: GridAction) => commands[a]?.scope !== "editing" : undefined;
+      const onGroupRow = state.activeCell !== null && groupIndexAt(state.viewIndex, state.activeCell.row) !== undefined;
+      const offered = (a: GridAction) => (onGroupRow || !GROUP_ROW_ACTIONS.has(a)) && commands?.[a]?.scope !== "editing";
       // unbound printable key = implicit typeToReplace trigger (Excel behavior); a consumer keymap that DEFINES typeToReplace (even []) takes it over and disables the fallback
       const action =
-        matchKeymap(keymapEvent, keymap, isMacRef.current, notEditorOnly) ??
+        matchKeymap(keymapEvent, keymap, isMacRef.current, offered) ??
         (isPrintableKey(keymapEvent, isMacRef.current) && keymap.typeToReplace === undefined ? "typeToReplace" : null);
 
       if (action) dispatch(action);

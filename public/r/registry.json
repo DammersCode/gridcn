@@ -823,6 +823,16 @@
           "target": "components/data-grid/store/group-readers.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/store/group-pages.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/store/group-pages.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid/store/matching-total.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/store/matching-total.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/store/sync-inputs.ts",
           "type": "registry:component",
           "target": "components/data-grid/store/sync-inputs.ts"

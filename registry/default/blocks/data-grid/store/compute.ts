@@ -31,6 +31,7 @@ import { getCellValue } from "../columns/column-helpers";
 import { clampColumnWidth } from "../columns/resolve-column-width";
 import { selectCell } from "../selection/selection-ops";
 import { keepsCheckedRows } from "./hidden-checked-rows";
+import { groupedPageSpan } from "./group-pages";
 import { dataIndexOf, groupLayoutOfView, recordKeyAt, registerGroupLayout, rowAtViewRow, rowIdAtViewRow } from "./view-rows";
 import { computeGroupedView, type GroupingInput } from "./group-view";
 import { CompactSelection, forEachMember } from "../selection/compact-selection";
@@ -800,13 +801,6 @@ export function fullViewOf(viewIndex: readonly number[]): number[] {
   return FULL_VIEW.get(viewIndex) ?? (viewIndex as number[]);
 }
 
-/** The size of the result "all matching" covers: `totalRowCount`, else the whole client list behind a paged view; `undefined` when `data` is the whole result. */
-export function matchingRowTotal(s: Pick<DataGridStoreState, "totalRowCount" | "viewIndex">): number | null | undefined {
-  if (s.totalRowCount !== undefined) return s.totalRowCount;
-  const full = fullViewOf(s.viewIndex);
-  return full === s.viewIndex ? undefined : full.length;
-}
-
 /** Where a paged `viewIndex` starts in its full list; 0 for a view without a window. */
 export function pageStartOf(viewIndex: readonly number[]): number {
   return PAGE_START.get(viewIndex) ?? 0;
@@ -830,8 +824,9 @@ export function viewWindowOf(s: Pick<DataGridStoreState, "page" | "pageSize">): 
 export function windowView(full: number[], window: ViewWindow, prev?: readonly number[]): number[] {
   if (window === null) return full;
   const size = Math.max(1, Math.floor(window.pageSize));
-  const start = (effectivePage(window.page, full.length, size) - 1) * size;
-  const slice = full.slice(start, start + size);
+  const span = groupedPageSpan(full, window.page, size);
+  const start = span ? span.start : (effectivePage(window.page, full.length, size) - 1) * size;
+  const slice = full.slice(start, span ? span.end : start + size);
   if (prev && FULL_VIEW.get(prev) === full && sameElements(slice, prev)) return prev as number[];
   FULL_VIEW.set(slice, full);
   PAGE_START.set(slice, start);

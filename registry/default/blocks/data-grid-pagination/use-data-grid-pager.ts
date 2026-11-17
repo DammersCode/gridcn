@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 import { useDataGridApi } from "@/registry/default/blocks/data-grid/data-grid";
-import { fullViewOf, effectivePage, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { fullViewOf, effectivePage, pageUnitsOf, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { DEFAULT_PAGE_SIZES, pageCount } from "./pagination-math";
 import type { DataGridPaginationControls } from "./use-data-grid-pagination";
 
@@ -23,7 +23,8 @@ export function useDataGridPager(options: UseDataGridPagerOptions = {}): { pager
   const { actions } = useDataGridApi();
   const requestedPage = useDataGridSelector<unknown, number>((s) => s.page);
   const configuredSize = useDataGridSelector<unknown, number | null>((s) => s.pageSize);
-  const total = useDataGridSelector<unknown, number>((s) => fullViewOf(s.viewIndex).length);
+  const total = useDataGridSelector<unknown, number>((s) => pageUnitsOf(fullViewOf(s.viewIndex)));
+  const unit = useDataGridSelector<unknown, "rows" | "groups">((s) => (s.groupLayout ? "groups" : "rows"));
   const pageSize = configuredSize ?? Math.max(1, total);
   const page = effectivePage(requestedPage, total, pageSize);
 
@@ -40,9 +41,10 @@ export function useDataGridPager(options: UseDataGridPagerOptions = {}): { pager
       pageSizeOptions,
       totalRowCount: total,
       hasMore: page < lastPage,
+      ...(unit === "groups" ? { unit } : {}),
       onPageChange: (next) => actions.setPage(next),
       onPageSizeChange: (next) => actions.setPageSize(next),
     };
-  }, [actions, page, pageSize, pageSizeOptions, total]);
+  }, [actions, page, pageSize, pageSizeOptions, total, unit]);
   return { pager };
 }

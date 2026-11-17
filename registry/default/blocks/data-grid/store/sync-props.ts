@@ -42,6 +42,7 @@ import {
   withFilterIds,
 } from "./compute";
 import { resolveSelectionConfig } from "./selection-config";
+import { sameGroupBy } from "./group-state";
 import { EXPANDED_CUT_MESSAGE, syncGroupState, type GroupSyncMemory } from "./group-sync";
 import { groupModeOf, groupingOf } from "./group-view";
 import { withMatchCase } from "./filter-match-case";
@@ -326,7 +327,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
         const nextSearchText = props.searchText ?? s.searchText;
         const filterSpecChanged = filterSpecKey(nextFilterState) !== filterSpecKey(s.filterState);
         const nextPageSize = props.pageSize !== undefined ? props.pageSize : s.pageSize;
-        const nextPage = props.page ?? (filterSpecChanged ? 1 : s.page);
+        let nextPage = props.page ?? (filterSpecChanged ? 1 : s.page);
         if (filterSpecChanged && s.pageSize !== null && s.page !== 1) queueMicrotask(() => s.onPageChange?.(1));
         // Controlled data mirrors the prop; uncontrolled keeps the store's array, and `defaultData` is init-only.
         const nextData = s.dataControlled && props.data !== undefined ? props.data : s.data;
@@ -386,6 +387,10 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
         const nextCellTypes = sameCellTypeEntries(propsCellTypes, memory.lastPropsCellTypes) ? s.cellTypes : resolveCellTypes(propsCellTypes);
         memory.lastPropsCellTypes = propsCellTypes;
         const nextGroup = syncGroupState(s, props, nextColumns, memory.group, () => warnStoreOnce("expanded cut", EXPANDED_CUT_MESSAGE));
+        if (props.page === undefined && nextPage !== 1 && nextPageSize !== null && !sameGroupBy(nextGroup.groupBy, s.groupBy)) {
+          nextPage = 1;
+          queueMicrotask(() => s.onPageChange?.(1));
+        }
         const nextGroupMode = groupModeOf(props);
         const nextServerLayout = props.groupLayout ?? null;
         const nextSyncInputs: SyncInputs = {

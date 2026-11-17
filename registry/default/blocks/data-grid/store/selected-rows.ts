@@ -1,7 +1,7 @@
 import type { ServerSpec } from "../server-spec";
 import type { DataGridStoreState } from "./types";
 import { viewRowOfDataIndex } from "./row-index";
-import { matchingRowTotal } from "./compute";
+import { matchingRowTotal } from "./matching-total";
 import { dataIndexAt, rowAtViewRow } from "./view-rows";
 
 /** The selection as a value a bulk action sends to a server. */
@@ -24,9 +24,9 @@ export type DataGridSelectedRows =
       spec: ServerSpec;
     };
 
-type Source = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "allMatching" | "data" | "viewIndex" | "getRowId" | "totalRowCount" | "sortState" | "filterState" | "searchText">;
+type Source = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "allMatching" | "data" | "viewIndex" | "getRowId" | "totalRowCount" | "sortState" | "filterState" | "searchText" | "groupLayout">;
 
-type CountSource = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "data" | "viewIndex" | "totalRowCount">;
+type CountSource = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "data" | "viewIndex" | "totalRowCount" | "groupLayout">;
 
 const excludedOutsideViewCache = new WeakMap<ReadonlySet<string>, { data: readonly unknown[]; viewIndex: readonly number[]; count: number }>();
 
