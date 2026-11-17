@@ -1,7 +1,7 @@
 import { type ColumnMap, type PlanColumn, mapOf } from "./column-map";
 import { isDev } from "./is-dev";
 import { QueryError } from "./errors";
-import type { QueryLimits } from "./limits";
+import { type QueryLimits, resolveLimits } from "./limits";
 import { type RowCountMode, parseQuery } from "./parse-query";
 import type { AggregatesPlan, GroupsPlan, Operand, Predicate, RowsPlan, Test, ValuesPlan } from "./plan";
 import { combine } from "./plan";
@@ -127,6 +127,8 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
     console.warn("gridcn query layer: no column sets `searchable`, so quick search matches every row.");
   }
   const internal = new WeakMap<object, RowsPlan>();
+  // The grid rejects a group key longer than 1,024 characters, so no limit above that lets one through.
+  const groupKeyCap = Math.min(resolveLimits(limits).maxGroupKeyLength, 1024);
 
   const scoped = (callOptions: { context?: unknown } | undefined): Predicate | undefined => {
     if (!rowScope) return undefined;
@@ -161,7 +163,9 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
     ]);
     const groups = found.slice(0, size).map((entry) => {
       const count = countOf(entry.count) ?? 0;
-      const group: GroupsAnswer["groups"][number] = { key: groupKeyValue(entry.key, plan.level), childCount: plan.nextLevel ? (countOf(entry.childCount) ?? 0) : count, totalRowCount: count };
+      const key = groupKeyValue(entry.key, plan.level);
+      if (typeof key === "string" && key.length > groupKeyCap) throw new QueryError("limit-exceeded", ["spec", "groupBy", plan.level.id]);
+      const group: GroupsAnswer["groups"][number] = { key, childCount: plan.nextLevel ? (countOf(entry.childCount) ?? 0) : count, totalRowCount: count };
       if (plan.aggregates.length > 0) {
         group.aggregates = {};
         for (const { column, reducer } of plan.aggregates) group.aggregates[column.id] = aggregateValue(Object.hasOwn(entry.aggregates, column.id) ? entry.aggregates[column.id] : null, column, reducer);

@@ -432,6 +432,10 @@ export function useGroupBlocks<TData, TCursor = never>(
     };
   }, [engineKey, active]);
 
+  useEffect(() => {
+    if (active && options.source === "sequential") warn("sequential", 'source: "sequential" has no effect while grouped: groups load by offset. Use source: "random" (or omit it) with groupBy.');
+  }, [active, options.source, warn]);
+
   // Aggregates change the group rows only: reload their blocks in place and keep the lists and the scroll position.
   const firstAggregates = useRef(aggregateKey);
   useEffect(() => {

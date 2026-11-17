@@ -250,6 +250,17 @@ describe("createGridQuery", () => {
     expect(inner.totalRowCount).toBeUndefined();
   });
 
+  it("refuses a group page that holds a key longer than the key limit", async () => {
+    const { executor } = fakeExecutor();
+    const answering = (key: string): typeof executor => ({ ...executor, selectGroups: async () => [{ key, count: 1n, childCount: 1, aggregates: {} }] });
+    const ask = { spec: { groupBy: ["name"] }, start: 0, end: 5 };
+    await expect(createGridQuery({ columns, executor: answering("x".repeat(1025)) }).fetchRows(ask)).rejects.toMatchObject({ code: "limit-exceeded", path: ["spec", "groupBy", "name"] });
+    await expect(createGridQuery({ columns, executor: answering("x".repeat(30)), limits: { maxGroupKeyLength: 20 } }).fetchRows(ask)).rejects.toMatchObject({ code: "limit-exceeded" });
+    await expect(createGridQuery({ columns, executor: answering("x".repeat(5000)), limits: { maxGroupKeyLength: 10_000 } }).fetchRows(ask)).rejects.toMatchObject({ code: "limit-exceeded" });
+    const fits = (await createGridQuery({ columns, executor: answering("x".repeat(1024)) }).fetchRows(ask)) as GroupsAnswer;
+    expect(fits.groups[0]!.key).toHaveLength(1024);
+  });
+
   it("answers unsupported for groups when the adapter cannot group", async () => {
     const { executor } = fakeExecutor();
     const query = createGridQuery({ columns, executor: { ...executor, capabilities: { ...executor.capabilities, groupBy: false } } });

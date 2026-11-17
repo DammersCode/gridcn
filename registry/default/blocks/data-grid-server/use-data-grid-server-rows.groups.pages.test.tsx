@@ -144,6 +144,17 @@ describe("grouped pages source", () => {
     unmount();
   });
 
+  it("warns once in development that a sequential source cannot group, and loads by offset", async () => {
+    const server = fakeServer(rowsOf(REGIONS));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const { result } = renderHook(() => useDataGridServerRows<Row>({ mode: "scroll", source: "sequential", fetchRows: server.fetchRows as never, blockSize: 20, loadDelayMs: 0, defaultSpec: { groupBy: ["region"] } }));
+    await waitFor(() => expect(keysOf(result)).toEqual(["A", "B", "C", "D", "E"]));
+    const messages = warn.mock.calls.map(([message]) => String(message)).filter((message) => message.includes("sequential"));
+    expect(messages).toHaveLength(1);
+    expect(messages[0]).toContain('source: "random"');
+    warn.mockRestore();
+  });
+
   it("sends nothing new without a group prop", async () => {
     const server = fakeServer(rowsOf(REGIONS));
     const { result } = renderHook(() => useDataGridServerRows<Row>({ fetchRows: server.fetchRows as never, defaultPageSize: 2 }));
