@@ -45,7 +45,7 @@ async function mount(s: ReturnType<typeof server>, extra: Extra = {}, holdAhead 
   const renders: Array<{ loading: boolean; first: string | undefined; page: number }> = [];
   const view = renderHook(
     (props: Extra) => {
-      const result = useDataGridServerRows<Row>({ getRowId: (row) => row.id, fetchRows: s.fetchRows, defaultPageSize: PAGE, pageSizeOptions: [PAGE, 20], prefetchNextPage: true, ...extra, ...props });
+      const result = useDataGridServerRows<Row>({ getRowId: (row) => row.id, fetchRows: s.fetchRows, defaultPageSize: PAGE, pageSizeOptions: [PAGE, 20], prefetchNextPage: true, refreshAfterSave: false, ...extra, ...props });
       renders.push({ loading: result.loading, first: result.gridProps.data[0]?.id, page: result.pager.page });
       return result;
     },
@@ -331,7 +331,7 @@ describe("prefetchNextPage with the refresh guard", () => {
       return null;
     }
     function Harness() {
-      result = useDataGridServerRows<Row>({ getRowId: (row) => row.id, fetchRows: s.fetchRows, defaultPageSize: PAGE, pageSizeOptions: [PAGE], prefetchNextPage: true });
+      result = useDataGridServerRows<Row>({ getRowId: (row) => row.id, fetchRows: s.fetchRows, defaultPageSize: PAGE, pageSizeOptions: [PAGE], prefetchNextPage: true, refreshAfterSave: false });
       return (
         <DataGridProvider {...result.providerProps} columns={columns} onSave={onSave}>
           <DataGridRoot>

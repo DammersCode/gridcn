@@ -69,7 +69,7 @@ A refresh keeps a row that has an open edit or a save in flight. The row keeps i
 
 In pages mode, a pending insert stays at the end of the page. The page can then hold more than `pageSize` rows until the save settles.
 
-`gridProps.plugins` mounts the guard that applies these rules, then the plugins of the `plugins` option. A `plugins` prop of your own after the spread replaces the guard. When an edit happened and the guard never mounted, `refresh()` warns once in development.
+`gridProps.plugins` mounts the guard that applies these rules, then the plugins of the `plugins` option. A `plugins` prop of your own after the spread mounts next to the guard.
 
 ## Let the hook refresh [#automatic]
 

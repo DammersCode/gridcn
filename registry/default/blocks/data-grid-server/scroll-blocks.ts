@@ -4,12 +4,12 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { applyChangeWith, holeRowId, isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { readAnswer, type ReadAnswer, type ServerRowsAnswer, type ServerRowsRequest, type WithRowId } from "./read-answer";
-import { GUARD_MISSING_MESSAGE, pruneIds, stashGuardedRows, trackDeletes, unionIds, useRefreshGuard, writeBlocks, type GuardedBlock, type GuardHandlers, type ProtectedRows } from "./refresh-guard";
+import { pruneIds, stashGuardedRows, trackDeletes, unionIds, useRefreshGuard, writeBlocks, type GuardedBlock, type ProtectedRows } from "./refresh-guard";
 import { cursorKey, MAX_SEEN_CURSORS, needsNextBlock, skeletonCount, startsSequence, stepSequence } from "./scroll-sequence";
 import { chunkAligned, chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes } from "./range-math";
 import { DEFAULT_MAX_LOADED_ROWS, MAX_SEQUENTIAL_REVALIDATE_BLOCKS, distanceToCentre, dueWanted, keepRange, pickEvictions, pruneViewed, rangesIntersect, readFetchLimits, trackWanted, unloadRangesOf, type FetchLimits, type Wanted } from "./fetch-hygiene";
 import { useSaveRefresh, type SaveRefreshOptions, type SaveRefreshPolicy } from "./save-refresh";
-import { isolate, scheduleFrame, useMountedPlugins, useReshape, useRevalidation, useServerSpec } from "./server-state";
+import { isolate, scheduleFrame, useMountedPlugins, useRegisteredWiring, useReshape, useRevalidation, useServerSpec } from "./server-state";
 import type { UseDataGridServerRowsRootProps } from "./use-data-grid-server-rows";
 
 const DEFAULT_OVERSCAN = 30;
@@ -75,7 +75,7 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
   onError?: (error: unknown) => void;
   /** Fires after the rows of a block land, with the range they cover. The grid shows them on the next frame. */
   onLoaded?: (range: RowRange) => void;
-  /** Fires after the hook merged an edit, insert, delete, or revert. Put your handler here; a provider `onDataChange` after the spread runs next to the merge. */
+  /** Fires after the hook merged an edit, insert, delete, or revert. A provider `onDataChange` after the spread runs next to the merge. */
   onDataChange?: (next: readonly TData[], change: DataChange<TData>) => void;
   /** Saves a change; spread to the provider through `gridProps.onSave`, where it behaves as the `DataGridProvider` prop of the same name. The hook refreshes after saves settle by `refreshAfterSave`. */
   onSave?: SaveRefreshOptions<TData>["onSave"];
@@ -295,7 +295,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
   const [count, setCount] = useState<number | null>(null);
   const [loadedCount, setLoadedCount] = useState(0);
   const [skeletons, setSkeletons] = useState<number | null>(null);
-  const { setHandlers, setSaveCheckListener, plugins: guardPlugins, protectedRows, savingRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, setSettleListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows } = useRefreshGuard({ trackUnacknowledged: true });
+  const { plugins: guardPlugins, protectedRows, savingRows, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, setSettleListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows } = useRefreshGuard({ trackUnacknowledged: true });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const live = useRef({ options, spec });
@@ -888,7 +888,6 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       runFetch({ start: 0, end: blockSize() });
       return;
     }
-    if (guardMissing()) warn("guard", GUARD_MISSING_MESSAGE);
     commit();
     const size = blockSize();
     if (core.kind === "sequence") {
@@ -911,7 +910,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     core.owed = chunkRange(keep, size);
     setLoading(core.owed.length > 0);
     pumpRef.current();
-  }, [getCore, runFetch, evictRange, abortRequests, blockSize, overscanOf, guardMissing, warn, commit, cancelReshape]);
+  }, [getCore, runFetch, evictRange, abortRequests, blockSize, overscanOf, commit, cancelReshape]);
 
   useLayoutEffect(() => {
     refreshRef.current = refresh;
@@ -959,7 +958,6 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
   const onDataChange = useCallback(
     (next: readonly TData[], change: DataChange<TData>) => {
       const core = getCore();
-      markEdited();
       commit();
       // `next` is the grid's snapshot and can predate rows a landed block wrote; replaying the operations on the latest rows keeps them.
       setRows((prev) => {
@@ -988,16 +986,15 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       const onDataChange = live.current.options.onDataChange;
       if (onDataChange) isolate("onDataChange", () => onDataChange(next, change));
     },
-    [getCore, commit, getRowId, warn, followRowOperations, markEdited, requestReshape, streamUpdateRow],
+    [getCore, commit, getRowId, warn, followRowOperations, requestReshape, streamUpdateRow],
   );
 
   const refreshAfterSave = useCallback(() => {
     if (canRevalidate()) refresh();
   }, [canRevalidate, refresh]);
-  const onSave = useSaveRefresh(options, refreshAfterSave, setSaveCheckListener);
+  const { onSave, wrapSave } = useSaveRefresh(options, refreshAfterSave);
 
   const plugins = useMountedPlugins(guardPlugins, options.plugins);
-  useLayoutEffect(() => setHandlers({ onDataChange: onDataChange as GuardHandlers["onDataChange"], onRenderedRowsChange }));
   const providerProps = useMemo<UseDataGridServerRowsScrollProviderProps<TData>>(
     () => ({
       data: rows as TData[],
@@ -1020,6 +1017,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     }),
     [rows, count, spec, getRowId, onDataChange, onSave, onRenderedRowsChange, onSortChange, onFilterChange, onSearchTextChange, plugins],
   );
+  useRegisteredWiring(providerProps, wrapSave);
   const rootProps = useMemo<UseDataGridServerRowsRootProps>(() => ({ loading, error, onRetry: retry }), [loading, error, retry]);
   const gridProps = useMemo(() => ({ ...providerProps, ...rootProps }), [providerProps, rootProps]);
 

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DataGridPlugin, FilterNode, ServerSpec, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { isDev, registerServerWiring } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MIN_RESHAPE_DELAY, MIN_REVALIDATE_INTERVAL, readReshapeDelay, readRevalidateInterval } from "./fetch-hygiene";
 
 /** The request state every mode of `useDataGridServerRows` returns. */
@@ -296,4 +296,11 @@ export function useReshape({ delay: raw, run, busy, canRun, resetKey, warn }: Re
   }, [busy]);
 
   return { request, cancel };
+}
+
+type WiringSave = Parameters<typeof registerServerWiring>[1]["wrapSave"];
+
+/** Registers the hook's provider props before the grid renders, so props after the `gridProps` spread join them. */
+export function useRegisteredWiring(props: { data: readonly unknown[] }, wrapSave: unknown) {
+  useMemo(() => registerServerWiring(props.data, { props, wrapSave: wrapSave as WiringSave }), [props, wrapSave]);
 }

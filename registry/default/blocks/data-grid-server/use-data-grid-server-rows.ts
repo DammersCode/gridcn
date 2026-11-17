@@ -8,9 +8,9 @@ import { DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-paginati
 import { readRevalidateInterval } from "./fetch-hygiene";
 import { MAX_ROW_COUNT, readAnswer, type ReadAnswer, type ServerRowsAnswer, type ServerRowsPageRequest, type WithRowId } from "./read-answer";
 import { useScrollBlocks, type UseDataGridServerRowsScrollOptions, type UseDataGridServerRowsScrollResult } from "./scroll-blocks";
-import { GUARD_MISSING_MESSAGE, keepProtectedRows, pruneIds, trackDeletes, unionIds, useRefreshGuard, type GuardHandlers, type ProtectedRows } from "./refresh-guard";
+import { keepProtectedRows, pruneIds, trackDeletes, unionIds, useRefreshGuard, type ProtectedRows } from "./refresh-guard";
 import { useSaveRefresh, type SaveRefreshOptions, type SaveRefreshPolicy } from "./save-refresh";
-import { isolate, scheduleFrame, useControlled, useMountedPlugins, useReshape, useRevalidation, useServerSpec } from "./server-state";
+import { isolate, scheduleFrame, useControlled, useMountedPlugins, useRegisteredWiring, useReshape, useRevalidation, useServerSpec } from "./server-state";
 
 export type { DataSourceState } from "./server-state";
 export type { ServerRowsAnswer, ServerRowsPageRequest, ServerRowsRequest } from "./read-answer";
@@ -63,7 +63,7 @@ export type UseDataGridServerRowsOptions<TData, TCursor = never> = {
   prefetchNextPage?: boolean;
   /** Fires after the rows of a request land, with the range they cover. */
   onLoaded?: (range: RowRange) => void;
-  /** Fires after the hook keeps an edit, insert, delete, or revert. Put your handler here; a provider `onDataChange` after the spread runs next to the merge. */
+  /** Fires after the hook keeps an edit, insert, delete, or revert. A provider `onDataChange` after the spread runs next to the merge. */
   onDataChange?: (next: readonly TData[], change: DataChange<TData>) => void;
   /** Saves a change; spread to the provider through `gridProps.onSave`, where it behaves as the `DataGridProvider` prop of the same name. The hook refreshes after saves settle by `refreshAfterSave`. */
   onSave?: SaveRefreshOptions<TData>["onSave"];
@@ -241,7 +241,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   const awaitingChain = !cursorSource && settled.cursorSource;
   const page = cursorSource ? Math.min(wantedPage, settled.furthestPage) : awaitingChain ? 1 : wantedPage;
   const [tick, setTick] = useState(0);
-  const { setHandlers, setSaveCheckListener, plugins: guardPlugins, protectedRows, guardMissing, markEdited, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, savingRows, setSaveStartListener, setSavesSettledListener, setReshapeListener, setSettleListener } = useRefreshGuard();
+  const { plugins: guardPlugins, protectedRows, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, savingRows, setSaveStartListener, setSavesSettledListener, setReshapeListener, setSettleListener } = useRefreshGuard();
   const [landed, setLanded] = useState<Landed<TData, TCursor> | null>(null);
 
   const specKey = serverSpecKey(spec);
@@ -511,9 +511,8 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   const refresh = useCallback(() => {
     cancelReshape();
     restartClockRef.current();
-    if (live.current.settledOnce && guardMissing()) warn("guard", GUARD_MISSING_MESSAGE);
     setTick((n) => n + 1);
-  }, [guardMissing, warn, cancelReshape]);
+  }, [cancelReshape]);
   useLayoutEffect(() => {
     refreshRef.current = refresh;
   }, [refresh]);
@@ -544,7 +543,6 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
 
   const onDataChange = useCallback(
     (next: readonly TData[], change: DataChange<TData>) => {
-      markEdited();
       trackDeletes(deleted.current, change);
       if (((change.ops as typeof change.ops | undefined) ?? []).some((op) => op.type !== "update")) dropPrefetch();
       // `next` is the grid's snapshot and can predate a page that landed since; replaying the operations on the latest rows keeps it.
@@ -552,7 +550,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
       if (change.source === "stream" && ((change.ops as typeof change.ops | undefined) ?? []).some((op) => op.type === "delete")) requestReshape("soon");
       live.current.options.onDataChange?.(next, change);
     },
-    [markEdited, dropPrefetch, requestReshape, streamUpdateRow],
+    [dropPrefetch, requestReshape, streamUpdateRow],
   );
   const getRowId = useCallback((row: TData, index: number) => live.current.options.getRowId(row, index), []);
 
@@ -573,10 +571,9 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
     onPageSizeChange,
   });
 
-  const onSave = useSaveRefresh(options, refresh, setSaveCheckListener);
+  const { onSave, wrapSave } = useSaveRefresh(options, refresh);
 
   const plugins = useMountedPlugins(guardPlugins, options.plugins);
-  useLayoutEffect(() => setHandlers({ onDataChange: onDataChange as GuardHandlers["onDataChange"] }));
 
   const providerProps = useMemo<UseDataGridServerRowsProviderProps<TData>>(
     () => ({
@@ -599,6 +596,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
     }),
     [shown.rows, shown.totalRowCount, spec, getRowId, onDataChange, onSave, onSortChange, onFilterChange, onSearchTextChange, plugins],
   );
+  useRegisteredWiring(providerProps, wrapSave);
   const rootProps = useMemo<UseDataGridServerRowsRootProps>(() => ({ loading, error, onRetry: retry }), [loading, error, retry]);
   const gridProps = useMemo(() => ({ ...providerProps, ...rootProps }), [providerProps, rootProps]);
 

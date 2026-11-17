@@ -95,9 +95,9 @@ export function OrdersGrid() {
 | `onSave` | Runs your `onSave`. The hook fetches again after the saves settle (`refreshAfterSave`). |
 | `headerClickBehavior: "sort"` | A header click sorts. Set it after the spread to change that. |
 | `getRowId`, `checkedRowsLifetime: "across-filters"` | The row id, and checked rows that stay across pages. |
-| `plugins` | Your `plugins` option, mounted after the refresh guard of the hook. |
+| `plugins` | The refresh guard of the hook, then your `plugins` option. |
 
-- Pass `onSave` and `plugins` to the hook, not as props after the spread. Such a prop replaces the hook wiring. An `onDataChange` after the spread runs next to the hook's merge.
+- A prop after the spread joins the hook wiring. `onDataChange`, `onSortChange`, `onFilterChange`, `onSearchTextChange`, and `onRenderedRowsChange` run next to the hook's handler, and `plugins` mount after the refresh guard. An `onSave` prop runs in place of the `onSave` option, and the hook still refreshes after it settles.
 - A composed layout spreads `server.providerProps` onto `DataGridProvider` and `server.rootProps` onto `DataGridRoot`. The demo does this.
 
 <Callout type="warn">

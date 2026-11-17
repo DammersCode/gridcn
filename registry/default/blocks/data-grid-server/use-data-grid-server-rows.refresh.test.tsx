@@ -300,17 +300,16 @@ describe("refresh without the guard plugin mounted", () => {
   }
   const guardWarnings = (warn: { mock: { calls: unknown[][] } }) => warn.mock.calls.filter(([message]) => /refresh guard|gridProps\.plugins/.test(String(message)));
 
-  it.each(["scroll", "pages"] as const)("warns once in %s mode when a grid mounted without the plugin", async (mode) => {
+  it.each(["scroll", "pages"] as const)("keeps the refresh guard in %s mode when a plugins prop after the spread is empty", async (mode) => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     let server!: AnyServer;
     render(<Tree mode={mode} withPlugin={false} onServer={(next) => (server = next)} />);
     await waitFor(() => expect(server.loading).toBe(false));
-    expect(guardWarnings(warn)).toHaveLength(0);
+    expect(store.getState().plugins.list.map((plugin) => plugin.name)).toContain("server-rows-refresh-guard");
     edit();
     act(() => server.refresh());
-    act(() => server.refresh());
     await waitFor(() => expect(server.loading).toBe(false));
-    expect(guardWarnings(warn)).toHaveLength(1);
+    expect(guardWarnings(warn)).toHaveLength(0);
   });
 
   it.each(["scroll", "pages"] as const)("does not warn in %s mode for a read-only grid or a getRowId call outside any grid", async (mode) => {

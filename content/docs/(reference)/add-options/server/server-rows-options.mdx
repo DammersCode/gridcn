@@ -19,7 +19,7 @@ aliases: ["blocksize", "usedatagridserverrows", "server rows options", "request 
 
 Both modes set `sortMode` and `filterMode` to `"server"`. To sort or filter the loaded rows in the browser, set `sortMode="client"` or `filterMode="client"`.
 
-Pass `onSave`, `onRenderedRowsChange`, and `plugins` to the hook, not as props after the `gridProps` spread. Such a prop replaces that hook wiring. An `onDataChange` after the spread runs next to the hook's merge.
+A handler or `plugins` prop after the `gridProps` spread joins the hook wiring. `onDataChange`, `onSortChange`, `onFilterChange`, `onSearchTextChange`, and `onRenderedRowsChange` run next to the hook's handler. `plugins` mount after the refresh guard. An `onSave` prop runs in place of the `onSave` option, and the hook still refreshes after it settles.
 
 ## Pages mode [#server-mode]
 

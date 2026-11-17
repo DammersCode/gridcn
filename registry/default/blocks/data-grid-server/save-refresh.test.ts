@@ -10,7 +10,7 @@ const saveCtx = { actions: {} as never, signal: new AbortController().signal };
 function mount(options: SaveRefreshOptions<Row>) {
   const refresh = vi.fn();
   const hook = renderHook(() => useSaveRefresh(options, refresh));
-  return { refresh, save: (c = change) => hook.result.current!(c, saveCtx), result: hook.result, unmount: hook.unmount };
+  return { refresh, save: (c = change) => hook.result.current.onSave!(c, saveCtx), result: hook.result, unmount: hook.unmount };
 }
 const flush = () => act(async () => void (await vi.advanceTimersByTimeAsync(5)));
 const deferred = () => {
@@ -43,7 +43,7 @@ describe("useSaveRefresh", () => {
   });
 
   it("returns nothing without onSave, so a spread never overrides the provider's own", () => {
-    expect(mount({}).result.current).toBeUndefined();
+    expect(mount({}).result.current.onSave).toBeUndefined();
   });
 
   it("refreshes once after parallel saves have all settled", async () => {
@@ -179,25 +179,14 @@ describe("useSaveRefresh", () => {
   });
 });
 
-describe("useSaveRefresh, bypass warning", () => {
-  it("warns once when a save starts but the hook's onSave never ran", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    let listener: (() => void) | null = null;
-    renderHook(() => useSaveRefresh({ onSave: async () => {} }, vi.fn(), (next) => (listener = next)));
-    listener!();
-    listener!();
+describe("useSaveRefresh, wrapSave", () => {
+  it("tracks a provider onSave like the option, and the option is undefined without one", async () => {
+    const refresh = vi.fn();
+    const hook = renderHook(() => useSaveRefresh<Row>({}, refresh));
+    expect(hook.result.current.onSave).toBeUndefined();
+    await hook.result.current.wrapSave(async () => {})(change, saveCtx);
     await flush();
-    expect(warn.mock.calls.filter((c) => String(c[0]).includes("did not run"))).toHaveLength(1);
-  });
-
-  it("stays quiet when the wrapper ran", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    let listener: (() => void) | null = null;
-    const hook = renderHook(() => useSaveRefresh({ onSave: async () => {} }, vi.fn(), (next) => (listener = next)));
-    await hook.result.current!(change, saveCtx);
-    listener!();
-    await flush();
-    expect(warn).not.toHaveBeenCalled();
+    expect(refresh).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -205,7 +194,7 @@ describe("useSaveRefresh save context", () => {
   it("hands the grid's save context to the caller's onSave", async () => {
     const onSave = vi.fn(async () => {});
     const hook = renderHook(() => useSaveRefresh({ onSave }, vi.fn()));
-    await hook.result.current!(change, saveCtx);
+    await hook.result.current.onSave!(change, saveCtx);
     expect(onSave).toHaveBeenCalledWith(change, saveCtx);
   });
 });

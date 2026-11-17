@@ -221,7 +221,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     setReadOnly = setReadOnlyState;
     setBlockSize = setBlockSizeState;
     if (kind === "pages") {
-      pages = useDataGridServerRows<Row>({ getRowId, fetchRows: fetchPage, defaultPageSize: PAGE_SIZE, pageSizeOptions: [PAGE_SIZE] });
+      pages = useDataGridServerRows<Row>({ getRowId, fetchRows: fetchPage, defaultPageSize: PAGE_SIZE, pageSizeOptions: [PAGE_SIZE], refreshAfterSave: false });
       return (
         <DataGridProvider {...pages.providerProps} columns={columns} onSave={onSave} createRow={createRow} readOnly={readOnly}>
           <DataGridRoot>
@@ -230,7 +230,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
         </DataGridProvider>
       );
     }
-    scroll = useDataGridServerRows<Row, number>({ mode: "scroll", loadDelayMs: 0, getRowId, fetchRows: fetchScroll, blockSize, overscan: 0 });
+    scroll = useDataGridServerRows<Row, number>({ mode: "scroll", loadDelayMs: 0, getRowId, fetchRows: fetchScroll, blockSize, overscan: 0, refreshAfterSave: false });
     return (
       <DataGridProvider {...scroll.providerProps} columns={columns} onSave={onSave} createRow={createRow} readOnly={readOnly}>
         <DataGridRoot>

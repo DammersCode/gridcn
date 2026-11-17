@@ -131,6 +131,7 @@ The [2.0 breaking changes](https://gridcn.vercel.app/docs/support-upgrades/break
 - **Add-ons:** the `lookup` cell type, cell comments (`data-grid-comments`), `useDataGridServerAggregate`, and the `gridcn-upgrade` agent skill.
 - **Focus:** a grid that mounts with a seeded selection no longer takes focus on page load, so the first Tab starts at the page start. The fill handle takes focus on pointer down, so Ctrl+Z undoes a fill right after a drag, and its hit area is 24 px.
 - **Dependencies:** the validation demo (`data-grid-validation-demo`) installs `zod@^4.6.7`. The core grid has no zod dependency.
+- A handler or `plugins` prop after the `server.gridProps` spread joins the hook wiring in pages and scroll mode. `onDataChange`, `onSortChange`, `onFilterChange`, `onSearchTextChange`, and `onRenderedRowsChange` run next to the hook's handler, `plugins` mount after the refresh guard, and an `onSave` prop runs in place of the `onSave` option with `refreshAfterSave` still applied. Before, such a prop replaced the hook's wiring, with a development warning.
 
 Every other 2.0 entry is in [CHANGELOG-2.0.md](CHANGELOG-2.0.md).
 

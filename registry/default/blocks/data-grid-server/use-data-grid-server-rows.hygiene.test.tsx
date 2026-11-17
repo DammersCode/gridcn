@@ -41,7 +41,7 @@ function setup(extra: Extra = {}, { total = 100_000, auto = false, onSave = true
     return null;
   }
   function Harness() {
-    server = useDataGridServerRows<Row>({ mode: "scroll", getRowId: (row) => row.id, fetchRows, blockSize: 10, overscan: 0, loadDelayMs: 0, maxConcurrentFetches: 16, maxLoadedRows: Infinity, ...extra });
+    server = useDataGridServerRows<Row>({ mode: "scroll", refreshAfterSave: false, getRowId: (row) => row.id, fetchRows, blockSize: 10, overscan: 0, loadDelayMs: 0, maxConcurrentFetches: 16, maxLoadedRows: Infinity, ...extra });
     return (
       <DataGridProvider {...server.providerProps} columns={columns} enableRowSelection onSave={onSave ? save : undefined}>
         <DataGridRoot>

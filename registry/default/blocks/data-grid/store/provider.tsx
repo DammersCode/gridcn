@@ -13,6 +13,7 @@ import { getInternalActions } from "./internal-actions";
 import { createDataGridStore } from "./create-store";
 import { watchClientViewOverHoles } from "./hole-view-guard";
 import { useStableLabels } from "./stable-labels";
+import { applyServerWiring } from "./server-wiring";
 import { toInternalSyncProps } from "./types";
 import { applyFunctionSeeds } from "./function-seed";
 import type { AnyColumnDef, DataGridActions, DataGridProviderProps, DataGridStoreState, DataGridStoreStateOf, DataGridSyncProps, InternalSyncProps } from "./types";
@@ -192,7 +193,7 @@ function useGridStoreCore<TData>(
   externalStore: StoreApi<DataGridStoreState> | undefined,
 ): { store: StoreApi<DataGridStoreState>; actions: DataGridActions } {
   const stableLabels = useStableLabels(props.labels);
-  const internalInit = toInternalSyncProps({ ...props, labels: stableLabels });
+  const internalInit = toInternalSyncProps(applyServerWiring({ ...props, labels: stableLabels }));
   // Lazy: an external store means this instance owns nothing, and store creation computes the
   // initial view over the full dataset — it must not run for a shell.
   const [ownedStore] = useState<StoreApi<DataGridStoreState> | null>(() => (externalStore ? null : createDataGridStore(internalInit)));

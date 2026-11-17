@@ -1,5 +1,5 @@
-import { act, render, renderHook } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { act, render } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
 import { DataGridProvider, DataGridRoot, defineColumns, type DataChange } from "@/registry/default/blocks/data-grid/data-grid";
 import { applyChangeWith, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
@@ -159,24 +159,5 @@ describe("replaying a stream update", () => {
     const change = { source: "edit" as const, ops: [op] };
     expect(rowOfStreamUpdate(change, cols)).toBeUndefined();
     expect(applyChange([landed], change, (row) => row.id)[0]).toEqual({ id: "r5", name: "A", price: 7 });
-  });
-});
-
-describe("merge bypass warning", () => {
-  it("warns once when the grid reports a change the hook's merge never saw", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const { result } = renderHook(() => useRefreshGuard());
-    const change = { source: "edit", ops: [] } as unknown as DataChange<Row>;
-    result.current.plugins[0]!.onDataChange?.([], change, undefined as never);
-    result.current.plugins[0]!.onDataChange?.([], change, undefined as never);
-    expect(warn.mock.calls.filter((c) => String(c[0]).includes("merge did not run"))).toHaveLength(1);
-  });
-
-  it("stays quiet when markEdited ran first", () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const { result } = renderHook(() => useRefreshGuard());
-    result.current.markEdited();
-    result.current.plugins[0]!.onDataChange?.([], { source: "edit", ops: [] } as unknown as DataChange<Row>, undefined as never);
-    expect(warn).not.toHaveBeenCalled();
   });
 });

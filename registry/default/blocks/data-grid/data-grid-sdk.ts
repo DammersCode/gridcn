@@ -16,6 +16,7 @@ import { gateTrackerOf } from "./store/internal-actions";
 import type { CellErrorEntry, LiveAnnouncementKind } from "./store/types";
 
 export { setServerReshapeHandler };
+export { registerServerWiring, type ServerWiring } from "./store/server-wiring";
 import type { DataChange, DataGridStoreWrapper } from "./types";
 
 export type { DataGridReadState, DataGridStoreWrapper } from "./types";
