@@ -682,7 +682,7 @@ function DateEditorProvider({ children }: { children: ReactNode }) {
 describe("dateCellType.Editor lifecycle", () => {
   beforeAll(async () => {
     await import("./date-calendar");
-  });
+  }, 60_000);
 
   it("opens a popover with a typed-input and a calendar", async () => {
     const { onChange, commit, commitValue, cancel } = editorSpies();

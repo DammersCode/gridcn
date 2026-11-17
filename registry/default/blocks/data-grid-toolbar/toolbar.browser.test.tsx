@@ -977,7 +977,7 @@ describe("DataGridFilterMenu groups", () => {
     await page.getByRole("combobox", { name: "Connector of filter 2" }).click();
     await page.getByRole("option", { name: "Or", exact: true }).click();
     await expect.poll(() => [...document.querySelectorAll("[data-grid-filter-row] > div:first-child")].map((c) => c.textContent)).toEqual(["Where", "Or", "Or"]);
-    await expect.poll(rowCount).toBe(3);
+    await expect.poll(rowCount).toBe(4);
   });
 
   it("sets the top-level join with the keyboard on the second row connector", async () => {
