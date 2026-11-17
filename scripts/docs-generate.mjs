@@ -294,7 +294,7 @@ function keyboardShortcuts() {
   const body = keymapText.slice(keymapText.indexOf("DEFAULT_KEYMAP: Keymap = {"), keymapText.indexOf("};"));
   for (const m of body.matchAll(/^\s*(\w+): \[(.*?)\],/gm)) keymap.set(m[1], [...m[2].matchAll(/"((?:[^"\\]|\\.)*)"/g)].map((b) => b[1]));
   const groups = new Map([...read(`${BLOCKS}/data-grid-keybindings/action-groups.ts`).matchAll(/^\s*(\w+): "(\w+)",$/gm)].map((m) => [m[1], m[2]]));
-  const labelsText = read(`${BLOCKS}/data-grid/labels.ts`);
+  const labelsText = read(`${BLOCKS}/data-grid/label-defaults.ts`);
   const actionsBlock = labelsText.slice(labelsText.indexOf("      actions: {\n        moveUp:"), labelsText.indexOf("    markers: {"));
   const labels = new Map([...actionsBlock.matchAll(/^\s{8}(\w+): "(.*)",$/gm)].map((m) => [m[1], m[2]]));
   const categories = new Map([...labelsText.slice(labelsText.indexOf("      categories: {"), labelsText.indexOf("      nativeCopy")).matchAll(/^\s{8}(\w+): "(.*)",$/gm)].map((m) => [m[1], m[2]]));

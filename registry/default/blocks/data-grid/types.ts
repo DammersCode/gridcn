@@ -4,78 +4,11 @@ import type { KeyBinding } from "./keyboard/key-syntax";
 import type { AnyColumnDef, DataGridActions, DataGridStoreState } from "./store/types";
 import type { RowBandRenderCtx } from "./layout-context";
 import type { OverlayPluginCtx } from "./overlays";
+import type { StandardSchemaV1 } from "./standard-schema";
 
 export type { KeyBinding };
 
-/**
- * Vendored from `@standard-schema/spec` v1 (https://github.com/standard-schema/standard-schema) so
- * shipped registry code has zero runtime/type dependency on the package — the spec is
- * frozen at version 1, so drift risk is ~nil; a type-level conformance test (data-grid.type-test.ts)
- * asserts this vendored copy stays assignable to/from the real package's type in both directions,
- * so any future drift fails `tsc` instead of silently diverging. `@standard-schema/spec` is still a
- * repo devDependency (types-only, for that conformance test) — never imported by shipped code.
- */
-export type StandardSchemaV1<Input = unknown, Output = Input> = {
-  /** The Standard Schema properties. */
-  readonly "~standard": StandardSchemaV1Props<Input, Output>;
-};
-
-interface StandardSchemaV1Props<Input = unknown, Output = Input> {
-  /** The version number of the standard. */
-  readonly version: 1;
-  /** The vendor name of the schema library. */
-  readonly vendor: string;
-  /** Validates unknown input values. */
-  readonly validate: (value: unknown) => StandardSchemaV1Result<Output> | Promise<StandardSchemaV1Result<Output>>;
-  /** Inferred types associated with the schema. */
-  readonly types?: StandardSchemaV1Types<Input, Output> | undefined;
-}
-
-/** Result of one `"~standard".validate()` call: `issues` set means failure, never thrown. */
-export type StandardSchemaV1Result<Output> = StandardSchemaV1SuccessResult<Output> | StandardSchemaV1FailureResult;
-
-interface StandardSchemaV1SuccessResult<Output> {
-  /** The typed output value. */
-  readonly value: Output;
-  /** A falsy value for `issues` indicates success. */
-  readonly issues?: undefined;
-}
-
-interface StandardSchemaV1FailureResult {
-  /** The issues of failed validation. */
-  readonly issues: ReadonlyArray<StandardSchemaV1Issue>;
-}
-
-/** One validation failure; cell values are scalars so `path` (when present) is a flat dot-joined prefix. */
-export interface StandardSchemaV1Issue {
-  /** The error message of the issue. */
-  readonly message: string;
-  /** The path of the issue, if any. */
-  readonly path?: ReadonlyArray<PropertyKey | StandardSchemaV1PathSegment> | undefined;
-}
-
-interface StandardSchemaV1PathSegment {
-  /** The key representing a path segment. */
-  readonly key: PropertyKey;
-}
-
-interface StandardSchemaV1Types<Input = unknown, Output = Input> {
-  /** The input type of the schema. */
-  readonly input: Input;
-  /** The output type of the schema. */
-  readonly output: Output;
-}
-
-// Namespace-merged onto the `StandardSchemaV1` type (matching the official package's own
-// declaration, and how consumers write `StandardSchemaV1.InferInput<S>`) — not a general-purpose
-// namespace, so the lint rule's usual "prefer ES modules" concern doesn't apply here.
-// eslint-disable-next-line @typescript-eslint/no-namespace
-export namespace StandardSchemaV1 {
-  /** Infers the input type of a Standard Schema. */
-  export type InferInput<Schema extends StandardSchemaV1> = NonNullable<Schema["~standard"]["types"]>["input"];
-  /** Infers the output type of a Standard Schema. */
-  export type InferOutput<Schema extends StandardSchemaV1> = NonNullable<Schema["~standard"]["types"]>["output"];
-}
+export type { StandardSchemaV1, StandardSchemaV1Issue, StandardSchemaV1Result } from "./standard-schema";
 
 // `keyof TData & string` alone resolves to `never` (not `string`) when TData=unknown — unlike
 // `never`, where `keyof never` is the universal key type `string | number | symbol` — so the
@@ -438,9 +371,10 @@ export type CellType<TData = unknown, TValue = unknown, TOptions = unknown> = {
   /** The quick-search text for a stored value; the default is `toText`. select declares the choice label. */
   toSearchText?(value: TValue, options?: TOptions): string;
   /**
-   * Validation for every column of this type; same shape as {@link ColumnDef.validate}. Every validation path (commit, paste, fill,
-   * updateCells, import) runs the function form first, then the column's own `validate` (beside a column Standard Schema, it receives
-   * no row). A Standard Schema type `validate` applies only to a column without its own.
+   * Validation for every column of this type; same shape as {@link ColumnDef.validate}. Every
+   * validation path (commit, paste, fill, updateCells, import) runs the function form first, then
+   * the column's own `validate` (beside a column Standard Schema, it receives no row). A Standard
+   * Schema type `validate` applies only to a column without its own.
    */
   validate?: ((value: TValue, row: TData, options?: TOptions) => string | null) | StandardSchemaV1<TValue>;
   /**
@@ -476,17 +410,21 @@ export type FilterValueInputProps = {
 
 /**
  * Filter capabilities a cell type declares instead of the toolbar's name-derived defaults:
- * `operators` beats the type-name operator table, `match` replaces the built-in text matcher (it receives the cell's RAW
- * value and the spec and returns whether the row passes; a throw fails the row; a custom operator uses its own `match`;
- * `isAnyOf` and `isNoneOf` reach it only when the same `filter` lists them in `operators`), `compare` orders cell text against a filter bound for
- * `gt`, `gte`, `lt`, `lte`, and `isBetween` (a NaN result or a throw falls back to the default order for that pair), `valueInput` picks the
- * filter row's widget: a built-in one by name, or a component that renders for every operator with a value, and `matchCase` (default `false`) makes the built-in text and set operators and the header filter list respect letter case. `ColumnDef.filter` takes the same shape and wins per member.
+ * `operators` beats the type-name operator table, `match` replaces the built-in text matcher
+ * (it receives the cell's RAW value and the spec and returns whether the row passes; a throw fails
+ * the row; a custom operator uses its own `match`; `isAnyOf` and `isNoneOf` reach it only when the
+ * same `filter` lists them in `operators`), `compare` orders cell text against a filter bound for
+ * `gt`, `gte`, `lt`, `lte`, and `isBetween` (a NaN result or a throw falls back to the default order
+ * for that pair), and `valueInput` picks the filter row's widget: a built-in one by name, or a
+ * component that renders for every operator with a value. `ColumnDef.filter` takes the same shape
+ * and wins per member.
  */
 export type CellTypeFilter = {
   operators?: readonly (BuiltInFilterOperator | CustomFilterOperator)[];
   match?: (value: unknown, filter: FilterSpec) => boolean;
   compare?: (text: string, bound: string) => number;
   valueInput?: CellTypeValueInput | ComponentType<FilterValueInputProps>;
+  /** The built-in text and set operators, and the header filter's value list, respect letter case. Default `false`. */
   matchCase?: boolean;
 };
 
@@ -769,8 +707,10 @@ export interface GridActions {
   deleteRows: true;
   moveRowsUp: true;
   moveRowsDown: true;
-  moveColumnTowardStart: true; moveColumnTowardEnd: true;
-  widenColumn: true; narrowColumn: true;
+  moveColumnTowardStart: true;
+  moveColumnTowardEnd: true;
+  widenColumn: true;
+  narrowColumn: true;
   openLink: true;
   focusSearch: true;
 }
