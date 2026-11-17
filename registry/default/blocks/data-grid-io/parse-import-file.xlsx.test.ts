@@ -386,6 +386,68 @@ describe("parseImportFile — xlsx formatted text", () => {
   });
 });
 
+describe("parseImportFile — valueMode raw", () => {
+  const raw = { valueMode: "raw" } as const;
+
+  it("reads stored values and skips number formats", async () => {
+    const file = await workbookFile({
+      Sheet1: [
+        [
+          { value: new Date(Date.UTC(2024, 0, 15)), style: { numFmt: "dd/mm/yyyy" } },
+          { value: new Date(Date.UTC(2024, 0, 15, 12, 30, 5)), style: { numFmt: "yyyy-mm-dd hh:mm" } },
+          { value: 1234.5, style: { numFmt: '"$"#,##0.00' } },
+          { value: 0.1 + 0.2, style: { numFmt: "0.0%" } },
+          { value: true },
+          { value: "00123" },
+        ],
+      ],
+    });
+
+    await expect(parseImportFile(file, raw)).resolves.toMatchObject({ rows: [["2024-01-15", "2024-01-15T12:30:05", "1234.5", "0.30000000000000004", "true", "00123"]] });
+    await expect(parseImportFile(file)).resolves.toMatchObject({ rows: [["15/01/2024", "2024-01-15 12:30", "$1,234.50", "30.0%", "TRUE", "00123"]] });
+  });
+
+  it("reads an error cell as empty", async () => {
+    const sheet = worksheetXml('<row r="1"><c r="A1" t="e"><v>#DIV/0!</v></c><c r="B1"><v>2</v></c></row>');
+
+    await expect(parseImportFile(await xlsxWithWorksheet(sheet), raw)).resolves.toMatchObject({ rows: [["", "2"]] });
+  });
+
+  it("never evaluates a hostile number format", async () => {
+    const hostile = `0${"0".repeat(300)}`;
+    const file = await workbookFile({ Sheet1: [[{ value: 1.5, style: { numFmt: hostile } }, { value: 2, style: { numFmt: "0.00/????????" } }]] });
+    const started = performance.now();
+
+    await expect(parseImportFile(file, raw)).resolves.toMatchObject({ rows: [["1.5", "2"]] });
+    expect(performance.now() - started).toBeLessThan(1_000);
+  });
+
+  it("reads a date in the 1904 date system as the same ISO date Excel shows", async () => {
+    const sheet = worksheetXml('<row r="1"><c r="A1" s="1"><v>0</v></c></row>');
+    const styles =
+      '<?xml version="1.0" encoding="UTF-8"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cellXfs count="2"><xf numFmtId="0"/><xf numFmtId="14" applyNumberFormat="1"/></cellXfs></styleSheet>';
+    const base = await withEntries(await xlsxWithWorksheet(sheet), { "xl/styles.xml": styles });
+    const workbookXml = '<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><workbookPr date1904="1"/><sheets><sheet name="Sheet1" sheetId="1" r:id="rId1"/></sheets></workbook>';
+    const file1904 = await withEntries(base, { "xl/workbook.xml": workbookXml });
+
+    await expect(parseImportFile(file1904, raw)).resolves.toMatchObject({ rows: [["1904-01-01"]] });
+  });
+
+  it("reads an xls workbook the same as without the option", async () => {
+    await expect(parseImportFile(xlsFixture("biff8.xls"), raw)).resolves.toMatchObject({
+      rows: [
+        ["name", "age", "joined", "active", "share"],
+        ["Alice", "30", "2024-01-15", "true", "0.125"],
+        ["Bob", "40.5", "2023-12-31", "false", "0.3"],
+      ],
+    });
+  });
+
+  it("leaves CSV unchanged", async () => {
+    await expect(parseImportFile(new File(["a,b\n1,TRUE"], "x.csv"), raw)).resolves.toMatchObject({ rows: [["a", "b"], ["1", "TRUE"]] });
+  });
+});
+
 describe("parseImportFile — legacy xls", () => {
   it("reads a BIFF8 workbook: every sheet name, raw values as text, dates as ISO dates", async () => {
     const result = await parseImportFile(xlsFixture("biff8.xls"));

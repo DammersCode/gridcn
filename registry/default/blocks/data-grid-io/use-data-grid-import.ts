@@ -12,6 +12,7 @@ import {
   type CsvDelimiter,
   type ImportCsvEncoding,
   type ImportLimits,
+  type ImportValueMode,
   type ParsedImportFile,
 } from "./parse-import-file";
 import { resolveImportMapping, type ImportTargetColumn, type ImportDefaults } from "./match-import-column";
@@ -151,7 +152,7 @@ function sanitizeParsedFile(parsed: ParsedImportFile): ParsedImportFile {
 /** Replaces the built-in file parser; see {@link UseDataGridImportPreviewOptions.parseFile}. */
 export type ParseFile = (
   file: File,
-  ctx: { signal: AbortSignal; limits: Required<ImportLimits>; sheetName?: string; csvDelimiter?: CsvDelimiter },
+  ctx: { signal: AbortSignal; limits: Required<ImportLimits>; sheetName?: string; csvDelimiter?: CsvDelimiter; valueMode: ImportValueMode },
 ) => ParsedImportFile | Promise<ParsedImportFile>;
 
 /** Rewrites or drops the data rows before they are mapped and built; see {@link UseDataGridImportPreviewResult.build}. */
@@ -231,6 +232,7 @@ export function useDataGridImportPreview(options: UseDataGridImportPreviewOption
   // generation guard for every async parse (file load, sheet switch, delimiter override): a newer parse or reset wins over a slower older one.
   const parseGenerationRef = useRef(0);
   const { defaultHeaderRow = true, defaultSkipColumns, mapColumn } = defaults;
+  const valueMode: ImportValueMode = defaults.valueMode === "raw" ? "raw" : "formatted";
   const headerRowIndex = typeof defaultHeaderRow === "number" ? Math.max(0, Math.floor(defaultHeaderRow) || 0) : 0;
   const initialHasHeaderRow = defaultHeaderRow !== false;
   // the header-row toggle as the async mapping steps read it; they cannot read a state updater's `prev`.
@@ -273,16 +275,16 @@ export function useDataGridImportPreview(options: UseDataGridImportPreviewOption
       let parsed: ParsedImportFile;
       if (custom) {
         if (file.size > effectiveLimits.maxFileBytes) throw new Error(FILE_TOO_LARGE_MESSAGE);
-        const checked = await custom(file, { signal: signal ?? new AbortController().signal, limits: effectiveLimits, ...extra });
+        const checked = await custom(file, { signal: signal ?? new AbortController().signal, limits: effectiveLimits, valueMode, ...extra });
         if (typeof checked !== "object" || checked === null) throw new Error("invalid-import-rows");
         assertImportRows(checked.rows, effectiveLimits);
         parsed = sanitizeParsedFile(checked);
       } else {
-        parsed = await parseImportFile(file, { ...limitOptions, csvEncoding, ...extra, signal });
+        parsed = await parseImportFile(file, { ...limitOptions, csvEncoding, valueMode, ...extra, signal });
       }
       return headerRowIndex > 0 ? { ...parsed, rows: parsed.rows.slice(headerRowIndex) } : parsed;
     },
-    [effectiveLimits, limitOptions, csvEncoding, headerRowIndex],
+    [effectiveLimits, limitOptions, csvEncoding, headerRowIndex, valueMode],
   );
 
   const reset = useCallback(() => {

@@ -68,9 +68,14 @@ export type ParseImportFileOptions = ImportLimits & {
   sheetName?: string;
   /** Decodes a CSV file with this label instead of UTF-8. Only the labels in {@link IMPORT_CSV_ENCODINGS} are accepted; any other label throws a `RangeError`. Ignored for xlsx/xls. */
   csvEncoding?: ImportCsvEncoding;
+  /** For xlsx/xls: `"formatted"` (default) renders each cell through its number format; `"raw"` reads the stored value: a number as `String(n)`, a date as ISO 8601, a boolean as `true` or `false`, an error cell as empty. A string stays as is. Ignored for CSV. */
+  valueMode?: ImportValueMode;
   /** Aborts the file read; an aborted parse rejects with an AbortError. */
   signal?: AbortSignal;
 };
+
+/** How an Excel file's cells become import text; see {@link ParseImportFileOptions.valueMode}. */
+export type ImportValueMode = "formatted" | "raw";
 
 /** The `TextDecoder` labels `csvEncoding` accepts. */
 export const IMPORT_CSV_ENCODINGS = [
@@ -242,13 +247,22 @@ function assertEntriesWithin(bytes: Uint8Array, cap: number): void {
 
 type HucreReader = typeof import("./xlsx-reader");
 type FormatValue = HucreReader["formatValue"];
-type CellVisitor = (row: number, col: number, value: CellValue, numFmt: string | undefined) => void;
+type CellVisitor = (row: number, col: number, value: CellValue, numFmt: string | undefined, isError?: boolean) => void;
 
 /** A date without a number format (xls, ISO cells): ISO date, plus the time when it is not midnight. */
-function isoDateText(date: Date): string {
+function isoDateText(date: Date, separator = " "): string {
   if (Number.isNaN(date.getTime())) return "";
   const iso = date.toISOString();
-  return iso.endsWith("T00:00:00.000Z") ? iso.slice(0, 10) : iso.slice(0, 19).replace("T", " ");
+  return iso.endsWith("T00:00:00.000Z") ? iso.slice(0, 10) : iso.slice(0, 19).replace("T", separator);
+}
+
+/** A cell's stored value as text, with no number format: ISO 8601 dates, `true` or `false`, full-precision numbers. */
+function rawCellText(value: CellValue, isError: boolean): string {
+  if (value === null || isError) return "";
+  if (typeof value === "number") return String(value);
+  if (typeof value === "boolean") return String(value);
+  if (value instanceof Date) return isoDateText(value, "T");
+  return value;
 }
 
 /** Excel's own limit on a number format's length; hucre's format scanning grows quadratically past it. */
@@ -294,7 +308,7 @@ function cellText(value: CellValue, numFmt: string | undefined, formatValue: For
 }
 
 /** Builds the string grid from A1 to the last non-empty cell, after checking that box against the limits. */
-function textGrid(forEachCell: (visit: CellVisitor) => void, limits: GridLimits, formatValue: FormatValue): string[][] {
+function textGrid(forEachCell: (visit: CellVisitor) => void, limits: GridLimits, formatValue: FormatValue, valueMode: ImportValueMode = "formatted"): string[][] {
   let rowCount = 0;
   let columnCount = 0;
   forEachCell((row, col, value) => {
@@ -304,8 +318,8 @@ function textGrid(forEachCell: (visit: CellVisitor) => void, limits: GridLimits,
   });
   assertWithinLimits(rowCount, columnCount, limits);
   const grid = Array.from({ length: rowCount }, () => new Array<string>(columnCount).fill(""));
-  forEachCell((row, col, value, numFmt) => {
-    if (value !== null) grid[row]![col] = cellText(value, numFmt, formatValue);
+  forEachCell((row, col, value, numFmt, isError) => {
+    if (value !== null) grid[row]![col] = valueMode === "raw" ? rawCellText(value, isError === true) : cellText(value, numFmt, formatValue);
   });
   return grid;
 }
@@ -326,6 +340,7 @@ async function readXlsxSheet(
   sheetName: string | undefined,
   limits: ExcelLimits,
   { readXlsx, formatValue }: HucreReader,
+  valueMode: ImportValueMode,
 ): Promise<ParsedImportFile> {
   const sheetNames: string[] = [];
   const workbook = await readXlsx(bytes, {
@@ -344,11 +359,12 @@ async function readXlsxSheet(
     (visit) => {
       for (const [key, cell] of sheet.cells ?? []) {
         const comma = key.indexOf(",");
-        visit(Number(key.slice(0, comma)), Number(key.slice(comma + 1)), cell.value, cell.style?.numFmt);
+        visit(Number(key.slice(0, comma)), Number(key.slice(comma + 1)), cell.value, cell.style?.numFmt, cell.type === "error");
       }
     },
     limits,
     formatValue,
+    valueMode,
   );
   return { rows, sheetNames, sheetName: sheet.name };
 }
@@ -586,6 +602,7 @@ async function readXlsSheet(
   sheetName: string | undefined,
   limits: GridLimits,
   { readXls, formatValue }: HucreReader,
+  valueMode: ImportValueMode,
 ): Promise<ParsedImportFile> {
   assertXlsWithinLimits(bytes, limits);
   const workbook = await readXls(bytes, { maxTotalCells: limits.maxCells });
@@ -594,12 +611,12 @@ async function readXlsSheet(
   if (selected === -1) throw new Error(`unknown sheet "${sheetName}"`);
   const sheet = workbook.sheets[selected];
   if (!sheet) return { rows: [], sheetNames, sheetName };
-  const rows = textGrid((visit) => sheet.rows.forEach((row, r) => row.forEach((value, c) => visit(r, c, value, undefined))), limits, formatValue);
+  const rows = textGrid((visit) => sheet.rows.forEach((row, r) => row.forEach((value, c) => visit(r, c, value, undefined))), limits, formatValue, valueMode);
   return { rows, sheetNames, sheetName: sheet.name };
 }
 
 /** Parses one sheet of an xlsx/xls workbook into a 2D string grid via lazily-imported hucre; `sheetName` selects the sheet (first by default). The file's signature, not its extension, picks the reader. */
-async function parseExcelFile(file: File, sheetName: string | undefined, limits: ExcelLimits, signal?: AbortSignal): Promise<ParsedImportFile> {
+async function parseExcelFile(file: File, sheetName: string | undefined, limits: ExcelLimits, valueMode: ImportValueMode, signal?: AbortSignal): Promise<ParsedImportFile> {
   const bytes = new Uint8Array(await file.arrayBuffer());
   if (signal?.aborted) throw abortError();
   const isXlsx = hasSignature(bytes, ZIP_SIGNATURE);
@@ -609,7 +626,7 @@ async function parseExcelFile(file: File, sheetName: string | undefined, limits:
   if (isXlsx) assertEntriesWithin(bytes, partBytes);
   const hucre = await import("./xlsx-reader");
   try {
-    return await (isXlsx ? readXlsxSheet : readXlsSheet)(bytes, sheetName, parseLimits, hucre);
+    return await (isXlsx ? readXlsxSheet : readXlsSheet)(bytes, sheetName, parseLimits, hucre, valueMode);
   } catch (err) {
     throw importError(err, hucre);
   }
@@ -628,7 +645,7 @@ export async function parseImportFile(file: File, options: ParseImportFileOption
   // before any file read: file.size is synchronous, so the DoS check costs nothing
   if (file.size > maxFileBytes) throw new Error(FILE_TOO_LARGE_MESSAGE);
   if (isExcelFile(file)) {
-    return parseExcelFile(file, options.sheetName, { ...limits, maxDecompressedBytes }, signal);
+    return parseExcelFile(file, options.sheetName, { ...limits, maxDecompressedBytes }, options.valueMode === "raw" ? "raw" : "formatted", signal);
   }
   if (isCsvFile(file)) {
     const text = await readCsvText(file, options.csvEncoding);

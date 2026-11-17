@@ -7,7 +7,7 @@ export { printGrid, type PrintGridOptions, type PrintPaperSize } from "./print-g
 export { useDataGridPrint, type UseDataGridPrintResult } from "./use-data-grid-print";
 export { DataGridPrintButton, type DataGridPrintButtonProps } from "./print-button";
 
-export { parseImportFile, DEFAULT_IMPORT_LIMITS, IMPORT_CSV_ENCODINGS, type ParsedImportFile, type ParseImportFileOptions, type ImportLimits, type CsvDelimiter, type ImportCsvEncoding } from "./parse-import-file";
+export { parseImportFile, DEFAULT_IMPORT_LIMITS, IMPORT_CSV_ENCODINGS, type ParsedImportFile, type ParseImportFileOptions, type ImportLimits, type CsvDelimiter, type ImportCsvEncoding, type ImportValueMode } from "./parse-import-file";
 export { matchImportColumns, applyImportOptions, type ImportDefaults } from "./match-import-column";
 export { buildImportedRows, IMPORT_CANCELLED_MESSAGE, type ImportColumnMapping, type BuildImportedRowsOptions, type BuildImportedRowsResult, type ImportRejectedCell, type ProcessCellFromText } from "./build-imported-rows";
 export {

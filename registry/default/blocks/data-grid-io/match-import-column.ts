@@ -1,6 +1,6 @@
 import type { GateContext } from "@/registry/default/blocks/data-grid/data-grid";
 import { columnLabelText, isThenable } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import type { CsvDelimiter } from "./parse-import-file";
+import type { CsvDelimiter, ImportValueMode } from "./parse-import-file";
 
 /** Minimal column shape the header-matching/preview logic needs — matches `ColumnDef` structurally. */
 export type ImportTargetColumn = { id: string; headerText?: string; header: unknown };
@@ -12,6 +12,8 @@ export type ImportTargetColumn = { id: string; headerText?: string; header: unkn
 export type ImportDefaults = {
   /** Skip auto-detect and preselect this delimiter. Detect still runs if undefined. */
   defaultDelimiter?: CsvDelimiter;
+  /** How an Excel file's cells become text: `"formatted"` (default) applies number formats, `"raw"` reads stored values (see `ParseImportFileOptions.valueMode`). */
+  valueMode?: ImportValueMode;
   /** Default for the header-row toggle. A number is the 0-based index of the header row: the rows above it are dropped, and that row is the header. `true` is `0`. Default `true`. */
   defaultHeaderRow?: boolean | number;
   /** Source columns to preselect as skipped: header names (case-insensitive) or indices. */
