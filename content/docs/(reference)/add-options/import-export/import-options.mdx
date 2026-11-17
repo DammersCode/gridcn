@@ -162,6 +162,14 @@ To build the rows, call `build(options)` from the hook. To build them yourself, 
 
 `setMapping(importColumnIndex, gridColumnId)` sets one menu, and `null` skips the column. It does not check for a grid column that another source column already holds. `setHasHeaderRow`, `setDelimiter`, and `setSheetName` are the calls for the header toggle, the delimiter menu, and the sheet picker of your UI. `previewRows` holds at most 10 rows.
 
+### checkImport [#checkimport]
+
+`checkImport` runs after the build and before `onImport`. The dialog writes nothing while it runs. An answer without `rejected` entries goes on to `onImport`. An answer with entries opens a check step. The step shows the summary and the first 100 entries as row, column, and message. Its buttons are "Import anyway", which calls `onImport`, and "Back".
+
+A throw, a rejection, or an answer in another shape shows `labels.io.checkFailed`. The import can be retried. The dialog keeps 1,000 entries and counts the rest as "and more". A `rowIndex` is an integer inside the built rows. A `columnId` that is not a grid column shows the entry without a column. A `message` is cut at 200 characters. `signal` aborts when the user cancels, closes the dialog, or loads a new file.
+
+On the server, `parseImportRows` gives the `rejected` list. See [Query layer reference](/docs/contracts/query-layer-reference#import-rows).
+
 ## Dropzone [#dropzone]
 
 `data-grid-io` installs the `dropzone` item. Import `Dropzone`, `DropzoneEmptyState`, and `DropzoneContent` from `@/components/dropzone/dropzone`.
@@ -191,7 +199,8 @@ The root carries `data-drag-active` during a drag and `data-disabled` while `dis
 
 - `ProcessCellFromText` converts the text of one imported cell. It receives the text and `{ row, column, source, signal, fromText }`. `fromText` is the own parser of the column, for the cells you do not change. The column `validate` still checks the value that the hook returns. The hook can throw or reject, and `fromText` can throw on text it cannot read. In both cases the grid rejects that one cell and reports it like unreadable text. The rest of the import goes on.
 - `ProcessImportRows` rewrites or drops the data rows before the grid maps them. It receives `{ rows, headers, mapping, signal }` and returns the rows, or `false` to cancel.
-- `BuildImportOptions` are the options of `build()` in `useDataGridImportPreview`. They add `processImportRows`.
+- `BuildImportOptions` are the options of `build()` in `useDataGridImportPreview`. They add `processImportRows` and `checkImport`. With `checkImport`, the result carries `check`.
+- `CheckImport` is the type of `checkImport`. It receives the built rows and `{ signal, mapping, fileName, sheetName, rejected }`. It returns an `ImportCheckAnswer`: `{ rejected?, summary? }`.
 - `ParseFile` parses a `File` into rows. It receives the file and `{ signal, limits, sheetName, csvDelimiter, valueMode }`.
 - `ImportContext` is the second argument of `onImport`. It holds `signal`, `rejected`, `flagged`, `fileName`, `sheetName`, and `mapping` (a list of `ImportColumnMapping` entries).
 

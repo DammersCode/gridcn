@@ -20,6 +20,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { IMPORT_CANCELLED_MESSAGE, type BuildImportedRowsOptions, type ImportColumnMapping, type ImportRejectedCell, type ProcessCellFromText } from "./build-imported-rows";
 import { importErrorKey, useDataGridImportPreview, type ImportTargetColumn, type ImportDefaults, type ParseFile, type ProcessImportRows, type ImportErrorKey } from "./use-data-grid-import";
+import type { CheckImport, ImportCheckRefusal, ImportCheckSummary } from "./import-check";
 import { resolveImportLimits, type CsvDelimiter, type ImportCsvEncoding, type ImportLimits } from "./parse-import-file";
 import { acceptedTypeNames, Dropzone, DropzoneEmptyState, type DropzoneAccept, type DropzoneRejection } from "@/registry/default/blocks/dropzone/dropzone";
 
@@ -110,7 +111,23 @@ export type DataGridImportDialogProps<TData> = {
   processCellFromText?: ProcessCellFromText<TData>;
   /** A file to load when the dialog opens, as if the user had chosen it. */
   file?: File;
+  /** Checks the built rows on your server before `onImport` runs. An answer without `rejected` entries goes on to `onImport`; an answer with entries opens a check step that lists them, with the buttons "Import anyway" and "Back". A throw, a rejection, or an answer in another shape shows `labels.io.checkFailed`. The answer is read with bounds: 1,000 entries, a row index inside the rows, messages cut at 200 characters. `ctx.signal` aborts when the user cancels, the dialog closes, or a new file loads. Absent: no check. */
+  checkImport?: CheckImport<TData>;
 };
+
+/** The rows held back while the user reads the check step. */
+type CheckStep<TData> = {
+  rows: TData[];
+  rejected: readonly ImportRejectedCell[];
+  flagged: readonly ImportRejectedCell[];
+  source: ImportSource;
+  refusals: ImportCheckRefusal[];
+  more: number;
+  summary?: ImportCheckSummary;
+};
+
+/** Refusals the check step lists. */
+const CHECK_STEP_ROWS = 100;
 
 /**
  * File-picker -> preview -> column-mapping -> confirm dialog. Parses via
@@ -121,7 +138,7 @@ export type DataGridImportDialogProps<TData> = {
  * rejected cells are listed in {@link buildImportedRows}'s `rejected` result.
  */
 export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TData>): ReactNode {
-  const { open, onOpenChange, createRow, onImport, onImportError, importDefaults, importLimits, parseFile, accept = IMPORT_ACCEPT, csvEncoding, processImportRows, processCellFromText, file, className } = props;
+  const { open, onOpenChange, createRow, onImport, onImportError, importDefaults, importLimits, parseFile, accept = IMPORT_ACCEPT, csvEncoding, processImportRows, processCellFromText, file, className, checkImport } = props;
   const maxFileBytes = resolveImportLimits(importLimits).maxFileBytes;
   const labels = useDataGridLabels();
   const actions = useDataGridActions();
@@ -134,6 +151,9 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
   /** Aborts the in-flight chunked build (large sync imports and async-schema imports alike) when Cancel is clicked or the dialog closes. */
   const abortControllerRef = useRef<AbortController | null>(null);
   const headerRowId = useId();
+  const confirmButtonRef = useRef<HTMLButtonElement | null>(null);
+  const returnFocusRef = useRef(false);
+  const [checkStep, setCheckStep] = useState<CheckStep<TData> | null>(null);
   const { preview, error, isParsing, loadFile, setHasHeaderRow, setDelimiter, setSheetName, setMapping, reset, previewRows, importRows, build } =
     useDataGridImportPreview({ columnFallback: labels.io.columnFallback, defaults: importDefaults, limits: importLimits, parseFile, csvEncoding });
   useDataGridMarkGatePending("import", isParsing || isValidating);
@@ -151,8 +171,15 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
     setMergeFailed(false);
     setMergeMessage(null);
     setBuildError(null);
+    setCheckStep(null);
     reset();
   }, [open, reset]);
+
+  useEffect(() => {
+    if (checkStep || !returnFocusRef.current) return;
+    returnFocusRef.current = false;
+    confirmButtonRef.current?.focus();
+  }, [checkStep]);
 
   useEffect(
     () => () => {
@@ -165,6 +192,10 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
   const [unsupportedDrop, setUnsupportedDrop] = useState(false);
   const onFile = useCallback(
     (file: File) => {
+      confirmTokenRef.current += 1;
+      abortControllerRef.current?.abort();
+      setIsValidating(false);
+      setCheckStep(null);
       setUnsupportedDrop(false);
       const targets: ImportTargetColumn[] = allColumns.map((c) => ({ id: c.id, headerText: c.headerText, header: c.header }));
       setRejectedCount(0);
@@ -203,7 +234,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
   /** Message of the last `onImport` rejection, when it had one. */
   const [mergeMessage, setMergeMessage] = useState<string | null>(null);
   /** Error key of a row hook or build that failed before `onImport`. */
-  const [buildError, setBuildError] = useState<ImportErrorKey | "importBuildFailed" | null>(null);
+  const [buildError, setBuildError] = useState<ImportErrorKey | "importBuildFailed" | "checkFailed" | null>(null);
   const warnedMissingOnImportRef = useRef(false);
   const appendRows = useCallback(
     (rows: TData[], flagged: readonly ImportRejectedCell[]) => {
@@ -247,6 +278,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
           () => {
             if (confirmTokenRef.current !== token) return;
             setIsValidating(false);
+            setCheckStep(null);
             if (rejected.length > 0) {
               setRejectedCount(rejected.length);
               return;
@@ -302,6 +334,7 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
       signal: abortController.signal,
       processImportRows,
       processCellFromText: cellParser,
+      checkImport,
       existingRows: onImport ? undefined : (state.data as TData[]),
       validateRow: onImport ? (state.validateRow as BuildImportedRowsOptions<TData>["validateRow"]) : undefined,
       getRowId: (row, index) => state.getRowId(row, state.data.length + index),
@@ -312,9 +345,18 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
     void built.then((result) => {
       if (confirmTokenRef.current !== token) return; // superseded by a newer confirm, or the dialog reset
       setIsValidating(false);
-      if (result !== null) finish(result.rows, result.rejected, result.flagged, source);
+      if (result === null) return;
+      const { check } = result;
+      if (check?.status === "failed") return setBuildError("checkFailed");
+      if (check && check.refusals.length > 0) return setCheckStep({ rows: result.rows, rejected: result.rejected, flagged: result.flagged, source, refusals: check.refusals, more: check.more, summary: check.summary });
+      finish(result.rows, result.rejected, result.flagged, source);
     }, fail);
-  }, [preview, build, allColumns, storeApi, createRow, finish, processImportRows, processCellFromText, onImport]);
+  }, [preview, build, allColumns, storeApi, createRow, finish, processImportRows, processCellFromText, onImport, checkImport]);
+
+  const backFromCheck = useCallback(() => {
+    returnFocusRef.current = true;
+    setCheckStep(null);
+  }, []);
 
   const onCancel = useCallback(() => {
     abortControllerRef.current?.abort();
@@ -328,12 +370,12 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn("max-h-[80vh] min-w-0 overflow-y-auto sm:max-w-2xl", className)}>
         <DialogHeader>
-          <DialogTitle>{labels.io.importDialogTitle}</DialogTitle>
+          <DialogTitle>{checkStep ? labels.io.checkStepTitle : labels.io.importDialogTitle}</DialogTitle>
           <DialogDescription>{labels.io.importDialogDescription}</DialogDescription>
         </DialogHeader>
 
         <div className="flex min-w-0 flex-col gap-3">
-          {preview ? (
+          {checkStep ? null : preview ? (
             <Dropzone compact accept={accept} accessibleDescription={acceptedTypesLabel} maxFiles={1} maxSize={maxFileBytes} onDrop={onDropFiles} aria-label={labels.io.chooseFile}>
               <Paperclip className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               <span className="min-w-0 flex-1 truncate text-sm text-foreground">{preview.fileName}</span>
@@ -361,7 +403,39 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
             </p>
           )}
 
-          {preview && (
+          {checkStep && (
+            <div className="flex min-w-0 flex-col gap-2">
+              <p className="text-sm font-medium text-foreground">{labels.io.checkSummary({ refused: checkStep.refusals.length + checkStep.more, ...checkStep.summary })}</p>
+              <div className="min-w-0 overflow-hidden rounded-md border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead>{labels.io.checkRowHeading}</TableHead>
+                      <TableHead>{labels.io.checkColumnHeading}</TableHead>
+                      <TableHead>{labels.io.checkMessageHeading}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {checkStep.refusals.slice(0, CHECK_STEP_ROWS).map((refusal, index) => {
+                      const column = allColumns.find((candidate) => candidate.id === refusal.columnId);
+                      return (
+                        <TableRow key={index} className="hover:bg-transparent">
+                          <TableCell className="p-1.5">{refusal.rowIndex + 1}</TableCell>
+                          <TableCell className="p-1.5">{column ? columnLabelText(column) : ""}</TableCell>
+                          <TableCell className="whitespace-normal p-1.5 text-muted-foreground">{refusal.message ?? ""}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+              {checkStep.refusals.length + checkStep.more > CHECK_STEP_ROWS && (
+                <span className="text-xs text-muted-foreground">{labels.io.checkAndMore(checkStep.refusals.length + checkStep.more - CHECK_STEP_ROWS)}</span>
+              )}
+            </div>
+          )}
+
+          {preview && !checkStep && (
             <>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
@@ -486,12 +560,25 @@ export function DataGridImportDialog<TData>(props: DataGridImportDialogProps<TDa
         </div>
 
         <DialogFooter>
+          {checkStep ? (
+            <>
+              <Button type="button" variant="outline" onClick={backFromCheck} autoFocus>
+                {labels.io.back}
+              </Button>
+              <Button type="button" onClick={() => finish(checkStep.rows, checkStep.rejected, checkStep.flagged, checkStep.source)} disabled={isValidating}>
+                {labels.io.importAnyway}
+              </Button>
+            </>
+          ) : (
+            <>
           <Button type="button" variant="outline" onClick={onCancel}>
             {labels.io.cancel}
           </Button>
-            <Button type="button" onClick={onConfirm} disabled={!preview || importBlock !== null || importRows.length === 0 || isParsing || isValidating || rejectedCount > 0}>
+            <Button ref={confirmButtonRef} type="button" onClick={onConfirm} disabled={!preview || importBlock !== null || importRows.length === 0 || isParsing || isValidating || rejectedCount > 0}>
               {labels.io.import}
             </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

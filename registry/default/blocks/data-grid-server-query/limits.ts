@@ -26,6 +26,8 @@ export type QueryLimits = {
   maxOffset?: number;
   /** Most column ids of one aggregates request. Default 10000. */
   maxColumnIds?: number;
+  /** Most rows `parseImportRows` reads from one import request. Default 10000. */
+  maxImportRows?: number;
 };
 
 export const DEFAULT_LIMITS = {
@@ -42,6 +44,7 @@ export const DEFAULT_LIMITS = {
   maxPageSize: 1000,
   maxOffset: Number.MAX_SAFE_INTEGER,
   maxColumnIds: 10_000,
+  maxImportRows: 10_000,
 } satisfies Required<QueryLimits>;
 
 export type ResolvedLimits = Readonly<Required<QueryLimits>>;

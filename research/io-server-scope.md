@@ -98,7 +98,18 @@ over unloaded rows has no client write path. The label avoids a wrong "no result
 `useDataGridServerRows`, clicks print, and asserts the print document holds the loaded rows and not
 the unloaded ones. The parity cell cites the test.
 
+## Streaming XLSX writer and import check
+
+`xlsxWriter: "stream"` on `exportGrid` and `buildXlsx` feeds each slice of rows to hucre's
+`XlsxStreamWriter` and drops it. The default stays `"buffered"`. The unit tests round-trip both writers through `readXlsx`
+(typed cells, dates, a 40,000-character cell, formula-like text, RTL text, an empty sheet) and compare the grids.
+
+`checkImport` on the import dialog and on `build()` asks the server about the built rows before `onImport`. The
+answer is read with bounds, and a refusal opens a check step. `parseImportRows` in the query layer reads the
+import request (`maxImportRows`, mapped columns, per-kind values) and returns `{ rows, rejected }`.
+
+Evidence still owed before `"stream"` can become the default for `source` exports: the file opened by hand in Excel and in LibreOffice.
+
 ## Not done
 
-- No server-side import preview, no streaming XLSX writer, no server search source (gap P stays
-  a documented scope: server search stays outside the grid's server contract, so the parity matrix has no row for it).
+- No server search source (gap P stays a documented scope: server search stays outside the grid's server contract, so the parity matrix has no row for it).

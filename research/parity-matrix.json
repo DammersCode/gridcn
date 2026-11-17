@@ -956,7 +956,8 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "tests/parity/export-print.parity.test.tsx"
+            "tests/parity/export-print.parity.test.tsx",
+            "registry/default/blocks/data-grid-io/export-xlsx-stream.test.ts"
           ]
         },
         "PC": {
@@ -964,7 +965,8 @@
           "evidence": [
             "tests/parity/export-print.parity.test.tsx",
             "registry/default/blocks/data-grid-io/export-source.test.ts",
-            "content/docs/(build)/import-export/export-whole-result.mdx"
+            "content/docs/(build)/import-export/export-whole-result.mdx",
+            "registry/default/blocks/data-grid-io/export-xlsx-stream.test.ts"
           ]
         },
         "PS": {
@@ -972,7 +974,8 @@
           "evidence": [
             "tests/parity/export-print.parity.test.tsx",
             "registry/default/blocks/data-grid-io/export-source.test.ts",
-            "content/docs/(build)/import-export/export-whole-result.mdx"
+            "content/docs/(build)/import-export/export-whole-result.mdx",
+            "registry/default/blocks/data-grid-io/export-xlsx-stream.test.ts"
           ]
         },
         "Z": {
@@ -980,13 +983,15 @@
           "evidence": [
             "tests/parity/export-print.parity.test.tsx",
             "registry/default/blocks/data-grid-io/export-source.test.ts",
-            "content/docs/(build)/import-export/export-whole-result.mdx"
+            "content/docs/(build)/import-export/export-whole-result.mdx",
+            "registry/default/blocks/data-grid-io/export-xlsx-stream.test.ts"
           ]
         },
         "C": {
           "status": "supported",
           "evidence": [
-            "tests/parity/export-print.parity.test.tsx"
+            "tests/parity/export-print.parity.test.tsx",
+            "registry/default/blocks/data-grid-io/export-xlsx-stream.test.ts"
           ]
         },
         "SS": {
@@ -994,7 +999,8 @@
           "evidence": [
             "tests/parity/export-print.parity.test.tsx",
             "registry/default/blocks/data-grid-io/export-source.test.ts",
-            "content/docs/(build)/import-export/export-whole-result.mdx"
+            "content/docs/(build)/import-export/export-whole-result.mdx",
+            "registry/default/blocks/data-grid-io/export-xlsx-stream.test.ts"
           ]
         },
         "FS": {
@@ -1002,7 +1008,8 @@
           "evidence": [
             "tests/parity/export-print.parity.test.tsx",
             "registry/default/blocks/data-grid-io/export-source.test.ts",
-            "content/docs/(build)/import-export/export-whole-result.mdx"
+            "content/docs/(build)/import-export/export-whole-result.mdx",
+            "registry/default/blocks/data-grid-io/export-xlsx-stream.test.ts"
           ]
         },
         "API": {
@@ -1010,11 +1017,82 @@
           "evidence": [
             "tests/parity/export-print.parity.test.tsx",
             "registry/default/blocks/data-grid-io/export-source.test.ts",
-            "content/docs/(build)/import-export/export-whole-result.mdx"
+            "content/docs/(build)/import-export/export-whole-result.mdx",
+            "registry/default/blocks/data-grid-io/export-xlsx-stream.test.ts"
           ]
         }
       },
       "doc": "/docs/import-export/export"
+    },
+    {
+      "id": "import-check",
+      "feature": "Import check before the save",
+      "options": [],
+      "note": "checkImport reads the built rows and takes an answer from any promise; the dialog writes nothing. On the server, parseImportRows reads the import request with bounds and answers the refusals.",
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/import-check.parity.test.tsx",
+            "registry/default/blocks/data-grid-io/import-check.test.ts"
+          ]
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/import-check.parity.test.tsx",
+            "registry/default/blocks/data-grid-io/import-check.test.ts"
+          ]
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/import-check.parity.test.tsx",
+            "registry/default/blocks/data-grid-io/import-check.test.ts",
+            "tests/server-query/import-rows.test.ts"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/import-check.parity.test.tsx",
+            "registry/default/blocks/data-grid-io/import-check.test.ts",
+            "tests/server-query/import-rows.test.ts"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/import-check.parity.test.tsx",
+            "registry/default/blocks/data-grid-io/import-check.test.ts"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/import-check.parity.test.tsx",
+            "registry/default/blocks/data-grid-io/import-check.test.ts",
+            "tests/server-query/import-rows.test.ts"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/import-check.parity.test.tsx",
+            "registry/default/blocks/data-grid-io/import-check.test.ts",
+            "tests/server-query/import-rows.test.ts"
+          ]
+        },
+        "API": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/import-check.parity.test.tsx",
+            "registry/default/blocks/data-grid-io/import-check.test.ts",
+            "tests/server-query/import-rows.test.ts"
+          ]
+        }
+      },
+      "doc": "/docs/import-export/import"
     },
     {
       "id": "print",

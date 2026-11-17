@@ -1627,6 +1627,11 @@
                "target": "components/data-grid-io/build-imported-rows.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid-io/import-check.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-io/import-check.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid-io/use-data-grid-import.ts",
                "type": "registry:component",
                "target": "components/data-grid-io/use-data-grid-import.ts"
@@ -4349,6 +4354,11 @@
           "path": "registry/default/blocks/data-grid-server-query/limits.ts",
           "type": "registry:component",
           "target": "components/data-grid-server-query/limits.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query/parse-import-rows.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/parse-import-rows.ts"
         },
         {
           "path": "registry/default/blocks/data-grid-server-query/operands.ts",

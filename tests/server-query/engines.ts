@@ -4,6 +4,7 @@ import { drizzle as drizzlePglite } from "drizzle-orm/pglite";
 import { drizzle as drizzleSqlite } from "drizzle-orm/better-sqlite3";
 import { bigint, boolean, doublePrecision, integer, numeric, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { integer as sqliteInteger, real, sqliteTable, text as sqliteText } from "drizzle-orm/sqlite-core";
+import { inArray } from "drizzle-orm";
 import { Kysely, PGliteDialect, SqliteDialect } from "kysely";
 import type { AggregatesAnswer, RowsAnswer, ValuesAnswer } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
 import type { RowsPlan } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query-sdk";
@@ -51,6 +52,9 @@ export type Harness = {
   engine: Engine;
   adapter: "drizzle" | "kysely";
   make(options?: { rowScope?: boolean; searchable?: boolean; rowCount?: "always" | "none" | "firstBlock"; timeZone?: string }): LooseQuery;
+  /** Inserts rows through the adapter's own client, the way an import save route does. */
+  insert(rows: Record<string, unknown>[]): Promise<void>;
+  remove(ids: number[]): Promise<void>;
 };
 
 const insertRows = FIXTURE_ROWS.map((row) => ({ ...row }));
@@ -83,6 +87,12 @@ function harnessesFor(engine: Engine, db: unknown, kysely: Kysely<any>): Harness
   const drizzleHarness: Harness = {
     engine,
     adapter: "drizzle",
+    insert: async (rows) => {
+      await (db as { insert: (t: unknown) => { values: (r: unknown) => Promise<unknown> } }).insert(table).values(rows.map((row) => (engine === "pg" && typeof row["createdAt"] === "string" ? { ...row, createdAt: new Date(row["createdAt"]) } : row)));
+    },
+    remove: async (ids) => {
+      await (db as { delete: (t: unknown) => { where: (c: unknown) => Promise<unknown> } }).delete(table).where(inArray(table.id, ids));
+    },
     make: (options = {}) =>
       createDrizzleGridQuery<Record<string, unknown>, { tenantId: number }>({
         db: db as never,
@@ -96,6 +106,13 @@ function harnessesFor(engine: Engine, db: unknown, kysely: Kysely<any>): Harness
   const kyselyHarness: Harness = {
     engine,
     adapter: "kysely",
+    insert: async (rows) => {
+      const bound = rows.map((row) => Object.fromEntries(Object.entries(row).map(([key, value]) => [key, engine === "sqlite" && typeof value === "boolean" ? Number(value) : value])));
+      await kysely.insertInto("items").values(bound).execute();
+    },
+    remove: async (ids) => {
+      await kysely.deleteFrom("items").where("id", "in", ids).execute();
+    },
     make: (options = {}) =>
       createKyselyGridQuery<Record<string, unknown>, { tenantId: number }>({
         db: kysely as never,

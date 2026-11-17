@@ -293,6 +293,16 @@ export function buildDefaultLabels(locale: string): DataGridLabels {
       printButtonAriaLabel: "Print",
       printTruncated: (printed, total) => `Printed ${printed} of ${total} rows`,
       printTruncatedSource: (printed) => `Printed the first ${printed} rows`,
+      checkStepTitle: "Review before importing",
+      checkSummary: ({ refused, created, updated, skipped }) =>
+        [`${refused} row${refused === 1 ? "" : "s"} refused`, created !== undefined && `${created} new`, updated !== undefined && `${updated} updated`, skipped !== undefined && `${skipped} skipped`].filter(Boolean).join(", ") + ".",
+      checkAndMore: (count) => `and ${count} more`,
+      checkFailed: "The rows could not be checked. Try again.",
+      checkRowHeading: "Row",
+      checkColumnHeading: "Column",
+      checkMessageHeading: "Message",
+      importAnyway: "Import anyway",
+      back: "Back",
     },
     pagination: {
       firstPage: "First page",
