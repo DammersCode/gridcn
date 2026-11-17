@@ -87,7 +87,7 @@ The built-in types differ: `""` is empty for `text`. For `number` and `checkbox`
 
 ### validate [#validate]
 
-`validate` takes a function `(value, row, options) => string | null` or a Standard Schema. `options` holds the `options` of the column, so the `longText` type reads `maxLength` from it. Every validation path resolves `column.validate ?? cellType.validate`: a cell commit, a paste, a fill, `updateCells`, and an import.
+`validate` takes a function `(value, row, options) => string | null` or a Standard Schema. `options` holds the `options` of the column, so the `longText` type reads `maxLength` from it. A function `validate` of the type runs first, then the `validate` of the column. A Standard Schema `validate` of the type applies only to a column without its own `validate`. Every validation path does this: a cell commit, a paste, a fill, `updateCells`, `updateRows`, find and replace, an import, Delete, and Cut.
 
 ### activate [#activate]
 
@@ -117,6 +117,7 @@ This type stores a plain `number | null` and shows a currency format. The last l
 import {
   CellSpan,
   DataGrid,
+  rejectText,
   useCellEditor,
   type CellEditorProps,
   type CellRenderProps,
@@ -135,8 +136,9 @@ const show = (value: number | null) =>
 
 function parseAmount(text: string): number | null {
   const digits = text.replace(/[^0-9.-]/g, "");
+  if (digits === "") return null;
   const amount = Number(digits);
-  return digits === "" || Number.isNaN(amount) ? null : amount;
+  return Number.isNaN(amount) ? rejectText() : amount;
 }
 
 function CurrencyCell({ value }: CellRenderProps<unknown, number | null>) {

@@ -69,7 +69,7 @@ function Grid({ rows }: { rows: Row[] }) {
   );
   return (
     <DataGrid
-      data={rows}
+      defaultData={rows}
       columns={columns}
       selection={selection}
       onSelectionChange={(next) => setSelection(next)}

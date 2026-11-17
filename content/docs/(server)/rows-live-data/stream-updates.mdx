@@ -50,7 +50,7 @@ A call with `source: "stream"` (the default) takes at most 100,000 patches. The 
 
 A hidden column takes patches like a visible one. In controlled mode, pass the array that `onDataChange` gives you back as `data` unchanged. The grid recognizes its own array and keeps the sort, filter, and search results.
 
-A call with `source: "stream"` writes into a `readOnly` grid and into read-only columns and rows. A call with another `source`, for example `"edit"`, keeps every read-only check.
+A call with `source: "stream"` writes into a `readOnly` grid and into read-only columns and rows. A call with another `source`, for example `"edit"`, keeps every read-only check. A call without `source` counts as `"stream"`, so on a `readOnly` grid it writes and warns once in development.
 
 To patch several columns of one row at once, call `actions.updateRows([{ rowId: "AAPL", changes: { price: 214.5 } }])`. Each entry in `changes` becomes one patch. The options are the same as for `updateCells`.
 

@@ -89,7 +89,7 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
 
 ## Stop a gate that never settles [#gate-timeout]
 
-Set `gateTimeoutMs` to abort an async gate whose promise has not settled in time. The gates are `onBeforeDeleteRows`, `validateRow`, `onBeforeEditStart`, `createRow`, `duplicateRow`, `processPaste`, and `processReplace`. The import dialog has no timeout. Pass one number, or a number per gate name. The default is off. This prop gives the delete gate two seconds and sets no limit for the others:
+Set `gateTimeoutMs` to abort an async gate whose promise has not settled in time. The gates are `onBeforeDeleteRows`, `validateRow`, `onBeforeEditStart`, `createRow`, `duplicateRow`, `processPaste`, `processCellFromClipboard`, `processReplace`, the import `mapColumn`, and an async column `validate`. The import step has no timeout, but its `mapColumn` gate has one. Pass one number, or a number per gate name. The default is off. This prop gives the delete gate two seconds and sets no limit for the others:
 
 ```tsx fragment="a prop of the DataGrid"
 gateTimeoutMs={{ onBeforeDeleteRows: 2000 }}

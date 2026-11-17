@@ -97,12 +97,14 @@ export function OrdersGrid() {
   const [totals, setTotals] = useState(PENDING_SERVER_AGGREGATE);
   const { plugin } = useDataGridPinnedRows({ bottomRows: [totals.row] });
   const server = useDataGridServerRows<Order>({
+    mode: "scroll",
     plugins: [plugin],
     // fetchRows as above
   });
 
   return (
     <DataGridProvider {...server.providerProps} columns={columns}>
+      {/* DataGridRoot with the header and body, as above */}
       <DataGridServerAggregateReporter
         fetchAggregates={({ spec: { filters, searchText }, signal }) =>
           post("/api/orders/totals", { filters, searchText }, signal)

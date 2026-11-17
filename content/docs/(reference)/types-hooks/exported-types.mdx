@@ -16,7 +16,7 @@ The `data-grid` module exports these types next to the components and hooks. Imp
 | `ViewCoord` | `{ col, row }` | A cell position in view index. `row` is the position in the sorted and filtered list. `col` is the position among the visible columns, without the marker column. When the view changes, the position moves. Store a `CellRef` instead. |
 | `ViewCellRef` | `CellRef & { viewRowIndex, viewColumnIndex }` | A `CellRef` plus the view position of the cell at the time of the event. `onActiveCellChange`, `onBeforeEditStart`, and `onEditEnd` deliver it. |
 | `GridRect` | `{ x, y, width, height }` | A rectangle of cells. It covers the columns `x` to `x + width - 1` and the rows `y` to `y + height - 1`. |
-| `ViewIndex` | A branded `number` | A row position in the current view. The `At` actions take view row numbers, so a plain number cannot pass for a row id. `viewIndex(index)` and `viewIndexes(list)` brand them. |
+| `ViewIndex` | A branded `number` | A row position in the current view. `viewIndex(index)` and `viewIndexes(list)` mark a number as a view row position, so that your code shows which address it holds. The `At` actions also take plain numbers. A number passed to an id action, such as `deleteRows([4])`, warns in development and does nothing. |
 | `CellErrorTarget` | `{ rowId, columnId }` | A cell that `clearCellErrors` names. |
 | `CellErrorEntry` | `CellErrorTarget & { message }` | A cell and its error message for `setCellErrors`. |
 
@@ -68,7 +68,7 @@ export function deleteTopTwo(actions: DataGridActions) {
 | `GateContext` | `{ signal }` | The argument of an async gate. `signal` aborts when the grid stops waiting. |
 | `RowActionSkipReason` | A union of the skip reasons | Why a row action did nothing: `readOnly`, `unloaded-rows`, `gate-pending`, `no-factory`, `gate-declined`, `gate-threw`, `nothing-to-do`, `view-ordered`, `disabled`, `all-matching`, or `hidden-rows-only`. |
 | `RowActionResult` | `{ ok: true } \| { ok: false, reason }` | What the insert, duplicate, and delete actions return: `ok` once the action ran or an async gate started, else the `RowActionSkipReason`. |
-| `ColumnOrderSkipReason` | A union of the skip reasons | Why `setColumnOrder` did not move: `disabled`, `unknown-column`, `not-reorderable`, `pin-zone`, or `nothing-to-do`. |
+| `ColumnOrderSkipReason` | A union of the skip reasons | Why `setColumnOrder` did not move: `disabled`, `unknown-column`, `not-reorderable`, `pin-zone`, or `nothing-to-do`. `pin-zone` means the target sits in another pin zone, or a group's members span two zones. |
 | `ColumnOrderResult` | `{ ok: true } \| { ok: false, reason }` | What `setColumnOrder` and `canSetColumnOrder` return: `ok` when the move changes the order, else the `ColumnOrderSkipReason`. |
 | `CellValidateContext` | `{ rows, batch, valueOf }` | The third argument of a function `validate`. It holds the rows before the write, the cells of the column that the write sets, and the value reader of the column. |
 | `UniqueOptions` | `{ message?, ignoreCase? }` | The options of `unique()`. |
@@ -88,7 +88,7 @@ export function deleteTopTwo(actions: DataGridActions) {
 | `FilterValue` | `{ value, label?, count? }` | One value that `fetchFilterValues` offers to a set filter. |
 | `SearchOptions` | `{ matchCase?, wholeCell? }` | The options of the quick search. |
 | `SearchMatch` | `{ row, columnId }` | One quick-search hit. `row` is the position in the whole sorted and filtered view, also on a paged grid. |
-| `CellTypeFilter` | `{ operators?, match?, compare?, valueInput? }` | The filter capabilities of a cell type. `compare(text, bound)` orders cell text against a bound for `gt`, `gte`, `lt`, `lte`, and `isBetween`. |
+| `CellTypeFilter` | `{ operators?, match?, compare?, valueInput?, matchCase? }` | The filter capabilities of a cell type. `compare(text, bound)` orders cell text against a bound for `gt`, `gte`, `lt`, `lte`, and `isBetween`. |
 | `CellTypeValueInput` | `"text" \| "number" \| "date" \| "boolean" \| "choices"` | The built-in widget of a filter value. |
 | `FilterValueInputProps` | `{ column, operator, value, onValueChange }` | The props of a custom `valueInput` component. |
 
@@ -114,7 +114,7 @@ export function deleteTopTwo(actions: DataGridActions) {
 | `DataGridApi<TData>` | `{ actions, store, scrollTo, focus, runShortcut, getSelection, getRow, getViewRowIds }` | The handle that `ref` and `useDataGridApi` give. |
 | `DataGridActions` | The mutations of one grid | The `actions` member of `DataGridApi`. `useDataGridActions` returns the same object. [Actions A to Z](/docs/cheatsheets-messages/actions-z) lists its methods. |
 | `DataGridStoreWrapper` | `{ getState, getInitialState, subscribe }` | The `store` member of `DataGridApi`. |
-| `DataGridStore` | The state of one grid | The state that `store.getState()` returns, with `data` typed as `readonly unknown[]`. |
+| `DataGridStore` | The state of one grid | The full state of one grid, callbacks included, as the store of `useDataGridStoreProps` holds it. `data` is typed as `readonly unknown[]`. |
 | `DataGridStoreStateOf<TData>` | `DataGridStore` with `data: readonly TData[]` | The state view that a selector reads, with `data` typed to your row type. |
 | `DataGridReadState` | The state that `store.getState()` returns | The argument of `exportGrid` and `printGrid`. |
 

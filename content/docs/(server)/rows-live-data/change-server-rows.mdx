@@ -102,7 +102,7 @@ After a row operation in a scroll-mode source with a row count, the hook refresh
 
 ## Refresh after the save [#refresh-after-the-save]
 
-In pages mode, the operations act on the current page. When the last pending insert or delete settles, the hook loads the page again.
+In pages mode, the operations act on the current page. When the last pending insert or delete settles, the hook loads the page again, unless `refreshAfterSave` is `false`. Then call `refresh()` yourself.
 
 Pass `onSave` to `useDataGridServerRows` and the hook refreshes after the saves settle (`refreshAfterSave`, default `"settled"`). Or call `server.refresh()` after the `onSave` promise settles to pick up server-computed values. A refresh keeps a pending insert, so the page can hold more than `pageSize` rows until the save settles.
 
@@ -114,7 +114,7 @@ When "select all matching" is on, the Delete, Duplicate, and Move shortcuts do n
 
 ## Move rows [#move-rows]
 
-`reorderRows(rows, to)` and `moveRowsBy(rows, delta)` emit one `move` operation per moved row. Each operation holds `from` and `to` in the loaded rows, plus `afterRowId` and `beforeRowId` for the neighbors. Send the ids when your server holds rows that the grid has not loaded. The grid blocks them while a client-side sort or filter is active, the grid is `readOnly`, or a row is unloaded. A server sort or a server filter does not block moves. Your server decides the order of the next answer.
+`reorderRows(rows, to)` and `moveRowsBy(rows, delta)` emit one `move` operation per moved row. Each operation holds `from` and `to` in the loaded rows, plus `afterRowId` and `beforeRowId` for the neighbors. Send the ids when your server holds rows that the grid has not loaded. The grid blocks them while a sort is active, also a server sort. A client-side filter, a `readOnly` grid, or an unloaded row blocks them too. A server filter does not. Your server decides the order of the next answer.
 
 ## Related
 

@@ -44,7 +44,7 @@
     {
       "id": "API",
       "label": "Own API",
-      "description": "`onDataChange` writes through to the app's backend.",
+      "description": "`onSave` (or your `onDataChange`) writes each change to the app's backend.",
       "evidencePattern": "onDataChange"
     }
   ],
@@ -2164,7 +2164,7 @@
         },
         "PS": {
           "status": "n/a",
-          "reason": "The consumer supplies each page."
+          "reason": "Pages mode requests one page per state; see Load rows by page."
         },
         "Z": {
           "status": "supported",
@@ -2305,7 +2305,7 @@
           ]
         }
       },
-      "doc": "/docs/scroll-mode/tune-row-retention"
+      "doc": "/docs/scroll-mode/refresh-server-rows#revalidate"
     },
     {
       "id": "page-prefetch",

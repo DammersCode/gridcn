@@ -19,6 +19,7 @@ Before you start, pick pages mode or scroll mode on [Compare data modes](/docs/s
 3. Pass `fetchRows` to `useDataGridServerRows`. Move `getRowId` into the hook options too, unless the row id is in the `id` field.
 4. Move `onSave` into the hook options. Move your own `onDataChange` there too.
 5. Spread `server.gridProps` onto `DataGrid`. Keep `columns` and your other props.
+6. In pages mode, spread `server.pager` onto `DataGridPaginationBar`.
 
 This grid fetches blocks of orders in place of a local `data` array:
 

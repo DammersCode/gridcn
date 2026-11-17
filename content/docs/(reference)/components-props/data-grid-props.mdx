@@ -90,11 +90,11 @@ These props set the look and the states of the grid. When you compose the parts 
 | `getCellClassName` | `GetCellClassName<TData>` | none | Adds classes to a cell. |
 | `children` | `ReactNode` | header and body (`DataGrid` only) | The parts inside the root. |
 
-Pass a stable function to `renderMarker` and `renderMarkerHeader`. `getRowClassName` and `getCellClassName` can be inline functions. Rows and cells re-render only when the function returns different classes for the rendered rows.
+`DataGrid` also takes `renderHeaderCell`, a `HeaderCellRenderer` that its default `DataGridHeader` uses. With children, pass it to `DataGridHeader`. Pass a stable function to `renderMarker` and `renderMarkerHeader`. `getRowClassName` and `getCellClassName` can be inline functions. Rows and cells re-render only when the function returns different classes for the rendered rows.
 
 ### Render slot arguments [#render-slots]
 
-- `renderMarker` receives `MarkerCellRenderCtx`: `rowId`, `viewRowIndex`, `isChecked` (the row is checked), and `isCellSelected` (a selection covers at least one cell of the row). `isRowChannelSelected` is a deprecated alias of `isChecked`.
+- `renderMarker` receives `MarkerCellRenderCtx`: `rowId`, `viewRowIndex`, `isChecked` (the row is checked), `isCellSelected` (a selection covers a cell of the row), and `reorderHandleProps` in a reorder mode. `isRowChannelSelected` is a deprecated alias of `isChecked`.
 - `renderMarkerHeader` receives `MarkerHeaderRenderCtx`: `allSelected`, which is `"checked"`, `"indeterminate"`, or `"unchecked"`.
 
 - `renderHeaderMenu` receives `column`, `index`, and `trigger`, the menu button of the grid. Render `trigger` as the trigger of your menu.
