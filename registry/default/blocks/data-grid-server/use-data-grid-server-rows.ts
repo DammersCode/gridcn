@@ -103,7 +103,7 @@ export type UseDataGridServerRowsResult<TData> = {
   retry: () => void;
   /**
    * Fetches the current page again and keeps the rows on screen until the answer lands. A row with a pending edit, delete, or in-flight save keeps its local state.
-   * A pending insert stays at the end of the page, so the page can exceed `pageSize` until its save settles; when the last pending insert or delete settles, the hook calls it once, whatever `refreshAfterSave` says.
+   * A pending insert stays at the end of the page, so the page can exceed `pageSize` until its save settles; when the last pending insert or delete settles, the hook calls it once, unless `refreshAfterSave` is `false`.
    * The hook also calls it after saves settle by `refreshAfterSave`; call it yourself with `refreshAfterSave: false` or a void `onSave`.
    */
   refresh: () => void;
@@ -525,7 +525,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   useEffect(() => {
     let cancel: (() => void) | null = null;
     setSettleListener(() => {
-      if (cancel !== null) return;
+      if (cancel !== null || live.current.options.refreshAfterSave === false) return;
       const keyAtSettle = keyRef.current;
       cancel = scheduleFrame(() => {
         cancel = null;
