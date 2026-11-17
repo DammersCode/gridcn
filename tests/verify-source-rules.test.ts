@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { checkChannelMaterialization, sourceRuleProblems } from "../scripts/verify-source-rules.mjs";
+import { checkChannelMaterialization, checkViewIndexReads, sourceRuleProblems } from "../scripts/verify-source-rules.mjs";
 
 const allowlist = new Map([["a/listed.ts", { count: 1, reason: "returns the list" }]]);
 const check = (files: { path: string; text: string }[]) => checkChannelMaterialization(files, allowlist);
@@ -56,5 +56,37 @@ describe("sourceRuleProblems", () => {
       expect.stringContaining("registry/default/blocks/x/view.tsx:1"),
     ]);
     rmSync(base, { recursive: true, force: true });
+  });
+});
+
+describe("checkViewIndexReads", () => {
+  const baseline = new Set(["a/listed.ts"]);
+  const read = { path: "a/listed.ts", text: "const i = s.viewIndex[row];" };
+  const check = (files: { path: string; text: string }[]) => checkViewIndexReads(files, baseline);
+
+  it("accepts the reader module, the sort-filter builders, length reads, and the baseline", () => {
+    expect(
+      check([
+        read,
+        { path: "registry/default/blocks/data-grid/store/view-rows.ts", text: "const i = view[row]; s.viewIndex[row];" },
+        { path: "registry/default/blocks/data-grid/sort-filter/x.ts", text: "return viewIndex[0];" },
+        { path: "a/b.ts", text: "const n = s.viewIndex.length;" },
+      ]),
+    ).toEqual([]);
+  });
+
+  it("fails on an element read outside the allowed files, also under a prev or next name", () => {
+    expect(check([read, { path: "a/b.ts", text: "x;\nconst i = s.viewIndex[row];\nnextViewIndex[row];" }])).toEqual([
+      expect.stringMatching(/^a\/b\.ts:2 /),
+      expect.stringMatching(/^a\/b\.ts:3 /),
+    ]);
+  });
+
+  it("fails on a baseline entry that no longer reads the view", () => {
+    expect(check([{ path: "a/listed.ts", text: "dataIndexAt(s, row);" }])).toEqual([expect.stringContaining("remove the entry")]);
+  });
+
+  it("holds for the shipped blocks", () => {
+    expect(sourceRuleProblems(process.cwd()).filter((p: string) => p.includes("dataIndexAt"))).toEqual([]);
   });
 });

@@ -16,6 +16,7 @@ import { viewRowOfDataIndex } from "./row-index";
 import { holeRowId, holeRowIndex } from "./compute";
 import { isDev } from "../is-dev";
 import { warnDev } from "../is-dev";
+import { dataIndexAt } from "./view-rows";
 
 /** The fields derivation and resolution read off the store. */
 type SelectionStateSource = {
@@ -73,7 +74,7 @@ export function gridSelectionsEqual(a: GridSelection, b: GridSelection): boolean
 
 /** The stable {@link CellRef} of a view coord; an unloaded lazy row carries its placeholder id, a missing row or column an empty id. */
 export function cellRefAtViewCoord(s: SelectionStateSource, coord: ViewCoord): CellRef {
-  const dataRowIndex = s.viewIndex[coord.row];
+  const dataRowIndex = dataIndexAt(s, coord.row);
   const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
   return {
     rowId: dataRowIndex === undefined ? "" : row === undefined ? holeRowId(dataRowIndex) : s.getRowId(row, dataRowIndex),
@@ -85,7 +86,7 @@ export function cellRefAtViewCoord(s: SelectionStateSource, coord: ViewCoord): C
 export function deriveRowIds(s: SelectionStateSource): string[] {
   const out: string[] = [];
   forEachMember(s.selection.rows.runs(), (viewRow) => {
-    const dataRowIndex = s.viewIndex[viewRow];
+    const dataRowIndex = dataIndexAt(s, viewRow);
     if (dataRowIndex === undefined) return;
     const row = s.data[dataRowIndex];
     out.push(row === undefined ? holeRowId(dataRowIndex) : s.getRowId(row, dataRowIndex));

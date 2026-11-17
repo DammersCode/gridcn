@@ -2,6 +2,7 @@ import type { ServerSpec } from "../server-spec";
 import type { DataGridStoreState } from "./types";
 import { viewRowOfDataIndex } from "./row-index";
 import { matchingRowTotal } from "./compute";
+import { dataIndexAt, rowAtViewRow } from "./view-rows";
 
 /** The selection as a value a bulk action sends to a server. */
 export type DataGridSelectedRows =
@@ -54,7 +55,7 @@ export function allMatchingCheckedCount(s: CountSource, resolveRowIds: () => Rea
   const viewLength = s.viewIndex.length;
   let unchecked = 0;
   const countGap = (start: number, end: number): void => {
-    for (let viewRow = start; viewRow < end; viewRow++) if (s.data[s.viewIndex[viewRow]!] !== undefined) unchecked++;
+    for (let viewRow = start; viewRow < end; viewRow++) if (rowAtViewRow(s, viewRow) !== undefined) unchecked++;
   };
   let cursor = 0;
   for (const [start, end] of s.selection.rows.runs()) {
@@ -72,7 +73,7 @@ export function readSelectedRows(s: Source): DataGridSelectedRows {
     const ids: string[] = [];
     for (const [start, end] of rows.runs()) {
       for (let viewRow = start; viewRow < end; viewRow++) {
-        const dataRow = s.viewIndex[viewRow];
+        const dataRow = dataIndexAt(s, viewRow);
         const record = dataRow === undefined ? undefined : s.data[dataRow];
         if (dataRow !== undefined && record !== undefined) ids.push(s.getRowId(record, dataRow));
       }
@@ -84,18 +85,18 @@ export function readSelectedRows(s: Source): DataGridSelectedRows {
   // Walk the checked runs and the gaps between them; the unchecked rows are the gaps.
   const uncheckedGap = (start: number, end: number): void => {
     for (let viewRow = start; viewRow < end; viewRow++) {
-      const dataRow = s.viewIndex[viewRow]!;
-      const record = s.data[dataRow];
-      if (record !== undefined) excluded.add(s.getRowId(record, dataRow));
+      const dataRow = dataIndexAt(s, viewRow);
+      const record = dataRow === undefined ? undefined : s.data[dataRow];
+      if (record !== undefined) excluded.add(s.getRowId(record, dataRow!));
     }
   };
   let cursor = 0;
   for (const [start, end] of rows.runs()) {
     uncheckedGap(cursor, Math.min(start, s.viewIndex.length));
     for (let viewRow = start; viewRow < Math.min(end, s.viewIndex.length); viewRow++) {
-      const dataRow = s.viewIndex[viewRow]!;
-      const record = s.data[dataRow];
-      if (record !== undefined && excluded.size > 0) excluded.delete(s.getRowId(record, dataRow));
+      const dataRow = dataIndexAt(s, viewRow);
+      const record = dataRow === undefined ? undefined : s.data[dataRow];
+      if (record !== undefined && excluded.size > 0) excluded.delete(s.getRowId(record, dataRow!));
     }
     cursor = Math.max(cursor, end);
   }

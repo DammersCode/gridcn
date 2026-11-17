@@ -23,6 +23,7 @@ import { resolveColumnValidate } from "../cell-types/capabilities";
 import { resolveColumnTexts } from "./resolve-texts";
 import { parseWithHook, safeFromText, settleHookFailure } from "../cell-types/safe-from-text";
 import { candidateRowIds, reresolveBulkWrites, snapshotBulkBatch, useBulkGeneration, type BulkGeneration } from "../validation/bulk-generation";
+import { dataIndexAt } from "../store/view-rows";
 
 /** Options for {@link useGridClipboard}. */
 export type UseGridClipboardOptions = {
@@ -55,7 +56,7 @@ export function resolveCopyScope(s: DataGridStoreState): CopyScope | null {
 
 /** Serializes one view row's `[colStart, colStart + colCount)` slice via each cell type's `toText`. */
 function serializeRowSlice(s: DataGridStoreState, viewRow: number, colStart: number, colCount: number): string[] {
-  const dataRowIndex = s.viewIndex[viewRow];
+  const dataRowIndex = dataIndexAt(s, viewRow);
   const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
   const cells: string[] = [];
   for (let col = colStart; col < colStart + colCount; col++) {
@@ -114,7 +115,7 @@ function serializeDisjointRows(s: DataGridStoreState, rows: readonly RowRun[], c
 
   const out: string[][] = [];
   forEachMember(rows, (viewRow) => {
-    const dataRowIndex = s.viewIndex[viewRow];
+    const dataRowIndex = dataIndexAt(s, viewRow);
     const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
     const cells: string[] = [];
     for (const entry of resolved) {
@@ -176,7 +177,7 @@ export function copyScopeCellIds(s: DataGridStoreState, scope: CopyScope): { row
     scope.kind === "rect" ? [[scope.rect.y, scope.rect.y + Math.min(scope.rect.height, maxRows)]] : scope.kind === "rows" ? scope.rows : allViewRows(s);
   const rowIds: string[] = [];
   forEachMember(viewRows, (viewRow) => {
-    const dataRowIndex = s.viewIndex[viewRow];
+    const dataRowIndex = dataIndexAt(s, viewRow);
     const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
     if (row !== undefined) rowIds.push(s.getRowId(row, dataRowIndex!));
   }, maxRows);
@@ -272,7 +273,7 @@ function collectPasteCandidates(s: DataGridStoreState, cells: string[][], target
   for (let r = 0; r < cells.length; r++) {
     const viewRow = target.row + r;
     if (viewRow >= rowCount) break;
-    const dataRowIndex = s.viewIndex[viewRow];
+    const dataRowIndex = dataIndexAt(s, viewRow);
     if (dataRowIndex === undefined) continue;
     const row = s.data[dataRowIndex];
     if (row === undefined) continue;
@@ -406,7 +407,7 @@ function pasteLatchOf(actions: DataGridActions): PasteLatch {
 type PasteAnchor = { rowId: string; columnId: string };
 
 function pasteAnchor(s: DataGridStoreState, target: ViewCoord): PasteAnchor | null {
-  const dataRowIndex = s.viewIndex[target.row];
+  const dataRowIndex = dataIndexAt(s, target.row);
   const column = s.visibleColumns[target.col];
   const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
   if (dataRowIndex === undefined || row === undefined || !column) return null;
@@ -428,9 +429,9 @@ function stillPastable(
   const col = current.visibleColumns.findIndex((column) => column.id === anchor.columnId);
   if (col < 0) return null;
   for (let viewRow = 0; viewRow < current.viewIndex.length; viewRow++) {
-    const dataRowIndex = current.viewIndex[viewRow]!; // viewRow < length by loop condition
-    const row = current.data[dataRowIndex];
-    if (row !== undefined && current.getRowId(row, dataRowIndex) === anchor.rowId) return { row: viewRow, col };
+    const dataRowIndex = dataIndexAt(current, viewRow);
+    const row = dataRowIndex === undefined ? undefined : current.data[dataRowIndex];
+    if (row !== undefined && dataRowIndex !== undefined && current.getRowId(row, dataRowIndex) === anchor.rowId) return { row: viewRow, col };
   }
   return null;
 }

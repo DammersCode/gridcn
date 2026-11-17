@@ -1,6 +1,7 @@
 import type { AnyColumnDef, CellPatch, DataGridStoreState, UpdateCellsOptions } from "./types";
 import { forEachFilterSpec } from "../sort-filter/filter-tree";
 import type { CellRef, FilterNode, SortSpec, ViewCoord } from "../types";
+import { forEachDataIndex } from "./view-rows";
 
 /**
  * Lazily-built, incrementally-maintained `rowId -> dataIndex` map for {@link DataGridActions.updateCells}.
@@ -68,8 +69,9 @@ const viewInverseCache = new WeakMap<readonly number[], Map<number, number>>();
 export function viewRowOfDataIndex(viewIndex: readonly number[], dataRowIndex: number): number {
   let inverse = viewInverseCache.get(viewIndex);
   if (!inverse) {
-    inverse = new Map<number, number>();
-    for (let viewRow = 0; viewRow < viewIndex.length; viewRow++) inverse.set(viewIndex[viewRow]!, viewRow);
+    const built = new Map<number, number>();
+    forEachDataIndex(viewIndex, (dataIndex, viewRow) => built.set(dataIndex, viewRow));
+    inverse = built;
     viewInverseCache.set(viewIndex, inverse);
   }
   return inverse.get(dataRowIndex) ?? -1;

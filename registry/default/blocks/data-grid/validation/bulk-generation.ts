@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { DataGridReadState } from "../types";
+import { dataIndexAt } from "../store/view-rows";
 
 /**
  * The store facts an in-flight bulk batch was built against, plus the row ids it targets. A batch
@@ -28,7 +29,7 @@ export function snapshotBulkBatch(s: DataGridReadState, rowIds: readonly string[
 export function candidateRowIds(s: DataGridReadState, candidates: readonly { viewRowIndex: number }[]): string[] {
   const rowIds = new Set<string>();
   for (const candidate of candidates) {
-    const dataRowIndex = s.viewIndex[candidate.viewRowIndex];
+    const dataRowIndex = dataIndexAt(s, candidate.viewRowIndex);
     if (dataRowIndex === undefined) continue;
     const row = s.data[dataRowIndex];
     if (row === undefined) continue;
@@ -69,9 +70,9 @@ export function reresolveBulkWrites<T extends { viewRowIndex: number; rowId?: st
 ): T[] {
   const viewRowById = new Map<string, number>();
   for (let viewRow = 0; viewRow < s.viewIndex.length; viewRow++) {
-    const dataRowIndex = s.viewIndex[viewRow]!; // viewRow < length by loop condition
-    const row = s.data[dataRowIndex];
-    if (row !== undefined) viewRowById.set(s.getRowId(row, dataRowIndex), viewRow);
+    const dataRowIndex = dataIndexAt(s, viewRow);
+    const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
+    if (row !== undefined && dataRowIndex !== undefined) viewRowById.set(s.getRowId(row, dataRowIndex), viewRow);
   }
 
   const resolved: T[] = [];

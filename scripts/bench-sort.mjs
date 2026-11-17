@@ -330,7 +330,7 @@ function liveRound(store, scenario, rowCount, seed) {
   const { actions } = store.getState();
   gc();
   const start = performance.now();
-  for (const patches of batches) actions.updateCells(patches, scenario.options);
+  for (const patches of batches) actions.updateCells(patches, { source: "stream", ...scenario.options });
   return performance.now() - start;
 }
 

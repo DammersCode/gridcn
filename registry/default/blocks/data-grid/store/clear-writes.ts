@@ -1,6 +1,7 @@
 import { resolveColumnValidate } from "../cell-types/capabilities";
 import { resolveBulkWrites, type BulkCandidate, type BulkResolution } from "../validation/validate-batch";
 import type { DataGridStoreState } from "./types";
+import { dataIndexAt } from "./view-rows";
 
 export type ClearWrite = { viewRowIndex: number; columnId: string; value: unknown };
 
@@ -10,7 +11,7 @@ export function resolveClearWrites(s: DataGridStoreState, writes: readonly Clear
   const candidates: BulkCandidate[] = [];
   for (const write of writes) {
     const column = columns.get(write.columnId);
-    const dataRowIndex = s.viewIndex[write.viewRowIndex];
+    const dataRowIndex = dataIndexAt(s, write.viewRowIndex);
     const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
     if (!column || row === undefined) continue;
     const validate = resolveColumnValidate(column, s.cellTypes[column.type ?? "text"]);
