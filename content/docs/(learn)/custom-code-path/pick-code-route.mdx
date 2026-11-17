@@ -60,7 +60,10 @@ function createAuditPlugin(): DataGridPlugin {
 function resetFirstScore(grid: DataGridApi<Player> | null, players: Player[]) {
   const first = players[0];
   if (!first) return;
-  grid?.actions.updateCells([{ rowId: first.id, columnId: "score", value: 0 }]);
+  grid?.actions.updateCells(
+    [{ rowId: first.id, columnId: "score", value: 0 }],
+    { source: "edit" },
+  );
 }
 
 export function Players({ players }: { players: Player[] }) {
@@ -85,7 +88,7 @@ export function Players({ players }: { players: Player[] }) {
 }
 ```
 
-A custom cell type attaches through the `cellTypes` prop in the same way. A plugin object attaches to one grid, so create one object for each grid. [Plan a plugin](/docs/custom-code-path/plan-plugin) writes `createAuditPlugin` in its own file.
+The button passes `{ source: "edit" }`. Without `source`, the write is a push: it has no undo and never reaches `onSave`. A custom cell type attaches through the `cellTypes` prop in the same way. A plugin object attaches to one grid, so create one object for each grid. [Plan a plugin](/docs/custom-code-path/plan-plugin) writes `createAuditPlugin` in its own file.
 
 ## Result
 

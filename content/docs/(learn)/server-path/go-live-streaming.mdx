@@ -93,7 +93,7 @@ One call is one batch. The grid applies all patches together and calls `onDataCh
 
 With async validation, `pending` is `true` and the verdict reports no outcome. See [Read the push verdict](/docs/rows-live-data/read-push-verdict) for every reason.
 
-A push writes into a `readOnly` grid too. A push skips a column that has no write path (an `accessorFn` without `setValue`) with the reason `"readonly"`. A call with another source, such as `{ source: "edit" }`, skips every patch for a read-only grid, column, or row with `"readonly"`.
+On a `readOnly` grid, pass `{ source: "stream" }` to push. A call without `source` skips every patch with `"readonly"` and warns in development. A push skips a column that has no write path (an `accessorFn` without `setValue`) with the reason `"readonly"`. A call with another source, such as `{ source: "edit" }`, skips every patch for a read-only grid, column, or row with `"readonly"`.
 
 A batch has the source `"stream"`. `onSave` never receives that source, so a pushed value does not go back to your server. Pass `{ source: "edit" }` to a call to send it to `onSave`.
 

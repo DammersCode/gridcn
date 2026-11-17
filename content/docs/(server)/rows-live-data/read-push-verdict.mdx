@@ -19,7 +19,7 @@ aliases: ["UpdateCellsVerdict", "skipped patches", "skip reason", "updateCells r
 | `unknown-row` | The row id is not in `data`. |
 | `unknown-column` | The column id is not a known column. |
 | `hole` | The id is the placeholder id of an unloaded scroll-mode row. A push by the real id of a row that is not loaded gets `unknown-row`. |
-| `readonly` | For a call with a `source` other than `"stream"`: the grid is `readOnly`, the column is read-only, or the row is read-only through `readOnly(row)`. A `"stream"` call gets this reason for a column with no write path (`accessorFn` without `setValue`). |
+| `readonly` | A call with no `source` on a `readOnly` grid gets it. A call with another `source` gets it when the grid is `readOnly`, the column is read-only, or the row is read-only through `readOnly(row)`. A `"stream"` call gets this reason for a column with no write path (`accessorFn` without `setValue`). |
 | `saving` | A stream call: the row has a save in flight. The grid holds the patch and applies it once the row's save settles. A later push to the same cell replaces it. |
 | `limit` | A stream call: the call carried more than 100,000 patches, and this patch came after them. |
 | `invalid` | The column's `validate` rejected the value. |

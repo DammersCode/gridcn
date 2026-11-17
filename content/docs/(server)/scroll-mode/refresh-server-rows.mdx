@@ -64,7 +64,7 @@ A refresh keeps a row that has an open edit or a save in flight. The row keeps i
 - If the answer carries a row with a pending delete, the row stays gone.
 - If the answer lacks a pending insert and no answer row sits in its slot, the insert returns to that slot.
 - If an answer row sits in the slot, the insert stays hidden.
-- In pages mode and in scroll mode with random access, the hook refreshes again once no pending insert or delete remains, also with `refreshAfterSave: false`.
+- In pages mode and in scroll mode with random access, the hook refreshes again once no pending insert or delete remains, unless `refreshAfterSave` is `false`.
 - A refresh of a sequential source that ends before a pending insert can drop it until its save settles.
 
 In pages mode, a pending insert stays at the end of the page. The page can then hold more than `pageSize` rows until the save settles.

@@ -54,7 +54,7 @@ One function gives the selected rows to the delete rows shortcut, the duplicate 
 
 When you select no row, the delete rows and duplicate row shortcuts act on the row of the active cell.
 
-Your code reads the selected rows through `getRowIds()`, the second argument of `onSelectionChange`, which returns every selected row id in view order. `useDataGridSelectedRows()` returns the checked rows as a value for a bulk action.
+Your code reads the selected rows through `details.getRowIds()` on the second argument of `onSelectionChange`. It returns every selected row id in view order. `useDataGridSelectedRows()` returns the checked rows as a value for a bulk action.
 
 ## Configurability [#configurability]
 
