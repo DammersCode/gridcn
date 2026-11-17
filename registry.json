@@ -653,6 +653,11 @@
                 "target": "components/data-grid/store/stable-labels.ts"
              },
              {
+                "path": "registry/default/blocks/data-grid/root-dev-warnings.ts",
+                "type": "registry:component",
+                "target": "components/data-grid/root-dev-warnings.ts"
+             },
+             {
                 "path": "registry/default/blocks/data-grid/store/sync-props.ts",
                 "type": "registry:component",
                 "target": "components/data-grid/store/sync-props.ts"

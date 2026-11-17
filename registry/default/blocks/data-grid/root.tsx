@@ -54,7 +54,7 @@ import { GRID_LAYER } from "./layers";
 import { useLoadAnnouncement } from "./use-load-announcement";
 import { DataGridLoadingSkeleton, DataGridLoadingBar, DataGridLoadingProgress } from "./rows/loading-skeleton";
 import { Button } from "@/components/ui/button";
-import { isDev } from "./is-dev";
+import { useSecondRootWarning, useUnnamedGridWarning } from "./root-dev-warnings";
 import { useClassNameRevision, type RenderedRows } from "./rows/use-class-name-revision";
 import { GRID_ATTR, gridAttrSelector } from "./data-attributes";
 import { closestGridRoot } from "./interaction/closest-grid-root";
@@ -296,10 +296,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   }));
   const pinnedTopHeight = topBandRowCount * rowHeight;
   const pinnedBottomHeight = bottomBandRowCount * rowHeight;
-  // Effective header height: the sticky header track PLUS any pinned-top band — every "data row 0
-  // starts here" computation (row window, scroll-into-view, canvas transform) uses this, not
-  // the header track alone, so the pinned-top band is treated as part of the fixed chrome above the
-   // scrollable data rows.
+  // Where data row 0 starts: the header track plus the pinned-top band.
   const effectiveHeaderHeight = headerHeight + pinnedTopHeight;
   // primitive boolean, not the full activeCell — see useDataGridHasActiveCell's doc for why this
   // matters (a full ViewCoord subscription here would re-render the root, and thus the whole tree
@@ -353,25 +350,17 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
 
   // Registers this mount's scroll-into-view on the store so add-ons outside this subtree (e.g.
   // data-grid-toolbar's search, a DataGridRoot sibling) can reach it; cleared on unmount.
-  const warnedSecondRootRef = useRef(false);
+  const warnSecondRoot = useSecondRootWarning();
   const actions = useDataGridActions();
   const internalActions = useDataGridInternalActions();
   useEffect(() => {
-    if (isDev() && storeApi.getState().scrollToCellImpl !== null && !warnedSecondRootRef.current) {
-      warnedSecondRootRef.current = true;
-      console.warn("[data-grid] a second DataGridRoot mounted on a store that another root already serves; the last mount takes the keyboard, scroll, and focus commands. Give each grid its own store.");
-    }
+    warnSecondRoot(storeApi.getState().scrollToCellImpl !== null);
     internalActions._registerScrollToCell(interaction.scrollCellIntoView);
     scrollRef.current?.setAttribute(GRID_ATTR.settled, "");
     return () => internalActions._registerScrollToCell(null);
   }, [internalActions, interaction.scrollCellIntoView]);
 
-  const warnedNameRef = useRef(false);
-  useEffect(() => {
-    if (!isDev() || warnedNameRef.current || ariaLabel || ariaLabelledBy) return;
-    warnedNameRef.current = true;
-    console.warn("[data-grid] The grid has no accessible name. Set aria-label or aria-labelledby on the grid.");
-  }, [ariaLabel, ariaLabelledBy]);
+  useUnnamedGridWarning(ariaLabel, ariaLabelledBy);
 
   useEffect(() => {
     internalActions._registerFocus(() => {
