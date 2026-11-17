@@ -182,10 +182,7 @@ export type DataGridMarkerLabels = {
   selectRow: (rowNumber: number) => string;
   /** aria-label for the reorder-mode marker handle; `rowNumber` is 1-based. */
   reorderRow: (rowNumber: number) => string;
-  /**
-   * Polite live-region announcement after a row move; `rowNumber` is the moved row's 1-based number BEFORE the move,
-   * `position` its 1-based number after it, and `total` the row count. On a paged grid all three count the rows of the shown page, like the row-number marker.
-   */
+  /** Polite live-region announcement after a row move; `rowNumber` is the moved row's 1-based number BEFORE the move, `position` its 1-based number after it, and `total` the row count. On a paged grid all three count the rows of the shown page, like the row-number marker. */
   reorderAnnouncement: (rowNumber: number, position: number, total: number) => string;
   /** Polite live-region announcement after several rows move as a block; `position` is the 1-based number of the block's first row after the move. Numbers count page rows on a paged grid. */
   reorderRowsAnnouncement: (count: number, position: number, total: number) => string;

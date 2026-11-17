@@ -205,16 +205,14 @@ export const DATA_GRID_ROOT_PROP_KEYS = [
 /**
  * The scroll container: a plain `overflow:auto` div (real scroll element, native scrollbar) with
  * an in-flow Content div that provides the full virtual scroll extent, and inside it a
- * `position:sticky` Viewport that is pinned to the scrollport (controlled-virtualizer
- * pattern). Native scroll only moves the Content div under
- * the sticky Viewport; 100% of visible row/header motion is the JS-written transform on the two
+ * `position:sticky` Viewport that is pinned to the scrollport (controlled-virtualizer pattern).
+ * Native scroll only moves the Content div under the sticky Viewport; 100% of visible row/header motion is the JS-written transform on the two
  * layers inside — the compositor can never reveal unrendered rows because rows never move via
  * native scroll.
  */
 function suppressNativeTouchContextMenu(event: ReactMouseEvent<HTMLElement>) {
-  if ((event.nativeEvent as PointerEvent).pointerType !== "touch") return;
   // a portaled popup (comments, find and replace) bubbles through React; its fields keep the native menu
-  if (!event.currentTarget.contains(event.target as Node)) return;
+  if ((event.nativeEvent as PointerEvent).pointerType !== "touch" || !event.currentTarget.contains(event.target as Node)) return;
   event.preventDefault();
   event.stopPropagation();
 }
