@@ -1,9 +1,8 @@
-#!/usr/bin/env node
 // A barrel of the core or an add-on exports what the docs teach. A value name missing from content/docs needs an entry in
-// scripts/barrel-exports-baseline.json (grandfathered names only). Run with --write to regenerate the baseline.
+// scripts/barrel-exports-baseline.json (grandfathered names only); a baseline name the docs mention fails as stale. Run with --write to regenerate the baseline.
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const blocks = join(root, "registry", "default", "blocks");
@@ -17,8 +16,6 @@ function* walk(dir, pattern) {
   }
 }
 
-const docs = [...walk(join(root, "content", "docs"), /\.mdx$/)].map((file) => readFileSync(file, "utf8")).join("\n");
-
 function barrelValueNames(source) {
   const names = [];
   for (const match of source.matchAll(/export\s*\{([^}]*)\}\s*from/g)) {
@@ -31,30 +28,47 @@ function barrelValueNames(source) {
   return names;
 }
 
-const undocumented = {};
-for (const dir of readdirSync(blocks, { withFileTypes: true })) {
-  if (!dir.isDirectory() || !(dir.name === "data-grid" || dir.name.startsWith("data-grid-"))) continue;
-  const barrel = [".ts", ".tsx"].map((ext) => join(blocks, dir.name, `${dir.name}${ext}`)).find(existsSync);
-  if (!barrel) continue;
-  const missing = barrelValueNames(readFileSync(barrel, "utf8")).filter((name) => !new RegExp(String.raw`\b${name}\b`).test(docs));
-  if (missing.length > 0) undocumented[dir.name] = missing.sort();
-}
-
-if (process.argv.includes("--write")) {
-  writeFileSync(baselinePath, `${JSON.stringify(undocumented, null, 2)}\n`);
-  console.log("verify-barrel-exports: baseline written");
-  process.exit(0);
-}
-
-const baseline = existsSync(baselinePath) ? JSON.parse(readFileSync(baselinePath, "utf8")) : {};
-const problems = [];
-for (const [block, names] of Object.entries(undocumented)) {
-  for (const name of names) {
-    if (!(baseline[block] ?? []).includes(name)) problems.push(`${block} exports ${name}, which content/docs never mentions. Document it or take it off the barrel.`);
+function undocumentedExports() {
+  const docs = [...walk(join(root, "content", "docs"), /\.mdx$/)].map((file) => readFileSync(file, "utf8")).join("\n");
+  const undocumented = {};
+  for (const dir of readdirSync(blocks, { withFileTypes: true })) {
+    if (!dir.isDirectory() || !(dir.name === "data-grid" || dir.name.startsWith("data-grid-"))) continue;
+    const barrel = [".ts", ".tsx"].map((ext) => join(blocks, dir.name, `${dir.name}${ext}`)).find(existsSync);
+    if (!barrel) continue;
+    const missing = barrelValueNames(readFileSync(barrel, "utf8")).filter((name) => !new RegExp(String.raw`\b${name}\b`).test(docs));
+    if (missing.length > 0) undocumented[dir.name] = missing.sort();
   }
+  return undocumented;
 }
-if (problems.length > 0) {
-  console.error(`verify-barrel-exports: ${problems.length} problem(s)\n${problems.join("\n")}`);
-  process.exit(1);
+
+/** Problems for the undocumented barrel exports (`{ block: names }`) against the baseline of the same shape. */
+export function barrelProblems(undocumented, baseline) {
+  const problems = [];
+  for (const [block, names] of Object.entries(undocumented)) {
+    for (const name of names) {
+      if (!(baseline[block] ?? []).includes(name)) problems.push(`${block} exports ${name}, which content/docs never mentions. Document it or take it off the barrel.`);
+    }
+  }
+  for (const [block, names] of Object.entries(baseline)) {
+    for (const name of names) {
+      if (!(undocumented[block] ?? []).includes(name)) problems.push(`the baseline lists ${block} ${name}, which the docs mention or the barrel no longer exports. Remove it from scripts/barrel-exports-baseline.json.`);
+    }
+  }
+  return problems;
 }
-console.log("verify-barrel-exports: ok");
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const undocumented = undocumentedExports();
+  if (process.argv.includes("--write")) {
+    writeFileSync(baselinePath, `${JSON.stringify(undocumented, null, 2)}\n`);
+    console.log("verify-barrel-exports: baseline written");
+    process.exit(0);
+  }
+  const baseline = existsSync(baselinePath) ? JSON.parse(readFileSync(baselinePath, "utf8")) : {};
+  const problems = barrelProblems(undocumented, baseline);
+  if (problems.length > 0) {
+    console.error(`verify-barrel-exports: ${problems.length} problem(s)\n${problems.join("\n")}`);
+    process.exit(1);
+  }
+  console.log("verify-barrel-exports: ok");
+}
