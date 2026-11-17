@@ -86,7 +86,7 @@ function ViewRow({
   return (
     <li data-active={active ? "" : undefined}>
       <ButtonGroup className="w-full">
-      <Button type="button" variant={active ? "secondary" : "outline"} size="sm" className="min-w-0 flex-1 justify-start" aria-current={active ? "true" : undefined} onClick={onSelect}>
+      <Button type="button" variant="outline" size="sm" className="min-w-0 flex-1 justify-start" aria-current={active ? "true" : undefined} onClick={onSelect}>
         {active ? <Check /> : null}
         <span className="truncate">{view.name}</span>
       </Button>
