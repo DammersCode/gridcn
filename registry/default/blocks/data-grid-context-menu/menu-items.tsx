@@ -185,6 +185,7 @@ export function useDefaultCellMenuItems(args: {
   const keymap = useDataGridKeymap();
   const commands = useDataGridCommands();
   const selectionPointer = useDataGridSelectionPointer();
+  const enableRowDelete = useDataGridSelector((s) => s.enableRowDelete);
   const api = useDataGridApi();
   const storeApi = useDataGridStoreApi();
   const insertRow = (position: "above" | "below") => {
@@ -254,7 +255,7 @@ export function useDefaultCellMenuItems(args: {
   if (canDuplicateRow) {
     specs.push({ id: "duplicate-rows", label: labels.contextMenu.duplicateRows(rows.length), icon: <CopyPlus className="size-4 text-muted-foreground" />, shortcut: keymap.duplicateRow?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : blockedTooltip, disabled: readOnly || rowActionsBlocked, onClick: () => actions.duplicateRowsAt(viewIndexes(rows)) });
   }
-  specs.push({ id: "delete-rows", label: labels.contextMenu.deleteRows(rows.length), icon: <Trash2 className="size-4" />, shortcut: keymap.deleteRows?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : blockedTooltip, disabled: readOnly || rowActionsBlocked, destructive: true, onClick: () => actions.deleteRowsAt(viewIndexes(rows)) });
+  if (enableRowDelete) specs.push({ id: "delete-rows", label: labels.contextMenu.deleteRows(rows.length), icon: <Trash2 className="size-4" />, shortcut: keymap.deleteRows?.[0], tooltip: readOnly ? labels.contextMenu.rowActionReadOnly : blockedTooltip, disabled: readOnly || rowActionsBlocked, destructive: true, onClick: () => actions.deleteRowsAt(viewIndexes(rows)) });
   return specs;
 }
 

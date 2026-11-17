@@ -230,6 +230,11 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - `keymap` accepts the names of custom commands without a cast.
 - Keymap actions `moveColumnTowardStart`, `moveColumnTowardEnd`, `widenColumn`, and `narrowColumn` move and resize the column of the focused header, else of the active cell, in steps of 16 px. They have no default keys, because each free chord collides with a browser, OS, or screen reader binding; the header menu holds the same commands.
 - A grid without an accessible name warns once in development.
+- `enableRowDelete` (default `true`): `false` stops the delete-rows key and removes Delete rows from the cell menu, and `onRowActionSkipped` reports `"disabled"`. `actions.deleteRows` still deletes.
+- The keymap action `openCellMenu` opens the cell menu of the active cell. It has no default key.
+- A `GridCommand` takes `keys`, its default keys, so a custom command needs no `GridActions` merge and no `keymap` entry. The `keymap` prop wins over `keys`.
+- A plugin takes `cellMenuItems`, a function that returns items for the cell menu of `DataGridContextMenu`, in plugin order.
+- The development warning for a keymap action with no handler fires once at configuration, not again on a key press.
 
 ## Docs and tooling
 

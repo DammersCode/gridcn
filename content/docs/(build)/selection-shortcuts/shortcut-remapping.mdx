@@ -124,7 +124,7 @@ Two default bindings meet a reserved chord. With the [fill add-on](/docs/clipboa
 
 ## Custom commands [#custom-commands]
 
-A `keymap` binding for a name that is no built-in action runs the matching `commands` entry. Each entry is a `GridCommand`:
+A `commands` entry runs when one of its `keys` fires, or when the `keymap` binds its name. Each entry is a `GridCommand`:
 
 ```tsx
 import {
@@ -132,7 +132,7 @@ import {
   DataGridRoot,
   defineColumns,
 } from "@/components/data-grid/data-grid";
-import type { GridCommand, Keymap } from "@/components/data-grid/data-grid";
+import type { GridCommand } from "@/components/data-grid/data-grid";
 
 type Order = { id: string; customer: string };
 
@@ -140,10 +140,9 @@ const columns = defineColumns<Order>()([
   { id: "customer", header: "Customer", accessorKey: "customer", type: "text" },
 ] as const);
 
-const keymap: Keymap = { saveRow: ["mod+s"] };
-
 const commands: Record<string, GridCommand<Order>> = {
   saveRow: {
+    keys: ["mod+s"],
     run: (ctx) => console.log("save", ctx.row),
     when: (ctx) => ctx.cell !== null,
     label: "Save row",
@@ -156,7 +155,6 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
     <DataGridProvider
       data={orders}
       columns={columns}
-      keymap={keymap}
       commands={commands}
     >
       <DataGridRoot />
@@ -165,7 +163,7 @@ export function OrdersGrid({ orders }: { orders: Order[] }) {
 }
 ```
 
-`run` receives a `GridCommandCtx` with `api`, `cell`, `viewRowIndex`, `viewColumnIndex`, `row`, and `readOnly`. The grid calls `preventDefault` before `run`, so `mod+s` opens no browser save dialog. When `when` returns `false`, the grid ignores the key and the browser runs its own action. [Shortcut remapping options](/docs/add-options/selection-shortcuts/shortcut-remapping-options#custom-commands) lists every field of `GridCommand` and `GridCommandCtx`.
+`keys` are the default keys of the command. An entry for the command name in the `keymap` prop replaces them, and an empty list unbinds the command. `run` receives a `GridCommandCtx` with `api`, `cell`, `viewRowIndex`, `viewColumnIndex`, `row`, and `readOnly`. The grid calls `preventDefault` before `run`, so `mod+s` opens no browser save dialog. When `when` returns `false`, the grid ignores the key and the browser runs its own action. [Shortcut remapping options](/docs/add-options/selection-shortcuts/shortcut-remapping-options#custom-commands) lists every field of `GridCommand` and `GridCommandCtx`.
 
 On a hole of a scroll-mode grid, `cell` is a placeholder ref that `api` cannot resolve.
 

@@ -10,19 +10,20 @@ A plugin adds named commands with its `commands` member. Its `keymap` member bin
 
 | Situation | Result |
 | --- | --- |
-| Two plugins define the same command name | The later plugin wins. A development warning names both plugins. |
+| Two plugins define the same command name | The first plugin keeps it and the grid drops the later command. A development warning names both plugins. |
 | Your `commands` prop defines a name that a plugin defines | Your command wins, with no warning. |
 | A plugin command has the name of a built-in action | The grid drops the command and warns in development. |
 | A plugin `keymap` names a core action, or a command that the plugin does not define | The grid drops the entry and warns in development. |
 | A plugin binds a key that the default keymap, your `keymap`, or an earlier plugin already binds to an action | The grid drops that binding and warns in development. |
 | A plugin binds a key of the default `focusSearch`, and your `keymap` leaves `focusSearch` out | The plugin takes the key. `focusSearch` loses it. A development warning names the plugin, unless it is find and replace. |
+| A plugin command lists `keys`, and the plugin `keymap` leaves the command out | The `keys` bind the command like a plugin `keymap` entry. |
 | A plugin `keymap` lists the keys of one of its commands | The list replaces the bindings of that action, like your `keymap` prop. List every key the action keeps. |
 
 ## Commands and keymaps [#commands-and-keymaps]
 
 The commands map of the grid resolves in this order, and a later step wins:
 
-1. The commands of the plugins, in array order.
+1. The commands of the plugins, in array order. The first plugin keeps a name.
 2. Your `commands` prop.
 
 Each command has the `GridCommand` shape. [Shortcut remapping](/docs/selection-shortcuts/shortcut-remapping#custom-commands) lists its members. A command receives a `GridCommandCtx` with these values:

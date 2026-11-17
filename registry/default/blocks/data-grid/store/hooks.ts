@@ -663,6 +663,7 @@ export function useDataGridRowMarkers(): RowMarkersMode {
 /** The resolved (defaulted) selection-gesture config; see {@link SelectionConfig}. */
 export function useDataGridSelectionConfig(): {
   enableRowSelection: boolean;
+  enableRowDelete: boolean;
   enableColumnSelection: boolean;
   enableRangeSelection: boolean;
   enableMultiRange: boolean;
@@ -672,6 +673,7 @@ export function useDataGridSelectionConfig(): {
     useShallow((s) => ({
       checkedRowsLifetime: s.checkedRowsLifetime,
       enableRowSelection: s.enableRowSelection,
+      enableRowDelete: s.enableRowDelete,
       enableColumnSelection: s.enableColumnSelection,
       enableRangeSelection: s.enableRangeSelection,
       enableMultiRange: s.enableMultiRange,

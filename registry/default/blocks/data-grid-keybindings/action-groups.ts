@@ -85,6 +85,7 @@ export const ACTION_CATEGORY: Partial<Record<GridAction | (string & {}), Keybind
   widenColumn: "editing",
   narrowColumn: "editing",
   openLink: "editing",
+  openCellMenu: "editing",
 
   fillDown: "clipboardFill",
   fillRight: "clipboardFill",

@@ -562,6 +562,7 @@ export const PROP_PAGES = {
   enableColumnSelection: "/docs/selection-shortcuts/pointer-selection",
   enableMultiRange: "/docs/selection-shortcuts/pointer-selection",
   enableRangeSelection: "/docs/selection-shortcuts/pointer-selection",
+  enableRowDelete: "/docs/rows-pages-menus/row-operations",
   enableRowSelection: "/docs/rows-pages-menus/row-markers",
   fetchFilterValues: "/docs/sort-filter-search/header-filter",
   gateTimeoutMs: "/docs/editing-cells/cancel-async-gates#gate-timeout",

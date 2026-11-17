@@ -18,9 +18,6 @@ import { COLUMN_WIDTH_STEP, shownColumnWidth } from "../columns/column-step";
 import { rowOperationTargets } from "../store/row-operation-targets";
 import { isReorderMarkerMode } from "../rows/marker-width";
 
-/** Action names already dev-warned as bound-but-unwired (dev-only, process-wide). */
-const warnedUnwiredActions = new Set<string>();
-
 const warnedMissingTriggers = new WeakMap<object, Set<string>>();
 
 function warnMissingTriggerOnce(storeApi: object, slotProp: string, message: string): void {
@@ -377,6 +374,10 @@ export function dispatchGridAction(args: {
     }
     case "deleteRows": {
       preventDefault();
+      if (!state.enableRowDelete) {
+        reportRowActionSkipped(state, "deleteRows", "disabled");
+        break;
+      }
       runRowOperation("deleteRows", (rows) => actions.deleteRowsAt(viewIndexes(rows)));
       break;
     }
@@ -401,6 +402,16 @@ export function dispatchGridAction(args: {
       actions.setColumnWidth(column.id, width + (action === "widenColumn" ? COLUMN_WIDTH_STEP : -COLUMN_WIDTH_STEP));
       break;
     }
+    case "openCellMenu": {
+      preventDefault();
+      if (!state.activeCell) break;
+      scrollCellIntoView(state.activeCell);
+      const cell = scrollRef.current?.querySelector(gridAttrSelector("active"));
+      if (!cell) break;
+      const rect = cell.getBoundingClientRect();
+      cell.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, button: 2, clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 }));
+      break;
+    }
     case "openLink": {
       // reads data only: runs in a read-only grid; during an edit session the grid's keydown never fires.
       preventDefault();
@@ -415,14 +426,6 @@ export function dispatchGridAction(args: {
       const link = href(getCellValue<unknown, typeof column>(row, column), column.options);
       const safe = link ? safeHref(link) : null;
       if (safe) window.open(safe, "_blank", "noopener,noreferrer");
-      break;
-    }
-    // A keymap-resolved name with neither a built-in case nor a `commands` entry: a bound-but-unwired action.
-    default: {
-      if (!warnedUnwiredActions.has(action)) {
-        warnedUnwiredActions.add(action);
-        warnDev(`keymap action "${action}" has no built-in handler and no custom command; the binding is a no-op`);
-      }
       break;
     }
   }

@@ -18,6 +18,7 @@ export function resolveSelectionConfig(props: InternalSyncProps): Pick<
   DataGridStoreState,
   | "rowMarkers"
   | "enableRowSelection"
+  | "enableRowDelete"
   | "checkedRowsLifetime"
   | "totalRowCount"
   | "enableColumnSelection"
@@ -31,6 +32,7 @@ export function resolveSelectionConfig(props: InternalSyncProps): Pick<
   return {
     rowMarkers: props.rowMarkers ?? "none",
     enableRowSelection: props.enableRowSelection ?? true,
+    enableRowDelete: props.enableRowDelete ?? true,
     checkedRowsLifetime: resolveCheckedRowsLifetime(props),
     totalRowCount: typeof props.totalRowCount === "number" && !(Number.isFinite(props.totalRowCount) && props.totalRowCount >= 0) ? null : props.totalRowCount,
     enableColumnSelection: props.enableColumnSelection ?? true,

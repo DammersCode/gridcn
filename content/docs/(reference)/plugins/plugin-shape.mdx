@@ -19,8 +19,9 @@ A plugin needs only `name`. Every other member is optional, and a plugin holds t
 - `commands` adds named commands to the grid. See [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts).
 - `keymap` binds keys to the commands of the plugin. A core action takes its keys from your `keymap` prop. The [add-on actions](/docs/plugins/plugin-commands-shortcuts#add-on-actions) take theirs from the plugin of the add-on.
 - `Mount` is a component that runs engine work inside the grid.
+- `cellMenuItems` returns items for the cell menu, in plugin order.
 
-The array order is the precedence order. Overlays paint in array order, bands stack in array order, and observers run in array order. A later plugin wins a command conflict. Your `commands` prop wins over every plugin, with no warning. For keys the earlier plugin wins: a later plugin that binds a taken key loses that binding, with a development warning.
+The array order is the precedence order. Overlays paint in array order, bands stack in array order, and observers run in array order. The first plugin keeps a command name. Your `commands` prop wins over every plugin, with no warning. For keys the earlier plugin wins: a later plugin that binds a taken key loses that binding, with a development warning.
 
 This plugin logs the source of every data change:
 

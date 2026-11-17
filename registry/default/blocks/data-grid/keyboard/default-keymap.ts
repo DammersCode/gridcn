@@ -75,6 +75,8 @@ export const DEFAULT_KEYMAP: Keymap = {
   narrowColumn: [],
   // Enter is edit; alt+Enter was free
   openLink: ["alt+Enter"],
+  // unbound: a browser or OS opens the native menu on Shift+F10 and the ContextMenu key
+  openCellMenu: [],
 };
 
 /**

@@ -1,5 +1,6 @@
 import type { GridAction, Keymap } from "../types";
 import type { DataGridPlugin, GridCommand } from "../types";
+import type { PluginCellMenuCtx, PluginMenuItem } from "../plugin-menu-types";
 import { BUILTIN_ACTIONS, DEFAULT_KEYMAP } from "../keyboard";
 import { bindingSignature } from "../keyboard/match-keymap";
 import type {
@@ -17,6 +18,7 @@ export const EMPTY_PLUGINS: ResolvedPlugins = {
   bands: { top: [], bottom: [] },
   mounts: [],
   observers: [],
+  cellMenuItems: [],
 };
 
 /** A dev warning that fires at most once per key per store (resolution re-runs on list changes; a static conflict must not re-warn per change). */
@@ -37,7 +39,7 @@ export function pluginsListEqual(a: readonly DataGridPlugin[] | undefined, b: re
     if (pa.name !== pb.name || pa.Overlay !== pb.Overlay || pa.rowBands !== pb.rowBands || pa.onDataChange !== pb.onDataChange) {
       return false;
     }
-    if (pa.commands !== pb.commands || pa.keymap !== pb.keymap || pa.Mount !== pb.Mount) return false;
+    if (pa.commands !== pb.commands || pa.keymap !== pb.keymap || pa.Mount !== pb.Mount || pa.cellMenuItems !== pb.cellMenuItems) return false;
   }
   return true;
 }
@@ -124,23 +126,37 @@ export function resolvePlugins(list: readonly DataGridPlugin[], warn: PluginWarn
   const overlays: ResolvedPluginOverlay[] = [];
   const mounts: ResolvedPluginMount[] = [];
   const observers: PluginDataChangeObserver[] = [];
+  const cellMenuItems: ResolvedPlugins["cellMenuItems"][number][] = [];
   const bands = { top: [] as ResolvedBandSegment[], bottom: [] as ResolvedBandSegment[] };
   for (const plugin of unique) {
     if (plugin.Overlay) overlays.push({ name: plugin.name, Overlay: plugin.Overlay });
     if (plugin.Mount) mounts.push({ name: plugin.name, Mount: plugin.Mount });
     if (plugin.onDataChange) observers.push(plugin.onDataChange);
+    if (plugin.cellMenuItems) cellMenuItems.push((ctx) => plugin.cellMenuItems!(ctx));
     if (plugin.rowBands) {
       const { top, bottom, render } = plugin.rowBands;
       if (top && top.length > 0) bands.top.push({ name: plugin.name, rows: top, render });
       if (bottom && bottom.length > 0) bands.bottom.push({ name: plugin.name, rows: bottom, render });
     }
   }
-  return { list: unique.length === list.length ? list : unique, overlays, bands, mounts, observers };
+  return { list: unique.length === list.length ? list : unique, overlays, bands, mounts, observers, cellMenuItems };
+}
+
+/** The plugins' cell menu items in plugin order; a throwing plugin adds none and logs a console error. */
+export function pluginCellMenuItems(plugins: ResolvedPlugins, ctx: PluginCellMenuCtx): PluginMenuItem[] {
+  return plugins.cellMenuItems.flatMap((items) => {
+    try {
+      return [...items(ctx)];
+    } catch (error) {
+      console.error("[data-grid] plugin cellMenuItems threw:", error);
+      return [];
+    }
+  });
 }
 
 /**
- * The merged command map: the plugins' commands in array order (the later plugin wins a name
- * conflict, dev-warned; a built-in action name is dropped, dev-warned), then the
+ * The merged command map: the plugins' commands in array order (the first plugin keeps a name
+ * and a later one is dropped, dev-warned; a built-in action name is dropped, dev-warned), then the
  * consumer's `commands` over everything (the app owner's explicit choice, silently). `null` when
  * nothing lands.
  */
@@ -163,7 +179,8 @@ export function mergePluginCommands(
       }
       const prior = sourceOf[name];
       if (prior !== undefined) {
-        warn(`cmd-conflict:${name}:${prior}:${plugin.name}`, `plugins "${prior}" and "${plugin.name}" both define command "${name}"; the later plugin wins`);
+        warn(`cmd-conflict:${name}:${prior}:${plugin.name}`, `plugins "${prior}" and "${plugin.name}" both define command "${name}"; the first plugin keeps it and the later command is dropped`);
+        continue;
       }
       merged[name] = command;
       sourceOf[name] = plugin.name;
@@ -187,8 +204,9 @@ function dedupeBySignature(bindings: readonly string[]): string[] {
 }
 
 /**
- * The merged keymap: `DEFAULT_KEYMAP` <- the plugins' keymaps (array order) <- the consumer's
- * `keymap` (always last, and wins). A plugin entry names a command the plugin defines; any other
+ * The merged keymap: `DEFAULT_KEYMAP` <- the plugins' keymaps (array order) <- the `keys` of the
+ * consumer's `commands` <- the consumer's `keymap` (always last, and wins). A plugin command's `keys`
+ * act as a keymap entry of the plugin unless its `keymap` names the command. A plugin entry names a command the plugin defines; any other
  * entry is dropped, dev-warned. An entry is the action's full binding list: keys that differ only in
  * letter case count once, and an empty list unbinds the action. A binding another action already
  * holds (default keymap, consumer keymap, or an earlier plugin) is dropped, dev-warned. A plugin
@@ -199,11 +217,12 @@ export function mergePluginKeymaps(
   plugins: readonly DataGridPlugin[],
   consumerKeymap: Keymap | undefined,
   warn: PluginWarnOnce,
+  consumerCommands?: Record<string, GridCommand<unknown>> | null,
 ): Keymap {
   const merged: Keymap = { ...DEFAULT_KEYMAP };
   for (const plugin of plugins) {
-    if (!plugin.keymap) continue;
-    for (const [name, bindings] of Object.entries(plugin.keymap)) {
+    const entries = { ...commandKeys(plugin.commands), ...plugin.keymap };
+    for (const [name, bindings] of Object.entries(entries)) {
       if ((BUILTIN_ACTIONS as readonly string[]).includes(name)) {
         warn(
           `keymap-unpluggable:${plugin.name}:${name}`,
@@ -247,8 +266,14 @@ export function mergePluginKeymaps(
       }
     }
   }
-  if (consumerKeymap) Object.assign(merged, consumerKeymap);
+  Object.assign(merged, commandKeys(consumerCommands), consumerKeymap);
   return merged;
+}
+
+function commandKeys(commands: Record<string, GridCommand<unknown>> | null | undefined): Keymap {
+  const keymap: Keymap = {};
+  for (const [name, command] of Object.entries(commands ?? {})) if (command.keys) keymap[name] = dedupeBySignature(command.keys);
+  return keymap;
 }
 
 /** Resolves one grid's plugin list, skipping plugins another live grid holds; an absent list is the shared empty identity. */
