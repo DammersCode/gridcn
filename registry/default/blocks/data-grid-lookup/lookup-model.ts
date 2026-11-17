@@ -20,6 +20,14 @@ export type LookupFetchRequest<TData = unknown> = {
   columnId: string;
 };
 
+/** What `resolveLabels` receives. */
+export type LookupResolveRequest = {
+  /** The distinct pasted texts that no remembered option matches, trimmed. */
+  labels: readonly string[];
+  /** Aborted when a newer paste supersedes this one. */
+  signal: AbortSignal;
+};
+
 /** Text the editor shows; each field falls back to English. */
 export type LookupLabels = {
   searching: string;
@@ -34,6 +42,11 @@ export type LookupLabels = {
 export type LookupOptions<TData = unknown> = {
   /** Resolves the options that match `query`. The labels it lists, and the labels the cells show, paste back to their keys. */
   fetchOptions: (request: LookupFetchRequest<TData>) => Promise<readonly LookupOption[]>;
+  /**
+   * Resolves pasted labels that no option listed, cell showed, or copy wrote yet: answer the options that match `labels` (exact label, case-insensitive; or key).
+   * A paste calls it once with the distinct unknown labels, held as the `resolveTexts` gate. Labels it does not answer follow `unresolvedPaste`.
+   */
+  resolveLabels?: (request: LookupResolveRequest) => Promise<readonly LookupOption[]>;
   /** Wait after the last keystroke before a request starts. Default: the grid's `inputDebounceMs`. */
   debounceMs?: number;
   /** Fewest typed characters that start a request. Default `0`: the default list loads on open. */
@@ -50,7 +63,7 @@ export type LookupOptions<TData = unknown> = {
 export const DEFAULT_MAX_RESULTS = 50;
 export const MAX_RESULTS_LIMIT = 200;
 export const MAX_LOOKUP_TEXT = 256;
-const MAX_KNOWN_LABELS = 5000;
+export const MAX_KNOWN_LABELS = 5000;
 
 export const DEFAULT_LABELS: LookupLabels = {
   searching: "Searching…",
@@ -95,9 +108,9 @@ export function isUnresolved(value: unknown): boolean {
 }
 
 /** Keeps at most `limit` well-formed options from an untrusted answer; the first of a repeated value wins. */
-export function sanitizeOptions(answer: unknown, limit: number | undefined): LookupOption[] {
+export function sanitizeOptions(answer: unknown, limit: number | undefined, ceiling = MAX_RESULTS_LIMIT): LookupOption[] {
   if (!Array.isArray(answer)) throw new TypeError("fetchOptions must resolve an array of { value, label }");
-  const max = Math.min(Math.max(1, Math.floor(limit ?? DEFAULT_MAX_RESULTS) || DEFAULT_MAX_RESULTS), MAX_RESULTS_LIMIT);
+  const max = Math.min(Math.max(1, Math.floor(limit ?? DEFAULT_MAX_RESULTS) || DEFAULT_MAX_RESULTS), ceiling);
   const seen = new Set<string>();
   const out: LookupOption[] = [];
   for (const item of answer) {

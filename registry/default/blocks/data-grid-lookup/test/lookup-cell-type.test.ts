@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createElement } from "react";
 import { render } from "@testing-library/react";
 import { UnparseableTextError } from "@/registry/default/blocks/data-grid/data-grid-sdk";
@@ -55,14 +55,53 @@ describe("lookupCellType value pipeline", () => {
     expect(lookupCellType.toSearchText?.(acme)).toBe("Acme");
   });
 
-  it("offers no isAnyOf operator", () => {
-    expect(lookupCellType.filter?.operators).not.toContain("isAnyOf");
-  });
-
   it("filters by label", () => {
     const match = lookupCellType.filter?.match;
     expect(match?.(acme, { columnId: "c", operator: "contains", value: "cm" })).toBe(true);
     expect(match?.(acme, { columnId: "c", operator: "equals", value: "globex" })).toBe(false);
     expect(match?.(null, { columnId: "c", operator: "empty" })).toBe(true);
+  });
+});
+
+describe("lookupCellType resolveTexts", () => {
+  const signal = new AbortController().signal;
+
+  it("asks resolveLabels once for the unknown labels, then fromText finds them", async () => {
+    const resolveLabels = vi.fn(async () => [acme, globex]);
+    const options = makeOptions({ resolveLabels });
+    lookupCellType.toText(acme, options);
+    await lookupCellType.resolveTexts!(["Acme", " Globex ", "Globex", "", "Nobody"], options, { signal });
+    expect(resolveLabels).toHaveBeenCalledTimes(1);
+    expect(resolveLabels).toHaveBeenCalledWith({ labels: ["Globex", "Nobody"], signal });
+    expect(lookupCellType.fromText("globex", options)).toEqual(globex);
+    expect(() => lookupCellType.fromText("Nobody", options)).toThrow(UnparseableTextError);
+  });
+
+  it("does nothing when every label is known or no resolveLabels is set", () => {
+    const resolveLabels = vi.fn(async () => []);
+    const options = makeOptions({ resolveLabels });
+    lookupCellType.toText(acme, options);
+    expect(lookupCellType.resolveTexts!(["Acme"], options, { signal })).toBeUndefined();
+    expect(resolveLabels).not.toHaveBeenCalled();
+    expect(lookupCellType.resolveTexts!(["Zed"], makeOptions(), { signal })).toBeUndefined();
+  });
+});
+
+describe("lookupCellType filter", () => {
+  const spec = (operator: "isAnyOf" | "isNoneOf" | "contains", value: string | string[]) => ({ columnId: "c", operator, value });
+
+  it("lists the set operators beside the text operators", () => {
+    expect(lookupCellType.filter?.operators).toEqual(expect.arrayContaining(["contains", "isAnyOf", "isNoneOf"]));
+  });
+
+  it("matches a set entry by the stored key or by the label; text operators read the label", () => {
+    const match = lookupCellType.filter!.match!;
+    expect(match(acme, spec("isAnyOf", ["c1"]))).toBe(true);
+    expect(match(acme, spec("isAnyOf", ["acme"]))).toBe(true);
+    expect(match(acme, spec("isAnyOf", ["c2"]))).toBe(false);
+    expect(match(acme, spec("isNoneOf", ["c1"]))).toBe(false);
+    expect(match(acme, spec("isNoneOf", ["c2"]))).toBe(true);
+    expect(match(acme, spec("contains", "cm"))).toBe(true);
+    expect(match(acme, spec("contains", "c1"))).toBe(false);
   });
 });
