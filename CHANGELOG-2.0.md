@@ -352,3 +352,7 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - `useDataGridLiveAnnouncement()` is exported from the barrel.
 - An inline function in `labels` no longer rebuilds the labels on every render, and the grid calls the function of the latest render.
 - `labels.comments` types the comments add-on overrides in the grid `labels`.
+- Fix: the comments add-on finds a cell and announces a comment only in its own grid, never in a nested grid's cell at the same row and column.
+- Fix: comment text drops bidi override and isolate characters (U+202A to U+202E, U+2066 to U+2069); direction marks stay.
+- Fix: `onCommentRejected` fires when `edit`, `remove`, or `setResolved` get an unknown comment id (reason `"invalid"`).
+- Fix: the comments popover shows Retry only for a write that threw or failed with the reason `"error"`.

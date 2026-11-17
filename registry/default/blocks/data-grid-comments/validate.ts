@@ -35,6 +35,7 @@ export function resolveBounds(options: Partial<Bounds>): Bounds {
 
 // eslint-disable-next-line no-control-regex
 const CONTROL = /[\u0000-\u001f\u007f-\u009f]/;
+const BIDI_OVERRIDE_G = /[\u202a-\u202e\u2066-\u2069]/g;
 // eslint-disable-next-line no-control-regex
 const CONTROL_OR_BIDI_G = /[\u0000-\u001f\u007f-\u009f‎‏\u202a-\u202e\u061c\u2066-\u2069]/g;
 
@@ -86,9 +87,9 @@ export function isVersion(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= MAX_VERSION;
 }
 
-/** `toSafeText` plus trim: the text a write stores. The caller checks the bounds on the result. */
+/** `toSafeText` minus bidi overrides, plus trim: the text a write stores. The caller checks the bounds on the result. */
 export function cleanText(value: unknown): string {
-  return toSafeText(value).trim();
+  return toSafeText(value).replace(BIDI_OVERRIDE_G, "").trim();
 }
 
 /** Validates one record into a fresh frozen object (each field read once), or `null`. Text over `maxTextLength` is a breach, never truncated. */
@@ -117,7 +118,7 @@ function readComment(value: unknown, bounds: Bounds): CellComment | null {
   const resolvedAt = raw.resolvedAt;
   if (!isSafeId(id) || !isSafeId(rowId) || !isSafeId(columnId)) return null;
   if (typeof rawText !== "string" || rawText.length > bounds.maxTextLength * 4) return null;
-  const text = rawText.trim();
+  const text = rawText.replace(BIDI_OVERRIDE_G, "").trim();
   if (text.length < 1 || text.length > bounds.maxTextLength) return null;
   if (!isEpoch(createdAt) || !isEpoch(updatedAt) || !isVersion(version) || typeof resolved !== "boolean") return null;
   const record: CellComment = { id, rowId, columnId, text, createdAt, updatedAt, version, resolved };

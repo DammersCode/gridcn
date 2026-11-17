@@ -153,6 +153,14 @@ describe("onCommentSave", () => {
     expect(h.local).toHaveLength(0);
   });
 
+  it("fires onCommentRejected for an unknown comment id", async () => {
+    const h = make();
+    expect(await h.engine.edit("missing", "x")).toEqual({ ok: false, reason: "invalid" });
+    expect(await h.engine.remove("missing")).toEqual({ ok: false, reason: "invalid" });
+    expect(await h.engine.setResolved("missing", true)).toEqual({ ok: false, reason: "invalid" });
+    expect(h.rejected.map((r) => [r.action, r.reason])).toEqual([["update", "invalid"], ["delete", "invalid"], ["resolve", "invalid"]]);
+  });
+
   it("applies a stale rejection's current record and emits it as ack", async () => {
     const current = record({ version: 3, text: "theirs", writeId: "w-x" });
     const h = make({ onCommentSave: () => ({ rejected: { reason: "stale", current } }), currentUser: alice, canEdit: () => true }, { initial: [record()] });

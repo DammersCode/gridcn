@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useDataGridApi, useDataGridReadOnly } from "@/registry/default/blocks/data-grid/data-grid";
 import { GRID_ATTR, isComposingKey, rowIdAtViewRow, toSafeText, useDataGridContainer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { findOwnCell } from "./own-cell";
 import { cellComments, editDraftKey, newDraftKey } from "./comment-state";
 import { authorLabelName, defaultCanModify } from "./default-gate";
 import type { CommentEngine, WriteResult } from "./comment-engine";
@@ -72,7 +73,7 @@ function useLocateCell(rowId: string, columnId: string): Locate {
       setHolder(viewRowCache, viewRow);
     }
     if (viewRow < 0) return null;
-    return scroll.querySelector<HTMLElement>(`[${GRID_ATTR.rowIndex}="${viewRow}"] [data-column-id="${CSS.escape(columnId)}"]`);
+    return findOwnCell(scroll, viewRow, columnId);
   }, [api, scrollRef, rowId, columnId, viewRowCache]);
 }
 
@@ -543,7 +544,7 @@ function ConflictBox({ engine, conflictId, labels, onResult }: { engine: Comment
             {labels.saveMine}
           </Button>
         ) : null}
-        {conflict.reason !== "stale" && conflict.reason !== "forbidden" ? (
+        {conflict.thrown || conflict.reason === "error" ? (
           <Button type="button" size="xs" variant="outline" onClick={() => void engine.retry(conflict.id, draftText).then(onResult)}>
             {labels.retry}
           </Button>
