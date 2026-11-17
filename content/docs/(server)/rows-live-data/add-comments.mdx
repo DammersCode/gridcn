@@ -14,7 +14,7 @@ The `data-grid-comments` add-on attaches comments to cells. It shows a comment m
 
 ## Add comments to a grid [#wiring-it-up]
 
-1. Call `useDataGridComments` once for each grid, in a component above the grid. Pass `currentUser`. Without it, the popover is read-only.
+1. Call `useDataGridComments` once for each grid, in a component above the grid. Pass `currentUser`. Without it, the popover only shows the comments.
 2. Pass the returned `plugin` to the `plugins` prop of the grid.
 3. Mount `DataGridContextMenu` and pass `getCommentMenuItems` as its `getCellMenuItems`. The menu gets a "Comments…" item. It is the pointer path to a cell without comments.
 4. Pass `onCommentSave` to send each write to your server.
@@ -86,9 +86,9 @@ Three paths open the comments popover:
 - Choose "Comments…" in the context menu.
 - Click the comment marker of a commented cell.
 
-In code, `openComments({ rowId, columnId })` opens the popover. It returns `false` for a row that is not in the view, such as an unloaded row or a row that a filter hides, and for a hidden column. The popover is not modal. <kbd>Escape</kbd> closes it, and the comment draft stays.
+In code, `openComments({ rowId, columnId })` opens the popover. It returns `false` for a hidden column and for a row outside the view, such as an unloaded row or a filtered-out row. The popover is not modal. <kbd>Escape</kbd> closes it, and the comment draft stays.
 
-A filled corner marks a cell with an unresolved comment. A ring marks a cell whose comments are all resolved. Set `hideResolved` to hide the ring. The comment marker is `aria-hidden`. A screen reader reaches the comments through the active cell, <kbd>Shift</kbd>+<kbd>F2</kbd>, and a status announcement. A press on the comment marker opens the popover and never reaches the cell, so a Shift-click or a range drag that starts there does not select.
+A filled corner marks a cell with an unresolved comment. A ring marks a cell whose comments are all resolved. Set `hideResolved` to hide the ring. The comment marker is `aria-hidden`. A screen reader reaches the comments through the active cell, <kbd>Shift</kbd>+<kbd>F2</kbd>, and a status announcement. A press on the comment marker opens the popover and never reaches the cell. A Shift-click or a range drag that starts on the marker does not select.
 
 ## Address comments by row id [#addresses]
 
@@ -96,7 +96,7 @@ Every comment holds a `rowId` and a `columnId`, its comment address. A sort, a f
 
 While an inserted row waits for its `onSave` promise, the add-on refuses a comment write on it with the reason `"row-busy"`. After the id swap, the comments of the row move to its server id.
 
-A deleted row keeps its comments in the store. `onOrphanedComments` reports them with the deleted row ids. Remove the comments on your server only after the delete is saved. If an undo brings the row back, its comments show again.
+A deleted row keeps its comments in the store. `onOrphanedComments` reports them with the deleted row ids. Remove the comments on your server only after your server stores the delete. If an undo brings the row back, its comments show again.
 
 ## Save comments and resolve conflicts [#save-comments]
 
@@ -111,7 +111,7 @@ A write shows at once as an optimistic write, and the comment reads "Saving" unt
 
 Accept a write on your server only when its `baseVersion` equals the stored version. If your server stamps `createdAt`, `updatedAt`, `author`, or the version, answer `{ comment }`. Set `author` from the session on the server, because the add-on shows it as given.
 
-If another client changed the comment first, answer `{ rejected: { reason: "stale", current } }`. The popover keeps the text as a comment conflict and offers Save my version and Discard. Without `current`, it offers Discard only, and it loads the row again when `fetchComments` is set.
+If another client changed the comment first, answer `{ rejected: { reason: "stale", current } }`. The popover keeps the text as a comment conflict and offers Save my version and Discard. Without `current`, it offers Discard only. With `fetchComments`, it also loads the row again.
 
 ## Share changes with other clients [#share-changes]
 
@@ -131,7 +131,7 @@ To load comments on demand, pass `fetchComments`. The add-on calls it with the i
 
 - Undo and redo leave comments alone. Copy, cut, paste, and fill move cell values and never comments.
 - The add-on renders comment text and author names as plain text. It never renders HTML or links.
-- On a `readOnly` grid, every comment write is refused, unless you set `allowWhenReadOnly`.
+- On a `readOnly` grid, the add-on refuses every comment write, unless you set `allowWhenReadOnly`.
 
 <Callout type="warn">
 Treat comment text as personal data. A comment is free text and can hold names or other personal details. The add-on keeps comments only in memory and in your own `comments`. Retention, erasure, and access control belong to your app and your server.
@@ -142,6 +142,5 @@ Treat comment text as personal data. A comment is free text and can hold names o
 - [Comments options](/docs/add-options/server/comments-options)
 - [Cell comments example](/docs/server-data-examples/comments-example)
 - [Show presence](/docs/rows-live-data/show-presence)
-- [Save edits](/docs/save-server/save-edits)
 - [Context menu](/docs/rows-pages-menus/context-menu)
 - [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts)

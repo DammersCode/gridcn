@@ -135,15 +135,15 @@ mirror the change there.
 
 | Use | Meaning | Do not use |
 |---|---|---|
-| comment marker | The small corner shape on a cell that has comments: a filled corner while a comment is unresolved, a ring when every comment is resolved. Not the row marker. | comment badge, comment flag |
+| comment marker | The corner shape on a commented cell: filled for an unresolved comment, a ring for resolved comments only. Not the row marker. | comment badge, comment flag |
 | comment address | The pair `rowId` and `columnId` that names the cell of a comment. A comment never holds a view index. | cell key |
 | comments popover | The non-modal dialog that lists the comments of one cell and holds the composer. `Shift+F2`, the comment marker, or the "Comments…" menu item opens it. | comment panel, comment thread |
 | optimistic write | A comment write that the popover shows at once, at `baseVersion + 1`, before `onCommentSave` answers. A refusal reverts it. | pending edit |
-| unresolved comment | A comment with `resolved: false`. A cell counts as unresolved while one of its comments is unresolved. | open comment |
+| unresolved comment | A comment with `resolved: false`. A cell with one unresolved comment counts as unresolved. | open comment |
 | resolved comment | A comment with `resolved: true`. `hideResolved` hides the comment marker of a cell that has only resolved comments. | closed comment |
 | comment draft | Text in the composer, an edit, or a delete confirm that the user has not submitted. It stays when the popover closes. | unsaved comment |
 | comment conflict | The state of a comment write that a newer version from another client made stale. The popover offers the text again with Retry, Discard, or Save my version. Not the save conflict of a row. | collision |
-| orphaned comments | Comments whose row was deleted. They stay in the store, and `onOrphanedComments` reports them. | dangling comments |
+| orphaned comments | The comments of a deleted row. They stay in the store, and `onOrphanedComments` reports them. | dangling comments |
 | write id | The random id (`writeId`) that the add-on puts on each comment write. A record with the pending write id is the echo of that write. | request id |
 | tombstone | The record of a deleted comment: an id, an address, and a version, with no text. It blocks an older upsert for 10 minutes. | deleted marker |
 | echo | A record that comes back through `applyRemote`, a fetch answer, or the `comments` prop with the write id of a pending write. It confirms the write. | reflection, loopback |

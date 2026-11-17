@@ -1764,7 +1764,7 @@
       "id": "comments",
       "feature": "Cell comments",
       "options": [],
-      "note": "Mode-neutral by design. Comments are addressed by row id and column id, so a sort, a filter, a page change, or an eviction moves markers and never comments. `fetchComments` loads the comments of the rendered rows; `onCommentSave` and `applyRemote` cover your own API.",
+      "note": "Mode-neutral by design. Comments are addressed by row id and column id, so a sort, a filter, a page change, or an eviction moves markers and never comments. `fetchComments` loads the comments of the rendered rows. `onCommentSave` and `applyRemote` cover your own API.",
       "cells": {
         "L": {
           "status": "supported",

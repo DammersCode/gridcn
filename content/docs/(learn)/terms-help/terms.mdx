@@ -35,7 +35,7 @@ A term row links to the page that explains it.
 | comment address | The pair `rowId` and `columnId` that names the cell of a comment. A comment never holds a view index. | [Add comments to cells](/docs/rows-live-data/add-comments#addresses) |
 | comment conflict | The state of a comment write that a newer version from another client made stale. The popover offers the text again with Retry, Discard, or Save my version. Not the save conflict of a row. | [Add comments to cells](/docs/rows-live-data/add-comments#save-comments) |
 | comment draft | Text in the composer, an edit, or a delete confirm that the user has not submitted. It stays when the popover closes. | [Add comments to cells](/docs/rows-live-data/add-comments#markers) |
-| comment marker | The small corner shape on a cell that has comments: a filled corner while a comment is unresolved, a ring when every comment is resolved. Not the row marker. | [Add comments to cells](/docs/rows-live-data/add-comments#markers) |
+| comment marker | The corner shape on a commented cell: filled for an unresolved comment, a ring for resolved comments only. Not the row marker. | [Add comments to cells](/docs/rows-live-data/add-comments#markers) |
 | comments popover | The non-modal dialog that lists the comments of one cell and holds the composer. `Shift+F2`, the comment marker, or the "Comments…" menu item opens it. | [Add comments to cells](/docs/rows-live-data/add-comments#markers) |
 | commit | Check a value with `validate` and write it to the data. | [Validation](/docs/editing-cells/validation) |
 | controlled / uncontrolled | `data` puts the state in your code. `defaultData` seeds the grid once. | [Event shapes](/docs/events-state/event-shapes#controlled-pairs) |
@@ -67,7 +67,7 @@ A term row links to the page that explains it.
 | `moveUpKeepSelection` | Moves the active cell and keeps the selection. | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
 | operation | One record of a change to one row: `insert`, `update`, `delete`, or `move`. `DataChange.ops` holds a batch. Write "operations (`ops`)" at first use on a page. | [Data change events](/docs/events-state/data-change-events#datachange) |
 | optimistic write | A comment write that the popover shows at once, at `baseVersion + 1`, before `onCommentSave` answers. A refusal reverts it. | [Add comments to cells](/docs/rows-live-data/add-comments#save-comments) |
-| orphaned comments | Comments whose row was deleted. They stay in the store, and `onOrphanedComments` reports them. | [Add comments to cells](/docs/rows-live-data/add-comments#addresses) |
+| orphaned comments | The comments of a deleted row. They stay in the store, and `onOrphanedComments` reports them. | [Add comments to cells](/docs/rows-live-data/add-comments#addresses) |
 | override | A prop or callback that replaces default behavior. | [Display override](/docs/editing-cells/display-override) |
 | overscan | Extra rows or columns drawn beyond the viewport edge. | [Virtualization](/docs/performance/virtualization) |
 | paged view | A grid with `pageSize` or `defaultPageSize`. `data` stays whole. The sorted and filtered list is the full view, and `viewIndex` holds the shown page of it. `fullViewOf(viewIndex)` returns the full view. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
@@ -115,7 +115,7 @@ A term row links to the page that explains it.
 | tap | A touch press that lifts within 10 px and under 500 ms. A tap selects. Two taps on one cell edit. | [Pointer selection](/docs/selection-shortcuts/pointer-selection) |
 | tombstone | The record of a deleted comment: an id, an address, and a version, with no text. It blocks an older upsert for 10 minutes. | [Comments options](/docs/add-options/server/comments-options#apply-remote-verdict) |
 | `typeToReplace` | Typing over a cell replaces its value. | [Keyboard shortcuts](/docs/cheatsheets-messages/keyboard-shortcuts) |
-| unresolved comment | A comment with `resolved: false`. A cell counts as unresolved while one of its comments is unresolved. | [Add comments to cells](/docs/rows-live-data/add-comments#markers) |
+| unresolved comment | A comment with `resolved: false`. A cell with one unresolved comment counts as unresolved. | [Add comments to cells](/docs/rows-live-data/add-comments#markers) |
 | value query | The text a `fetchFilterValues` request carries as `query`. The server lists the values that match it. | [Server rows contract](/docs/contracts/server-rows-contract) |
 | view index | A row's position in the sorted and filtered list the user sees, on the shown page of a paged grid. | [State and view index](/docs/concepts/state-view-index) |
 | virtualization | Draw only the rows and columns in view, plus overscan. | [Virtualization](/docs/performance/virtualization) |

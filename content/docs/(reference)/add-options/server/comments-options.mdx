@@ -59,7 +59,7 @@ With `fetchComments`, `next` is a partial cache. Save from `ctx.changes`, not fr
 
 ## Save answers [#save-answers]
 
-`onCommentSave` receives `{ action, change, prev }`. `action` is `"create"`, `"update"`, `"delete"`, `"resolve"`, or `"reopen"`. `change` carries `baseVersion`, `writeId`, and the new record. `prev` is the last confirmed record.
+`onCommentSave` receives `{ action, change, prev }`. `action` is `"create"`, `"update"`, `"delete"`, `"resolve"`, or `"reopen"`. `change` carries `baseVersion`, `writeId`, and the record of the write. `prev` is the last confirmed record.
 
 | Answer | Effect |
 | --- | --- |
@@ -98,7 +98,7 @@ An accepted write confirms at `baseVersion + 1`. A server that stamps `createdAt
 - The add-on debounces requests by 150 ms, sends at most 200 row ids in a batch, and runs at most 2 requests at once.
 - A batch aborts only when none of its rows renders. A request that does not settle in 30 seconds counts as a failure.
 - A failure calls `onFetchError` and retries on the next scroll, at least 2 seconds later. An answer of more than 10,000 records is a failure with the reason `"limit"`. The add-on retries it with half the batch.
-- A row counts as loaded after the first successful answer. A comment that the answer omits is removed, unless it has a pending write, a comment draft, or a comment conflict, or is a local write that the add-on confirmed in the last 30 seconds.
+- A row counts as loaded after the first successful answer. The add-on removes a comment that the answer omits. It keeps a comment with a pending write, a comment draft, or a comment conflict. It also keeps a local write from the last 30 seconds.
 - In uncontrolled mode, `maxCachedRows` bounds the cache. The add-on drops the comments of the rows that rendered longest ago first. It keeps a comment with a pending write, a comment draft, a comment conflict, or an open popover.
 - The popover of a row that is loading shows the `loading` label. A failed row shows the `loadFailed` label and a Retry control.
 
