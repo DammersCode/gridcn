@@ -5,7 +5,8 @@
  */
 import { defineColumns, getCellValue, setCellValue } from "./column-helpers";
 import type { TypedColumnDef } from "./column-helpers";
-import type { CellOptionsOf, CellValueOf, ColumnDef } from "../types";
+import type { CellOptionsOf, CellType, CellValueOf, ColumnDef } from "../types";
+import { defineCellType } from "../cell-types/cell-types";
 
 type Row = {
   id: string;
@@ -219,4 +220,36 @@ export {};
 export const textWithOptions = defineColumns<Row>()([
   // @ts-expect-error - the text cell type reads no options
   { id: "text-with-options", header: "Name", accessorKey: "name", type: "text", options: { placeholder: "x" } },
+]);
+
+// --- custom cell types without GridCellTypes augmentation -------------------
+
+declare const currencyCell: CellType<unknown, number | null, { currency: string }>;
+const extraTypes = { currency: defineCellType(currencyCell) };
+
+const priceRow = defineColumns<Row & { price: number | null }, typeof extraTypes>()([
+  { id: "name", header: "Name", accessorKey: "name" },
+  { id: "age", header: "Age", accessorKey: "age", type: "number", options: { min: 0 } },
+  { id: "price", header: "Price", accessorKey: "price", type: "currency", options: { currency: "EUR" } },
+]);
+void priceRow;
+
+defineColumns<Row & { price: number | null }, typeof extraTypes>()([
+  // @ts-expect-error -- options follow the custom type
+  { id: "price", header: "Price", accessorKey: "price", type: "currency", options: { currency: 1 } },
+]);
+
+defineColumns<Row & { price: number | null }, typeof extraTypes>()([
+  // @ts-expect-error -- accessorKey must hold the custom type's value
+  { id: "name", header: "Name", accessorKey: "name", type: "currency" },
+]);
+
+defineColumns<Row, typeof extraTypes>()([
+  // @ts-expect-error -- an unknown type key is rejected
+  { id: "name", header: "Name", accessorKey: "name", type: "unknownType" },
+]);
+
+defineColumns<Row>()([
+  // @ts-expect-error -- without the second type argument the custom key is unknown
+  { id: "name", header: "Name", accessorKey: "name", type: "currency" },
 ]);

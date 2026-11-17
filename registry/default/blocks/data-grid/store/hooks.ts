@@ -267,7 +267,7 @@ export function useDataGridCellErrors(): ReadonlyMap<string, string> {
 }
 
 /** The sorted and filtered row-index view (the current page when paged), in display order; quick search never narrows it. */
-export function useDataGridViewIndex(): number[] {
+export function useDataGridViewIndex(): readonly number[] {
   return useDataGridStore(useShallow((s) => s.viewIndex));
 }
 

@@ -962,7 +962,9 @@ export type DataGridStoreState = Omit<
 };
 
 /** `DataGridStoreState` with `data` typed as `readonly TData[]` — the state view {@link useDataGridSelector} hands its selector. Every row in `data` originated from the grid's own `TData`-typed `data`/`defaultData` prop, so the widening is safe. */
-export type DataGridStoreStateOf<TData> = Omit<DataGridStoreState, "data"> & { data: readonly TData[] };
+export type DataGridStoreStateOf<TData> = Omit<DataGridStoreState, "data" | DataGridInternalStateKey> & { data: readonly TData[] };
+
+type DataGridInternalStateKey = "dataControlled" | "selectAllStage" | "editingRejectionCount" | "selectionPointer" | "lastHighlightedRow" | "lastHighlightedCol" | "rowRangeGesture" | "sortControlled" | "filterControlled" | "searchControlled" | "pageControlled" | "pageSizeControlled" | "searchMatchSet" | "rowIdentityVersion" | "scrollToCellImpl" | "focusImpl" | "runShortcutImpl" | "focusSearchImpl" | "measureFonts" | "dataWrite";
 
 /** Mutations for a single grid instance, nested under the stable `actions` key. */
 export type DataGridActions = {
@@ -1415,6 +1417,7 @@ export type ExternalStoreProps = { store: StoreApi<DataGridStoreState> } & {
 };
 /** The owned-store branch of {@link DataGridProviderProps}/{@link DataGridProps}: this instance self-creates and syncs the store from the sync props. */
 export type OwnedStoreProps<TData> = DataGridSyncProps<TData> & { store?: undefined };
+
 
 /** Props for {@link DataGridProvider}. */
 export type DataGridProviderProps<TData = unknown> = (ExternalStoreProps | OwnedStoreProps<TData>) & {

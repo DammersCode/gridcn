@@ -50,6 +50,14 @@ export const cellTypes = {
 export function defineCellType<K extends CellTypeKey>(
   key: K,
   type: CellType<unknown, CellValueOf<K>, CellOptionsOf<K>>,
-): CellType<unknown, CellValueOf<K>, CellOptionsOf<K>> {
-  return type;
+): CellType<unknown, CellValueOf<K>, CellOptionsOf<K>>;
+/**
+ * Keyless form: infers the value and options types from `type`, so a custom type needs no
+ * `GridCellTypes` augmentation. Pass a record of these to `defineColumns<Row, typeof extraTypes>()`.
+ */
+export function defineCellType<TValue, TOptions = Record<string, never>>(
+  type: CellType<unknown, TValue, TOptions>,
+): CellType<unknown, TValue, TOptions>;
+export function defineCellType(keyOrType: unknown, type?: unknown): unknown {
+  return type ?? keyOrType;
 }

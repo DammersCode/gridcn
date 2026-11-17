@@ -115,7 +115,7 @@ export function deleteTopTwo(actions: DataGridActions) {
 | `DataGridActions` | The mutations of one grid | The `actions` member of `DataGridApi`. `useDataGridActions` returns the same object. [Actions A to Z](/docs/cheatsheets-messages/actions-z) lists its methods. |
 | `DataGridStoreWrapper` | `{ getState, getInitialState, subscribe }` | The `store` member of `DataGridApi`. |
 | `DataGridStore` | The state of one grid | The full state of one grid, callbacks included, as the store of `useDataGridStoreProps` holds it. `data` is typed as `readonly unknown[]`. |
-| `DataGridStoreStateOf<TData>` | `DataGridStore` with `data: readonly TData[]` | The state view that a selector reads, with `data` typed to your row type. |
+| `DataGridStoreStateOf<TData>` | `DataGridStore` without its engine fields, with `data: readonly TData[]` | The state view that a selector reads, with `data` typed to your row type. |
 | `DataGridReadState` | The state that `store.getState()` returns | The argument of `exportGrid` and `printGrid`. |
 
 [Data grid props](/docs/components-props/data-grid-props#imperative-handle) lists the members of the handle.

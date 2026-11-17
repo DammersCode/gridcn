@@ -1,4 +1,4 @@
-import { createDataGridHooks } from "./data-grid";
+import { createDataGridHooks, useDataGridViewIndex } from "./data-grid";
 
 type Order = { id: string; total: number };
 
@@ -16,4 +16,22 @@ export function useTypedReads() {
   const api = useDataGridApi();
   const first: Order | undefined = api.getRow(0);
   return { total, missing, columns, all, idList, first };
+}
+export function usePublicStateOnly() {
+  const sortState = useDataGridSelector((state) => state.sortState);
+  const internalKeys = useDataGridSelector((state) => {
+    // @ts-expect-error -- engine-internal fields are not part of the selector state
+    const dataWrite: unknown = state.dataWrite;
+    // @ts-expect-error -- engine-internal fields are not part of the selector state
+    const pointer: unknown = state.selectionPointer;
+    return [dataWrite, pointer];
+  });
+  return { sortState, internalKeys };
+}
+
+export function useReadonlyViewIndex() {
+  const viewIndex: readonly number[] = useDataGridViewIndex();
+  // @ts-expect-error -- the view index is read-only
+  const mutable: number[] = useDataGridViewIndex();
+  return { viewIndex, mutable };
 }

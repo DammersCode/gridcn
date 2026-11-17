@@ -42,6 +42,8 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - `setColumnOrder` returns `{ ok: true }` or `{ ok: false, reason }`, and `canSetColumnOrder` returns the same without the move.
 - The date editor loads the calendar (`react-day-picker`, `date-fns`) on its first open, so a grid ships no date picker until a user opens one.
 - New development warnings: an async gate that stays pending for 30 seconds without `gateTimeoutMs`, partial `data` under a client sort or filter with `totalRowCount`, a `number` or `date` column with `locale` and no `format` or `displayFormat`, and `defaultData` that fills after an empty seed.
+- `defineColumns<Row, typeof extraTypes>()` types a column of a custom cell type from the value and options of `defineCellType(type)`, with no `GridCellTypes` augmentation. `defineCellType(key, type)` works as before.
+- `useDataGridViewIndex()` returns `readonly number[]`. The selector state of `useDataGridSelector` and `createDataGridSelector` no longer lists the engine fields.
 
 ## Selection and editing
 
