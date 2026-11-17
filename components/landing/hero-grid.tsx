@@ -8,8 +8,13 @@ const HeroGridLive = dynamic(() => import("./hero-grid-live"), { ssr: false });
 export function HeroGrid(): ReactNode {
   const [armed, setArmed] = useState(false);
   useEffect(() => {
-    const id = requestIdleCallback(() => setArmed(true), { timeout: 1500 });
-    return () => cancelIdleCallback(id);
+    // Safari and every iOS browser lack requestIdleCallback.
+    if (typeof window.requestIdleCallback !== "function") {
+      const timer = window.setTimeout(() => setArmed(true), 200);
+      return () => window.clearTimeout(timer);
+    }
+    const id = window.requestIdleCallback(() => setArmed(true), { timeout: 1500 });
+    return () => window.cancelIdleCallback(id);
   }, []);
   return (
     <div className="flex min-w-0 flex-col gap-2">
