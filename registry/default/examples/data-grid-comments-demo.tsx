@@ -19,7 +19,7 @@ const STORAGE_KEY = "gridcn-comments-demo";
 function loadComments(): CellComment[] {
   try {
     const stored: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
-    return Array.isArray(stored) ? stored : [];
+    return Array.isArray(stored) ? (stored as CellComment[]) : [];
   } catch {
     return [];
   }
