@@ -6,6 +6,7 @@ const MAX_ID_LENGTH = 128;
 const MAX_NAME_LENGTH = 80;
 const MAX_COLOR_LENGTH = 64;
 export const MAX_VERSION = 1_000_000_000;
+const MAX_EPOCH_MS = 8.64e15;
 
 export type Bounds = {
   maxTextLength: number;
@@ -35,7 +36,7 @@ export function resolveBounds(options: Partial<Bounds>): Bounds {
 // eslint-disable-next-line no-control-regex
 const CONTROL = /[\u0000-\u001f\u007f-\u009f]/;
 // eslint-disable-next-line no-control-regex
-const CONTROL_OR_BIDI_G = /[\u0000-\u001f\u007f-\u009f‎‏\u202a-\u202e\u2066-\u2069]/g;
+const CONTROL_OR_BIDI_G = /[\u0000-\u001f\u007f-\u009f‎‏\u202a-\u202e\u061c\u2066-\u2069]/g;
 
 type Raw = {
   id?: unknown; name?: unknown; color?: unknown; rowId?: unknown; columnId?: unknown; text?: unknown; createdAt?: unknown;
@@ -78,7 +79,7 @@ function readAuthor(value: unknown): CommentAuthor | null {
 }
 
 function isEpoch(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
+  return typeof value === "number" && Math.abs(value) <= MAX_EPOCH_MS;
 }
 
 export function isVersion(value: unknown): value is number {
@@ -119,9 +120,12 @@ function readComment(value: unknown, bounds: Bounds): CellComment | null {
   const text = rawText.trim();
   if (text.length < 1 || text.length > bounds.maxTextLength) return null;
   if (!isEpoch(createdAt) || !isEpoch(updatedAt) || !isVersion(version) || typeof resolved !== "boolean") return null;
-  const author = validateAuthor(rawAuthor);
-  if (!author) return null;
-  const record: CellComment = { id, rowId, columnId, text, author, createdAt, updatedAt, version, resolved };
+  const record: CellComment = { id, rowId, columnId, text, createdAt, updatedAt, version, resolved };
+  if (rawAuthor !== undefined) {
+    const author = validateAuthor(rawAuthor);
+    if (!author) return null;
+    record.author = author;
+  }
   if (writeId !== undefined) {
     if (!isSafeId(writeId)) return null;
     record.writeId = writeId;

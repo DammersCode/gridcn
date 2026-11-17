@@ -1,5 +1,6 @@
 import type { ApplyRemoteVerdict, CellComment, CommentChange, CommentRejectedCtx, CommentRejectReason, CommentSource } from "./types";
 import { validateComment } from "./validate";
+import { authorChangeAllowed } from "./default-gate";
 import {
   addrOf,
   addTombstone,
@@ -105,7 +106,7 @@ function applyUpsert(c: Ctx, raw: CellComment, opts: UpsertOpts): "applied" | Sk
   const known = addrOf(st, id);
   if (known && (known.rowId !== rec.rowId || known.columnId !== rec.columnId)) return "invalid";
   const confirmed = st.confirmed.get(id);
-  if (confirmed && confirmed.author.id !== rec.author.id) return "invalid";
+  if (confirmed && !authorChangeAllowed(confirmed.author, rec.author)) return "invalid";
   const p = st.pending.get(id);
   if (p && !p.superseded && p.action !== "delete" && rec.writeId !== undefined && rec.writeId === p.writeId && rec.version >= p.baseVersion + 1) {
     confirmPendingUpsert(c, p, rec, opts.server, false);
@@ -123,7 +124,8 @@ function applyUpsert(c: Ctx, raw: CellComment, opts: UpsertOpts): "applied" | Sk
   }
   if (confirmed) {
     if (rec.version < confirmed.version) return "stale";
-    if (rec.version === confirmed.version) {
+    const addsAuthor = confirmed.author === undefined && rec.author !== undefined;
+    if (rec.version === confirmed.version && !(addsAuthor && rec.writeId === confirmed.writeId)) {
       if (rec.writeId !== undefined && rec.writeId === confirmed.writeId) return "duplicate";
       if (!tieWins(st, confirmed, rec, opts.server, opts.fetchUntouched === true)) return "stale";
     }
@@ -288,6 +290,7 @@ function handleAck(c: Ctx, id: string, writeId: string, outcome: AckOutcome): vo
   if (outcome.kind === "record" && outcome.comment) {
     const rec = withAlias(st, outcome.comment);
     if (rec.id !== id || rec.rowId !== p.record.rowId || rec.columnId !== p.record.columnId) return rollback(c, p, { reason: "invalid", thrown: false });
+    if (rec.author === undefined && (confirmed ?? p.record).author !== undefined) return rollback(c, p, { reason: "invalid", thrown: false });
     if (confirmed && rec.version < confirmed.version) return supersede();
     if (confirmed && rec.version === confirmed.version && confirmed.writeId !== rec.writeId && !tieWins(st, confirmed, rec, true, false)) return supersede();
     return confirmPendingUpsert(c, p, rec, true, false);

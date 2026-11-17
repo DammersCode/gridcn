@@ -3,6 +3,7 @@
   "icon": "Server",
   "pages": [
     "comments-options",
+    "comments-labels",
     "presence-options",
     "server-rows-options"
   ]

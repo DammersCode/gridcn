@@ -35,6 +35,22 @@ describe.each(ALL_MODES)("comments in mode %s", (mode) => {
     expect(visible.length).toBeGreaterThan(0);
   });
 
+  it("keeps an anonymous comment with no user and no save callback", async () => {
+    let handle!: UseDataGridCommentsResult;
+    const grid = await mountMode(mode, {
+      useExtra: () => {
+        handle = useDataGridComments();
+        return { plugins: [handle.plugin] };
+      },
+    });
+    const { author: _author, ...anonymous } = seed("r0");
+    expect(handle.applyRemote([{ kind: "upsert", comment: anonymous }]).applied).toBe(1);
+    grid.setSorts([{ columnId: "n", direction: "desc" }] as never);
+    await grid.settle();
+    expect(handle.getComments().map((c) => c.id)).toEqual(["c-r0"]);
+    expect("author" in (handle.getComments()[0] ?? { author: 1 })).toBe(false);
+  });
+
   it("returns false for an unknown row and for a hidden column", async () => {
     const { handle } = await mountComments(mode, ["r0"]);
     expect(handle().openComments({ rowId: "nope", columnId: "name" })).toBe(false);

@@ -63,6 +63,7 @@ const EXAMPLES = {
   "data-grid-server-filter-demo": dynamic(() => import("@/registry/default/examples/data-grid-server-filter-demo")),
   "data-grid-presence-demo": dynamic(() => import("@/registry/default/examples/data-grid-presence-demo")),
   "data-grid-comments-demo": dynamic(() => import("@/registry/default/examples/data-grid-comments-demo")),
+  "data-grid-comments-server-demo": dynamic(() => import("@/registry/default/examples/data-grid-comments-server-demo")),
   "data-grid-events-demo": dynamic(() => import("@/registry/default/examples/data-grid-events-demo")),
   "data-grid-custom-cell-demo": dynamic(() => import("@/registry/default/examples/data-grid-custom-cell-demo")),
   "data-grid-validation-demo": dynamic(() => import("@/registry/default/examples/data-grid-validation-demo")),

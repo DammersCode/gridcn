@@ -57,7 +57,7 @@ must run in the component that renders `<DataGridProvider>`, above it, not insid
 |---|---|---|---|
 | Fill | `useDataGridFill()` | `{ plugin }` | `plugin` → `plugins` on the provider (the `Mount` member runs the drag engine inside the root) |
 | Presence | `useDataGridPresence()` | `{ plugin, setPresenceHighlights, ... }` | `plugin` → `plugins` on the provider |
-| Comments | `useDataGridComments({ currentUser?, onCommentSave?, onLocalChange?, fetchComments? })` | `{ plugin, applyRemote, openComments, getCommentMenuItems, ... }` | `plugin` → `plugins` on the provider (with `useDataGridServerRows`, its `plugins` option); `getCommentMenuItems` → `getCellMenuItems` of `DataGridContextMenu`; `Shift+F2` opens the popover |
+| Comments | `useDataGridComments({ currentUser?, readOnly?, enableResolve?, onCommentSave?, onLocalChange?, fetchComments? })` | `{ plugin, applyRemote, openComments, getCommentMenuItems, ... }` | `plugin` → `plugins` on the provider (with `useDataGridServerRows`, its `plugins` option); `getCommentMenuItems` → `getCellMenuItems` of `DataGridContextMenu`; `Shift+F2` opens the popover |
 | Pinned rows | `useDataGridPinnedRows({ topRows?, bottomRows?, status? })`; a totals row is `aggregateRow(specs, { cells?, scope? })` or `serverAggregateRow({ fetchAggregates, cells?, refreshAfterSave? })` in `topRows`/`bottomRows` | `{ plugin }` | `plugin` → `plugins` on the provider |
 | Keybindings | `useDataGridKeybindings({ className? })` | `{ plugin, open, close }` | `plugin` → `plugins` on the provider (`?` opens the dialog; rebind with `keymap={{ openKeybindings: [...] }}`) |
 | Find & replace | `useDataGridFindReplace({ scope?, replaceAllLimit?, processReplace?, className? })` | `{ plugin, open, close }` | `plugin` → `plugins` on the provider (`Mod+F` opens the panel with Find only, `Shift+Alt+Enter` with Replace; `open("find" \| "replace")` opens it from code) |
@@ -129,8 +129,10 @@ the `DataGrid` wrapper), never of `DataGridRoot`.
 - **Presence**: call `useDataGridPresence()` exactly once per grid. A second call mints a separate
   store whose `setPresenceHighlights` writes into nothing the grid reads; share the first call's
   return values as props instead.
-- **Comments**: call `useDataGridComments()` once per grid and pass `currentUser`, or the popover is
-  read-only. `onCommentSave` answers nothing (stored as sent), `{ comment }`, `{ rejected: { reason: "stale", current } }`,
+- **Comments**: call `useDataGridComments()` once per grid. It works with no options: comments are
+  anonymous and stay on the client. For a server pass `currentUser: { id }` and `onCommentSave`; use
+  `readOnly: !session` while a session loads. To keep comments in the browser use controlled
+  `comments` + `onCommentsChange` (load stored data in an effect, never from `defaultComments`). `onCommentSave` answers nothing (stored as sent), `{ comment }`, `{ rejected: { reason: "stale", current } }`,
   or throws. Forward `onLocalChange` to your channel and feed arriving changes to `applyRemote`; the add-on drops
   its own echo by `writeId`. Comments are keyed by row id and column id, so keep `getRowId` stable.
 - **Pinned rows**: the hook compares a plain row object by its own values and an `aggregateRow` or `serverAggregateRow` by content, so an inline `[aggregateRow(...)]` keeps the plugin. A reducer function with a new identity reduces again; define it at module scope to skip that work.
@@ -208,7 +210,7 @@ Each add-on's full reference (props, edge cases, worked examples) is at the page
 
 - Fill: `/docs/clipboard-undo/fill-handle.md` · Pinned rows: `/docs/rows-pages-menus/pinned-rows.md`
 - Presence: `/docs/rows-live-data/show-presence.md`, `/docs/rows-live-data/broadcast-your-selection.md`
-- Comments: `/docs/rows-live-data/add-comments.md`, `/docs/add-options/server/comments-options.md`
+- Comments: `/docs/rows-pages-menus/add-comments.md`, `/docs/add-options/server/comments-options.md`
 - Undo & redo: `/docs/clipboard-undo/undo-redo.md` · Toolbar: `/docs/sort-filter-search/toolbar.md`
 - Context menu: `/docs/rows-pages-menus/context-menu.md` · Keybindings: `/docs/selection-shortcuts/shortcut-remapping.md`
 - Find & replace: `/docs/sort-filter-search/find-replace.md`

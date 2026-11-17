@@ -69,16 +69,18 @@ function Announcer({ engine, getOptions }: { engine: CommentEngine; getOptions: 
       const columnId = state.visibleColumns[activeCell.col]?.id;
       if (rowId === undefined || columnId === undefined) return;
       const entries = cellComments(engine.store.core, rowId, columnId);
-      if (entries.length === 0) {
+      const options = getOptions();
+      const hidden = options.hideResolved === true && options.enableResolve !== false && entries.every((e) => e.comment.resolved);
+      if (entries.length === 0 || hidden) {
         last.key = "";
         return;
       }
       const key = `${rowId}\u0001${columnId}`;
       if (last.key === key) return;
       last.key = key;
-      const unresolved = entries.filter((e) => !e.comment.resolved).length;
-      const labels = resolveCommentsLabels(getOptions().labels);
-      speaker.say(labels.announce(entries.length, unresolved, chord));
+      const labels = resolveCommentsLabels(options.labels);
+      if (options.enableResolve === false) speaker.say(labels.announceCount(entries.length, chord));
+      else speaker.say(labels.announce(entries.length, entries.filter((e) => !e.comment.resolved).length, chord));
     }, ANNOUNCE_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [activeCell, revision, api, engine, scrollRef, getOptions, speaker, last, chord]);
@@ -97,6 +99,7 @@ function findCell(scroll: HTMLElement | null, viewRow: number, columnId: string)
 }
 
 function waitForCell(engine: CommentEngine, scroll: HTMLElement | null, viewRow: number, ref: { rowId: string; columnId: string }, by: "keyboard" | "pointer" | "menu", frame: number): void {
+  if (engine.isDisposed()) return;
   if (findCell(scroll, viewRow, ref.columnId)) {
     engine.store.open(ref, by);
     return;

@@ -15,6 +15,7 @@ import {
   type Emit,
 } from "./comment-state";
 import { createFetchScheduler } from "./comment-fetch";
+import { defaultCanModify, authorLabelName } from "./default-gate";
 import { createCommentStore, type CommentStore } from "./comment-store";
 import { createWriteIdGenerator, defaultCreateId } from "./create-id";
 import { resolveCommentsLabels } from "./labels";
@@ -42,6 +43,9 @@ export type GridAdapter = {
   /** Scrolls to the cell, makes it active, and opens the popover once the cell renders; `false` for a hole, a filtered-out row, or a hidden column. */
   open(ref: { rowId: string; columnId: string }, by: "keyboard" | "pointer" | "menu"): boolean;
 };
+
+/** The writer: none (anonymous), a valid user, or a present but invalid `currentUser`. */
+export type CommentUserState = { kind: "anonymous" } | { kind: "user"; user: CommentAuthor } | { kind: "invalid" };
 
 export type WriteResult =
   | { ok: true; settled: Promise<void> }
@@ -84,7 +88,8 @@ export type CommentEngine = {
   observeDataChange(next: readonly unknown[], change: DataChange<unknown>, ctx: { getRowId(row: unknown, index: number): string }): void;
   kickFetch(): void;
   noteRowsRendered(rowIds: readonly string[]): void;
-  currentUser(): CommentAuthor | null;
+  currentUser(): CommentUserState;
+  isDisposed(): boolean;
   openComments(ref: { rowId: string; columnId: string }, by?: "keyboard" | "pointer" | "menu"): boolean;
   start(): void;
   dispose(): void;
@@ -196,7 +201,7 @@ export function createCommentEngine(config: EngineConfig): CommentEngine {
       if (c.rowId !== open.rowId || c.columnId !== open.columnId) continue;
       if (c.version !== 1) continue;
       const labels = resolveCommentsLabels(optionsOf().labels);
-      store.announce(labels.announceAdded(c.author.name ?? labels.unknownAuthor));
+      store.announce(labels.announceAdded(authorLabelName(c.author, labels.unknownAuthor)));
       return;
     }
   }
@@ -249,15 +254,22 @@ export function createCommentEngine(config: EngineConfig): CommentEngine {
 
   // --- writes -----------------------------------------------------------------------------------
 
-  function validatedUser(): CommentAuthor | null {
+  function userState(): CommentUserState {
     const user = optionsOf().currentUser;
-    return user ? validateAuthor(user) : null;
+    if (user === undefined) return { kind: "anonymous" };
+    const valid = validateAuthor(user);
+    if (valid) return { kind: "user", user: valid };
+    warnOnce("invalid-user", "`currentUser` is present but invalid (`id` must be 1..128 characters without control characters); every comment write is refused");
+    return { kind: "invalid" };
   }
+
+  const userOf = (state: CommentUserState): CommentAuthor | undefined => (state.kind === "user" ? state.user : undefined);
 
   function writeIsBlocked(rowId: string): CommentRejectReason | null {
     const o = optionsOf();
+    if (o.readOnly === true) return "read-only";
     if (grid?.readOnly() && !o.allowWhenReadOnly) return "read-only";
-    if (!validatedUser()) return "invalid";
+    if (userState().kind === "invalid") return "invalid";
     if (isBusy(rowId)) return "row-busy";
     return null;
   }
@@ -275,7 +287,7 @@ export function createCommentEngine(config: EngineConfig): CommentEngine {
 
   const gateKey = (spec: WriteSpec): string => spec.id ?? newDraftKey(spec.rowId, spec.columnId);
 
-  async function runGate(spec: WriteSpec, user: CommentAuthor, prev: CellComment | undefined): Promise<boolean | "error"> {
+  async function runGate(spec: WriteSpec, user: CommentAuthor | undefined, prev: CellComment | undefined): Promise<boolean | "error" | "superseded"> {
     const o = optionsOf();
     const key = gateKey(spec);
     gateControllers.get(key)?.abort();
@@ -289,13 +301,13 @@ export function createCommentEngine(config: EngineConfig): CommentEngine {
         const comment = prev as CellComment;
         if (spec.action === "update" || spec.action === "delete") {
           const gate = spec.action === "update" ? o.canEdit : o.canDelete;
-          verdict = gate ? gate({ comment, user, signal: controller.signal }) : comment.author.id === user.id;
+          verdict = gate ? gate({ comment, action: spec.action, user, signal: controller.signal }) : defaultCanModify(comment, user);
         } else {
-          verdict = o.canResolve ? o.canResolve({ comment, user, signal: controller.signal }) : true;
+          verdict = o.canResolve ? o.canResolve({ comment, action: spec.action, user, signal: controller.signal }) : true;
         }
       }
       const result = isThenable(verdict) ? await verdict : verdict;
-      if (controller.signal.aborted && disposed) return false;
+      if (controller.signal.aborted) return disposed ? false : "superseded";
       return result === true;
     } catch {
       return "error";
@@ -312,7 +324,8 @@ export function createCommentEngine(config: EngineConfig): CommentEngine {
     if (spec.id && core.pending.has(spec.id)) return { ok: false, reason: "pending" };
     const blocked = writeIsBlocked(spec.rowId);
     if (blocked) return rejectBeforeWrite(spec.action, blocked);
-    const user = validatedUser() as CommentAuthor;
+    if ((spec.action === "resolve" || spec.action === "reopen") && o.enableResolve === false) return rejectBeforeWrite(spec.action, "forbidden");
+    const user = userOf(userState());
 
     let id = spec.id;
     if (spec.action === "create") {
@@ -343,13 +356,14 @@ export function createCommentEngine(config: EngineConfig): CommentEngine {
 
     const verdict = await runGate({ ...spec, id: spec.action === "create" ? undefined : commentId }, user, prev);
     if (disposed) return { ok: false, reason: "error" };
+    if (verdict === "superseded") return { ok: false, reason: "pending" };
     if (verdict === "error") return rejectBeforeWrite(spec.action, "error");
     if (verdict === false) return rejectBeforeWrite(spec.action, "forbidden");
 
     // after the await: re-read the store and re-check
     const blockedLate = writeIsBlocked(spec.rowId);
     if (blockedLate) return rejectBeforeWrite(spec.action, blockedLate);
-    const userNow = validatedUser() as CommentAuthor;
+    const userNow = userOf(userState());
     const confirmedNow = core.confirmed.get(commentId);
     if (spec.action !== "create" && !confirmedNow) return rejectBeforeWrite(spec.action, "invalid");
     if (core.pending.has(commentId)) return { ok: false, reason: "pending" };
@@ -365,7 +379,7 @@ export function createCommentEngine(config: EngineConfig): CommentEngine {
       record = spec.reuse.record;
       change = spec.reuse.change;
     } else if (spec.action === "create") {
-      record = Object.freeze({ id: commentId, rowId: spec.rowId, columnId: spec.columnId, text: text as string, author: userNow, createdAt: ts, updatedAt: ts, version: 1, writeId, resolved: false });
+      record = Object.freeze({ id: commentId, rowId: spec.rowId, columnId: spec.columnId, text: text as string, ...(userNow ? { author: userNow } : {}), createdAt: ts, updatedAt: ts, version: 1, writeId, resolved: false });
       change = Object.freeze({ kind: "upsert" as const, comment: record, baseVersion: 0 });
     } else if (spec.action === "delete") {
       record = base as CellComment;
@@ -376,7 +390,8 @@ export function createCommentEngine(config: EngineConfig): CommentEngine {
       if (spec.action === "update") next.text = text as string;
       else if (spec.action === "resolve") {
         next.resolved = true;
-        next.resolvedBy = userNow;
+        if (userNow) next.resolvedBy = userNow;
+        else delete next.resolvedBy;
         next.resolvedAt = ts;
       } else {
         next.resolved = false;
@@ -608,7 +623,8 @@ export function createCommentEngine(config: EngineConfig): CommentEngine {
     noteRowsRendered(rowIds) {
       store.setVisibleRowIds(rowIds);
     },
-    currentUser: validatedUser,
+    currentUser: userState,
+    isDisposed: () => disposed,
     openComments: (ref, by = "pointer") => grid?.open(ref, by) ?? false,
     start() {
       disposed = false;

@@ -86,6 +86,7 @@ export type RegistryItemName =
   | "data-grid-playground-demo"
   | "data-grid-presence-demo"
   | "data-grid-comments-demo"
+  | "data-grid-comments-server-demo"
   | "data-grid-export-all-demo"
   | "data-grid-io-hooks-demo"
   | "data-grid-print-demo"

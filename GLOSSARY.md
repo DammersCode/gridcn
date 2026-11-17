@@ -136,6 +136,8 @@ mirror the change there.
 | Use | Meaning | Do not use |
 |---|---|---|
 | comment marker | The corner shape on a commented cell: filled for an unresolved comment, a ring for resolved comments only. Not the row marker. | comment badge, comment flag |
+| anonymous comment | A comment with no `author`. It comes from a write with no `currentUser`. Anyone can edit and delete it by default. | guest comment |
+| comment author | The `author` of a comment: a snapshot of the writer with an `id`, and optionally a `name` and a `color`. The identity is `author.id`. | commenter |
 | comment address | The pair `rowId` and `columnId` that names the cell of a comment. A comment never holds a view index. | cell key |
 | comments popover | The non-modal dialog that lists the comments of one cell and holds the composer. `Shift+F2`, the comment marker, or the "Comments…" menu item opens it. | comment panel, comment thread |
 | optimistic write | A comment write that the popover shows at once, at `baseVersion + 1`, before `onCommentSave` answers. A refusal reverts it. | pending edit |

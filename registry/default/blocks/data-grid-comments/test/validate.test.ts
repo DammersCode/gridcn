@@ -41,6 +41,9 @@ describe("validateComment", () => {
     expect(validateComment({ ...base, version: 1.5 }, bounds)).toBeNull();
     expect(validateComment({ ...base, version: 1_000_000_001 }, bounds)).toBeNull();
     expect(validateComment({ ...base, createdAt: Number.POSITIVE_INFINITY }, bounds)).toBeNull();
+    expect(validateComment({ ...base, createdAt: 1e20 }, bounds)).toBeNull();
+    expect(validateComment({ ...base, updatedAt: -8.65e15 }, bounds)).toBeNull();
+    expect(validateComment({ ...base, createdAt: 8.64e15 }, bounds)).not.toBeNull();
     expect(validateComment({ ...base, resolved: "no" }, bounds)).toBeNull();
     expect(validateComment(Object.create(null), bounds)).toBeNull();
     expect(validateComment(null, bounds)).toBeNull();
@@ -108,5 +111,21 @@ describe("ids and labels", () => {
   it("builds plural-aware announcements", () => {
     expect(DEFAULT_COMMENTS_LABELS.announce(1, 1, "Shift+F2")).toContain("1 comment,");
     expect(DEFAULT_COMMENTS_LABELS.announce(3, 2, "Shift+F2")).toContain("3 comments,");
+  });
+});
+
+describe("optional author", () => {
+  const { author: _author, ...anonymous } = base;
+
+  it("accepts a record without an author and keeps the key absent", () => {
+    const valid = validateComment(anonymous, bounds);
+    expect(valid).not.toBeNull();
+    expect(valid && "author" in valid).toBe(false);
+  });
+
+  it("drops a record whose author is present but invalid", () => {
+    expect(validateComment({ ...anonymous, author: null }, bounds)).toBeNull();
+    expect(validateComment({ ...anonymous, author: { id: "" } }, bounds)).toBeNull();
+    expect(validateComment({ ...anonymous, author: "x" }, bounds)).toBeNull();
   });
 });

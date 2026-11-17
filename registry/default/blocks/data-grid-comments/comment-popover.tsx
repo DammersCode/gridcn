@@ -11,9 +11,10 @@ import { cn } from "@/lib/utils";
 import { useDataGridApi, useDataGridReadOnly } from "@/registry/default/blocks/data-grid/data-grid";
 import { GRID_ATTR, isComposingKey, rowIdAtViewRow, toSafeText, useDataGridContainer } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { cellComments, editDraftKey, newDraftKey } from "./comment-state";
+import { authorLabelName, defaultCanModify } from "./default-gate";
 import type { CommentEngine, WriteResult } from "./comment-engine";
 import { resolveCommentsLabels, type DataGridCommentsLabels } from "./labels";
-import type { CellComment, CommentAuthor, UseDataGridCommentsOptions } from "./types";
+import type { CellComment, UseDataGridCommentsOptions } from "./types";
 
 const FALLBACK_COLOR = "var(--color-primary)";
 
@@ -91,10 +92,10 @@ export function CommentPopoverHost({ engine, getOptions }: HostProps): ReactNode
   const open = useStore(engine.store.ui, (s) => s.open);
   if (!open || typeof document === "undefined") return null;
   // portaled to the body: Base UI leaves an aria-owns span where it renders, and inside role="grid" that span fails the required-children rule
-  return createPortal(<OpenPopover key={open.nonce} engine={engine} getOptions={getOptions} rowId={open.rowId} columnId={open.columnId} by={open.by} />, document.body);
+  return createPortal(<OpenPopover key={open.nonce} engine={engine} getOptions={getOptions} rowId={open.rowId} columnId={open.columnId} />, document.body);
 }
 
-function OpenPopover({ engine, getOptions, rowId, columnId, by }: HostProps & { rowId: string; columnId: string; by: "keyboard" | "pointer" | "menu" }): ReactNode {
+function OpenPopover({ engine, getOptions, rowId, columnId }: HostProps & { rowId: string; columnId: string }): ReactNode {
   const api = useDataGridApi();
   const scrollRef = useDataGridContainer();
   const locate = useLocateCell(rowId, columnId);
@@ -174,7 +175,7 @@ function OpenPopover({ engine, getOptions, rowId, columnId, by }: HostProps & { 
             initialFocus={() => (cellComments(engine.store.core, rowId, columnId).length === 0 ? (composerEl.current ?? popupEl.current) : popupEl.current)}
             finalFocus={() => {
               const active = document.activeElement;
-              const free = !active || active === document.body || (by !== "pointer" && popupEl.current?.contains(active)) === true;
+              const free = !active || active === document.body || popupEl.current?.contains(active) === true;
               if (free) api.focus();
               return false;
             }}
@@ -235,10 +236,6 @@ function formatTime(ts: number, locale: string): string {
   }
 }
 
-function authorName(author: CommentAuthor, labels: DataGridCommentsLabels): string {
-  return author.name ?? labels.unknownAuthor;
-}
-
 /** The add-on state is mutable; both revisions are inputs here so the compiler re-reads it when either moves. */
 function readBody(engine: CommentEngine, getOptions: () => UseDataGridCommentsOptions, rowId: string, columnId: string, revision: number, draftRevision: number) {
   return {
@@ -266,7 +263,9 @@ function PopoverBody({ engine, getOptions, rowId, columnId, labels, composerEl, 
   const core = engine.store.core;
   const gridReadOnly = useDataGridReadOnly();
   const { options, user, entries, fetchState, busy } = readBody(engine, getOptions, rowId, columnId, revision, draftRevision);
-  const writable = user !== null && (!gridReadOnly || options.allowWhenReadOnly === true);
+  const writable = user.kind !== "invalid" && options.readOnly !== true && (!gridReadOnly || options.allowWhenReadOnly === true);
+  const currentUser = user.kind === "user" ? user.user : undefined;
+  const resolveEnabled = options.enableResolve !== false;
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const composeKey = newDraftKey(rowId, columnId);
@@ -308,8 +307,8 @@ function PopoverBody({ engine, getOptions, rowId, columnId, labels, composerEl, 
   };
 
   const hasCustomGate = (name: "canEdit" | "canDelete"): boolean => options[name] !== undefined;
-  const canShowEdit = (c: CellComment): boolean => writable && (hasCustomGate("canEdit") || c.author.id === user?.id);
-  const canShowDelete = (c: CellComment): boolean => writable && (hasCustomGate("canDelete") || c.author.id === user?.id);
+  const canShowEdit = (c: CellComment): boolean => writable && (hasCustomGate("canEdit") || defaultCanModify(c, currentUser));
+  const canShowDelete = (c: CellComment): boolean => writable && (hasCustomGate("canDelete") || defaultCanModify(c, currentUser));
   const max = engine.bounds().maxTextLength;
   const anySaving = entries.some((e) => e.saving);
 
@@ -338,7 +337,7 @@ function PopoverBody({ engine, getOptions, rowId, columnId, labels, composerEl, 
         <ul role="list" aria-label={labels.commentList} className="flex flex-col gap-2">
           {entries.map(({ comment, saving }, index) => {
             const time = formatTime(comment.createdAt, labels.locale);
-            const name = authorName(comment.author, labels);
+            const name = authorLabelName(comment.author, labels.unknownAuthor);
             const editDraft = core.drafts.get(editDraftKey(comment.id));
             const conflict = core.conflicts.get(comment.id);
             const disabled = saving;
@@ -346,10 +345,14 @@ function PopoverBody({ engine, getOptions, rowId, columnId, labels, composerEl, 
               <li key={comment.id} className="flex flex-col gap-1.5">
                 {index > 0 ? <Separator /> : null}
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span aria-hidden="true" className="size-2 shrink-0 rounded-full" style={{ backgroundColor: safeColor(comment.author.color) }} />
-                  <bdi className="font-medium text-foreground">{name}</bdi>
+                  {comment.author ? (
+                    <>
+                      <span aria-hidden="true" className="size-2 shrink-0 rounded-full" style={{ backgroundColor: safeColor(comment.author.color) }} />
+                      <bdi className="font-medium text-foreground">{name}</bdi>
+                    </>
+                  ) : null}
                   <time dateTime={new Date(comment.createdAt).toISOString()}>{time}</time>
-                  {comment.resolved ? <span>{labels.resolved}</span> : null}
+                  {resolveEnabled && comment.resolved ? <span>{labels.resolved}</span> : null}
                   {saving ? <span role="status">{labels.saving}</span> : null}
                 </div>
                 {editDraft ? (
@@ -414,7 +417,7 @@ function PopoverBody({ engine, getOptions, rowId, columnId, labels, composerEl, 
                         </Button>
                       )
                     ) : null}
-                    {writable ? (
+                    {writable && resolveEnabled ? (
                       <Button
                         type="button"
                         size="xs"
@@ -465,7 +468,7 @@ function PopoverBody({ engine, getOptions, rowId, columnId, labels, composerEl, 
             </div>
           </div>
         ) : (
-          <p className="text-muted-foreground">{busy ? labels.rowBusyHint : user === null ? labels.noUserHint : labels.readOnlyHint}</p>
+          <p className="text-muted-foreground">{busy ? labels.rowBusyHint : labels.readOnlyHint}</p>
         )
       ) : null}
     </div>
@@ -500,7 +503,7 @@ function EditBox({
     <div className="flex flex-col gap-1.5">
       <Textarea
         autoFocus
-        aria-label={labels.composer}
+        aria-label={labels.editComposer}
         maxLength={max}
         value={text}
         onChange={(event) => engine.setDraft({ kind: "edit", commentId: comment.id, rowId: comment.rowId, columnId: comment.columnId, text: event.target.value, baseVersion: base.version, baseWriteId: base.writeId })}

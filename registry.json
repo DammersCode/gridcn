@@ -3323,6 +3323,11 @@
                "target": "components/data-grid-comments/create-id.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid-comments/default-gate.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-comments/default-gate.ts"
+            },
+            {
                "path": "registry/default/blocks/data-grid-comments/comment-state.ts",
                "type": "registry:component",
                "target": "components/data-grid-comments/comment-state.ts"
@@ -3376,7 +3381,7 @@
          "name": "data-grid-comments-demo",
          "type": "registry:example",
          "title": "Data Grid Comments Demo",
-         "description": "Cell comments with a simulated second user over an in-memory compare-and-swap server: add, edit, resolve, and delete comments, take the connection offline, and force a stale conflict.",
+         "description": "Cell comments on a client-only grid: no user and no server. Anonymous comments are saved in the browser's local storage.",
          "author": "gridcn",
          "registryDependencies": [
             "DammersCode/gridcn/data-grid",
@@ -3389,6 +3394,34 @@
                "path": "registry/default/examples/data-grid-comments-demo.tsx",
                "type": "registry:example",
                "target": "components/data-grid-comments-demo.tsx"
+            },
+            {
+               "path": "registry/default/examples/demo-data.ts",
+               "type": "registry:example",
+               "target": "components/demo-data.ts"
+            }
+         ],
+         "categories": [
+            "data"
+         ]
+      },
+      {
+         "name": "data-grid-comments-server-demo",
+         "type": "registry:example",
+         "title": "Data Grid Comments Server Demo",
+         "description": "Cell comments with a simulated second user over an in-memory compare-and-swap server: add, edit, resolve, and delete comments, take the connection offline, and force a stale conflict.",
+         "author": "gridcn",
+         "registryDependencies": [
+            "DammersCode/gridcn/data-grid",
+            "DammersCode/gridcn/data-grid-comments",
+            "DammersCode/gridcn/data-grid-context-menu",
+            "button"
+         ],
+         "files": [
+            {
+               "path": "registry/default/examples/data-grid-comments-server-demo.tsx",
+               "type": "registry:example",
+               "target": "components/data-grid-comments-server-demo.tsx"
             },
             {
                "path": "registry/default/examples/data-grid-comments-demo-server.ts",

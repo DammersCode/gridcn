@@ -20,7 +20,10 @@ export function typedComments() {
       const origin: "ack" | "remote" | "fetch" | "id-swap" | "remove" = source;
       void [first, count, origin];
     },
-    canEdit: ({ comment, user, signal }) => comment.author.id === user.id && !signal.aborted,
+    canEdit: ({ comment, user, signal }) => comment.author?.id === user?.id && !signal.aborted,
+    canResolve: ({ action }) => action === "resolve",
+    readOnly: false,
+    enableResolve: true,
     fetchComments: async ({ rowIds }) => rowIds.map((rowId) => ({ id: rowId, rowId, columnId: "name", text: "x", author, createdAt: 0, updatedAt: 0, version: 1, resolved: false })),
   });
 }
@@ -35,3 +38,11 @@ export function controlledComments(comments: readonly CellComment[]) {
 
 // @ts-expect-error the save callback is not a boolean
 useDataGridComments({ onCommentSave: () => true });
+
+export function anonymousComments() {
+  return useDataGridComments({ defaultComments: [{ id: "c1", rowId: "r1", columnId: "name", text: "x", createdAt: 0, updatedAt: 0, version: 1, resolved: false }] });
+}
+
+export function serverStampedComments() {
+  return useDataGridComments({ currentUser: { id: "u1" }, readOnly: true });
+}
