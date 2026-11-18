@@ -359,6 +359,7 @@ const CODE = "throws an internal code that the import dialog maps to a label in 
 
 /** Call sites that print or throw a message without a row. `line` is a fragment of the call line. */
 export const OMITTED = [
+  { file: `${B}/data-grid/cell-types/safe-from-text.ts`, line: "throw new Error(message);", reason: "forwards the message that a cell type passes to rejectText" },
   { file: `${B}/data-grid-comments/comment-engine.ts`, line: "console.warn(`[data-grid-comments] ${message}`)", reason: "the prefix of every comments warning" },
   { file: `${B}/data-grid-comments/comment-engine.ts`, line: "warnOnce(emit.message, emit.message)", reason: FORWARD },
   { file: `${B}/data-grid-comments/comment-fetch.ts`, line: "warn(key: string, message: string): void;", reason: "the type of the warning function that the engine passes in" },

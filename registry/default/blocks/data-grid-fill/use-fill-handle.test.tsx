@@ -87,6 +87,16 @@ describe("buildFillWrites", () => {
     expect(settled.rejected.map((cell) => cell.viewRowIndex)).toEqual([2, 3]);
   });
 
+  it("rejects a faulty cell under validationMode warn instead of writing undefined", () => {
+    const throwingNumber = { ...cellTypes["number"], fromText: () => { throw new Error("boom"); } };
+    const warnColumns = [columns[0]!, { ...columns[1]!, validationMode: "warn" as const }];
+    const s = fakeState({ columns: warnColumns, visibleColumns: warnColumns, cellTypes: { ...cellTypes, number: throwingNumber } });
+    const settled = syncResolution(buildFillWrites(s, { x: 1, y: 0, width: 1, height: 2 }, { x: 1, y: 2, width: 1, height: 2 }).resolution);
+    expect(settled.writes).toEqual([]);
+    expect(settled.warnings).toEqual([]);
+    expect(settled.rejected).toHaveLength(2);
+  });
+
   it("extends a detected arithmetic series downward", () => {
     const s = fakeState();
     const source: GridRect = { x: 1, y: 0, width: 1, height: 2 }; // qty column, "2","4"

@@ -392,3 +392,5 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - Fix: the default labels format the counts of the page range, the import preview, the print note, the replace status, and the row reorder announcements with the grid `locale`. English text shows a thousands separator, such as `Showing 50 of 1,000 rows`.
 - Fix: the option counts of the filter value list use the grid `locale`, and the columns menu hint sits on the inline end in a right-to-left grid.
 - Fix: the Replace all status joins its two sentences through `labels.findReplace.replacedAndMore`.
+- Fix: under `validationMode: "warn"`, pasted, filled, or imported text that the cell type cannot parse keeps the cell value and is listed in `onValidationError`, instead of writing `undefined`.
+- `rejectText(message)` shows its message in `onValidationError`, the cell tooltip, and the import `rejected` list. Without a message the grid shows "The text could not be parsed".
