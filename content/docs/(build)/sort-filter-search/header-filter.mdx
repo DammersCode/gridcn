@@ -71,6 +71,7 @@ The button shows on each column that offers `isAnyOf` or `isNoneOf` and is not `
 - "Select all" comes before the search input in the Tab order, and <kbd>Space</kbd> toggles it.
 - The status line reads "N of M selected" for the values the search shows. Set the text with `labels.toolbar.headerFilterSelectedCount`.
 - The counts include only the rows that pass every other top-level filter. The column's own top-level set filter never hides its own values. A set filter of the column inside a group counts like any other filter.
+- Under `filterJoin="or"`, the list shows every value of the column, because each filter entry can only add rows. `fetchFilterValues` receives an empty `filters` list.
 - Clear removes every filter of the column at every level, and removes the groups this leaves empty. <kbd>Escape</kbd> or a press outside the popover discards the selection.
 - The list reads at most 100,000 distinct values. Past that limit it shows the first values and a message.
 

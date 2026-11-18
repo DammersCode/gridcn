@@ -179,3 +179,14 @@ describe("distinctColumnValues with a custom list row", () => {
     expect(distinctColumnValues(state, "city", false).values.map((v) => v.key)).toEqual(["a"]);
   });
 });
+
+describe("distinctColumnValues under a root or join", () => {
+  const data: Row[] = [{ city: "Berlin", age: 10 }, { city: "Bonn", age: 99 }, { city: "Koeln", age: 5 }];
+  const ageEntry: FilterNode = { columnId: "age", operator: "gt", value: "50" };
+
+  it("lists every value, because an or entry can only add rows", () => {
+    const keys = (join: "and" | "or") => distinctColumnValues({ ...input(data, [ageEntry]), filterJoin: join }, "city").values.map((v) => v.key);
+    expect(keys("and")).toEqual(["bonn"]);
+    expect(keys("or")).toEqual(["berlin", "bonn", "koeln"]);
+  });
+});
