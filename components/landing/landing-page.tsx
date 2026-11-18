@@ -243,7 +243,7 @@ export function FooterLinks() {
     { label: "GitHub", href: repo },
   ];
   return (
-    <footer className="relative z-10 flex w-full max-w-5xl justify-center px-4 pb-12 sm:px-6">
+    <footer className="relative z-10 mx-auto flex w-full max-w-5xl justify-center px-4 pb-12 sm:px-6">
       <nav aria-label="Site links" className="flex w-full flex-wrap justify-center gap-x-4 rounded-lg border bg-card px-4 text-sm">
         {links.map((l) => (
           <SiteLink key={l.label} href={l.href} className={`inline-flex min-h-10 items-center underline underline-offset-4 ${focus}`}>
