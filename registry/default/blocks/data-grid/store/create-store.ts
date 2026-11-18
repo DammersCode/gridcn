@@ -945,6 +945,13 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
         dataWrite.frame.cancel();
         dataWrite.abortConflicts?.();
         gates.abort();
+        clearTimeout(flashSweepTimer);
+        flashSweepTimer = undefined;
+        flashSweepDue = Infinity;
+        if (flashReplayFrame !== undefined) cancelAnimationFrame(flashReplayFrame);
+        flashReplayFrame = undefined;
+        flashReplayKeys.clear();
+        flashExpiry.clear();
       },
       _gates: () => gates,
       _releasePluginClaims() {

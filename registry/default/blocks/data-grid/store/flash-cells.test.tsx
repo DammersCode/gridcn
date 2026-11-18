@@ -294,4 +294,23 @@ describe("flashCells (transient write-pulse)", () => {
     unmount();
     vi.useRealTimers();
   });
+
+  it("an unmounted grid keeps no flash timer or replay frame alive", () => {
+    vi.useFakeTimers();
+    const { result, unmount } = renderHook(() => useHarness(), { wrapper: makeWrapper() });
+    const api = result.current.api;
+    act(() => {
+      result.current.actions.flashCells([{ rowId: "1", columnId: "name" }]);
+      result.current.actions.flashCells([{ rowId: "1", columnId: "name" }]);
+    });
+    unmount();
+    const writes = vi.fn();
+    api.subscribe(writes);
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+    expect(writes).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
+  });
 });

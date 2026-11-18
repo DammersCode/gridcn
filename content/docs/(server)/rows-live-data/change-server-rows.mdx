@@ -98,7 +98,7 @@ Select all in a scroll-mode grid checks the holes too. To delete rows that you k
 
 To delete every row of a filtered server result, call your own endpoint and run `server.refresh()`.
 
-After a row operation in a scroll-mode source with a row count, the hook refreshes the rendered rows on the next frame. The refresh keeps a row with a pending save or an open edit. A row with a pending delete stays gone. When the last insert or delete save settles, the hook refreshes the rendered rows again.
+After a row operation in a scroll-mode source with a row count, the hook refreshes the rendered rows on the next frame. The refresh keeps a row with a pending save or an open edit. A pending insert stays hidden while the answer holds a row in its slot. A pending delete stays gone. The hook refreshes again when the last insert or delete save settles.
 
 ## Refresh after the save [#refresh-after-the-save]
 
