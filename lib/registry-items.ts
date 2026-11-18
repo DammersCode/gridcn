@@ -104,6 +104,7 @@ export type RegistryItemName =
   | "data-grid-sorting-filtering-demo"
   | "data-grid-status-bar-demo"
   | "data-grid-streaming-demo"
+  | "data-grid-stream-rate-demo"
   | "data-grid-styling-patterns-demo"
   | "data-grid-touch-demo"
   | "data-grid-url-state-demo"

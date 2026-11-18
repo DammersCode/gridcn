@@ -11,6 +11,7 @@ import type { ComponentType } from "react";
 const EXAMPLES = {
   "data-grid-minimal-demo": dynamic(() => import("@/registry/default/examples/data-grid-minimal-demo")),
   "data-grid-streaming-demo": dynamic(() => import("@/registry/default/examples/data-grid-streaming-demo")),
+  "data-grid-stream-rate-demo": dynamic(() => import("@/registry/default/examples/data-grid-stream-rate-demo")),
   "data-grid-demo": dynamic(() => import("@/registry/default/examples/data-grid-demo")),
   "data-grid-cell-types-demo": dynamic(() => import("@/registry/default/examples/data-grid-cell-types-demo")),
   "data-grid-date-picker-demo": dynamic(() => import("@/registry/default/examples/data-grid-date-picker-demo")),
