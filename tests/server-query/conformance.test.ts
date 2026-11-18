@@ -166,7 +166,7 @@ describe.each([
       ],
     };
     const { rows, rejected } = parseImportRows(body, { columns: fixtureColumns(engine) });
-    expect(rejected).toEqual([{ rowIndex: 2, columnId: "qty", message: "Not a number" }]);
+    expect(rejected).toEqual([{ rowIndex: 2, columnId: "qty", code: "not-a-number", message: "Not a number" }]);
     expect(rows).toHaveLength(2);
     await harness.insert(rows.map((row) => ({ ...row, tenantId: 1 })));
     try {

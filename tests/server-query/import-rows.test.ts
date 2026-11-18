@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { defineColumnMap, parseImportRows, QueryError } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
+import { defineColumnMap, IMPORT_REFUSAL_MESSAGES, parseImportRows, QueryError } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
 
 const columns = defineColumnMap({
   id: { type: "number", numeric: "int8", primaryKey: true },
@@ -78,7 +78,7 @@ describe("parseImportRows values", () => {
   it("keeps a row with a refused cell out of rows and names the cell", () => {
     const answer = parse([{ name: "ok" }, { name: "x", qty: "abc" }, { name: "ok2" }]);
     expect(answer.rows).toEqual([{ name: "ok" }, { name: "ok2" }]);
-    expect(answer.rejected).toEqual([{ rowIndex: 1, columnId: "qty", message: "Not a number" }]);
+    expect(answer.rejected).toEqual([{ rowIndex: 1, columnId: "qty", code: "not-a-number", message: "Not a number" }]);
   });
 
   it.each([
@@ -105,13 +105,21 @@ describe("parseImportRows values", () => {
   });
 
   it("refuses a required column that is blank or missing, but not a missing primary key", () => {
-    expect(refusal([{ name: "" }])).toEqual([{ rowIndex: 0, columnId: "name", message: "Required" }]);
-    expect(refusal([{ qty: 1 }])).toEqual([{ rowIndex: 0, columnId: "name", message: "Required" }]);
+    expect(refusal([{ name: "" }])).toEqual([{ rowIndex: 0, columnId: "name", code: "required", message: "Required" }]);
+    expect(refusal([{ qty: 1 }])).toEqual([{ rowIndex: 0, columnId: "name", code: "required", message: "Required" }]);
     expect(refusal([{ name: "a" }])).toEqual([]);
   });
 
   it("answers in the shape checkImport reads", () => {
     const { rejected } = parse([{ name: "a", qty: "x" }]);
-    expect(JSON.parse(JSON.stringify({ rejected }))).toEqual({ rejected: [{ rowIndex: 0, columnId: "qty", message: "Not a number" }] });
+    expect(JSON.parse(JSON.stringify({ rejected }))).toEqual({ rejected: [{ rowIndex: 0, columnId: "qty", code: "not-a-number", message: "Not a number" }] });
+  });
+});
+
+describe("refusal codes", () => {
+  it("keys the English message by the code", () => {
+    const { rejected } = parse([{ name: "a", qty: "x" }, { name: "" }]);
+    expect(rejected.map((refusal) => refusal.code)).toEqual(["not-a-number", "required"]);
+    for (const refusal of rejected) expect(refusal.message).toBe(IMPORT_REFUSAL_MESSAGES[refusal.code!]);
   });
 });

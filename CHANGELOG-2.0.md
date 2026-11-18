@@ -185,6 +185,7 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 
 ## Import and export
 
+- Each refusal of `parseImportRows` carries a `code` (`ImportRefusalCode`) next to the English `message`. `IMPORT_REFUSAL_MESSAGES` lists the codes, so a route maps them to its own language.
 - `Dropzone` has an `accessibleDescription` prop that replaces the screen reader text, and `DataGridImportDialog` sets it from the new `labels.io.dropzoneDescription(types, maxSize)`, which takes the accepted extensions as a list and the size limit as text. The text was fixed English.
 - The import dialog delimiter menu offers pipe (`|`), and `CsvDelimiter` includes `"|"`. The `labels.io` object has a `delimiterPipe` label. Detection guesses only comma, semicolon, tab, and pipe.
 - A paged grid exports and totals every page by default; `scope: "page"` on `exportGrid`, `printGrid`, and `useDataGridAggregate` limits them to the shown page, and `actions.setPageSize(null)` turns paging off for an uncontrolled page size. A filter set through props reports `onPageChange(1)`.

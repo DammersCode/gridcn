@@ -75,7 +75,7 @@ A value that cannot parse never fails the request. A positive test matches no ro
 
 - A request over `maxImportRows` rows throws a `QueryError`. So does a row that is not an object, a key that is not a mapped column, or a `serverOnly` key.
 - A value over `maxValueLength`, or a number text over `maxNumberLength`, throws `limit-exceeded`.
-- A value that does not fit its column kind is a refusal. A missing value in a `required` column is one too. The row stays out of `rows`, and `rejected` names it as `{ rowIndex, columnId, message }`.
+- A value that does not fit its column kind is a refusal. A missing value in a `required` column is one too. The row stays out of `rows`, and `rejected` names it as `{ rowIndex, columnId, code, message }`. `message` is English. `code` is a stable reason (`"not-a-number"`, `"required"`, `"out-of-range"`, and so on, the keys of `IMPORT_REFUSAL_MESSAGES`), so a route can answer in the language of its users: `message: myMessages[refusal.code ?? "required"]`.
 - `rows` holds the parsed values. A number stays a number, or becomes canonical text when it came as text. A date is `YYYY-MM-DD`, an instant is ISO text, and a blank value is `null`.
 
 An import check route answers `{ rejected }`. The save route inserts `rows`. Pass `maxBodyBytes` to `handleGridRequest` for an import route. The default is 512 KiB.

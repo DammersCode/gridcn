@@ -3,8 +3,25 @@ import { QueryError } from "./errors";
 import { resolveLimits, type QueryLimits } from "./limits";
 import { decimalToString, INT_RANGE, isIntType, parseBoolean, parseDate, parseDecimal, parseInstant, parseUuid } from "./operands";
 
-/** One refusal of {@link parseImportRows}; `rowIndex` is the 0-based index into the request's `rows`. */
-export type ImportRowRefusal = { rowIndex: number; columnId?: string; message?: string };
+/** The English text of each refusal code; map the `code` of a refusal to your own language. */
+export const IMPORT_REFUSAL_MESSAGES = {
+  "not-a-number": "Not a number",
+  "not-a-whole-number": "Not a whole number",
+  "out-of-range": "Out of range",
+  "too-many-decimals": "Too many decimal places",
+  "not-text": "Not text",
+  "too-long": "Too long",
+  "not-an-id": "Not a valid id",
+  "not-a-choice": "Not an allowed choice",
+  "not-a-date": "Not a date",
+  "not-a-boolean": "Not true or false",
+  required: "Required",
+} as const;
+
+export type ImportRefusalCode = keyof typeof IMPORT_REFUSAL_MESSAGES;
+
+/** One refusal of {@link parseImportRows}; `rowIndex` is the 0-based index into the request's `rows`, `code` names the reason. */
+export type ImportRowRefusal = { rowIndex: number; columnId?: string; code?: ImportRefusalCode; message?: string };
 
 /** Options for {@link parseImportRows}. */
 export type ParseImportRowsOptions = {
@@ -19,67 +36,67 @@ export type ParsedImportRows = { rows: Record<string, unknown>[]; rejected: Impo
 
 type Raw = Record<string, unknown>;
 type Limits = ReturnType<typeof resolveLimits>;
-type Cell = { ok: true; value: unknown } | { ok: false; message: string };
+type Cell = { ok: true; value: unknown } | { ok: false; code: ImportRefusalCode; message: string };
 
 const isRecord = (value: unknown): value is Raw => typeof value === "object" && value !== null && !Array.isArray(value);
 const ok = (value: unknown): Cell => ({ ok: true, value });
-const refuse = (message: string): Cell => ({ ok: false, message });
+const refuse = (code: ImportRefusalCode): Cell => ({ ok: false, code, message: IMPORT_REFUSAL_MESSAGES[code] });
 const isBlank = (value: unknown): boolean => value === null || value === undefined;
 
 function numberCell(column: PlanColumn, value: unknown, limits: Limits, path: (string | number)[]): Cell {
-  if (typeof value === "number" && !Number.isFinite(value)) return refuse("Not a number");
+  if (typeof value === "number" && !Number.isFinite(value)) return refuse("not-a-number");
   const text = typeof value === "number" ? String(value) : value;
-  if (typeof text !== "string") return refuse("Not a number");
+  if (typeof text !== "string") return refuse("not-a-number");
   if (text.length > limits.maxNumberLength) throw new QueryError("limit-exceeded", path);
   const decimal = parseDecimal(text.trim());
-  if (!decimal) return refuse("Not a number");
+  if (!decimal) return refuse("not-a-number");
   const canonical = decimalToString(decimal);
   if (isIntType(column.numeric)) {
-    if (canonical.includes(".")) return refuse("Not a whole number");
+    if (canonical.includes(".")) return refuse("not-a-whole-number");
     const whole = BigInt(canonical);
     const [low, high] = INT_RANGE[column.numeric];
-    if (whole < low || whole > high) return refuse("Out of range");
+    if (whole < low || whole > high) return refuse("out-of-range");
     return ok(typeof value === "number" && Number.isSafeInteger(value) ? value : canonical);
   }
   if (column.numeric === "decimal") {
-    if (column.scale !== undefined && (canonical.split(".")[1]?.length ?? 0) > column.scale) return refuse("Too many decimal places");
+    if (column.scale !== undefined && (canonical.split(".")[1]?.length ?? 0) > column.scale) return refuse("too-many-decimals");
     return ok(canonical);
   }
   const float = Number(canonical);
-  return Number.isFinite(float) ? ok(float) : refuse("Out of range");
+  return Number.isFinite(float) ? ok(float) : refuse("out-of-range");
 }
 
 function textCell(column: PlanColumn, value: unknown, limits: Limits, path: (string | number)[]): Cell {
-  if (typeof value !== "string") return refuse("Not text");
+  if (typeof value !== "string") return refuse("not-text");
   if (value.length > limits.maxValueLength) throw new QueryError("limit-exceeded", path);
-  if (column.maxLength !== undefined && value.length > column.maxLength) return refuse("Too long");
+  if (column.maxLength !== undefined && value.length > column.maxLength) return refuse("too-long");
   if (column.native === "uuid") {
     const uuid = parseUuid(value);
-    return uuid === null ? refuse("Not a valid id") : ok(uuid);
+    return uuid === null ? refuse("not-an-id") : ok(uuid);
   }
   if (column.native === "enum" || (column.kind === "select" && column.choices)) {
     const choice = column.choices?.find((candidate) => candidate === value) ?? (column.native === "enum" ? column.choices?.find((candidate) => candidate.toLowerCase() === value.toLowerCase()) : undefined);
-    return choice === undefined ? refuse("Not an allowed choice") : ok(choice);
+    return choice === undefined ? refuse("not-a-choice") : ok(choice);
   }
   return ok(value);
 }
 
 function dateCell(column: PlanColumn, value: unknown, limits: Limits, path: (string | number)[]): Cell {
-  if (typeof value !== "string") return refuse("Not a date");
+  if (typeof value !== "string") return refuse("not-a-date");
   if (value.length > limits.maxValueLength) throw new QueryError("limit-exceeded", path);
   const parsed = column.time ? parseInstant(value) : parseDate(value);
-  return parsed === null ? refuse("Not a date") : ok(parsed);
+  return parsed === null ? refuse("not-a-date") : ok(parsed);
 }
 
 function checkboxCell(value: unknown): Cell {
   if (typeof value === "boolean") return ok(value);
   const parsed = typeof value === "string" ? parseBoolean(value) : null;
-  return parsed === null ? refuse("Not true or false") : ok(parsed);
+  return parsed === null ? refuse("not-a-boolean") : ok(parsed);
 }
 
 function readCell(column: PlanColumn, value: unknown, limits: Limits, path: (string | number)[]): Cell {
   const blank = isBlank(value) || (typeof value === "string" && value === "" && column.kind !== "checkbox" && !column.keepBlankText);
-  if (blank) return column.required ? refuse("Required") : ok(null);
+  if (blank) return column.required ? refuse("required") : ok(null);
   switch (column.kind) {
     case "number":
       return numberCell(column, value, limits, path);
@@ -118,13 +135,13 @@ export function parseImportRows(input: unknown, options: ParseImportRowsOptions)
       if (cell.ok) parsed[key] = cell.value;
       else {
         refused = true;
-        rejected.push({ rowIndex, columnId: key, message: cell.message });
+        rejected.push({ rowIndex, columnId: key, code: cell.code, message: cell.message });
       }
     }
     for (const column of byId.values()) {
       if (!column.required || column.serverOnly || column.primaryKey || Object.hasOwn(row, column.id)) continue;
       refused = true;
-      rejected.push({ rowIndex, columnId: column.id, message: "Required" });
+      rejected.push({ rowIndex, columnId: column.id, code: "required", message: IMPORT_REFUSAL_MESSAGES.required });
     }
     if (!refused) rows.push(parsed);
   }

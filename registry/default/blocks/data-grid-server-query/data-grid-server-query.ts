@@ -3,7 +3,7 @@ export { describeFilterOperators, type ColumnMapDescriptor, type ColumnDescripto
 export { withColumnMap } from "./with-column-map";
 export { handleGridRequest, type HandleGridRequestOptions } from "./handle-grid-request";
 export { QueryError, type QueryErrorCode } from "./errors";
-export { parseImportRows, type ParseImportRowsOptions, type ParsedImportRows, type ImportRowRefusal } from "./parse-import-rows";
+export { parseImportRows, type ParseImportRowsOptions, type ParsedImportRows, type ImportRowRefusal, type ImportRefusalCode, IMPORT_REFUSAL_MESSAGES } from "./parse-import-rows";
 export type { QueryLimits } from "./limits";
 export type { RowCountMode } from "./parse-query";
 export type { GridQuery, QueryCallOptions, RowsAnswer, ValuesAnswer, AggregatesAnswer, GroupsAnswer, AdapterCapabilities } from "./create-grid-query";

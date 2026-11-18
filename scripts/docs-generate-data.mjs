@@ -94,7 +94,7 @@ export const FEATURES = {
   "row-check": F(["/docs/selection-shortcuts/checked-rows"], ["/docs/components-props/data-grid-props"]),
   "row-ids": F(["/docs/learning-path/define-columns"], ["/docs/components-props/data-grid-props#rows-and-ids"]),
   counts: F(["/docs/server-pagination/load-rows-page"], ["/docs/contracts/server-rows-contract"]),
-  grouping: F(["/docs/data-modes/data-mode-support#row-grouping", "Data mode support"], ["/docs/data-modes/data-mode-support"]),
+  grouping: F(["/docs/data-modes/data-mode-support#parity-grouping", "Data mode support"], ["/docs/data-modes/data-mode-support"]),
   "pinned-rows": F(["/docs/rows-pages-menus/pinned-rows"], ["/docs/add-options/rows-pages-menus/pinned-rows-options"], "data-grid-pinned-rows"),
   "server-aggregate": F(["/docs/data-modes/show-server-totals"], ["/docs/add-options/rows-pages-menus/pinned-rows-options"], "data-grid-pinned-rows"),
   columns: F(["/docs/columns/column-order-pinning"], ["/docs/components-props/column-def"]),
