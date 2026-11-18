@@ -16,7 +16,7 @@ const installFit = "min-w-0 rounded-xl bg-background [&_pre]:whitespace-pre-wrap
 
 function Panel({ id, title, intro, children, plain }: { id: string; title: string; intro?: ReactNode; children: ReactNode; plain?: boolean }) {
   return (
-    <section aria-labelledby={id} className={`flex min-w-0 flex-col gap-3 ${plain ? "" : "rounded-lg border bg-card p-4"}`}>
+    <section aria-labelledby={id} className={`flex min-w-0 flex-col gap-3 ${plain ? "rounded-lg bg-background p-4" : "rounded-lg border bg-card p-4"}`}>
       <div>
         <h2 id={id} className="text-xl font-semibold tracking-tight sm:text-2xl">
           {title}
