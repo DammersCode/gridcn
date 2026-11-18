@@ -78,3 +78,162 @@ Portaled editor content, such as a popover, keeps the edit and the cell range on
 `fromText` parses typed, pasted, and imported text. Call `rejectText(message?)` for text that `fromText` cannot parse. The cell keeps its value, and the grid reports the text, as the built-in types do. Return `clearValue()` only to empty the cell on purpose. If `fromText` throws another error, the grid rejects that cell and a development build warns. Paste and fill leave it unchanged and report it through `onValidationError`. Import lists it in `rejected`, and replace skips it.
 
 The optional `message` of `rejectText` is the text that `onValidationError` and the cell tooltip show. Without a message, the grid shows its own English text. A column with `validationMode: "warn"` rejects that text too.
+
+`toText` must round-trip through `fromText` for every value the type can hold.
+
+`clearValue` is the value that Delete writes into a cleared cell.
+
+`isEmpty` decides how Select All and the Ctrl or Cmd plus Arrow jump read a blank cell. For a type or column with a comparator, it also decides which values sort last. It also sets the status bar `count`. It also sets which text the Replace skip treats as unparseable.
+
+The built-in types differ: `""` is empty for `text`. For `number` and `checkbox`, only `null` and `undefined` are empty, so `0` and `false` are values. With a comparator, empty values sort last in both directions, and `compare` never receives one. A fill writes no series to a column or row when `fromText` returns an empty value for a generated text that is not blank.
+
+### validate [#validate]
+
+`validate` takes a function `(value, row, options) => string | null` or a Standard Schema. `options` holds the `options` of the column, so the `longText` type reads `maxLength` from it. A function `validate` of the type runs first, then the `validate` of the column. A Standard Schema `validate` of the type applies only to a column without its own `validate`. Every validation path does this: a cell commit, a paste, a fill, `updateCells`, `updateRows`, find and replace, an import, Delete, and Cut.
+
+### activate [#activate]
+
+A type with `activate` has no editor session. Enter, F2, Space, a stationary click, and a double-click commit `activate(value, options)` directly. `onBeforeEditStart` runs first, and a `false` result or a pending promise holds the commit. `onEditEnd` never fires. The `checkbox` type declares `(value) => !value`.
+
+### href [#href]
+
+`href` returns a link target. The grid passes every result through `safeHref`, so only `http`, `https`, and `mailto` links survive. The `openLink` action (Alt+Enter), Ctrl or Cmd click, and middle click open the link.
+
+### filter [#filter]
+
+`filter` holds five optional members. Each falls back to the default for the type name.
+
+- `operators` replaces the operator list of the filter menu.
+- `match(value, filter)` is a predicate over the raw value. It replaces the text matcher.
+- `compare(text, bound)` orders cell text against a filter bound for `gt`, `gte`, `lt`, `lte`, and `isBetween`. A `NaN` result or a throw falls back to the default order.
+- `valueInput` picks the value widget: `"text"`, `"number"`, `"date"`, `"boolean"`, `"choices"`, or a component. A component receives `FilterValueInputProps`: `column`, `operator`, `value`, and `onValueChange`. It renders for every operator that takes a value. `value` is a string, a `[from, to]` pair for `isBetween`, or a `string[]` for `isAnyOf` and `isNoneOf`.
+- `matchCase` (default `false`) makes the built-in text and set operators respect letter case.
+
+A custom type offers no set operators by default. List `isAnyOf` and `isNoneOf` in `filter.operators` to add them. Your `match` then receives them.
+
+## Example [#example]
+
+This type stores a plain `number | null` and shows a currency format. The last lines register it under the key `currency` and use it in a column:
+
+```tsx
+import {
+  CellSpan,
+  DataGrid,
+  rejectText,
+  useCellEditor,
+  type CellEditorProps,
+  type CellRenderProps,
+  type CellType,
+  type ColumnDefOf,
+} from "@/components/data-grid/data-grid";
+import { Input } from "@/components/ui/input";
+
+const money = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+});
+
+const show = (value: number | null) =>
+  value == null ? "" : money.format(value);
+
+function parseAmount(text: string): number | null {
+  const digits = text.replace(/[^0-9.-]/g, "");
+  if (digits === "") return null;
+  const amount = Number(digits);
+  return Number.isNaN(amount) ? rejectText() : amount;
+}
+
+function CurrencyCell({ value }: CellRenderProps<unknown, number | null>) {
+  return <CellSpan text={show(value)} />;
+}
+
+function CurrencyEditor(props: CellEditorProps<unknown, number | null>) {
+  const bindings = useCellEditor(props, {
+    toDraft: (value) => (value == null ? "" : String(value)),
+    toValue: parseAmount,
+  });
+  return <Input {...bindings} className="h-full border-0 p-0 shadow-none" />;
+}
+
+export const currencyCellType: CellType<unknown, number | null> = {
+  Cell: CurrencyCell,
+  Editor: CurrencyEditor,
+  toText: (value) => (value == null ? "" : String(value)),
+  toDisplayText: show,
+  fromText: parseAmount,
+  clearValue: () => null,
+  isEmpty: (value) => value == null,
+  compare: (a, b) => (a ?? 0) - (b ?? 0),
+  align: "end",
+  numeric: true,
+};
+
+type Order = { id: string; total: number | null };
+
+const cellTypes = { currency: currencyCellType };
+const columns: ColumnDefOf<Order>[] = [
+  { id: "total", header: "Total", accessorKey: "total", type: "currency" },
+];
+
+export function Orders({ rows }: { rows: Order[] }) {
+  return (
+    <DataGrid defaultData={rows} columns={columns} cellTypes={cellTypes} />
+  );
+}
+```
+
+## useCellEditor [#usecelleditorprops-codec]
+
+`useCellEditor(props, codec)` builds a text-input editor. It owns the draft state, the end-caret focus, and a one-shot commit guard. It binds Enter, Escape, and blur. Enter commits and moves down. Escape cancels. A blur commits in place. It skips keys during IME composition.
+
+The `codec` is a `CellEditorCodec`. It holds `toDraft(value)` and an optional `toValue(draft)`. Without `toValue`, the hook parses the draft with the `fromText` of the column's cell type. If the parser throws, for example through `rejectText()`, the editor stays open with the draft unchanged, and the next commit runs again. The hook returns `ref`, `value`, `onChange`, `onKeyDown`, `onBlur`, `readOnly`, `aria-label`, `aria-busy`, and `dir`. Spread the result onto an input.
+
+For an editor that is not a text input, import `useCommitGuard` and `useSeedFocus` from the same entry point. `tryCommit()` returns `true` once. `reset()` re-arms it.
+
+## Register a type [#register-a-type]
+
+The `cellTypes` prop of `DataGrid` and `DataGridProvider` merges over the built-in types `text`, `number`, `checkbox`, `select`, `date`, `url`, and `longText`. A key that you leave out keeps its built-in type. A key that names a built-in replaces it. A key set to `null` removes the type. Define each type once, outside the component. 
+
+The grid also exports each built-in type, such as `textCellType` and `numberCellType`, to wrap or extend. `AnyCellType` types a registry entry.
+
+`useDataGridCellTypes()` returns the resolved registry: the built-in types merged with your `cellTypes`.
+
+A column whose `type` resolves to nothing renders as `text`. The grid drops its edits, pastes, and deletes. Development mode warns once per column.
+
+### GridCellTypes [#gridcelltypes]
+
+`GridCellTypes` maps each type key to its value type and options type. Augment it for every custom key that a `defineColumns` column names. `CellTypeKey`, `CellValueOf<K>`, and `CellOptionsOf<K>` read the map. This sample adds a `currency` key:
+
+```ts
+export {};
+
+declare module "@/components/data-grid/types" {
+  interface GridCellTypes {
+    currency: {
+      value: number | null;
+      options: { currency: string; locale?: string };
+    };
+  }
+}
+```
+
+Set the module path to where `components.json` installs `types.ts`.
+
+### defineCellType [#definecelltypekey-type]
+
+`defineCellType(key, type)` returns the type unchanged and ties it to the `GridCellTypes` key. This sample defines the type of the example above:
+
+```ts fragment="imports the type from the example above"
+import { defineCellType } from "@/components/data-grid/data-grid";
+import { currencyCellType } from "./currency-cell-type";
+
+export const currency = defineCellType("currency", currencyCellType);
+```
+
+## Related
+
+- [Cell type model](/docs/concepts/cell-type-model)
+- [Built-in cell types](/docs/editing-cells/built-cell-types)
+- [Plan a cell type](/docs/custom-code-path/plan-cell-type)
+- [Custom cell type example](/docs/basic-examples/custom-cell-type-example)
+- [Validation](/docs/editing-cells/validation)
