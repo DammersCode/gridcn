@@ -9,7 +9,7 @@
          "title": "Data Grid",
          "description": "An editable data grid: range selection, spreadsheet clipboard, editing engine, validation, sorting, filtering, pinning, streaming updates. Real DOM cells, shadcn styling.",
          "author": "gridcn",
-         "docs": "Docs & quick start: https://gridcn.vercel.app/docs/learning-path/render-your-first-grid",
+         "docs": "Docs & quick start: https://gridcn.vercel.app/docs/learning-path/render-your-first-grid Optional: wrap your app in TooltipProvider (components/ui/tooltip) so grid tooltips open at once. See https://gridcn.vercel.app/docs/terms-help/fix-install-problems#tooltips",
          "cssVars": {
             "light": {
                "grid-pin-shadow": "oklch(0 0 0 / 10%)",
@@ -1338,6 +1338,7 @@
          "title": "Data Grid Toolbar",
          "description": "Toolbar add-on for the gridcn data grid: quick-search with match navigation, a per-column filter menu (aligned rows, join column, drag-to-reorder via @dnd-kit/react), a header set filter (searchable distinct-values list with counts), and a column visibility/pin menu.",
          "author": "gridcn",
+         "docs": "Optional: wrap your app in TooltipProvider (components/ui/tooltip) so grid tooltips open at once. See https://gridcn.vercel.app/docs/terms-help/fix-install-problems#tooltips",
          "dependencies": [
             "@dnd-kit/dom@~0.5.0",
             "@dnd-kit/react@~0.5.0",
@@ -1434,6 +1435,7 @@
          "title": "Data Grid Context Menu",
          "description": "Right-click context menus for the gridcn data grid: cut/copy/paste/clear/row operations on cells, sort/pin/hide/autosize on headers.",
          "author": "gridcn",
+         "docs": "Optional: wrap your app in TooltipProvider (components/ui/tooltip) so grid tooltips open at once. See https://gridcn.vercel.app/docs/terms-help/fix-install-problems#tooltips",
          "dependencies": [
             "lucide-react@^1.46.0",
             "@base-ui/react@^1.8.0",

@@ -1274,7 +1274,7 @@
       "search-highlight": "oklch(82.8% 0.189 84.429)"
     }
   },
-  "docs": "Docs & quick start: https://gridcn.vercel.app/docs/learning-path/render-your-first-grid",
+  "docs": "Docs & quick start: https://gridcn.vercel.app/docs/learning-path/render-your-first-grid Optional: wrap your app in TooltipProvider (components/ui/tooltip) so grid tooltips open at once. See https://gridcn.vercel.app/docs/terms-help/fix-install-problems#tooltips",
   "categories": [
     "data"
   ],

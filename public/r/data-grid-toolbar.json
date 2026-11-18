@@ -103,6 +103,7 @@
       "target": "components/data-grid-toolbar/server-filter-values.ts"
     }
   ],
+  "docs": "Optional: wrap your app in TooltipProvider (components/ui/tooltip) so grid tooltips open at once. See https://gridcn.vercel.app/docs/terms-help/fix-install-problems#tooltips",
   "categories": [
     "data"
   ],
