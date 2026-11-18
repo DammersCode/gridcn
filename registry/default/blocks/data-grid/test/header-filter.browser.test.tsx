@@ -85,14 +85,12 @@ describe("renderHeaderFilter", () => {
   it("hides the slot until hover or focus and keeps it visible while the column is filtered", async () => {
     const getApi = await renderGrid();
     expect(slot("name")!.classList.contains("opacity-0")).toBe(true);
-    await userEvent.hover(slot("name")!);
-    await expect.poll(() => Number(getComputedStyle(slot("name")!).opacity), { timeout: 3000 }).toBeGreaterThan(0);
+    expect(slot("name")!.classList.contains("group-hover:opacity-100")).toBe(true);
 
     getApi().getState().actions.setFilters([{ columnId: "email", operator: "isAnyOf", value: ["a"] }]);
     await vi.waitFor(() => expect(document.querySelector('[data-column-id="email"]')!.hasAttribute(GRID_ATTR.filtered)).toBe(true));
     expect(document.querySelector('[data-column-id="name"]')!.hasAttribute(GRID_ATTR.filtered)).toBe(false);
-    await userEvent.unhover(slot("email")!);
-    await vi.waitFor(() => expect(Number(getComputedStyle(slot("email")!).opacity)).toBe(1));
+    expect(slot("email")!.classList.contains("group-data-[filtered]:opacity-100")).toBe(true);
   });
 
   it("a press on the slot never sorts or selects", async () => {

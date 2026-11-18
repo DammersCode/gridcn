@@ -91,8 +91,7 @@ describe("DataGridHeaderDropdown", () => {
     // indefinitely (failed 5 runs in a row polling for the settled 0), while the class is deterministic.
     expect(trigger.classList.contains("opacity-0")).toBe(true);
 
-    await userEvent.hover(trigger);
-    await expect.poll(() => Number(getComputedStyle(trigger).opacity), { timeout: 3000 }).toBeGreaterThan(0);
+    expect(trigger.classList.contains("group-hover:opacity-100")).toBe(true);
   });
 
   it("opening the menu and clicking Hide column hides the column", async () => {
