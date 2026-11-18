@@ -12,7 +12,7 @@ import { DataModesLink, Faq, focus, PerfStats, ServerHighlights, SiteLink } from
 const tile = `flex h-full flex-col gap-1 p-3 transition-colors hover:bg-muted ${focus}`;
 const repo = `https://github.com/${gitConfig.user}/${gitConfig.repo}`;
 
-const installFit = "min-w-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-all max-sm:[&_button]:min-h-10 max-sm:[&_button]:min-w-10";
+const installFit = "min-w-0 rounded-xl bg-background [&_pre]:whitespace-pre-wrap [&_pre]:break-all max-sm:[&_button]:min-h-10 max-sm:[&_button]:min-w-10";
 
 function Panel({ id, title, intro, children, plain }: { id: string; title: string; intro?: ReactNode; children: ReactNode; plain?: boolean }) {
   return (
