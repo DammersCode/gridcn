@@ -392,3 +392,5 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - Fix: the default labels format the counts of the page range, the import preview, the print note, the replace status, and the row reorder announcements with the grid `locale`. English text shows a thousands separator, such as `Showing 50 of 1,000 rows`.
 - Fix: the option counts of the filter value list use the grid `locale`, and the columns menu hint sits on the inline end in a right-to-left grid.
 - Fix: the Replace all status joins its two sentences through `labels.findReplace.replacedAndMore`.
+- Fix: a grouped pages source keeps a page past the old flat page count, and clamps a page past the known group count to the last page without an out-of-range request.
+- Fix: the open groups of a server source lay out at most 10,000,000 view rows, with one development warning at the cap. `prefetchNextPage` warns once in development when `groupBy` is set, because it has no effect there.

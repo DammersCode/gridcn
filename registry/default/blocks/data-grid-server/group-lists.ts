@@ -1,4 +1,5 @@
 import { groupIdOf, groupKeyText, type GroupPathSegment, type ServerGroupSlot } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { MAX_ROW_COUNT } from "./read-answer";
 import type { ServerGroupRow } from "./read-groups-answer";
 
 /** The children of one group: its groups of the next level, or its rows. The top level has the id `""`. */
@@ -104,17 +105,23 @@ export function evictBlock<TData>(store: GroupStore<TData>, list: GroupList<TDat
   for (let offset = start; offset < end; offset++) list.entries[offset] = undefined;
 }
 
-/** Lays the open lists out as view rows. A child list that is not loaded yet shows as unloaded rows, sized by the `childCount` of its group. `topWindow` cuts the top level to one page of groups. */
-export function layoutView<TData>(store: GroupStore<TData>, isOpen: (groupId: string) => boolean, statusOf: (groupId: string) => "loading" | "failed" | undefined, topWindow?: { start: number; end: number }): GroupView<TData> {
+/** Lays the open lists out as view rows. A child list that is not loaded yet shows as unloaded rows, sized by the `childCount` of its group. `topWindow` cuts the top level to one page of groups. The walk stops at `cap` view rows (default `MAX_ROW_COUNT`) and calls `onCapped` once. */
+export function layoutView<TData>(store: GroupStore<TData>, isOpen: (groupId: string) => boolean, statusOf: (groupId: string) => "loading" | "failed" | undefined, topWindow?: { start: number; end: number }, { cap = MAX_ROW_COUNT, onCapped }: { cap?: number; onCapped?: () => void } = {}): GroupView<TData> {
   const view: GroupView<TData> = { data: [], slots: [], owners: [], offsets: [], leafCount: store.leafCount ?? 0, holes: 0 };
   const top = store.lists.get("");
+  let capped = false;
   if (top?.count) walk(top);
+  if (capped) onCapped?.();
   return view;
 
   function walk(list: GroupList<TData>) {
     const count = list.count ?? 0;
     const window = list.id === "" ? topWindow : undefined;
     for (let offset = window?.start ?? 0; offset < (window ? Math.min(count, window.end) : count); offset++) {
+      if (view.data.length >= cap) {
+        capped = true;
+        return;
+      }
       const entry = list.entries[offset];
       view.owners.push(list);
       view.offsets.push(offset);
@@ -139,6 +146,7 @@ export function layoutView<TData>(store: GroupStore<TData>, isOpen: (groupId: st
       });
       view.data.push(undefined);
       if (open) walk(listFor(store, path, group.childCount));
+      if (capped) return;
     }
   }
 }
