@@ -294,6 +294,25 @@ describe("values and aggregates requests", () => {
   });
 });
 
+describe("group not", () => {
+  const two = [leaf("name", "equals", "a"), leaf("qty", "gt", "3")];
+  const group = (join: string, extra: Record<string, unknown>, filters: unknown[] = two) => [{ join, filters, ...extra }];
+  it("wraps a negated group in a not predicate over its join", () => {
+    expect(rows(group("or", { not: true })).where).toMatchObject({ t: "not", item: { t: "or" } });
+    expect(rows(group("and", { not: true })).where).toMatchObject({ t: "not", item: { t: "and" } });
+  });
+  it.each([undefined, false, "true", 1, null])("leaves a group with not %j as it was", (value) => {
+    expect(rows(group("and", { not: value })).where).toMatchObject({ t: "and" });
+  });
+  it("negates a one-child group and folds a double negation", () => {
+    expect(rows(group("and", { not: true }, [two[0]])).where).toMatchObject({ t: "not", item: { t: "leaf" } });
+    expect(rows(group("and", { not: true }, group("and", { not: true }, [two[0]]))).where).toMatchObject({ t: "leaf" });
+  });
+  it("leaves an empty negated group as no filter", () => {
+    expect(rows(group("and", { not: true }, [])).where.t).toBe("true");
+  });
+});
+
 describe("root filterJoin", () => {
   const two = [leaf("name", "equals", "a"), leaf("qty", "gt", "3")];
   it("joins the top-level filters with or", () => {

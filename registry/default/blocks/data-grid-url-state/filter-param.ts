@@ -89,6 +89,8 @@ function encodeFilterValue(input: FilterOperatorInput, value: FilterSpec["value"
  * // => "status:isAnyOf:new|open"
  * @example serializeFilterState([{ join: "or", filters: [{ columnId: "a", operator: "equals", value: "1" }] }])
  * // => "[or,a:equals:1,]"
+ * @example serializeFilterState([{ join: "and", not: true, filters: [{ columnId: "a", operator: "equals", value: "1" }] }])
+ * // => "[notand,a:equals:1,]"
  */
 export function serializeFilterState(filters: readonly FilterNode[], options: SerializeFilterStateOptions = {}): string {
   const segments: string[] = [];
@@ -107,7 +109,7 @@ function writeNodes(nodes: readonly FilterNode[], depth: number, segments: strin
     const children = groupChildren(node);
     if (depth >= MAX_FILTER_GROUP_DEPTH || children.length === 0) continue;
     const start = segments.length;
-    segments.push(`[${node.join === "or" ? "or" : "and"}`);
+    segments.push(`[${node.not === true ? "not" : ""}${node.join === "or" ? "or" : "and"}`);
     writeNodes(children, depth + 1, segments, options);
     if (segments.length === start + 1) segments.pop();
     else segments.push(GROUP_CLOSE);
@@ -168,7 +170,7 @@ function decodeFilterValue(operator: string, input: FilterOperatorInput, raw: st
  * hand-edited URL cannot express an unbounded filter set. A group opener deeper than the nesting cap,
  * with an unknown join, or over the group cap drops its whole subtree; a stray `]` is ignored, an
  * unclosed group closes at the end, and an empty group is dropped. An `isNoneOf` list over its bound drops
- * the whole segment.
+ * the whole segment. A negated group (`[notand`, `[notor`) that loses a child or is left unclosed is dropped whole.
  * Every filter parses without a `filterId`; the store backfills a fresh stable one on the next sync.
  *
  * @example parseFilterState("age:gt:30") // => [{ columnId: "age", operator: "gt", value: "30" }]
@@ -179,15 +181,17 @@ function decodeFilterValue(operator: string, input: FilterOperatorInput, raw: st
  */
 export function parseFilterState(raw: string, options: ParseFilterStateOptions = {}): FilterNode[] {
   if (!raw) return [];
-  type Frame = { join: FilterGroup["join"]; filters: FilterNode[]; dropped: boolean };
-  const root: Frame = { join: "and", filters: [], dropped: false };
+  type Frame = { join: FilterGroup["join"]; not: boolean; filters: FilterNode[]; dropped: boolean; lostChild: boolean };
+  const root: Frame = { join: "and", not: false, filters: [], dropped: false, lostChild: false };
   const stack: Frame[] = [root];
   let leaves = 0;
   let groups = 0;
-  const closeTop = () => {
+  const loseChild = () => stack.forEach((frame) => (frame.lostChild = true));
+  const closeTop = (closed: boolean) => {
     const frame = stack.pop()!;
-    if (frame.dropped || frame.filters.length === 0) return;
-    stack[stack.length - 1]!.filters.push({ join: frame.join, filters: frame.filters });
+    // a negated group missing a term would match different rows, so it goes whole
+    if (frame.dropped || frame.filters.length === 0 || (frame.not && (frame.lostChild || !closed))) return loseChild();
+    stack[stack.length - 1]!.filters.push(frame.not ? { join: frame.join, not: true, filters: frame.filters } : { join: frame.join, filters: frame.filters });
   };
   let start = 0;
   for (let read = 0; read < MAX_URL_FILTER_SEGMENTS && start <= raw.length && leaves < MAX_URL_FILTERS; read++) {
@@ -196,35 +200,35 @@ export function parseFilterState(raw: string, options: ParseFilterStateOptions =
     const segment = raw.slice(start, end);
     start = end + 1;
     if (segment === GROUP_CLOSE) {
-      if (stack.length > 1) closeTop();
+      if (stack.length > 1) closeTop(true);
       continue;
     }
     if (segment.startsWith("[")) {
-      const join = segment === "[or" ? "or" : segment === "[and" ? "and" : undefined;
+      const join = segment === "[or" || segment === "[notor" ? "or" : segment === "[and" || segment === "[notand" ? "and" : undefined;
       const parent = stack[stack.length - 1]!;
       const dropped = parent.dropped || join === undefined || stack.length > MAX_FILTER_GROUP_DEPTH || groups >= MAX_URL_FILTER_GROUPS;
       if (!dropped) groups++;
-      stack.push({ join: join ?? "and", filters: [], dropped });
+      stack.push({ join: join ?? "and", not: segment.startsWith("[not"), filters: [], dropped, lostChild: false });
       continue;
     }
     const parts = segment.split(":");
-    if (parts.length !== 3) continue;
+    if (parts.length !== 3) { loseChild(); continue; }
     const [columnId, operator, rawValue] = parts;
-    if (!columnId || operator === undefined || rawValue === undefined) continue;
+    if (!columnId || operator === undefined || rawValue === undefined) { loseChild(); continue; }
     const decodedId = safeDecode(columnId);
     const decodedOperator = safeDecode(operator);
-    if (decodedId === null || decodedId === "" || decodedOperator === null) continue;
+    if (decodedId === null || decodedId === "" || decodedOperator === null) { loseChild(); continue; }
     const input = isFilterOperator(decodedOperator) ? filterOperatorInput(decodedOperator) : options.operatorInput?.(decodedId, decodedOperator);
-    if (input === undefined) continue;
+    if (input === undefined) { loseChild(); continue; }
     const value = decodeFilterValue(decodedOperator, input, rawValue, options.maxChoices?.(decodedId) ?? DEFAULT_MAX_ANYOF_CHOICES);
-    if (value === DECODE_FAILED) continue;
+    if (value === DECODE_FAILED) { loseChild(); continue; }
     const frame = stack[stack.length - 1]!;
-    if (frame.dropped) continue;
+    if (frame.dropped) { loseChild(); continue; }
     const known = knownChoices(decodedId, decodedOperator, value, options);
-    if (known === null) continue;
+    if (known === null) { loseChild(); continue; }
     frame.filters.push({ columnId: decodedId, operator: decodedOperator, value: known });
     leaves++;
   }
-  while (stack.length > 1) closeTop();
+  while (stack.length > 1) closeTop(false);
   return root.filters;
 }

@@ -10,3 +10,6 @@ assertEqual<RowRange, { start: number; end: number }>(true);
 assertEqual<FetchFilterValuesContext["query"], string>(true);
 // @ts-expect-error - the value-list context field is `query`
 void ({} as FetchFilterValuesContext).search;
+
+const _negatedGroupOfToday: ServerSpec = { sorts: [], filters: [{ join: "and", filters: [] }, { join: "or", not: true, filters: [] }], searchText: "" };
+void _negatedGroupOfToday;

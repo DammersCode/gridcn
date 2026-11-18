@@ -30,5 +30,5 @@ const isEmptyGroupField = (key: string, value: unknown) => (key === "groupBy" ||
 
 /** A spec compared by content: the generated `filterId`s change when the same filters are re-created, and an empty `groupBy` or `aggregates` equals none. */
 export function serverSpecKey(spec: ServerSpec): string {
-  return JSON.stringify(spec, (key, value: unknown) => (key === "filterId" || isEmptyGroupField(key, value) ? undefined : value));
+  return JSON.stringify(spec, (key, value: unknown) => (key === "filterId" || (key === "not" && value === false) || isEmptyGroupField(key, value) ? undefined : value));
 }

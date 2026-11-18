@@ -19,7 +19,7 @@ import {
   parseUuid,
   startOfLocalDay,
 } from "./operands";
-import { type AggregatesPlan, FALSE, type GroupsPlan, type Operand, type OrderTerm, type PlanOf, type Predicate, type QueryRequestKind, type RowsPlan, TRUE, type ValuesPlan, combine, leaf } from "./plan";
+import { type AggregatesPlan, FALSE, type GroupsPlan, type Operand, type OrderTerm, type PlanOf, type Predicate, type QueryRequestKind, type RowsPlan, TRUE, type ValuesPlan, combine, leaf, negate } from "./plan";
 
 /** How often a rows request also counts the result: the first scroll block (default), every request, or never. */
 export type RowCountMode = "firstBlock" | "always" | "none";
@@ -280,7 +280,8 @@ function parseNodes(value: unknown, path: Path, depth: number, ctx: Ctx): Predic
     if (Array.isArray(node["filters"])) {
       if (depth + 1 > MAX_FILTER_DEPTH) throw new QueryError("limit-exceeded", nodePath);
       const items = parseNodes(node["filters"], [...nodePath, "filters"], depth + 1, ctx);
-      return combine(node["join"] === "or" ? "or" : "and", items);
+      const combined = combine(node["join"] === "or" ? "or" : "and", items);
+      return node["not"] === true && items.length > 0 ? negate(combined) : combined;
     }
     if (++ctx.budget.leaves > ctx.limits.maxFilterLeaves) throw new QueryError("limit-exceeded", nodePath);
     return parseLeaf(node, nodePath, ctx);

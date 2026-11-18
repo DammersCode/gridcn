@@ -89,14 +89,14 @@ export function makeFilterTest(accessor: CellAccessor, filter: FilterSpec): (row
 /**
  * One node's per-row test. A group compiles to one closure over its children's tests: `every` for
  * `"and"`, `some` for `"or"`; any join other than `"or"` evaluates as `"and"`, and an empty group
- * matches every row.
+ * matches every row. `not: true` negates a non-empty group.
  */
 export function makeFilterNodeTest(accessor: CellAccessor, node: FilterNode): (row: number) => boolean {
   if (!isFilterGroup(node)) return makeFilterTest(accessor, node);
   const tests = groupChildren(node).map((child) => makeFilterNodeTest(accessor, child));
   if (tests.length === 0) return () => true;
-  if (tests.length === 1) return tests[0]!;
-  return node.join === "or" ? (row) => tests.some((test) => test(row)) : (row) => tests.every((test) => test(row));
+  const match = tests.length === 1 ? tests[0]! : node.join === "or" ? (row: number) => tests.some((test) => test(row)) : (row: number) => tests.every((test) => test(row));
+  return node.not === true ? (row) => !match(row) : match;
 }
 
 /** The accessor's quick-search reader: `getSearchText` when present, else `getText`. */

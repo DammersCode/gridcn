@@ -89,6 +89,26 @@ describe("parseServerSpec", () => {
   it.each(["xor", "OR", 1, null, true, {}, []])("rejects filterJoin %j", (bad) => {
     expect(() => parse({ filterJoin: bad })).toThrow(/filterJoin/);
   });
+
+  describe("group not", () => {
+    const row = { columnId: "name", operator: "equals", value: "a" };
+    const group = (extra: Record<string, unknown>) => ({ filters: [{ join: "and", filters: [row], ...extra }] });
+
+    it("keeps not only as true", () => {
+      expect(parse(group({ not: true })).filters[0]).toMatchObject({ join: "and", not: true });
+      expect("not" in parse(group({ not: false })).filters[0]!).toBe(false);
+      expect("not" in parse(group({})).filters[0]!).toBe(false);
+    });
+
+    it.each(["true", 1, null, {}, []])("rejects not %j at its path", (bad) => {
+      expect(() => parse(group({ not: bad }))).toThrow("filters[0].not");
+    });
+
+    it("keeps not on a nested group", () => {
+      const nested = parse({ filters: [{ join: "or", filters: [{ join: "and", not: true, filters: [row] }] }] });
+      expect((nested.filters[0] as { filters: unknown[] }).filters[0]).toMatchObject({ not: true });
+    });
+  });
 });
 
 describe("parseServerSpec limits", () => {

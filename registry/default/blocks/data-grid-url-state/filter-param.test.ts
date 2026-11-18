@@ -246,6 +246,25 @@ describe("filter groups in the URL", () => {
     expect(parseFilterState(serializeFilterState(tree))).toEqual(tree);
   });
 
+  it("writes a negated group as [notand or [notor and round-trips it", () => {
+    const tree: FilterNode[] = [countryEquals, { join: "and", not: true, filters: [nameContains("A"), { join: "or", not: true, filters: [nameContains("B")] }] }];
+    expect(serializeFilterState(tree)).toBe("country:equals:X,[notand,name:contains:A,[notor,name:contains:B,],]");
+    expect(parseFilterState(serializeFilterState(tree))).toEqual(tree);
+  });
+
+  it("writes no not key for an off group", () => {
+    expect(parseFilterState("[and,name:contains:A,]")).toEqual([{ join: "and", filters: [nameContains("A")] }]);
+    expect(serializeFilterState([{ join: "and", not: false, filters: [nameContains("A")] }])).toBe("[and,name:contains:A,]");
+  });
+
+  it("drops a negated group that loses a child, is unclosed, or is empty", () => {
+    expect(parseFilterState("[notand,name:contains:A,bogus:nope:x,]")).toEqual([]);
+    expect(parseFilterState("[notand,name:contains:A")).toEqual([]);
+    expect(parseFilterState("country:equals:X,[notor,]")).toEqual([countryEquals]);
+    expect(parseFilterState("[notand,name:contains:A,[or,x:y,],]")).toEqual([]);
+    expect(parseFilterState("[and,name:contains:A,bogus:nope:x,]")).toEqual([{ join: "and", filters: [nameContains("A")] }]);
+  });
+
   it("keeps a flat and list byte-identical to the legacy format", () => {
     const flat = [countryEquals, nameContains("A")];
     expect(serializeFilterState(flat)).toBe("country:equals:X,name:contains:A");

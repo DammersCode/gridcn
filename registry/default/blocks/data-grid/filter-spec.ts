@@ -67,9 +67,9 @@ export type FilterSpec = {
 /**
  * A box of filters that match together: with `join: "and"` every child must match, with `"or"` any one.
  * A group nests one more group at most (see `MAX_FILTER_GROUP_DEPTH`). An empty group matches every row.
- * `filterId` is assigned by the store when absent.
+ * `filterId` is assigned by the store when absent. `not: true` negates the group: it matches the rows its children do not match. An empty group still matches every row.
  */
-export type FilterGroup = { filterId?: string; join: FilterJoinOperator; filters: FilterNode[] };
+export type FilterGroup = { filterId?: string; join: FilterJoinOperator; filters: FilterNode[]; not?: boolean };
 
 /** One value a server offers for a set filter: `value` is what a filter entry stores (a code or id); `label` is the text the list shows, `value` when absent; `count` is the matching row count. */
 export type FilterValue = { value: string; label?: string; count?: number };

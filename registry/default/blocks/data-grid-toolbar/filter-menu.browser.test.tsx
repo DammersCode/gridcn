@@ -140,3 +140,46 @@ describe("DataGridFilterMenu group header summary", () => {
     expect(results.violations.map((v) => v.id)).toEqual([]);
   });
 });
+
+describe("DataGridFilterMenu group Not toggle", () => {
+  const notToggle = () => document.querySelector<HTMLButtonElement>('[data-grid-filter-group-header] button[aria-label="Negate the filter group"]')!;
+  const summary = () => document.querySelector<HTMLElement>("[data-grid-filter-group-summary]")!.textContent;
+
+  it("negates the group, follows the summary, and reports aria-pressed", async () => {
+    await render(
+      <DataGridProvider data={[]} columns={columns} getRowId={(r) => r.id}>
+        <DataGridFilterMenu />
+      </DataGridProvider>,
+    );
+    await userEvent.click(document.querySelector<HTMLElement>('button[aria-label="Filters"]')!);
+    await userEvent.click(document.querySelector<HTMLElement>('[data-grid-filter-menu] button[aria-label="Add group"]')!);
+    expect(notToggle().getAttribute("aria-pressed")).toBe("false");
+    await userEvent.click(notToggle());
+    expect(notToggle().getAttribute("aria-pressed")).toBe("true");
+    expect(summary()).toBe("None of the following are true…");
+    await userEvent.click(notToggle());
+    expect(notToggle().getAttribute("aria-pressed")).toBe("false");
+    expect(summary()).toBe("Any of the following are true…");
+  });
+
+  it("reads a negated and group as not all, and renders custom labels", async () => {
+    await render(
+      <DataGridProvider
+        data={[]}
+        columns={columns}
+        getRowId={(r) => r.id}
+        defaultFilterState={[{ join: "and", not: true, filters: [{ columnId: "name", operator: "contains", value: "a" }] }]}
+        labels={{ toolbar: { filterGroupNot: "Nicht", filterGroupNotAriaLabel: "Gruppe verneinen" } }}
+      >
+        <DataGridFilterMenu />
+      </DataGridProvider>,
+    );
+    await userEvent.click(document.querySelector<HTMLElement>('button[aria-label="Filters"]')!);
+    expect(summary()).toBe("Not all of the following are true…");
+    const toggle = document.querySelector<HTMLButtonElement>('[data-grid-filter-group-header] button[aria-label="Gruppe verneinen"]')!;
+    expect(toggle.textContent).toBe("Nicht");
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+    const results = await axe.run(document.body, { rules: { "color-contrast": { enabled: false } } });
+    expect(results.violations.map((v) => v.id)).toEqual([]);
+  });
+});

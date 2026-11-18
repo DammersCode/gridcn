@@ -430,6 +430,24 @@ describe("buildViewIndex", () => {
       expect(run([{ join: "and", filters: [] }, country("Y")])).toEqual([3, 4]);
     });
 
+    it("a negated group matches the rows its children do not", () => {
+      expect(run([{ join: "or", not: true, filters: [nameStarts("A"), country("Y")] }])).toEqual([1, 2]);
+      expect(run([{ join: "and", not: true, filters: [nameStarts("A"), country("X")] }])).toEqual([1, 2, 3, 4]);
+      expect(run([{ join: "and", not: true, filters: [country("Y")] }])).toEqual([0, 1, 2]);
+    });
+
+    it("a negated group keeps a row whose cell is empty", () => {
+      const sparse = [{ name: "A1" }, { name: "" }, { name: "B1" }];
+      const filters: FilterNode[] = [{ join: "and", not: true, filters: [nameStarts("A")] }];
+      expect(buildViewIndex(sparse.length, tableAccessor(sparse), { sorts: [], filters })).toEqual([1, 2]);
+    });
+
+    it("an empty group stays a no-op when negated, and nests under another negation", () => {
+      expect(run([{ join: "and", not: true, filters: [] }])).toEqual([0, 1, 2, 3, 4]);
+      expect(run([{ join: "and", not: true, filters: [{ join: "and", not: true, filters: [country("Y")] }] }])).toEqual([3, 4]);
+      expect(run([{ join: "and", not: false, filters: [country("Y")] }])).toEqual([3, 4]);
+    });
+
     it("a one-child group equals its child", () => {
       expect(run([{ join: "or", filters: [country("Y")] }])).toEqual(run([country("Y")]));
     });

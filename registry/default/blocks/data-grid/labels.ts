@@ -65,6 +65,14 @@ export type DataGridToolbarLabels = {
   filterGroupAny: string;
   /** Summary on the left of the header of an "and" group. */
   filterGroupAll: string;
+  /** Summary on the left of the header of a negated "or" group. */
+  filterGroupNone: string;
+  /** Summary on the left of the header of a negated "and" group. */
+  filterGroupNotAll: string;
+  /** Visible text of the "Not" toggle in the header of a filter group. */
+  filterGroupNot: string;
+  /** aria-label of the "Not" toggle; the toggle sets `aria-pressed` while the group is negated. */
+  filterGroupNotAriaLabel: string;
   columns: string;
   columnsAriaLabel: string;
   /** aria-label of the header filter button; `filtered` is true while the column has any filter, including a condition filter. */

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import {
   MAX_VIEWS,
   MAX_VIEW_NAME_LENGTH,
@@ -49,6 +50,31 @@ describe("filterJoin", () => {
     const view = { name: "x", state: { ...state, filterJoin: "or" as const } };
     expect(parseViewFile(serializeViewFile(view), columns)).toMatchObject({ ok: true, state: { filterJoin: "or" } });
     expect(parseViewDocument({ version: 1, defaultViewId: null, views: [{ id: "a", name: "x", state: view.state }] })?.views[0]!.state.filterJoin).toBe("or");
+  });
+});
+
+describe("group not", () => {
+  const leafOf = (value: string): FilterSpec => ({ columnId: "name", operator: "equals", value });
+  const group = (extra: Record<string, unknown>) => ({ ...state, filters: [{ join: "and", filters: [leafOf("a")], ...extra }] });
+
+  it("keeps not only as true through a capture", () => {
+    expect(captureViewState(group({ filterId: "g", not: true }) as never).filters[0]).toEqual({ join: "and", not: true, filters: [leafOf("a")] });
+    expect("not" in captureViewState(group({ not: false }) as never).filters[0]!).toBe(false);
+  });
+
+  it("tells a negated view from a plain one", () => {
+    expect(viewStateKey(group({ not: true }) as never)).not.toBe(viewStateKey(group({}) as never));
+  });
+
+  it("sanitizes not to true or nothing", () => {
+    expect(sanitizeViewState(group({ not: true }), columns).state.filters[0]).toMatchObject({ not: true });
+    for (const bad of [false, "true", 1, null]) expect("not" in sanitizeViewState(group({ not: bad }), columns).state.filters[0]!).toBe(false);
+  });
+
+  it("drops a negated group that lost a child, and keeps a plain one", () => {
+    const lost = (extra: Record<string, unknown>) => ({ ...state, filters: [{ join: "and", ...extra, filters: [leafOf("a"), { columnId: "no-such-column", operator: "equals", value: "b" }] }] });
+    expect(sanitizeViewState(lost({ not: true }), columns)).toMatchObject({ state: { filters: [] }, dropped: 2 });
+    expect(sanitizeViewState(lost({}), columns).state.filters).toHaveLength(1);
   });
 });
 
