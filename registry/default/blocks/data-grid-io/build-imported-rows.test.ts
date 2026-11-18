@@ -84,6 +84,22 @@ describe("buildImportedRows with a throwing processCellFromText", () => {
   });
 });
 
+describe("buildImportedRows under validationMode warn", () => {
+  it("lists text the cell type cannot parse as rejected and flags nothing", async () => {
+    const strictNumber: CellType<Row, number | null> = { ...numberCellType, fromText: (text) => (/^[0-9]+$/.test(text) ? Number(text) : sdk.rejectText()) };
+    const columns = makeColumns().map((column) => (column.id === "age" ? { ...column, validationMode: "warn" as const } : column));
+    const result = await buildImportedRowsRaw({
+      dataRows: [["Alice", "abc"]],
+      mapping: [{ importColumnIndex: 0, gridColumnId: "name" }, { importColumnIndex: 1, gridColumnId: "age" }],
+      columns,
+      cellTypes: { text: textCellType, number: strictNumber } as never,
+      createRow: makeRow,
+    });
+    expect(result.flagged).toEqual([]);
+    expect(result.rejected.map((cell) => cell.gridColumnId)).toEqual(["age"]);
+  });
+});
+
 describe("buildImportedRows", () => {
   it("lists a cell whose fromText throws in `rejected` and still builds the row", async () => {
     const throwing: CellType<Row, number | null> = { ...numberCellType, fromText: () => { throw new Error("boom"); } };

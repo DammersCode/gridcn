@@ -90,6 +90,18 @@ describe("buildPasteWrites with a throwing fromText", () => {
   });
 });
 
+describe("buildPasteWrites under validationMode warn", () => {
+  it("rejects text the cell type cannot parse instead of writing undefined", () => {
+    const warnColumns = [columns[0]!, { ...columns[1]!, validationMode: "warn" as const }];
+    const s = fakeState({ columns: warnColumns as never, visibleColumns: warnColumns as never });
+    const resolution = buildPasteWritesRaw(s, [["x", "abc"]], { col: 0, row: 0 });
+    if (resolution instanceof Promise) throw new Error("expected a synchronous result");
+    expect(resolution.writes).toEqual([{ viewRowIndex: 0, columnId: "name", value: "x" }]);
+    expect(resolution.rejected.map((cell) => cell.columnId)).toEqual(["qty"]);
+    expect(resolution.warnings).toEqual([]);
+  });
+});
+
 describe("buildPasteWrites with a throwing processCellFromClipboard", () => {
   const nullProto = Object.assign(Object.create(null), { a: 1 });
   const thrown: [string, () => unknown][] = [

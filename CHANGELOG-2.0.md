@@ -394,3 +394,5 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - Fix: the Replace all status joins its two sentences through `labels.findReplace.replacedAndMore`.
 - Fix: a grouped pages source keeps a page past the old flat page count, and clamps a page past the known group count to the last page without an out-of-range request.
 - Fix: the open groups of a server source lay out at most 10,000,000 view rows, with one development warning at the cap. `prefetchNextPage` warns once in development when `groupBy` is set, because it has no effect there.
+- Fix: under `validationMode: "warn"`, pasted, filled, or imported text that the cell type cannot parse keeps the cell value and is listed in `onValidationError`, instead of writing `undefined`.
+- `rejectText(message)` shows its message in `onValidationError`, the cell tooltip, and the import `rejected` list. Without a message the grid shows "The text could not be parsed".

@@ -20,7 +20,7 @@ describe("safeFromText", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const parsed = safeFromText(throwing, "a", undefined, undefined);
     expect(isUnparseable(parsed)).toBe(true);
-    expect(runValidateSync(parsed.validate, parsed.value, {})).toEqual({ error: "The text could not be parsed" });
+    expect(runValidateSync(parsed.validate, parsed.value, {})).toEqual({ error: "The text could not be parsed", thrown: true });
   });
 
   it("warns once per cell type", () => {
@@ -33,6 +33,14 @@ describe("safeFromText", () => {
 });
 
 describe("rejectText", () => {
+  it("carries the explicit message to the validate result and stays a rejected text", () => {
+    const german = { fromText: () => rejectText("Kein Wert") } as unknown as CellType;
+    const parsed = safeFromText(german, "x", undefined, undefined);
+    expect(isRejectedText(parsed)).toBe(true);
+    expect(isUnparseable(parsed)).toBe(true);
+    expect(runValidateSync(parsed.validate, parsed.value, {})).toEqual({ error: "Kein Wert", thrown: true });
+  });
+
   it("refuses the text on purpose: the cell is rejected without the faulty-type warning", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const rating: CellType<unknown, number> = { fromText: (text: string) => (/^[0-5]$/.test(text) ? Number(text) : rejectText()) } as unknown as CellType<unknown, number>;
