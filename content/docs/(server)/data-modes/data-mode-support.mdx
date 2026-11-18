@@ -670,7 +670,7 @@ A grid feature can behave differently on a local array, on server pages and on s
 
 ### Filter
 
-A sort or filter on a column that is not in `columns` drops with a development warning, in every mode. `filterJoin` joins the top-level filters with `and` (default) or `or`. A server request carries `filterJoin: "or"` in the spec.
+A sort or filter on a column that is not in `columns` drops with a development warning, in every mode. `filterJoin` joins the top-level filters with `and` (default) or `or`. A server request carries `filterJoin: "or"` in the spec. `FilterGroup.not: true` negates a group in every mode. The server spec carries it on the group.
 
 ### Filter set values
 

@@ -65,6 +65,24 @@ add("or group", [{ join: "or", filters: [leaf("name", "equals", "alpha"), leaf("
 add("and of or groups", [{ join: "or", filters: [leaf("tag", "equals", "red"), leaf("active", "equals", "true")] }, leaf("qty", "lt", "50")]);
 add("nested group", [{ join: "and", filters: [{ join: "or", filters: [leaf("name", "contains", "a"), leaf("name", "contains", "e")] }, leaf("score", "gt", "0")] }]);
 add("empty group", [{ join: "and", filters: [] }]);
+
+const not = (join: "and" | "or", filters: FilterTree) => ({ join, not: true, filters });
+for (const [column, operator, value] of [["name", "equals", "alpha"], ["name", "contains", "a"], ["name", "startsWith", "al"], ["name", "isAnyOf", ["alpha", "BETA"]], ["name", "isNoneOf", ["alpha"]], ["name", "notEquals", "alpha"], ["name", "empty", undefined], ["name", "notEmpty", undefined], ["tag", "equals", "red"], ["qty", "gt", "50"], ["qty", "isBetween", ["1", "5"]], ["qty", "empty", undefined], ["score", "lte", "1"], ["active", "equals", "true"], ["price", "lt", "5"]] as const) {
+  add(`not (${column} ${operator})`, [not("and", [leaf(column, operator, value)])]);
+}
+add("not (and) over null cells", [not("and", [leaf("name", "equals", "alpha"), leaf("qty", "gt", "50")])]);
+add("not (or) over null cells", [not("or", [leaf("name", "equals", "alpha"), leaf("qty", "gt", "50"), leaf("tag", "equals", "red")])]);
+add("not group beside a row", [leaf("active", "equals", "true"), not("or", [leaf("tag", "equals", "red"), leaf("score", "gt", "0")])]);
+add("not inside an or group", [{ join: "or", filters: [leaf("name", "equals", "alpha"), not("and", [leaf("qty", "gt", "50"), leaf("tag", "equals", "red")])] }]);
+add("not of a nested group", [not("and", [{ join: "or", filters: [leaf("name", "contains", "a"), leaf("name", "contains", "e")] }, leaf("score", "gt", "0")])]);
+add("not of a not", [not("and", [not("or", [leaf("qty", "gt", "50"), leaf("tag", "equals", "red")])])]);
+add("empty or group", [{ join: "or", filters: [] }]);
+add("not of an empty group", [not("and", [])]);
+add("not of an empty or group", [not("or", [])]);
+add("not of a group with an empty or group", [not("and", [{ join: "or", filters: [] }])]);
+add("or group beside an empty or group", [{ join: "or", filters: [leaf("name", "equals", "alpha"), { join: "or", filters: [] }] }]);
+add("not of a group with an empty group", [not("and", [{ join: "and", filters: [] }])]);
+add("not of a one-child group", [not("or", [leaf("qty", "lt", "50")])]);
 add("no filters", []);
 
 export const ORACLE_CASES = oracleCases;

@@ -18,6 +18,7 @@ export type Predicate =
   | { t: "true" }
   | { t: "false" }
   | { t: "and" | "or"; items: readonly Predicate[] }
+  | { t: "not"; item: Predicate }
   | { t: "leaf"; column: PlanColumn; test: Test };
 
 export type OrderTerm = { column: PlanColumn; direction: "asc" | "desc" };
@@ -55,6 +56,13 @@ export const FALSE: Predicate = Object.freeze({ t: "false" });
 
 export function leaf(column: PlanColumn, test: Test): Predicate {
   return { t: "leaf", column, test };
+}
+
+/** The rows `item` does not match; a NULL result of `item` counts as no match. A constant folds. */
+export function negate(item: Predicate): Predicate {
+  if (item.t === "true") return FALSE;
+  if (item.t === "false") return TRUE;
+  return item.t === "not" ? item.item : { t: "not", item };
 }
 
 /** Flattens, drops `true` from an `and` and `false` from an `or`, and short-circuits the other way. No adapter sees an empty group. */

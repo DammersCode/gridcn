@@ -146,6 +146,8 @@ URL state drops a filter value over 1,000 characters and cuts the search text to
 
 The top-level entries combine with "and", or with "or" when the spec holds `filterJoin: "or"`. `parseServerSpec` reads `filterJoin` too: `"and"` or `"or"`. Any other value throws a `ServerSpecError` at the path `filterJoin`. The result holds the key only when it is `"or"`, so a spec without it means "and".
 
+A group in `filters` can hold `not: true`. Your server returns the rows that fail the group. `parseServerSpec` reads `not` as a boolean. Any other value throws a `ServerSpecError` at the path `filters[i].not`. The result holds `not` only when it is `true`. A cell that is NULL fails every condition except "empty", so the negated group keeps that row. An empty group matches every row, negated or not.
+
 #### Check a group request [#parse-group-path]
 
 A grouped request adds `groupBy` and `aggregates` to the spec, and `groupPath` and `childKind` to the request. `parseServerSpec` reads `groupBy` (at most `maxGroupLevels`, 4) and `aggregates` (at most `maxGroupAggregates`, 32, one reducer per column). `ServerSpecColumnRules` takes `groupable` and `aggregatable`.

@@ -60,7 +60,7 @@ const DEFAULT_LIMITS = { maxSorts: MAX_SPEC_SORTS, maxFilters: 64, maxGroups: 16
 
 type Budget = { filters: number; groups: number };
 
-type Raw = { sorts?: unknown; filters?: unknown; filterJoin?: unknown; searchText?: unknown; groupBy?: unknown; aggregates?: unknown; columnId?: unknown; direction?: unknown; join?: unknown; operator?: unknown; value?: unknown; matchCase?: unknown };
+type Raw = { sorts?: unknown; filters?: unknown; filterJoin?: unknown; not?: unknown; searchText?: unknown; groupBy?: unknown; aggregates?: unknown; columnId?: unknown; direction?: unknown; join?: unknown; operator?: unknown; value?: unknown; matchCase?: unknown };
 
 const isRecord = (value: unknown): value is Raw => typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -224,7 +224,9 @@ function parseGroup(node: Raw, path: string, depth: number, rules: ReadonlyMap<s
   budget.groups += 1;
   if (budget.groups > limits.maxGroups) throw new ServerSpecError(path, `holds more than ${limits.maxGroups} groups`);
   if (node.join !== "and" && node.join !== "or") throw new ServerSpecError(`${path}.join`, 'must be "and" or "or"');
-  return { join: node.join, filters: parseNodes(node.filters, `${path}.filters`, depth, rules, limits, budget) };
+  if (node.not !== undefined && typeof node.not !== "boolean") throw new ServerSpecError(`${path}.not`, "must be a boolean");
+  const filters = parseNodes(node.filters, `${path}.filters`, depth, rules, limits, budget);
+  return node.not === true ? { join: node.join, not: true, filters } : { join: node.join, filters };
 }
 
 function parseRow(node: Raw, path: string, rules: ReadonlyMap<string, ServerSpecColumnRules>, limits: Required<ServerSpecLimits>, budget: Budget): FilterSpec {

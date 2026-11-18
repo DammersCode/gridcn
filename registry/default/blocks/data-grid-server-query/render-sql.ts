@@ -129,6 +129,8 @@ export function createSqlRenderer<S>(a: SqlAlgebra<S>, customHandlers: ReadonlyM
         return raw("1 = 0");
       case "leaf":
         return test(p.column, p.test);
+      case "not":
+        return group(cat(group(predicate(p.item)), raw(" IS NOT TRUE")));
       default:
         return group(join(p.items.map(predicate), p.t === "and" ? " AND " : " OR "));
     }

@@ -77,7 +77,7 @@ export function resolveCellTypes(provided: Record<string, CellType | null> | und
 
 /** A filter tree compared by content: the generated `filterId`s change with every controlled re-creation of the same filters, and the grid sets `matchCase` from the column. */
 export function filterSpecKey(filters: readonly unknown[]): string {
-  return JSON.stringify(filters, (key, value: unknown) => (key === "filterId" || key === "matchCase" ? undefined : value));
+  return JSON.stringify(filters, (key, value: unknown) => (key === "filterId" || key === "matchCase" || (key === "not" && value === false) ? undefined : value));
 }
 
 /** A sort list compared by content: a controlled prop re-creates an equal array on every render. */

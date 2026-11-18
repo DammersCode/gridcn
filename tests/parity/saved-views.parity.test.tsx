@@ -22,6 +22,7 @@ const document = (): DataGridViewsDocument => ({
         searchText: "Name 3",
       },
     },
+    { id: "v3", name: "Neither", state: { ...emptyViewState(), filters: [{ join: "or", not: true, filters: [{ columnId: "n", operator: "lt", value: "1" }, { columnId: "n", operator: "gt", value: "4" }] }] } },
     { id: "v2", name: "Either", state: { ...emptyViewState(), filters: [{ columnId: "n", operator: "lt", value: "1" }, { columnId: "n", operator: "gt", value: "4" }], filterJoin: "or" } },
   ],
 });
@@ -54,6 +55,14 @@ describe.each(ALL_MODES)("saved views in mode %s", (mode) => {
     await waitFor(() => expect(grid.state().filterJoin).toBe("or"));
     grid.act(() => views().selectView("v1"));
     await waitFor(() => expect(grid.state().filterJoin).toBe("and"));
+  });
+
+  it("a view restores a negated filter group", async () => {
+    const { grid, views } = await mountViews(mode);
+    grid.act(() => views().selectView("v3"));
+    await waitFor(() => expect(grid.state().filterState).toMatchObject([{ join: "or", not: true }]));
+    grid.act(() => views().selectView("v1"));
+    await waitFor(() => expect(grid.state().filterState).toMatchObject([{ columnId: "n", operator: "gt" }]));
   });
 
   it("a saved view restores the spec after the grid changed", async () => {

@@ -230,7 +230,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
       if (filterableIds.has(spec.columnId)) return true;
       warnDev(`dropped URL filter spec for removed, hidden, or unfilterable column "${spec.columnId}"`);
       return false;
-    });
+    }, true);
     // On mount an absent param keeps the grid's initial state; a re-apply mirrors the URL, so a removed param clears its state.
     if (syncSort && (sorts.length > 0 || !keepMountDefaults)) actions.setSorts(sorts);
     if (syncGroup && storeApi.getState().groupingEnabled && (groups.length > 0 || !keepMountDefaults)) actions.setGroupBy(groups);

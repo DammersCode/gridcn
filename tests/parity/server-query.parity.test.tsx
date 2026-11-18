@@ -101,6 +101,19 @@ describe("the query layer with a root or join", () => {
   });
 });
 
+describe("the query layer with a negated group", () => {
+  const group = { filterId: "g", join: "or", not: true, filters: [{ filterId: "a", columnId: "n", operator: "lt", value: "2" }, { filterId: "b", columnId: "n", operator: "gte", value: "93" }] };
+  it.each(["pages", "scroll"] as const)("negates the group in the database, %s mode", async (mode) => {
+    const fetchRows = fetchFromLayer();
+    const grid = await mountLayer(fetchRows, mode);
+    act(() => grid.state().actions.setFilters([group] as never));
+    await waitFor(() => expect(fetchRows.mock.calls.at(-1)![0]).toMatchObject({ spec: { filters: [{ not: true }] } }));
+    await grid.ready();
+    await waitFor(() => expect(grid.state().totalRowCount ?? grid.server().pager?.totalRowCount).toBe(91));
+    expect(ids(grid)).not.toContain("r0");
+  });
+});
+
 describe("the query layer in mode C (controlled state)", () => {
   it("quick search narrows the result, and a half-built filter row keeps the client meaning", async () => {
     const grid = await mountLayer(fetchFromLayer(), "pages");

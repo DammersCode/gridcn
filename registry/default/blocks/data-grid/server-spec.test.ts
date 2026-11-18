@@ -8,6 +8,13 @@ describe("serverSpecKey", () => {
     expect(serverSpecKey(a)).toBe(serverSpecKey(b));
   });
 
+  it("tells a negated group from a plain one and ignores not false", () => {
+    const filters = (not?: boolean): ServerSpec["filters"] => [{ join: "and", ...(not === undefined ? null : { not }), filters: [{ columnId: "x", operator: "equals", value: "q" }] }];
+    const spec = (not?: boolean): ServerSpec => ({ sorts: [], filters: filters(not), searchText: "" });
+    expect(serverSpecKey(spec(true))).not.toBe(serverSpecKey(spec()));
+    expect(serverSpecKey(spec(false))).toBe(serverSpecKey(spec()));
+  });
+
   it("differs when the search text differs", () => {
     expect(serverSpecKey({ ...EMPTY_SERVER_SPEC, searchText: "a" })).not.toBe(serverSpecKey(EMPTY_SERVER_SPEC));
   });

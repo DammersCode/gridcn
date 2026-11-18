@@ -75,7 +75,7 @@ All callbacks follow one timing rule. See [Callback timing and errors](/docs/eve
 
 ## onFilterChange [#onfilterchange]
 
-The callback receives the whole filter tree as `FilterNode[]`. A node is a filter row (`FilterSpec`) or a group (`FilterGroup`). The top level combines with `filterJoin`, `"and"` by default. A group holds `join` (`"and"` or `"or"`) and its own `filters`. A group nests one more group at most. An empty group matches every row. If you leave out a `filterId`, the store assigns one.
+The callback receives the whole filter tree as `FilterNode[]`. A node is a filter row (`FilterSpec`) or a group (`FilterGroup`). The top level combines with `filterJoin`, `"and"` by default. A group holds `join` (`"and"` or `"or"`), its own `filters`, and an optional `not` (`true` keeps the rows the children do not match). A group nests one more group at most. An empty group matches every row. If you leave out a `filterId`, the store assigns one.
 
 A `FilterSpec` holds `columnId`, `operator`, and `value`. The `value` is a string for most operators. Numbers and dates are text, such as `"30"` and `"2025-01-31"`. These operators differ:
 

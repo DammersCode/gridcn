@@ -38,7 +38,7 @@ import {
   useDataGridSelector,
   useDataGridStoreApi,
 } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { appendChild, locateNode, moveSibling, oppositeJoin, removeNode, updateNode } from "./filter-tree-edit";
+import { appendChild, locateNode, moveSibling, oppositeJoin, removeNode, updateNode, withNot } from "./filter-tree-edit";
 import { emptyValueFor, operatorHasValue, operatorLabel, type CustomOperators } from "./operators-for-column-type";
 
 import { DataGridFilterValueInput } from "./filter-value-input";
@@ -72,6 +72,8 @@ type FilterMenuContext = {
   rootJoin: FilterGroup["join"];
   /** A `parentId` of `undefined` sets the top-level join. */
   onJoinChange: (parentId: string | undefined, join: FilterGroup["join"]) => void;
+  /** Negates or restores a group by id. */
+  onNotChange: (groupId: string, not: boolean) => void;
   onRemove: (filterId: string) => void;
   onAddFilter: (parent: FilterGroup | undefined) => void;
   onAddGroup: (parent: FilterGroup | undefined) => void;
@@ -217,6 +219,7 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
     labels,
     onUpdate: (filterId, next) => actions.setFilters(updateNode(latest(), filterId, (node) => ({ ...node, ...next }) as FilterNode)),
     rootJoin,
+    onNotChange: (groupId, not) => actions.setFilters(updateNode(latest(), groupId, (node) => withNot(node as FilterGroup, not))),
     onJoinChange: (parentId, join) => (parentId === undefined ? actions.setFilterJoin(join) : actions.setFilters(updateNode(latest(), parentId, (node) => ({ ...node, join }) as FilterNode))),
     onRemove: (filterId) => {
       const current = latest();
@@ -529,9 +532,12 @@ function FilterGroupBox(props: FilterGroupBoxProps): ReactNode {
       <div className="flex min-w-0 flex-1 flex-col gap-2 rounded-md border p-2">
         <div className="flex items-center gap-2">
           <span data-grid-filter-group-summary="" className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-            {group.join === "or" ? labels.toolbar.filterGroupAny : labels.toolbar.filterGroupAll}
+            {group.not === true ? (group.join === "or" ? labels.toolbar.filterGroupNone : labels.toolbar.filterGroupNotAll) : group.join === "or" ? labels.toolbar.filterGroupAny : labels.toolbar.filterGroupAll}
           </span>
           <ButtonGroup data-grid-filter-group-header="" className="shrink-0">
+            <Button type="button" variant={group.not === true ? "secondary" : "outline"} size="sm" aria-pressed={group.not === true} title={labels.toolbar.filterGroupNotAriaLabel} aria-label={labels.toolbar.filterGroupNotAriaLabel} onClick={() => ctx.onNotChange(filterId, group.not !== true)}>
+              {labels.toolbar.filterGroupNot}
+            </Button>
           <Button type="button" variant="outline" size="icon-sm" title={labels.toolbar.addFilter} aria-label={labels.toolbar.addFilter} onClick={() => ctx.onAddFilter(group)} disabled={noColumns}>
             <Plus />
           </Button>

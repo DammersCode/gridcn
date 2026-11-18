@@ -19,7 +19,6 @@ Internal record. Each item below came out of the 2.0 review as an API improvemen
 | Sort keys for date, select, checkbox, url, longText; coalesced `immediate` ticks | Accepted, see `perf-sort-1m.md` |
 | Header override, async `formatCell`, import `valueMode: "raw"`, print `source` and `css`, import `validateRow` | See `io-hooks-2.0.md` |
 | Server import preview, streaming XLSX writer, server search | See `io-server-scope.md` |
-| "Not" toggle and a summary sentence in the filter group header | `FilterGroup` has no negation in the model, the server spec, or the query layer; the toggle needs all three |
 
 ## Built after the review
 
@@ -28,5 +27,6 @@ Internal record. Each item below came out of the 2.0 review as an API improvemen
 | Sequential (cursor) source eviction | `use-data-grid-server-rows.sequence-eviction.test.tsx`; a cursor scroll source evicts past `maxLoadedRows` like a random access one |
 | Row grouping on the client, in `useDataGridServerRows` (scroll and pages), and in the query layer (`fetchRows` with `groupBy`) | `row-grouping-spec.md`, `server-grouping-spec.md`, `orm-query-layer-spec.md` |
 | Root filter join (`filterJoin`) on the client, the server spec, URL state, and saved views | `filter-root-join.md` |
+| "Not" toggle of a filter group (`FilterGroup.not`) on the client, the server spec, the query layer, URL state, saved views, and the menu | `filter-group-not.md` |
 
 Chunked row storage stays stopped at stage 0: the copy is about 90% of a live edit tick at 100k rows, and the prototype accessor reads 40 to 70% slower (`perf-row-storage.md`).

@@ -10,6 +10,12 @@ function editList(nodes: readonly FilterNode[], parentId: string | undefined, ed
   });
 }
 
+/** The group with `not` set, or without the key when `not` is false. */
+export function withNot(group: FilterGroup, not: boolean): FilterGroup {
+  const { not: _previous, ...rest } = group;
+  return not ? { ...rest, not: true } : rest;
+}
+
 export function updateNode(nodes: readonly FilterNode[], filterId: string, update: (node: FilterNode) => FilterNode): FilterNode[] {
   return nodes.map((node) => {
     if (node.filterId === filterId) return update(node);

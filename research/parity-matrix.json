@@ -136,7 +136,8 @@
             "registry/default/blocks/data-grid/sort-filter/index.test.ts",
             "registry/default/blocks/data-grid/sort-filter/custom-operators.test.ts",
             "registry/default/blocks/data-grid/store/known-columns.test.tsx",
-            "registry/default/blocks/data-grid/store/filter-join.test.tsx"
+            "registry/default/blocks/data-grid/store/filter-join.test.tsx",
+            "registry/default/blocks/data-grid/store/filter-group-not.test.tsx"
           ]
         },
         "PC": {
@@ -155,7 +156,8 @@
           "status": "supported",
           "evidence": [
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.browser.test.tsx",
-            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.filter-join.test.tsx"
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.filter-join.test.tsx",
+            "registry/default/blocks/data-grid/store/filter-group-not.test.tsx"
           ]
         },
         "C": {
@@ -177,7 +179,8 @@
           "evidence": [
             "registry/default/blocks/data-grid-toolbar/header-filter-server.browser.test.tsx",
             "registry/default/blocks/data-grid/store/custom-filter-operators.test.tsx",
-            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.filter-join.test.tsx"
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.filter-join.test.tsx",
+            "registry/default/blocks/data-grid/store/filter-group-not.test.tsx"
           ]
         },
         "API": {
@@ -188,7 +191,7 @@
         }
       },
       "doc": "/docs/sort-filter-search/filtering",
-      "note": "A sort or filter on a column that is not in `columns` drops with a development warning, in every mode. `filterJoin` joins the top-level filters with `and` (default) or `or`; a server request carries `filterJoin: \"or\"` in the spec."
+      "note": "A sort or filter on a column that is not in `columns` drops with a development warning, in every mode. `filterJoin` joins the top-level filters with `and` (default) or `or`; a server request carries `filterJoin: \"or\"` in the spec. `FilterGroup.not: true` negates a group in every mode; the server spec carries it on the group."
     },
     {
       "id": "filter-values",
@@ -1610,7 +1613,8 @@
           "status": "supported",
           "evidence": [
             "registry/default/blocks/data-grid-url-state/data-grid-url-state.test.tsx",
-            "registry/default/blocks/data-grid-url-state/data-grid-url-state.group.test.tsx"
+            "registry/default/blocks/data-grid-url-state/data-grid-url-state.group.test.tsx",
+            "registry/default/blocks/data-grid-url-state/filter-param.test.ts"
           ],
           "note": "The `group` param holds the `groupBy` columns; a client grid reads them against its live, visible, groupable columns. The open groups stay out. The `join` param holds the top-level join: `join=or` when the list joins with `or`, absent for `and`."
         },
@@ -1649,7 +1653,8 @@
           "status": "supported",
           "evidence": [
             "tests/parity/url-state.parity.test.tsx",
-            "tests/parity/saved-views.parity.test.tsx"
+            "tests/parity/saved-views.parity.test.tsx",
+            "registry/default/blocks/data-grid-url-state/filter-param.test.ts"
           ],
           "note": "Server contract: the grid keeps up to 1,000 set-filter values from a link or a saved view and sends them in the `filter` spec of `fetchRows`; the server judges each value, `choices` does not narrow or bound the list. An `isNoneOf` list past 1,000 drops the filter, because a cut list would widen the result."
         },
@@ -1671,7 +1676,8 @@
           "status": "supported",
           "evidence": [
             "tests/parity/saved-views.parity.test.tsx",
-            "registry/default/blocks/data-grid-views/use-data-grid-views.test.tsx"
+            "registry/default/blocks/data-grid-views/use-data-grid-views.test.tsx",
+            "registry/default/blocks/data-grid-views/view-state.test.ts"
           ],
           "note": "A view keeps `groupBy`, validated against live, groupable columns and capped at 4 levels. The open groups stay out. A view keeps the top-level join of its filters."
         },
@@ -3504,7 +3510,7 @@
             "tests/parity/server-query.parity.test.tsx",
             "tests/server-query/conformance.test.ts"
           ],
-          "note": "A root `filterJoin: \"or\"` joins the top-level filters in SQL; `rowScope` still ANDs on top."
+          "note": "A root `filterJoin: \"or\"` joins the top-level filters in SQL; `rowScope` still ANDs on top. A group with `not: true` renders as `IS NOT TRUE`, so a NULL cell stays in the result as on the client."
         },
         "API": {
           "status": "n/a",

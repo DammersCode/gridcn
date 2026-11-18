@@ -5,7 +5,7 @@ const collator = new Intl.Collator("en-US", { numeric: true, sensitivity: "base"
 
 export type RemoteSort = { columnId: string; direction: "asc" | "desc" };
 export type RemoteFilter = { columnId: string; operator: string; value?: string | [string, string] | string[] };
-export type RemoteFilterGroup = { join: "and" | "or"; filters: readonly RemoteFilterNode[] };
+export type RemoteFilterGroup = { join: "and" | "or"; not?: boolean; filters: readonly RemoteFilterNode[] };
 export type RemoteFilterNode = RemoteFilter | RemoteFilterGroup;
 export type RemoteQuery = {
   page: number;
@@ -123,7 +123,8 @@ export function createRemoteServer() {
       const matchNode = (row: DemoRow, node: RemoteFilterNode): boolean => {
         if (!isGroup(node)) return matchFilter(row, node);
         if (node.filters.length === 0) return true;
-        return node.join === "or" ? node.filters.some((f) => matchNode(row, f)) : node.filters.every((f) => matchNode(row, f));
+        const match = node.join === "or" ? node.filters.some((f) => matchNode(row, f)) : node.filters.every((f) => matchNode(row, f));
+        return node.not === true ? !match : match;
       };
       list = list.filter((row) => filters.every((f) => matchNode(row, f)));
     }

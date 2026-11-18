@@ -62,6 +62,19 @@ describe("URL state join in mode Z (lazy rows)", () => {
   });
 });
 
+describe("URL state negated group in mode Z (lazy rows)", () => {
+  it("a deep-linked [notor group reaches the filter state and the rows stay whole", async () => {
+    render(
+      <NuqsTestingAdapter searchParams="?filter=[notor,n%3Alt%3A1,n%3Agt%3A4,]">
+        <LazyGrid />
+      </NuqsTestingAdapter>,
+    );
+    await waitFor(() => expect(state().filterState).toMatchObject([{ join: "or", not: true }]));
+    await waitFor(() => expect(state().data).toHaveLength(6));
+    expect(state().viewIndex).toEqual([0, 1, 2, 3, 4, 5]);
+  });
+});
+
 describe("URL state in mode SS (sortMode server)", () => {
   it("a deep-linked sort is tracked and the server's order stays", async () => {
     render(

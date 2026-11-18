@@ -58,9 +58,9 @@ export function OrdersGrid({ rows }: { rows: Order[] }) {
 }
 ```
 
-After the click, a row stays if its country is NL and its name contains A or B. A `join: "and"` group needs every child to match, and `"or"` needs one. Any other value acts as `"and"`, and an empty group matches every row.
+After the click, a row stays if its country is NL and its name contains A or B. A `join: "and"` group needs every child to match, and `"or"` needs one. Any other value acts as `"and"`, and an empty group matches every row. `not: true` keeps the rows the children fail, empty cells included.
 
-A group can contain one level of nested groups. `setFilters` drops a group nested deeper, with the filter rows in it.
+A group can contain one level of nested groups. `setFilters` drops a group nested deeper, with its rows.
 
 ## Operators
 
@@ -132,15 +132,15 @@ With `filterMode="server"`, the grid never calls `match`, so leave it out. In cl
 
 `filterJoin` sets how the top-level entries combine. `"and"` (default) keeps a row that passes every entry. `"or"` keeps a row that passes any entry. An empty list filters nothing.
 
-`onFilterJoinChange` fires with the next join ([props](/docs/events-state/sort-filter-events)). `actions.setFilterJoin(join)` sets the join from code. A join change resets a paged grid to page 1. With `filterMode="server"`, the spec holds `filterJoin: "or"` for "or" and no `filterJoin` for "and".
+`onFilterJoinChange` fires with the next join ([props](/docs/events-state/sort-filter-events)). `actions.setFilterJoin(join)` sets it from code. A join change resets a paged grid to page 1. With `filterMode="server"`, the spec holds `filterJoin: "or"` only for "or".
 
 A header filter leaves the join as it is. Under "or", its value list shows every value.
 
 ## Filter menu
 
-The popover lists the filter tree. The first entry of a list reads "Where". The second entry shows a select with "And" and "Or". That select sets the join of the whole list, so every later entry shows the same word as plain text. Each group is a list, and so is the top level.
+The popover lists the filter tree. The first entry of a list reads "Where". The second entry shows a select with "And" and "Or". That select sets the join of the whole list. Later entries show the same word as text. Each group is a list, and so is the top level.
 
-Each row holds a column, an operator, a value, and a remove button, with a drag handle to its right. The title row has "Add filter", "Add group", and "Clear all". Each group has buttons to add a filter, add a group, and remove the group.
+Each row holds a column, an operator, a value, a remove button, and a drag handle. The title row has "Add filter", "Add group", and "Clear all". Each group has a "Not" toggle and buttons to add a filter, add a group, and remove the group.
 
 A new group takes the opposite join of its parent, so a group in an "and" list starts as "Or". `isBetween` shows two inputs, and `isAnyOf` and `isNoneOf` show a checkbox list.
 

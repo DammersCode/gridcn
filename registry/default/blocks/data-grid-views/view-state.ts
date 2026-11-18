@@ -76,7 +76,7 @@ function stripFilterIds(nodes: readonly FilterNode[], depth: number): FilterNode
   const out: FilterNode[] = [];
   for (const node of nodes) {
     if (isFilterGroup(node)) {
-      if (depth < MAX_FILTER_GROUP_DEPTH) out.push({ join: node.join, filters: stripFilterIds(node.filters, depth + 1) });
+      if (depth < MAX_FILTER_GROUP_DEPTH) out.push({ join: node.join, ...(node.not === true ? { not: true } : null), filters: stripFilterIds(node.filters, depth + 1) });
     } else {
       const { filterId: _filterId, ...spec } = node;
       out.push(spec);
@@ -101,7 +101,7 @@ export function captureViewState(source: DataGridViewState): DataGridViewState {
 
 function withoutUnusedValues(nodes: readonly FilterNode[]): FilterNode[] {
   return nodes.map((node) => {
-    if (isFilterGroup(node)) return { join: node.join, filters: withoutUnusedValues(node.filters) };
+    if (isFilterGroup(node)) return { join: node.join, ...(node.not === true ? { not: true } : null), filters: withoutUnusedValues(node.filters) };
     return node.operator === "empty" || node.operator === "notEmpty" ? { columnId: node.columnId, operator: node.operator } : node;
   });
 }
@@ -150,7 +150,7 @@ export function savableViewState(state: DataGridViewState): DataGridViewState | 
 }
 
 type RawSort = { columnId?: unknown; direction?: unknown };
-type RawFilter = { columnId?: unknown; operator?: unknown; value?: unknown; join?: unknown; filters?: unknown };
+type RawFilter = { columnId?: unknown; operator?: unknown; value?: unknown; join?: unknown; not?: unknown; filters?: unknown };
 type RawLayout = { widths?: unknown; order?: unknown; pins?: unknown; hidden?: unknown };
 type RawState = { sorts?: unknown; groupBy?: unknown; filters?: unknown; filterJoin?: unknown; searchText?: unknown; searchOptions?: unknown; columnLayout?: unknown };
 type RawSearchOptions = { matchCase?: unknown; wholeCell?: unknown };
@@ -276,9 +276,12 @@ function sanitizeFilterNodes(raw: unknown, depth: number, columns: ViewColumns |
         continue;
       }
       budget.groups++;
+      const droppedBefore = tally.dropped;
       const children = sanitizeFilterNodes(entry.filters, depth + 1, columns, budget, tally);
-      if (children.length === 0) tally.dropped++;
-      else out.push({ join, filters: children });
+      const negated = entry.not === true;
+      // a negated group missing a term would match different rows, so it goes whole
+      if (children.length === 0 || (negated && tally.dropped > droppedBefore)) tally.dropped++;
+      else out.push(negated ? { join, not: true, filters: children } : { join, filters: children });
       continue;
     }
     const { columnId, operator } = entry;
@@ -396,7 +399,7 @@ export function parseViewFile(text: string, columns: ViewColumns): ViewFileResul
   const hidden = new Set(sanitized.state.columnLayout.hidden);
   const sorts = sanitized.state.sorts.filter((s) => !hidden.has(s.columnId));
   const groupBy = sanitized.state.groupBy.filter((id) => !hidden.has(id));
-  const filters = pruneFilterSpecs(sanitized.state.filters, (spec) => !hidden.has(spec.columnId));
+  const filters = pruneFilterSpecs(sanitized.state.filters, (spec) => !hidden.has(spec.columnId), true);
   const dropped = sanitized.dropped + (sanitized.state.sorts.length - sorts.length) + (sanitized.state.groupBy.length - groupBy.length) + (countFilterSpecs(sanitized.state.filters) - countFilterSpecs(filters));
   return { ok: true, name: cleanViewName(file.name), state: { ...sanitized.state, sorts, groupBy, filters }, dropped };
 }

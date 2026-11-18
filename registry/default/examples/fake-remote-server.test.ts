@@ -58,6 +58,18 @@ describe("createRemoteServer filter groups", () => {
     expect(result.total).toBe(expected);
   });
 
+  it("a negated group keeps the rows its children fail, like the client", async () => {
+    const server = createRemoteServer();
+    const all = await server.fetchPage({ page: 1, pageSize: 1000 });
+    const role = all.rows[0]!.role;
+    const group = (not: boolean) => ({ join: "and" as const, not, filters: [{ columnId: "role", operator: "equals", value: role }] });
+    const plain = await server.fetchPage({ page: 1, pageSize: 1, filters: [group(false)] });
+    const negated = await server.fetchPage({ page: 1, pageSize: 1, filters: [group(true)] });
+    expect(negated.total).toBe(server.total - plain.total);
+    const empty = await server.fetchPage({ page: 1, pageSize: 1, filters: [{ join: "or", not: true, filters: [] }] });
+    expect(empty.total).toBe(server.total);
+  });
+
   it("an empty group matches every row, like the client", async () => {
     const server = createRemoteServer();
     const { total } = await server.fetchPage({ page: 1, pageSize: 1, filters: [{ join: "or", filters: [] }] });

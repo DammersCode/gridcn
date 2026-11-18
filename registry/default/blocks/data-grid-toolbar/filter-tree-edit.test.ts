@@ -1,9 +1,22 @@
 import { describe, expect, it } from "vitest";
-import type { FilterNode } from "@/registry/default/blocks/data-grid/data-grid";
-import { appendChild, moveSibling, oppositeJoin, removeNode, updateNode } from "./filter-tree-edit";
+import type { FilterGroup, FilterNode } from "@/registry/default/blocks/data-grid/data-grid";
+import { appendChild, moveSibling, oppositeJoin, removeNode, updateNode, withNot } from "./filter-tree-edit";
 
 const leaf = (filterId: string): FilterNode => ({ filterId, columnId: "name", operator: "equals", value: filterId });
 const tree = (): FilterNode[] => [leaf("a"), { filterId: "g", join: "or", filters: [leaf("b"), leaf("c")] }];
+
+describe("withNot", () => {
+  const group: FilterGroup = { filterId: "g", join: "or", filters: [] };
+  it("sets not and removes the key when off", () => {
+    expect(withNot(group, true)).toEqual({ ...group, not: true });
+    expect(withNot({ ...group, not: true }, false)).toEqual(group);
+    expect("not" in withNot({ ...group, not: true }, false)).toBe(false);
+  });
+  it("is kept by updateNode edits of a child", () => {
+    const next = updateNode([{ ...group, not: true, filters: [leaf("b")] }], "b", (node) => ({ ...node, filterId: "b" }) as FilterNode);
+    expect(next[0]).toMatchObject({ not: true });
+  });
+});
 
 describe("filter tree edits", () => {
   it("updateNode edits a nested row", () => {

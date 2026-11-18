@@ -48,9 +48,9 @@ export function countFilterSpecs(nodes: readonly FilterNode[]): number {
 
 /**
  * Keeps the rows `keep` accepts at every level and drops groups left empty. Returns the input array
- * itself when nothing changes, so a stable tree stays a stable reference.
+ * itself when nothing changes, so a stable tree stays a stable reference. With `dropLossyNegated`, a negated group that loses any descendant goes whole, because fewer terms inside a negation match other rows.
  */
-export function pruneFilterSpecs(nodes: readonly FilterNode[], keep: (spec: FilterSpec) => boolean): FilterNode[] {
+export function pruneFilterSpecs(nodes: readonly FilterNode[], keep: (spec: FilterSpec) => boolean, dropLossyNegated = false): FilterNode[] {
   let changed = false;
   const next: FilterNode[] = [];
   for (const node of nodes) {
@@ -60,8 +60,8 @@ export function pruneFilterSpecs(nodes: readonly FilterNode[], keep: (spec: Filt
       continue;
     }
     const children = groupChildren(node);
-    const kept = pruneFilterSpecs(children, keep);
-    if (kept.length === 0 && children.length > 0) changed = true;
+    const kept = pruneFilterSpecs(children, keep, dropLossyNegated);
+    if ((kept.length === 0 && children.length > 0) || (dropLossyNegated && node.not === true && kept !== children)) changed = true;
     else if (kept !== children) {
       next.push({ ...node, filters: kept });
       changed = true;

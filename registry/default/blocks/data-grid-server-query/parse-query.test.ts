@@ -213,7 +213,9 @@ describe("dates", () => {
 
 describe("tree, sorts, ranges, search", () => {
   it("normalizes empty groups and never emits an empty and, or, or in", () => {
-    expect(only([{ join: "or", filters: [] }]).t).toBe("false");
+    expect(only([{ join: "or", filters: [] }]).t).toBe("true");
+    expect(only([{ join: "or", not: true, filters: [] }]).t).toBe("true");
+    expect(only([{ join: "and", not: true, filters: [{ join: "or", filters: [] }] }]).t).toBe("false");
     expect(only([{ join: "and", filters: [] }]).t).toBe("true");
     expect(only([{ join: "and", filters: [leaf("name", "contains", "")] }]).t).toBe("true");
   });
@@ -291,6 +293,25 @@ describe("values and aggregates requests", () => {
     const plan = parseQuery({ spec: {}, columnIds: ["qty", "qty", "hid", "nope", "id"] }, { columns: withAggregate, request: "aggregates" });
     expect(plan.columns.map((entry) => entry.column.id)).toEqual(["qty"]);
     expect(parseQuery({ spec: {} }, { columns: withAggregate, request: "aggregates" }).columns).toHaveLength(1);
+  });
+});
+
+describe("group not", () => {
+  const two = [leaf("name", "equals", "a"), leaf("qty", "gt", "3")];
+  const group = (join: string, extra: Record<string, unknown>, filters: unknown[] = two) => [{ join, filters, ...extra }];
+  it("wraps a negated group in a not predicate over its join", () => {
+    expect(rows(group("or", { not: true })).where).toMatchObject({ t: "not", item: { t: "or" } });
+    expect(rows(group("and", { not: true })).where).toMatchObject({ t: "not", item: { t: "and" } });
+  });
+  it.each([undefined, false, "true", 1, null])("leaves a group with not %j as it was", (value) => {
+    expect(rows(group("and", { not: value })).where).toMatchObject({ t: "and" });
+  });
+  it("negates a one-child group and folds a double negation", () => {
+    expect(rows(group("and", { not: true }, [two[0]])).where).toMatchObject({ t: "not", item: { t: "leaf" } });
+    expect(rows(group("and", { not: true }, group("and", { not: true }, [two[0]]))).where).toMatchObject({ t: "leaf" });
+  });
+  it("leaves an empty negated group as no filter", () => {
+    expect(rows(group("and", { not: true }, [])).where.t).toBe("true");
   });
 });
 
