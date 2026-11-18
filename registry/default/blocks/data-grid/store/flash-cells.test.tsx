@@ -125,6 +125,49 @@ describe("flashCells (transient write-pulse)", () => {
     vi.useRealTimers();
   });
 
+  it("a re-flash of a live key leaves the set for one frame, so the pulse plays again", () => {
+    vi.useFakeTimers();
+    const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper() });
+    const seen: boolean[] = [];
+    result.current.api.subscribe((state) => seen.push(state.flashingCells.has(key(0, "name"))));
+
+    act(() => {
+      result.current.actions.flashCells([cell(0, "name")]);
+    });
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    act(() => {
+      result.current.actions.flashCells([cell(0, "name")]);
+    });
+    act(() => {
+      vi.advanceTimersByTime(20);
+    });
+    expect(seen).toEqual([true, false, true]);
+    vi.useRealTimers();
+  });
+
+  it("lifts many cells flashed in one call with one store write", () => {
+    vi.useFakeTimers();
+    const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper() });
+    const cells = [cell(0, "name"), cell(1, "name"), cell(2, "name"), cell(0, "age"), cell(1, "age")];
+    act(() => {
+      result.current.actions.flashCells(cells);
+    });
+    expect(vi.getTimerCount()).toBe(1);
+    let writes = 0;
+    result.current.api.subscribe((state, prev) => {
+      if (state.flashingCells !== prev.flashingCells) writes += 1;
+    });
+    act(() => {
+      vi.advanceTimersByTime(1400);
+    });
+    expect(writes).toBe(1);
+    expect(result.current.api.getState().flashingCells.size).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
+  });
+
   it("respects a custom duration", () => {
     vi.useFakeTimers();
     const { result } = renderHook(() => useHarness(), { wrapper: makeWrapper() });

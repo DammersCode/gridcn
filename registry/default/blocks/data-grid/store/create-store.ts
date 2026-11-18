@@ -311,8 +311,11 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
   const rowIndexCache = createRowIndexCache();
   const announceChecked = (s: DataGridStoreState, next: Parameters<typeof checkedChange>[1]) =>
     checkedChange(s, next, () => rowIndexCache.resolve(s.data, s.getRowId));
-  /** Per-key auto-clear timers for `flashCells`; a re-flash of a live key clears its old timer so the pulse restarts. */
-  const flashTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  const flashExpiry = new Map<string, number>();
+  let flashSweepTimer: ReturnType<typeof setTimeout> | undefined;
+  let flashSweepDue = Infinity;
+  const flashReplayKeys = new Set<string>();
+  let flashReplayFrame: number | undefined;
   // The data-write cluster's streaming bookkeeping (see data-write.ts) — the write actions and _syncProps share it by reference.
   const gates = createGateTracker({
     timeoutMs: (name) => {
@@ -767,6 +770,31 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       validateKeymap(initKeymap);
       validateSharedBindings(initKeymap);
     }
+    const sweepFlashes = () => {
+      flashSweepTimer = undefined;
+      flashSweepDue = Infinity;
+      const now = Date.now();
+      const expired: string[] = [];
+      for (const [key, expiry] of flashExpiry) {
+        if (expiry <= now) expired.push(key);
+        else if (expiry < flashSweepDue) flashSweepDue = expiry;
+      }
+      for (const key of expired) flashExpiry.delete(key);
+      if (flashSweepDue !== Infinity) flashSweepTimer = setTimeout(sweepFlashes, flashSweepDue - now);
+      const current = get().flashingCells;
+      if (!expired.some((key) => current.has(key))) return;
+      const lifted = new Set(current);
+      for (const key of expired) lifted.delete(key);
+      set({ flashingCells: lifted });
+    };
+    const replayFlashes = () => {
+      flashReplayFrame = undefined;
+      const current = get().flashingCells;
+      const restored = new Set(current);
+      for (const key of flashReplayKeys) if (flashExpiry.has(key)) restored.add(key);
+      flashReplayKeys.clear();
+      if (restored.size !== current.size) set({ flashingCells: restored });
+    };
     const syncPhase = createSyncPhase(set, get, api, memory, {
       dataWrite,
       rowIndexCache,
@@ -1562,24 +1590,26 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       },
       flashCells(cells, durationMs = 1400) {
         if (cells.length === 0) return;
-        const next = new Set(get().flashingCells);
+        const live = get().flashingCells;
+        const next = new Set(live);
+        const expiry = Date.now() + durationMs;
+        let replay = false;
         for (const { rowId, columnId } of cells) {
           const key = flashCellKey(rowId, columnId);
-          next.add(key);
-          const existing = flashTimers.get(key);
-          if (existing !== undefined) clearTimeout(existing);
-          flashTimers.set(
-            key,
-            setTimeout(() => {
-              flashTimers.delete(key);
-              const current = get();
-              if (!current.flashingCells.has(key)) return;
-              const lifted = new Set(current.flashingCells);
-              lifted.delete(key);
-              set({ flashingCells: lifted });
-            }, durationMs),
-          );
+          // A live key leaves the set for one frame so its animation restarts.
+          if (live.has(key)) {
+            next.delete(key);
+            flashReplayKeys.add(key);
+            replay = true;
+          } else next.add(key);
+          flashExpiry.set(key, expiry);
         }
+        if (expiry < flashSweepDue) {
+          clearTimeout(flashSweepTimer);
+          flashSweepDue = expiry;
+          flashSweepTimer = setTimeout(sweepFlashes, durationMs);
+        }
+        if (replay && flashReplayFrame === undefined) flashReplayFrame = requestAnimationFrame(replayFlashes);
         set({ flashingCells: next });
       },
     },
