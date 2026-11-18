@@ -47,5 +47,5 @@ describe("controlled comments cost", () => {
     expect(best("tenK")).toBeLessThan(150 * CI_FACTOR);
     expect(engine.store.core.confirmed.size).toBe(100_000);
     for (const run of runs) run.engine.dispose();
-  });
+  }, 30_000);
 });

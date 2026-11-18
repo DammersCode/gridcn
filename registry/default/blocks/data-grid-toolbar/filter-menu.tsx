@@ -96,6 +96,9 @@ type FilterMenuContext = {
  * array position) since multiple rows on the same column are allowed and meaningful; a reorder moves
  * a node among its siblings only and persists through `setFilters`.
  */
+/** Focus target that no filter row owns: the pending-focus effect falls back to the Add button. */
+const ADD_BUTTON_FOCUS = "add-button";
+
 export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
   const { className, allColumns = false } = props;
   const actions = useDataGridActions();
@@ -231,7 +234,7 @@ export function DataGridFilterMenu(props: DataGridFilterMenuProps): ReactNode {
       while (near && near.siblings.length === 1 && near.parentId) near = locateNode(current, near.parentId);
       const nextFocusId = near && (near.siblings[near.index + 1]?.filterId ?? near.siblings[near.index - 1]?.filterId);
       if (nextFocusId) pendingFocusFilterIdRef.current = nextFocusId;
-      else requestAnimationFrame(() => addButtonRef.current?.focus({ preventScroll: true }));
+      else pendingFocusFilterIdRef.current = ADD_BUTTON_FOCUS;
     },
     onAddFilter: (parent) => {
       const row = newRow();
