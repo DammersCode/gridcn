@@ -45,6 +45,10 @@ describe("cellTypes registry", () => {
     const defined = defineCellType("text", textCellType);
     expect(defined).toBe(textCellType);
   });
+
+  it("defineCellType without a key returns the entry as-is", () => {
+    expect(defineCellType(textCellType)).toBe(textCellType);
+  });
 });
 
 describe("textCellType value pipeline", () => {

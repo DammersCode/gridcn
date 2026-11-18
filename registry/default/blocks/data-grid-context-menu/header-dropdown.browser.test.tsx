@@ -92,8 +92,7 @@ describe("DataGridHeaderDropdown", () => {
     expect(trigger.classList.contains("opacity-0")).toBe(true);
 
     await userEvent.hover(trigger);
-    await new Promise((r) => requestAnimationFrame(r));
-    expect(Number(getComputedStyle(trigger).opacity)).toBeGreaterThan(0);
+    await expect.poll(() => Number(getComputedStyle(trigger).opacity), { timeout: 3000 }).toBeGreaterThan(0);
   });
 
   it("opening the menu and clicking Hide column hides the column", async () => {

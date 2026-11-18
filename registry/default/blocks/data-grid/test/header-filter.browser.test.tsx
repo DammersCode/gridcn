@@ -86,8 +86,7 @@ describe("renderHeaderFilter", () => {
     const getApi = await renderGrid();
     expect(slot("name")!.classList.contains("opacity-0")).toBe(true);
     await userEvent.hover(slot("name")!);
-    await new Promise((r) => requestAnimationFrame(r));
-    expect(Number(getComputedStyle(slot("name")!).opacity)).toBeGreaterThan(0);
+    await expect.poll(() => Number(getComputedStyle(slot("name")!).opacity), { timeout: 3000 }).toBeGreaterThan(0);
 
     getApi().getState().actions.setFilters([{ columnId: "email", operator: "isAnyOf", value: ["a"] }]);
     await vi.waitFor(() => expect(document.querySelector('[data-column-id="email"]')!.hasAttribute(GRID_ATTR.filtered)).toBe(true));
