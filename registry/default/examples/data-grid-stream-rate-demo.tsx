@@ -224,7 +224,7 @@ export default function DataGridStreamRateDemo(): ReactNode {
         <Counter label="Applied cells per second" stat="applied" value={text(stats?.applied)} />
         <Counter label="Grid calls per second" stat="calls" value={text(stats?.calls)} />
       </dl>
-      <DataGridProvider defaultData={rows} columns={columns} getRowId={getRowId} headerClickBehavior="sort" defaultSortState={[{ columnId: "price", direction: "asc" }]}>
+      <DataGridProvider defaultData={rows} columns={columns} getRowId={getRowId} headerClickBehavior="sort">
         <RateFeed
           active={running && onScreen && tabShown}
           rate={Number(rate)}
