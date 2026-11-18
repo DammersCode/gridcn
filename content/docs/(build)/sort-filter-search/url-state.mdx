@@ -83,13 +83,13 @@ The [nuqs adapter docs](https://nuqs.dev/docs/adapters) list the adapters for ot
 
 The add-on writes the keys `sort`, `group`, `filter`, `q`, `cols`, `hide`, `widths`, and `pins`. `prefix` namespaces them, so several grids can share one page. `<DataGridUrlState prefix="orders" />` writes `orders_sort`, `orders_filter`, and `orders_q`.
 
-A filter group is a segment `[or` or `[and`, then its rows, then a `]` segment:
+A filter group is a segment `[or` or `[and` (`[notor` or `[notand` when negated), then its rows, then a `]` segment:
 
 ```txt
 ?filter=country:equals:X,[or,name:contains:A,name:contains:B,]
 ```
 
-The characters `[` and `]` are always percent-encoded inside ids and values, so a value cannot imitate a group. A group holds one more group at most. A deeper group drops with the filter rows in it. The parser skips a stray `]`, closes a group left open at the end, and drops an empty group.
+The characters `[` and `]` are always percent-encoded inside ids and values, so a value cannot imitate a group. A group holds one more group at most. A deeper group drops with its rows. The parser skips a stray `]`, closes a group left open at the end, and drops an empty group.
 
 `join=or` joins the top-level entries with "or". The param is absent for "and", and any other value reads as "and". With a `prefix`, the param is `<prefix>_join`.
 

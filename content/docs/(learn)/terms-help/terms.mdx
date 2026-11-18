@@ -54,7 +54,7 @@ A term row links to the page that explains it.
 | eviction | Unloading loaded rows back to holes, so a hole renders as a skeleton again. `maxLoadedRows` and `evict()` do it. | [Tune row retention](/docs/scroll-mode/tune-row-retention#max-loaded-rows) |
 | expanded state | `{ mode, ids }`: the row groups that differ from `mode`, named by group id. It decides which groups show their rows. | [Row grouping](/docs/rows-pages-menus/row-grouping) |
 | export source | The function that returns the rows of the whole result for an all-rows export. It gets the `spec` and a `signal`. | [Export the whole result](/docs/import-export/export-whole-result) |
-| filter group | A box of filter nodes that match together. Its join is `and` or `or`. A group holds one more group at most. The top level of `filterState` combines with the filter join. | [Filtering](/docs/sort-filter-search/filtering) |
+| filter group | A box of filter nodes that match together. Its join is `and` or `or`. A group holds one more group at most. `not: true` negates it: it matches the rows its children do not match. The top level of `filterState` combines with the filter join. | [Filtering](/docs/sort-filter-search/filtering) |
 | filter join | How the top-level entries of `filterState` combine: `and` or `or`. `filterJoin` sets it. A filter group has its own join. | [Filtering](/docs/sort-filter-search/filtering#filter-join) |
 | filter menu | The toolbar menu where the user builds filters from filter rows and filter groups. `DataGridFilterMenu` is the built-in one. | [Toolbar](/docs/sort-filter-search/toolbar#the-pieces) |
 | filter node | One entry of `filterState`: a filter row or a filter group. | [Filtering](/docs/sort-filter-search/filtering) |
