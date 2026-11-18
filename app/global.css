@@ -541,3 +541,9 @@ div[style*="--callout-color"] {
   inset-inline-start: 0;
   background-image: linear-gradient(to right, var(--grid-pin-shadow), transparent);
 }
+
+/* Wider icon-to-text gap in the sidebar tab switcher. */
+#nd-sidebar button[aria-haspopup="dialog"],
+.fd-scroll-container > a {
+  column-gap: 0.75rem;
+}
