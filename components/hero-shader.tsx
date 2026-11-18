@@ -3,8 +3,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { decayStep, frameDelta, lerpStep } from "./hero-shader-timing";
 
-const IDLE_SPEED = 0.7;
-
 const CELL_W = 52;
 const CELL_H = 26;
 const DASH_PATTERNS: number[][] = [[], [5, 3], [2, 3]];
@@ -115,7 +113,7 @@ function setupScene(canvas: HTMLCanvasElement): () => void {
     t: 0,
     off: 0,
     lastOff: 0,
-    speed: IDLE_SPEED,
+    speed: 0.35,
     mom: 0,
     dragging: false,
     lastClientY: 0,
@@ -268,7 +266,7 @@ function setupScene(canvas: HTMLCanvasElement): () => void {
   function draw(dt = 1 / 60) {
     ctx.clearRect(0, 0, state.w, state.h);
 
-    const target = state.px === null ? IDLE_SPEED : 0;
+    const target = state.px === null ? 0.35 : 0;
     state.speed = lerpStep(state.speed, target, 0.04, dt);
     state.mom = decayStep(state.mom, 0.94, dt);
     state.off += state.dragging ? 0 : (state.speed + state.mom) * dt * 60;
