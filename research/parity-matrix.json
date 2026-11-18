@@ -621,9 +621,11 @@
           ]
         },
         "API": {
-          "status": "gap",
-          "track": "#71",
-          "note": "A grouped server source saves and refreshes in place (`registry/default/blocks/data-grid-server/use-data-grid-server-rows.groups-save.test.tsx`); the cell flips when a parity test mounts the mode with groups."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/grouping.parity.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.groups-save.test.tsx"
+          ]
         }
       }
     },

@@ -22,7 +22,7 @@ A grid feature can behave differently on a local array, on server pages and on s
 
 ## Matrix
 
-<ParityLegend statuses={["supported","gap","n/a"]} />
+<ParityLegend statuses={["supported","n/a"]} />
 
 <div className="max-w-full overflow-x-auto">
 {/* lint-ok: generated matrix */}
@@ -138,7 +138,7 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="gap" note={"A grouped server source saves and refreshes in place (registry/default/blocks/data-grid-server/use-data-grid-server-rows.groups-save.test.tsx); the cell flips when a parity test mounts the mode with groups."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
     </tr>
     <tr id="parity-pinned-rows">
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal"><a href="/docs/rows-pages-menus/pinned-rows">Pinned rows and aggregates</a></th>
@@ -692,10 +692,6 @@ A sort or filter on a column that is not in `columns` drops with a development w
 ### Row count
 
 A development warning names `totalRowCount` above the loaded rows under a client sort or filter. It never fires when `sortMode` and `filterMode` are both server.
-
-### Row grouping
-
-**API**: Gap (#71): A grouped server source saves and refreshes in place (`registry/default/blocks/data-grid-server/use-data-grid-server-rows.groups-save.test.tsx`). The cell flips when a parity test mounts the mode with groups.
 
 ### Server totals (`useDataGridServerAggregate`)
 

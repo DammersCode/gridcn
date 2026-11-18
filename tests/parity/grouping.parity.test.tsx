@@ -72,6 +72,14 @@ describe.each(GROUPING_MODES)("row grouping in mode %s", (mode) => {
     expect(idsOf(grid)).toEqual(["__group:name=alpha", "__group:name=beta", "r1", "r3"]);
     expect(groupRows()[0]!.getAttribute("aria-expanded")).toBe("false");
   });
+  it("reports a write inside a group through onDataChange and updates the group aggregate", async () => {
+    const grid = await mount();
+    grid.act(() => void grid.state().actions.updateCells([{ rowId: "r1", columnId: "n", value: 10 }], { source: "paste" }));
+    await grid.settle();
+    expect(grid.changes.at(-1)?.source).toBe("paste");
+    expect(grid.cell("r1", "n")).toBe(10);
+    expect(groupRows().map((row) => row.textContent)).toEqual(["Name: alpha (3)9", "Name: beta (2)14"]);
+  });
 });
 
 describe("row grouping in mode PC", () => {
