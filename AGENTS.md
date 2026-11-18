@@ -122,7 +122,7 @@ square, colorless site look is its preset, not the library's contract.
 - Accept `className` on every public component root and merge it with `cn`. Do not hard-code the look of the outermost element where a consumer cannot override it.
 - Do not hard-wire a look into the structure: no layout that works only with square corners, tight padding, or a monochrome palette.
 - Every element inside a cell or row paints no background of its own, or one derived from the same state tokens as the row and selection layers (`color-mix(in_srgb, ...)` composites like the translucent layers). Verify the selected, active, hovered, and checked states with `expectNoPaintMismatch` from `registry/default/blocks/data-grid/test/paint-parity.test-helper.ts` before a UI change is done.
-- Test: before a UI change is done, view it with `--radius 0` and `1rem`, a tinted primary, and a larger base font (the `/dev/header-filter-designs` page has a preset switcher to copy). A component that breaks in one of them is not done.
+- Test: before a UI change is done, view it with `--radius 0` and `1rem`, a tinted primary, and a larger base font. A component that breaks in one of them is not done.
 
 ## Security
 
@@ -216,7 +216,7 @@ All green before committing — a red gate gets fixed, not committed around. Run
 
 Fast check while you work: `npx vitest run <file> --project unit` for a unit file, `npx vitest run <file> --project browser` for a browser file. Run the full gates before you commit.
 
-Browser runs share one port. Take the lock before a `--project browser` or `browser-compiled` run: loop `mkdir C:/repos/danny/.review-browser-lock` until it succeeds, run, then `rmdir` it, also on failure. Use `--maxWorkers=3` under load.
+Browser runs share one port. Take the lock before a `--project browser` or `browser-compiled` run: loop `mkdir R:/repos/danny/.review-browser-lock` until it succeeds, run, then `rmdir` it, also on failure. Use `--maxWorkers=3` under load.
 
 A single failed test: rerun that one file once before debugging (timing-budget perf tests flake under machine load; the browser config's `retry: 2` absorbs them). Still red on the rerun = a real failure. Many failures in one file = shared-state pollution, not flake: look for an un-awaited `render()`/`unmount()` (both return Promises; `pnpm lint:typed` enforces `no-floating-promises` on browser tests).
 
