@@ -94,26 +94,38 @@ function encodeFilterValue(input: FilterOperatorInput, value: FilterSpec["value"
  */
 export function serializeFilterState(filters: readonly FilterNode[], options: SerializeFilterStateOptions = {}): string {
   const segments: string[] = [];
-  writeNodes(filters, 0, segments, options);
+  writeNodes(filters, 0, segments, options, false);
   return segments.join(",");
 }
 
-function writeNodes(nodes: readonly FilterNode[], depth: number, segments: string[], options: SerializeFilterStateOptions): void {
+/** Returns true when it skipped a node the reader would not keep. */
+function writeNodes(nodes: readonly FilterNode[], depth: number, segments: string[], options: SerializeFilterStateOptions, negated: boolean): boolean {
+  let lost = false;
   for (const node of nodes) {
     if (!isFilterGroup(node)) {
       const input = isFilterOperator(node.operator) ? filterOperatorInput(node.operator) : (options.operatorInput?.(node.columnId, node.operator) ?? "single");
-      if (!readerKeeps(node, options)) continue;
+      if (!readerKeeps(node, options, negated)) {
+        lost = true;
+        continue;
+      }
       segments.push(`${encodeURIComponent(node.columnId)}:${encodeURIComponent(node.operator)}:${encodeFilterValue(input, node.value)}`);
       continue;
     }
     const children = groupChildren(node);
-    if (depth >= MAX_FILTER_GROUP_DEPTH || children.length === 0) continue;
+    if (depth >= MAX_FILTER_GROUP_DEPTH || children.length === 0) {
+      lost = true;
+      continue;
+    }
     const start = segments.length;
-    segments.push(`[${node.not === true ? "not" : ""}${node.join === "or" ? "or" : "and"}`);
-    writeNodes(children, depth + 1, segments, options);
-    if (segments.length === start + 1) segments.pop();
+    const own = node.not === true;
+    segments.push(`[${own ? "not" : ""}${node.join === "or" ? "or" : "and"}`);
+    const childLost = writeNodes(children, depth + 1, segments, options, negated || own);
+    if (childLost) lost = true;
+    // a negated group missing a term would match other rows, so it is not written
+    if (segments.length === start + 1 || (own && childLost)) segments.length = start;
     else segments.push(GROUP_CLOSE);
   }
+  return lost;
 }
 
 function valueStrings(value: FilterSpec["value"]): readonly string[] {
@@ -122,9 +134,9 @@ function valueStrings(value: FilterSpec["value"]): readonly string[] {
 }
 
 /** True unless {@link parseFilterState} would drop the leaf. An `isAnyOf` list over its bound stays and the reader cuts it. */
-function readerKeeps(node: FilterSpec, options: SerializeFilterStateOptions): boolean {
+function readerKeeps(node: FilterSpec, options: SerializeFilterStateOptions, negated: boolean): boolean {
   if (valueStrings(node.value).some((part) => part.length > MAX_URL_FILTER_VALUE_LENGTH)) return false;
-  if (node.operator !== "isNoneOf" || !Array.isArray(node.value)) return true;
+  if ((node.operator !== "isNoneOf" && !(negated && node.operator === "isAnyOf")) || !Array.isArray(node.value)) return true;
   return node.value.length <= (options.maxChoices?.(node.columnId) ?? DEFAULT_MAX_ANYOF_CHOICES);
 }
 
@@ -132,7 +144,7 @@ function readerKeeps(node: FilterSpec, options: SerializeFilterStateOptions): bo
 const DECODE_FAILED = Symbol("decode-failed");
 
 /** Decodes a segment's value part per `operator`: `isBetween` splits on {@link RANGE_SEPARATOR} into a tuple, `isAnyOf` and `isNoneOf` split on {@link ANYOF_SEPARATOR} into a choice list (empty value = empty list), everything else stays a plain string. Malformed input (wrong tuple arity, bad percent-encoding) returns {@link DECODE_FAILED}. */
-function decodeFilterValue(operator: string, input: FilterOperatorInput, raw: string, maxChoices: number): FilterSpec["value"] | typeof DECODE_FAILED {
+function decodeFilterValue(operator: string, input: FilterOperatorInput, raw: string, maxChoices: number, negated: boolean): FilterSpec["value"] | typeof DECODE_FAILED {
   if (input === "list") {
     if (raw === "") return [];
     const parts: string[] = [];
@@ -140,7 +152,7 @@ function decodeFilterValue(operator: string, input: FilterOperatorInput, raw: st
     for (const rawPart of raw.split(ANYOF_SEPARATOR, maxChoices + 1)) {
       if (parts.length >= maxChoices) {
         // a truncated exclusion list would match more rows than the link meant
-        if (operator === "isNoneOf") return DECODE_FAILED;
+        if (operator === "isNoneOf" || negated) return DECODE_FAILED;
         break;
       }
       const decoded = rawPart === EMPTY_ENTRY_TOKEN ? "" : safeDecode(rawPart);
@@ -220,7 +232,7 @@ export function parseFilterState(raw: string, options: ParseFilterStateOptions =
     if (decodedId === null || decodedId === "" || decodedOperator === null) { loseChild(); continue; }
     const input = isFilterOperator(decodedOperator) ? filterOperatorInput(decodedOperator) : options.operatorInput?.(decodedId, decodedOperator);
     if (input === undefined) { loseChild(); continue; }
-    const value = decodeFilterValue(decodedOperator, input, rawValue, options.maxChoices?.(decodedId) ?? DEFAULT_MAX_ANYOF_CHOICES);
+    const value = decodeFilterValue(decodedOperator, input, rawValue, options.maxChoices?.(decodedId) ?? DEFAULT_MAX_ANYOF_CHOICES, stack.some((open) => open.not));
     if (value === DECODE_FAILED) { loseChild(); continue; }
     const frame = stack[stack.length - 1]!;
     if (frame.dropped) { loseChild(); continue; }

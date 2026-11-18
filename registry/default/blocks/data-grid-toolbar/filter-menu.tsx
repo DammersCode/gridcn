@@ -535,9 +535,9 @@ function FilterGroupBox(props: FilterGroupBoxProps): ReactNode {
             {group.not === true ? (group.join === "or" ? labels.toolbar.filterGroupNone : labels.toolbar.filterGroupNotAll) : group.join === "or" ? labels.toolbar.filterGroupAny : labels.toolbar.filterGroupAll}
           </span>
           <ButtonGroup data-grid-filter-group-header="" className="shrink-0">
-          <Button type="button" variant={group.not === true ? "secondary" : "outline"} size="sm" aria-pressed={group.not === true} title={labels.toolbar.filterGroupNotAriaLabel} aria-label={labels.toolbar.filterGroupNotAriaLabel} onClick={() => ctx.onNotChange(filterId, group.not !== true)}>
-            {labels.toolbar.filterGroupNot}
-          </Button>
+            <Button type="button" variant={group.not === true ? "secondary" : "outline"} size="sm" aria-pressed={group.not === true} title={labels.toolbar.filterGroupNotAriaLabel} aria-label={labels.toolbar.filterGroupNotAriaLabel} onClick={() => ctx.onNotChange(filterId, group.not !== true)}>
+              {labels.toolbar.filterGroupNot}
+            </Button>
           <Button type="button" variant="outline" size="icon-sm" title={labels.toolbar.addFilter} aria-label={labels.toolbar.addFilter} onClick={() => ctx.onAddFilter(group)} disabled={noColumns}>
             <Plus />
           </Button>

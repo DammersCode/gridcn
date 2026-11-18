@@ -76,7 +76,11 @@ add("not group beside a row", [leaf("active", "equals", "true"), not("or", [leaf
 add("not inside an or group", [{ join: "or", filters: [leaf("name", "equals", "alpha"), not("and", [leaf("qty", "gt", "50"), leaf("tag", "equals", "red")])] }]);
 add("not of a nested group", [not("and", [{ join: "or", filters: [leaf("name", "contains", "a"), leaf("name", "contains", "e")] }, leaf("score", "gt", "0")])]);
 add("not of a not", [not("and", [not("or", [leaf("qty", "gt", "50"), leaf("tag", "equals", "red")])])]);
+add("empty or group", [{ join: "or", filters: [] }]);
 add("not of an empty group", [not("and", [])]);
+add("not of an empty or group", [not("or", [])]);
+add("not of a group with an empty or group", [not("and", [{ join: "or", filters: [] }])]);
+add("or group beside an empty or group", [{ join: "or", filters: [leaf("name", "equals", "alpha"), { join: "or", filters: [] }] }]);
 add("not of a group with an empty group", [not("and", [{ join: "and", filters: [] }])]);
 add("not of a one-child group", [not("or", [leaf("qty", "lt", "50")])]);
 add("no filters", []);

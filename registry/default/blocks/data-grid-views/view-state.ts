@@ -399,7 +399,7 @@ export function parseViewFile(text: string, columns: ViewColumns): ViewFileResul
   const hidden = new Set(sanitized.state.columnLayout.hidden);
   const sorts = sanitized.state.sorts.filter((s) => !hidden.has(s.columnId));
   const groupBy = sanitized.state.groupBy.filter((id) => !hidden.has(id));
-  const filters = pruneFilterSpecs(sanitized.state.filters, (spec) => !hidden.has(spec.columnId));
+  const filters = pruneFilterSpecs(sanitized.state.filters, (spec) => !hidden.has(spec.columnId), true);
   const dropped = sanitized.dropped + (sanitized.state.sorts.length - sorts.length) + (sanitized.state.groupBy.length - groupBy.length) + (countFilterSpecs(sanitized.state.filters) - countFilterSpecs(filters));
   return { ok: true, name: cleanViewName(file.name), state: { ...sanitized.state, sorts, groupBy, filters }, dropped };
 }

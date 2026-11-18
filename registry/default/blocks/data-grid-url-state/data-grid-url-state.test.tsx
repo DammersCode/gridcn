@@ -288,6 +288,13 @@ describe("DataGridUrlState excluded columns", () => {
     warn.mockRestore();
   });
 
+  it("drops a negated group whole when a row in it is for a hidden column", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const getState = renderGuarded("?filter=name%3Aequals%3AAlice,[notor,name%3Acontains%3Ab,id%3Aequals%3Ar0,]");
+    expect(getState().filter).toEqual([{ filterId: expect.any(String), columnId: "name", operator: "equals", value: "Alice" }]);
+    warn.mockRestore();
+  });
+
   it("drops URL sort specs for a sortable:false or hidden column and dev-warns", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const getState = renderGuarded("?sort=age%3Aasc,id%3Adesc,name%3Aasc");

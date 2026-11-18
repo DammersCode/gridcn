@@ -57,7 +57,7 @@ export function buildDefaultLabels(locale: string): DataGridLabels {
       filterGroupNone: "None of the following are true…",
       filterGroupNotAll: "Not all of the following are true…",
       filterGroupNot: "Not",
-      filterGroupNotAriaLabel: "Negate the filter group",
+      filterGroupNotAriaLabel: "Not: negate the filter group",
       columns: "Columns",
       columnsAriaLabel: "Columns",
       headerFilterAriaLabel: (column, filtered) => (filtered ? `Filter ${column}, filtered` : `Filter ${column}`),

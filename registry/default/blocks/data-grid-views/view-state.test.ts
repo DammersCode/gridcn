@@ -78,6 +78,16 @@ describe("group not", () => {
   });
 });
 
+describe("view file with a hidden column in a negated group", () => {
+  const open: ViewColumns = new Map([["name", {}], ["secret", {}]]);
+  const file = (not: boolean) =>
+    serializeViewFile({ name: "x", state: { ...state, columnLayout: { ...state.columnLayout, hidden: ["secret"] }, filters: [{ join: "and", ...(not ? { not } : null), filters: [{ columnId: "name", operator: "equals", value: "a" }, { columnId: "secret", operator: "equals", value: "b" }] }] } });
+  it("drops the negated group whole and keeps a plain group with fewer terms", () => {
+    expect(parseViewFile(file(true), open)).toMatchObject({ ok: true, state: { filters: [] } });
+    expect(parseViewFile(file(false), open)).toMatchObject({ ok: true, state: { filters: [{ join: "and", filters: [{ columnId: "name" }] }] } });
+  });
+});
+
 describe("captureViewState", () => {
   it("strips transient filter ids from nested groups", () => {
     const captured = captureViewState({

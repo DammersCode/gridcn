@@ -213,7 +213,9 @@ describe("dates", () => {
 
 describe("tree, sorts, ranges, search", () => {
   it("normalizes empty groups and never emits an empty and, or, or in", () => {
-    expect(only([{ join: "or", filters: [] }]).t).toBe("false");
+    expect(only([{ join: "or", filters: [] }]).t).toBe("true");
+    expect(only([{ join: "or", not: true, filters: [] }]).t).toBe("true");
+    expect(only([{ join: "and", not: true, filters: [{ join: "or", filters: [] }] }]).t).toBe("false");
     expect(only([{ join: "and", filters: [] }]).t).toBe("true");
     expect(only([{ join: "and", filters: [leaf("name", "contains", "")] }]).t).toBe("true");
   });

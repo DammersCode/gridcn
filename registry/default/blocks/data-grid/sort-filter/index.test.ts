@@ -6,6 +6,7 @@ import {
   findSearchMatches,
   makeFilterPredicate,
   makeFilterTest,
+  pruneFilterSpecs,
   matchesFilter,
   type CellAccessor,
 } from ".";
@@ -446,6 +447,13 @@ describe("buildViewIndex", () => {
       expect(run([{ join: "and", not: true, filters: [] }])).toEqual([0, 1, 2, 3, 4]);
       expect(run([{ join: "and", not: true, filters: [{ join: "and", not: true, filters: [country("Y")] }] }])).toEqual([3, 4]);
       expect(run([{ join: "and", not: false, filters: [country("Y")] }])).toEqual([3, 4]);
+    });
+
+    it("pruneFilterSpecs with dropLossyNegated drops a negated group that loses a row", () => {
+      const tree: FilterNode[] = [{ join: "or", not: true, filters: [nameStarts("A"), country("Y")] }, { join: "or", filters: [nameStarts("A"), country("Y")] }];
+      const keep = (spec: FilterSpec) => spec.columnId !== "country";
+      expect(pruneFilterSpecs(tree, keep, true)).toEqual([{ join: "or", filters: [nameStarts("A")] }]);
+      expect(pruneFilterSpecs(tree, keep)).toHaveLength(2);
     });
 
     it("a one-child group equals its child", () => {

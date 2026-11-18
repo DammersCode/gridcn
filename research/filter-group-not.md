@@ -11,7 +11,7 @@ A filter group can be negated: `NOT (a AND b)`. The menu shows a "Not" toggle in
 ## Evaluation
 
 - A negated group matches a row when its children, combined by its `join`, do not match. A NULL or empty cell is the empty text the leaf tests already read, so the leaf is `false` and the negation is `true`. `NOT (name equals "x")` keeps rows with an empty name.
-- An empty group is no filter, negated or not. A group whose only child is an empty group is not empty: the child matches every row, so the negation matches none.
+- An empty group of either join is no filter, negated or not, on the client and in the query layer. A group whose only child is an empty group is not empty: the child matches every row, so the negation matches none.
 - Quick search never filters and `rowScope` ANDs on top, so negation never reaches them.
 - Header value filter and distinct values: the list is narrowed by the other top-level entries through the same row test, so a negated group narrows like any other group. A set row inside a negated group counts as any other filter; the header filter writes its own top-level entry.
 
@@ -32,7 +32,7 @@ A filter group can be negated: `NOT (a AND b)`. The menu shows a "Not" toggle in
 ## URL state and saved views
 
 - URL: a negated group opens with `[notand` or `[notor`. An unnegated group keeps `[and` / `[or`. An older reader drops a `[not…` subtree (unknown join), so an old reader shows fewer filters, never a wrong one.
-- A negated group that loses a child on read (a dropped segment, a missing close, a failed sanitize) is dropped whole. Fewer terms inside a negation can narrow or widen the result the wrong way.
+- A negated group that loses a child is dropped whole: on read (a dropped segment, a missing close, a list cut at its bound, a failed sanitize, a hidden or removed column) and on write (a term the reader would drop). Fewer terms inside a negation can narrow or widen the result the wrong way.
 - Saved views keep `not: true` on the group. A view without it loads as before. `captureViewState` and the sanitizer keep `not` only when `true`.
 
 ## Menu

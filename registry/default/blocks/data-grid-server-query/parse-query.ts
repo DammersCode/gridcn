@@ -280,8 +280,9 @@ function parseNodes(value: unknown, path: Path, depth: number, ctx: Ctx): Predic
     if (Array.isArray(node["filters"])) {
       if (depth + 1 > MAX_FILTER_DEPTH) throw new QueryError("limit-exceeded", nodePath);
       const items = parseNodes(node["filters"], [...nodePath, "filters"], depth + 1, ctx);
+      if (items.length === 0) return TRUE;
       const combined = combine(node["join"] === "or" ? "or" : "and", items);
-      return node["not"] === true && items.length > 0 ? negate(combined) : combined;
+      return node["not"] === true ? negate(combined) : combined;
     }
     if (++ctx.budget.leaves > ctx.limits.maxFilterLeaves) throw new QueryError("limit-exceeded", nodePath);
     return parseLeaf(node, nodePath, ctx);

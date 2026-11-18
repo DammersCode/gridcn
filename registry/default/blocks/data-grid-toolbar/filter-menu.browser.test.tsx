@@ -142,7 +142,7 @@ describe("DataGridFilterMenu group header summary", () => {
 });
 
 describe("DataGridFilterMenu group Not toggle", () => {
-  const notToggle = () => document.querySelector<HTMLButtonElement>('[data-grid-filter-group-header] button[aria-label="Negate the filter group"]')!;
+  const notToggle = () => document.querySelector<HTMLButtonElement>('[data-grid-filter-group-header] button[aria-label="Not: negate the filter group"]')!;
   const summary = () => document.querySelector<HTMLElement>("[data-grid-filter-group-summary]")!.textContent;
 
   it("negates the group, follows the summary, and reports aria-pressed", async () => {

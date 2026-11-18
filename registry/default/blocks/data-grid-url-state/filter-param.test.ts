@@ -265,6 +265,21 @@ describe("filter groups in the URL", () => {
     expect(parseFilterState("[and,name:contains:A,bogus:nope:x,]")).toEqual([{ join: "and", filters: [nameContains("A")] }]);
   });
 
+  it("does not write a negated group that would lose a term", () => {
+    const long = { columnId: "b", operator: "equals" as const, value: "x".repeat(1001) };
+    expect(serializeFilterState([{ join: "and", not: true, filters: [nameContains("A"), long] }])).toBe("");
+    expect(serializeFilterState([{ join: "and", filters: [nameContains("A"), long] }])).toBe("[and,name:contains:A,]");
+    expect(serializeFilterState([{ join: "and", not: true, filters: [nameContains("A"), { join: "or", filters: [long] }] }])).toBe("");
+  });
+
+  it("drops a negated group whose isAnyOf list the reader would cut", () => {
+    const list = Array.from({ length: 1001 }, (_, i) => String(i)).join("|");
+    expect(parseFilterState(`[notand,status:isAnyOf:${list},]`)).toEqual([]);
+    expect(parseFilterState(`[and,status:isAnyOf:${list},]`)).toHaveLength(1);
+    const anyOf = { columnId: "status", operator: "isAnyOf" as const, value: list.split("|") };
+    expect(serializeFilterState([{ join: "and", not: true, filters: [anyOf] }])).toBe("");
+  });
+
   it("keeps a flat and list byte-identical to the legacy format", () => {
     const flat = [countryEquals, nameContains("A")];
     expect(serializeFilterState(flat)).toBe("country:equals:X,name:contains:A");
