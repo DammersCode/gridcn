@@ -2496,6 +2496,7 @@
           ]
         }
       },
+      "note": "`prefetchNextPage` has no effect while `groupBy` is set; the hook warns once in development. `revalidateIntervalMs` and `reshapeDelayMs` still apply to grouped sources.",
       "doc": "/docs/server-pagination/tune-page-loading#prefetch"
     },
     {

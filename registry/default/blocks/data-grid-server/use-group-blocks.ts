@@ -6,7 +6,7 @@ import { COLLAPSED, expandedTest, groupIdOf, holeRowId, isDev, normalizeExpanded
 import { blockOf, createGroupStore, evictBlock, landGroups, landRows, layoutView, listFor, type GroupList, type GroupStore, type GroupView } from "./group-lists";
 import { isGroupsAnswer, pageWindowOf, seedGroupStore, useGroupPager, type GroupPagesConfig } from "./group-pages";
 import { assertRowIdsNotReserved, readGroupsAnswer } from "./read-groups-answer";
-import { readAnswer, type FetchReason, type ServerRowsRequest, type WithRowId } from "./read-answer";
+import { MAX_ROW_COUNT, readAnswer, type FetchReason, type ServerRowsRequest, type WithRowId } from "./read-answer";
 import { unionIds, useRefreshGuard } from "./refresh-guard";
 import { groupSaveScope } from "./group-save-scope";
 import { useSaveRefresh, type SaveRefreshPolicy, type SaveRefreshReport } from "./save-refresh";
@@ -113,6 +113,12 @@ export function useGroupBlocks<TData, TCursor = never>(
     },
     [getEngine],
   );
+  /** The pages config with the page cut to the group count of the live store; `view.groupCount` lags one render. */
+  const livePages = (store: GroupStore<TData>) => {
+    const { pages: paging } = live.current;
+    const count = store.lists.get("")?.count;
+    return paging && count ? { ...paging, page: Math.min(paging.page, Math.ceil(count / paging.pageSize)) } : paging;
+  };
   const blockSize = () => blockSizeOf(live.current.options, live.current.pages);
   const overscan = () => positiveInteger(live.current.options.overscan, DEFAULT_OVERSCAN, 0);
   const idOf = (row: TData, index: number) => live.current.options.getRowId(row, index);
@@ -129,7 +135,7 @@ export function useGroupBlocks<TData, TCursor = never>(
     const states = new Map<string, "loading" | "failed">();
     for (const { listId } of getEngine().failed.values()) states.set(listId, "failed");
     for (const { list } of getEngine().flight.values()) if (!states.has(list.id)) states.set(list.id, "loading");
-    const next = { ...layoutView(store, expandedTest(live.current.expanded), (id) => states.get(id), pageWindowOf(live.current.pages)), loading: getEngine().flight.size > 0, groupCount: store.lists.get("")?.count ?? null } satisfies ViewState<TData>;
+    const next = { ...layoutView(store, expandedTest(live.current.expanded), (id) => states.get(id), pageWindowOf(livePages(store)), { onCapped: () => warn("view-cap", `the open groups hold more than ${MAX_ROW_COUNT} view rows; the view stops at ${MAX_ROW_COUNT}. Collapse a group or add a filter`) }), loading: getEngine().flight.size > 0, groupCount: store.lists.get("")?.count ?? null } satisfies ViewState<TData>;
     getEngine().view = next;
     setView(next);
     const { onLoaded } = live.current.options;
@@ -226,7 +232,7 @@ export function useGroupBlocks<TData, TCursor = never>(
     const key = `${list.id}|${block}`;
     const size = blockSize();
     const start = block * size;
-    const range = { start, end: list.count === null ? start + size : Math.min(start + size, list.count) };
+    const range = { start, end: list.count === null ? start + size : Math.max(start, Math.min(start + size, list.count)) };
     const controller = new AbortController();
     const flight: Flight = { list: list as unknown as GroupList<never>, block, controller, ids: savingRows(), mark: saveMark() };
     getEngine().flight.set(key, flight);
@@ -247,7 +253,8 @@ export function useGroupBlocks<TData, TCursor = never>(
   const wantedBlocks = (store: GroupStore<TData>) => {
     const found = new Map<string, { list: GroupList<TData>; block: number; distance: number }>();
     const top = listFor(store, [], null);
-    found.set(`|${(live.current.pages?.page ?? 1) - 1}`, { list: top, block: (live.current.pages?.page ?? 1) - 1, distance: -1 });
+    const topBlock = (livePages(store)?.page ?? 1) - 1;
+    found.set(`|${topBlock}`, { list: top, block: topBlock, distance: -1 });
     const { window: range, view: laid } = getEngine();
     if (!range || !laid) return found;
     const middle = (range.start + range.end) / 2;

@@ -109,6 +109,9 @@ The grid checks each answer. It throws on an answer with no `groups`. It throws 
 - A change of `groupBy`, the spec, or the page size returns to the first list.
 - A change of the spec scrolls the grid to its first row.
 - Groups load by offset. In scroll mode, `source: "sequential"` has no effect while the spec groups, and the hook warns once in development. Leave `source` unset or use `"random"` with `groupBy`.
+- While `groupBy` is set, `prefetchNextPage` has no effect, and the hook warns once in development. `revalidateIntervalMs` and `reshapeDelayMs` still apply.
+- A link to a group page past the last page requests that page first. When the group count arrives, the pager moves to the last page.
+- The open groups lay out at most 10,000,000 view rows. Past that, the view stops and the hook warns once in development. Collapse a group or add a filter.
 - `initialAnswer` can be the groups answer of the top level.
 - An insert, a duplicate, a delete, and a move report the reason `server-groups`.
 - A save, a refusal, and `refresh()` keep the open groups.

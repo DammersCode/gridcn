@@ -517,6 +517,9 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   useEffect(() => {
     if (pagerNeeded && !pagerWatch.seen) warn("pager", "pages mode has more rows than one page, but nothing read `pager`; spread `server.pager` onto DataGridPaginationBar or control `page`");
   }, [pagerNeeded, pagerWatch, warn]);
+  useEffect(() => {
+    if (grouped && options.prefetchNextPage === true) warn("prefetch-grouped", "`prefetchNextPage` has no effect while `groupBy` is set: a grouped page loads when the pager moves to it");
+  }, [grouped, options.prefetchNextPage, warn]);
   useLayoutEffect(() => {
     if (page !== wantedPage) setPage(page);
   }, [page, wantedPage, setPage]);
@@ -611,7 +614,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
     page,
     pageSize,
     pageSizeOptions,
-    totalRowCount: cursorSource ? null : shown.totalRowCount,
+    totalRowCount: grouped || cursorSource ? null : shown.totalRowCount,
     hasMore: shown.hasMore && !awaitingChain,
     onPageChange: setPage,
     onPageSizeChange,

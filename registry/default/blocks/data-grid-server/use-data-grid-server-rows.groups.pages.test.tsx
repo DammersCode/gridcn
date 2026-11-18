@@ -103,6 +103,45 @@ describe("grouped pages source", () => {
     expect("childKind" in server.calls.at(-1)!).toBe(false);
   });
 
+  it("clamps a page beyond the known group count without an inverted or out-of-range request", async () => {
+    const regions = Object.fromEntries(Array.from({ length: 25 }, (_, i) => [`G${String(i).padStart(2, "0")}`, 1]));
+    const server = fakeServer(rowsOf(regions));
+    const { result } = mount(server, { defaultPageSize: 10, pageSizeOptions: [10] });
+    await waitFor(() => expect(keysOf(result)).toHaveLength(10));
+    const before = server.calls.length;
+    act(() => result.current.pager.onPageChange(9));
+    await waitFor(() => expect(result.current.pager.page).toBe(3));
+    await waitFor(() => expect(keysOf(result)).toHaveLength(5));
+    const after = server.calls.slice(before);
+    expect(after.filter((call) => call.start >= 25 || call.end < call.start)).toEqual([]);
+  });
+
+  it("keeps a page that a flat answer could not hold once the groups come", async () => {
+    const flat = rowsOf({ A: 15 });
+    const regions = Object.fromEntries(Array.from({ length: 50 }, (_, i) => [`G${String(i).padStart(2, "0")}`, 1]));
+    const grouped = fakeServer(rowsOf(regions));
+    const fetchRows = vi.fn((request: Parameters<typeof grouped.fetchRows>[0]) => (request.spec.groupBy?.length ? grouped.fetchRows(request) : Promise.resolve({ rows: flat.slice(request.start, request.end), totalRowCount: flat.length })));
+    const flatSpec = { sorts: [], filters: [], searchText: "", groupBy: [] as string[] };
+    const { result, rerender } = renderHook(({ spec }) => useDataGridServerRows<Row>({ fetchRows: fetchRows as never, defaultPageSize: 10, pageSizeOptions: [10], spec, onSpecChange: () => {} }), { initialProps: { spec: flatSpec } });
+    await waitFor(() => expect(result.current.gridProps.data).toHaveLength(10));
+    rerender({ spec: { ...flatSpec, groupBy: ["region"] } });
+    await waitFor(() => expect(keysOf(result)).toHaveLength(10));
+    act(() => result.current.pager.onPageChange(4));
+    await waitFor(() => expect(keysOf(result)?.[0]).toBe("G30"));
+    expect(result.current.pager.page).toBe(4);
+  });
+
+  it("revalidates the grouped pages on its interval and warns that prefetchNextPage has no effect", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const server = fakeServer(rowsOf(REGIONS));
+    const { result } = mount(server, { revalidateIntervalMs: 1000, prefetchNextPage: true });
+    await waitFor(() => expect(keysOf(result)).toEqual(["A", "B"]));
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("prefetchNextPage"));
+    const before = server.calls.length;
+    await waitFor(() => expect(server.calls.length).toBeGreaterThan(before), { timeout: 3000 });
+    expect(server.calls.slice(before).every((call) => call.childKind === "groups")).toBe(true);
+  });
+
   it("shows an initialAnswer of groups without a request", async () => {
     const server = fakeServer(rowsOf(REGIONS));
     const initialAnswer = { groups: [{ key: "A", childCount: 7, totalRowCount: 7 }, { key: "B", childCount: 3, totalRowCount: 3 }], groupCount: 5, totalRowCount: 21 };

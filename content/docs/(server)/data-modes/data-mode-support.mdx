@@ -770,6 +770,7 @@ Mode-neutral by design. Comments are addressed by row id and column id, so a sor
 
 ### Next page prefetch
 
+- `prefetchNextPage` has no effect while `groupBy` is set. The hook warns once in development. `revalidateIntervalMs` and `reshapeDelayMs` still apply to grouped sources.
 - **L, PC**: n/a: Rows are in memory.
 - **Z**: n/a: `overscan` already loads rows ahead on both sides.
 
