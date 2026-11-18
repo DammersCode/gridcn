@@ -398,3 +398,4 @@ Changes of release 2.0 that are not breaking. The breaking changes are in [CHANG
 - Fix: under `validationMode: "warn"`, pasted, filled, or imported text that the cell type cannot parse keeps the cell value and is listed in `onValidationError`, instead of writing `undefined`.
 - `rejectText(message)` shows its message in `onValidationError`, the cell tooltip, and the import `rejected` list. Without a message the grid shows "The text could not be parsed".
 - Fix: a cell that flashes again while it still flashes plays the pulse again. Cells flashed in one call fade out in one store write.
+- Docs: the streaming rows example has a second demo, `data-grid-stream-rate-demo`. It feeds a 100,000-row grid at 10, 100, or 1,000 updates per second, buffers the patches, and makes one `updateCells` call per animation frame. It has pause, `reorder`, and `flash` controls and live frame counters.

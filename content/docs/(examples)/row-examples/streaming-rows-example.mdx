@@ -101,6 +101,49 @@ function TickerGrid({ autoSort }: { autoSort: boolean }) {
 }
 ```
 
+## Feed at a high rate [#feed-at-a-high-rate]
+
+A feed of 1,000 updates a second must not make 1,000 grid calls a second. This demo holds the patches in a buffer and sends them in one `updateCells` call per animation frame. The grid has 100,000 rows. The feed touches the first 200.
+
+<ComponentPreview name="data-grid-stream-rate-demo" />
+
+<InstallCommand item="data-grid-stream-rate-demo" />
+
+- Pause stops the feed. The feed also stops while the tab is hidden or the demo is off screen.
+- The rate select sets how many patches the feed makes each second. The grid calls per second stay at or below the frames per second.
+- The reorder select sets the `reorder` option of each call. Click a column header to sort, then compare the three values.
+- The Flash switch sets `flash` on each call.
+- The counters update once a second. Applied cells counts the writes that changed a value.
+
+Flush the buffer from an animation frame:
+
+```tsx
+import { useEffect } from "react";
+import {
+  useDataGridActions,
+  type CellPatch,
+} from "@/components/data-grid/data-grid";
+
+function FrameFeed({ buffer }: { buffer: CellPatch[] }) {
+  const actions = useDataGridActions();
+
+  useEffect(() => {
+    let frame = 0;
+    const flush = () => {
+      if (buffer.length > 0) {
+        const patches = buffer.splice(0);
+        actions.updateCells(patches, { source: "stream", reorder: "frame" });
+      }
+      frame = requestAnimationFrame(flush);
+    };
+    frame = requestAnimationFrame(flush);
+    return () => cancelAnimationFrame(frame);
+  }, [actions, buffer]);
+
+  return null;
+}
+```
+
 ## Related
 
 - [Stream updates](/docs/rows-live-data/stream-updates): `updateCells`, `updateRows`, and the three `reorder` values

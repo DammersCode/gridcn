@@ -2235,6 +2235,29 @@
       ]
     },
     {
+      "name": "data-grid-stream-rate-demo",
+      "type": "registry:example",
+      "title": "Data Grid Stream Rate Demo",
+      "description": "A 100,000-row feed with pause, rate, reorder, and flash controls and live frame counters. The feed buffers its patches and makes one `updateCells` call per animation frame.",
+      "author": "gridcn",
+      "registryDependencies": [
+        "@gridcn/data-grid",
+        "button",
+        "select",
+        "switch"
+      ],
+      "files": [
+        {
+          "path": "registry/default/examples/data-grid-stream-rate-demo.tsx",
+          "type": "registry:example",
+          "target": "components/data-grid-stream-rate-demo.tsx"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    },
+    {
       "name": "data-grid-demo",
       "type": "registry:example",
       "title": "Data Grid Demo",
