@@ -483,8 +483,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     display: "flow-root", // keeps the track's top margin inside this box
     width: totalWidth,
     height: contentHeight,
-    minWidth: dimensions.clientWidth,
-    minHeight: dimensions.clientHeight,
+    minWidth: dimensions.clientWidth, minHeight: dimensions.clientHeight,
   };
 
   // In flow, never absolute or clipped: Firefox skips painting a sticky viewport in such a box. The margin stops at the last scroll position, so shrunken content cannot extend the range.
@@ -499,6 +498,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     width: dimensions.clientWidth || "100%",
     height: dimensions.clientHeight || "100%",
     overflow: "hidden",
+    "--grid-track-top": "initial", "--grid-track-limit": "initial", // stops the track variables restyling the cells
     "--grid-row-height": `${rowHeight}px`,
     "--grid-viewport-width": `${dimensions.clientWidth}px`,
     "--grid-content-width": `${totalWidth}px`,

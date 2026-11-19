@@ -72,6 +72,43 @@ describe("sticky viewport range", () => {
       expect(style.position, "Firefox skips painting a sticky box in an absolute containing block").not.toBe("absolute");
       expect(style.overflowX).toBe("visible");
       expect(style.overflowY).toBe("visible");
+      expect(style.transform).toBe("none");
+      expect(style.willChange).toBe("auto");
+      expect(style.contain).toBe("none");
+    }
+  });
+
+  it("keeps the scroll range at the content height after deep scrolls", async () => {
+    await render(
+      <div style={{ height: 400, width: 800 }}>
+        <DataGrid data={makeRows(ROWS)} columns={columns} getRowId={(r) => r.id} className="h-100 w-200" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const grid = gridElement();
+    const initial = grid.scrollHeight;
+    for (const fraction of [0.75, 1, 0.3, 0]) {
+      grid.scrollTop = Math.round((initial - grid.clientHeight) * fraction);
+      await settle();
+      expect(grid.scrollHeight).toBe(initial);
+    }
+  });
+
+  it("keeps the header pinned in small steps upward across a re-anchor", async () => {
+    await render(
+      <div style={{ height: 400, width: 800 }}>
+        <DataGrid data={makeRows(ROWS)} columns={columns} getRowId={(r) => r.id} className="h-100 w-200" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const grid = gridElement();
+    const header = document.querySelector<HTMLElement>("[data-grid-header-layer]")!;
+    grid.scrollTop = 4_000_000;
+    await settle();
+    for (let i = 0; i < 40; i++) {
+      grid.scrollTop -= 60_000;
+      await settle();
+      expect(Math.abs(header.getBoundingClientRect().top - grid.getBoundingClientRect().top - grid.clientTop)).toBeLessThanOrEqual(1);
     }
   });
 
