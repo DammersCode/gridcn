@@ -34,8 +34,10 @@ export const INITIAL_SNAPSHOT: ScrollSnapshot = {
 
 /** Debounced isScrolling reset, re-armed every scroll tick — the safety net when `scrollend` doesn't fire (Safari has no support; jsdom declares the IDL attribute but never dispatches it). */
 const ISSCROLLING_DEBOUNCE_MS = 150;
-/** Largest distance (px) between the sticky track's top and the scroll position; Gecko keeps its sticky range and offset arithmetic small this way. */
+/** Largest distance (px) between the sticky track's top and the scroll position once the track has moved; Gecko keeps its sticky range and offset arithmetic small this way. */
 const STICKY_TRACK_RANGE_PX = 1_000_000;
+/** A track anchored at the top of the content is left alone up to this offset, so scroll jumps in grids below it never touch the track. */
+const STICKY_TRACK_FREE_PX = 8_000_000;
 
 /** Raw scroll-element geometry, all six properties read once. */
 type ScrollGeometry = {
@@ -169,11 +171,12 @@ export function getElementStore(element: HTMLElement): ElementStore {
     const track = viewportElement?.parentElement;
     if (!track) return;
     const offset = canvasScrollTop - stickyTrackTop;
-    if (track.style.top === stickyTrackTopWritten && offset >= 0 && offset <= STICKY_TRACK_RANGE_PX) return;
+    // Re-anchor a quarter range early on the way up: the viewport sticks only while the track top is above the scroll position.
+    const lowerBound = stickyTrackTop === 0 ? 0 : STICKY_TRACK_RANGE_PX / 4;
+    if (track.style.getPropertyValue("--grid-track-top") === stickyTrackTopWritten && offset >= lowerBound && offset <= (stickyTrackTop === 0 ? STICKY_TRACK_FREE_PX : STICKY_TRACK_RANGE_PX)) return;
     stickyTrackTop = Math.max(0, canvasScrollTop - STICKY_TRACK_RANGE_PX / 2);
-    track.style.top = `${stickyTrackTop}px`;
-    // Read back: browsers reserialize large lengths (Chromium writes 1.32792e+07px).
-    stickyTrackTopWritten = track.style.top;
+    track.style.setProperty("--grid-track-top", `${stickyTrackTop}px`);
+    stickyTrackTopWritten = track.style.getPropertyValue("--grid-track-top");
   };
 
   const syncOffsets = () => {

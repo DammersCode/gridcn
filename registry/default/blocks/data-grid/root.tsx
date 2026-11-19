@@ -480,15 +480,15 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
 
   const contentStyle: CSSProperties = {
     position: "relative",
+    display: "flow-root", // keeps the track's top margin inside this box
     width: totalWidth,
     height: contentHeight,
-    // The clipped track spans this box, so it must cover the viewport of a short or narrow grid.
-    minWidth: dimensions.clientWidth,
-    minHeight: dimensions.clientHeight,
+    minWidth: dimensions.clientWidth, minHeight: dimensions.clientHeight, overflowAnchor: "none",
   };
 
-  // Clipped so a track top below shrunken content never extends the scroll range.
-  const stickyTrackStyle: CSSProperties = { position: "absolute", inset: 0, overflow: "clip" };
+  // In flow, never absolute or clipped: Firefox skips painting a sticky viewport in such a box. The margin stops at the last scroll position, so shrunken content cannot extend the range.
+  const trackTop = "min(var(--grid-track-top, 0px), var(--grid-track-limit))";
+  const stickyTrackStyle: CSSProperties & Record<string, string> = { position: "relative", "--grid-track-top": "0px", marginTop: trackTop, height: `calc(100% - ${trackTop})`, "--grid-track-limit": `${Math.max(0, contentHeight - dimensions.clientHeight)}px` };
 
   const viewportStyle: CSSProperties & Record<string, string | number> = {
     position: "sticky",
@@ -498,6 +498,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
     width: dimensions.clientWidth || "100%",
     height: dimensions.clientHeight || "100%",
     overflow: "hidden",
+    "--grid-track-top": "initial", "--grid-track-limit": "initial", // stops the track variables restyling the cells
     "--grid-row-height": `${rowHeight}px`,
     "--grid-viewport-width": `${dimensions.clientWidth}px`,
     "--grid-content-width": `${totalWidth}px`,

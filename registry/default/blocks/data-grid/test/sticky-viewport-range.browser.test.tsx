@@ -51,12 +51,82 @@ describe("sticky viewport range", () => {
     const grid = gridElement();
     const header = document.querySelector<HTMLElement>("[data-grid-header-layer]")!;
     for (const fraction of [0.8, 0.05, 0.95, 0.4, 1, 0, 0.6]) {
-      grid.scrollTop = Math.round((grid.scrollHeight - grid.clientHeight) * fraction);
+      const target = Math.round((grid.scrollHeight - grid.clientHeight) * fraction);
+      grid.scrollTop = target;
       await settle();
+      expect(Math.abs(grid.scrollTop - target)).toBeLessThanOrEqual(1);
       const stickyOffset = stickyViewport().getBoundingClientRect().top - stickyViewport().parentElement!.getBoundingClientRect().top;
       expect(Math.abs(stickyOffset)).toBeLessThanOrEqual(MAX_STICKY_OFFSET_PX);
       expect(Math.abs(header.getBoundingClientRect().top - grid.getBoundingClientRect().top - grid.clientTop)).toBeLessThanOrEqual(1);
     }
+  });
+
+  it("keeps the sticky viewport free of absolute and clipped ancestors", async () => {
+    await render(
+      <div style={{ height: 400, width: 800 }}>
+        <DataGrid data={makeRows(1000)} columns={columns} getRowId={(r) => r.id} className="h-100 w-200" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const grid = gridElement();
+    for (let el = stickyViewport().parentElement; el && el !== grid; el = el.parentElement) {
+      const style = getComputedStyle(el);
+      expect(style.position, "Firefox skips painting a sticky box in an absolute containing block").not.toBe("absolute");
+      expect(style.overflowX).toBe("visible");
+      expect(style.overflowY).toBe("visible");
+      expect(style.transform).toBe("none");
+      expect(style.willChange).toBe("auto");
+      expect(style.contain).toBe("none");
+    }
+  });
+
+  it("keeps the scroll range at the content height after deep scrolls", async () => {
+    await render(
+      <div style={{ height: 400, width: 800 }}>
+        <DataGrid data={makeRows(ROWS)} columns={columns} getRowId={(r) => r.id} className="h-100 w-200" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const grid = gridElement();
+    const initial = grid.scrollHeight;
+    for (const fraction of [0.75, 1, 0.3, 0]) {
+      grid.scrollTop = Math.round((initial - grid.clientHeight) * fraction);
+      await settle();
+      expect(grid.scrollHeight).toBe(initial);
+    }
+  });
+
+  it("keeps the header pinned in small steps upward across a re-anchor", async () => {
+    await render(
+      <div style={{ height: 400, width: 800 }}>
+        <DataGrid data={makeRows(ROWS)} columns={columns} getRowId={(r) => r.id} className="h-100 w-200" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const grid = gridElement();
+    const header = document.querySelector<HTMLElement>("[data-grid-header-layer]")!;
+    const trackTop = () => stickyViewport().parentElement!.style.getPropertyValue("--grid-track-top");
+    grid.scrollTop = 12_000_000;
+    await settle();
+    const anchored = trackTop();
+    for (let i = 0; i < 40; i++) {
+      grid.scrollTop -= 60_000;
+      await settle();
+      expect(Math.abs(header.getBoundingClientRect().top - grid.getBoundingClientRect().top - grid.clientTop)).toBeLessThanOrEqual(1);
+    }
+    expect(trackTop()).not.toBe(anchored);
+  });
+
+  it("ignores a --grid-track-top defined on an ancestor", async () => {
+    await render(
+      <div style={{ height: 400, width: 800, ["--grid-track-top" as string]: "300px" }}>
+        <DataGrid data={makeRows(1000)} columns={columns} getRowId={(r) => r.id} className="h-100 w-200" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const grid = gridElement();
+    const header = document.querySelector<HTMLElement>("[data-grid-header-layer]")!;
+    expect(Math.abs(header.getBoundingClientRect().top - grid.getBoundingClientRect().top - grid.clientTop)).toBeLessThanOrEqual(1);
   });
 
   it("clamps the scroll range when the rows shrink below the track top", async () => {

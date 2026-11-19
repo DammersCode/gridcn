@@ -29,7 +29,7 @@ function PinnedBottomGrid() {
   return <DataGrid data={makeRows(5)} columns={columns} getRowId={(r) => r.id} plugins={[plugin]} className="h-150 w-200" />;
 }
 
-describe("sticky track clipping", () => {
+describe("sticky track layout", () => {
   it("shows the empty state of a tall grid without rows", async () => {
     await render(frame(<DataGrid data={makeRows(0)} columns={columns} getRowId={(r) => r.id} className="h-150 w-200" />));
     await mounted();
