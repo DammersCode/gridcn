@@ -169,11 +169,11 @@ export function getElementStore(element: HTMLElement): ElementStore {
     const track = viewportElement?.parentElement;
     if (!track) return;
     const offset = canvasScrollTop - stickyTrackTop;
-    if (track.style.top === stickyTrackTopWritten && offset >= 0 && offset <= STICKY_TRACK_RANGE_PX) return;
+    if (track.style.getPropertyValue("--grid-track-top") === stickyTrackTopWritten && offset >= 0 && offset <= STICKY_TRACK_RANGE_PX) return;
     stickyTrackTop = Math.max(0, canvasScrollTop - STICKY_TRACK_RANGE_PX / 2);
-    track.style.top = `${stickyTrackTop}px`;
+    track.style.setProperty("--grid-track-top", `${stickyTrackTop}px`);
     // Read back: browsers reserialize large lengths (Chromium writes 1.32792e+07px).
-    stickyTrackTopWritten = track.style.top;
+    stickyTrackTopWritten = track.style.getPropertyValue("--grid-track-top");
   };
 
   const syncOffsets = () => {

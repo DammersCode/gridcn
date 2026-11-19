@@ -59,6 +59,22 @@ describe("sticky viewport range", () => {
     }
   });
 
+  it("keeps the sticky viewport free of absolute and clipped ancestors", async () => {
+    await render(
+      <div style={{ height: 400, width: 800 }}>
+        <DataGrid data={makeRows(1000)} columns={columns} getRowId={(r) => r.id} className="h-100 w-200" />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toBeInTheDocument();
+    const grid = gridElement();
+    for (let el = stickyViewport().parentElement; el && el !== grid; el = el.parentElement) {
+      const style = getComputedStyle(el);
+      expect(style.position, "Firefox skips painting a sticky box in an absolute containing block").not.toBe("absolute");
+      expect(style.overflowX).toBe("visible");
+      expect(style.overflowY).toBe("visible");
+    }
+  });
+
   it("clamps the scroll range when the rows shrink below the track top", async () => {
     const view = (rows: number) => (
       <div style={{ height: 400, width: 800 }}>
