@@ -13,6 +13,7 @@ import {
   foldsEmptyText,
   isTextual,
   maxBoundIds,
+  oneOf,
   or,
   own,
   toWhere,
@@ -52,11 +53,19 @@ const get = (row: unknown, key: string): unknown => (typeof row === "object" && 
 const isDecimal = (value: unknown): value is { toFixed(): string } =>
   typeof value === "object" && value !== null && !(value instanceof Date) && typeof (value as { toFixed?: unknown }).toFixed === "function";
 
+/** Trailing zeros up to `scale`, as PostgreSQL returns `numeric(p, s)`; Prisma's `Decimal` drops them. */
+function padToScale(text: string, scale: number | undefined): string {
+  const dot = text.indexOf(".");
+  const places = dot === -1 ? 0 : text.length - dot - 1;
+  if (scale === undefined || places >= scale) return text;
+  return `${text}${dot === -1 ? "." : ""}${"0".repeat(scale - places)}`;
+}
+
 /** A Prisma value in the form the core reads: `Decimal` and `bigint` as text, a date-only `Date` as its UTC day. */
 function plainValue(column: PlanColumn, value: unknown): unknown {
   if (typeof value === "bigint") return value.toString();
   // decimal.js `toFixed()` with no argument never switches to exponent notation, unlike `toString()`.
-  if (isDecimal(value)) return value.toFixed();
+  if (isDecimal(value)) return padToScale(value.toFixed(), column.scale);
   if (value instanceof Date && column.kind === "date" && !column.time) return Number.isNaN(value.getTime()) ? null : value.toISOString().slice(0, 10);
   return value;
 }
@@ -171,7 +180,7 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
   const pairWhere = (plan: GroupsPlan, keys: readonly unknown[], withBlank: boolean): PrismaWhere => {
     const { level } = plan;
     const blankLevel = withBlank ? renderer.blank(level, false, false, foldsEmptyText(level)) : false;
-    return where(and([renderer.node(plan.where), or([keys.length > 0 ? field(level, { in: keys }) : false, blankLevel])]));
+    return where(and([renderer.node(plan.where), or([keys.length > 0 ? oneOf(level, keys) : false, blankLevel])]));
   };
   const selectGroupPage = async (plan: GroupsPlan, page: { offset: number; limit: number }): Promise<RawGroupRow[]> => {
     assertAggregates(plan.aggregates);
