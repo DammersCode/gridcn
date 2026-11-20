@@ -11,7 +11,7 @@ import {
   type FilterNode,
   type SortSpec,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { pivotColumnId, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
 import { useDataGridViews, type UseDataGridViewsOptions, type UseDataGridViewsResult } from "./use-data-grid-views";
 import { createMemoryViewsStorage, type DataGridViewsStorage } from "./view-storage";
@@ -931,5 +931,25 @@ describe("useDataGridViews limits", () => {
       result = probe.current!.views.saveView("Many sorts");
     });
     expect(result).toBeNull();
+  });
+});
+
+describe("saved views under pivot", () => {
+  it("capture no generated id, also after a generated column is resized", async () => {
+    const sum = { columnId: "age", reducer: "sum" } as const;
+    const groupLayout = {
+      rows: [{ viewRow: 0, path: [{ columnId: "name", key: "Alice" }], count: 1, childCount: 0, pivotCells: Float64Array.of(30) }],
+      leafCount: 1,
+      pivot: { columnId: "age", values: [sum], columns: [{ path: [30], valueIndex: 0 }], omitted: 0 },
+    };
+    const { probe } = setup({ storage: createMemoryViewsStorage() }, { data: [rows[0]], groupBy: ["name"], groupLayout });
+    await ready(probe);
+    act(() => probe.current!.actions.setColumnWidth(pivotColumnId("age", 30, sum), 200));
+    let saved: ReturnType<UseDataGridViewsResult["saveView"]> = null;
+    act(() => {
+      saved = probe.current!.views.saveView("Pivot");
+    });
+    expect(saved).not.toBeNull();
+    expect(JSON.stringify(saved!.state)).not.toContain("__pivot");
   });
 });

@@ -190,6 +190,7 @@ export { GRID_ATTR, GRID_ROLE_SELECTOR, gridAttrSelector, type GridAttrName, typ
 export { EMPTY_SERVER_SPEC, serverSpecOf, type ServerAggregate } from "./server-spec";
 export { defaultGetRowId } from "./store/types";
 export { dataIndexAt, dataIndexOf, forEachDataIndex, rowAtViewRow, viewEntryAt, type ViewEntry } from "./store/view-rows";
+export { pivotCellAt } from "./store/pivot-view";
 export { groupLayoutOfView } from "./store/view-rows";
 export { leafCountOf, leafViewOf, groupRowsOf } from "./store/group-readers";
 export { isGroupRowId, groupIdOf, groupKeyText, MAX_GROUP_LEVELS, COLLAPSED, expandedTest, normalizeExpanded } from "./store/group-state";

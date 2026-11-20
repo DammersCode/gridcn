@@ -19,6 +19,7 @@ import { getCellValue } from "../columns/column-helpers";
 import { buildColumnGroupModel, type ColumnGroupModel } from "../columns/column-groups";
 import { clampColumnWidth, resolveColumnWidth, savedColumnWidth } from "../columns/resolve-column-width";
 import { computeAutosizeWidths } from "../columns/autosize-columns";
+import { createPrefixClashReporter, isPivotColumn, pivotCellAt, pivotViewOf, pivotVisibleColumns, pivotWidthsOf, withoutGeneratedWidths, type PivotView } from "./pivot-view";
 import {
   emptySelection,
   extendTo,
@@ -173,6 +174,10 @@ function viewHoldsUnloadedRows(s: Pick<DataGridStoreState, "viewIndex" | "data">
   return s.viewIndex.some((dataIndex) => dataIndex >= 0 && s.data[dataIndex] === undefined);
 }
 
+/** A source column or, under pivot, a generated column: the columns a width action sizes. */
+const sizedColumnOf = (s: Pick<DataGridStoreState, "columns" | "pivot">, id: string): AnyColumnDef | undefined =>
+  s.columns.find((c) => c.id === id) ?? s.pivot?.columns.find((c) => c.id === id);
+
 const UNKNOWN_COLUMN_MESSAGE = "a sort or filter names an unknown column (its id is not in `columns`), so the grid ignores it";
 
 /**
@@ -200,9 +205,13 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
     applyDefaultColumnLayoutBase(columns, hidden, layout, memory.groupModel);
   const completeColumnOrder = (columns: readonly AnyColumnDef[], order: readonly string[] | null) => completeColumnOrderBase(columns, order, memory.groupModel);
   const computeColumnLayout = (columns: readonly AnyColumnDef[], order: string[] | null, widths: Record<string, number>, hidden: readonly string[]) =>
-    computeColumnLayoutBase(columns, order, widths, hidden, memory.groupModel);
-  const computeVisibleColumns = (columns: readonly AnyColumnDef[], order: string[] | null, hidden: readonly string[]) =>
-    computeVisibleColumnsBase(columns, order, hidden, memory.groupModel);
+    computeColumnLayoutBase(columns, order, withoutGeneratedWidths(widths, columns), hidden, memory.groupModel);
+  // Under pivot the source order, pins, and hidden state stay as they are, so they return when pivot turns off.
+  const computeVisibleColumns = (columns: readonly AnyColumnDef[], order: string[] | null, hidden: readonly string[], pivot: PivotView | null, groupBy: readonly string[]) =>
+    pivot ? pivotVisibleColumns(pivot, columns, groupBy) : computeVisibleColumnsBase(columns, order, hidden, memory.groupModel);
+  const reportPrefixClash = createPrefixClashReporter();
+  const pivotOf = (layout: DataGridStoreState["serverGroupLayout"], columns: readonly AnyColumnDef[], labels: DataGridStoreState["labels"]) =>
+    pivotViewOf(layout, columns, memory.groupModel?.groups.keys() ?? [], labels.pivot, reportPrefixClash);
   const normalizeColumnLayout = (columns: readonly AnyColumnDef[], parts: ColumnLayoutParts, hidden: string[]) => normalizeColumnLayoutBase(columns, parts, hidden, memory.groupModel, warnStoreOnce);
   const defHidden = defHiddenColumnIds(initColumns);
   const seeded = applyDefaultColumnLayout(initColumns, defHidden, plainSeed(init.defaultColumnLayout));
@@ -224,8 +233,8 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
           defHidden,
         )
       : seeded;
-  const visibleColumns = computeVisibleColumns(effectiveLayout.columns, effectiveLayout.columnOrder, effectiveLayout.hiddenColumns);
   const mergeLabels = memoizedMergeLabels();
+  const initLabels = mergeLabels(init.labels, initLocale);
   // `data` wins over `defaultData`, and the decision latches for the store's lifetime, like `<input>` value/defaultValue.
   const dataControlled = init.data !== undefined;
   const initData: readonly unknown[] = init.data ?? init.defaultData ?? [];
@@ -251,6 +260,8 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
     queueMicrotask(() => warnDev('totalRowCount makes sorting and filtering server-side by default, and nothing here handles onSortChange or onFilterChange, so the grid will not reorder or narrow its rows. Fetch rows for the spec, or set sortMode="client" and filterMode="client" to work on the loaded rows'));
   }
   const initGroupBy = initialGroupBy(init, effectiveLayout.columns);
+  const initPivot = pivotOf(init.groupLayout ?? null, effectiveLayout.columns, initLabels);
+  const visibleColumns = computeVisibleColumns(effectiveLayout.columns, effectiveLayout.columnOrder, effectiveLayout.hiddenColumns, initPivot, initGroupBy);
   const initGroupMode = groupModeOf(init);
   const initExpanded = initialExpanded(init, () => warnStoreOnce("expanded cut", EXPANDED_CUT_MESSAGE));
   const initSearchText = init.searchText ?? plainSeed(init.defaultSearchText) ?? "";
@@ -718,11 +729,13 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       const normalized = normalizeColumnLayout(s.columns, merged, defHiddenColumnIds(s.columns));
       const snapshot = computeColumnLayout(normalized.columns, normalized.columnOrder, normalized.columnWidths, normalized.hiddenColumns);
       if (layoutSnapshotsEqual(snapshot, s.columnLayout)) return;
-      const nextVisibleColumns = computeVisibleColumns(normalized.columns, normalized.columnOrder, normalized.hiddenColumns);
+      const pivot = pivotOf(s.serverGroupLayout, normalized.columns, s.labels);
+      const nextVisibleColumns = computeVisibleColumns(normalized.columns, normalized.columnOrder, normalized.hiddenColumns, pivot, s.groupBy);
       const columnsChanged = changedParts.order !== undefined || changedParts.pins !== undefined || changedParts.hidden !== undefined;
       set({
         columns: normalized.columns,
-        columnWidths: normalized.columnWidths,
+        columnWidths: { ...normalized.columnWidths, ...pivotWidthsOf(s.columnWidths, pivot) },
+        pivot,
         columnOrder: normalized.columnOrder,
         hiddenColumns: normalized.hiddenColumns,
         visibleColumns: nextVisibleColumns,
@@ -810,6 +823,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       completeColumnOrder,
       computeColumnLayout,
       computeVisibleColumns,
+      pivotOf,
       normalizeColumnLayout,
     });
     const dataWriteActions = createDataWriteActions(set, get, {
@@ -1088,6 +1102,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
     viewStale: false,
     staleRowIds: NO_STALE_ROWS,
     visibleColumns,
+    pivot: initPivot,
     scrollToCellImpl: null,
     focusImpl: null,
     runShortcutImpl: null,
@@ -1100,7 +1115,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
     keymap: initKeymap,
     commands: initCommands,
     locale: initLocale,
-    labels: mergeLabels(init.labels, initLocale),
+    labels: initLabels,
     rowMoveAnnouncement: "",
     liveAnnouncement: null,
     announceResults: init.announceResults ?? false,
@@ -1244,6 +1259,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
         const isEmptyAt = (coord: ViewCoord): boolean => {
           const column = s.visibleColumns[coord.col];
           if (!column) return true;
+          if (isPivotColumn(column)) return pivotCellAt(s, coord.row, column) === null;
           const dataRowIndex = dataIndexAt(s, coord.row);
           const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
           if (row === undefined) return true;
@@ -1278,7 +1294,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       setAllRowsChecked(checked) {
         const s = get();
         const { selection, viewIndex, enableRowSelection } = s;
-        if (!enableRowSelection) return;
+        if (!enableRowSelection || (checked && s.pivot)) return;
         if (checked && s.checkedRowsLifetime === "across-filters" && s.totalRowCount !== undefined && viewHoldsUnloadedRows(s)) {
           get().actions.selectAllMatching();
           return;
@@ -1294,6 +1310,10 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       },
       selectAllMatching() {
         const s = get();
+        if (s.pivot) {
+          warnStoreOnce("pivot checks", "selectAllMatching() does nothing under pivot: pivot rows cannot be checked");
+          return { ok: false, reason: "disabled" };
+        }
         if (!s.enableRowSelection) return { ok: false, reason: "disabled" };
         const total = matchingRowTotal(s);
         if (total === undefined) {
@@ -1341,7 +1361,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
         });
       },
       previewColumnWidth(id, width) {
-        const column = get().columns.find((c) => c.id === id);
+        const column = sizedColumnOf(get(), id);
         if (!column) return;
         const next = clampColumnWidth(column, width);
         if (!resizeStartWidths.has(id)) resizeStartWidths.set(id, savedColumnWidth(get().columnWidths, id));
@@ -1361,10 +1381,11 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       setColumnWidth(id, width) {
         resizeStartWidths.delete(id);
         const s = get();
-        const column = s.columns.find((c) => c.id === id);
+        const column = sizedColumnOf(s, id);
         if (!column) return;
         const next = clampColumnWidth(column, width);
-        commitLayout({ widths: { ...s.columnWidths, [id]: next } });
+        if (isPivotColumn(column)) set({ columnWidths: { ...s.columnWidths, [id]: next } });
+        else commitLayout({ widths: { ...s.columnWidths, [id]: next } });
       },
       autosizeColumns(options) {
         const s = get();
@@ -1372,7 +1393,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
         if (!context) return {};
         const measured = computeAutosizeWidths(
           {
-            columns: s.columns,
+            columns: s.pivot ? [...s.columns, ...s.pivot.columns] : s.columns,
             visibleColumns: s.visibleColumns,
             hiddenColumns: s.hiddenColumns,
             columnWidths: s.columnWidths,
@@ -1389,11 +1410,13 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
           options,
         );
         const changed = Object.entries(measured).filter(([id, width]) => {
-          const column = s.columns.find((c) => c.id === id);
+          const column = sizedColumnOf(s, id);
           return column !== undefined && resolveColumnWidth(column, savedColumnWidth(s.columnWidths, id)) !== width;
         });
-        if (changed.length > 0) {
-          commitLayout({ widths: { ...s.columnWidths, ...Object.fromEntries(changed) } });
+        const generated = changed.filter(([id]) => isPivotColumn(sizedColumnOf(s, id)));
+        if (generated.length > 0) set((s2) => ({ columnWidths: { ...s2.columnWidths, ...Object.fromEntries(generated) } }));
+        if (changed.length > generated.length) {
+          commitLayout({ widths: { ...get().columnWidths, ...Object.fromEntries(changed) } });
         }
         return measured;
       },
@@ -1401,7 +1424,8 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
         const s = get();
         if (savedColumnWidth(s.columnWidths, id) === undefined) return;
         const { [id]: _dropped, ...columnWidths } = s.columnWidths;
-        commitLayout({ widths: columnWidths });
+        if (isPivotColumn(sizedColumnOf(s, id))) set({ columnWidths });
+        else commitLayout({ widths: columnWidths });
       },
       setColumnOrder(id, targetId, position) {
         const { result, order } = planColumnOrder(get(), memory.groupModel, id, targetId, position);

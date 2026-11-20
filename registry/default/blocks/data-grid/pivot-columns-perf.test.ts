@@ -12,7 +12,7 @@ const values = [
   { columnId: "d", reducer: "count" },
 ] as const;
 const source: ColumnDef<unknown>[] = ["region", "year", "a", "b", "c", "d"].map((id) => ({ id, header: id, type: "number" }));
-const labels = { empty: "(empty)", value: (reducer: string, column: string) => `${reducer} of ${column}` };
+const labels = { empty: "(empty)", value: (reducer: string, column: string) => `${reducer} of ${column}`, columnName: (key: string, value: string) => `${key}, ${value}` };
 const pivot = {
   columnId: "year",
   values,

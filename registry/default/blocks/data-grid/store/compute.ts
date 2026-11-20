@@ -44,6 +44,7 @@ import { readColumnPin, withLogicalPin } from "../columns/column-pin";
 import type { createWarnOnce } from "../is-dev";
 import { warnLegacyFilterKeys, withLogicalFilter } from "../columns/legacy-filter-keys";
 import { isDev } from "../is-dev";
+import { pivotCellAt } from "./pivot-view";
 import type {
   AnyColumnDef,
   DataGridStoreState,
@@ -1050,7 +1051,8 @@ export function getRangeValues(s: DataGridStoreState, rect: GridRect): unknown[]
     const cells: unknown[] = [];
     for (let col = rect.x; col < rect.x + rect.width; col++) {
       const column = s.visibleColumns[col];
-      cells.push(!column || row === undefined ? undefined : getCellValue<unknown, typeof column>(row, column));
+      const pivotCell = pivotCellAt(s, viewRow, column);
+      cells.push(pivotCell !== undefined ? pivotCell : !column || row === undefined ? undefined : getCellValue<unknown, typeof column>(row, column));
     }
     out.push(cells);
   }

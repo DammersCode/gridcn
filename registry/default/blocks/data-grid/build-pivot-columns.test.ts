@@ -12,7 +12,7 @@ const source: ColumnDef<Row>[] = [
   { id: "amount", header: "Amount", type: "currency", options: { currency: "EUR" } },
   { id: "units", header: "Units", type: "number" },
 ];
-const labels = { empty: "(empty)", value: (reducer: string, column: string) => `${reducer} of ${column}` };
+const labels = { empty: "(empty)", value: (reducer: string, column: string) => `${reducer} of ${column}`, columnName: (key: string, value: string) => `${key}, ${value}` };
 
 const pivot = (values: Pivot["values"], keys: readonly (string | number | null)[]): Pivot => ({
   columnId: "year",

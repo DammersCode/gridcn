@@ -9,7 +9,7 @@ import { keepsFocusOutsideGrid } from "../cell";
 import { displayText } from "../cell-types/display-text";
 import { toSafeText } from "../cell-types/safe-text";
 import { GRID_ATTR, GRID_ROLE_SELECTOR } from "../data-attributes";
-import type { GroupLabelCtx } from "../group-types";
+import type { GroupLabelCtx, GroupNode } from "../group-types";
 import { cellLayer } from "../layers";
 import { useDataGridRootContext, type GridColumnLayout, type GroupLabelRenderer, type RenderedColumn } from "../layout-context";
 import { colRangesContain } from "../selection/selected-col-ranges-for-row";
@@ -22,6 +22,7 @@ import {
   useDataGridVisibleColumns,
   type AnyColumnDef,
 } from "../store";
+import { isPivotColumn, pivotCellOf } from "../store/pivot-view";
 import type { RowMarkersMode } from "../types";
 import { DataGridGroupToggle } from "./group-toggle";
 import { DataGridGroupMarkerCell } from "./marker-cell";
@@ -72,6 +73,8 @@ function aggregateText(column: AnyColumnDef, value: unknown, cellTypes: ReturnTy
     return toSafeText(value);
   }
 }
+
+const aggregateOf = (node: GroupNode, column: AnyColumnDef): unknown => (isPivotColumn(column) ? pivotCellOf(node, column) : node.aggregates[column.id]);
 
 type GroupCellProps = {
   viewRowIndex: number;
@@ -146,6 +149,7 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
   const locale = useDataGridSelector((s) => s.locale);
   const cellTypes = useDataGridCellTypes();
   const visibleColumns = useDataGridVisibleColumns();
+  const pivot = useDataGridSelector((s) => s.pivot !== null);
   const columnHeader = useDataGridSelector((s) => {
     const column = s.columns.find((candidate) => candidate.id === meta?.node.columnId);
     return column ? columnLabelText(column) : (meta?.node.columnId ?? "");
@@ -166,7 +170,7 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
       role="row"
       aria-rowindex={viewRowIndex + 2 + ariaRowIndexOffset}
       aria-level={meta.level}
-      aria-expanded={expanded}
+      aria-expanded={pivot ? undefined : expanded}
       aria-posinset={meta.posInSet}
       aria-setsize={meta.setSize}
       data-grid-row-index={viewRowIndex}
@@ -191,7 +195,7 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
           data-selected={(labelRangeSelected && !labelPinned) || undefined}
           className={cn("relative flex min-w-0 items-center gap-1", GROUP_TINT, GROUP_LABEL_SELECTED_TINT)}
         >
-          <DataGridGroupToggle groupId={node.id} label={labelText} expanded={expanded} />
+          {!pivot && <DataGridGroupToggle groupId={node.id} label={labelText} expanded={expanded} />}
           <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
             {renderGroupLabel ? renderGroupLabel(ctx) : labels.grouping.rowLabel(columnHeader, labelText, node.count)}
           </span>
@@ -216,7 +220,7 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
               pinned && GROUP_TINT,
             )}
           >
-            <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{column.aggregate === undefined ? null : aggregateText(column, node.aggregates[column.id], cellTypes, locale)}</span>
+            <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{column.aggregate === undefined ? null : aggregateText(column, aggregateOf(node, column), cellTypes, locale)}</span>
           </GroupCell>
         );
       })}

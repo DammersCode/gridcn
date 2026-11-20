@@ -1,7 +1,7 @@
 import type { GroupKey, ServerPivotLayout } from "./group-types";
 import type { ServerAggregate } from "./server-spec";
 import { groupKeyText } from "./store/group-state";
-import type { ColumnDef, ColumnGroupDef } from "./types";
+import type { ColumnDef, ColumnGroupDef, SortSpec } from "./types";
 
 /** Most generated columns a pivot grid holds. */
 export const MAX_PIVOT_COLUMNS = 200;
@@ -26,14 +26,22 @@ export function pivotGroupId(pivotColumnId: string, key: GroupKey): string {
   return `__pivotgroup:${keySegment(pivotColumnId, key)}`;
 }
 
-/** A generated column: `pivotIndex` indexes the held columns and the slot's `pivotCells`. */
-export type PivotColumnDef<TData> = ColumnDef<TData> & { readonly pivotIndex: number };
+/** The sorts of a pivot request: only the `groupBy` and pivot column entries. The other entries stay in `sortState` for when pivot turns off. */
+export function pivotSorts(sorts: readonly SortSpec[], groupBy: readonly string[], pivotColumnIds: readonly string[]): readonly SortSpec[] {
+  const kept = sorts.filter((sort) => groupBy.includes(sort.columnId) || pivotColumnIds.includes(sort.columnId));
+  return kept.length === sorts.length ? sorts : kept;
+}
+
+/** A generated column: `pivotIndex` indexes the held columns and the slot's `pivotCells`; `pivotLabel` is its full accessible name. */
+export type PivotColumnDef<TData> = ColumnDef<TData> & { readonly pivotIndex: number; readonly pivotLabel: string };
 
 export type PivotHeaderLabels = {
   /** Header of the empty key. */
   empty: string;
   /** Header of one value, such as "Sum of Amount". */
   value: (reducer: ServerAggregate["reducer"], column: string) => string;
+  /** Full name of one generated column, such as "2025, Sum of Amount". */
+  columnName: (key: string, value: string) => string;
 };
 
 const headerTextOf = <TData>(column: ColumnDef<TData> | undefined, id: string) => column?.headerText ?? (typeof column?.header === "string" ? column.header : id);
@@ -52,7 +60,8 @@ export function buildPivotColumns<TData>(pivot: ServerPivotLayout, sourceColumns
     const source = byId.get(value.columnId);
     const keyText = groupKeyText(key);
     const keyLabel = keyText === "" ? labels.empty : keyText;
-    const header = grouped ? labels.value(value.reducer, headerTextOf(source, value.columnId)) : keyLabel;
+    const valueLabel = labels.value(value.reducer, headerTextOf(source, value.columnId));
+    const header = grouped ? valueLabel : keyLabel;
     const id = pivotColumnId(pivot.columnId, key, value);
     if (grouped) {
       const groupId = pivotGroupId(pivot.columnId, key);
@@ -76,6 +85,7 @@ export function buildPivotColumns<TData>(pivot: ServerPivotLayout, sourceColumns
       groupable: false,
       aggregate: value.reducer,
       pivotIndex,
+      pivotLabel: labels.columnName(keyLabel, valueLabel),
     };
   });
   return { columns, groups: [...groups.values()] };
