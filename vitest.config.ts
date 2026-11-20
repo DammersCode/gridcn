@@ -122,8 +122,18 @@ export default defineConfig({
           pool: "vmThreads",
           environment: "jsdom",
           include: ["registry/**/*.test.{ts,tsx}", "tests/**/*.test.{ts,tsx}"],
-          exclude: ["**/node_modules/**", "**/*.browser.test.{ts,tsx}", "tests/server-query/**"],
+          exclude: ["**/node_modules/**", "**/*.browser.test.{ts,tsx}", "tests/server-query/**", "tests/server-query-postgrest/**"],
           setupFiles: ["./tests/setup.ts"],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          // Runs against POSTGREST_URL; it skips when that is unset, and CI fails a run that passed no test.
+          name: "postgrest",
+          environment: "node",
+          include: ["tests/server-query-postgrest/**/*.test.ts"],
+          testTimeout: 30_000,
         },
       },
       {
@@ -171,7 +181,7 @@ export default defineConfig({
           pool: "vmThreads",
           environment: "jsdom",
           include: ["registry/**/*.test.{ts,tsx}", "tests/**/*.test.{ts,tsx}"],
-          exclude: ["**/node_modules/**", "**/*.browser.test.{ts,tsx}", "tests/server-query/**"],
+          exclude: ["**/node_modules/**", "**/*.browser.test.{ts,tsx}", "tests/server-query/**", "tests/server-query-postgrest/**"],
           setupFiles: ["./tests/setup.ts"],
         },
       },

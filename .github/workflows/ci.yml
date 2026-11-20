@@ -229,11 +229,83 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx shadcn@4.21.0 registry validate DammersCode/gridcn#${{ github.sha }}
 
+  postgrest:
+    name: PostgREST (Supabase adapter)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    if: >-
+      github.event_name != 'pull_request' ||
+      contains(fromJSON('["DammersCode"]'), github.event.pull_request.user.login)
+    services:
+      postgres:
+        image: postgres:17.12-alpine@sha256:526f86d93c6ea08fd3f1fe5605650cacc781b2c6013169a0ad8f42c7d3d84f32
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply the grid function and the fixture schema
+        env:
+          PG: ${{ job.services.postgres.id }}
+        run: |
+          docker exec -i "$PG" psql -v ON_ERROR_STOP=1 -U postgres -c "create role anon nologin; create role authenticated nologin;"
+          docker exec -i "$PG" psql -v ON_ERROR_STOP=1 -U postgres < registry/default/blocks/data-grid-server-query-supabase/grid-query.sql
+          docker exec -i "$PG" psql -v ON_ERROR_STOP=1 -U postgres < tests/server-query-postgrest/fixture.sql
+
+      # The JWT secret exists only for this run, so no secret is committed.
+      - name: Start PostgREST
+        run: |
+          secret="$(openssl rand -hex 32)"
+          echo "::add-mask::$secret"
+          echo "POSTGREST_JWT_SECRET=$secret" >> "$GITHUB_ENV"
+          docker run -d --name postgrest --network host \
+            -e PGRST_DB_URI=postgres://postgres@localhost:5432/postgres \
+            -e PGRST_DB_SCHEMAS=public \
+            -e PGRST_DB_ANON_ROLE=anon \
+            -e PGRST_JWT_SECRET="$secret" \
+            -e PGRST_DB_MAX_ROWS=1000 \
+            -e PGRST_SERVER_PORT=3000 \
+            -e PGRST_ADMIN_SERVER_PORT=3001 \
+            postgrest/postgrest:v16.6@sha256:5ce030c153500fe90ba157da4da8ba99ab51d3bc7b95e071bd0b544b67a632f7
+          for attempt in $(seq 1 30); do
+            if curl -sf http://localhost:3001/ready > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          docker logs postgrest
+          exit 1
+
+      # An all-skipped run exits 0, so the report must show passed tests.
+      - name: PostgREST tests
+        env:
+          POSTGREST_URL: http://localhost:3000
+        run: |
+          npx vitest run --project postgrest --reporter=default --reporter=json --outputFile.json=postgrest-report.json
+          node -e "const r = require('./postgrest-report.json'); if (!(r.numPassedTests > 0) || r.numFailedTests > 0) { console.error('PostgREST job: ' + r.numPassedTests + ' passed, ' + r.numFailedTests + ' failed'); process.exit(1); }"
+
   # The ruleset requires the check context `ci` (this job id); it always runs, so the jobs a fork PR skips fail it.
   ci:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    needs: [checks, unit, browser, unit-compiled, browser-compiled, build]
+    needs: [checks, unit, browser, unit-compiled, browser-compiled, build, postgrest]
     if: always()
     steps:
       - name: Fail unless every required job succeeded

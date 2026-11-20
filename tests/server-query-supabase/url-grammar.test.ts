@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { type QueryLimits, QueryError, defineColumnMap } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
 import { createSupabaseGridQuery } from "@/registry/default/blocks/data-grid-server-query-supabase/data-grid-server-query-supabase";
-import { type Answer, REST_URL, type SentRequest, fakeSupabase } from "./fake-supabase";
+import { type Answer, REST_URL, type SentRequest, captureSupabase } from "./capture-supabase";
 import { type LogicTree, parseLogicParam } from "./postgrest-grammar";
 
 const columns = defineColumnMap({
@@ -26,7 +26,7 @@ const FITS_MAX_ROWS = { maxPageSize: 999 };
 const CONTEXT = { context: { tenant: 7 } };
 
 function make({ scoped = true, answer, ...rest }: Options = {}) {
-  const { client, sent } = fakeSupabase(answer);
+  const { client, sent } = captureSupabase(answer);
   const query = createSupabaseGridQuery<Record<string, unknown>, { tenant: number }>({
     client,
     table: "items",
@@ -102,7 +102,7 @@ describe("rows requests", () => {
   it("throws the Supabase error and refuses a builder without a URL", async () => {
     const { query } = make({ answer: () => ({ error: { message: "permission denied" } }) });
     expect(await failure(query.fetchRows(rowsRequest({}), CONTEXT))).toMatch(/permission denied/);
-    const { client } = fakeSupabase();
+    const { client } = captureSupabase();
     // eslint-disable-next-line unicorn/no-thenable -- a postgrest-js builder is a thenable
     const builder = { or: () => builder, range: () => builder, order: () => builder, abortSignal: () => builder, then: () => undefined };
     const bare = { ...client, from: () => ({ select: () => builder }) };
@@ -266,7 +266,7 @@ describe("PostgREST's max-rows cap", () => {
   });
 
   it("refuses at creation a page and its look-ahead row over `maxRows` without a grid function, naming both remedies", () => {
-    const { client } = fakeSupabase();
+    const { client } = captureSupabase();
     expect(() => createSupabaseGridQuery({ client, table: "items", columns })).toThrow(/maxRows.*`rpc`.*maxPageSize/s);
     expect(() => createSupabaseGridQuery({ client, table: "items", columns, maxRows: 100, limits: { maxPageSize: 100 } })).toThrow(/maxRows/);
     expect(() => createSupabaseGridQuery({ client, table: "items", columns, maxRows: 0, rpc: "items_grid" })).toThrow(/maxRows/);
@@ -281,7 +281,7 @@ describe("selection ids", () => {
     await query.selection({ selection: { mode: "ids", ids: ["1", "2"] } }, CONTEXT);
     await query.selection({ selection: { mode: "allMatching", excludedIds: ["5", "6"], spec: { filters: [filter("qty", "gt", "3")] } } }, CONTEXT);
     expect(sent.map(treeOf)).toEqual([scoped(list("id", ["1", "2"])), scoped(all(op("qty", "gt", "3"), list("id", ["5", "6"], true)))]);
-    const { client, sent: textSent } = fakeSupabase();
+    const { client, sent: textSent } = captureSupabase();
     const textQuery = createSupabaseGridQuery({ client, table: "items", columns: defineColumnMap({ code: { type: "text", primaryKey: true, maxLength: 10 } }), limits: FITS_MAX_ROWS });
     await textQuery.selection({ selection: { mode: "ids", ids: [""] } });
     await textQuery.selection({ selection: { mode: "allMatching", excludedIds: [""], spec: {} } });
@@ -348,7 +348,7 @@ describe("grid function requests", () => {
   });
 
   it("set values of a time column group by the local day; a fixed offset is unsupported", async () => {
-    const { client, sent } = fakeSupabase(() => ({ data: [] }));
+    const { client, sent } = captureSupabase(() => ({ data: [] }));
     const zoned = createSupabaseGridQuery({ client, table: "items", columns, rpc: "items_grid", timeZone: "Europe/Berlin" });
     await zoned.filterValues({ columnId: "stamp" });
     expect((sent[0]!.body as { plan: Record<string, unknown> }).plan).toMatchObject({ kind: "values", c: "stamp", form: "day", zone: "Europe/Berlin", pattern: null });
@@ -381,7 +381,7 @@ describe("where, orderBy, and validated writes", () => {
 
 describe("creation", () => {
   it("refuses a table, rpc, or field that is not a plain identifier, and custom operators", () => {
-    const { client } = fakeSupabase();
+    const { client } = captureSupabase();
     expect(() => createSupabaseGridQuery({ client, table: "items?select=*", columns })).toThrow(/table/);
     expect(() => createSupabaseGridQuery({ client, table: "items", columns, rpc: "x/y" })).toThrow(/rpc/);
     expect(() => createSupabaseGridQuery({ client, table: "items", columns: defineColumnMap({ id: { type: "number", numeric: "int4", primaryKey: true, field: "a.b" } }) })).toThrow(/"a.b"/);
