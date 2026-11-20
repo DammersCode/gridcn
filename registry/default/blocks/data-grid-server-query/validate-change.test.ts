@@ -295,6 +295,24 @@ describe("validateChange", () => {
     expect(() => validate([...refusing(MAX_WRITE_REJECTIONS / 2), { type: "delete", rowId: "x" }])).toThrow(expect.objectContaining({ code: "limit-exceeded", path: ["ops"] }));
   });
 
+  it("counts each written row id without a refusal once against the bound, since each can still answer not-found", () => {
+    const refusing = Array.from({ length: MAX_WRITE_REJECTIONS / 2 - 1 }, (_, index) => ({ type: "update", rowId: String(index + 1), row: {}, prev: {}, cells: [cell("qty", "x"), cell("price", "x")] }));
+    const clean = (...rowIds: string[]) => rowIds.map((rowId) => ({ type: "delete", rowId }));
+    expect(validate([...refusing, ...clean("90001", "90002"), { type: "move", rowId: "90001" }, ...clean("1")]).rejected).toHaveLength(MAX_WRITE_REJECTIONS - 2);
+    expect(() => validate([...refusing, ...clean("90001", "90002", "90003")])).toThrow(expect.objectContaining({ code: "limit-exceeded", path: ["ops"] }));
+  });
+
+  it("refuses every column of a field when one column of the field is refused", () => {
+    const map = defineColumnMap({ id: { type: "number", numeric: "int8", primaryKey: true }, name: { type: "text" }, label: { type: "text", field: "name", maxLength: 2 }, qty: { type: "number", numeric: "int4" } });
+    const query = createGridQuery<Record<string, unknown>, never, Predicate>({ columns: map, executor });
+    const result = query.validateChange({ ops: [{ type: "update", rowId: "1", row: {}, prev: {}, cells: [cell("name", "Bo"), cell("label", "long"), cell("qty", 2)] }] });
+    expect(result.updates.map((update) => update.values)).toEqual([{ qty: 2 }]);
+    expect(result.rejected).toEqual([
+      { rowId: "1", columnId: "label", code: "too-long", message: "Too long" },
+      { rowId: "1", columnId: "name", code: "too-long", message: "Too long" },
+    ]);
+  });
+
   it("refuses a row id the key cannot parse", () => {
     const result = validate([
       { type: "delete", rowId: "abc", row: {}, index: 0 },

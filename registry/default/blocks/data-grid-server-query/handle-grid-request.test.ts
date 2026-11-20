@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { MAX_WRITE_REJECTIONS } from "@/registry/default/blocks/data-grid/store/write-ack";
 import { type ValidatedChange, type WriteCounts, defineColumnMap } from "./data-grid-server-query";
 import { DEFAULT_LIMITS, createGridQuery, type Predicate, type QueryExecutor } from "./data-grid-server-query-sdk";
@@ -58,22 +58,44 @@ describe("handleGridRequest with save", () => {
     await expect(save(ops, () => ({ updates: [0], deletes: [0], moves: [0n] }))).resolves.toEqual({ status: 200, body: { rejected: [notFound("1"), notFound("2")] } });
   });
 
-  it("keeps the validation refusals and adds not-found only for the unmatched writes", async () => {
-    const ops = [update("1", [["name", "Bo"], ["qty", "x"]]), update("2", [["name", "Al"]]), update("new-0", [["name", "Cy"]])];
-    const { body } = await save(ops, () => ({ updates: [1, 0], deletes: [], moves: [] }));
+  it("refuses the whole row id when any of its writes matched no row", async () => {
+    const ops = [update("1", [["name", "Bo"]]), { type: "move", rowId: "1", beforeRowId: "2" }];
+    await expect(save(ops, () => ({ updates: [1], deletes: [], moves: [0] }))).resolves.toEqual({ status: 200, body: { rejected: [notFound("1")] } });
+  });
+
+  it("keeps the validation refusals of matched rows and replaces those of an unmatched row with not-found", async () => {
+    const ops = [update("1", [["name", "Bo"], ["qty", "x"]]), update("2", [["name", "Al"]]), update("new-0", [["name", "Cy"]]), update("3", [["name", "Di"], ["qty", "y"]])];
+    const { body } = await save(ops, () => ({ updates: [1, 0, 0], deletes: [], moves: [] }));
     expect(body.rejected).toEqual([
       { rowId: "1", columnId: "qty", code: "not-a-number", message: "Not a number" },
       { rowId: "new-0", code: "not-an-id", message: "Not a valid id" },
       notFound("2"),
+      notFound("3"),
     ]);
   });
 
-  it("answers limit-exceeded when the not-found refusals push the answer over the grid's bound", async () => {
+  it("answers limit-exceeded before apply runs when the answer could pass the grid's bound", async () => {
+    const twoRefusals = Array.from({ length: MAX_WRITE_REJECTIONS / 2 - 1 }, (_, index) => update(String(index + 1), [["qty", "x"], ["qty", "y"]]));
+    const clean = ["90001", "90002", "90003"].map((rowId) => update(rowId, [["name", "Bo"]]));
+    const apply = vi.fn(async (change: ValidatedChange<Predicate>) => ({ updates: change.updates.map(() => 0), deletes: [], moves: [] }));
+    const response = await handleGridRequest(saveRequest([...twoRefusals, ...clean]), query.save(apply), { context });
+    expect({ status: response.status, body: await response.json() }).toEqual({ status: 400, body: { error: "limit-exceeded", path: ["ops"] } });
+    expect(apply).not.toHaveBeenCalled();
+  });
+
+  it("answers at most one entry per row once every row's refusals turn into not-found", async () => {
     const ops = Array.from({ length: MAX_WRITE_REJECTIONS }, (_, index) => update(String(index + 1), [["name", "Bo"], ["qty", "x"]]));
-    const unmatched = (change: ValidatedChange<Predicate>) => ({ updates: change.updates.map(() => 0), deletes: [], moves: [] });
-    await expect(save(ops, unmatched)).resolves.toEqual({ status: 400, body: { error: "limit-exceeded", path: ["ops"] } });
-    const matched = (change: ValidatedChange<Predicate>) => ({ updates: change.updates.map(() => 1), deletes: [], moves: [] });
-    expect((await save(ops, matched)).body.rejected).toHaveLength(MAX_WRITE_REJECTIONS);
+    const { status, body } = await save(ops, (change) => ({ updates: change.updates.map(() => 0), deletes: [], moves: [] }));
+    expect(status).toBe(200);
+    expect(body.rejected).toHaveLength(MAX_WRITE_REJECTIONS);
+    expect(body.rejected.every((entry: { code: string }) => entry.code === "not-found")).toBe(true);
+  });
+
+  it("answers a server error for a sparse or undefined count", async () => {
+    const one = [update("1", [["name", "Bo"]])];
+    for (const updates of [new Array<number>(1), [undefined as unknown as number]]) {
+      await expect(save(one, () => ({ updates, deletes: [], moves: [] }))).resolves.toEqual({ status: 500, body: { error: "server-error" } });
+    }
   });
 
   it("answers a bare server error when apply throws or miscounts", async () => {

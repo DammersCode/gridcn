@@ -60,7 +60,22 @@ export type GroupsAnswer = {
 /** The answer of `selection`: the count of the selected rows, and with `include` one page of their ids or rows. */
 export type SelectionAnswer<TRow> = { count: number; ids?: string[]; rows?: TRow[]; hasMore?: boolean };
 
-/** Runs the writes of a validated change and answers how many rows each write matched. In one transaction, a throw writes none. */
+/**
+ * Runs the writes of a validated change and answers how many rows each write matched ({@link WriteCounts}). Requirements:
+ * run every write in one transaction, so a throw writes none; throw when an insert fails; filter each write by its
+ * `where` alone, never by `rowId`, which carries no `rowScope`. A throw or a miscount answers a 500 for the whole change.
+ *
+ * @example
+ * const applyUserWrites: ApplyChange<SQL, Session> = async (change) =>
+ *   db.transaction((tx) => {
+ *     for (const insert of change.inserts) tx.insert(users).values(insert.values).run();
+ *     return {
+ *       updates: change.updates.map((write) => tx.update(users).set(write.values).where(write.where).run().changes),
+ *       deletes: change.deletes.map((write) => tx.delete(users).where(write.where).run().changes),
+ *       moves: change.moves.map(() => 0),
+ *     };
+ *   });
+ */
 export type ApplyChange<TWhere, TContext = never> = (change: ValidatedChange<TWhere>, opts: QueryCallOptions<TContext>) => Promise<WriteCounts>;
 
 export interface GridQuery<TRow, TContext = never, TWhere = unknown, TOrder = unknown> {
@@ -76,10 +91,10 @@ export interface GridQuery<TRow, TContext = never, TWhere = unknown, TOrder = un
   /** Applies the column map and `rowScope` to the `DataChange` of `onSave`; each `where` is in the ORM's own type. */
   validateChange(input: unknown, ...opts: CallArgs<TContext>): ValidatedChange<TWhere>;
   /**
-   * The save route of `onSave`: validates the `DataChange`, hands the writes to `apply`, and answers the refusals plus
-   * a `not-found` for each row id whose write matched no row. `apply` runs even when every operation is refused.
-   * More than 10,000 refusals throw `limit-exceeded` after `apply` ran, so the matched writes stay written while the grid
-   * reverts every row. `maxBodyBytes` is `maxChangeBytes` (8 MiB).
+   * The save route of `onSave`: validates the `DataChange`, hands the writes to `apply`, and answers the refusals; a row id
+   * with a write that matched no row answers one `not-found` in place of its other refusals. `apply` runs even when every
+   * operation is refused. The `limit-exceeded` of the grid's 10,000-refusal bound throws before `apply` runs.
+   * `maxBodyBytes` is `maxChangeBytes` (8 MiB).
    *
    * @example
    * export const POST = async (req: Request) => handleGridRequest(req, usersQuery.save(applyUserWrites), { context: await session(req) });

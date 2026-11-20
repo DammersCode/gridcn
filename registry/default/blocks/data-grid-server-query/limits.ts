@@ -30,7 +30,7 @@ export type QueryLimits = {
   maxImportRows?: number;
   /** Most operations `validateChange` reads from one change. Default 10000. */
   maxChangeOps?: number;
-  /** Most body bytes `handleGridRequest` reads for a `save` route. Default 8388608 (8 MiB). */
+  /** Most body bytes `handleGridRequest` reads for a `save` route. Default 8388608 (8 MiB); a wide 10,000-row paste needs more. */
   maxChangeBytes?: number;
   /** Most group levels of one request. Default 4. */
   maxGroupLevels?: number;
