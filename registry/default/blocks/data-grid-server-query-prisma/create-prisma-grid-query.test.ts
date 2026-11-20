@@ -441,6 +441,26 @@ describe("keyset cursor", () => {
     expect(await codeOf(query.fetchRows({ spec: { sorts: [{ columnId: "stamp", direction: "asc" }] }, start: 0, end: 2 }))).toBe("unsupported");
   });
 
+  it("on SQLite reads an epoch-ms BigInt field as its instant in rows, cursor keys, and group keys", async () => {
+    const epochs = definePrismaColumnMap<{ id: number; at: bigint | null }>()({ id: "id", at: "at" }, {
+      id: { type: "number", numeric: "int4", primaryKey: true },
+      at: { type: "date", time: true, storage: "epoch-ms", nullable: true },
+    });
+    const at = 1_704_067_200_123n;
+    const { model, calls } = fake({
+      findMany: (args) => (args["where"] && "OR" in (args["where"] as object) ? [] : [{ id: 1, at }, { id: 2, at }]),
+      groupBy: (args) => (args["skip"] === undefined ? [{ at }] : [{ at, _count: { _all: 2 } }]),
+    });
+    const spec = { sorts: [{ columnId: "at", direction: "asc" }] };
+    const cursor = createPrismaGridQuery({ model, provider: "sqlite", columns: epochs, paging: "cursor" });
+    const first = (await cursor.fetchRows({ spec, start: 0, end: 1 })) as { rows: Record<string, unknown>[]; nextCursor: string };
+    expect(first.rows).toStrictEqual([{ id: 1, at: "2024-01-01T00:00:00.123Z" }]);
+    await cursor.fetchRows({ spec, start: 1, end: 2, cursor: first.nextCursor });
+    expect(JSON.stringify(calls.at(-1)!.args["where"], (_, value: unknown) => (typeof value === "bigint" ? value.toString() : value))).toContain('{"at":{"gt":1704067200123}}');
+    const groups = (await createPrismaGridQuery({ model, provider: "sqlite", columns: epochs }).fetchRows({ spec: { groupBy: ["at"] }, start: 0, end: 5 })) as GroupsAnswer;
+    expect(groups.groups.map((group) => group.key)).toStrictEqual(["2024-01-01T00:00:00.123Z"]);
+  });
+
   it("on SQLite carries a DateTime key as the ISO text of its Date and resumes after it", async () => {
     const stamp = new Date("2024-01-01T00:00:00.123Z");
     const { model, calls } = fake({ findMany: (args) => (args["where"] && "OR" in (args["where"] as object) ? [] : [{ id: 1, stamp }, { id: 2, stamp }]) });

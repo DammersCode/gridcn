@@ -61,9 +61,10 @@ function padToScale(text: string, scale: number | undefined): string {
   return `${text}${dot === -1 ? "." : ""}${"0".repeat(scale - places)}`;
 }
 
-/** A Prisma value in the form the core reads: `Decimal` and `bigint` as text, a date-only `Date` as its UTC day. */
+/** A Prisma value in the form the core reads: `Decimal` and a `bigint` number as text, a date-only `Date` as its UTC day. */
 function plainValue(column: PlanColumn, value: unknown): unknown {
-  if (typeof value === "bigint") return value.toString();
+  // The core reads an epoch `bigint` as an instant; its digits as text would read as no date.
+  if (typeof value === "bigint") return column.kind === "date" ? value : value.toString();
   // decimal.js `toFixed()` with no argument never switches to exponent notation, unlike `toString()`.
   if (isDecimal(value)) return padToScale(value.toFixed(), column.scale);
   if (value instanceof Date && column.kind === "date" && !column.time) return Number.isNaN(value.getTime()) ? null : value.toISOString().slice(0, 10);
