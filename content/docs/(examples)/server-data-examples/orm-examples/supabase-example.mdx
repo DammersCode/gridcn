@@ -1,136 +1,94 @@
 ---
 title: "Supabase example"
-description: Build a route handler that maps the sort, filter, search text, and row range of a server grid onto a Supabase query.
+description: Answer the sort, filter, search text, and row range of a server grid with a Supabase client through the query layer.
 icon: Cloud
 type: example
 ---
 
-This recipe needs a server and is not a registry item. A server grid sends its spec (`sorts`, `filters`, `searchText`) and a row range (`start`, `end`) to your route. The route checks the request with `parseServerSpec`, builds one query, and answers `{ rows, totalRowCount }`. The route reads a `users` table with an `id` column and the text columns `name`, `email`, and `role`.
+A server grid sends its spec (`sorts`, `filters`, `searchText`) and a row range (`start`, `end`) to your route. The [query layer](/docs/data-modes/query-layer) checks the request and sends it over PostgREST through your Supabase client. Each filter tree goes into one `or=(...)`, with every value quoted and escaped. This route serves an `items` table with an `id`, a `name`, and a `qty`.
+
+<InstallCommand item="data-grid-server-query-supabase" />
 
 ## The route [#the-route]
 
-The route follows the [server rows contract](/docs/contracts/server-rows-contract). It writes every filter as a PostgREST condition string, and every filter group as `and(...)` or `or(...)`. Each top-level node goes into one `.or()` call. It rejects a request that fails the check with status 400. It adds `id` as the last sort, so no two rows tie and a page never repeats a row:
+Create the client with the caller's token, so row-level security checks the user. `rpc` names the grid function of the table:
 
-```ts fragment="needs @supabase/supabase-js" title="app/api/grid/route.ts"
-import {
-  isFilterGroup,
-  type FilterNode,
-} from "@/components/data-grid/data-grid";
-import {
-  parseServerSpec,
-} from "@/components/data-grid-server/data-grid-server";
+```ts title="lib/items-query.ts" fragment="needs @supabase/supabase-js"
 import { createClient } from "@supabase/supabase-js";
+import { defineColumnMap } from "@/components/data-grid-server-query/data-grid-server-query";
+import { createSupabaseGridQuery } from "@/components/data-grid-server-query-supabase/data-grid-server-query-supabase";
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
+const columns = defineColumnMap({
+  id: { type: "number", numeric: "int8", primaryKey: true },
+  name: { type: "text", searchable: true, maxLength: 200 },
+  qty: { type: "number", numeric: "int4", aggregate: "sum" },
+});
 
-const COLUMNS = new Set<string>(["name", "email", "role"]);
-
-// A condition string splits on commas and parentheses, so quote every value.
-const quote = (value: string) =>
-  `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
-const escapeLike = (text: string) => text.replace(/[\\%_]/g, "\\$&");
-const same = (v: string) => `ilike.${quote(escapeLike(v))}`;
-const group = (c: string, values: string[], not: string) =>
-  values.map((v) => `${c}.${not}${same(v)}`).join(",");
-
-const CLAUSES: Record<string, (c: string, v: any) => string> = {
-  contains: (c, v) => `${c}.ilike.${quote(`%${escapeLike(v)}%`)}`,
-  notContains: (c, v) => `${c}.not.ilike.${quote(`%${escapeLike(v)}%`)}`,
-  startsWith: (c, v) => `${c}.ilike.${quote(`${escapeLike(v)}%`)}`,
-  endsWith: (c, v) => `${c}.ilike.${quote(`%${escapeLike(v)}`)}`,
-  equals: (c, v) => `${c}.${same(v)}`,
-  notEquals: (c, v) => `${c}.not.${same(v)}`,
-  gt: (c, v) => `${c}.gt.${quote(v)}`,
-  gte: (c, v) => `${c}.gte.${quote(v)}`,
-  lt: (c, v) => `${c}.lt.${quote(v)}`,
-  lte: (c, v) => `${c}.lte.${quote(v)}`,
-  empty: (c) => `${c}.eq.""`,
-  notEmpty: (c) => `${c}.neq.""`,
-  isAnyOf: (c, v) =>
-    v.length ? `or(${group(c, v, "")})` : `${c}.in.()`,
-  isNoneOf: (c, v) =>
-    v.length ? `and(${group(c, v, "not.")})` : `${c}.not.in.()`,
-};
-
-const columnRules = Object.fromEntries(
-  [...COLUMNS].map((id) => [id, { operators: Object.keys(CLAUSES) }]),
-);
-
-function readRange(body: any): { start: number; end: number } | null {
-  const { start, end } = body ?? {};
-  const valid =
-    Number.isSafeInteger(start) && start >= 0 && start <= 10_000_000 &&
-    Number.isSafeInteger(end) && end > start;
-  return valid ? { start, end } : null;
-}
-
-// "" matches every row, as an empty group does in the grid.
-function condition(node: FilterNode): string {
-  if (!isFilterGroup(node)) {
-    return CLAUSES[node.operator](node.columnId, node.value);
-  }
-  const parts: string[] = node.filters.map(condition);
-  if (node.join === "or" && parts.includes("")) return "";
-  const kept = parts.filter(Boolean);
-  if (kept.length <= 1) return kept[0] ?? "";
-  return `${node.join}(${kept.join(",")})`;
-}
-
-export async function POST(request: Request) {
-  const body = await request.json().catch(() => null);
-  const range = readRange(body);
-  if (!range) return new Response("Invalid request", { status: 400 });
-  const { start, end } = range;
-  let spec;
-  try {
-    spec = parseServerSpec(body.spec, { columns: columnRules });
-  } catch {
-    return new Response("Invalid request", { status: 400 });
-  }
-  const limit = Math.min(end - start, 500);
-  let query = supabase.from("users").select("*", { count: "exact" });
-  if (spec.searchText) {
-    const pattern = quote(`%${escapeLike(spec.searchText)}%`);
-    query = query.or(`name.ilike.${pattern},email.ilike.${pattern}`);
-  }
-  // Each top-level node is one .or() call; the calls combine with "and".
-  for (const node of spec.filters) {
-    const text = condition(node);
-    if (text) query = query.or(text);
-  }
-  for (const sort of spec.sorts) {
-    query = query.order(sort.columnId, { ascending: sort.direction === "asc" });
-  }
-  query = query.order("id");
-
-  const { data, count, error } = await query.range(start, start + limit - 1);
-  if (error) throw new Error(error.message);
-  return Response.json({ rows: data, totalRowCount: count });
+export function itemsQuery(req: Request) {
+  const auth = req.headers.get("Authorization") ?? "";
+  const client = createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_ANON_KEY!,
+    { global: { headers: { Authorization: auth } } },
+  );
+  return createSupabaseGridQuery({
+    client, table: "items", columns, rpc: "items_grid",
+  });
 }
 ```
 
-About the sample:
+```ts title="app/api/grid/route.ts"
+import { handleGridRequest } from "@/components/data-grid-server-query/data-grid-server-query";
+import { itemsQuery } from "./items-query";
 
-- `range(from, to)` includes both ends, hence the `- 1`.
-- `isFilterGroup(node)` is true for a group and false for a filter row.
-- The grid compares text without case. The sample uses `ilike` for every text operator, with the value escaped and no wildcard for the equality operators.
-- `escapeLike` stops `%`, `_`, and `\` in the user text from acting as wildcards. PostgREST also reads `*` in an `ilike` pattern as a wildcard, and no escape removes that.
-- `parseServerSpec` checks the column ids, the operators, the value shapes, and the tree size. Its default caps are 64 sorts, 500 search characters, 64 filters, 16 groups, 1,000 characters per value, and 1,000 list values. A request over a cap gets status 400.
-- Number and date columns also get `isBetween`, with a `[min, max]` pair in which either bound can be `""`. The sample refuses it. Map it before you add such a column.
-- A null cell reads as empty text, so `empty`, `notContains`, `notEquals`, and `isNoneOf` match it. Add an `IS NULL` test to these four for a nullable column.
-- The route caps a page at 500 rows. Keep the page size at or below 500. A larger page returns fewer rows than the grid asked for.
+export const POST = (req: Request) =>
+  handleGridRequest(req, itemsQuery(req).fetchRows);
+```
 
-<Callout type="warn" title="Keep the key on the server">
-The service role key bypasses row-level security, so read it only in the route. Cap the body size at the framework or proxy, because the tree limits do not bound a large JSON text.
+The client is the one in the [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example#the-client).
+
+## The grid function [#grid-function]
+
+Set values, aggregates, groups, pivots, long URLs, and large reads run in the grid function. Run `grid-query.sql` once per database. Then create one wrapper per table. List the fields of the mapped columns in its allow-list:
+
+```sql title="supabase/migrations/items_grid.sql"
+create or replace function public.items_grid(plan jsonb)
+returns jsonb
+language sql stable security invoker
+as $$
+  select gridcn.grid_query(
+    'public.items'::pg_catalog.regclass,
+    array['id', 'name', 'qty']::pg_catalog.text[],
+    plan
+  )
+$$;
+revoke execute on function public.items_grid(jsonb) from public, anon;
+grant execute on function public.items_grid(jsonb) to authenticated;
+```
+
+Without `rpc`, these requests answer `unsupported`, and a long URL answers `limit-exceeded`.
+
+<Callout type="warn" title="Row-level security is the only tenancy boundary">
+  Never make the wrapper or the `gridcn` functions SECURITY DEFINER. Row-level security then checks the owner, and the caller writes the plan. The function does not enforce `rowScope`. A direct caller reads every column of the allow-list, `serverOnly` columns included. Hide a column with a column GRANT. Never use the service role key in the route, because it bypasses row-level security.
 </Callout>
 
-The client is the one in the [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example#the-client), and the [Shareable state](/docs/server-data-examples/orm-examples/drizzle-example#shareable-state) section of that page applies as is. Edits go through `onSave`. [Save edits](/docs/save-server/save-edits) shows the round trip.
+## Limits [#limits]
+
+- `maxRows` (default 1,000) is the `max-rows` setting of PostgREST, which cuts an answer without an error. A read of more rows goes to `rpc`. Without `rpc`, creation throws for a `limits.maxPageSize` plus 1 over `maxRows`. Then set `rpc`, or set `limits.maxPageSize` to `maxRows` minus 1 or less.
+- `maxUrlLength` (default 8,000) bounds the request URL. A longer request goes to `rpc`.
+- A literal `*` in a LIKE filter or the quick search answers `unsupported-value`, because PostgREST reads it as a wildcard.
+- LIKE filters on a native enum or uuid column answer `unsupported`.
+
+## Cursors, selection, and saves [#more-routes]
+
+- [Page queries by cursor](/docs/scroll-mode/page-queries-cursor): `maxCursorBytes` (default 2,048) bounds the cursor, and every sortable text column needs `maxLength`.
+- [Query the selected rows](/docs/rows-live-data/query-selected-rows): an id list goes into the URL while it fits, else to `rpc`. Without `rpc`, a long list answers `limit-exceeded`.
+- [Validate server saves](/docs/save-server/validate-server-saves): each `where` is one PostgREST logic tree of the row id and `rowScope`.
+
+A `where` is safe only as the sole argument of one `.or()`, as in `.update(values).or(where).select("id")`. In one `.or()` with another condition, the scope becomes one branch of the OR and stops narrowing. Each REST call is its own transaction, so a loop of `.update()` calls is not atomic. Run a whole change in one database function of your own, and call it with `client.rpc`.
 
 ## Related
 
-- [Server rows example](/docs/server-data-examples/server-rows-example): the grid side of this route
-- [Server rows contract](/docs/contracts/server-rows-contract): the request and the answer
-- [Handle refused saves](/docs/save-server/handle-refused-saves): the `onSave` round trip
+- [Query layer](/docs/data-modes/query-layer): the column map, the route, and `rowScope`
+- [Query layer reference](/docs/contracts/query-layer-reference): every option, limit, and error code
+- [Pivot server rows](/docs/data-modes/pivot-server-rows#query-layer): pivots through the grid function

@@ -1,135 +1,107 @@
 ---
 title: "Prisma example"
-description: Build a route handler that maps the sort, filter, search text, and row range of a server grid onto a Prisma query.
+description: Answer the sort, filter, search text, and row range of a server grid with a Prisma model through the query layer.
 icon: Boxes
 type: example
 ---
 
-This recipe needs a server and is not a registry item. A server grid sends its spec (`sorts`, `filters`, `searchText`) and a row range (`start`, `end`) to your route. The route checks the request with `parseServerSpec`, builds one query, and answers `{ rows, totalRowCount }`. The route reads a `User` model with a unique `id` and the text fields `name`, `email`, and `role`.
+A server grid sends its spec (`sorts`, `filters`, `searchText`) and a row range (`start`, `end`) to your route. The [query layer](/docs/data-modes/query-layer) checks the request and runs it with the Prisma Client object API on PostgreSQL or SQLite. This route serves a `User` model with an integer `id`, a nullable `name`, and a `tenantId`.
+
+<InstallCommand item="data-grid-server-query-prisma" />
 
 ## The route [#the-route]
 
-Each grid operator maps to a function that builds a Prisma `where` object. The route follows the [server rows contract](/docs/contracts/server-rows-contract). It rejects a request that fails the check with status 400. It adds `id` as the last sort, so no two rows tie and a page never repeats a row:
+Prisma has no data model at run time, so you write the column map by hand. `definePrismaColumnMap` types it by the generated model: `nullable: true` must sit exactly on the fields that admit `null`. A request that fails the check gets status 400:
 
-```ts fragment="needs @prisma/client" title="app/api/grid/route.ts"
-import {
-  isFilterGroup,
-  type FilterNode,
-} from "@/components/data-grid/data-grid";
-import {
-  parseServerSpec,
-} from "@/components/data-grid-server/data-grid-server";
-import type { Prisma } from "@prisma/client";
-import { prisma } from "~/lib/prisma";
+```ts title="lib/users-query.ts"
+import { createPrismaGridQuery, definePrismaColumnMap } from "@/components/data-grid-server-query-prisma/data-grid-server-query-prisma";
+import { Prisma, type User } from "./generated/prisma/client";
+import { prisma } from "./db";
 
-const COLUMNS = new Set<string>(["name", "email", "role"]);
-const text = (
-  id: string,
-  op: string,
-  value: string,
-): Prisma.UserWhereInput => ({
-  [id]: { [op]: value, mode: "insensitive" as const },
+const columns = definePrismaColumnMap<User>()(Prisma.UserScalarFieldEnum, {
+  id: { type: "number", numeric: "int4", primaryKey: true },
+  name: { type: "text", searchable: true, nullable: true },
+  tenantId: { type: "number", numeric: "int4", serverOnly: true },
 });
 
-const anyOf = (id: string, values: string[]) =>
-  values.map((value) => text(id, "equals", value));
-
-type Build = (id: string, v: any) => Prisma.UserWhereInput;
-
-const OPERATORS: Record<string, Build> = {
-  contains: (id, v) => text(id, "contains", v),
-  notContains: (id, v) => ({ NOT: text(id, "contains", v) }),
-  startsWith: (id, v) => text(id, "startsWith", v),
-  endsWith: (id, v) => text(id, "endsWith", v),
-  equals: (id, v) => text(id, "equals", v),
-  notEquals: (id, v) => ({ NOT: text(id, "equals", v) }),
-  gt: (id, v) => ({ [id]: { gt: v } }),
-  gte: (id, v) => ({ [id]: { gte: v } }),
-  lt: (id, v) => ({ [id]: { lt: v } }),
-  lte: (id, v) => ({ [id]: { lte: v } }),
-  empty: (id) => ({ [id]: "" }),
-  notEmpty: (id) => ({ NOT: { [id]: "" } }),
-  isAnyOf: (id, v) => ({ OR: anyOf(id, v) }),
-  isNoneOf: (id, v) => ({ NOT: { OR: anyOf(id, v) } }),
-};
-
-const columnRules = Object.fromEntries(
-  [...COLUMNS].map((id) => [id, { operators: Object.keys(OPERATORS) }]),
-);
-
-function readRange(body: any): { start: number; end: number } | null {
-  const { start, end } = body ?? {};
-  const valid =
-    Number.isSafeInteger(start) && start >= 0 && start <= 10_000_000 &&
-    Number.isSafeInteger(end) && end > start;
-  return valid ? { start, end } : null;
-}
-
-function toWhere(node: FilterNode): Prisma.UserWhereInput {
-  if (!isFilterGroup(node)) {
-    return OPERATORS[node.operator](node.columnId, node.value);
-  }
-  const parts = node.filters.map(toWhere);
-  if (parts.length === 0) return {};
-  return node.join === "or" ? { OR: parts } : { AND: parts };
-}
-
-export async function POST(request: Request) {
-  const body = await request.json().catch(() => null);
-  const range = readRange(body);
-  if (!range) return new Response("Invalid request", { status: 400 });
-  const { start, end } = range;
-  let spec;
-  try {
-    spec = parseServerSpec(body.spec, { columns: columnRules });
-  } catch {
-    return new Response("Invalid request", { status: 400 });
-  }
-  const search = ["name", "email"].map((id) =>
-    text(id, "contains", spec.searchText),
-  );
-  const where: Prisma.UserWhereInput = {
-    AND: [
-      spec.searchText ? { OR: search } : {},
-      ...spec.filters.map(toWhere),
-    ],
-  };
-
-  const [totalRowCount, rows] = await Promise.all([
-    prisma.user.count({ where }),
-    prisma.user.findMany({
-      where,
-      orderBy: [
-        ...spec.sorts.map((s) => ({ [s.columnId]: s.direction })),
-        { id: "asc" },
-      ],
-      skip: start,
-      take: Math.min(end - start, 500),
-    }),
-  ]);
-  return Response.json({ rows, totalRowCount });
-}
+export const usersQuery = createPrismaGridQuery<User, { tenantId: number }>({
+  model: prisma.user,
+  provider: "postgresql",
+  columns,
+  rowScope: (session) => ({ tenantId: session.tenantId }),
+});
 ```
 
-About the sample:
+```ts title="app/api/grid/route.ts"
+import { handleGridRequest } from "@/components/data-grid-server-query/data-grid-server-query";
+import { getSession } from "./session";
+import { usersQuery } from "./users-query";
 
-- `isFilterGroup(node)` is true for a group and false for a filter row.
-- The grid sends every value as text. A numeric field needs `Number(value)` in its operator.
-- The grid compares text without case. The sample sets `mode: "insensitive"` on the text operators, which Prisma supports on PostgreSQL, CockroachDB, and MongoDB. On other databases, remove `mode`.
-- `parseServerSpec` checks the column ids, the operators, the value shapes, and the tree size. Its default caps are 64 sorts, 500 search characters, 64 filters, 16 groups, 1,000 characters per value, and 1,000 list values. A request over a cap gets status 400.
-- Number and date columns also get `isBetween`, with a `[min, max]` pair in which either bound can be `""`. The sample refuses it. Map it before you add such a column.
-- A null cell reads as empty text, so `empty`, `notContains`, `notEquals`, and `isNoneOf` match it. Add an `IS NULL` test to these four for a nullable column.
-- The route caps a page at 500 rows. Keep the page size at or below 500. A larger page returns fewer rows than the grid asked for.
-- An empty group becomes `{}`, because the grid treats an empty group as a match for every row.
+export const POST = async (req: Request) => {
+  const session = await getSession(req);
+  if (!session) return new Response(null, { status: 401 });
+  return handleGridRequest(req, usersQuery.fetchRows, { context: session });
+};
+```
 
-<Callout type="warn">
-  Cap the request body size at the framework or proxy. The limits of `parseServerSpec` do not bound a large JSON text.
-</Callout>
+The client is the one in the [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example#the-client).
 
-The client is the one in the [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example#the-client), and the [Shareable state](/docs/server-data-examples/orm-examples/drizzle-example#shareable-state) section of that page applies as is. Edits go through `onSave`. [Save edits](/docs/save-server/save-edits) shows the round trip.
+## What Prisma declines [#declines]
+
+The adapter refuses, before any call, a request that the object API has no exact form for. It answers `unsupported` and never returns wrong rows:
+
+- A pivot (`spec.pivot`). See [Pivot server rows](/docs/data-modes/pivot-server-rows#query-layer).
+- On SQLite: case-insensitive `equals` and set filters, case-sensitive LIKE filters, and excluded ids on a uuid key. A `%` or `_` in a LIKE filter answers `unsupported-value`.
+- On PostgreSQL: a cursor sort on a `time` column, and grouping by a `time` column.
+- LIKE filters on a native enum or uuid column.
+- Set values of a `time` column or of text without `caseSensitive`, and a value query on a column that is not text.
+- `min`, `max`, and `count` of text without `keepBlankText`.
+
+Each statement also counts its bound values. Past the budget of the provider (PostgreSQL 32,766, SQLite 999), the adapter answers `limit-exceeded`. On SQLite, a selection of about 990 ids or excluded ids is over it. Group counts read one extra `groupBy` of at most `maxGroupRows` rows (default 10,000), and more answer `limit-exceeded`.
+
+## Cursors, selection, and saves [#more-routes]
+
+- [Page queries by cursor](/docs/scroll-mode/page-queries-cursor): with `paging: "cursor"`, every sortable text column needs `maxLength`, and a sortable native enum throws at creation. `maxCursorBytes` (default 2,048) bounds the cursor.
+- [Query the selected rows](/docs/rows-live-data/query-selected-rows): an id list renders `in` or `notIn` within the bound-value budget.
+- [Validate server saves](/docs/save-server/validate-server-saves): each `where` holds the row id and `rowScope`. Run every write of a change in one `prisma.$transaction`.
+
+This `apply` writes the updates and the deletes of a change:
+
+```ts title="app/api/grid/save/route.ts" fragment="db is your Prisma client, which types tx"
+import { handleGridRequest, type ApplyChange } from "@/components/data-grid-server-query/data-grid-server-query";
+import type { PrismaWhere } from "@/components/data-grid-server-query-prisma/data-grid-server-query-prisma";
+import { prisma } from "./db";
+import { getSession } from "./session";
+import { usersQuery } from "./users-query";
+
+const apply: ApplyChange<PrismaWhere, { tenantId: number }> = (change) =>
+  prisma.$transaction(async (tx) => {
+    if (change.inserts.length > 0 || change.moves.length > 0) {
+      throw new Error("Users have no inserts or row order");
+    }
+    const updates: number[] = [];
+    for (const { where, values } of change.updates) {
+      const result = await tx.user.updateMany({ where, data: values });
+      updates.push(result.count);
+    }
+    const deletes: number[] = [];
+    for (const { where } of change.deletes) {
+      deletes.push((await tx.user.deleteMany({ where })).count);
+    }
+    return { updates, deletes, moves: [] };
+  });
+
+export const POST = async (req: Request) => {
+  const session = await getSession(req);
+  if (!session) return new Response(null, { status: 401 });
+  return handleGridRequest(req, usersQuery.save(apply), { context: session });
+};
+```
+
+A count of 0 answers `not-found` for that row. The written values are native: an `int8` is a `BigInt`, a date is a `Date`, and a decimal is text.
 
 ## Related
 
-- [Server rows example](/docs/server-data-examples/server-rows-example): the grid side of this route
-- [Server rows contract](/docs/contracts/server-rows-contract): the request and the answer
-- [Handle refused saves](/docs/save-server/handle-refused-saves): the `onSave` round trip
+- [Query layer](/docs/data-modes/query-layer): the column map, the route, and `rowScope`
+- [Query layer reference](/docs/contracts/query-layer-reference): every option, limit, and error code
+- [Supabase example](/docs/server-data-examples/orm-examples/supabase-example)
