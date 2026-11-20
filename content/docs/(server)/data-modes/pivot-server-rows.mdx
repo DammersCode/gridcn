@@ -130,7 +130,7 @@ The query layer answers `spec.pivot` with Drizzle and Kysely. Supabase needs `rp
 
 | Code | Request |
 |---|---|
-| `unsupported` | The adapter has no pivot, `columnIds` holds 2 ids, or `childKind` is `"rows"`. A value of a non-number column is not `count`. The pivot column has `keepBlankText`. |
+| `unsupported` | The adapter has no pivot, `columnIds` holds more than 1 id, or `childKind` is `"rows"`. A value of a non-number column is not `count`. The pivot column has `keepBlankText`. |
 | `limit-exceeded` | More values than `maxPivotColumns`, or a pivot key over `maxGroupKeyLength`. |
 | `invalid-request` | No `groupBy`, no aggregates, or the pivot column in `groupBy`. |
 | `unknown-column` | The pivot column is not in the map, is `serverOnly`, or is not sortable. |

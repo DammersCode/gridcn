@@ -24,8 +24,7 @@ const columns = defineColumnMap({
   qty: { type: "number", numeric: "int4", aggregate: "sum" },
 });
 
-export function itemsQuery(req: Request) {
-  const auth = req.headers.get("Authorization") ?? "";
+export function itemsQuery(auth: string) {
   const client = createClient(
     process.env.SUPABASE_URL!,
     process.env.SUPABASE_ANON_KEY!,
@@ -41,11 +40,14 @@ export function itemsQuery(req: Request) {
 import { handleGridRequest } from "@/components/data-grid-server-query/data-grid-server-query";
 import { itemsQuery } from "./items-query";
 
-export const POST = (req: Request) =>
-  handleGridRequest(req, itemsQuery(req).fetchRows);
+export const POST = (req: Request) => {
+  const auth = req.headers.get("Authorization");
+  if (!auth) return new Response(null, { status: 401 });
+  return handleGridRequest(req, itemsQuery(auth).fetchRows);
+};
 ```
 
-The client is the one in the [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example#the-client).
+The client is the one in the [Drizzle example](/docs/server-data-examples/orm-examples/drizzle-example#the-client). Add the header `Authorization: Bearer <token>` to its `fetch`, with the access token of the signed-in user.
 
 ## The grid function [#grid-function]
 
