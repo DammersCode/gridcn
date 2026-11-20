@@ -166,6 +166,14 @@ describe("cursor paging on SQLite and PostgreSQL", async () => {
       for (const id of idsOf(answer.rows)) expect(tenantTwo.has(id)).toBe(true);
     });
 
+    it("answers bad-cursor for a time key PostgreSQL would not parse", async () => {
+      const spec = { sorts: [asc("stamp")] };
+      const first = await query.fetchRows({ spec, start: 0, end: 1 });
+      const [version, hash, , id] = JSON.parse(atob(first.nextCursor!.replace(/-/g, "+").replace(/_/g, "/"))) as unknown[];
+      const forged = btoa(JSON.stringify([version, hash, "2024-01-01T00:00:00+16:00", id])).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+      await expect(query.fetchRows({ spec, start: 1, end: 2, cursor: forged })).rejects.toMatchObject({ code: "bad-cursor" });
+    });
+
     it("refuses a grouped request", async () => {
       await expect(query.fetchRows({ spec: { groupBy: ["qty"] }, start: 0, end: 5 })).rejects.toMatchObject({ code: "unsupported" });
     });

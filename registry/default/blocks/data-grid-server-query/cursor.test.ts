@@ -199,9 +199,10 @@ describe("cursor paging: pages", () => {
     await expect(fetch(page(wide))).rejects.toMatchObject({ code: "limit-exceeded" });
   });
 
-  it("refuses to answer a cursor it would reject: a stored text over maxLength", async () => {
-    const { fetch } = cursorQuery([{ id: 1, name: "x".repeat(21) }, { id: 2, name: "y" }]);
-    await expect(fetch({ spec: { sorts: [{ columnId: "name", direction: "asc" }] }, start: 0, end: 1 })).rejects.toMatchObject({ code: "limit-exceeded" });
+  it("compares a stored text over maxLength, and refuses to answer a cursor over maxCursorBytes", async () => {
+    const spec = { sorts: [{ columnId: "name", direction: "asc" }] };
+    await expect(cursorQuery([{ id: 1, name: "x".repeat(21) }, { id: 2, name: "y" }]).fetch({ spec, start: 0, end: 1 })).resolves.toMatchObject({ hasMore: true });
+    await expect(cursorQuery([{ id: 1, name: "x".repeat(2000) }, { id: 2, name: "y" }]).fetch({ spec, start: 0, end: 1 })).rejects.toMatchObject({ code: "limit-exceeded" });
   });
 
   it("keeps a column id such as __proto__ a plain key", async () => {
@@ -313,8 +314,11 @@ describe("cursor paging: bad cursors", () => {
     await expectBadCursor(keyed(["uid"], ["not-a-uuid", "1"]));
     await expectBadCursor(keyed(["kind"], ["c", "1"]));
     await expect(keyed(["kind"], ["b", "1"])).resolves.toBeDefined();
-    await expectBadCursor(keyed(["name"], ["x".repeat(21), "1"]));
+    await expect(keyed(["name"], ["x".repeat(21), "1"])).resolves.toBeDefined();
     await expectBadCursor(keyed(["stamp"], ["2024-13-01T00:00:00.000000Z", "1"]));
+    await expectBadCursor(keyed(["stamp"], ["2024-01-01T00:00:00+16:00", "1"]));
+    await expectBadCursor(keyed(["stamp"], ["0000-01-01T00:00:00Z", "1"]));
+    await expect(keyed(["stamp"], ["2024-01-01 00:00:00-15:59", "1"])).resolves.toBeDefined();
     await expectBadCursor(keyed(["stamp"], ["2024-01-01T00:00:00.1234567Z", "1"]));
     await expect(keyed(["stamp"], ["2024-01-01T00:00:00.123456Z", "1"])).resolves.toBeDefined();
     await expect(keyed(["seen"], ["2024-01-01T00:00:00.123Z", "1"])).resolves.toBeDefined();

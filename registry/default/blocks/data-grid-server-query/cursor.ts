@@ -17,7 +17,7 @@ const HEADER_BYTES = 22;
 const CURSOR_TEXT = /^[A-Za-z0-9_-]+$/;
 // The longest text `INSTANT_KEY` accepts.
 const INSTANT_KEY_LENGTH = 32;
-const INSTANT_KEY = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}):(\d{2}):(\d{2})(?:\.\d{1,6})?(?:Z|[-+]\d{2}:?\d{2})?$/;
+const INSTANT_KEY = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}):(\d{2}):(\d{2})(?:\.\d{1,6})?(?:Z|[-+](\d{2}):?(\d{2}))?$/;
 const NUMBER_TEXT_LENGTH = new Map<string, number>([["int2", 6], ["int4", 11], ["int8", 20], ["float", 24]]);
 // BigInt literals need ES2020 targets; consumer apps may compile lower.
 const FNV_OFFSET = BigInt("0xcbf29ce484222325");
@@ -96,9 +96,12 @@ export function planHash(plan: Pick<RowsPlan, "where" | "orderBy">): string {
   return fnv1a64(text);
 }
 
+/** Whether PostgreSQL's `timestamptz` input takes the text: no year 0, an offset within ±15:59. */
 function instantKey(text: string): boolean {
   const match = INSTANT_KEY.exec(text);
-  return match !== null && parseDate(match[1]!) !== null && Number(match[2]) <= 23 && Number(match[3]) <= 59 && Number(match[4]) <= 59;
+  if (match === null || match[1]!.startsWith("0000") || parseDate(match[1]!) === null) return false;
+  const offsetFits = match[5] === undefined || (Number(match[5]) <= 15 && Number(match[6]) <= 59);
+  return offsetFits && Number(match[2]) <= 23 && Number(match[3]) <= 59 && Number(match[4]) <= 59;
 }
 
 /** A key text parsed by the column's physical type, or `null` when the column cannot hold it. */
@@ -110,8 +113,8 @@ function keyFromText(column: PlanColumn, text: string, limits: ResolvedLimits): 
   }
   const operand = keyOperand(column, text, limits);
   if (typeof operand === "string") return null;
+  // PostgreSQL throws on a label its enum lacks.
   if (column.native === "enum") return column.choices!.includes(text) ? operand : null;
-  if ((column.kind === "text" || column.kind === "select") && column.maxLength !== undefined && text.length > column.maxLength) return null;
   return operand;
 }
 
@@ -161,7 +164,7 @@ function keyTextOf(column: PlanColumn, raw: unknown): string | null {
 }
 
 /**
- * The cursor after `row`. A key the cursor cannot carry (stored text over `maxLength`, a number over `maxNumberLength`)
+ * The cursor after `row`. A key the cursor cannot carry (keys over `maxCursorBytes`, a number over `maxNumberLength`)
  * throws `limit-exceeded`: the layer never answers a cursor it would refuse.
  */
 export function cursorAfter(row: Record<string, unknown>, keyText: ReadonlyMap<PlanColumn, string>, ctx: KeyContext): string {
