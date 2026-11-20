@@ -78,9 +78,12 @@ What the server receives and sends:
 3. **Every answer carries its own column list.** Cells map by generated id, never by position. A
    held id that an answer lacks reads `null`.
 4. **The held set rides on `ServerGroupLayout.pivot`.** The first landing after a spec change or
-   `refresh()` sets it. It keeps one object identity until the next spec change or `refresh()`.
-5. **The core builds the generated columns.** It memoizes them on the held set. They never enter
-   `spec.aggregates`.
+   `refresh()` sets it. Until that landing, the previous held set stays, so the header never shows
+   the source columns between two pivot specs. With equal generated ids the object stays; a new
+   `omitted` makes a new object over the same `columns` array.
+5. **The core builds the generated columns.** It memoizes them on the held `columns` array, so a
+   new `omitted` keeps the column defs and the visible columns. They never enter `spec.aggregates`.
+   The generated widths of ids that leave the held set drop.
 6. **Generated ids derive from values.** See "Generated columns".
 7. **Distinct keys are data, so the server cuts them.** Past the cap, the layer keeps the first keys
    in key order and answers `pivotOmitted`. The layer refuses only a bad request.
@@ -506,7 +509,7 @@ Paths are relative to `registry/default/blocks/`. Behavior codes:
 | `data-grid/store/create-store.ts:1074` | S | Derived layout. |
 | `data-grid/store/create-store.ts:1654` | S | Leaf view for the result count. |
 | `data-grid/store/create-store.ts:1655` | S | The same. |
-| `data-grid/store/sync-props.ts:397` | S | Syncs the `groupLayout` prop. The held set keeps its identity. |
+| `data-grid/store/sync-props.ts:397` | S | Syncs the `groupLayout` prop. The generated columns keep their identity while the held `columns` do. |
 | `data-grid/store/sync-inputs.ts:48` | S | Equality of `groupMode`. |
 | `data-grid/store/group-view.ts:40` | S | `groupMode` from the props. |
 | `data-grid/store/group-view.ts:47` | S | Server layout path. |

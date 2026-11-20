@@ -73,7 +73,7 @@ export type ServerGroupSlot = {
 /** One generated column of a pivot answer: one key per pivot column, and the index of its value in `spec.aggregates`. */
 export type PivotColumnDescriptor = { readonly path: readonly GroupKey[]; readonly valueIndex: number };
 
-/** The held set of a server pivot. It keeps one identity until the next spec change or `refresh()`. */
+/** The held set of a server pivot. Its `columns` keep one identity while the generated ids stay equal; a new `omitted` makes a new object over the same `columns`. */
 export type ServerPivotLayout = {
   /** The pivot column. */
   readonly columnId: string;

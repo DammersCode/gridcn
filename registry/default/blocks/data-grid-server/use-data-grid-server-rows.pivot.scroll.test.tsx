@@ -156,6 +156,38 @@ describe("a pivot scroll source", () => {
     expect(server.calls.at(-1)).toMatchObject({ start: 0, childKind: "groups" });
   });
 
+  it.each<[string, Record<string, unknown>, string]>([
+    ["a sort on the groupBy column", { sorts: [{ columnId: "region", direction: "desc" }] }, "city"],
+    ["a typed filter", { filters: [{ columnId: "region", operator: "contains", value: "A" }] }, "city"],
+    ["a switch of the pivot column", { pivot: { columnIds: ["id"] } }, "id"],
+  ])("shows the held set until the first answer after %s lands", async (_, change, columnId) => {
+    const server = fakeServer(rowsOf(REGIONS));
+    const base = { ...PIVOT_SPEC, sorts: [], filters: [], searchText: "" };
+    const shown: unknown[] = [];
+    const { result, rerender } = renderHook(
+      ({ spec }) => {
+        const rows = useDataGridServerRows<Row>({ mode: "scroll", fetchRows: server.fetchRows as never, loadDelayMs: 0, spec, onSpecChange: () => {} });
+        shown.push(rows.gridProps.groupLayout?.pivot);
+        return rows;
+      },
+      { initialProps: { spec: base } },
+    );
+    await waitFor(() => expect(result.current.gridProps.groupLayout?.pivot).toBeDefined());
+    const held = result.current.gridProps.groupLayout!.pivot;
+    const original = server.fetchRows.getMockImplementation()!;
+    const pending: (() => void)[] = [];
+    server.fetchRows.mockImplementation((request) => new Promise<Answer>((resolve) => pending.push(() => resolve(original(request)))));
+    shown.length = 0;
+    rerender({ spec: { ...base, ...change } });
+    await waitFor(() => expect(pending).toHaveLength(1));
+    await act(settle);
+    expect(result.current.gridProps.groupLayout!.rows).toEqual([]);
+    expect(shown.every((pivot) => pivot === held)).toBe(true);
+    act(() => pending[0]!());
+    await waitFor(() => expect(result.current.gridProps.groupLayout!.pivot!.columnId).toBe(columnId));
+    expect(shown.every((pivot) => pivot !== undefined)).toBe(true);
+  });
+
   it("drops a late answer after a spec change", async () => {
     const server = fakeServer(rowsOf(REGIONS));
     const { result } = mount(server);

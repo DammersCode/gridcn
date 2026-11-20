@@ -25,16 +25,16 @@ export function isGroupsAnswer(answer: unknown): answer is ServerGroupsAnswer {
  * A store whose top level holds the `initialAnswer` as block `block`; `null` when the answer is not a usable groups answer.
  * With `pivot`, the answer also sets the held set; an equal `hold` from an earlier seed keeps its identity.
  */
-export function seedGroupStore<TData>(answer: unknown, groupBy: readonly string[], blockSize: number, block: number, aggregates: readonly ServerAggregate[], pivot?: string, hold?: PivotHold): GroupStore<TData> | null {
+export function seedGroupStore<TData>(answer: unknown, groupBy: readonly string[], blockSize: number, block: number, aggregates: readonly ServerAggregate[], pivot?: string, hold?: PivotHold, warn: (kind: string, message: string) => void = () => {}): GroupStore<TData> | null {
   if (!isGroupsAnswer(answer)) return null;
   try {
     const start = block * blockSize;
-    const read = readGroupsAnswer(answer, { start, end: start + blockSize }, { topLevel: true, aggregateIds: aggregates.map((aggregate) => aggregate.columnId) }, () => {});
+    const read = readGroupsAnswer(answer, { start, end: start + blockSize }, { topLevel: true, aggregateIds: aggregates.map((aggregate) => aggregate.columnId) }, warn);
     const store = createGroupStore<TData>(groupBy, blockSize, pivot !== undefined);
     if (store.pivot && hold) store.pivot = { ...hold, pending: true };
     const top = listFor(store, [], null);
     if (pivot === undefined) landGroups(store, top, block, read.groups, read.groupCount, 0);
-    else if (landPivotGroups(store, top, block, answer, read, { columnId: pivot, values: aggregates }, 0, () => {}) === "failed") return null;
+    else if (landPivotGroups(store, top, block, answer, read, { columnId: pivot, values: aggregates }, 0, warn) === "failed") return null;
     if (read.totalRowCount !== undefined) store.leafCount = read.totalRowCount;
     return store;
   } catch {

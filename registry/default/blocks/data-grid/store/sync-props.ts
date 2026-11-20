@@ -52,7 +52,7 @@ import { forgetDeferredRows, resetDeferredRows } from "./data-write";
 import { clearStaleRows, pruneStaleRows, serverSpecChanged, staleStateAfterPrune } from "./server-stale";
 import { mergePluginCommands, mergePluginKeymaps, pluginsListEqual, resolvePluginsList, warnPluginComponentRemounts } from "./plugins";
 import { resolveSelectionState, selectionStatesEqual, type ResolveWarnFlag } from "./selection-state";
-import { pivotWidthsOf, type PivotView } from "./pivot-view";
+import { pivotWidthsOf, withoutGeneratedWidths, type PivotView } from "./pivot-view";
 import type { AnyColumnDef, DataGridStoreState, InternalSyncProps, ResolvedPlugins, SyncInputs } from "./types";
 import { syncInputsEqual } from "./types";
 import { checkSortLocale, DEFAULT_SORT_LOCALE } from "../sort-filter/sort-collator";
@@ -543,7 +543,11 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           cellTypes: nextCellTypes,
           visibleColumns: finalVisibleColumns,
           pivot: nextPivot,
-          columnWidths: layoutApply?.columnWidths ? { ...layoutApply.columnWidths, ...pivotWidthsOf(s.columnWidths, nextPivot) } : s.columnWidths,
+          columnWidths: layoutApply?.columnWidths
+            ? { ...layoutApply.columnWidths, ...pivotWidthsOf(s.columnWidths, nextPivot) }
+            : nextPivot?.columns === s.pivot?.columns
+              ? s.columnWidths
+              : withoutGeneratedWidths(s.columnWidths, finalVisibleColumns),
           columnOrder: layoutApply?.columnOrder ?? (groupsChanged && s.columnOrder ? completeColumnOrder(nextColumns, s.columnOrder) : s.columnOrder),
           columnGroupModel: memory.groupModel,
           // A `columns` or group swap re-seeds the snapshot even uncontrolled.

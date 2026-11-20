@@ -153,7 +153,12 @@ export function useGroupBlocks<TData, TCursor = never>(
     const store = getEngine().store;
     if (!store) {
       getEngine().view = null;
-      setView((prev) => (prev.data.length === 0 && prev.slots.length === 0 && !prev.loading && prev.groupCount === null ? prev : emptyView()));
+      const { active: on, pivot: columnId } = live.current;
+      setView((prev) => {
+        const hold = on && columnId !== null ? prev.pivotHold : undefined;
+        if (prev.data.length === 0 && prev.slots.length === 0 && !prev.loading && prev.groupCount === null && prev.pivotHold === hold) return prev;
+        return hold ? { ...emptyView<TData>(), pivotHold: hold } : emptyView<TData>();
+      });
       return;
     }
     const states = new Map<string, "loading" | "failed">();
@@ -302,8 +307,12 @@ export function useGroupBlocks<TData, TCursor = never>(
     const { groupBy: by, pages: paging, engineKey: key, pivot: columnId, pivotHold: shown } = live.current;
     const pending = seedRef.current;
     // The view still shows the held set of the first seed; re-seeding keeps it, so its identity holds across mount and StrictMode.
-    const seeded = pending?.key === key ? seedGroupStore<TData>(pending.answer, by, blockSize(), (paging?.page ?? 1) - 1, live.current.spec.aggregates ?? [], columnId ?? undefined, shown) : null;
-    return seeded ?? createGroupStore<TData>(by, blockSize(), columnId !== null);
+    const seeded = pending?.key === key ? seedGroupStore<TData>(pending.answer, by, blockSize(), (paging?.page ?? 1) - 1, live.current.spec.aggregates ?? [], columnId ?? undefined, shown, warn) : null;
+    if (seeded) return seeded;
+    const store = createGroupStore<TData>(by, blockSize(), columnId !== null);
+    // The shown held set stays until the first answer of the new spec lands, so the header never flips to the source columns.
+    if (store.pivot && shown?.layout) store.pivot = { ...shown, pending: true };
+    return store;
   };
 
   const seedStore = () => {

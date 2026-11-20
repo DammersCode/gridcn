@@ -21,10 +21,12 @@ const GENERATED_PREFIXES = ["__pivot:", "__pivotgroup:"] as const;
 
 const hasGeneratedPrefix = (id: string) => GENERATED_PREFIXES.some((prefix) => id.startsWith(prefix));
 
-const views = new WeakMap<ServerPivotLayout, { valueColumns: readonly (AnyColumnDef | undefined)[]; labels: DataGridPivotLabels; view: PivotView }>();
+// Keyed on the held columns, so a landing that changes only `omitted` keeps the generated column defs.
+const views = new WeakMap<ServerPivotLayout["columns"], { valueColumns: readonly (AnyColumnDef | undefined)[]; labels: DataGridPivotLabels; view: PivotView }>();
 
 /**
- * The pivot view of a server layout, or `null` without a held set. One identity per held set, value column defs, and labels.
+ * The pivot view of a server layout, or `null` without a held set. Its `columns` keep one identity per held columns, value
+ * column defs, and labels; a new `omitted` makes a new view over the same `columns`.
  * Under pivot, a consumer column or group id with a generated prefix drops, and `onPrefixClash` reports it.
  */
 export function pivotViewOf(
@@ -37,8 +39,12 @@ export function pivotViewOf(
   const held = layout?.pivot;
   if (!held) return null;
   const valueColumns = held.values.map((value) => columns.find((column) => column.id === value.columnId));
-  const cached = views.get(held);
-  if (cached && cached.labels === labels && cached.valueColumns.every((column, i) => column === valueColumns[i])) return cached.view;
+  const cached = views.get(held.columns);
+  if (cached && cached.labels === labels && cached.valueColumns.every((column, i) => column === valueColumns[i])) {
+    const omitted = Math.max(0, held.omitted) + Math.max(0, held.columns.length - cached.view.columns.length);
+    if (cached.view.omitted !== omitted) cached.view = { ...cached.view, omitted };
+    return cached.view;
+  }
   const clashes = [...columns.map((column) => column.id), ...consumerGroupIds].filter(hasGeneratedPrefix);
   if (clashes.length > 0) onPrefixClash(clashes);
   const sources = clashes.length > 0 ? columns.filter((column) => !hasGeneratedPrefix(column.id)) : columns;
@@ -49,20 +55,20 @@ export function pivotViewOf(
     groupModel: buildColumnGroupModel(built.groups, built.columns.map((column) => column.id)),
     omitted: Math.max(0, held.omitted) + Math.max(0, held.columns.length - built.columns.length),
   };
-  views.set(held, { valueColumns, labels, view });
+  views.set(held.columns, { valueColumns, labels, view });
   return view;
 }
 
-const visibleCache = new WeakMap<PivotView, { groupColumn: AnyColumnDef | undefined; visible: readonly AnyColumnDef[] }>();
+const visibleCache = new WeakMap<PivotView["columns"], { groupColumn: AnyColumnDef | undefined; visible: readonly AnyColumnDef[] }>();
 
 /** Under pivot the visible columns are the `groupBy` column, first and never end-pinned, and the generated columns. */
 export function pivotVisibleColumns(view: PivotView, columns: readonly AnyColumnDef[], groupBy: readonly string[]): readonly AnyColumnDef[] {
   const groupColumn = columns.find((column) => column.id === groupBy[0] && !hasGeneratedPrefix(column.id));
-  const cached = visibleCache.get(view);
+  const cached = visibleCache.get(view.columns);
   if (cached && cached.groupColumn === groupColumn) return cached.visible;
   const lead = groupColumn === undefined ? [] : [groupColumn.pin === "end" ? { ...groupColumn, pin: undefined } : groupColumn];
   const visible = [...lead, ...view.columns];
-  visibleCache.set(view, { groupColumn, visible });
+  visibleCache.set(view.columns, { groupColumn, visible });
   return visible;
 }
 
