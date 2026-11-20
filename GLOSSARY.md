@@ -176,5 +176,5 @@ mirror the change there.
 | plan hash | The digest of a parsed plan's filter and order. A keyset cursor with another plan hash is stale. | |
 | key test | The `key` test: a raw comparison in the sort order of the database. | |
 | id list test | The `ids` test: exact primary-key membership, bound as one parameter. | |
-| validated change | What `validateChange` returns: the writes with scoped `where`s, and the refusals. | |
+| validated change | What `query.validateChange` returns: the writes with scoped `where`s, and the refusals. | |
 | write refusal | One refused row or cell of a validated change, in the shape of a `SaveRejection`. | |
