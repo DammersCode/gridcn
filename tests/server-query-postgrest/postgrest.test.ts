@@ -77,8 +77,9 @@ describe.skipIf(!POSTGREST_URL || !JWT_SECRET)("the Supabase adapter against a l
   it("PostgREST cuts a REST read at max-rows, so a page and its look-ahead row go to the grid function", async () => {
     const { data } = await client(1).from("items").select("id").range(0, 1499);
     expect(data).toHaveLength(1000);
-    const page = await ids(grid(1), {}, 1, 1000, 2000);
-    expect([page.length, page[0], page.at(-1)]).toEqual([1000, "1087", "2086"]);
+    const answer = (await grid(1).fetchRows({ spec: { sorts: [{ columnId: "id", direction: "asc" }] }, start: 1000, end: 2000 }, { context: { tenant: 1 } })) as { rows: Record<string, unknown>[]; hasMore?: boolean };
+    // Only the look-ahead row, which REST would cut, makes `hasMore` true.
+    expect([answer.rows.length, answer.rows[0]!["id"], answer.rows.at(-1)!["id"], answer.hasMore]).toEqual([1000, "1087", "2086", true]);
   });
 
   it("the anon role can neither read the table nor call the grid function", async () => {
