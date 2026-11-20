@@ -32,7 +32,10 @@ export type AdapterCapabilities = {
   aggregates: boolean;
   groupBy: boolean;
   localDayGrouping: boolean;
-  /** `selectRows` reads the `keyText` of a `time` key exactly. Default `true`; `false` makes a cursor sort on a `time` column `unsupported`. */
+  /**
+   * The adapter reads a `time` value exactly: the `keyText` of a cursor key in `selectRows`, and the group keys of
+   * `selectGroups`. Default `true`; `false` makes a cursor sort on a `time` column, and grouping by one, `unsupported`.
+   */
   exactInstantKeys?: boolean;
   /** A LIKE leaf can match case. Default `true`; `false` makes a case-sensitive contains, notContains, startsWith, or endsWith `unsupported`. */
   caseSensitiveLike?: boolean;

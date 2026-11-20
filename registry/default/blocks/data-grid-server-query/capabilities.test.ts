@@ -146,6 +146,25 @@ describe("blankTextAggregates: false", () => {
   });
 });
 
+describe("exactInstantKeys", () => {
+  const specs = { ...SPECS, day: { type: "date" } } satisfies Record<string, ColumnSpec>;
+  const grouped = (groupBy: string[], groupPath?: unknown[]) => ({ spec: { groupBy }, ...(groupPath ? { groupPath } : {}), start: 0, end: 10 });
+  const stampKey = [{ columnId: "stamp", key: "2024-01-01T10:00:00.000Z" }];
+  it("false: refuses grouping by a time column at any level, for group rows and leaf rows, before the executor runs", async () => {
+    for (const [request, index] of [[grouped(["stamp"]), 0], [grouped(["qty", "stamp"]), 1], [grouped(["stamp", "qty"], stampKey), 0], [grouped(["stamp"], stampKey), 0]] as const) {
+      const { query, calls } = make({ exactInstantKeys: false }, specs);
+      await expect(query.fetchRows(request)).rejects.toMatchObject({ code: "unsupported", path: ["spec", "groupBy", index] });
+      expect(calls()).toBe(0);
+    }
+  });
+  it("false keeps a plain date and non-time levels; true and unset keep a time level", async () => {
+    await expect(make({ exactInstantKeys: false }, specs).query.fetchRows(grouped(["day", "qty"]))).resolves.toBeDefined();
+    await expect(make({ exactInstantKeys: false }, specs).query.fetchRows(grouped(["qty"], [{ columnId: "qty", key: 1 }]))).resolves.toBeDefined();
+    await accepted({ exactInstantKeys: true }, (q) => q.fetchRows(grouped(["stamp"])));
+    await accepted({}, (q) => q.fetchRows(grouped(["stamp", "qty"], stampKey)));
+  });
+});
+
 describe("maxBoundIds", () => {
   it("refuses a longer id list with limit-exceeded before the executor runs", async () => {
     await refused({ maxBoundIds: 2 }, (q) => q.selection({ selection: { mode: "ids", ids: ["1", "2", "3"] } }), "limit-exceeded", ["selection", "ids"]);

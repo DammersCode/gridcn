@@ -467,6 +467,25 @@ describe("groups", () => {
     expect(await codeOf(query.fetchRows(groupsRequest, CONTEXT))).toBe("limit-exceeded");
   });
 
+  it("refuses a SQLite group page whose keys pass the bind budget of the child pair groupBy before any call", async () => {
+    const keys = Array.from({ length: 1000 }, (_, index) => ({ tag: `t${index}`, _count: { _all: 1 } }));
+    const { query, calls } = make("sqlite", { groupBy: (args) => ((args["by"] as unknown[]).length === 1 && args["skip"] !== undefined ? keys.slice(0, args["take"] as number) : []) });
+    const caught = await query.fetchRows({ spec: { groupBy: ["tag", "name"] }, start: 0, end: 1000 }, CONTEXT).catch((error: unknown) => error);
+    expect(caught).toMatchObject({ code: "limit-exceeded", path: [] });
+    expect(calls).toHaveLength(0);
+    await query.fetchRows({ spec: { groupBy: ["tag", "name"] }, start: 0, end: 990 }, CONTEXT);
+    await query.fetchRows({ spec: { groupBy: ["tag"] }, start: 0, end: 1000 }, CONTEXT);
+  });
+
+  it("declines grouping by a time column, whose millisecond keys miss microsecond rows, and keeps a plain date", async () => {
+    const { query, calls } = make();
+    expect(await codeOf(query.fetchRows({ spec: { groupBy: ["stamp"] }, start: 0, end: 3 }, CONTEXT))).toBe("unsupported");
+    expect(await codeOf(query.fetchRows({ spec: { groupBy: ["tag", "stamp"] }, groupPath: [{ columnId: "tag", key: "a" }], start: 0, end: 3 }, CONTEXT))).toBe("unsupported");
+    expect(calls).toHaveLength(0);
+    await query.fetchRows({ spec: { groupBy: ["born"] }, start: 0, end: 3 }, CONTEXT);
+    expect(calls.length).toBeGreaterThan(0);
+  });
+
   it("declines min, max, and count on text that folds blank text into NULL", async () => {
     const { query } = make();
     expect(await codeOf(query.fetchRows({ spec: { groupBy: ["tag"], aggregates: [{ columnId: "name", reducer: "count" }] }, start: 0, end: 3 }, CONTEXT))).toBe("unsupported");
@@ -536,13 +555,22 @@ describe("rowScope and writes", () => {
 
   it("scopes every delegate call of every method", async () => {
     const { query, calls } = make("postgresql", { groupBy: (args) => ((args["by"] as unknown[]).length === 2 ? [] : [{ tag: "a", _count: { _all: 1 } }]) });
+    const either = { filterJoin: "or", filters: [filter("qty", "gt", "1"), filter("title", "contains", "a")] };
     await query.fetchRows(rowsRequest({}), CONTEXT);
-    await query.fetchRows({ spec: { groupBy: ["tag", "name"] }, start: 0, end: 5 }, CONTEXT);
+    await query.fetchRows(rowsRequest(either), CONTEXT);
+    await query.fetchRows({ spec: { ...either, groupBy: ["tag", "name"] }, start: 0, end: 5 }, CONTEXT);
     await query.filterValues({ columnId: "tag", query: "" }, CONTEXT);
     await query.aggregates({ spec: {}, columnIds: ["qty"] }, CONTEXT);
     await query.selection({ selection: { mode: "ids", ids: ["1"], excludedIds: [] }, include: "rows", start: 0, end: 5 }, CONTEXT);
+    await query.selection({ selection: { mode: "allMatching", excludedIds: ["2"], spec: either }, include: "ids", start: 0, end: 5 }, CONTEXT);
     expect(new Set(calls.map((call) => call.method))).toStrictEqual(new Set(["findMany", "count", "groupBy", "aggregate"]));
-    for (const call of calls) expect(JSON.stringify(call.args["where"])).toContain(JSON.stringify(SCOPE));
+    expect(calls.filter((call) => (call.args["by"] as unknown[] | undefined)?.length === 2)).toHaveLength(1);
+    for (const { args } of calls) {
+      const where = args["where"] as Record<string, unknown>;
+      // The scope is the whole where or one member of its top-level AND, never nested under an OR.
+      const members = Object.keys(where).length === 1 && Array.isArray(where["AND"]) ? where["AND"] : [where];
+      expect(members).toContainEqual(SCOPE);
+    }
   });
 });
 
