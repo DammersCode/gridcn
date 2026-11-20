@@ -40,6 +40,7 @@ class FakeBuilder implements PromiseLike<Result> {
     this.signal = signal;
     return this;
   }
+  // eslint-disable-next-line unicorn/no-thenable -- a postgrest-js builder is a thenable
   then<A = Result, B = never>(onfulfilled?: ((value: Result) => A | PromiseLike<A>) | null, onrejected?: ((reason: unknown) => B | PromiseLike<B>) | null): PromiseLike<A | B> {
     const request: SentRequest = { method: this.method, url: new URL(this.url.href), prefer: this.prefer, body: this.body, signal: this.signal };
     this.sent.push(request);

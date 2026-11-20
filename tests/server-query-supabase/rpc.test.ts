@@ -34,6 +34,7 @@ function pgClient(database: () => PGlite, fn = "items_grid"): { client: Supabase
         return { data: null, error: { message: (error as Error).message }, count: null };
       }
     };
+    // eslint-disable-next-line unicorn/no-thenable -- a postgrest-js builder is a thenable
     const request = { then: (ok: (value: unknown) => unknown, fail: (reason: unknown) => unknown) => run().then(ok, fail), abortSignal: () => request };
     return request;
   };

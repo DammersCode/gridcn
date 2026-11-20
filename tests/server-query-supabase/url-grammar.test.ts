@@ -100,6 +100,7 @@ describe("rows requests", () => {
     const { query } = make({ answer: () => ({ error: { message: "permission denied" } }) });
     expect(await failure(query.fetchRows(rowsRequest({}), CONTEXT))).toMatch(/permission denied/);
     const { client } = fakeSupabase();
+    // eslint-disable-next-line unicorn/no-thenable -- a postgrest-js builder is a thenable
     const builder = { or: () => builder, range: () => builder, order: () => builder, abortSignal: () => builder, then: () => undefined };
     const bare = { ...client, from: () => ({ select: () => builder }) };
     const query2 = createSupabaseGridQuery({ client: bare as never, table: "items", columns });
