@@ -18,7 +18,7 @@ No HMAC: the cursor holds only values the client could send as filters; columns 
 
 **Failure codes.** `bad-cursor` (400): malformed, stale hash, unparseable value.
 
-Prisma: `{ f: { gt | lt | equals } }`, `{ f: null }` in `OR`, `take: n + 1`, no native `cursor`; `exactInstantKeys: false` declines `time` keys.
+Prisma: `{ f: { gt | lt | equals } }`, `{ f: null }` in `OR`, `take: n + 1`, no native `cursor`; a `key` test never carries `mode`, and `nulls: "last"` goes only on nullable fields; `exactInstantKeys: false` declines `time` keys.
 Supabase: `or=(t.gt.<q>,t.is.null,and(t.eq.<q>,id.gt.<q>))` via `quote()`, `limit=n+1`; `exactInstantKeys: true`.
 
 ## 2. Selection endpoint (#100)
@@ -42,7 +42,7 @@ type SelectionAnswer<TRow> = { count: number; ids?: string[]; rows?: TRow[]; has
 
 **Failure codes.** `invalid-request`, `limit-exceeded`, `payload-too-large` (413), the spec's codes; `unsupported` (501) for a `tieBreaker` map or a non-number, non-text key.
 
-Prisma: `{ pk: { in | notIn: ids } }`; `maxBoundIds: 32_000` (P2029 near 40,000), so a longer list is `limit-exceeded`.
+Prisma: `{ pk: { in | notIn: ids } }`. A negated `ids` test renders `notIn`, never `NOT: { in }`. The adapter counts every bound parameter of the rendered statement and refuses with `limit-exceeded` itself when it passes the provider budget (PostgreSQL 32,766, SQLite 999); it never relies on `P2029`, because Prisma splits a plain `in` into chunks beyond the budget and returns or deletes wrong rows without an error. A selection of about 990 ids or excluded ids on SQLite is therefore `limit-exceeded`.
 Supabase: quoted `in.(…)` while the URL fits `maxUrlLength`, else the selection RPC with ids as an array argument; without that RPC, `limit-exceeded`.
 
 ## 3. Write validation (#101)
@@ -78,10 +78,10 @@ Supabase: `.update(values).eq(pk, v).eq(scope, s).select(pk)`; empty is not foun
 | Addition | Drizzle, Kysely (`render-sql.ts`) | Prisma | Supabase |
 |---|---|---|---|
 | Test `{ k: "key"; op: "gt" \| "lt" \| "eq" \| "null"; value?: Operand }` | `col > $1`, `col < $1`, `col = $1`, `col IS NULL` | `gt`, `lt`, `equals`, `null` | `gt.`, `lt.`, `eq.`, `is.null` |
-| Test `{ k: "ids"; values: Operand[]; negate: boolean }` | `= ANY($1)`, `json_each(?)` | `in`, `notIn` up to `maxBoundIds` | `in.()`, or the RPC |
+| Test `{ k: "ids"; values: Operand[]; negate: boolean }` | `= ANY($1)`, `json_each(?)` | `in`, `notIn` within the parameter budget | `in.()`, or the RPC |
 | `RowsPlan.keyText`: `selectRows` also reads each `time` key as exact UTC text; the decoder parses it with a microsecond grammar (`parseInstant` stops at milliseconds) | `to_char(col::timestamptz AT TIME ZONE 'UTC', …US"Z")`; SQLite reads the stored value | declined | raw JSON text |
 | optional `nativeValue(column, value)` | `Date` for Drizzle timestamp mode | `BigInt`, `Date` | identity |
-| optional capabilities `exactInstantKeys`, `maxBoundIds` | `true`, none | `false`, 32,000 | `true`, URL then RPC |
+| optional capabilities `exactInstantKeys`, `maxBoundIds` | `true`, none | `false`, per-provider parameter budget (PostgreSQL 32,766, SQLite 999) | `true`, URL then RPC |
 
 Selection reuses `countRows` and `selectRows`; writes reuse `where`. New error code: `bad-cursor`.
 
@@ -94,6 +94,15 @@ Selection reuses `countRows` and `selectRows`; writes reuse `where`. New error c
 - id list test: the `ids` test, exact primary-key membership bound as one parameter.
 - validated change: what `validateChange` returns: the writes with scoped `where`s, and the refusals.
 - write refusal: one refused row or cell of a validated change, in the shape of a `SaveRejection`.
+
+## Prisma object API findings (spike, Prisma 7.10.1, SQLite and PostgreSQL via PGlite)
+
+Source: `.crew/rounds/prisma-spike.md`. The Prisma walker follows these rules:
+- `not`: make each leaf two-valued, then wrap in `NOT`. A bare comparison on a nullable field becomes `{ f: { gt: 1, not: null } }`, so `NOT` keeps the NULL rows. A plain `NOT: P` drops them.
+- TRUE is `{}`, FALSE is `{ OR: [] }`. A `{}` member inside `OR` is dropped, and an `undefined` leaf vanishes: never pass either.
+- Group `childCount`: `_count` is `COUNT(col)`, not a distinct count, so a second `groupBy` over the page's keys supplies it. Its row count has no upper bound: bound the page keys first, and `countGroups` has the same gap.
+- Keyset resume predicate: the OR-expanded form works with mixed directions and NULLS LAST on both engines.
+- `%` and `_` in text filters: PostgreSQL needs backslash escaping with `LIKE` and `ILIKE`; `equals` is never escaped, `equals` with `mode: "insensitive"` is. SQLite has no ESCAPE clause, so such a value is `unsupported-value`, and `mode` is an unknown argument there.
 
 ## Open points
 
