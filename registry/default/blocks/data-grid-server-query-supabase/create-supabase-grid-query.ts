@@ -8,7 +8,7 @@ import {
   type RowCountMode,
   type RowScope,
 } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
-import { type PlanColumn, createGridQuery, likePattern, mapOf, toSafeText } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query-sdk";
+import { type PlanColumn, createGridQuery, likePattern, mapOf, resolveLimits, toSafeText } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query-sdk";
 import { type Filter, isTextual, renderFilter, treeText } from "./render-postgrest";
 
 type Method = (...args: never[]) => unknown;
@@ -40,6 +40,12 @@ export type SupabaseGridQueryOptions<TContext = never> = {
   rpc?: string;
   /** The longest request URL the client sends, in characters; a longer request goes to `rpc`. Default 8,000. */
   maxUrlLength?: number;
+  /**
+   * PostgREST's `max-rows` setting, which cuts every REST answer without an error. Default 1,000, Supabase's default.
+   * A read of more rows, the look-ahead row included, goes to `rpc`. Without `rpc`, creation throws when
+   * `limits.maxPageSize + 1` exceeds it.
+   */
+  maxRows?: number;
 };
 
 /** One request of the grid function: the plan as one JSON argument. Columns are physical names; the function checks each. */
@@ -68,6 +74,7 @@ type Row = Record<string, unknown>;
 
 const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const DEFAULT_MAX_URL_LENGTH = 8000;
+const DEFAULT_MAX_ROWS = 1000;
 
 const get = (row: unknown, key: string): unknown => (typeof row === "object" && row !== null && Object.hasOwn(row, key) ? (row as Row)[key] : null);
 const rowsOf = (data: unknown): unknown[] => (Array.isArray(data) ? data : []);
@@ -132,6 +139,14 @@ export function createSupabaseGridQuery<TRow, TContext>(options: SupabaseGridQue
     if (!IDENTIFIER.test(column.field)) throw new Error(`createSupabaseGridQuery: column "${column.id}" has the field "${column.field}", which is not a plain identifier (letters, digits, _)`);
     if (column.operators.size > 0) throw new Error(`createSupabaseGridQuery: column "${column.id}" declares a custom operator, which the Supabase adapter does not render`);
   }
+  const maxRows = options.maxRows ?? DEFAULT_MAX_ROWS;
+  if (!Number.isSafeInteger(maxRows) || maxRows <= 0) throw new Error("createSupabaseGridQuery: `maxRows` must be a positive integer");
+  const maxPageSize = resolveLimits(options.limits).maxPageSize;
+  if (rpc === undefined && maxPageSize + 1 > maxRows) {
+    throw new Error(
+      `createSupabaseGridQuery: a page of \`limits.maxPageSize\` (${maxPageSize}) rows plus the look-ahead row exceeds \`maxRows\` (${maxRows}), PostgREST's max-rows, which drops rows without an error. Set \`rpc\` to the table's grid function, or set \`limits.maxPageSize\` to ${maxRows - 1} or less.`,
+    );
+  }
   const anchor = mapOf(columns).tieBreaker[0]!.field;
 
   const withSignal = <B extends { abortSignal(signal: AbortSignal): unknown }>(builder: B, signal: AbortSignal | undefined): PromiseLike<Result> =>
@@ -141,9 +156,9 @@ export function createSupabaseGridQuery<TRow, TContext>(options: SupabaseGridQue
     return (await read(withSignal(client.rpc(rpc, { plan }), signal))).data;
   };
   const filtered = (builder: Builder, filter: Filter): Builder => (filter === true ? builder : builder.or(treeText(filter, anchor)));
-  /** Sends the builder when its URL fits, else the same plan to the grid function. */
-  const send = async (builder: Builder, signal: AbortSignal | undefined, plan: () => GridFunctionPlan): Promise<{ rest: Result } | { data: unknown }> => {
-    if (urlLength(builder) <= maxUrlLength) return { rest: await read(withSignal(builder, signal)) };
+  /** Sends the builder when its URL and its row `limit` fit, else the same plan to the grid function. */
+  const send = async (builder: Builder, signal: AbortSignal | undefined, plan: () => GridFunctionPlan, limit = 0): Promise<{ rest: Result } | { data: unknown }> => {
+    if (urlLength(builder) <= maxUrlLength && limit <= maxRows) return { rest: await read(withSignal(builder, signal)) };
     if (rpc === undefined) throw new QueryError("limit-exceeded", []);
     return { data: await callFunction(plan(), signal, []) };
   };
@@ -184,7 +199,7 @@ export function createSupabaseGridQuery<TRow, TContext>(options: SupabaseGridQue
         for (const { column, direction } of plan.orderBy) builder = builder.order(column.field, { ascending: direction === "asc", nullsFirst: false });
         builder = builder.range(page.offset, page.offset + page.limit - 1);
         const order = plan.orderBy.map(({ column, direction }) => ({ c: column.field, desc: direction === "desc" }));
-        const sent = await send(builder, page.signal, () => ({ kind: "rows", where: filter, select, order, offset: page.offset, limit: page.limit }));
+        const sent = await send(builder, page.signal, () => ({ kind: "rows", where: filter, select, order, offset: page.offset, limit: page.limit }), page.limit);
         return rowsOf("rest" in sent ? sent.rest.data : sent.data).map((row) => {
           const out: Row = Object.fromEntries(plan.projection.map((column) => [column.id, get(row, column.field)]));
           for (const { column, as } of plan.keyText ?? []) out[as] = get(row, column.field);

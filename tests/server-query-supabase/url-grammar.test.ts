@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { QueryError, defineColumnMap } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
+import { type QueryLimits, QueryError, defineColumnMap } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
 import { createSupabaseGridQuery } from "@/registry/default/blocks/data-grid-server-query-supabase/data-grid-server-query-supabase";
 import { type Answer, REST_URL, type SentRequest, fakeSupabase } from "./fake-supabase";
 import { type LogicTree, parseLogicParam } from "./postgrest-grammar";
@@ -20,7 +20,9 @@ const columns = defineColumnMap({
   tenantId: { type: "number", numeric: "int4", serverOnly: true },
 });
 
-type Options = { rpc?: string; maxUrlLength?: number; scoped?: boolean; paging?: "cursor"; answer?: Answer };
+type Options = { rpc?: string; maxUrlLength?: number; maxRows?: number; limits?: QueryLimits; scoped?: boolean; paging?: "cursor"; answer?: Answer };
+/** Without `rpc` a page plus its look-ahead row must fit PostgREST's default `max-rows` of 1,000. */
+const FITS_MAX_ROWS = { maxPageSize: 999 };
 const CONTEXT = { context: { tenant: 7 } };
 
 function make({ scoped = true, answer, ...rest }: Options = {}) {
@@ -30,6 +32,7 @@ function make({ scoped = true, answer, ...rest }: Options = {}) {
     table: "items",
     columns,
     ...(scoped ? { rowScope: (ctx: { tenant: number }) => ({ tenantId: ctx.tenant }) } : {}),
+    ...(rest.rpc === undefined ? { limits: FITS_MAX_ROWS } : {}),
     ...rest,
   });
   return { query, sent };
@@ -103,7 +106,7 @@ describe("rows requests", () => {
     // eslint-disable-next-line unicorn/no-thenable -- a postgrest-js builder is a thenable
     const builder = { or: () => builder, range: () => builder, order: () => builder, abortSignal: () => builder, then: () => undefined };
     const bare = { ...client, from: () => ({ select: () => builder }) };
-    const query2 = createSupabaseGridQuery({ client: bare as never, table: "items", columns });
+    const query2 = createSupabaseGridQuery({ client: bare as never, table: "items", columns, limits: FITS_MAX_ROWS });
     expect(await failure(query2.fetchRows(rowsRequest({}), {}))).toMatch(/no `url`/);
   });
 });
@@ -231,6 +234,47 @@ describe("maxUrlLength", () => {
   });
 });
 
+describe("PostgREST's max-rows cap", () => {
+  const ids = (count: number) => Array.from({ length: count }, (_, index) => String(index + 1));
+  const rpcAnswer: Answer = (request) => (request.method === "POST" ? { data: (request.body as { plan: { kind: string } }).plan.kind === "count" ? 0 : [] } : undefined);
+  const restRows = (sent: SentRequest[]) => sent.filter((request) => request.method === "GET").map((request) => request.url.searchParams.get("limit"));
+  const rpcLimits = (sent: SentRequest[]) => sent.filter((request) => request.method === "POST").map((request) => (request.body as { plan: { limit?: number } }).plan.limit);
+
+  it("a page of 1,000 rows and its look-ahead row goes to the grid function, a page that fits stays on REST", async () => {
+    const { query, sent } = make({ rpc: "items_grid", answer: rpcAnswer });
+    await query.fetchRows({ spec: {}, start: 1000, end: 2000 }, CONTEXT);
+    await query.fetchRows({ spec: {}, start: 1000, end: 1999 }, CONTEXT);
+    expect([rpcLimits(sent), restRows(sent)]).toEqual([[1001], ["1000"]]);
+  });
+
+  it("a selection of 1,000 ids and a cursor page of 1,000 rows go to the grid function", async () => {
+    const { query, sent } = make({ rpc: "items_grid", answer: rpcAnswer, maxUrlLength: 100_000 });
+    await query.selection({ selection: { mode: "ids", ids: ids(1000) }, include: "ids", start: 0, end: 1000 }, CONTEXT);
+    const { query: cursor, sent: cursorSent } = make({ rpc: "items_grid", answer: rpcAnswer, paging: "cursor" });
+    await cursor.fetchRows({ spec: { sorts: [{ columnId: "id", direction: "asc" }] }, start: 0, end: 1000 }, CONTEXT);
+    expect([rpcLimits(sent).filter(Boolean), restRows(sent), rpcLimits(cursorSent), restRows(cursorSent)]).toEqual([[1001], [], [1001], []]);
+  });
+
+  it("honors a lower `maxRows`", async () => {
+    const { query, sent } = make({ rpc: "items_grid", answer: rpcAnswer, maxRows: 100 });
+    await query.fetchRows({ spec: {}, start: 100, end: 200 }, CONTEXT);
+    await query.fetchRows({ spec: {}, start: 100, end: 199 }, CONTEXT);
+    expect([rpcLimits(sent), restRows(sent)]).toEqual([[101], ["100"]]);
+    const { query: bare, sent: bareSent } = make({ maxRows: 100, limits: { maxPageSize: 99 } });
+    await bare.fetchRows({ spec: {}, start: 99, end: 198 }, CONTEXT);
+    expect(restRows(bareSent)).toEqual(["100"]);
+  });
+
+  it("refuses at creation a page and its look-ahead row over `maxRows` without a grid function, naming both remedies", () => {
+    const { client } = fakeSupabase();
+    expect(() => createSupabaseGridQuery({ client, table: "items", columns })).toThrow(/maxRows.*`rpc`.*maxPageSize/s);
+    expect(() => createSupabaseGridQuery({ client, table: "items", columns, maxRows: 100, limits: { maxPageSize: 100 } })).toThrow(/maxRows/);
+    expect(() => createSupabaseGridQuery({ client, table: "items", columns, maxRows: 0, rpc: "items_grid" })).toThrow(/maxRows/);
+    expect(() => createSupabaseGridQuery({ client, table: "items", columns, rpc: "items_grid" })).not.toThrow();
+    expect(() => createSupabaseGridQuery({ client, table: "items", columns, limits: FITS_MAX_ROWS })).not.toThrow();
+  });
+});
+
 describe("selection ids", () => {
   it("ids are in.(), one id is eq (PostgREST reads in.(\"\") as the empty list), excluded ids are not.in", async () => {
     const { query, sent } = make({ answer: (request) => (request.method === "HEAD" ? { count: 1 } : undefined) });
@@ -238,7 +282,7 @@ describe("selection ids", () => {
     await query.selection({ selection: { mode: "allMatching", excludedIds: ["5", "6"], spec: { filters: [filter("qty", "gt", "3")] } } }, CONTEXT);
     expect(sent.map(treeOf)).toEqual([scoped(list("id", ["1", "2"])), scoped(all(op("qty", "gt", "3"), list("id", ["5", "6"], true)))]);
     const { client, sent: textSent } = fakeSupabase();
-    const textQuery = createSupabaseGridQuery({ client, table: "items", columns: defineColumnMap({ code: { type: "text", primaryKey: true, maxLength: 10 } }) });
+    const textQuery = createSupabaseGridQuery({ client, table: "items", columns: defineColumnMap({ code: { type: "text", primaryKey: true, maxLength: 10 } }), limits: FITS_MAX_ROWS });
     await textQuery.selection({ selection: { mode: "ids", ids: [""] } });
     await textQuery.selection({ selection: { mode: "allMatching", excludedIds: [""], spec: {} } });
     expect(textSent.map(treeOf)).toEqual([eq("code", ""), eq("code", "", true)]);
