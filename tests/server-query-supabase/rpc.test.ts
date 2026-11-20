@@ -9,7 +9,7 @@ import { type SupabaseClientLike, createSupabaseGridQuery } from "@/registry/def
 import { ORACLE_CASES, ROOT_OR_CASES, SERVER_CASES } from "../server-query/cases";
 import { type Harness, type LooseQuery, openPg } from "../server-query/engines";
 import { fixtureColumns, groupColumns } from "../server-query/fixture";
-import { fakeSupabase } from "./fake-supabase";
+import { captureSupabase } from "./capture-supabase";
 
 const GRID_SQL = readFileSync(join(process.cwd(), "registry/default/blocks/data-grid-server-query-supabase/grid-query.sql"), "utf8");
 const ALLOWED = ["id", "name", "tag", "score", "qty", "active", "price", "createdAt", "tenantId"];
@@ -39,7 +39,8 @@ function pgClient(database: () => PGlite, fn = "items_grid"): { client: Supabase
     const request = { then: (ok: (value: unknown) => unknown, fail: (reason: unknown) => unknown) => run().then(ok, fail), abortSignal: () => request };
     return request;
   };
-  return { client: { from: fakeSupabase().client.from, rpc }, plans };
+  const rest = captureSupabase().client;
+  return { client: { from: (relation: string) => rest.from(relation), rpc }, plans };
 }
 
 const cursorColumns = defineColumnMap({
@@ -281,7 +282,7 @@ describe("hostile plans sent straight to the wrapper", () => {
     it("the defaults accept the adapter's largest plans under the core's default limits", async () => {
       const fields = Array.from({ length: 8 }, (_, index) => `n${index}`);
       await pg.exec(`create table if not exists wide (id int8 primary key, ${fields.map((field) => `${field} text`).join(", ")}); insert into wide (id) values (1) on conflict do nothing;`);
-      const { client, sent } = fakeSupabase();
+      const { client, sent } = captureSupabase();
       const columns = defineColumnMap({ id: { type: "number", numeric: "int8", primaryKey: true }, ...Object.fromEntries(fields.map((field) => [field, { type: "text", searchable: true, maxLength: 1000 }])) } as never);
       const query = createSupabaseGridQuery({ client, table: "wide", columns, rpc: "wide_grid", maxUrlLength: 1 }) as unknown as LooseQuery & Selecting;
       // Five case-insensitive lists of 1,000 values render one guarded ILIKE leaf per value: about 20,000 nodes.
