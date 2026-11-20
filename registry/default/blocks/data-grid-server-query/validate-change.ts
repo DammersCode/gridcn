@@ -51,17 +51,18 @@ function writeCell(column: PlanColumn, value: unknown, limits: Limits, path: (st
   return readCell(column, value, limits, path);
 }
 
-/** Why a row id gives no key: `shape`, no value of the physical type looks like it; `declined`, it fits the type but exceeds a length limit. */
+/** Why a row id gives no key: `shape`, no value of the physical type looks like it; `declined`, the type could hold it but it exceeds a length or digit limit. */
 export type KeyMiss = "shape" | "declined";
 
 /**
  * The operand of a row id under the key column. A key is compared, never validated: the physical type alone parses it,
- * so `choices`, `maxLength`, and the blank rule do not apply, and an empty text id is a text key.
+ * so `choices`, `maxLength`, a decimal's `scale`, and the blank rule do not apply, an empty text id is a text key, and a
+ * uuid keeps the case it was sent in.
  */
 export function keyOperand(column: PlanColumn, rowId: string, limits: Limits): Operand | KeyMiss {
   if (column.kind === "number") {
     if (rowId.length > limits.maxNumberLength) return isIntType(column.numeric) ? "shape" : "declined";
-    const cell = readCell(column, rowId, limits, []);
+    const cell = readCell(column.scale === undefined ? column : { ...column, scale: undefined }, rowId, limits, []);
     if (!cell.ok) return cell.code === "out-of-range" && column.numeric === "decimal" ? "declined" : "shape";
     if (cell.value === null) return "shape";
     // The float's shortest text; the canonical decimal of `1e-300` has 300 digits.
@@ -69,7 +70,7 @@ export function keyOperand(column: PlanColumn, rowId: string, limits: Limits): O
     const canonical = decimalToString(parseDecimal(rowId.trim())!);
     return column.numeric === "decimal" ? { kind: "number", v: canonical } : { kind: "bigint", v: BigInt(canonical) };
   }
-  if (rowId.length > limits.maxValueLength) return "declined";
+  if (rowId.length > limits.maxValueLength) return column.kind === "checkbox" || column.kind === "date" || column.native === "uuid" ? "shape" : "declined";
   switch (column.kind) {
     case "checkbox": {
       const parsed = parseBoolean(rowId);
@@ -79,10 +80,8 @@ export function keyOperand(column: PlanColumn, rowId: string, limits: Limits): O
       const parsed = column.time ? parseInstant(rowId) : parseDate(rowId);
       return parsed === null ? "shape" : { kind: column.time ? "instant" : "date", v: parsed };
     }
-    default: {
-      const text = column.native === "uuid" ? parseUuid(rowId) : rowId;
-      return text === null ? "shape" : { kind: "text", v: text };
-    }
+    default:
+      return column.native === "uuid" && parseUuid(rowId) === null ? "shape" : { kind: "text", v: rowId };
   }
 }
 
@@ -99,11 +98,10 @@ function scopeEqualities(scope: Predicate | undefined): { column: PlanColumn; va
   return items.flatMap((item) => (item.t === "leaf" && item.test.k === "exact" ? [{ column: item.column, value: item.test.value }] : []));
 }
 
-const optionalId = (op: Raw, key: string, limits: Limits, path: (string | number)[]): string | undefined => {
+const optionalId = (op: Raw, key: string, path: (string | number)[]): string | undefined => {
   const value = op[key];
   if (value === undefined) return undefined;
   if (typeof value !== "string") throw new QueryError("invalid-request", [...path, key]);
-  if (value.length > limits.maxValueLength) throw new QueryError("limit-exceeded", [...path, key]);
   return value;
 };
 
@@ -112,7 +110,8 @@ const optionalId = (op: Raw, key: string, limits: Limits, path: (string | number
  * A column that shares the physical field of the key or of a `rowScope` column is fixed: a `cells` entry or a changed
  * whole-row value for it is `not-writable`, while the row's key entry and the fixed entries of an insert are skipped;
  * an insert writes the parsed `rowScope` values. A refused cell drops that cell of a `cells` update; any refusal drops
- * a whole-row update or an insert. A malformed change throws `invalid-request`; more than `maxChangeOps` operations
+ * a whole-row update or an insert. A row or neighbor id that gives no key refuses its operation as `not-an-id`.
+ * A malformed change throws `invalid-request`; more than `maxChangeOps` operations
  * or more than 10,000 refusals throw `limit-exceeded`; a map without one `primaryKey` throws `unsupported`.
  */
 export function validateChange(input: unknown, options: ValidateChangeOptions): ValidatedChange<Predicate> {
@@ -186,8 +185,8 @@ export function validateChange(input: unknown, options: ValidateChangeOptions): 
         for (const id of Object.keys(row)) if (id !== key.id && row[id] !== (Object.hasOwn(prev, id) ? prev[id] : undefined)) changes.push([id, row[id]]);
       }
     }
-    const beforeRowId = type === "move" ? optionalId(op, "beforeRowId", limits, path) : undefined;
-    const afterRowId = type === "move" ? optionalId(op, "afterRowId", limits, path) : undefined;
+    const beforeRowId = type === "move" ? optionalId(op, "beforeRowId", path) : undefined;
+    const afterRowId = type === "move" ? optionalId(op, "afterRowId", path) : undefined;
 
     const where = scopedWhere(rowId);
     const beforeWhere = beforeRowId === undefined ? undefined : scopedWhere(beforeRowId);

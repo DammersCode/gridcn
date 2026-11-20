@@ -73,6 +73,25 @@ describe("parseSelection: ids mode", () => {
     expect(idsLeaf(plan.where)?.values).toEqual([{ kind: "text", v: "zzz" }]);
   });
 
+  it("compares a decimal key past the column's scale, and a uuid key in the case it was sent", () => {
+    const scaled = defineColumnMap({ k: { type: "number", numeric: "decimal", scale: 2, primaryKey: true } });
+    expect(idsLeaf(parseSelection({ selection: { mode: "ids", ids: ["1.234"], excludedIds: [] } }, { columns: scaled }).plan.where)?.values).toEqual([{ kind: "number", v: "1.234" }]);
+    const uuid = defineColumnMap({ k: { type: "text", native: "uuid", primaryKey: true } });
+    const upper = "0F8FAD5B-D9CB-469F-A165-70867728950E";
+    expect(idsLeaf(parseSelection({ selection: { mode: "ids", ids: [upper, "nope"], excludedIds: [] } }, { columns: uuid }).plan.where)?.values).toEqual([{ kind: "text", v: upper }]);
+  });
+
+  it("drops a float id no double holds", () => {
+    const float = defineColumnMap({ k: { type: "number", numeric: "float", primaryKey: true } });
+    const { plan } = parseSelection({ selection: { mode: "ids", ids: ["x", "1e400", "0.5"], excludedIds: [] } }, { columns: float });
+    expect(idsLeaf(plan.where)?.values).toEqual([{ kind: "number", v: "0.5" }]);
+  });
+
+  it("drops an over-long uuid id as a wrong shape, even when excluded", () => {
+    const uuid = defineColumnMap({ k: { type: "text", native: "uuid", primaryKey: true } });
+    expect(parseSelection({ selection: { mode: "allMatching", excludedIds: ["1".repeat(1001)], spec: {} } }, { columns: uuid }).plan.where).toEqual({ t: "true" });
+  });
+
   it("drops an id a decimal key declines for its length, so one long id fails no request", () => {
     const decimal = defineColumnMap({ k: { type: "number", numeric: "decimal", primaryKey: true } });
     expect(parseSelection({ selection: { mode: "ids", ids: ["1".repeat(41), "2"], excludedIds: [] } }, { columns: decimal }).plan.where).toMatchObject({ test: { values: [{ v: "2" }] } });
@@ -168,7 +187,7 @@ describe("parseSelection: bounds", () => {
     expect(idsLeaf(parse({ selection: { mode: "ids", ids: ["1e3", "1e9999"], excludedIds: [] } }).plan.where)?.values).toEqual([{ kind: "bigint", v: BigInt(1000) }]);
   });
 
-  it("refuses huge exponents in bulk without building their digits", () => {
+  it("handles huge exponents in bulk: validateChange refuses each, an ids selection drops each", () => {
     const ops = Array.from({ length: 10_000 }, () => ({ type: "delete", rowId: "1e9999" }));
     expect(validateChange({ ops }, { columns }).rejected).toHaveLength(10_000);
     const ids = Array.from({ length: DEFAULT_LIMITS.maxSelectionIds }, () => "1e9999");

@@ -26,7 +26,7 @@ const isRecord = (value: unknown): value is Raw => typeof value === "object" && 
 const SPEC_FIELDS = ["sorts", "filters", "filterJoin", "searchText"] as const;
 /**
  * The parsed keys of one id list; the count is bounded before any id is read. An id no key can hold (a draft or stale id)
- * is dropped. An id the layer declines for its length is dropped from the selected ids and refused in the excluded ids,
+ * is dropped. An id the layer declines (a length or digit limit) is dropped from the selected ids and refused in the excluded ids,
  * where dropping it would put a row the key may hold back into the selection.
  */
 function keyOperands(key: PlanColumn, list: unknown, limits: ResolvedLimits, path: (string | number)[], excluded: boolean): Operand[] {
@@ -52,7 +52,7 @@ function specFields(spec: unknown): Raw {
 /**
  * Reads `{ selection, include?, start?, end? }`, where `selection` is the grid's `DataGridSelectedRows`, into a counted
  * rows plan. `ids` mode matches its ids; `allMatching` matches the spec's filters and search minus `excludedIds`, ordered
- * by the spec's sorts. An id no key can hold is dropped; an `excludedIds` entry over a length limit is `invalid-value`. `start` defaults to 0 and `end` to `start + maxPageSize`.
+ * by the spec's sorts. An id no key can hold is dropped; an `excludedIds` entry the layer declines (over a length limit, or a decimal such as `1e9999` with more digits than `maxNumberLength`) is `invalid-value`. `start` defaults to 0 and `end` to `start + maxPageSize`.
  * Throws `unsupported` without one number or text `primaryKey`.
  */
 export function parseSelection(input: unknown, options: ParseSelectionOptions): ParsedSelection {
