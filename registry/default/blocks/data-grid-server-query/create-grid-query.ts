@@ -60,19 +60,26 @@ export type GroupsAnswer = {
 /** The answer of `selection`: the count of the selected rows, and with `include` one page of their ids or rows. */
 export type SelectionAnswer<TRow> = { count: number; ids?: string[]; rows?: TRow[]; hasMore?: boolean };
 
+/** Sets an own data property, so a column id such as `__proto__` stays a plain key. */
+const own = (target: object, key: string, value: unknown): void => {
+  Object.defineProperty(target, key, { value, enumerable: true, writable: true, configurable: true });
+};
+
 /**
  * Runs the writes of a validated change and answers how many rows each write matched ({@link WriteCounts}). Requirements:
  * run every write in one transaction, so a throw writes none; throw when an insert fails; filter each write by its
- * `where` alone, never by `rowId`, which carries no `rowScope`. A throw or a miscount answers a 500 for the whole change.
+ * `where` alone, never by `rowId`, which carries no `rowScope`; write all writes of one row id or none of them, because
+ * a count of 0 for any of them refuses the whole row. A throw or a miscount answers a 500 for the whole change.
  *
  * @example
  * const applyUserWrites: ApplyChange<SQL, Session> = async (change) =>
  *   db.transaction((tx) => {
+ *     if (change.moves.length > 0) throw new Error("users have no row order");
  *     for (const insert of change.inserts) tx.insert(users).values(insert.values).run();
  *     return {
  *       updates: change.updates.map((write) => tx.update(users).set(write.values).where(write.where).run().changes),
  *       deletes: change.deletes.map((write) => tx.delete(users).where(write.where).run().changes),
- *       moves: change.moves.map(() => 0),
+ *       moves: [],
  *     };
  *   });
  */
@@ -174,7 +181,7 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
   const scoped = (callOptions: { context?: unknown } | undefined): Predicate | undefined => {
     if (!rowScope) return undefined;
     if (callOptions?.context === undefined) throw new Error("rowScope is set and the call has no `context`");
-    return rowScopePredicate(columns, rowScope(callOptions.context as TContext));
+    return rowScopePredicate(columns, rowScope(callOptions.context as TContext), resolveLimits(limits).maxNumberLength);
   };
   const withScope = <P extends { where: Predicate }>(plan: P, callOptions: { context?: unknown } | undefined): P => {
     const scope = scoped(callOptions);
@@ -214,7 +221,7 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
       const group: GroupsAnswer["groups"][number] = { key, childCount: plan.nextLevel ? (countOf(entry.childCount) ?? 0) : count, totalRowCount: count };
       if (plan.aggregates.length > 0) {
         group.aggregates = {};
-        for (const { column, reducer } of plan.aggregates) group.aggregates[column.id] = aggregateValue(Object.hasOwn(entry.aggregates, column.id) ? entry.aggregates[column.id] : null, column, reducer);
+        for (const { column, reducer } of plan.aggregates) own(group.aggregates, column.id, aggregateValue(Object.hasOwn(entry.aggregates, column.id) ? entry.aggregates[column.id] : null, column, reducer));
       }
       return group;
     });
@@ -263,7 +270,7 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
     const out: AggregatesAnswer = {};
     for (const { column, reducer } of plan.columns) {
       const value = Object.hasOwn(raw, column.id) ? raw[column.id] : null;
-      out[column.id] = aggregateValue(value, column, reducer);
+      own(out, column.id, aggregateValue(value, column, reducer));
     }
     return out;
   };

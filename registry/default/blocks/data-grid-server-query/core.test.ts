@@ -156,6 +156,16 @@ describe("row scope", () => {
     expect(rowScopePredicate(scoped, { weight: 1e-300 })).toMatchObject({ test: { value: { kind: "number", v: "1e-300" } } });
     expect(rowScopePredicate(scoped, { weight: 1e300 })).toMatchObject({ test: { value: { kind: "number", v: "1e+300" } } });
   });
+
+  it("takes the digit bound from the factory's maxNumberLength", () => {
+    const scoped = defineColumnMap({ id: { type: "number", numeric: "int8", primaryKey: true }, region: { type: "number", numeric: "decimal" } });
+    const wide = `1${"0".repeat(44)}`;
+    expect(() => rowScopePredicate(scoped, { region: wide })).toThrow(/"region"/);
+    expect(rowScopePredicate(scoped, { region: wide }, 80)).toMatchObject({ test: { value: { kind: "number", v: wide } } });
+    const { executor } = fakeExecutor();
+    const query = createGridQuery({ columns: scoped, executor, rowScope: () => ({ region: wide }), limits: { maxNumberLength: 80 } });
+    expect(query).toBeDefined();
+  });
 });
 
 describe("serializer", () => {
@@ -230,6 +240,19 @@ function fakeExecutor() {
   };
   return { executor, calls };
 }
+
+describe("createGridQuery with a column id of __proto__", () => {
+  it("keeps the aggregate of a column with the id __proto__ as an own key", async () => {
+    const protoColumns = defineColumnMap({ id: { type: "number", numeric: "int8", primaryKey: true }, ["__proto__"]: { type: "number", numeric: "int4", aggregate: "sum" } });
+    const { executor } = fakeExecutor();
+    executor.aggregate = async () => JSON.parse('{"__proto__":7}') as Record<string, unknown>;
+    const query = createGridQuery({ columns: protoColumns, executor });
+    const answer = await query.aggregates({ spec: { sorts: [], filters: [], searchText: "" }, columnIds: ["__proto__"] });
+    expect(Object.getPrototypeOf(answer)).toBe(Object.prototype);
+    expect(Object.keys(answer)).toEqual(["__proto__"]);
+    expect(Object.getOwnPropertyDescriptor(answer, "__proto__")?.value).toBe(7);
+  });
+});
 
 describe("createGridQuery", () => {
   const request = (extra: Record<string, unknown> = {}) => ({ spec: { sorts: [], filters: [], searchText: "" }, start: 0, end: 5, ...extra });
