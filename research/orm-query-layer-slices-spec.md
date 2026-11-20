@@ -57,12 +57,12 @@ type ValidatedChange<TWhere> = {
   updates: { rowId: string; values: Record<string, unknown>; where: TWhere }[];
   inserts: { rowId: string; values: Record<string, unknown> }[];
   deletes: { rowId: string; where: TWhere }[];
-  moves: { rowId: string; beforeRowId?: string; afterRowId?: string; where: TWhere }[];
+  moves: { rowId: string; where: TWhere; beforeRowId?: string; beforeWhere?: TWhere; afterRowId?: string; afterWhere?: TWhere }[];
   rejected: WriteRefusal[];
 };
 ```
 
-**Rendering rule.** `where` is `exact(pk, rowId)` AND `rowScope`, through `executor.where`. An update checks `cells`, else the keys of `row` that differ from `prev`. Unmapped and `serverOnly` keys are skipped alike, never written. The key comes from `rowId`; its `row` entry is skipped, and a `cells` entry for a key or scope column is `not-writable`. An insert never writes the key, refuses missing `required` columns, and writes the `rowScope` equalities. Checks come from `parse-import-rows.ts`: kind, `required`, `choices`, integer range, `scale`, finite floats, `maxLength`. A refused cell drops that cell; a refused insert drops the row. The route pushes `{ rowId }` for a write that matched no row.
+**Rendering rule.** `where` is `exact(pk, rowId)` AND `rowScope`, through `executor.where`; a move's `beforeWhere` and `afterWhere` scope its neighbor ids the same way, and an id the key cannot parse refuses the op as `not-an-id`. Key and scope columns are fixed by physical `field`, so an alias of their field is fixed too. An update checks `cells`, else the keys of `row` that differ from `prev`. Unmapped and `serverOnly` keys are skipped alike, never written. The key comes from `rowId`; its `row` entry is skipped, and a `cells` entry for a key or scope column is `not-writable`. An insert never writes the key, refuses missing `required` columns, and writes the `rowScope` equalities. Checks come from `parse-import-rows.ts`: kind, `required`, `choices`, integer range, `scale`, finite floats, `maxLength`. A refused cell drops that cell; a refused insert drops the row. The route pushes `{ rowId }` for a write that matched no row.
 
 **Limits and untrusted-input bounds.** `maxChangeOps` 10,000; text over `maxLength` (else `maxValueLength`) is `too-long`; body 512 KiB.
 
