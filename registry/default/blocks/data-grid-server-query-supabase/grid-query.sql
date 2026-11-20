@@ -22,8 +22,12 @@ grant usage on schema gridcn to authenticated;
 drop function if exists gridcn.grid_query(regclass, text[], jsonb);
 drop function if exists gridcn.grid_sql(regclass, text[], jsonb);
 drop function if exists gridcn.check_page(jsonb, boolean);
+drop function if exists gridcn.grid_query(regclass, text[], jsonb, int, int, int, int);
+drop function if exists gridcn.grid_sql(regclass, text[], jsonb, int, int, int, int);
+drop function if exists gridcn.aggregate_sql(regclass, text[], jsonb);
 
--- Bounds the plan before any catalog lookup: its text in bytes, the nodes of its filter, and each `in` list.
+-- Bounds the plan before any catalog lookup: its text in bytes, the nodes of its filter and its pivot keys, and each
+-- `in` list.
 create or replace function gridcn.check_plan(plan jsonb, max_plan_bytes int, max_nodes int, max_list int)
 returns void
 language plpgsql immutable security invoker
@@ -33,10 +37,10 @@ begin
   if octet_length(plan::text) > max_plan_bytes then
     raise exception 'gridcn: the plan is over % bytes', max_plan_bytes using errcode = '54000';
   end if;
-  if (select count(*) from jsonb_path_query(plan -> 'where', 'strict $.** ? (@.type() == "object" || @.type() == "boolean")')) > max_nodes then
+  if (select count(*) from jsonb_path_query(jsonb_build_array(plan -> 'where', plan -> 'pivot'), 'strict $.** ? (@.type() == "object" || @.type() == "boolean")')) > max_nodes then
     raise exception 'gridcn: the filter has over % nodes', max_nodes using errcode = '54000';
   end if;
-  if exists (select 1 from jsonb_path_query(plan -> 'where', 'strict $.** ? (@.op == "in")') leaf where jsonb_typeof(leaf -> 'v') = 'array' and jsonb_array_length(leaf -> 'v') > max_list) then
+  if exists (select 1 from jsonb_path_query(jsonb_build_array(plan -> 'where', plan -> 'pivot'), 'strict $.** ? (@.op == "in")') leaf where jsonb_typeof(leaf -> 'v') = 'array' and jsonb_array_length(leaf -> 'v') > max_list) then
     raise exception 'gridcn: an in list holds over % values', max_list using errcode = '54000';
   end if;
 end $$;
@@ -214,6 +218,23 @@ begin
   raise exception '%', message using errcode = '22023';
 end $$;
 
+-- Refuses a pivot key in any shape but the adapter's: `false`, an `eq` or `is` leaf, or `is` OR `eq` for the empty
+-- text key. Each key repeats once per aggregate, so a larger tree would multiply past `max_nodes`.
+create or replace function gridcn.check_pivot_key(key jsonb)
+returns void
+language plpgsql immutable security invoker
+set search_path = pg_catalog, pg_temp
+as $$
+begin
+  if key = 'false'::jsonb
+    or (jsonb_typeof(key) = 'object' and key ->> 'op' in ('eq', 'is'))
+    or (jsonb_typeof(key) = 'object' and (select count(*) from jsonb_object_keys(key)) = 1 and jsonb_typeof(key -> 'or') = 'array' and jsonb_array_length(key -> 'or') = 2
+      and (key -> 'or' -> 0 ->> 'op') = 'is' and (key -> 'or' -> 1 ->> 'op') = 'eq') then
+    return;
+  end if;
+  raise exception 'gridcn: a pivot key is false, an eq or is leaf, or is OR eq' using errcode = '22023';
+end $$;
+
 -- The length of the list `plan -> key`, from `minimum` to 1,000 entries; anything else raises.
 create or replace function gridcn.count_of(plan jsonb, key text, minimum int)
 returns int
@@ -251,8 +272,9 @@ as $$
   select format('CASE WHEN (%1$s)::pg_catalog.text OPERATOR(pg_catalog.=) '''' THEN NULL ELSE (%1$s)::pg_catalog.text END', col)
 $$;
 
--- The aggregate of one `{ c, reducer, blank }` entry, as text; `blank` reads '' as NULL.
-create or replace function gridcn.aggregate_sql(tbl regclass, allowed text[], entry jsonb)
+-- The aggregate of one `{ c, reducer, blank }` entry, as text; `blank` reads '' as NULL. With `kept`, over the rows
+-- that the SQL condition `kept` keeps.
+create or replace function gridcn.aggregate_sql(tbl regclass, allowed text[], entry jsonb, kept text default null)
 returns text
 language plpgsql stable security invoker
 set search_path = pg_catalog, pg_temp
@@ -260,13 +282,14 @@ as $$
 declare
   col text := gridcn.column_sql(tbl, allowed, entry ->> 'c');
   nonblank text := case when gridcn.flag(entry -> 'blank', 'blank') then gridcn.nonblank_sql(col) else col end;
+  rows_sql text := case when kept is null then '' else ' FILTER (WHERE ' || kept || ')' end;
 begin
   return case entry ->> 'reducer'
-    when 'sum' then format('(pg_catalog.sum(%s))::pg_catalog.text', col)
-    when 'avg' then format('(pg_catalog.avg(%s))::pg_catalog.text', col)
-    when 'min' then format('(pg_catalog.min(%s))::pg_catalog.text', nonblank)
-    when 'max' then format('(pg_catalog.max(%s))::pg_catalog.text', nonblank)
-    when 'count' then format('(pg_catalog.count(%s))::pg_catalog.text', nonblank)
+    when 'sum' then format('(pg_catalog.sum(%s)%s)::pg_catalog.text', col, rows_sql)
+    when 'avg' then format('(pg_catalog.avg(%s)%s)::pg_catalog.text', col, rows_sql)
+    when 'min' then format('(pg_catalog.min(%s)%s)::pg_catalog.text', nonblank, rows_sql)
+    when 'max' then format('(pg_catalog.max(%s)%s)::pg_catalog.text', nonblank, rows_sql)
+    when 'count' then format('(pg_catalog.count(%s)%s)::pg_catalog.text', nonblank, rows_sql)
     else gridcn.refuse('gridcn: unknown reducer')
   end;
 end $$;
@@ -284,7 +307,7 @@ begin
 end $$;
 
 -- The statement of one plan. It holds names and SQL only; `grid_query` runs it with the plan bound as $1.
-create or replace function gridcn.grid_sql(tbl regclass, allowed text[], plan jsonb, max_plan_bytes int default 16777216, max_nodes int default 50000, max_list int default 200000, max_limit int default 1001)
+create or replace function gridcn.grid_sql(tbl regclass, allowed text[], plan jsonb, max_plan_bytes int default 16777216, max_nodes int default 50000, max_list int default 200000, max_limit int default 1001, max_pivot_columns int default 200)
 returns text
 language plpgsql stable security invoker
 set search_path = pg_catalog, pg_temp
@@ -298,6 +321,12 @@ declare
   match_sql text;
   list text;
   order_sql text;
+  dir text;
+  eq text;
+  kept text;
+  cells text[] := '{}';
+  item record;
+  entry record;
 begin
   perform gridcn.check_plan(plan, max_plan_bytes, max_nodes, max_list);
   rel := gridcn.table_sql(tbl);
@@ -343,9 +372,33 @@ begin
     else
       value_sql := 'pg_catalog.count(*)';
     end if;
+    dir := case when gridcn.flag(plan -> 'desc', 'desc') then 'DESC' else 'ASC' end;
+    if jsonb_typeof(plan -> 'pivot') = 'object' then
+      if gridcn.count_of(plan -> 'pivot', 'keys', 0) * gridcn.count_of(plan, 'aggregates', 0) > max_pivot_columns then
+        raise exception 'gridcn: the pivot has over % cells per group', max_pivot_columns using errcode = '54000';
+      end if;
+      -- Each key is a filter tree, so its value stays in the bound plan and compares with the column type's operator.
+      for item in select e.value, e.ordinality - 1 as i from jsonb_array_elements(plan -> 'pivot' -> 'keys') with ordinality e loop
+        perform gridcn.check_pivot_key(item.value);
+        kept := gridcn.filter_sql(tbl, allowed, item.value, array['pivot', 'keys', item.i::text]);
+        for entry in select a.value from jsonb_array_elements(plan -> 'aggregates') with ordinality a order by a.ordinality loop
+          cells := cells || gridcn.aggregate_sql(tbl, allowed, entry.value, kept);
+        end loop;
+      end loop;
+      eq := case when gridcn.flag(plan -> 'level' -> 'blank', 'blank') then 'OPERATOR(pg_catalog.=)' else gridcn.operator_sql(tbl, plan -> 'level' ->> 'c', '=') end;
+      -- The page CTE picks the page's group keys, so the cells reduce only the rows of those groups.
+      return format(
+        'WITH gridcn_page AS (SELECT %1$s AS k FROM %4$s AS t WHERE %5$s GROUP BY %1$s ORDER BY %1$s %6$s NULLS LAST LIMIT ($1 OPERATOR(pg_catalog.->>) ''limit'')::pg_catalog.int8 OFFSET ($1 OPERATOR(pg_catalog.->>) ''offset'')::pg_catalog.int8) SELECT COALESCE(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(''key'', s.k, ''count'', s.n, ''childCount'', s.c, ''aggregates'', s.a, ''cells'', s.p)), ''[]''::pg_catalog.jsonb) FROM (SELECT (%1$s)::pg_catalog.text AS k, pg_catalog.count(*) AS n, %2$s AS c, pg_catalog.jsonb_build_array(%3$s) AS a, pg_catalog.to_jsonb(ARRAY[%7$s]::pg_catalog.text[]) AS p FROM %4$s AS t WHERE (%5$s) AND ((%1$s) %8$s ANY (SELECT gp.k FROM gridcn_page AS gp) OR ((%1$s) IS NULL AND EXISTS (SELECT 1 FROM gridcn_page AS gp WHERE gp.k IS NULL))) GROUP BY %1$s ORDER BY %1$s %6$s NULLS LAST) s',
+        key, value_sql, coalesce(list, ''), rel, w, dir, array_to_string(cells, ', '), eq);
+    end if;
     return format(
       'SELECT COALESCE(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(''key'', s.k, ''count'', s.n, ''childCount'', s.c, ''aggregates'', s.a)), ''[]''::pg_catalog.jsonb) FROM (SELECT (%1$s)::pg_catalog.text AS k, pg_catalog.count(*) AS n, %2$s AS c, pg_catalog.jsonb_build_array(%3$s) AS a FROM %4$s AS t WHERE %5$s GROUP BY %1$s ORDER BY %1$s %6$s NULLS LAST LIMIT ($1 OPERATOR(pg_catalog.->>) ''limit'')::pg_catalog.int8 OFFSET ($1 OPERATOR(pg_catalog.->>) ''offset'')::pg_catalog.int8) s',
-      key, value_sql, coalesce(list, ''), rel, w, case when gridcn.flag(plan -> 'desc', 'desc') then 'DESC' else 'ASC' end);
+      key, value_sql, coalesce(list, ''), rel, w, dir);
+  when 'pivotKeys' then
+    perform gridcn.check_page(plan, false, max_pivot_columns);
+    key := gridcn.key_sql(tbl, allowed, plan -> 'level');
+    return format('SELECT COALESCE(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(''key'', s.k, ''total'', s.n)), ''[]''::pg_catalog.jsonb) FROM (SELECT (%1$s)::pg_catalog.text AS k, pg_catalog.count(*) OVER () AS n FROM %2$s AS t WHERE %3$s GROUP BY %1$s ORDER BY %1$s %4$s NULLS LAST LIMIT ($1 OPERATOR(pg_catalog.->>) ''limit'')::pg_catalog.int8) s',
+      key, rel, w, case when gridcn.flag(plan -> 'desc', 'desc') then 'DESC' else 'ASC' end);
   when 'groupCount' then
     key := gridcn.key_sql(tbl, allowed, plan -> 'level');
     return format('SELECT pg_catalog.to_jsonb(pg_catalog.count(DISTINCT %1$s) OPERATOR(pg_catalog.+) COALESCE(pg_catalog.max(CASE WHEN %1$s IS NULL THEN 1 ELSE 0 END), 0)) FROM %2$s AS t WHERE %3$s', key, rel, w);
@@ -358,15 +411,15 @@ end $$;
 -- Runs one plan of `createSupabaseGridQuery` against `tbl`, naming only the columns of `allowed`. It sets no
 -- search_path, so the caller's policy helpers resolve their unqualified names; it names its own with their schema.
 -- The defaults of the caps accept every plan the adapter sends under the core's default limits; a page is 1,000 rows
--- plus the look-ahead row.
-create or replace function gridcn.grid_query(tbl regclass, allowed text[], plan jsonb, max_plan_bytes int default 16777216, max_nodes int default 50000, max_list int default 200000, max_limit int default 1001)
+-- plus the look-ahead row, and a pivot answers at most 200 cells per group.
+create or replace function gridcn.grid_query(tbl regclass, allowed text[], plan jsonb, max_plan_bytes int default 16777216, max_nodes int default 50000, max_list int default 200000, max_limit int default 1001, max_pivot_columns int default 200)
 returns jsonb
 language plpgsql stable security invoker
 as $$
 declare
   result pg_catalog.jsonb;
 begin
-  execute gridcn.grid_sql(tbl, allowed, plan, max_plan_bytes, max_nodes, max_list, max_limit) into result using plan;
+  execute gridcn.grid_sql(tbl, allowed, plan, max_plan_bytes, max_nodes, max_list, max_limit, max_pivot_columns) into result using plan;
   return result;
 end $$;
 
@@ -375,7 +428,7 @@ grant execute on all functions in schema gridcn to authenticated;
 
 -- One wrapper per table, in a schema PostgREST exposes, SECURITY INVOKER and without a search_path. The allow-list is
 -- the wrapper's constant, never the request's: list the fields of the mapped columns. The wrapper checks no rowScope.
--- The caps are the wrapper's constants too: pass `max_plan_bytes`, `max_nodes`, `max_list`, or `max_limit` by name to
+-- The caps are the wrapper's constants too: pass `max_plan_bytes`, `max_nodes`, `max_list`, `max_limit`, or `max_pivot_columns` by name to
 -- tighten one, and never take them from the plan.
 --
 -- create or replace function public.items_grid(plan jsonb)

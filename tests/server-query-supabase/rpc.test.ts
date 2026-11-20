@@ -413,7 +413,9 @@ describe("row-level security", () => {
       insert into moods values (1, 'sad', null), (2, 'ok', null), (3, 'happy', null), (4, null, null);
       ${wrapper("moods_grid", "moods", ["id", "m", "p"])};
     `);
-    const plans = [leaf("m", "eq", "ok"), leaf("m", "neq", "ok"), leaf("m", "gt", "ok"), leaf("m", "lte", "ok"), leaf("m", "in", ["sad", "happy"])].map((where) => ({ kind: "count", where }));
+    const plans: unknown[] = [leaf("m", "eq", "ok"), leaf("m", "neq", "ok"), leaf("m", "gt", "ok"), leaf("m", "lte", "ok"), leaf("m", "in", ["sad", "happy"])].map((where) => ({ kind: "count", where }));
+    // The pivot page bound on an enum group level: the second group in enum order, alone.
+    plans.push({ kind: "groups", where: true, level: { c: "m", blank: false }, next: null, desc: false, offset: 1, limit: 1, aggregates: [{ c: "id", reducer: "count", blank: false }], pivot: { keys: [leaf("m", "eq", "ok"), leaf("m", "is")] } });
     const run = async () => {
       const out: unknown[] = [];
       for (const plan of plans) {
@@ -424,7 +426,7 @@ describe("row-level security", () => {
     };
     const clean = await run();
     // Enum order, not text order: only 'happy' is after 'ok'.
-    expect(clean.filter((_, index) => index % 2 === 1)).toEqual([1, 2, 1, 2, 2]);
+    expect(clean.filter((_, index) => index % 2 === 1)).toEqual([1, 2, 1, 2, 2, [{ key: "ok", count: 1, childCount: 1, aggregates: ["1"], cells: ["1", "0"] }]]);
     await db.exec(`
       set role mallory;
       create function shop.always(shop.mood, shop.mood) returns boolean language sql as $$ select true $$;
@@ -461,6 +463,9 @@ describe("row-level security", () => {
       { kind: "count", where: { or: [{ c: "qty", op: "in", v: ["6", "7"] }, { c: "id", op: "gt", v: "3" }] } },
       { kind: "groups", where: { not: { c: "qty", op: "is" } }, level: { c: "qty", blank: false }, next: null, desc: false, offset: 0, limit: 10, aggregates: [{ c: "name", reducer: "max", blank: true }] },
       { kind: "values", where: true, c: "name", form: "folded", zone: "UTC", pattern: "%a%", limit: 10 },
+      // One group per page, so a bare `=` in the page bound would let every group's rows in.
+      { kind: "groups", where: true, level: { c: "qty", blank: false }, next: null, desc: false, offset: 0, limit: 1, aggregates: [{ c: "id", reducer: "count", blank: false }], pivot: { keys: [{ c: "qty", op: "eq", v: "5" }, { c: "qty", op: "is" }] } },
+      { kind: "pivotKeys", where: true, level: { c: "name", blank: true }, desc: false, limit: 10 },
     ];
     const run = async () => {
       const out: unknown[] = [];

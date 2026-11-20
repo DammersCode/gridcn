@@ -55,7 +55,10 @@ export type GridFunctionPlan =
   | { kind: "count"; where: Filter }
   | { kind: "values"; where: Filter; c: string; form: "plain" | "text" | "folded" | "day"; zone: string; pattern: string | null; limit: number }
   | { kind: "aggregates"; where: Filter; columns: GridFunctionAggregate[] }
-  | { kind: "groups"; where: Filter; level: GridFunctionKey; next: GridFunctionKey | null; desc: boolean; offset: number; limit: number; aggregates: GridFunctionAggregate[] }
+  /** Under `pivot`, each group also answers `cells`: per key, one value per aggregate. Each key is the filter that keeps its rows. */
+  | { kind: "groups"; where: Filter; level: GridFunctionKey; next: GridFunctionKey | null; desc: boolean; offset: number; limit: number; aggregates: GridFunctionAggregate[]; pivot?: { keys: Filter[] } }
+  /** The first `limit` keys of `level` in key order, each with the count of all keys as `total`. */
+  | { kind: "pivotKeys"; where: Filter; level: GridFunctionKey; desc: boolean; limit: number }
   | { kind: "groupCount"; where: Filter; level: GridFunctionKey };
 type GridFunctionAggregate = { c: string; reducer: AggregateReducer; blank: boolean };
 type GridFunctionKey = { c: string; blank: boolean };
@@ -102,7 +105,7 @@ async function read(request: PromiseLike<Result>): Promise<Result> {
  * Reads and counts rows through the caller's Supabase client, from the column map and a request body. It imports no
  * client and sends every filter as one PostgREST logic tree in one `or=(...)`, with every value quoted and escaped.
  *
- * - Set values, aggregates, groups, requests whose URL is over `maxUrlLength`, and reads of more rows than `maxRows`
+ * - Set values, aggregates, groups, pivots, requests whose URL is over `maxUrlLength`, and reads of more rows than `maxRows`
  *   run in the table's grid function (`rpc`), which takes the plan as one JSON argument. Without `rpc` they are
  *   `unsupported` or `limit-exceeded`.
  * - A literal `*` in a LIKE test (contains, startsWith, endsWith, case-insensitive equals and set filters, quick search) is
@@ -182,6 +185,7 @@ export function createSupabaseGridQuery<TRow, TContext>(options: SupabaseGridQue
     nullsLast: "native",
     aggregates: rpc !== undefined,
     groupBy: rpc !== undefined,
+    pivot: rpc !== undefined,
     localDayGrouping: true,
     exactInstantKeys: true,
     nativeLike: false,
@@ -238,11 +242,22 @@ export function createSupabaseGridQuery<TRow, TContext>(options: SupabaseGridQue
             offset: page.offset,
             limit: page.limit,
             aggregates: aggregatesOf(plan.aggregates),
+            ...(plan.pivot ? { pivot: { keys: plan.pivot.keys.map(({ test }) => renderFilter(test)) } } : {}),
           },
           page.signal,
           ["spec", "groupBy"],
         );
-        return rowsOf(data).map((group) => ({ key: get(group, "key"), count: get(group, "count"), childCount: get(group, "childCount"), aggregates: byIndex(plan.aggregates, get(group, "aggregates")) }));
+        return rowsOf(data).map((group) => ({
+          key: get(group, "key"),
+          count: get(group, "count"),
+          childCount: get(group, "childCount"),
+          aggregates: byIndex(plan.aggregates, get(group, "aggregates")),
+          ...(plan.pivot ? { pivotCells: get(group, "cells") as unknown[] } : {}),
+        }));
+      },
+      selectPivotKeys: async (plan, { limit, signal }) => {
+        const data = await callFunction({ kind: "pivotKeys", where: renderFilter(plan.where), level: key(plan.level), desc: plan.direction === "desc", limit }, signal, ["spec", "pivot"]);
+        return rowsOf(data).map((entry) => ({ key: get(entry, "key"), total: get(entry, "total") }));
       },
       countGroups: async (plan, signal) => callFunction({ kind: "groupCount", where: renderFilter(plan.where), level: key(plan.level) }, signal, ["spec", "groupBy"]),
     },
