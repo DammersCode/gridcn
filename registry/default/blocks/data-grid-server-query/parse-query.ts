@@ -135,10 +135,11 @@ function parseGroupRequest(input: Raw, spec: Raw, ctx: Ctx): GroupRequest | null
   });
   const childKind = segments.length < levels.length ? "groups" : "rows";
   if (!isAbsent(input["childKind"]) && input["childKind"] !== childKind) throw new QueryError("invalid-request", ["childKind"]);
-  return { levels, path, childKind, aggregates: parseGroupAggregates(spec["aggregates"], ctx) };
+  return { levels, path, childKind, aggregates: parseGroupAggregates(spec["aggregates"], ctx, childKind === "groups") };
 }
 
-function parseGroupAggregates(value: unknown, ctx: Ctx): GroupsPlan["aggregates"] {
+/** `computed`: the request reads group rows, so the aggregates run; leaf rows carry none. */
+function parseGroupAggregates(value: unknown, ctx: Ctx, computed: boolean): GroupsPlan["aggregates"] {
   if (isAbsent(value)) return [];
   if (!Array.isArray(value)) throw new QueryError("invalid-request", ["spec", "aggregates"]);
   if (value.length > ctx.limits.maxGroupAggregates) throw new QueryError("limit-exceeded", ["spec", "aggregates"]);
@@ -149,7 +150,7 @@ function parseGroupAggregates(value: unknown, ctx: Ctx): GroupsPlan["aggregates"
     const column = typeof entry["columnId"] === "string" ? ctx.map.byId.get(entry["columnId"]) : undefined;
     if (!column || column.serverOnly) throw new QueryError("unknown-column", [...path, "columnId"]);
     if (column.aggregate === undefined || entry["reducer"] !== column.aggregate || seen.has(column)) throw new QueryError("invalid-request", path);
-    if (foldsBlankAggregate(column, column.aggregate, ctx)) throw new QueryError("unsupported", path);
+    if (computed && foldsBlankAggregate(column, column.aggregate, ctx)) throw new QueryError("unsupported", path);
     seen.add(column);
     return { column, reducer: column.aggregate };
   });

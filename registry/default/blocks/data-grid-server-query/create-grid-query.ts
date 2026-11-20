@@ -206,7 +206,7 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
   const { columns, executor, rowScope, rowCount, limits, timeZone } = options;
   const map = mapOf(columns);
   const { capabilities } = executor;
-  // A partial executor that only serves `validateChange` may carry no capabilities.
+  // A partial executor that only serves `validateChange` carries no capabilities.
   const maxBoundIds = (capabilities as AdapterCapabilities | undefined)?.maxBoundIds;
   if (maxBoundIds !== undefined && !(Number.isSafeInteger(maxBoundIds) && maxBoundIds > 0)) throw new Error("createGridQuery: `capabilities.maxBoundIds` must be a positive integer");
   const cursorPaging = options.paging === "cursor";

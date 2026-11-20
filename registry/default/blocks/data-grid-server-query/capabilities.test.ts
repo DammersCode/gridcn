@@ -139,8 +139,10 @@ describe("blankTextAggregates: false", () => {
     await refused(caps, (q) => q.aggregates({ spec: {} }), "unsupported", []);
     await refused(caps, (q) => q.fetchRows({ spec: { groupBy: ["qty"], aggregates: [{ columnId: "label", reducer: "min" }] }, start: 0, end: 10 }), "unsupported", ["spec", "aggregates", 0]);
   });
-  it("keeps keepBlankText text", async () => {
+  it("keeps keepBlankText text, and the leaf rows of a grouped view, which carry no aggregates", async () => {
     await accepted(caps, (q) => q.aggregates({ spec: {}, columnIds: ["kept"] }));
+    const leafRows = { spec: { groupBy: ["qty"], aggregates: [{ columnId: "label", reducer: "min" }] }, groupPath: [{ columnId: "qty", key: 1 }], start: 0, end: 10 };
+    await accepted(caps, (q) => q.fetchRows(leafRows));
   });
 });
 
