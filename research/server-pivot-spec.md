@@ -20,7 +20,7 @@ decision 9 ("strips elsewhere") is stale: server grouping runs in scroll mode an
 - `ServerSpec` has `groupBy` and `aggregates` (`data-grid/server-spec.ts:14,16`).
   `ServerAggregate` is `{ columnId, reducer }` with closed reducers (`:20`).
 - The hook passes the server layout as the `groupLayout` prop (`ServerGroupLayout`,
-  `data-grid/group-types.ts:70`; `gridProps.groupLayout`,
+  `data-grid/group-types.ts:70`, and `gridProps.groupLayout` in
   `data-grid-server/use-data-grid-server-rows.ts:161`). A slot holds `childCount` and `aggregates`
   (`group-types.ts:54-64`).
 - `group-row.tsx` renders one read-only aggregate cell per virtualized column
@@ -66,11 +66,15 @@ What the server receives and sends:
 
 ## Decisions
 
-1. **Pivot rows are group rows.** They are the group rows of the one `groupBy` level, with
-   `childCount: 0`. They show no toggle and no `aria-expanded`. Enter does nothing on them, and the
-   arrow keys move. No request with `childKind: "rows"` leaves under pivot.
+1. **Pivot rows are group rows.** They are the group rows of the one `groupBy` level. The wire
+   `childCount` keeps its meaning (rows under the group), and the hook writes `childCount: 0` into
+   each pivot slot. Pivot rows show no toggle and no `aria-expanded`. No request with
+   `childKind: "rows"` leaves under pivot.
+   - Keys: the grid does not offer `GROUP_ROW_ACTIONS` on a pivot row. Enter and Space then fall
+     to `edit`, which a pivot row refuses. ArrowRight and ArrowLeft fall to `moveRight` and
+     `moveLeft`.
 2. **The values are `spec.aggregates`.** One parser, the `reducer === column.aggregate` rule, and
-   `maxGroupAggregates` 32 apply. Issue #99 says 20; the docs state the difference.
+   `maxGroupAggregates` 32 apply. Issue #99 says 20. The docs state the difference.
 3. **Every answer carries its own column list.** Cells map by generated id, never by position. A
    held id that an answer lacks reads `null`.
 4. **The held set rides on `ServerGroupLayout.pivot`.** The first landing after a spec change or
@@ -142,9 +146,9 @@ A failed check fails the block, as spec A decision 8 does.
 - A generated id over 2,048 characters counts as omitted, with one dev warning per spec.
 - The walk keeps ids in held order up to 200 and counts the rest as omitted.
 - `pivotCells` has exactly `pivotColumns.length` entries, else the block fails. Only kept indices
-  are read. A cell is a finite number or `null`; any other value reads `null` with one dev warning.
+  are read. A cell is a finite number or `null`. Any other value reads `null` with one dev warning.
 - `pivotOmitted` is a safe non-negative integer, else `0` with one dev warning.
-- The omitted count is computed in one place: the newest answer's `pivotOmitted`, plus the ids of
+- One place computes the omitted count. It is the newest answer's `pivotOmitted`, plus the ids of
   that answer that the 200 cap cuts or that the held set lacks.
 
 ## Generated columns
@@ -156,7 +160,7 @@ A failed check fails the block, as spec A decision 8 does.
   header group over its value columns. With 1 value, the header row holds the key text.
 - **Definition:** one `ColumnDef` per held id. It is read-only and fixed: no sort, filter, move, or
   pin. It carries an internal `pivotIndex` and an `aggregate`, so `groupLabelSpan` stays 1. Its cell
-  type is the value column's type; `count` uses `number`.
+  type is the cell type of the value column. A `count` column uses `number`.
 - **Visible set:** under pivot, `visibleColumns` is the `groupBy` column plus at most 200 generated
   columns. Source columns stay in the registry, so their widths, order, pins, and hidden state
   survive pivot on and off.
@@ -174,7 +178,7 @@ A failed check fails the block, as spec A decision 8 does.
 ## Cells and memory
 
 - **Display:** a pivot cell shows the text of the generated column's cell type through
-  `toSafeText`. NaN shows an empty cell; `0` shows `0`.
+  `toSafeText`. NaN shows an empty cell, and `0` shows `0`.
 - **Decimal cells:** cells are numbers, read through `aggregateValue`, like group aggregates. The
   docs state the loss of digits past 15 significant digits.
 - **Readers:** copy, export, print, find, and autosize read a pivot cell through one
@@ -189,21 +193,35 @@ A failed check fails the block, as spec A decision 8 does.
 
 ## Refusals (layer)
 
-| Code | When |
-|---|---|
-| `unsupported` | The adapter lacks `capabilities.pivot`; more than 1 pivot column; any rows request under pivot; a non-numeric value column with a reducer other than `count`; a `time` pivot column without `exactInstantKeys`. |
-| `limit-exceeded` | More aggregates than `maxPivotColumns`; a stored key over `maxGroupKeyLength` (1,024 characters). |
-| `invalid-request` | No `groupBy`; no aggregates; the pivot column inside `groupBy`. |
-| `unknown-column` | A `serverOnly` pivot column, or one the column map lacks. |
+- `unsupported`:
+  - the adapter lacks `capabilities.pivot`
+  - more than 1 pivot column
+  - any rows request under pivot
+  - a non-numeric value column with a reducer other than `count`
+  - a `time` pivot column without `exactInstantKeys`
+- `limit-exceeded`:
+  - more aggregates than `maxPivotColumns`
+  - a stored key over `maxGroupKeyLength` (1,024 characters)
+- `invalid-request`:
+  - no `groupBy`
+  - no aggregates
+  - the pivot column inside `groupBy`
+- `unknown-column`: a `serverOnly` pivot column, or one that the column map lacks.
 
-Open: issue #99 asks for "a 400". The HTTP status is the route's mapping of `QueryError`; the
-layer answers these codes.
+Open: issue #99 asks for "a 400". The route maps a `QueryError` to an HTTP status. The layer
+answers these codes.
 
 ## Layer SQL
 
 - **Capability:** `AdapterCapabilities.pivot?` defaults to off, so third-party executors decline.
   Drizzle and Kysely set it on.
-- **Plan:** `GroupsPlan.pivot?: { column; keys; omitted }`. The parser replaces `rejectPivot`.
+- **Plan:** `GroupsPlan.pivot?: { column; keys; omitted }`.
+- **Parse:** one pivot parser replaces `rejectPivot` in both callers.
+  - `parseRows` (`parse-query.ts:195`) takes `spec.pivot` on a groups request and refuses it on a
+    rows request.
+  - `parseAggregates` (`:231`) checks `spec.pivot` with the same parser, then ignores it: band
+    totals over the whole result do not depend on pivot.
+  - A values request reads its own `filters`, not the spec, so pivot does not reach it.
 - **Limit:** the new `maxPivotColumns` (keys × aggregates) defaults to 200. The kept key count is
   `floor(maxPivotColumns / aggregates.length)`.
 
@@ -218,8 +236,8 @@ no re-install note.
 
 Phase 1 is one query on the pivot column, over the same scoped `where` as the page. It returns
 the keys in key order with `count(*) OVER ()` as the total key count, under `LIMIT keptKeys + 1`.
-The total feeds `pivotOmitted`. It reuses the `selectGroups` and `countGroups` shape on the pivot
-column.
+The total feeds `pivotOmitted`. A separate key-count query misses the budget (step 0). Step 3
+names the executor call that returns the keys and the total in one round trip.
 
 Prisma: no phase 1 (declined).
 
@@ -248,10 +266,32 @@ query in SQL, with the cap in SQL.
 
 Prisma: no phase 2 (declined).
 
-Supabase: the `pivot` branch uses the same page CTE and key-expression range, with
-`FILTER (WHERE key::text IS NOT DISTINCT FROM keys->>i)` per cell and `'cells'` per row. The
-client reads `'cells'` through the same `aggregateValue`. It runs through the PGlite path and the
-same oracle, with the same `search_path` and operator review.
+Supabase: the `pivot` branch uses the same page CTE, with
+`FILTER (WHERE key::text IS NOT DISTINCT FROM keys->>i)` per cell and `'cells'` per row. It runs
+through the PGlite path and the same oracle, with the same `search_path` and operator review.
+
+### Per construct
+
+- **Group bound (key-expression range, empty-group branch):**
+  - Prisma: none (declined).
+  - Supabase: the same range on the key expression and the same empty-group branch, in SQL.
+- **Empty pivot key (`''` and NULL fold into one key):**
+  - Prisma: cannot fold `''` into the empty key with `groupBy`. This is one reason it declines.
+  - Supabase: `keys->>i` is NULL for the empty key, and `IS NOT DISTINCT FROM` matches it.
+- **`count` cells:**
+  - Prisma: none (declined).
+  - Supabase: `count(<value>) FILTER (WHERE ...)` with the same non-blank rule.
+- **Cut and `pivotOmitted`:**
+  - Prisma: none (declined).
+  - Supabase: the SQL applies `maxPivotColumns`, which the client passes in the call, and
+    returns the total key count for `pivotOmitted`.
+- **Decimal cells:**
+  - Prisma: none (declined).
+  - Supabase: the client reads `'cells'` through the same `aggregateValue`, so decimal cells are
+    numbers.
+- **Refusals:**
+  - Prisma: `unsupported` from the capability check, before the executor runs.
+  - Supabase: the shared parser, so the same codes. Without `rpc`, `unsupported`.
 
 ### Measured (step 0, `.crew/rounds/pivot-spike.md`)
 
@@ -274,7 +314,7 @@ of `CASE`.
 | Id | Gap |
 |---|---|
 | `S11-L` | L and PC: pivot needs a server. Client buckets are a separate engine. |
-| `S11-M` | The layer takes 4 levels with subtotals; the grid takes 1 and warns in development. |
+| `S11-M` | The layer takes 4 levels with subtotals. The grid takes 1 and warns in development. |
 | `S11-P` | Prisma declines pivot. |
 | `S11-UI` | Out of scope: a pivot chooser, a sort list, and menu items for pivot. |
 | `S11-V` | Out of scope: widths of generated columns in saved views. |
@@ -293,13 +333,17 @@ of these patterns:
 - Fields and flags: `kind === "group"`, `childCount`, `.groupLayout`, `groupMode ===`,
   `GROUP_ROW_ACTIONS`, `childKind` (hook only), `aria-expanded` on a row.
 - Sign tests on view entries: `< 0` and `>= 0`.
+- Raw walks: `viewIndex[` and `of ... viewIndex`.
 - Sites outside the patterns: the toggle, the header checkbox, and `selectAllMatching`.
+- Dropped matches: `aria-expanded` on widgets that are not rows (the find panel, the import
+  dialog, the lookup editor, the date editor), and the `childKind` types, JSDoc, and errors of the
+  hook.
 
 Paths are relative to `registry/default/blocks/`. Behavior codes:
 
 - **R:** read the pivot cell through `pivotCellText` where the reader reads a data cell. This is a
   change.
-- **W:** a write path. The group-row skip refuses every write on a pivot cell. No change; test it.
+- **W:** a write path. The group-row skip refuses every write on a pivot cell. No change. Test it.
 - **T:** toggle. A pivot row has `childCount: 0`, so expand, collapse, and toggle do nothing.
 - **K:** checks. Pivot rows cannot be checked.
 - **N:** a count of data rows that reads 0 under pivot. This is a change.
@@ -313,13 +357,13 @@ Paths are relative to `registry/default/blocks/`. Behavior codes:
 | `data-grid/clipboard/use-grid-clipboard.ts:276` | W | Paste candidates skip pivot rows. |
 | `data-grid/clipboard/use-grid-clipboard.ts:410` | W | Paste anchor on a pivot row is refused. |
 | `data-grid/clipboard/use-grid-clipboard.ts:432` | W | Paste re-resolve skips pivot rows. |
-| `data-grid/clipboard/use-data-grid-clipboard.ts:29` | S | Same-cell check by row id; group ids work. |
-| `data-grid-io/export-grid.ts:178` | R | Scope rows map to data indices; under pivot, map pivot rows to their slots instead. |
-| `data-grid-io/export-grid.ts:190` | R | `leafViewOf` drops group rows; under pivot, export walks the pivot rows. |
-| `data-grid-io/export-grid.ts:192` | R | The `>= 0` filter drops group rows; keep pivot rows. Headers join with " / ". |
-| `data-grid-io/print-grid.ts:89` | R | The print total comes from `exportDataIndices`; count pivot rows. |
+| `data-grid/clipboard/use-data-grid-clipboard.ts:29` | S | Same-cell check by row id. Group ids work. |
+| `data-grid-io/export-grid.ts:178` | R | Scope rows map to data indices. Under pivot, map pivot rows to their slots instead. |
+| `data-grid-io/export-grid.ts:190` | R | `leafViewOf` drops group rows. Under pivot, export walks the pivot rows. |
+| `data-grid-io/export-grid.ts:192` | R | The `>= 0` filter drops group rows. Keep pivot rows. Headers join with " / ". |
+| `data-grid-io/print-grid.ts:89` | R | The print total comes from `exportDataIndices`. Count pivot rows. |
 | `data-grid-find-replace/plan-replace.ts:179` | W | Replace skips pivot cells. |
-| `data-grid-find-replace/result-walk.ts:11` | S | Hole walk; a pivot row is no hole. |
+| `data-grid-find-replace/result-walk.ts:11` | S | Hole walk. A pivot row is no hole. |
 | `data-grid-find-replace/use-find-result-walk.ts:56` | S | Waits on holes only. |
 | `data-grid-find-replace/find-replace-panel.tsx:270` | W | Replace of one match skips a pivot cell. |
 | `data-grid-find-replace/find-replace-panel.tsx:314` | W | Replace-all re-resolve skips pivot cells. |
@@ -337,13 +381,13 @@ Paths are relative to `registry/default/blocks/`. Behavior codes:
 | `data-grid/rows/group-row.tsx:169` | T | No `aria-expanded` on a pivot row. |
 | `data-grid/rows/group-row.tsx:194` | T | No `DataGridGroupToggle` on a pivot row. |
 | `data-grid/rows/group-toggle.tsx:30` | T | Not rendered under pivot. |
-| `data-grid/interaction/dispatch-grid-action.ts:410` | T | `toggleGroupRow` (Enter, Space) does nothing on a pivot row; ArrowRight and ArrowLeft move. |
+| `data-grid/interaction/dispatch-grid-action.ts:410` | S | Keys do not reach it on a pivot row. A command dispatch reaches `toggleGroup`, which does nothing (`data-grid/store/group-actions.ts:99`). |
 | `data-grid/interaction/use-grid-interaction.ts:42` | T | `GROUP_ROW_ACTIONS` are not offered on a pivot row. |
-| `data-grid/interaction/use-grid-interaction.ts:445` | T | `onGroupRow` is true, but the toggle actions stay off under pivot. |
+| `data-grid/interaction/use-grid-interaction.ts:445` | T | `onGroupRow` is false for a pivot row, so Enter falls to `edit` and the arrows move. |
 | `data-grid/interaction/dispatch-grid-action.ts:70` | S | A command gets no data row on a pivot row. |
-| `data-grid/interaction/dispatch-grid-action.ts:436` | S | Open link needs a data row; generated columns have no `href`. |
-| `data-grid/store/group-actions.ts:30` | T | The active cell anchor on toggle; no toggle under pivot. |
-| `data-grid/store/group-actions.ts:33` | T | `viewRowOfGroupId` on toggle; no toggle under pivot. |
+| `data-grid/interaction/dispatch-grid-action.ts:436` | S | Open link needs a data row. Generated columns have no `href`. |
+| `data-grid/store/group-actions.ts:30` | T | The active cell anchor on toggle. No toggle under pivot. |
+| `data-grid/store/group-actions.ts:33` | T | `viewRowOfGroupId` on toggle. No toggle under pivot. |
 | `data-grid/store/group-actions.ts:57` | S | Client tree only. |
 | `data-grid/store/group-actions.ts:81` | T | The server expanded state is irrelevant: no pivot row opens. |
 | `data-grid/store/group-actions.ts:99` | T | `toggleGroup` on a pivot row does nothing (`childCount: 0`). |
@@ -371,8 +415,8 @@ Paths are relative to `registry/default/blocks/`. Behavior codes:
 | `data-grid/store/hidden-checked-rows.ts:148` | K | Carries no pivot row. |
 | `data-grid/store/selection-state.ts:89` | K | `deriveRowIds` returns no pivot row. |
 | `data-grid/store/compute.ts:1076` | K | `getSelectedRowIds` returns no pivot row. |
-| `data-grid/store/matching-total.ts:6` | K | The server total is `leafCount`; all matching is off under pivot. |
-| `data-grid/store/matching-total.ts:9` | K | Client layout path; not reached under pivot. |
+| `data-grid/store/matching-total.ts:6` | K | The server total is `leafCount`. All matching is off under pivot. |
+| `data-grid/store/matching-total.ts:9` | K | Client layout path. Not reached under pivot. |
 | `data-grid-status-bar/status-bar.tsx:25` | N | The row count of a grouped view counts data rows only, so under pivot it reads 0. Count the pivot rows. |
 | `data-grid-status-bar/status-bar.tsx:29` | N | The same count. |
 | `data-grid-context-menu/context-menu.tsx:35` | S | The menu gets no data row on a pivot row. |
@@ -387,15 +431,15 @@ Paths are relative to `registry/default/blocks/`. Behavior codes:
 | `data-grid-comments/comments-mount.tsx:68` | W | No comment on a pivot cell. |
 | `data-grid-comments/comments-overlay.tsx:107` | S | Markers for data rows only. |
 | `data-grid-comments/own-cell.ts:6` | W | Needs a data row. |
-| `data-grid-fill/use-fill-handle.ts:45` | W | Fill flashes need written rows; none under pivot. |
-| `data-grid-fill/use-fill-handle.ts:89` | W | Fill source text; no data row under pivot. |
-| `data-grid-fill/use-fill-handle.ts:112` | W | Fill source row; no data row under pivot. |
+| `data-grid-fill/use-fill-handle.ts:45` | W | Fill flashes need written rows. None under pivot. |
+| `data-grid-fill/use-fill-handle.ts:89` | W | Fill source text. No data row under pivot. |
+| `data-grid-fill/use-fill-handle.ts:112` | W | Fill source row. No data row under pivot. |
 | `data-grid-fill/use-fill-handle.ts:174` | W | Fill candidates skip pivot rows. |
 | `data-grid/store/data-write.ts:244` | S | Grouped views take the full rebuild. |
 | `data-grid/store/data-write.ts:298` | W | Write record lookup skips pivot rows. |
 | `data-grid/store/data-write.ts:307` | W | Active record lookup skips pivot rows. |
 | `data-grid/store/data-write.ts:424` | S | Grouped views take the full rebuild. |
-| `data-grid/store/data-write.ts:569` | W | Server groups own the rows; row operations refuse. |
+| `data-grid/store/data-write.ts:569` | W | Server groups own the rows. Row operations refuse. |
 | `data-grid/store/data-write.ts:631` | W | Insert position on a pivot row falls to the end, then server groups refuse it. |
 | `data-grid/store/data-write.ts:672` | W | Duplicate skips pivot rows. |
 | `data-grid/store/data-write.ts:714` | W | Move anchor skips pivot rows. |
@@ -411,6 +455,7 @@ Paths are relative to `registry/default/blocks/`. Behavior codes:
 | `data-grid/validation/bulk-generation.ts:32` | W | Bulk writes skip pivot rows. |
 | `data-grid/validation/bulk-generation.ts:73` | W | Bulk re-resolve skips pivot rows. |
 | `data-grid/store/api.ts:86` | S | `getRow` returns `undefined` for a pivot row. |
+| `data-grid/store/api.ts:92` | S | `getViewRowIds` walks the view. |
 | `data-grid/store/api.ts:93` | S | `getViewRowIds` skips pivot rows. |
 | `data-grid/store/hooks.ts:397` | S | `useDataGridRow` returns `undefined`. |
 | `data-grid/store/hooks.ts:405` | S | Row id falls back to the group id. |
@@ -420,8 +465,8 @@ Paths are relative to `registry/default/blocks/`. Behavior codes:
 | `data-grid/store/hooks.ts:535` | S | Data row lookup. |
 | `data-grid/store/hooks.ts:555` | S | Data row lookup. |
 | `data-grid/store/hooks.ts:575` | S | Row id by view row. |
-| `data-grid/store/hooks.ts:610` | S | Save status by row id; none on pivot rows. |
-| `data-grid/store/hooks.ts:716` | K | Selected rows; none under pivot. |
+| `data-grid/store/hooks.ts:610` | S | Save status by row id. None on pivot rows. |
+| `data-grid/store/hooks.ts:716` | K | Selected rows. None under pivot. |
 | `data-grid/store/provider.tsx:25` | S | Active cell event carries the group id. |
 | `data-grid/store/provider.tsx:52` | S | Record move by row id. |
 | `data-grid/store/selection-state.ts:77` | S | `cellRefAtViewCoord` names the group id. |
@@ -449,13 +494,13 @@ Paths are relative to `registry/default/blocks/`. Behavior codes:
 | `data-grid/store/create-store.ts:1074` | S | Derived layout. |
 | `data-grid/store/create-store.ts:1654` | S | Leaf view for the result count. |
 | `data-grid/store/create-store.ts:1655` | S | The same. |
-| `data-grid/store/sync-props.ts:397` | S | Syncs the `groupLayout` prop; the held set keeps its identity. |
+| `data-grid/store/sync-props.ts:397` | S | Syncs the `groupLayout` prop. The held set keeps its identity. |
 | `data-grid/store/sync-inputs.ts:48` | S | Equality of `groupMode`. |
 | `data-grid/store/group-view.ts:40` | S | `groupMode` from the props. |
 | `data-grid/store/group-view.ts:47` | S | Server layout path. |
 | `data-grid/store/group-view.ts:143` | S | Layout patch check. |
-| `data-grid/store/server-group-view.ts:52` | S | Count checks; a pivot row carries `childCount: 0`. |
-| `data-grid/store/server-group-view.ts:66` | S | Copies `childCount`; also copies `pivotCells`. |
+| `data-grid/store/server-group-view.ts:52` | S | Count checks. A pivot row carries `childCount: 0`. |
+| `data-grid/store/server-group-view.ts:66` | S | Copies `childCount`. Also copies `pivotCells`. |
 | `data-grid/store/group-pages.ts:7` | S | Page starts of a grouped view. |
 | `data-grid/store/group-pages.ts:14` | S | The same. |
 | `data-grid/store/group-patch.ts:19` | S | Status patch. |
@@ -472,28 +517,28 @@ Paths are relative to `registry/default/blocks/`. Behavior codes:
 | `data-grid/sort-filter/build-group-view.ts:105` | S | Client buckets only. |
 | `data-grid/rows/use-class-name-revision.ts:28` | S | Row class names for data rows only. |
 | `data-grid/body.tsx:123` | S | Selects the layout. |
-| `data-grid/body.tsx:342` | S | Renders a group row; under pivot every row. |
+| `data-grid/body.tsx:342` | S | Renders a group row. Under pivot every row. |
 | `data-grid/root.tsx:277` | S | Grouped flag. |
 | `data-grid-pagination/use-data-grid-pager.ts:27` | S | The pager counts groups. |
-| `data-grid-pinned-rows/use-data-grid-aggregate.ts:52` | S | Band aggregates over leaves; no change. |
-| `data-grid-server/refresh-guard.tsx:207` | S | Active row id; group ids work. |
-| `data-grid-server/use-group-blocks.ts:239` | T | Sends `spec.pivot`; never `childKind: "rows"` under pivot. |
-| `data-grid-server/group-lists.ts:80` | S | Child counts; `0` under pivot. |
+| `data-grid-pinned-rows/use-data-grid-aggregate.ts:52` | S | Band aggregates over leaves. No change. |
+| `data-grid-server/refresh-guard.tsx:207` | S | Active row id. Group ids work. |
+| `data-grid-server/use-group-blocks.ts:239` | T | Sends `spec.pivot`. Never `childKind: "rows"` under pivot. |
+| `data-grid-server/group-lists.ts:80` | S | Child counts. They are `0` under pivot. |
 | `data-grid-server/group-lists.ts:142` | T | Writes `childCount: 0` and `pivotCells` into the slot. |
 | `data-grid-server/group-lists.ts:148` | T | Opens no child list under pivot, also under `expanded: "expanded"`, expand all, or restored ids. |
 | `data-grid-server/parse-server-spec.ts:112` | S | `childKind` is `"groups"` for the one level. |
 
-Count: 175 sites.
+Count: 176 sites.
 
 ## Performance budgets
 
 | Test | Measures | Budget |
 |---|---|---|
-| `read-pivot-answer-perf.test.ts` | 200 groups × 200 cells read and mapped; 5,001 descriptors refused | ≤ 3 ms; ≤ 0.1 ms |
+| `read-pivot-answer-perf.test.ts` | 200 groups × 200 cells read and mapped. 5,001 descriptors refused | ≤ 3 ms. ≤ 0.1 ms |
 | `pivot-columns-perf.test.ts` | 200 columns plus `computeHeaderRows` with 50 groups | ≤ 2 ms |
-| `group-lists-perf.test.ts` (extend) | `layoutView` at 10,000 groups with cells; the cells' `byteLength` | the existing budget; ≤ 16,000,000 B |
+| `group-lists-perf.test.ts` (extend) | `layoutView` at 10,000 groups with cells. The cells' `byteLength` | the existing budget. ≤ 16,000,000 B |
 | `pivot-store-perf.test.ts` | one landing at 10,000 rows × 200 columns | ≤ 16 ms |
-| `pivot.perf.browser.test.tsx` | vertical and horizontal fling, 100,000 rows × 200 columns with eviction; render count of one landing | long tasks ≤ 200 ms; only the landed rows render again, no header cell |
+| `pivot.perf.browser.test.tsx` | vertical and horizontal fling, 100,000 rows × 200 columns with eviction. Render count of one landing | long tasks ≤ 200 ms. Only the landed rows render again, no header cell |
 | `pivot-readers.test.tsx` | find over 1,000 × 200 | ≤ 100 ms |
 | `tests/server-query/pivot-perf.test.ts` | one full 200-group `fetchGroups`, SQLite and PGlite, 100,000 rows | ≤ 150 ms |
 
@@ -501,8 +546,8 @@ Step 0 measured parse plus fill of 200 × 200 cells at 1.06 ms.
 
 ## Tests
 
-- Layer: `parse-query.pivot.test.ts` (every refusal; another tenant's key never becomes a column; a
-  `__proto__` key), `render-groups.test.ts` (SQL without pivot is byte-equal; at most 200 aliases),
+- Layer: `parse-query.pivot.test.ts` (every refusal. Another tenant's key never becomes a column. A
+  `__proto__` key), `render-groups.test.ts` (SQL without pivot is byte-equal. At most 200 aliases),
   `tests/server-query/pivot.test.ts` against the client oracle (`''` and NULL, `1` and `"1"`,
   descending keys, scope, cut, 4-level subtotals, rows refused), and the Prisma decline.
 - Supabase: plan-shape snapshots over a capturing `fetch`, hostile JSON, and the PGlite run of the
@@ -511,17 +556,17 @@ Step 0 measured parse plus fill of 200 × 200 cells at 1.06 ms.
   `pivot-cells.test.tsx`, `pivot-readers.test.tsx` (CSV `=cmd`, XLSX string cell), and the hook
   tests `*.pivot.scroll.test.tsx` and `*.pivot.pages.test.tsx` (StrictMode, unmount, eviction).
 - Paint: `expectNoPaintMismatch` on a pivot cell in the default, hovered, active, selected, and
-  checked states; radius 0 and 1rem.
+  checked states. Radius 0 and 1rem.
 - Every test without pivot stays unchanged.
 
 ## Parity matrix
 
-New row `pivot`: Z, PS, C, SS, FS `supported` with the hook tests as evidence; L, PC `gap`
-`S11-L`; API `n/a`, "Pivot cells are read-only aggregates." Step 13 writes it and runs
+New row `pivot`: Z, PS, C, SS, FS `supported` with the hook tests as evidence. L, PC `gap`
+`S11-L`. API `n/a`, "Pivot cells are read-only aggregates." Step 13 writes it and runs
 `node scripts/verify-parity.mjs --write`.
 
 ## Open questions
 
-1. Issue #99 asks for "a 400" on a refusal. The layer answers `QueryError` codes; the route maps
+1. Issue #99 asks for "a 400" on a refusal. The layer answers `QueryError` codes. The route maps
    them to a status.
 2. `S11-L`: create the follow-up issue for client pivot at the end of the series.
