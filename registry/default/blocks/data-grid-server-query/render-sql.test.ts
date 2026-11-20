@@ -49,6 +49,13 @@ describe("ids test SQL", () => {
     expect(sqlite.predicate(ids("code", [{ kind: "text", v: `a"\\b` }, { kind: "text", v: "__proto__" }])).params).toEqual([`["a\\"\\\\b","__proto__"]`]);
     expect(sqlite.predicate(ids("id", [big("1")], true)).sql).toBe(`"id" NOT IN (SELECT value FROM json_each(?))`);
   });
+
+  it("folds case on SQLite only for an excluded uuid, so a selected list keeps the key index", () => {
+    const upper = "0F8FAD5B-D9CB-469F-A165-70867728950E";
+    expect(sqlite.predicate(ids("uid", [{ kind: "text", v: upper }]))).toEqual({ sql: `"uid" IN (SELECT value FROM json_each(?))`, params: [`["${upper}"]`] });
+    expect(sqlite.predicate(ids("uid", [{ kind: "text", v: upper }], true))).toEqual({ sql: `lower("uid") NOT IN (SELECT value FROM json_each(?))`, params: [`["${upper.toLowerCase()}"]`] });
+    expect(sqlite.predicate(ids("code", [{ kind: "text", v: "AB" }], true))).toEqual({ sql: `"code" NOT IN (SELECT value FROM json_each(?))`, params: [`["AB"]`] });
+  });
 });
 
 // Above both engines' bind-parameter limits, so a list that expands into one parameter per id fails.

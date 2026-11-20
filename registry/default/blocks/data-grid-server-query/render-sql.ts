@@ -96,10 +96,13 @@ export function createSqlRenderer<S>(a: SqlAlgebra<S>, customHandlers: ReadonlyM
   function idList(column: PlanColumn, t: Extract<Test, { k: "ids" }>): S {
     if (!pg) {
       // A decimal stays a JSON string: the column's affinity then converts it, where a JSON number never matches a text column.
-      const json = `[${t.values.map((value) => (value.kind === "bigint" ? idText(value) : JSON.stringify(idText(value)))).join(",")}]`;
-      // A uuid stored as text may be upper case; the ids are lower case, and a missed exclusion would select the row.
-      const lhs = column.native === "uuid" ? cat(raw("lower("), ref(column), raw(")")) : ref(column);
-      return cat(lhs, raw(t.negate ? " NOT IN " : " IN "),raw("(SELECT value FROM json_each("), param(json), raw("))"));
+      // An excluded uuid in another case than its stored text would select the row, so exclusion folds case; selection
+      // compares the stored form exactly and keeps the key index.
+      const folded = t.negate && column.native === "uuid";
+      const text = (value: Operand) => (folded ? idText(value).toLowerCase() : idText(value));
+      const json = `[${t.values.map((value) => (value.kind === "bigint" ? idText(value) : JSON.stringify(text(value)))).join(",")}]`;
+      const lhs = folded ? cat(raw("lower("), ref(column), raw(")")) : ref(column);
+      return cat(lhs, raw(t.negate ? " NOT IN " : " IN "), raw("(SELECT value FROM json_each("), param(json), raw("))"));
     }
     const type = column.kind === "number" ? PG_ARRAY_TYPES.get(column.numeric!)! : column.native === "uuid" ? "uuid[]" : "text[]";
     const lhs = column.native === "enum" ? subject(column) : ref(column);
