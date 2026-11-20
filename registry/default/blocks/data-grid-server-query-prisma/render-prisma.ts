@@ -104,7 +104,12 @@ export function nativeValue(column: PlanColumn, operand: Operand): unknown {
       return column.storage === "native" ? new Date(`${operand.v}T00:00:00.000Z`) : operand.v;
     case "instant":
       if (column.storage === "epoch-ms") return Date.parse(operand.v);
-      if (column.storage === "epoch-s") return Date.parse(operand.v) / 1000;
+      if (column.storage === "epoch-s") {
+        const ms = Date.parse(operand.v);
+        // Prisma truncates a fraction bound to an Int field, so `gte 1.5` would match 1.
+        if (ms % 1000 !== 0) throw new QueryError("unsupported-value", [column.id]);
+        return ms / 1000;
+      }
       return column.storage === "iso-text" ? operand.v : new Date(operand.v);
   }
 }

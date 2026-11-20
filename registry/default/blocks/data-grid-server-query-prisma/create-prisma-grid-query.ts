@@ -131,6 +131,9 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
   if (provider !== "postgresql" && provider !== "sqlite") throw new Error('createPrismaGridQuery: `provider` must be "postgresql" or "sqlite"');
   for (const column of mapOf(columns).byId.values()) {
     if (column.operators.size > 0) throw new Error(`createPrismaGridQuery: column "${column.id}" declares a custom operator, which the Prisma adapter does not render`);
+    if (options.paging === "cursor" && column.native === "enum" && column.sortable) {
+      throw new Error(`createPrismaGridQuery: column "${column.id}" is a native enum, and a Prisma enum filter has no gt or lt to resume a cursor after it; set \`sortable: false\``);
+    }
   }
   const maxGroupRows = options.maxGroupRows ?? 10_000;
   const renderer = createPrismaRenderer(provider, nullableColumnIds(columns));

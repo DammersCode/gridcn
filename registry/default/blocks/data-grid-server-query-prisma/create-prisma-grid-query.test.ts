@@ -626,6 +626,23 @@ describe("hostile keys and creation", () => {
     expect(() => definePrismaColumnMap<{ id: number }>()({ id: "id" }, { id: { type: "number", numeric: "int4", primaryKey: true }, nick: { type: "text", field: "nick" as "id" } })).toThrow(/"nick".*"nick"/);
   });
 
+  it("refuses an epoch-s operand with a fraction of a second, which Prisma truncates on an Int field", async () => {
+    const epochs = definePrismaColumnMap<{ id: number; at: number | null }>()({ id: "id", at: "at" }, {
+      id: { type: "number", numeric: "int4", primaryKey: true },
+      at: { type: "date", time: true, storage: "epoch-s", nullable: true },
+    });
+    const { model, calls } = fake();
+    const query = createPrismaGridQuery({ model, provider: "postgresql", columns: epochs });
+    expect(await codeOf(query.fetchRows(rowsRequest({ filters: [filter("at", "gte", "2024-01-01T00:00:00.500Z")] })))).toBe("unsupported-value");
+    expect(calls).toHaveLength(0);
+    await query.fetchRows(rowsRequest({ filters: [filter("at", "gte", "2024-01-01T00:00:01.000Z")] }));
+    expect(calls[0]!.args["where"]).toStrictEqual({ at: { gte: 1_704_067_201 } });
+  });
+
+  it("refuses at creation a cursor factory that could sort by a native enum, whose Prisma filter has no gt or lt", () => {
+    expect(() => createPrismaGridQuery({ model: fake().model, provider: "postgresql", columns, paging: "cursor" })).toThrow(/"kind".*native enum.*sortable: false/);
+  });
+
   it("declines custom operators at creation", () => {
     const custom = definePrismaColumnMap<{ id: number }>()({ id: "id" }, { id: { type: "number", numeric: "int4", primaryKey: true, operators: [{ id: "near", label: "Near", input: "single" }] } });
     expect(() => createPrismaGridQuery({ model: fake().model, provider: "postgresql", columns: custom })).toThrow(/custom operator/);
