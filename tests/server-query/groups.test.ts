@@ -179,6 +179,13 @@ describe.each([
     }
   });
 
+  it("builds a checkbox level above another level", async () => {
+    const ask: Ask = { groupBy: ["active", "tag"], end: 10 };
+    expectLike((await groupsOf(query(), ask)).groups, oracleGroups(oracleOf(ask)), { ordered: false });
+    const inner: Ask = { ...ask, path: [{ columnId: "active", key: false }] };
+    expectLike((await groupsOf(query(), inner)).groups, oracleGroups(oracleOf(inner)), { ordered: true });
+  });
+
   it("reads the rows of a group in the order of the other sorts", async () => {
     const ask: Ask = { groupBy: ["tag"], path: [{ columnId: "tag", key: "red" }], sorts: [{ columnId: "tag", direction: "desc" }, { columnId: "qty", direction: "desc" }] };
     const rows = (await query().fetchRows(body(ask))).rows;

@@ -77,6 +77,7 @@ const SORTS: Record<string, unknown[]> = {
   "text desc": [desc("name")],
   "mixed directions with NULLs": [desc("qty"), asc("name")],
   "three keys": [asc("active"), desc("price"), desc("name")],
+  "a checkbox desc": [desc("active"), asc("qty")],
   "time asc": [asc("stamp")],
   "time desc, then text": [desc("stamp"), asc("name")],
   "a required text column with NULL rows": [asc("label")],

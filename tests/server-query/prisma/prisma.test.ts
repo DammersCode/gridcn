@@ -217,7 +217,7 @@ describe.each(opened.map((setup) => [setup.engine, setup] as const))("Prisma on 
     const query = prisma(scope);
     const apply = query.save(async (change) => {
       // The validated insert carries no primary key; this table has no default for it.
-      for (const insert of change.inserts) await setup.model.createMany({ data: [{ ...insert.values, id: 900n, tenant: 1 }] });
+      for (const insert of change.inserts) await setup.model.createMany({ data: [{ ...insert.values, id: 900n }] });
       return {
         updates: await Promise.all(change.updates.map(async (write) => (await setup.model.updateMany({ where: write.where, data: write.values })).count)),
         deletes: await Promise.all(change.deletes.map(async (write) => (await setup.model.deleteMany({ where: write.where })).count)),
@@ -228,9 +228,14 @@ describe.each(opened.map((setup) => [setup.engine, setup] as const))("Prisma on 
     const cells = { big: "-9007199254740995", day: "2024-02-29", milli: "2024-03-10T06:59:59.123Z", amount, mood: "Calm", ref: UUIDS[2] };
     await setup.model.createMany({ data: [{ id: 901n, tenant: 1 }] });
     const update = { type: "update", rowId: "901", row: {}, prev: {}, cells: Object.entries(cells).map(([columnId, value]) => ({ columnId, value, prev: null })) };
-    const insert = { type: "insert", rowId: "new-0", row: { id: "900", ...cells, big: "9007199254740995" }, index: 0 };
-    await expect(apply({ ops: [update, insert], source: "edit" }, tenantOne)).resolves.toEqual({ rejected: [] });
-    const text = engine === "pg" ? "big::text as big, day::text as day, milli, amount::text as amount, mood::text as mood, ref::text as ref" : "big, day, milli, amount, mood, ref";
+    const insert = { type: "insert", rowId: "new-0", row: { id: "900", ...cells, big: "9007199254740995", tenant: 2 }, index: 0 };
+    // Row 2 belongs to tenant 2: the scoped delete matches no row.
+    const otherTenant = { type: "delete", rowId: "2" };
+    await expect(apply({ ops: [update, insert, otherTenant], source: "edit" }, tenantOne)).resolves.toEqual({ rejected: [{ rowId: "2", code: "not-found", message: "Not found" }] });
+    expect(await setup.model.count({ where: { id: 2n } })).toBe(1);
+    const fraction = { type: "update", rowId: "901", row: {}, prev: {}, cells: [{ columnId: "seconds", value: "2024-01-01T00:00:00.500Z", prev: null }] };
+    await expect(apply({ ops: [fraction], source: "edit" }, tenantOne)).rejects.toMatchObject({ code: "unsupported-value" });
+    const text = engine === "pg" ? "big::text as big, day::text as day, milli, amount::text as amount, mood::text as mood, ref::text as ref, tenant, seconds" : "big, day, milli, amount, mood, ref, tenant, seconds";
     const [updated] = await setup.raw(`select ${text} from kinds where id = 901`);
     const [inserted] = await setup.raw(`select ${text} from kinds where id = 900`);
     const milli = (value: unknown) => (value instanceof Date ? value.toISOString() : value);
@@ -241,6 +246,8 @@ describe.each(opened.map((setup) => [setup.engine, setup] as const))("Prisma on 
       expect(engine === "pg" ? row!["amount"] : String(row!["amount"])).toBe(amount);
       expect(row!["mood"]).toBe("Calm");
       expect(row!["ref"]).toBe(UUIDS[2]);
+      expect(Number(row!["tenant"])).toBe(1);
+      expect(row!["seconds"]).toBeNull();
     }
     await setup.model.deleteMany({ where: { id: { in: [900n, 901n] } } });
   });
@@ -356,6 +363,9 @@ describe.each(["sqlite", "pg"] as const)("the bound-value budget on %s", async (
     ["aggregate", (n) => query.aggregates({ spec: { filters: [filter("id", "isAnyOf", texts(n))] }, columnIds: ["qty", "price"] }, context), 3],
     ["updateMany with full data", async (n) => model.updateMany({ where: query.where(query.selectionPlan({ selection: { mode: "allMatching", ids: [], excludedIds: texts(n), count: null, spec: {} } }, { context: { tenantId: 99 } })), data }), 12],
     ["deleteMany", async (n) => model.deleteMany({ where: query.where(query.selectionPlan({ selection: { mode: "allMatching", ids: [], excludedIds: texts(n), count: null, spec: {} } }, { context: { tenantId: 99 } })) }), 12],
+    // A plain `in` is the list Prisma splits into chunks past its limit.
+    ["updateMany by selected ids", async (n) => model.updateMany({ where: query.where(query.selectionPlan({ selection: { mode: "ids", ids: texts(n), excludedIds: [], count: n } }, { context: { tenantId: 99 } })), data }), 12],
+    ["deleteMany by selected ids", async (n) => model.deleteMany({ where: query.where(query.selectionPlan({ selection: { mode: "ids", ids: texts(n), excludedIds: [], count: n } }, { context: { tenantId: 99 } })) }), 12],
   ];
 
   it.each(edges)("refuses %s one value past its budget and sends nothing", async (_, call, kept) => {

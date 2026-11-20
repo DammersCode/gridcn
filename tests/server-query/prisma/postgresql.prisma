@@ -58,3 +58,46 @@ model Kind {
 
   @@map("kinds")
 }
+
+// The key-type tables of selection.test.ts.
+model KText {
+  k     String  @id
+  label String?
+
+  @@map("k_text")
+}
+
+model KUuid {
+  k     String  @id @db.Uuid
+  label String?
+
+  @@map("k_uuid")
+}
+
+model KInt {
+  k     Int     @id
+  label String?
+
+  @@map("k_int")
+}
+
+model KDecimal {
+  k     Decimal @id
+  label String?
+
+  @@map("k_decimal")
+}
+
+model KFloat {
+  k     Float   @id
+  label String?
+
+  @@map("k_float")
+}
+
+model KCase {
+  k     String  @id
+  label String?
+
+  @@map("k_case")
+}

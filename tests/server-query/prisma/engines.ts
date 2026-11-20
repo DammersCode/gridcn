@@ -22,10 +22,7 @@ export type Delegate = PrismaModelDelegate & {
   updateMany(args: { where: unknown; data: Row }): Promise<{ count: number }>;
   deleteMany(args: { where: unknown }): Promise<{ count: number }>;
 };
-type Client = {
-  item: Delegate;
-  cursorItem: Delegate;
-  kind: Delegate;
+type Client = Record<"item" | "cursorItem" | "kind" | "kText" | "kUuid" | "kInt" | "kDecimal" | "kFloat" | "kCase", Delegate> & {
   $on(event: "query", listener: (event: { query: string }) => void): void;
   $disconnect(): Promise<void>;
 };

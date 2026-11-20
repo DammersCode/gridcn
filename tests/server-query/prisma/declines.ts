@@ -60,6 +60,12 @@ export const PRISMA_DECLINES: readonly Decline[] = [
     because: "count of text that folds '' into NULL needs NULLIF, which the object API lacks",
   },
   {
+    engines: SQLITE,
+    match: /^excluded uuid ids$/,
+    code: "unsupported",
+    because: "keeping an excluded uuid out in any case needs lower(col), which the object API lacks",
+  },
+  {
     engines: BOTH,
     match: /^a selection of 70,000 ids$/,
     code: "limit-exceeded",
