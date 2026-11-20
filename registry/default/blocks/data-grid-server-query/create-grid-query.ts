@@ -2,7 +2,8 @@ import { type ColumnMap, type PlanColumn, mapOf } from "./column-map";
 import { isDev } from "./is-dev";
 import { QueryError } from "./errors";
 import { type QueryLimits, resolveLimits } from "./limits";
-import { type RowCountMode, parseQuery } from "./parse-query";
+import { assertCursorColumns, cursorAfter, cursorBytes, decodeCursor, keyTextAliases, planHash, resumePredicate } from "./cursor";
+import { type Paging, type RowCountMode, parseQuery } from "./parse-query";
 import { parseSelection, selectionBodyBytes } from "./parse-selection";
 import type { AggregatesPlan, GroupsPlan, Operand, Predicate, RowsPlan, Test, ValuesPlan } from "./plan";
 import { combine } from "./plan";
@@ -25,6 +26,8 @@ export type AdapterCapabilities = {
   aggregates: boolean;
   groupBy: boolean;
   localDayGrouping: boolean;
+  /** `selectRows` reads the `keyText` of a `time` key exactly; without it a cursor sort on a `time` column is `unsupported`. */
+  exactInstantKeys?: boolean;
 };
 
 /** One group row as the database returns it; `aggregates` is keyed by column id. */
@@ -47,8 +50,8 @@ export type QueryExecutor<TWhere, TOrder> = {
 export type QueryCallOptions<TContext = never> = { signal?: AbortSignal } & ([TContext] extends [never] ? { context?: undefined } : { context: TContext });
 export type CallArgs<TContext> = [TContext] extends [never] ? [opts?: QueryCallOptions] : [opts: QueryCallOptions<TContext>];
 
-/** The answer `useDataGridServerRows` reads. */
-export type RowsAnswer<TRow> = { rows: TRow[]; totalRowCount?: number | null; hasMore?: boolean };
+/** The answer `useDataGridServerRows` reads. A cursor factory answers `nextCursor` and no `totalRowCount`. */
+export type RowsAnswer<TRow, TCursor = never> = { rows: TRow[]; totalRowCount?: number | null; hasMore?: boolean } & ([TCursor] extends [never] ? unknown : { nextCursor?: TCursor | null });
 export type ValuesAnswer = { values: { value: string; label?: string; count?: number }[] };
 export type AggregatesAnswer = Record<string, number | string | null>;
 export type GroupsAnswer = {
@@ -85,9 +88,13 @@ const own = (target: object, key: string, value: unknown): void => {
  */
 export type ApplyChange<TWhere, TContext = never> = (change: ValidatedChange<TWhere>, opts: QueryCallOptions<TContext>) => Promise<WriteCounts>;
 
-export interface GridQuery<TRow, TContext = never, TWhere = unknown, TOrder = unknown> {
-  /** A request with `childKind: "groups"` answers a {@link GroupsAnswer}, every other request a {@link RowsAnswer}. */
-  fetchRows(input: unknown, ...opts: CallArgs<TContext>): Promise<RowsAnswer<TRow> | GroupsAnswer>;
+export interface GridQuery<TRow, TContext = never, TWhere = unknown, TOrder = unknown, TCursor = never> {
+  /**
+   * A request with `childKind: "groups"` answers a {@link GroupsAnswer}, every other request a {@link RowsAnswer}. A cursor
+   * factory answers `{ rows, hasMore, nextCursor }`: a request with `cursor` resumes after that cursor's row, one without
+   * reads from `start`; a cursor of another filter or order is `bad-cursor`, and a grouped request `unsupported`.
+   */
+  fetchRows(input: unknown, ...opts: CallArgs<TContext>): Promise<RowsAnswer<TRow, TCursor> | GroupsAnswer>;
   filterValues(input: unknown, ...opts: CallArgs<TContext>): Promise<ValuesAnswer>;
   aggregates(input: unknown, ...opts: CallArgs<TContext>): Promise<AggregatesAnswer>;
   parse(input: unknown, ...opts: CallArgs<TContext>): RowsPlan;
@@ -127,6 +134,8 @@ export type CreateGridQueryOptions<TContext, TWhere, TOrder> = {
   limits?: QueryLimits;
   /** IANA zone or fixed offset of day filters on `time` columns. Default `"UTC"`. */
   timeZone?: string;
+  /** `"cursor"` pages `fetchRows` by keyset cursors and never counts; every sortable text column then needs `maxLength`. Default `"offset"`. */
+  paging?: Paging;
 };
 
 function clone<T>(value: T): T {
@@ -166,11 +175,16 @@ function valueText(value: unknown): string {
  * Builds the query methods of one table over an executor. Adapters call this; consumers call the adapter's factory.
  * The methods are own arrow properties, so `usersQuery.fetchRows` passes unbound.
  */
-export function createGridQuery<TRow = Record<string, unknown>, TContext = never, TWhere = unknown, TOrder = unknown>(
+export function createGridQuery<TRow = Record<string, unknown>, TContext = never, TWhere = unknown, TOrder = unknown, TCursor = never>(
   options: CreateGridQueryOptions<TContext, TWhere, TOrder>,
-): GridQuery<TRow, TContext, TWhere, TOrder> {
+): GridQuery<TRow, TContext, TWhere, TOrder, TCursor> {
   const { columns, executor, rowScope, rowCount, limits, timeZone } = options;
   const map = mapOf(columns);
+  const cursorPaging = options.paging === "cursor";
+  if (cursorPaging) assertCursorColumns(columns, resolveLimits(limits));
+  const keyTextAlias = keyTextAliases(columns);
+  // `required` refuses blank writes and promises no NOT NULL, so only the primary key drops the NULL branch.
+  const nonNull = (column: PlanColumn): boolean => column.primaryKey;
   if (isDev() && !map.visible.some((column) => column.searchable)) {
     console.warn("gridcn query layer: no column sets `searchable`, so quick search matches every row.");
   }
@@ -245,6 +259,32 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
     return { rows: page, hasMore: rows.length > size };
   };
 
+  const fetchCursorPage = async (input: unknown, callOptions?: { signal?: AbortSignal; context?: unknown }): Promise<RowsAnswer<TRow, string>> => {
+    const parsed = parseQuery(input, { columns, request: "rows", limits, timeZone, paging: "cursor" });
+    const resolved = resolveLimits(limits);
+    const terms = parsed.orderBy;
+    const timeTerms = terms.filter(({ column }) => keyTextAlias.has(column));
+    if (timeTerms.length > 0 && executor.capabilities.exactInstantKeys !== true) throw new QueryError("unsupported", ["spec", "sorts"]);
+    if ((cursorBytes(terms.map((term) => term.column), resolved) ?? Infinity) > resolved.maxCursorBytes) throw new QueryError("limit-exceeded", ["spec", "sorts"]);
+    const ctx = { terms, hash: planHash(parsed), limits: resolved, nonNull };
+    const sent = Object.hasOwn(input as object, "cursor") ? (input as Record<string, unknown>)["cursor"] : undefined;
+    const keys = sent === undefined || sent === null ? null : decodeCursor(sent, ctx);
+    const scoped = withScope(parsed, callOptions);
+    const keyText = timeTerms.map(({ column }) => ({ column, as: keyTextAlias.get(column)! }));
+    const plan: RowsPlan = deepFreeze({
+      ...scoped,
+      where: keys ? combine("and", [scoped.where, resumePredicate(terms, keys, nonNull)]) : scoped.where,
+      ...(keyText.length > 0 ? { keyText } : {}),
+    });
+    alive(callOptions?.signal);
+    const size = plan.rowRange.end - plan.rowRange.start;
+    const rows = await executor.selectRows(plan, { offset: keys ? 0 : plan.rowRange.start, limit: size + 1, signal: callOptions?.signal });
+    const hasMore = rows.length > size;
+    const last = hasMore && size > 0 ? rows[size - 1] : undefined;
+    const nextCursor = last ? cursorAfter(last, keyTextAlias, ctx) : null;
+    return { rows: rows.slice(0, size).map((row) => serializeRow(row, plan.projection) as TRow), hasMore, nextCursor };
+  };
+
   const filterValues = async (input: unknown, callOptions?: { signal?: AbortSignal; context?: unknown }): Promise<ValuesAnswer> => {
     const plan = withScope(parseQuery(input, { columns, request: "values", limits, timeZone }), callOptions);
     alive(callOptions?.signal);
@@ -311,7 +351,7 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
   };
 
   return {
-    fetchRows,
+    fetchRows: cursorPaging ? fetchCursorPage : fetchRows,
     filterValues,
     aggregates,
     parse,
@@ -330,7 +370,7 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
     selection: Object.assign(selection, { maxBodyBytes: selectionBodyBytes(resolveLimits(limits)) }),
     selectionPlan: (input: unknown, callOptions?: { context?: unknown }) => register(parseSelected(input, callOptions).plan),
     capabilities: executor.capabilities,
-  } as unknown as GridQuery<TRow, TContext, TWhere, TOrder>;
+  } as unknown as GridQuery<TRow, TContext, TWhere, TOrder, TCursor>;
 }
 
 function groupKeyValue(raw: unknown, column: PlanColumn): string | number | boolean | null {

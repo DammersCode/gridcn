@@ -27,12 +27,18 @@ export type KyselyGridQueryOptions<TContext = never> = {
   timeZone?: string;
   /** Handlers for the custom operators the column map declares; each returns a Kysely expression and must bind `value` through it. */
   customOperators?: Record<string, (ctx: { column: PlanColumn; value: unknown }) => Expression<unknown>>;
+  /** `"cursor"` pages `fetchRows` by keyset cursors and never counts; every sortable text column then needs `maxLength`. Default `"offset"`. */
+  paging?: "offset" | "cursor";
 };
 
 const isExpression = (value: unknown): value is Expression<unknown> => typeof value === "object" && value !== null && "toOperationNode" in value;
 
 /** Reads and counts rows with Kysely, from the column map and a request body. */
-export function createKyselyGridQuery<TRow = Record<string, unknown>, TContext = never>(options: KyselyGridQueryOptions<TContext>): GridQuery<TRow, TContext, Fragment, Fragment> {
+export function createKyselyGridQuery<TRow = Record<string, unknown>, TContext = never>(options: KyselyGridQueryOptions<TContext> & { paging: "cursor" }): GridQuery<TRow, TContext, Fragment, Fragment, string>;
+export function createKyselyGridQuery<TRow = Record<string, unknown>, TContext = never>(options: KyselyGridQueryOptions<TContext> & { paging?: "offset" }): GridQuery<TRow, TContext, Fragment, Fragment>;
+/** A `paging` known only at run time may page by cursor, so the answer's cursor is typed. */
+export function createKyselyGridQuery<TRow = Record<string, unknown>, TContext = never>(options: KyselyGridQueryOptions<TContext>): GridQuery<TRow, TContext, Fragment, Fragment, string>;
+export function createKyselyGridQuery<TRow, TContext>(options: KyselyGridQueryOptions<TContext>): GridQuery<TRow, TContext, Fragment, Fragment, string> {
   const { db, table, dialect, columns } = options;
   assertCustomOperatorHandlers(columns, options.customOperators);
   const algebra: SqlAlgebra<Fragment> = {
@@ -56,22 +62,27 @@ export function createKyselyGridQuery<TRow = Record<string, unknown>, TContext =
     aggregates: true,
     groupBy: true,
     localDayGrouping: dialect === "pg",
+    exactInstantKeys: true,
   };
   const from = sql`from ${sql.id(table)}`;
   const aliasList = (items: { alias: string; expr: Fragment }[]): Fragment => sql.join(items.map(({ alias, expr }) => sql`${expr} as ${sql.id(alias)}`));
 
-  return createGridQuery<TRow, TContext, Fragment, Fragment>({
+  return createGridQuery<TRow, TContext, Fragment, Fragment, string>({
     columns,
     rowScope: options.rowScope,
     rowCount: options.rowCount,
     limits: options.limits,
     timeZone: options.timeZone,
+    paging: options.paging,
     executor: {
       capabilities,
       where: (plan) => renderer.predicate(plan.where),
       orderBy: (plan) => renderer.orderBy(plan.orderBy),
       selectRows: (plan, page) => {
-        const list = aliasList(plan.projection.map((column) => ({ alias: column.id, expr: sql.id(table, column.field) })));
+        const list = aliasList([
+          ...plan.projection.map((column) => ({ alias: column.id, expr: sql.id(table, column.field) as Fragment })),
+          ...(plan.keyText ?? []).map(({ column, as }) => ({ alias: as, expr: renderer.keyText(column) })),
+        ]);
         return run(sql`select ${list} ${from} where ${renderer.predicate(plan.where)} order by ${renderer.orderBy(plan.orderBy)} limit ${sql.val(page.limit)} offset ${sql.val(page.offset)}`);
       },
       countRows: async (plan) => (await run(sql`select count(*) as ${sql.id("n")} ${from} where ${renderer.predicate(plan.where)}`))[0]?.["n"],

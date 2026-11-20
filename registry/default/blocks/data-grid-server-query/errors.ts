@@ -8,6 +8,7 @@ export type QueryErrorCode =
   | "unsupported"
   | "unsupported-value"
   | "offset-too-deep"
+  | "bad-cursor"
   | "payload-too-large";
 
 /** Thrown for a request the query layer refuses. `path` holds field names and indices, never request text. */

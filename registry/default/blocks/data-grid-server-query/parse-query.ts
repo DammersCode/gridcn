@@ -32,13 +32,18 @@ export type ParseQueryOptions<R extends QueryRequestKind> = {
   limits?: QueryLimits;
   /** IANA zone or fixed offset of day filters on `time` columns. Default `"UTC"`. */
   timeZone?: string;
+  /** `"cursor"`: a rows request never counts, a grouped one is `unsupported`, and `start` beside a `cursor` is no offset. Default `"offset"`. */
+  paging?: Paging;
 };
+
+/** How `fetchRows` pages: by `start` offsets, or by keyset cursors. */
+export type Paging = "offset" | "cursor";
 
 /** The deepest group nesting the client keeps. */
 export const MAX_FILTER_DEPTH = 2;
 
 type Budget = { nodes: number; leaves: number; listValues: number; bytes: number };
-type Ctx = { map: ReturnType<typeof mapOf>; limits: ResolvedLimits; timeZone: string; budget: Budget };
+type Ctx = { map: ReturnType<typeof mapOf>; limits: ResolvedLimits; timeZone: string; budget: Budget; paging: Paging };
 type Path = readonly (string | number)[];
 type Raw = Record<string, unknown>;
 
@@ -59,7 +64,7 @@ function charge(ctx: Ctx, text: string, path: Path, max = ctx.limits.maxValueLen
 export function parseQuery<R extends QueryRequestKind>(input: unknown, options: ParseQueryOptions<R>): PlanOf<R> {
   const timeZone = options.timeZone ?? "UTC";
   assertTimeZone(timeZone);
-  const ctx: Ctx = { map: mapOf(options.columns), limits: resolveLimits(options.limits), timeZone, budget: { nodes: 0, leaves: 0, listValues: 0, bytes: 0 } };
+  const ctx: Ctx = { map: mapOf(options.columns), limits: resolveLimits(options.limits), timeZone, budget: { nodes: 0, leaves: 0, listValues: 0, bytes: 0 }, paging: options.paging ?? "offset" };
   if (!isRecord(input)) throw new QueryError("invalid-request", []);
   let plan: RowsPlan | GroupsPlan | ValuesPlan | AggregatesPlan;
   if (options.request === "rows" || options.request === "page") plan = parseRows(input, ctx, options.rowCount ?? "firstBlock", options.request === "page");
@@ -170,11 +175,14 @@ function parseRows(input: Raw, ctx: Ctx, rowCount: RowCountMode, allowGroups: bo
   const spec = specOf(input);
   rejectPivot(spec);
   const grouping = parseGroupRequest(input, spec, ctx);
+  if (grouping && ctx.paging === "cursor") throw new QueryError("unsupported", ["spec", "groupBy"]);
   if (grouping?.childKind === "groups" && !allowGroups) throw new QueryError("unsupported", ["childKind"]);
   const filters = parseWhere(spec, ctx);
   const where = grouping ? combine("and", [filters, ...grouping.path]) : filters;
   const sorts = parseSorts(spec["sorts"], ctx);
-  const { rowRange, paged } = parseRange(input, ctx);
+  const resumes = ctx.paging === "cursor" && Object.hasOwn(input, "cursor") && !isAbsent(input["cursor"]);
+  const { rowRange, paged } = parseRange(input, ctx, resumes);
+  if (ctx.paging === "cursor") return { kind: "rows", where, orderBy: sorts, rowRange, runCount: false, projection: ctx.map.visible };
   if (grouping?.childKind === "groups") {
     const level = grouping.levels[grouping.path.length]!;
     const direction = sorts.find((term) => term.column === level)?.direction ?? "asc";
@@ -213,7 +221,7 @@ function parseAggregates(input: Raw, ctx: Ctx): AggregatesPlan {
   return { kind: "aggregates", where, columns: columns.map((column) => ({ column, reducer: column.aggregate! })) };
 }
 
-function parseRange(input: Raw, ctx: Ctx): { rowRange: { start: number; end: number }; paged: boolean } {
+function parseRange(input: Raw, ctx: Ctx, resumes = false): { rowRange: { start: number; end: number }; paged: boolean } {
   const whole = (value: unknown, path: string): number => {
     if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) throw new QueryError("invalid-value", [path]);
     return value;
@@ -235,7 +243,8 @@ function parseRange(input: Raw, ctx: Ctx): { rowRange: { start: number; end: num
     end = whole(input["end"], "end");
     if (end < start || end - start > maxPageSize) throw new QueryError("invalid-value", ["end"]);
   }
-  if (start > maxOffset) throw new QueryError("offset-too-deep", ["start"]);
+  // A cursor request resumes after its cursor's row; its `start` only counts the rows the client holds.
+  if (start > maxOffset && !resumes) throw new QueryError("offset-too-deep", ["start"]);
   return { rowRange: { start, end }, paged };
 }
 

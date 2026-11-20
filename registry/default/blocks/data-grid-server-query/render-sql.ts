@@ -21,6 +21,7 @@ export type SqlAlgebra<S> = {
 export type CustomHandler = (ctx: { column: PlanColumn; value: unknown }) => unknown;
 
 const CMP_SQL = new Map<string, string>([["gt", " > "], ["gte", " >= "], ["lt", " < "], ["lte", " <= "]]);
+const KEY_SQL = new Map<string, string>([["gt", " > "], ["lt", " < "], ["eq", " = "]]);
 
 const PG_ARRAY_TYPES = new Map<string, string>([["int2", "int2[]"], ["int4", "int4[]"], ["int8", "int8[]"], ["float", "float8[]"], ["decimal", "numeric[]"]]);
 
@@ -137,6 +138,12 @@ export function createSqlRenderer<S>(a: SqlAlgebra<S>, customHandlers: ReadonlyM
         return inList(column, t);
       case "ids":
         return idList(column, t);
+      case "key":
+        // The bare column, no `::text` cast and no blank guard, so the comparison follows ORDER BY (a native enum sorts by declaration).
+        if (t.op === "null" || !t.value) return cat(col, raw(" IS NULL"));
+        // As in `idList`, a SQLite decimal binds as text, so the column's own affinity converts it, never a JS double.
+        if (!pg && column.numeric === "decimal") return cat(col, raw(KEY_SQL.get(t.op)!), param(t.value.v));
+        return cat(col, raw(KEY_SQL.get(t.op)!), operand(t.value, column));
       case "custom": {
         const handler = customHandlers.get(t.id);
         if (!handler) throw new Error(`customOperators: no handler for "${t.id}"`);
@@ -234,5 +241,11 @@ export function createSqlRenderer<S>(a: SqlAlgebra<S>, customHandlers: ReadonlyM
     return group(cat(where, raw(" AND "), like(textForm(plan.column, timeZone), "contains", plan.query, false)));
   }
 
-  return { predicate, orderBy, textForm, valueKey, aggregate, like, valuesFilter, groupKey, keyCount };
+  /** The exact text of a `time` key that compares back equal: microsecond UTC text of a PostgreSQL timestamp, the stored value elsewhere. */
+  function keyText(column: PlanColumn): S {
+    if (!pg || column.storage !== "native") return ref(column);
+    return cat(raw("to_char("), ref(column), raw(`::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`));
+  }
+
+  return { predicate, orderBy, textForm, valueKey, aggregate, like, valuesFilter, groupKey, keyCount, keyText };
 }

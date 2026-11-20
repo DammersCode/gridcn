@@ -36,10 +36,16 @@ export type DrizzleGridQueryOptions<TContext = never> = {
   timeZone?: string;
   /** Handlers for the custom operators the column map declares; each returns a Drizzle `sql` fragment and must bind `value` through it. */
   customOperators?: Record<string, (ctx: { column: PlanColumn; value: unknown }) => SQL>;
+  /** `"cursor"` pages `fetchRows` by keyset cursors and never counts; every sortable text column then needs `maxLength`. Default `"offset"`. */
+  paging?: "offset" | "cursor";
 };
 
 /** Reads and counts rows with Drizzle, from the column map and a request body. */
-export function createDrizzleGridQuery<TRow = Record<string, unknown>, TContext = never>(options: DrizzleGridQueryOptions<TContext>): GridQuery<TRow, TContext, SQL, SQL> {
+export function createDrizzleGridQuery<TRow = Record<string, unknown>, TContext = never>(options: DrizzleGridQueryOptions<TContext> & { paging: "cursor" }): GridQuery<TRow, TContext, SQL, SQL, string>;
+export function createDrizzleGridQuery<TRow = Record<string, unknown>, TContext = never>(options: DrizzleGridQueryOptions<TContext> & { paging?: "offset" }): GridQuery<TRow, TContext, SQL, SQL>;
+/** A `paging` known only at run time may page by cursor, so the answer's cursor is typed. */
+export function createDrizzleGridQuery<TRow = Record<string, unknown>, TContext = never>(options: DrizzleGridQueryOptions<TContext>): GridQuery<TRow, TContext, SQL, SQL, string>;
+export function createDrizzleGridQuery<TRow, TContext>(options: DrizzleGridQueryOptions<TContext>): GridQuery<TRow, TContext, SQL, SQL, string> {
   const { db, table, columns } = options;
   const tableColumns = getTableColumns(table) as Record<string, Column>;
   const first = Object.values(tableColumns)[0];
@@ -73,20 +79,23 @@ export function createDrizzleGridQuery<TRow = Record<string, unknown>, TContext 
     aggregates: true,
     groupBy: true,
     localDayGrouping: dialect === "pg",
+    exactInstantKeys: true,
   };
 
-  return createGridQuery<TRow, TContext, SQL, SQL>({
+  return createGridQuery<TRow, TContext, SQL, SQL, string>({
     columns,
     rowScope: options.rowScope,
     rowCount: options.rowCount,
     limits: options.limits,
     timeZone: options.timeZone,
+    paging: options.paging,
     executor: {
       capabilities,
       where: (plan) => renderer.predicate(plan.where),
       orderBy: (plan) => renderer.orderBy(plan.orderBy),
       selectRows: (plan, page) => {
-        const fields = Object.fromEntries(plan.projection.map((column) => [column.id, physical.get(column.id)!]));
+        const fields: Record<string, unknown> = Object.fromEntries(plan.projection.map((column) => [column.id, physical.get(column.id)!]));
+        for (const { column, as } of plan.keyText ?? []) fields[as] = renderer.keyText(column);
         return Promise.resolve(selectFrom(fields).where(renderer.predicate(plan.where)).orderBy(renderer.orderBy(plan.orderBy)).limit(page.limit).offset(page.offset));
       },
       countRows: async (plan) => {
