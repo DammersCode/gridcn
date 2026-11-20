@@ -19,6 +19,8 @@ const BLOCKS_WITHOUT_TILE: Record<string, string> = {
   "data-grid-server-query": "the server half of a server grid: the Query layer page and the add-ons A to Z page list it",
   "data-grid-server-query-drizzle": "an ORM adapter of the query layer: the Query layer page and the add-ons A to Z page list it",
   "data-grid-server-query-kysely": "an ORM adapter of the query layer: the Query layer page and the add-ons A to Z page list it",
+  "data-grid-server-query-prisma": "an ORM adapter of the query layer: the Query layer page and the add-ons A to Z page list it",
+  "data-grid-server-query-supabase": "an adapter of the query layer: the Query layer page and the add-ons A to Z page list it",
 };
 
 function resolves(href: string): boolean {

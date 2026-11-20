@@ -15,6 +15,8 @@ export type RegistryItemName =
   | "data-grid-server-query"
   | "data-grid-server-query-drizzle"
   | "data-grid-server-query-kysely"
+  | "data-grid-server-query-prisma"
+  | "data-grid-server-query-supabase"
   | "data-grid-pinned-rows"
   | "data-grid-lookup"
   | "data-grid-presence"

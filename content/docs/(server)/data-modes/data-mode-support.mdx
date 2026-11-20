@@ -22,7 +22,7 @@ A grid feature can behave differently on a local array, on server pages and on s
 
 ## Matrix
 
-<ParityLegend statuses={["supported","n/a"]} />
+<ParityLegend statuses={["supported","gap","n/a"]} />
 
 <div className="max-w-full overflow-x-auto">
 {/* lint-ok: generated matrix */}
@@ -139,6 +139,17 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
+    </tr>
+    <tr id="parity-server-pivot">
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal">Server pivot</th>
+      <td className="text-center"><ParityCell status="gap" note={"Pivot needs a server: the query layer or your route answers the pivot columns and cells, and a local array has no pivot engine."} /></td>
+      <td className="text-center"><ParityCell status="gap" note={"Pivot needs a server: the query layer or your route answers the pivot columns and cells, and a local array has no pivot engine."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"Pivot cells are read-only: an edit, paste, fill, or cut writes no pivot cell, so no change reaches onSave or onDataChange."} /></td>
     </tr>
     <tr id="parity-pinned-rows">
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal"><a href="/docs/rows-pages-menus/pinned-rows">Pinned rows and aggregates</a></th>
@@ -696,6 +707,12 @@ On the server, `query.selection` counts the rows of a `DataGridSelectedRows` val
 ### Row count
 
 A development warning names `totalRowCount` above the loaded rows under a client sort or filter. It never fires when `sortMode` and `filterMode` are both server.
+
+### Server pivot
+
+- `spec.pivot` pivots 1 `groupBy` level. Known gaps: more than 1 `groupBy` level (S11-M. The grid sends no pivot and warns in development), the Prisma adapter (S11-P. It answers `unsupported`), a pivot chooser, sort list, and menus for generated columns (S11-UI), and generated column widths in saved views (S11-V).
+- **L, PC**: Gap (S11-L): Pivot needs a server: the query layer or your route answers the pivot columns and cells, and a local array has no pivot engine.
+- **API**: n/a: Pivot cells are read-only: an edit, paste, fill, or cut writes no pivot cell, so no change reaches onSave or onDataChange.
 
 ### Server totals (`useDataGridServerAggregate`)
 

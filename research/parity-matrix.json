@@ -637,6 +637,60 @@
       }
     },
     {
+      "id": "server-pivot",
+      "feature": "Server pivot",
+      "options": [],
+      "cells": {
+        "L": {
+          "status": "gap",
+          "track": "S11-L",
+          "note": "Pivot needs a server: the query layer or your route answers the pivot columns and cells, and a local array has no pivot engine."
+        },
+        "PC": {
+          "status": "gap",
+          "track": "S11-L",
+          "note": "Pivot needs a server: the query layer or your route answers the pivot columns and cells, and a local array has no pivot engine."
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.pages.test.tsx",
+            "tests/server-query/pivot.test.ts"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.scroll.test.tsx",
+            "registry/default/blocks/data-grid-server/pivot.perf.browser.test.tsx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.scroll.test.tsx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.scroll.test.tsx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.scroll.test.tsx"
+          ]
+        },
+        "API": {
+          "status": "n/a",
+          "reason": "Pivot cells are read-only: an edit, paste, fill, or cut writes no pivot cell, so no change reaches onSave or onDataChange."
+        }
+      },
+      "note": "`spec.pivot` pivots 1 `groupBy` level. Known gaps: more than 1 `groupBy` level (S11-M; the grid sends no pivot and warns in development), the Prisma adapter (S11-P; it answers `unsupported`), a pivot chooser, sort list, and menus for generated columns (S11-UI), and generated column widths in saved views (S11-V)."
+    },
+    {
       "id": "pinned-rows",
       "feature": "Pinned rows and aggregates",
       "options": [],
