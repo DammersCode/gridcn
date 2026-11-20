@@ -1,4 +1,4 @@
-import { displayText } from "../cell-types/display-text";
+import { displayText, exportText } from "../cell-types/display-text";
 import { toSafeText } from "../cell-types/safe-text";
 import { buildColumnGroupModel, type ColumnGroupModel } from "../columns/column-groups";
 import type { CellType } from "../types";
@@ -116,15 +116,21 @@ export function aggregateText(column: AnyColumnDef, value: unknown, cellTypes: R
 type PivotTextState = { readonly viewIndex: ArrayLike<number>; readonly groupLayout: GroupLayout | null; readonly cellTypes: Readonly<Record<string, CellType | undefined>>; readonly locale: string };
 
 /**
- * The text a pivot row shows in `column`, which copy, export, print, find, and autosize read: the pivot cell text of a generated
- * column (empty for no value), the plain key text of the `groupBy` column, and `undefined` off a pivot row.
+ * The text of a pivot row in `column`, which copy, export, print, find, and autosize read: for a generated column the shown text
+ * (`"display"`, the default) or the cell type's `toText` (`"export"`), empty for no value; the plain key text in the `groupBy`
+ * column; `undefined` off a pivot row.
  */
-export function pivotCellText(s: PivotTextState & { readonly pivot: PivotView | null }, viewRow: number, column: AnyColumnDef | undefined): string | undefined {
+export function pivotCellText(s: PivotTextState & { readonly pivot: PivotView | null }, viewRow: number, column: AnyColumnDef | undefined, text: "display" | "export" = "display"): string | undefined {
   if (s.pivot === null || column === undefined) return undefined;
   const groupIndex = groupIndexAt(s.viewIndex, viewRow);
   const node = groupIndex === undefined ? undefined : s.groupLayout?.rows[groupIndex];
   if (node === undefined) return undefined;
-  if (isPivotColumn(column)) return aggregateText(column, pivotCellOf(node, column), s.cellTypes, s.locale);
+  if (isPivotColumn(column)) {
+    const value = pivotCellOf(node, column);
+    if (text === "display") return aggregateText(column, value, s.cellTypes, s.locale);
+    const cellType = s.cellTypes[column.type ?? "text"];
+    return value === null ? "" : cellType ? exportText(cellType as Parameters<typeof exportText>[0], value, column.options) : toSafeText(value);
+  }
   return column.id === node.columnId ? node.label : "";
 }
 

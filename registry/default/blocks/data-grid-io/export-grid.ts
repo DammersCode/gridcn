@@ -214,15 +214,15 @@ export function exportRowPlan(state: DataGridReadState, scope: ExportScope): Exp
 }
 
 /** One pivot row: the key text, then each pivot cell's text; XLSX keeps a pivot cell's number typed. Consumer cell hooks need a data row, so they do not run. */
-function pivotExportRow(state: DataGridReadState, columns: readonly ExportColumn[], viewRow: number, typed: boolean): ExportCell[] {
+function pivotExportRow(state: DataGridReadState, columns: readonly ExportColumn[], viewRow: number, text: "export" | "display", typed: boolean): ExportCell[] {
   return columns.map((column) => {
     const cell = typed ? pivotCellAt(state, viewRow, column) : undefined;
-    return typeof cell === "number" ? cell : (pivotCellText(state, viewRow, column) ?? "");
+    return typeof cell === "number" ? cell : (pivotCellText(state, viewRow, column, text) ?? "");
   });
 }
 
 function buildPlanRows<TData>(state: DataGridReadState, plan: ExportRowPlan, text: "export" | "display", columns: readonly ExportColumn[], formatCell: FormatExportCellSync<TData> | undefined, typed: boolean): ExportCell[][] {
-  return plan.pivot ? plan.rows.map((viewRow) => pivotExportRow(state, columns, viewRow, typed)) : buildRowsAt(state, plan.rows, text, columns, formatCell, typed);
+  return plan.pivot ? plan.rows.map((viewRow) => pivotExportRow(state, columns, viewRow, text, typed)) : buildRowsAt(state, plan.rows, text, columns, formatCell, typed);
 }
 
 /**
@@ -266,7 +266,7 @@ async function buildRowsAtAsync<TData>(
     const pending: PendingCell[] = [];
     const slice: ExportCell[][] = [];
     for (const ref of plan.rows.slice(from, from + SLICE_ROWS)) {
-      slice.push(plan.pivot ? pivotExportRow(state, columns, ref, typed) : mapExportRow(state, columns, state.data[ref] as TData, "export", formatCell, typed, signal, pending));
+      slice.push(plan.pivot ? pivotExportRow(state, columns, ref, "export", typed) : mapExportRow(state, columns, state.data[ref] as TData, "export", formatCell, typed, signal, pending));
     }
     if (pending.length > 0) await settlePending(pending, typed, signal);
     if (onSlice) onSlice(slice);

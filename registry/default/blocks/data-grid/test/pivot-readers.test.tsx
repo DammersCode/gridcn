@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { buildCsv, buildExportHeaders, buildExportRows, buildXlsx } from "@/registry/default/blocks/data-grid-io/export-grid";
 import { listZip } from "@/registry/default/blocks/data-grid-io/xlsx-fixtures.test-helper";
 import { planReplace } from "@/registry/default/blocks/data-grid-find-replace/plan-replace";
+import { serializeCells } from "../clipboard/serialize-cells";
 import { copyScopeCellIds, serializeCopyScope } from "../clipboard/use-grid-clipboard";
 import type { GroupKey, ServerGroupLayout, ServerGroupSlot, ServerPivotLayout } from "../group-types";
 import type { ServerAggregate } from "../server-spec";
@@ -24,7 +25,6 @@ const columns: ColumnDef<Row, unknown>[] = [
 
 const SUM: ServerAggregate = { columnId: "amount", reducer: "sum" };
 const COUNT: ServerAggregate = { columnId: "amount", reducer: "count" };
-const placeholder: Row = { id: "", region: "", year: 0, amount: 0 };
 
 const held = (keys: readonly GroupKey[], values: readonly ServerAggregate[] = [SUM]): ServerPivotLayout => ({
   columnId: "year",
@@ -44,7 +44,7 @@ const slot = (viewRow: number, key: string, cells?: readonly number[]): ServerGr
 function make(layout: ServerGroupLayout, extra: Record<string, unknown> = {}) {
   const onDataChange = vi.fn();
   const props = {
-    data: layout.rows.map(() => placeholder),
+    data: layout.rows.map(() => undefined),
     columns,
     getRowId: (_r: Row, i: number) => `slot-${i}`,
     groupBy: ["region"],
@@ -84,12 +84,17 @@ describe("pivotCellText", () => {
 });
 
 describe("copy", () => {
-  it("writes the key and the pivot cell text of a rect, and a cut clears nothing", () => {
+  it("writes the key and the pivot cell's toText of a rect, and a cut clears nothing", () => {
     const { state } = make(twoRows());
     const scope = { kind: "rect", rect: { x: 0, y: 0, width: 3, height: 2 } } as const;
-    expect(serializeCopyScope(state(), scope)).toEqual([["EU", "1,234.57", ""], ["US", "3", "0"]]);
-    expect(serializeCopyScope(state(), { kind: "columns", columns: [1] })).toEqual([["1,234.57"], ["3"]]);
+    expect(serializeCopyScope(state(), scope)).toEqual([["EU", "1234.567", ""], ["US", "3", "0"]]);
+    expect(serializeCopyScope(state(), { kind: "columns", columns: [1] })).toEqual([["1234.567"], ["3"]]);
     expect(copyScopeCellIds(state(), scope).rowIds).toEqual([]);
+  });
+
+  it("keeps a negative pivot cell a plain number under formula sanitizing", () => {
+    const { state } = make({ rows: [slot(0, "EU", [-1234.5])], leafCount: 2, pivot: held([2024]) });
+    expect(serializeCells(serializeCopyScope(state(), { kind: "columns", columns: [1] }), { sanitizeFormulas: true }).text).toBe("-1234.5");
   });
 });
 
@@ -99,14 +104,14 @@ describe("export and print", () => {
     const [sumHeader, countHeader] = state().pivot!.columns.map((column) => column.header as string);
     const lines = await csvLines(buildCsv(state()));
     expect(lines[0]).toBe(`Region,2024 / ${sumHeader},2024 / ${countHeader}`);
-    expect(lines.slice(1)).toEqual(['EU,"1,234.57",', "US,3,0"]);
+    expect(lines.slice(1)).toEqual(["EU,1234.567,", "US,3,0"]);
   });
 
   it("neutralizes formula-like pivot keys and group keys in CSV", async () => {
-    const { state } = make({ rows: [slot(0, "=cmd|' /C calc'!A0", [1])], leafCount: 2, pivot: held(["=HYPERLINK(1)"]) });
+    const { state } = make({ rows: [slot(0, "=cmd|' /C calc'!A0", [-1234.5])], leafCount: 2, pivot: held(["=HYPERLINK(1)"]) });
     const lines = await csvLines(buildCsv(state()));
     expect(lines[0]).toBe("Region,'=HYPERLINK(1)");
-    expect(lines[1]).toBe("'=cmd|' /C calc'!A0,1");
+    expect(lines[1]).toBe("'=cmd|' /C calc'!A0,-1234.5");
   });
 
   it("writes a formula-like pivot key as an XLSX string cell and a pivot cell as a number", async () => {
@@ -142,6 +147,12 @@ describe("find and replace", () => {
     expect(plan.patches).toEqual([]);
   });
 
+  it("finds pivot cells in the grid locale", () => {
+    const { state } = make(twoRows(), { locale: "de-DE" });
+    state().actions.setSearch("1.234,57");
+    expect(state().searchMatches).toEqual([{ row: 0, columnId: state().visibleColumns[1]!.id }]);
+  });
+
   it("scans 1,000 × 200 pivot cells within 100 ms", () => {
     const keys = Array.from({ length: 200 }, (_, i) => 2000 + i);
     const rows = Array.from({ length: 1_000 }, (_, row) => slot(row, `g${row}`, keys.map((_, col) => (row === 999 && col === 199 ? 987_654.25 : row * 7 + col))));
@@ -169,8 +180,9 @@ describe("writes", () => {
     state().actions.commitCellValueAt({ col: 1, row: 0 }, 9);
     state().actions.commitCellValueAt({ col: 0, row: 0 }, "XX");
     state().actions.applyCellUpdates([{ viewRowIndex: 0, columnId: generated, value: 9 }, { viewRowIndex: 1, columnId: "region", value: "XX" }], "paste");
+    state().actions.updateCells([{ rowId: "slot-0", columnId: generated, value: 9 }, { rowId: "slot-1", columnId: "region", value: "XX" }], { source: "replace" });
     expect(onDataChange).not.toHaveBeenCalled();
-    expect(state().data.every((row) => row === placeholder)).toBe(true);
+    expect(state().data.every((row) => row === undefined)).toBe(true);
   });
 });
 
@@ -181,10 +193,12 @@ describe("autosize", () => {
   });
 
   it("measures the pivot cell text, not only the header", () => {
-    const { store, state } = make({ rows: [slot(0, "EU", [123_456_789.25])], leafCount: 2, pivot: held([2024]) });
-    store.setState({ measureFonts: () => ({ cellFont: "14px sans", headerFont: "14px sans", cellPadding: 16, hasHeaderMenu: false, hasHeaderFilter: false, window: null }) });
-    const widths = state().actions.autosizeColumns();
-    const generated = state().visibleColumns[1]!.id;
-    expect(widths[generated]).toBeGreaterThanOrEqual("123,456,789.25".length * 7);
+    const widthOf = (cell: number) => {
+      const { store, state } = make({ rows: [slot(0, "EU", [cell])], leafCount: 2, pivot: held([2024]) });
+      store.setState({ measureFonts: () => ({ cellFont: "14px sans", headerFont: "14px sans", cellPadding: 16, hasHeaderMenu: false, hasHeaderFilter: false, window: null }) });
+      return state().actions.autosizeColumns()[state().visibleColumns[1]!.id] ?? Number.NaN;
+    };
+    expect(widthOf(123_456_789.25) - widthOf(Number.NaN)).toBeGreaterThan(0);
+    expect(widthOf(123_456_789.25)).toBeGreaterThanOrEqual("123,456,789.25".length * 7);
   });
 });

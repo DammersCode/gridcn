@@ -62,7 +62,7 @@ function serializeRowSlice(s: DataGridStoreState, viewRow: number, colStart: num
   const cells: string[] = [];
   for (let col = colStart; col < colStart + colCount; col++) {
     const column = s.visibleColumns[col];
-    const pivotText = row === undefined ? pivotCellText(s, viewRow, column) : undefined;
+    const pivotText = row === undefined ? pivotCellText(s, viewRow, column, "export") : undefined;
     if (pivotText !== undefined) {
       cells.push(pivotText);
       continue;
@@ -125,7 +125,7 @@ function serializeDisjointRows(s: DataGridStoreState, rows: readonly RowRun[], c
     const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
     const cells: string[] = [];
     for (const entry of resolved) {
-      const pivotText = row === undefined ? pivotCellText(s, viewRow, entry?.column) : undefined;
+      const pivotText = row === undefined ? pivotCellText(s, viewRow, entry?.column, "export") : undefined;
       if (pivotText !== undefined) {
         cells.push(pivotText);
         continue;
