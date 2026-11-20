@@ -200,6 +200,7 @@ The factory throws at creation when a declared operator has no handler.
 | `columns` | `ColumnMap` | Required |
 | `rowScope` | `(context) => Record<columnId, value>` | None |
 | `rowCount` | `"firstBlock" \| "always" \| "none"` | `"firstBlock"` |
+| `paging` | `"offset" \| "cursor"` | `"offset"` |
 | `timeZone` | IANA zone or fixed offset | `"UTC"` |
 | `limits` | `QueryLimits` | See the [reference](/docs/contracts/query-layer-reference#limits) |
 | `customOperators` | `{ [id]: ({ column, value }) => fragment }` | None |

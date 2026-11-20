@@ -1,0 +1,119 @@
+---
+title: Validate server saves
+icon: ShieldCheck
+description: Check each save of the grid against the column map and rowScope, run the writes in one transaction, and answer the refusals.
+type: task
+aliases: ["validatechange", "save route", "write validation", "not-found", "query.save"]
+---
+
+`onSave` posts a `DataChange` from the browser, so the save route reads untrusted input. `query.save(apply)` of the [query layer](/docs/data-modes/query-layer) checks the change against the column map and `rowScope`. It hands the valid writes to your `apply` function and answers `{ rejected }`, the refusals that the grid reverts. The grid side is [Save edits](/docs/save-server/save-edits).
+
+## Add the save route [#route]
+
+1. Write `apply`. It runs the writes of a validated change and returns one row count for each write.
+2. Pass `query.save(apply)` to `handleGridRequest`.
+3. In `onSave`, post `{ ops: change.ops }` and return the answer.
+
+This route saves the changes of an orders grid with Drizzle on PostgreSQL:
+
+```ts title="app/api/orders/save/route.ts"
+import type { SQL } from "drizzle-orm";
+import {
+  handleGridRequest,
+  type ApplyChange,
+} from "@/components/data-grid-server-query/data-grid-server-query";
+import { db } from "./db";
+import { orders } from "./schema";
+import { ordersQuery } from "./orders-query";
+
+const applyOrderWrites: ApplyChange<SQL> = (change) =>
+  db.transaction(async (tx) => {
+    if (change.moves.length > 0) throw new Error("Orders have no row order");
+    for (const insert of change.inserts) {
+      await tx.insert(orders).values(insert.values);
+    }
+    const updates: number[] = [];
+    for (const write of change.updates) {
+      const update = tx.update(orders).set(write.values).where(write.where);
+      updates.push((await update.returning({ id: orders.id })).length);
+    }
+    const deletes: number[] = [];
+    for (const write of change.deletes) {
+      const remove = tx.delete(orders).where(write.where);
+      deletes.push((await remove.returning({ id: orders.id })).length);
+    }
+    return { updates, deletes, moves: [] };
+  });
+
+export const POST = (req: Request) =>
+  handleGridRequest(req, ordersQuery.save(applyOrderWrites));
+```
+
+This grid posts each change to the route:
+
+```tsx
+"use client";
+
+import {
+  DataGrid,
+  type DataChange,
+  type SaveAck,
+} from "@/components/data-grid/data-grid";
+import { columns, type Order } from "./orders";
+
+async function save(change: DataChange<Order>): Promise<SaveAck<Order>> {
+  const response = await fetch("/api/orders/save", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ops: change.ops }),
+  });
+  if (!response.ok) throw new Error(`Save failed: ${response.status}`);
+  return response.json();
+}
+
+export function OrdersGrid({ rows }: { rows: Order[] }) {
+  return <DataGrid defaultData={rows} columns={columns} onSave={save} />;
+}
+```
+
+With `rowScope`, pass `context` to `handleGridRequest`, as in [Limit rows to a tenant](/docs/data-modes/query-layer#row-scope). `apply` receives the same `context` in its second argument.
+
+## What the route checks [#checks]
+
+`query.validateChange(input)` returns the validated change, and `save` calls it first. A validated change holds `updates`, `inserts`, `deletes`, `moves`, and `rejected`.
+
+- Each update, delete, and move has a `where`: the row id as the primary key, and `rowScope`. A move scopes its neighbor ids the same way, in `beforeWhere` and `afterWhere`.
+- The physical `field` keys `values`. The route skips unmapped and `serverOnly` keys and never writes them.
+- An update writes its `cells`. Without `cells`, it writes the keys of `row` that differ from `prev`.
+- In an update, a `cells` entry or a changed `row` value for the key or a `rowScope` column is `not-writable`. So is one for a column that shares the field of such a column.
+- An insert never writes the key. It writes the `rowScope` values of the call, whatever tenant the row names. A missing `required` column refuses it.
+- A cell passes the checks of an import cell: kind, `required`, `choices`, integer range, `scale`, finite floats, and `maxLength`. A text over `maxLength`, or else over `maxValueLength`, is `too-long`.
+- A refused cell drops every entry of its column from a `cells` update, and every other column of its field. Any refusal drops a whole-row update or an insert.
+- An update, delete, or move whose row id or neighbor id gives no key is `not-an-id`. The rest of the change goes on.
+
+A write refusal is `{ rowId, columnId?, code, message }`, and it assigns to `SaveRejection`. Without `columnId`, the grid reverts the whole row. The codes are the import codes, `not-writable`, and `not-found`. `message` is English, so a route can map `code` to its own language.
+
+## Requirements of apply [#apply]
+
+- Run every write in one transaction, so a throw writes none.
+- If an insert fails, throw.
+- Filter each write by its `where` alone. A filter by `rowId` skips `rowScope`.
+- Run all writes of one row id, or none of them.
+- Return `{ updates, deletes, moves }` with one row count for each entry of the list of the same name.
+
+A count of 0 for any write of a row id answers one `{ rowId, code: "not-found" }`. It takes the place of the other refusals of that row id. A deleted row, a row outside `rowScope`, and a move with a lost neighbor count 0. A count above 1 means that the primary key is not unique. If the route refuses every operation, `apply` still runs. A throw of `apply`, or counts that do not match the writes, answer a 500 with no message.
+
+## Save limits [#limits]
+
+- `maxChangeOps` (default 10,000) bounds the operations of one change. A longer change answers `limit-exceeded`.
+- The grid takes at most 10,000 refusals in one answer. If the refusals plus the written row ids without a refusal pass 10,000, the route answers `limit-exceeded` before `apply` runs.
+- `save` reads a body up to `maxChangeBytes` (default 8 MiB). A larger body answers `payload-too-large` (413). Each update carries `row` and `prev`, so a wide paste of 10,000 rows can pass 8 MiB. For such pastes, raise `maxChangeBytes`.
+- A number text over `maxNumberLength` characters answers `limit-exceeded` for the whole change. So does a date text over `maxValueLength`.
+- A malformed change answers `invalid-request`. A column map without one `primaryKey` answers `unsupported`.
+
+## Related
+
+- [Save edits](/docs/save-server/save-edits)
+- [Handle refused saves](/docs/save-server/handle-refused-saves)
+- [Query layer](/docs/data-modes/query-layer)
+- [Query layer reference](/docs/contracts/query-layer-reference#limits)

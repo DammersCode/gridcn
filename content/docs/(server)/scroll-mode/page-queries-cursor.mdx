@@ -1,0 +1,113 @@
+---
+title: Page queries by cursor
+icon: ArrowDownToLine
+description: Page a query layer route by keyset cursor, so each request reads the rows after the last row and runs no count.
+type: task
+aliases: ["paging cursor", "nextcursor", "bad-cursor", "seek paging"]
+---
+
+An offset page makes the database skip every row before `start`, and the route counts the result. A keyset cursor reads the rows after the last row of the page before, and the route runs no count. Set `paging: "cursor"` on the factory of the [query layer](/docs/data-modes/query-layer). The grid loads the pages as the cursor chain of [Load without row count](/docs/scroll-mode/load-without-row-count).
+
+## Set up cursor paging [#set-up]
+
+1. Set `maxLength` on every sortable text column.
+2. Pass `paging: "cursor"` to `createDrizzleGridQuery` or `createKyselyGridQuery`.
+3. Pass the route to `handleGridRequest`, as in [Add the route](/docs/data-modes/query-layer#route).
+4. Pass `string` as the second type argument of `useDataGridServerRows`.
+5. Send the whole request, `cursor` included, to the route.
+
+This factory pages orders by cursor:
+
+```ts title="lib/orders-query.ts"
+import {
+  defineColumnMap,
+} from "@/components/data-grid-server-query/data-grid-server-query";
+import { createDrizzleGridQuery } from "@/components/data-grid-server-query-drizzle/data-grid-server-query-drizzle";
+import { db } from "./db";
+import { orders } from "./schema";
+
+const columns = defineColumnMap({
+  id: { type: "number", numeric: "int8", primaryKey: true },
+  customer: { type: "text", maxLength: 120, searchable: true },
+  total: { type: "number", numeric: "int4" },
+});
+
+export const ordersQuery = createDrizzleGridQuery({
+  db, table: orders, columns, paging: "cursor",
+});
+```
+
+This grid sends each request to the route:
+
+```tsx
+"use client";
+
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import {
+  useDataGridServerRows,
+} from "@/components/data-grid-server/data-grid-server";
+
+type Order = { id: number; customer: string; total: number };
+
+const columns = defineColumns<Order>()([
+  { id: "customer", header: "Customer", accessorKey: "customer" },
+  { id: "total", header: "Total", accessorKey: "total" },
+]);
+
+export function OrdersGrid() {
+  const server = useDataGridServerRows<Order, string>({
+    mode: "scroll",
+    getRowId: (row) => String(row.id),
+    fetchRows: async ({ signal, ...request }) => {
+      const body = JSON.stringify(request);
+      const init = { method: "POST", body, signal };
+      const response = await fetch("/api/orders", init);
+      if (!response.ok) throw new Error("The request failed");
+      return response.json();
+    },
+  });
+
+  return <DataGrid {...server.gridProps} columns={columns} className="h-96" />;
+}
+```
+
+## What the route answers [#answer]
+
+- A request without `cursor` reads from `start`. A request with `cursor` reads the rows after the row of that cursor. Its `start` counts only the rows that the client holds, so `maxOffset` does not apply to it.
+- The answer is `{ rows, hasMore, nextCursor }`, without `totalRowCount`. `nextCursor` is `null` after the last row.
+- A literal `paging: "cursor"` types `nextCursor` as `string`. A factory without `paging`, or with `paging: "offset"`, has no `nextCursor` in its answer type. A `paging` of the type `"offset" | "cursor"` types it as `string`.
+- A request with `groupBy` answers `unsupported`.
+
+## How the cursor resumes [#how-the-cursor-resumes]
+
+A keyset cursor is base64url JSON. It holds a version, a plan hash, and one key text or `null` for each sort key. The sort of every request ends with the primary key or the tie-breaker, so the keys of one row are unique.
+
+- The plan hash is a digest of the parsed filters, search text, and sort, without `rowScope`. A cursor with another plan hash answers `bad-cursor`. When the sort, a filter, or the search text changes, the grid starts a new chain.
+- The resume predicate selects the rows after the row of the cursor. For each sort key, it takes the rows whose earlier keys are equal and whose key comes after. NULL sorts last in both directions.
+- Each comparison is a key test: a raw comparison in the sort order of the database. The collation of the column applies. An empty text is a value apart from NULL.
+- The cursor has no signature. It holds only values that the client can also send as filters. The route parses each key by the physical type of its column.
+- `rowScope` applies to every page. A cursor from another tenant returns only rows of the tenant of the call.
+
+## Cursor limits [#limits]
+
+- `maxCursorBytes` (default 2,048) bounds the cursor text. A longer cursor answers `bad-cursor` before the route decodes it.
+- The factory throws at creation for a sortable text column or a text tie-breaker without `maxLength`. If the longest cursor of a sort on one column is over `maxCursorBytes`, it also throws. Lower `maxLength`, set `sortable: false`, or raise `maxCursorBytes`.
+- A sort on several long text columns can still pass `maxCursorBytes`. Such a request answers `limit-exceeded`.
+- A stored text longer than `maxLength` still compares. If the next cursor passes `maxCursorBytes`, the route answers `limit-exceeded`.
+- The route answers only cursors that it accepts. A key that no cursor can carry answers `limit-exceeded`. Such keys are a number over `maxNumberLength`, a float NaN or infinity, and an integer that the driver read past 2^53 as a number.
+
+## Time keys [#time-keys]
+
+A `date` column with `time: true` sorts by the exact UTC text of each value, to the microsecond. On `epoch-ms` and `epoch-s` storage, the key is the ISO text of the value, exact to the millisecond. Drizzle and Kysely read time keys exactly. An adapter that cannot read them answers `unsupported` for a sort on a `time` column.
+
+A PostgreSQL `infinity` or `-infinity` timestamp has no exact text. A page that ends on such a row answers `limit-exceeded`, so no page skips the finite rows after it.
+
+<Callout type="warn" title="Use timestamptz for time keys">
+If a time key is a PostgreSQL `timestamp without time zone`, the database converts it in the session time zone. A wall time in a daylight saving gap then shifts, and the next page can repeat or skip rows near it. Store `timestamptz`, or run the session in UTC.
+</Callout>
+
+## Related
+
+- [Query layer](/docs/data-modes/query-layer)
+- [Load without row count](/docs/scroll-mode/load-without-row-count)
+- [Query layer reference](/docs/contracts/query-layer-reference#limits)
