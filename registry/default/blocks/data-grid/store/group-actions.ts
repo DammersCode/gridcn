@@ -42,7 +42,7 @@ export function createGroupActions({ set, get, dataWrite, followView, memory }: 
   const patchFor = (s: DataGridStoreState, viewIndex: number[]): Partial<DataGridStoreState> => ({
     viewIndex,
     ...followView(s, viewIndex, s.visibleColumns),
-    ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
+    ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions, s.locale),
   });
 
   const regroup = (s: DataGridStoreState, groupBy: readonly string[]): Partial<DataGridStoreState> => {

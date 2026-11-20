@@ -363,7 +363,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       ...clearStaleRows(dataWrite),
       ...followView(s2, viewIndex, s2.visibleColumns),
       ...(page !== s2.page || pageSize !== s2.pageSize ? { activeCell: null } : {}),
-      ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
+      ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions, s2.locale),
     };
   };
 
@@ -745,7 +745,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
               // A columns-moving commit re-runs the cursor/selection remap and the search-match
               // row map.
               ...followView(s, s.viewIndex, nextVisibleColumns),
-              ...computeSearchMatches(s.data, normalized.columns, s.viewIndex, nextVisibleColumns, s.searchText, s.cellTypes, s.searchOptions),
+              ...computeSearchMatches(s.data, normalized.columns, s.viewIndex, nextVisibleColumns, s.searchText, s.cellTypes, s.searchOptions, s.locale),
             }
           : {}),
       });
@@ -768,7 +768,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
             viewIndex,
             ...clearStaleRows(dataWrite),
             ...followView(s2, viewIndex, s2.visibleColumns),
-            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
+            ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions, s2.locale),
           };
         });
       }
@@ -1096,7 +1096,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
     onPageChange: init.onPageChange,
     onPageSizeChange: init.onPageSizeChange,
     searchControlled: init.searchText !== undefined,
-    ...computeSearchMatches(initData, effectiveLayout.columns, initViewIndex, visibleColumns, initSearchText, initCellTypes, initSearchOptions),
+    ...computeSearchMatches(initData, effectiveLayout.columns, initViewIndex, visibleColumns, initSearchText, initCellTypes, initSearchOptions, initLocale),
     viewIndex: initViewIndex,
     rowIdentityVersion: 0,
     viewStale: false,
@@ -1286,7 +1286,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       setRowCheckedAt(index, checked) {
         const s = get();
         const { selection, enableRowSelection, enableMultiRange } = s;
-        if (!enableRowSelection) return;
+        if (!enableRowSelection || (checked && s.pivot)) return;
         const base = CompactSelection.adopt(selection.rows);
         const next = checked ? { ...selection, rows: base.add(index) } : removeRowFromSelection(selection, index, { multiRange: enableMultiRange });
         set({ selection: next, ...announceChecked(s, { selection: next }), rowRangeGesture: rowGestureAt(s, next, index, base, checked) });
@@ -1404,6 +1404,8 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
             enableColumnResize: s.enableColumnResize,
             hasHeaderMenu: context.hasHeaderMenu,
             hasHeaderFilter: context.hasHeaderFilter,
+            pivot: s.pivot,
+            locale: s.locale,
           },
           { cellFont: context.cellFont, headerFont: context.headerFont, cellPadding: context.cellPadding },
           context.window,
@@ -1524,7 +1526,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
               viewIndex,
               ...clearStaleRows(dataWrite),
               ...followView(s2, viewIndex, s2.visibleColumns),
-              ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
+              ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions, s2.locale),
               ...(s2.allMatching && filterSpecKey(withIds) !== filterSpecKey(s2.filterState) ? endAllMatching(s2.selection) : {}),
             };
           });
@@ -1549,7 +1551,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
               viewIndex,
               ...clearStaleRows(dataWrite),
               ...followView(s2, viewIndex, s2.visibleColumns),
-              ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions),
+              ...computeSearchMatches(s2.data, s2.columns, viewIndex, s2.visibleColumns, s2.searchText, s2.cellTypes, s2.searchOptions, s2.locale),
               ...(s2.allMatching ? endAllMatching(s2.selection) : {}),
             };
           });
@@ -1569,7 +1571,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
             searchText: nextText,
             searchOptions,
             ...(nextText !== s2.searchText && dataWrite.staleRows.size > 0 ? clearStaleRows(dataWrite) : {}),
-            ...computeSearchMatches(s2.data, s2.columns, s2.viewIndex, s2.visibleColumns, nextText, s2.cellTypes, searchOptions),
+            ...computeSearchMatches(s2.data, s2.columns, s2.viewIndex, s2.visibleColumns, nextText, s2.cellTypes, searchOptions, s2.locale),
             ...(s2.allMatching && nextText !== s2.searchText ? endAllMatching(s2.selection) : {}),
           }));
         }

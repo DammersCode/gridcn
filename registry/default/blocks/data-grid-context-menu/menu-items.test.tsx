@@ -2,9 +2,10 @@ import { useEffect } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { DataGridProvider, DataGridRoot, defineColumns, useDataGridActions } from "../data-grid/data-grid";
-import { useDataGridStoreApi, type DataGridReadState } from "../data-grid/data-grid-sdk";
+import { useDataGridStoreApi, type DataGridReadState, type ServerGroupLayout } from "../data-grid/data-grid-sdk";
 import {
   useDefaultCellMenuItems,
+  useDefaultGroupRowMenuItems,
   useDefaultHeaderMenuItems,
   type GridMenuItemSpec,
   COLUMN_WIDTH_STEP,
@@ -395,6 +396,38 @@ describe("Insert row anchor", () => {
     await act(async () => api.getState().actions.setSorts([{ columnId: "score", direction: "desc" }]));
     await act(async () => item(cell, "insert-row-below")?.onClick?.());
     expect((api.getState().data as Row[]).map((r) => r.id)).toEqual(["r0", "new", "r1"]);
+  });
+});
+
+describe("useDefaultGroupRowMenuItems", () => {
+  function GroupProbe({ onSpecs }: { onSpecs: (specs: GridMenuItemSpec[]) => void }) {
+    onSpecs(useDefaultGroupRowMenuItems(0));
+    return null;
+  }
+
+  const groupSpecs = (pivot: boolean) => {
+    let specs: GridMenuItemSpec[] = [];
+    const layout: ServerGroupLayout = {
+      rows: [{ viewRow: 0, path: [{ columnId: "name", key: "Alice" }], count: 1, childCount: pivot ? 0 : 1, ...(pivot ? { pivotCells: Float64Array.of(1) } : null) }],
+      leafCount: 1,
+      ...(pivot ? { pivot: { columnId: "score", values: [{ columnId: "score", reducer: "sum" }], columns: [{ path: [1], valueIndex: 0 }], omitted: 0 } } : null),
+    };
+    render(
+      <DataGridProvider data={[rows[0]!]} columns={columns} getRowId={(row) => row.id} groupBy={["name"]} groupLayout={layout}>
+        <DataGridRoot>
+          <GroupProbe onSpecs={(next) => (specs = next)} />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    return ids(specs);
+  };
+
+  it("offers expand and collapse on a server group row", () => {
+    expect(groupSpecs(false)).toEqual(["copy", "sep-group", "toggle-group", "collapse-all"]);
+  });
+
+  it("offers only copy on a pivot row, which never opens", () => {
+    expect(groupSpecs(true)).toEqual(["copy"]);
   });
 });
 

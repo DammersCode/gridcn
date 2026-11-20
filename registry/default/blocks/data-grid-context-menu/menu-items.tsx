@@ -186,8 +186,9 @@ export function useDefaultGroupRowMenuItems(row: number): GridMenuItemSpec[] {
   const labels = useDataGridLabels();
   const meta = useDataGridGroupRow(row);
   const groupMode = useDataGridSelector((s) => s.groupMode);
+  const pivot = useDataGridSelector((s) => s.pivot !== null);
   const specs: GridMenuItemSpec[] = [{ id: "copy", label: labels.contextMenu.copy, icon: <Copy className="size-4 text-muted-foreground" />, shortcut: "mod+c", onClick: () => void clipboard.copy() }];
-  if (!meta) return specs;
+  if (!meta || pivot) return specs;
   specs.push(
     { id: "sep-group", separator: true },
     { id: "toggle-group", label: meta.expanded ? labels.grouping.collapse(meta.node.label) : labels.grouping.expand(meta.node.label), icon: meta.expanded ? <ChevronsDownUp className="size-4 text-muted-foreground" /> : <ChevronsUpDown className="size-4 text-muted-foreground" />, onClick: () => actions.toggleGroup(meta.node.id) },

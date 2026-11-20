@@ -44,7 +44,7 @@ import { readColumnPin, withLogicalPin } from "../columns/column-pin";
 import type { createWarnOnce } from "../is-dev";
 import { warnLegacyFilterKeys, withLogicalFilter } from "../columns/legacy-filter-keys";
 import { isDev } from "../is-dev";
-import { pivotCellAt } from "./pivot-view";
+import { pivotCellAt, pivotTextReader } from "./pivot-view";
 import type {
   AnyColumnDef,
   DataGridStoreState,
@@ -917,6 +917,7 @@ export function computeSearchMatches(
   searchText: string,
   cellTypes: Record<string, CellType> | undefined,
   searchOptions: Required<SearchOptions>,
+  locale: string,
 ): Pick<DataGridStoreState, "searchMatches" | "searchMatchSet" | "searchMatchRows" | "searchMatchesCapped"> {
   if (searchText.trim() === "") {
     return { searchMatches: [], searchMatchSet: EMPTY_SEARCH_MATCH_SET, searchMatchRows: EMPTY_SEARCH_MATCH_ROWS, searchMatchesCapped: false };
@@ -927,9 +928,10 @@ export function computeSearchMatches(
   const pageStart = pageStartOf(viewIndex);
   // viewRow is always < searched.length (findSearchMatches iterates 0..searched.length)
   const readSearchText = searchTextReader(dataAccessor);
+  const pivotText = pivotTextReader(searched, visibleColumns, cellTypes ?? {}, locale);
   const viewAccessor: CellAccessor = {
-    getText: (viewRow, columnId) => dataAccessor.getText(dataIndexOf(searched, viewRow) ?? -1, columnId),
-    getSearchText: (viewRow, columnId) => readSearchText(dataIndexOf(searched, viewRow) ?? -1, columnId),
+    getText: (viewRow, columnId) => pivotText(viewRow, columnId) ?? dataAccessor.getText(dataIndexOf(searched, viewRow) ?? -1, columnId),
+    getSearchText: (viewRow, columnId) => pivotText(viewRow, columnId) ?? readSearchText(dataIndexOf(searched, viewRow) ?? -1, columnId),
     getValue: (viewRow, columnId) => dataAccessor.getValue?.(dataIndexOf(searched, viewRow) ?? -1, columnId),
     filterMatch: (columnId, operator) => dataAccessor.filterMatch?.(columnId, operator),
   };

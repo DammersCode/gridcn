@@ -583,7 +583,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           // A layout-only apply moves visible columns, so the search-match row map re-runs with it.
           ...(unchanged && layoutApply === null
             ? { searchMatches: s.searchMatches, searchMatchSet: s.searchMatchSet, searchMatchRows: s.searchMatchRows, searchMatchesCapped: s.searchMatchesCapped }
-            : computeSearchMatches(nextData, finalColumns, nextViewIndex, finalVisibleColumns, nextSearchText, nextCellTypes, s.searchOptions)),
+            : computeSearchMatches(nextData, finalColumns, nextViewIndex, finalVisibleColumns, nextSearchText, nextCellTypes, s.searchOptions, nextLocale)),
           ...(s.allMatching && (nextSearchText !== s.searchText || filterSpecKey(nextFilterState) !== filterSpecKey(s.filterState) || nextFilterJoin !== s.filterJoin)
             ? endAllMatching(followed.selection ?? s.selection)
             : {}),

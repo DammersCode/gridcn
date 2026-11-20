@@ -74,8 +74,19 @@ function clampToDecimals(value: number, options: GridCellTypes["number"]["option
 
 const cachedNumberFormatter = createFormatterCache<Intl.NumberFormat>("invalid number format options, showing the raw value");
 
+// Skips the key build per cell: a scan of 200,000 cells spends more time on the key than on `format`.
+const lastFormatterOf = new WeakMap<Intl.NumberFormatOptions, { locale: string; decimals: number | undefined; formatter: Intl.NumberFormat | null }>();
+
 /** The formatter for the options, or `null` when they are invalid. A re-created literal with equal content reuses one formatter. */
 function getNumberFormatter(format: Intl.NumberFormatOptions, locale: string, decimals: number | undefined): Intl.NumberFormat | null {
+  const last = lastFormatterOf.get(format);
+  if (last !== undefined && last.locale === locale && last.decimals === decimals) return last.formatter;
+  const formatter = buildNumberFormatter(format, locale, decimals);
+  lastFormatterOf.set(format, { locale, decimals, formatter });
+  return formatter;
+}
+
+function buildNumberFormatter(format: Intl.NumberFormatOptions, locale: string, decimals: number | undefined): Intl.NumberFormat | null {
   return cachedNumberFormatter(`${locale}|${decimals ?? ""}|${formatKey(format)}`, () => {
     // decimals fills in fraction digits the format left open (0.25 under style:"percent" + decimals:2 renders 25.00%)
     const effective =

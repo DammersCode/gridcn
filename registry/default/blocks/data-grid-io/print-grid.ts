@@ -1,6 +1,6 @@
 import { type DataGridReadState, type GridDirection } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { normalizeLimit } from "./normalize-limit";
-import { MAX_CELL_TEXT, buildExportHeaders, buildExportRows, exportDataIndices, exportRows } from "./export-grid";
+import { MAX_CELL_TEXT, buildExportHeaders, buildExportRows, exportRowPlan, exportRows } from "./export-grid";
 import { abortReason, type ExportSource } from "./export-source";
 
 /** Default number of rows printed when `maxRows` is not given. */
@@ -86,7 +86,7 @@ function printCss(paperSize: string, orientation: "portrait" | "landscape"): str
 type PrintRows = { rows: string[][]; note: string | undefined };
 
 function loadedPrintRows(state: DataGridReadState, scope: NonNullable<PrintGridOptions["scope"]>, maxRows: number): PrintRows {
-  const total = exportDataIndices(state, scope).length;
+  const total = exportRowPlan(state, scope).rows.length;
   const rows = buildExportRows(state, scope, { text: "display", maxRows });
   return { rows, note: rows.length < total ? state.labels.io.printTruncated(rows.length, total) : undefined };
 }
