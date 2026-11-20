@@ -1,8 +1,8 @@
 import type { FetchFilterValues } from "@/registry/default/blocks/data-grid/data-grid";
 import type { FetchAggregatesRequest } from "@/registry/default/blocks/data-grid-pinned-rows/data-grid-pinned-rows";
-import type { ServerRowsPageRequest } from "@/registry/default/blocks/data-grid-server/data-grid-server";
+import type { ServerRowsPageRequest, ServerRowsRequest } from "@/registry/default/blocks/data-grid-server/data-grid-server";
 import type { ServerFetchAnswer } from "@/registry/default/blocks/data-grid-server/read-answer";
-import { type ColumnMap, type GridQuery, QueryError, defineColumnMap, describeFilterOperators, handleGridRequest } from "./data-grid-server-query";
+import { type ColumnMap, type GridQuery, type RowsAnswer, QueryError, defineColumnMap, describeFilterOperators, handleGridRequest } from "./data-grid-server-query";
 
 type Row = { id: number; name: string | null };
 declare const plain: GridQuery<Row>;
@@ -10,6 +10,15 @@ declare const scoped: GridQuery<Row, { tenantId: number }>;
 
 // the answer is what useDataGridServerRows reads, and the request it posts is what fetchRows takes
 export const fetchRows = async ({ signal, ...request }: ServerRowsPageRequest): Promise<ServerFetchAnswer<Row>> => plain.fetchRows(request, { signal });
+
+// a cursor factory's answer carries the cursor the grid sends back
+declare const paged: GridQuery<Row, never, unknown, unknown, string>;
+export const fetchCursorRows = async ({ signal, ...request }: ServerRowsRequest<string>): Promise<ServerFetchAnswer<Row, string>> => paged.fetchRows(request, { signal });
+export const cursorAnswer: RowsAnswer<Row, string> = { rows: [], hasMore: true, nextCursor: "abc" };
+// @ts-expect-error an offset factory answers no cursor
+export const offsetAnswerWithCursor: RowsAnswer<Row> = { rows: [], nextCursor: "abc" };
+// @ts-expect-error a cursor factory's cursor is a string
+export const numberCursor: RowsAnswer<Row, string> = { rows: [], nextCursor: 1 };
 
 export const fetchFilterValues: FetchFilterValues = async ({ signal, ...request }) => plain.filterValues(request, { signal });
 export const fetchAggregates = async ({ signal, ...request }: FetchAggregatesRequest): Promise<Record<string, unknown>> => plain.aggregates(request, { signal });
