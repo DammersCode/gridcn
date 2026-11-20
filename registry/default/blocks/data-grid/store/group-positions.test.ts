@@ -27,4 +27,11 @@ describe("positions of a sparse layout where no group opens", () => {
     expect(groupRowMetaAt(after, 2)!.node).toBe(groupRowMetaAt(before, 2)!.node);
     expect(groupRowMetaAt(after, 2)).toEqual(groupRowMetaAt(before, 2));
   });
+
+  it("reports a pivot row closed even when its id is in the open ids", () => {
+    const base = stateOf({ rows: [slot(2)], leafCount: 10 }, 10);
+    const open = { ...base, expanded: { mode: "collapsed" as const, ids: [groupRowMetaAt(base, 2)!.node.id] } };
+    expect(groupRowMetaAt(open, 2)!.expanded).toBe(true);
+    expect(groupRowMetaAt({ ...open, pivot: { columnId: "city" } }, 2)!.expanded).toBe(false);
+  });
 });
