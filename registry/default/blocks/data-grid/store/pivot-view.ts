@@ -1,10 +1,13 @@
+import { displayText } from "../cell-types/display-text";
+import { toSafeText } from "../cell-types/safe-text";
 import { buildColumnGroupModel, type ColumnGroupModel } from "../columns/column-groups";
+import type { CellType } from "../types";
 import type { GroupLayout, GroupNode, ServerGroupLayout, ServerPivotLayout } from "../group-types";
 import { isDev } from "../is-dev";
 import type { DataGridPivotLabels } from "../labels";
 import { buildPivotColumns, type PivotColumnDef } from "../pivot-columns";
 import type { AnyColumnDef } from "./types";
-import { groupIndexAt } from "./view-rows";
+import { groupIndexAt, groupLayoutOfView } from "./view-rows";
 
 /** The generated columns of the held set and their header groups. Present only under pivot. */
 export type PivotView = {
@@ -82,6 +85,60 @@ export function pivotCellAt(s: { readonly viewIndex: ArrayLike<number>; readonly
 export function pivotCellOf(node: GroupNode | undefined, column: PivotColumnDef<unknown>): number | null {
   const value = node?.pivotCells?.[column.pivotIndex];
   return value === undefined || Number.isNaN(value) ? null : value;
+}
+
+const DEFAULT_AGGREGATE_FORMAT: Intl.NumberFormatOptions = { maximumFractionDigits: 2 };
+
+const aggregateOptions = new WeakMap<AnyColumnDef, { locale: string; options: unknown }>();
+
+/** An average has no natural precision, so a number column without its own `format` or `decimals` shows at most two fraction digits. */
+function aggregateOptionsOf(column: AnyColumnDef, locale: string): unknown {
+  const cached = aggregateOptions.get(column);
+  if (cached?.locale === locale) return cached.options;
+  const own = (column.options ?? {}) as { format?: unknown; decimals?: unknown; locale?: string };
+  const options = own.format === undefined && own.decimals === undefined ? { ...own, format: DEFAULT_AGGREGATE_FORMAT, locale: own.locale ?? locale } : column.options;
+  aggregateOptions.set(column, { locale, options });
+  return options;
+}
+
+/** The display text of a group aggregate or a pivot cell: empty for no value, else the column's cell type text. */
+export function aggregateText(column: AnyColumnDef, value: unknown, cellTypes: Readonly<Record<string, CellType | undefined>>, locale: string): string {
+  if (value === null || value === undefined) return "";
+  const cellType = cellTypes[column.type ?? "text"];
+  try {
+    const options = column.type === "number" && typeof value === "number" ? aggregateOptionsOf(column, locale) : column.options;
+    return toSafeText(cellType ? displayText(cellType as Parameters<typeof displayText>[0], value, options) : value);
+  } catch {
+    return toSafeText(value);
+  }
+}
+
+type PivotTextState = { readonly viewIndex: ArrayLike<number>; readonly groupLayout: GroupLayout | null; readonly cellTypes: Readonly<Record<string, CellType | undefined>>; readonly locale: string };
+
+/**
+ * The text a pivot row shows in `column`, which copy, export, print, find, and autosize read: the pivot cell text of a generated
+ * column (empty for no value), the plain key text of the `groupBy` column, and `undefined` off a pivot row.
+ */
+export function pivotCellText(s: PivotTextState & { readonly pivot: PivotView | null }, viewRow: number, column: AnyColumnDef | undefined): string | undefined {
+  if (s.pivot === null || column === undefined) return undefined;
+  const groupIndex = groupIndexAt(s.viewIndex, viewRow);
+  const node = groupIndex === undefined ? undefined : s.groupLayout?.rows[groupIndex];
+  if (node === undefined) return undefined;
+  if (isPivotColumn(column)) return aggregateText(column, pivotCellOf(node, column), s.cellTypes, s.locale);
+  return column.id === node.columnId ? node.label : "";
+}
+
+/** The quick-search text of the pivot cells of `view`: `undefined` for a column that is not generated. */
+export function pivotTextReader(view: readonly number[], visibleColumns: readonly AnyColumnDef[], cellTypes: Readonly<Record<string, CellType | undefined>>, locale: string): (viewRow: number, columnId: string) => string | undefined {
+  const pivotColumns = new Map(visibleColumns.filter(isPivotColumn).map((column) => [column.id, column] as const));
+  if (pivotColumns.size === 0) return () => undefined;
+  const rows = groupLayoutOfView(view)?.rows;
+  return (viewRow, columnId) => {
+    const column = pivotColumns.get(columnId);
+    if (column === undefined) return undefined;
+    const groupIndex = groupIndexAt(view, viewRow);
+    return aggregateText(column, pivotCellOf(groupIndex === undefined ? undefined : rows?.[groupIndex], column), cellTypes, locale);
+  };
 }
 
 /** The widths of the generated columns of `view` in `widths`, for a layout write that drops unknown ids. */

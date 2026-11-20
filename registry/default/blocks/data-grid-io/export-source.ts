@@ -220,7 +220,7 @@ export async function exportRows<TData = unknown, TCell extends ExportCell = str
 /** Resolves column ids against all grid columns, hidden ones included; no ids means the visible columns. */
 export function resolveExportColumns(state: DataGridReadState, ids: readonly string[] | undefined): readonly AnyColumnDef[] {
   if (ids === undefined) return state.visibleColumns;
-  const all = state.columns ?? state.visibleColumns;
+  const all = state.pivot ? [...(state.columns ?? []), ...state.pivot.columns] : (state.columns ?? state.visibleColumns);
   const byId = new Map(all.map((column) => [column.id, column] as const));
   return ids.map((id) => {
     const column = byId.get(id);

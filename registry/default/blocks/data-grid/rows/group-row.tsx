@@ -6,8 +6,6 @@ import { COLUMN_BORDER } from "../columns/column-border";
 import { columnLabelText } from "../columns/column-format-helpers";
 import { pinnedInsetStyle } from "../columns/pinned-inset-style";
 import { keepsFocusOutsideGrid } from "../cell";
-import { displayText } from "../cell-types/display-text";
-import { toSafeText } from "../cell-types/safe-text";
 import { GRID_ATTR, GRID_ROLE_SELECTOR } from "../data-attributes";
 import type { GroupLabelCtx, GroupNode } from "../group-types";
 import { cellLayer } from "../layers";
@@ -22,7 +20,7 @@ import {
   useDataGridVisibleColumns,
   type AnyColumnDef,
 } from "../store";
-import { isPivotColumn, pivotCellOf } from "../store/pivot-view";
+import { aggregateText, isPivotColumn, pivotCellOf } from "../store/pivot-view";
 import type { RowMarkersMode } from "../types";
 import { DataGridGroupToggle } from "./group-toggle";
 import { DataGridGroupMarkerCell } from "./marker-cell";
@@ -54,25 +52,6 @@ const GROUP_TINT = "bg-[color-mix(in_srgb,var(--color-muted)_40%,var(--color-bac
 // An unpinned label sits above the selection overlay, so it paints the overlay's tint itself.
 const GROUP_LABEL_SELECTED_TINT =
   "data-[selected]:bg-[color-mix(in_srgb,var(--color-primary)_10%,color-mix(in_srgb,var(--color-muted)_40%,var(--color-background)))] group-data-hovered/row:data-[selected]:bg-[color-mix(in_srgb,var(--color-primary)_10%,color-mix(in_srgb,var(--color-muted)_60%,var(--color-background)))]";
-
-const DEFAULT_AGGREGATE_FORMAT: Intl.NumberFormatOptions = { maximumFractionDigits: 2 };
-
-/** An average has no natural precision, so a number column without its own `format` or `decimals` shows at most two fraction digits. */
-function withDefaultAggregateFormat(options: unknown, locale: string): unknown {
-  const own = (options ?? {}) as { format?: unknown; decimals?: unknown; locale?: string };
-  return own.format === undefined && own.decimals === undefined ? { ...own, format: DEFAULT_AGGREGATE_FORMAT, locale: own.locale ?? locale } : options;
-}
-
-function aggregateText(column: AnyColumnDef, value: unknown, cellTypes: ReturnType<typeof useDataGridCellTypes>, locale: string): string {
-  if (value === null || value === undefined) return "";
-  const cellType = cellTypes[column.type ?? "text"];
-  try {
-    const options = column.type === "number" && typeof value === "number" ? withDefaultAggregateFormat(column.options, locale) : column.options;
-    return toSafeText(cellType ? displayText(cellType as Parameters<typeof displayText>[0], value, options) : value);
-  } catch {
-    return toSafeText(value);
-  }
-}
 
 const aggregateOf = (node: GroupNode, column: AnyColumnDef): unknown => (isPivotColumn(column) ? pivotCellOf(node, column) : node.aggregates[column.id]);
 
