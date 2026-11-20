@@ -41,7 +41,6 @@ const HOSTILE = [
   "line\nbreak",
   "tab\tvalue",
   "carriage\r\nreturn",
-  "nul\u0000byte",
   "emoji 😀 and ünïcödé",
   "רוח",
   "‮bidi",
@@ -82,7 +81,7 @@ const treeOf = (value: string, other: string) => `and(name.eq.${quote(value)},te
 
 /** A deterministic generator over the grammar's own characters, so a failure reproduces. */
 function* randomValues(count: number): Generator<string> {
-  const alphabet = [..."\"\\,().:*{} \t\n-%_ab", "😀", "\u0000"];
+  const alphabet = [..."\"\\,().:*{} \t\n-%_ab", "😀", "\u0001"];
   let seed = 0x2545f491;
   const next = () => {
     seed ^= seed << 13;
@@ -138,9 +137,10 @@ describe("quote", () => {
     expect(roundTrip(`name.eq."a"b`)).toEqual({ group: "or", not: false, items: [{ field: "name", not: false, op: "eq", value: '"a"b' }] });
   });
 
-  it("refuses a lone surrogate, which the URL encoding would turn into another value", () => {
+  it("refuses a lone surrogate and a NUL, which the URL encoding or PostgREST's `in.()` would turn into another value", () => {
     expect(() => quote("a\uD800b")).toThrow(QueryError);
     expect(() => quote("\uDC00")).toThrow(QueryError);
+    expect(() => quote("nul\u0000byte")).toThrow(QueryError);
     expect(quote("😀")).toBe('"😀"');
   });
 });

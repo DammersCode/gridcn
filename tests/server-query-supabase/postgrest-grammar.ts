@@ -170,5 +170,3 @@ export function parseLogicParam(op: "and" | "or", value: string): LogicTree {
   return parsed;
 }
 
-/** PostgREST reads the one-element list `[""]` as the empty list (`= ANY('{}')`), whatever its quoting. */
-export const isEmptyList = (list: readonly string[]): boolean => list.length === 1 && list[0] === "";

@@ -183,9 +183,13 @@ describe("filters as one logic tree", () => {
   });
 
   it("keeps every hostile value one value through the whole pipeline", async () => {
-    for (const value of ['"),tenantId.neq.(7', "a,b)", "\\", 'x"', "{a}", "null", "  ", "\n\u0000", "__proto__", "😀"]) {
+    for (const value of ['"),tenantId.neq.(7', "a,b)", "\\", 'x"', "{a}", "null", "  ", "\n\t", "__proto__", "😀"]) {
       expect(await rowsTree({ filters: [filter("code", "equals", value)] })).toEqual(scoped(eq("code", value)));
     }
+    // PostgREST cuts an `in.()` value at its first NUL, so `abc\0x` would match `abc`.
+    const { query, sent } = make();
+    expect(await failure(query.fetchRows(rowsRequest({ filters: [filter("code", "isAnyOf", ["abc\u0000x", "d"])] }), CONTEXT))).toEqual(["unsupported-value", []]);
+    expect(sent).toHaveLength(0);
   });
 });
 

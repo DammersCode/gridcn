@@ -9,7 +9,8 @@ const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[
  * unquote, so this output belongs inside a logic tree only.
  */
 export function quote(value: string): string {
-  // URL serialization replaces a lone surrogate with U+FFFD, which would filter by another value.
-  if (LONE_SURROGATE.test(value)) throw new QueryError("unsupported-value", []);
+  // URL serialization replaces a lone surrogate with U+FFFD, and PostgREST cuts an `in.()` value at its first NUL
+  // (`trimNullChars`): either would filter by another value. PostgreSQL text holds no NUL anyway.
+  if (LONE_SURROGATE.test(value) || value.includes("\u0000")) throw new QueryError("unsupported-value", []);
   return `"${value.replace(/["\\]/g, "\\$&")}"`;
 }
