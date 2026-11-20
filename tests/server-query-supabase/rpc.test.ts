@@ -207,7 +207,7 @@ describe("hostile plans sent straight to the wrapper", () => {
     expect(await count({ and: [leaf("tenantId", "eq", "2"), leaf("name", "is")] })).toBe(1);
   });
 
-  it("refuses a column outside the allow-list in `next` and in a group count's level, and a `desc` that is not a boolean", async () => {
+  it("refuses a column outside the allow-list in `next` and in a group count's level, and a `desc`, `text`, or `blank` that is not a boolean", async () => {
     const groups = { kind: "groups", where: true, level: { c: "tag", blank: true }, next: null, desc: false, offset: 0, limit: 10, aggregates: [] };
     const rows = { kind: "rows", where: true, select: [{ c: "id", text: false }], order: [{ c: "id", desc: false }], offset: 0, limit: 10 };
     for (const plan of [
@@ -215,6 +215,13 @@ describe("hostile plans sent straight to the wrapper", () => {
       { kind: "groupCount", where: true, level: { c: "secret", blank: false } },
       { ...groups, desc: "yes" },
       { ...rows, order: [{ c: "id", desc: 1 }] },
+      { ...rows, select: [{ c: "id", text: "true" }] },
+      { ...rows, select: [{ c: "id" }] },
+      { ...groups, level: { c: "tag", blank: 1 } },
+      { ...groups, next: { c: "name", blank: "true" } },
+      { kind: "groupCount", where: true, level: { c: "tag" } },
+      { ...groups, aggregates: [{ c: "qty", reducer: "sum", blank: "false" }] },
+      { kind: "aggregates", where: true, columns: [{ c: "qty", reducer: "sum", blank: null }] },
     ]) {
       await expect(call(plan), JSON.stringify(plan)).rejects.toThrow(/gridcn/);
     }
