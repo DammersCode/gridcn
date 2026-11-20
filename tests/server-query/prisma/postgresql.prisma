@@ -1,0 +1,60 @@
+generator client {
+  provider               = "prisma-client"
+  output                 = "./generated/postgresql"
+  moduleFormat           = "esm"
+  generatedFileExtension = "ts"
+  importFileExtension    = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Mirrors PG_DDL in fixture.ts; the tests create the tables through the raw driver.
+model Item {
+  id        BigInt    @id
+  name      String?
+  tag       String?
+  score     Float?
+  qty       Int?
+  active    Boolean?
+  price     Decimal?  @db.Decimal(12, 2)
+  createdAt DateTime? @db.Timestamptz
+  tenantId  Int
+
+  @@map("items")
+}
+
+model CursorItem {
+  id     BigInt    @id
+  name   String?
+  qty    Int?
+  price  Decimal?
+  active Boolean?
+  stamp  DateTime? @db.Timestamptz
+  tenant Int
+
+  @@map("cursor_items")
+}
+
+enum Mood {
+  calm
+  busy
+  Calm
+}
+
+model Kind {
+  id      BigInt    @id
+  ref     String?   @db.Uuid
+  mood    Mood?
+  amount  Decimal?
+  big     BigInt?
+  day     DateTime? @db.Date
+  milli   DateTime? @db.Timestamptz(3)
+  micro   DateTime? @db.Timestamptz(6)
+  seconds Int?
+  label   String?
+  tenant  Int
+
+  @@map("kinds")
+}

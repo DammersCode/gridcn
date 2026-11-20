@@ -132,6 +132,7 @@ export default defineConfig({
           name: "conformance",
           environment: "node",
           include: ["tests/server-query/**/*.test.ts"],
+          globalSetup: ["./tests/server-query/prisma/generate.ts"],
           testTimeout: 60_000,
           hookTimeout: 60_000,
         },

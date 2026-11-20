@@ -5,6 +5,8 @@ import { type OracleGroup, type OraclePath, type OracleRequest, oracleGroupRowId
 import { type Harness, type LooseQuery, openPg, openSqlite } from "./engines";
 import { FIXTURE_ROWS } from "./fixture";
 import { KNOWN_DIFFERENCES } from "./groups-differences";
+import { unlessDeclined } from "./prisma/declines";
+import { openPrisma } from "./prisma/engines";
 
 const harnesses: Harness[] = [];
 const closers: (() => Promise<void> | void)[] = [];
@@ -12,8 +14,9 @@ const closers: (() => Promise<void> | void)[] = [];
 beforeAll(async () => {
   const sqlite = await openSqlite();
   const pg = await openPg();
-  harnesses.push(...sqlite.harnesses, ...pg.harnesses);
-  closers.push(() => void sqlite.database.close(), () => pg.pg.close());
+  const prisma = await Promise.all([openPrisma("sqlite"), openPrisma("pg")]);
+  harnesses.push(...sqlite.harnesses, ...pg.harnesses, ...prisma.map((entry) => entry.harness));
+  closers.push(() => void sqlite.database.close(), () => pg.pg.close(), ...prisma.map((entry) => entry.close));
 }, 60_000);
 
 afterAll(async () => {
@@ -69,9 +72,12 @@ describe.each([
   ["sqlite", "kysely"],
   ["pg", "drizzle"],
   ["pg", "kysely"],
+  ["sqlite", "prisma"],
+  ["pg", "prisma"],
 ] as const)("groups: %s + %s", (engine, adapter) => {
   const harness = () => harnesses.find((h) => h.engine === engine && h.adapter === adapter)!;
   const query = () => harness().make({ groups: true });
+  const declinable = <T>(name: string, call: () => Promise<T>) => unlessDeclined(adapter, engine, name, call);
 
   it.each([
     ["a text column, case kept, blank and NULL merged", { groupBy: ["name"] }, false],
@@ -80,8 +86,9 @@ describe.each([
     ["a number column", { groupBy: ["qty"] }, true],
     ["a float column", { groupBy: ["score"] }, true],
     ["a time column, by the stored instant", { groupBy: ["createdAt"] }, true],
-  ] as [string, Ask, boolean][])("matches the client over %s", async (_name, ask, ordered) => {
-    const answer = await groupsOf(query(), ask);
+  ] as [string, Ask, boolean][])("matches the client over %s", async (name, ask, ordered) => {
+    const answer = await declinable(`group level: ${name}`, () => groupsOf(query(), ask));
+    if (!answer) return;
     const expected = oracleGroups(oracleOf(ask));
     expectLike(answer.groups, expected, { ordered });
     expect(answer.groupCount).toBe(expected.length);
@@ -110,8 +117,8 @@ describe.each([
   });
 
   it("answers an empty result with no groups and zero counts", async () => {
-    const answer = await groupsOf(query(), { groupBy: ["tag"], filters: [{ columnId: "name", operator: "equals", value: "no such name" }] });
-    expect(answer).toEqual({ groups: [], groupCount: 0, totalRowCount: 0 });
+    const answer = await declinable("groups of an empty result", () => groupsOf(query(), { groupBy: ["tag"], filters: [{ columnId: "name", operator: "equals", value: "no such name" }] }));
+    if (answer) expect(answer).toEqual({ groups: [], groupCount: 0, totalRowCount: 0 });
   });
 
   it("reduces every reducer per group, the empty group included", async () => {
@@ -123,7 +130,8 @@ describe.each([
       { columnId: "nameCount", reducer: "count" },
     ];
     const ask: Ask = { groupBy: ["tag"], aggregates };
-    const answer = await groupsOf(query(), ask);
+    const answer = await declinable("every reducer per group", () => groupsOf(query(), ask));
+    if (!answer) return;
     expect(answer.groups.some((group) => group.key === null)).toBe(true);
     expectLike(answer.groups, oracleGroups(oracleOf(ask)), { ordered: false });
   });
@@ -155,7 +163,8 @@ describe.each([
 
   it("builds two levels: child counts at the top, groups and rows below", async () => {
     const top: Ask = { groupBy: ["tag", "active"] };
-    const topAnswer = await groupsOf(query(), top);
+    const topAnswer = await declinable("two levels on a page of 1,000", () => groupsOf(query(), top));
+    if (!topAnswer) return;
     expectLike(topAnswer.groups, oracleGroups(oracleOf(top)), { ordered: false });
     for (const key of ["red", "Red", null] as const) {
       const path = [{ columnId: "tag", key }];
@@ -204,7 +213,8 @@ describe.each([
     const scoped = harness().make({ groups: true, rowScope: true });
     const call = (ask: Ask) => scoped.fetchRows(body(ask), { context: { tenantId: 1 } });
     const mine = FIXTURE_ROWS.filter((row) => row.tenantId === 1);
-    const top = (await call({ groupBy: ["tag", "active"], aggregates: [{ columnId: "qty", reducer: "sum" }] })) as unknown as GroupsAnswer;
+    const top = (await declinable("two levels on a page of 1,000", () => call({ groupBy: ["tag", "active"], aggregates: [{ columnId: "qty", reducer: "sum" }] }))) as unknown as GroupsAnswer | undefined;
+    if (!top) return;
     expect(top.totalRowCount).toBe(mine.length);
     expect(top.groups.reduce((sum, group) => sum + group.totalRowCount, 0)).toBe(mine.length);
     expect(top.groups.reduce((sum, group) => sum + (group.aggregates?.["qty"] as number | null ?? 0), 0)).toBe(mine.reduce((sum, row) => sum + (row.qty ?? 0), 0));

@@ -7,10 +7,13 @@ import { type PgTable, bigint, boolean, date, doublePrecision, integer, numeric,
 import { type SQLiteTable, integer as sqliteInteger, numeric as sqliteNumeric, real, sqliteTable, text as sqliteText } from "drizzle-orm/sqlite-core";
 import { Kysely, PGliteDialect, SqliteDialect } from "kysely";
 import { afterAll, describe, expect, expectTypeOf, it } from "vitest";
-import { type ColumnMap, type GroupsAnswer, type RowsAnswer, QueryError, defineColumnMap } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
+import { type ColumnMap, type ColumnSpec, type GroupsAnswer, type RowsAnswer, QueryError, defineColumnMap } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
 import { toSafeText } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query-sdk";
 import { createDrizzleGridQuery } from "@/registry/default/blocks/data-grid-server-query-drizzle/data-grid-server-query-drizzle";
 import { createKyselyGridQuery } from "@/registry/default/blocks/data-grid-server-query-kysely/data-grid-server-query-kysely";
+import { createPrismaGridQuery } from "@/registry/default/blocks/data-grid-server-query-prisma/data-grid-server-query-prisma";
+import { unlessDeclined } from "./prisma/declines";
+import { connectPrisma, prismaColumns, sqliteFile } from "./prisma/engines";
 
 type Row = Record<string, unknown>;
 type Pager = { fetchRows(input: unknown, options?: { context?: unknown }): Promise<RowsAnswer<Row, string>> };
@@ -33,8 +36,8 @@ const ROWS = Array.from({ length: 24 }, (_, i) => ({
 }));
 const N = ROWS.length;
 
-const columnsFor = (engine: Engine) =>
-  defineColumnMap({
+const specsFor = (engine: Engine) =>
+  ({
     id: { type: "number", numeric: "int8", primaryKey: true },
     name: { type: "text", maxLength: 16 },
     // `required` refuses blank writes; the column still holds NULL rows, which a cursor must not skip.
@@ -44,7 +47,8 @@ const columnsFor = (engine: Engine) =>
     active: { type: "checkbox" },
     stamp: { type: "date", time: true, storage: engine === "pg" ? "native" : "iso-text" },
     tenant: { type: "number", numeric: "int4", serverOnly: true },
-  });
+  }) as const satisfies Record<string, ColumnSpec>;
+const columnsFor = (engine: Engine) => defineColumnMap(specsFor(engine));
 
 const pgCursorItems = pgTable("cursor_items", {
   id: bigint("id", { mode: "number" }).primaryKey(),
@@ -96,12 +100,9 @@ async function walk<K = number>(query: Pager, spec: Record<string, unknown>, siz
 }
 
 describe("cursor paging on SQLite and PostgreSQL", async () => {
-  const database = new Database(":memory:");
+  const sqlite = sqliteFile();
+  const { database } = sqlite;
   const pglite = new PGlite();
-  afterAll(async () => {
-    database.close();
-    await pglite.close();
-  });
   database.exec("create table cursor_items (id integer primary key, name text, qty integer, price numeric, active integer, stamp text, tenant integer not null)");
   await pglite.exec("create table cursor_items (id bigint primary key, name text, qty integer, price numeric, active boolean, stamp timestamptz, tenant integer not null)");
   const insert = database.prepare("insert into cursor_items values (?, ?, ?, ?, ?, ?, ?)");
@@ -109,6 +110,14 @@ describe("cursor paging on SQLite and PostgreSQL", async () => {
     insert.run(row.id, row.name, row.qty, row.price, row.active === null ? null : Number(row.active), row.stamp, row.tenant);
     await pglite.query("insert into cursor_items values ($1, $2, $3, $4, $5, $6, $7)", [row.id, row.name, row.qty, row.price, row.active, row.stamp, row.tenant]);
   }
+  const prismaSqlite = await connectPrisma({ file: sqlite.file });
+  const prismaPg = await connectPrisma({ pglite });
+  afterAll(async () => {
+    await prismaSqlite.close();
+    await prismaPg.close();
+    sqlite.remove();
+    await pglite.close();
+  });
 
   const scope = { rowScope: (context: { tenant: number }) => ({ tenant: context.tenant }) };
   const sqliteKysely = new Kysely({ dialect: new SqliteDialect({ database }) });
@@ -118,6 +127,10 @@ describe("cursor paging on SQLite and PostgreSQL", async () => {
     ["sqlite kysely", createKyselyGridQuery({ db: sqliteKysely, table: "cursor_items", dialect: "sqlite", columns: columnsFor("sqlite"), paging: "cursor", ...(scoped ? scope : {}) })],
     ["pg drizzle", createDrizzleGridQuery({ db: drizzlePglite(pglite), table: pgCursorItems, columns: columnsFor("pg"), paging: "cursor", ...(scoped ? scope : {}) })],
     ["pg kysely", createKyselyGridQuery({ db: pgKysely, table: "cursor_items", dialect: "pg", columns: columnsFor("pg"), paging: "cursor", ...(scoped ? scope : {}) })],
+    ...([["sqlite", prismaSqlite], ["pg", prismaPg]] as const).map(([engine, db]) => [
+      `${engine} prisma`,
+      createPrismaGridQuery({ model: db.client.cursorItem, provider: engine === "pg" ? "postgresql" : "sqlite", columns: prismaColumns(db.Prisma["CursorItemScalarFieldEnum"]!, specsFor(engine), ["id", "tenant"]), paging: "cursor", ...(scoped ? scope : {}) }),
+    ] as const),
   ] as const;
   const scopedPagers = new Map(make(true).map(([label, query]) => [label, query as unknown as Pager]));
 
@@ -135,6 +148,8 @@ describe("cursor paging on SQLite and PostgreSQL", async () => {
   });
 
   describe.each(make(false).map(([label, query]) => [label, query as unknown as Pager] as const))("%s", (label, query) => {
+    const [engine, adapter] = label.split(" ") as [Engine, string];
+    const declinable = <T>(name: string, call: () => Promise<T>) => unlessDeclined(adapter, engine, name, call);
     const oracle = async (spec: Record<string, unknown>, context?: unknown) => idsOf((await query.fetchRows({ spec, start: 0, end: N + 5 }, { context })).rows);
     const rawIds = async (sql: string): Promise<number[]> =>
       (label.startsWith("sqlite") ? (database.prepare(sql).all() as Row[]) : (await pglite.query<Row>(sql)).rows).map((row) => Number(row["id"]));
@@ -146,9 +161,10 @@ describe("cursor paging on SQLite and PostgreSQL", async () => {
       }
     });
 
-    it.each(Object.entries(SORTS))("pages %s at every page size to the one-query order", async (_, sorts) => {
+    it.each(Object.entries(SORTS))("pages %s at every page size to the one-query order", async (name, sorts) => {
       const spec = { sorts };
-      const expected = await oracle(spec);
+      const expected = await declinable(`cursor sort: ${name}`, () => oracle(spec));
+      if (!expected) return;
       expect(expected).toHaveLength(N);
       for (let size = 1; size <= N + 1; size++) expect(await walk(query, spec, size)).toEqual(expected);
     });
@@ -187,7 +203,8 @@ describe("cursor paging on SQLite and PostgreSQL", async () => {
 
     it("answers bad-cursor for a time key PostgreSQL would not parse", async () => {
       const spec = { sorts: [asc("stamp")] };
-      const first = await query.fetchRows({ spec, start: 0, end: 1 });
+      const first = await declinable("cursor sort: time asc", () => query.fetchRows({ spec, start: 0, end: 1 }));
+      if (!first) return;
       const [version, hash, , id] = JSON.parse(atob(first.nextCursor!.replace(/-/g, "+").replace(/_/g, "/"))) as unknown[];
       const forged = btoa(JSON.stringify([version, hash, "2024-01-01T00:00:00+16:00", id])).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
       await expect(query.fetchRows({ spec, start: 1, end: 2, cursor: forged })).rejects.toMatchObject({ code: "bad-cursor" });

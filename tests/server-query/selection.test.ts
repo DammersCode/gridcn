@@ -11,6 +11,8 @@ import { createDrizzleGridQuery } from "@/registry/default/blocks/data-grid-serv
 import { createKyselyGridQuery } from "@/registry/default/blocks/data-grid-server-query-kysely/data-grid-server-query-kysely";
 import { openPg, openSqlite } from "./engines";
 import { FIXTURE_ROWS } from "./fixture";
+import { unlessDeclined } from "./prisma/declines";
+import { openPrisma } from "./prisma/engines";
 
 type Selector = { selection(input: unknown, options?: { context?: unknown }): Promise<SelectionAnswer<Record<string, unknown>>> };
 
@@ -25,24 +27,28 @@ const allMatching = (excludedIds: string[], spec: Record<string, unknown> = {}) 
 describe("selection on the fixture", async () => {
   const sqlite = await openSqlite();
   const pg = await openPg();
+  const prisma = await Promise.all([openPrisma("sqlite"), openPrisma("pg")]);
   afterAll(async () => {
     sqlite.database.close();
     await pg.pg.close();
+    for (const entry of prisma) await entry.close();
   });
-  const harnesses = [...sqlite.harnesses, ...pg.harnesses];
+  const harnesses = [...sqlite.harnesses, ...pg.harnesses, ...prisma.map((entry) => entry.harness)];
 
   describe.each(harnesses.map((h) => [`${h.engine} ${h.adapter}`, h] as const))("%s", (_, harness) => {
     const plain = harness.make() as unknown as Selector;
     const scoped = harness.make({ rowScope: true }) as unknown as Selector;
     const first = idsOf(FIXTURE_ROWS.slice(0, 3));
+    const declinable = <T>(name: string, call: () => Promise<T>) => unlessDeclined(harness.adapter, harness.engine, name, call);
 
     it("counts and lists the ids of an ids selection over 65,535 ids", async () => {
-      await expect(plain.selection({ selection: ids([...first, ...intFiller]), include: "ids" })).resolves.toEqual({ count: 3, ids: first, hasMore: false });
+      const answer = await declinable("a selection of 70,000 ids", () => plain.selection({ selection: ids([...first, ...intFiller]), include: "ids" }));
+      if (answer) expect(answer).toEqual({ count: 3, ids: first, hasMore: false });
     });
 
     it("counts and pages an allMatching selection that excludes over 65,535 ids", async () => {
-      const answer = await plain.selection({ selection: allMatching([...first, ...intFiller]), include: "ids", start: 0, end: 4 });
-      expect(answer).toEqual({ count: FIXTURE_ROWS.length - 3, ids: idsOf(FIXTURE_ROWS.slice(3, 7)), hasMore: true });
+      const answer = await declinable("a selection of 70,000 ids", () => plain.selection({ selection: allMatching([...first, ...intFiller]), include: "ids", start: 0, end: 4 }));
+      if (answer) expect(answer).toEqual({ count: FIXTURE_ROWS.length - 3, ids: idsOf(FIXTURE_ROWS.slice(3, 7)), hasMore: true });
     });
 
     it("orders the page by the spec's sort", async () => {
