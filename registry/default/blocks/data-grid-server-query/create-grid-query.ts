@@ -50,7 +50,10 @@ export type AdapterCapabilities = {
   blankTextAggregates?: boolean;
   /** The longest id list the adapter binds, a positive integer. A longer selection is `limit-exceeded`. Default: no limit. */
   maxBoundIds?: number;
-  /** The adapter answers `spec.pivot` through `selectPivotKeys` and the pivot cells of `selectGroups`. Default `false`: a pivot is `unsupported`. */
+  /**
+   * The adapter answers `spec.pivot` through `selectPivotKeys` and the pivot cells of `selectGroups`. Default `false`: a pivot
+   * is `unsupported`. A `time` pivot column is `unsupported` on every adapter, because the keys read at millisecond precision.
+   */
   pivot?: boolean;
 };
 
