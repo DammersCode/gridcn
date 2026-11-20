@@ -78,9 +78,12 @@ What the server receives and sends:
 3. **Every answer carries its own column list.** Cells map by generated id, never by position. A
    held id that an answer lacks reads `null`.
 4. **The held set rides on `ServerGroupLayout.pivot`.** The first landing after a spec change or
-   `refresh()` sets it. It keeps one object identity until the next spec change or `refresh()`.
-5. **The core builds the generated columns.** It memoizes them on the held set. They never enter
-   `spec.aggregates`.
+   `refresh()` sets it. Until that landing, the previous held set stays, so the header never shows
+   the source columns between two pivot specs. With equal generated ids the object stays; a new
+   `omitted` makes a new object over the same `columns` array.
+5. **The core builds the generated columns.** It memoizes them on the held `columns` array, so a
+   new `omitted` keeps the column defs and the visible columns. They never enter `spec.aggregates`.
+   The generated widths of ids that leave the held set drop.
 6. **Generated ids derive from values.** See "Generated columns".
 7. **Distinct keys are data, so the server cuts them.** Past the cap, the layer keeps the first keys
    in key order and answers `pivotOmitted`. The layer refuses only a bad request.
@@ -131,7 +134,8 @@ export type ServerGroupLayout = {
   empty key sorts last, as `NULLS LAST` does for group keys.
 - `totalRowCount` is the row count of the result. `groupCount` sizes the pivot rows.
 - The `serverSpecKey` of a spec without `pivot` stays the same.
-- Under pivot the hook clamps the block size to 200 rows.
+- Under pivot the hook clamps the block size and the page size to 200 groups, so one page holds
+  at most 40,000 cells.
 - With more than 1 `groupBy` level, the grid sends no `pivot` and warns once in development
   (`S11-M`). The layer takes up to 4 levels: each level's group rows carry the cells of their subtree.
 
@@ -184,9 +188,9 @@ A failed check fails the block, as spec A decision 8 does.
 - **Readers:** copy, export, print, find, and autosize read a pivot cell through one
   `pivotCellText`. Replace skips pivot cells. Every write path refuses them.
 - **Storage:** the hook maps each answer's cells by generated id into one `Float64Array` per slot.
-- **Budget:** at most 2,000,000 held cells. Their `byteLength` stays at or below 16,000,000 B.
-  Past it, the group blocks farthest from the rendered rows evict. The eviction counts cells, not
-  groups.
+- **Budget:** at most 1,000,000 held cells. Their `byteLength` stays at or below 8,000,000 B.
+  Past it, the group blocks evict oldest first; a block under the rendered rows stays. The
+  eviction counts cells, not groups.
 - Step 0 measured 10,000 × 200 cells at exactly 16,000,000 B, so the budget has no headroom. The
   descriptors add about 354 B per group (3.54 MB at 10,000 groups). Step 10 measures the real total
   and lowers the cap if the total misses its budget.
@@ -198,7 +202,8 @@ A failed check fails the block, as spec A decision 8 does.
   - more than 1 pivot column
   - any rows request under pivot
   - a non-numeric value column with a reducer other than `count`
-  - a `time` pivot column without `exactInstantKeys`
+  - a `time` pivot column: phase 1 reads a stored instant at millisecond precision, so a finer
+    stored instant would match no key and its cells would stay empty
 - `limit-exceeded`:
   - more aggregates than `maxPivotColumns`
   - a stored key over `maxGroupKeyLength` (1,024 characters)
@@ -207,6 +212,11 @@ A failed check fails the block, as spec A decision 8 does.
   - no aggregates
   - the pivot column inside `groupBy`
 - `unknown-column`: a `serverOnly` pivot column, or one that the column map lacks.
+
+A stored key that has no exact test drops from the keys, and its columns count in `pivotOmitted`:
+a native enum value outside `choices`, or a number over `maxNumberLength` or the column's digits.
+The stored data is not the request, so the layer neither refuses the request nor shows a key whose
+cells would read as `FALSE`.
 
 Open: issue #99 asks for "a 400". The route maps a `QueryError` to an HTTP status. The layer
 answers these codes.
@@ -222,8 +232,11 @@ answers these codes.
   - `parseAggregates` (`:231`) checks `spec.pivot` with the same parser, then ignores it: band
     totals over the whole result do not depend on pivot.
   - A values request reads its own `filters`, not the spec, so pivot does not reach it.
-- **Limit:** the new `maxPivotColumns` (keys × aggregates) defaults to 200. The kept key count is
+- **Limit:** the new `maxPivotColumns` (keys × aggregates) defaults to 200, and a larger value
+  reads as 200, the generated columns the grid keeps. The kept key count is
   `floor(maxPivotColumns / aggregates.length)`.
+- **Order:** phase 1 runs alone. Phase 2 and the counts start after it, so a failed phase 1 starts
+  no other query.
 
 Prisma: declines. A two-field `groupBy` over a 200-group page and 200 keys returns 40,000 pairs,
 above `maxGroupRows`, and it cannot fold `''` into the empty key. The step 6 spike measured it with
@@ -285,8 +298,10 @@ through the PGlite path and the same oracle, with the same `search_path` and ope
   - Supabase: `count(<value>) FILTER (WHERE ...)` with the same non-blank rule.
 - **Cut and `pivotOmitted`:**
   - Prisma: none (declined).
-  - Supabase: the SQL applies `maxPivotColumns`, which the client passes in the call, and
-    returns the total key count for `pivotOmitted`.
+  - Supabase: the keys call carries the kept key count (`limit`) and the value count
+    (`values`). The SQL keeps at most `max_pivot_columns / values` keys, so a wrapper cap below
+    the core's cuts keys instead of raising, and it returns the total key count for
+    `pivotOmitted`. The cells call raises only when keys × values exceed the cap.
 - **Decimal cells:**
   - Prisma: none (declined).
   - Supabase: the client reads `'cells'` through the same `aggregateValue`, so decimal cells are
@@ -371,7 +386,6 @@ Paths are relative to `registry/default/blocks/`. Behavior codes:
 | `data-grid-find-replace/find-replace-panel.tsx:314` | W | Replace-all re-resolve skips pivot cells. |
 | `data-grid/store/compute.ts:930` | R | Quick-search `getText` reads the pivot text, so find matches pivot cells. |
 | `data-grid/store/compute.ts:931` | R | Quick-search `getSearchText` reads the pivot text. |
-| `data-grid/store/compute.ts:932` | R | Quick-search `getValue` reads the pivot cell number. |
 | `data-grid/columns/autosize-columns.ts:108` | R | Autosize measures pivot text for generated columns. |
 | `data-grid/store/compute.ts:1049` | R | `getRangeValues` (`onSelectionChange` values) reads pivot cells. Step 11 does not list it yet. |
 | `data-grid-status-bar/use-data-grid-selection-stats.ts:50` | R | Selection stats sum pivot cells. Step 11 does not list it yet. |
@@ -496,7 +510,7 @@ Paths are relative to `registry/default/blocks/`. Behavior codes:
 | `data-grid/store/create-store.ts:1074` | S | Derived layout. |
 | `data-grid/store/create-store.ts:1654` | S | Leaf view for the result count. |
 | `data-grid/store/create-store.ts:1655` | S | The same. |
-| `data-grid/store/sync-props.ts:397` | S | Syncs the `groupLayout` prop. The held set keeps its identity. |
+| `data-grid/store/sync-props.ts:397` | S | Syncs the `groupLayout` prop. The generated columns keep their identity while the held `columns` do. |
 | `data-grid/store/sync-inputs.ts:48` | S | Equality of `groupMode`. |
 | `data-grid/store/group-view.ts:40` | S | `groupMode` from the props. |
 | `data-grid/store/group-view.ts:47` | S | Server layout path. |

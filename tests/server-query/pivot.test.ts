@@ -87,7 +87,6 @@ describe.each([
     ["a number pivot column", { groupBy: ["tag"], pivot: "qty" }, true],
     ["a text group column", { groupBy: ["name"], pivot: "active" }, true],
     ["a filtered result", { groupBy: ["tag"], pivot: "active", filters: [{ columnId: "qty", operator: "gt", value: "0" }] }, true],
-    ["a time pivot column, by the stored instant", { groupBy: ["active"], pivot: "createdAt" }, true],
   ] as [string, Ask, boolean][])("matches the client over %s", async (_name, ask, ordered) => {
     const answer = await pivotOf(query(), ask);
     expectCellsLike(answer, ask, { ordered });
@@ -149,6 +148,10 @@ describe.each([
   it("answers an empty result with no groups and no columns", async () => {
     const answer = await pivotOf(query(), { groupBy: ["tag"], pivot: "qty", filters: [{ columnId: "name", operator: "equals", value: "no such name" }] });
     expect(answer).toEqual({ groups: [], groupCount: 0, totalRowCount: 0, pivotColumns: [], pivotOmitted: 0 });
+  });
+
+  it("refuses a time pivot column", async () => {
+    await expect(pivotOf(query(), { groupBy: ["active"], pivot: "createdAt" })).rejects.toMatchObject({ code: "unsupported", path: ["spec", "pivot", "columnIds", 0] });
   });
 
   it("refuses a rows request under pivot", async () => {

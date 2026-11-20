@@ -26,6 +26,8 @@ beforeAll(async () => {
   await pg.exec(GRID_SQL);
   await pg.exec(`create function public.items_grid(plan jsonb) returns jsonb language sql stable security invoker
     as $$ select gridcn.grid_query('public.items'::pg_catalog.regclass, array[${ALLOWED.map((name) => `'${name}'`).join(", ")}]::pg_catalog.text[], plan) $$`);
+  await pg.exec(`create function public.items_grid_capped(plan jsonb) returns jsonb language sql stable security invoker
+    as $$ select gridcn.grid_query('public.items'::pg_catalog.regclass, array[${ALLOWED.map((name) => `'${name}'`).join(", ")}]::pg_catalog.text[], plan, max_pivot_columns => 5) $$`);
 }, 60_000);
 
 afterAll(async () => {
@@ -35,11 +37,11 @@ afterAll(async () => {
 /** Runs every grid function call on PGlite, as PostgREST's RPC would, and records its plan; with `maxUrlLength: 1`, every request is one. */
 const client: SupabaseClientLike = {
   from: (relation: string) => captureSupabase().client.from(relation),
-  rpc: (_name: string, args: { plan: unknown }) => {
+  rpc: (name: string, args: { plan: unknown }) => {
     const run = async () => {
       plans.push(args.plan);
       try {
-        return { data: (await pg.query<{ r: unknown }>("select public.items_grid($1::jsonb) as r", [JSON.stringify(args.plan)])).rows[0]!.r, error: null };
+        return { data: (await pg.query<{ r: unknown }>(`select public.${name === "items_grid_capped" ? name : "items_grid"}($1::jsonb) as r`, [JSON.stringify(args.plan)])).rows[0]!.r, error: null };
       } catch (error) {
         return { data: null, error: { message: (error as Error).message } };
       }
@@ -50,12 +52,12 @@ const client: SupabaseClientLike = {
   },
 };
 
-const supabase = (options: { rowScope?: boolean; limits?: QueryLimits } = {}): LooseQuery =>
+const supabase = (options: { rowScope?: boolean; limits?: QueryLimits; rpc?: string } = {}): LooseQuery =>
   createSupabaseGridQuery<Record<string, unknown>, { tenantId: number }>({
     client,
     table: "items",
     columns: groupColumns("pg"),
-    rpc: "items_grid",
+    rpc: options.rpc ?? "items_grid",
     maxUrlLength: 1,
     limits: options.limits,
     ...(options.rowScope ? { rowScope: (context: { tenantId: number }) => ({ tenantId: context.tenantId }) } : {}),
@@ -116,13 +118,28 @@ describe("pivot through the grid function", () => {
     ["a number pivot column", { groupBy: ["tag"], pivot: "qty" }, true],
     ["a text group column", { groupBy: ["name"], pivot: "active" }, true],
     ["a filtered result", { groupBy: ["tag"], pivot: "active", filters: [{ columnId: "qty", operator: "gt", value: "0" }] }, true],
-    ["a time pivot column, by the stored instant", { groupBy: ["active"], pivot: "createdAt" }, true],
     ["a decimal pivot column", { groupBy: ["tag"], pivot: "price" }, true],
     ["a checkbox group column and a sort on the pivot column", { groupBy: ["active"], pivot: "qty", sorts: [{ columnId: "qty", direction: "desc" }] }, true],
   ] as [string, Ask, boolean][])("matches the client over %s", async (_name, ask, ordered) => {
     const answer = await pivotOf(supabase(), ask);
     expectCellsLike(answer, ask, { ordered });
     if (ask.pivot === "tag") expect(answer.pivotColumns!.filter((column) => column.path[0] === null && column.valueIndex === 0)).toHaveLength(1);
+  });
+
+  it("refuses a time pivot column as unsupported and sends nothing", async () => {
+    plans.length = 0;
+    await expect(pivotOf(supabase(), { groupBy: ["active"], pivot: "createdAt" })).rejects.toMatchObject({ code: "unsupported", path: ["spec", "pivot", "columnIds", 0] });
+    expect(plans).toEqual([]);
+  });
+
+  it("cuts the keys to a lower cap of the grid function and counts the cut columns", async () => {
+    const aggregates: Aggregate[] = [{ columnId: "qty", reducer: "sum" }, { columnId: "nameCount", reducer: "count" }];
+    const ask: Ask = { groupBy: ["tag"], pivot: "qty", aggregates, sorts: [{ columnId: "qty", direction: "asc" }] };
+    const all = oraclePivot({ filters: [], groupBy: ask.groupBy, pivot: ask.pivot, aggregates, directions: new Map([["qty", "asc"]]) }).keys;
+    const answer = await pivotOf(supabase({ rpc: "items_grid_capped" }), ask);
+    expect(answer.pivotColumns!.map((column) => column.path[0])).toEqual(all.slice(0, 2).flatMap((key) => [key, key]));
+    expect(answer.pivotOmitted).toBe((all.length - 2) * 2);
+    expect(answer.groups.every((group) => group.pivotCells!.length === 4)).toBe(true);
   });
 
   it("answers what the Drizzle adapter answers on the same PostgreSQL, through four levels", async () => {
@@ -217,13 +234,16 @@ describe("pivot through the grid function", () => {
     const keys = (n: number) => Array.from({ length: n }, (_, index) => ({ c: "qty", op: "eq", v: String(index) }));
     const aggregates = [{ c: "qty", reducer: "sum", blank: false }, { c: "name", reducer: "count", blank: true }];
     const cells = (n: number) => ({ kind: "groups", where: true, level: { c: "tag", blank: true }, next: null, desc: false, offset: 0, limit: 10, aggregates, pivot: { keys: keys(n) } });
-    const keysPlan = (limit: number) => ({ kind: "pivotKeys", where: true, level: { c: "qty", blank: false }, desc: false, limit });
+    const keysPlan = (limit: number, values = 1) => ({ kind: "pivotKeys", where: true, level: { c: "qty", blank: false }, desc: false, limit, values });
     await expect(statement(cells(100))).resolves.toMatch(/^WITH /);
     await expect(statement(cells(101))).rejects.toThrow(/over 200 cells/);
     await expect(statement(cells(5), ", max_pivot_columns => 10")).resolves.toMatch(/^WITH /);
     await expect(statement(cells(6), ", max_pivot_columns => 10")).rejects.toThrow(/over 10 cells/);
-    await expect(statement(keysPlan(200))).resolves.toMatch(/^SELECT /);
-    await expect(statement(keysPlan(201))).rejects.toThrow(/limit/);
+    await expect(statement(keysPlan(200))).resolves.toMatch(/LIMIT LEAST\(.*, 200\)\) s$/);
+    await expect(statement(keysPlan(200, 3), ", max_pivot_columns => 10")).resolves.toMatch(/LIMIT LEAST\(.*, 3\)\) s$/);
+    await expect(statement(keysPlan(1001))).rejects.toThrow(/limit/);
+    await expect(statement(keysPlan(1, 11), ", max_pivot_columns => 10")).rejects.toThrow(/values/);
+    await expect(statement(keysPlan(1, 1.5))).rejects.toThrow(/values/);
     await expect(statement({ ...cells(1), pivot: { keys: [{ c: "secret", op: "is" }] } })).rejects.toThrow(/allow-list/);
     await expect(statement({ ...cells(1), pivot: { keys: [{ or: keys(9) }] } }, ", max_nodes => 10")).rejects.toThrow(/nodes/);
   });
@@ -247,7 +267,7 @@ describe("pivot plans over a capturing fetch", () => {
   const groupsAnswer = [{ key: "red", count: 2, childCount: 2, aggregates: ["3"], cells: ["1", null] }];
   const keysAnswer = [{ key: "1", total: 3 }, { key: null, total: 3 }];
 
-  it("sends the keys call, then the cells call with one filter per key; the group count runs beside them", async () => {
+  it("sends the keys call, then the cells call with one filter per key; the group count runs beside the cells call", async () => {
     const { client: rest, sent } = captureSupabase((request) => {
       const plan = (request.body as { plan: { kind: string } }).plan;
       return { data: plan.kind === "pivotKeys" ? keysAnswer : plan.kind === "groups" ? groupsAnswer : 1 };
@@ -255,10 +275,10 @@ describe("pivot plans over a capturing fetch", () => {
     const query = createSupabaseGridQuery({ client: rest, table: "items", columns: groupColumns("pg"), rpc: "items_grid", maxUrlLength: 1, limits: { maxPivotColumns: 2 } }) as unknown as LooseQuery;
     const answer = await query.fetchRows(body({ groupBy: ["tag"], pivot: "qty", aggregates: [{ columnId: "qty", reducer: "sum" }] }));
     expect(sent.map((request) => request.rawBody)).toEqual([
-      '{"plan":{"kind":"pivotKeys","where":true,"level":{"c":"qty","blank":false},"desc":false,"limit":2}}',
+      '{"plan":{"kind":"pivotKeys","where":true,"level":{"c":"qty","blank":false},"desc":false,"limit":2,"values":1}}',
+      '{"plan":{"kind":"groups","where":true,"level":{"c":"tag","blank":true},"next":null,"desc":false,"offset":0,"limit":1000,"aggregates":[{"c":"qty","reducer":"sum","blank":false}],"pivot":{"keys":[{"c":"qty","op":"eq","v":"1"},{"c":"qty","op":"is"}]}}}',
       '{"plan":{"kind":"groupCount","where":true,"level":{"c":"tag","blank":true}}}',
       '{"plan":{"kind":"count","where":true}}',
-      '{"plan":{"kind":"groups","where":true,"level":{"c":"tag","blank":true},"next":null,"desc":false,"offset":0,"limit":1000,"aggregates":[{"c":"qty","reducer":"sum","blank":false}],"pivot":{"keys":[{"c":"qty","op":"eq","v":"1"},{"c":"qty","op":"is"}]}}}',
     ]);
     expect(answer).toMatchObject({ groups: [{ key: "red", pivotCells: [1, null] }], pivotColumns: [{ path: [1], valueIndex: 0 }, { path: [null], valueIndex: 0 }], pivotOmitted: 1 });
   });

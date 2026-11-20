@@ -39,6 +39,19 @@ describe("a pivot pages source (server pagination)", () => {
     expect(result.current.gridProps.groupLayout!.pivot).toBe(held);
   });
 
+  it("clamps the page size to 200 groups under pivot", async () => {
+    const regions = Object.fromEntries(Array.from({ length: 450 }, (_, index) => [`r${String(index).padStart(3, "0")}`, 1]));
+    const server = fakeServer(rowsOf(regions));
+    const { result } = mount(server, { defaultPageSize: 10_000, pageSizeOptions: [10_000] });
+    await waitFor(() => expect(result.current.gridProps.groupLayout?.rows).toHaveLength(200));
+    expect(server.calls[0]).toMatchObject({ start: 0, end: 200, page: 1, pageSize: 200 });
+    expect([result.current.pager.pageSize, result.current.pager.pageCount]).toEqual([200, 3]);
+    act(() => result.current.pager.onPageChange(3));
+    await waitFor(() => expect(keysOf(result)).toHaveLength(50));
+    expect(server.calls.at(-1)).toMatchObject({ start: 400, end: 450, page: 3, pageSize: 200 });
+    expect(keysOf(result)![0]).toBe("r400");
+  });
+
   it("never sends a rows request when groups open on any page", async () => {
     const server = fakeServer(rowsOf(REGIONS));
     const { result } = mount(server, { defaultExpanded: { mode: "collapsed", ids: [groupIdOf([{ columnId: "region", key: "A" }])] } });

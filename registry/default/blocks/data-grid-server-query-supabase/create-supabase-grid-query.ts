@@ -57,8 +57,8 @@ export type GridFunctionPlan =
   | { kind: "aggregates"; where: Filter; columns: GridFunctionAggregate[] }
   /** Under `pivot`, each group also answers `cells`: per key, one value per aggregate. Each key is the filter that keeps its rows. */
   | { kind: "groups"; where: Filter; level: GridFunctionKey; next: GridFunctionKey | null; desc: boolean; offset: number; limit: number; aggregates: GridFunctionAggregate[]; pivot?: { keys: Filter[] } }
-  /** The first `limit` keys of `level` in key order, each with the count of all keys as `total`. */
-  | { kind: "pivotKeys"; where: Filter; level: GridFunctionKey; desc: boolean; limit: number }
+  /** The first `limit` keys of `level` in key order, each with the count of all keys as `total`; `values` generated columns per key. */
+  | { kind: "pivotKeys"; where: Filter; level: GridFunctionKey; desc: boolean; limit: number; values: number }
   | { kind: "groupCount"; where: Filter; level: GridFunctionKey };
 type GridFunctionAggregate = { c: string; reducer: AggregateReducer; blank: boolean };
 type GridFunctionKey = { c: string; blank: boolean };
@@ -252,7 +252,7 @@ export function createSupabaseGridQuery<TRow, TContext>(options: SupabaseGridQue
         }));
       },
       selectPivotKeys: async (plan, { limit, signal }) => {
-        const data = await callFunction({ kind: "pivotKeys", where: renderFilter(plan.where), level: key(plan.level), desc: plan.direction === "desc", limit }, signal, ["spec", "pivot"]);
+        const data = await callFunction({ kind: "pivotKeys", where: renderFilter(plan.where), level: key(plan.level), desc: plan.direction === "desc", limit, values: plan.aggregates.length }, signal, ["spec", "pivot"]);
         return rowsOf(data).map((entry) => ({ key: get(entry, "key"), total: get(entry, "total") }));
       },
       countGroups: async (plan, signal) => callFunction({ kind: "groupCount", where: renderFilter(plan.where), level: key(plan.level) }, signal, ["spec", "groupBy"]),

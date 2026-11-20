@@ -77,6 +77,16 @@ describe("visible columns under pivot", () => {
     expect(state().visibleColumns[1]).not.toBe(before[1]);
   });
 
+  it("keep the generated columns when a landing changes only the omitted count", () => {
+    const pivot = held([2024, 2025]);
+    const { state, sync } = make({ groupLayout: layoutOf(pivot) });
+    const before = { visible: state().visibleColumns, generated: state().pivot!.columns };
+    sync({ groupLayout: layoutOf({ ...pivot, omitted: 3 }) });
+    expect(state().pivot?.omitted).toBe(3);
+    expect(state().pivot?.columns).toBe(before.generated);
+    expect(state().visibleColumns).toBe(before.visible);
+  });
+
   it("are the source columns without pivot, and source order, pins, and hidden state survive pivot on and off", () => {
     const { state, sync, ids } = make({ groupLayout: layoutOf(undefined) });
     expect(state().pivot).toBeNull();
@@ -147,6 +157,17 @@ describe("widths of generated columns", () => {
     expect(onColumnLayoutChange.mock.calls.flatMap(([layout]) => Object.keys(layout.widths))).not.toContain(id2024);
     state().actions.resetColumnWidth(id2024);
     expect(state().columnWidths[id2024]).toBeUndefined();
+  });
+
+  it("drop when the held set loses their column or pivot turns off", () => {
+    const { state, sync } = make();
+    state().actions.setColumnWidth(id2024, 180);
+    state().actions.setColumnWidth(id2025, 190);
+    state().actions.setColumnWidth("region", 150);
+    sync({ groupLayout: layoutOf(held([2025])) });
+    expect(state().columnWidths).toEqual({ [id2025]: 190, region: 150 });
+    sync({ groupLayout: layoutOf(undefined) });
+    expect(state().columnWidths).toEqual({ region: 150 });
   });
 
   it("autosize for the session, with no unknown-column warning and no layout event", () => {

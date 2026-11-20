@@ -109,7 +109,8 @@ function parsePivot(spec: Raw, groupingOf: () => GroupRequest | null, ctx: Ctx):
   const id: unknown = ids[0];
   const column = typeof id === "string" ? ctx.map.byId.get(id) : undefined;
   if (!column || column.serverOnly || !column.sortable) throw new QueryError("unknown-column", path);
-  if (column.keepBlankText || (column.time && ctx.capabilities.exactInstantKeys === false)) throw new QueryError("unsupported", path);
+  // Phase 1 reads a stored instant at millisecond precision, so a finer stored instant matches no key.
+  if (column.keepBlankText || column.time) throw new QueryError("unsupported", path);
   const grouping = groupingOf();
   if (!grouping) throw new QueryError("invalid-request", ["spec", "groupBy"]);
   if (grouping.childKind === "rows") throw new QueryError("unsupported", ["childKind"]);
@@ -122,10 +123,19 @@ function parsePivot(spec: Raw, groupingOf: () => GroupRequest | null, ctx: Ctx):
   return column;
 }
 
-/** The test that keeps the rows of one pivot key the executor answered, or throws {@link QueryError}. */
-export function pivotKeyTest(column: PlanColumn, key: unknown, limits: ResolvedLimits): Predicate {
+/**
+ * The test that keeps the rows of one stored pivot key, or `null` when the key has no exact test: a native enum value
+ * outside `choices`, or a number the limits or the column type cannot hold.
+ */
+export function pivotKeyTest(column: PlanColumn, key: unknown, limits: ResolvedLimits): Predicate | null {
   const ctx = { limits, budget: { nodes: 0, leaves: 0, listValues: 0, bytes: 0 } } as Ctx;
-  return groupEquality(column, key, ["spec", "pivot", "columnIds", 0], ctx);
+  try {
+    const test = groupEquality(column, key, ["spec", "pivot", "columnIds", 0], ctx);
+    return test === FALSE ? null : test;
+  } catch (error) {
+    if (error instanceof QueryError && error.code === "invalid-value") return null;
+    throw error;
+  }
 }
 
 type GroupRequest = { levels: PlanColumn[]; path: Predicate[]; childKind: "groups" | "rows"; aggregates: GroupsPlan["aggregates"] };

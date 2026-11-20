@@ -50,7 +50,10 @@ export type AdapterCapabilities = {
   blankTextAggregates?: boolean;
   /** The longest id list the adapter binds, a positive integer. A longer selection is `limit-exceeded`. Default: no limit. */
   maxBoundIds?: number;
-  /** The adapter answers `spec.pivot` through `selectPivotKeys` and the pivot cells of `selectGroups`. Default `false`: a pivot is `unsupported`. */
+  /**
+   * The adapter answers `spec.pivot` through `selectPivotKeys` and the pivot cells of `selectGroups`. Default `false`: a pivot
+   * is `unsupported`. A `time` pivot column is `unsupported` on every adapter, because the keys read at millisecond precision.
+   */
   pivot?: boolean;
 };
 
@@ -72,7 +75,7 @@ export type QueryExecutor<TWhere, TOrder> = {
   countGroups(plan: GroupsPlan, signal?: AbortSignal): Promise<unknown>;
   /**
    * The first `limit` groups of `plan.level` in key order with the empty key last, in one query; each row's `total` is
-   * the group count of the whole result. Required when `capabilities.pivot` is on.
+   * the group count of the whole result. `plan.aggregates` holds the values of each key. Required when `capabilities.pivot` is on.
    */
   selectPivotKeys?(plan: GroupsPlan, page: { limit: number; signal?: AbortSignal }): Promise<{ key: unknown; total: unknown }[]>;
   where(plan: { where: Predicate }): TWhere;
@@ -104,7 +107,7 @@ export type GroupsAnswer = {
   totalRowCount?: number;
   /** Under `spec.pivot`: the generated columns, key-major; `valueIndex` indexes `spec.aggregates`. */
   pivotColumns?: { path: (string | number | boolean | null)[]; valueIndex: number }[];
-  /** Under `spec.pivot`: the generated columns cut past `maxPivotColumns`. */
+  /** Under `spec.pivot`: the generated columns cut past `maxPivotColumns`, plus those of a stored key without an exact test (a native enum value outside `choices`, a number over `maxNumberLength`). */
   pivotOmitted?: number;
 };
 /** The answer of `selection`: the count of the selected rows, and with `include` one page of their ids or rows. */
@@ -274,12 +277,14 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
   /** Phase 1 of a pivot: the kept keys in one query over the page's scoped `where`, each with the test that keeps its rows. */
   const withPivotKeys = async (plan: GroupsPlan, pivot: NonNullable<GroupsPlan["pivot"]>, signal: AbortSignal | undefined): Promise<GroupsPlan> => {
     const kept = Math.floor(resolvedLimits.maxPivotColumns / plan.aggregates.length);
-    const keysPlan: GroupsPlan = { ...plan, level: pivot.column, nextLevel: undefined, direction: pivot.direction, rowRange: { start: 0, end: kept }, countRows: false, aggregates: [], pivot: undefined };
+    const keysPlan: GroupsPlan = { ...plan, level: pivot.column, nextLevel: undefined, direction: pivot.direction, rowRange: { start: 0, end: kept }, countRows: false, pivot: undefined };
     const found = (await executor.selectPivotKeys!(keysPlan, { limit: kept, signal })).slice(0, kept);
-    const keys = found.map((entry) => {
+    // A stored key without an exact test drops, and the omitted count includes it.
+    const keys = found.flatMap((entry) => {
       const key = groupKeyValue(entry.key, pivot.column);
       if (typeof key === "string" && key.length > groupKeyCap) throw new QueryError("limit-exceeded", ["spec", "pivot", "columnIds", 0]);
-      return { key, test: pivotKeyTest(pivot.column, key, resolvedLimits) };
+      const test = pivotKeyTest(pivot.column, key, resolvedLimits);
+      return test === null ? [] : [{ key, test }];
     });
     const total = found.length === 0 ? 0 : (countOf(found[0]!.total) ?? 0);
     return { ...plan, pivot: { ...pivot, keys, omitted: Math.max(0, total - keys.length) * plan.aggregates.length } };
@@ -302,13 +307,13 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
     alive(signal);
     const size = plan.rowRange.end - plan.rowRange.start;
     const topLevelRows: RowsPlan = { kind: "rows", where: plan.where, orderBy: [], rowRange: plan.rowRange, runCount: true, projection: [] };
-    let paged = plan;
     const page = { offset: plan.rowRange.start, limit: size, signal };
-    // Without a pivot, `selectGroups` runs first and synchronously, so its synchronous refusal starts no count.
+    // The keys query runs alone first, so its failure starts no count.
+    const paged = plan.pivot ? await withPivotKeys(plan, plan.pivot, signal) : plan;
+    alive(signal);
+    // `selectGroups` runs first and synchronously, so its synchronous refusal starts no count.
     const [found, groupCount, rowCount] = await Promise.all([
-      plan.pivot
-        ? withPivotKeys(plan, plan.pivot, signal).then((keyed) => executor.selectGroups((paged = keyed), page))
-        : executor.selectGroups(plan, page),
+      executor.selectGroups(paged, page),
       executor.countGroups(plan, signal),
       plan.countRows ? executor.countRows(topLevelRows, signal) : Promise.resolve(undefined),
     ]);

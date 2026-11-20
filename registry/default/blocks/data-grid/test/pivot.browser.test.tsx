@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { DataGrid, defineColumns } from "../data-grid";
 import type { ServerGroupLayout } from "../data-grid-sdk";
-import { expectNoPaintMismatch, type PaintState } from "./paint-parity.test-helper";
+import { DEFAULT_ALLOW, expectNoPaintMismatch, visibleColorAt, type PaintState } from "./paint-parity.test-helper";
 import "@/app/global.css";
 
 type Row = { id: string; region: string; year: number; amount: number };
@@ -45,7 +45,7 @@ async function shiftClick(el: HTMLElement) {
   await userEvent.keyboard("{/Shift}");
 }
 
-function Pivot({ radius, dir }: { radius?: string; dir?: "rtl" }) {
+function Pivot({ radius, dir, searchText }: { radius?: string; dir?: "rtl"; searchText?: string }) {
   return (
     <div style={{ width: 720, ...(radius === undefined ? null : { "--radius": radius }) } as CSSProperties} dir={dir}>
       <DataGrid
@@ -55,6 +55,7 @@ function Pivot({ radius, dir }: { radius?: string; dir?: "rtl" }) {
         groupBy={["region"]}
         groupLayout={layout}
         rowMarkers="checkbox"
+        searchText={searchText}
         className="h-[320px]"
         aria-label="Sales by year"
       />
@@ -89,15 +90,34 @@ describe("a pivot grid", () => {
       },
       { name: "keyboard focus moved", apply: () => userEvent.keyboard("{ArrowDown}") },
       {
-        name: "pivot row in the rows channel (Shift+Space)",
+        name: "Shift+Space, which selects no pivot row",
         apply: async () => {
           await userEvent.keyboard("{Shift>} {/Shift}");
-          expect(cellsOf(activeRow())[4]!.getAttribute("aria-selected")).toBe("true");
+          expect(cellsOf(activeRow())[4]!.getAttribute("aria-selected")).toBeNull();
         },
       },
-      { name: "hovered selected pivot row", apply: () => userEvent.hover(cellsOf(activeRow())[2]!) },
+      { name: "hovered active pivot row", apply: () => userEvent.hover(cellsOf(activeRow())[2]!) },
     ];
     await expectNoPaintMismatch(grid, states);
+  });
+
+  it("highlights a find match in a pivot cell, and paints nothing else of its own", async () => {
+    await render(<Pivot searchText="100" />);
+    await vi.waitFor(() => expect(q("[data-search-match]")).toHaveLength(1));
+    const match = q("[data-search-match]")[0]!;
+    expect([match.textContent, match.closest('[role="row"]')]).toEqual(["100", rows()[1]]);
+    const plain = cellsOf(rows()[2]!)[1]!;
+    expect(visibleColorAt(match)).not.toEqual(visibleColorAt(plain));
+    const grid = document.querySelector<HTMLElement>('[role="treegrid"]')!;
+    await expectNoPaintMismatch(
+      grid,
+      [
+        { name: "find match", apply: () => {} },
+        { name: "hovered match", apply: () => userEvent.hover(match) },
+        { name: "active match", apply: () => userEvent.click(match) },
+      ],
+      { allow: `${DEFAULT_ALLOW}, [data-search-match]` },
+    );
   });
 
   it.each(["0px", "1rem"])("paints the same with --radius %s", async (radius) => {

@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { COLUMN_BORDER } from "../columns/column-border";
 import { columnLabelText } from "../columns/column-format-helpers";
 import { pinnedInsetStyle } from "../columns/pinned-inset-style";
-import { keepsFocusOutsideGrid } from "../cell";
+import { keepsFocusOutsideGrid, SEARCH_MATCH_PAINT } from "../cell";
 import { GRID_ATTR, GRID_ROLE_SELECTOR } from "../data-attributes";
 import type { GroupLabelCtx, GroupNode } from "../group-types";
 import { cellLayer } from "../layers";
@@ -63,13 +63,14 @@ type GroupCellProps = {
   span?: number;
   isActive: boolean;
   isSelected: boolean;
+  isSearchMatch?: boolean;
   pin?: AnyColumnDef["pin"];
   className?: string;
   children?: ReactNode;
 };
 
 /** A group row cell: navigable and selectable, never editable. */
-function GroupCell({ viewRowIndex, col, columnId, startTrack, span, isActive, isSelected, pin, className, children }: GroupCellProps): ReactNode {
+function GroupCell({ viewRowIndex, col, columnId, startTrack, span, isActive, isSelected, isSearchMatch, pin, className, children }: GroupCellProps): ReactNode {
   const { interaction } = useDataGridRootContext();
   const ref = useRef<HTMLDivElement>(null);
   const coord = useMemo(() => ({ col, row: viewRowIndex }), [col, viewRowIndex]);
@@ -96,6 +97,7 @@ function GroupCell({ viewRowIndex, col, columnId, startTrack, span, isActive, is
       data-column-id={columnId}
       data-pinned={pin}
       data-active={isActive || undefined}
+      data-search-match={isSearchMatch || undefined}
       data-readonly=""
       className={cn("relative flex items-center border-b border-border px-2 outline-none", COLUMN_BORDER, span === undefined && "overflow-hidden", className)}
       style={style}
@@ -193,10 +195,11 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
             startTrack={index + markerColOffset}
             isActive={isActive}
             isSelected={isActive || colRangesContain(cellState.selectedColRanges, index)}
+            isSearchMatch={pivot && !pinned && (cellState.searchMatchCols?.has(index) ?? false)}
             pin={column.pin}
             className={cn(
               cellTypes[column.type ?? "text"]?.numeric === true && "justify-end tabular-nums",
-              pinned && GROUP_TINT,
+              pinned ? GROUP_TINT : pivot && SEARCH_MATCH_PAINT,
             )}
           >
             <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{column.aggregate === undefined ? null : aggregateText(column, aggregateOf(node, column), cellTypes, locale)}</span>

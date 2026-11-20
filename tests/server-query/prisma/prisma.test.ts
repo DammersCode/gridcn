@@ -83,7 +83,7 @@ async function openKinds(engine: Engine): Promise<Setup & { close(): Promise<voi
   const rows = kindRows(engine);
   const columns = { kysely: defineColumnMap(kindSpecs(engine)) };
   let db: PrismaDatabase;
-  let kysely: Kysely<never>;
+  let kysely: Kysely<unknown>;
   let raw: (sql: string) => Promise<Row[]>;
   let release: () => Promise<void> | void;
   if (engine === "sqlite") {

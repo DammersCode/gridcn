@@ -83,7 +83,7 @@ export function groupPositionAt(s: { viewIndex: ArrayLike<number>; groupLayout: 
 
 /** The group row at `viewRow` with its position and open state; `null` for a data row, a hole, or a grid that does not group. */
 export function groupRowMetaAt(
-  s: { viewIndex: ArrayLike<number>; groupLayout: GroupLayout | null; expanded: ExpandedState },
+  s: { viewIndex: ArrayLike<number>; groupLayout: GroupLayout | null; expanded: ExpandedState; pivot?: object | null },
   viewRow: number,
 ): GroupRowMeta | null {
   const at = groupIndexAt(s.viewIndex, viewRow);
@@ -96,6 +96,6 @@ export function groupRowMetaAt(
     isOpen = expandedTest(s.expanded);
     openByExpanded.set(s.expanded, isOpen);
   }
-  return { ...position, node, expanded: isOpen(node.id) };
+  return { ...position, node, expanded: !s.pivot && isOpen(node.id) };
 }
 

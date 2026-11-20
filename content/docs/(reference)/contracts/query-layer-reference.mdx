@@ -111,7 +111,7 @@ Set `limits` on the factory to change a bound. A request over a bound fails with
 | `maxSelectionIds` | 200000 |
 | `maxCursorBytes` | 2048 |
 
-`maxNumberLength` also bounds the digits of an int or decimal value after its exponent expands. `maxChangeOps` and `maxChangeBytes` bound a [save](/docs/save-server/validate-server-saves#limits). `maxSelectionIds` bounds each id list of a [selection](/docs/rows-live-data/query-selected-rows#limits). `maxCursorBytes` bounds the text of a [cursor](/docs/scroll-mode/page-queries-cursor#limits). `maxPivotColumns` bounds the pivot keys times the values of a [pivot](/docs/data-modes/pivot-server-rows#query-layer). The layer keeps the first keys and counts the rest in `pivotOmitted`.
+`maxNumberLength` also bounds the digits of an int or decimal value after its exponent expands. `maxChangeOps` and `maxChangeBytes` bound a [save](/docs/save-server/validate-server-saves#limits). `maxSelectionIds` bounds each id list of a [selection](/docs/rows-live-data/query-selected-rows#limits). `maxCursorBytes` bounds the text of a [cursor](/docs/scroll-mode/page-queries-cursor#limits). `maxPivotColumns` bounds the pivot keys times the values of a [pivot](/docs/data-modes/pivot-server-rows#query-layer), and a larger value than 200 reads as 200. The layer keeps the first keys and counts the rest in `pivotOmitted`.
 
 A group nests one group at most. A deeper group fails with `limit-exceeded`. With `maxOffset`, a `start` above the bound fails with `offset-too-deep`.
 

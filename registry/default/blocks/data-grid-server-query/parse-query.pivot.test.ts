@@ -74,7 +74,7 @@ describe("parseQuery: pivot", () => {
     ["a column list that is no array", { groupBy: ["name"], aggregates: SUM, pivot: { columnIds: "tag" } }, {}, "unsupported", "spec"],
     ["a rows request under pivot", { groupBy: ["name"], aggregates: SUM, pivot: { columnIds: ["tag"] } }, { groupPath: [{ columnId: "name", key: "x" }] }, "unsupported", "childKind"],
     ["a non-numeric value other than count", { groupBy: ["name"], aggregates: [{ columnId: "label", reducer: "max" }], pivot: { columnIds: ["tag"] } }, {}, "unsupported", "spec.aggregates.0"],
-    ["a time pivot column without exact instant keys", { groupBy: ["name"], aggregates: SUM, pivot: { columnIds: ["seen"] } }, {}, "unsupported", "spec.pivot.columnIds.0", { ...capabilities, exactInstantKeys: false }],
+    ["a time pivot column", { groupBy: ["name"], aggregates: SUM, pivot: { columnIds: ["seen"] } }, {}, "unsupported", "spec.pivot.columnIds.0"],
     ["a pivot column that keeps blank text", { groupBy: ["name"], aggregates: SUM, pivot: { columnIds: ["kept"] } }, {}, "unsupported", "spec.pivot.columnIds.0"],
     ["no groupBy", { aggregates: SUM, pivot: { columnIds: ["tag"] } }, {}, "invalid-request", "spec.groupBy"],
     ["no aggregates", { groupBy: ["name"], pivot: { columnIds: ["tag"] } }, {}, "invalid-request", "spec.aggregates"],

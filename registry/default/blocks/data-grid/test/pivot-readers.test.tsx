@@ -211,4 +211,10 @@ describe("autosize", () => {
     expect(widthOf(123_456_789.25) - widthOf(Number.NaN)).toBeGreaterThan(0);
     expect(widthOf(123_456_789.25)).toBeGreaterThanOrEqual("123,456,789.25".length * 7);
   });
+
+  it("measures the group label that a pivot row shows in the groupBy column", () => {
+    const { store, state } = make({ rows: [slot(0, "A very long region name")], leafCount: 2, pivot: held([2024]) });
+    store.setState({ measureFonts: () => ({ cellFont: "14px sans", headerFont: "14px sans", cellPadding: 16, hasHeaderMenu: false, hasHeaderFilter: false, window: null }) });
+    expect(state().actions.autosizeColumns({ columnIds: ["region"] })["region"]).toBeGreaterThanOrEqual("Region: A very long region name (2)".length * 7);
+  });
 });
