@@ -92,6 +92,20 @@ as $$
   where a.attrelid = tbl and a.attname = name and a.attnum > 0 and not a.attisdropped
 $$;
 
+-- The comparison `op` on two values of the column's type, qualified by the type's schema when that schema defines it
+-- (citext's `=`), else by pg_catalog, which compares enums, domains, and every built-in type.
+create or replace function gridcn.operator_sql(tbl regclass, name text, op text)
+returns text
+language sql stable security invoker
+set search_path = pg_catalog, pg_temp
+as $$
+  select format('OPERATOR(%I.%s)', coalesce((
+    select n.nspname
+    from pg_attribute a join pg_type ty on ty.oid = a.atttypid join pg_namespace n on n.oid = ty.typnamespace
+      join pg_operator o on o.oprname = op and o.oprleft = ty.oid and o.oprright = ty.oid and o.oprnamespace = ty.typnamespace
+    where a.attrelid = tbl and a.attname = name and a.attnum > 0 and not a.attisdropped), 'pg_catalog'), op)
+$$;
+
 -- The SQL of one filter node, PostgREST's operators with PostgREST's semantics (`not` is plain NOT).
 create or replace function gridcn.filter_sql(tbl regclass, allowed text[], node jsonb, path text[], depth int default 0)
 returns text
@@ -146,7 +160,7 @@ begin
     if jsonb_typeof(node -> 'v') is distinct from 'array' or exists (select 1 from jsonb_array_elements(node -> 'v') e where jsonb_typeof(e) <> 'string') then
       raise exception 'gridcn: in takes a list of texts' using errcode = '22023';
     end if;
-    return format('%s OPERATOR(pg_catalog.=) ANY (CAST(ARRAY(SELECT pg_catalog.jsonb_array_elements_text($1 OPERATOR(pg_catalog.#>) %L)) AS %s[]))', col, (path || 'v'::text)::text, typ);
+    return format('%s %s ANY (CAST(ARRAY(SELECT pg_catalog.jsonb_array_elements_text($1 OPERATOR(pg_catalog.#>) %L)) AS %s[]))', col, gridcn.operator_sql(tbl, node ->> 'c', '='), (path || 'v'::text)::text, typ);
   end if;
   if jsonb_typeof(node -> 'v') is distinct from 'string' then
     raise exception 'gridcn: the operator takes one text value' using errcode = '22023';
@@ -158,7 +172,7 @@ begin
   if op is null then
     raise exception 'gridcn: unknown operator' using errcode = '22023';
   end if;
-  return format('%s OPERATOR(pg_catalog.%s) CAST(($1 OPERATOR(pg_catalog.#>>) %L) AS %s)', col, op, (path || 'v'::text)::text, typ);
+  return format('%s %s CAST(($1 OPERATOR(pg_catalog.#>>) %L) AS %s)', col, gridcn.operator_sql(tbl, node ->> 'c', op), (path || 'v'::text)::text, typ);
 end $$;
 
 -- Raises `message`. Volatile, so the planner never folds it out of a CASE branch that is not taken.

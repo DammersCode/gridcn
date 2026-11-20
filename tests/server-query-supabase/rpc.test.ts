@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
+import { citext } from "@electric-sql/pglite/contrib/citext";
 import { beforeAll, describe, expect, it } from "vitest";
 import { QueryError, defineColumnMap } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
 import { type SupabaseClientLike, createSupabaseGridQuery } from "@/registry/default/blocks/data-grid-server-query-supabase/data-grid-server-query-supabase";
@@ -72,6 +73,7 @@ const rowIds = async (query: LooseQuery, spec: Record<string, unknown>, context?
 
 /** Runs the wrapper with a plan the browser could send itself. */
 const call = async (plan: unknown, fn = "items_grid", database = () => pg) => (await database().query<{ r: unknown }>(`select public.${fn}($1::jsonb) as r`, [JSON.stringify(plan)])).rows[0]!.r;
+const leaf = (c: string, op: string, v?: unknown) => (v === undefined ? { c, op } : { c, op, v });
 const statement = async (plan: unknown) => (await pg.query<{ s: string }>("select gridcn.grid_sql('public.items'::regclass, $1::text[], $2::jsonb) as s", [ALLOWED, JSON.stringify(plan)])).rows[0]!.s;
 
 beforeAll(async () => {
@@ -152,7 +154,6 @@ describe("the grid function answers what the Drizzle renderer answers on the sam
 });
 
 describe("hostile plans sent straight to the wrapper", () => {
-  const leaf = (c: string, op: string, v?: unknown) => (v === undefined ? { c, op } : { c, op, v });
   const count = (where: unknown) => call({ kind: "count", where });
   const tenantOne = leaf("tenantId", "eq", "1");
 
@@ -357,7 +358,19 @@ describe("row-level security", () => {
     const query = createSupabaseGridQuery({ client: pgClient(() => db, "notes_grid").client, table: "notes", columns: defineColumnMap({ id: { type: "number", numeric: "int4", primaryKey: true }, body: { type: "text" } }), rpc: "notes_grid", maxUrlLength: 1 });
     expect(await query.fetchRows({ spec: {}, start: 0, end: 10 })).toEqual({ rows: [{ id: 1, body: "a" }, { id: 3, body: "c" }], totalRowCount: 2 });
     expect(await call({ kind: "count", where: true }, "notes_grid", () => db)).toBe(2);
+    await db.exec("reset role; set role anon;");
+    await expect(call({ kind: "count", where: true }, "notes_grid", () => db)).rejects.toThrow(/permission denied/);
     await db.exec("reset role;");
+    await db.close();
+  }, 60_000);
+
+  it("compares a type with its own operators, such as citext, by those operators and not by text", async () => {
+    const db = new PGlite({ extensions: { citext } });
+    await db.exec("create extension citext; create role anon nologin; create role authenticated nologin;");
+    await db.exec(GRID_SQL);
+    await db.exec(`create table tags (id citext primary key); insert into tags values ('Ab'), ('b'); ${wrapper("tags_grid", "tags", ["id"])};`);
+    const tags = (where: unknown) => call({ kind: "count", where }, "tags_grid", () => db);
+    expect([await tags(leaf("id", "eq", "AB")), await tags(leaf("id", "in", ["AB", "x"])), await tags(leaf("id", "gt", "a"))]).toEqual([1, 1, 2]);
     await db.close();
   }, 60_000);
 
