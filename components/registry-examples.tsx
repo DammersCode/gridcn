@@ -85,6 +85,7 @@ const EXAMPLES = {
   "data-grid-server-side-demo": dynamic(() => import("@/registry/default/examples/data-grid-server-side-demo")),
   "data-grid-server-query-demo": dynamic(() => import("@/registry/default/examples/data-grid-server-query-demo")),
   "data-grid-server-grouping-demo": dynamic(() => import("@/registry/default/examples/data-grid-server-grouping-demo")),
+  "data-grid-server-pivot-demo": dynamic(() => import("@/registry/default/examples/data-grid-server-pivot-demo")),
   "data-grid-row-grouping-demo": dynamic(() => import("@/registry/default/examples/data-grid-row-grouping-demo")),
   "data-grid-row-reorder-demo": dynamic(() => import("@/registry/default/examples/data-grid-row-reorder-demo")),
   "data-grid-find-replace-demo": dynamic(() => import("@/registry/default/examples/data-grid-find-replace-demo")),
