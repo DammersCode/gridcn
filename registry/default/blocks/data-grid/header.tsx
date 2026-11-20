@@ -151,6 +151,12 @@ export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderPr
     // --grid-dir signs it for RTL (see body.tsx's canvas transform for the full reasoning).
     transform: "translate3d(calc(var(--grid-dir, -1) * var(--grid-scroll-left, 0px)), 0, 0)",
   };
+  // Stable props let the memoized header cells skip a header render that changes nothing of theirs.
+  const resize = useMemo(
+    () => ({ enabled: enableColumnResize, previewColumnWidth: actions.previewColumnWidth, cancelColumnResize: actions.cancelColumnResize, setColumnWidth: actions.setColumnWidth, autosizeColumns: actions.autosizeColumns, direction }),
+    [enableColumnResize, actions, direction],
+  );
+  const reorder = useMemo(() => ({ enabled: enableColumnReorder, state: dragState, onPointerDown: onHeaderDragPointerDown }), [enableColumnReorder, dragState, onHeaderDragPointerDown]);
   const renderLeaf = ({ column, index }: { column: AnyColumnDef; index: number }, rowStart: number) => (
     <DataGridHeaderCell
       key={column.id}
@@ -162,19 +168,8 @@ export function DataGridHeader({ className, renderHeaderCell }: DataGridHeaderPr
       rowSpan={headerRowCount - rowStart + 1}
       headerClickBehavior={headerClickBehavior}
       sortState={sortState}
-      resize={{
-        enabled: enableColumnResize,
-        previewColumnWidth: actions.previewColumnWidth,
-        cancelColumnResize: actions.cancelColumnResize,
-        setColumnWidth: actions.setColumnWidth,
-        autosizeColumns: actions.autosizeColumns,
-        direction,
-      }}
-      reorder={{
-        enabled: enableColumnReorder,
-        state: dragState,
-        onPointerDown: onHeaderDragPointerDown,
-      }}
+      resize={resize}
+      reorder={reorder}
       onSelect={interaction.onHeaderPointerDown}
       onSort={actions.toggleSort}
       renderHeaderMenu={renderHeaderMenu}
