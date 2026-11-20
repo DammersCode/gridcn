@@ -35,7 +35,9 @@ const isExpression = (value: unknown): value is Expression<unknown> => typeof va
 
 /** Reads and counts rows with Kysely, from the column map and a request body. */
 export function createKyselyGridQuery<TRow = Record<string, unknown>, TContext = never>(options: KyselyGridQueryOptions<TContext> & { paging: "cursor" }): GridQuery<TRow, TContext, Fragment, Fragment, string>;
-export function createKyselyGridQuery<TRow = Record<string, unknown>, TContext = never>(options: KyselyGridQueryOptions<TContext>): GridQuery<TRow, TContext, Fragment, Fragment>;
+export function createKyselyGridQuery<TRow = Record<string, unknown>, TContext = never>(options: KyselyGridQueryOptions<TContext> & { paging?: "offset" }): GridQuery<TRow, TContext, Fragment, Fragment>;
+/** A `paging` known only at run time may page by cursor, so the answer's cursor is typed. */
+export function createKyselyGridQuery<TRow = Record<string, unknown>, TContext = never>(options: KyselyGridQueryOptions<TContext>): GridQuery<TRow, TContext, Fragment, Fragment, string>;
 export function createKyselyGridQuery<TRow, TContext>(options: KyselyGridQueryOptions<TContext>): GridQuery<TRow, TContext, Fragment, Fragment, string> {
   const { db, table, dialect, columns } = options;
   assertCustomOperatorHandlers(columns, options.customOperators);

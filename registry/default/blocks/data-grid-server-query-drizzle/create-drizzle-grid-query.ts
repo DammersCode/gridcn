@@ -42,7 +42,9 @@ export type DrizzleGridQueryOptions<TContext = never> = {
 
 /** Reads and counts rows with Drizzle, from the column map and a request body. */
 export function createDrizzleGridQuery<TRow = Record<string, unknown>, TContext = never>(options: DrizzleGridQueryOptions<TContext> & { paging: "cursor" }): GridQuery<TRow, TContext, SQL, SQL, string>;
-export function createDrizzleGridQuery<TRow = Record<string, unknown>, TContext = never>(options: DrizzleGridQueryOptions<TContext>): GridQuery<TRow, TContext, SQL, SQL>;
+export function createDrizzleGridQuery<TRow = Record<string, unknown>, TContext = never>(options: DrizzleGridQueryOptions<TContext> & { paging?: "offset" }): GridQuery<TRow, TContext, SQL, SQL>;
+/** A `paging` known only at run time may page by cursor, so the answer's cursor is typed. */
+export function createDrizzleGridQuery<TRow = Record<string, unknown>, TContext = never>(options: DrizzleGridQueryOptions<TContext>): GridQuery<TRow, TContext, SQL, SQL, string>;
 export function createDrizzleGridQuery<TRow, TContext>(options: DrizzleGridQueryOptions<TContext>): GridQuery<TRow, TContext, SQL, SQL, string> {
   const { db, table, columns } = options;
   const tableColumns = getTableColumns(table) as Record<string, Column>;
