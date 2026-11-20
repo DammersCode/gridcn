@@ -54,7 +54,8 @@ export function createDrizzleGridQuery<TRow = Record<string, unknown>, TContext 
   const algebra: SqlAlgebra<SQL> = {
     dialect,
     raw: (text) => sql.raw(text),
-    param: (value) => sql`${value}`,
+    // Drizzle expands a bare array into one parameter per entry; `sql.param` binds an id list as one.
+    param: (value) => (Array.isArray(value) ? sql`${sql.param(value)}` : sql`${value}`),
     column: (column) => sql`${physical.get(column.id)!}`,
     cat: (...parts) => sql.join(parts, sql.raw("")),
     native: (value) => {

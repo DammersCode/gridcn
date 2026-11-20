@@ -1,6 +1,7 @@
 import type { PlanColumn } from "./column-map";
 import { LIKE_ESCAPE, escapeLike } from "./like";
 import type { Operand, OrderTerm, Predicate, Test, ValuesPlan } from "./plan";
+import { toSafeText } from "./safe-text";
 
 /**
  * The few SQL pieces an ORM supplies, so one renderer holds every semantic decision. `raw` takes text from the closed tables
@@ -21,7 +22,10 @@ export type CustomHandler = (ctx: { column: PlanColumn; value: unknown }) => unk
 
 const CMP_SQL = new Map<string, string>([["gt", " > "], ["gte", " >= "], ["lt", " < "], ["lte", " <= "]]);
 
+const PG_ARRAY_TYPES = new Map<string, string>([["int2", "int2[]"], ["int4", "int4[]"], ["int8", "int8[]"], ["float", "float8[]"], ["decimal", "numeric[]"]]);
+
 const isTextual = (column: PlanColumn): boolean => column.kind === "text" || column.kind === "select";
+const idText = (value: Operand): string => (value.kind === "bigint" ? value.v.toString() : toSafeText(value.v));
 
 export function createSqlRenderer<S>(a: SqlAlgebra<S>, customHandlers: ReadonlyMap<string, CustomHandler>) {
   const { raw, param, cat, column: ref } = a;
@@ -88,6 +92,18 @@ export function createSqlRenderer<S>(a: SqlAlgebra<S>, customHandlers: ReadonlyM
     return group(cat(col, raw(" IS NULL OR "), lhs, raw(" NOT IN "), list));
   }
 
+  /** One bound list: a PostgreSQL array cast to the key type, a JSON array text on SQLite. */
+  function idList(column: PlanColumn, t: Extract<Test, { k: "ids" }>): S {
+    if (!pg) {
+      const json = `[${t.values.map((value) => (value.kind === "text" ? JSON.stringify(value.v) : idText(value))).join(",")}]`;
+      return cat(ref(column), raw(t.negate ? " NOT IN " : " IN "), raw("(SELECT value FROM json_each("), param(json), raw("))"));
+    }
+    const type = column.kind === "number" ? PG_ARRAY_TYPES.get(column.numeric!)! : column.native === "uuid" ? "uuid[]" : "text[]";
+    const lhs = column.native === "enum" ? subject(column) : ref(column);
+    const member = cat(lhs, raw(" = ANY("), param(t.values.map(idText)), raw(`::${type})`));
+    return t.negate ? cat(raw("NOT "), group(member)) : member;
+  }
+
   function test(column: PlanColumn, t: Test): S {
     const col = ref(column);
     switch (t.k) {
@@ -113,6 +129,8 @@ export function createSqlRenderer<S>(a: SqlAlgebra<S>, customHandlers: ReadonlyM
       }
       case "in":
         return inList(column, t);
+      case "ids":
+        return idList(column, t);
       case "custom": {
         const handler = customHandlers.get(t.id);
         if (!handler) throw new Error(`customOperators: no handler for "${t.id}"`);
