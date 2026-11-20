@@ -259,6 +259,14 @@ describe.each(opened.map((setup) => [setup.engine, setup] as const))("Prisma on 
     expect(blankChildren.groups).toEqual((await groupsOf(kysely(), { groupBy: ["mood", "label"] }, { start: 0, end: 10 }, [{ columnId: "mood", key: "calm" }])).groups);
   });
 
+  it("declines a pivot that Kysely answers with unsupported, before any statement", async () => {
+    const pivot = { spec: { groupBy: ["label"], aggregates: [{ columnId: "big", reducer: "sum" }], pivot: { columnIds: ["day"] } }, groupPath: [], childKind: "groups", start: 0, end: 100 };
+    expect(((await kysely().fetchRows(pivot)) as GroupsAnswer).pivotColumns?.length).toBeGreaterThan(0);
+    const before = setup.db.statements.length;
+    await expect(prisma().fetchRows(pivot)).rejects.toMatchObject({ code: "unsupported", path: ["spec"] });
+    expect(setup.db.statements.length).toBe(before);
+  });
+
   it("writes BigInt, Date, date-only, Decimal text, enum, and uuid values through nativeValue", async () => {
     const query = prisma(scope);
     const apply = query.save(async (change) => {
