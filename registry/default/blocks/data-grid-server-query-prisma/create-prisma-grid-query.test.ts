@@ -545,13 +545,22 @@ describe("rowScope and writes", () => {
 
   it("scopes every delegate call of every method", async () => {
     const { query, calls } = make("postgresql", { groupBy: (args) => ((args["by"] as unknown[]).length === 2 ? [] : [{ tag: "a", _count: { _all: 1 } }]) });
+    const either = { filterJoin: "or", filters: [filter("qty", "gt", "1"), filter("title", "contains", "a")] };
     await query.fetchRows(rowsRequest({}), CONTEXT);
-    await query.fetchRows({ spec: { groupBy: ["tag", "name"] }, start: 0, end: 5 }, CONTEXT);
+    await query.fetchRows(rowsRequest(either), CONTEXT);
+    await query.fetchRows({ spec: { ...either, groupBy: ["tag", "name"] }, start: 0, end: 5 }, CONTEXT);
     await query.filterValues({ columnId: "tag", query: "" }, CONTEXT);
     await query.aggregates({ spec: {}, columnIds: ["qty"] }, CONTEXT);
     await query.selection({ selection: { mode: "ids", ids: ["1"], excludedIds: [] }, include: "rows", start: 0, end: 5 }, CONTEXT);
+    await query.selection({ selection: { mode: "allMatching", excludedIds: ["2"], spec: either }, include: "ids", start: 0, end: 5 }, CONTEXT);
     expect(new Set(calls.map((call) => call.method))).toStrictEqual(new Set(["findMany", "count", "groupBy", "aggregate"]));
-    for (const call of calls) expect(JSON.stringify(call.args["where"])).toContain(JSON.stringify(SCOPE));
+    expect(calls.filter((call) => (call.args["by"] as unknown[] | undefined)?.length === 2)).toHaveLength(1);
+    for (const { args } of calls) {
+      const where = args["where"] as Record<string, unknown>;
+      // The scope is the whole where or one member of its top-level AND, never nested under an OR.
+      const members = Object.keys(where).length === 1 && Array.isArray(where["AND"]) ? where["AND"] : [where];
+      expect(members).toContainEqual(SCOPE);
+    }
   });
 });
 
