@@ -226,8 +226,10 @@ answers these codes.
   `floor(maxPivotColumns / aggregates.length)`.
 
 Prisma: declines. A two-field `groupBy` over a 200-group page and 200 keys returns 40,000 pairs,
-above `maxGroupRows`, and it cannot fold `''` into the empty key. Step 6 proves this with a spike,
-then adds the decline test.
+above `maxGroupRows`, and it cannot fold `''` into the empty key. The step 6 spike measured it with
+the real client: 40,200 rows at 200 groups (20,100 at 100), `''` and NULL as two buckets on both
+engines, and one `groupBy` per key under the cap costs 630 to 660 ms. `prisma.test.ts` asserts the
+refusal.
 
 Supabase: `capabilities.pivot` is `rpc !== undefined`. Supabase is unreleased, so the branch needs
 no re-install note.

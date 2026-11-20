@@ -114,6 +114,8 @@ function aggregateValues(found: unknown, columns: AggregatesPlan["columns"]): Ro
  *   column a comparison or range rounds a fraction of a second to the exact whole second; any other instant with a
  *   fraction, such as an `equals` value or a written value, is `unsupported-value`.
  * - Group child counts and group counts read one extra `groupBy` of at most `maxGroupRows` rows.
+ * - A pivot (`spec.pivot`) is `unsupported`: a two-field `groupBy` returns one row per group and key, 40,000 for a
+ *   200-group page and 200 keys, past `maxGroupRows`, and it answers `''` and NULL as two keys.
  *
  * @example
  * import { Prisma, PrismaClient, type User } from "@/generated/prisma/client";
@@ -180,6 +182,8 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
     // `groupBy` takes fields only, and the object API has no `NULLIF(col, '')`.
     expressionValues: false,
     blankTextAggregates: false,
+    // A two-field `groupBy` returns one row per group and key, past `maxGroupRows` at a full page.
+    pivot: false,
     maxBoundIds: maxBoundIds(provider),
   };
 
