@@ -4552,6 +4552,11 @@
           "target": "components/data-grid-server-query/parse-selection.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid-server-query/cursor.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/cursor.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid-server-query/operands.ts",
           "type": "registry:component",
           "target": "components/data-grid-server-query/operands.ts"
