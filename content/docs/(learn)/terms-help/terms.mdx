@@ -62,7 +62,7 @@ A term row links to the page that explains it.
 | frame reorder | The `reorder: "frame"` value of `updateCells`: the values write at once, and one re-place at the next animation frame covers every patched row. | [Push live values](/docs/rows-live-data/stream-updates) |
 | gate | A prop function that the grid calls before it acts, for example `processPaste` or `createRow`. It returns a value or a promise. | [Event shapes](/docs/events-state/event-shapes#gates) |
 | gate pending | The state of a gate whose promise has not settled. `useDataGridGatePending()` reads the gate names. The root carries `data-gate-pending`. | [Gate cancellation and timeouts](/docs/editing-cells/cancel-async-gates#show-the-pending-state) |
-| generated column | A column that a server pivot makes from one key of the pivot column and one aggregate. The core builds it from the answer. It is read-only and shows pivot cells. | [Group server rows](/docs/data-modes/group-server-rows) |
+| generated column | A column that a server pivot makes from one key of the pivot column and one aggregate. The core builds it from the answer. It shows pivot cells and refuses every write. | [Pivot server rows](/docs/data-modes/pivot-server-rows#generated-columns) |
 | grid origin | The row that anchors the rows canvas. It trails the first rendered row and moves only when the rendered rows drift far from it. | [Virtualization](/docs/performance/virtualization) |
 | group key | The stored value that the rows of a row group share. `null`, `undefined`, and `""` form one empty key. | [Row grouping](/docs/rows-pages-menus/row-grouping) |
 | group level | The place of a group column in `groupBy`. The first column is level 0. | [Row grouping](/docs/rows-pages-menus/row-grouping) |
@@ -70,7 +70,7 @@ A term row links to the page that explains it.
 | group row | The view row that heads a row group. It holds no data. A `viewIndex` entry below 0 names it. | [Row grouping](/docs/rows-pages-menus/row-grouping) |
 | header filter | The filter button in a column header. It opens a popover with the set filter of that column. `renderHeaderFilter` places it, and `DataGridHeaderFilter` is the built-in one. | [Header filter](/docs/sort-filter-search/header-filter) |
 | header row | One level of the header block. Group levels come first, and the column headers fill the last row. | [Column headers and groups](/docs/columns/column-headers-groups) |
-| held set | The generated columns that a pivot grid shows. The first answer after a spec change or `refresh()` sets it. Later answers map their cells into it by column id. | [Group server rows](/docs/data-modes/group-server-rows) |
+| held set | The generated columns that a pivot grid shows. The first answer after a spec change or `refresh()` sets it. Later answers map their cells into it by column id. | [Pivot server rows](/docs/data-modes/pivot-server-rows#generated-columns) |
 | hidden checked row | A checked row that a filter, a page change, or a window move takes out of the view. `checkedRowsLifetime="across-filters"` remembers it by row id, outside the row channel. The grid's row operations never act on it. | [Checked rows](/docs/selection-shortcuts/checked-rows) |
 | hosted registry | The `@gridcn` registry that serves the most recent deployment of `main`. | [Install gridcn](/docs/learning-path/install-gridcn) |
 | id list test | The `ids` test: exact primary-key membership, bound as one parameter. | [Query the selected rows](/docs/rows-live-data/query-selected-rows#which-rows-match) |
@@ -95,7 +95,7 @@ A term row links to the page that explains it.
 | pages mode | The default mode of `useDataGridServerRows`: the server answers one page per request. | [Load rows by page](/docs/server-pagination/load-rows-page) |
 | paste result | The value `pasteFromClipboard` resolves: `"ok"`, `"permission-denied"`, `"empty"`, or `"refused"`. | [Clipboard](/docs/clipboard-undo/clipboard) |
 | pinned release | A release installed with `#<ref>` on the GitHub registry path. | [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn) |
-| pivot cell | The value of one generated column in one group row. It is the aggregate over the rows of that row group that hold the key of the column. It is empty when no value counted. | [Group server rows](/docs/data-modes/group-server-rows) |
+| pivot cell | The value of one generated column in one group row. It is the aggregate over the rows of that row group that hold the key of the column. It is empty when no value counted. | [Pivot server rows](/docs/data-modes/pivot-server-rows#answer) |
 | plan hash | The digest of a parsed plan's filter and order. A keyset cursor with another plan hash is stale. | [Page queries by cursor](/docs/scroll-mode/page-queries-cursor#how-the-cursor-resumes) |
 | plugin | A runtime `DataGridPlugin` object in the `plugins` prop. Many add-ons install one. Not every add-on does. | [Plugin model](/docs/plugins/plugin-shape) |
 | prefetch | The pages-mode request for the page after the current one, made before the user asks for it (`prefetchNextPage`). | [Tune page loading](/docs/server-pagination/tune-page-loading#prefetch) |
@@ -523,6 +523,7 @@ A search word in this table opens the page that answers it.
 | `gate pending` | [Handle row action results](/docs/rows-live-data/handle-row-action-results) |
 | `gate timeout` | [Gate cancellation and timeouts](/docs/editing-cells/cancel-async-gates) |
 | `gateTimeoutMs` | [Handle row action results](/docs/rows-live-data/handle-row-action-results) |
+| `generated column` | [Pivot server rows](/docs/data-modes/pivot-server-rows) |
 | `generics` | [TypeScript generics](/docs/types-hooks/typescript-generics) |
 | `getCellMenuItems` | [Context menu items example](/docs/row-examples/context-menu-items-example) |
 | `getrowid` | [DataGrid props](/docs/components-props/data-grid-props) |
@@ -543,6 +544,7 @@ A search word in this table opens the page that answers it.
 | `header cell` | [Column headers and groups](/docs/columns/column-headers-groups) |
 | `header menu` | [Context menu](/docs/rows-pages-menus/context-menu) |
 | `header menu items` | [Context menu options](/docs/add-options/rows-pages-menus/context-menu-options) |
+| `held set` | [Pivot server rows](/docs/data-modes/pivot-server-rows) |
 | `hello world` | [Render your first grid](/docs/learning-path/render-your-first-grid) |
 | `hide columns` | [Column visibility](/docs/columns/column-visibility) |
 | `highlight a range` | [Plugin overlays](/docs/plugins/plugin-overlays) |
@@ -695,6 +697,11 @@ A search word in this table opens the page that answers it.
 | `pin left` | [Column order and pinning](/docs/columns/column-order-pinning) |
 | `pin rows` | [Pinned rows](/docs/rows-pages-menus/pinned-rows) |
 | `pin rows to the edge` | [Plugin overlays](/docs/plugins/plugin-overlays) |
+| `pivot cell` | [Pivot server rows](/docs/data-modes/pivot-server-rows) |
+| `pivot table` | [Pivot server rows](/docs/data-modes/pivot-server-rows) |
+| `pivotCells` | [Pivot server rows](/docs/data-modes/pivot-server-rows) |
+| `pivotColumns` | [Pivot server rows](/docs/data-modes/pivot-server-rows) |
+| `pivotOmitted` | [Pivot server rows](/docs/data-modes/pivot-server-rows) |
 | `playwright` | [Test a grid in your app](/docs/recipes-custom-code/test-grid-in-app) |
 | `plugin api` | [Plugin API](/docs/plugins/plugin-contract) |
 | `plugin commands` | [Plugin commands and shortcuts](/docs/plugins/plugin-commands-shortcuts) |
@@ -847,6 +854,7 @@ A search word in this table opens the page that answers it.
 | `server html` | [Render the grid on the server](/docs/support-upgrades/server-rendering) |
 | `server options` | [Lookup cell](/docs/editing-cells/lookup-cell) |
 | `server pagination` | [Load rows by page](/docs/server-pagination/load-rows-page) |
+| `server pivot` | [Pivot server rows](/docs/data-modes/pivot-server-rows) |
 | `server refresh` | [Refresh server rows](/docs/scroll-mode/refresh-server-rows) |
 | `server row operations` | [Change server rows](/docs/rows-live-data/change-server-rows) |
 | `server rows` | [Server rows contract](/docs/contracts/server-rows-contract) |
@@ -878,6 +886,7 @@ A search word in this table opens the page that answers it.
 | `sort list` | [Sorting](/docs/sort-filter-search/sorting) |
 | `sort popover` | [Sort list options](/docs/add-options/sort-filter-search/sort-list-options) |
 | `sortmode` | [Query server rows](/docs/data-modes/query-server-rows) |
+| `spec.pivot` | [Pivot server rows](/docs/data-modes/pivot-server-rows) |
 | `speed` | [Benchmark results](/docs/performance/benchmark-results) |
 | `spreadsheet filter list` | [Header filter](/docs/sort-filter-search/header-filter) |
 | `spreadsheet paste` | [Clipboard](/docs/clipboard-undo/clipboard) |

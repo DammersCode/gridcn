@@ -107,10 +107,11 @@ Set `limits` on the factory to change a bound. A request over a bound fails with
 | `maxGroupLevels` | 4 |
 | `maxGroupKeyLength` | 1024 |
 | `maxGroupAggregates` | 32 |
+| `maxPivotColumns` | 200 |
 | `maxSelectionIds` | 200000 |
 | `maxCursorBytes` | 2048 |
 
-`maxNumberLength` also bounds the digits of an int or decimal value after its exponent expands. `maxChangeOps` and `maxChangeBytes` bound a [save](/docs/save-server/validate-server-saves#limits). `maxSelectionIds` bounds each id list of a [selection](/docs/rows-live-data/query-selected-rows#limits). `maxCursorBytes` bounds the text of a [cursor](/docs/scroll-mode/page-queries-cursor#limits).
+`maxNumberLength` also bounds the digits of an int or decimal value after its exponent expands. `maxChangeOps` and `maxChangeBytes` bound a [save](/docs/save-server/validate-server-saves#limits). `maxSelectionIds` bounds each id list of a [selection](/docs/rows-live-data/query-selected-rows#limits). `maxCursorBytes` bounds the text of a [cursor](/docs/scroll-mode/page-queries-cursor#limits). `maxPivotColumns` bounds the pivot keys times the values of a [pivot](/docs/data-modes/pivot-server-rows#query-layer). The layer keeps the first keys and counts the rest in `pivotOmitted`.
 
 A group nests one group at most. A deeper group fails with `limit-exceeded`. With `maxOffset`, a `start` above the bound fails with `offset-too-deep`.
 
@@ -118,21 +119,23 @@ A group nests one group at most. A deeper group fails with `limit-exceeded`. Wit
 
 A request with `groupBy` and `childKind: "groups"` resolves a `GroupsAnswer`: `groups`, `groupCount`, and, at the top level, `totalRowCount`. Each group holds `key`, `childCount`, `totalRowCount`, and `aggregates` keyed by column id. A reducer with no counted value gives `null`. `fetchRows` has the type `Promise<RowsAnswer | GroupsAnswer>`. A `capabilities.groupBy` of `false` answers `unsupported`. A group page with a text key longer than `maxGroupKeyLength` fails with `limit-exceeded` at `spec.groupBy.<columnId>`. The bound never goes above 1,024, which is what the grid accepts.
 
+A groups request with `spec.pivot` also resolves `pivotColumns`, `pivotOmitted`, and `pivotCells` on each group. A `capabilities.pivot` of `false`, the default of an executor, answers `unsupported`. Drizzle and Kysely set it, Supabase sets it with `rpc`, and Prisma never sets it.
+
 ## Errors [#errors]
 
 The query layer throws `QueryError` with a `code` and a `path`. The path holds field names and indices, never request text. `handleGridRequest` answers `{ error, path }`.
 
 | Code | Status | Meaning |
 |---|---|---|
-| `invalid-request` | 400 | The body has the wrong shape. |
-| `unknown-column` | 400 | The column is not in the map, or is `serverOnly`. |
+| `invalid-request` | 400 | The body has the wrong shape, or a pivot has no `groupBy`, no aggregates, or its column in `groupBy`. |
+| `unknown-column` | 400 | The column is not in the map, or is `serverOnly`. A pivot column that is not sortable also answers this code. |
 | `unknown-operator` | 400 | The operator is not built in and the column does not declare it. |
 | `operator-not-allowed` | 400 | The operator does not fit the kind of the column, or the column is not filterable or sortable. |
 | `invalid-value` | 400 | A value is over its length, a range does not match the page, or the layer declines an excluded id of a selection. |
-| `limit-exceeded` | 400 | The tree, a list, or a change is over a bound, a group key is over `maxGroupKeyLength`, or a cursor cannot carry a key. |
+| `limit-exceeded` | 400 | A tree, list, change, or pivot is over a bound, a key is over `maxGroupKeyLength`, or a cursor cannot carry a key. |
 | `offset-too-deep` | 400 | `start` is above `maxOffset`. |
 | `bad-cursor` | 400 | The cursor does not parse, is over `maxCursorBytes`, or comes from another filter or sort. |
-| `unsupported` | 501 | The request asks for a pivot, the adapter cannot group, a cursor request groups, or a selection or a save has no single `primaryKey`. |
+| `unsupported` | 501 | The adapter cannot run the request, a cursor request groups, or a selection or a save has no single `primaryKey`. See [pivot refusals](/docs/data-modes/pivot-server-rows#query-layer). |
 | `payload-too-large` | 413 | The body is over `maxBodyBytes`. |
 
 ## Client differences [#client-differences]

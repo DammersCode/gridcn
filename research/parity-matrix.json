@@ -644,12 +644,12 @@
         "L": {
           "status": "gap",
           "track": "S11-L",
-          "note": "Pivot needs a server: the query layer or your route answers the pivot columns and cells, and a local array has no pivot engine."
+          "note": "Pivot needs a server. The query layer or your route answers the pivot columns and cells."
         },
         "PC": {
           "status": "gap",
           "track": "S11-L",
-          "note": "Pivot needs a server: the query layer or your route answers the pivot columns and cells, and a local array has no pivot engine."
+          "note": "Pivot needs a server. The query layer or your route answers the pivot columns and cells."
         },
         "PS": {
           "status": "supported",
@@ -685,10 +685,11 @@
         },
         "API": {
           "status": "n/a",
-          "reason": "Pivot cells are read-only: an edit, paste, fill, or cut writes no pivot cell, so no change reaches onSave or onDataChange."
+          "reason": "An edit, paste, fill, or cut writes no pivot cell, so no change reaches onSave or onDataChange."
         }
       },
-      "note": "`spec.pivot` pivots 1 `groupBy` level. Known gaps: more than 1 `groupBy` level (S11-M; the grid sends no pivot and warns in development), the Prisma adapter (S11-P; it answers `unsupported`), a pivot chooser, sort list, and menus for generated columns (S11-UI), and generated column widths in saved views (S11-V)."
+      "note": "`spec.pivot` pivots 1 `groupBy` level. Known gaps: more than 1 `groupBy` level (S11-M; the grid sends no pivot and warns in development), the Prisma adapter (S11-P; it answers `unsupported`), a pivot chooser, sort list, and menus for generated columns (S11-UI), and generated column widths in saved views (S11-V).",
+      "doc": "/docs/data-modes/pivot-server-rows"
     },
     {
       "id": "pinned-rows",

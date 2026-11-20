@@ -4855,6 +4855,38 @@
       "categories": [
         "data"
       ]
+    },
+    {
+      "name": "data-grid-server-pivot-demo",
+      "type": "registry:example",
+      "title": "Data Grid Server Pivot Demo",
+      "description": "A server pivot on an in-browser PostgreSQL (PGlite): one row per role, one generated column per key of the active column, and the average score in each cell. A panel shows the last statement with its bound parameters.",
+      "author": "gridcn",
+      "dependencies": [
+        "@electric-sql/pglite@^0.5.15",
+        "drizzle-orm@>=0.45.0 <1"
+      ],
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid",
+        "DammersCode/gridcn/data-grid-server",
+        "DammersCode/gridcn/data-grid-server-query",
+        "DammersCode/gridcn/data-grid-server-query-drizzle"
+      ],
+      "files": [
+        {
+          "path": "registry/default/examples/data-grid-server-pivot-demo.tsx",
+          "type": "registry:example",
+          "target": "components/data-grid-server-pivot-demo.tsx"
+        },
+        {
+          "path": "registry/default/examples/data-grid-server-query-demo-db.ts",
+          "type": "registry:example",
+          "target": "components/data-grid-server-query-demo-db.ts"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
     }
   ]
 }
