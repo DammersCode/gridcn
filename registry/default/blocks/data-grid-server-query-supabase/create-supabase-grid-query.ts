@@ -101,6 +101,10 @@ async function read(request: PromiseLike<Result>): Promise<Result> {
  * - LIKE tests on native enum and uuid columns are `unsupported`: PostgREST cannot cast a filtered column to text.
  * - With a user JWT the browser can call PostgREST directly, so row-level security is the only tenancy boundary;
  *   `rowScope` narrows this layer's own queries.
+ * - The grid function takes its plan from the caller and does NOT enforce `rowScope`. A direct caller can read every
+ *   column of the wrapper's allow-list, `serverOnly` columns included; only column GRANTs hide a column. Never make
+ *   the wrapper SECURITY DEFINER: row-level security would check its owner. Revoke EXECUTE on the wrapper from
+ *   `public` and `anon`, and grant it to `authenticated`.
  *
  * @example
  * const columns = defineColumnMap({

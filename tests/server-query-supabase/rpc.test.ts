@@ -13,7 +13,7 @@ import { fakeSupabase } from "./fake-supabase";
 const GRID_SQL = readFileSync(join(process.cwd(), "registry/default/blocks/data-grid-server-query-supabase/grid-query.sql"), "utf8");
 const ALLOWED = ["id", "name", "tag", "score", "qty", "active", "price", "createdAt", "tenantId"];
 const wrapper = (fn: string, table: string, allowed: readonly string[]) => `create function public.${fn}(plan jsonb) returns jsonb language sql stable security invoker
-  as $$ select gridcn.grid_query('public.${table}'::regclass, array[${allowed.map((name) => `'${name}'`).join(", ")}]::text[], plan) $$`;
+  as $$ select gridcn.grid_query('public.${table}'::pg_catalog.regclass, array[${allowed.map((name) => `'${name}'`).join(", ")}]::pg_catalog.text[], plan) $$`;
 
 let pg: PGlite;
 let drizzle: Harness;
@@ -277,5 +277,49 @@ describe("row-level security", () => {
     expect(await call({ kind: "count", where: true }, "notes_grid", () => db)).toBe(2);
     await db.exec("reset role;");
     await db.close();
+  }, 60_000);
+
+  it("a caller's search_path that leads with look-alike functions, catalogs, and operators bends neither the statement nor the rows", async () => {
+    const db = new PGlite();
+    await db.exec("create role anon nologin; create role authenticated nologin;");
+    await db.exec(GRID_SQL);
+    await db.exec(`
+      create table things (id int primary key, name text, qty int);
+      insert into things values (1, 'a', 5), (2, 'b', 6), (3, 'ab', 5), (4, 'c', null);
+      ${wrapper("things_grid", "things", ["id", "name", "qty"])};
+      create schema evil;
+      create function evil.format(text, text) returns text language sql as $$ select 'TRUE OR ' || $2 $$;
+      create function evil.format(text, text, text) returns text language sql as $$ select 'TRUE OR ' || $3 $$;
+      create table evil.pg_attribute (attrelid oid, attname name, attnum int, attisdropped boolean, atttypid oid);
+      insert into evil.pg_attribute select 'things'::regclass, n, 1, false, 'text'::regtype from unnest(array['id', 'name', 'qty']) n;
+      create function evil.always(int, int) returns boolean language sql as $$ select true $$;
+      create operator evil.= (leftarg = int, rightarg = int, function = evil.always);
+      create function evil.zero(jsonb, text[]) returns text language sql as $$ select '0' $$;
+      create operator evil.#>> (leftarg = jsonb, rightarg = text[], function = evil.zero);
+      create function evil.no_match(text, text) returns boolean language sql as $$ select false $$;
+      create operator evil.~~* (leftarg = text, rightarg = text, function = evil.no_match);
+    `);
+    const plans = [
+      { kind: "rows", where: { and: [{ c: "qty", op: "eq", v: "5" }, { c: "name", op: "ilike", v: "%a%" }] }, select: [{ c: "id", text: false }, { c: "qty", text: true }], order: [{ c: "id", desc: false }], offset: 0, limit: 10 },
+      { kind: "count", where: { or: [{ c: "qty", op: "in", v: ["6", "7"] }, { c: "id", op: "gt", v: "3" }] } },
+      { kind: "groups", where: { not: { c: "qty", op: "is" } }, level: { c: "qty", blank: false }, next: null, desc: false, offset: 0, limit: 10, aggregates: [{ c: "name", reducer: "max", blank: true }] },
+      { kind: "values", where: true, c: "name", form: "folded", zone: "UTC", pattern: "%a%", limit: 10 },
+    ];
+    const run = async () => {
+      const out: unknown[] = [];
+      for (const plan of plans) {
+        const sql = (await db.query<{ s: string }>("select gridcn.grid_sql('public.things'::regclass, array['id', 'name', 'qty'], $1::jsonb) as s", [JSON.stringify(plan)])).rows[0]!.s;
+        out.push(sql, await call(plan, "things_grid", () => db));
+      }
+      return out;
+    };
+    const clean = await run();
+    await db.exec("set search_path = evil, pg_catalog, public");
+    try {
+      expect(await outcome(run())).toEqual(clean);
+    } finally {
+      await db.exec("reset search_path");
+      await db.close();
+    }
   }, 60_000);
 });
