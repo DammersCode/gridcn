@@ -3,6 +3,7 @@
 -- Every function is SECURITY INVOKER, so row-level security applies to the caller. A value never enters a
 -- statement: the statement reads it from the bound plan by JSON path. Only names from the wrapper's allow-list
 -- enter it, through format('%I'); operators, reducers, and directions come from closed CASE lists.
+-- No function sets search_path: the policies of the caller's tables resolve their names under the caller's own.
 
 create schema if not exists gridcn;
 grant usage on schema gridcn to anon, authenticated;
@@ -11,7 +12,7 @@ grant usage on schema gridcn to anon, authenticated;
 -- output name of the statement shadows it; any other name raises.
 create or replace function gridcn.column_sql(tbl regclass, allowed text[], name text)
 returns text
-language plpgsql stable security invoker set search_path = pg_catalog
+language plpgsql stable security invoker
 as $$
 begin
   -- coalesce: a NULL allow-list or name refuses, never passes.
@@ -27,7 +28,7 @@ end $$;
 -- The type of a column without its modifier, so a cast never rounds a numeric or cuts a varchar.
 create or replace function gridcn.column_type(tbl regclass, name text)
 returns text
-language sql stable security invoker set search_path = pg_catalog
+language sql stable security invoker
 as $$
   select format_type(a.atttypid, null) from pg_attribute a where a.attrelid = tbl and a.attname = name and a.attnum > 0 and not a.attisdropped
 $$;
@@ -35,7 +36,7 @@ $$;
 -- The SQL of one filter node, PostgREST's operators with PostgREST's semantics (`not` is plain NOT).
 create or replace function gridcn.filter_sql(tbl regclass, allowed text[], node jsonb, path text[], depth int default 0)
 returns text
-language plpgsql stable security invoker set search_path = pg_catalog
+language plpgsql stable security invoker
 as $$
 declare
   op text;
@@ -104,7 +105,7 @@ end $$;
 -- Raises `message`. Volatile, so the planner never folds it out of a CASE branch that is not taken.
 create or replace function gridcn.refuse(message text)
 returns text
-language plpgsql volatile security invoker set search_path = pg_catalog
+language plpgsql volatile security invoker
 as $$
 begin
   raise exception '%', message using errcode = '22023';
@@ -113,7 +114,7 @@ end $$;
 -- The length of the list `plan -> key`, from `minimum` to 1,000 entries; anything else raises.
 create or replace function gridcn.count_of(plan jsonb, key text, minimum int)
 returns int
-language plpgsql immutable security invoker set search_path = pg_catalog
+language plpgsql immutable security invoker
 as $$
 begin
   if jsonb_typeof(plan -> key) is distinct from 'array' or jsonb_array_length(plan -> key) < minimum or jsonb_array_length(plan -> key) > 1000 then
@@ -125,7 +126,7 @@ end $$;
 -- `limit` and `offset` read as bigint from the bound plan; out of range raises.
 create or replace function gridcn.check_page(plan jsonb, with_offset boolean)
 returns void
-language plpgsql immutable security invoker set search_path = pg_catalog
+language plpgsql immutable security invoker
 as $$
 begin
   if jsonb_typeof(plan -> 'limit') is distinct from 'number' or (plan ->> 'limit')::numeric not between 0 and 100000 or (plan ->> 'limit')::numeric % 1 <> 0 then
@@ -139,7 +140,7 @@ end $$;
 -- The aggregate of one `{ c, reducer, blank }` entry, as text; `blank` reads '' as NULL.
 create or replace function gridcn.aggregate_sql(tbl regclass, allowed text[], entry jsonb)
 returns text
-language plpgsql stable security invoker set search_path = pg_catalog
+language plpgsql stable security invoker
 as $$
 declare
   col text := gridcn.column_sql(tbl, allowed, entry ->> 'c');
@@ -158,7 +159,7 @@ end $$;
 -- A group key `{ c, blank }`: the column, with '' read as NULL when `blank`.
 create or replace function gridcn.key_sql(tbl regclass, allowed text[], key jsonb)
 returns text
-language plpgsql stable security invoker set search_path = pg_catalog
+language plpgsql stable security invoker
 as $$
 declare
   col text := gridcn.column_sql(tbl, allowed, key ->> 'c');
@@ -169,7 +170,7 @@ end $$;
 -- The statement of one plan. It holds names and SQL only; `grid_query` runs it with the plan bound as $1.
 create or replace function gridcn.grid_sql(tbl regclass, allowed text[], plan jsonb)
 returns text
-language plpgsql stable security invoker set search_path = pg_catalog
+language plpgsql stable security invoker
 as $$
 declare
   w text;
@@ -237,7 +238,7 @@ end $$;
 -- Runs one plan of `createSupabaseGridQuery` against `tbl`, naming only the columns of `allowed`.
 create or replace function gridcn.grid_query(tbl regclass, allowed text[], plan jsonb)
 returns jsonb
-language plpgsql stable security invoker set search_path = pg_catalog
+language plpgsql stable security invoker
 as $$
 declare
   result jsonb;

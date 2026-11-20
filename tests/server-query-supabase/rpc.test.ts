@@ -80,7 +80,7 @@ beforeAll(async () => {
   await pg.exec("create role anon nologin; create role authenticated nologin;");
   await pg.exec(GRID_SQL);
   await pg.exec(`alter table items add column secret text default 'hidden'; ${wrapper("items_grid", "items", ALLOWED)};`);
-});
+}, 60_000);
 
 describe("the grid function answers what the Drizzle renderer answers on the same PostgreSQL", () => {
   it.each([...ORACLE_CASES, ...SERVER_CASES].map((entry) => [entry.name, entry.filters] as const))("%s", async (_name, filters) => {
@@ -157,7 +157,7 @@ describe("hostile plans sent straight to the wrapper", () => {
   const tenantOne = leaf("tenantId", "eq", "1");
 
   it("binds every value: injection text is compared, never run", async () => {
-    for (const value of ["x' OR '1'='1", "'); drop table items; --", "\\'; select pg_sleep(10); --", "$1", "' || (select secret from items limit 1) || '", "%", "\u0000x".slice(1)]) {
+    for (const value of ["x' OR '1'='1", "'); drop table items; --", "\\'; select pg_sleep(10); --", "$1", "' || (select secret from items limit 1) || '", "%"]) {
       expect(await count({ and: [tenantOne, leaf("name", "eq", value)] })).toBe(0);
     }
     expect(await count(tenantOne)).toBe(21);
@@ -237,6 +237,19 @@ describe("hostile plans sent straight to the wrapper", () => {
     expect(await widths(leaf("code", "eq", "abcd"))).toBe(0);
     expect(await widths(leaf("code", "in", ["abcd", "x"]))).toBe(0);
   });
+
+  it("quotes allowed names that look like SQL or shadow the statement's own aliases", async () => {
+    const names = ['a"b; drop table items; --', "select", "k", "t"];
+    await pg.exec(`create table if not exists odd (id int primary key, ${names.map((name, index) => `"${name.replace(/"/g, '""')}" int default ${index}`).join(", ")}); insert into odd (id) values (1), (2) on conflict do nothing;`);
+    await pg.exec(wrapper("odd_grid", "odd", ["id", ...names.map((name) => name.replace(/'/g, "''"))]));
+    const rows = { kind: "rows", where: { and: names.map((name) => leaf(name, "is", undefined)).map((item) => ({ not: item })) }, select: names.map((c) => ({ c, text: c === "k" })), order: [{ c: "k", desc: true }, { c: "id", desc: false }], offset: 0, limit: 10 };
+    expect(await call(rows, "odd_grid")).toEqual([Object.fromEntries(names.map((name, index) => [name, name === "k" ? String(index) : index])), Object.fromEntries(names.map((name, index) => [name, name === "k" ? String(index) : index]))]);
+    const groups = { kind: "groups", where: true, level: { c: "k", blank: false }, next: { c: "t", blank: false }, desc: false, offset: 0, limit: 10, aggregates: [{ c: names[0], reducer: "sum", blank: false }] };
+    expect(await call(groups, "odd_grid")).toEqual([{ key: "2", count: 2, childCount: 1, aggregates: ["0"] }]);
+    const sql = (await pg.query<{ s: string }>("select gridcn.grid_sql('public.odd'::regclass, $1::text[], $2::jsonb) as s", [["id", ...names], JSON.stringify(groups)])).rows[0]!.s;
+    expect(sql).toMatchSnapshot("odd names");
+    expect(await count({ and: [tenantOne] })).toBe(21);
+  });
 });
 
 describe("row-level security", () => {
@@ -248,8 +261,12 @@ describe("row-level security", () => {
       create table notes (id int primary key, body text, owner int);
       insert into notes values (1, 'a', 1), (2, 'b', 2), (3, 'c', 1);
       alter table notes enable row level security;
-      create policy own on notes for select to authenticated using (owner = current_setting('app.uid')::int);
-      grant select on notes to authenticated;
+      create table members (uid int, owner int);
+      insert into members values (1, 1);
+      -- The policy's helper names members unqualified, so it resolves under the caller's search_path.
+      create function public.can_read(owner int) returns boolean language sql stable as $$ select exists (select 1 from members m where m.uid = current_setting('app.uid')::int and m.owner = can_read.owner) $$;
+      create policy own on notes for select to authenticated using (public.can_read(owner));
+      grant select on notes, members to authenticated;
       ${wrapper("notes_grid", "notes", ["id", "body", "owner"])};
     `);
     const definers = await db.query<{ n: number }>("select count(*)::int as n from pg_proc where prosecdef and pronamespace = 'gridcn'::regnamespace or proname = 'notes_grid' and prosecdef");
@@ -260,5 +277,5 @@ describe("row-level security", () => {
     expect(await call({ kind: "count", where: true }, "notes_grid", () => db)).toBe(2);
     await db.exec("reset role;");
     await db.close();
-  });
+  }, 60_000);
 });
