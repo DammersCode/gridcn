@@ -14,6 +14,8 @@ const columns = defineColumnMap({
   orgId: { type: "number", numeric: "int4", field: "org_id" },
   tenant: { type: "number", numeric: "int4", serverOnly: true, required: true },
   secret: { type: "text", serverOnly: true, required: true },
+  tenantAlias: { type: "number", numeric: "int4", field: "tenant" },
+  idAlias: { type: "number", numeric: "int8", field: "id" },
 });
 const byId = (columns as unknown as { byId: ReadonlyMap<string, never> }).byId;
 
@@ -125,9 +127,46 @@ describe("validateChange", () => {
     ]);
     expect(result.deletes).toEqual([{ rowId: "3", where: scopedWhere(3n) }]);
     expect(result.moves).toEqual([
-      { rowId: "4", beforeRowId: "5", afterRowId: "3", where: scopedWhere(4n) },
+      { rowId: "4", beforeRowId: "5", beforeWhere: scopedWhere(5n), afterRowId: "3", afterWhere: scopedWhere(3n), where: scopedWhere(4n) },
       { rowId: "6", where: scopedWhere(6n) },
     ]);
+  });
+
+  it("refuses a move whose neighbor id the key cannot parse", () => {
+    const result = validate([
+      { type: "move", rowId: "4", row: {}, from: 0, to: 1, beforeRowId: "x" },
+      { type: "move", rowId: "5", row: {}, from: 0, to: 1, afterRowId: "" },
+    ]);
+    expect(result.moves).toEqual([]);
+    expect(result.rejected).toEqual([
+      { rowId: "4", code: "not-an-id", message: "Not a valid id" },
+      { rowId: "5", code: "not-an-id", message: "Not a valid id" },
+    ]);
+  });
+
+  it("treats a column that aliases the field of the key or a scope column as fixed", () => {
+    const update = validate([{ type: "update", rowId: "1", row: {}, prev: {}, cells: [cell("tenantAlias", 9), cell("idAlias", 2), cell("name", "Bo")] }]);
+    expect(update.updates).toEqual([{ rowId: "1", values: { name: "Bo" }, where: scopedWhere(1n) }]);
+    expect(update.rejected.map((refusal) => [refusal.columnId, refusal.code])).toEqual([
+      ["tenantAlias", "not-writable"],
+      ["idAlias", "not-writable"],
+    ]);
+    const insert = validate([{ type: "insert", rowId: "t", row: { name: "Ada", tenantAlias: 9, idAlias: 2 }, index: 0 }]);
+    expect(insert.inserts).toEqual([{ rowId: "t", values: { name: "Ada", tenant: 7, org_id: 3 } }]);
+  });
+
+  it("parses a uuid key and a text key from the row id", () => {
+    const uuidColumns = defineColumnMap({ id: { type: "text", native: "uuid", primaryKey: true }, name: { type: "text" } });
+    const uuidKey = (uuidColumns as unknown as { byId: ReadonlyMap<string, never> }).byId.get("id")!;
+    const uuidQuery = createGridQuery<Record<string, unknown>, never, Predicate>({ columns: uuidColumns, executor });
+    const upper = "0F8FAD5B-D9CB-469F-A165-70867728950E";
+    const uuidResult = uuidQuery.validateChange({ ops: [{ type: "delete", rowId: upper }, { type: "delete", rowId: "nope" }] });
+    expect(uuidResult.deletes).toEqual([{ rowId: upper, where: leaf(uuidKey, { k: "exact", value: { kind: "text", v: upper.toLowerCase() } }) }]);
+    expect(uuidResult.rejected).toEqual([{ rowId: "nope", code: "not-an-id", message: "Not a valid id" }]);
+    const textColumns = defineColumnMap({ code: { type: "text", primaryKey: true } });
+    const textKey = (textColumns as unknown as { byId: ReadonlyMap<string, never> }).byId.get("code")!;
+    const textQuery = createGridQuery<Record<string, unknown>, never, Predicate>({ columns: textColumns, executor });
+    expect(textQuery.validateChange({ ops: [{ type: "delete", rowId: "abc" }] }).deletes).toEqual([{ rowId: "abc", where: leaf(textKey, { k: "exact", value: { kind: "text", v: "abc" } }) }]);
   });
 
   it("refuses a row id the key cannot parse", () => {

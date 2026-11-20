@@ -233,7 +233,12 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
       ...change,
       updates: change.updates.map((update) => ({ ...update, where: where(update.where) })),
       deletes: change.deletes.map((entry) => ({ ...entry, where: where(entry.where) })),
-      moves: change.moves.map((move) => ({ ...move, where: where(move.where) })),
+      moves: change.moves.map(({ beforeWhere, afterWhere, ...move }) => ({
+        ...move,
+        where: where(move.where),
+        ...(beforeWhere === undefined ? {} : { beforeWhere: where(beforeWhere) }),
+        ...(afterWhere === undefined ? {} : { afterWhere: where(afterWhere) }),
+      })),
     };
   };
 

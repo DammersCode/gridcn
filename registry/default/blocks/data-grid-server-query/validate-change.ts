@@ -21,7 +21,8 @@ export type ValidatedChange<TWhere> = {
   updates: { rowId: string; values: Record<string, unknown>; where: TWhere }[];
   inserts: { rowId: string; values: Record<string, unknown> }[];
   deletes: { rowId: string; where: TWhere }[];
-  moves: { rowId: string; beforeRowId?: string; afterRowId?: string; where: TWhere }[];
+  /** `beforeWhere` and `afterWhere` match each neighbor id within `rowScope`, so a lookup cannot read another scope's row. */
+  moves: { rowId: string; where: TWhere; beforeRowId?: string; beforeWhere?: TWhere; afterRowId?: string; afterWhere?: TWhere }[];
   rejected: WriteRefusal[];
 };
 
@@ -84,7 +85,13 @@ export function validateChange(input: unknown, options: ValidateChangeOptions): 
   const ops: unknown[] = input["ops"];
   if (ops.length > MAX_CHANGE_OPS) throw new QueryError("limit-exceeded", ["ops"]);
   const scopeValues = options.scope?.values ?? {};
-  const fixed = (column: PlanColumn) => column.primaryKey || Object.hasOwn(scopeValues, column.id);
+  // By field: two ids may share one physical column, and an alias must not write the key or the scope.
+  const fixedFields = new Set([key.field, ...Object.keys(scopeValues).map((id) => byId.get(id)!.field)]);
+  const fixed = (column: PlanColumn) => fixedFields.has(column.field);
+  const scopedWhere = (rowId: string, path: (string | number)[]): Predicate | null => {
+    const id = keyOperand(key, rowId, limits, path);
+    return id === null ? null : combine("and", [leaf(key, { k: "exact", value: id }), ...(options.scope ? [options.scope.where] : [])]);
+  };
   const writable = (id: string) => {
     const column = byId.get(id);
     return column && !column.serverOnly ? column : undefined;
@@ -137,16 +144,23 @@ export function validateChange(input: unknown, options: ValidateChangeOptions): 
     const beforeRowId = type === "move" ? optionalId(op, "beforeRowId", limits, path) : undefined;
     const afterRowId = type === "move" ? optionalId(op, "afterRowId", limits, path) : undefined;
 
-    const id = keyOperand(key, rowId, limits, [...path, "rowId"]);
-    if (id === null) {
+    const where = scopedWhere(rowId, [...path, "rowId"]);
+    const beforeWhere = beforeRowId === undefined ? undefined : scopedWhere(beforeRowId, [...path, "beforeRowId"]);
+    const afterWhere = afterRowId === undefined ? undefined : scopedWhere(afterRowId, [...path, "afterRowId"]);
+    if (where === null || beforeWhere === null || afterWhere === null) {
       result.rejected.push(refusal(rowId, "not-an-id"));
       continue;
     }
-    const where = combine("and", [leaf(key, { k: "exact", value: id }), ...(options.scope ? [options.scope.where] : [])]);
 
     if (type === "delete") result.deletes.push({ rowId, where });
-    else if (type === "move") result.moves.push({ rowId, ...(beforeRowId === undefined ? {} : { beforeRowId }), ...(afterRowId === undefined ? {} : { afterRowId }), where });
-    else {
+    else if (type === "move") {
+      result.moves.push({
+        rowId,
+        where,
+        ...(beforeWhere === undefined ? {} : { beforeRowId, beforeWhere }),
+        ...(afterWhere === undefined ? {} : { afterRowId, afterWhere }),
+      });
+    } else {
       const values: Raw = {};
       for (const [columnId, value] of changes) {
         const column = writable(columnId);
