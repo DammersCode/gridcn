@@ -11,14 +11,15 @@ import { type GroupsAnswer, defineColumnMap } from "@/registry/default/blocks/da
 import { createDrizzleGridQuery } from "@/registry/default/blocks/data-grid-server-query-drizzle/data-grid-server-query-drizzle";
 import { createKyselyGridQuery } from "@/registry/default/blocks/data-grid-server-query-kysely/data-grid-server-query-kysely";
 
-/** One 200-group pivot page at offset 9,800 over 100,000 rows, 10,001 groups, and 201 pivot keys (step 0 of the pivot spec). */
+/** One 200-group pivot page at offset 9,800 over 100,000 rows, 10,001 groups, and 201 pivot keys. */
 const ROWS = 100_000;
 const GROUPS = 10_000;
 const KEYS = 200;
 const PAGE = 200;
+/** The budget of one pivot fetch on an idle machine. */
 const BUDGET_MS = 150;
-// GitHub Actions sets CI=true; a local shell may set CI=false.
-const CI_FACTOR = process.env["CI"] === "true" ? 2 : 1;
+/** The same page without pivot on an idle machine; a slower same-run baseline scales the budget, so suite load cannot fail it. */
+const IDLE_BASELINE_MS = { sqlite: 53, pg: 80 } as const;
 
 let seed = 42;
 const rand = () => (seed = (seed * 1103515245 + 12345) >>> 0) / 2 ** 32;
@@ -77,33 +78,40 @@ afterAll(async () => {
 
 const request = (start: number) => ({ spec: { groupBy: ["g"], aggregates: [{ columnId: "v", reducer: "sum" }], pivot: { columnIds: ["p"] } }, start, end: start + PAGE });
 
-async function fastest(run: () => Promise<unknown>, runs = 10): Promise<number> {
-  await run();
-  let best = Infinity;
+/** The fastest of `runs` interleaved runs of each fetch, so the pivot fetch and its baseline see the same load. */
+async function fastestPair(pivot: () => Promise<unknown>, baseline: () => Promise<unknown>, runs = 10): Promise<{ pivotMs: number; baselineMs: number }> {
+  await pivot();
+  await baseline();
+  let pivotMs = Infinity;
+  let baselineMs = Infinity;
   for (let i = 0; i < runs; i++) {
-    const started = performance.now();
-    await run();
-    best = Math.min(best, performance.now() - started);
+    let started = performance.now();
+    await pivot();
+    pivotMs = Math.min(pivotMs, performance.now() - started);
+    started = performance.now();
+    await baseline();
+    baselineMs = Math.min(baselineMs, performance.now() - started);
   }
-  return best;
+  return { pivotMs, baselineMs };
 }
 
-// Like the unit project, retry: a full-suite run shares the CPU with the other conformance files.
-describe("pivot fetchGroups at 100k rows", { retry: 2 }, () => {
+describe("pivot fetchGroups at 100k rows", () => {
   it.for(["sqlite drizzle", "sqlite kysely", "pg drizzle", "pg kysely"])("answers one 200-group page at offset 9,800 within the budget on %s", async (name, { annotate }) => {
     const query = queries.get(name)!;
-    const fetch = async () => (await query.fetchRows(request(GROUPS - PAGE), { context: { tenantId: 1 } })) as GroupsAnswer;
+    const context = { context: { tenantId: 1 } };
+    const fetch = async () => (await query.fetchRows(request(GROUPS - PAGE), context)) as GroupsAnswer;
     const answer = await fetch();
     expect(answer.groups).toHaveLength(PAGE);
     expect(answer.groupCount).toBe(GROUPS + 1);
     expect(answer.pivotColumns).toHaveLength(KEYS);
     expect(answer.pivotOmitted).toBe(1);
-    const last = (await query.fetchRows(request(GROUPS + 1 - PAGE), { context: { tenantId: 1 } })) as GroupsAnswer;
+    const last = (await query.fetchRows(request(GROUPS + 1 - PAGE), context)) as GroupsAnswer;
     expect(last.groups.at(-1)!.key).toBeNull();
-    const ms = await fastest(fetch);
     const { pivot: _pivot, ...plain } = request(GROUPS - PAGE).spec;
-    const baseline = await fastest(() => query.fetchRows({ ...request(GROUPS - PAGE), spec: plain }, { context: { tenantId: 1 } }));
-    await annotate(`pivot fetchGroups ${name}: ${ms.toFixed(1)} ms; without pivot ${baseline.toFixed(1)} ms`);
-    expect(ms).toBeLessThan(BUDGET_MS * CI_FACTOR);
+    const { pivotMs, baselineMs } = await fastestPair(fetch, () => query.fetchRows({ ...request(GROUPS - PAGE), spec: plain }, context));
+    const budget = BUDGET_MS * Math.max(1, baselineMs / IDLE_BASELINE_MS[name.startsWith("pg") ? "pg" : "sqlite"]);
+    await annotate(`pivot fetchGroups ${name}: ${pivotMs.toFixed(1)} ms, budget ${budget.toFixed(0)} ms; without pivot ${baselineMs.toFixed(1)} ms`);
+    expect(pivotMs).toBeLessThan(budget);
   });
 });
+

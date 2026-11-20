@@ -141,7 +141,7 @@ describe("pivot SQL of the adapters", () => {
   });
 });
 
-/** The group SQL of each adapter and dialect before pivot existed; a grouped request without pivot renders it byte for byte. */
+/** The group SQL of each adapter and dialect; a grouped request without pivot renders it byte for byte. */
 const PINNED_GROUP_SQL: Record<string, string[]> = {
   "drizzle pg": [
     "select NULLIF(\"items\".\"name\", ''), count(*), COUNT(DISTINCT NULLIF(\"items\".\"tag\", '')) + COALESCE(MAX(CASE WHEN NULLIF(\"items\".\"tag\", '') IS NULL THEN 1 ELSE 0 END), 0), SUM(\"items\".\"qty\") from \"items\" where lower(\"items\".\"tag\") = lower($1) group by NULLIF(\"items\".\"name\", '') order by NULLIF(\"items\".\"name\", '') ASC NULLS LAST limit $2",

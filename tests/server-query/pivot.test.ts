@@ -4,6 +4,7 @@ import { groupKeyText } from "@/registry/default/blocks/data-grid/data-grid-sdk"
 import type { GroupsAnswer } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
 import { type OraclePath, oraclePivot } from "./client-oracle";
 import { type Harness, type LooseQuery, openPg, openSqlite } from "./engines";
+import { FIXTURE_ROWS } from "./fixture";
 
 const harnesses: Harness[] = [];
 const closers: (() => Promise<void> | void)[] = [];
@@ -86,6 +87,7 @@ describe.each([
     ["a number pivot column", { groupBy: ["tag"], pivot: "qty" }, true],
     ["a text group column", { groupBy: ["name"], pivot: "active" }, true],
     ["a filtered result", { groupBy: ["tag"], pivot: "active", filters: [{ columnId: "qty", operator: "gt", value: "0" }] }, true],
+    ["a time pivot column, by the stored instant", { groupBy: ["active"], pivot: "createdAt" }, true],
   ] as [string, Ask, boolean][])("matches the client over %s", async (_name, ask, ordered) => {
     const answer = await pivotOf(query(), ask);
     expectCellsLike(answer, ask, { ordered });
@@ -153,20 +155,30 @@ describe.each([
     await expect(query().fetchRows(body({ groupBy: ["tag"], pivot: "qty", path: [{ columnId: "tag", key: "red" }] }))).rejects.toMatchObject({ code: "unsupported" });
   });
 
-  it("keeps 1 and \"1\" apart, keeps a __proto__ key plain, and never turns another tenant's key into a column", async () => {
+  it("answers decimal cells as numbers", async () => {
+    const answer = await pivotOf(query(), { groupBy: ["active"], pivot: "tag", aggregates: [{ columnId: "priceSum", reducer: "sum" }] });
+    expect(answer.groups.flatMap((group) => group.pivotCells!).every((cell) => cell === null || Number.isFinite(cell))).toBe(true);
+    const red = answer.pivotColumns!.findIndex((column) => column.path[0] === "red");
+    const truth = FIXTURE_ROWS.filter((row) => row.active === true && row.tag === "red" && row.price !== null).reduce((sum, row) => sum + Number(row.price), 0);
+    expect(answer.groups.find((group) => group.key === true)!.pivotCells![red]).toBeCloseTo(truth, 6);
+  });
+
+  it("keeps 1 and \"1\" apart, binds a hostile key, keeps a __proto__ key plain, and never turns another tenant's key into a column", async () => {
+    const hostile = "'; drop table items; --";
     const rows = [
       { id: 9001, name: "1", qty: 1, score: 2, tenantId: 3 },
       { id: 9002, name: "__proto__", qty: 2, score: 4, tenantId: 3 },
       { id: 9003, name: "other tenant", qty: 3, score: 8, tenantId: 4 },
+      { id: 9004, name: hostile, qty: 1, score: 6, tenantId: 3 },
     ];
     await harness().insert(rows);
     try {
       const scoped = harness().make({ groups: true, rowScope: true });
       const byName = await pivotOf(scoped, { groupBy: ["qty"], pivot: "name", aggregates: [{ columnId: "score", reducer: "avg" }] }, { tenantId: 3 });
-      expect(sortedKeys(byName.pivotColumns!.map((column) => column.path[0]))).toEqual(sortedKeys(["1", "__proto__"]));
+      expect(sortedKeys(byName.pivotColumns!.map((column) => column.path[0]))).toEqual(sortedKeys(["1", "__proto__", hostile]));
       expect(Object.getPrototypeOf(byName.pivotColumns![0]!)).toBe(Object.prototype);
-      const one = byName.pivotColumns!.findIndex((column) => column.path[0] === "1");
-      expect(byName.groups.find((group) => group.key === 1)!.pivotCells![one]).toBe(2);
+      const cellOf = (groupKey: number, pivotKey: string) => byName.groups.find((group) => group.key === groupKey)!.pivotCells![byName.pivotColumns!.findIndex((column) => column.path[0] === pivotKey)];
+      expect([cellOf(1, "1"), cellOf(1, hostile), cellOf(1, "__proto__"), cellOf(2, "__proto__")]).toEqual([2, 6, null, 4]);
       const byQty = await pivotOf(scoped, { groupBy: ["name"], pivot: "qty", aggregates: [{ columnId: "score", reducer: "avg" }] }, { tenantId: 3 });
       expect(byQty.pivotColumns!.map((column) => column.path[0])).toEqual([1, 2]);
       const other = await pivotOf(scoped, { groupBy: ["qty"], pivot: "name", aggregates: [{ columnId: "score", reducer: "avg" }] }, { tenantId: 4 });
