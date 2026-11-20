@@ -30,6 +30,8 @@ export type QueryLimits = {
   maxImportRows?: number;
   /** Most operations `validateChange` reads from one change. Default 10000. */
   maxChangeOps?: number;
+  /** Most body bytes `handleGridRequest` reads for a `save` route. Default 8388608 (8 MiB); a wide 10,000-row paste needs more. */
+  maxChangeBytes?: number;
   /** Most group levels of one request. Default 4. */
   maxGroupLevels?: number;
   /** Longest group key of a `groupPath` entry. Default 1024. */
@@ -56,6 +58,7 @@ export const DEFAULT_LIMITS = {
   maxColumnIds: 10_000,
   maxImportRows: 10_000,
   maxChangeOps: 10_000,
+  maxChangeBytes: 8 * 1024 * 1024,
   maxGroupLevels: 4,
   maxGroupKeyLength: 1024,
   maxGroupAggregates: 32,

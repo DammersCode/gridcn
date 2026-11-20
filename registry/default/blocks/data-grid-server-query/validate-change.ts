@@ -6,11 +6,12 @@ import { type Cell, IMPORT_REFUSAL_MESSAGES, type ImportRefusalCode, readCell } 
 import { type Operand, type Predicate, combine, leaf } from "./plan";
 import { toSafeText } from "./safe-text";
 
-const WRITE_REFUSAL_MESSAGES = { ...IMPORT_REFUSAL_MESSAGES, "not-writable": "Not writable" } as const;
+const WRITE_REFUSAL_MESSAGES = { ...IMPORT_REFUSAL_MESSAGES, "not-writable": "Not writable", "not-found": "Not found" } as const;
 // The grid refuses every row of a save answer that lists more rejections than this.
 const MAX_WRITE_REJECTIONS = 10_000;
 
-export type WriteRefusalCode = ImportRefusalCode | "not-writable";
+/** `not-found`: the write's `where` matched no row, such as a deleted row or one outside `rowScope`. */
+export type WriteRefusalCode = ImportRefusalCode | "not-writable" | "not-found";
 
 /** One refused row or cell of a {@link ValidatedChange}; it assigns to the grid's `SaveRejection`. Without `columnId` the whole operation is refused. */
 export type WriteRefusal = { rowId: string; columnId?: string; code: WriteRefusalCode; message: string };
@@ -27,6 +28,40 @@ export type ValidatedChange<TWhere> = {
   moves: { rowId: string; where: TWhere; beforeRowId?: string; beforeWhere?: TWhere; afterRowId?: string; afterWhere?: TWhere }[];
   rejected: WriteRefusal[];
 };
+
+/**
+ * How many rows each write matched, one count per entry of the {@link ValidatedChange} list of the same name. A 0 for
+ * any write of a row id refuses that whole row id, so write all writes of a row id or none. A move whose row or
+ * neighbor is gone counts 0. A count above 1 means the primary key is not unique.
+ */
+export type WriteCounts = { updates: readonly (number | bigint)[]; deletes: readonly (number | bigint)[]; moves: readonly (number | bigint)[] };
+
+/** The answer of a save route; it assigns to the grid's `SaveAck`. */
+export type SaveAnswer = { rejected: WriteRefusal[] };
+
+const isCount = (count: unknown): count is number | bigint => (typeof count === "number" && Number.isSafeInteger(count) && count >= 0) || (typeof count === "bigint" && count >= 0n);
+
+/**
+ * The save answer of a validated change after its writes ran: a row id with any write that matched no row answers one
+ * `not-found` in place of its other refusals; the other refusals stay. It never lists more entries than the bound
+ * `validateChange` checked. Throws an `Error` for counts that do not line up with the writes.
+ */
+export function saveAnswer(change: ValidatedChange<unknown>, counts: WriteCounts): SaveAnswer {
+  const unmatched = new Set<string>();
+  for (const list of ["updates", "deletes", "moves"] as const) {
+    const writes = change[list];
+    const matched: readonly unknown[] | undefined = counts?.[list];
+    // Index each entry, since `every` skips the holes of a sparse array.
+    if (!Array.isArray(matched) || matched.length !== writes.length || writes.some((_, index) => !isCount(matched[index]))) throw new Error(`apply answered no row count for each of the ${list}`);
+    writes.forEach((write, index) => {
+      if (Number(matched[index]) === 0) unmatched.add(write.rowId);
+    });
+  }
+  // The grid reverts the whole row on a refusal without `columnId`, so its cell refusals add nothing.
+  const rejected = change.rejected.filter((entry) => !unmatched.has(entry.rowId));
+  for (const rowId of unmatched) rejected.push(refusal(rowId, "not-found"));
+  return { rejected };
+}
 
 export type ValidateChangeOptions = {
   columns: ColumnMap;
@@ -109,10 +144,11 @@ const optionalId = (op: Raw, key: string, path: (string | number)[]): string | u
  * Applies the column map to the `DataChange` of `onSave`. Unmapped and `serverOnly` keys are skipped, never written.
  * A column that shares the physical field of the key or of a `rowScope` column is fixed: a `cells` entry or a changed
  * whole-row value for it is `not-writable`, while the row's key entry and the fixed entries of an insert are skipped;
- * an insert writes the parsed `rowScope` values. A refused cell drops that cell of a `cells` update; any refusal drops
- * a whole-row update or an insert. A row or neighbor id that gives no key refuses its operation as `not-an-id`.
- * A malformed change throws `invalid-request`; more than `maxChangeOps` operations
- * or more than 10,000 refusals throw `limit-exceeded`; a map without one `primaryKey` throws `unsupported`.
+ * an insert writes the parsed `rowScope` values. A refused cell drops every entry of its column and of each column
+ * that shares its field from a `cells` update, and refuses those columns too; any refusal drops a whole-row update or
+ * an insert. A row or neighbor id that gives no key refuses its operation as `not-an-id`. A malformed change throws
+ * `invalid-request`; more than `maxChangeOps` operations, or more than 10,000 refusals plus written row ids without
+ * a refusal (each can still answer `not-found`), throw `limit-exceeded`; a map without one `primaryKey` throws `unsupported`.
  */
 export function validateChange(input: unknown, options: ValidateChangeOptions): ValidatedChange<Predicate> {
   const limits = resolveLimits(options.limits);
@@ -205,7 +241,7 @@ export function validateChange(input: unknown, options: ValidateChangeOptions): 
         ...(afterWhere === undefined ? {} : { afterRowId, afterWhere }),
       });
     } else {
-      const values: Raw = {};
+      const accepted = new Map<string, [field: string, value: unknown]>();
       const refused: WriteRefusal[] = [];
       for (const [columnId, value] of changes) {
         const column = writable(columnId);
@@ -215,13 +251,35 @@ export function validateChange(input: unknown, options: ValidateChangeOptions): 
           continue;
         }
         const cell = writeCell(column, value, limits, [...path, "cells", columnId]);
-        if (cell.ok) put(values, column.field, cell.value);
-        else refused.push(refusal(rowId, cell.code, columnId));
+        if (!cell.ok) {
+          refused.push(refusal(rowId, cell.code, columnId));
+          continue;
+        }
+        // Delete first so the last entry also wins between two ids that share a field.
+        accepted.delete(columnId);
+        accepted.set(columnId, [column.field, cell.value]);
+      }
+      // The grid reverts every entry of a refused column, so no column of its field is written, and the others are refused too.
+      const refusedIds = new Set(refused.map((entry) => entry.columnId));
+      const refusedFields = new Map<string, WriteRefusal>();
+      for (const entry of refused) {
+        const field = byId.get(entry.columnId!)!.field;
+        if (!refusedFields.has(field)) refusedFields.set(field, entry);
+      }
+      const values: Raw = {};
+      for (const [columnId, [field, value]] of accepted) {
+        const sibling = refusedFields.get(field);
+        if (!sibling) put(values, field, value);
+        else if (!refusedIds.has(columnId)) refused.push(refusal(rowId, sibling.code, columnId));
       }
       reject(refused);
       // The grid reverts a whole-row update on any refusal, so the server writes none of it.
       if (Object.keys(values).length > 0 && !(wholeRow && refused.length > 0)) result.updates.push({ rowId, values, where });
     }
   }
+  // Each written row id without a refusal can still answer one not-found, so the answer stays within the grid's bound.
+  const refusedRows = new Set(result.rejected.map((entry) => entry.rowId));
+  const openRows = new Set([...result.updates, ...result.deletes, ...result.moves].map((write) => write.rowId).filter((rowId) => !refusedRows.has(rowId)));
+  if (result.rejected.length + openRows.size > MAX_WRITE_REJECTIONS) throw new QueryError("limit-exceeded", ["ops"]);
   return result;
 }

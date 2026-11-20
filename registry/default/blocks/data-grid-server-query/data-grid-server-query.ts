@@ -6,6 +6,6 @@ export { QueryError, type QueryErrorCode } from "./errors";
 export { parseImportRows, type ParseImportRowsOptions, type ParsedImportRows, type ImportRowRefusal, type ImportRefusalCode, IMPORT_REFUSAL_MESSAGES } from "./parse-import-rows";
 export type { QueryLimits } from "./limits";
 export type { RowCountMode } from "./parse-query";
-export type { GridQuery, QueryCallOptions, RowsAnswer, ValuesAnswer, AggregatesAnswer, GroupsAnswer, SelectionAnswer, AdapterCapabilities } from "./create-grid-query";
+export type { GridQuery, ApplyChange, QueryCallOptions, RowsAnswer, ValuesAnswer, AggregatesAnswer, GroupsAnswer, SelectionAnswer, AdapterCapabilities } from "./create-grid-query";
 export type { RowScope } from "./row-scope";
-export type { ValidatedChange, WriteRefusal, WriteRefusalCode } from "./validate-change";
+export type { ValidatedChange, WriteRefusal, WriteRefusalCode, WriteCounts, SaveAnswer } from "./validate-change";

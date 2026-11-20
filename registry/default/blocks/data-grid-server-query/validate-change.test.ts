@@ -40,7 +40,7 @@ describe("validateChange", () => {
     expect(result).toEqual({ updates: [{ rowId: "42", values: { name: "Ada", qty: "12" }, where: scopedWhere(42n) }], inserts: [], deletes: [], moves: [], rejected: [] });
   });
 
-  it("refuses each invalid cell and writes the others", () => {
+  it("refuses each invalid cell", () => {
     const result = validate([
       {
         type: "update",
@@ -50,7 +50,8 @@ describe("validateChange", () => {
         cells: [cell("qty", 40_000), cell("price", "1.234"), cell("status", "x"), cell("name", "toolong"), cell("name", "x".repeat(5000)), cell("name", null), cell("qty", "1.5"), cell("status", "done")],
       },
     ]);
-    expect(result.updates).toEqual([{ rowId: "1", values: { status: "done" }, where: scopedWhere(1n) }]);
+    // `status: "x"` refuses the column, so the later valid `status` entry is not written either.
+    expect(result.updates).toEqual([]);
     expect(result.rejected.map((refusal) => [refusal.columnId, refusal.code])).toEqual([
       ["qty", "out-of-range"],
       ["price", "too-many-decimals"],
@@ -224,13 +225,32 @@ describe("validateChange", () => {
     expect(cells.updates).toEqual([{ rowId: "1", values: { name: "Bo" }, where: scopedWhere(1n) }]);
   });
 
+  it("writes no entry of a column that a repeated cells entry refuses, before or after the valid one", () => {
+    const before = validate([{ type: "update", rowId: "1", row: {}, prev: {}, cells: [cell("qty", "2"), cell("qty", "x"), cell("name", "Bo")] }]);
+    const after = validate([{ type: "update", rowId: "1", row: {}, prev: {}, cells: [cell("qty", "x"), cell("qty", "2"), cell("name", "Bo")] }]);
+    for (const result of [before, after]) {
+      expect(result.updates).toEqual([{ rowId: "1", values: { name: "Bo" }, where: scopedWhere(1n) }]);
+      expect(result.rejected).toEqual([{ rowId: "1", columnId: "qty", code: "not-a-number", message: "Not a number" }]);
+    }
+  });
+
+  it("writes the last entry between two column ids that share a field", () => {
+    const map = defineColumnMap({ id: { type: "number", numeric: "int8", primaryKey: true }, name: { type: "text" }, label: { type: "text", field: "name" } });
+    const query = createGridQuery<Record<string, unknown>, never, Predicate>({ columns: map, executor });
+    const result = query.validateChange({ ops: [{ type: "update", rowId: "1", row: {}, prev: {}, cells: [cell("name", "a"), cell("label", "b"), cell("name", "c")] }] });
+    expect(result.updates.map((update) => update.values)).toEqual([{ name: "c" }]);
+  });
+
   it("checks date and checkbox cells", () => {
     const map = defineColumnMap({ id: { type: "number", numeric: "int8", primaryKey: true }, day: { type: "date" }, at: { type: "date", time: true }, done: { type: "checkbox" } });
     const query = createGridQuery<Record<string, unknown>, never, Predicate>({ columns: map, executor });
     const result = query.validateChange({
-      ops: [{ type: "update", rowId: "1", row: {}, prev: {}, cells: [cell("day", "2024-01-31"), cell("at", "2024-01-31T10:00:00Z"), cell("done", "TRUE"), cell("day", "2024-02-30"), cell("done", 3)] }],
+      ops: [
+        { type: "update", rowId: "1", row: {}, prev: {}, cells: [cell("day", "2024-01-31"), cell("at", "2024-01-31T10:00:00Z"), cell("done", "TRUE")] },
+        { type: "update", rowId: "2", row: {}, prev: {}, cells: [cell("day", "2024-02-30"), cell("done", 3)] },
+      ],
     });
-    expect(result.updates[0]?.values).toEqual({ day: "2024-01-31", at: "2024-01-31T10:00:00.000Z", done: true });
+    expect(result.updates.map((update) => update.values)).toEqual([{ day: "2024-01-31", at: "2024-01-31T10:00:00.000Z", done: true }]);
     expect(result.rejected.map((refusal) => refusal.code)).toEqual(["not-a-date", "not-a-boolean"]);
   });
 
@@ -273,6 +293,24 @@ describe("validateChange", () => {
     const refusing = (count: number) => Array.from({ length: count }, (_, index) => ({ type: "update", rowId: String(index + 1), row: {}, prev: {}, cells: [cell("qty", "x"), cell("price", "x")] }));
     expect(validate(refusing(MAX_WRITE_REJECTIONS / 2)).rejected).toHaveLength(MAX_WRITE_REJECTIONS);
     expect(() => validate([...refusing(MAX_WRITE_REJECTIONS / 2), { type: "delete", rowId: "x" }])).toThrow(expect.objectContaining({ code: "limit-exceeded", path: ["ops"] }));
+  });
+
+  it("counts each written row id without a refusal once against the bound, since each can still answer not-found", () => {
+    const refusing = Array.from({ length: MAX_WRITE_REJECTIONS / 2 - 1 }, (_, index) => ({ type: "update", rowId: String(index + 1), row: {}, prev: {}, cells: [cell("qty", "x"), cell("price", "x")] }));
+    const clean = (...rowIds: string[]) => rowIds.map((rowId) => ({ type: "delete", rowId }));
+    expect(validate([...refusing, ...clean("90001", "90002"), { type: "move", rowId: "90001" }, ...clean("1")]).rejected).toHaveLength(MAX_WRITE_REJECTIONS - 2);
+    expect(() => validate([...refusing, ...clean("90001", "90002", "90003")])).toThrow(expect.objectContaining({ code: "limit-exceeded", path: ["ops"] }));
+  });
+
+  it("refuses every column of a field when one column of the field is refused", () => {
+    const map = defineColumnMap({ id: { type: "number", numeric: "int8", primaryKey: true }, name: { type: "text" }, label: { type: "text", field: "name", maxLength: 2 }, qty: { type: "number", numeric: "int4" } });
+    const query = createGridQuery<Record<string, unknown>, never, Predicate>({ columns: map, executor });
+    const result = query.validateChange({ ops: [{ type: "update", rowId: "1", row: {}, prev: {}, cells: [cell("name", "Bo"), cell("label", "long"), cell("qty", 2)] }] });
+    expect(result.updates.map((update) => update.values)).toEqual([{ qty: 2 }]);
+    expect(result.rejected).toEqual([
+      { rowId: "1", columnId: "label", code: "too-long", message: "Too long" },
+      { rowId: "1", columnId: "name", code: "too-long", message: "Too long" },
+    ]);
   });
 
   it("refuses a row id the key cannot parse", () => {

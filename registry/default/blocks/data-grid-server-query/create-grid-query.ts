@@ -9,7 +9,7 @@ import { combine } from "./plan";
 import { type RowScope, rowScopePredicate } from "./row-scope";
 import { serializeRow, serializeValue } from "./serialize-row";
 import { toSafeText } from "./safe-text";
-import { type ValidatedChange, validateChange } from "./validate-change";
+import { type SaveAnswer, type ValidatedChange, type WriteCounts, saveAnswer, validateChange } from "./validate-change";
 
 /** Largest row count an answer carries; the grid clamps to the same bound. */
 export const MAX_TOTAL_ROW_COUNT = 10_000_000;
@@ -60,6 +60,24 @@ export type GroupsAnswer = {
 /** The answer of `selection`: the count of the selected rows, and with `include` one page of their ids or rows. */
 export type SelectionAnswer<TRow> = { count: number; ids?: string[]; rows?: TRow[]; hasMore?: boolean };
 
+/**
+ * Runs the writes of a validated change and answers how many rows each write matched ({@link WriteCounts}). Requirements:
+ * run every write in one transaction, so a throw writes none; throw when an insert fails; filter each write by its
+ * `where` alone, never by `rowId`, which carries no `rowScope`. A throw or a miscount answers a 500 for the whole change.
+ *
+ * @example
+ * const applyUserWrites: ApplyChange<SQL, Session> = async (change) =>
+ *   db.transaction((tx) => {
+ *     for (const insert of change.inserts) tx.insert(users).values(insert.values).run();
+ *     return {
+ *       updates: change.updates.map((write) => tx.update(users).set(write.values).where(write.where).run().changes),
+ *       deletes: change.deletes.map((write) => tx.delete(users).where(write.where).run().changes),
+ *       moves: change.moves.map(() => 0),
+ *     };
+ *   });
+ */
+export type ApplyChange<TWhere, TContext = never> = (change: ValidatedChange<TWhere>, opts: QueryCallOptions<TContext>) => Promise<WriteCounts>;
+
 export interface GridQuery<TRow, TContext = never, TWhere = unknown, TOrder = unknown> {
   /** A request with `childKind: "groups"` answers a {@link GroupsAnswer}, every other request a {@link RowsAnswer}. */
   fetchRows(input: unknown, ...opts: CallArgs<TContext>): Promise<RowsAnswer<TRow> | GroupsAnswer>;
@@ -72,6 +90,16 @@ export interface GridQuery<TRow, TContext = never, TWhere = unknown, TOrder = un
   orderBy(plan: RowsPlan): TOrder;
   /** Applies the column map and `rowScope` to the `DataChange` of `onSave`; each `where` is in the ORM's own type. */
   validateChange(input: unknown, ...opts: CallArgs<TContext>): ValidatedChange<TWhere>;
+  /**
+   * The save route of `onSave`: validates the `DataChange`, hands the writes to `apply`, and answers the refusals; a row id
+   * with a write that matched no row answers one `not-found` in place of its other refusals. `apply` runs even when every
+   * operation is refused. The `limit-exceeded` of the grid's 10,000-refusal bound throws before `apply` runs.
+   * `maxBodyBytes` is `maxChangeBytes` (8 MiB).
+   *
+   * @example
+   * export const POST = async (req: Request) => handleGridRequest(req, usersQuery.save(applyUserWrites), { context: await session(req) });
+   */
+  save(apply: ApplyChange<TWhere, TContext>): ((input: unknown, ...opts: CallArgs<TContext>) => Promise<SaveAnswer>) & { readonly maxBodyBytes: number };
   /**
    * Counts the rows of the grid's `DataGridSelectedRows` within `rowScope`; `include` also answers one page of their ids or rows.
    * `maxBodyBytes` (40 bytes per `maxSelectionIds` entry plus twice `maxTreeStringBytes`, about 8.1 MiB) is the body cap `handleGridRequest` reads when the route passes none.
@@ -283,6 +311,15 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
     where: (plan: RowsPlan) => executor.where(trusted(plan)),
     orderBy: (plan: RowsPlan) => executor.orderBy(trusted(plan)),
     validateChange: validate,
+    save: (apply: ApplyChange<TWhere, TContext>) =>
+      Object.assign(
+        async (input: unknown, callOptions?: { signal?: AbortSignal; context?: unknown }): Promise<SaveAnswer> => {
+          const change = validate(input, callOptions);
+          alive(callOptions?.signal);
+          return saveAnswer(change, await apply(change, (callOptions ?? {}) as QueryCallOptions<TContext>));
+        },
+        { maxBodyBytes: resolveLimits(limits).maxChangeBytes },
+      ),
     selection: Object.assign(selection, { maxBodyBytes: selectionBodyBytes(resolveLimits(limits)) }),
     selectionPlan: (input: unknown, callOptions?: { context?: unknown }) => register(parseSelected(input, callOptions).plan),
     capabilities: executor.capabilities,
