@@ -8,6 +8,7 @@ import { combine } from "./plan";
 import { type RowScope, rowScopePredicate } from "./row-scope";
 import { serializeRow, serializeValue } from "./serialize-row";
 import { toSafeText } from "./safe-text";
+import { type ValidatedChange, validateChange } from "./validate-change";
 
 /** Largest row count an answer carries; the grid clamps to the same bound. */
 export const MAX_TOTAL_ROW_COUNT = 10_000_000;
@@ -66,6 +67,8 @@ export interface GridQuery<TRow, TContext = never, TWhere = unknown, TOrder = un
   where(plan: RowsPlan): TWhere;
   /** The order of a plan from `parse`, in the ORM's own type. */
   orderBy(plan: RowsPlan): TOrder;
+  /** Applies the column map and `rowScope` to the `DataChange` of `onSave`; each `where` is in the ORM's own type. */
+  validateChange(input: unknown, ...opts: CallArgs<TContext>): ValidatedChange<TWhere>;
   capabilities: AdapterCapabilities;
 }
 
@@ -222,6 +225,22 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
     return out;
   };
 
+  const validate = (input: unknown, callOptions?: { context?: unknown }): ValidatedChange<TWhere> => {
+    const change = validateChange(input, { columns, limits, scope: scoped(callOptions) });
+    const where = (predicate: Predicate) => executor.where({ where: predicate });
+    return {
+      ...change,
+      updates: change.updates.map((update) => ({ ...update, where: where(update.where) })),
+      deletes: change.deletes.map((entry) => ({ ...entry, where: where(entry.where) })),
+      moves: change.moves.map(({ beforeWhere, afterWhere, ...move }) => ({
+        ...move,
+        where: where(move.where),
+        ...(beforeWhere === undefined ? {} : { beforeWhere: where(beforeWhere) }),
+        ...(afterWhere === undefined ? {} : { afterWhere: where(afterWhere) }),
+      })),
+    };
+  };
+
   return {
     fetchRows,
     filterValues,
@@ -229,6 +248,7 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
     parse,
     where: (plan: RowsPlan) => executor.where(trusted(plan)),
     orderBy: (plan: RowsPlan) => executor.orderBy(trusted(plan)),
+    validateChange: validate,
     capabilities: executor.capabilities,
   } as unknown as GridQuery<TRow, TContext, TWhere, TOrder>;
 }

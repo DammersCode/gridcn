@@ -28,6 +28,8 @@ export type QueryLimits = {
   maxColumnIds?: number;
   /** Most rows `parseImportRows` reads from one import request. Default 10000. */
   maxImportRows?: number;
+  /** Most operations `validateChange` reads from one change. Default 10000. */
+  maxChangeOps?: number;
   /** Most group levels of one request. Default 4. */
   maxGroupLevels?: number;
   /** Longest group key of a `groupPath` entry. Default 1024. */
@@ -51,6 +53,7 @@ export const DEFAULT_LIMITS = {
   maxOffset: Number.MAX_SAFE_INTEGER,
   maxColumnIds: 10_000,
   maxImportRows: 10_000,
+  maxChangeOps: 10_000,
   maxGroupLevels: 4,
   maxGroupKeyLength: 1024,
   maxGroupAggregates: 32,

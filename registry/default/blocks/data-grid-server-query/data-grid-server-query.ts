@@ -8,3 +8,4 @@ export type { QueryLimits } from "./limits";
 export type { RowCountMode } from "./parse-query";
 export type { GridQuery, QueryCallOptions, RowsAnswer, ValuesAnswer, AggregatesAnswer, GroupsAnswer, AdapterCapabilities } from "./create-grid-query";
 export type { RowScope } from "./row-scope";
+export type { ValidatedChange, WriteRefusal, WriteRefusalCode } from "./validate-change";
