@@ -4542,6 +4542,11 @@
           "target": "components/data-grid-server-query/parse-import-rows.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid-server-query/validate-change.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/validate-change.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid-server-query/operands.ts",
           "type": "registry:component",
           "target": "components/data-grid-server-query/operands.ts"
