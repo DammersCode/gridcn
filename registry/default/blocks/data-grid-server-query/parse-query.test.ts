@@ -154,7 +154,7 @@ describe("numbers", () => {
     expect(code(() => rows([leaf("qty", "gt", "1e-50")]))).toBe("invalid-value");
   });
 
-  it("clamps an exponent on a float without building its digits", () => {
+  it("clamps an exponent on a float by sign and keeps the plan small", () => {
     const where = only(exponents("ratio"));
     expect(planSize(where)).toBeLessThan(10_000);
     expect(test([leaf("ratio", "equals", "1e-9999")])).toMatchObject({ value: { kind: "number", v: "0" } });
