@@ -119,6 +119,18 @@ describe("selection by key type", async () => {
     add("pg kysely", createKyselyGridQuery({ db: new Kysely({ dialect: new PGliteDialect({ pglite }) }), table, dialect: "pg", columns }));
   }
 
+  it.each(["drizzle", "kysely"] as const)("sqlite %s: an upper-case uuid stored as text is selected and stays excluded", async (adapter) => {
+    const upper = "0F8FAD5B-D9CB-469F-A165-70867728950E";
+    database.exec(`create table if not exists k_upper (k text primary key, label text)`);
+    database.prepare(`insert or ignore into k_upper values (?, ?), (?, ?)`).run(upper, "upper", UUIDS[1], "lower");
+    const columns = defineColumnMap({ k: { type: "text", native: "uuid", primaryKey: true }, label: { type: "text" } });
+    const query = (adapter === "drizzle"
+      ? createDrizzleGridQuery({ db: drizzleSqlite(database), table: sqliteTable("k_upper", { k: sqliteText("k").primaryKey(), label: sqliteText("label") }), columns })
+      : createKyselyGridQuery({ db: new Kysely({ dialect: new SqliteDialect({ database }) }), table: "k_upper", dialect: "sqlite", columns })) as unknown as Selector;
+    await expect(query.selection({ selection: ids([upper]), include: "ids" })).resolves.toEqual({ count: 1, ids: [upper], hasMore: false });
+    await expect(query.selection({ selection: allMatching([upper]), include: "ids" })).resolves.toEqual({ count: 1, ids: [UUIDS[1]], hasMore: false });
+  });
+
   it.each(queries.map((entry) => [entry.label, entry] as const))("%s: ids and excluded ids match the stored keys", async (_, { keyCase, query }) => {
     const all = keyCase.stored.map(clientId);
     const picked = [all[1]!, all[3]!];
