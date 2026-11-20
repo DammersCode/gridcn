@@ -48,11 +48,10 @@ describe.each([
   });
 
   it("ANDs the row scope on top of a root or", async () => {
-    const filters = [{ columnId: "name", operator: "equals", value: "alpha" }, { columnId: "qty", operator: "gt", value: "50" }];
+    const filters = [{ columnId: "name", operator: "contains", value: "alpha" }, { columnId: "qty", operator: "gt", value: "50" }];
     const harness = harnesses.find((h) => h.engine === engine && h.adapter === adapter)!;
     const spec = { sorts: [], filters, filterJoin: "or", searchText: "" };
-    const scoped = await declinable("rowScope on a root or", () => harness.make({ rowScope: true }).fetchRows({ spec, start: 0, end: 1000 }, { context: { tenantId: 1 } }));
-    if (!scoped) return;
+    const scoped = await harness.make({ rowScope: true }).fetchRows({ spec, start: 0, end: 1000 }, { context: { tenantId: 1 } });
     const mine = new Set(FIXTURE_ROWS.filter((row) => row.tenantId === 1).map((row) => row.id));
     expect(idsOf(scoped)).toEqual(oracleIds(filters, undefined, "or").filter((id) => mine.has(id)));
     const totals = await harness.make({ rowScope: true }).aggregates({ spec, columnIds: ["qty"] }, { context: { tenantId: 1 } });

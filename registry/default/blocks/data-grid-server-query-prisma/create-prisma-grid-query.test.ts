@@ -440,6 +440,18 @@ describe("keyset cursor", () => {
     expect(query.capabilities.exactInstantKeys).toBe(false);
     expect(await codeOf(query.fetchRows({ spec: { sorts: [{ columnId: "stamp", direction: "asc" }] }, start: 0, end: 2 }))).toBe("unsupported");
   });
+
+  it("on SQLite carries a DateTime key as the ISO text of its Date and resumes after it", async () => {
+    const stamp = new Date("2024-01-01T00:00:00.123Z");
+    const { model, calls } = fake({ findMany: (args) => (args["where"] && "OR" in (args["where"] as object) ? [] : [{ id: 1, stamp }, { id: 2, stamp }]) });
+    const query = createPrismaGridQuery({ model, provider: "sqlite", columns: cursorColumns, paging: "cursor" });
+    const spec = { sorts: [{ columnId: "stamp", direction: "asc" }] };
+    const first = (await query.fetchRows({ spec, start: 0, end: 1 })) as { nextCursor: string };
+    expect(calls[0]!.args["select"]).toMatchObject({ stamp: true });
+    expect(JSON.parse(atob(first.nextCursor.replace(/-/g, "+").replace(/_/g, "/")))).toContain("2024-01-01T00:00:00.123Z");
+    await query.fetchRows({ spec, start: 1, end: 2, cursor: first.nextCursor });
+    expect(JSON.stringify(calls[1]!.args["where"])).toContain('{"stamp":{"gt":"2024-01-01T00:00:00.123Z"}}');
+  });
 });
 
 describe("groups", () => {
@@ -498,14 +510,21 @@ describe("groups", () => {
     expect(await codeOf(query.fetchRows(groupsRequest, CONTEXT))).toBe("limit-exceeded");
   });
 
-  it("refuses a SQLite group page whose keys pass the bind budget of the child pair groupBy before any call", async () => {
-    const keys = Array.from({ length: 1000 }, (_, index) => ({ tag: `t${index}`, _count: { _all: 1 } }));
-    const { query, calls } = make("sqlite", { groupBy: (args) => ((args["by"] as unknown[]).length === 1 && args["skip"] !== undefined ? keys.slice(0, args["take"] as number) : []) });
-    const caught = await query.fetchRows({ spec: { groupBy: ["tag", "name"] }, start: 0, end: 1000 }, CONTEXT).catch((error: unknown) => error);
+  it("budgets the child pair groupBy of a SQLite group page by the keys found, not the keys requested", async () => {
+    const pageOf = (count: number) => {
+      const keys = Array.from({ length: count }, (_, index) => ({ tag: `t${index}`, _count: { _all: 1 } }));
+      return make("sqlite", { groupBy: (args) => ((args["by"] as unknown[]).length === 1 && args["skip"] !== undefined ? keys.slice(0, args["take"] as number) : []) });
+    };
+    const pairCalls = (calls: { args: Record<string, unknown> }[]) => calls.filter((call) => (call.args["by"] as unknown[] | undefined)?.length === 2);
+    const few = pageOf(5);
+    await few.query.fetchRows({ spec: { groupBy: ["tag", "name"] }, start: 0, end: 1000 }, CONTEXT);
+    expect(pairCalls(few.calls)).toHaveLength(1);
+    const many = pageOf(1000);
+    const caught = await many.query.fetchRows({ spec: { groupBy: ["tag", "name"] }, start: 0, end: 1000 }, CONTEXT).catch((error: unknown) => error);
     expect(caught).toMatchObject({ code: "limit-exceeded", path: [] });
-    expect(calls).toHaveLength(0);
-    await query.fetchRows({ spec: { groupBy: ["tag", "name"] }, start: 0, end: 990 }, CONTEXT);
-    await query.fetchRows({ spec: { groupBy: ["tag"] }, start: 0, end: 1000 }, CONTEXT);
+    expect(pairCalls(many.calls)).toHaveLength(0);
+    await many.query.fetchRows({ spec: { groupBy: ["tag", "name"] }, start: 0, end: 990 }, CONTEXT);
+    await many.query.fetchRows({ spec: { groupBy: ["tag"] }, start: 0, end: 1000 }, CONTEXT);
   });
 
   it("declines grouping by a time column, whose millisecond keys miss microsecond rows, and keeps a plain date", async () => {
@@ -626,17 +645,22 @@ describe("hostile keys and creation", () => {
     expect(() => definePrismaColumnMap<{ id: number }>()({ id: "id" }, { id: { type: "number", numeric: "int4", primaryKey: true }, nick: { type: "text", field: "nick" as "id" } })).toThrow(/"nick".*"nick"/);
   });
 
-  it("refuses an epoch-s operand with a fraction of a second, which Prisma truncates on an Int field", async () => {
+  it("rounds an epoch-s comparison bound with a fraction of a second to the exact whole second, and refuses an equals with one", async () => {
     const epochs = definePrismaColumnMap<{ id: number; at: number | null }>()({ id: "id", at: "at" }, {
       id: { type: "number", numeric: "int4", primaryKey: true },
       at: { type: "date", time: true, storage: "epoch-s", nullable: true },
     });
     const { model, calls } = fake();
     const query = createPrismaGridQuery({ model, provider: "postgresql", columns: epochs });
-    expect(await codeOf(query.fetchRows(rowsRequest({ filters: [filter("at", "gte", "2024-01-01T00:00:00.500Z")] })))).toBe("unsupported-value");
+    const half = "2024-01-01T00:00:00.500Z";
+    expect(await codeOf(query.fetchRows(rowsRequest({ filters: [filter("at", "equals", half)] })))).toBe("unsupported-value");
     expect(calls).toHaveLength(0);
-    await query.fetchRows(rowsRequest({ filters: [filter("at", "gte", "2024-01-01T00:00:01.000Z")] }));
-    expect(calls[0]!.args["where"]).toStrictEqual({ at: { gte: 1_704_067_201 } });
+    for (const [operator, second] of [["gt", 1_704_067_200], ["lte", 1_704_067_200], ["gte", 1_704_067_201], ["lt", 1_704_067_201]] as const) {
+      await query.fetchRows(rowsRequest({ filters: [filter("at", operator, half)] }));
+      expect(calls.at(-1)!.args["where"]).toStrictEqual({ at: { [operator]: second } });
+    }
+    await query.fetchRows(rowsRequest({ filters: [filter("at", "isBetween", [half, "2024-01-01T00:00:02.500Z"])] }));
+    expect(calls.at(-1)!.args["where"]).toStrictEqual({ at: { gte: 1_704_067_201, lte: 1_704_067_202 } });
   });
 
   it("refuses at creation a cursor factory that could sort by a native enum, whose Prisma filter has no gt or lt", () => {
@@ -649,8 +673,8 @@ describe("hostile keys and creation", () => {
   });
 
   it("states honest capabilities per provider", () => {
-    const both = { literalAsterisk: true, aggregates: true, groupBy: true, localDayGrouping: false, exactInstantKeys: false, nativeLike: false, expressionValues: false, blankTextAggregates: false };
-    expect(make("postgresql").query.capabilities).toStrictEqual({ ...both, caseInsensitiveText: "native", likeEscape: true, nullsLast: "native", maxBoundIds: 32_764 });
-    expect(make("sqlite").query.capabilities).toStrictEqual({ ...both, caseInsensitiveText: "like-only", caseSensitiveLike: false, likeEscape: false, nullsLast: "emulated", maxBoundIds: 997 });
+    const both = { literalAsterisk: true, aggregates: true, groupBy: true, localDayGrouping: false, nativeLike: false, expressionValues: false, blankTextAggregates: false };
+    expect(make("postgresql").query.capabilities).toStrictEqual({ ...both, caseInsensitiveText: "native", likeEscape: true, nullsLast: "native", exactInstantKeys: false, maxBoundIds: 32_764 });
+    expect(make("sqlite").query.capabilities).toStrictEqual({ ...both, caseInsensitiveText: "like-only", caseSensitiveLike: false, likeEscape: false, nullsLast: "emulated", exactInstantKeys: true, maxBoundIds: 997 });
   });
 });

@@ -9,6 +9,7 @@ import { createPrismaGridQuery } from "@/registry/default/blocks/data-grid-serve
 import { oracleIds } from "../client-oracle";
 import { FIXTURE_ROWS, type Engine, fixtureSpecs } from "../fixture";
 import { seedPg, seedSqlite } from "../engines";
+import { KNOWN_DIFFERENCES } from "../groups-differences";
 import { type Delegate, PROVIDER, type PrismaDatabase, connectPrisma, prismaColumns, sqliteFile } from "./engines";
 
 type Row = Record<string, unknown>;
@@ -151,24 +152,62 @@ describe.each(opened.map((setup) => [setup.engine, setup] as const))("Prisma on 
     }
     const values = await prisma().filterValues({ columnId: "mood", query: "", filters: [] });
     expect(values.values.map((entry) => [entry.value, entry.count]).sort()).toEqual((await kysely().filterValues({ columnId: "mood", query: "", filters: [] })).values.map((entry) => [entry.value, entry.count]).sort());
-    const like = engine === "pg" ? [filter("mood", "contains", "al"), filter("ref", "startsWith", "0f")] : [];
+    // The SQLite map holds mood as plain text; ref is a native uuid on both.
+    const like = [filter("ref", "startsWith", "0f"), filter("ref", "contains", "0f"), ...(engine === "pg" ? [filter("mood", "contains", "al")] : [])];
     for (const leaf of like) await expect(prisma().fetchRows({ spec: { filters: [leaf] }, start: 0, end: 10 })).rejects.toMatchObject({ code: "unsupported" });
   });
 
-  it("filters timestamp(3) and timestamp(6) columns by millisecond instants, and declines them as cursor keys and group levels", async () => {
+  it("filters time columns by millisecond instants; pages and groups them by key on SQLite and declines that on PostgreSQL", async () => {
     for (const column of ["milli", "micro"]) {
       for (const operator of ["gt", "gte", "lt", "lte"]) await sameRows({ filters: [filter(column, operator, "2024-01-01T00:00:00.123Z")] });
       await sameRows({ filters: [filter(column, "equals", "2024-01-01")] });
-      await expect(prisma({ paging: "cursor" }).fetchRows({ spec: { sorts: [{ columnId: column, direction: "asc" }] }, start: 0, end: 5 })).rejects.toMatchObject({ code: "unsupported" });
-      await expect(prisma().fetchRows({ spec: { groupBy: [column] }, groupPath: [], childKind: "groups", start: 0, end: 5 })).rejects.toMatchObject({ code: "unsupported" });
+    }
+    for (const column of ["milli", "micro", "seconds"]) {
+      const spec = { sorts: [{ columnId: column, direction: "asc" }] };
+      const groups = { groupBy: [column] };
+      // A PostgreSQL timestamp holds microseconds that Prisma's millisecond Date drops; SQLite keeps the stored text or integer.
+      if (engine === "pg") {
+        await expect(prisma({ paging: "cursor" }).fetchRows({ spec, start: 0, end: 5 })).rejects.toMatchObject({ code: "unsupported" });
+        await expect(groupsOf(prisma(), groups)).rejects.toMatchObject({ code: "unsupported" });
+        continue;
+      }
+      const expected = idsOf(await rowsOf(kysely(), spec));
+      for (const size of [1, 2, 5]) {
+        const walked: number[] = [];
+        let next: string | null | undefined;
+        do {
+          const answer = (await prisma({ paging: "cursor" }).fetchRows({ spec, start: walked.length, end: walked.length + size, ...(next ? { cursor: next } : {}) })) as RowsAnswer<Row, string>;
+          walked.push(...idsOf(answer));
+          next = answer.nextCursor;
+        } while (next && walked.length <= N);
+        expect(walked).toEqual(expected);
+      }
+      const all = await groupsOf(prisma(), groups);
+      expect(all).toEqual(await groupsOf(kysely(), groups));
+      for (const group of all.groups) {
+        const drill = { spec: groups, groupPath: [{ columnId: column, key: group.key }], childKind: "rows", start: 0, end: 100 };
+        const rows = (await prisma().fetchRows(drill)) as RowsAnswer<Row, string>;
+        expect(sorted(idsOf(rows))).toEqual(sorted(idsOf((await kysely().fetchRows(drill)) as RowsAnswer<Row, string>)));
+        // The core answers a sub-millisecond iso-text key in milliseconds, so a micro group drills to no row on Kysely too.
+        if (column !== "micro") expect(rows.rows).toHaveLength(group.totalRowCount);
+      }
     }
   });
 
-  it("compares an epoch-s column with whole seconds and refuses a fraction of a second, which Prisma would truncate", async () => {
+  it("compares an epoch-s column exactly with a fraction of a second, and refuses one in equals, which Prisma would truncate", async () => {
+    const compare = { gt: (a: number, b: number) => a > b, gte: (a: number, b: number) => a >= b, lt: (a: number, b: number) => a < b, lte: (a: number, b: number) => a <= b };
+    const secondsWhere = (keep: (ms: number) => boolean) => kindRows(engine).filter((row) => row.seconds !== null && keep(row.seconds * 1000)).map((row) => row.id);
     for (const operator of ["gt", "gte", "lt", "lte", "equals"]) {
       for (const value of ["2024-01-01T00:00:00.000Z", "2024-01-01T00:00:01Z"]) await sameRows({ filters: [filter("seconds", operator, value)] });
-      for (const value of ["2024-01-01T00:00:00.500Z", "2024-01-01T00:00:01.999Z"]) await expect(rowsOf(prisma(), { filters: [filter("seconds", operator, value)] })).rejects.toMatchObject({ code: "unsupported-value" });
+      for (const value of ["2024-01-01T00:00:00.500Z", "2024-01-01T00:00:01.999Z", "2023-12-31T23:59:59.001Z"]) {
+        const rows = rowsOf(prisma(), { filters: [filter("seconds", operator, value)] });
+        if (operator === "equals") await expect(rows).rejects.toMatchObject({ code: "unsupported-value" });
+        else expect(sorted(idsOf(await rows))).toEqual(secondsWhere((at) => compare[operator as keyof typeof compare](at, Date.parse(value))));
+      }
     }
+    // PostgreSQL refuses a fraction bound to an integer, so the rows are the oracle here, not Kysely.
+    const between = await rowsOf(prisma(), { filters: [filter("seconds", "isBetween", ["2023-12-31T23:59:59.500Z", "2024-01-01T00:00:00.500Z"])] });
+    expect(sorted(idsOf(between))).toEqual(secondsWhere((at) => at >= Date.parse("2023-12-31T23:59:59.500Z") && at <= Date.parse("2024-01-01T00:00:00.500Z")));
     await sameRows({ filters: [filter("seconds", "equals", "2024-01-01")] });
     await sameRows({ filters: [filter("seconds", "isBetween", ["2023-12-31", "2024-01-01"])] });
   });
@@ -192,14 +231,21 @@ describe.each(opened.map((setup) => [setup.engine, setup] as const))("Prisma on 
     }
   });
 
+  it("lists the values of caseSensitive text that contain a query, as Kysely does", async () => {
+    for (const query of ["a", "A", "b", "z", "no such value"]) {
+      const ask = { columnId: "label", query, filters: [] };
+      const pairs = async (q: Query) => (await q.filterValues(ask)).values.map((entry) => [entry.value, entry.count]).sort();
+      expect(await pairs(prisma())).toEqual(await pairs(kysely()));
+    }
+  });
+
   it("folds '' and NULL into one group and one child, and pages the blank group last exactly once", async () => {
     for (const groupBy of [["label", "mood"], ["mood", "label"], ["label"]]) {
       const spec = { groupBy };
       const all = await groupsOf(prisma(), spec);
       const oracle = await groupsOf(kysely(), spec);
-      // The SQL renderers order a native enum level as text, Prisma in the enum's declaration order.
       const byText = (groups: GroupsAnswer["groups"]) => (engine === "pg" && groupBy[0] === "mood" ? [...groups].sort((a, b) => String(a.key ?? "\u{10FFFF}").localeCompare(String(b.key ?? "\u{10FFFF}"))) : groups);
-      expect(byText(all.groups)).toEqual(byText(oracle.groups));
+      expect(byText(all.groups), KNOWN_DIFFERENCES.prismaEnumOrder.name).toEqual(byText(oracle.groups));
       expect(all.groupCount).toBe(oracle.groupCount);
       expect(all.groups.filter((group) => group.key === null)).toHaveLength(1);
       expect(all.groups.at(-1)?.key).toBeNull();
@@ -277,9 +323,9 @@ describe.each(opened.map((setup) => [setup.engine, setup] as const))("Prisma on 
     const apply = query.save(async (change) => ({ updates: await Promise.all(change.updates.map(async (write) => (await setup.model.updateMany({ where: write.where, data: write.values })).count)), deletes: [], moves: [] }));
     await expect(apply({ ops: [rename], source: "edit" }, tenantOne)).resolves.toEqual({ rejected: [{ rowId: "2", code: "not-found", message: "Not found" }] });
     for (const call of [() => query.fetchRows({ spec: {}, start: 0, end: 5 }), () => query.filterValues({ columnId: "label", query: "", filters: [] }), () => query.aggregates({ spec: {}, columnIds: ["big"] }), () => query.selection({ selection: { mode: "ids", ids: ["1"], excludedIds: [], count: 1 } })]) {
-      await expect(call()).rejects.toThrow();
+      await expect(call()).rejects.toThrow("rowScope is set and the call has no `context`");
     }
-    expect(() => query.selectionPlan({ selection: { mode: "ids", ids: ["1"], excludedIds: [], count: 1 } })).toThrow();
+    expect(() => query.selectionPlan({ selection: { mode: "ids", ids: ["1"], excludedIds: [], count: 1 } })).toThrow("rowScope is set and the call has no `context`");
   });
 });
 
