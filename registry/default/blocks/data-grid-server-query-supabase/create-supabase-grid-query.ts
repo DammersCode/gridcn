@@ -114,6 +114,11 @@ async function read(request: PromiseLike<Result>): Promise<Result> {
  *   column of the wrapper's allow-list, `serverOnly` columns included; only column GRANTs hide a column. Never make
  *   the wrapper SECURITY DEFINER: row-level security would check its owner. Revoke EXECUTE on the wrapper from
  *   `public` and `anon`, and grant it to `authenticated`.
+ * - A `where` of `validateChange` is safe only as the sole argument of one `.or()`, as in
+ *   `.update(values).or(where).select(pk)`. Joined with another condition in the same `.or()`, the scope becomes one
+ *   branch of the OR and stops narrowing.
+ * - Writes are not atomic through the adapter: each REST call is its own transaction. Run a whole change in one
+ *   consumer RPC, never in a loop of `.update()` calls.
  *
  * @example
  * const columns = defineColumnMap({
