@@ -51,7 +51,14 @@ export type GroupsPlan = {
   /** The top level also answers the row count of the whole result. */
   countRows: boolean;
   aggregates: readonly { column: PlanColumn; reducer: AggregateReducer }[];
+  /**
+   * The keys of `column` become generated columns, each with one cell per aggregate. The parsed plan holds no `keys`;
+   * `selectGroups` gets them in key order, each with the `test` that keeps its rows. `omitted` counts the keys cut past the cap.
+   */
+  pivot?: { column: PlanColumn; direction: "asc" | "desc"; keys: readonly PivotKey[]; omitted: number };
 };
+/** One pivot key as the answer carries it, with the test that keeps its rows; `null` is the empty key. */
+export type PivotKey = { key: string | number | boolean | null; test: Predicate };
 export type QueryPlan = RowsPlan | ValuesPlan | AggregatesPlan | GroupsPlan;
 /** `"rows"` reads a rows request and refuses a grouped one; `"page"` reads either and yields a `GroupsPlan` or a `RowsPlan`. */
 export type QueryRequestKind = "rows" | "page" | "values" | "aggregates";

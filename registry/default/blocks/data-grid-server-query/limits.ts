@@ -38,6 +38,8 @@ export type QueryLimits = {
   maxGroupKeyLength?: number;
   /** Most aggregate columns of one grouped request. Default 32. */
   maxGroupAggregates?: number;
+  /** Most generated columns of one pivot answer, keys times values; keys past it are cut. Default 200. */
+  maxPivotColumns?: number;
   /** Most entries of a selection's `ids` or `excludedIds`. Default 200000: the grid's 100,000 remembered rows plus 100,000 loaded ones. */
   maxSelectionIds?: number;
   /** Longest `cursor` text of a cursor request, checked before it decodes. Default 2048. */
@@ -64,6 +66,7 @@ export const DEFAULT_LIMITS = {
   maxGroupLevels: 4,
   maxGroupKeyLength: 1024,
   maxGroupAggregates: 32,
+  maxPivotColumns: 200,
   // The grid's remembered-row cap plus 100,000 loaded rows; `maxLoadedRows` has no hard maximum.
   maxSelectionIds: 200_000,
   maxCursorBytes: 2048,

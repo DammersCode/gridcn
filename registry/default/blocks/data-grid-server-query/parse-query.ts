@@ -97,10 +97,35 @@ function specOf(input: Raw): Raw {
   return spec;
 }
 
-function rejectPivot(spec: Raw): void {
+/** The pivot column of `spec.pivot`, or `null` when the spec holds none; `groupingOf` reads the request's group levels. */
+function parsePivot(spec: Raw, groupingOf: () => GroupRequest | null, ctx: Ctx): PlanColumn | null {
   const pivot = spec["pivot"];
-  const filled = Array.isArray(pivot) ? pivot.length > 0 : pivot !== undefined && pivot !== null && !(isRecord(pivot) && Object.keys(pivot).length === 0);
-  if (filled) throw new QueryError("unsupported", ["spec"]);
+  const ids = isRecord(pivot) ? pivot["columnIds"] : undefined;
+  const empty = isAbsent(pivot) || (Array.isArray(pivot) && pivot.length === 0) || (isRecord(pivot) && Object.keys(pivot).length === 0) || (Array.isArray(ids) && ids.length === 0);
+  if (empty) return null;
+  if (ctx.capabilities?.pivot !== true || !Array.isArray(ids)) throw new QueryError("unsupported", ["spec"]);
+  if (ids.length > 1) throw new QueryError("unsupported", ["spec", "pivot", "columnIds"]);
+  const path = ["spec", "pivot", "columnIds", 0] as const;
+  const id: unknown = ids[0];
+  const column = typeof id === "string" ? ctx.map.byId.get(id) : undefined;
+  if (!column || column.serverOnly || !column.sortable) throw new QueryError("unknown-column", path);
+  if (column.keepBlankText || (column.time && ctx.capabilities.exactInstantKeys === false)) throw new QueryError("unsupported", path);
+  const grouping = groupingOf();
+  if (!grouping) throw new QueryError("invalid-request", ["spec", "groupBy"]);
+  if (grouping.childKind === "rows") throw new QueryError("unsupported", ["childKind"]);
+  if (grouping.levels.includes(column)) throw new QueryError("invalid-request", path);
+  if (grouping.aggregates.length === 0) throw new QueryError("invalid-request", ["spec", "aggregates"]);
+  if (grouping.aggregates.length > ctx.limits.maxPivotColumns) throw new QueryError("limit-exceeded", ["spec", "aggregates"]);
+  grouping.aggregates.forEach(({ column: value, reducer }, index) => {
+    if (value.kind !== "number" && reducer !== "count") throw new QueryError("unsupported", ["spec", "aggregates", index]);
+  });
+  return column;
+}
+
+/** The test that keeps the rows of one pivot key the executor answered, or throws {@link QueryError}. */
+export function pivotKeyTest(column: PlanColumn, key: unknown, limits: ResolvedLimits): Predicate {
+  const ctx = { limits, budget: { nodes: 0, leaves: 0, listValues: 0, bytes: 0 } } as Ctx;
+  return groupEquality(column, key, ["spec", "pivot", "columnIds", 0], ctx);
 }
 
 type GroupRequest = { levels: PlanColumn[]; path: Predicate[]; childKind: "groups" | "rows"; aggregates: GroupsPlan["aggregates"] };
@@ -192,8 +217,8 @@ function parseWhere(spec: Raw, ctx: Ctx): Predicate {
 
 function parseRows(input: Raw, ctx: Ctx, rowCount: RowCountMode, allowGroups: boolean): RowsPlan | GroupsPlan {
   const spec = specOf(input);
-  rejectPivot(spec);
   const grouping = parseGroupRequest(input, spec, ctx);
+  const pivot = parsePivot(spec, () => grouping, ctx);
   if (grouping && ctx.paging === "cursor") throw new QueryError("unsupported", ["spec", "groupBy"]);
   if (grouping?.childKind === "groups" && !allowGroups) throw new QueryError("unsupported", ["childKind"]);
   const filters = parseWhere(spec, ctx);
@@ -205,7 +230,9 @@ function parseRows(input: Raw, ctx: Ctx, rowCount: RowCountMode, allowGroups: bo
   if (grouping?.childKind === "groups") {
     const level = grouping.levels[grouping.path.length]!;
     const direction = sorts.find((term) => term.column === level)?.direction ?? "asc";
-    return { kind: "groups", where, level, nextLevel: grouping.levels[grouping.path.length + 1], direction, rowRange, countRows: grouping.path.length === 0, aggregates: grouping.aggregates };
+    const plan: GroupsPlan = { kind: "groups", where, level, nextLevel: grouping.levels[grouping.path.length + 1], direction, rowRange, countRows: grouping.path.length === 0, aggregates: grouping.aggregates };
+    if (pivot) plan.pivot = { column: pivot, direction: sorts.find((term) => term.column === pivot)?.direction ?? "asc", keys: [], omitted: 0 };
+    return plan;
   }
   const orderBy = grouping ? sorts.filter((term) => !grouping.levels.includes(term.column) || ctx.map.tieBreaker.includes(term.column)) : sorts;
   const runCount = paged ? rowCount !== "none" : rowCount === "always" || (rowCount === "firstBlock" && rowRange.start === 0);
@@ -228,7 +255,8 @@ function parseValues(input: Raw, ctx: Ctx): ValuesPlan {
 
 function parseAggregates(input: Raw, ctx: Ctx): AggregatesPlan {
   const spec = specOf(input);
-  rejectPivot(spec);
+  // Band totals cover the whole result, so a valid pivot changes nothing here.
+  parsePivot(spec, () => parseGroupRequest({}, spec, ctx), ctx);
   const where = parseWhere(spec, ctx);
   const requested = input["columnIds"];
   let columns: PlanColumn[];
