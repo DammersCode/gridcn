@@ -1,4 +1,5 @@
 import { type ColumnMap, type PlanColumn, mapOf } from "./column-map";
+import type { AdapterCapabilities } from "./create-grid-query";
 import { QueryError } from "./errors";
 import { type QueryLimits, type ResolvedLimits, resolveLimits } from "./limits";
 import { parseQuery } from "./parse-query";
@@ -17,6 +18,8 @@ export type ParseSelectionOptions = {
   limits?: QueryLimits;
   /** IANA zone or fixed offset of day filters on `time` columns. Default `"UTC"`. */
   timeZone?: string;
+  /** The executor's capabilities: an id list past `maxBoundIds`, or a test the adapter cannot run, is refused here. */
+  capabilities?: AdapterCapabilities;
 };
 
 type Raw = Record<string, unknown>;
@@ -67,12 +70,16 @@ export function parseSelection(input: unknown, options: ParseSelectionOptions): 
   if (mode !== "ids" && mode !== "allMatching") throw new QueryError("invalid-request", ["selection", "mode"]);
   const listName = mode === "ids" ? "ids" : "excludedIds";
   const values = keyOperands(key, selection[listName], limits, ["selection", listName], mode === "allMatching");
+  const { capabilities } = options;
+  if (values.length > (capabilities?.maxBoundIds ?? Infinity)) throw new QueryError("limit-exceeded", ["selection", listName]);
+  // An excluded uuid stays excluded in any case only through a folded comparison.
+  if (mode === "allMatching" && values.length > 0 && key.native === "uuid" && capabilities?.caseInsensitiveText === "like-only") throw new QueryError("unsupported", ["selection", listName]);
   const spec = mode === "allMatching" ? specFields(selection["spec"]) : {};
   const start = input["start"] ?? 0;
   const end = input["end"] ?? (typeof start === "number" ? start + limits.maxPageSize : undefined);
   let parsed: RowsPlan;
   try {
-    parsed = parseQuery({ spec, start, end }, { columns: options.columns, request: "rows", limits: options.limits, timeZone: options.timeZone });
+    parsed = parseQuery({ spec, start, end }, { columns: options.columns, request: "rows", limits: options.limits, timeZone: options.timeZone, capabilities });
   } catch (error) {
     if (error instanceof QueryError && error.path[0] === "spec") throw new QueryError(error.code, ["selection", ...error.path]);
     throw error;
