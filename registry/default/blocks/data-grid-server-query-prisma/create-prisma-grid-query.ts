@@ -17,6 +17,7 @@ import {
   own,
   toWhere,
   unsupported,
+  writeValue,
 } from "./render-prisma";
 
 type Method = (...args: never[]) => unknown;
@@ -182,6 +183,7 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
         return rendered;
       },
       orderBy: (plan) => renderer.orderBy(plan.orderBy),
+      nativeValue: writeValue,
       selectRows: async (plan, page) => {
         const rows = await many("findMany", { where: where(renderer.node(plan.where)), orderBy: renderer.orderBy(plan.orderBy), skip: page.offset, take: page.limit, select: select(plan.projection) });
         return rows.map((row) => fromRow(row, plan.projection));

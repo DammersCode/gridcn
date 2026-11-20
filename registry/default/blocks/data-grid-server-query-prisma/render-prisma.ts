@@ -103,6 +103,14 @@ export function nativeValue(column: PlanColumn, operand: Operand): unknown {
   }
 }
 
+/** A validated write value as the Prisma field type takes it: integers as numbers or `BigInt`, dates as `Date`. */
+export function writeValue(column: PlanColumn, value: unknown): unknown {
+  if (value === null) return null;
+  if (column.kind === "number" && column.numeric !== "float" && column.numeric !== "decimal") return nativeValue(column, { kind: "bigint", v: BigInt(value as number | string) });
+  if (column.kind === "date" && typeof value === "string") return nativeValue(column, { kind: column.time ? "instant" : "date", v: value });
+  return value;
+}
+
 export function createPrismaRenderer(provider: PrismaProvider) {
   const pg = provider === "postgresql";
   const escape = (text: string): string => escapeLike(text, "\\");

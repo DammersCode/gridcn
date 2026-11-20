@@ -17,7 +17,8 @@ export type WriteRefusalCode = ImportRefusalCode | "not-writable" | "not-found";
 export type WriteRefusal = { rowId: string; columnId?: string; code: WriteRefusalCode; message: string };
 
 /**
- * The writes of a `DataChange` that passed the column map. `values` are keyed by the physical `field`;
+ * The writes of a `DataChange` that passed the column map. `values` are keyed by the physical `field`, in the
+ * driver's form when the adapter's executor has `nativeValue`;
  * each `where` matches the row id within `rowScope`. A write whose `where` matches no row is the route's refusal to add.
  */
 export type ValidatedChange<TWhere> = {
@@ -68,6 +69,8 @@ export type ValidateChangeOptions = {
   limits?: QueryLimits;
   /** The `rowScope` predicate of the call: an AND of `exact` tests. */
   scope?: Predicate;
+  /** Turns each validated value of `values` into the driver's value. Default: the values stay as validated. */
+  nativeValue?: (column: PlanColumn, value: unknown) => unknown;
 };
 
 type Raw = Record<string, unknown>;
@@ -159,6 +162,8 @@ export function validateChange(input: unknown, options: ValidateChangeOptions): 
   const ops: unknown[] = input["ops"];
   if (ops.length > limits.maxChangeOps) throw new QueryError("limit-exceeded", ["ops"]);
   const scope = scopeEqualities(options.scope);
+  const { nativeValue } = options;
+  const write = (values: Raw, column: PlanColumn, value: unknown) => put(values, column.field, nativeValue ? nativeValue(column, value) : value);
   // By field: two ids may share one physical column, and an alias must not write the key or the scope.
   const fixedFields = new Set([key.field, ...scope.map((entry) => entry.column.field)]);
   const fixed = (column: PlanColumn) => fixedFields.has(column.field);
@@ -192,13 +197,13 @@ export function validateChange(input: unknown, options: ValidateChangeOptions): 
         const column = writable(id);
         if (!column || fixed(column)) continue;
         const cell = writeCell(column, row[id], limits, [...path, "row", id]);
-        if (cell.ok) put(values, column.field, cell.value);
+        if (cell.ok) write(values, column, cell.value);
         else refused.push(refusal(rowId, cell.code, id));
       }
       for (const column of byId.values()) {
         if (column.required && !column.serverOnly && !fixed(column) && !Object.hasOwn(row, column.id)) refused.push(refusal(rowId, "required", column.id));
       }
-      for (const { column, value } of scope) put(values, column.field, operandValue(column, value));
+      for (const { column, value } of scope) write(values, column, operandValue(column, value));
       if (refused.length > 0) reject(refused);
       else result.inserts.push({ rowId, values });
       continue;
@@ -241,7 +246,7 @@ export function validateChange(input: unknown, options: ValidateChangeOptions): 
         ...(afterWhere === undefined ? {} : { afterRowId, afterWhere }),
       });
     } else {
-      const accepted = new Map<string, [field: string, value: unknown]>();
+      const accepted = new Map<string, [column: PlanColumn, value: unknown]>();
       const refused: WriteRefusal[] = [];
       for (const [columnId, value] of changes) {
         const column = writable(columnId);
@@ -257,7 +262,7 @@ export function validateChange(input: unknown, options: ValidateChangeOptions): 
         }
         // Delete first so the last entry also wins between two ids that share a field.
         accepted.delete(columnId);
-        accepted.set(columnId, [column.field, cell.value]);
+        accepted.set(columnId, [column, cell.value]);
       }
       // The grid reverts every entry of a refused column, so no column of its field is written, and the others are refused too.
       const refusedIds = new Set(refused.map((entry) => entry.columnId));
@@ -267,9 +272,9 @@ export function validateChange(input: unknown, options: ValidateChangeOptions): 
         if (!refusedFields.has(field)) refusedFields.set(field, entry);
       }
       const values: Raw = {};
-      for (const [columnId, [field, value]] of accepted) {
-        const sibling = refusedFields.get(field);
-        if (!sibling) put(values, field, value);
+      for (const [columnId, [column, value]] of accepted) {
+        const sibling = refusedFields.get(column.field);
+        if (!sibling) write(values, column, value);
         else if (!refusedIds.has(columnId)) refused.push(refusal(rowId, sibling.code, columnId));
       }
       reject(refused);

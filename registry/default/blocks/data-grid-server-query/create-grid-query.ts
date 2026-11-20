@@ -64,6 +64,12 @@ export type QueryExecutor<TWhere, TOrder> = {
   countGroups(plan: GroupsPlan, signal?: AbortSignal): Promise<unknown>;
   where(plan: { where: Predicate }): TWhere;
   orderBy(plan: RowsPlan): TOrder;
+  /**
+   * Turns one validated write value into the driver's value, such as a `BigInt` for int8 or a `Date` for a time. The
+   * value is `null` or what `validateChange` checked: a number or digit text, a `YYYY-MM-DD` day, an ISO instant, text,
+   * or a boolean. Without it the `values` of a validated change stay in those forms.
+   */
+  nativeValue?(column: PlanColumn, value: unknown): unknown;
 };
 
 export type QueryCallOptions<TContext = never> = { signal?: AbortSignal } & ([TContext] extends [never] ? { context?: undefined } : { context: TContext });
@@ -358,7 +364,7 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
   };
 
   const validate = (input: unknown, callOptions?: { context?: unknown }): ValidatedChange<TWhere> => {
-    const change = validateChange(input, { columns, limits, scope: scoped(callOptions) });
+    const change = validateChange(input, { columns, limits, scope: scoped(callOptions), nativeValue: executor.nativeValue?.bind(executor) });
     const where = (predicate: Predicate) => executor.where({ where: predicate });
     return {
       ...change,

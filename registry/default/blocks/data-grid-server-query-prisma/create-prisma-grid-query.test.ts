@@ -476,6 +476,22 @@ describe("rowScope and writes", () => {
     expect(change.deletes[0]!.where).toStrictEqual(scoped({ id: { equals: 6 } }));
   });
 
+  it("writes values as the Prisma field types take them: int8 as BigInt, int4 as a number, dates as Date", () => {
+    const { query } = make();
+    const change = query.validateChange(
+      {
+        ops: [
+          { type: "update", rowId: "5", row: {}, prev: {}, cells: [{ columnId: "big", value: "9007199254740993", prev: null }, { columnId: "qty", value: "12", prev: null }, { columnId: "stamp", value: "2024-01-01T10:00:00Z", prev: null }, { columnId: "name", value: "", prev: null }] },
+          { type: "insert", rowId: "new-0", row: { title: "T", done: true, born: "2024-02-29", price: "1.50" } },
+        ],
+        source: "edit",
+      },
+      CONTEXT,
+    );
+    expect(change.updates[0]!.values).toStrictEqual({ big: BigInt("9007199254740993"), qty: 12, stamp: new Date("2024-01-01T10:00:00.000Z"), name: null });
+    expect(change.inserts[0]!.values).toStrictEqual({ title: "T", done: true, born: new Date("2024-02-29T00:00:00.000Z"), price: "1.5", tenantId: 7 });
+  });
+
   it("scopes every delegate call of every method", async () => {
     const { query, calls } = make("postgresql", { groupBy: (args) => ((args["by"] as unknown[]).length === 2 ? [] : [{ tag: "a", _count: { _all: 1 } }]) });
     await query.fetchRows(rowsRequest({}), CONTEXT);
