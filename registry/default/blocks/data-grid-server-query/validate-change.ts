@@ -6,11 +6,12 @@ import { type Cell, IMPORT_REFUSAL_MESSAGES, type ImportRefusalCode, readCell } 
 import { type Operand, type Predicate, combine, leaf } from "./plan";
 import { toSafeText } from "./safe-text";
 
-const WRITE_REFUSAL_MESSAGES = { ...IMPORT_REFUSAL_MESSAGES, "not-writable": "Not writable" } as const;
+const WRITE_REFUSAL_MESSAGES = { ...IMPORT_REFUSAL_MESSAGES, "not-writable": "Not writable", "not-found": "Not found" } as const;
 // The grid refuses every row of a save answer that lists more rejections than this.
 const MAX_WRITE_REJECTIONS = 10_000;
 
-export type WriteRefusalCode = ImportRefusalCode | "not-writable";
+/** `not-found`: the write's `where` matched no row, such as a deleted row or one outside `rowScope`. */
+export type WriteRefusalCode = ImportRefusalCode | "not-writable" | "not-found";
 
 /** One refused row or cell of a {@link ValidatedChange}; it assigns to the grid's `SaveRejection`. Without `columnId` the whole operation is refused. */
 export type WriteRefusal = { rowId: string; columnId?: string; code: WriteRefusalCode; message: string };
@@ -27,6 +28,35 @@ export type ValidatedChange<TWhere> = {
   moves: { rowId: string; where: TWhere; beforeRowId?: string; beforeWhere?: TWhere; afterRowId?: string; afterWhere?: TWhere }[];
   rejected: WriteRefusal[];
 };
+
+/** How many rows each write matched, one count per entry of the {@link ValidatedChange} list of the same name. A move whose row or neighbor is gone counts 0. */
+export type WriteCounts = { updates: readonly (number | bigint)[]; deletes: readonly (number | bigint)[]; moves: readonly (number | bigint)[] };
+
+/** The answer of a save route; it assigns to the grid's `SaveAck`. */
+export type SaveAnswer = { rejected: WriteRefusal[] };
+
+const isCount = (count: unknown): count is number | bigint => (typeof count === "number" && Number.isSafeInteger(count) && count >= 0) || (typeof count === "bigint" && count >= 0n);
+
+/**
+ * The save answer of a validated change after its writes ran: its refusals, plus one `not-found` per row id with a
+ * write that matched no row. Throws an `Error` for counts that do not line up with the writes, and `limit-exceeded`
+ * for more than 10,000 refusals.
+ */
+export function saveAnswer(change: ValidatedChange<unknown>, counts: WriteCounts): SaveAnswer {
+  const rejected = [...change.rejected];
+  const unmatched = new Set<string>();
+  for (const list of ["updates", "deletes", "moves"] as const) {
+    const writes = change[list];
+    const matched: readonly unknown[] | undefined = counts?.[list];
+    if (!Array.isArray(matched) || matched.length !== writes.length || !matched.every(isCount)) throw new Error(`apply answered no row count for each of the ${list}`);
+    writes.forEach((write, index) => {
+      if (Number(matched[index]) === 0) unmatched.add(write.rowId);
+    });
+  }
+  for (const rowId of unmatched) rejected.push(refusal(rowId, "not-found"));
+  if (rejected.length > MAX_WRITE_REJECTIONS) throw new QueryError("limit-exceeded", ["ops"]);
+  return { rejected };
+}
 
 export type ValidateChangeOptions = {
   columns: ColumnMap;

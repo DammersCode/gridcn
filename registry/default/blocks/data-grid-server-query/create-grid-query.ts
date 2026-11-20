@@ -9,7 +9,7 @@ import { combine } from "./plan";
 import { type RowScope, rowScopePredicate } from "./row-scope";
 import { serializeRow, serializeValue } from "./serialize-row";
 import { toSafeText } from "./safe-text";
-import { type ValidatedChange, validateChange } from "./validate-change";
+import { type SaveAnswer, type ValidatedChange, type WriteCounts, saveAnswer, validateChange } from "./validate-change";
 
 /** Largest row count an answer carries; the grid clamps to the same bound. */
 export const MAX_TOTAL_ROW_COUNT = 10_000_000;
@@ -60,6 +60,9 @@ export type GroupsAnswer = {
 /** The answer of `selection`: the count of the selected rows, and with `include` one page of their ids or rows. */
 export type SelectionAnswer<TRow> = { count: number; ids?: string[]; rows?: TRow[]; hasMore?: boolean };
 
+/** Runs the writes of a validated change and answers how many rows each write matched. In one transaction, a throw writes none. */
+export type ApplyChange<TWhere, TContext = never> = (change: ValidatedChange<TWhere>, opts: QueryCallOptions<TContext>) => Promise<WriteCounts>;
+
 export interface GridQuery<TRow, TContext = never, TWhere = unknown, TOrder = unknown> {
   /** A request with `childKind: "groups"` answers a {@link GroupsAnswer}, every other request a {@link RowsAnswer}. */
   fetchRows(input: unknown, ...opts: CallArgs<TContext>): Promise<RowsAnswer<TRow> | GroupsAnswer>;
@@ -72,6 +75,16 @@ export interface GridQuery<TRow, TContext = never, TWhere = unknown, TOrder = un
   orderBy(plan: RowsPlan): TOrder;
   /** Applies the column map and `rowScope` to the `DataChange` of `onSave`; each `where` is in the ORM's own type. */
   validateChange(input: unknown, ...opts: CallArgs<TContext>): ValidatedChange<TWhere>;
+  /**
+   * The save route of `onSave`: validates the `DataChange`, hands the writes to `apply`, and answers the refusals plus
+   * a `not-found` for each row id whose write matched no row. `apply` runs even when every operation is refused.
+   * More than 10,000 refusals throw `limit-exceeded` after `apply` ran, so the matched writes stay written while the grid
+   * reverts every row. `maxBodyBytes` is `maxChangeBytes` (8 MiB).
+   *
+   * @example
+   * export const POST = (req: Request) => handleGridRequest(req, usersQuery.save(applyUserWrites), { context: await session(req) });
+   */
+  save(apply: ApplyChange<TWhere, TContext>): ((input: unknown, ...opts: CallArgs<TContext>) => Promise<SaveAnswer>) & { readonly maxBodyBytes: number };
   /**
    * Counts the rows of the grid's `DataGridSelectedRows` within `rowScope`; `include` also answers one page of their ids or rows.
    * `maxBodyBytes` (40 bytes per `maxSelectionIds` entry plus twice `maxTreeStringBytes`, about 8.1 MiB) is the body cap `handleGridRequest` reads when the route passes none.
@@ -283,6 +296,15 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
     where: (plan: RowsPlan) => executor.where(trusted(plan)),
     orderBy: (plan: RowsPlan) => executor.orderBy(trusted(plan)),
     validateChange: validate,
+    save: (apply: ApplyChange<TWhere, TContext>) =>
+      Object.assign(
+        async (input: unknown, callOptions?: { signal?: AbortSignal; context?: unknown }): Promise<SaveAnswer> => {
+          const change = validate(input, callOptions);
+          alive(callOptions?.signal);
+          return saveAnswer(change, await apply(change, (callOptions ?? {}) as QueryCallOptions<TContext>));
+        },
+        { maxBodyBytes: resolveLimits(limits).maxChangeBytes },
+      ),
     selection: Object.assign(selection, { maxBodyBytes: selectionBodyBytes(resolveLimits(limits)) }),
     selectionPlan: (input: unknown, callOptions?: { context?: unknown }) => register(parseSelected(input, callOptions).plan),
     capabilities: executor.capabilities,
