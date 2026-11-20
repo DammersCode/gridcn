@@ -141,6 +141,8 @@ export function createSqlRenderer<S>(a: SqlAlgebra<S>, customHandlers: ReadonlyM
       case "key":
         // The bare column, no `::text` cast and no blank guard, so the comparison follows ORDER BY (a native enum sorts by declaration).
         if (t.op === "null" || !t.value) return cat(col, raw(" IS NULL"));
+        // As in `idList`, a SQLite decimal binds as text, so the column's own affinity converts it, never a JS double.
+        if (!pg && column.numeric === "decimal") return cat(col, raw(KEY_SQL.get(t.op)!), param(t.value.v));
         return cat(col, raw(KEY_SQL.get(t.op)!), operand(t.value, column));
       case "custom": {
         const handler = customHandlers.get(t.id);

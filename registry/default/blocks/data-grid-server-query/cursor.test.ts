@@ -45,6 +45,7 @@ function spy(rows: Row[], capabilities: Partial<AdapterCapabilities> = {}) {
 const SPECS = {
   id: { type: "number", numeric: "int8", primaryKey: true },
   name: { type: "text", maxLength: 20 },
+  title: { type: "text", maxLength: 20, required: true },
   qty: { type: "number", numeric: "int4" },
   price: { type: "number", numeric: "decimal" },
   uid: { type: "text", native: "uuid" },
@@ -157,6 +158,26 @@ describe("cursor paging: pages", () => {
     expect(show(calls[1]!.plan.where)).toBe('(qty lt 4 OR qty null OR (qty eq 4 AND (name gt "m" OR name null)) OR (qty eq 4 AND name eq "m" AND id gt 7))');
   });
 
+  it("keeps the NULL branch on a required column, and drops it only on the primary key", async () => {
+    const { fetch, calls } = cursorQuery([{ id: 3, title: "m" }, { id: 4, title: "n" }]);
+    const spec = { sorts: [{ columnId: "title", direction: "asc" }] };
+    const first = await fetch({ spec, start: 0, end: 1 });
+    await fetch({ spec, start: 1, end: 2, cursor: first.nextCursor });
+    expect(show(calls[1]!.plan.where)).toBe('(title gt "m" OR title null OR (title eq "m" AND id gt 3))');
+  });
+
+  it("refuses to answer a cursor over an integer the driver read past 2^53", async () => {
+    const { fetch } = cursorQuery([{ id: 2 ** 53 + 2 }, { id: 2 ** 53 + 4 }]);
+    await expect(fetch({ spec: {}, start: 0, end: 1 })).rejects.toMatchObject({ code: "limit-exceeded" });
+  });
+
+  it("refuses to answer a cursor over a time key with no exact text, such as PostgreSQL infinity", async () => {
+    const fake = spy([]);
+    const query = createGridQuery<Row, never, Predicate, unknown, string>({ columns, executor: fake.executor, paging: "cursor" });
+    fake.executor.selectRows = async (plan) => [{ id: 1, stamp: new Date(Number.NaN), [plan.keyText![0]!.as]: null }, { id: 2 }];
+    await expect(query.fetchRows({ spec: { sorts: [{ columnId: "stamp", direction: "desc" }] }, start: 0, end: 1 })).rejects.toMatchObject({ code: "limit-exceeded" });
+  });
+
   it("keeps the empty text a value distinct from NULL", async () => {
     const { fetch, calls } = cursorQuery([{ id: 3, name: "" }, { id: 4, name: "x" }]);
     const spec = { sorts: [{ columnId: "name", direction: "asc" }] };
@@ -223,14 +244,14 @@ describe("cursor paging: time keys", () => {
   const spec = { sorts: [{ columnId: "stamp", direction: "asc" }] };
 
   it("reads the exact key text of a time column and resumes from it", async () => {
-    const rows: Row[] = [{ id: 1, stamp: new Date("2024-01-01T00:00:00.123Z") }, { id: 2 }];
+    const rows: Row[] = [{ id: 1 }, { id: 2 }];
     const fake = spy(rows);
     const query = createGridQuery<Row, never, Predicate, unknown, string>({ columns, executor: fake.executor, paging: "cursor" });
     const first = (await query.fetchRows({ spec, start: 0, end: 1 })) as RowsAnswer<Row, string>;
     const keyText = fake.calls[0]!.plan.keyText!;
     expect(keyText.map((entry) => entry.column.id)).toEqual(["stamp"]);
     expect(keyText[0]!.as).not.toBe("stamp");
-    // The executor answers no key text here, so the key is NULL; the next test answers one.
+    // The row's stamp is NULL, so its key text is NULL too; the next test answers one.
     await query.fetchRows({ spec, start: 1, end: 2, cursor: first.nextCursor });
     expect(show(fake.calls[1]!.plan.where)).toBe("(stamp null AND id gt 1)");
   });

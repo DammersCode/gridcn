@@ -113,6 +113,8 @@ function keyFromText(column: PlanColumn, text: string, limits: ResolvedLimits): 
   }
   const operand = keyOperand(column, text, limits);
   if (typeof operand === "string") return null;
+  // A decimal compares as sent: a SQLite TEXT column holds `1.50` and `1.5` as two texts.
+  if (column.numeric === "decimal") return { kind: "number", v: text };
   // PostgreSQL throws on a label its enum lacks.
   if (column.native === "enum") return column.choices!.includes(text) ? operand : null;
   return operand;
@@ -144,7 +146,9 @@ export function decodeCursor(cursor: unknown, ctx: KeyContext): (Operand | null)
 const notCarried = () => new QueryError("limit-exceeded", ["cursor"]);
 
 /** The key text of one row value: the stored text, the exact `keyText` of a time key, or the number's own digits. */
-function keyTextOf(column: PlanColumn, raw: unknown): string | null {
+function keyTextOf(column: PlanColumn, raw: unknown, projected: unknown): string | null {
+  // PostgreSQL's `to_char` of `infinity` is NULL; a NULL key there would skip every finite row.
+  if ((raw === null || raw === undefined) && projected !== null && projected !== undefined) throw notCarried();
   if (raw === null || raw === undefined) return null;
   if (isTime(column) && !isEpoch(column)) return typeof raw === "string" ? raw : toSafeText(raw);
   if (isTime(column)) {
@@ -154,7 +158,10 @@ function keyTextOf(column: PlanColumn, raw: unknown): string | null {
   }
   if (column.kind === "number") {
     if (typeof raw === "string") return raw;
-    if (typeof raw === "bigint" || (typeof raw === "number" && Number.isFinite(raw))) return raw.toString();
+    if (typeof raw === "bigint") return raw.toString();
+    // A driver that reads an integer past 2^53 as a number has already rounded it.
+    const exact = Number.isFinite(raw) && (column.numeric === "float" || column.numeric === "decimal" || Number.isSafeInteger(raw));
+    if (typeof raw === "number" && exact) return raw.toString();
     throw notCarried();
   }
   if (column.kind === "text" || column.kind === "select") return typeof raw === "string" ? raw : toSafeText(raw);
@@ -170,7 +177,7 @@ function keyTextOf(column: PlanColumn, raw: unknown): string | null {
 export function cursorAfter(row: Record<string, unknown>, keyText: ReadonlyMap<PlanColumn, string>, ctx: KeyContext): string {
   const keys = ctx.terms.map(({ column }) => {
     const field = keyText.get(column) ?? column.id;
-    return keyTextOf(column, Object.hasOwn(row, field) ? row[field] : null);
+    return keyTextOf(column, Object.hasOwn(row, field) ? row[field] : null, Object.hasOwn(row, column.id) ? row[column.id] : null);
   });
   const bytes = encoder.encode(JSON.stringify([VERSION, ctx.hash, ...keys]));
   if (Math.ceil((bytes.length * 4) / 3) > ctx.limits.maxCursorBytes) throw notCarried();

@@ -183,7 +183,8 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
   const cursorPaging = options.paging === "cursor";
   if (cursorPaging) assertCursorColumns(columns, resolveLimits(limits));
   const keyTextAlias = keyTextAliases(columns);
-  const nonNull = (column: PlanColumn): boolean => column.required || map.tieBreaker.includes(column);
+  // `required` refuses blank writes and promises no NOT NULL, so only the primary key drops the NULL branch.
+  const nonNull = (column: PlanColumn): boolean => column.primaryKey;
   if (isDev() && !map.visible.some((column) => column.searchable)) {
     console.warn("gridcn query layer: no column sets `searchable`, so quick search matches every row.");
   }
