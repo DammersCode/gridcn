@@ -398,6 +398,7 @@ describe("keyset cursor", () => {
     title: { type: "text", maxLength: 20, required: true },
     qty: { type: "number", numeric: "int4", nullable: true },
     stamp: { type: "date", time: true, nullable: true },
+    done: { type: "checkbox", required: true },
   });
 
   async function resume(sorts: { columnId: string; direction: "asc" | "desc" }[], last: Record<string, unknown>) {
@@ -424,6 +425,13 @@ describe("keyset cursor", () => {
     expect(await resume([{ columnId: "title", direction: "asc" }, { columnId: "qty", direction: "desc" }], { id: 5, title: "t", qty: null })).toStrictEqual({
       OR: [{ title: { gt: "t" } }, { AND: [{ title: { equals: "t" } }, { qty: null }, { id: { gt: 5 } }] }],
     });
+  });
+
+  it("a checkbox key compares by equals, since a Prisma Boolean filter has no gt or lt", async () => {
+    expect(await resume([{ columnId: "done", direction: "asc" }], { id: 5, done: false })).toStrictEqual({
+      OR: [{ done: { equals: true } }, { AND: [{ done: { equals: false } }, { id: { gt: 5 } }] }],
+    });
+    expect(await resume([{ columnId: "done", direction: "desc" }], { id: 5, done: false })).toStrictEqual({ AND: [{ done: { equals: false } }, { id: { gt: 5 } }] });
   });
 
   it("declines a time key, since Prisma reads DateTime in milliseconds", async () => {

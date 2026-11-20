@@ -198,6 +198,8 @@ export function createPrismaRenderer(provider: PrismaProvider, nullableIds: Read
       case "key":
         // No `mode`: the comparison follows ORDER BY, which uses the column collation.
         if (t.op === "null" || !t.value) return isNull(column);
+        // A Prisma Boolean filter has no `gt` or `lt`: past `false` ascending is `true`, past `true` is nothing.
+        if (column.kind === "checkbox" && t.op !== "eq") return t.value.v === (t.op === "lt") ? fieldLeaf(column, { equals: !t.value.v }, twoValued) : false;
         return fieldLeaf(column, own({}, t.op === "eq" ? "equals" : t.op, value(column, t.value)), twoValued);
       case "custom":
         throw unsupported(column);
