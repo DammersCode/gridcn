@@ -1,3 +1,5 @@
+import type { ServerAggregate } from "./server-spec";
+
 /** The stored value a row group shares; `null` is the empty group (`null`, `undefined`, and `""`). */
 export type GroupKey = string | number | boolean | null;
 
@@ -60,7 +62,24 @@ export type ServerGroupSlot = {
   count: number;
   childCount: number;
   aggregates?: Readonly<Record<string, unknown>>;
+  /** Under pivot: one pivot cell per held column, in held order; `NaN` when no value counted. */
+  pivotCells?: Float64Array;
   status?: "loading" | "failed";
+};
+
+/** One generated column of a pivot answer: one key per pivot column, and the index of its value in `spec.aggregates`. */
+export type PivotColumnDescriptor = { readonly path: readonly GroupKey[]; readonly valueIndex: number };
+
+/** The held set of a server pivot. It keeps one identity until the next spec change or `refresh()`. */
+export type ServerPivotLayout = {
+  /** The pivot column. */
+  readonly columnId: string;
+  /** The values: `spec.aggregates` of the request. */
+  readonly values: readonly ServerAggregate[];
+  /** The held columns, key-major, at most 200. */
+  readonly columns: readonly PivotColumnDescriptor[];
+  /** Generated columns the server or the grid cut. */
+  readonly omitted: number;
 };
 
 /**
@@ -71,6 +90,8 @@ export type ServerGroupLayout = {
   readonly rows: readonly ServerGroupSlot[];
   /** Rows of the whole result, collapsed groups included. */
   readonly leafCount: number;
+  /** The held set. Present under pivot. */
+  readonly pivot?: ServerPivotLayout;
 };
 
 /** What `renderGroupLabel` receives for a group row. */

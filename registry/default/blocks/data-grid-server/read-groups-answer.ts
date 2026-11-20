@@ -1,5 +1,5 @@
 import type { RowRange } from "@/registry/default/blocks/data-grid/data-grid";
-import { groupKeyText, type GroupKey, type GroupPathSegment } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { groupKeyText, type GroupKey, type GroupPathSegment, type PivotColumnDescriptor } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MAX_ROW_COUNT } from "./read-answer";
 
 /** What a request asks of the server while the grid is grouped: the children of one group. */
@@ -20,6 +20,8 @@ export type ServerGroupRow = {
   totalRowCount: number;
   /** One value per requested aggregate column id: a finite number, or `null` when no value counted. */
   aggregates?: Readonly<Record<string, unknown>>;
+  /** Under `spec.pivot`: one value per entry of this answer's `pivotColumns`; `null` when no value counted. */
+  pivotCells?: readonly (number | null)[];
 };
 
 /** What `fetchRows` resolves with for a request of `childKind: "groups"`. */
@@ -30,6 +32,10 @@ export type ServerGroupsAnswer = {
   groupCount: number;
   /** Top level: the row count of the result. Required there. */
   totalRowCount?: number;
+  /** Under `spec.pivot`: the generated columns of the whole result, key-major. Required there. */
+  pivotColumns?: readonly PivotColumnDescriptor[];
+  /** Generated columns the server cut past its cap. */
+  pivotOmitted?: number;
 };
 
 /** A groups answer after validation. */
@@ -55,7 +61,7 @@ function count(value: unknown, field: string, warn: Warn): number {
   return MAX_ROW_COUNT;
 }
 
-function readKey(key: unknown, field: string): GroupKey {
+export function readKey(key: unknown, field: string): GroupKey {
   if (key === null || typeof key === "boolean" || (typeof key === "number" && Number.isFinite(key))) return key;
   if (typeof key === "string" && key.length <= MAX_GROUP_TEXT_LENGTH) return key;
   throw new TypeError(`fetchRows answered ${field} that is not a string of at most ${MAX_GROUP_TEXT_LENGTH} characters, a finite number, a boolean, or null`);

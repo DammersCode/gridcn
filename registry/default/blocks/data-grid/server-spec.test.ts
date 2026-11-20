@@ -34,3 +34,15 @@ describe("serverSpecKey with groups", () => {
     expect(serverSpecKey({ ...grouped, aggregates: [{ columnId: "qty", reducer: "sum" }] })).not.toBe(serverSpecKey(grouped));
   });
 });
+
+describe("serverSpecKey with pivot", () => {
+  const grouped: ServerSpec = { ...EMPTY_SERVER_SPEC, groupBy: ["region"], aggregates: [{ columnId: "qty", reducer: "sum" }] };
+
+  it("keeps the key of a spec without pivot byte-equal", () => {
+    expect(serverSpecKey(grouped)).toBe('{"sorts":[],"filters":[],"searchText":"","groupBy":["region"],"aggregates":[{"columnId":"qty","reducer":"sum"}]}');
+  });
+
+  it("differs when the spec has a pivot", () => {
+    expect(serverSpecKey({ ...grouped, pivot: { columnIds: ["year"] } })).not.toBe(serverSpecKey(grouped));
+  });
+});
