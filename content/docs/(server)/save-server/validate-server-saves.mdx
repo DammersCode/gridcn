@@ -16,7 +16,7 @@ aliases: ["validatechange", "save route", "write validation", "not-found", "quer
 
 This route saves the changes of an orders grid with Drizzle on PostgreSQL:
 
-```ts title="app/api/orders/save/route.ts"
+```ts title="app/api/orders/save/route.ts" fragment="db is your Drizzle client, which types tx"
 import type { SQL } from "drizzle-orm";
 import {
   handleGridRequest,

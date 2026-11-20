@@ -51,7 +51,7 @@ type Order = { id: number; customer: string; total: number };
 
 const columns = defineColumns<Order>()([
   { id: "customer", header: "Customer", accessorKey: "customer" },
-  { id: "total", header: "Total", accessorKey: "total" },
+  { id: "total", header: "Total", accessorKey: "total", type: "number" },
 ]);
 
 export function OrdersGrid() {
