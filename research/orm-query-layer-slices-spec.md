@@ -49,7 +49,7 @@ type SelectionAnswer<TRow> = { count: number; ids?: string[]; rows?: TRow[]; has
 **Failure codes.** `invalid-request`, `limit-exceeded`, `payload-too-large` (413), the spec's codes; `unsupported` (501) for a `tieBreaker` map or a non-number, non-text key.
 
 Prisma: `{ pk: { in | notIn: ids } }`. A negated `ids` test renders `notIn`, never `NOT: { in }`. The adapter counts every bound parameter of the rendered statement and refuses with `limit-exceeded` itself when it passes the provider budget (PostgreSQL 32,766, SQLite 999); it never relies on `P2029`, because Prisma splits a plain `in` into chunks beyond the budget and returns or deletes wrong rows without an error. Its `maxBoundIds` (the budget minus the take and skip reserve: 32,764 and 997) lets the core refuse a longer parsed id list first, at `["selection", "ids" | "excludedIds"]`. A selection of about 990 ids or excluded ids on SQLite is therefore `limit-exceeded`. On SQLite (`caseInsensitiveText: "like-only"`) excluded ids on a uuid key are `unsupported`, since keeping them excluded in any case needs `lower(col)`.
-Supabase: quoted `in.(…)` while the URL fits `maxUrlLength`, else the selection RPC with ids as an array argument; without that RPC, `limit-exceeded`.
+Supabase: quoted `in.(…)` while the URL fits `maxUrlLength` and the page with its look-ahead row fits `maxRows`, else the generic `rows` plan to the table's grid function (`rpc`), with the ids as an `in` leaf of its `where`; without `rpc`, `limit-exceeded`.
 
 ## 3. Write validation (#101)
 
@@ -79,7 +79,7 @@ type ValidatedChange<TWhere> = {
 **Failure codes.** `invalid-request`, `limit-exceeded`, `payload-too-large`; `unsupported` without one `primaryKey`. Refusal codes: the import codes, `not-writable`, `not-found`.
 
 Prisma: `updateMany`/`deleteMany({ where: { pk, ...scope } })`; `count === 0` is not found. Its `nativeValue` writes integers as numbers (`BigInt` for int8), days and instants as `Date`, and decimals as text.
-Supabase: `.update(values).eq(pk, v).eq(scope, s).select(pk)`; empty is not found; RLS stays the boundary.
+Supabase: `where` is one PostgREST logic tree of the row id AND `rowScope` for `.or()`: `.update(values).or(where).select(pk)`; empty is not found; RLS stays the boundary. The tree is safe ONLY as the sole argument of one `.or()`: combined, as in `` .or(`${where},x`) ``, the scope becomes one OR branch and drops out. Writes over REST are NOT atomic: each call is its own transaction, while `apply` requires one transaction for the whole change, so the docs route a save through a consumer RPC that runs every write in one function, never a loop of `.update()` calls.
 
 ## 4. New Test kinds and executor members
 
