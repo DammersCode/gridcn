@@ -37,7 +37,7 @@ This page lists the exact rules of the [query layer](/docs/data-modes/query-laye
 | `storage` | How a `date` column stores instants: `native`, `iso-text`, `epoch-ms`, or `epoch-s`. | `native` |
 | `native` | The PostgreSQL type of a `text` or `select` column: `enum` or `uuid`. | None |
 | `choices` | The values of a `select` column. A native enum needs them. | None |
-| `maxLength` | The longest text that an import or a save writes. With `paging: "cursor"`, every sortable text column needs it. | None |
+| `maxLength` | The longest text that an import or a save writes. With `paging: "cursor"`, every sortable text and `select` column needs it. | None |
 | `aggregate` | The reducer of the flat totals: `sum`, `avg`, `min`, `max`, or `count`. | None |
 | `operators` | Custom operators: `{ id, label, input }`. `input` is `none`, `single`, `range`, or `list`. | None |
 

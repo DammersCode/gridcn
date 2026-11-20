@@ -10,9 +10,9 @@ An offset page makes the database skip every row before `start`, and the route c
 
 ## Set up cursor paging [#set-up]
 
-1. Set `maxLength` on every sortable text column.
+1. Set `maxLength` on every sortable text and `select` column.
 2. Pass `paging: "cursor"` to `createDrizzleGridQuery` or `createKyselyGridQuery`.
-3. Pass the route to `handleGridRequest`, as in [Add the route](/docs/data-modes/query-layer#route).
+3. Pass `ordersQuery.fetchRows` to `handleGridRequest`, as in [Add the route](/docs/data-modes/query-layer#route).
 4. Pass `string` as the second type argument of `useDataGridServerRows`.
 5. Send the whole request, `cursor` included, to the route.
 
@@ -91,7 +91,7 @@ A keyset cursor is base64url JSON. It holds a version, a plan hash, and one key 
 ## Cursor limits [#limits]
 
 - `maxCursorBytes` (default 2,048) bounds the cursor text. A longer cursor answers `bad-cursor` before the route decodes it.
-- The factory throws at creation for a sortable text column or a text tie-breaker without `maxLength`. If the longest cursor of a sort on one column is over `maxCursorBytes`, it also throws. Lower `maxLength`, set `sortable: false`, or raise `maxCursorBytes`.
+- The factory throws at creation for a sortable text or `select` column, or a text tie-breaker, without `maxLength`. A native `enum` or `uuid` column needs none. If the longest cursor of a sort on one column is over `maxCursorBytes`, it also throws. Lower `maxLength`, set `sortable: false`, or raise `maxCursorBytes`.
 - A sort on several long text columns can still pass `maxCursorBytes`. Such a request answers `limit-exceeded`.
 - A stored text longer than `maxLength` still compares. If the next cursor passes `maxCursorBytes`, the route answers `limit-exceeded`.
 - The route answers only cursors that it accepts. A key that no cursor can carry answers `limit-exceeded`. Such keys are a number over `maxNumberLength`, a float NaN or infinity, and an integer that the driver read past 2^53 as a number.

@@ -30,7 +30,8 @@ const applyOrderWrites: ApplyChange<SQL> = (change) =>
   db.transaction(async (tx) => {
     if (change.moves.length > 0) throw new Error("Orders have no row order");
     for (const insert of change.inserts) {
-      await tx.insert(orders).values(insert.values);
+      const row = insert.values as typeof orders.$inferInsert;
+      await tx.insert(orders).values(row);
     }
     const updates: number[] = [];
     for (const write of change.updates) {
@@ -86,7 +87,7 @@ With `rowScope`, pass `context` to `handleGridRequest`, as in [Limit rows to a t
 - The physical `field` keys `values`. The route skips unmapped and `serverOnly` keys and never writes them.
 - An update writes its `cells`. Without `cells`, it writes the keys of `row` that differ from `prev`.
 - In an update, a `cells` entry or a changed `row` value for the key or a `rowScope` column is `not-writable`. So is one for a column that shares the field of such a column.
-- An insert never writes the key. It writes the `rowScope` values of the call, whatever tenant the row names. A missing `required` column refuses it.
+- An insert never writes the key, so the database assigns it. The answer holds no id for the new row, so the grid keeps its client id. An insert writes the `rowScope` values of the call, whatever tenant the row names. A missing `required` column refuses it.
 - A cell passes the checks of an import cell: kind, `required`, `choices`, integer range, `scale`, finite floats, and `maxLength`. A text over `maxLength`, or else over `maxValueLength`, is `too-long`.
 - A refused cell drops every entry of its column from a `cells` update, and every other column of its field. Any refusal drops a whole-row update or an insert.
 - An update, delete, or move whose row id or neighbor id gives no key is `not-an-id`. The rest of the change goes on.
