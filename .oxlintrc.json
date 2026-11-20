@@ -87,6 +87,7 @@
     "public/**",
     ".source/**",
     "references/**",
+    "tests/server-query/prisma/generated/**",
     "*.tsbuildinfo"
   ]
 }

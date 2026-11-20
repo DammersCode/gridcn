@@ -141,6 +141,12 @@ describe("ranges and inequality", () => {
     expect(await whereOf({ filters: [filter("kind", "notEquals", "a")] })).toStrictEqual(scoped({ OR: [{ kind: null }, { kind: { not: "a" } }] }));
   });
 
+  it("renders a checkbox set as equals and not, since a Prisma Boolean filter has no in or notIn", async () => {
+    expect(await whereOf({ filters: [filter("done", "isAnyOf", ["true"])] })).toStrictEqual(scoped({ done: { equals: true } }));
+    expect(await whereOf({ filters: [filter("done", "isNoneOf", ["true"])] })).toStrictEqual(scoped({ done: { not: true } }));
+    expect(await whereOf({ filters: [{ join: "and", not: true, filters: [filter("done", "isAnyOf", ["false"])] }] })).toStrictEqual(scoped({ NOT: { done: { equals: false } } }));
+  });
+
   it("declines a LIKE leaf on a uuid column", async () => {
     const { query } = make();
     expect(await codeOf(query.fetchRows(rowsRequest({ filters: [filter("uid", "contains", "a")] }), CONTEXT))).toBe("unsupported");
@@ -205,6 +211,17 @@ describe("rows", () => {
     });
     const answer = (await query.fetchRows(rowsRequest({}), CONTEXT)) as { rows: Record<string, unknown>[] };
     expect(answer.rows[0]).toMatchObject({ id: 1, price: 1.5, big: "9007199254740993", born: "2024-02-29", name: "" });
+  });
+
+  it("pads a Decimal to the column's scale, as PostgreSQL returns numeric(p, s), and never rounds", async () => {
+    const decimal = (text: string) => ({ toFixed: () => text });
+    const { model } = fake({ findMany: () => [{ id: 1, amount: decimal("12.5") }, { id: 2, amount: decimal("3") }, { id: 3, amount: decimal("1.234") }], count: () => 3 });
+    const amounts = definePrismaColumnMap<{ id: number; amount: string | null }>()({ id: "id", amount: "amount" }, {
+      id: { type: "number", numeric: "int4", primaryKey: true },
+      amount: { type: "number", numeric: "decimal", scale: 2, nullable: true },
+    });
+    const answer = (await createPrismaGridQuery({ model, provider: "postgresql", columns: amounts }).fetchRows(rowsRequest({}))) as { rows: Record<string, unknown>[] };
+    expect(answer.rows.map((row) => row["amount"])).toStrictEqual(["12.50", "3.00", "1.234"]);
   });
 });
 
@@ -381,6 +398,7 @@ describe("keyset cursor", () => {
     title: { type: "text", maxLength: 20, required: true },
     qty: { type: "number", numeric: "int4", nullable: true },
     stamp: { type: "date", time: true, nullable: true },
+    done: { type: "checkbox", required: true },
   });
 
   async function resume(sorts: { columnId: string; direction: "asc" | "desc" }[], last: Record<string, unknown>) {
@@ -407,6 +425,13 @@ describe("keyset cursor", () => {
     expect(await resume([{ columnId: "title", direction: "asc" }, { columnId: "qty", direction: "desc" }], { id: 5, title: "t", qty: null })).toStrictEqual({
       OR: [{ title: { gt: "t" } }, { AND: [{ title: { equals: "t" } }, { qty: null }, { id: { gt: 5 } }] }],
     });
+  });
+
+  it("a checkbox key compares by equals, since a Prisma Boolean filter has no gt or lt", async () => {
+    expect(await resume([{ columnId: "done", direction: "asc" }], { id: 5, done: false })).toStrictEqual({
+      OR: [{ done: { equals: true } }, { AND: [{ done: { equals: false } }, { id: { gt: 5 } }] }],
+    });
+    expect(await resume([{ columnId: "done", direction: "desc" }], { id: 5, done: false })).toStrictEqual({ AND: [{ done: { equals: false } }, { id: { gt: 5 } }] });
   });
 
   it("declines a time key, since Prisma reads DateTime in milliseconds", async () => {
@@ -449,6 +474,12 @@ describe("groups", () => {
       { method: "aggregate", args: { where: { AND: [SCOPE, blank] }, _sum: { qty: true }, _count: { _all: true } } },
       { method: "groupBy", args: { by: ["tag", "name"], where: { AND: [SCOPE, { OR: [{ tag: { in: ["a", "b"] } }, ...blank.OR] }] }, orderBy: [{ tag: "asc" }, { name: "asc" }], take: 10_001 } },
     ]);
+  });
+
+  it("selects the child pairs of a checkbox level by equals, since a Prisma Boolean filter has no in", async () => {
+    const { query, calls } = make("postgresql", { groupBy: (args) => ((args["by"] as unknown[]).length === 2 ? [] : [{ done: true, _count: { _all: 1 } }, { done: false, _count: { _all: 1 } }]) });
+    await query.fetchRows({ spec: { groupBy: ["done", "name"] }, start: 0, end: 3 }, CONTEXT);
+    expect(calls.at(-1)!.args["where"]).toStrictEqual({ AND: [SCOPE, { OR: [{ done: { equals: true } }, { done: { equals: false } }] }] });
   });
 
   it("past the last non-blank group, probes the previous offset to place the blank group", async () => {
@@ -593,6 +624,23 @@ describe("hostile keys and creation", () => {
 
   it("definePrismaColumnMap refuses a field the model lacks", () => {
     expect(() => definePrismaColumnMap<{ id: number }>()({ id: "id" }, { id: { type: "number", numeric: "int4", primaryKey: true }, nick: { type: "text", field: "nick" as "id" } })).toThrow(/"nick".*"nick"/);
+  });
+
+  it("refuses an epoch-s operand with a fraction of a second, which Prisma truncates on an Int field", async () => {
+    const epochs = definePrismaColumnMap<{ id: number; at: number | null }>()({ id: "id", at: "at" }, {
+      id: { type: "number", numeric: "int4", primaryKey: true },
+      at: { type: "date", time: true, storage: "epoch-s", nullable: true },
+    });
+    const { model, calls } = fake();
+    const query = createPrismaGridQuery({ model, provider: "postgresql", columns: epochs });
+    expect(await codeOf(query.fetchRows(rowsRequest({ filters: [filter("at", "gte", "2024-01-01T00:00:00.500Z")] })))).toBe("unsupported-value");
+    expect(calls).toHaveLength(0);
+    await query.fetchRows(rowsRequest({ filters: [filter("at", "gte", "2024-01-01T00:00:01.000Z")] }));
+    expect(calls[0]!.args["where"]).toStrictEqual({ at: { gte: 1_704_067_201 } });
+  });
+
+  it("refuses at creation a cursor factory that could sort by a native enum, whose Prisma filter has no gt or lt", () => {
+    expect(() => createPrismaGridQuery({ model: fake().model, provider: "postgresql", columns, paging: "cursor" })).toThrow(/"kind".*native enum.*sortable: false/);
   });
 
   it("declines custom operators at creation", () => {

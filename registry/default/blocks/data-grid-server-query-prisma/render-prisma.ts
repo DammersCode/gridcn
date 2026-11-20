@@ -29,6 +29,14 @@ export const isTextual = (column: PlanColumn): boolean => column.kind === "text"
 export const foldsEmptyText = (column: PlanColumn): boolean => isTextual(column) && column.native === undefined;
 export const unsupported = (column: PlanColumn): QueryError => new QueryError("unsupported", [column.id]);
 
+// A Prisma Boolean filter has no `in` or `notIn`.
+const hasNoList = (column: PlanColumn): boolean => column.kind === "checkbox";
+
+/** The rows whose field is one of `values`: `in`, or an OR of `equals` on a Boolean field. */
+export function oneOf(column: PlanColumn, values: readonly unknown[], leaf: (filter: Record<string, unknown>) => PrismaNode = (filter) => field(column, filter)): PrismaNode {
+  return hasNoList(column) ? or(values.map((v) => leaf({ equals: v }))) : leaf({ in: values });
+}
+
 /** Folds the constants and flattens nested groups of the same join; no group comes out empty. */
 function join(key: "AND" | "OR", items: readonly PrismaNode[]): PrismaNode {
   const neutral = key === "AND";
@@ -96,7 +104,12 @@ export function nativeValue(column: PlanColumn, operand: Operand): unknown {
       return column.storage === "native" ? new Date(`${operand.v}T00:00:00.000Z`) : operand.v;
     case "instant":
       if (column.storage === "epoch-ms") return Date.parse(operand.v);
-      if (column.storage === "epoch-s") return Date.parse(operand.v) / 1000;
+      if (column.storage === "epoch-s") {
+        const ms = Date.parse(operand.v);
+        // Prisma truncates a fraction bound to an Int field, so `gte 1.5` would match 1.
+        if (ms % 1000 !== 0) throw new QueryError("unsupported-value", [column.id]);
+        return ms / 1000;
+      }
       return column.storage === "iso-text" ? operand.v : new Date(operand.v);
   }
 }
@@ -153,9 +166,9 @@ export function createPrismaRenderer(provider: PrismaProvider, nullableIds: Read
     if (folded && !pg) throw unsupported(column);
     // Insensitive `in` with `mode` is unverified on Prisma 7, so a folded list is an OR of the verified ILIKE equals.
     const member = (two: boolean): PrismaNode =>
-      folded ? or(values.map((text) => fieldLeaf(column, { equals: escape(String(text)), mode: "insensitive" }, two))) : fieldLeaf(column, { in: values }, two);
+      folded ? or(values.map((text) => fieldLeaf(column, { equals: escape(String(text)), mode: "insensitive" }, two))) : oneOf(column, values, (filter) => fieldLeaf(column, filter, two));
     if (!t.negate) return t.blank ? or([member(twoValued), blank(column, false, twoValued)]) : member(twoValued);
-    const outside = folded ? not(member(true)) : field(column, { notIn: values });
+    const outside = folded ? not(member(true)) : hasNoList(column) ? and(values.map((v) => field(column, { not: v }))) : field(column, { notIn: values });
     return t.blank ? and([outside, blank(column, true, twoValued)]) : or([isNull(column), outside]);
   }
 
@@ -190,6 +203,8 @@ export function createPrismaRenderer(provider: PrismaProvider, nullableIds: Read
       case "key":
         // No `mode`: the comparison follows ORDER BY, which uses the column collation.
         if (t.op === "null" || !t.value) return isNull(column);
+        // A Prisma Boolean filter has no `gt` or `lt`: past `false` ascending is `true`, past `true` is nothing.
+        if (column.kind === "checkbox" && t.op !== "eq") return t.value.v === (t.op === "lt") ? fieldLeaf(column, { equals: !t.value.v }, twoValued) : false;
         return fieldLeaf(column, own({}, t.op === "eq" ? "equals" : t.op, value(column, t.value)), twoValued);
       case "custom":
         throw unsupported(column);

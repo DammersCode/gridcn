@@ -1,4 +1,3 @@
-import Database from "better-sqlite3";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle as drizzlePglite } from "drizzle-orm/pglite";
 import { drizzle as drizzleSqlite } from "drizzle-orm/better-sqlite3";
@@ -11,6 +10,9 @@ import { createDrizzleGridQuery } from "@/registry/default/blocks/data-grid-serv
 import { createKyselyGridQuery } from "@/registry/default/blocks/data-grid-server-query-kysely/data-grid-server-query-kysely";
 import { openPg, openSqlite } from "./engines";
 import { FIXTURE_ROWS } from "./fixture";
+import { createPrismaGridQuery } from "@/registry/default/blocks/data-grid-server-query-prisma/data-grid-server-query-prisma";
+import { unlessDeclined } from "./prisma/declines";
+import { connectPrisma, openPrisma, prismaColumns, sqliteFile } from "./prisma/engines";
 
 type Selector = { selection(input: unknown, options?: { context?: unknown }): Promise<SelectionAnswer<Record<string, unknown>>> };
 
@@ -25,24 +27,28 @@ const allMatching = (excludedIds: string[], spec: Record<string, unknown> = {}) 
 describe("selection on the fixture", async () => {
   const sqlite = await openSqlite();
   const pg = await openPg();
+  const prisma = await Promise.all([openPrisma("sqlite"), openPrisma("pg")]);
   afterAll(async () => {
     sqlite.database.close();
     await pg.pg.close();
+    for (const entry of prisma) await entry.close();
   });
-  const harnesses = [...sqlite.harnesses, ...pg.harnesses];
+  const harnesses = [...sqlite.harnesses, ...pg.harnesses, ...prisma.map((entry) => entry.harness)];
 
   describe.each(harnesses.map((h) => [`${h.engine} ${h.adapter}`, h] as const))("%s", (_, harness) => {
     const plain = harness.make() as unknown as Selector;
     const scoped = harness.make({ rowScope: true }) as unknown as Selector;
     const first = idsOf(FIXTURE_ROWS.slice(0, 3));
+    const declinable = <T>(name: string, call: () => Promise<T>) => unlessDeclined(harness.adapter, harness.engine, name, call);
 
     it("counts and lists the ids of an ids selection over 65,535 ids", async () => {
-      await expect(plain.selection({ selection: ids([...first, ...intFiller]), include: "ids" })).resolves.toEqual({ count: 3, ids: first, hasMore: false });
+      const answer = await declinable("a selection of 70,000 ids", () => plain.selection({ selection: ids([...first, ...intFiller]), include: "ids" }));
+      if (answer) expect(answer).toEqual({ count: 3, ids: first, hasMore: false });
     });
 
     it("counts and pages an allMatching selection that excludes over 65,535 ids", async () => {
-      const answer = await plain.selection({ selection: allMatching([...first, ...intFiller]), include: "ids", start: 0, end: 4 });
-      expect(answer).toEqual({ count: FIXTURE_ROWS.length - 3, ids: idsOf(FIXTURE_ROWS.slice(3, 7)), hasMore: true });
+      const answer = await declinable("a selection of 70,000 ids", () => plain.selection({ selection: allMatching([...first, ...intFiller]), include: "ids", start: 0, end: 4 }));
+      if (answer) expect(answer).toEqual({ count: FIXTURE_ROWS.length - 3, ids: idsOf(FIXTURE_ROWS.slice(3, 7)), hasMore: true });
     });
 
     it("orders the page by the spec's sort", async () => {
@@ -93,14 +99,28 @@ const KEY_CASES: KeyCase[] = [
 ];
 const clientId = (value: string | number) => (typeof value === "number" ? String(value) : value);
 
+// The Prisma model of each key-type table, and a filler inside each provider's bound-value budget.
+const PRISMA_MODELS = { text: "KText", uuid: "KUuid", int: "KInt", decimal: "KDecimal", float: "KFloat", case: "KCase" } as const;
+const PRISMA_FILLER = { sqlite: 900, pg: 30_000 } as const;
+
 describe("selection by key type", async () => {
-  const database = new Database(":memory:");
+  const sqlite = sqliteFile();
+  const { database } = sqlite;
   const pglite = new PGlite();
+  const prisma = { sqlite: await connectPrisma({ file: sqlite.file }), pg: await connectPrisma({ pglite }) };
   afterAll(async () => {
-    database.close();
+    await prisma.sqlite.close();
+    await prisma.pg.close();
+    sqlite.remove();
     await pglite.close();
   });
-  const queries: { label: string; keyCase: KeyCase; query: Selector }[] = [];
+  const prismaQuery = (engine: "sqlite" | "pg", name: keyof typeof PRISMA_MODELS, spec: ColumnSpec) => {
+    const model = PRISMA_MODELS[name];
+    const db = prisma[engine];
+    const columns = prismaColumns(db.Prisma[`${model}ScalarFieldEnum`]!, { k: { ...spec, primaryKey: true }, label: { type: "text" } }, ["k"]);
+    return createPrismaGridQuery({ model: db.client[`${model[0]!.toLowerCase()}${model.slice(1)}` as "kText"], provider: engine === "pg" ? "postgresql" : "sqlite", columns }) as unknown as Selector;
+  };
+  const queries: { label: string; keyCase: KeyCase; query: Selector; fillers?: number }[] = [];
   for (const keyCase of KEY_CASES) {
     const table = `k_${keyCase.name}`;
     database.exec(`create table ${table} (k ${keyCase.sqliteType} primary key, label text)`);
@@ -117,6 +137,7 @@ describe("selection by key type", async () => {
     add("sqlite kysely", createKyselyGridQuery({ db: new Kysely({ dialect: new SqliteDialect({ database }) }), table, dialect: "sqlite", columns }));
     add("pg drizzle", createDrizzleGridQuery({ db: drizzlePglite(pglite), table: pgTableOf, columns }));
     add("pg kysely", createKyselyGridQuery({ db: new Kysely({ dialect: new PGliteDialect({ pglite }) }), table, dialect: "pg", columns }));
+    for (const engine of ["sqlite", "pg"] as const) queries.push({ label: `${keyCase.name} ${engine} prisma`, keyCase, query: prismaQuery(engine, keyCase.name as keyof typeof PRISMA_MODELS, keyCase.spec), fillers: PRISMA_FILLER[engine] });
   }
 
   it.each(["drizzle", "kysely"] as const)("sqlite %s: an upper-case uuid stored as text is selected in its stored form and excluded in any case", async (adapter) => {
@@ -143,6 +164,8 @@ describe("selection by key type", async () => {
       createKyselyGridQuery({ db: new Kysely({ dialect: new SqliteDialect({ database }) }), table: "k_case", dialect: "sqlite", columns }),
       createDrizzleGridQuery({ db: drizzlePglite(pglite), table: pgTable("k_case", { k: text("k").primaryKey(), label: text("label") }), columns }),
       createKyselyGridQuery({ db: new Kysely({ dialect: new PGliteDialect({ pglite }) }), table: "k_case", dialect: "pg", columns }),
+      prismaQuery("sqlite", "case", { type: "text" }),
+      prismaQuery("pg", "case", { type: "text" }),
     ] as unknown as Selector[];
     for (const query of engines) {
       await expect(query.selection({ selection: allMatching(["ab"]), include: "ids" })).resolves.toEqual({ count: 1, ids: ["AB"], hasMore: false });
@@ -151,15 +174,17 @@ describe("selection by key type", async () => {
     }
   });
 
-  it.each(queries.map((entry) => [entry.label, entry] as const))("%s: ids and excluded ids match the stored keys", async (_, { keyCase, query }) => {
+  it.each(queries.map((entry) => [entry.label, entry] as const))("%s: ids and excluded ids match the stored keys", async (label, { keyCase, query, fillers = MANY }) => {
     const all = keyCase.stored.map(clientId);
     const picked = [all[1]!, all[3]!];
     const rest = [all[0]!, all[2]!];
-    const filler = Array.from({ length: MANY }, (_, i) => keyCase.filler(i));
+    const filler = Array.from({ length: fillers }, (_, i) => keyCase.filler(i));
     const chosen = await query.selection({ selection: ids([...picked, ...filler]), include: "ids" });
     expect(chosen.count).toBe(2);
     expect([...chosen.ids!].sort()).toEqual([...picked].sort());
-    const others = await query.selection({ selection: allMatching([...picked, ...filler]), include: "ids" });
+    const [, engine, adapter] = label.split(" ") as [string, "sqlite" | "pg", string];
+    const others = await unlessDeclined(adapter, engine, `excluded ${keyCase.name} ids`, () => query.selection({ selection: allMatching([...picked, ...filler]), include: "ids" }));
+    if (!others) return;
     expect(others.count).toBe(2);
     expect([...others.ids!].sort()).toEqual([...rest].sort());
   });
