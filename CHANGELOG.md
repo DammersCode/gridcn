@@ -12,6 +12,13 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Fixed the grid, header included, blanking for single frames while scrolling in Firefox, mostly upward. The sticky viewport no longer sits in an absolutely positioned, clipped track.
 - Fixed `parseQuery`, `parseImportRows`, and `validateChange` building huge numbers from short exponent text. An int or decimal value that expands beyond `maxNumberLength` digits, such as `1e9999` or `1e50`, is refused. A filter value or group key answers `invalid-value`, a search phrase matches no int or decimal column, an import or change cell answers `out-of-range`, and a decimal row id answers `not-an-id` from `validateChange` and `invalid-value` as a `parseSelection` excluded id. Trailing zeros do not count, so `1.000e-9` passes. Raise `maxNumberLength` to accept longer values. A float keeps its exponent, and a float filter value clamps by sign as before. An int cell with a fraction, such as `1e-50`, still answers `not-a-whole-number`, and a decimal cell with more places than its `scale` answers `too-many-decimals`.
 - Fixed `parseImportRows` and the rows answer of `createGridQuery` setting the row's prototype for a mapped column with the id `__proto__`. The value is a plain key of the row.
+- Added `paging: "cursor"` to `createDrizzleGridQuery` and `createKyselyGridQuery`. `fetchRows` then answers `{ rows, hasMore, nextCursor }` with a keyset cursor and runs no count query. Every sortable text and `select` column needs `maxLength`, or the factory throws at creation.
+- Added the last type parameter `TCursor` to `GridQuery` and `RowsAnswer`. It defaults to `never`, so existing types do not change. A cursor factory sets it to `string`.
+- Added the error code `bad-cursor` (400) for a cursor that does not parse, is over `maxCursorBytes`, or comes from another filter or sort.
+- Added the limit `maxCursorBytes` (default 2,048). It bounds the cursor text before the layer decodes it.
+- Added `query.selection` and `query.selectionPlan`. `selection` answers the count of the rows of a `DataGridSelectedRows` value within `rowScope`, and with `include` one page of their ids or rows. `selectionPlan` gives the filter of a bulk write over the same rows.
+- Added the limit `maxSelectionIds` (default 200,000). It bounds `ids` and `excludedIds` of a selection.
+- Added `query.validateChange` and `query.save(apply)`. `save` checks the `DataChange` of `onSave` against the column map and `rowScope`, hands the scoped writes to `apply`, and answers `{ rejected }`. A write that matches no row answers `not-found`. The limits `maxChangeOps` (default 10,000) and `maxChangeBytes` (default 8 MiB) bound one change.
 
 ## 2.0.0 - 2026-11-17
 
