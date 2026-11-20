@@ -165,18 +165,40 @@ describe("a pivot scroll source", () => {
     expect(result.current.gridProps.groupLayout!.rows.map((slot) => slot.path[0]!.key)).toEqual(["A", "B", "C"]);
   });
 
-  it("runs under StrictMode and drops an answer that lands after unmount", async () => {
-    const error = vi.spyOn(console, "error");
+  it("runs under StrictMode, aborts on unmount, and fetches nothing after a late answer", async () => {
     let late: (answer: Answer) => void = () => {};
+    let held: ServerRowsRequest<never> | undefined;
     const server = fakeServer(rowsOf(REGIONS));
     const { result, unmount } = mount(server, {}, strict);
     await waitFor(() => expect(result.current.gridProps.groupLayout?.pivot).toBeDefined());
-    server.fetchRows.mockImplementationOnce(() => new Promise<Answer>((resolve) => (late = resolve)));
+    server.fetchRows.mockImplementationOnce((request) => ((held = request), new Promise<Answer>((resolve) => (late = resolve))));
     act(() => result.current.refresh());
+    await waitFor(() => expect(held).toBeDefined());
     unmount();
+    expect(held!.signal.aborted).toBe(true);
+    const calls = server.calls.length;
     late({ groups: [], groupCount: 0, totalRowCount: 0, pivotColumns: [] });
     await settle();
-    expect(error).not.toHaveBeenCalled();
+    expect(server.calls).toHaveLength(calls);
+  });
+
+  it("keeps the held set of an initialAnswer across mount under StrictMode", async () => {
+    const server = fakeServer(rowsOf(REGIONS));
+    const initialAnswer = await server.fetchRows({ spec: { sorts: [], filters: [], searchText: "", ...PIVOT_SPEC }, start: 0, end: 50, groupPath: [], childKind: "groups", cursor: undefined, reason: "load", signal: new AbortController().signal });
+    server.calls.length = 0;
+    const seen = new Set<unknown>();
+    renderHook(
+      () => {
+        const rows = useDataGridServerRows<Row>({ mode: "scroll", fetchRows: server.fetchRows as never, loadDelayMs: 0, defaultSpec: PIVOT_SPEC, initialAnswer });
+        seen.add(rows.gridProps.groupLayout?.pivot);
+        return rows;
+      },
+      { wrapper: strict },
+    );
+    await act(settle);
+    expect(seen.size).toBe(1);
+    expect([...seen][0]).toMatchObject({ columnId: "city", omitted: 0 });
+    expect(server.calls).toHaveLength(0);
   });
 
   it("evicts the oldest group blocks so the held cells stay within the cap", async () => {

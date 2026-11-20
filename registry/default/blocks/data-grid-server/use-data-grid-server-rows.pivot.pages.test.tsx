@@ -3,6 +3,7 @@ import { StrictMode, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { groupIdOf, type ServerAggregate } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { fakeServer, rowsOf, type Answer, type Row } from "./group-fake-server.test-helper";
+import type { ServerRowsRequest } from "./read-answer";
 import { useDataGridServerRows } from "./use-data-grid-server-rows";
 
 const SUM: ServerAggregate = { columnId: "qty", reducer: "sum" };
@@ -52,17 +53,39 @@ describe("a pivot pages source", () => {
     expect(server.calls.every((call) => call.childKind === "groups")).toBe(true);
   });
 
-  it("runs under StrictMode and drops a page that lands after unmount", async () => {
-    const error = vi.spyOn(console, "error");
+  it("runs under StrictMode, aborts on unmount, and fetches nothing after a late page", async () => {
     let late: (answer: Answer) => void = () => {};
+    let held: ServerRowsRequest<never> | undefined;
     const server = fakeServer(rowsOf(REGIONS));
     const { result, unmount } = mount(server, {}, strict);
     await waitFor(() => expect(keysOf(result)).toEqual(["A", "B"]));
-    server.fetchRows.mockImplementationOnce(() => new Promise<Answer>((resolve) => (late = resolve)));
+    server.fetchRows.mockImplementationOnce((request) => ((held = request), new Promise<Answer>((resolve) => (late = resolve))));
     act(() => result.current.pager.onPageChange(2));
+    await waitFor(() => expect(held).toBeDefined());
     unmount();
+    expect(held!.signal.aborted).toBe(true);
+    const calls = server.calls.length;
     late({ groups: [], groupCount: 0, totalRowCount: 0, pivotColumns: [] });
     await settle();
-    expect(error).not.toHaveBeenCalled();
+    expect(server.calls).toHaveLength(calls);
+  });
+
+  it("keeps the held set of an initialAnswer across mount under StrictMode", async () => {
+    const server = fakeServer(rowsOf(REGIONS));
+    const initialAnswer = await server.fetchRows({ spec: { sorts: [], filters: [], searchText: "", groupBy: ["region"], aggregates: [SUM], pivot: { columnIds: ["city"] } }, start: 0, end: 2, page: 1, pageSize: 2, groupPath: [], childKind: "groups", cursor: undefined, reason: "load", signal: new AbortController().signal } as ServerRowsRequest<never>);
+    server.calls.length = 0;
+    const seen = new Set<unknown>();
+    renderHook(
+      () => {
+        const rows = useDataGridServerRows<Row>({ fetchRows: server.fetchRows as never, defaultPageSize: 2, pageSizeOptions: [2, 3], defaultSpec: { groupBy: ["region"], aggregates: [SUM], pivot: { columnIds: ["city"] } }, initialAnswer });
+        seen.add(rows.gridProps.groupLayout?.pivot);
+        return rows;
+      },
+      { wrapper: strict },
+    );
+    await act(settle);
+    expect(seen.size).toBe(1);
+    expect([...seen][0]).toMatchObject({ columnId: "city", omitted: 0 });
+    expect(server.calls).toHaveLength(0);
   });
 });

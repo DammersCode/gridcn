@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { serverSpecKey, type DataChange, type RowRange, type ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { COLLAPSED, expandedTest, groupIdOf, holeRowId, isDev, normalizeExpanded, pivotSorts, type ExpandedState, type ServerGroupLayout, type ServerPivotLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { blockOf, createGroupStore, evictBlock, evictPivotCells, landGroups, landPivotGroups, landRows, layoutView, listFor, type GroupList, type GroupStore, type GroupView } from "./group-lists";
+import { COLLAPSED, expandedTest, groupIdOf, holeRowId, isDev, normalizeExpanded, pivotSorts, type ExpandedState, type ServerGroupLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { blockOf, createGroupStore, evictBlock, evictPivotCells, landGroups, landPivotGroups, landRows, layoutView, listFor, type GroupList, type GroupStore, type GroupView, type PivotHold } from "./group-lists";
 import { isGroupsAnswer, pageWindowOf, seedGroupStore, useGroupPager, type GroupPagesConfig } from "./group-pages";
 import { assertRowIdsNotReserved, readGroupsAnswer } from "./read-groups-answer";
 import { MAX_ROW_COUNT, readAnswer, type FetchReason, type ServerRowsRequest, type WithRowId } from "./read-answer";
@@ -53,11 +53,11 @@ function createEngine<TData>() {
   };
 }
 type Engine<TData> = ReturnType<typeof createEngine<TData>>;
-type ViewState<TData> = GroupView<TData> & { loading: boolean; groupCount: number | null; pivot?: ServerPivotLayout };
+type ViewState<TData> = GroupView<TData> & { loading: boolean; groupCount: number | null; pivotHold?: PivotHold };
 
 const emptyView = <TData,>(): ViewState<TData> => ({ data: [], slots: [], owners: [], offsets: [], leafCount: 0, holes: 0, loading: false, groupCount: null });
 
-const pivotOf = <TData,>(store: GroupStore<TData>) => (store.pivot?.layout ? { pivot: store.pivot.layout } : null);
+const pivotOf = <TData,>(store: GroupStore<TData>) => (store.pivot?.layout ? { pivotHold: store.pivot } : null);
 
 const positiveInteger =(value: number | undefined, fallback: number, min: number) => (typeof value === "number" && Number.isFinite(value) ? Math.max(min, Math.floor(value)) : fallback);
 
@@ -118,9 +118,10 @@ export function useGroupBlocks<TData, TCursor = never>(
   const { pager, plugins: pagerPlugins } = useGroupPager(pages, view.groupCount);
   const seedRef = useRef(seed);
 
-  const live = useRef({ options, spec, requestSpec, pivot, expanded, groupBy, active, pages, engineKey });
+  const pivotHold = view.pivotHold;
+  const live = useRef({ options, spec, requestSpec, pivot, pivotHold, expanded, groupBy, active, pages, engineKey });
   useLayoutEffect(() => {
-    live.current = { options, spec, requestSpec, pivot, expanded, groupBy, active, pages, engineKey };
+    live.current = { options, spec, requestSpec, pivot, pivotHold, expanded, groupBy, active, pages, engineKey };
   });
   const engineRef = useRef<Engine<TData> | null>(null);
   const getEngine = useCallback((): Engine<TData> => {
@@ -298,9 +299,10 @@ export function useGroupBlocks<TData, TCursor = never>(
   };
 
   const newStore = () => {
-    const { groupBy: by, pages: paging, engineKey: key, pivot: columnId } = live.current;
+    const { groupBy: by, pages: paging, engineKey: key, pivot: columnId, pivotHold: shown } = live.current;
     const pending = seedRef.current;
-    const seeded = pending?.key === key ? seedGroupStore<TData>(pending.answer, by, blockSize(), (paging?.page ?? 1) - 1, live.current.spec.aggregates ?? [], columnId ?? undefined) : null;
+    // The view still shows the held set of the first seed; re-seeding keeps it, so its identity holds across mount and StrictMode.
+    const seeded = pending?.key === key ? seedGroupStore<TData>(pending.answer, by, blockSize(), (paging?.page ?? 1) - 1, live.current.spec.aggregates ?? [], columnId ?? undefined, shown) : null;
     return seeded ?? createGroupStore<TData>(by, blockSize(), columnId !== null);
   };
 
@@ -546,7 +548,7 @@ export function useGroupBlocks<TData, TCursor = never>(
   const ownPlugins = useMemo(() => (paged ? [...guardPlugins, ...pagerPlugins] : guardPlugins), [paged, guardPlugins, pagerPlugins]);
   const plugins = useMountedPlugins(ownPlugins, options.plugins);
   const getRowId = useCallback((row: TData, index: number) => (row === undefined ? holeRowId(index) : live.current.options.getRowId(row, index)), []);
-  const groupLayout = useMemo<ServerGroupLayout>(() => ({ rows: view.slots, leafCount: view.leafCount, ...(view.pivot ? { pivot: view.pivot } : null) }), [view]);
+  const groupLayout = useMemo<ServerGroupLayout>(() => ({ rows: view.slots, leafCount: view.leafCount, ...(view.pivotHold?.layout ? { pivot: view.pivotHold.layout } : null) }), [view]);
 
   const providerProps = useMemo<UseDataGridServerRowsScrollProviderProps<TData>>(
     () => ({
