@@ -461,6 +461,9 @@ describe("row-level security", () => {
       { kind: "count", where: { or: [{ c: "qty", op: "in", v: ["6", "7"] }, { c: "id", op: "gt", v: "3" }] } },
       { kind: "groups", where: { not: { c: "qty", op: "is" } }, level: { c: "qty", blank: false }, next: null, desc: false, offset: 0, limit: 10, aggregates: [{ c: "name", reducer: "max", blank: true }] },
       { kind: "values", where: true, c: "name", form: "folded", zone: "UTC", pattern: "%a%", limit: 10 },
+      // One group per page, so a bare `=` in the page bound would let every group's rows in.
+      { kind: "groups", where: true, level: { c: "qty", blank: false }, next: null, desc: false, offset: 0, limit: 1, aggregates: [{ c: "id", reducer: "count", blank: false }], pivot: { keys: [{ c: "qty", op: "eq", v: "5" }, { c: "qty", op: "is" }] } },
+      { kind: "pivotKeys", where: true, level: { c: "name", blank: true }, desc: false, limit: 10 },
     ];
     const run = async () => {
       const out: unknown[] = [];
