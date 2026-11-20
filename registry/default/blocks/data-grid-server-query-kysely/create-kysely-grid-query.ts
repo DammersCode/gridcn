@@ -63,6 +63,7 @@ export function createKyselyGridQuery<TRow, TContext>(options: KyselyGridQueryOp
     groupBy: true,
     localDayGrouping: dialect === "pg",
     exactInstantKeys: true,
+    pivot: true,
   };
   const from = sql`from ${sql.id(table)}`;
   const aliasList = (items: { alias: string; expr: Fragment }[]): Fragment => sql.join(items.map(({ alias, expr }) => sql`${expr} as ${sql.id(alias)}`));
@@ -97,10 +98,27 @@ export function createKyselyGridQuery<TRow, TContext>(options: KyselyGridQueryOp
         const child = plan.nextLevel ? renderer.keyCount(renderer.groupKey(plan.nextLevel)) : sql`count(*)`;
         const aggregateList = plan.aggregates.map(({ column, reducer }, index) => sql`, ${renderer.aggregate(column, reducer)} as ${sql.id(`a${index}`)}`);
         const order = sql.raw(plan.direction === "asc" ? "asc" : "desc");
+        const where = renderer.predicate(plan.where);
+        const toGroup = (row: Rows[number]) => ({ key: row["k"], count: row["n"], childCount: row["c"], aggregates: Object.fromEntries(plan.aggregates.map(({ column }, index) => [column.id, row[`a${index}`]])) });
+        if (!plan.pivot) {
+          const rows = await run(
+            sql`select ${key} as ${sql.id("k")}, count(*) as ${sql.id("n")}, ${child} as ${sql.id("c")}${sql.join(aggregateList, sql.raw(""))} ${from} where ${where} group by ${key} order by ${key} ${order} nulls last limit ${sql.val(page.limit)} offset ${sql.val(page.offset)}`,
+          );
+          return rows.map(toGroup);
+        }
+        const cells = renderer.pivotCells(plan);
+        const cellList = cells.map((cell, index) => sql`, ${cell} as ${sql.id(`p${index}`)}`);
+        const pageCte = sql`with ${sql.id(renderer.pivotPage.name)} as (select ${key} as ${sql.id(renderer.pivotPage.key)} ${from} where ${where} group by ${key} order by ${key} ${order} nulls last limit ${sql.val(page.limit)} offset ${sql.val(page.offset)})`;
         const rows = await run(
-          sql`select ${key} as ${sql.id("k")}, count(*) as ${sql.id("n")}, ${child} as ${sql.id("c")}${sql.join(aggregateList, sql.raw(""))} ${from} where ${renderer.predicate(plan.where)} group by ${key} order by ${key} ${order} nulls last limit ${sql.val(page.limit)} offset ${sql.val(page.offset)}`,
+          sql`${pageCte} select ${key} as ${sql.id("k")}, count(*) as ${sql.id("n")}, ${child} as ${sql.id("c")}${sql.join([...aggregateList, ...cellList], sql.raw(""))} ${from} where (${where}) and ${renderer.pageBound(plan.level)} group by ${key} order by ${key} ${order} nulls last`,
         );
-        return rows.map((row) => ({ key: row["k"], count: row["n"], childCount: row["c"], aggregates: Object.fromEntries(plan.aggregates.map(({ column }, index) => [column.id, row[`a${index}`]])) }));
+        return rows.map((row) => ({ ...toGroup(row), pivotCells: cells.map((_, index) => row[`p${index}`]) }));
+      },
+      selectPivotKeys: async (plan, { limit }) => {
+        const key = renderer.groupKey(plan.level);
+        const order = sql.raw(plan.direction === "asc" ? "asc" : "desc");
+        const rows = await run(sql`select ${key} as ${sql.id("k")}, count(*) over () as ${sql.id("t")} ${from} where ${renderer.predicate(plan.where)} group by ${key} order by ${key} ${order} nulls last limit ${sql.val(limit)}`);
+        return rows.map((row) => ({ key: row["k"], total: row["t"] }));
       },
       countGroups: async (plan) => (await run(sql`select ${renderer.keyCount(renderer.groupKey(plan.level))} as ${sql.id("n")} ${from} where ${renderer.predicate(plan.where)}`))[0]?.["n"],
       aggregate: async (plan) => {

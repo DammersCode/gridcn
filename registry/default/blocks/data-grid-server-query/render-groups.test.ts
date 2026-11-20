@@ -17,6 +17,8 @@ const columns = defineColumnMap({
   qty: { type: "number", numeric: "int4", aggregate: "sum" },
 });
 
+const hostileKey = "'; drop table items; --";
+
 type Text = { sql: string; params: unknown[] };
 const algebra = (dialect: "pg" | "sqlite"): SqlAlgebra<Text> => ({
   dialect,
@@ -75,6 +77,69 @@ function capturing(adapter: "drizzle" | "kysely", dialect: "pg" | "sqlite") {
 }
 
 const groupsRequest = { spec: { groupBy: ["name", "tag"], aggregates: [{ columnId: "qty", reducer: "sum" }], filters: [{ columnId: "tag", operator: "equals", value: "a" }] }, start: 0, end: 50 };
+
+describe("pivot SQL", () => {
+  const pivotColumns = defineColumnMap({
+    id: { type: "number", numeric: "int8", primaryKey: true },
+    name: { type: "text", aggregate: "count" },
+    region: { type: "text" },
+    active: { type: "checkbox" },
+    qty: { type: "number", numeric: "int4", aggregate: "sum" },
+  });
+  const byId = Object.fromEntries(mapOf(pivotColumns).byId);
+  const renderer = createSqlRenderer(algebra("pg"), new Map());
+  const plan = (keys: (string | null)[]) => {
+    const parsed = parseQuery(
+      { spec: { groupBy: ["active"], aggregates: [{ columnId: "qty", reducer: "sum" }, { columnId: "name", reducer: "count" }], pivot: { columnIds: ["region"] } }, start: 0, end: 10 },
+      { columns: pivotColumns, request: "page", capabilities: { caseInsensitiveText: "native", likeEscape: true, literalAsterisk: true, nullsLast: "native", aggregates: true, groupBy: true, localDayGrouping: true, pivot: true } },
+    );
+    if (parsed.kind !== "groups" || !parsed.pivot) throw new Error("expected a pivot plan");
+    const region = byId["region"]!;
+    const test = (key: string | null) => (key === null ? { t: "leaf" as const, column: region, test: { k: "blank" as const, negate: false } } : { t: "leaf" as const, column: region, test: { k: "eq" as const, value: { kind: "text" as const, v: key } } });
+    return { ...parsed, pivot: { ...parsed.pivot, keys: keys.map((key) => ({ key, test: test(key) })) } };
+  };
+
+  it("renders one cell per key and value, key-major, with the key as a parameter and the empty key as a blank test", () => {
+    const cells = renderer.pivotCells(plan([hostileKey, null]));
+    expect(cells.map((cell) => cell.sql)).toEqual([
+      `SUM(CASE WHEN "region" = ? THEN "qty" END)`,
+      `COUNT(CASE WHEN "region" = ? THEN NULLIF("name", '') END)`,
+      `SUM(CASE WHEN ("region" IS NULL OR "region" = '') THEN "qty" END)`,
+      `COUNT(CASE WHEN ("region" IS NULL OR "region" = '') THEN NULLIF("name", '') END)`,
+    ]);
+    expect(cells.flatMap((cell) => cell.params)).toEqual([hostileKey, hostileKey]);
+  });
+
+  it("bounds the outer query to the page's keys by a range on the key expression, with an explicit empty-group branch", () => {
+    const page = renderer.pivotPage;
+    expect(renderer.pageBound(byId["region"]!).sql).toBe(
+      `((NULLIF("region", '') >= (SELECT MIN("${page.key}") FROM "${page.name}") AND NULLIF("region", '') <= (SELECT MAX("${page.key}") FROM "${page.name}")) OR (NULLIF("region", '') IS NULL AND EXISTS (SELECT 1 FROM "${page.name}" WHERE "${page.key}" IS NULL)))`,
+    );
+    expect(renderer.pageBound(byId["active"]!).sql).toBe(`(("active" IN (SELECT "${page.key}" FROM "${page.name}")) OR ("active" IS NULL AND EXISTS (SELECT 1 FROM "${page.name}" WHERE "${page.key}" IS NULL)))`);
+  });
+});
+
+describe("pivot SQL of the adapters", () => {
+  const pivotRequest = { ...groupsRequest, spec: { ...groupsRequest.spec, groupBy: ["name"], pivot: { columnIds: ["tag"] } } };
+
+  it.each(["pg", "sqlite"] as const)("binds at most 200 key parameters in at most 200 cells on drizzle + %s", async (dialect) => {
+    const captured: Captured = [];
+    const keys = Array.from({ length: 201 }, (_, index) => [index === 0 ? hostileKey : `t${String(index).padStart(3, "0")}`, 201]);
+    const record = async (sql: string, params: unknown[]) => {
+      captured.push({ sql, params });
+      return { rows: sql.includes("over ()") ? keys.slice(0, Number(params.at(-1))) : [] };
+    };
+    const db = dialect === "pg" ? drizzlePg(record) : drizzleSqlite(record);
+    const query = createDrizzleGridQuery({ db, table: dialect === "pg" ? pgItems : sqliteItems, columns });
+    const answer = (await query.fetchRows(pivotRequest)) as { pivotColumns: unknown[]; pivotOmitted: number };
+    expect(answer.pivotColumns).toHaveLength(200);
+    expect(answer.pivotOmitted).toBe(1);
+    const cells = captured.find((entry) => entry.sql.startsWith("with "))!;
+    expect(cells.sql.match(/CASE WHEN/g)).toHaveLength(200);
+    expect(cells.sql).not.toContain("drop");
+    expect(cells.params.filter((param) => typeof param === "string" && (param === hostileKey || /^t\d{3}$/.test(param)))).toHaveLength(200);
+  });
+});
 
 describe("group SQL of the adapters without pivot", () => {
   it.each([

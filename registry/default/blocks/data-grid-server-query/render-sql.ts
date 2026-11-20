@@ -1,6 +1,6 @@
 import type { PlanColumn } from "./column-map";
 import { LIKE_ESCAPE, escapeLike } from "./like";
-import type { Operand, OrderTerm, Predicate, Test, ValuesPlan } from "./plan";
+import type { GroupsPlan, Operand, OrderTerm, Predicate, Test, ValuesPlan } from "./plan";
 import { toSafeText } from "./safe-text";
 
 /**
@@ -27,6 +27,9 @@ const PG_ARRAY_TYPES = new Map<string, string>([["int2", "int2[]"], ["int4", "in
 
 const isTextual = (column: PlanColumn): boolean => column.kind === "text" || column.kind === "select";
 const idText = (value: Operand): string => (value.kind === "bigint" ? value.v.toString() : toSafeText(value.v));
+
+/** The CTE that holds the group keys of one pivot page, and its key column. */
+const pivotPage = { name: "gridcn_page", key: "k" } as const;
 
 export function createSqlRenderer<S>(a: SqlAlgebra<S>, customHandlers: ReadonlyMap<string, CustomHandler>) {
   const { raw, param, cat, column: ref } = a;
@@ -207,9 +210,11 @@ export function createSqlRenderer<S>(a: SqlAlgebra<S>, customHandlers: ReadonlyM
     return { key: ref(column), value: ref(column) };
   }
 
-  function aggregate(column: PlanColumn, reducer: string): S {
-    const col = ref(column);
-    const nonBlank = isTextual(column) && !column.keepBlankText ? cat(raw("NULLIF("), subject(column), raw(", '')")) : col;
+  /** The reducer over the column; with `when`, over the rows `when` keeps only. */
+  function aggregate(column: PlanColumn, reducer: string, when?: Predicate): S {
+    const only = (value: S): S => (when ? cat(raw("CASE WHEN "), predicate(when), raw(" THEN "), value, raw(" END")) : value);
+    const col = only(ref(column));
+    const nonBlank = isTextual(column) && !column.keepBlankText ? only(cat(raw("NULLIF("), subject(column), raw(", '')"))) : col;
     switch (reducer) {
       case "sum":
         return cat(raw("SUM("), col, raw(")"));
@@ -222,6 +227,25 @@ export function createSqlRenderer<S>(a: SqlAlgebra<S>, customHandlers: ReadonlyM
       default:
         return cat(raw("COUNT("), nonBlank, raw(")"));
     }
+  }
+
+  /** The cells of a pivot plan, key-major: alias `p${i}` of cell `i` reduces one aggregate over the rows of one key. */
+  function pivotCells(plan: GroupsPlan): S[] {
+    return (plan.pivot?.keys ?? []).flatMap(({ test }) => plan.aggregates.map(({ column, reducer }) => aggregate(column, reducer, test)));
+  }
+
+  /**
+   * Keeps the rows whose group key is on the page CTE `pivotPage`. The page is contiguous in key order, so a range on the
+   * key expression is exact; PostgreSQL has no MIN of a boolean, so a checkbox key tests membership. A range never matches NULL.
+   */
+  function pageBound(level: PlanColumn): S {
+    const key = groupKey(level);
+    const { name, key: k } = pivotPage;
+    const onPage =
+      level.kind === "checkbox"
+        ? cat(key, raw(` IN (SELECT "${k}" FROM "${name}")`))
+        : cat(key, raw(` >= (SELECT MIN("${k}") FROM "${name}") AND `), key, raw(` <= (SELECT MAX("${k}") FROM "${name}")`));
+    return group(cat(group(onPage), raw(" OR "), group(cat(key, raw(` IS NULL AND EXISTS (SELECT 1 FROM "${name}" WHERE "${k}" IS NULL)`)))));
   }
 
   /** The group key of a column: the stored value, with `''` folded into NULL for text. A time column keeps the full instant. */
@@ -247,5 +271,5 @@ export function createSqlRenderer<S>(a: SqlAlgebra<S>, customHandlers: ReadonlyM
     return cat(raw("to_char("), ref(column), raw(`::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`));
   }
 
-  return { predicate, orderBy, textForm, valueKey, aggregate, like, valuesFilter, groupKey, keyCount, keyText };
+  return { predicate, orderBy, textForm, valueKey, aggregate, like, valuesFilter, groupKey, keyCount, keyText, pivotCells, pageBound, pivotPage };
 }
