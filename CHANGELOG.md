@@ -19,6 +19,9 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Added `query.selection` and `query.selectionPlan`. `selection` answers the count of the rows of a `DataGridSelectedRows` value within `rowScope`, and with `include` one page of their ids or rows. `selectionPlan` gives the filter of a bulk write over the same rows.
 - Added the limit `maxSelectionIds` (default 200,000). It bounds `ids` and `excludedIds` of a selection.
 - Added `query.validateChange` and `query.save(apply)`. `save` checks the `DataChange` of `onSave` against the column map and `rowScope`, hands the scoped writes to `apply`, and answers `{ rejected }`. A write that matches no row answers `not-found`. The limits `maxChangeOps` (default 10,000) and `maxChangeBytes` (default 8 MiB) bound one change.
+- Added optional adapter capabilities for ORM adapters that cannot run SQL: `caseInsensitiveText: "like-only"`, `caseSensitiveLike`, `nativeLike`, `expressionValues`, `blankTextAggregates`, `maxBoundIds`, and `exactInstantKeys`. The core refuses a request that an adapter cannot answer with `unsupported` or `limit-exceeded` before it calls the adapter. Drizzle and Kysely set none of them.
+- Changed an executor that sets `likeEscape: false`: the core now refuses `%` and `_` in a LIKE value with `unsupported-value` instead of passing them to the executor.
+- Added the optional executor hook `nativeValue(column, value)`. The factory applies it to the values of `validateChange`, so an adapter can hand its driver `BigInt` or `Date` values.
 
 ## 2.0.0 - 2026-11-17
 

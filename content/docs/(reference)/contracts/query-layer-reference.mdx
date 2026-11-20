@@ -30,7 +30,7 @@ This page lists the exact rules of the [query layer](/docs/data-modes/query-laye
 | `serverOnly` | Never selected, filtered, sorted, searched, or aggregated for the client. `rowScope` can use it. | `false` |
 | `searchable` | Quick search covers the column. At most 16 columns. | `false` |
 | `filterable`, `sortable` | `false` rejects a filter or a sort on the column. | `true` |
-| `required` | The column is NOT NULL. | `false` |
+| `required` | A write or an import refuses a blank value for the column. The layer does not assume that the database column is NOT NULL. | `false` |
 | `caseSensitive` | Text tests compare case. A filter row with `matchCase: true`, which the grid sets for a `matchCase` column, compares case on any text column. | `false` |
 | `keepBlankText` | A stored empty string is a value, not empty. | `false` |
 | `time` | A `date` column that holds instants. Day filters use local days. | `false` |
