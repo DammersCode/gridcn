@@ -73,7 +73,7 @@ function capturing(adapter: "drizzle" | "kysely", dialect: "pg" | "sqlite") {
     },
     log: (event) => void captured.push({ sql: event.query.sql, params: event.query.parameters }),
   });
-  return { captured, query: createKyselyGridQuery({ db, table: "items", dialect, columns }) };
+  return { captured, query: createKyselyGridQuery({ db: db as never, table: "items", dialect, columns }) };
 }
 
 const groupsRequest = { spec: { groupBy: ["name", "tag"], aggregates: [{ columnId: "qty", reducer: "sum" }], filters: [{ columnId: "tag", operator: "equals", value: "a" }] }, start: 0, end: 50 };
@@ -141,6 +141,30 @@ describe("pivot SQL of the adapters", () => {
   });
 });
 
+/** The group SQL of each adapter and dialect before pivot existed; a grouped request without pivot renders it byte for byte. */
+const PINNED_GROUP_SQL: Record<string, string[]> = {
+  "drizzle pg": [
+    "select NULLIF(\"items\".\"name\", ''), count(*), COUNT(DISTINCT NULLIF(\"items\".\"tag\", '')) + COALESCE(MAX(CASE WHEN NULLIF(\"items\".\"tag\", '') IS NULL THEN 1 ELSE 0 END), 0), SUM(\"items\".\"qty\") from \"items\" where lower(\"items\".\"tag\") = lower($1) group by NULLIF(\"items\".\"name\", '') order by NULLIF(\"items\".\"name\", '') ASC NULLS LAST limit $2",
+    "select COUNT(DISTINCT NULLIF(\"items\".\"name\", '')) + COALESCE(MAX(CASE WHEN NULLIF(\"items\".\"name\", '') IS NULL THEN 1 ELSE 0 END), 0) from \"items\" where lower(\"items\".\"tag\") = lower($1)",
+    "select count(*) from \"items\" where lower(\"items\".\"tag\") = lower($1)",
+  ],
+  "drizzle sqlite": [
+    "select NULLIF(\"items\".\"name\", ''), count(*), COUNT(DISTINCT NULLIF(\"items\".\"tag\", '')) + COALESCE(MAX(CASE WHEN NULLIF(\"items\".\"tag\", '') IS NULL THEN 1 ELSE 0 END), 0), SUM(\"items\".\"qty\") from \"items\" where \"items\".\"tag\" = ? COLLATE NOCASE group by NULLIF(\"items\".\"name\", '') order by NULLIF(\"items\".\"name\", '') ASC NULLS LAST limit ?",
+    "select COUNT(DISTINCT NULLIF(\"items\".\"name\", '')) + COALESCE(MAX(CASE WHEN NULLIF(\"items\".\"name\", '') IS NULL THEN 1 ELSE 0 END), 0) from \"items\" where \"items\".\"tag\" = ? COLLATE NOCASE",
+    "select count(*) from \"items\" where \"items\".\"tag\" = ? COLLATE NOCASE",
+  ],
+  "kysely pg": [
+    "select NULLIF(\"items\".\"name\", '') as \"k\", count(*) as \"n\", COUNT(DISTINCT NULLIF(\"items\".\"tag\", '')) + COALESCE(MAX(CASE WHEN NULLIF(\"items\".\"tag\", '') IS NULL THEN 1 ELSE 0 END), 0) as \"c\", SUM(\"items\".\"qty\") as \"a0\" from \"items\" where lower(\"items\".\"tag\") = lower($1) group by NULLIF(\"items\".\"name\", '') order by NULLIF(\"items\".\"name\", '') asc nulls last limit $2 offset $3",
+    "select COUNT(DISTINCT NULLIF(\"items\".\"name\", '')) + COALESCE(MAX(CASE WHEN NULLIF(\"items\".\"name\", '') IS NULL THEN 1 ELSE 0 END), 0) as \"n\" from \"items\" where lower(\"items\".\"tag\") = lower($1)",
+    "select count(*) as \"n\" from \"items\" where lower(\"items\".\"tag\") = lower($1)",
+  ],
+  "kysely sqlite": [
+    "select NULLIF(\"items\".\"name\", '') as \"k\", count(*) as \"n\", COUNT(DISTINCT NULLIF(\"items\".\"tag\", '')) + COALESCE(MAX(CASE WHEN NULLIF(\"items\".\"tag\", '') IS NULL THEN 1 ELSE 0 END), 0) as \"c\", SUM(\"items\".\"qty\") as \"a0\" from \"items\" where \"items\".\"tag\" = ? COLLATE NOCASE group by NULLIF(\"items\".\"name\", '') order by NULLIF(\"items\".\"name\", '') asc nulls last limit ? offset ?",
+    "select COUNT(DISTINCT NULLIF(\"items\".\"name\", '')) + COALESCE(MAX(CASE WHEN NULLIF(\"items\".\"name\", '') IS NULL THEN 1 ELSE 0 END), 0) as \"n\" from \"items\" where \"items\".\"tag\" = ? COLLATE NOCASE",
+    "select count(*) as \"n\" from \"items\" where \"items\".\"tag\" = ? COLLATE NOCASE",
+  ],
+};
+
 describe("group SQL of the adapters without pivot", () => {
   it.each([
     ["drizzle", "pg"],
@@ -150,6 +174,6 @@ describe("group SQL of the adapters without pivot", () => {
   ] as const)("stays byte-equal on %s + %s", async (adapter, dialect) => {
     const { captured, query } = capturing(adapter, dialect);
     await query.fetchRows(groupsRequest);
-    expect(captured.map((entry) => entry.sql)).toMatchSnapshot();
+    expect(captured.map((entry) => entry.sql)).toEqual(PINNED_GROUP_SQL[`${adapter} ${dialect}`]);
   });
 });
