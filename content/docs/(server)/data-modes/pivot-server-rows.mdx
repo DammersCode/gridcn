@@ -56,7 +56,7 @@ export function SalesPivot() {
 }
 ```
 
-Each request is a groups request: `childKind: "groups"`, `groupPath: []`, and `spec.pivot`. Its `sorts` hold only the entries of the `groupBy` and pivot columns. A scroll block holds at most 200 groups.
+Each request is a groups request: `childKind: "groups"`, `groupPath: []`, and `spec.pivot`. Its `sorts` hold only the entries of the `groupBy` and pivot columns. A scroll block or a page holds at most 200 groups.
 
 ## Answer the pivot [#answer]
 

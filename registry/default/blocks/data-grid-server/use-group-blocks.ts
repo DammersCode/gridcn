@@ -63,8 +63,7 @@ const positiveInteger =(value: number | undefined, fallback: number, min: number
 
 const blockSizeOf = (options: { blockSize?: number }, pages: GroupPagesConfig | undefined, pivot: string | null) => {
   const size = pages?.pageSize ?? positiveInteger(options.blockSize, DEFAULT_BLOCK_SIZE, 1);
-  // shortcut: pages mode keeps a pageSize above 200 under pivot, since a block is a page there; clamp it when the pager can.
-  return pivot !== null && !pages ? Math.min(size, MAX_PIVOT_BLOCK_SIZE) : size;
+  return pivot !== null ? Math.min(size, MAX_PIVOT_BLOCK_SIZE) : size;
 };
 
 /** The pivot column when `spec.pivot` can be sent: 1 pivot column outside the 1 `groupBy` column, and at least 1 aggregate. */
@@ -96,11 +95,13 @@ export function useGroupBlocks<TData, TCursor = never>(
   options: WithRowId<UseDataGridServerRowsScrollOptions<TData, TCursor> & UseDataGridServerRowsGroupOptions, TData>,
   specState: ServerSpecState,
   active: boolean,
-  pages?: GroupPagesConfig,
+  pagesIn?: GroupPagesConfig,
 ) {
   const { spec, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, onGroupByChange } = specState;
   const groupBy = spec.groupBy ?? NO_GROUPS;
   const pivot = pivotColumnOf(spec);
+  // Under pivot a page is one block, so the pager, the window, and the requests all count pages of the clamped size.
+  const pages = pagesIn && pivot !== null && pagesIn.pageSize > MAX_PIVOT_BLOCK_SIZE ? { ...pagesIn, pageSize: MAX_PIVOT_BLOCK_SIZE } : pagesIn;
   const requestSpec = useMemo(() => requestSpecOf(spec, pivot), [spec, pivot]);
   // Without pivot an aggregate change reloads the group rows in place; under pivot the aggregates are the values of the held set.
   const requestKey = serverSpecKey(pivot === null ? { ...requestSpec, aggregates: undefined } : requestSpec);

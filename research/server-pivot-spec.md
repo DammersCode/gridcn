@@ -134,7 +134,8 @@ export type ServerGroupLayout = {
   empty key sorts last, as `NULLS LAST` does for group keys.
 - `totalRowCount` is the row count of the result. `groupCount` sizes the pivot rows.
 - The `serverSpecKey` of a spec without `pivot` stays the same.
-- Under pivot the hook clamps the block size to 200 rows.
+- Under pivot the hook clamps the block size and the page size to 200 groups, so one page holds
+  at most 40,000 cells.
 - With more than 1 `groupBy` level, the grid sends no `pivot` and warns once in development
   (`S11-M`). The layer takes up to 4 levels: each level's group rows carry the cells of their subtree.
 
@@ -187,9 +188,9 @@ A failed check fails the block, as spec A decision 8 does.
 - **Readers:** copy, export, print, find, and autosize read a pivot cell through one
   `pivotCellText`. Replace skips pivot cells. Every write path refuses them.
 - **Storage:** the hook maps each answer's cells by generated id into one `Float64Array` per slot.
-- **Budget:** at most 2,000,000 held cells. Their `byteLength` stays at or below 16,000,000 B.
-  Past it, the group blocks farthest from the rendered rows evict. The eviction counts cells, not
-  groups.
+- **Budget:** at most 1,000,000 held cells. Their `byteLength` stays at or below 8,000,000 B.
+  Past it, the group blocks evict oldest first; a block under the rendered rows stays. The
+  eviction counts cells, not groups.
 - Step 0 measured 10,000 × 200 cells at exactly 16,000,000 B, so the budget has no headroom. The
   descriptors add about 354 B per group (3.54 MB at 10,000 groups). Step 10 measures the real total
   and lowers the cap if the total misses its budget.
