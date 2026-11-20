@@ -220,6 +220,25 @@ describe("hostile plans sent straight to the wrapper", () => {
     }
   });
 
+  it("refuses a `text` or `blank` flag that is not a boolean, missing included", async () => {
+    const groups = { kind: "groups", where: true, level: { c: "tag", blank: true }, next: null, desc: false, offset: 0, limit: 10, aggregates: [] };
+    const rows = { kind: "rows", where: true, select: [{ c: "id", text: false }], order: [{ c: "id", desc: false }], offset: 0, limit: 10 };
+    const aggregates = (entry: object) => ({ kind: "aggregates", where: true, columns: [{ c: "name", reducer: "max", ...entry }] });
+    for (const bad of [{ v: "true" }, { v: 1 }, { v: null }, {}]) {
+      const flag = (name: string) => ("v" in bad ? { [name]: bad.v } : {});
+      for (const plan of [
+        aggregates(flag("blank")),
+        { ...groups, level: { c: "tag", ...flag("blank") } },
+        { ...groups, next: { c: "name", ...flag("blank") } },
+        { kind: "groupCount", where: true, level: { c: "tag", ...flag("blank") } },
+        { ...rows, select: [{ c: "id", ...flag("text") }] },
+      ]) {
+        await expect(call(plan), JSON.stringify(plan)).rejects.toThrow(/is a boolean/);
+      }
+    }
+    await expect(call(aggregates({ blank: true }))).resolves.toBeDefined();
+  });
+
   it("does NOT enforce rowScope: a plan without the scope leaf returns the rows of every tenant", async () => {
     const rows = (await call({ kind: "rows", where: true, select: [{ c: "tenantId", text: false }], order: [{ c: "id", desc: false }], offset: 0, limit: 1000 })) as { tenantId: number }[];
     expect(new Set(rows.map((row) => row.tenantId)).size).toBeGreaterThan(1);

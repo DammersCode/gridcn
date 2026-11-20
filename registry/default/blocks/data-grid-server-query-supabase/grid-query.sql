@@ -259,7 +259,7 @@ set search_path = pg_catalog, pg_temp
 as $$
 declare
   col text := gridcn.column_sql(tbl, allowed, entry ->> 'c');
-  nonblank text := case when (entry -> 'blank') = 'true'::jsonb then gridcn.nonblank_sql(col) else col end;
+  nonblank text := case when gridcn.flag(entry -> 'blank', 'blank') then gridcn.nonblank_sql(col) else col end;
 begin
   return case entry ->> 'reducer'
     when 'sum' then format('(pg_catalog.sum(%s))::pg_catalog.text', col)
@@ -280,7 +280,7 @@ as $$
 declare
   col text := gridcn.column_sql(tbl, allowed, key ->> 'c');
 begin
-  return case when (key -> 'blank') = 'true'::jsonb then gridcn.nonblank_sql(col) else col end;
+  return case when gridcn.flag(key -> 'blank', 'blank') then gridcn.nonblank_sql(col) else col end;
 end $$;
 
 -- The statement of one plan. It holds names and SQL only; `grid_query` runs it with the plan bound as $1.
@@ -308,7 +308,7 @@ begin
   case plan ->> 'kind'
   when 'rows' then
     perform gridcn.count_of(plan, 'select', 1), gridcn.count_of(plan, 'order', 1), gridcn.check_page(plan, true, max_limit);
-    select string_agg(case when (s.value -> 'text') = 'true'::jsonb then format('(%s)::pg_catalog.text AS %I', gridcn.column_sql(tbl, allowed, s.value ->> 'c'), s.value ->> 'c') else format('%s AS %I', gridcn.column_sql(tbl, allowed, s.value ->> 'c'), s.value ->> 'c') end, ', ' order by s.ordinality)
+    select string_agg(case when gridcn.flag(s.value -> 'text', 'text') then format('(%s)::pg_catalog.text AS %I', gridcn.column_sql(tbl, allowed, s.value ->> 'c'), s.value ->> 'c') else format('%s AS %I', gridcn.column_sql(tbl, allowed, s.value ->> 'c'), s.value ->> 'c') end, ', ' order by s.ordinality)
       into list from jsonb_array_elements(plan -> 'select') with ordinality s;
     select string_agg(gridcn.column_sql(tbl, allowed, o.value ->> 'c') || case when gridcn.flag(o.value -> 'desc', 'desc') then ' DESC NULLS LAST' else ' ASC NULLS LAST' end, ', ' order by o.ordinality)
       into order_sql from jsonb_array_elements(plan -> 'order') with ordinality o;
