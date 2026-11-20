@@ -1,5 +1,6 @@
 import { type ColumnMap, type PlanColumn, mapOf } from "./column-map";
-import { INT_RANGE, clampFloat, decimalToString, isIntType, parseBoolean, parseDate, parseDecimal, parseInstant, parseUuid } from "./operands";
+import { DEFAULT_LIMITS } from "./limits";
+import { INT_RANGE, decimalToFloat, decimalToString, exceedsDigits, isIntType, parseBoolean, parseDate, parseDecimal, parseInstant, parseUuid } from "./operands";
 import { type Operand, type Predicate, combine, leaf } from "./plan";
 
 /** Returns equalities on mapped columns (`{ tenantId: ctx.tenantId }`) that every query of the factory ANDs in. */
@@ -21,7 +22,9 @@ function numberOperand(column: PlanColumn, value: unknown): Operand {
   if (typeof value !== "number" && !(typeof value === "string" && column.numeric === "decimal")) return refuse(column);
   const parsed = parseDecimal(String(value).trim());
   if (!parsed) return refuse(column);
-  return { kind: "number", v: column.numeric === "float" ? String(clampFloat(decimalToString(parsed))) : decimalToString(parsed) };
+  if (column.numeric === "float") return { kind: "number", v: String(decimalToFloat(parsed)) };
+  if (exceedsDigits(parsed, DEFAULT_LIMITS.maxNumberLength)) return refuse(column);
+  return { kind: "number", v: decimalToString(parsed) };
 }
 
 function scopeOperand(column: PlanColumn, value: unknown): Operand {
