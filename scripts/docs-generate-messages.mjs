@@ -412,6 +412,7 @@ export const OMITTED = [
   { file: `${B}/data-grid-server-query-prisma/columns.ts`, line: "if (!ids) throw new Error(\"createPrismaGridQuery: `columns` must come from definePrismaColumnMap", reason: QUERY_LAYER },
   { file: `${B}/data-grid-server-query-prisma/create-prisma-grid-query.ts`, line: "if (provider !== \"postgresql\" && provider !== \"sqlite\") throw new Error('createPrismaGridQuery: `pro", reason: QUERY_LAYER },
   { file: `${B}/data-grid-server-query-prisma/create-prisma-grid-query.ts`, line: "if (column.operators.size > 0) throw new Error(`createPrismaGridQuery: column", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query-prisma/create-prisma-grid-query.ts`, line: "throw new Error(`createPrismaGridQuery: column \"${column.id}\" is a native enum", reason: QUERY_LAYER },
   { file: `${B}/data-grid-server-query-prisma/render-prisma.ts`, line: "if (node === undefined) throw new Error(\"gridcn Prisma adapter: an undefined value would drop a filt", reason: QUERY_LAYER },
   { file: `${B}/data-grid-server-query-prisma/render-prisma.ts`, line: "if (inOr && keys.length === 0) throw new Error(\"gridcn Prisma adapter: an empty filter inside OR wou", reason: QUERY_LAYER },
   { file: `${B}/data-grid-server-query/render-sql.ts`, line: "throw new Error(\"Set values on a time column need native tim", reason: QUERY_LAYER },
