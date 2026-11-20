@@ -53,7 +53,7 @@ export type GroupsPlan = {
   aggregates: readonly { column: PlanColumn; reducer: AggregateReducer }[];
   /**
    * The keys of `column` become generated columns, each with one cell per aggregate. The parsed plan holds no `keys`;
-   * `selectGroups` gets them in key order, each with the `test` that keeps its rows. `omitted` counts the keys cut past the cap.
+   * `selectGroups` gets them in key order, each with the `test` that keeps its rows. `omitted` counts the generated columns cut past the cap.
    */
   pivot?: { column: PlanColumn; direction: "asc" | "desc"; keys: readonly PivotKey[]; omitted: number };
 };

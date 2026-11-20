@@ -35,7 +35,7 @@ export type ParseQueryOptions<R extends QueryRequestKind> = {
   timeZone?: string;
   /** `"cursor"`: a rows request never counts, a grouped one is `unsupported`, and `start` beside a `cursor` is no offset. Default `"offset"`. */
   paging?: Paging;
-  /** The executor's capabilities: a test the adapter cannot run is refused here. Default: every test runs. */
+  /** The executor's capabilities: a test the adapter cannot run is refused here. Default: every test runs, and a pivot is refused. */
   capabilities?: AdapterCapabilities;
 };
 

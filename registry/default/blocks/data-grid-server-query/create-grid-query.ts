@@ -20,7 +20,7 @@ const MAX_VALUE_TEXT = 256;
 /**
  * What an ORM adapter can do. The conformance suite reads it to choose expected results, and the factory refuses a request
  * that needs a missing capability with `unsupported` (or `unsupported-value`, `limit-exceeded`) before the executor runs.
- * An optional field left unset keeps the full behavior of the SQL renderers.
+ * An optional field left unset keeps the full behavior of the SQL renderers, except `pivot`, which stays off.
  */
 export type AdapterCapabilities = {
   /** `"like-only"`: only LIKE leaves fold case (ASCII); case-insensitive equals, set filters, and excluded uuid ids are `unsupported`. */
