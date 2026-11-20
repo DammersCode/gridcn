@@ -10,6 +10,8 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 ## Unreleased
 
 - Fixed the grid, header included, blanking for single frames while scrolling in Firefox, mostly upward. The sticky viewport no longer sits in an absolutely positioned, clipped track.
+- Fixed `parseQuery`, `parseImportRows`, and `validateChange` building huge numbers from short exponent text. An int or decimal value that expands beyond `maxNumberLength` digits, such as `1e9999` or `1e50`, is refused. A filter value or group key answers `invalid-value`, a search phrase matches no int or decimal column, an import or change cell answers `out-of-range`, and a decimal row id is declined. Trailing zeros do not count, so `1.000e-9` passes. Raise `maxNumberLength` to accept longer values. A float keeps its exponent, and a float filter value clamps by sign as before. An int cell with a fraction, such as `1e-50`, still answers `not-a-whole-number`, and a decimal cell with more places than its `scale` answers `too-many-decimals`.
+- Fixed `parseImportRows` setting the row's prototype for a mapped column with the id `__proto__`. The value is a plain key of the row.
 
 ## 2.0.0 - 2026-11-17
 

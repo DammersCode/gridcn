@@ -1,7 +1,7 @@
 import { mapOf, type ColumnMap, type PlanColumn } from "./column-map";
 import { QueryError } from "./errors";
 import { resolveLimits, type QueryLimits } from "./limits";
-import { decimalToString, INT_RANGE, isIntType, parseBoolean, parseDate, parseDecimal, parseInstant, parseUuid } from "./operands";
+import { decimalToString, exceedsDigits, INT_RANGE, isIntType, parseBoolean, parseDate, parseDecimal, parseInstant, parseUuid } from "./operands";
 
 /** The English text of each refusal code; map the `code` of a refusal to your own language. */
 export const IMPORT_REFUSAL_MESSAGES = {
@@ -54,18 +54,17 @@ function numberCell(column: PlanColumn, value: unknown, limits: Limits, path: (s
     const float = Number(text.trim()) + 0; // `+ 0` reads -0 as 0, as the canonical text does.
     return Number.isFinite(float) ? ok(float) : refuse("out-of-range");
   }
-  // An exponent such as `1e9999` would build a 10,000-digit number; no int or decimal holds more digits than the text cap.
-  const digits = decimal.coef.toString();
-  if (digits !== "0" && Math.max(digits.length - decimal.scale, decimal.scale) > limits.maxNumberLength) return refuse("out-of-range");
+  const int = isIntType(column.numeric);
+  if (int && decimal.scale > 0) return refuse("not-a-whole-number");
+  if (!int && column.scale !== undefined && decimal.scale > column.scale) return refuse("too-many-decimals");
+  if (exceedsDigits(decimal, limits.maxNumberLength)) return refuse("out-of-range");
   const canonical = decimalToString(decimal);
-  if (isIntType(column.numeric)) {
-    if (canonical.includes(".")) return refuse("not-a-whole-number");
+  if (int) {
     const whole = BigInt(canonical);
     const [low, high] = INT_RANGE[column.numeric];
     if (whole < low || whole > high) return refuse("out-of-range");
     return ok(typeof value === "number" && Number.isSafeInteger(value) ? value : canonical);
   }
-  if (column.scale !== undefined && (canonical.split(".")[1]?.length ?? 0) > column.scale) return refuse("too-many-decimals");
   return ok(canonical);
 }
 
@@ -136,7 +135,8 @@ export function parseImportRows(input: unknown, options: ParseImportRowsOptions)
       const column = byId.get(key);
       if (!column || column.serverOnly) throw new QueryError("unknown-column", ["rows", rowIndex, key]);
       const cell = readCell(column, row[key], limits, ["rows", rowIndex, key]);
-      if (cell.ok) parsed[key] = cell.value;
+      // A plain assignment to `__proto__` sets the prototype instead of the mapped column's key.
+      if (cell.ok) Object.defineProperty(parsed, key, { value: cell.value, enumerable: true, writable: true, configurable: true });
       else {
         refused = true;
         rejected.push({ rowIndex, columnId: key, code: cell.code, message: cell.message });
