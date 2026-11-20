@@ -206,6 +206,88 @@ describe("hostile plans sent straight to the wrapper", () => {
     expect(await count({ and: [leaf("tenantId", "eq", "2"), leaf("name", "is")] })).toBe(1);
   });
 
+  it("refuses a column outside the allow-list in `next` and in a group count's level, and a `desc` that is not a boolean", async () => {
+    const groups = { kind: "groups", where: true, level: { c: "tag", blank: true }, next: null, desc: false, offset: 0, limit: 10, aggregates: [] };
+    const rows = { kind: "rows", where: true, select: [{ c: "id", text: false }], order: [{ c: "id", desc: false }], offset: 0, limit: 10 };
+    for (const plan of [
+      { ...groups, next: { c: "secret", blank: false } },
+      { kind: "groupCount", where: true, level: { c: "secret", blank: false } },
+      { ...groups, desc: "yes" },
+      { ...rows, order: [{ c: "id", desc: 1 }] },
+    ]) {
+      await expect(call(plan), JSON.stringify(plan)).rejects.toThrow(/gridcn/);
+    }
+  });
+
+  it("does NOT enforce rowScope: a plan without the scope leaf returns the rows of every tenant", async () => {
+    const rows = (await call({ kind: "rows", where: true, select: [{ c: "tenantId", text: false }], order: [{ c: "id", desc: false }], offset: 0, limit: 1000 })) as { tenantId: number }[];
+    expect(new Set(rows.map((row) => row.tenantId)).size).toBeGreaterThan(1);
+  });
+
+  describe("caps a plan from a direct caller before any catalog lookup", () => {
+    const capped = async (plan: unknown, caps: string) => (await pg.query<{ r: unknown }>(`select gridcn.grid_query('public.items'::regclass, $1::text[], $2::jsonb, ${caps}) as r`, [ALLOWED, JSON.stringify(plan)])).rows[0]!.r;
+    const leaves = (n: number) => Array.from({ length: n }, () => leaf("id", "is"));
+
+    it("the nesting depth: 64 levels pass, 65 refuse", async () => {
+      const nest = (levels: number) => {
+        let node: unknown = tenantOne;
+        for (let level = 0; level < levels; level++) node = { not: node };
+        return node;
+      };
+      expect(await count(nest(64))).toBe(21);
+      await expect(count(nest(65))).rejects.toThrow(/nested too deep/);
+    });
+
+    it("the node count of a wide `or`: the cap passes, one more node refuses, a column outside the allow-list included", async () => {
+      expect(await capped({ kind: "count", where: { or: leaves(9) } }, "max_nodes => 10")).toBe(0);
+      await expect(capped({ kind: "count", where: { or: [...leaves(9), leaf("secret", "is")] } }, "max_nodes => 10")).rejects.toThrow(/nodes/);
+    });
+
+    it("many `in` nodes count as nodes, and each list holds at most the cap", async () => {
+      const ins = (n: number, size: number) => ({ kind: "count", where: { and: Array.from({ length: n }, () => leaf("tag", "in", Array.from({ length: size }, (_, index) => `v${index}`))) } });
+      expect(await capped(ins(19, 3), "max_nodes => 20, max_list => 3")).toBe(0);
+      await expect(capped(ins(20, 3), "max_nodes => 20, max_list => 3")).rejects.toThrow(/nodes/);
+      await expect(capped(ins(1, 4), "max_nodes => 20, max_list => 3")).rejects.toThrow(/list/);
+    });
+
+    it("the plan's size in bytes: the cap passes, one byte less refuses", async () => {
+      const plan = { kind: "count", where: { or: leaves(50) } };
+      const bytes = (await pg.query<{ n: number }>("select octet_length($1::jsonb::text) as n", [JSON.stringify(plan)])).rows[0]!.n;
+      expect(await capped(plan, `max_plan_bytes => ${bytes}`)).toBe(0);
+      await expect(capped(plan, `max_plan_bytes => ${bytes - 1}`)).rejects.toThrow(/bytes/);
+      await expect(capped({ kind: "count", where: leaf("secret", "is") }, "max_plan_bytes => 10")).rejects.toThrow(/bytes/);
+    });
+
+    it("the defaults accept the adapter's largest plans under the core's default limits", async () => {
+      const fields = Array.from({ length: 8 }, (_, index) => `n${index}`);
+      await pg.exec(`create table if not exists wide (id int8 primary key, ${fields.map((field) => `${field} text`).join(", ")}); insert into wide (id) values (1) on conflict do nothing;`);
+      const { client, sent } = fakeSupabase();
+      const columns = defineColumnMap({ id: { type: "number", numeric: "int8", primaryKey: true }, ...Object.fromEntries(fields.map((field) => [field, { type: "text", searchable: true, maxLength: 1000 }])) } as never);
+      const query = createSupabaseGridQuery({ client, table: "wide", columns, rpc: "wide_grid", maxUrlLength: 1 }) as unknown as LooseQuery & Selecting;
+      // Five case-insensitive lists of 1,000 values render one guarded ILIKE leaf per value: about 20,000 nodes.
+      const lists = fields.slice(0, 5).map((columnId) => ({ columnId, operator: "isNoneOf", value: [...Array.from({ length: 999 }, (_, index) => `v${index}`), ""] }));
+      const rest = Array.from({ length: 59 }, (_, index) => ({ columnId: fields[5 + (index % 3)], operator: "notContains", value: "x" }));
+      await query.fetchRows({ spec: { filters: [...lists, ...rest], searchText: "abc" }, start: 0, end: 1000 });
+      const excludedIds = Array.from({ length: 200_000 }, (_, index) => String(100_000_000_000_000_000n + BigInt(index)));
+      await query.selection({ selection: { mode: "allMatching", excludedIds, spec: {} }, include: "ids", start: 0, end: 1000 });
+      const plans = sent.filter((request) => request.method === "POST").map((request) => (request.body as { plan: unknown }).plan);
+      expect(plans).toHaveLength(4);
+      // PGlite runs out of memory planning 20,000 ILIKE leaves, so this builds each statement, which applies every cap.
+      for (const plan of plans) {
+        const sql = await pg.query<{ s: string }>("select gridcn.grid_sql('public.wide'::regclass, $1::text[], $2::jsonb) as s", [["id", ...fields], JSON.stringify(plan)]);
+        expect(sql.rows[0]!.s).toMatch(/^SELECT /);
+      }
+    }, 60_000);
+
+    it("the page: 1,001 rows (a page of 1,000 and the look-ahead row) pass by default, 1,002 refuse, and the cap is an argument", async () => {
+      const rows = (limit: number) => ({ kind: "rows", where: true, select: [{ c: "id", text: false }], order: [{ c: "id", desc: false }], offset: 0, limit });
+      expect(await call(rows(1001))).toHaveLength((await count(true)) as number);
+      await expect(call(rows(1002))).rejects.toThrow(/limit/);
+      expect(await capped(rows(10), "max_limit => 10")).toHaveLength(10);
+      await expect(capped(rows(11), "max_limit => 10")).rejects.toThrow(/limit/);
+    });
+  });
+
   it("a NULL allow-list refuses every column", async () => {
     await expect(pg.query("select gridcn.grid_query('public.items'::regclass, null, $1::jsonb)", [JSON.stringify({ kind: "count", where: leaf("id", "is") })])).rejects.toThrow(/allow-list/);
   });

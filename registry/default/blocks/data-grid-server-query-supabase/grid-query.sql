@@ -18,6 +18,41 @@
 
 create schema if not exists gridcn;
 grant usage on schema gridcn to authenticated;
+-- An earlier run of this file left these signatures, which would make the calls below ambiguous.
+drop function if exists gridcn.grid_query(regclass, text[], jsonb);
+drop function if exists gridcn.grid_sql(regclass, text[], jsonb);
+drop function if exists gridcn.check_page(jsonb, boolean);
+
+-- Bounds the plan before any catalog lookup: its text in bytes, the nodes of its filter, and each `in` list.
+create or replace function gridcn.check_plan(plan jsonb, max_plan_bytes int, max_nodes int, max_list int)
+returns void
+language plpgsql immutable security invoker
+set search_path = pg_catalog, pg_temp
+as $$
+begin
+  if octet_length(plan::text) > max_plan_bytes then
+    raise exception 'gridcn: the plan is over % bytes', max_plan_bytes using errcode = '54000';
+  end if;
+  if (select count(*) from jsonb_path_query(plan -> 'where', 'strict $.** ? (@.type() == "object" || @.type() == "boolean")')) > max_nodes then
+    raise exception 'gridcn: the filter has over % nodes', max_nodes using errcode = '54000';
+  end if;
+  if exists (select 1 from jsonb_path_query(plan -> 'where', 'strict $.** ? (@.op == "in")') leaf where jsonb_typeof(leaf -> 'v') = 'array' and jsonb_array_length(leaf -> 'v') > max_list) then
+    raise exception 'gridcn: an in list holds over % values', max_list using errcode = '54000';
+  end if;
+end $$;
+
+-- `value` as a boolean; anything else raises.
+create or replace function gridcn.flag(value jsonb, name text)
+returns boolean
+language plpgsql immutable security invoker
+set search_path = pg_catalog, pg_temp
+as $$
+begin
+  if jsonb_typeof(value) is distinct from 'boolean' then
+    raise exception 'gridcn: % is a boolean', name using errcode = '22023';
+  end if;
+  return value = 'true'::jsonb;
+end $$;
 
 -- The table `tbl` as a schema-qualified name.
 create or replace function gridcn.table_sql(tbl regclass)
@@ -108,9 +143,8 @@ begin
     return col || ' IS NULL';
   end if;
   if op = 'in' then
-    if jsonb_typeof(node -> 'v') is distinct from 'array' or jsonb_array_length(node -> 'v') > 200000
-      or exists (select 1 from jsonb_array_elements(node -> 'v') e where jsonb_typeof(e) <> 'string') then
-      raise exception 'gridcn: in takes a list of at most 200,000 texts' using errcode = '22023';
+    if jsonb_typeof(node -> 'v') is distinct from 'array' or exists (select 1 from jsonb_array_elements(node -> 'v') e where jsonb_typeof(e) <> 'string') then
+      raise exception 'gridcn: in takes a list of texts' using errcode = '22023';
     end if;
     return format('%s OPERATOR(pg_catalog.=) ANY (CAST(ARRAY(SELECT pg_catalog.jsonb_array_elements_text($1 OPERATOR(pg_catalog.#>) %L)) AS %s[]))', col, (path || 'v'::text)::text, typ);
   end if;
@@ -150,15 +184,15 @@ begin
   return jsonb_array_length(plan -> key);
 end $$;
 
--- `limit` and `offset` read as bigint from the bound plan; out of range raises.
-create or replace function gridcn.check_page(plan jsonb, with_offset boolean)
+-- `limit`, at most `max_limit`, and `offset` read as bigint from the bound plan; out of range raises.
+create or replace function gridcn.check_page(plan jsonb, with_offset boolean, max_limit int)
 returns void
 language plpgsql immutable security invoker
 set search_path = pg_catalog, pg_temp
 as $$
 begin
-  if jsonb_typeof(plan -> 'limit') is distinct from 'number' or (plan ->> 'limit')::numeric not between 0 and 100000 or (plan ->> 'limit')::numeric % 1 <> 0 then
-    raise exception 'gridcn: limit is a whole number from 0 to 100,000' using errcode = '22023';
+  if jsonb_typeof(plan -> 'limit') is distinct from 'number' or (plan ->> 'limit')::numeric not between 0 and max_limit or (plan ->> 'limit')::numeric % 1 <> 0 then
+    raise exception 'gridcn: limit is a whole number from 0 to %', max_limit using errcode = '22023';
   end if;
   if with_offset and (jsonb_typeof(plan -> 'offset') is distinct from 'number' or (plan ->> 'offset')::numeric not between 0 and 9007199254740991 or (plan ->> 'offset')::numeric % 1 <> 0) then
     raise exception 'gridcn: offset is a whole number from 0' using errcode = '22023';
@@ -207,13 +241,13 @@ begin
 end $$;
 
 -- The statement of one plan. It holds names and SQL only; `grid_query` runs it with the plan bound as $1.
-create or replace function gridcn.grid_sql(tbl regclass, allowed text[], plan jsonb)
+create or replace function gridcn.grid_sql(tbl regclass, allowed text[], plan jsonb, max_plan_bytes int default 16777216, max_nodes int default 50000, max_list int default 200000, max_limit int default 1001)
 returns text
 language plpgsql stable security invoker
 set search_path = pg_catalog, pg_temp
 as $$
 declare
-  rel text := gridcn.table_sql(tbl);
+  rel text;
   w text;
   col text;
   key text;
@@ -222,22 +256,24 @@ declare
   list text;
   order_sql text;
 begin
+  perform gridcn.check_plan(plan, max_plan_bytes, max_nodes, max_list);
+  rel := gridcn.table_sql(tbl);
   if jsonb_typeof(plan) is distinct from 'object' or not (plan ? 'where') then
     raise exception 'gridcn: the plan is an object with a where' using errcode = '22023';
   end if;
   w := gridcn.filter_sql(tbl, allowed, plan -> 'where', '{where}');
   case plan ->> 'kind'
   when 'rows' then
-    perform gridcn.count_of(plan, 'select', 1), gridcn.count_of(plan, 'order', 1), gridcn.check_page(plan, true);
+    perform gridcn.count_of(plan, 'select', 1), gridcn.count_of(plan, 'order', 1), gridcn.check_page(plan, true, max_limit);
     select string_agg(case when (s.value -> 'text') = 'true'::jsonb then format('(%s)::pg_catalog.text AS %I', gridcn.column_sql(tbl, allowed, s.value ->> 'c'), s.value ->> 'c') else format('%s AS %I', gridcn.column_sql(tbl, allowed, s.value ->> 'c'), s.value ->> 'c') end, ', ' order by s.ordinality)
       into list from jsonb_array_elements(plan -> 'select') with ordinality s;
-    select string_agg(gridcn.column_sql(tbl, allowed, o.value ->> 'c') || case when (o.value -> 'desc') = 'true'::jsonb then ' DESC NULLS LAST' else ' ASC NULLS LAST' end, ', ' order by o.ordinality)
+    select string_agg(gridcn.column_sql(tbl, allowed, o.value ->> 'c') || case when gridcn.flag(o.value -> 'desc', 'desc') then ' DESC NULLS LAST' else ' ASC NULLS LAST' end, ', ' order by o.ordinality)
       into order_sql from jsonb_array_elements(plan -> 'order') with ordinality o;
     return format('SELECT COALESCE(pg_catalog.jsonb_agg(pg_catalog.to_jsonb(r)), ''[]''::pg_catalog.jsonb) FROM (SELECT %s FROM %s AS t WHERE %s ORDER BY %s LIMIT ($1 OPERATOR(pg_catalog.->>) ''limit'')::pg_catalog.int8 OFFSET ($1 OPERATOR(pg_catalog.->>) ''offset'')::pg_catalog.int8) r', list, rel, w, order_sql);
   when 'count' then
     return format('SELECT pg_catalog.to_jsonb(pg_catalog.count(*)) FROM %s AS t WHERE %s', rel, w);
   when 'values' then
-    perform gridcn.check_page(plan, false);
+    perform gridcn.check_page(plan, false, max_limit);
     col := gridcn.column_sql(tbl, allowed, plan ->> 'c');
     case plan ->> 'form'
     when 'plain' then key := col; value_sql := col; match_sql := format('(%s)::pg_catalog.text', col);
@@ -255,7 +291,7 @@ begin
     select string_agg(gridcn.aggregate_sql(tbl, allowed, a.value), ', ' order by a.ordinality) into list from jsonb_array_elements(plan -> 'columns') with ordinality a;
     return format('SELECT pg_catalog.jsonb_build_array(%s) FROM %s AS t WHERE %s', coalesce(list, ''), rel, w);
   when 'groups' then
-    perform gridcn.count_of(plan, 'aggregates', 0), gridcn.check_page(plan, true);
+    perform gridcn.count_of(plan, 'aggregates', 0), gridcn.check_page(plan, true, max_limit);
     key := gridcn.key_sql(tbl, allowed, plan -> 'level');
     select string_agg(gridcn.aggregate_sql(tbl, allowed, a.value), ', ' order by a.ordinality) into list from jsonb_array_elements(plan -> 'aggregates') with ordinality a;
     if jsonb_typeof(plan -> 'next') = 'object' then
@@ -266,7 +302,7 @@ begin
     end if;
     return format(
       'SELECT COALESCE(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(''key'', s.k, ''count'', s.n, ''childCount'', s.c, ''aggregates'', s.a)), ''[]''::pg_catalog.jsonb) FROM (SELECT (%1$s)::pg_catalog.text AS k, pg_catalog.count(*) AS n, %2$s AS c, pg_catalog.jsonb_build_array(%3$s) AS a FROM %4$s AS t WHERE %5$s GROUP BY %1$s ORDER BY %1$s %6$s NULLS LAST LIMIT ($1 OPERATOR(pg_catalog.->>) ''limit'')::pg_catalog.int8 OFFSET ($1 OPERATOR(pg_catalog.->>) ''offset'')::pg_catalog.int8) s',
-      key, value_sql, coalesce(list, ''), rel, w, case when (plan -> 'desc') = 'true'::jsonb then 'DESC' else 'ASC' end);
+      key, value_sql, coalesce(list, ''), rel, w, case when gridcn.flag(plan -> 'desc', 'desc') then 'DESC' else 'ASC' end);
   when 'groupCount' then
     key := gridcn.key_sql(tbl, allowed, plan -> 'level');
     return format('SELECT pg_catalog.to_jsonb(pg_catalog.count(DISTINCT %1$s) OPERATOR(pg_catalog.+) COALESCE(pg_catalog.max(CASE WHEN %1$s IS NULL THEN 1 ELSE 0 END), 0)) FROM %2$s AS t WHERE %3$s', key, rel, w);
@@ -278,14 +314,16 @@ end $$;
 
 -- Runs one plan of `createSupabaseGridQuery` against `tbl`, naming only the columns of `allowed`. It sets no
 -- search_path, so the caller's policy helpers resolve their unqualified names; it names its own with their schema.
-create or replace function gridcn.grid_query(tbl regclass, allowed text[], plan jsonb)
+-- The defaults of the caps accept every plan the adapter sends under the core's default limits; a page is 1,000 rows
+-- plus the look-ahead row.
+create or replace function gridcn.grid_query(tbl regclass, allowed text[], plan jsonb, max_plan_bytes int default 16777216, max_nodes int default 50000, max_list int default 200000, max_limit int default 1001)
 returns jsonb
 language plpgsql stable security invoker
 as $$
 declare
   result pg_catalog.jsonb;
 begin
-  execute gridcn.grid_sql(tbl, allowed, plan) into result using plan;
+  execute gridcn.grid_sql(tbl, allowed, plan, max_plan_bytes, max_nodes, max_list, max_limit) into result using plan;
   return result;
 end $$;
 
@@ -294,6 +332,8 @@ grant execute on all functions in schema gridcn to authenticated;
 
 -- One wrapper per table, in a schema PostgREST exposes, SECURITY INVOKER and without a search_path. The allow-list is
 -- the wrapper's constant, never the request's: list the fields of the mapped columns. The wrapper checks no rowScope.
+-- The caps are the wrapper's constants too: pass `max_plan_bytes`, `max_nodes`, `max_list`, or `max_limit` by name to
+-- tighten one, and never take them from the plan.
 --
 -- create or replace function public.items_grid(plan jsonb)
 -- returns jsonb
