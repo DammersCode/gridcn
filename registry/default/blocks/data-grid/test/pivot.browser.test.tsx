@@ -36,6 +36,7 @@ const placeholder: Row = { id: "", region: "", year: 0, amount: 0 };
 
 const q = <T extends HTMLElement>(selector: string) => [...document.querySelectorAll<T>(selector)];
 const rows = () => q('[role="row"][data-grid-group-row]');
+const activeRow = () => document.querySelector("[data-active]")!.closest('[role="row"]')!;
 const cellsOf = (row: Element) => [...row.querySelectorAll<HTMLElement>('[role="gridcell"]:not([data-grid-marker-cell])')];
 
 async function shiftClick(el: HTMLElement) {
@@ -87,6 +88,14 @@ describe("a pivot grid", () => {
         },
       },
       { name: "keyboard focus moved", apply: () => userEvent.keyboard("{ArrowDown}") },
+      {
+        name: "pivot row in the rows channel (Shift+Space)",
+        apply: async () => {
+          await userEvent.keyboard("{Shift>} {/Shift}");
+          expect(cellsOf(activeRow())[4]!.getAttribute("aria-selected")).toBe("true");
+        },
+      },
+      { name: "hovered selected pivot row", apply: () => userEvent.hover(cellsOf(activeRow())[2]!) },
     ];
     await expectNoPaintMismatch(grid, states);
   });

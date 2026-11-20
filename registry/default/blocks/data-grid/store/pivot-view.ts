@@ -18,10 +18,10 @@ const GENERATED_PREFIXES = ["__pivot:", "__pivotgroup:"] as const;
 
 const hasGeneratedPrefix = (id: string) => GENERATED_PREFIXES.some((prefix) => id.startsWith(prefix));
 
-const views = new WeakMap<ServerPivotLayout, { columns: readonly AnyColumnDef[]; labels: DataGridPivotLabels; view: PivotView }>();
+const views = new WeakMap<ServerPivotLayout, { valueColumns: readonly (AnyColumnDef | undefined)[]; labels: DataGridPivotLabels; view: PivotView }>();
 
 /**
- * The pivot view of a server layout, or `null` without a held set. One identity per held set, source columns, and labels.
+ * The pivot view of a server layout, or `null` without a held set. One identity per held set, value column defs, and labels.
  * Under pivot, a consumer column or group id with a generated prefix drops, and `onPrefixClash` reports it.
  */
 export function pivotViewOf(
@@ -33,8 +33,9 @@ export function pivotViewOf(
 ): PivotView | null {
   const held = layout?.pivot;
   if (!held) return null;
+  const valueColumns = held.values.map((value) => columns.find((column) => column.id === value.columnId));
   const cached = views.get(held);
-  if (cached && cached.columns === columns && cached.labels === labels) return cached.view;
+  if (cached && cached.labels === labels && cached.valueColumns.every((column, i) => column === valueColumns[i])) return cached.view;
   const clashes = [...columns.map((column) => column.id), ...consumerGroupIds].filter(hasGeneratedPrefix);
   if (clashes.length > 0) onPrefixClash(clashes);
   const sources = clashes.length > 0 ? columns.filter((column) => !hasGeneratedPrefix(column.id)) : columns;
@@ -45,7 +46,7 @@ export function pivotViewOf(
     groupModel: buildColumnGroupModel(built.groups, built.columns.map((column) => column.id)),
     omitted: Math.max(0, held.omitted) + Math.max(0, held.columns.length - built.columns.length),
   };
-  views.set(held, { columns, labels, view });
+  views.set(held, { valueColumns, labels, view });
   return view;
 }
 

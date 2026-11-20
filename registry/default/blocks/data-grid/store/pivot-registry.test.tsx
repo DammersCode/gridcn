@@ -149,12 +149,49 @@ describe("widths of generated columns", () => {
     expect(state().columnWidths[id2024]).toBeUndefined();
   });
 
+  it("autosize for the session, with no unknown-column warning and no layout event", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const onColumnLayoutChange = vi.fn();
+    const { store, state } = make({ onColumnLayoutChange });
+    getInternalActions(store)._registerMeasureFonts(() => ({ cellFont: "14px Arial", headerFont: "14px Arial", window: { start: 0, end: 2 }, hasHeaderMenu: false, hasHeaderFilter: false }));
+    const measured = state().actions.autosizeColumns({ columnIds: [id2024] });
+    expect(measured[id2024]).toBeGreaterThan(0);
+    expect(state().columnWidths[id2024]).toBe(measured[id2024]);
+    state().actions.autosizeColumns();
+    expect(state().columnWidths[id2025]).toBeGreaterThan(0);
+    expect(warn).not.toHaveBeenCalled();
+    expect(onColumnLayoutChange.mock.calls.flatMap(([layout]) => Object.keys(layout.widths)).some((id) => id.startsWith("__pivot"))).toBe(false);
+  });
+
+  it("keep the generated column identity across a source layout commit", () => {
+    const { state } = make();
+    const generated = state().visibleColumns[1];
+    state().actions.setColumnWidth("region", 150);
+    state().actions.setColumnPin("region", "start");
+    expect(state().visibleColumns[1]).toBe(generated);
+  });
+
   it("follow a live resize preview and its cancel", () => {
     const { state } = make();
     state().actions.previewColumnWidth(id2025, 220);
     expect(state().columnWidths[id2025]).toBe(220);
     state().actions.cancelColumnResize(id2025, 220);
     expect(state().columnWidths[id2025]).toBeUndefined();
+  });
+});
+
+describe("source-column actions that meet a generated id", () => {
+  it("quick-search and column order neither throw nor move a source column", () => {
+    const { state, sync } = make();
+    expect(() => sync({ searchText: "EU" })).not.toThrow();
+    const order = state().columnOrder;
+    expect(state().actions.canSetColumnOrder("region", id2024, "after").ok).toBe(false);
+    state().actions.setColumnOrder("region", id2024, "after");
+    expect(state().columnOrder).toBe(order);
+    state().actions.setColumnHidden(id2024, true);
+    state().actions.setColumnPin(id2024, "start");
+    expect(state().visibleColumns[1]?.id).toBe(id2024);
+    expect(state().columnLayout.order.some((id) => id.startsWith("__pivot"))).toBe(false);
   });
 });
 
