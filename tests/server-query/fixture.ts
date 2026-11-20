@@ -74,6 +74,10 @@ export function groupColumns(engine: Engine) {
     nameCount: { type: "text", field: "name", aggregate: "count" },
     active: { type: "checkbox" },
     price: { type: "number", numeric: "decimal", scale: 2, aggregate: "max" },
+    priceSum: { type: "number", numeric: "decimal", scale: 2, field: "price", aggregate: "sum" },
+    priceMin: { type: "number", numeric: "decimal", scale: 2, field: "price", aggregate: "min" },
+    priceAvg: { type: "number", numeric: "decimal", scale: 2, field: "price", aggregate: "avg" },
+    idSum: { type: "number", numeric: "int8", field: "id", aggregate: "sum" },
     createdAt: { type: "date", time: true, storage: engine === "pg" ? "native" : "iso-text", aggregate: "max" },
     tenantId: { type: "number", numeric: "int4", serverOnly: true, aggregate: "sum" },
   });
