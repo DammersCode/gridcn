@@ -1,7 +1,7 @@
 import { type ColumnMap, type PlanColumn, mapOf } from "./column-map";
 import { QueryError } from "./errors";
 import { type QueryLimits, resolveLimits } from "./limits";
-import { decimalToString, parseDecimal } from "./operands";
+import { decimalToString, isIntType, parseBoolean, parseDate, parseDecimal, parseInstant, parseUuid } from "./operands";
 import { type Cell, IMPORT_REFUSAL_MESSAGES, type ImportRefusalCode, readCell } from "./parse-import-rows";
 import { type Operand, type Predicate, combine, leaf } from "./plan";
 import { toSafeText } from "./safe-text";
@@ -51,23 +51,38 @@ function writeCell(column: PlanColumn, value: unknown, limits: Limits, path: (st
   return readCell(column, value, limits, path);
 }
 
-/** The operand of a row id under the key column, or `null` when the key cannot parse it. Over `maxValueLength` or `maxNumberLength` it throws `limit-exceeded`. */
-export function keyOperand(column: PlanColumn, rowId: string, limits: Limits, path: (string | number)[]): Operand | null {
-  const cell = readCell(column, rowId, limits, path);
-  if (!cell.ok || cell.value === null) return null;
+/** Why a row id gives no key: `shape`, no value of the physical type looks like it; `declined`, it fits the type but exceeds a length limit. */
+export type KeyMiss = "shape" | "declined";
+
+/**
+ * The operand of a row id under the key column. A key is compared, never validated: the physical type alone parses it,
+ * so `choices`, `maxLength`, and the blank rule do not apply, and an empty text id is a text key.
+ */
+export function keyOperand(column: PlanColumn, rowId: string, limits: Limits): Operand | KeyMiss {
+  if (column.kind === "number") {
+    if (rowId.length > limits.maxNumberLength) return isIntType(column.numeric) ? "shape" : "declined";
+    const cell = readCell(column, rowId, limits, []);
+    if (!cell.ok) return cell.code === "out-of-range" && column.numeric === "decimal" ? "declined" : "shape";
+    if (cell.value === null) return "shape";
+    // The float's shortest text; the canonical decimal of `1e-300` has 300 digits.
+    if (column.numeric === "float") return { kind: "number", v: toSafeText(cell.value) };
+    const canonical = decimalToString(parseDecimal(rowId.trim())!);
+    return column.numeric === "decimal" ? { kind: "number", v: canonical } : { kind: "bigint", v: BigInt(canonical) };
+  }
+  if (rowId.length > limits.maxValueLength) return "declined";
   switch (column.kind) {
-    case "number": {
-      // The float's shortest text; the canonical decimal of `1e-300` has 300 digits.
-      if (column.numeric === "float") return { kind: "number", v: toSafeText(cell.value) };
-      const canonical = decimalToString(parseDecimal(rowId.trim())!);
-      return column.numeric === "decimal" ? { kind: "number", v: canonical } : { kind: "bigint", v: BigInt(canonical) };
+    case "checkbox": {
+      const parsed = parseBoolean(rowId);
+      return parsed === null ? "shape" : { kind: "boolean", v: parsed };
     }
-    case "checkbox":
-      return { kind: "boolean", v: cell.value as boolean };
-    case "date":
-      return { kind: column.time ? "instant" : "date", v: cell.value as string };
-    default:
-      return { kind: "text", v: cell.value as string };
+    case "date": {
+      const parsed = column.time ? parseInstant(rowId) : parseDate(rowId);
+      return parsed === null ? "shape" : { kind: column.time ? "instant" : "date", v: parsed };
+    }
+    default: {
+      const text = column.native === "uuid" ? parseUuid(rowId) : rowId;
+      return text === null ? "shape" : { kind: "text", v: text };
+    }
   }
 }
 
@@ -112,9 +127,9 @@ export function validateChange(input: unknown, options: ValidateChangeOptions): 
   // By field: two ids may share one physical column, and an alias must not write the key or the scope.
   const fixedFields = new Set([key.field, ...scope.map((entry) => entry.column.field)]);
   const fixed = (column: PlanColumn) => fixedFields.has(column.field);
-  const scopedWhere = (rowId: string, path: (string | number)[]): Predicate | null => {
-    const id = keyOperand(key, rowId, limits, path);
-    return id === null ? null : combine("and", [leaf(key, { k: "exact", value: id }), ...(options.scope ? [options.scope] : [])]);
+  const scopedWhere = (rowId: string): Predicate | null => {
+    const id = keyOperand(key, rowId, limits);
+    return typeof id === "string" ? null : combine("and", [leaf(key, { k: "exact", value: id }), ...(options.scope ? [options.scope] : [])]);
   };
   const writable = (id: string) => {
     const column = byId.get(id);
@@ -174,9 +189,9 @@ export function validateChange(input: unknown, options: ValidateChangeOptions): 
     const beforeRowId = type === "move" ? optionalId(op, "beforeRowId", limits, path) : undefined;
     const afterRowId = type === "move" ? optionalId(op, "afterRowId", limits, path) : undefined;
 
-    const where = scopedWhere(rowId, [...path, "rowId"]);
-    const beforeWhere = beforeRowId === undefined ? undefined : scopedWhere(beforeRowId, [...path, "beforeRowId"]);
-    const afterWhere = afterRowId === undefined ? undefined : scopedWhere(afterRowId, [...path, "afterRowId"]);
+    const where = scopedWhere(rowId);
+    const beforeWhere = beforeRowId === undefined ? undefined : scopedWhere(beforeRowId);
+    const afterWhere = afterRowId === undefined ? undefined : scopedWhere(afterRowId);
     if (where === null || beforeWhere === null || afterWhere === null) {
       reject([refusal(rowId, "not-an-id")]);
       continue;

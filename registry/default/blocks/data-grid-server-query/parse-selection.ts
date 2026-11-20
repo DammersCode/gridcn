@@ -25,23 +25,21 @@ const isRecord = (value: unknown): value is Raw => typeof value === "object" && 
 // Grouping keys never change which rows match, so only these spec fields reach the parser.
 const SPEC_FIELDS = ["sorts", "filters", "filterJoin", "searchText"] as const;
 /**
- * The parsed keys of one id list; the count and each id's length are bounded before any id is parsed. An id the key cannot
- * parse is dropped from the selected ids, and refused in the excluded ids, where dropping it would select its row.
+ * The parsed keys of one id list; the count is bounded before any id is read. An id no key can hold (a draft or stale id)
+ * is dropped. An id the layer declines for its length is dropped from the selected ids and refused in the excluded ids,
+ * where dropping it would put a row the key may hold back into the selection.
  */
 function keyOperands(key: PlanColumn, list: unknown, limits: ResolvedLimits, path: (string | number)[], excluded: boolean): Operand[] {
   if (!Array.isArray(list)) throw new QueryError("invalid-request", path);
   if (list.length > limits.maxSelectionIds) throw new QueryError("limit-exceeded", path);
+  const out: Operand[] = [];
   for (let index = 0; index < list.length; index++) {
     const id: unknown = list[index];
     if (typeof id !== "string") throw new QueryError("invalid-request", [...path, index]);
-    if (id.length > limits.maxValueLength) throw new QueryError("limit-exceeded", [...path, index]);
+    const operand = keyOperand(key, id, limits);
+    if (typeof operand !== "string") out.push(operand);
+    else if (excluded && operand === "declined") throw new QueryError("invalid-value", [...path, index]);
   }
-  const out: Operand[] = [];
-  (list as string[]).forEach((id, index) => {
-    const operand = keyOperand(key, id, limits, [...path, index]);
-    if (operand) out.push(operand);
-    else if (excluded) throw new QueryError("invalid-value", [...path, index]);
-  });
   return out;
 }
 
@@ -54,7 +52,7 @@ function specFields(spec: unknown): Raw {
 /**
  * Reads `{ selection, include?, start?, end? }`, where `selection` is the grid's `DataGridSelectedRows`, into a counted
  * rows plan. `ids` mode matches its ids; `allMatching` matches the spec's filters and search minus `excludedIds`, ordered
- * by the spec's sorts. An `ids` entry the key cannot parse is dropped; such an `excludedIds` entry is `invalid-value`. `start` defaults to 0 and `end` to `start + maxPageSize`.
+ * by the spec's sorts. An id no key can hold is dropped; an `excludedIds` entry over a length limit is `invalid-value`. `start` defaults to 0 and `end` to `start + maxPageSize`.
  * Throws `unsupported` without one number or text `primaryKey`.
  */
 export function parseSelection(input: unknown, options: ParseSelectionOptions): ParsedSelection {

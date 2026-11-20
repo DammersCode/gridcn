@@ -58,12 +58,26 @@ describe("parseSelection: ids mode", () => {
     expect(parse({ selection: { mode: "ids", ids: ["x"], excludedIds: [] } }).plan.where).toEqual({ t: "false" });
   });
 
-  it("keeps __proto__ and constructor as plain ids of a text key", () => {
+  it("keeps __proto__, constructor, and the empty text as plain ids of a text key", () => {
     const { plan } = parseSelection({ selection: { mode: "ids", ids: ["__proto__", "constructor", ""], excludedIds: [] } }, { columns: textKeyed });
     expect(idsLeaf(plan.where)?.values).toEqual([
       { kind: "text", v: "__proto__" },
       { kind: "text", v: "constructor" },
+      { kind: "text", v: "" },
     ]);
+  });
+
+  it("compares a key and never validates it: choices and maxLength do not apply", () => {
+    const chosen = defineColumnMap({ k: { type: "select", choices: ["a"], maxLength: 2, primaryKey: true } });
+    const { plan } = parseSelection({ selection: { mode: "ids", ids: ["zzz"], excludedIds: [] } }, { columns: chosen });
+    expect(idsLeaf(plan.where)?.values).toEqual([{ kind: "text", v: "zzz" }]);
+  });
+
+  it("drops an id a decimal key declines for its length, so one long id fails no request", () => {
+    const decimal = defineColumnMap({ k: { type: "number", numeric: "decimal", primaryKey: true } });
+    expect(parseSelection({ selection: { mode: "ids", ids: ["1".repeat(41), "2"], excludedIds: [] } }, { columns: decimal }).plan.where).toMatchObject({ test: { values: [{ v: "2" }] } });
+    expect(parse({ selection: { mode: "ids", ids: ["1".repeat(41)], excludedIds: [] } }).plan.where).toEqual({ t: "false" });
+    expect(parseSelection({ selection: { mode: "ids", ids: ["a".repeat(1001)], excludedIds: [] } }, { columns: textKeyed }).plan.where).toEqual({ t: "false" });
   });
 
   it("orders by the tie-breaker and always counts", () => {
@@ -85,9 +99,21 @@ describe("parseSelection: allMatching mode", () => {
     expect(plan.rowRange).toEqual({ start: 0, end: 50 });
   });
 
-  it("refuses an excluded id the key cannot parse, which would otherwise return to the selection", () => {
-    expect(codeOf(() => parse({ selection: { mode: "allMatching", excludedIds: ["7", "bad"], spec } }))).toBe("invalid-value selection.excludedIds.1");
-    expect(codeOf(() => parse({ selection: { mode: "allMatching", excludedIds: ["x", "1e9999", "2.5"], spec } }))).toBe("invalid-value selection.excludedIds.0");
+  it("drops an excluded id that no key can hold: a draft or stale id fails no request", () => {
+    const { plan } = parse({ selection: { mode: "allMatching", excludedIds: ["7", "new-0", "x", "1e9999", "2.5", "9223372036854775808"], spec } });
+    expect(idsLeaf(plan.where)?.values).toEqual([{ kind: "bigint", v: BigInt(7) }]);
+    const none = parse({ selection: { mode: "allMatching", excludedIds: ["new-0", "x"], spec } }).plan.where;
+    expect(none).toEqual(parse({ selection: { mode: "allMatching", excludedIds: [], spec } }).plan.where);
+  });
+
+  it("refuses an excluded id the layer declines, which dropping would put back into the selection", () => {
+    const decimal = defineColumnMap({ k: { type: "number", numeric: "decimal", primaryKey: true } });
+    const float = defineColumnMap({ k: { type: "number", numeric: "float", primaryKey: true } });
+    const long = { selection: { mode: "allMatching", excludedIds: ["1", "1".repeat(41)], spec: {} } };
+    expect(codeOf(() => parseSelection(long, { columns: decimal }))).toBe("invalid-value selection.excludedIds.1");
+    expect(codeOf(() => parseSelection(long, { columns: float }))).toBe("invalid-value selection.excludedIds.1");
+    const text = { selection: { mode: "allMatching", excludedIds: ["a".repeat(1001)], spec: {} } };
+    expect(codeOf(() => parseSelection(text, { columns: textKeyed }))).toBe("invalid-value selection.excludedIds.0");
   });
 
   it("ignores a filled ids list, which only the body cap bounds", () => {
@@ -123,10 +149,9 @@ describe("parseSelection: bounds", () => {
     expect(codeOf(() => parse({ selection: { mode: "ids", ids: [...ids, 4], excludedIds: [] } }, { maxSelectionIds: 2 }))).toBe("limit-exceeded selection.ids");
   });
 
-  it("refuses a non-string id and bounds each id", () => {
+  it("refuses a non-string id, and an id's length never exceeds a limit", () => {
     expect(codeOf(() => parse({ selection: { mode: "ids", ids: ["1", 2], excludedIds: [] } }))).toBe("invalid-request selection.ids.1");
-    expect(codeOf(() => parse({ selection: { mode: "ids", ids: ["1", "9".repeat(1001)], excludedIds: [] } }))).toBe("limit-exceeded selection.ids.1");
-    expect(codeOf(() => parse({ selection: { mode: "ids", ids: ["1".repeat(41)], excludedIds: [] } }))).toBe("limit-exceeded selection.ids.0");
+    expect(codeOf(() => parse({ selection: { mode: "ids", ids: ["1", "9".repeat(1001)], excludedIds: [] } }))).toBeUndefined();
   });
 
   it("takes every id a grid can send: the remembered rows plus 100,000 loaded ones", () => {
