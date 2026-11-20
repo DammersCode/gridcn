@@ -174,7 +174,8 @@ function parseAggregates(value: unknown, grouped: boolean, rules: ReadonlyMap<st
 }
 
 function parsePivot(value: unknown, groupBy: readonly string[], aggregated: boolean, rules: ReadonlyMap<string, ServerSpecColumnRules>): ServerSpec["pivot"] {
-  if (value === undefined || value === null) return undefined;
+  const empty = Array.isArray(value) ? value.length === 0 : isRecord(value) && Object.keys(value).length === 0;
+  if (value === undefined || value === null || empty) return undefined;
   if (!isRecord(value)) throw new ServerSpecError("pivot", "must be an object");
   if (groupBy.length === 0 || !aggregated) throw new ServerSpecError("pivot", "needs groupBy and aggregates");
   const columnIds = (value as { columnIds?: unknown }).columnIds;

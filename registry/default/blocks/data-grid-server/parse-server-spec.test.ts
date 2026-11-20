@@ -165,7 +165,7 @@ describe("parseServerSpec pivot", () => {
 
   it("reads one pivot column and drops unknown keys", () => {
     expect(parse({ ...grouped, pivot: { columnIds: ["status"], extra: 1 } }).pivot).toEqual({ columnIds: ["status"] });
-    expect(parse({ ...grouped, pivot: null })).not.toHaveProperty("pivot");
+    for (const pivot of [null, {}, []]) expect(parse({ pivot })).not.toHaveProperty("pivot");
   });
 
   it("rejects a pivot without groupBy or aggregates", () => {
