@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
+import { citext } from "@electric-sql/pglite/contrib/citext";
 import { beforeAll, describe, expect, it } from "vitest";
 import { QueryError, defineColumnMap } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
 import { type SupabaseClientLike, createSupabaseGridQuery } from "@/registry/default/blocks/data-grid-server-query-supabase/data-grid-server-query-supabase";
@@ -13,7 +14,7 @@ import { fakeSupabase } from "./fake-supabase";
 const GRID_SQL = readFileSync(join(process.cwd(), "registry/default/blocks/data-grid-server-query-supabase/grid-query.sql"), "utf8");
 const ALLOWED = ["id", "name", "tag", "score", "qty", "active", "price", "createdAt", "tenantId"];
 const wrapper = (fn: string, table: string, allowed: readonly string[]) => `create function public.${fn}(plan jsonb) returns jsonb language sql stable security invoker
-  as $$ select gridcn.grid_query('public.${table}'::regclass, array[${allowed.map((name) => `'${name}'`).join(", ")}]::text[], plan) $$`;
+  as $$ select gridcn.grid_query('public.${table}'::pg_catalog.regclass, array[${allowed.map((name) => `'${name}'`).join(", ")}]::pg_catalog.text[], plan) $$`;
 
 let pg: PGlite;
 let drizzle: Harness;
@@ -72,6 +73,7 @@ const rowIds = async (query: LooseQuery, spec: Record<string, unknown>, context?
 
 /** Runs the wrapper with a plan the browser could send itself. */
 const call = async (plan: unknown, fn = "items_grid", database = () => pg) => (await database().query<{ r: unknown }>(`select public.${fn}($1::jsonb) as r`, [JSON.stringify(plan)])).rows[0]!.r;
+const leaf = (c: string, op: string, v?: unknown) => (v === undefined ? { c, op } : { c, op, v });
 const statement = async (plan: unknown) => (await pg.query<{ s: string }>("select gridcn.grid_sql('public.items'::regclass, $1::text[], $2::jsonb) as s", [ALLOWED, JSON.stringify(plan)])).rows[0]!.s;
 
 beforeAll(async () => {
@@ -152,7 +154,6 @@ describe("the grid function answers what the Drizzle renderer answers on the sam
 });
 
 describe("hostile plans sent straight to the wrapper", () => {
-  const leaf = (c: string, op: string, v?: unknown) => (v === undefined ? { c, op } : { c, op, v });
   const count = (where: unknown) => call({ kind: "count", where });
   const tenantOne = leaf("tenantId", "eq", "1");
 
@@ -204,6 +205,88 @@ describe("hostile plans sent straight to the wrapper", () => {
     for (let level = 0; level < 70; level++) deep = { not: deep };
     await expect(count(deep)).rejects.toThrow(/nested too deep/);
     expect(await count({ and: [leaf("tenantId", "eq", "2"), leaf("name", "is")] })).toBe(1);
+  });
+
+  it("refuses a column outside the allow-list in `next` and in a group count's level, and a `desc` that is not a boolean", async () => {
+    const groups = { kind: "groups", where: true, level: { c: "tag", blank: true }, next: null, desc: false, offset: 0, limit: 10, aggregates: [] };
+    const rows = { kind: "rows", where: true, select: [{ c: "id", text: false }], order: [{ c: "id", desc: false }], offset: 0, limit: 10 };
+    for (const plan of [
+      { ...groups, next: { c: "secret", blank: false } },
+      { kind: "groupCount", where: true, level: { c: "secret", blank: false } },
+      { ...groups, desc: "yes" },
+      { ...rows, order: [{ c: "id", desc: 1 }] },
+    ]) {
+      await expect(call(plan), JSON.stringify(plan)).rejects.toThrow(/gridcn/);
+    }
+  });
+
+  it("does NOT enforce rowScope: a plan without the scope leaf returns the rows of every tenant", async () => {
+    const rows = (await call({ kind: "rows", where: true, select: [{ c: "tenantId", text: false }], order: [{ c: "id", desc: false }], offset: 0, limit: 1000 })) as { tenantId: number }[];
+    expect(new Set(rows.map((row) => row.tenantId)).size).toBeGreaterThan(1);
+  });
+
+  describe("caps a plan from a direct caller before any catalog lookup", () => {
+    const capped = async (plan: unknown, caps: string) => (await pg.query<{ r: unknown }>(`select gridcn.grid_query('public.items'::regclass, $1::text[], $2::jsonb, ${caps}) as r`, [ALLOWED, JSON.stringify(plan)])).rows[0]!.r;
+    const leaves = (n: number) => Array.from({ length: n }, () => leaf("id", "is"));
+
+    it("the nesting depth: 64 levels pass, 65 refuse", async () => {
+      const nest = (levels: number) => {
+        let node: unknown = tenantOne;
+        for (let level = 0; level < levels; level++) node = { not: node };
+        return node;
+      };
+      expect(await count(nest(64))).toBe(21);
+      await expect(count(nest(65))).rejects.toThrow(/nested too deep/);
+    });
+
+    it("the node count of a wide `or`: the cap passes, one more node refuses, a column outside the allow-list included", async () => {
+      expect(await capped({ kind: "count", where: { or: leaves(9) } }, "max_nodes => 10")).toBe(0);
+      await expect(capped({ kind: "count", where: { or: [...leaves(9), leaf("secret", "is")] } }, "max_nodes => 10")).rejects.toThrow(/nodes/);
+    });
+
+    it("many `in` nodes count as nodes, and each list holds at most the cap", async () => {
+      const ins = (n: number, size: number) => ({ kind: "count", where: { and: Array.from({ length: n }, () => leaf("tag", "in", Array.from({ length: size }, (_, index) => `v${index}`))) } });
+      expect(await capped(ins(19, 3), "max_nodes => 20, max_list => 3")).toBe(0);
+      await expect(capped(ins(20, 3), "max_nodes => 20, max_list => 3")).rejects.toThrow(/nodes/);
+      await expect(capped(ins(1, 4), "max_nodes => 20, max_list => 3")).rejects.toThrow(/list/);
+    });
+
+    it("the plan's size in bytes: the cap passes, one byte less refuses", async () => {
+      const plan = { kind: "count", where: { or: leaves(50) } };
+      const bytes = (await pg.query<{ n: number }>("select octet_length($1::jsonb::text) as n", [JSON.stringify(plan)])).rows[0]!.n;
+      expect(await capped(plan, `max_plan_bytes => ${bytes}`)).toBe(0);
+      await expect(capped(plan, `max_plan_bytes => ${bytes - 1}`)).rejects.toThrow(/bytes/);
+      await expect(capped({ kind: "count", where: leaf("secret", "is") }, "max_plan_bytes => 10")).rejects.toThrow(/bytes/);
+    });
+
+    it("the defaults accept the adapter's largest plans under the core's default limits", async () => {
+      const fields = Array.from({ length: 8 }, (_, index) => `n${index}`);
+      await pg.exec(`create table if not exists wide (id int8 primary key, ${fields.map((field) => `${field} text`).join(", ")}); insert into wide (id) values (1) on conflict do nothing;`);
+      const { client, sent } = fakeSupabase();
+      const columns = defineColumnMap({ id: { type: "number", numeric: "int8", primaryKey: true }, ...Object.fromEntries(fields.map((field) => [field, { type: "text", searchable: true, maxLength: 1000 }])) } as never);
+      const query = createSupabaseGridQuery({ client, table: "wide", columns, rpc: "wide_grid", maxUrlLength: 1 }) as unknown as LooseQuery & Selecting;
+      // Five case-insensitive lists of 1,000 values render one guarded ILIKE leaf per value: about 20,000 nodes.
+      const lists = fields.slice(0, 5).map((columnId) => ({ columnId, operator: "isNoneOf", value: [...Array.from({ length: 999 }, (_, index) => `v${index}`), ""] }));
+      const rest = Array.from({ length: 59 }, (_, index) => ({ columnId: fields[5 + (index % 3)], operator: "notContains", value: "x" }));
+      await query.fetchRows({ spec: { filters: [...lists, ...rest], searchText: "abc" }, start: 0, end: 1000 });
+      const excludedIds = Array.from({ length: 200_000 }, (_, index) => String(100_000_000_000_000_000n + BigInt(index)));
+      await query.selection({ selection: { mode: "allMatching", excludedIds, spec: {} }, include: "ids", start: 0, end: 1000 });
+      const plans = sent.filter((request) => request.method === "POST").map((request) => (request.body as { plan: unknown }).plan);
+      expect(plans).toHaveLength(4);
+      // PGlite runs out of memory planning 20,000 ILIKE leaves, so this builds each statement, which applies every cap.
+      for (const plan of plans) {
+        const sql = await pg.query<{ s: string }>("select gridcn.grid_sql('public.wide'::regclass, $1::text[], $2::jsonb) as s", [["id", ...fields], JSON.stringify(plan)]);
+        expect(sql.rows[0]!.s).toMatch(/^SELECT /);
+      }
+    }, 60_000);
+
+    it("the page: 1,001 rows (a page of 1,000 and the look-ahead row) pass by default, 1,002 refuse, and the cap is an argument", async () => {
+      const rows = (limit: number) => ({ kind: "rows", where: true, select: [{ c: "id", text: false }], order: [{ c: "id", desc: false }], offset: 0, limit });
+      expect(await call(rows(1001))).toHaveLength((await count(true)) as number);
+      await expect(call(rows(1002))).rejects.toThrow(/limit/);
+      expect(await capped(rows(10), "max_limit => 10")).toHaveLength(10);
+      await expect(capped(rows(11), "max_limit => 10")).rejects.toThrow(/limit/);
+    });
   });
 
   it("a NULL allow-list refuses every column", async () => {
@@ -275,7 +358,98 @@ describe("row-level security", () => {
     const query = createSupabaseGridQuery({ client: pgClient(() => db, "notes_grid").client, table: "notes", columns: defineColumnMap({ id: { type: "number", numeric: "int4", primaryKey: true }, body: { type: "text" } }), rpc: "notes_grid", maxUrlLength: 1 });
     expect(await query.fetchRows({ spec: {}, start: 0, end: 10 })).toEqual({ rows: [{ id: 1, body: "a" }, { id: 3, body: "c" }], totalRowCount: 2 });
     expect(await call({ kind: "count", where: true }, "notes_grid", () => db)).toBe(2);
+    await db.exec("reset role; set role anon;");
+    await expect(call({ kind: "count", where: true }, "notes_grid", () => db)).rejects.toThrow(/permission denied/);
     await db.exec("reset role;");
     await db.close();
+  }, 60_000);
+
+  it("compares a type with its own operators, such as citext, by those operators and not by text", async () => {
+    const db = new PGlite({ extensions: { citext } });
+    await db.exec("create extension citext; create role anon nologin; create role authenticated nologin;");
+    await db.exec(GRID_SQL);
+    await db.exec(`create table tags (id citext primary key); insert into tags values ('Ab'), ('b'); ${wrapper("tags_grid", "tags", ["id"])};`);
+    const tags = (where: unknown) => call({ kind: "count", where }, "tags_grid", () => db);
+    expect([await tags(leaf("id", "eq", "AB")), await tags(leaf("id", "in", ["AB", "x"])), await tags(leaf("id", "gt", "a"))]).toEqual([1, 1, 2]);
+    await db.close();
+  }, 60_000);
+
+  it("takes the comparison of a custom type from its default btree operator class, never from an operator planted in its schema", async () => {
+    const db = new PGlite();
+    await db.exec("create role anon nologin; create role authenticated nologin; create role mallory nologin;");
+    await db.exec(GRID_SQL);
+    await db.exec(`
+      create schema shop authorization mallory;
+      create type shop.mood as enum ('sad', 'ok', 'happy');
+      create type shop.pair as (a int, b int);
+      create table moods (id int primary key, m shop.mood, p shop.pair);
+      insert into moods values (1, 'sad', null), (2, 'ok', null), (3, 'happy', null), (4, null, null);
+      ${wrapper("moods_grid", "moods", ["id", "m", "p"])};
+    `);
+    const plans = [leaf("m", "eq", "ok"), leaf("m", "neq", "ok"), leaf("m", "gt", "ok"), leaf("m", "lte", "ok"), leaf("m", "in", ["sad", "happy"])].map((where) => ({ kind: "count", where }));
+    const run = async () => {
+      const out: unknown[] = [];
+      for (const plan of plans) {
+        const sql = (await db.query<{ s: string }>("select gridcn.grid_sql('public.moods'::regclass, array['id', 'm', 'p'], $1::jsonb) as s", [JSON.stringify(plan)])).rows[0]!.s;
+        out.push(sql, await call(plan, "moods_grid", () => db));
+      }
+      return out;
+    };
+    const clean = await run();
+    // Enum order, not text order: only 'happy' is after 'ok'.
+    expect(clean.filter((_, index) => index % 2 === 1)).toEqual([1, 2, 1, 2, 2]);
+    await db.exec(`
+      set role mallory;
+      create function shop.always(shop.mood, shop.mood) returns boolean language sql as $$ select true $$;
+      ${["=", "<>", "<", "<=", ">", ">="].map((op) => `create operator shop.${op} (leftarg = shop.mood, rightarg = shop.mood, function = shop.always);`).join("\n")}
+      reset role;
+    `);
+    expect(await run()).toEqual(clean);
+    await expect(call({ kind: "count", where: leaf("p", "eq", "(1,2)") }, "moods_grid", () => db)).rejects.toThrow(/"p" has no default btree operator class/);
+    await db.close();
+  }, 60_000);
+
+  it("a caller's search_path that leads with look-alike functions, catalogs, and operators bends neither the statement nor the rows", async () => {
+    const db = new PGlite();
+    await db.exec("create role anon nologin; create role authenticated nologin;");
+    await db.exec(GRID_SQL);
+    await db.exec(`
+      create table things (id int primary key, name text, qty int);
+      insert into things values (1, 'a', 5), (2, 'b', 6), (3, 'ab', 5), (4, 'c', null);
+      ${wrapper("things_grid", "things", ["id", "name", "qty"])};
+      create schema evil;
+      create function evil.format(text, text) returns text language sql as $$ select 'TRUE OR ' || $2 $$;
+      create function evil.format(text, text, text) returns text language sql as $$ select 'TRUE OR ' || $3 $$;
+      create table evil.pg_attribute (attrelid oid, attname name, attnum int, attisdropped boolean, atttypid oid);
+      insert into evil.pg_attribute select 'things'::regclass, n, 1, false, 'text'::regtype from unnest(array['id', 'name', 'qty']) n;
+      create function evil.always(int, int) returns boolean language sql as $$ select true $$;
+      create operator evil.= (leftarg = int, rightarg = int, function = evil.always);
+      create function evil.zero(jsonb, text[]) returns text language sql as $$ select '0' $$;
+      create operator evil.#>> (leftarg = jsonb, rightarg = text[], function = evil.zero);
+      create function evil.no_match(text, text) returns boolean language sql as $$ select false $$;
+      create operator evil.~~* (leftarg = text, rightarg = text, function = evil.no_match);
+    `);
+    const plans = [
+      { kind: "rows", where: { and: [{ c: "qty", op: "eq", v: "5" }, { c: "name", op: "ilike", v: "%a%" }] }, select: [{ c: "id", text: false }, { c: "qty", text: true }], order: [{ c: "id", desc: false }], offset: 0, limit: 10 },
+      { kind: "count", where: { or: [{ c: "qty", op: "in", v: ["6", "7"] }, { c: "id", op: "gt", v: "3" }] } },
+      { kind: "groups", where: { not: { c: "qty", op: "is" } }, level: { c: "qty", blank: false }, next: null, desc: false, offset: 0, limit: 10, aggregates: [{ c: "name", reducer: "max", blank: true }] },
+      { kind: "values", where: true, c: "name", form: "folded", zone: "UTC", pattern: "%a%", limit: 10 },
+    ];
+    const run = async () => {
+      const out: unknown[] = [];
+      for (const plan of plans) {
+        const sql = (await db.query<{ s: string }>("select gridcn.grid_sql('public.things'::regclass, array['id', 'name', 'qty'], $1::jsonb) as s", [JSON.stringify(plan)])).rows[0]!.s;
+        out.push(sql, await call(plan, "things_grid", () => db));
+      }
+      return out;
+    };
+    const clean = await run();
+    await db.exec("set search_path = evil, pg_catalog, public");
+    try {
+      expect(await outcome(run())).toEqual(clean);
+    } finally {
+      await db.exec("reset search_path");
+      await db.close();
+    }
   }, 60_000);
 });
