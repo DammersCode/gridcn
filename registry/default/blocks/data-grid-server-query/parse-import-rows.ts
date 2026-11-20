@@ -36,7 +36,7 @@ export type ParsedImportRows = { rows: Record<string, unknown>[]; rejected: Impo
 
 type Raw = Record<string, unknown>;
 type Limits = ReturnType<typeof resolveLimits>;
-type Cell = { ok: true; value: unknown } | { ok: false; code: ImportRefusalCode; message: string };
+export type Cell = { ok: true; value: unknown } | { ok: false; code: ImportRefusalCode; message: string };
 
 const isRecord = (value: unknown): value is Raw => typeof value === "object" && value !== null && !Array.isArray(value);
 const ok = (value: unknown): Cell => ({ ok: true, value });
@@ -94,7 +94,8 @@ function checkboxCell(value: unknown): Cell {
   return parsed === null ? refuse("not-a-boolean") : ok(parsed);
 }
 
-function readCell(column: PlanColumn, value: unknown, limits: Limits, path: (string | number)[]): Cell {
+/** Checks one value against its column: kind, `required`, `choices`, integer range, `scale`, finite floats, `maxLength`. Over `maxValueLength` or `maxNumberLength` it throws `limit-exceeded`. */
+export function readCell(column: PlanColumn, value: unknown, limits: Limits, path: (string | number)[]): Cell {
   const blank = isBlank(value) || (typeof value === "string" && value === "" && column.kind !== "checkbox" && !column.keepBlankText);
   if (blank) return column.required ? refuse("required") : ok(null);
   switch (column.kind) {

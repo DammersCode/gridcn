@@ -8,6 +8,7 @@ import { combine } from "./plan";
 import { type RowScope, rowScopePredicate } from "./row-scope";
 import { serializeRow, serializeValue } from "./serialize-row";
 import { toSafeText } from "./safe-text";
+import { type ValidatedChange, validateChange } from "./validate-change";
 
 /** Largest row count an answer carries; the grid clamps to the same bound. */
 export const MAX_TOTAL_ROW_COUNT = 10_000_000;
@@ -66,6 +67,8 @@ export interface GridQuery<TRow, TContext = never, TWhere = unknown, TOrder = un
   where(plan: RowsPlan): TWhere;
   /** The order of a plan from `parse`, in the ORM's own type. */
   orderBy(plan: RowsPlan): TOrder;
+  /** Applies the column map and `rowScope` to the `DataChange` of `onSave`; each `where` is in the ORM's own type. */
+  validateChange(input: unknown, ...opts: CallArgs<TContext>): ValidatedChange<TWhere>;
   capabilities: AdapterCapabilities;
 }
 
@@ -130,14 +133,15 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
   // The grid rejects a group key longer than 1,024 characters, so no limit above that lets one through.
   const groupKeyCap = Math.min(resolveLimits(limits).maxGroupKeyLength, 1024);
 
-  const scoped = (callOptions: { context?: unknown } | undefined): Predicate | undefined => {
+  const scoped = (callOptions: { context?: unknown } | undefined): { where: Predicate; values: Readonly<Record<string, unknown>> } | undefined => {
     if (!rowScope) return undefined;
     if (callOptions?.context === undefined) throw new Error("rowScope is set and the call has no `context`");
-    return rowScopePredicate(columns, rowScope(callOptions.context as TContext));
+    const values = rowScope(callOptions.context as TContext);
+    return { where: rowScopePredicate(columns, values), values };
   };
   const withScope = <P extends { where: Predicate }>(plan: P, callOptions: { context?: unknown } | undefined): P => {
     const scope = scoped(callOptions);
-    return scope ? { ...plan, where: combine("and", [plan.where, scope]) } : plan;
+    return scope ? { ...plan, where: combine("and", [plan.where, scope.where]) } : plan;
   };
   const parse = (input: unknown, callOptions?: { context?: unknown }): RowsPlan => {
     const plan = deepFreeze(withScope(parseQuery(input, { columns, request: "rows", rowCount, limits, timeZone }), callOptions));
@@ -222,6 +226,17 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
     return out;
   };
 
+  const validate = (input: unknown, callOptions?: { context?: unknown }): ValidatedChange<TWhere> => {
+    const change = validateChange(input, { columns, limits, scope: scoped(callOptions) });
+    const where = (predicate: Predicate) => executor.where({ where: predicate });
+    return {
+      ...change,
+      updates: change.updates.map((update) => ({ ...update, where: where(update.where) })),
+      deletes: change.deletes.map((entry) => ({ ...entry, where: where(entry.where) })),
+      moves: change.moves.map((move) => ({ ...move, where: where(move.where) })),
+    };
+  };
+
   return {
     fetchRows,
     filterValues,
@@ -229,6 +244,7 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
     parse,
     where: (plan: RowsPlan) => executor.where(trusted(plan)),
     orderBy: (plan: RowsPlan) => executor.orderBy(trusted(plan)),
+    validateChange: validate,
     capabilities: executor.capabilities,
   } as unknown as GridQuery<TRow, TContext, TWhere, TOrder>;
 }
