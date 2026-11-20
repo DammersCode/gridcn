@@ -82,7 +82,7 @@ export interface GridQuery<TRow, TContext = never, TWhere = unknown, TOrder = un
    * reverts every row. `maxBodyBytes` is `maxChangeBytes` (8 MiB).
    *
    * @example
-   * export const POST = (req: Request) => handleGridRequest(req, usersQuery.save(applyUserWrites), { context: await session(req) });
+   * export const POST = async (req: Request) => handleGridRequest(req, usersQuery.save(applyUserWrites), { context: await session(req) });
    */
   save(apply: ApplyChange<TWhere, TContext>): ((input: unknown, ...opts: CallArgs<TContext>) => Promise<SaveAnswer>) & { readonly maxBodyBytes: number };
   /**

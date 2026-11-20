@@ -234,6 +234,13 @@ describe("validateChange", () => {
     }
   });
 
+  it("writes the last entry between two column ids that share a field", () => {
+    const map = defineColumnMap({ id: { type: "number", numeric: "int8", primaryKey: true }, name: { type: "text" }, label: { type: "text", field: "name" } });
+    const query = createGridQuery<Record<string, unknown>, never, Predicate>({ columns: map, executor });
+    const result = query.validateChange({ ops: [{ type: "update", rowId: "1", row: {}, prev: {}, cells: [cell("name", "a"), cell("label", "b"), cell("name", "c")] }] });
+    expect(result.updates.map((update) => update.values)).toEqual([{ name: "c" }]);
+  });
+
   it("checks date and checkbox cells", () => {
     const map = defineColumnMap({ id: { type: "number", numeric: "int8", primaryKey: true }, day: { type: "date" }, at: { type: "date", time: true }, done: { type: "checkbox" } });
     const query = createGridQuery<Record<string, unknown>, never, Predicate>({ columns: map, executor });
