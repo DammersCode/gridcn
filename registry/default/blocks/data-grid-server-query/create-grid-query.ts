@@ -133,15 +133,14 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
   // The grid rejects a group key longer than 1,024 characters, so no limit above that lets one through.
   const groupKeyCap = Math.min(resolveLimits(limits).maxGroupKeyLength, 1024);
 
-  const scoped = (callOptions: { context?: unknown } | undefined): { where: Predicate; values: Readonly<Record<string, unknown>> } | undefined => {
+  const scoped = (callOptions: { context?: unknown } | undefined): Predicate | undefined => {
     if (!rowScope) return undefined;
     if (callOptions?.context === undefined) throw new Error("rowScope is set and the call has no `context`");
-    const values = rowScope(callOptions.context as TContext);
-    return { where: rowScopePredicate(columns, values), values };
+    return rowScopePredicate(columns, rowScope(callOptions.context as TContext));
   };
   const withScope = <P extends { where: Predicate }>(plan: P, callOptions: { context?: unknown } | undefined): P => {
     const scope = scoped(callOptions);
-    return scope ? { ...plan, where: combine("and", [plan.where, scope.where]) } : plan;
+    return scope ? { ...plan, where: combine("and", [plan.where, scope]) } : plan;
   };
   const parse = (input: unknown, callOptions?: { context?: unknown }): RowsPlan => {
     const plan = deepFreeze(withScope(parseQuery(input, { columns, request: "rows", rowCount, limits, timeZone }), callOptions));

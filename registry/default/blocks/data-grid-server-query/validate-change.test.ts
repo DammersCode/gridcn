@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { SaveRejection } from "@/registry/default/blocks/data-grid/data-grid";
-import { defineColumnMap } from "./column-map";
-import { createGridQuery, type QueryExecutor } from "./create-grid-query";
-import type { WriteRefusal } from "./data-grid-server-query";
-import { combine, leaf, type Predicate } from "./plan";
+import { MAX_WRITE_REJECTIONS } from "@/registry/default/blocks/data-grid/store/write-ack";
+import { type ColumnMap, type ColumnSpec, defineColumnMap, type WriteRefusal } from "./data-grid-server-query";
+import { createGridQuery, mapOf, type Operand, type Predicate, type QueryExecutor } from "./data-grid-server-query-sdk";
+import { combine, leaf } from "./plan";
 
 const columns = defineColumnMap({
   id: { type: "number", numeric: "int8", primaryKey: true },
@@ -17,7 +17,8 @@ const columns = defineColumnMap({
   tenantAlias: { type: "number", numeric: "int4", field: "tenant" },
   idAlias: { type: "number", numeric: "int8", field: "id" },
 });
-const byId = (columns as unknown as { byId: ReadonlyMap<string, never> }).byId;
+const { byId } = mapOf(columns);
+const keyWhere = (map: ColumnMap, id: string, value: Operand) => leaf(mapOf(map).byId.get(id)!, { k: "exact", value });
 
 const executor = { where: (plan: { where: Predicate }) => plan.where } as unknown as QueryExecutor<Predicate, unknown>;
 const scopedQuery = createGridQuery<Record<string, unknown>, { tenant: number; org: number }, Predicate>({
@@ -157,16 +158,89 @@ describe("validateChange", () => {
 
   it("parses a uuid key and a text key from the row id", () => {
     const uuidColumns = defineColumnMap({ id: { type: "text", native: "uuid", primaryKey: true }, name: { type: "text" } });
-    const uuidKey = (uuidColumns as unknown as { byId: ReadonlyMap<string, never> }).byId.get("id")!;
     const uuidQuery = createGridQuery<Record<string, unknown>, never, Predicate>({ columns: uuidColumns, executor });
     const upper = "0F8FAD5B-D9CB-469F-A165-70867728950E";
     const uuidResult = uuidQuery.validateChange({ ops: [{ type: "delete", rowId: upper }, { type: "delete", rowId: "nope" }] });
-    expect(uuidResult.deletes).toEqual([{ rowId: upper, where: leaf(uuidKey, { k: "exact", value: { kind: "text", v: upper.toLowerCase() } }) }]);
+    expect(uuidResult.deletes).toEqual([{ rowId: upper, where: keyWhere(uuidColumns, "id", { kind: "text", v: upper.toLowerCase() }) }]);
     expect(uuidResult.rejected).toEqual([{ rowId: "nope", code: "not-an-id", message: "Not a valid id" }]);
     const textColumns = defineColumnMap({ code: { type: "text", primaryKey: true } });
-    const textKey = (textColumns as unknown as { byId: ReadonlyMap<string, never> }).byId.get("code")!;
     const textQuery = createGridQuery<Record<string, unknown>, never, Predicate>({ columns: textColumns, executor });
-    expect(textQuery.validateChange({ ops: [{ type: "delete", rowId: "abc" }] }).deletes).toEqual([{ rowId: "abc", where: leaf(textKey, { k: "exact", value: { kind: "text", v: "abc" } }) }]);
+    expect(textQuery.validateChange({ ops: [{ type: "delete", rowId: "abc" }] }).deletes).toEqual([{ rowId: "abc", where: keyWhere(textColumns, "code", { kind: "text", v: "abc" }) }]);
+  });
+
+  it("parses a decimal, a float, and a date key from the row id", () => {
+    const keyed = (spec: ColumnSpec, rowId: string) => {
+      const map = defineColumnMap({ k: spec });
+      return { map, deletes: createGridQuery<Record<string, unknown>, never, Predicate>({ columns: map, executor }).validateChange({ ops: [{ type: "delete", rowId }] }).deletes };
+    };
+    const decimal = keyed({ type: "number", numeric: "decimal", primaryKey: true }, "1.50");
+    expect(decimal.deletes).toEqual([{ rowId: "1.50", where: keyWhere(decimal.map, "k", { kind: "number", v: "1.5" }) }]);
+    const float = keyed({ type: "number", numeric: "float", primaryKey: true }, "2.5e1");
+    expect(float.deletes).toEqual([{ rowId: "2.5e1", where: keyWhere(float.map, "k", { kind: "number", v: "25" }) }]);
+    const date = keyed({ type: "date", primaryKey: true }, "2024-02-29");
+    expect(date.deletes).toEqual([{ rowId: "2024-02-29", where: keyWhere(date.map, "k", { kind: "date", v: "2024-02-29" }) }]);
+  });
+
+  it("refuses a whole-row update with any refused value and keeps the valid cells of a cells update", () => {
+    const whole = validate([{ type: "update", rowId: "1", row: { name: "Bo", qty: "x" }, prev: { name: "A", qty: 1 } }]);
+    expect(whole.updates).toEqual([]);
+    expect(whole.rejected).toEqual([{ rowId: "1", columnId: "qty", code: "not-a-number", message: "Not a number" }]);
+    const cells = validate([{ type: "update", rowId: "1", row: {}, prev: {}, cells: [cell("name", "Bo"), cell("qty", "x")] }]);
+    expect(cells.updates).toEqual([{ rowId: "1", values: { name: "Bo" }, where: scopedWhere(1n) }]);
+  });
+
+  it("checks date and checkbox cells", () => {
+    const map = defineColumnMap({ id: { type: "number", numeric: "int8", primaryKey: true }, day: { type: "date" }, at: { type: "date", time: true }, done: { type: "checkbox" } });
+    const query = createGridQuery<Record<string, unknown>, never, Predicate>({ columns: map, executor });
+    const result = query.validateChange({
+      ops: [{ type: "update", rowId: "1", row: {}, prev: {}, cells: [cell("day", "2024-01-31"), cell("at", "2024-01-31T10:00:00Z"), cell("done", "TRUE"), cell("day", "2024-02-30"), cell("done", 3)] }],
+    });
+    expect(result.updates[0]?.values).toEqual({ day: "2024-01-31", at: "2024-01-31T10:00:00.000Z", done: true });
+    expect(result.rejected.map((refusal) => refusal.code)).toEqual(["not-a-date", "not-a-boolean"]);
+  });
+
+  it("writes the parsed rowScope values on insert", () => {
+    const map = defineColumnMap({ id: { type: "number", numeric: "int8", primaryKey: true }, active: { type: "checkbox", serverOnly: true }, org: { type: "text", native: "uuid", serverOnly: true }, big: { type: "number", numeric: "int8", serverOnly: true } });
+    const query = createGridQuery<Record<string, unknown>, { org: string }, Predicate>({ columns: map, executor, rowScope: (scopeContext) => ({ active: "TRUE", org: scopeContext.org, big: 9_007_199_254_740_993n }) });
+    const upper = "0F8FAD5B-D9CB-469F-A165-70867728950E";
+    expect(query.validateChange({ ops: [{ type: "insert", rowId: "t", row: {} }] }, { context: { org: upper } }).inserts).toEqual([{ rowId: "t", values: { active: true, org: upper.toLowerCase(), big: "9007199254740993" } }]);
+  });
+
+  it("keeps __proto__ and constructor as plain keys", () => {
+    const map = defineColumnMap(JSON.parse('{"id":{"type":"text","primaryKey":true},"__proto__":{"type":"text"},"constructor":{"type":"text"}}') as Record<string, { type: "text" }>);
+    const query = createGridQuery<Record<string, unknown>, never, Predicate>({ columns: map, executor });
+    const ops = JSON.parse('[{"type":"update","rowId":"__proto__","row":{},"prev":{},"cells":[{"columnId":"__proto__","value":"a"},{"columnId":"constructor","value":"b"}]},{"type":"insert","rowId":"constructor","row":{"__proto__":"c","constructor":"d","toString":"e"}}]') as unknown[];
+    const result = query.validateChange({ ops });
+    const [update] = result.updates;
+    expect(Object.getPrototypeOf(update?.values)).toBe(Object.prototype);
+    expect(Object.keys(update?.values ?? {})).toEqual(["__proto__", "constructor"]);
+    expect(update?.where).toEqual(keyWhere(map, "id", { kind: "text", v: "__proto__" }));
+    const [insert] = result.inserts;
+    expect(Object.getPrototypeOf(insert?.values)).toBe(Object.prototype);
+    expect(Object.entries(insert?.values ?? {})).toEqual([["__proto__", "c"], ["constructor", "d"]]);
+    const plain = validate(JSON.parse('[{"type":"update","rowId":"1","row":{"__proto__":"x","constructor":"y"},"prev":{}}]') as unknown[]);
+    expect(plain).toEqual({ updates: [], inserts: [], deletes: [], moves: [], rejected: [] });
+  });
+
+  it("throws limit-exceeded on an over-long id or number", () => {
+    const over = [
+      { type: "delete", rowId: "9223372036854775808" },
+      { type: "delete", rowId: "1".repeat(41) },
+      { type: "move", rowId: "1", beforeRowId: "1".repeat(1001) },
+      { type: "update", rowId: "1", row: {}, prev: {}, cells: [cell("qty", "1".repeat(41))] },
+    ];
+    expect(validate([over[0]]).rejected).toEqual([{ rowId: "9223372036854775808", code: "not-an-id", message: "Not a valid id" }]);
+    for (const op of over.slice(1)) expect(() => validate([op])).toThrow(expect.objectContaining({ code: "limit-exceeded" }));
+  });
+
+  it("skips a serverOnly number cell before any length check", () => {
+    expect(validate([{ type: "update", rowId: "1", row: {}, prev: {}, cells: [cell("tenant", "9".repeat(500)), cell("name", "Bo")] }]).rejected).toEqual([]);
+  });
+
+  it("throws limit-exceeded over the grid's rejection bound", () => {
+    const refusing = (count: number) => Array.from({ length: count }, (_, index) => ({ type: "update", rowId: String(index + 1), row: {}, prev: {}, cells: [cell("qty", "x"), cell("price", "x")] }));
+    expect(validate(refusing(MAX_WRITE_REJECTIONS / 2)).rejected).toHaveLength(MAX_WRITE_REJECTIONS);
+    expect(() => validate([...refusing(MAX_WRITE_REJECTIONS / 2), { type: "delete", rowId: "x" }])).toThrow(expect.objectContaining({ code: "limit-exceeded", path: ["ops"] }));
   });
 
   it("refuses a row id the key cannot parse", () => {
@@ -203,9 +277,12 @@ describe("validateChange", () => {
     for (const input of bad) expect(() => scopedQuery.validateChange(input, context)).toThrow(expect.objectContaining({ code: "invalid-request" }));
   });
 
-  it("throws limit-exceeded over 10,000 ops", () => {
-    const ops = Array.from({ length: 10_001 }, (_, index) => ({ type: "delete", rowId: String(index), row: {}, index }));
-    expect(() => validate(ops)).toThrow(expect.objectContaining({ code: "limit-exceeded" }));
+  it("accepts 10,000 ops and throws limit-exceeded over maxChangeOps", () => {
+    const deletes = (count: number) => Array.from({ length: count }, (_, index) => ({ type: "delete", rowId: String(index), row: {}, index }));
+    expect(validate(deletes(10_000)).deletes).toHaveLength(10_000);
+    expect(() => validate(deletes(10_001))).toThrow(expect.objectContaining({ code: "limit-exceeded" }));
+    const tight = createGridQuery<Record<string, unknown>, never, Predicate>({ columns, executor, limits: { maxChangeOps: 2 } });
+    expect(() => tight.validateChange({ ops: deletes(3) })).toThrow(expect.objectContaining({ code: "limit-exceeded" }));
   });
 
   it("throws unsupported on a map without a primaryKey", () => {
