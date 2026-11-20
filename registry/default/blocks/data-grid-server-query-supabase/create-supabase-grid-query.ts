@@ -34,8 +34,9 @@ export type SupabaseGridQueryOptions<TContext = never> = {
   /** `"cursor"` pages `fetchRows` by keyset cursors and never counts; every sortable text column then needs `maxLength`. Default `"offset"`. */
   paging?: "offset" | "cursor";
   /**
-   * The table's grid function from `grid-query.sql`, such as `"items_grid"`. It answers set values, aggregates, groups, and
-   * requests whose URL is over `maxUrlLength`. Without it those are `unsupported`, and a long URL is `limit-exceeded`.
+   * The table's grid function from `grid-query.sql`, such as `"items_grid"`. It answers set values, aggregates, groups,
+   * requests whose URL is over `maxUrlLength`, and reads of more rows than `maxRows`. Without it those are `unsupported`,
+   * and a long URL is `limit-exceeded`.
    */
   rpc?: string;
   /** The longest request URL the client sends, in characters; a longer request goes to `rpc`. Default 8,000. */
@@ -101,8 +102,9 @@ async function read(request: PromiseLike<Result>): Promise<Result> {
  * Reads and counts rows through the caller's Supabase client, from the column map and a request body. It imports no
  * client and sends every filter as one PostgREST logic tree in one `or=(...)`, with every value quoted and escaped.
  *
- * - Set values, aggregates, groups, and requests whose URL is over `maxUrlLength` run in the table's grid function
- *   (`rpc`), which takes the plan as one JSON argument. Without `rpc` they are `unsupported` or `limit-exceeded`.
+ * - Set values, aggregates, groups, requests whose URL is over `maxUrlLength`, and reads of more rows than `maxRows`
+ *   run in the table's grid function (`rpc`), which takes the plan as one JSON argument. Without `rpc` they are
+ *   `unsupported` or `limit-exceeded`.
  * - A literal `*` in a LIKE test (contains, startsWith, endsWith, case-insensitive equals and set filters, quick search) is
  *   `unsupported-value`: PostgREST reads every `*` of a LIKE value as `%`.
  * - LIKE tests on native enum and uuid columns are `unsupported`: PostgREST cannot cast a filtered column to text.
