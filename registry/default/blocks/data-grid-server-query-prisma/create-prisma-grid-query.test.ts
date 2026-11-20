@@ -23,21 +23,44 @@ const FIELDS = {
   stamp: "stamp",
   done: "done",
   tenantId: "tenantId",
+  note: "note",
+  slug: "slug",
 } as const;
 
-const columns = definePrismaColumnMap(FIELDS, {
+// The shape of the generated model type: a field the schema declares with `?` admits null.
+type Model = {
+  id: number;
+  name: string | null;
+  title: string;
+  code: string | null;
+  tag: string | null;
+  qty: number | null;
+  price: string | null;
+  big: bigint | null;
+  uid: string | null;
+  kind: string | null;
+  born: Date | null;
+  stamp: Date | null;
+  done: boolean;
+  tenantId: number;
+  note: string | null;
+  slug: string;
+};
+const defineModelColumns = definePrismaColumnMap<Model>();
+
+const columns = defineModelColumns(FIELDS, {
   id: { type: "number", numeric: "int4", primaryKey: true },
-  name: { type: "text", searchable: true, maxLength: 40, aggregate: "count" },
+  name: { type: "text", searchable: true, maxLength: 40, aggregate: "count", nullable: true },
   title: { type: "text", required: true, maxLength: 40 },
-  code: { type: "text", caseSensitive: true, maxLength: 40 },
-  tag: { type: "select", caseSensitive: true, maxLength: 40 },
-  qty: { type: "number", numeric: "int4", aggregate: "sum" },
-  price: { type: "number", numeric: "decimal", aggregate: "max" },
-  big: { type: "number", numeric: "int8" },
-  uid: { type: "text", native: "uuid" },
-  kind: { type: "select", native: "enum", choices: ["a", "b"], searchable: true },
-  born: { type: "date" },
-  stamp: { type: "date", time: true },
+  code: { type: "text", caseSensitive: true, maxLength: 40, nullable: true },
+  tag: { type: "select", caseSensitive: true, maxLength: 40, nullable: true },
+  qty: { type: "number", numeric: "int4", aggregate: "sum", nullable: true },
+  price: { type: "number", numeric: "decimal", aggregate: "max", nullable: true },
+  big: { type: "number", numeric: "int8", nullable: true },
+  uid: { type: "text", native: "uuid", nullable: true },
+  kind: { type: "select", native: "enum", choices: ["a", "b"], searchable: true, nullable: true },
+  born: { type: "date", nullable: true },
+  stamp: { type: "date", time: true, nullable: true },
   done: { type: "checkbox", required: true },
   tenantId: { type: "number", numeric: "int4", serverOnly: true, required: true },
 });
@@ -139,6 +162,25 @@ describe("rows", () => {
     });
   });
 
+  it("reads nullability from `nullable`, never from `required`", async () => {
+    const mixed = defineModelColumns(FIELDS, {
+      id: { type: "number", numeric: "int4", primaryKey: true },
+      note: { type: "text", required: true, nullable: true, maxLength: 40 },
+      slug: { type: "text", maxLength: 40 },
+    });
+    const { model, calls } = fake();
+    const query = createPrismaGridQuery({ model, provider: "postgresql", columns: mixed });
+    const sorts = [{ columnId: "note", direction: "asc" }, { columnId: "slug", direction: "desc" }];
+    await query.fetchRows(rowsRequest({ sorts, filters: [filter("note", "empty"), filter("slug", "empty")] }));
+    expect(calls[0]!.args["orderBy"]).toStrictEqual([{ note: { sort: "asc", nulls: "last" } }, { slug: "desc" }, { id: "asc" }]);
+    expect(calls[0]!.args["where"]).toStrictEqual({ AND: [{ OR: [{ note: null }, { note: { equals: "" } }] }, { slug: { equals: "" } }] });
+  });
+
+  it("throws at creation for a map that does not come from definePrismaColumnMap", () => {
+    const plain = defineColumnMap({ id: { type: "number", numeric: "int4", primaryKey: true } });
+    expect(() => createPrismaGridQuery({ model: fake().model, provider: "postgresql", columns: plain })).toThrow(/definePrismaColumnMap/);
+  });
+
   it("counts with the same scoped where", async () => {
     const { query, calls } = make("postgresql", { count: () => 3 });
     const answer = await query.fetchRows(rowsRequest({ filters: [filter("done", "equals", "true")] }), CONTEXT);
@@ -210,6 +252,43 @@ describe("text leaves and LIKE wildcards", () => {
     const { query } = make();
     expect(await codeOf(query.fetchRows(rowsRequest({ filters: [filter("kind", "contains", "a")] }), CONTEXT))).toBe("unsupported");
     expect(await codeOf(query.fetchRows(rowsRequest({ searchText: "a" }), CONTEXT))).toBe("unsupported");
+  });
+});
+
+describe("declines the core refuses from the capabilities, before any call", () => {
+  const failure = async (promise: Promise<unknown>) =>
+    promise.then(
+      () => "resolved",
+      (error: unknown) => (error instanceof QueryError ? [error.code, error.path] : String(error)),
+    );
+  const leafAt = (end: string) => ["spec", "filters", 0, end];
+
+  it("SQLite: case-insensitive equality, case-sensitive LIKE, LIKE wildcards, and an id list past maxBoundIds", async () => {
+    const { query, calls } = make("sqlite");
+    const rows = (spec: Record<string, unknown>) => failure(query.fetchRows(rowsRequest(spec), CONTEXT));
+    expect(await rows({ filters: [filter("name", "equals", "a")] })).toStrictEqual(["unsupported", leafAt("operator")]);
+    expect(await rows({ filters: [filter("name", "isNoneOf", ["a"])] })).toStrictEqual(["unsupported", leafAt("operator")]);
+    expect(await rows({ filters: [filter("code", "contains", "a")] })).toStrictEqual(["unsupported", leafAt("operator")]);
+    expect(await rows({ filters: [filter("name", "contains", "50%")] })).toStrictEqual(["unsupported-value", leafAt("value")]);
+    expect(await rows({ searchText: "a_b" })).toStrictEqual(["unsupported-value", ["spec", "searchText"]]);
+    expect(await failure(query.filterValues({ columnId: "tag", query: "%" }, CONTEXT))).toStrictEqual(["unsupported-value", ["query"]]);
+    expect(await failure(query.selection({ selection: { mode: "ids", ids: Array.from({ length: 998 }, (_, index) => String(index)) } }, CONTEXT))).toStrictEqual(["limit-exceeded", ["selection", "ids"]]);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("both providers: LIKE on native columns, expression values, and blank-folding text aggregates", async () => {
+    for (const provider of ["postgresql", "sqlite"] as const) {
+      const { query, calls } = make(provider);
+      expect(await failure(query.fetchRows(rowsRequest({ filters: [filter("uid", "contains", "a")] }), CONTEXT))).toStrictEqual(["unsupported", leafAt("operator")]);
+      expect(await failure(query.fetchRows(rowsRequest({ searchText: "a" }), CONTEXT))).toStrictEqual(["unsupported", ["spec", "searchText"]]);
+      expect(await failure(query.filterValues({ columnId: "stamp" }, CONTEXT))).toStrictEqual(["unsupported", ["columnId"]]);
+      expect(await failure(query.filterValues({ columnId: "name" }, CONTEXT))).toStrictEqual(["unsupported", ["columnId"]]);
+      expect(await failure(query.filterValues({ columnId: "qty", query: "1" }, CONTEXT))).toStrictEqual(["unsupported", ["query"]]);
+      expect(await failure(query.aggregates({ spec: {}, columnIds: ["name"] }, CONTEXT))).toStrictEqual(["unsupported", ["columnIds"]]);
+      const grouped = { spec: { groupBy: ["tag"], aggregates: [{ columnId: "name", reducer: "count" }] }, start: 0, end: 3 };
+      expect(await failure(query.fetchRows(grouped, CONTEXT))).toStrictEqual(["unsupported", ["spec", "aggregates", 0]]);
+      expect(calls).toHaveLength(0);
+    }
   });
 });
 
@@ -286,22 +365,22 @@ describe("id lists and the bound-parameter budget", () => {
   });
 
   it("SQLite declines excluded ids on a uuid key, which would need lower(col)", async () => {
-    const uuidColumns = definePrismaColumnMap({ id: "id" }, { id: { type: "text", native: "uuid", primaryKey: true } });
+    const uuidColumns = definePrismaColumnMap<{ id: string }>()({ id: "id" }, { id: { type: "text", native: "uuid", primaryKey: true } });
     const { model, calls } = fake();
     const query = createPrismaGridQuery({ model, provider: "sqlite", columns: uuidColumns });
     const excluded = { selection: { mode: "allMatching", ids: [], excludedIds: ["00000000-0000-0000-0000-00000000000A"], spec: {} } };
-    expect(await codeOf(query.selection(excluded))).toBe("unsupported");
+    await expect(query.selection(excluded)).rejects.toMatchObject({ code: "unsupported", path: ["selection", "excludedIds"] });
     expect(calls).toHaveLength(0);
   });
 });
 
 describe("keyset cursor", () => {
-  const cursorColumns = definePrismaColumnMap(FIELDS, {
+  const cursorColumns = defineModelColumns(FIELDS, {
     id: { type: "number", numeric: "int4", primaryKey: true },
-    name: { type: "text", maxLength: 20 },
+    name: { type: "text", maxLength: 20, nullable: true },
     title: { type: "text", maxLength: 20, required: true },
-    qty: { type: "number", numeric: "int4" },
-    stamp: { type: "date", time: true },
+    qty: { type: "number", numeric: "int4", nullable: true },
+    stamp: { type: "date", time: true, nullable: true },
   });
 
   async function resume(sorts: { columnId: string; direction: "asc" | "desc" }[], last: Record<string, unknown>) {
@@ -439,6 +518,22 @@ describe("rowScope and writes", () => {
     expect(change.deletes[0]!.where).toStrictEqual(scoped({ id: { equals: 6 } }));
   });
 
+  it("writes values as the Prisma field types take them: int8 as BigInt, int4 as a number, dates as Date", () => {
+    const { query } = make();
+    const change = query.validateChange(
+      {
+        ops: [
+          { type: "update", rowId: "5", row: {}, prev: {}, cells: [{ columnId: "big", value: "9007199254740993", prev: null }, { columnId: "qty", value: "12", prev: null }, { columnId: "stamp", value: "2024-01-01T10:00:00Z", prev: null }, { columnId: "name", value: "", prev: null }] },
+          { type: "insert", rowId: "new-0", row: { title: "T", done: true, born: "2024-02-29", price: "1.50" } },
+        ],
+        source: "edit",
+      },
+      CONTEXT,
+    );
+    expect(change.updates[0]!.values).toStrictEqual({ big: BigInt("9007199254740993"), qty: 12, stamp: new Date("2024-01-01T10:00:00.000Z"), name: null });
+    expect(change.inserts[0]!.values).toStrictEqual({ title: "T", done: true, born: new Date("2024-02-29T00:00:00.000Z"), price: "1.5", tenantId: 7 });
+  });
+
   it("scopes every delegate call of every method", async () => {
     const { query, calls } = make("postgresql", { groupBy: (args) => ((args["by"] as unknown[]).length === 2 ? [] : [{ tag: "a", _count: { _all: 1 } }]) });
     await query.fetchRows(rowsRequest({}), CONTEXT);
@@ -453,7 +548,11 @@ describe("rowScope and writes", () => {
 
 describe("hostile keys and creation", () => {
   it("keeps a __proto__ column id and field as own keys", async () => {
-    const hostile = defineColumnMap({ id: { type: "number", numeric: "int4", primaryKey: true }, ["__proto__"]: { type: "text", field: "__proto__" } });
+    const hostileFields = JSON.parse('{"id":"id","__proto__":"__proto__"}') as { id: "id"; ["__proto__"]: "__proto__" };
+    const hostile = definePrismaColumnMap<{ id: number; ["__proto__"]: string | null }>()(hostileFields, {
+      id: { type: "number", numeric: "int4", primaryKey: true },
+      ["__proto__"]: { type: "text", field: "__proto__", nullable: true },
+    });
     const { model, calls } = fake({ findMany: () => [JSON.parse('{"id":1,"__proto__":"p"}')], count: () => 1 });
     const query = createPrismaGridQuery({ model, provider: "postgresql", columns: hostile });
     const answer = (await query.fetchRows(rowsRequest({ filters: [filter("__proto__", "contains", "__proto__")] }))) as { rows: Record<string, unknown>[] };
@@ -465,16 +564,17 @@ describe("hostile keys and creation", () => {
   });
 
   it("definePrismaColumnMap refuses a field the model lacks", () => {
-    expect(() => definePrismaColumnMap({ id: "id" }, { id: { type: "number", numeric: "int4", primaryKey: true }, nick: { type: "text", field: "nick" as "id" } })).toThrow(/"nick".*"nick"/);
+    expect(() => definePrismaColumnMap<{ id: number }>()({ id: "id" }, { id: { type: "number", numeric: "int4", primaryKey: true }, nick: { type: "text", field: "nick" as "id" } })).toThrow(/"nick".*"nick"/);
   });
 
   it("declines custom operators at creation", () => {
-    const custom = defineColumnMap({ id: { type: "number", numeric: "int4", primaryKey: true, operators: [{ id: "near", label: "Near", input: "single" }] } });
+    const custom = definePrismaColumnMap<{ id: number }>()({ id: "id" }, { id: { type: "number", numeric: "int4", primaryKey: true, operators: [{ id: "near", label: "Near", input: "single" }] } });
     expect(() => createPrismaGridQuery({ model: fake().model, provider: "postgresql", columns: custom })).toThrow(/custom operator/);
   });
 
   it("states honest capabilities per provider", () => {
-    expect(make("postgresql").query.capabilities).toStrictEqual({ caseInsensitiveText: "native", likeEscape: true, literalAsterisk: true, nullsLast: "native", aggregates: true, groupBy: true, localDayGrouping: false, exactInstantKeys: false });
-    expect(make("sqlite").query.capabilities).toMatchObject({ caseInsensitiveText: "ascii", likeEscape: false, nullsLast: "emulated" });
+    const both = { literalAsterisk: true, aggregates: true, groupBy: true, localDayGrouping: false, exactInstantKeys: false, nativeLike: false, expressionValues: false, blankTextAggregates: false };
+    expect(make("postgresql").query.capabilities).toStrictEqual({ ...both, caseInsensitiveText: "native", likeEscape: true, nullsLast: "native", maxBoundIds: 32_764 });
+    expect(make("sqlite").query.capabilities).toStrictEqual({ ...both, caseInsensitiveText: "like-only", caseSensitiveLike: false, likeEscape: false, nullsLast: "emulated", maxBoundIds: 997 });
   });
 });

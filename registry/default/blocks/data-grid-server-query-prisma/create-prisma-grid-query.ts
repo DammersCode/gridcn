@@ -12,11 +12,14 @@ import {
   field,
   foldsEmptyText,
   isTextual,
+  maxBoundIds,
   or,
   own,
   toWhere,
   unsupported,
+  writeValue,
 } from "./render-prisma";
+import { nullableColumnIds } from "./columns";
 
 type Method = (...args: never[]) => unknown;
 
@@ -28,7 +31,7 @@ export type PrismaGridQueryOptions<TContext = never> = {
   model: PrismaModelDelegate;
   /** The datasource `provider` of the schema. It sets the bound-value budget (PostgreSQL 32,766, SQLite 999), LIKE escaping, and `mode`. */
   provider: PrismaProvider;
-  /** The map from `definePrismaColumnMap`; `required` must match the schema's nullability. */
+  /** The map from `definePrismaColumnMap`, whose `nullable` mirrors the schema; another map throws. */
   columns: ColumnMap;
   /** Equalities on mapped columns that every query ANDs in. Needs `context` on every call. */
   rowScope?: RowScope<TContext>;
@@ -87,24 +90,26 @@ function aggregateValues(found: unknown, columns: AggregatesPlan["columns"]): Ro
  * Reads and counts rows with a Prisma 7 model delegate, from the column map and a request body. It renders Prisma's object
  * API only and imports no client: pass `prisma.user` and the schema's `provider`.
  *
- * - Prisma has no runtime data model, so the map is written by hand with {@link definePrismaColumnMap}; `required` must
- *   mirror the schema, because Prisma refuses a `null` filter and `nulls: "last"` on a required field.
+ * - Prisma has no runtime data model, so the map is written by hand with {@link definePrismaColumnMap}, typed by the
+ *   generated model: `nullable` decides the NULL branches and `nulls: "last"`, which Prisma refuses on a field without `?`.
  * - Every statement counts its bound values and answers `limit-exceeded` past the provider budget (PostgreSQL 32,766,
  *   SQLite 999), because Prisma splits a plain `in` beyond it and merges wrong rows. On SQLite a selection of about 990
  *   ids or excluded ids is `limit-exceeded`. `where` also reserves one value per mapped column for the `data` of a write.
- * - `unsupported` where the object API has no exact form: on SQLite case-insensitive `equals` and set filters, and
- *   case-sensitive LIKE leaves; LIKE leaves on a native enum or uuid; set values of `time` columns and of text without
- *   `caseSensitive`; min, max, and count of text without `keepBlankText`; cursor sorts on `time` columns; custom operators.
+ * - Its `capabilities` refuse, before any call, what the object API has no exact form for (`unsupported`): on SQLite
+ *   case-insensitive `equals` and set filters, case-sensitive LIKE leaves, and excluded ids on a uuid key; LIKE leaves on
+ *   a native enum or uuid; set values of `time` columns and of text without `caseSensitive`, and a value query on a
+ *   non-text column; min, max, and count of text without `keepBlankText`; cursor sorts on `time` columns. A custom
+ *   operator throws at creation.
  * - On SQLite a `%` or `_` in a LIKE leaf is `unsupported-value`: SQLite LIKE has no ESCAPE clause there.
  * - Group child counts and group counts read one extra `groupBy` of at most `maxGroupRows` rows.
  *
  * @example
- * import { Prisma, PrismaClient } from "@/generated/prisma/client";
+ * import { Prisma, PrismaClient, type User } from "@/generated/prisma/client";
  *
- * const columns = definePrismaColumnMap(Prisma.UserScalarFieldEnum, {
+ * const columns = definePrismaColumnMap<User>()(Prisma.UserScalarFieldEnum, {
  *   id: { type: "number", numeric: "int4", primaryKey: true },
- *   name: { type: "text", searchable: true },
- *   tenantId: { type: "number", numeric: "int4", serverOnly: true, required: true },
+ *   name: { type: "text", searchable: true, nullable: true },
+ *   tenantId: { type: "number", numeric: "int4", serverOnly: true },
  * });
  * export const usersQuery = createPrismaGridQuery<User, Session>({ model: prisma.user, provider: "postgresql", columns, rowScope: (s) => ({ tenantId: s.tenantId }) });
  */
@@ -119,7 +124,7 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
     if (column.operators.size > 0) throw new Error(`createPrismaGridQuery: column "${column.id}" declares a custom operator, which the Prisma adapter does not render`);
   }
   const maxGroupRows = options.maxGroupRows ?? 10_000;
-  const renderer = createPrismaRenderer(provider);
+  const renderer = createPrismaRenderer(provider, nullableColumnIds(columns));
   const pg = provider === "postgresql";
 
   const run = async (method: keyof PrismaModelDelegate, args: Row): Promise<unknown> => {
@@ -144,7 +149,9 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
   };
 
   const capabilities: AdapterCapabilities = {
-    caseInsensitiveText: pg ? "native" : "ascii",
+    // SQLite: LIKE folds ASCII case and has no ESCAPE clause, `=` never folds, and `mode` is an unknown argument.
+    caseInsensitiveText: pg ? "native" : "like-only",
+    ...(pg ? {} : { caseSensitiveLike: false }),
     likeEscape: pg,
     literalAsterisk: true,
     nullsLast: pg ? "native" : "emulated",
@@ -153,6 +160,12 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
     localDayGrouping: false,
     // Prisma reads DateTime in milliseconds, so a microsecond key would not compare back equal.
     exactInstantKeys: false,
+    // An enum filter has no LIKE operators; LIKE on a `@db.Uuid` field is unverified on Prisma 7.
+    nativeLike: false,
+    // `groupBy` takes fields only, and the object API has no `NULLIF(col, '')`.
+    expressionValues: false,
+    blankTextAggregates: false,
+    maxBoundIds: maxBoundIds(provider),
   };
 
   return createGridQuery<TRow, TContext, PrismaWhere, PrismaOrderBy, string>({
@@ -171,6 +184,7 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
         return rendered;
       },
       orderBy: (plan) => renderer.orderBy(plan.orderBy),
+      nativeValue: writeValue,
       selectRows: async (plan, page) => {
         const rows = await many("findMany", { where: where(renderer.node(plan.where)), orderBy: renderer.orderBy(plan.orderBy), skip: page.offset, take: page.limit, select: select(plan.projection) });
         return rows.map((row) => fromRow(row, plan.projection));

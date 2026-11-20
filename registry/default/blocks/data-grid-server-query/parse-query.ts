@@ -1,4 +1,5 @@
 import { type ColumnMap, type PlanColumn, isBuiltInOperatorId, mapOf } from "./column-map";
+import type { AdapterCapabilities } from "./create-grid-query";
 import { QueryError } from "./errors";
 import { type QueryLimits, type ResolvedLimits, resolveLimits } from "./limits";
 import {
@@ -34,6 +35,8 @@ export type ParseQueryOptions<R extends QueryRequestKind> = {
   timeZone?: string;
   /** `"cursor"`: a rows request never counts, a grouped one is `unsupported`, and `start` beside a `cursor` is no offset. Default `"offset"`. */
   paging?: Paging;
+  /** The executor's capabilities: a test the adapter cannot run is refused here. Default: every test runs. */
+  capabilities?: AdapterCapabilities;
 };
 
 /** How `fetchRows` pages: by `start` offsets, or by keyset cursors. */
@@ -43,7 +46,7 @@ export type Paging = "offset" | "cursor";
 export const MAX_FILTER_DEPTH = 2;
 
 type Budget = { nodes: number; leaves: number; listValues: number; bytes: number };
-type Ctx = { map: ReturnType<typeof mapOf>; limits: ResolvedLimits; timeZone: string; budget: Budget; paging: Paging };
+type Ctx = { map: ReturnType<typeof mapOf>; limits: ResolvedLimits; timeZone: string; budget: Budget; paging: Paging; capabilities?: AdapterCapabilities };
 type Path = readonly (string | number)[];
 type Raw = Record<string, unknown>;
 
@@ -56,6 +59,20 @@ function charge(ctx: Ctx, text: string, path: Path, max = ctx.limits.maxValueLen
   if (ctx.budget.bytes > ctx.limits.maxTreeStringBytes) throw new QueryError("limit-exceeded", path);
 }
 
+const isTextual = (column: PlanColumn): boolean => column.kind === "text" || column.kind === "select";
+
+/** Refuses a text test the executor cannot run; `like` is a contains, startsWith, or endsWith test. */
+function assertTextTest(column: PlanColumn, like: boolean, caseSensitive: boolean, text: string, ctx: Ctx, path: Path, valuePath: Path): void {
+  const caps = ctx.capabilities;
+  if (!caps) return;
+  if (like && column.native !== undefined && caps.nativeLike === false) throw new QueryError("unsupported", path);
+  if (like ? caseSensitive && caps.caseSensitiveLike === false : !caseSensitive && caps.caseInsensitiveText === "like-only") throw new QueryError("unsupported", path);
+  if (like && !caps.likeEscape && /[%_]/.test(text)) throw new QueryError("unsupported-value", valuePath);
+}
+
+const foldsBlankAggregate = (column: PlanColumn, reducer: string, ctx: Ctx): boolean =>
+  ctx.capabilities?.blankTextAggregates === false && reducer !== "sum" && reducer !== "avg" && isTextual(column) && !column.keepBlankText && column.native === undefined;
+
 /**
  * Turns an untrusted request into a bounded, typed plan, or throws {@link QueryError}. `request` selects the shape:
  * `rows` reads `{ spec, start, end, page?, pageSize? }`, `values` reads `{ columnId, query, filters }`,
@@ -64,7 +81,7 @@ function charge(ctx: Ctx, text: string, path: Path, max = ctx.limits.maxValueLen
 export function parseQuery<R extends QueryRequestKind>(input: unknown, options: ParseQueryOptions<R>): PlanOf<R> {
   const timeZone = options.timeZone ?? "UTC";
   assertTimeZone(timeZone);
-  const ctx: Ctx = { map: mapOf(options.columns), limits: resolveLimits(options.limits), timeZone, budget: { nodes: 0, leaves: 0, listValues: 0, bytes: 0 }, paging: options.paging ?? "offset" };
+  const ctx: Ctx = { map: mapOf(options.columns), limits: resolveLimits(options.limits), timeZone, budget: { nodes: 0, leaves: 0, listValues: 0, bytes: 0 }, paging: options.paging ?? "offset", capabilities: options.capabilities };
   if (!isRecord(input)) throw new QueryError("invalid-request", []);
   let plan: RowsPlan | GroupsPlan | ValuesPlan | AggregatesPlan;
   if (options.request === "rows" || options.request === "page") plan = parseRows(input, ctx, options.rowCount ?? "firstBlock", options.request === "page");
@@ -118,10 +135,11 @@ function parseGroupRequest(input: Raw, spec: Raw, ctx: Ctx): GroupRequest | null
   });
   const childKind = segments.length < levels.length ? "groups" : "rows";
   if (!isAbsent(input["childKind"]) && input["childKind"] !== childKind) throw new QueryError("invalid-request", ["childKind"]);
-  return { levels, path, childKind, aggregates: parseGroupAggregates(spec["aggregates"], ctx) };
+  return { levels, path, childKind, aggregates: parseGroupAggregates(spec["aggregates"], ctx, childKind === "groups") };
 }
 
-function parseGroupAggregates(value: unknown, ctx: Ctx): GroupsPlan["aggregates"] {
+/** `computed`: the request reads group rows, so the aggregates run; leaf rows carry none. */
+function parseGroupAggregates(value: unknown, ctx: Ctx, computed: boolean): GroupsPlan["aggregates"] {
   if (isAbsent(value)) return [];
   if (!Array.isArray(value)) throw new QueryError("invalid-request", ["spec", "aggregates"]);
   if (value.length > ctx.limits.maxGroupAggregates) throw new QueryError("limit-exceeded", ["spec", "aggregates"]);
@@ -132,6 +150,7 @@ function parseGroupAggregates(value: unknown, ctx: Ctx): GroupsPlan["aggregates"
     const column = typeof entry["columnId"] === "string" ? ctx.map.byId.get(entry["columnId"]) : undefined;
     if (!column || column.serverOnly) throw new QueryError("unknown-column", [...path, "columnId"]);
     if (column.aggregate === undefined || entry["reducer"] !== column.aggregate || seen.has(column)) throw new QueryError("invalid-request", path);
+    if (computed && foldsBlankAggregate(column, column.aggregate, ctx)) throw new QueryError("unsupported", path);
     seen.add(column);
     return { column, reducer: column.aggregate };
   });
@@ -198,6 +217,12 @@ function parseValues(input: Raw, ctx: Ctx): ValuesPlan {
   const query = input["query"] === undefined || input["query"] === null ? "" : input["query"];
   if (typeof query !== "string") throw new QueryError("invalid-request", ["query"]);
   if (query.length > ctx.limits.maxValueQueryLength) throw new QueryError("invalid-value", ["query"]);
+  const byExpression = ctx.capabilities?.expressionValues !== false;
+  if (!byExpression && (column.time || (isTextual(column) && !column.caseSensitive))) throw new QueryError("unsupported", ["columnId"]);
+  if (query !== "") {
+    if (!byExpression && !isTextual(column)) throw new QueryError("unsupported", ["query"]);
+    assertTextTest(column, true, false, query, ctx, ["query"], ["query"]);
+  }
   return { kind: "values", where: parseFilters(input["filters"], ctx), column, query };
 }
 
@@ -218,6 +243,7 @@ function parseAggregates(input: Raw, ctx: Ctx): AggregatesPlan {
     }
     columns = [...seen];
   }
+  if (columns.some((column) => foldsBlankAggregate(column, column.aggregate!, ctx))) throw new QueryError("unsupported", requested === undefined || requested === null ? [] : ["columnIds"]);
   return { kind: "aggregates", where, columns: columns.map((column) => ({ column, reducer: column.aggregate! })) };
 }
 
@@ -388,7 +414,7 @@ function compile(column: PlanColumn, op: string, shaped: Shaped, path: Path, ctx
   if (kind === "number") return compileNumber(column, op, shaped, path, ctx);
   if (kind === "date") return compileDate(column, op, shaped, ctx);
   if (kind === "checkbox") return compileCheckbox(column, op, shaped);
-  return compileText(column, op, shaped);
+  return compileText(column, op, shaped, path, ctx);
 }
 
 function inTest(column: PlanColumn, op: string, values: Operand[], hasBlank: boolean, caseSensitive: boolean): Predicate {
@@ -406,13 +432,18 @@ function nativeText(column: PlanColumn, raw: string): string | null {
   return raw;
 }
 
-function compileText(column: PlanColumn, op: string, { text, pair, list, matchCase }: Shaped): Predicate {
+function compileText(column: PlanColumn, op: string, { text, pair, list, matchCase }: Shaped, path: Path, ctx: Ctx): Predicate {
   const caseSensitive = column.caseSensitive || matchCase === true;
+  const supported = (like: boolean, exact: boolean) => assertTextTest(column, like, exact, text, ctx, [...path, "operator"], [...path, "value"]);
   if (op === "contains" || op === "notContains" || op === "startsWith" || op === "endsWith") {
+    supported(true, caseSensitive);
     return leaf(column, { k: "text", mode: op === "notContains" ? "contains" : op, text, negate: op === "notContains", caseSensitive });
   }
   if (op === "equals" || op === "notEquals") {
-    if (column.native === undefined) return leaf(column, { k: "text", mode: "equals", text, negate: op === "notEquals", caseSensitive });
+    if (column.native === undefined) {
+      supported(false, caseSensitive);
+      return leaf(column, { k: "text", mode: "equals", text, negate: op === "notEquals", caseSensitive });
+    }
     const value = nativeText(column, text);
     if (value === null) return op === "equals" ? FALSE : TRUE;
     return leaf(column, { k: op === "equals" ? "eq" : "ne", value: { kind: "text", v: value } });
@@ -433,7 +464,9 @@ function compileText(column: PlanColumn, op: string, { text, pair, list, matchCa
     const key = caseSensitive || column.native !== undefined ? value : value.toLowerCase();
     if (!values.has(key)) values.set(key, { kind: "text", v: value });
   }
-  return inTest(column, op, [...values.values()], hasBlank, caseSensitive || column.native !== undefined);
+  const exact = caseSensitive || column.native !== undefined;
+  if (values.size > 0) supported(false, exact);
+  return inTest(column, op, [...values.values()], hasBlank, exact);
 }
 
 function compileCheckbox(column: PlanColumn, op: string, { text, list }: Shaped): Predicate {
@@ -634,7 +667,10 @@ function parseSearch(value: unknown, ctx: Ctx): Predicate {
     if (column.kind === "number") {
       const operand = number && !outgrows(column, number, ctx) ? numberOperand(column, number) : null;
       if (operand) items.push(leaf(column, { k: "eq", value: operand }));
-    } else items.push(leaf(column, { k: "text", mode: "contains", text: phrase, negate: false, caseSensitive: false }));
+    } else {
+      assertTextTest(column, true, false, phrase, ctx, ["spec", "searchText"], ["spec", "searchText"]);
+      items.push(leaf(column, { k: "text", mode: "contains", text: phrase, negate: false, caseSensitive: false }));
+    }
   }
   return combine("or", items);
 }

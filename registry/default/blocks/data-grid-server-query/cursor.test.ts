@@ -270,7 +270,16 @@ describe("cursor paging: time keys", () => {
   });
 
   it("refuses a time sort when the adapter has no exact instant keys", async () => {
-    await expect(cursorQuery(ROWS, { capabilities: { exactInstantKeys: false } }).fetch(page(spec))).rejects.toMatchObject({ code: "unsupported" });
+    await expect(cursorQuery(ROWS, { capabilities: { exactInstantKeys: false } }).fetch(page(spec))).rejects.toMatchObject({ code: "unsupported", path: ["spec", "sorts"] });
+  });
+
+  it("reads exact instant keys when the capability is unset", async () => {
+    const { exactInstantKeys: _, ...unset } = CAPABILITIES;
+    const fake = spy(ROWS);
+    fake.executor.capabilities = unset;
+    const query = createGridQuery<Row, never, Predicate, unknown, string>({ columns, executor: fake.executor, paging: "cursor" });
+    await query.fetchRows(page(spec));
+    expect(fake.calls[0]!.plan.keyText).toHaveLength(1);
   });
 });
 

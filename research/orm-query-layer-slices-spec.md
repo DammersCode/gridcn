@@ -22,7 +22,7 @@ No HMAC: the cursor holds only values the client could send as filters; columns 
 
 **Failure codes.** `bad-cursor` (400): malformed, stale hash, unparseable value.
 
-Prisma: `{ f: { gt | lt | equals } }`, `{ f: null }` in `OR`, `take: n + 1`, no native `cursor`; a `key` test never carries `mode`, and `nulls: "last"` goes only on nullable fields; `exactInstantKeys: false` declines `time` keys.
+Prisma: `{ f: { gt | lt | equals } }`, `{ f: null }` in `OR`, `take: n + 1`, no native `cursor`; a `key` test never carries `mode`. The NULL branches and `nulls: "last"` go only on the columns the map marks `nullable`: `definePrismaColumnMap<User>()(fields, columns)` requires `nullable: true` exactly on the fields whose generated model type admits `null`, and `required` only refuses blank writes, as in the core. `exactInstantKeys: false` makes the core decline `time` keys.
 Supabase: `or=(t.gt.<q>,t.is.null,and(t.eq.<q>,id.gt.<q>))` via `quote()`, `limit=n+1`; `exactInstantKeys: true`.
 
 ## 2. Selection endpoint (#100)
@@ -48,7 +48,7 @@ type SelectionAnswer<TRow> = { count: number; ids?: string[]; rows?: TRow[]; has
 
 **Failure codes.** `invalid-request`, `limit-exceeded`, `payload-too-large` (413), the spec's codes; `unsupported` (501) for a `tieBreaker` map or a non-number, non-text key.
 
-Prisma: `{ pk: { in | notIn: ids } }`. A negated `ids` test renders `notIn`, never `NOT: { in }`. The adapter counts every bound parameter of the rendered statement and refuses with `limit-exceeded` itself when it passes the provider budget (PostgreSQL 32,766, SQLite 999); it never relies on `P2029`, because Prisma splits a plain `in` into chunks beyond the budget and returns or deletes wrong rows without an error. A selection of about 990 ids or excluded ids on SQLite is therefore `limit-exceeded`.
+Prisma: `{ pk: { in | notIn: ids } }`. A negated `ids` test renders `notIn`, never `NOT: { in }`. The adapter counts every bound parameter of the rendered statement and refuses with `limit-exceeded` itself when it passes the provider budget (PostgreSQL 32,766, SQLite 999); it never relies on `P2029`, because Prisma splits a plain `in` into chunks beyond the budget and returns or deletes wrong rows without an error. Its `maxBoundIds` (the budget minus the take and skip reserve: 32,764 and 997) lets the core refuse a longer parsed id list first, at `["selection", "ids" | "excludedIds"]`. A selection of about 990 ids or excluded ids on SQLite is therefore `limit-exceeded`. On SQLite (`caseInsensitiveText: "like-only"`) excluded ids on a uuid key are `unsupported`, since keeping them excluded in any case needs `lower(col)`.
 Supabase: quoted `in.(…)` while the URL fits `maxUrlLength`, else the selection RPC with ids as an array argument; without that RPC, `limit-exceeded`.
 
 ## 3. Write validation (#101)
@@ -78,7 +78,7 @@ type ValidatedChange<TWhere> = {
 
 **Failure codes.** `invalid-request`, `limit-exceeded`, `payload-too-large`; `unsupported` without one `primaryKey`. Refusal codes: the import codes, `not-writable`, `not-found`.
 
-Prisma: `updateMany`/`deleteMany({ where: { pk, ...scope } })`; `count === 0` is not found.
+Prisma: `updateMany`/`deleteMany({ where: { pk, ...scope } })`; `count === 0` is not found. Its `nativeValue` writes integers as numbers (`BigInt` for int8), days and instants as `Date`, and decimals as text.
 Supabase: `.update(values).eq(pk, v).eq(scope, s).select(pk)`; empty is not found; RLS stays the boundary.
 
 ## 4. New Test kinds and executor members
@@ -88,10 +88,17 @@ Supabase: `.update(values).eq(pk, v).eq(scope, s).select(pk)`; empty is not foun
 | Test `{ k: "key"; op: "gt" \| "lt" \| "eq" \| "null"; value?: Operand }` | `col > $1`, `col < $1`, `col = $1`, `col IS NULL` | `gt`, `lt`, `equals`, `null` | `gt.`, `lt.`, `eq.`, `is.null` |
 | Test `{ k: "ids"; values: Operand[]; negate: boolean }`, never empty; `negate` for `excludedIds` | `= ANY($1::<type>[])` (a native enum compares `col::text`, so its key index is unused), `IN (SELECT value FROM json_each(?))` with decimals as JSON strings | `in`, `notIn` within the parameter budget | `in.()`, or the RPC |
 | `RowsPlan.keyText`: `selectRows` also reads each `time` key as exact UTC text; the decoder parses it with a microsecond grammar (`parseInstant` stops at milliseconds) | `to_char(col::timestamptz AT TIME ZONE 'UTC', …US"Z")`; SQLite reads the stored value | declined | raw JSON text |
-| optional `nativeValue(column, value)` | `Date` for Drizzle timestamp mode | `BigInt`, `Date` | identity |
-| optional capabilities `exactInstantKeys`, `maxBoundIds` | `true`, none | `false`, per-provider parameter budget (PostgreSQL 32,766, SQLite 999) | `true`, URL then RPC |
+| optional `nativeValue(column, value)`: the factory hands it to `validateChange`, which applies it to every `values` entry (`null` and the `rowScope` values of an insert included), so the consumer's `ValidatedChange` is native; unset keeps the validated forms | none (a Drizzle timestamp-mode `Date` is open) | `BigInt` for int8, numbers for other integers, `Date` | identity |
+| optional `exactInstantKeys` (default `true`; `false`: a cursor sort on a `time` column is `unsupported` at `["spec", "sorts"]`) | `true` | `false` | `true` |
+| optional `maxBoundIds` (a positive integer, checked at creation; a longer parsed `ids` or `excludedIds` list is `limit-exceeded` before the executor runs; unset is unlimited) | none | budget minus 2 (32,764, 997) | URL then RPC |
+| `caseInsensitiveText: "like-only"`: LIKE folds ASCII case, `=` never folds; a case-insensitive `equals`, `notEquals`, set filter, or excluded uuid id is `unsupported` | `"collation"`, `"ascii"` | SQLite | — |
+| `likeEscape: false`: a `%` or `_` in a LIKE leaf, the quick search, or a value query is `unsupported-value` | `true` | SQLite | — |
+| optional `caseSensitiveLike` (default `true`; `false`: a case-sensitive contains, notContains, startsWith, or endsWith is `unsupported`) | unset | SQLite `false` | — |
+| optional `nativeLike` (default `true`; `false`: a LIKE leaf on a native enum or uuid column, and a quick search over one, is `unsupported`) | unset | `false` | — |
+| optional `expressionValues` (default `true`; `false`: set values of a `time` column or of text without `caseSensitive`, and a value query on a non-text column, are `unsupported`) | unset | `false` | — |
+| optional `blankTextAggregates` (default `true`; `false`: min, max, and count of text without `keepBlankText` are `unsupported`, in `aggregates` and group aggregates) | unset | `false` | — |
 
-Selection reuses `countRows` and `selectRows`; writes reuse `where`. New error code: `bad-cursor`.
+The parsers read the capabilities, so a declined test is refused with the request path (a filter leaf at `[...leaf, "operator"]` or `[...leaf, "value"]`, the search at `["spec", "searchText"]`, a values request at `["columnId"]` or `["query"]`) before the executor runs. An adapter keeps a decline that depends on the data it renders, such as Prisma's bound-value count of the whole statement and `maxGroupRows`. Selection reuses `countRows` and `selectRows`; writes reuse `where`. New error code: `bad-cursor`.
 
 ## 5. Glossary terms
 
@@ -110,7 +117,8 @@ Source: `.crew/rounds/prisma-spike.md`. The Prisma walker follows these rules:
 - TRUE is `{}`, FALSE is `{ OR: [] }`. A `{}` member inside `OR` is dropped, and an `undefined` leaf vanishes: never pass either.
 - Group `childCount`: `_count` is `COUNT(col)`, not a distinct count, so a second `groupBy` over the page's keys supplies it. Its row count has no upper bound: bound the page keys first, and `countGroups` has the same gap.
 - Keyset resume predicate: the OR-expanded form works with mixed directions and NULLS LAST on both engines.
-- `%` and `_` in text filters: PostgreSQL needs backslash escaping with `LIKE` and `ILIKE`; `equals` is never escaped, `equals` with `mode: "insensitive"` is. SQLite has no ESCAPE clause, so such a value is `unsupported-value`, and `mode` is an unknown argument there.
+- `%` and `_` in text filters: PostgreSQL needs backslash escaping with `LIKE` and `ILIKE`; `equals` is never escaped, `equals` with `mode: "insensitive"` is. SQLite has no ESCAPE clause, so such a value is `unsupported-value` (`likeEscape: false`, refused by the core), and `mode` is an unknown argument there.
+- Gaps against #96 (each refused, never wrong rows): on SQLite case-insensitive `equals`, `notEquals`, and set filters, case-sensitive LIKE leaves, `%` or `_` in a LIKE leaf, and excluded ids on a uuid key; LIKE on native enum and uuid columns, the quick search over one included; set values of `time` columns and of text without `caseSensitive`, and value queries on non-text columns; min, max, and count of text without `keepBlankText`; cursor sorts on `time` columns; custom operators (at creation); id lists past the bound-value budget (SQLite about 990); group counts and child pairs past `maxGroupRows`.
 
 ## Open points
 

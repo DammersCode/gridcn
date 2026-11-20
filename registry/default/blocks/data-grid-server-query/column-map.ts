@@ -27,7 +27,7 @@ export type ColumnSpec = {
   filterable?: boolean;
   /** `false` rejects a sort on the column. Default `true`. */
   sortable?: boolean;
-  /** The column is NOT NULL. */
+  /** A write or import refuses a blank value. It promises no NOT NULL. */
   required?: boolean;
   caseSensitive?: boolean;
   /** A stored `''` is a value, not empty. */

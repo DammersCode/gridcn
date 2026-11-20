@@ -371,3 +371,45 @@ describe("validateChange", () => {
     expect(rejection.rowId).toBe("1");
   });
 });
+
+describe("validateChange with the executor's nativeValue", () => {
+  const nativeColumns = defineColumnMap({
+    id: { type: "number", numeric: "int8", primaryKey: true },
+    big: { type: "number", numeric: "int8" },
+    bigAlias: { type: "number", numeric: "int8", field: "big" },
+    price: { type: "number", numeric: "decimal" },
+    stamp: { type: "date", time: true },
+    born: { type: "date" },
+    ["__proto__"]: { type: "text" },
+    tenant: { type: "number", numeric: "int4", serverOnly: true },
+  });
+  const seen: [string, unknown][] = [];
+  const nativeValue = (column: { id: string; field: string }, value: unknown) => {
+    seen.push([column.id, value]);
+    return value === null ? null : `native:${column.field}:${String(value)}`;
+  };
+  const query = createGridQuery<Record<string, unknown>, { tenant: number }, Predicate>({
+    columns: nativeColumns,
+    executor: { ...executor, nativeValue } as QueryExecutor<Predicate, unknown>,
+    rowScope: (context) => ({ tenant: context.tenant }),
+  });
+  const run = (ops: unknown[]) => query.validateChange({ ops, source: "edit" }, { context: { tenant: 7 } });
+
+  it("hands every update and insert value to nativeValue, the scope values and null included", () => {
+    const result = run([
+      { type: "update", rowId: "1", row: {}, prev: {}, cells: [cell("bigAlias", "9007199254740993"), cell("stamp", "2024-01-01T00:00:00Z"), cell("price", "")] },
+      { type: "insert", rowId: "new-0", row: { big: "5", born: "2024-02-29", ["__proto__"]: "p" } },
+    ]);
+    expect(result.updates[0]!.values).toEqual({ big: "native:big:9007199254740993", stamp: "native:stamp:2024-01-01T00:00:00.000Z", price: null });
+    const inserted = result.inserts[0]!.values;
+    expect(inserted).toEqual({ big: "native:big:5", born: "native:born:2024-02-29", ["__proto__"]: "native:__proto__:p", tenant: "native:tenant:7" });
+    expect(Object.getPrototypeOf(inserted)).toBe(Object.prototype);
+    expect(seen).toContainEqual(["bigAlias", "9007199254740993"]);
+    expect(seen).toContainEqual(["price", null]);
+  });
+
+  it("keeps the validated values without the hook", () => {
+    const plain = createGridQuery<Record<string, unknown>, never, Predicate>({ columns: nativeColumns, executor });
+    expect(plain.validateChange({ ops: [{ type: "insert", rowId: "new-0", row: { big: "5", born: "2024-02-29" } }], source: "edit" }).inserts[0]!.values).toEqual({ big: "5", born: "2024-02-29" });
+  });
+});

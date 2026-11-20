@@ -17,17 +17,36 @@ export const MAX_TOTAL_ROW_COUNT = 10_000_000;
 const MAX_VALUES = 1000;
 const MAX_VALUE_TEXT = 256;
 
-/** What an ORM adapter can do. The conformance suite reads it to choose expected results. */
+/**
+ * What an ORM adapter can do. The conformance suite reads it to choose expected results, and the factory refuses a request
+ * that needs a missing capability with `unsupported` (or `unsupported-value`, `limit-exceeded`) before the executor runs.
+ * An optional field left unset keeps the full behavior of the SQL renderers.
+ */
 export type AdapterCapabilities = {
-  caseInsensitiveText: "native" | "ascii" | "collation";
+  /** `"like-only"`: only LIKE leaves fold case (ASCII); case-insensitive equals, set filters, and excluded uuid ids are `unsupported`. */
+  caseInsensitiveText: "native" | "ascii" | "collation" | "like-only";
+  /** `false`: a `%` or `_` in a LIKE leaf, the quick search, or a value query is `unsupported-value`. */
   likeEscape: boolean;
   literalAsterisk: boolean;
   nullsLast: "native" | "emulated";
   aggregates: boolean;
   groupBy: boolean;
   localDayGrouping: boolean;
-  /** `selectRows` reads the `keyText` of a `time` key exactly; without it a cursor sort on a `time` column is `unsupported`. */
+  /** `selectRows` reads the `keyText` of a `time` key exactly. Default `true`; `false` makes a cursor sort on a `time` column `unsupported`. */
   exactInstantKeys?: boolean;
+  /** A LIKE leaf can match case. Default `true`; `false` makes a case-sensitive contains, notContains, startsWith, or endsWith `unsupported`. */
+  caseSensitiveLike?: boolean;
+  /** LIKE matches a native enum or uuid column as text. Default `true`; `false` makes such a leaf, and a quick search over such a column, `unsupported`. */
+  nativeLike?: boolean;
+  /**
+   * `selectValues` groups by an expression: the folded text of a column without `caseSensitive`, a `time` column, and the
+   * text of a non-text column a value query matches. Default `true`; `false` makes those values requests `unsupported`.
+   */
+  expressionValues?: boolean;
+  /** min, max, and count read a text `''` as blank. Default `true`; `false` makes them `unsupported` on text without `keepBlankText`. */
+  blankTextAggregates?: boolean;
+  /** The longest id list the adapter binds, a positive integer. A longer selection is `limit-exceeded`. Default: no limit. */
+  maxBoundIds?: number;
 };
 
 /** One group row as the database returns it; `aggregates` is keyed by column id. */
@@ -45,6 +64,12 @@ export type QueryExecutor<TWhere, TOrder> = {
   countGroups(plan: GroupsPlan, signal?: AbortSignal): Promise<unknown>;
   where(plan: { where: Predicate }): TWhere;
   orderBy(plan: RowsPlan): TOrder;
+  /**
+   * Turns one validated write value into the driver's value, such as a `BigInt` for int8 or a `Date` for a time. The
+   * value is `null` or what `validateChange` checked: a number or digit text, a `YYYY-MM-DD` day, an ISO instant, text,
+   * or a boolean. Without it the `values` of a validated change stay in those forms.
+   */
+  nativeValue?(column: PlanColumn, value: unknown): unknown;
 };
 
 export type QueryCallOptions<TContext = never> = { signal?: AbortSignal } & ([TContext] extends [never] ? { context?: undefined } : { context: TContext });
@@ -180,6 +205,10 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
 ): GridQuery<TRow, TContext, TWhere, TOrder, TCursor> {
   const { columns, executor, rowScope, rowCount, limits, timeZone } = options;
   const map = mapOf(columns);
+  const { capabilities } = executor;
+  // A partial executor that only serves `validateChange` carries no capabilities.
+  const maxBoundIds = (capabilities as AdapterCapabilities | undefined)?.maxBoundIds;
+  if (maxBoundIds !== undefined && !(Number.isSafeInteger(maxBoundIds) && maxBoundIds > 0)) throw new Error("createGridQuery: `capabilities.maxBoundIds` must be a positive integer");
   const cursorPaging = options.paging === "cursor";
   if (cursorPaging) assertCursorColumns(columns, resolveLimits(limits));
   const keyTextAlias = keyTextAliases(columns);
@@ -206,9 +235,9 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
     return plan;
   };
   const parse = (input: unknown, callOptions?: { context?: unknown }): RowsPlan =>
-    register(deepFreeze(withScope(parseQuery(input, { columns, request: "rows", rowCount, limits, timeZone }), callOptions)));
+    register(deepFreeze(withScope(parseQuery(input, { columns, request: "rows", rowCount, limits, timeZone, capabilities }), callOptions)));
   const parseSelected = (input: unknown, callOptions: { context?: unknown } | undefined) => {
-    const parsed = parseSelection(input, { columns, limits, timeZone });
+    const parsed = parseSelection(input, { columns, limits, timeZone, capabilities });
     return { include: parsed.include, plan: deepFreeze(withScope(parsed.plan, callOptions)) };
   };
   const trusted = (plan: RowsPlan): RowsPlan => {
@@ -245,7 +274,7 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
   };
 
   const fetchRows = async (input: unknown, callOptions?: { signal?: AbortSignal; context?: unknown }): Promise<RowsAnswer<TRow> | GroupsAnswer> => {
-    const planned = deepFreeze(withScope(parseQuery(input, { columns, request: "page", rowCount, limits, timeZone }), callOptions));
+    const planned = deepFreeze(withScope(parseQuery(input, { columns, request: "page", rowCount, limits, timeZone, capabilities }), callOptions));
     if (planned.kind === "groups") return fetchGroups(planned, callOptions?.signal);
     const plan = planned;
     alive(callOptions?.signal);
@@ -260,11 +289,11 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
   };
 
   const fetchCursorPage = async (input: unknown, callOptions?: { signal?: AbortSignal; context?: unknown }): Promise<RowsAnswer<TRow, string>> => {
-    const parsed = parseQuery(input, { columns, request: "rows", limits, timeZone, paging: "cursor" });
+    const parsed = parseQuery(input, { columns, request: "rows", limits, timeZone, paging: "cursor", capabilities });
     const resolved = resolveLimits(limits);
     const terms = parsed.orderBy;
     const timeTerms = terms.filter(({ column }) => keyTextAlias.has(column));
-    if (timeTerms.length > 0 && executor.capabilities.exactInstantKeys !== true) throw new QueryError("unsupported", ["spec", "sorts"]);
+    if (timeTerms.length > 0 && capabilities.exactInstantKeys === false) throw new QueryError("unsupported", ["spec", "sorts"]);
     if ((cursorBytes(terms.map((term) => term.column), resolved) ?? Infinity) > resolved.maxCursorBytes) throw new QueryError("limit-exceeded", ["spec", "sorts"]);
     const ctx = { terms, hash: planHash(parsed), limits: resolved, nonNull };
     const sent = Object.hasOwn(input as object, "cursor") ? (input as Record<string, unknown>)["cursor"] : undefined;
@@ -286,7 +315,7 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
   };
 
   const filterValues = async (input: unknown, callOptions?: { signal?: AbortSignal; context?: unknown }): Promise<ValuesAnswer> => {
-    const plan = withScope(parseQuery(input, { columns, request: "values", limits, timeZone }), callOptions);
+    const plan = withScope(parseQuery(input, { columns, request: "values", limits, timeZone, capabilities }), callOptions);
     alive(callOptions?.signal);
     if (plan.column.time && !executor.capabilities.localDayGrouping && (timeZone ?? "UTC") !== "UTC") throw new QueryError("unsupported", ["columnId"]);
     const found = await executor.selectValues(plan, { limit: MAX_VALUES + 1, signal: callOptions?.signal });
@@ -302,7 +331,7 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
   };
 
   const aggregates = async (input: unknown, callOptions?: { signal?: AbortSignal; context?: unknown }): Promise<AggregatesAnswer> => {
-    const plan = withScope(parseQuery(input, { columns, request: "aggregates", limits, timeZone }), callOptions);
+    const plan = withScope(parseQuery(input, { columns, request: "aggregates", limits, timeZone, capabilities }), callOptions);
     if (!executor.capabilities.aggregates) throw new QueryError("unsupported", []);
     if (plan.columns.length === 0) return {};
     alive(callOptions?.signal);
@@ -335,7 +364,7 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
   };
 
   const validate = (input: unknown, callOptions?: { context?: unknown }): ValidatedChange<TWhere> => {
-    const change = validateChange(input, { columns, limits, scope: scoped(callOptions) });
+    const change = validateChange(input, { columns, limits, scope: scoped(callOptions), nativeValue: executor.nativeValue?.bind(executor) });
     const where = (predicate: Predicate) => executor.where({ where: predicate });
     return {
       ...change,

@@ -25,8 +25,6 @@ export function own<T extends object>(target: T, key: string, value: unknown): T
 
 export const field = (column: PlanColumn, filter: unknown): PrismaWhere => own({}, column.field, filter);
 export const isTextual = (column: PlanColumn): boolean => column.kind === "text" || column.kind === "select";
-/** Prisma refuses `null` filters and `nulls` on a required field, so `required` must mirror the schema. */
-export const isNullable = (column: PlanColumn): boolean => !column.required && !column.primaryKey;
 /** Whether a stored `''` counts as blank in a group key or a set value, as the SQL renderers fold it into NULL. */
 export const foldsEmptyText = (column: PlanColumn): boolean => isTextual(column) && column.native === undefined;
 export const unsupported = (column: PlanColumn): QueryError => new QueryError("unsupported", [column.id]);
@@ -76,6 +74,9 @@ export function boundValues(node: unknown, inOr = false): number {
   return count;
 }
 
+/** The longest id list a statement of `provider` binds next to the take and skip reserve. */
+export const maxBoundIds = (provider: PrismaProvider): number => BIND_BUDGET[provider] - RESERVED_BINDS;
+
 /** Refuses a statement whose `where` binds more values than the provider takes: Prisma splits a plain `in` beyond it and merges wrong results. */
 export function assertBindBudget(where: unknown, provider: PrismaProvider, reserved = RESERVED_BINDS): void {
   if (boundValues(where) + reserved > BIND_BUDGET[provider]) throw new QueryError("limit-exceeded", []);
@@ -100,8 +101,18 @@ export function nativeValue(column: PlanColumn, operand: Operand): unknown {
   }
 }
 
-export function createPrismaRenderer(provider: PrismaProvider) {
+/** A validated write value as the Prisma field type takes it: integers as numbers or `BigInt`, dates as `Date`. */
+export function writeValue(column: PlanColumn, value: unknown): unknown {
+  if (value === null) return null;
+  if (column.kind === "number" && column.numeric !== "float" && column.numeric !== "decimal") return nativeValue(column, { kind: "bigint", v: BigInt(value as number | string) });
+  if (column.kind === "date" && typeof value === "string") return nativeValue(column, { kind: column.time ? "instant" : "date", v: value });
+  return value;
+}
+
+/** `nullableIds`: the columns whose field the schema declares with `?`; Prisma refuses `null` filters and `nulls` on the others. */
+export function createPrismaRenderer(provider: PrismaProvider, nullableIds: ReadonlySet<string>) {
   const pg = provider === "postgresql";
+  const isNullable = (column: PlanColumn): boolean => nullableIds.has(column.id);
   const escape = (text: string): string => escapeLike(text, "\\");
   const value = (column: PlanColumn, operand: Operand): unknown => nativeValue(column, operand);
   const isNull = (column: PlanColumn): PrismaNode => (isNullable(column) ? field(column, null) : false);
@@ -115,7 +126,7 @@ export function createPrismaRenderer(provider: PrismaProvider) {
   /** The field filter of a text test. On PostgreSQL every LIKE leaf and an insensitive `equals` (ILIKE) escape `%`, `_`, and `\`. */
   function textFilter(column: PlanColumn, mode: "contains" | "startsWith" | "endsWith" | "equals", text: string, caseSensitive: boolean): Record<string, unknown> {
     const like = LIKE_MODES.has(mode);
-    // An enum filter has no LIKE operators; LIKE on a `@db.Uuid` field is unverified on Prisma 7.
+    // The core refuses these from the capabilities; the throws keep a missed path from matching wrong rows.
     if (like && column.native !== undefined) throw unsupported(column);
     if (!pg) {
       // SQLite: LIKE is ASCII case-insensitive with no ESCAPE clause, `=` is case-sensitive, and `mode` is an unknown argument.
