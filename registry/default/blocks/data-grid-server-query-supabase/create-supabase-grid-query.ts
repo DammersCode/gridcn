@@ -152,11 +152,7 @@ export function createSupabaseGridQuery<TRow, TContext>(options: SupabaseGridQue
   const maxRows = options.maxRows ?? DEFAULT_MAX_ROWS;
   if (!Number.isSafeInteger(maxRows) || maxRows <= 0) throw new Error("createSupabaseGridQuery: `maxRows` must be a positive integer");
   const maxPageSize = resolveLimits(options.limits).maxPageSize;
-  if (rpc === undefined && maxPageSize + 1 > maxRows) {
-    throw new Error(
-      `createSupabaseGridQuery: a page of \`limits.maxPageSize\` (${maxPageSize}) rows plus the look-ahead row exceeds \`maxRows\` (${maxRows}), PostgREST's max-rows, which drops rows without an error. Set \`rpc\` to the table's grid function, or set \`limits.maxPageSize\` to ${maxRows - 1} or less.`,
-    );
-  }
+  if (rpc === undefined && maxPageSize + 1 > maxRows) throw new Error(`createSupabaseGridQuery: a page of \`limits.maxPageSize\` (${maxPageSize}) rows plus the look-ahead row exceeds \`maxRows\` (${maxRows}), PostgREST's max-rows, which drops rows without an error. Set \`rpc\` to the table's grid function, or set \`limits.maxPageSize\` to ${maxRows - 1} or less.`);
   const anchor = mapOf(columns).tieBreaker[0]!.field;
 
   const withSignal = <B extends { abortSignal(signal: AbortSignal): unknown }>(builder: B, signal: AbortSignal | undefined): PromiseLike<Result> =>
