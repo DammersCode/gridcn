@@ -218,6 +218,23 @@ begin
   raise exception '%', message using errcode = '22023';
 end $$;
 
+-- Refuses a pivot key in any shape but the adapter's: `false`, an `eq` or `is` leaf, or `is` OR `eq` for the empty
+-- text key. Each key repeats once per aggregate, so a larger tree would multiply past `max_nodes`.
+create or replace function gridcn.check_pivot_key(key jsonb)
+returns void
+language plpgsql immutable security invoker
+set search_path = pg_catalog, pg_temp
+as $$
+begin
+  if key = 'false'::jsonb
+    or (jsonb_typeof(key) = 'object' and key ->> 'op' in ('eq', 'is'))
+    or (jsonb_typeof(key) = 'object' and (select count(*) from jsonb_object_keys(key)) = 1 and jsonb_typeof(key -> 'or') = 'array' and jsonb_array_length(key -> 'or') = 2
+      and (key -> 'or' -> 0 ->> 'op') = 'is' and (key -> 'or' -> 1 ->> 'op') = 'eq') then
+    return;
+  end if;
+  raise exception 'gridcn: a pivot key is false, an eq or is leaf, or is OR eq' using errcode = '22023';
+end $$;
+
 -- The length of the list `plan -> key`, from `minimum` to 1,000 entries; anything else raises.
 create or replace function gridcn.count_of(plan jsonb, key text, minimum int)
 returns int
@@ -362,6 +379,7 @@ begin
       end if;
       -- Each key is a filter tree, so its value stays in the bound plan and compares with the column type's operator.
       for item in select e.value, e.ordinality - 1 as i from jsonb_array_elements(plan -> 'pivot' -> 'keys') with ordinality e loop
+        perform gridcn.check_pivot_key(item.value);
         kept := gridcn.filter_sql(tbl, allowed, item.value, array['pivot', 'keys', item.i::text]);
         for entry in select a.value from jsonb_array_elements(plan -> 'aggregates') with ordinality a order by a.ordinality loop
           cells := cells || gridcn.aggregate_sql(tbl, allowed, entry.value, kept);

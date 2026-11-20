@@ -413,7 +413,9 @@ describe("row-level security", () => {
       insert into moods values (1, 'sad', null), (2, 'ok', null), (3, 'happy', null), (4, null, null);
       ${wrapper("moods_grid", "moods", ["id", "m", "p"])};
     `);
-    const plans = [leaf("m", "eq", "ok"), leaf("m", "neq", "ok"), leaf("m", "gt", "ok"), leaf("m", "lte", "ok"), leaf("m", "in", ["sad", "happy"])].map((where) => ({ kind: "count", where }));
+    const plans: unknown[] = [leaf("m", "eq", "ok"), leaf("m", "neq", "ok"), leaf("m", "gt", "ok"), leaf("m", "lte", "ok"), leaf("m", "in", ["sad", "happy"])].map((where) => ({ kind: "count", where }));
+    // The pivot page bound on an enum group level: the second group in enum order, alone.
+    plans.push({ kind: "groups", where: true, level: { c: "m", blank: false }, next: null, desc: false, offset: 1, limit: 1, aggregates: [{ c: "id", reducer: "count", blank: false }], pivot: { keys: [leaf("m", "eq", "ok"), leaf("m", "is")] } });
     const run = async () => {
       const out: unknown[] = [];
       for (const plan of plans) {
@@ -424,7 +426,7 @@ describe("row-level security", () => {
     };
     const clean = await run();
     // Enum order, not text order: only 'happy' is after 'ok'.
-    expect(clean.filter((_, index) => index % 2 === 1)).toEqual([1, 2, 1, 2, 2]);
+    expect(clean.filter((_, index) => index % 2 === 1)).toEqual([1, 2, 1, 2, 2, [{ key: "ok", count: 1, childCount: 1, aggregates: ["1"], cells: ["1", "0"] }]]);
     await db.exec(`
       set role mallory;
       create function shop.always(shop.mood, shop.mood) returns boolean language sql as $$ select true $$;

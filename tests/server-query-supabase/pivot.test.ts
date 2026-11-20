@@ -227,6 +227,20 @@ describe("pivot through the grid function", () => {
     await expect(statement({ ...cells(1), pivot: { keys: [{ c: "secret", op: "is" }] } })).rejects.toThrow(/allow-list/);
     await expect(statement({ ...cells(1), pivot: { keys: [{ or: keys(9) }] } }, ", max_nodes => 10")).rejects.toThrow(/nodes/);
   });
+
+  it("takes a pivot key only in a shape the adapter sends, so no key tree repeats per aggregate", async () => {
+    const aggregates = Array.from({ length: 32 }, () => ({ c: "qty", reducer: "sum", blank: false }));
+    const cells = (key: unknown) => ({ kind: "groups", where: true, level: { c: "tag", blank: true }, next: null, desc: false, offset: 0, limit: 10, aggregates, pivot: { keys: [key] } });
+    const eq = { c: "name", op: "eq", v: "x" };
+    for (const key of [eq, { c: "name", op: "is" }, { or: [{ c: "name", op: "is" }, { c: "name", op: "eq", v: "" }] }, false]) {
+      await expect(statement(cells(key)), JSON.stringify(key)).resolves.toMatch(/^WITH /);
+    }
+    let deep: unknown = eq;
+    for (let level = 0; level < 60; level++) deep = { not: deep };
+    for (const key of [{ or: Array.from({ length: 3 }, () => eq) }, { or: [eq, { or: [eq, eq] }] }, { and: [eq, eq] }, { not: eq }, deep, { c: "name", op: "in", v: ["x"] }, { c: "name", op: "ilike", v: "%" }, { or: [eq, false] }, "x", null]) {
+      await expect(statement(cells(key)), JSON.stringify(key)).rejects.toThrow(/pivot key/);
+    }
+  });
 });
 
 describe("pivot plans over a capturing fetch", () => {
