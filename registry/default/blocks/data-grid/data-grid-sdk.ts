@@ -198,4 +198,4 @@ export { buildGroupView } from "./sort-filter/build-group-view";
 export { useDataGridGroupRow } from "./store/hooks";
 export { aggregateValues } from "./aggregate";
 export type { AggregateReducer, AggregateSpecs, ExpandedState, GroupActionResult, GroupKey, GroupLabelCtx, GroupLayout, GroupNode, GroupPathSegment, PivotColumnDescriptor, ServerGroupLayout, ServerGroupSlot, ServerPivotLayout } from "./group-types";
-export { MAX_PIVOT_COLUMNS, pivotColumnId } from "./pivot-columns";
+export { MAX_PIVOT_COLUMNS, pivotColumnId, pivotSorts } from "./pivot-columns";

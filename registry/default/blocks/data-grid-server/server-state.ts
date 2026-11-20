@@ -104,7 +104,9 @@ export function useServerSpec(source: ServerSpecOptions, afterChange: () => void
   const onFilterJoinChange = useCallback((join: "and" | "or") => changeSpec({ filterJoin: join === "or" ? "or" : undefined }), [changeSpec]);
   const onSearchTextChange = useCallback((searchText: string) => changeSpec({ searchText }), [changeSpec]);
   const onGroupByChange = useCallback((groupBy: readonly string[]) => changeSpec({ groupBy }), [changeSpec]);
-  return { spec, ready, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, onGroupByChange };
+  // An ungrouped request with `pivot` is refused, so `pivot` waits in the raw spec until `groupBy` returns.
+  const shown = useMemo(() => (spec.pivot && !spec.groupBy?.length ? withoutPivot(spec) : spec), [spec]);
+  return { spec: shown, ready, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, onGroupByChange };
 }
 
 /** The result of {@link useServerSpec}: the scroll hook takes it from its caller so the group engine and the flat engine share one spec. */
@@ -117,7 +119,14 @@ const specOf = (seed?: Partial<ServerSpec>, groups = false): ServerSpec => ({
   searchText: seed?.searchText ?? EMPTY_SPEC.searchText,
   ...(groups && seed?.groupBy?.length ? { groupBy: [...seed.groupBy] } : null),
   ...(groups && seed?.aggregates?.length ? { aggregates: [...seed.aggregates] } : null),
+  ...(groups && seed?.pivot ? { pivot: { columnIds: [...seed.pivot.columnIds] } } : null),
 });
+
+/** `spec` without `pivot`. */
+export function withoutPivot(spec: ServerSpec): ServerSpec {
+  const { pivot: _pivot, ...rest } = spec;
+  return rest;
+}
 
 type RevalidationInput = {
   /** The `revalidateIntervalMs` option as the consumer passed it. */
