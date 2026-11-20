@@ -24,7 +24,7 @@ mirror the change there.
 | group path | The group keys from the outermost level down to one row group: one `{ columnId, key }` per level. A server request names the group whose children it reads with `groupPath`. | |
 | group level | The place of a group column in `groupBy`. The first column is level 0. | |
 | child list | The rows or the groups that a server grid holds for one open row group, or for the top level. One request reads one child list, named by `groupPath`. | |
-| generated column | A column that a server pivot makes from one key of the pivot column and one aggregate. The core builds it from the answer. It is read-only and shows pivot cells. | |
+| generated column | A column that a server pivot makes from one key of the pivot column and one aggregate. The core builds it from the answer. It shows pivot cells and refuses every write. | |
 | pivot cell | The value of one generated column in one group row. It is the aggregate over the rows of that row group that hold the key of the column. It is empty when no value counted. | |
 | held set | The generated columns that a pivot grid shows. The first answer after a spec change or `refresh()` sets it. Later answers map their cells into it by column id. | |
 | expanded state | `{ mode, ids }`: the row groups that differ from `mode`, named by group id. It decides which groups show their rows. | |

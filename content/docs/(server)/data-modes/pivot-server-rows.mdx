@@ -1,0 +1,144 @@
+---
+title: Pivot server rows
+icon: Table2
+description: Let your server pivot a large result, so each row is a group and each column is one key of a pivot column.
+type: task
+aliases: ["server pivot", "pivot table", "spec.pivot", "pivotColumns", "pivotCells", "pivotOmitted", "generated column", "held set", "pivot cell"]
+---
+
+A pivot turns the keys of one column into columns. Each row is one group of the `groupBy` column. Each cell is an aggregate over the rows of that group that hold one key. The server computes every cell, and the grid shows the answer as read-only generated columns.
+
+<ComponentPreview name="data-grid-server-pivot-demo" />
+
+1. Set `groupBy` to 1 column in `defaultSpec` of `useDataGridServerRows`.
+2. List the values in `aggregates`.
+3. Set `pivot: { columnIds: [id] }` with the pivot column.
+4. Answer the groups request with `pivotColumns` and `pivotCells`, or let the [query layer](/docs/data-modes/query-layer#groups) answer it.
+
+## Send the pivot spec [#request]
+
+A pivot works in scroll mode and in pages mode. This grid shows the sum of `amount` per region and year:
+
+```tsx
+"use client";
+
+import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
+
+type Sale = { id: string; region: string; year: number; amount: number };
+
+const columns = defineColumns<Sale>()([
+  { id: "region", header: "Region", accessorKey: "region" },
+  { id: "year", header: "Year", accessorKey: "year", type: "number" },
+  {
+    id: "amount",
+    header: "Amount",
+    accessorKey: "amount",
+    type: "number",
+    aggregate: "sum",
+  },
+]);
+
+export function SalesPivot() {
+  const server = useDataGridServerRows<Sale>({
+    mode: "scroll",
+    defaultSpec: {
+      groupBy: ["region"],
+      aggregates: [{ columnId: "amount", reducer: "sum" }],
+      pivot: { columnIds: ["year"] },
+    },
+    fetchRows: async ({ signal, ...request }) => {
+      const init = { method: "POST", body: JSON.stringify(request), signal };
+      return (await fetch("/api/sales/groups", init)).json();
+    },
+  });
+  return <DataGrid {...server.gridProps} columns={columns} />;
+}
+```
+
+Each request is a groups request: `childKind: "groups"`, `groupPath: []`, and `spec.pivot`. Its `sorts` hold only the entries of the `groupBy` and pivot columns. A scroll block holds at most 200 groups. No group opens, so no rows request leaves.
+
+## Answer the pivot [#answer]
+
+Answer the groups, as in [Group server rows](/docs/data-modes/group-server-rows#answer), plus the generated columns and one cell list per group:
+
+```ts
+const answer = {
+  groups: [
+    {
+      key: "North",
+      childCount: 40,
+      totalRowCount: 40,
+      pivotCells: [1250, null],
+    },
+  ],
+  groupCount: 1,
+  totalRowCount: 40,
+  pivotColumns: [
+    { path: [2024], valueIndex: 0 },
+    { path: [2025], valueIndex: 0 },
+  ],
+  pivotOmitted: 3,
+};
+```
+
+- `path` holds the pivot key. `valueIndex` is the index of the value in `spec.aggregates`.
+- `pivotColumns` is key-major: all values of one key are adjacent. A sort on the pivot column sets the key order. Without one, keys ascend. The empty key comes last, and `null` and `""` are one key.
+- `pivotCells` holds one finite number or `null` per `pivotColumns` entry. `null` shows an empty cell.
+- `pivotOmitted` counts the generated columns that the server cut.
+
+## Answer checks [#checks]
+
+A failed check fails the block, as for a groups answer:
+
+- `pivotColumns` is missing, or holds more than 5,000 entries.
+- A `path` holds other than 1 key, or a key over 1,024 characters.
+- A `valueIndex` is not an index of `spec.aggregates`.
+- Two entries make the same column. `1` and `"1"` are one key.
+- A `pivotCells` list has another length than `pivotColumns`.
+
+The grid shows a cell that is not a finite number as empty, and reads a bad `pivotOmitted` as `0`. A key whose column id is over 2,048 characters counts as omitted. Each of these warns once in development. A hand-written route reads `spec.pivot` with `parseServerSpec`. It refuses a pivot without `groupBy` and `aggregates`, a pivot column in `groupBy`, and a column with `groupable: false`.
+
+## Generated columns [#generated-columns]
+
+- The grid shows the `groupBy` column and one generated column per entry. When pivot turns off, the source columns return with their layout.
+- With 2 or more values, each key gets one header over its value columns. With 1 value, the header holds the key text. `labels.pivot` names the values ("Sum of Amount") and the empty key.
+- A generated column is read-only. It has no sort, filter, move, pin, or header menu. Its cell type is the cell type of the value column, and `count` uses `number`.
+- The first answer after a spec change or `refresh()` sets the held set. Later answers map their cells into it by column id. A held column that an answer lacks shows empty cells.
+- URL state and saved views store no generated column.
+- Under pivot, the grid drops a column or column group whose id starts with `__pivot:` or `__pivotgroup:`, and logs an error in development.
+
+## Limits and behavior [#limits]
+
+- The grid shows at most 200 generated columns. A note below the grid shows "+N more columns" for the columns the server or the grid cut.
+- A pivot takes 1 `groupBy` level. With more levels, or with no aggregates, the request carries no pivot, and the hook warns once in development.
+- A local array and client pagination have no pivot. See [Data mode support](/docs/data-modes/data-mode-support#parity-server-pivot).
+- Pivot rows cannot be checked. The header checkbox is disabled. `selectAllMatching()` does nothing and warns in development.
+- Pivot cells refuse every write: edit, paste, fill, cut, clear, and comments.
+- A pivot row has no toggle. Enter does nothing, and the arrow keys move the active cell.
+- Past 1,000,000 held cells, the oldest group blocks unload.
+- Copy writes the `toText` of the cell type. A cut clears nothing.
+- Export and print hold one row per pivot row whose cells landed. A header under a key reads `key / value`. CSV neutralizes formula-like keys, and XLSX keeps pivot cells as numbers.
+- Find matches the text a pivot cell shows. Replace leaves pivot cells unchanged.
+- A decimal pivot cell beyond 15 significant digits loses precision.
+
+## Pivot with the query layer [#query-layer]
+
+The query layer answers `spec.pivot` with Drizzle and Kysely. Supabase needs `rpc`, the grid function of the table. Prisma answers `unsupported`, because its `groupBy` cannot merge `""` and `null` into one key.
+
+`maxPivotColumns` (default 200) bounds keys times values. The layer keeps the first `floor(200 / values)` keys and answers the rest in `pivotOmitted`. A refused request fails with these codes:
+
+| Code | Request |
+|---|---|
+| `unsupported` | The adapter has no pivot, `columnIds` holds 2 ids, or `childKind` is `"rows"`. A value of a non-number column is not `count`. The pivot column has `keepBlankText`. |
+| `limit-exceeded` | More values than `maxPivotColumns`, or a pivot key over `maxGroupKeyLength`. |
+| `invalid-request` | No `groupBy`, no aggregates, or the pivot column in `groupBy`. |
+| `unknown-column` | The pivot column is not in the map, is `serverOnly`, or is not sortable. |
+
+`rowScope` applies to the keys and to every cell, so a key of another tenant never becomes a column.
+
+## Related
+
+- [Group server rows](/docs/data-modes/group-server-rows): the groups request and answer
+- [Query layer reference](/docs/contracts/query-layer-reference#limits): `maxPivotColumns` and the error codes
+- [Supabase example](/docs/server-data-examples/orm-examples/supabase-example): the grid function
