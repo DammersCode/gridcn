@@ -46,6 +46,16 @@ describe("a pivot scroll source", () => {
     expect(server.calls[0]).toMatchObject({ start: 0, end: 200 });
     expect(server.calls[0]!.spec.sorts).toEqual(sorts.slice(1));
     expect(result.current.gridProps.sortState).toEqual(sorts);
+    expect(result.current.gridProps.sortMode).toBe("server");
+  });
+
+  it("sends the filters with spec.pivot and leaves them to the server (filterMode server)", async () => {
+    const server = fakeServer(rowsOf(REGIONS));
+    const filters = [{ columnId: "region", operator: "equals", value: "A" }];
+    const { result } = mount(server, { defaultSpec: { ...PIVOT_SPEC, filters } });
+    await waitFor(() => expect(result.current.gridProps.groupLayout?.pivot).toBeDefined());
+    expect(server.calls[0]!.spec).toMatchObject({ filters, pivot: { columnIds: ["city"] } });
+    expect(result.current.gridProps.filterMode).toBe("server");
   });
 
   it("keeps one held set across landings and an equal refresh, and takes a new one when the ids change", async () => {

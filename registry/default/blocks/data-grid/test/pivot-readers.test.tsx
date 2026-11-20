@@ -136,6 +136,16 @@ describe("export and print", () => {
     expect(state().selection.rows.length).toBe(0);
     expect(buildExportRows(state(), "checked-rows")).toEqual([]);
   });
+
+  it.each([true, false])("selectRow and checkRowRange put no pivot row in the rows channel (range selection %s)", (enableRangeSelection) => {
+    const { state } = make(twoRows(), { enableRangeSelection, enableMultiRange: true });
+    state().actions.selectRow(0);
+    state().actions.selectRow(1, { additive: true });
+    state().actions.selectRow(1, { extendFromLast: true, from: 0 });
+    state().actions.checkRowRange(1);
+    state().actions.checkRowRange(0, { commit: true });
+    expect(state().selection.rows.length).toBe(0);
+  });
 });
 
 describe("find and replace", () => {

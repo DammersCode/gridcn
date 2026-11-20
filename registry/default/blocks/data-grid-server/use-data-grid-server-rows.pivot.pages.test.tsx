@@ -18,7 +18,7 @@ function mount(server: ReturnType<typeof fakeServer<Row>>, extra: Record<string,
 
 afterEach(() => vi.restoreAllMocks());
 
-describe("a pivot pages source", () => {
+describe("a pivot pages source (server pagination)", () => {
   it("sends spec.pivot with each page of groups and keeps one held set across pages", async () => {
     const server = fakeServer(rowsOf(REGIONS));
     const { result } = mount(server);

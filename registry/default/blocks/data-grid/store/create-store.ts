@@ -1180,7 +1180,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       selectRow(index, opts = {}) {
         const s = get();
         const { lastHighlightedRow, selection, enableRowSelection, enableMultiRange, enableRangeSelection } = s;
-        if (!enableRowSelection) return;
+        if (!enableRowSelection || s.pivot) return;
         // Without multi-range or range selection, ctrl-click and shift-click toggle only this row.
         const additive = opts.additive && enableMultiRange;
         const extendFromLast = opts.extendFromLast && enableRangeSelection;
@@ -1207,7 +1207,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       checkRowRange(target, opts = {}) {
         const s = get();
         const { selection, viewIndex, enableRowSelection, enableRangeSelection } = s;
-        if (!enableRowSelection || viewIndex.length === 0) return;
+        if (!enableRowSelection || s.pivot || viewIndex.length === 0) return;
         const clamped = clampIndex(target, viewIndex.length - 1);
         // Without range selection a Shift click only selects the row it hits.
         if (!enableRangeSelection) {

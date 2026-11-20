@@ -66,6 +66,8 @@ export const ADDONS = [
   { name: "data-grid-server-query", adds: "The server half of a server grid: a column map, the request check, and `handleGridRequest`. Needs no ORM.", guides: [A("/docs/data-modes/query-layer", "Query layer")], options: [A("/docs/contracts/query-layer-reference", "Query layer reference")] },
   { name: "data-grid-server-query-drizzle", adds: "`createDrizzleGridQuery` and `columnsFromDrizzleTable`: run the query layer with Drizzle.", guides: [A("/docs/data-modes/query-layer", "Query layer"), A("/docs/server-data-examples/orm-examples/drizzle-example", "Drizzle example")], options: [A("/docs/contracts/query-layer-reference", "Query layer reference")] },
   { name: "data-grid-server-query-kysely", adds: "`createKyselyGridQuery`: run the query layer with Kysely.", guides: [A("/docs/data-modes/query-layer", "Query layer"), A("/docs/server-data-examples/orm-examples/kysely-example", "Kysely example")], options: [A("/docs/contracts/query-layer-reference", "Query layer reference")] },
+  { name: "data-grid-server-query-prisma", adds: "`createPrismaGridQuery` and `definePrismaColumnMap`: run the query layer with Prisma.", guides: [A("/docs/data-modes/query-layer", "Query layer"), A("/docs/server-data-examples/orm-examples/prisma-example", "Prisma example")], options: [A("/docs/contracts/query-layer-reference", "Query layer reference")] },
+  { name: "data-grid-server-query-supabase", adds: "`createSupabaseGridQuery` and the grid function in `grid-query.sql`: run the query layer with a Supabase client.", guides: [A("/docs/data-modes/query-layer", "Query layer"), A("/docs/server-data-examples/orm-examples/supabase-example", "Supabase example")], options: [A("/docs/contracts/query-layer-reference", "Query layer reference")] },
   { name: "data-grid-pagination", adds: "`useDataGridPagination`, `useDataGridPager`, `useDataGridServerPager`, and the pagination bar.", guides: [A("/docs/rows-pages-menus/client-pagination", "Client pagination")], options: [A("/docs/add-options/rows-pages-menus/client-pagination-options", "Client pagination options")] },
   { name: "data-grid-views", adds: "Saved views: named sorts, filters, search, and column layouts that persist in a storage adapter.", guides: [A("/docs/sort-filter-search/saved-views", "Saved views")], options: [A("/docs/add-options/sort-filter-search/saved-views-options", "Saved views options")] },
   { name: "data-grid-sort-list", adds: "A sort button and a popover that lists the applied sorts.", guides: [A("/docs/sort-filter-search/sorting", "Sorting")], options: [A("/docs/add-options/sort-filter-search/sort-list-options", "Sort list options")] },
@@ -79,6 +81,7 @@ export const ADDONS = [
  * The generator fails when a row's title names a symbol that CHANGELOG.md first names in a later release than this one.
  */
 export const FEATURE_SINCE = {
+  Unreleased: ["server-pivot"],
   "1.2.0": ["find-replace", "filter-values", "column-groups", "touch"],
   "2.0.0": ["import-check", "grouping", "comments", "unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "server-initial-answer", "error-state", "input-debounce", "lookup-cell", "server-aggregate", "zero-row-header", "server-query"],
 };
@@ -95,6 +98,7 @@ export const FEATURES = {
   "row-ids": F(["/docs/learning-path/define-columns"], ["/docs/components-props/data-grid-props#rows-and-ids"]),
   counts: F(["/docs/server-pagination/load-rows-page"], ["/docs/contracts/server-rows-contract"]),
   grouping: F(["/docs/data-modes/data-mode-support#parity-grouping", "Data mode support"], ["/docs/data-modes/data-mode-support"]),
+  "server-pivot": F(["/docs/data-modes/data-mode-support#parity-server-pivot", "Data mode support"], ["/docs/contracts/server-rows-contract#parse-group-path"], "data-grid-server"),
   "pinned-rows": F(["/docs/rows-pages-menus/pinned-rows"], ["/docs/add-options/rows-pages-menus/pinned-rows-options"], "data-grid-pinned-rows"),
   "server-aggregate": F(["/docs/data-modes/show-server-totals"], ["/docs/add-options/rows-pages-menus/pinned-rows-options"], "data-grid-pinned-rows"),
   columns: F(["/docs/columns/column-order-pinning"], ["/docs/components-props/column-def"]),
