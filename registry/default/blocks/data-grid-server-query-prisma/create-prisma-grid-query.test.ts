@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { defineColumnMap, type GroupsAnswer, QueryError } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
 import { createPrismaGridQuery, definePrismaColumnMap, type PrismaModelDelegate, type PrismaProvider } from "./data-grid-server-query-prisma";
+import { boundValues } from "./render-prisma";
 
 type Method = "findMany" | "count" | "groupBy" | "aggregate";
 type Call = { method: Method; args: Record<string, unknown> };
@@ -49,12 +50,12 @@ function fake(answers: Answers = {}) {
   const calls: Call[] = [];
   const reply = (method: Method) => async (args: Record<string, unknown>) => {
     calls.push({ method, args });
+    recorded.push({ method, args });
     const answer = answers[method]?.(args);
     if (answer !== undefined) return answer;
     return method === "count" ? 0 : method === "aggregate" ? { _count: { _all: 0 } } : [];
   };
   const model: PrismaModelDelegate = { findMany: reply("findMany"), count: reply("count"), groupBy: reply("groupBy"), aggregate: reply("aggregate") };
-  recorded = calls;
   return { model, calls };
 }
 
@@ -96,6 +97,31 @@ function findUndefined(value: unknown, path = "args"): string | null {
 afterEach(() => {
   // Prisma drops an `undefined` filter silently, and an `undefined` OR member throws: no call may carry one.
   for (const call of recorded) expect(findUndefined(call.args)).toBeNull();
+  recorded = [];
+});
+
+describe("bound values", () => {
+  it("throws on undefined and on {} inside OR, and never counts mode or null", () => {
+    expect(() => boundValues({ a: undefined })).toThrow(/undefined/);
+    expect(() => boundValues({ OR: [{ a: 1 }, {}] })).toThrow(/inside OR/);
+    expect(boundValues({ AND: [{}, { a: { contains: "x", mode: "insensitive", not: null } }, { b: { in: [1, 2, new Date(0)] } }] })).toBe(4);
+  });
+});
+
+describe("ranges and inequality", () => {
+  it("renders isBetween, a day filter on an instant, and notEquals on an enum", async () => {
+    expect(await whereOf({ filters: [filter("qty", "isBetween", ["1", "5"])] })).toStrictEqual(scoped({ qty: { gte: 1, lte: 5 } }));
+    expect(await whereOf({ filters: [filter("title", "isBetween", ["a", "m"])] })).toStrictEqual(scoped({ title: { gte: "a", lte: "m", not: "" } }));
+    expect(await whereOf({ filters: [filter("stamp", "equals", "2024-03-10")] })).toStrictEqual(
+      scoped({ stamp: { gte: new Date("2024-03-10T00:00:00.000Z"), lt: new Date("2024-03-11T00:00:00.000Z") } }),
+    );
+    expect(await whereOf({ filters: [filter("kind", "notEquals", "a")] })).toStrictEqual(scoped({ OR: [{ kind: null }, { kind: { not: "a" } }] }));
+  });
+
+  it("declines a LIKE leaf on a uuid column", async () => {
+    const { query } = make();
+    expect(await codeOf(query.fetchRows(rowsRequest({ filters: [filter("uid", "contains", "a")] }), CONTEXT))).toBe("unsupported");
+  });
 });
 
 describe("rows", () => {
@@ -344,6 +370,16 @@ describe("groups", () => {
       { method: "aggregate", args: { where: { AND: [SCOPE, blank] }, _sum: { qty: true }, _count: { _all: true } } },
       { method: "groupBy", args: { by: ["tag", "name"], where: { AND: [SCOPE, { OR: [{ tag: { in: ["a", "b"] } }, ...blank.OR] }] }, orderBy: [{ tag: "asc" }, { name: "asc" }], take: 10_001 } },
     ]);
+  });
+
+  it("past the last non-blank group, probes the previous offset to place the blank group", async () => {
+    const page = { spec: { groupBy: ["tag"] }, start: 2, end: 4 };
+    for (const [probe, expected] of [[[{ tag: "b" }], [null]], [[], []]] as const) {
+      const { query, calls } = make("postgresql", { groupBy: (args) => (args["take"] === 1 ? probe : args["take"] === 2 ? [] : [{ tag: "a" }, { tag: "b" }]), aggregate: () => ({ _count: { _all: 2 } }) });
+      const answer = (await query.fetchRows(page, CONTEXT)) as GroupsAnswer;
+      expect(answer.groups.map((group) => group.key)).toStrictEqual(expected);
+      expect(calls.find((call) => call.args["take"] === 1)!.args).toMatchObject({ skip: 1, take: 1 });
+    }
   });
 
   it("refuses a level whose group count or child pairs pass maxGroupRows", async () => {

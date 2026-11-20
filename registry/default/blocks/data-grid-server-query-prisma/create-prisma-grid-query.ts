@@ -91,9 +91,9 @@ function aggregateValues(found: unknown, columns: AggregatesPlan["columns"]): Ro
  *   mirror the schema, because Prisma refuses a `null` filter and `nulls: "last"` on a required field.
  * - Every statement counts its bound values and answers `limit-exceeded` past the provider budget (PostgreSQL 32,766,
  *   SQLite 999), because Prisma splits a plain `in` beyond it and merges wrong rows. On SQLite a selection of about 990
- *   ids or excluded ids is `limit-exceeded`. `where` checks the same budget; the `data` of a write adds its own values.
+ *   ids or excluded ids is `limit-exceeded`. `where` also reserves one value per mapped column for the `data` of a write.
  * - `unsupported` where the object API has no exact form: on SQLite case-insensitive `equals` and set filters, and
- *   case-sensitive LIKE leaves; LIKE leaves on a native enum; set values of `time` columns and of text without
+ *   case-sensitive LIKE leaves; LIKE leaves on a native enum or uuid; set values of `time` columns and of text without
  *   `caseSensitive`; min, max, and count of text without `keepBlankText`; cursor sorts on `time` columns; custom operators.
  * - On SQLite a `%` or `_` in a LIKE leaf is `unsupported-value`: SQLite LIKE has no ESCAPE clause there.
  * - Group child counts and group counts read one extra `groupBy` of at most `maxGroupRows` rows.
@@ -166,7 +166,8 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
       capabilities,
       where: (plan) => {
         const rendered = where(renderer.node(plan.where));
-        assertBindBudget(rendered, provider);
+        // A write's `data` binds one value per written field, at most one per mapped column, next to the take and skip reserve.
+        assertBindBudget(rendered, provider, 2 + mapOf(columns).byId.size);
         return rendered;
       },
       orderBy: (plan) => renderer.orderBy(plan.orderBy),

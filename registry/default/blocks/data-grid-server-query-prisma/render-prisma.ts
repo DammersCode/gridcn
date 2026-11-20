@@ -77,8 +77,8 @@ export function boundValues(node: unknown, inOr = false): number {
 }
 
 /** Refuses a statement whose `where` binds more values than the provider takes: Prisma splits a plain `in` beyond it and merges wrong results. */
-export function assertBindBudget(where: unknown, provider: PrismaProvider): void {
-  if (boundValues(where) + RESERVED_BINDS > BIND_BUDGET[provider]) throw new QueryError("limit-exceeded", []);
+export function assertBindBudget(where: unknown, provider: PrismaProvider, reserved = RESERVED_BINDS): void {
+  if (boundValues(where) + reserved > BIND_BUDGET[provider]) throw new QueryError("limit-exceeded", []);
 }
 
 /** The operand as the Prisma field type takes it: `BigInt` for int8, text for decimals, `Date` for native dates. */
@@ -115,7 +115,8 @@ export function createPrismaRenderer(provider: PrismaProvider) {
   /** The field filter of a text test. On PostgreSQL every LIKE leaf and an insensitive `equals` (ILIKE) escape `%`, `_`, and `\`. */
   function textFilter(column: PlanColumn, mode: "contains" | "startsWith" | "endsWith" | "equals", text: string, caseSensitive: boolean): Record<string, unknown> {
     const like = LIKE_MODES.has(mode);
-    if (like && column.native === "enum") throw unsupported(column);
+    // An enum filter has no LIKE operators; LIKE on a `@db.Uuid` field is unverified on Prisma 7.
+    if (like && column.native !== undefined) throw unsupported(column);
     if (!pg) {
       // SQLite: LIKE is ASCII case-insensitive with no ESCAPE clause, `=` is case-sensitive, and `mode` is an unknown argument.
       if (like === caseSensitive) throw unsupported(column);
