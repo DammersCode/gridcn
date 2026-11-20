@@ -4755,7 +4755,7 @@
         {
           "path": "registry/default/blocks/data-grid-server-query-supabase/grid-query.sql",
           "type": "registry:file",
-          "target": "supabase/grid-query.sql"
+          "target": "components/data-grid-server-query-supabase/grid-query.sql"
         }
       ],
       "categories": [
