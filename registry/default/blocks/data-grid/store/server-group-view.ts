@@ -54,21 +54,34 @@ function lay(layout: ServerGroupLayout, dataLength: number, groupBy: readonly st
     if (seen.has(id)) return { invalid: `the group ${id} appears twice` };
     seen.add(id);
     previousRow = viewRow;
-    const last = path[path.length - 1]!;
     entries[viewRow] = -(nodes.length + 1);
-    nodes.push({
-      id,
-      depth: path.length - 1,
-      columnId: last.columnId,
-      key: last.key,
-      label: typeof slot.label === "string" ? slot.label.slice(0, MAX_KEY_LENGTH) : last.key === null ? "" : toSafeText(last.key),
-      count: slot.count,
-      childCount: slot.childCount,
-      aggregates: readAggregates(slot.aggregates),
-      ...(slot.pivotCells instanceof Float64Array ? { pivotCells: slot.pivotCells } : null),
-      ...(slot.status === "loading" || slot.status === "failed" ? { status: slot.status } : null),
-    });
+    nodes.push(nodeOf(slot, id));
   }
   const groupLayout: GroupLayout = { rows: nodes, leafCount: layout.leafCount };
   return { view: { viewIndex: entries, layout: groupLayout } };
+}
+
+type Slot = ServerGroupLayout["rows"][number];
+
+// A slot passed again keeps its node, so its group row skips the render.
+const nodeOfSlot = new WeakMap<Slot, GroupNode>();
+
+function nodeOf(slot: Slot, id: string): GroupNode {
+  const cached = nodeOfSlot.get(slot);
+  if (cached?.id === id) return cached;
+  const last = slot.path[slot.path.length - 1]!;
+  const node: GroupNode = {
+    id,
+    depth: slot.path.length - 1,
+    columnId: last.columnId,
+    key: last.key,
+    label: typeof slot.label === "string" ? slot.label.slice(0, MAX_KEY_LENGTH) : last.key === null ? "" : toSafeText(last.key),
+    count: slot.count,
+    childCount: slot.childCount,
+    aggregates: readAggregates(slot.aggregates),
+    ...(slot.pivotCells instanceof Float64Array ? { pivotCells: slot.pivotCells } : null),
+    ...(slot.status === "loading" || slot.status === "failed" ? { status: slot.status } : null),
+  };
+  nodeOfSlot.set(slot, node);
+  return node;
 }

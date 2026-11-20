@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useRef, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { COLUMN_BORDER } from "./columns/column-border";
 import { ChevronDown, GripVertical } from "lucide-react";
 import { GRID_ATTR } from "./data-attributes";
@@ -101,7 +101,7 @@ function HeaderFilterSlot(props: { render: HeaderFilterRenderer; column: AnyColu
  * drag-to-reorder press zone over the label. See {@link import("./columns/use-column-reorder").useColumnReorder}
  * for the full select-vs-reorder disambiguation rule this cell's two pointerdown handlers resolve.
  */
-export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
+export const DataGridHeaderCell = memo(function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
   const {
     column,
     index,
@@ -267,4 +267,4 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
       )}
     </div>
   );
-}
+});

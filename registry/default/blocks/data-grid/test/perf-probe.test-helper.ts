@@ -64,6 +64,7 @@ export function measureScrollLongTasks(
   grid: HTMLElement,
   peakPxPerFrame: number,
   frames: number,
+  axis: "vertical" | "horizontal" = "vertical",
 ): Promise<{ count: number; totalMs: number }> {
   return new Promise((resolve) => {
     const longTaskMs: number[] = [];
@@ -71,12 +72,14 @@ export function measureScrollLongTasks(
       for (const entry of list.getEntries()) longTaskMs.push(entry.duration);
     });
     observer.observe({ entryTypes: ["longtask"] });
-    const maxScrollTop = grid.scrollHeight - grid.clientHeight;
-    let scrollTop = 0;
+    const vertical = axis === "vertical";
+    const maxOffset = vertical ? grid.scrollHeight - grid.clientHeight : grid.scrollWidth - grid.clientWidth;
+    let offset = 0;
     let frame = 0;
     const step = () => {
-      scrollTop = (scrollTop + peakPxPerFrame) % Math.max(1, maxScrollTop);
-      grid.scrollTop = scrollTop;
+      offset = (offset + peakPxPerFrame) % Math.max(1, maxOffset);
+      if (vertical) grid.scrollTop = offset;
+      else grid.scrollLeft = offset;
       grid.dispatchEvent(new Event("scroll"));
       frame += 1;
       if (frame < frames) {

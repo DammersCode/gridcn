@@ -161,6 +161,9 @@ export function evictBlock<TData>(store: GroupStore<TData>, list: GroupList<TDat
   for (let offset = start; offset < end; offset++) list.entries[offset] = undefined;
 }
 
+// An unchanged group keeps its slot object, so the grid keeps its group node and the row skips its render.
+const slotOfEntry = new WeakMap<object, { list: object; slot: ServerGroupSlot }>();
+
 /** Lays the open lists out as view rows. A child list that is not loaded yet shows as unloaded rows, sized by the `childCount` of its group. `topWindow` cuts the top level to one page of groups. The walk stops at `cap` view rows (default `MAX_ROW_COUNT`) and calls `onCapped` once. Under pivot no group opens, and every slot has `childCount: 0`. */
 export function layoutView<TData>(store: GroupStore<TData>, isOpen: (groupId: string) => boolean, statusOf: (groupId: string) => "loading" | "failed" | undefined, topWindow?: { start: number; end: number }, { cap = MAX_ROW_COUNT, onCapped }: { cap?: number; onCapped?: () => void } = {}): GroupView<TData> {
   const view: GroupView<TData> = { data: [], slots: [], owners: [], offsets: [], leafCount: store.leafCount ?? 0, holes: 0 };
@@ -192,16 +195,25 @@ export function layoutView<TData>(store: GroupStore<TData>, isOpen: (groupId: st
       const id = groupIdOf(path);
       const open = !pivoted && isOpen(id);
       const status = open ? statusOf(id) : undefined;
-      view.slots.push({
-        viewRow: view.data.length,
-        path,
-        count: group.totalRowCount,
-        childCount: pivoted ? 0 : group.childCount,
-        ...(group.label === undefined ? null : { label: group.label }),
-        ...(group.aggregates ? { aggregates: group.aggregates } : null),
-        ...(group.cells ? { pivotCells: group.cells } : null),
-        ...(status ? { status } : null),
-      });
+      const viewRow = view.data.length;
+      const childCount = pivoted ? 0 : group.childCount;
+      const reused = slotOfEntry.get(group);
+      const same = reused?.list === list && reused.slot.viewRow === viewRow && reused.slot.childCount === childCount && reused.slot.status === status;
+      if (same && reused.slot.count === group.totalRowCount && reused.slot.label === group.label && reused.slot.aggregates === group.aggregates && reused.slot.pivotCells === group.cells) view.slots.push(reused.slot);
+      else {
+        const slot: ServerGroupSlot = {
+          viewRow,
+          path,
+          count: group.totalRowCount,
+          childCount,
+          ...(group.label === undefined ? null : { label: group.label }),
+          ...(group.aggregates ? { aggregates: group.aggregates } : null),
+          ...(group.cells ? { pivotCells: group.cells } : null),
+          ...(status ? { status } : null),
+        };
+        slotOfEntry.set(group, { list, slot });
+        view.slots.push(slot);
+      }
       view.data.push(undefined);
       if (open) walk(listFor(store, path, group.childCount));
       if (capped) return;
