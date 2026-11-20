@@ -6,7 +6,7 @@ import { bigint, boolean, doublePrecision, integer, numeric, pgTable, text, time
 import { integer as sqliteInteger, real, sqliteTable, text as sqliteText } from "drizzle-orm/sqlite-core";
 import { inArray } from "drizzle-orm";
 import { Kysely, PGliteDialect, SqliteDialect } from "kysely";
-import type { AggregatesAnswer, RowsAnswer, ValuesAnswer } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
+import type { AggregatesAnswer, QueryLimits, RowsAnswer, ValuesAnswer } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
 import type { RowsPlan } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query-sdk";
 import { createDrizzleGridQuery } from "@/registry/default/blocks/data-grid-server-query-drizzle/data-grid-server-query-drizzle";
 import { createKyselyGridQuery } from "@/registry/default/blocks/data-grid-server-query-kysely/data-grid-server-query-kysely";
@@ -51,7 +51,7 @@ export type LooseQuery = {
 export type Harness = {
   engine: Engine;
   adapter: "drizzle" | "kysely" | "prisma";
-  make(options?: { rowScope?: boolean; groups?: boolean; searchable?: boolean; rowCount?: "always" | "none" | "firstBlock"; timeZone?: string }): LooseQuery;
+  make(options?: { rowScope?: boolean; groups?: boolean; searchable?: boolean; rowCount?: "always" | "none" | "firstBlock"; timeZone?: string; limits?: QueryLimits }): LooseQuery;
   /** Inserts rows through the adapter's own client, the way an import save route does. */
   insert(rows: Record<string, unknown>[]): Promise<void>;
   remove(ids: number[]): Promise<void>;
@@ -109,6 +109,7 @@ function harnessesFor(engine: Engine, db: unknown, kysely: Kysely<any>): Harness
         rowScope: options.rowScope ? (context) => ({ tenantId: context.tenantId }) : undefined,
         rowCount: options.rowCount,
         timeZone: options.timeZone,
+        limits: options.limits,
       }) as never,
   };
   const kyselyHarness: Harness = {
@@ -130,6 +131,7 @@ function harnessesFor(engine: Engine, db: unknown, kysely: Kysely<any>): Harness
         rowScope: options.rowScope ? (context) => ({ tenantId: context.tenantId }) : undefined,
         rowCount: options.rowCount,
         timeZone: options.timeZone,
+        limits: options.limits,
       }) as never,
   };
   return [drizzleHarness, kyselyHarness];

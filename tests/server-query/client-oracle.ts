@@ -58,6 +58,30 @@ export function oracleGroups({ filters, groupBy, path = [], directions, aggregat
   return level.map(({ node }) => ({ key: node.key, count: node.count, childCount: node.childCount, aggregates: { ...node.aggregates } }));
 }
 
+export type OraclePivot = { keys: GroupKey[]; groups: { key: GroupKey; cells: (number | null)[] }[] };
+
+/**
+ * The pivot of the child groups of `path` from the grid's own buckets: the keys are the pivot column's groups under `path`,
+ * and a cell is the aggregate of the bucket one pivot level below the group; a missing bucket counts 0 or reads `null`.
+ */
+export function oraclePivot(request: OracleRequest & { pivot: string }): OraclePivot {
+  const { groupBy, path = [], aggregates = [], pivot } = request;
+  const above = groupBy.slice(0, path.length);
+  const keys = oracleGroups({ ...request, groupBy: [...above, pivot], aggregates: [] }).map((group) => group.key);
+  const groups = oracleGroups(request).map(({ key }) => {
+    const buckets = oracleGroups({ ...request, groupBy: [...above, groupBy[path.length]!, pivot], path: [...path, { columnId: groupBy[path.length]!, key }] });
+    const byKey = new Map(buckets.map((bucket) => [groupKeyText(bucket.key), bucket.aggregates]));
+    const cells = keys.flatMap((pivotKey) =>
+      aggregates.map(({ columnId, reducer }) => {
+        const value = byKey.get(groupKeyText(pivotKey))?.[columnId];
+        return value === null || value === undefined ? (reducer === "count" ? 0 : null) : Number(value);
+      }),
+    );
+    return { key, cells };
+  });
+  return { keys, groups };
+}
+
 /** The ids of the rows of the group at the end of `path`. */
 export function oracleGroupRowIds({ filters, groupBy, path = [] }: OracleRequest): number[] {
   const bucket = bucketAt(oracleTree(filters, groupBy, {}), path);

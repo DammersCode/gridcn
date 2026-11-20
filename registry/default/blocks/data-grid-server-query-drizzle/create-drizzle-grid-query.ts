@@ -80,6 +80,7 @@ export function createDrizzleGridQuery<TRow, TContext>(options: DrizzleGridQuery
     groupBy: true,
     localDayGrouping: dialect === "pg",
     exactInstantKeys: true,
+    pivot: true,
   };
 
   return createGridQuery<TRow, TContext, SQL, SQL, string>({
@@ -116,13 +117,29 @@ export function createDrizzleGridQuery<TRow, TContext>(options: DrizzleGridQuery
         const key = renderer.groupKey(plan.level);
         const fields: Record<string, unknown> = { k: key, n: sql`count(*)`, c: plan.nextLevel ? renderer.keyCount(renderer.groupKey(plan.nextLevel)) : sql`count(*)` };
         plan.aggregates.forEach(({ column, reducer }, index) => (fields[`a${index}`] = renderer.aggregate(column, reducer)));
-        const rows = await selectFrom(fields)
+        const where = renderer.predicate(plan.where);
+        const order = sql`${key} ${sql.raw(plan.direction === "asc" ? "ASC" : "DESC")} NULLS LAST`;
+        const toGroup = (row: Rows[number]) => ({ key: row["k"], count: row["n"], childCount: row["c"], aggregates: Object.fromEntries(plan.aggregates.map(({ column }, index) => [column.id, row[`a${index}`]])) });
+        if (!plan.pivot) {
+          const rows = await selectFrom(fields).where(where).groupBy(key).orderBy(order).limit(page.limit).offset(page.offset);
+          return rows.map(toGroup);
+        }
+        const cells = renderer.pivotCells(plan);
+        cells.forEach((cell, index) => (fields[`p${index}`] = cell));
+        const { name, key: pageKey } = renderer.pivotPage;
+        const withPage = db as unknown as { $with(alias: string): { as(query: Builder): unknown }; with(...ctes: unknown[]): { select(fields: Record<string, unknown>): { from(table: Table): Builder } } };
+        const pageCte = withPage.$with(name).as(selectFrom({ [pageKey]: sql`${key}`.as(pageKey) }).where(where).groupBy(key).orderBy(order).limit(page.limit).offset(page.offset));
+        const rows = await withPage.with(pageCte).select(fields).from(table).where(sql`(${where}) AND ${renderer.pageBound(plan.level)}`).groupBy(key).orderBy(order);
+        return rows.map((row) => ({ ...toGroup(row), pivotCells: cells.map((_, index) => row[`p${index}`]) }));
+      },
+      selectPivotKeys: async (plan, { limit }) => {
+        const key = renderer.groupKey(plan.level);
+        const rows = await selectFrom({ k: key, t: sql`count(*) over ()` })
           .where(renderer.predicate(plan.where))
           .groupBy(key)
           .orderBy(sql`${key} ${sql.raw(plan.direction === "asc" ? "ASC" : "DESC")} NULLS LAST`)
-          .limit(page.limit)
-          .offset(page.offset);
-        return rows.map((row) => ({ key: row["k"], count: row["n"], childCount: row["c"], aggregates: Object.fromEntries(plan.aggregates.map(({ column }, index) => [column.id, row[`a${index}`]])) }));
+          .limit(limit);
+        return rows.map((row) => ({ key: row["k"], total: row["t"] }));
       },
       countGroups: async (plan) => (await selectFrom({ n: renderer.keyCount(renderer.groupKey(plan.level)) }).where(renderer.predicate(plan.where)))[0]?.["n"],
       aggregate: async (plan) => {

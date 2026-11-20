@@ -9,6 +9,7 @@ import { QueryError } from "./errors";
 import { handleGridRequest } from "./handle-grid-request";
 import { escapeLike, likePattern } from "./like";
 import { MAX_FILTER_DEPTH } from "./parse-query";
+import type { GroupsPlan } from "./plan";
 import { ceilDecimal, decimalToString, floorDecimal, isInteger, nextDay, parseDate, parseDecimal, parseInstant, parseUuid, startOfLocalDay } from "./operands";
 import { rowScopePredicate } from "./row-scope";
 import { serializeRow, serializeValue, instantText } from "./serialize-row";
@@ -347,6 +348,120 @@ describe("createGridQuery", () => {
     expect(() => assertCustomOperatorHandlers(custom, {})).toThrow(/inRegion/);
     expect(() => assertCustomOperatorHandlers(custom, { inRegion: () => 1, extra: () => 1 })).toThrow(/extra/);
     expect(() => assertCustomOperatorHandlers(custom, { inRegion: () => 1 })).not.toThrow();
+  });
+});
+
+describe("createGridQuery pivot", () => {
+  const pivotColumns = defineColumnMap({
+    id: { type: "number", numeric: "int8", primaryKey: true },
+    name: { type: "text" },
+    region: { type: "text" },
+    qty: { type: "number", numeric: "int4", aggregate: "sum" },
+    price: { type: "number", numeric: "decimal", scale: 2, aggregate: "max" },
+    nameCount: { type: "text", field: "name", aggregate: "count" },
+    tenant: { type: "number", numeric: "int4", serverOnly: true },
+  });
+  const ask = (aggregates: { columnId: string; reducer: string }[] = [{ columnId: "qty", reducer: "sum" }], extra: Record<string, unknown> = {}) => ({
+    spec: { groupBy: ["name"], aggregates, pivot: { columnIds: ["region"] }, sorts: [{ columnId: "region", direction: "desc" }] },
+    start: 0,
+    end: 10,
+    ...extra,
+  });
+
+  function pivotExecutor(keys: unknown[], total: unknown, cells: (keyCount: number) => unknown[][]) {
+    const { executor, calls } = fakeExecutor();
+    const seen: { phase1?: GroupsPlan; phase1Limit?: number; phase2?: GroupsPlan } = {};
+    const pivoting: QueryExecutor<string, string> = {
+      ...executor,
+      capabilities: { ...executor.capabilities, pivot: true },
+      selectPivotKeys: async (plan, page) => {
+        calls.push("pivotKeys");
+        seen.phase1 = plan;
+        seen.phase1Limit = page.limit;
+        return keys.slice(0, page.limit).map((key) => ({ key, total }));
+      },
+      selectGroups: async (plan) => {
+        calls.push("groups");
+        seen.phase2 = plan;
+        const rows = cells(plan.pivot?.keys.length ?? 0);
+        return rows.map((pivotCells, index) => ({ key: `g${index}`, count: 2, childCount: 2, aggregates: {}, pivotCells }));
+      },
+    };
+    return { executor: pivoting, calls, seen };
+  }
+
+  it("runs the keys first, then answers key-major columns with a cell per column", async () => {
+    const { executor, calls, seen } = pivotExecutor(["west", null], 2n, () => [[5, null], ["7", 1n]]);
+    const answer = (await createGridQuery({ columns: pivotColumns, executor }).fetchRows(ask())) as GroupsAnswer;
+    expect(calls.indexOf("pivotKeys")).toBeLessThan(calls.indexOf("groups"));
+    expect(seen.phase1?.level.id).toBe("region");
+    expect(seen.phase1?.direction).toBe("desc");
+    expect(seen.phase1?.aggregates).toEqual([]);
+    expect(seen.phase2?.level.id).toBe("name");
+    expect(seen.phase2?.pivot?.keys.map((entry) => entry.key)).toEqual(["west", null]);
+    expect(seen.phase2?.pivot?.keys.map((entry) => entry.test.t)).toEqual(["leaf", "leaf"]);
+    expect(answer.pivotColumns).toEqual([{ path: ["west"], valueIndex: 0 }, { path: [null], valueIndex: 0 }]);
+    expect(answer.pivotOmitted).toBe(0);
+    expect(answer.groups.map((group) => group.pivotCells)).toEqual([[5, null], [7, 1]]);
+  });
+
+  it("cuts the keys to maxPivotColumns over the value count and answers the cut columns", async () => {
+    const aggregates = [{ columnId: "qty", reducer: "sum" }, { columnId: "nameCount", reducer: "count" }];
+    const { executor, seen } = pivotExecutor(["a", "b", "c", "d", "e"], 5, (keys) => [Array.from({ length: keys * 2 }, () => null)]);
+    const answer = (await createGridQuery({ columns: pivotColumns, executor, limits: { maxPivotColumns: 5 } }).fetchRows(ask(aggregates))) as GroupsAnswer;
+    expect(seen.phase1Limit).toBe(2);
+    expect(answer.pivotColumns).toEqual([{ path: ["a"], valueIndex: 0 }, { path: ["a"], valueIndex: 1 }, { path: ["b"], valueIndex: 0 }, { path: ["b"], valueIndex: 1 }]);
+    expect(answer.pivotOmitted).toBe(6);
+    expect(answer.groups[0]!.pivotCells).toEqual([null, 0, null, 0]);
+  });
+
+  it("reads decimal cells as numbers", async () => {
+    const aggregates = [{ columnId: "price", reducer: "max" }];
+    const { executor } = pivotExecutor(["a"], 1, () => [["12.50"]]);
+    const answer = (await createGridQuery({ columns: pivotColumns, executor }).fetchRows(ask(aggregates))) as GroupsAnswer;
+    expect(answer.groups[0]!.pivotCells).toEqual([12.5]);
+  });
+
+  it("scopes the keys query, so another tenant's key never becomes a column", async () => {
+    const { executor, seen } = pivotExecutor(["a"], 1, () => [[1]]);
+    const query = createGridQuery<Record<string, unknown>, { tenant: number }>({ columns: pivotColumns, executor, rowScope: (context) => ({ tenant: context.tenant }) });
+    await query.fetchRows(ask(), { context: { tenant: 3 } });
+    const text = (value: unknown) => JSON.stringify(value, (_key, entry: unknown) => (typeof entry === "bigint" ? entry.toString() : entry));
+    expect(text(seen.phase1?.where)).toContain('"id":"tenant"');
+    expect(text(seen.phase2?.where)).toContain('"id":"tenant"');
+  });
+
+  it("keeps a __proto__ key a plain path entry", async () => {
+    const { executor } = pivotExecutor(["__proto__"], 1, () => [[3]]);
+    const answer = (await createGridQuery({ columns: pivotColumns, executor }).fetchRows(ask())) as GroupsAnswer;
+    expect(answer.pivotColumns).toEqual([{ path: ["__proto__"], valueIndex: 0 }]);
+    expect(Object.getPrototypeOf(answer.pivotColumns![0]!)).toBe(Object.prototype);
+  });
+
+  it("refuses a stored key over the key limit", async () => {
+    const { executor } = pivotExecutor(["x".repeat(1025)], 1, () => [[1]]);
+    await expect(createGridQuery({ columns: pivotColumns, executor }).fetchRows(ask())).rejects.toMatchObject({ code: "limit-exceeded", path: ["spec", "pivot", "columnIds", 0] });
+  });
+
+  it("throws when the executor answers another cell count than the plan holds", async () => {
+    const { executor } = pivotExecutor(["a", "b"], 2, () => [[1]]);
+    await expect(createGridQuery({ columns: pivotColumns, executor }).fetchRows(ask())).rejects.toThrow(/pivot cells/);
+    const { executor: none } = pivotExecutor(["a"], 1, () => [undefined as never]);
+    await expect(createGridQuery({ columns: pivotColumns, executor: none }).fetchRows(ask())).rejects.toThrow(/pivot cells/);
+  });
+
+  it("answers no pivot fields without a pivot, and refuses one without the capability", async () => {
+    const { executor } = pivotExecutor(["a"], 1, () => [[1]]);
+    const plain = (await createGridQuery({ columns: pivotColumns, executor }).fetchRows({ spec: { groupBy: ["name"] }, start: 0, end: 5 })) as GroupsAnswer;
+    expect(plain).not.toHaveProperty("pivotColumns");
+    expect(plain.groups[0]).not.toHaveProperty("pivotCells");
+    const { executor: off } = fakeExecutor();
+    await expect(createGridQuery({ columns: pivotColumns, executor: off }).fetchRows(ask())).rejects.toMatchObject({ code: "unsupported" });
+  });
+
+  it("throws at creation when the capability is on and the keys query is missing", () => {
+    const { executor } = fakeExecutor();
+    expect(() => createGridQuery({ columns: pivotColumns, executor: { ...executor, capabilities: { ...executor.capabilities, pivot: true } } })).toThrow(/selectPivotKeys/);
   });
 });
 
