@@ -98,7 +98,7 @@ function aggregateValues(found: unknown, columns: AggregatesPlan["columns"]): Ro
  * - Its `capabilities` refuse, before any call, what the object API has no exact form for (`unsupported`): on SQLite
  *   case-insensitive `equals` and set filters, case-sensitive LIKE leaves, and excluded ids on a uuid key; LIKE leaves on
  *   a native enum or uuid; set values of `time` columns and of text without `caseSensitive`, and a value query on a
- *   non-text column; min, max, and count of text without `keepBlankText`; cursor sorts on `time` columns. A custom
+ *   non-text column; min, max, and count of text without `keepBlankText`; cursor sorts on and grouping by `time` columns. A custom
  *   operator throws at creation.
  * - On SQLite a `%` or `_` in a LIKE leaf is `unsupported-value`: SQLite LIKE has no ESCAPE clause there.
  * - Group child counts and group counts read one extra `groupBy` of at most `maxGroupRows` rows.

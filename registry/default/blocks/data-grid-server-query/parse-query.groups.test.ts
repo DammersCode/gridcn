@@ -161,6 +161,15 @@ describe("grouped request refusals", () => {
     expect(refusal(() => page(spec, extra))).toEqual({ code: expectedCode, path: expectedPath });
   });
 
+  it("refuses a time level only without exact instant keys", () => {
+    const capabilities = { caseInsensitiveText: "native", likeEscape: true, literalAsterisk: true, nullsLast: "native", aggregates: true, groupBy: true, localDayGrouping: true } as const;
+    const withKeys = (exactInstantKeys: boolean, groupBy: string[]) =>
+      refusal(() => parseQuery({ spec: { groupBy }, start: 0, end: 10 }, { columns, request: "page", capabilities: { ...capabilities, exactInstantKeys } }));
+    expect(withKeys(false, ["name", "seen"])).toEqual({ code: "unsupported", path: "spec.groupBy.1" });
+    expect(withKeys(true, ["name", "seen"])).toBeUndefined();
+    expect(withKeys(false, ["born", "name"])).toBeUndefined();
+  });
+
   it("refuses a pivot beside groupBy", () => {
     expect(refusal(() => page({ ...two, pivot: { columnId: "tag" } }))).toEqual({ code: "unsupported", path: "spec" });
   });

@@ -467,6 +467,15 @@ describe("groups", () => {
     expect(await codeOf(query.fetchRows(groupsRequest, CONTEXT))).toBe("limit-exceeded");
   });
 
+  it("declines grouping by a time column, whose millisecond keys miss microsecond rows, and keeps a plain date", async () => {
+    const { query, calls } = make();
+    expect(await codeOf(query.fetchRows({ spec: { groupBy: ["stamp"] }, start: 0, end: 3 }, CONTEXT))).toBe("unsupported");
+    expect(await codeOf(query.fetchRows({ spec: { groupBy: ["tag", "stamp"] }, groupPath: [{ columnId: "tag", key: "a" }], start: 0, end: 3 }, CONTEXT))).toBe("unsupported");
+    expect(calls).toHaveLength(0);
+    await query.fetchRows({ spec: { groupBy: ["born"] }, start: 0, end: 3 }, CONTEXT);
+    expect(calls.length).toBeGreaterThan(0);
+  });
+
   it("declines min, max, and count on text that folds blank text into NULL", async () => {
     const { query } = make();
     expect(await codeOf(query.fetchRows({ spec: { groupBy: ["tag"], aggregates: [{ columnId: "name", reducer: "count" }] }, start: 0, end: 3 }, CONTEXT))).toBe("unsupported");

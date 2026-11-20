@@ -123,7 +123,7 @@ function parseGroupRequest(input: Raw, spec: Raw, ctx: Ctx): GroupRequest | null
     const column = typeof id === "string" ? ctx.map.byId.get(id) : undefined;
     if (!column || column.serverOnly || !column.sortable) throw new QueryError("unknown-column", path);
     if (levels.includes(column)) throw new QueryError("invalid-request", path);
-    if (column.keepBlankText) throw new QueryError("unsupported", path);
+    if (column.keepBlankText || (column.time && ctx.capabilities?.exactInstantKeys === false)) throw new QueryError("unsupported", path);
     levels.push(column);
   });
   const segments: unknown = isAbsent(rawPath) ? [] : rawPath;
