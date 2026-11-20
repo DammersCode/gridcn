@@ -62,6 +62,10 @@ export function serializeValue(value: unknown, column: PlanColumn): unknown {
 /** A wire row from a driver row keyed by column id: only the projected columns. */
 export function serializeRow(row: Record<string, unknown>, projection: readonly PlanColumn[]): Record<string, unknown> {
   const out: Record<string, unknown> = {};
-  for (const column of projection) out[column.id] = serializeValue(Object.hasOwn(row, column.id) ? row[column.id] : null, column);
+  for (const column of projection) {
+    const value = serializeValue(Object.hasOwn(row, column.id) ? row[column.id] : null, column);
+    // A plain assignment to `__proto__` sets the prototype instead of the mapped column's key.
+    Object.defineProperty(out, column.id, { value, enumerable: true, writable: true, configurable: true });
+  }
   return out;
 }

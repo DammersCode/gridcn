@@ -6,8 +6,9 @@ import {
   INT_RANGE,
   assertTimeZone,
   ceilDecimal,
-  clampFloat,
+  decimalToFloat,
   decimalToString,
+  exceedsDigits,
   floorDecimal,
   isInteger,
   isIntType,
@@ -142,7 +143,7 @@ function groupEquality(column: PlanColumn, key: unknown, path: Path, ctx: Ctx): 
       return equal({ kind: "boolean", v: key });
     case "number": {
       if (typeof key !== "number" && typeof key !== "string") throw new QueryError("invalid-value", path);
-      const parsed = numberText(String(key), path, ctx);
+      const parsed = numberText(column, String(key), path, ctx);
       const operand = parsed ? numberOperand(column, parsed) : null;
       return operand ? equal(operand) : FALSE;
     }
@@ -444,10 +445,17 @@ function compileCheckbox(column: PlanColumn, op: string, { text, list }: Shaped)
   return inTest(column, op, [...values].map((v) => ({ kind: "boolean", v })), hasBlank, true);
 }
 
-function numberText(raw: string, path: Path, ctx: Ctx): Decimal | null {
+/** Whether exact math on the value would build more digits than `maxNumberLength`; a float never expands. */
+function outgrows(column: PlanColumn, value: Decimal, ctx: Ctx): boolean {
+  return column.numeric !== "float" && exceedsDigits(value, ctx.limits.maxNumberLength);
+}
+
+function numberText(column: PlanColumn, raw: string, path: Path, ctx: Ctx): Decimal | null {
   const trimmed = raw.trim();
   if (trimmed.length > ctx.limits.maxNumberLength) throw new QueryError("invalid-value", path);
-  return parseDecimal(trimmed);
+  const parsed = parseDecimal(trimmed);
+  if (parsed && outgrows(column, parsed, ctx)) throw new QueryError("invalid-value", path);
+  return parsed;
 }
 
 /** The operand for an exact number test, or `null` when no stored value can match. */
@@ -458,26 +466,26 @@ function numberOperand(column: PlanColumn, value: Decimal): Operand | null {
     const [min, max] = INT_RANGE[column.numeric];
     return whole < min || whole > max ? null : { kind: "bigint", v: whole };
   }
-  if (column.numeric === "float") return { kind: "number", v: String(clampFloat(decimalToString(value))) };
+  if (column.numeric === "float") return { kind: "number", v: String(decimalToFloat(value)) };
   return { kind: "number", v: decimalToString(value) };
 }
 
 function compileNumber(column: PlanColumn, op: string, { text, pair, list }: Shaped, path: Path, ctx: Ctx): Predicate {
   const valuePath = [...path, "value"];
   if (op === "equals" || op === "notEquals") {
-    const parsed = numberText(text, valuePath, ctx);
+    const parsed = numberText(column, text, valuePath, ctx);
     const operand = parsed ? numberOperand(column, parsed) : null;
     if (!operand) return op === "equals" ? FALSE : TRUE;
     return leaf(column, { k: op === "equals" ? "eq" : "ne", value: operand });
   }
   if (op === "gt" || op === "gte" || op === "lt" || op === "lte") {
-    const parsed = numberText(text, valuePath, ctx);
+    const parsed = numberText(column, text, valuePath, ctx);
     if (!parsed) return FALSE;
     return compileNumberCmp(column, op, parsed);
   }
   if (op === "isBetween") {
-    const lo = pair[0] === "" ? undefined : numberText(pair[0], valuePath, ctx);
-    const hi = pair[1] === "" ? undefined : numberText(pair[1], valuePath, ctx);
+    const lo = pair[0] === "" ? undefined : numberText(column, pair[0], valuePath, ctx);
+    const hi = pair[1] === "" ? undefined : numberText(column, pair[1], valuePath, ctx);
     if (lo === null || hi === null) return FALSE;
     return compileNumberRange(column, lo, hi);
   }
@@ -488,7 +496,7 @@ function compileNumber(column: PlanColumn, op: string, { text, pair, list }: Sha
       hasBlank = true;
       continue;
     }
-    const parsed = numberText(entry, valuePath, ctx);
+    const parsed = numberText(column, entry, valuePath, ctx);
     const operand = parsed ? numberOperand(column, parsed) : null;
     if (operand) values.set(String(operand.v), operand);
   }
@@ -615,7 +623,7 @@ function parseSearch(value: unknown, ctx: Ctx): Predicate {
   const items: Predicate[] = [];
   for (const column of searched) {
     if (column.kind === "number") {
-      const operand = number ? numberOperand(column, number) : null;
+      const operand = number && !outgrows(column, number, ctx) ? numberOperand(column, number) : null;
       if (operand) items.push(leaf(column, { k: "eq", value: operand }));
     } else items.push(leaf(column, { k: "text", mode: "contains", text: phrase, negate: false, caseSensitive: false }));
   }

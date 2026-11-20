@@ -148,6 +148,14 @@ describe("row scope", () => {
     expect(() => rowScopePredicate(columns, null)).toThrow();
     expect(() => rowScopePredicate(columns, new Map() as never)).toThrow();
   });
+
+  it("refuses a decimal that expands beyond maxNumberLength digits and reads a float without expanding it", () => {
+    const scoped = defineColumnMap({ id: { type: "number", numeric: "int8", primaryKey: true }, region: { type: "number", numeric: "decimal" }, weight: { type: "number", numeric: "float" } });
+    for (const region of ["1e9999", "1e-9999", "1e40"]) expect(() => rowScopePredicate(scoped, { region })).toThrow(/"region"/);
+    expect(rowScopePredicate(scoped, { region: "12.50" })).toMatchObject({ test: { value: { kind: "number", v: "12.5" } } });
+    expect(rowScopePredicate(scoped, { weight: 1e-300 })).toMatchObject({ test: { value: { kind: "number", v: "1e-300" } } });
+    expect(rowScopePredicate(scoped, { weight: 1e300 })).toMatchObject({ test: { value: { kind: "number", v: "1e+300" } } });
+  });
 });
 
 describe("serializer", () => {
@@ -181,6 +189,14 @@ describe("serializer", () => {
     expect(row["name"]).toBe("");
     expect(row).not.toHaveProperty("tenant");
     expect(row).not.toHaveProperty("extra");
+  });
+
+  it("writes a mapped __proto__ column as a plain own key", () => {
+    const protoKeyed = defineColumnMap({ id: { type: "number", numeric: "int8", primaryKey: true }, ["__proto__"]: { type: "text" } });
+    const row = serializeRow(JSON.parse('{"id": 1, "__proto__": "x"}'), (protoKeyed as unknown as { visible: never[] }).visible);
+    expect(Object.getOwnPropertyDescriptor(row, "__proto__")?.value).toBe("x");
+    expect(Object.getPrototypeOf(row)).toBe(Object.prototype);
+    expect(JSON.parse(JSON.stringify(row))).toEqual(JSON.parse('{"id": 1, "__proto__": "x"}'));
   });
 });
 

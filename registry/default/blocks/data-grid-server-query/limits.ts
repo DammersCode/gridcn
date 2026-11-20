@@ -8,7 +8,7 @@ export type QueryLimits = {
   maxSorts?: number;
   /** Longest text of one filter value. Default 1000. */
   maxValueLength?: number;
-  /** Longest number text. Default 40. */
+  /** Longest number text, and most whole or fractional digits of an int or decimal value once its exponent expands. Default 40. */
   maxNumberLength?: number;
   /** Most entries of one `isAnyOf` or `isNoneOf` list. Default 1000. */
   maxListLength?: number;
