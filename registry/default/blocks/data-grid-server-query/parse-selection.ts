@@ -1,13 +1,14 @@
 import { type ColumnMap, type PlanColumn, mapOf } from "./column-map";
 import { QueryError } from "./errors";
 import { type QueryLimits, type ResolvedLimits, resolveLimits } from "./limits";
-import { decimalToString, isIntType, parseDecimal } from "./operands";
-import { readCell } from "./parse-import-rows";
 import { parseQuery } from "./parse-query";
 import { FALSE, type Operand, type RowsPlan, combine, leaf } from "./plan";
+import { keyOperand } from "./validate-change";
 
-/** The body cap of a selection request: 100,000 uuids and a spec. */
-export const SELECTION_MAX_BODY_BYTES = 8 * 1024 * 1024;
+/** The body cap of a selection request under `limits`: a quoted uuid and a comma per id, plus a spec at twice the string budget. */
+export function selectionBodyBytes(limits: ResolvedLimits): number {
+  return limits.maxSelectionIds * 40 + 2 * limits.maxTreeStringBytes;
+}
 
 export type SelectionInclude = "ids" | "rows";
 export type ParsedSelection = { plan: RowsPlan; include?: SelectionInclude };
@@ -23,35 +24,24 @@ type Raw = Record<string, unknown>;
 const isRecord = (value: unknown): value is Raw => typeof value === "object" && value !== null && !Array.isArray(value);
 // Grouping keys never change which rows match, so only these spec fields reach the parser.
 const SPEC_FIELDS = ["sorts", "filters", "filterJoin", "searchText"] as const;
-// An exponent form is dropped: `parseDecimal` of `1e9999` builds a 10,000-digit power of ten.
-const PLAIN_DECIMAL = /^-?\d+(?:\.\d+)?$/;
-
-function keyOperand(key: PlanColumn, id: string, limits: ResolvedLimits): Operand | null {
-  if (key.kind === "number" && (id.length > limits.maxNumberLength || !PLAIN_DECIMAL.test(id.trim()))) return null;
-  const cell = readCell(key, id, limits, []);
-  if (!cell.ok || cell.value === null) return null;
-  if (key.kind !== "number") return { kind: "text", v: cell.value as string };
-  const canonical = decimalToString(parseDecimal(id.trim())!);
-  return isIntType(key.numeric) ? { kind: "bigint", v: BigInt(canonical) } : { kind: "number", v: canonical };
-}
-
-/** The parsed keys of one id list; the count, each id, and the total id text are bounded before any id is parsed. */
-function keyOperands(key: PlanColumn, list: unknown, limits: ResolvedLimits, path: (string | number)[]): Operand[] {
+/**
+ * The parsed keys of one id list; the count and each id's length are bounded before any id is parsed. An id the key cannot
+ * parse is dropped from the selected ids, and refused in the excluded ids, where dropping it would select its row.
+ */
+function keyOperands(key: PlanColumn, list: unknown, limits: ResolvedLimits, path: (string | number)[], excluded: boolean): Operand[] {
   if (!Array.isArray(list)) throw new QueryError("invalid-request", path);
-  if (list.length > limits.maxExcludedIds) throw new QueryError("limit-exceeded", path);
-  let chars = 0;
+  if (list.length > limits.maxSelectionIds) throw new QueryError("limit-exceeded", path);
   for (let index = 0; index < list.length; index++) {
     const id: unknown = list[index];
     if (typeof id !== "string") throw new QueryError("invalid-request", [...path, index]);
     if (id.length > limits.maxValueLength) throw new QueryError("limit-exceeded", [...path, index]);
-    chars += id.length;
   }
-  if (chars > SELECTION_MAX_BODY_BYTES) throw new QueryError("limit-exceeded", path);
   const out: Operand[] = [];
-  for (const id of list as string[]) {
-    const operand = keyOperand(key, id, limits);
+  (list as string[]).forEach((id, index) => {
+    const operand = keyOperand(key, id, limits, [...path, index]);
     if (operand) out.push(operand);
-  }
+    else if (excluded) throw new QueryError("invalid-value", [...path, index]);
+  });
   return out;
 }
 
@@ -64,7 +54,7 @@ function specFields(spec: unknown): Raw {
 /**
  * Reads `{ selection, include?, start?, end? }`, where `selection` is the grid's `DataGridSelectedRows`, into a counted
  * rows plan. `ids` mode matches its ids; `allMatching` matches the spec's filters and search minus `excludedIds`, ordered
- * by the spec's sorts. An id the key cannot parse is dropped. `start` defaults to 0 and `end` to `start + maxPageSize`.
+ * by the spec's sorts. An `ids` entry the key cannot parse is dropped; such an `excludedIds` entry is `invalid-value`. `start` defaults to 0 and `end` to `start + maxPageSize`.
  * Throws `unsupported` without one number or text `primaryKey`.
  */
 export function parseSelection(input: unknown, options: ParseSelectionOptions): ParsedSelection {
@@ -78,7 +68,7 @@ export function parseSelection(input: unknown, options: ParseSelectionOptions): 
   const mode = selection["mode"];
   if (mode !== "ids" && mode !== "allMatching") throw new QueryError("invalid-request", ["selection", "mode"]);
   const listName = mode === "ids" ? "ids" : "excludedIds";
-  const values = keyOperands(key, selection[listName], limits, ["selection", listName]);
+  const values = keyOperands(key, selection[listName], limits, ["selection", listName], mode === "allMatching");
   const spec = mode === "allMatching" ? specFields(selection["spec"]) : {};
   const start = input["start"] ?? 0;
   const end = input["end"] ?? (typeof start === "number" ? start + limits.maxPageSize : undefined);

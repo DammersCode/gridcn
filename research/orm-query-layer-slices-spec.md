@@ -34,9 +34,9 @@ type SelectionAnswer<TRow> = { count: number; ids?: string[]; rows?: TRow[]; has
 
 `selectionPlan(input)` returns a branded plan for a bulk write: `.where(q.where(plan))`.
 
-**Rendering rule.** `allMatching`: the spec's filters and search AND NOT `ids(excludedIds)`; grouping keys are ignored (they never change which rows match). `ids` mode: `ids(ids)`. Both AND `rowScope`. The new `ids` test is exact primary-key membership in one parameter: `col = ANY($1::<type>[])` on PostgreSQL, `json_each(?)` on SQLite. An id that fails the key parser is dropped.
+**Rendering rule.** `allMatching`: the spec's filters and search AND NOT `ids(excludedIds)`; grouping keys are ignored (they never change which rows match). `ids` mode: `ids(ids)`. Both AND `rowScope`. The new `ids` test is exact primary-key membership in one parameter: `col = ANY($1::<type>[])` on PostgreSQL, `json_each(?)` on SQLite. An `ids` entry that fails the key parser is dropped (it selects nothing); an `excludedIds` entry that fails it is `invalid-value`, because dropping it would select its row. The list of the other mode is ignored.
 
-**Limits and untrusted-input bounds.** `maxExcludedIds` 100,000 bounds `ids` and `excludedIds`, each id `maxValueLength`; `end - start` ≤ `maxPageSize`. `selection` carries `maxBodyBytes` 8 MiB (100,000 uuids plus a spec), which `handleGridRequest` reads when the route passes none.
+**Limits and untrusted-input bounds.** `maxSelectionIds` 200,000 bounds `ids` and `excludedIds`: the grid's 100,000 remembered rows plus 100,000 loaded rows (`maxLoadedRows` has no hard maximum). Each id is bounded by `maxValueLength`, a number id by `maxNumberLength`; `end - start` ≤ `maxPageSize`. `selection` carries `maxBodyBytes`, derived from the limits (40 bytes per id for a quoted uuid, plus twice `maxTreeStringBytes`; about 8.1 MiB by default), which `handleGridRequest` reads when the route passes none. The key parser refuses a number whose exponent outgrows `maxNumberLength` digits before it builds them.
 
 **Client and server mode behavior.** Every mode sends either shape; `allMatching` carries the spec the grid held. Server sort orders only the `include` rows.
 
@@ -78,7 +78,7 @@ Supabase: `.update(values).eq(pk, v).eq(scope, s).select(pk)`; empty is not foun
 | Addition | Drizzle, Kysely (`render-sql.ts`) | Prisma | Supabase |
 |---|---|---|---|
 | Test `{ k: "key"; op: "gt" \| "lt" \| "eq" \| "null"; value?: Operand }` | `col > $1`, `col < $1`, `col = $1`, `col IS NULL` | `gt`, `lt`, `equals`, `null` | `gt.`, `lt.`, `eq.`, `is.null` |
-| Test `{ k: "ids"; values: Operand[]; negate: boolean }` | `= ANY($1)`, `json_each(?)` | `in`, `notIn` up to `maxBoundIds` | `in.()`, or the RPC |
+| Test `{ k: "ids"; values: Operand[]; negate: boolean }`, never empty; `negate` for `excludedIds` | `= ANY($1::<type>[])` (a native enum compares `col::text`, so its key index is unused), `IN (SELECT value FROM json_each(?))` with decimals as JSON strings | `in`, `notIn` up to `maxBoundIds` | `in.()`, or the RPC |
 | `RowsPlan.keyText`: `selectRows` also reads each `time` key as exact UTC text; the decoder parses it with a microsecond grammar (`parseInstant` stops at milliseconds) | `to_char(col::timestamptz AT TIME ZONE 'UTC', …US"Z")`; SQLite reads the stored value | declined | raw JSON text |
 | optional `nativeValue(column, value)` | `Date` for Drizzle timestamp mode | `BigInt`, `Date` | identity |
 | optional capabilities `exactInstantKeys`, `maxBoundIds` | `true`, none | `false`, 32,000 | `true`, URL then RPC |

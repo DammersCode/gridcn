@@ -3,7 +3,7 @@ import { isDev } from "./is-dev";
 import { QueryError } from "./errors";
 import { type QueryLimits, resolveLimits } from "./limits";
 import { type RowCountMode, parseQuery } from "./parse-query";
-import { SELECTION_MAX_BODY_BYTES, parseSelection } from "./parse-selection";
+import { parseSelection, selectionBodyBytes } from "./parse-selection";
 import type { AggregatesPlan, GroupsPlan, Operand, Predicate, RowsPlan, Test, ValuesPlan } from "./plan";
 import { combine } from "./plan";
 import { type RowScope, rowScopePredicate } from "./row-scope";
@@ -74,7 +74,7 @@ export interface GridQuery<TRow, TContext = never, TWhere = unknown, TOrder = un
   validateChange(input: unknown, ...opts: CallArgs<TContext>): ValidatedChange<TWhere>;
   /**
    * Counts the rows of the grid's `DataGridSelectedRows` within `rowScope`; `include` also answers one page of their ids or rows.
-   * `maxBodyBytes` (8 MiB) is the body cap `handleGridRequest` reads when the route passes none.
+   * `maxBodyBytes` (40 bytes per `maxSelectionIds` entry plus twice `maxTreeStringBytes`, about 8.1 MiB) is the body cap `handleGridRequest` reads when the route passes none.
    */
   selection: ((input: unknown, ...opts: CallArgs<TContext>) => Promise<SelectionAnswer<TRow>>) & { readonly maxBodyBytes: number };
   /** The plan of a selection with `rowScope` applied, for `where` and `orderBy`: the filter of a bulk write over the selected rows. */
@@ -283,7 +283,7 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
     where: (plan: RowsPlan) => executor.where(trusted(plan)),
     orderBy: (plan: RowsPlan) => executor.orderBy(trusted(plan)),
     validateChange: validate,
-    selection: Object.assign(selection, { maxBodyBytes: SELECTION_MAX_BODY_BYTES }),
+    selection: Object.assign(selection, { maxBodyBytes: selectionBodyBytes(resolveLimits(limits)) }),
     selectionPlan: (input: unknown, callOptions?: { context?: unknown }) => register(parseSelected(input, callOptions).plan),
     capabilities: executor.capabilities,
   } as unknown as GridQuery<TRow, TContext, TWhere, TOrder>;

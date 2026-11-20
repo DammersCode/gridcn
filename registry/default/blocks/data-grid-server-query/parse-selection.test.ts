@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import { defineColumnMap } from "./column-map";
 import { type QueryExecutor, createGridQuery } from "./create-grid-query";
 import { QueryError } from "./errors";
-import { DEFAULT_LIMITS } from "./limits";
-import { SELECTION_MAX_BODY_BYTES, parseSelection } from "./parse-selection";
+import { DEFAULT_LIMITS, resolveLimits } from "./limits";
+import { MAX_HIDDEN_CHECKED_ROWS } from "@/registry/default/blocks/data-grid/store/hidden-checked-rows";
+import { validateChange } from "./validate-change";
+import { parseSelection, selectionBodyBytes } from "./parse-selection";
 import { parseQuery } from "./parse-query";
 import type { Predicate, RowsPlan } from "./plan";
 
@@ -33,7 +35,7 @@ const idsLeaf = (where: Predicate) => {
 
 describe("parseSelection: ids mode", () => {
   it("matches the parsed ids and drops an id the key cannot parse", () => {
-    const { plan } = parse({ selection: { mode: "ids", ids: ["1", "2.5", "x", " 3 ", "9223372036854775807", "9223372036854775808", "1e3"], excludedIds: [], count: 3 } });
+    const { plan } = parse({ selection: { mode: "ids", ids: ["1", "2.5", "x", " 3 ", "9223372036854775807", "9223372036854775808", "1e9999", "1e3"], excludedIds: [], count: 3 } });
     expect(idsLeaf(plan.where)).toEqual({
       k: "ids",
       negate: false,
@@ -41,8 +43,14 @@ describe("parseSelection: ids mode", () => {
         { kind: "bigint", v: BigInt(1) },
         { kind: "bigint", v: BigInt(3) },
         { kind: "bigint", v: BigInt("9223372036854775807") },
+        { kind: "bigint", v: BigInt(1000) },
       ],
     });
+  });
+
+  it("ignores a filled excludedIds list, which only the body cap bounds", () => {
+    const excludedIds = [...Array.from({ length: DEFAULT_LIMITS.maxSelectionIds + 1 }, () => "x"), 5];
+    expect(idsLeaf(parse({ selection: { mode: "ids", ids: ["1"], excludedIds } }).plan.where)?.values).toEqual([{ kind: "bigint", v: BigInt(1) }]);
   });
 
   it("matches no row when no id parses", () => {
@@ -70,11 +78,21 @@ describe("parseSelection: allMatching mode", () => {
   const spec = { sorts: [{ columnId: "name", direction: "desc" }], filters: [{ columnId: "qty", operator: "gt", value: "5" }], searchText: "" };
 
   it("ANDs the spec's filters with NOT the excluded ids and orders by the spec", () => {
-    const { plan } = parse({ selection: { mode: "allMatching", ids: [], excludedIds: ["7", "bad"], count: 10, spec }, include: "ids", start: 0, end: 50 });
+    const { plan } = parse({ selection: { mode: "allMatching", ids: [], excludedIds: ["7"], count: 10, spec }, include: "ids", start: 0, end: 50 });
     const filters = parseQuery({ spec, start: 0, end: 1 }, { columns, request: "rows" }).where;
     expect(plan.where).toEqual({ t: "and", items: [filters, { t: "leaf", column: expect.objectContaining({ id: "id" }), test: { k: "ids", negate: true, values: [{ kind: "bigint", v: BigInt(7) }] } }] });
     expect(plan.orderBy.map((term) => `${term.column.id} ${term.direction}`)).toEqual(["name desc", "id asc"]);
     expect(plan.rowRange).toEqual({ start: 0, end: 50 });
+  });
+
+  it("refuses an excluded id the key cannot parse, which would otherwise return to the selection", () => {
+    expect(codeOf(() => parse({ selection: { mode: "allMatching", excludedIds: ["7", "bad"], spec } }))).toBe("invalid-value selection.excludedIds.1");
+    expect(codeOf(() => parse({ selection: { mode: "allMatching", excludedIds: ["x", "1e9999", "2.5"], spec } }))).toBe("invalid-value selection.excludedIds.0");
+  });
+
+  it("ignores a filled ids list, which only the body cap bounds", () => {
+    const ids = [...Array.from({ length: DEFAULT_LIMITS.maxSelectionIds + 1 }, () => "x"), 5];
+    expect(parse({ selection: { mode: "allMatching", ids, excludedIds: [], spec: {} } }).plan.where).toEqual({ t: "true" });
   });
 
   it("adds no id test for an empty exclusion list", () => {
@@ -100,28 +118,36 @@ describe("parseSelection: allMatching mode", () => {
 describe("parseSelection: bounds", () => {
   it("bounds the id count before it reads an id, in both modes", () => {
     const ids = ["1", "2", "3"];
-    expect(codeOf(() => parse({ selection: { mode: "ids", ids, excludedIds: [] } }, { maxExcludedIds: 2 }))).toBe("limit-exceeded selection.ids");
-    expect(codeOf(() => parse({ selection: { mode: "allMatching", ids: [], excludedIds: ids } }, { maxExcludedIds: 2 }))).toBe("limit-exceeded selection.excludedIds");
-    expect(codeOf(() => parse({ selection: { mode: "ids", ids: [...ids, 4], excludedIds: [] } }, { maxExcludedIds: 2 }))).toBe("limit-exceeded selection.ids");
+    expect(codeOf(() => parse({ selection: { mode: "ids", ids, excludedIds: [] } }, { maxSelectionIds: 2 }))).toBe("limit-exceeded selection.ids");
+    expect(codeOf(() => parse({ selection: { mode: "allMatching", ids: [], excludedIds: ids } }, { maxSelectionIds: 2 }))).toBe("limit-exceeded selection.excludedIds");
+    expect(codeOf(() => parse({ selection: { mode: "ids", ids: [...ids, 4], excludedIds: [] } }, { maxSelectionIds: 2 }))).toBe("limit-exceeded selection.ids");
   });
 
-  it("refuses a non-string id and bounds each id and the total id text", () => {
+  it("refuses a non-string id and bounds each id", () => {
     expect(codeOf(() => parse({ selection: { mode: "ids", ids: ["1", 2], excludedIds: [] } }))).toBe("invalid-request selection.ids.1");
     expect(codeOf(() => parse({ selection: { mode: "ids", ids: ["1", "9".repeat(1001)], excludedIds: [] } }))).toBe("limit-exceeded selection.ids.1");
-    const long = "a".repeat(1000);
-    const many = Array.from({ length: Math.ceil(SELECTION_MAX_BODY_BYTES / 1000) + 1 }, () => long);
-    expect(codeOf(() => parseSelection({ selection: { mode: "ids", ids: many, excludedIds: [] } }, { columns: textKeyed }))).toBe("limit-exceeded selection.ids");
+    expect(codeOf(() => parse({ selection: { mode: "ids", ids: ["1".repeat(41)], excludedIds: [] } }))).toBe("limit-exceeded selection.ids.0");
   });
 
-  it("drops a long number id instead of throwing", () => {
-    expect(parse({ selection: { mode: "ids", ids: ["1".repeat(41)], excludedIds: [] } }).plan.where).toEqual({ t: "false" });
+  it("takes every id a grid can send: the remembered rows plus 100,000 loaded ones", () => {
+    expect(DEFAULT_LIMITS.maxSelectionIds).toBe(MAX_HIDDEN_CHECKED_ROWS + 100_000);
+    const ids = Array.from({ length: DEFAULT_LIMITS.maxSelectionIds }, (_, i) => String(i + 1));
+    expect(idsLeaf(parse({ selection: { mode: "ids", ids, excludedIds: [] } }).plan.where)?.values).toHaveLength(ids.length);
+    expect(codeOf(() => parse({ selection: { mode: "ids", ids: [...ids, "0"], excludedIds: [] } }))).toBe("limit-exceeded selection.ids");
   });
 
-  it("reads 100,000 ids with an exponent fast", () => {
-    const ids = Array.from({ length: DEFAULT_LIMITS.maxExcludedIds }, () => "1e9999");
-    const started = performance.now();
+  it("reads an exponent id like validateChange does", () => {
+    const change = validateChange({ ops: [{ type: "delete", rowId: "1e3" }, { type: "delete", rowId: "1e9999" }] }, { columns });
+    expect(change.deletes.map((entry) => entry.where)).toEqual([{ t: "leaf", column: expect.objectContaining({ id: "id" }), test: { k: "exact", value: { kind: "bigint", v: BigInt(1000) } } }]);
+    expect(change.rejected).toEqual([{ rowId: "1e9999", code: "not-an-id", message: "Not a valid id" }]);
+    expect(idsLeaf(parse({ selection: { mode: "ids", ids: ["1e3", "1e9999"], excludedIds: [] } }).plan.where)?.values).toEqual([{ kind: "bigint", v: BigInt(1000) }]);
+  });
+
+  it("refuses huge exponents in bulk without building their digits", () => {
+    const ops = Array.from({ length: 10_000 }, () => ({ type: "delete", rowId: "1e9999" }));
+    expect(validateChange({ ops }, { columns }).rejected).toHaveLength(10_000);
+    const ids = Array.from({ length: DEFAULT_LIMITS.maxSelectionIds }, () => "1e9999");
     expect(parse({ selection: { mode: "ids", ids, excludedIds: [] } }).plan.where).toEqual({ t: "false" });
-    expect(performance.now() - started).toBeLessThan(2000);
   });
 
   it("refuses a malformed request", () => {
@@ -172,8 +198,9 @@ function recordingExecutor(rows: Record<string, unknown>[], count: unknown): { e
   };
 }
 
-const hasScope = (where: Predicate): boolean =>
-  where.t === "leaf" ? where.column.id === "tenant" && where.test.k === "exact" : where.t === "and" || where.t === "or" ? where.items.some(hasScope) : false;
+const isScope = (where: Predicate): boolean => where.t === "leaf" && where.column.id === "tenant" && where.test.k === "exact";
+// The scope must AND the whole filter: a scope leaf inside an `or` would widen the result.
+const hasScope = (where: Predicate): boolean => isScope(where) || (where.t === "and" && where.items.some(isScope));
 
 describe("GridQuery.selection", () => {
   it("answers the count alone without include", async () => {
@@ -193,11 +220,24 @@ describe("GridQuery.selection", () => {
     expect(select.page).toEqual({ offset: 0, limit: 3 });
   });
 
-  it("answers rows in the wire form", async () => {
-    const { executor } = recordingExecutor([{ id: 1, name: "a", qty: 2 }], 1);
+  it("answers rows in the wire form, without a serverOnly column", async () => {
+    const { executor, calls } = recordingExecutor([{ id: 1, name: "a", qty: 2, tenant: 9 }], 1);
     const query = createGridQuery({ columns, executor });
     const answer = await query.selection({ selection: { mode: "ids", ids: ["1"], excludedIds: [] }, include: "rows" });
     expect(answer).toEqual({ count: 1, rows: [{ id: 1, name: "a", qty: 2 }], hasMore: false });
+    expect(calls.find((call) => call.kind === "select")!.plan.projection.map((column) => column.id)).toEqual(["id", "name", "qty"]);
+  });
+
+  it("ANDs rowScope around an or-joined spec", async () => {
+    const { executor, calls } = recordingExecutor([], 0);
+    const query = createGridQuery<Record<string, unknown>, { tenant: number }, Predicate>({ columns, executor, rowScope: ({ tenant }) => ({ tenant }) });
+    const spec = { filterJoin: "or", filters: [{ columnId: "qty", operator: "gt", value: "5" }, { columnId: "name", operator: "equals", value: "a" }] };
+    await query.selection({ selection: { mode: "allMatching", ids: [], excludedIds: ["3"], spec }, include: "ids" }, { context: { tenant: 1 } });
+    expect(calls).toHaveLength(2);
+    for (const call of calls) {
+      expect(hasScope(call.plan.where)).toBe(true);
+      expect(call.plan.where.t === "and" && call.plan.where.items.some((item) => item.t === "or")).toBe(true);
+    }
   });
 
   it("applies rowScope to the count and to the ids", async () => {
@@ -210,10 +250,15 @@ describe("GridQuery.selection", () => {
     await expect(query.selection({ selection: { mode: "ids", ids: ["1"], excludedIds: [] } })).rejects.toThrow(/context/);
   });
 
-  it("carries the selection body cap", () => {
+  it("carries a body cap that fits its limits: a quoted uuid per id and a full spec", () => {
     const { executor } = recordingExecutor([], 0);
-    expect(createGridQuery({ columns, executor }).selection.maxBodyBytes).toBe(SELECTION_MAX_BODY_BYTES);
-    expect(SELECTION_MAX_BODY_BYTES).toBe(8 * 1024 * 1024);
+    const uuid = "0f8fad5b-d9cb-469f-a165-70867728950e";
+    expect(createGridQuery({ columns, executor }).selection.maxBodyBytes).toBe(selectionBodyBytes(resolveLimits(undefined)));
+    const raised = createGridQuery({ columns, executor, limits: { maxSelectionIds: 400_000 } }).selection.maxBodyBytes;
+    expect(raised).toBeGreaterThan(400_000 * `${JSON.stringify(uuid)},`.length);
+    const excludedIds = Array.from({ length: DEFAULT_LIMITS.maxSelectionIds }, () => uuid);
+    const body = JSON.stringify({ selection: { mode: "allMatching", ids: [], excludedIds, spec: { searchText: "x".repeat(DEFAULT_LIMITS.maxTreeStringBytes) } } });
+    expect(new TextEncoder().encode(body).length).toBeLessThan(selectionBodyBytes(resolveLimits(undefined)));
   });
 
   it("gives a scoped plan for a bulk write through where", () => {

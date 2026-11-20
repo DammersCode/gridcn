@@ -1,7 +1,7 @@
 import { QueryError, statusForCode } from "./errors";
 
 export type HandleGridRequestOptions = {
-  /** Most body bytes read before `JSON.parse`. Default: the `maxBodyBytes` of `run` (8 MiB for `selection`), else 524288. */
+  /** Most body bytes read before `JSON.parse`. Default: the `maxBodyBytes` of `run` (about 8.1 MiB for `selection`), else 524288. */
   maxBodyBytes?: number;
 };
 
