@@ -49,7 +49,7 @@ async function rendersOverFiveLandings(spec: Partial<ServerSpec>) {
   const landed = { header: tracker.count("DataGridHeader") - mount.header, body: tracker.count("DataGridBody") - mount.body };
   const generatedHeader = treegrid().querySelector('[role="columnheader"][aria-label^="A-c0"]') !== null;
   await screen.unmount();
-  return { landed, server, generatedHeader };
+  return { mount, landed, server, generatedHeader };
 }
 
 const PLAIN: Partial<ServerSpec> = { groupBy: ["region"], aggregates: [SUM] };
@@ -57,7 +57,8 @@ const PLAIN: Partial<ServerSpec> = { groupBy: ["region"], aggregates: [SUM] };
 // The React compiler changes the absolute counts, so each bound holds in both builds.
 describe("a grouped server grid's render counts", () => {
   it("renders the header at most once and the body at most twice per landing without pivot", async () => {
-    const { landed } = await rendersOverFiveLandings(PLAIN);
+    const { mount, landed } = await rendersOverFiveLandings(PLAIN);
+    expect([mount.header > 0, mount.body > 0, landed.body > 0]).toEqual([true, true, true]);
     expect(landed.header).toBeLessThanOrEqual(4);
     expect(landed.body).toBeLessThanOrEqual(8);
   });
@@ -65,6 +66,7 @@ describe("a grouped server grid's render counts", () => {
   it("renders the header and the body no more often under pivot than without it, once the held set stands", async () => {
     const plain = await rendersOverFiveLandings(PLAIN);
     const pivot = await rendersOverFiveLandings({ ...PLAIN, pivot: { columnIds: ["city"] } });
+    expect([pivot.mount.header > 0, pivot.mount.body > 0, pivot.landed.body > 0]).toEqual([true, true, true]);
     expect(pivot.generatedHeader).toBe(true);
     expect(pivot.server.calls.every((call) => call.childKind === "groups")).toBe(true);
     expect(pivot.landed.header).toBeLessThanOrEqual(plain.landed.header);
