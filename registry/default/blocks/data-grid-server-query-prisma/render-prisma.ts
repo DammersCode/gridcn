@@ -25,8 +25,6 @@ export function own<T extends object>(target: T, key: string, value: unknown): T
 
 export const field = (column: PlanColumn, filter: unknown): PrismaWhere => own({}, column.field, filter);
 export const isTextual = (column: PlanColumn): boolean => column.kind === "text" || column.kind === "select";
-/** Prisma refuses `null` filters and `nulls` on a required field, so `required` must mirror the schema. */
-export const isNullable = (column: PlanColumn): boolean => !column.required && !column.primaryKey;
 /** Whether a stored `''` counts as blank in a group key or a set value, as the SQL renderers fold it into NULL. */
 export const foldsEmptyText = (column: PlanColumn): boolean => isTextual(column) && column.native === undefined;
 export const unsupported = (column: PlanColumn): QueryError => new QueryError("unsupported", [column.id]);
@@ -111,8 +109,10 @@ export function writeValue(column: PlanColumn, value: unknown): unknown {
   return value;
 }
 
-export function createPrismaRenderer(provider: PrismaProvider) {
+/** `nullableIds`: the columns whose field the schema declares with `?`; Prisma refuses `null` filters and `nulls` on the others. */
+export function createPrismaRenderer(provider: PrismaProvider, nullableIds: ReadonlySet<string>) {
   const pg = provider === "postgresql";
+  const isNullable = (column: PlanColumn): boolean => nullableIds.has(column.id);
   const escape = (text: string): string => escapeLike(text, "\\");
   const value = (column: PlanColumn, operand: Operand): unknown => nativeValue(column, operand);
   const isNull = (column: PlanColumn): PrismaNode => (isNullable(column) ? field(column, null) : false);
