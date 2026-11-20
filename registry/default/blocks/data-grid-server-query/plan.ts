@@ -12,7 +12,9 @@ export type Test =
   | { k: "in"; values: readonly Operand[]; negate: boolean; blank: boolean; caseSensitive: boolean }
   | { k: "exact"; value: Operand }
   | { k: "blank"; negate: boolean }
-  | { k: "custom"; id: string; value: unknown };
+  | { k: "custom"; id: string; value: unknown }
+  /** Exact primary-key membership, the whole list bound as one parameter; a number or text key, never an empty list. */
+  | { k: "ids"; values: readonly Operand[]; negate: boolean };
 
 export type Predicate =
   | { t: "true" }

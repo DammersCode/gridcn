@@ -161,7 +161,8 @@ describe("validateChange", () => {
     const uuidQuery = createGridQuery<Record<string, unknown>, never, Predicate>({ columns: uuidColumns, executor });
     const upper = "0F8FAD5B-D9CB-469F-A165-70867728950E";
     const uuidResult = uuidQuery.validateChange({ ops: [{ type: "delete", rowId: upper }, { type: "delete", rowId: "nope" }] });
-    expect(uuidResult.deletes).toEqual([{ rowId: upper, where: keyWhere(uuidColumns, "id", { kind: "text", v: upper.toLowerCase() }) }]);
+    // The id keeps its case, so it matches the stored form on a SQLite text column.
+    expect(uuidResult.deletes).toEqual([{ rowId: upper, where: keyWhere(uuidColumns, "id", { kind: "text", v: upper }) }]);
     expect(uuidResult.rejected).toEqual([{ rowId: "nope", code: "not-an-id", message: "Not a valid id" }]);
     const textColumns = defineColumnMap({ code: { type: "text", primaryKey: true } });
     const textQuery = createGridQuery<Record<string, unknown>, never, Predicate>({ columns: textColumns, executor });
@@ -179,6 +180,40 @@ describe("validateChange", () => {
     expect(float.deletes).toEqual([{ rowId: "2.5e1", where: keyWhere(float.map, "k", { kind: "number", v: "25" }) }]);
     const date = keyed({ type: "date", primaryKey: true }, "2024-02-29");
     expect(date.deletes).toEqual([{ rowId: "2024-02-29", where: keyWhere(date.map, "k", { kind: "date", v: "2024-02-29" }) }]);
+  });
+
+  it("compares a key and never validates it: a select key outside choices, a text key over maxLength, an empty text key", () => {
+    const keyed = (spec: ColumnSpec, rowId: string) => {
+      const map = defineColumnMap({ k: spec, name: { type: "text" } });
+      const query = createGridQuery<Record<string, unknown>, never, Predicate>({ columns: map, executor });
+      return { map, change: query.validateChange({ ops: [{ type: "update", rowId, row: {}, prev: {}, cells: [cell("name", "x")] }] }) };
+    };
+    const select = keyed({ type: "select", choices: ["a"], primaryKey: true }, "legacy");
+    expect(select.change.updates).toEqual([{ rowId: "legacy", values: { name: "x" }, where: keyWhere(select.map, "k", { kind: "text", v: "legacy" }) }]);
+    const long = keyed({ type: "text", maxLength: 2, primaryKey: true }, "abcdef");
+    expect(long.change.updates).toEqual([{ rowId: "abcdef", values: { name: "x" }, where: keyWhere(long.map, "k", { kind: "text", v: "abcdef" }) }]);
+    const empty = keyed({ type: "text", primaryKey: true }, "");
+    expect(empty.change.updates).toEqual([{ rowId: "", values: { name: "x" }, where: keyWhere(empty.map, "k", { kind: "text", v: "" }) }]);
+    expect(keyed({ type: "text", primaryKey: true }, "a".repeat(1001)).change.rejected).toEqual([{ rowId: "a".repeat(1001), code: "not-an-id", message: "Not a valid id" }]);
+    const scaled = keyed({ type: "number", numeric: "decimal", scale: 2, primaryKey: true }, "1.234");
+    expect(scaled.change.updates).toEqual([{ rowId: "1.234", values: { name: "x" }, where: keyWhere(scaled.map, "k", { kind: "number", v: "1.234" }) }]);
+  });
+
+  it("refuses an over-long uuid, date, or checkbox key per operation, never the whole change", () => {
+    const long = "1".repeat(1001);
+    for (const spec of [{ type: "text", native: "uuid" }, { type: "date" }, { type: "checkbox" }] as const) {
+      const query = createGridQuery<Record<string, unknown>, never, Predicate>({ columns: defineColumnMap({ k: { ...spec, primaryKey: true } }), executor });
+      expect(query.validateChange({ ops: [{ type: "delete", rowId: long }] }).rejected).toEqual([{ rowId: long, code: "not-an-id", message: "Not a valid id" }]);
+    }
+  });
+
+  it("refuses a key whose exponent outgrows any stored number, and keeps a float key short", () => {
+    const keyed = (spec: ColumnSpec, rowId: string) =>
+      createGridQuery<Record<string, unknown>, never, Predicate>({ columns: defineColumnMap({ k: spec }), executor }).validateChange({ ops: [{ type: "delete", rowId }] });
+    const decimal: ColumnSpec = { type: "number", numeric: "decimal", primaryKey: true };
+    for (const rowId of ["1e9999", "1e-9999"]) expect(keyed(decimal, rowId).rejected).toEqual([{ rowId, code: "not-an-id", message: "Not a valid id" }]);
+    const float = keyed({ type: "number", numeric: "float", primaryKey: true }, "1e-300");
+    expect(float.deletes[0]?.where).toMatchObject({ t: "leaf", test: { value: { kind: "number", v: "1e-300" } } });
   });
 
   it("refuses a whole-row update with any refused value and keeps the valid cells of a cells update", () => {
@@ -222,15 +257,12 @@ describe("validateChange", () => {
     expect(plain).toEqual({ updates: [], inserts: [], deletes: [], moves: [], rejected: [] });
   });
 
-  it("throws limit-exceeded on an over-long id or number", () => {
-    const over = [
-      { type: "delete", rowId: "9223372036854775808" },
-      { type: "delete", rowId: "1".repeat(41) },
-      { type: "move", rowId: "1", beforeRowId: "1".repeat(1001) },
-      { type: "update", rowId: "1", row: {}, prev: {}, cells: [cell("qty", "1".repeat(41))] },
-    ];
-    expect(validate([over[0]]).rejected).toEqual([{ rowId: "9223372036854775808", code: "not-an-id", message: "Not a valid id" }]);
-    for (const op of over.slice(1)) expect(() => validate([op])).toThrow(expect.objectContaining({ code: "limit-exceeded" }));
+  it("refuses an int8 overflow or an over-long key or neighbor id per operation, and throws limit-exceeded on an over-long value", () => {
+    for (const rowId of ["9223372036854775808", "1".repeat(41)]) expect(validate([{ type: "delete", rowId }]).rejected).toEqual([{ rowId, code: "not-an-id", message: "Not a valid id" }]);
+    for (const neighbor of ["beforeRowId", "afterRowId"]) {
+      expect(validate([{ type: "move", rowId: "1", [neighbor]: "1".repeat(1001) }]).rejected).toEqual([{ rowId: "1", code: "not-an-id", message: "Not a valid id" }]);
+    }
+    expect(() => validate([{ type: "update", rowId: "1", row: {}, prev: {}, cells: [cell("qty", "1".repeat(41))] }])).toThrow(expect.objectContaining({ code: "limit-exceeded" }));
   });
 
   it("skips a serverOnly number cell before any length check", () => {
