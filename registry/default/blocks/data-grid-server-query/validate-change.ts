@@ -2,7 +2,7 @@ import { type ColumnMap, type PlanColumn, mapOf } from "./column-map";
 import { QueryError } from "./errors";
 import { type QueryLimits, resolveLimits } from "./limits";
 import { decimalToString, isIntType, parseBoolean, parseDate, parseDecimal, parseInstant, parseUuid } from "./operands";
-import { type Cell, IMPORT_REFUSAL_MESSAGES, type ImportRefusalCode, readCell } from "./parse-import-rows";
+import { type CellRead, IMPORT_REFUSAL_MESSAGES, type ImportRefusalCode, readCell } from "./parse-import-rows";
 import { type Operand, type Predicate, combine, leaf } from "./plan";
 import { toSafeText } from "./safe-text";
 
@@ -79,7 +79,7 @@ const refusal = (rowId: string, code: WriteRefusalCode, columnId?: string): Writ
 // A plain assignment of `__proto__` sets the prototype instead of a key.
 const put = (target: Raw, key: string, value: unknown) => Object.defineProperty(target, key, { value, enumerable: true, writable: true, configurable: true });
 
-function writeCell(column: PlanColumn, value: unknown, limits: Limits, path: (string | number)[]): Cell {
+function writeCell(column: PlanColumn, value: unknown, limits: Limits, path: (string | number)[]): CellRead {
   if ((column.kind === "text" || column.kind === "select") && typeof value === "string" && value.length > limits.maxValueLength) {
     return { ok: false, code: "too-long", message: IMPORT_REFUSAL_MESSAGES["too-long"] };
   }

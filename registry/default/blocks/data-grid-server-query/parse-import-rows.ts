@@ -36,14 +36,14 @@ export type ParsedImportRows = { rows: Record<string, unknown>[]; rejected: Impo
 
 type Raw = Record<string, unknown>;
 type Limits = ReturnType<typeof resolveLimits>;
-export type Cell = { ok: true; value: unknown } | { ok: false; code: ImportRefusalCode; message: string };
+export type CellRead = { ok: true; value: unknown } | { ok: false; code: ImportRefusalCode; message: string };
 
 const isRecord = (value: unknown): value is Raw => typeof value === "object" && value !== null && !Array.isArray(value);
-const ok = (value: unknown): Cell => ({ ok: true, value });
-const refuse = (code: ImportRefusalCode): Cell => ({ ok: false, code, message: IMPORT_REFUSAL_MESSAGES[code] });
+const ok = (value: unknown): CellRead => ({ ok: true, value });
+const refuse = (code: ImportRefusalCode): CellRead => ({ ok: false, code, message: IMPORT_REFUSAL_MESSAGES[code] });
 const isBlank = (value: unknown): boolean => value === null || value === undefined;
 
-function numberCell(column: PlanColumn, value: unknown, limits: Limits, path: (string | number)[]): Cell {
+function numberCell(column: PlanColumn, value: unknown, limits: Limits, path: (string | number)[]): CellRead {
   if (typeof value === "number" && !Number.isFinite(value)) return refuse("not-a-number");
   const text = typeof value === "number" ? String(value) : value;
   if (typeof text !== "string") return refuse("not-a-number");
@@ -68,7 +68,7 @@ function numberCell(column: PlanColumn, value: unknown, limits: Limits, path: (s
   return ok(canonical);
 }
 
-function textCell(column: PlanColumn, value: unknown, limits: Limits, path: (string | number)[]): Cell {
+function textCell(column: PlanColumn, value: unknown, limits: Limits, path: (string | number)[]): CellRead {
   if (typeof value !== "string") return refuse("not-text");
   if (value.length > limits.maxValueLength) throw new QueryError("limit-exceeded", path);
   if (column.maxLength !== undefined && value.length > column.maxLength) return refuse("too-long");
@@ -83,21 +83,21 @@ function textCell(column: PlanColumn, value: unknown, limits: Limits, path: (str
   return ok(value);
 }
 
-function dateCell(column: PlanColumn, value: unknown, limits: Limits, path: (string | number)[]): Cell {
+function dateCell(column: PlanColumn, value: unknown, limits: Limits, path: (string | number)[]): CellRead {
   if (typeof value !== "string") return refuse("not-a-date");
   if (value.length > limits.maxValueLength) throw new QueryError("limit-exceeded", path);
   const parsed = column.time ? parseInstant(value) : parseDate(value);
   return parsed === null ? refuse("not-a-date") : ok(parsed);
 }
 
-function checkboxCell(value: unknown): Cell {
+function checkboxCell(value: unknown): CellRead {
   if (typeof value === "boolean") return ok(value);
   const parsed = typeof value === "string" ? parseBoolean(value) : null;
   return parsed === null ? refuse("not-a-boolean") : ok(parsed);
 }
 
 /** Checks one value against its column: kind, `required`, `choices`, integer range, `scale`, finite floats, `maxLength`. Over `maxValueLength` or `maxNumberLength` it throws `limit-exceeded`. */
-export function readCell(column: PlanColumn, value: unknown, limits: Limits, path: (string | number)[]): Cell {
+export function readCell(column: PlanColumn, value: unknown, limits: Limits, path: (string | number)[]): CellRead {
   const blank = isBlank(value) || (typeof value === "string" && value === "" && column.kind !== "checkbox" && !column.keepBlankText);
   if (blank) return column.required ? refuse("required") : ok(null);
   switch (column.kind) {
