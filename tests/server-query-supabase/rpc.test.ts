@@ -374,6 +374,41 @@ describe("row-level security", () => {
     await db.close();
   }, 60_000);
 
+  it("takes the comparison of a custom type from its default btree operator class, never from an operator planted in its schema", async () => {
+    const db = new PGlite();
+    await db.exec("create role anon nologin; create role authenticated nologin; create role mallory nologin;");
+    await db.exec(GRID_SQL);
+    await db.exec(`
+      create schema shop authorization mallory;
+      create type shop.mood as enum ('sad', 'ok', 'happy');
+      create type shop.pair as (a int, b int);
+      create table moods (id int primary key, m shop.mood, p shop.pair);
+      insert into moods values (1, 'sad', null), (2, 'ok', null), (3, 'happy', null), (4, null, null);
+      ${wrapper("moods_grid", "moods", ["id", "m", "p"])};
+    `);
+    const plans = [leaf("m", "eq", "ok"), leaf("m", "neq", "ok"), leaf("m", "gt", "ok"), leaf("m", "lte", "ok"), leaf("m", "in", ["sad", "happy"])].map((where) => ({ kind: "count", where }));
+    const run = async () => {
+      const out: unknown[] = [];
+      for (const plan of plans) {
+        const sql = (await db.query<{ s: string }>("select gridcn.grid_sql('public.moods'::regclass, array['id', 'm', 'p'], $1::jsonb) as s", [JSON.stringify(plan)])).rows[0]!.s;
+        out.push(sql, await call(plan, "moods_grid", () => db));
+      }
+      return out;
+    };
+    const clean = await run();
+    // Enum order, not text order: only 'happy' is after 'ok'.
+    expect(clean.filter((_, index) => index % 2 === 1)).toEqual([1, 2, 1, 2, 2]);
+    await db.exec(`
+      set role mallory;
+      create function shop.always(shop.mood, shop.mood) returns boolean language sql as $$ select true $$;
+      ${["=", "<>", "<", "<=", ">", ">="].map((op) => `create operator shop.${op} (leftarg = shop.mood, rightarg = shop.mood, function = shop.always);`).join("\n")}
+      reset role;
+    `);
+    expect(await run()).toEqual(clean);
+    await expect(call({ kind: "count", where: leaf("p", "eq", "(1,2)") }, "moods_grid", () => db)).rejects.toThrow(/"p" has no default btree operator class/);
+    await db.close();
+  }, 60_000);
+
   it("a caller's search_path that leads with look-alike functions, catalogs, and operators bends neither the statement nor the rows", async () => {
     const db = new PGlite();
     await db.exec("create role anon nologin; create role authenticated nologin;");

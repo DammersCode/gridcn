@@ -92,19 +92,46 @@ as $$
   where a.attrelid = tbl and a.attname = name and a.attnum > 0 and not a.attisdropped
 $$;
 
--- The comparison `op` on two values of the column's type, qualified by the type's schema when that schema defines it
--- (citext's `=`), else by pg_catalog, which compares enums, domains, and every built-in type.
+-- The comparison `op` (`<`, `<=`, `=`, `>=`, `>`) on two values of the column's type. A built-in type, or a domain over
+-- one, takes pg_catalog's operator. Any other type takes the operator of its default btree operator class (citext's,
+-- an enum's), which only a superuser can create, so an operator planted in the type's schema is never picked.
 create or replace function gridcn.operator_sql(tbl regclass, name text, op text)
 returns text
-language sql stable security invoker
+language plpgsql stable security invoker
 set search_path = pg_catalog, pg_temp
 as $$
-  select format('OPERATOR(%I.%s)', coalesce((
-    select n.nspname
-    from pg_attribute a join pg_type ty on ty.oid = a.atttypid join pg_namespace n on n.oid = ty.typnamespace
-      join pg_operator o on o.oprname = op and o.oprleft = ty.oid and o.oprright = ty.oid and o.oprnamespace = ty.typnamespace
-    where a.attrelid = tbl and a.attname = name and a.attnum > 0 and not a.attisdropped), 'pg_catalog'), op)
-$$;
+declare
+  typ oid;
+  t record;
+  found text;
+begin
+  select a.atttypid into typ from pg_attribute a where a.attrelid = tbl and a.attname = name and a.attnum > 0 and not a.attisdropped;
+  loop
+    select ty.typtype, ty.typbasetype, ty.typnamespace, ty.typelem, ty.typcategory into t from pg_type ty where ty.oid = typ;
+    exit when t.typtype <> 'd';
+    typ := t.typbasetype;
+  end loop;
+  if t.typnamespace = 'pg_catalog'::regnamespace then
+    return format('OPERATOR(pg_catalog.%s)', op);
+  end if;
+  select format('OPERATOR(%I.%s)', n.nspname, o.oprname) into found
+  from pg_opclass c
+    join pg_am am on am.oid = c.opcmethod and am.amname = 'btree'
+    join pg_amop ao on ao.amopfamily = c.opcfamily and ao.amopmethod = am.oid and ao.amoplefttype = c.opcintype and ao.amoprighttype = c.opcintype
+      and ao.amopstrategy = array_position(array['<', '<=', '=', '>=', '>'], op)
+    join pg_operator o on o.oid = ao.amopopr
+    join pg_namespace n on n.oid = o.oprnamespace
+  where c.opcdefault and c.opcintype = case
+    when t.typtype = 'e' then 'anyenum'::regtype::oid
+    when t.typtype = 'r' then 'anyrange'::regtype::oid
+    when t.typtype = 'm' then 'anymultirange'::regtype::oid
+    when t.typcategory = 'A' and t.typelem <> 0 then 'anyarray'::regtype::oid
+    else typ end;
+  if found is null then
+    raise exception 'gridcn: the column "%" has no default btree operator class', name using errcode = '42883';
+  end if;
+  return found;
+end $$;
 
 -- The SQL of one filter node, PostgREST's operators with PostgREST's semantics (`not` is plain NOT).
 create or replace function gridcn.filter_sql(tbl regclass, allowed text[], node jsonb, path text[], depth int default 0)
@@ -168,11 +195,13 @@ begin
   if op in ('like', 'ilike') then
     return format('(%s)::pg_catalog.text OPERATOR(pg_catalog.%s) ($1 OPERATOR(pg_catalog.#>>) %L)', col, case op when 'like' then '~~' else '~~*' end, (path || 'v'::text)::text);
   end if;
-  op := case op when 'eq' then '=' when 'neq' then '<>' when 'gt' then '>' when 'gte' then '>=' when 'lt' then '<' when 'lte' then '<=' end;
+  -- A btree operator class has no `<>`, so `neq` is NOT `=`, which keeps NULL as NULL alike.
+  op := case op when 'eq' then '=' when 'neq' then '=' when 'gt' then '>' when 'gte' then '>=' when 'lt' then '<' when 'lte' then '<=' end;
   if op is null then
     raise exception 'gridcn: unknown operator' using errcode = '22023';
   end if;
-  return format('%s %s CAST(($1 OPERATOR(pg_catalog.#>>) %L) AS %s)', col, gridcn.operator_sql(tbl, node ->> 'c', op), (path || 'v'::text)::text, typ);
+  col := format('%s %s CAST(($1 OPERATOR(pg_catalog.#>>) %L) AS %s)', col, gridcn.operator_sql(tbl, node ->> 'c', op), (path || 'v'::text)::text, typ);
+  return case when node ->> 'op' = 'neq' then '(NOT ' || col || ')' else col end;
 end $$;
 
 -- Raises `message`. Volatile, so the planner never folds it out of a CASE branch that is not taken.
