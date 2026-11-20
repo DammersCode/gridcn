@@ -198,7 +198,8 @@ A failed check fails the block, as spec A decision 8 does.
   - more than 1 pivot column
   - any rows request under pivot
   - a non-numeric value column with a reducer other than `count`
-  - a `time` pivot column without `exactInstantKeys`
+  - a `time` pivot column: phase 1 reads a stored instant at millisecond precision, so a finer
+    stored instant would match no key and its cells would stay empty
 - `limit-exceeded`:
   - more aggregates than `maxPivotColumns`
   - a stored key over `maxGroupKeyLength` (1,024 characters)
@@ -207,6 +208,11 @@ A failed check fails the block, as spec A decision 8 does.
   - no aggregates
   - the pivot column inside `groupBy`
 - `unknown-column`: a `serverOnly` pivot column, or one that the column map lacks.
+
+A stored key that has no exact test drops from the keys, and its columns count in `pivotOmitted`:
+a native enum value outside `choices`, or a number over `maxNumberLength` or the column's digits.
+The stored data is not the request, so the layer neither refuses the request nor shows a key whose
+cells would read as `FALSE`.
 
 Open: issue #99 asks for "a 400". The route maps a `QueryError` to an HTTP status. The layer
 answers these codes.
@@ -222,8 +228,11 @@ answers these codes.
   - `parseAggregates` (`:231`) checks `spec.pivot` with the same parser, then ignores it: band
     totals over the whole result do not depend on pivot.
   - A values request reads its own `filters`, not the spec, so pivot does not reach it.
-- **Limit:** the new `maxPivotColumns` (keys × aggregates) defaults to 200. The kept key count is
+- **Limit:** the new `maxPivotColumns` (keys × aggregates) defaults to 200, and a larger value
+  reads as 200, the generated columns the grid keeps. The kept key count is
   `floor(maxPivotColumns / aggregates.length)`.
+- **Order:** phase 1 runs alone. Phase 2 and the counts start after it, so a failed phase 1 starts
+  no other query.
 
 Prisma: declines. A two-field `groupBy` over a 200-group page and 200 keys returns 40,000 pairs,
 above `maxGroupRows`, and it cannot fold `''` into the empty key. The step 6 spike measured it with
@@ -285,8 +294,10 @@ through the PGlite path and the same oracle, with the same `search_path` and ope
   - Supabase: `count(<value>) FILTER (WHERE ...)` with the same non-blank rule.
 - **Cut and `pivotOmitted`:**
   - Prisma: none (declined).
-  - Supabase: the SQL applies `maxPivotColumns`, which the client passes in the call, and
-    returns the total key count for `pivotOmitted`.
+  - Supabase: the keys call carries the kept key count (`limit`) and the value count
+    (`values`). The SQL keeps at most `max_pivot_columns / values` keys, so a wrapper cap below
+    the core's cuts keys instead of raising, and it returns the total key count for
+    `pivotOmitted`. The cells call raises only when keys × values exceed the cap.
 - **Decimal cells:**
   - Prisma: none (declined).
   - Supabase: the client reads `'cells'` through the same `aggregateValue`, so decimal cells are
@@ -371,7 +382,6 @@ Paths are relative to `registry/default/blocks/`. Behavior codes:
 | `data-grid-find-replace/find-replace-panel.tsx:314` | W | Replace-all re-resolve skips pivot cells. |
 | `data-grid/store/compute.ts:930` | R | Quick-search `getText` reads the pivot text, so find matches pivot cells. |
 | `data-grid/store/compute.ts:931` | R | Quick-search `getSearchText` reads the pivot text. |
-| `data-grid/store/compute.ts:932` | R | Quick-search `getValue` reads the pivot cell number. |
 | `data-grid/columns/autosize-columns.ts:108` | R | Autosize measures pivot text for generated columns. |
 | `data-grid/store/compute.ts:1049` | R | `getRangeValues` (`onSelectionChange` values) reads pivot cells. Step 11 does not list it yet. |
 | `data-grid-status-bar/use-data-grid-selection-stats.ts:50` | R | Selection stats sum pivot cells. Step 11 does not list it yet. |

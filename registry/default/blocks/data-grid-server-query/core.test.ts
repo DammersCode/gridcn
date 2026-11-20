@@ -356,6 +356,8 @@ describe("createGridQuery pivot", () => {
     id: { type: "number", numeric: "int8", primaryKey: true },
     name: { type: "text" },
     region: { type: "text" },
+    status: { type: "select", native: "enum", choices: ["open", "closed"] },
+    amount: { type: "number", numeric: "decimal", scale: 2 },
     qty: { type: "number", numeric: "int4", aggregate: "sum" },
     price: { type: "number", numeric: "decimal", scale: 2, aggregate: "max" },
     nameCount: { type: "text", field: "name", aggregate: "count" },
@@ -396,7 +398,7 @@ describe("createGridQuery pivot", () => {
     expect(calls.indexOf("pivotKeys")).toBeLessThan(calls.indexOf("groups"));
     expect(seen.phase1?.level.id).toBe("region");
     expect(seen.phase1?.direction).toBe("desc");
-    expect(seen.phase1?.aggregates).toEqual([]);
+    expect(seen.phase1?.aggregates.map((value) => value.column.id)).toEqual(["qty"]);
     expect(seen.phase2?.level.id).toBe("name");
     expect(seen.phase2?.pivot?.keys.map((entry) => entry.key)).toEqual(["west", null]);
     expect(seen.phase2?.pivot?.keys.map((entry) => entry.test.t)).toEqual(["leaf", "leaf"]);
@@ -413,6 +415,12 @@ describe("createGridQuery pivot", () => {
     expect(answer.pivotColumns).toEqual([{ path: ["a"], valueIndex: 0 }, { path: ["a"], valueIndex: 1 }, { path: ["b"], valueIndex: 0 }, { path: ["b"], valueIndex: 1 }]);
     expect(answer.pivotOmitted).toBe(6);
     expect(answer.groups[0]!.pivotCells).toEqual([null, 0, null, 0]);
+  });
+
+  it("reads a maxPivotColumns over 200 as 200, the columns the grid keeps", async () => {
+    const { executor, seen } = pivotExecutor(["a"], 1, (keys) => [Array.from({ length: keys }, () => 1)]);
+    await createGridQuery({ columns: pivotColumns, executor, limits: { maxPivotColumns: 5000 } }).fetchRows(ask());
+    expect(seen.phase1Limit).toBe(200);
   });
 
   it("reads decimal cells as numbers", async () => {
@@ -436,6 +444,28 @@ describe("createGridQuery pivot", () => {
     const answer = (await createGridQuery({ columns: pivotColumns, executor }).fetchRows(ask())) as GroupsAnswer;
     expect(answer.pivotColumns).toEqual([{ path: ["__proto__"], valueIndex: 0 }]);
     expect(Object.getPrototypeOf(answer.pivotColumns![0]!)).toBe(Object.prototype);
+  });
+
+  it("drops a stored key that has no exact test and counts its columns as omitted", async () => {
+    const aggregates = [{ columnId: "qty", reducer: "sum" }, { columnId: "nameCount", reducer: "count" }];
+    const byStatus = { ...ask(aggregates), spec: { ...ask(aggregates).spec, pivot: { columnIds: ["status"] }, sorts: [] } };
+    const { executor, seen } = pivotExecutor(["open", "archived", null], 3, (keys) => [Array.from({ length: keys * 2 }, () => 1)]);
+    const answer = (await createGridQuery({ columns: pivotColumns, executor }).fetchRows(byStatus)) as GroupsAnswer;
+    expect(seen.phase2?.pivot?.keys.map((entry) => entry.key)).toEqual(["open", null]);
+    expect(answer.pivotColumns!.map((column) => column.path[0])).toEqual(["open", "open", null, null]);
+    expect(answer.pivotOmitted).toBe(2);
+    const byAmount = { ...ask(), spec: { ...ask().spec, pivot: { columnIds: ["amount"] }, sorts: [] } };
+    const { executor: long } = pivotExecutor(["1.50", `1${"0".repeat(60)}`], 2, (keys) => [Array.from({ length: keys }, () => 1)]);
+    const cut = (await createGridQuery({ columns: pivotColumns, executor: long }).fetchRows(byAmount)) as GroupsAnswer;
+    expect(cut.pivotColumns).toEqual([{ path: ["1.50"], valueIndex: 0 }]);
+    expect(cut.pivotOmitted).toBe(1);
+  });
+
+  it("starts no count when the keys query fails", async () => {
+    const { executor, calls } = pivotExecutor([], 0, () => []);
+    executor.selectPivotKeys = () => Promise.reject(new Error("keys failed"));
+    await expect(createGridQuery({ columns: pivotColumns, executor }).fetchRows(ask())).rejects.toThrow("keys failed");
+    expect(calls.filter((call) => call !== "pivotKeys")).toEqual([]);
   });
 
   it("refuses a stored key over the key limit", async () => {

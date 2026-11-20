@@ -38,7 +38,10 @@ export type QueryLimits = {
   maxGroupKeyLength?: number;
   /** Most aggregate columns of one grouped request. Default 32. */
   maxGroupAggregates?: number;
-  /** Most generated columns of one pivot answer, keys times values; keys past it are cut. Default 200. */
+  /**
+   * Most generated columns of one pivot answer, keys times values; keys past it are cut and count in `pivotOmitted`.
+   * Default 200, which is also the most: the grid keeps 200 generated columns, so a larger value reads as 200.
+   */
   maxPivotColumns?: number;
   /** Most entries of a selection's `ids` or `excludedIds`. Default 200000: the grid's 100,000 remembered rows plus 100,000 loaded ones. */
   maxSelectionIds?: number;
@@ -81,6 +84,7 @@ export function resolveLimits(limits: QueryLimits | undefined): ResolvedLimits {
       const wanted = limits[key];
       if (wanted !== undefined && Number.isFinite(wanted) && wanted >= 0) resolved[key] = wanted;
     }
+    resolved.maxPivotColumns = Math.min(resolved.maxPivotColumns, DEFAULT_LIMITS.maxPivotColumns);
   }
   return Object.freeze(resolved);
 }
