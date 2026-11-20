@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { GroupsAnswer } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
+import { readGroupsAnswer } from "@/registry/default/blocks/data-grid-server/read-groups-answer";
 import { type OracleGroup, type OraclePath, type OracleRequest, oracleGroupRowIds, oracleGroups } from "./client-oracle";
 import { type Harness, type LooseQuery, openPg, openSqlite } from "./engines";
 import { FIXTURE_ROWS } from "./fixture";
@@ -126,6 +127,23 @@ describe.each([
     const answer = await groupsOf(query(), ask);
     expect(answer.groups.some((group) => group.key === null)).toBe(true);
     expectLike(answer.groups, oracleGroups(oracleOf(ask)), { ordered: false });
+  });
+
+  it("answers numeric-column reducers as finite numbers that the grid reader keeps", async () => {
+    const numeric = { price: "max", priceSum: "sum", priceMin: "min", priceAvg: "avg", idSum: "sum", score: "avg" } as const;
+    const aggregates = Object.entries(numeric).map(([columnId, reducer]) => ({ columnId, reducer }));
+    const ids = Object.keys(numeric);
+    const warnings: string[] = [];
+    const read = readGroupsAnswer(await groupsOf(query(), { groupBy: ["active"], aggregates }), { start: 0, end: 1000 }, { topLevel: true, aggregateIds: ids }, (_kind, message) => warnings.push(message));
+    expect(warnings).toEqual([]);
+    const yes = read.groups.find((group) => group.key === true)!;
+    const prices = FIXTURE_ROWS.filter((row) => row.active === true && row.price !== null).map((row) => Number(row.price));
+    expect(yes.aggregates?.["price"]).toBe(Math.max(...prices));
+    expect(yes.aggregates?.["priceMin"]).toBe(Math.min(...prices));
+    expect(yes.aggregates?.["priceSum"] as number).toBeCloseTo(prices.reduce((a, b) => a + b, 0), 6);
+    expect(yes.aggregates?.["priceAvg"] as number).toBeCloseTo(prices.reduce((a, b) => a + b, 0) / prices.length, 6);
+    const flat = await query().aggregates({ spec: { sorts: [], filters: [], searchText: "" }, columnIds: ids });
+    for (const id of ids) expect(Number.isFinite(flat[id]), `${id} = ${JSON.stringify(flat[id])}`).toBe(true);
   });
 
   it(`keeps a named difference: ${KNOWN_DIFFERENCES.reducerOnNonNumbers.name}`, async () => {

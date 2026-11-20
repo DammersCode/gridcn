@@ -81,9 +81,13 @@ export type CallArgs<TContext> = [TContext] extends [never] ? [opts?: QueryCallO
 /** The answer `useDataGridServerRows` reads. A cursor factory answers `nextCursor` and no `totalRowCount`. */
 export type RowsAnswer<TRow, TCursor = never> = { rows: TRow[]; totalRowCount?: number | null; hasMore?: boolean } & ([TCursor] extends [never] ? unknown : { nextCursor?: TCursor | null });
 export type ValuesAnswer = { values: { value: string; label?: string; count?: number }[] };
+/**
+ * One value per column id. A number column answers a JavaScript number, so a value beyond 15 significant digits loses precision.
+ * `min` and `max` of a text or date column answer text; `count` answers an integer.
+ */
 export type AggregatesAnswer = Record<string, number | string | null>;
 export type GroupsAnswer = {
-  groups: { key: string | number | boolean | null; childCount: number; totalRowCount: number; aggregates?: Record<string, number | string | null> }[];
+  groups: { key: string | number | boolean | null; childCount: number; totalRowCount: number; aggregates?: AggregatesAnswer }[];
   groupCount: number;
   /** The top level: the row count of the whole result. */
   totalRowCount?: number;
@@ -413,7 +417,7 @@ function groupKeyValue(raw: unknown, column: PlanColumn): string | number | bool
 function aggregateValue(raw: unknown, column: PlanColumn, reducer: string): number | string | null {
   if (raw === null || raw === undefined) return reducer === "count" ? 0 : null;
   if (reducer === "count") return countOf(raw) ?? 0;
-  if (reducer === "avg") {
+  if (reducer === "avg" || column.kind === "number") {
     const n = Number(raw);
     return Number.isFinite(n) ? n : null;
   }
