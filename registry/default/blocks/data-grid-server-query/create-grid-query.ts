@@ -3,6 +3,7 @@ import { isDev } from "./is-dev";
 import { QueryError } from "./errors";
 import { type QueryLimits, resolveLimits } from "./limits";
 import { type RowCountMode, parseQuery } from "./parse-query";
+import { SELECTION_MAX_BODY_BYTES, parseSelection } from "./parse-selection";
 import type { AggregatesPlan, GroupsPlan, Operand, Predicate, RowsPlan, Test, ValuesPlan } from "./plan";
 import { combine } from "./plan";
 import { type RowScope, rowScopePredicate } from "./row-scope";
@@ -56,6 +57,8 @@ export type GroupsAnswer = {
   /** The top level: the row count of the whole result. */
   totalRowCount?: number;
 };
+/** The answer of `selection`: the count of the selected rows, and with `include` one page of their ids or rows. */
+export type SelectionAnswer<TRow> = { count: number; ids?: string[]; rows?: TRow[]; hasMore?: boolean };
 
 export interface GridQuery<TRow, TContext = never, TWhere = unknown, TOrder = unknown> {
   /** A request with `childKind: "groups"` answers a {@link GroupsAnswer}, every other request a {@link RowsAnswer}. */
@@ -69,6 +72,13 @@ export interface GridQuery<TRow, TContext = never, TWhere = unknown, TOrder = un
   orderBy(plan: RowsPlan): TOrder;
   /** Applies the column map and `rowScope` to the `DataChange` of `onSave`; each `where` is in the ORM's own type. */
   validateChange(input: unknown, ...opts: CallArgs<TContext>): ValidatedChange<TWhere>;
+  /**
+   * Counts the rows of the grid's `DataGridSelectedRows` within `rowScope`; `include` also answers one page of their ids or rows.
+   * `maxBodyBytes` (8 MiB) is the body cap `handleGridRequest` reads when the route passes none.
+   */
+  selection: ((input: unknown, ...opts: CallArgs<TContext>) => Promise<SelectionAnswer<TRow>>) & { readonly maxBodyBytes: number };
+  /** The plan of a selection with `rowScope` applied, for `where` and `orderBy`: the filter of a bulk write over the selected rows. */
+  selectionPlan(input: unknown, ...opts: CallArgs<TContext>): RowsPlan;
   capabilities: AdapterCapabilities;
 }
 
@@ -142,10 +152,15 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
     const scope = scoped(callOptions);
     return scope ? { ...plan, where: combine("and", [plan.where, scope]) } : plan;
   };
-  const parse = (input: unknown, callOptions?: { context?: unknown }): RowsPlan => {
-    const plan = deepFreeze(withScope(parseQuery(input, { columns, request: "rows", rowCount, limits, timeZone }), callOptions));
+  const register = (plan: RowsPlan): RowsPlan => {
     internal.set(plan, deepFreeze(clone(plan)));
     return plan;
+  };
+  const parse = (input: unknown, callOptions?: { context?: unknown }): RowsPlan =>
+    register(deepFreeze(withScope(parseQuery(input, { columns, request: "rows", rowCount, limits, timeZone }), callOptions)));
+  const parseSelected = (input: unknown, callOptions: { context?: unknown } | undefined) => {
+    const parsed = parseSelection(input, { columns, limits, timeZone });
+    return { include: parsed.include, plan: deepFreeze(withScope(parsed.plan, callOptions)) };
   };
   const trusted = (plan: RowsPlan): RowsPlan => {
     const known = internal.get(plan);
@@ -225,6 +240,25 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
     return out;
   };
 
+  const selection = async (input: unknown, callOptions?: { signal?: AbortSignal; context?: unknown }): Promise<SelectionAnswer<TRow>> => {
+    const { plan, include } = parseSelected(input, callOptions);
+    const signal = callOptions?.signal;
+    alive(signal);
+    if (!include) return { count: countOf(await executor.countRows(plan, signal)) ?? 0 };
+    const key = map.tieBreaker[0]!;
+    const projection = include === "ids" ? [key] : plan.projection;
+    const size = plan.rowRange.end - plan.rowRange.start;
+    const [rows, count] = await Promise.all([
+      executor.selectRows({ ...plan, projection }, { offset: plan.rowRange.start, limit: size + 1, signal }),
+      executor.countRows(plan, signal),
+    ]);
+    const page = rows.slice(0, size);
+    const answer: SelectionAnswer<TRow> = { count: countOf(count) ?? 0, hasMore: rows.length > size };
+    if (include === "ids") answer.ids = page.map((row) => toSafeText(serializeValue(Object.hasOwn(row, key.id) ? row[key.id] : null, key)));
+    else answer.rows = page.map((row) => serializeRow(row, projection) as TRow);
+    return answer;
+  };
+
   const validate = (input: unknown, callOptions?: { context?: unknown }): ValidatedChange<TWhere> => {
     const change = validateChange(input, { columns, limits, scope: scoped(callOptions) });
     const where = (predicate: Predicate) => executor.where({ where: predicate });
@@ -249,6 +283,8 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
     where: (plan: RowsPlan) => executor.where(trusted(plan)),
     orderBy: (plan: RowsPlan) => executor.orderBy(trusted(plan)),
     validateChange: validate,
+    selection: Object.assign(selection, { maxBodyBytes: SELECTION_MAX_BODY_BYTES }),
+    selectionPlan: (input: unknown, callOptions?: { context?: unknown }) => register(parseSelected(input, callOptions).plan),
     capabilities: executor.capabilities,
   } as unknown as GridQuery<TRow, TContext, TWhere, TOrder>;
 }

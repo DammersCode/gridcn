@@ -36,6 +36,8 @@ export type QueryLimits = {
   maxGroupKeyLength?: number;
   /** Most aggregate columns of one grouped request. Default 32. */
   maxGroupAggregates?: number;
+  /** Most entries of a selection's `ids` or `excludedIds`. Default 100000, the grid's cap on remembered rows. */
+  maxExcludedIds?: number;
 };
 
 export const DEFAULT_LIMITS = {
@@ -57,6 +59,7 @@ export const DEFAULT_LIMITS = {
   maxGroupLevels: 4,
   maxGroupKeyLength: 1024,
   maxGroupAggregates: 32,
+  maxExcludedIds: 100_000,
 } satisfies Required<QueryLimits>;
 
 export type ResolvedLimits = Readonly<Required<QueryLimits>>;
