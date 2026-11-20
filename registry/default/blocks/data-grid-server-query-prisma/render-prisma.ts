@@ -76,6 +76,9 @@ export function boundValues(node: unknown, inOr = false): number {
   return count;
 }
 
+/** The longest id list a statement of `provider` binds next to the take and skip reserve. */
+export const maxBoundIds = (provider: PrismaProvider): number => BIND_BUDGET[provider] - RESERVED_BINDS;
+
 /** Refuses a statement whose `where` binds more values than the provider takes: Prisma splits a plain `in` beyond it and merges wrong results. */
 export function assertBindBudget(where: unknown, provider: PrismaProvider, reserved = RESERVED_BINDS): void {
   if (boundValues(where) + reserved > BIND_BUDGET[provider]) throw new QueryError("limit-exceeded", []);
@@ -115,7 +118,7 @@ export function createPrismaRenderer(provider: PrismaProvider) {
   /** The field filter of a text test. On PostgreSQL every LIKE leaf and an insensitive `equals` (ILIKE) escape `%`, `_`, and `\`. */
   function textFilter(column: PlanColumn, mode: "contains" | "startsWith" | "endsWith" | "equals", text: string, caseSensitive: boolean): Record<string, unknown> {
     const like = LIKE_MODES.has(mode);
-    // An enum filter has no LIKE operators; LIKE on a `@db.Uuid` field is unverified on Prisma 7.
+    // The core refuses these from the capabilities; the throws keep a missed path from matching wrong rows.
     if (like && column.native !== undefined) throw unsupported(column);
     if (!pg) {
       // SQLite: LIKE is ASCII case-insensitive with no ESCAPE clause, `=` is case-sensitive, and `mode` is an unknown argument.

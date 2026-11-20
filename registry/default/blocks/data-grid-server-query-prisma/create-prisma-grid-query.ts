@@ -12,6 +12,7 @@ import {
   field,
   foldsEmptyText,
   isTextual,
+  maxBoundIds,
   or,
   own,
   toWhere,
@@ -92,9 +93,11 @@ function aggregateValues(found: unknown, columns: AggregatesPlan["columns"]): Ro
  * - Every statement counts its bound values and answers `limit-exceeded` past the provider budget (PostgreSQL 32,766,
  *   SQLite 999), because Prisma splits a plain `in` beyond it and merges wrong rows. On SQLite a selection of about 990
  *   ids or excluded ids is `limit-exceeded`. `where` also reserves one value per mapped column for the `data` of a write.
- * - `unsupported` where the object API has no exact form: on SQLite case-insensitive `equals` and set filters, and
- *   case-sensitive LIKE leaves; LIKE leaves on a native enum or uuid; set values of `time` columns and of text without
- *   `caseSensitive`; min, max, and count of text without `keepBlankText`; cursor sorts on `time` columns; custom operators.
+ * - Its `capabilities` refuse, before any call, what the object API has no exact form for (`unsupported`): on SQLite
+ *   case-insensitive `equals` and set filters, case-sensitive LIKE leaves, and excluded ids on a uuid key; LIKE leaves on
+ *   a native enum or uuid; set values of `time` columns and of text without `caseSensitive`, and a value query on a
+ *   non-text column; min, max, and count of text without `keepBlankText`; cursor sorts on `time` columns. A custom
+ *   operator throws at creation.
  * - On SQLite a `%` or `_` in a LIKE leaf is `unsupported-value`: SQLite LIKE has no ESCAPE clause there.
  * - Group child counts and group counts read one extra `groupBy` of at most `maxGroupRows` rows.
  *
@@ -144,7 +147,9 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
   };
 
   const capabilities: AdapterCapabilities = {
-    caseInsensitiveText: pg ? "native" : "ascii",
+    // SQLite: LIKE folds ASCII case and has no ESCAPE clause, `=` never folds, and `mode` is an unknown argument.
+    caseInsensitiveText: pg ? "native" : "like-only",
+    ...(pg ? {} : { caseSensitiveLike: false }),
     likeEscape: pg,
     literalAsterisk: true,
     nullsLast: pg ? "native" : "emulated",
@@ -153,6 +158,12 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
     localDayGrouping: false,
     // Prisma reads DateTime in milliseconds, so a microsecond key would not compare back equal.
     exactInstantKeys: false,
+    // An enum filter has no LIKE operators; LIKE on a `@db.Uuid` field is unverified on Prisma 7.
+    nativeLike: false,
+    // `groupBy` takes fields only, and the object API has no `NULLIF(col, '')`.
+    expressionValues: false,
+    blankTextAggregates: false,
+    maxBoundIds: maxBoundIds(provider),
   };
 
   return createGridQuery<TRow, TContext, PrismaWhere, PrismaOrderBy, string>({

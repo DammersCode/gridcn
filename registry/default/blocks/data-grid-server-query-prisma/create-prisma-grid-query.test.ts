@@ -213,6 +213,43 @@ describe("text leaves and LIKE wildcards", () => {
   });
 });
 
+describe("declines the core refuses from the capabilities, before any call", () => {
+  const failure = async (promise: Promise<unknown>) =>
+    promise.then(
+      () => "resolved",
+      (error: unknown) => (error instanceof QueryError ? [error.code, error.path] : String(error)),
+    );
+  const leafAt = (end: string) => ["spec", "filters", 0, end];
+
+  it("SQLite: case-insensitive equality, case-sensitive LIKE, LIKE wildcards, and an id list past maxBoundIds", async () => {
+    const { query, calls } = make("sqlite");
+    const rows = (spec: Record<string, unknown>) => failure(query.fetchRows(rowsRequest(spec), CONTEXT));
+    expect(await rows({ filters: [filter("name", "equals", "a")] })).toStrictEqual(["unsupported", leafAt("operator")]);
+    expect(await rows({ filters: [filter("name", "isNoneOf", ["a"])] })).toStrictEqual(["unsupported", leafAt("operator")]);
+    expect(await rows({ filters: [filter("code", "contains", "a")] })).toStrictEqual(["unsupported", leafAt("operator")]);
+    expect(await rows({ filters: [filter("name", "contains", "50%")] })).toStrictEqual(["unsupported-value", leafAt("value")]);
+    expect(await rows({ searchText: "a_b" })).toStrictEqual(["unsupported-value", ["spec", "searchText"]]);
+    expect(await failure(query.filterValues({ columnId: "tag", query: "%" }, CONTEXT))).toStrictEqual(["unsupported-value", ["query"]]);
+    expect(await failure(query.selection({ selection: { mode: "ids", ids: Array.from({ length: 998 }, (_, index) => String(index)) } }, CONTEXT))).toStrictEqual(["limit-exceeded", ["selection", "ids"]]);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("both providers: LIKE on native columns, expression values, and blank-folding text aggregates", async () => {
+    for (const provider of ["postgresql", "sqlite"] as const) {
+      const { query, calls } = make(provider);
+      expect(await failure(query.fetchRows(rowsRequest({ filters: [filter("uid", "contains", "a")] }), CONTEXT))).toStrictEqual(["unsupported", leafAt("operator")]);
+      expect(await failure(query.fetchRows(rowsRequest({ searchText: "a" }), CONTEXT))).toStrictEqual(["unsupported", ["spec", "searchText"]]);
+      expect(await failure(query.filterValues({ columnId: "stamp" }, CONTEXT))).toStrictEqual(["unsupported", ["columnId"]]);
+      expect(await failure(query.filterValues({ columnId: "name" }, CONTEXT))).toStrictEqual(["unsupported", ["columnId"]]);
+      expect(await failure(query.filterValues({ columnId: "qty", query: "1" }, CONTEXT))).toStrictEqual(["unsupported", ["query"]]);
+      expect(await failure(query.aggregates({ spec: {}, columnIds: ["name"] }, CONTEXT))).toStrictEqual(["unsupported", ["columnIds"]]);
+      const grouped = { spec: { groupBy: ["tag"], aggregates: [{ columnId: "name", reducer: "count" }] }, start: 0, end: 3 };
+      expect(await failure(query.fetchRows(grouped, CONTEXT))).toStrictEqual(["unsupported", ["spec", "aggregates", 0]]);
+      expect(calls).toHaveLength(0);
+    }
+  });
+});
+
 describe("constants, groups, and not", () => {
   it("never emits {} under OR, and renders FALSE as { OR: [] }", async () => {
     expect(await whereOf({ filters: [{ filters: [] }, filter("name", "contains", "")] })).toStrictEqual(SCOPE);
@@ -290,7 +327,7 @@ describe("id lists and the bound-parameter budget", () => {
     const { model, calls } = fake();
     const query = createPrismaGridQuery({ model, provider: "sqlite", columns: uuidColumns });
     const excluded = { selection: { mode: "allMatching", ids: [], excludedIds: ["00000000-0000-0000-0000-00000000000A"], spec: {} } };
-    expect(await codeOf(query.selection(excluded))).toBe("unsupported");
+    await expect(query.selection(excluded)).rejects.toMatchObject({ code: "unsupported", path: ["selection", "excludedIds"] });
     expect(calls).toHaveLength(0);
   });
 });
@@ -474,7 +511,8 @@ describe("hostile keys and creation", () => {
   });
 
   it("states honest capabilities per provider", () => {
-    expect(make("postgresql").query.capabilities).toStrictEqual({ caseInsensitiveText: "native", likeEscape: true, literalAsterisk: true, nullsLast: "native", aggregates: true, groupBy: true, localDayGrouping: false, exactInstantKeys: false });
-    expect(make("sqlite").query.capabilities).toMatchObject({ caseInsensitiveText: "ascii", likeEscape: false, nullsLast: "emulated" });
+    const both = { literalAsterisk: true, aggregates: true, groupBy: true, localDayGrouping: false, exactInstantKeys: false, nativeLike: false, expressionValues: false, blankTextAggregates: false };
+    expect(make("postgresql").query.capabilities).toStrictEqual({ ...both, caseInsensitiveText: "native", likeEscape: true, nullsLast: "native", maxBoundIds: 32_764 });
+    expect(make("sqlite").query.capabilities).toStrictEqual({ ...both, caseInsensitiveText: "like-only", caseSensitiveLike: false, likeEscape: false, nullsLast: "emulated", maxBoundIds: 997 });
   });
 });
