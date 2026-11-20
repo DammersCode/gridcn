@@ -171,3 +171,10 @@ mirror the change there.
 | row scope | `rowScope`: equalities on `serverOnly` columns that every query of a factory adds with AND, such as the tenant. | tenant filter |
 | blank operand | The empty value (`""`, `["", ""]`, `[]`) of a filter row that the user has not filled in. The query layer gives it the meaning the grid gives it. | empty value |
 | native fragment | A piece of SQL in the type of one ORM, such as the `sql` fragment of Drizzle. `where(plan)`, `orderBy(plan)`, and `customOperators` use it. | |
+| keyset cursor | The opaque string of key texts and a plan hash that resumes a page after the last row. | offset cursor |
+| resume predicate | The OR form that selects the rows after a keyset cursor's row. | |
+| plan hash | The digest of a parsed plan's filter and order. A keyset cursor with another plan hash is stale. | |
+| key test | The `key` test: a raw comparison in the sort order of the database. | |
+| id list test | The `ids` test: exact primary-key membership, bound as one parameter. | |
+| validated change | What `validateChange` returns: the writes with scoped `where`s, and the refusals. | |
+| write refusal | One refused row or cell of a validated change, in the shape of a `SaveRejection`. | |
