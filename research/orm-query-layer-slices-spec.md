@@ -6,13 +6,13 @@ Status: decided, not built. Input: `research/orm-query-layer-spec.md`, the code 
 
 **Goal.** `paging: "cursor"` gives keyset pages with no count.
 
-**Wire shape.** Request: the rows request; `cursor` is the position, `end - start` the limit. Answer: `{ rows, hasMore, nextCursor }`, no `totalRowCount`. `RowsAnswer` and `GridQuery` gain a last generic `TCursor = never`; cursor factories set `string`. Cursor: base64url JSON `[1, hash, ...keyTexts]`.
+**Wire shape.** Request: the rows request; `cursor` is the position, `end - start` the limit. A request with `cursor` reads from the cursor's row at offset 0 and skips `maxOffset` (its `start` only counts loaded rows); a request without one reads from `start`. Answer: `{ rows, hasMore, nextCursor }`, no `totalRowCount`, no count query; `nextCursor` is `null` at the end. `RowsAnswer` and `GridQuery` gain a last generic `TCursor = never`; cursor factories (`paging: "cursor"`, an adapter overload) set `string`. Cursor: base64url JSON `[1, hash, ...keyTexts]`, one text or `null` per order term.
 
-**Rendering rule.** Terms t1..tn, tn the tie-breaker. Resume = OR of (same(t1..ti-1) AND after(ti)); after = `false` for NULL, else `key gt` (asc) or `key lt` (desc) OR `key null`; same = `key eq`, or `key null`. Only the `selectRows` plan gets it. `key` drops `cmp`'s `col <> ''`, which skips `''` rows descending. Hash: FNV-1a 64 of the parsed `where` and `orderBy` (staleness only).
+**Rendering rule.** Terms t1..tn, tn the tie-breaker. Resume = OR of (same(t1..ti-1) AND after(ti)); after = `false` for NULL, else `key gt` (asc) or `key lt` (desc) OR `key null` (the `key null` drops out on a `required` or tie-breaker column); same = `key eq`, or `key null`. Only the `selectRows` plan gets it. `key` drops `cmp`'s `col <> ''`, which skips `''` rows descending. Hash: FNV-1a 64 of the parsed `where` and `orderBy` before `rowScope` (staleness only; a scoped hash would hand the client a digest of a `serverOnly` value). A key text is the stored text or number digits; a `time` key is the `keyText` (`{ column, as }` entries, `as` an alias no column id takes), parsed with an instant grammar of at most six fraction digits and compared as sent; an epoch `time` key travels as its `toISOString` text. Before it answers, the layer decodes its own `nextCursor`; a key the cursor cannot carry (stored text over `maxLength`, a number over `maxNumberLength`) is `limit-exceeded`.
 
 No HMAC: the cursor holds only values the client could send as filters; columns come from the sort and the allow-list, values bind, `rowScope` applies.
 
-**Limits and untrusted-input bounds.** `maxCursorBytes` 512, before decoding. Creation throws for a sortable text column without `maxLength` or whose worst case (`6 × maxLength`) exceeds the cap; a multi-key sort over it is `limit-exceeded`.
+**Limits and untrusted-input bounds.** `maxCursorBytes` 2,048 (a `QueryLimits` field; #98 says 512, which fits one text key of `maxLength` 55 next to an `int8` key, too few for names and titles), checked on the string length before base64 and `JSON.parse`. The decoder then needs the exact array length, the version, the hash, and one key per term parsed by the column's physical type (`keyOperand`; a native enum also needs a choice, text at most `maxLength`). Creation throws for a sortable text column without `maxLength` (the error names the column and both remedies: set `maxLength`, or `sortable: false`) and for a single-key sort whose worst encoded cursor (`6 × maxLength` JSON bytes, then base64) exceeds the cap; a multi-key sort over the cap is `limit-exceeded`.
 
 **Client and server mode behavior.** Sequential scroll and cursor pages; other modes use offset. Local: n/a. A spec change resets the chain. Grouped requests are `unsupported`.
 
@@ -110,7 +110,7 @@ Source: `.crew/rounds/prisma-spike.md`. The Prisma walker follows these rules:
 
 ## Open points
 
-- 512 bytes fit one text sort key of `maxLength` 55 next to an `int8` key; propose a 2,048 default.
+- The grid keys a cursor of over 1,017 characters for its repeat check by `Object.is` only (`MAX_CURSOR_KEY_LENGTH` 1,024 in `scroll-sequence.ts`); a 2,048-byte cursor works, it only skips that memo.
 - Prisma `DateTime` is milliseconds by default; allow `time` keys on `timestamp(3)` columns with a column flag?
 - A deploy that changes the plan makes `bad-cursor` repeat on `refresh` until the spec changes; the grid has no cursor reset.
 - `float` cannot tell `real` from `double precision`; a value beyond `real` range fails in the database.
