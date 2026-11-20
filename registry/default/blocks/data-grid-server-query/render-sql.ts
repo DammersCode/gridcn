@@ -95,7 +95,8 @@ export function createSqlRenderer<S>(a: SqlAlgebra<S>, customHandlers: ReadonlyM
   /** One bound list: a PostgreSQL array cast to the key type, a JSON array text on SQLite. */
   function idList(column: PlanColumn, t: Extract<Test, { k: "ids" }>): S {
     if (!pg) {
-      const json = `[${t.values.map((value) => (value.kind === "text" ? JSON.stringify(value.v) : idText(value))).join(",")}]`;
+      // A decimal stays a JSON string: the column's affinity then converts it, where a JSON number never matches a text column.
+      const json = `[${t.values.map((value) => (value.kind === "bigint" ? idText(value) : JSON.stringify(idText(value)))).join(",")}]`;
       return cat(ref(column), raw(t.negate ? " NOT IN " : " IN "), raw("(SELECT value FROM json_each("), param(json), raw("))"));
     }
     const type = column.kind === "number" ? PG_ARRAY_TYPES.get(column.numeric!)! : column.native === "uuid" ? "uuid[]" : "text[]";

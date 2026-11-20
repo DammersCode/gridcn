@@ -58,14 +58,23 @@ const toPg = (sql: string): string => {
   return sql.replace(/\?/g, () => `$${++index}`);
 };
 
+const UID = "0f8fad5b-d9cb-469f-a165-70867728950e";
+const ROWS = [
+  [1, "a", "1.25", UID],
+  [2, "__proto__", "2", null],
+  [3, "constructor", null, null],
+  [BigInt("9223372036854775807"), "max", null, null],
+] as const;
+
 describe("ids test on the engines", () => {
   const sqliteDb = new Database(":memory:");
   const pgDb = new PGlite();
   beforeAll(async () => {
-    sqliteDb.exec(`CREATE TABLE items ("id" integer PRIMARY KEY, "code" text NOT NULL)`);
-    const insert = sqliteDb.prepare(`INSERT INTO items VALUES (?, ?)`);
-    for (const [id, code] of [[1, "a"], [2, "__proto__"], [3, "constructor"], [BigInt("9223372036854775807"), "max"]] as const) insert.run(id, code);
-    await pgDb.exec(`CREATE TABLE items ("id" int8 PRIMARY KEY, "code" text NOT NULL); INSERT INTO items VALUES (1, 'a'), (2, '__proto__'), (3, 'constructor'), (9223372036854775807, 'max')`);
+    sqliteDb.exec(`CREATE TABLE items ("id" integer PRIMARY KEY, "code" text NOT NULL, "price" text, "uid" text)`);
+    const insert = sqliteDb.prepare(`INSERT INTO items VALUES (?, ?, ?, ?)`);
+    for (const [id, code, price, uid] of ROWS) insert.run(id, code, price, uid);
+    await pgDb.exec(`CREATE TABLE items ("id" int8 PRIMARY KEY, "code" text NOT NULL, "price" numeric, "uid" uuid)`);
+    for (const [id, code, price, uid] of ROWS) await pgDb.query(`INSERT INTO items VALUES ($1, $2, $3, $4)`, [id.toString(), code, price, uid]);
   });
   afterAll(async () => {
     sqliteDb.close();
@@ -76,6 +85,8 @@ describe("ids test on the engines", () => {
     { name: "int8 ids with the max key", where: ids("id", [big("2"), big("9223372036854775807"), ...Array.from({ length: MANY }, (_, i) => big(String(1000 + i)))]), expected: ["__proto__", "max"] },
     { name: "excluded int8 ids", where: ids("id", [big("1"), big("9223372036854775807")], true), expected: ["__proto__", "constructor"] },
     { name: "text ids", where: { t: "leaf", column: column("code"), test: { k: "ids", values: [{ kind: "text", v: "__proto__" }, { kind: "text", v: "constructor" }], negate: false } }, expected: ["__proto__", "constructor"] },
+    { name: "decimal ids", where: ids("price", [{ kind: "number", v: "1.25" }, { kind: "number", v: "2" }]), expected: ["a", "__proto__"] },
+    { name: "uuid ids", where: ids("uid", [{ kind: "text", v: UID }]), expected: ["a"] },
   ];
 
   it.each(cases)("SQLite: $name", ({ where, expected }) => {
