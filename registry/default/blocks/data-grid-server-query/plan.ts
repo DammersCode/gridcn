@@ -14,7 +14,9 @@ export type Test =
   | { k: "blank"; negate: boolean }
   | { k: "custom"; id: string; value: unknown }
   /** Exact primary-key membership, the whole list bound as one parameter; a number or text key, never an empty list. */
-  | { k: "ids"; values: readonly Operand[]; negate: boolean };
+  | { k: "ids"; values: readonly Operand[]; negate: boolean }
+  /** A raw comparison in the database's sort order, with no blank guard: `gt`, `lt`, and `eq` carry `value`; `null` is `IS NULL`. */
+  | { k: "key"; op: "gt" | "lt" | "eq" | "null"; value?: Operand };
 
 export type Predicate =
   | { t: "true" }
@@ -33,6 +35,8 @@ export type RowsPlan = {
   rowRange: { start: number; end: number };
   runCount: boolean;
   projection: readonly PlanColumn[];
+  /** Cursor pages: `selectRows` also reads each `time` key as exact text under `as`, an alias no column id takes. */
+  keyText?: readonly { column: PlanColumn; as: string }[];
 };
 export type ValuesPlan = { kind: "values"; where: Predicate; column: PlanColumn; query: string };
 export type AggregatesPlan = { kind: "aggregates"; where: Predicate; columns: readonly { column: PlanColumn; reducer: AggregateReducer }[] };

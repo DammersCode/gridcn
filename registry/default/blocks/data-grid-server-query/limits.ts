@@ -40,6 +40,8 @@ export type QueryLimits = {
   maxGroupAggregates?: number;
   /** Most entries of a selection's `ids` or `excludedIds`. Default 200000: the grid's 100,000 remembered rows plus 100,000 loaded ones. */
   maxSelectionIds?: number;
+  /** Longest `cursor` text of a cursor request, checked before it decodes. Default 2048. */
+  maxCursorBytes?: number;
 };
 
 export const DEFAULT_LIMITS = {
@@ -64,6 +66,7 @@ export const DEFAULT_LIMITS = {
   maxGroupAggregates: 32,
   // The grid's remembered-row cap plus 100,000 loaded rows; `maxLoadedRows` has no hard maximum.
   maxSelectionIds: 200_000,
+  maxCursorBytes: 2048,
 } satisfies Required<QueryLimits>;
 
 export type ResolvedLimits = Readonly<Required<QueryLimits>>;
