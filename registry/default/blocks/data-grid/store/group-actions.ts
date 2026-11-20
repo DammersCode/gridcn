@@ -96,6 +96,7 @@ export function createGroupActions({ set, get, dataWrite, followView, memory }: 
     setExpanded: commitExpanded,
     toggleGroup(groupId) {
       const s = get();
+      if (s.pivot) return;
       const node = s.groupLayout?.rows.find((row) => row.id === groupId);
       const opens = !expandedTest(s.expanded)(groupId);
       const next = toggleExpanded(s.expanded, groupId);

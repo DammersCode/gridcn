@@ -18,6 +18,7 @@ import { COLUMN_WIDTH_STEP, shownColumnWidth } from "../columns/column-step";
 import { rowOperationTargets } from "../store/row-operation-targets";
 import { isReorderMarkerMode } from "../rows/marker-width";
 import { dataIndexAt } from "../store/view-rows";
+import { isPivotColumn, pivotCellAt } from "../store/pivot-view";
 import { groupRowMetaAt } from "../store/group-positions";
 
 const warnedMissingTriggers = new WeakMap<object, Set<string>>();
@@ -473,6 +474,7 @@ export function jumpToDataBoundary(state: DataGridStoreState, active: ViewCoord,
   const isEmptyAt = (coord: ViewCoord): boolean => {
     const column = state.visibleColumns[coord.col];
     if (!column) return true;
+    if (isPivotColumn(column)) return pivotCellAt(state, coord.row, column) === null;
     const dataRowIndex = dataIndexAt(state, coord.row);
     const row = dataRowIndex === undefined ? undefined : state.data[dataRowIndex];
     if (row === undefined) return true;

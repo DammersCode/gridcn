@@ -52,6 +52,7 @@ import { forgetDeferredRows, resetDeferredRows } from "./data-write";
 import { clearStaleRows, pruneStaleRows, serverSpecChanged, staleStateAfterPrune } from "./server-stale";
 import { mergePluginCommands, mergePluginKeymaps, pluginsListEqual, resolvePluginsList, warnPluginComponentRemounts } from "./plugins";
 import { resolveSelectionState, selectionStatesEqual, type ResolveWarnFlag } from "./selection-state";
+import { pivotWidthsOf, type PivotView } from "./pivot-view";
 import type { AnyColumnDef, DataGridStoreState, InternalSyncProps, ResolvedPlugins, SyncInputs } from "./types";
 import { syncInputsEqual } from "./types";
 import { checkSortLocale, DEFAULT_SORT_LOCALE } from "../sort-filter/sort-collator";
@@ -174,7 +175,8 @@ export type SyncPhaseDeps = {
   warnGroupIssues: (model: ColumnGroupModel | null) => void;
   completeColumnOrder: (columns: readonly AnyColumnDef[], order: readonly string[] | null) => ReturnType<typeof completeColumnOrderBase>;
   computeColumnLayout: (columns: readonly AnyColumnDef[], order: string[] | null, widths: Record<string, number>, hidden: readonly string[]) => ReturnType<typeof computeColumnLayoutBase>;
-  computeVisibleColumns: (columns: readonly AnyColumnDef[], order: string[] | null, hidden: readonly string[]) => ReturnType<typeof computeVisibleColumnsBase>;
+  computeVisibleColumns: (columns: readonly AnyColumnDef[], order: string[] | null, hidden: readonly string[], pivot: PivotView | null, groupBy: readonly string[]) => ReturnType<typeof computeVisibleColumnsBase>;
+  pivotOf: (layout: DataGridStoreState["serverGroupLayout"], columns: readonly AnyColumnDef[], labels: DataGridStoreState["labels"]) => PivotView | null;
   normalizeColumnLayout: (columns: readonly AnyColumnDef[], parts: ColumnLayoutParts, hidden: string[]) => ReturnType<typeof normalizeColumnLayoutBase>;
 };
 
@@ -188,7 +190,7 @@ export type FollowView = (
 ) => Partial<DataGridStoreState>;
 
 export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], get: StoreApi<DataGridStoreState>["getState"], api: StoreApi<DataGridStoreState>, memory: SyncMemory, deps: SyncPhaseDeps) {
-  const { dataWrite, rowIndexCache, rowValidation, followView, announceChecked, mergeLabels, pluginWarnOnce, warnStoreOnce, warnHiddenCheckedIgnored, warnedControlledSelection, warnGroupIssues, completeColumnOrder, computeColumnLayout, computeVisibleColumns, normalizeColumnLayout } = deps;
+  const { dataWrite, rowIndexCache, rowValidation, followView, announceChecked, mergeLabels, pluginWarnOnce, warnStoreOnce, warnHiddenCheckedIgnored, warnedControlledSelection, warnGroupIssues, completeColumnOrder, computeColumnLayout, computeVisibleColumns, pivotOf, normalizeColumnLayout } = deps;
   return {
     syncConfig(props: InternalSyncProps): void {
       if (props.commands && !memory.warnedCommandShadow && isDev()) {
@@ -242,6 +244,8 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
       }
       set((s) => {
         const selectionConfig = resolveSelectionConfig(props);
+        const labels = mergeLabels(props.labels, props.locale ?? DEFAULT_LOCALE);
+        const pivot = s.pivot && labels !== s.labels ? pivotOf(s.serverGroupLayout, s.columns, labels) : s.pivot;
         if (props.checkedRowsLifetime === "across-filters" && selectionConfig.totalRowCount === undefined && (s.sortMode === "server" || s.filterMode === "server")) {
           warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
         }
@@ -268,7 +272,8 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           resolveSaveConflict: props.resolveSaveConflict,
           fetchFilterValues: props.fetchFilterValues,
           locale: props.locale ?? DEFAULT_LOCALE,
-          labels: mergeLabels(props.labels, props.locale ?? DEFAULT_LOCALE),
+          labels,
+          ...(pivot === s.pivot ? null : { pivot, visibleColumns: computeVisibleColumns(s.columns, s.columnOrder, s.hiddenColumns, pivot, s.groupBy) }),
           plugins: nextPlugins ?? s.plugins,
           commands: commandsUpdated ? nextCommands : s.commands,
           autosizeOnMount: props.autosizeOnMount,
@@ -418,7 +423,8 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
         const unchanged = syncInputsEqual(nextSyncInputs, memory.lastSyncInputs) || echoOnly;
         memory.lastSyncInputs = nextSyncInputs;
 
-        const nextVisibleColumns = unchanged ? s.visibleColumns : computeVisibleColumns(nextColumns, s.columnOrder, nextHiddenColumns);
+        const nextPivot = unchanged ? s.pivot : pivotOf(nextServerLayout, nextColumns, s.labels);
+        const nextVisibleColumns = unchanged ? s.visibleColumns : computeVisibleColumns(nextColumns, s.columnOrder, nextHiddenColumns, nextPivot, nextGroup.groupBy);
         const nextViewIndex = unchanged
           ? s.viewIndex
           : computeViewIndex(nextData, nextColumns, nextViewSorts, viewFilters(nextFilterMode, nextFilterState, nextFilterJoin), s.viewIndex, nextCellTypes, nextPageSize === null ? null : { page: nextPage, pageSize: nextPageSize }, nextSortLocale, groupingOf({ ...nextGroup, groupMode: nextGroupMode, serverGroupLayout: nextServerLayout, totalRowCount: s.totalRowCount, sortMode: nextSortMode, dataWrite: s.dataWrite }));
@@ -452,7 +458,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
                 columnWidths: normalized.columnWidths,
                 columnOrder: normalized.columnOrder,
                 hiddenColumns: normalized.hiddenColumns,
-                visibleColumns: computeVisibleColumns(normalized.columns, normalized.columnOrder, normalized.hiddenColumns),
+                visibleColumns: computeVisibleColumns(normalized.columns, normalized.columnOrder, normalized.hiddenColumns, nextPivot, nextGroup.groupBy),
                 columnLayout: snapshot,
               };
             }
@@ -536,7 +542,8 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           hiddenColumns: layoutApply?.hiddenColumns ?? nextHiddenColumns,
           cellTypes: nextCellTypes,
           visibleColumns: finalVisibleColumns,
-          columnWidths: layoutApply?.columnWidths ?? s.columnWidths,
+          pivot: nextPivot,
+          columnWidths: layoutApply?.columnWidths ? { ...layoutApply.columnWidths, ...pivotWidthsOf(s.columnWidths, nextPivot) } : s.columnWidths,
           columnOrder: layoutApply?.columnOrder ?? (groupsChanged && s.columnOrder ? completeColumnOrder(nextColumns, s.columnOrder) : s.columnOrder),
           columnGroupModel: memory.groupModel,
           // A `columns` or group swap re-seeds the snapshot even uncontrolled.

@@ -1,4 +1,5 @@
 import type { ServerAggregate } from "./server-spec";
+import type { PivotView } from "./store/pivot-view";
 
 /** The stored value a row group shares; `null` is the empty group (`null`, `undefined`, and `""`). */
 export type GroupKey = string | number | boolean | null;
@@ -24,6 +25,8 @@ export type GroupNode = {
   readonly childCount: number;
   /** One value per `aggregate` column; `null` when no value counted. */
   readonly aggregates: Readonly<Record<string, unknown>>;
+  /** Under pivot: the slot's pivot cells, in held order; `NaN` when no value counted. */
+  readonly pivotCells?: Float64Array;
   /** A server group whose rows load or failed to load. */
   readonly status?: "loading" | "failed";
 };
@@ -117,6 +120,8 @@ export type GroupStoreState = {
   groupMode: "client" | "server";
   /** The `groupLayout` prop as given; `groupLayout` above is the layout the core derived from it. */
   serverGroupLayout: ServerGroupLayout | null;
+  /** @internal Under pivot: the generated columns of the held set (`serverGroupLayout.pivot`); `null` otherwise. */
+  pivot: PivotView | null;
   /** Whether a grouping prop was given: the menus and keys show only then. */
   groupingEnabled: boolean;
   groupByControlled: boolean;

@@ -17,6 +17,7 @@ import { offersSetFilter } from "./cell-types/capabilities";
 import { warnDev } from "./is-dev";
 import { columnHeaderText, columnLabelText as headerLabelText } from "./columns/column-format-helpers";
 import { gridAttrSelector } from "./data-attributes";
+import { isPivotColumn } from "./store/pivot-view";
 
 const INTERACTIVE_CONTENT = 'button, a, input, select, textarea, [role="button"], [contenteditable]:not([contenteditable="false"])';
 
@@ -204,6 +205,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
         </span>
       )}
       {renderHeaderMenu &&
+        !isPivotColumn(column) &&
         renderHeaderMenu({
           column,
           index,
@@ -230,7 +232,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
       role="columnheader"
       aria-colindex={index + 1}
       aria-rowspan={rowSpan > 1 ? rowSpan : undefined}
-      aria-label={typeof column.header === "string" ? undefined : headerLabelText(column)}
+      aria-label={isPivotColumn(column) ? column.pivotLabel : typeof column.header === "string" ? undefined : headerLabelText(column)}
       // sort state is announced to AT in every click behavior
       aria-sort={column.sortable !== false || sorted ? ariaSortFor(column.id, sortState) : undefined}
       data-column-id={column.id}

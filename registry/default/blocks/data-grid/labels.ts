@@ -231,6 +231,18 @@ export type DataGridGroupingLabels = {
   tooManyOpen: string;
 };
 
+/** Server pivot strings: the headers of the generated columns and the note on cut columns. */
+export type DataGridPivotLabels = {
+  /** Header of the empty pivot key. */
+  empty: string;
+  /** Header of one value, such as "Sum of Amount"; `column` is the value column's label. */
+  value: (reducer: "sum" | "avg" | "min" | "max" | "count", column: string) => string;
+  /** Accessible name of one generated column, such as "2025, Sum of Amount". */
+  columnName: (key: string, value: string) => string;
+  /** Note below the grid when the server or the grid cut `count` generated columns. */
+  moreColumns: (count: number) => string;
+};
+
 /** Row-marker column strings (select-all header checkbox, per-row checkbox, reorder handle). */
 export type DataGridMarkerLabels = {
   /** Accessible name of the marker column header. */
@@ -553,6 +565,7 @@ export interface DataGridLabels {
   keybindings: DataGridKeybindingsLabels;
   markers: DataGridMarkerLabels;
   grouping: DataGridGroupingLabels;
+  pivot: DataGridPivotLabels;
   grid: DataGridGridLabels;
   io: DataGridIOLabels;
   pagination: DataGridPaginationLabels;

@@ -30,7 +30,6 @@ import {
   useDataGridStore,
   useDataGridStoreApi,
   useDataGridVisibleColumns,
-  useDataGridColumnGroupModel,
 } from "./store";
 import { useElementDimensions, useViewportElement } from "./virtualization/use-scroll-snapshot";
 import { directionSign, readResolvedDirection, type GridDirection } from "./virtualization/direction";
@@ -60,6 +59,8 @@ import { useClassNameRevision, type RenderedRows } from "./rows/use-class-name-r
 import { useLatestRenderer } from "./rows/use-latest-renderer";
 import { GRID_ATTR, gridAttrSelector } from "./data-attributes";
 import { closestGridRoot } from "./interaction/closest-grid-root";
+import { ErrorBar } from "./error-bar";
+import { DataGridPivotNote, useHeaderGroupModel, usePivotNoteId } from "./pivot-note";
 
 // The item's cssVars theme this token on CLI install; the fallback covers a manual copy without them.
 const PIN_SHADOW = "var(--grid-pin-shadow, oklch(0 0 0 / 10%))";
@@ -267,7 +268,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   }, [directionProp]);
   const direction = directionProp ?? domDirection;
   const visibleColumns = useDataGridVisibleColumns();
-  const columnGroupModel = useDataGridColumnGroupModel();
+  const columnGroupModel = useHeaderGroupModel();
   const headerRows = useMemo(() => computeHeaderRows(visibleColumns, columnGroupModel), [visibleColumns, columnGroupModel]);
   const headerRowCount = headerRows.length + 1;
   const headerHeight = headerRowHeight * headerRowCount;
@@ -279,6 +280,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
   const hasError = error !== undefined && error !== null;
   // labels.grid.emptyState is the translatable default; the emptyState prop (node or function) still wins when provided.
   const gridLabels = useDataGridLabels().grid;
+  const pivotNoteId = usePivotNoteId();
   const emptyReason: EmptyStateReason = dataLength === 0 && !serverFiltered ? "no-data" : "filtered";
   const emptyStateLabel = emptyReason === "filtered" ? gridLabels.noResults : gridLabels.emptyState;
   useLoadAnnouncement(loading, error);
@@ -598,6 +600,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
         role={grouped ? "treegrid" : "grid"}
         aria-label={ariaLabel ?? (ariaLabelledBy ? undefined : gridLabels.gridName)}
         aria-labelledby={ariaLabelledBy}
+        aria-describedby={pivotNoteId}
         dir={direction}
         {...{ [GRID_ATTR.instance]: instanceId }}
         // Roving-tabindex bootstrap (WAI-ARIA APG grid pattern): before any cell has been made
@@ -803,27 +806,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
         </div>
       </div>
       {loading && loadingState === undefined && <DataGridLoadingProgress ariaLabel={gridLabels.loading} />}
+      {pivotNoteId && <DataGridPivotNote id={pivotNoteId} />}
     </DataGridRootContext>
     </DirectionProvider>
-  );
-}
-
-/** The error bar unmounts with a focused control inside it; focus moves to the grid unless the user moved it elsewhere. */
-function ErrorBar({ focusGrid, className, style, children }: { focusGrid: () => void; className: string; style: CSSProperties; children: ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const latest = useRef(focusGrid);
-  useLayoutEffect(() => {
-    latest.current = focusGrid;
-  });
-  useLayoutEffect(
-    () => () => {
-      if (ref.current !== null && ref.current.contains(document.activeElement)) latest.current();
-    },
-    [],
-  );
-  return (
-    <div ref={ref} data-grid-error-state="" role="alert" className={className} style={style}>
-      {children}
-    </div>
   );
 }

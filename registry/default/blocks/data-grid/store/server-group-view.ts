@@ -65,6 +65,7 @@ function lay(layout: ServerGroupLayout, dataLength: number, groupBy: readonly st
       count: slot.count,
       childCount: slot.childCount,
       aggregates: readAggregates(slot.aggregates),
+      ...(slot.pivotCells instanceof Float64Array ? { pivotCells: slot.pivotCells } : null),
       ...(slot.status === "loading" || slot.status === "failed" ? { status: slot.status } : null),
     });
   }
