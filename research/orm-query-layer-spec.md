@@ -1,6 +1,6 @@
 # Spec: server query layer and ORM adapters (issue #38)
 
-Status: the 2.0 cut is implemented (core, Drizzle, Kysely, offset paging, filter values, flat aggregates). See "Implementation status" at the end for what differs from the text below. Prisma, Supabase, cursor paging, grouping, selection, and write validation are not built.
+Status: the 2.0 cut is implemented (core, Drizzle, Kysely, offset paging, filter values, flat aggregates). See "Implementation status" at the end for what differs from the text below. The Prisma and Supabase adapters, cursor paging, grouping, selection, and write validation followed; pivot is not built.
 Input: `research/orm-query-layer-research.md` (SQL semantics, per-ORM primitives, verified probes). Contracts read in the sibling worktrees: lazy paging and server rows, filters, aggregates and lookup, specs and views, write path.
 
 ## Goal
@@ -308,7 +308,7 @@ Follows `research/docs-navigation-ruleset.md`, which exists only on `claude/clev
 - Five new items and the demo item in `registry.json`; `components/registry-examples.tsx`; rebuild `public/r/*` for the new items only. The registry entries and the payload rebuild (`pnpm registry:build`, EOL normalization, `registry:verify`) are append-only and land in the same commits as the folders (B1 and B2 included), because `verify-import-boundaries` builds its allowed barrels from `registry.json` and `verify-registry` lists every non-test file of an item folder.
 - Gates per AGENTS.md: `pnpm registry:build`, `node scripts/normalize-payload-eol.mjs`, `git add public/r`, `pnpm registry:verify`, `pnpm test:e2e-install`.
 - A rule in `scripts/verify-source-rules.mjs` bans ORM imports in the core folder.
-- `pnpm-workspace.yaml` `onlyBuiltDependencies` gains `better-sqlite3` and the Prisma engines (pnpm 10 blocks install scripts), and the `unit` and `unit-compiled` projects (`tests/**/*.test.{ts,tsx}`) both exclude `tests/server-query`, which only the `conformance` project runs. Also edited: `.github/workflows/ci.yml` (the conformance step), `.gitignore` (the generated Prisma client), and the tsconfigs, so `pnpm types:check` and `lint:typed` need no generated Prisma client in a fresh clone.
+- `pnpm-workspace.yaml` overrides the `better-sqlite3` of `@prisma/adapter-better-sqlite3` to 13.0.3, which ships prebuilt binaries, so `onlyBuiltDependencies` needs no entry; the `unit` and `unit-compiled` projects (`tests/**/*.test.{ts,tsx}`) both exclude `tests/server-query`, which only the `conformance` project runs. Also edited: `.github/workflows/ci.yml` (the conformance step), `.gitignore` (the generated Prisma client), and the tsconfigs, so `pnpm types:check` and `lint:typed` need no generated Prisma client in a fresh clone.
 - Repo `devDependencies` (not shipped), reason for the commit message: the conformance suite must run real engines. `drizzle-orm`, `kysely`, `@prisma/client`, `prisma` (CLI), `@prisma/adapter-pg`, `@prisma/adapter-better-sqlite3`, `@supabase/supabase-js`, `@electric-sql/pglite`, `@electric-sql/pglite-socket`, `better-sqlite3`.
 
 ## Timing: what the layer needs from other branches
@@ -404,4 +404,4 @@ The 2.0 cut was built on the 2.0 branch, where the dependencies of the Timing ta
 - **Conformance.** `tests/server-query/` runs Drizzle and Kysely on SQLite and PGlite (4 combinations, 183 cases each): the client filter engine is the oracle for the parity-safe cases, and the documented differences carry explicit expected ids. Kysely 0.29 ships `PGliteDialect`.
 - **Docs.** The feature page is `(server)/data-modes/query-layer.mdx`, the reference is `(reference)/contracts/query-layer-reference.mdx`, the demo page is `(examples)/server-data-examples/orm-examples/query-layer-example.mdx`, and the Drizzle example now uses the adapter. The Server group of the later navigation migration moves these pages without changing their content.
 - **Demo.** PGlite loads in the Next client bundle (checked in the dev server). The demo restarts its grid when the hostile-value switch changes, so the first block carries the new filter.
-- **Open for later work:** the Prisma and Supabase adapters (B5, B6), cursor paging, grouping and pivot, selection over a result, and write validation (B7).
+- **Open for later work:** pivot.

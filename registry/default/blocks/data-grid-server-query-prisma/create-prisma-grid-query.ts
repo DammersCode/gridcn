@@ -41,7 +41,7 @@ export type PrismaGridQueryOptions<TContext = never> = {
   limits?: QueryLimits;
   /** IANA zone or fixed offset of day filters on `time` columns. Default `"UTC"`. */
   timeZone?: string;
-  /** `"cursor"` pages `fetchRows` by keyset cursors and never counts; every sortable text column then needs `maxLength`. Default `"offset"`. */
+  /** `"cursor"` pages `fetchRows` by keyset cursors and never counts; every sortable text column then needs `maxLength`, and a sortable native enum throws at creation. Default `"offset"`. */
   paging?: "offset" | "cursor";
   /** Most rows of the `groupBy` that counts a level's groups or a page's child groups; more is `limit-exceeded`. Default 10,000. */
   maxGroupRows?: number;
@@ -61,9 +61,10 @@ function padToScale(text: string, scale: number | undefined): string {
   return `${text}${dot === -1 ? "." : ""}${"0".repeat(scale - places)}`;
 }
 
-/** A Prisma value in the form the core reads: `Decimal` and `bigint` as text, a date-only `Date` as its UTC day. */
+/** A Prisma value in the form the core reads: `Decimal` and a `bigint` number as text, a date-only `Date` as its UTC day. */
 function plainValue(column: PlanColumn, value: unknown): unknown {
-  if (typeof value === "bigint") return value.toString();
+  // The core reads an epoch `bigint` as an instant; its digits as text would read as no date.
+  if (typeof value === "bigint") return column.kind === "date" ? value : value.toString();
   // decimal.js `toFixed()` with no argument never switches to exponent notation, unlike `toString()`.
   if (isDecimal(value)) return padToScale(value.toFixed(), column.scale);
   if (value instanceof Date && column.kind === "date" && !column.time) return Number.isNaN(value.getTime()) ? null : value.toISOString().slice(0, 10);
@@ -103,13 +104,15 @@ function aggregateValues(found: unknown, columns: AggregatesPlan["columns"]): Ro
  *   generated model: `nullable` decides the NULL branches and `nulls: "last"`, which Prisma refuses on a field without `?`.
  * - Every statement counts its bound values and answers `limit-exceeded` past the provider budget (PostgreSQL 32,766,
  *   SQLite 999), because Prisma splits a plain `in` beyond it and merges wrong rows. On SQLite a selection of about 990
- *   ids or excluded ids, and a requested page of about 990 groups that have a next level, is `limit-exceeded`. `where` also reserves one value per mapped column for the `data` of a write.
+ *   ids or excluded ids, and a page of about 990 groups that have a next level, is `limit-exceeded`. `where` also reserves one value per mapped column for the `data` of a write.
  * - Its `capabilities` refuse, before any call, what the object API has no exact form for (`unsupported`): on SQLite
- *   case-insensitive `equals` and set filters, case-sensitive LIKE leaves, and excluded ids on a uuid key; LIKE leaves on
- *   a native enum or uuid; set values of `time` columns and of text without `caseSensitive`, and a value query on a
- *   non-text column; min, max, and count of text without `keepBlankText`; cursor sorts on and grouping by `time` columns. A custom
- *   operator throws at creation.
- * - On SQLite a `%` or `_` in a LIKE leaf is `unsupported-value`: SQLite LIKE has no ESCAPE clause there.
+ *   case-insensitive `equals` and set filters, case-sensitive LIKE leaves, and excluded ids on a uuid key; on PostgreSQL
+ *   cursor sorts on and grouping by `time` columns; LIKE leaves on a native enum or uuid; set values of `time` columns and
+ *   of text without `caseSensitive`, and a value query on a non-text column; min, max, and count of text without
+ *   `keepBlankText`. A custom operator throws at creation, and so does a sortable native enum with `paging: "cursor"`.
+ * - On SQLite a `%` or `_` in a LIKE leaf is `unsupported-value`: SQLite LIKE has no ESCAPE clause there. On an `epoch-s`
+ *   column a comparison or range rounds a fraction of a second to the exact whole second; any other instant with a
+ *   fraction, such as an `equals` value or a written value, is `unsupported-value`.
  * - Group child counts and group counts read one extra `groupBy` of at most `maxGroupRows` rows.
  *
  * @example
@@ -170,9 +173,9 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
     aggregates: true,
     groupBy: true,
     localDayGrouping: false,
-    // Prisma reads DateTime in milliseconds, so a microsecond key would not compare back equal.
-    exactInstantKeys: false,
-    // An enum filter has no LIKE operators; LIKE on a `@db.Uuid` field is unverified on Prisma 7.
+    // Prisma reads a PostgreSQL DateTime in milliseconds, so a microsecond key would not compare back equal.
+    exactInstantKeys: !pg,
+    // Prisma's enum and `@db.Uuid` filters have no `contains`, `startsWith`, or `endsWith`.
     nativeLike: false,
     // `groupBy` takes fields only, and the object API has no `NULLIF(col, '')`.
     expressionValues: false,
@@ -252,8 +255,18 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
       orderBy: (plan) => renderer.orderBy(plan.orderBy),
       nativeValue: writeValue,
       selectRows: async (plan, page) => {
-        const rows = await many("findMany", { where: where(renderer.node(plan.where)), orderBy: renderer.orderBy(plan.orderBy), skip: page.offset, take: page.limit, select: select(plan.projection) });
-        return rows.map((row) => fromRow(row, plan.projection));
+        const keyText = plan.keyText ?? [];
+        const fields = select([...plan.projection, ...keyText.map(({ column }) => column)]);
+        const rows = await many("findMany", { where: where(renderer.node(plan.where)), orderBy: renderer.orderBy(plan.orderBy), skip: page.offset, take: page.limit, select: fields });
+        return rows.map((row) => {
+          const out = fromRow(row, plan.projection);
+          // Only SQLite asks for `keyText`: the stored text or integer is the exact key, a `DateTime` a millisecond `Date`.
+          for (const { column, as } of keyText) {
+            const raw = get(row, column.field);
+            own(out, as, raw instanceof Date ? raw.toISOString() : raw);
+          }
+          return out;
+        });
       },
       countRows: async (plan) => run("count", { where: where(renderer.node(plan.where)) }),
       selectValues: async (plan, { limit }) => {
@@ -282,11 +295,7 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
         assertAggregates(plan.columns);
         return aggregateValues(await run("aggregate", { where: where(renderer.node(plan.where)), ...aggregateSelection(plan.columns) }), plan.columns);
       },
-      selectGroups: (plan, page) => {
-        // Throws synchronously, so the core never starts the countGroups and countRows calls it runs beside this one.
-        if (plan.nextLevel) assertBindBudget(pairWhere(plan, Array<number>(page.limit).fill(0), true), provider);
-        return selectGroupPage(plan, page);
-      },
+      selectGroups: selectGroupPage,
       countGroups: async (plan) => {
         const { level } = plan;
         const groups = await many("groupBy", { by: [level.field], where: where(renderer.node(plan.where)), orderBy: [own({}, level.field, "asc")], take: maxGroupRows + 1 });

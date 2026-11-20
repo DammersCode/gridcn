@@ -118,8 +118,8 @@ describe.each([
   });
 
   it("answers an empty result with no groups and zero counts", async () => {
-    const answer = await declinable("groups of an empty result", () => groupsOf(query(), { groupBy: ["tag"], filters: [{ columnId: "name", operator: "equals", value: "no such name" }] }));
-    if (answer) expect(answer).toEqual({ groups: [], groupCount: 0, totalRowCount: 0 });
+    const answer = await groupsOf(query(), { groupBy: ["tag"], filters: [{ columnId: "name", operator: "contains", value: "no such name" }] });
+    expect(answer).toEqual({ groups: [], groupCount: 0, totalRowCount: 0 });
   });
 
   it("reduces every reducer per group, the empty group included", async () => {
@@ -181,8 +181,7 @@ describe.each([
 
   it("builds two levels: child counts at the top, groups and rows below", async () => {
     const top: Ask = { groupBy: ["tag", "active"] };
-    const topAnswer = await declinable("two levels on a page of 1,000", () => groupsOf(query(), top));
-    if (!topAnswer) return;
+    const topAnswer = await groupsOf(query(), top);
     expectLike(topAnswer.groups, oracleGroups(oracleOf(top)), { ordered: false });
     for (const key of ["red", "Red", null] as const) {
       const path = [{ columnId: "tag", key }];
@@ -238,8 +237,7 @@ describe.each([
     const scoped = harness().make({ groups: true, rowScope: true });
     const call = (ask: Ask) => scoped.fetchRows(body(ask), { context: { tenantId: 1 } });
     const mine = FIXTURE_ROWS.filter((row) => row.tenantId === 1);
-    const top = (await declinable("two levels on a page of 1,000", () => call({ groupBy: ["tag", "active"], aggregates: [{ columnId: "qty", reducer: "sum" }] }))) as unknown as GroupsAnswer | undefined;
-    if (!top) return;
+    const top = (await call({ groupBy: ["tag", "active"], aggregates: [{ columnId: "qty", reducer: "sum" }] })) as unknown as GroupsAnswer;
     expect(top.totalRowCount).toBe(mine.length);
     expect(top.groups.reduce((sum, group) => sum + group.totalRowCount, 0)).toBe(mine.length);
     expect(top.groups.reduce((sum, group) => sum + (group.aggregates?.["qty"] as number | null ?? 0), 0)).toBe(mine.reduce((sum, row) => sum + (row.qty ?? 0), 0));

@@ -4,6 +4,7 @@ import type { Engine } from "../fixture";
 type Decline = { engines: readonly Engine[]; match: RegExp; code: "unsupported" | "unsupported-value" | "limit-exceeded"; because: string };
 
 const SQLITE: readonly Engine[] = ["sqlite"];
+const PG: readonly Engine[] = ["pg"];
 const BOTH: readonly Engine[] = ["sqlite", "pg"];
 
 /**
@@ -25,7 +26,7 @@ export const PRISMA_DECLINES: readonly Decline[] = [
   },
   {
     engines: SQLITE,
-    match: /^root or: (two rows|a row and a group)$|^rowScope on a root or$|^groups of an empty result$/,
+    match: /^root or: (two rows|a row and a group)$/,
     code: "unsupported",
     because: "the root or holds a case-insensitive equals",
   },
@@ -36,22 +37,16 @@ export const PRISMA_DECLINES: readonly Decline[] = [
     because: "SQLite LIKE through Prisma has no ESCAPE clause, so % and _ stay wildcards",
   },
   {
-    engines: SQLITE,
-    match: /^two levels on a page of 1,000$/,
-    code: "limit-exceeded",
-    because: "the child groups of a page bind one key per requested group, and 1,000 keys pass the SQLite budget of 999",
-  },
-  {
-    engines: BOTH,
+    engines: PG,
     match: /^group level: a time column/,
     code: "unsupported",
-    because: "Prisma reads DateTime in milliseconds, so a group key would miss microsecond rows",
+    because: "Prisma reads a PostgreSQL DateTime in milliseconds, so a group key would miss microsecond rows",
   },
   {
-    engines: BOTH,
+    engines: PG,
     match: /^cursor sort: time/,
     code: "unsupported",
-    because: "Prisma reads DateTime in milliseconds, so a microsecond cursor key would skip or repeat rows",
+    because: "Prisma reads a PostgreSQL DateTime in milliseconds, so a microsecond cursor key would skip or repeat rows",
   },
   {
     engines: BOTH,

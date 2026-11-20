@@ -11,7 +11,7 @@ export type PrismaProvider = "postgresql" | "sqlite";
 /** A rendered predicate: `true` and `false` stay constants until the root, so no `{}` lands inside an `OR`. */
 export type PrismaNode = boolean | PrismaWhere;
 
-// Prisma 7.10.1 bounds the bound values of one statement by the driver adapter's `maxBindValues`, else by these provider defaults.
+// Prisma 7.10.1 bounds the bound values of one statement by the driver adapter's `maxBindValues`, else by these provider defaults; adapter-pg and adapter-better-sqlite3 7.10.1 set none.
 const BIND_BUDGET: Readonly<Record<PrismaProvider, number>> = { postgresql: 32_766, sqlite: 999 };
 // The LIMIT and OFFSET (or Prisma's own extra values) of a statement.
 const RESERVED_BINDS = 2;
@@ -129,6 +129,9 @@ export function createPrismaRenderer(provider: PrismaProvider, nullableIds: Read
   const escape = (text: string): string => escapeLike(text, "\\");
   const value = (column: PlanColumn, operand: Operand): unknown => nativeValue(column, operand);
   const isNull = (column: PlanColumn): PrismaNode => (isNullable(column) ? field(column, null) : false);
+  /** A comparison bound; on an `epoch-s` column `gt` and `lte` floor a fraction of a second, `gte` and `lt` ceil it. */
+  const bound = (column: PlanColumn, op: "gt" | "gte" | "lt" | "lte", operand: Operand): unknown =>
+    column.storage === "epoch-s" && operand.kind === "instant" ? (op === "gt" || op === "lte" ? Math.floor : Math.ceil)(Date.parse(operand.v) / 1000) : value(column, operand);
 
   /** The leaf, false on NULL rows when `twoValued`: under `NOT`, Prisma's three-valued logic drops the NULL rows otherwise. */
   function fieldLeaf(column: PlanColumn, filter: Record<string, unknown>, twoValued: boolean): PrismaWhere {
@@ -164,7 +167,6 @@ export function createPrismaRenderer(provider: PrismaProvider, nullableIds: Read
     const values = t.values.map((operand) => value(column, operand));
     const folded = !t.caseSensitive && isTextual(column);
     if (folded && !pg) throw unsupported(column);
-    // Insensitive `in` with `mode` is unverified on Prisma 7, so a folded list is an OR of the verified ILIKE equals.
     const member = (two: boolean): PrismaNode =>
       folded ? or(values.map((text) => fieldLeaf(column, { equals: escape(String(text)), mode: "insensitive" }, two))) : oneOf(column, values, (filter) => fieldLeaf(column, filter, two));
     if (!t.negate) return t.blank ? or([member(twoValued), blank(column, false, twoValued)]) : member(twoValued);
@@ -186,11 +188,12 @@ export function createPrismaRenderer(provider: PrismaProvider, nullableIds: Read
         return t.negate ? or([isNull(column), { NOT: field(column, filter) }]) : fieldLeaf(column, filter, twoValued);
       }
       case "cmp":
-        return fieldLeaf(column, guarded(column, own({}, t.op, value(column, t.value))), twoValued);
+        return fieldLeaf(column, guarded(column, own({}, t.op, bound(column, t.op, t.value))), twoValued);
       case "range": {
         const filter: Record<string, unknown> = {};
-        if (t.lo) filter["gte"] = value(column, t.lo);
-        if (t.hi) filter[t.hiExclusive ? "lt" : "lte"] = value(column, t.hi);
+        const hi = t.hiExclusive ? "lt" : "lte";
+        if (t.lo) filter["gte"] = bound(column, "gte", t.lo);
+        if (t.hi) filter[hi] = bound(column, hi, t.hi);
         return fieldLeaf(column, guarded(column, filter), twoValued);
       }
       case "in":
