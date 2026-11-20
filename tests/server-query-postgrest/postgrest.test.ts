@@ -49,7 +49,7 @@ function grid(tenant: number, options: Partial<SupabaseGridQueryOptions<Tenant>>
 const VIA = { rest: {}, rpc: { maxUrlLength: 1 } } as const;
 async function ids(query: ReturnType<typeof grid>, spec: Record<string, unknown>, tenant: number, start = 0, end = 1000) {
   const answer = await query.fetchRows({ spec: { sorts: [{ columnId: "id", direction: "asc" }], ...spec }, start, end }, { context: { tenant } });
-  return answer.rows.map((row) => row["id"]);
+  return (answer as { rows: Record<string, unknown>[] }).rows.map((row) => row["id"]);
 }
 
 describe.skipIf(!POSTGREST_URL || !JWT_SECRET)("the Supabase adapter against a live PostgREST", () => {

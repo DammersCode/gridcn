@@ -25,7 +25,7 @@ export function captureSupabase(answer: Answer = () => undefined): { client: Pos
     sent.push(request);
     const result: Result = { data: request.method === "HEAD" ? null : [], error: null, count: null, ...answer(request) };
     if (init.signal?.aborted) throw new DOMException("The operation was aborted.", "AbortError");
-    const range = result.count === null ? {} : { "content-range": `*/${result.count}` };
+    const range: Record<string, string> = result.count === null ? {} : { "content-range": `*/${result.count}` };
     if (result.error) return Response.json(result.error, { status: 400 });
     return request.method === "HEAD" ? new Response(null, { headers: range }) : Response.json(result.data, { headers: range });
   };
