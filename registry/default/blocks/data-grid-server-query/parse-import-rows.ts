@@ -50,6 +50,13 @@ function numberCell(column: PlanColumn, value: unknown, limits: Limits, path: (s
   if (text.length > limits.maxNumberLength) throw new QueryError("limit-exceeded", path);
   const decimal = parseDecimal(text.trim());
   if (!decimal) return refuse("not-a-number");
+  if (column.numeric === "float") {
+    const float = Number(text.trim()) + 0; // `+ 0` reads -0 as 0, as the canonical text does.
+    return Number.isFinite(float) ? ok(float) : refuse("out-of-range");
+  }
+  // An exponent such as `1e9999` would build a 10,000-digit number; no int or decimal holds more digits than the text cap.
+  const digits = decimal.coef.toString();
+  if (digits !== "0" && Math.max(digits.length - decimal.scale, decimal.scale) > limits.maxNumberLength) return refuse("out-of-range");
   const canonical = decimalToString(decimal);
   if (isIntType(column.numeric)) {
     if (canonical.includes(".")) return refuse("not-a-whole-number");
@@ -58,12 +65,8 @@ function numberCell(column: PlanColumn, value: unknown, limits: Limits, path: (s
     if (whole < low || whole > high) return refuse("out-of-range");
     return ok(typeof value === "number" && Number.isSafeInteger(value) ? value : canonical);
   }
-  if (column.numeric === "decimal") {
-    if (column.scale !== undefined && (canonical.split(".")[1]?.length ?? 0) > column.scale) return refuse("too-many-decimals");
-    return ok(canonical);
-  }
-  const float = Number(canonical);
-  return Number.isFinite(float) ? ok(float) : refuse("out-of-range");
+  if (column.scale !== undefined && (canonical.split(".")[1]?.length ?? 0) > column.scale) return refuse("too-many-decimals");
+  return ok(canonical);
 }
 
 function textCell(column: PlanColumn, value: unknown, limits: Limits, path: (string | number)[]): Cell {

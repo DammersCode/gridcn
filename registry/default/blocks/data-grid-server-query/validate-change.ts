@@ -4,6 +4,7 @@ import { type QueryLimits, resolveLimits } from "./limits";
 import { decimalToString, parseDecimal } from "./operands";
 import { type Cell, IMPORT_REFUSAL_MESSAGES, type ImportRefusalCode, readCell } from "./parse-import-rows";
 import { type Operand, type Predicate, combine, leaf } from "./plan";
+import { toSafeText } from "./safe-text";
 
 const WRITE_REFUSAL_MESSAGES = { ...IMPORT_REFUSAL_MESSAGES, "not-writable": "Not writable" } as const;
 // The grid refuses every row of a save answer that lists more rejections than this.
@@ -50,13 +51,16 @@ function writeCell(column: PlanColumn, value: unknown, limits: Limits, path: (st
   return readCell(column, value, limits, path);
 }
 
-function keyOperand(column: PlanColumn, rowId: string, limits: Limits, path: (string | number)[]): Operand | null {
+/** The operand of a row id under the key column, or `null` when the key cannot parse it. Over `maxValueLength` or `maxNumberLength` it throws `limit-exceeded`. */
+export function keyOperand(column: PlanColumn, rowId: string, limits: Limits, path: (string | number)[]): Operand | null {
   const cell = readCell(column, rowId, limits, path);
   if (!cell.ok || cell.value === null) return null;
   switch (column.kind) {
     case "number": {
+      // The float's shortest text; the canonical decimal of `1e-300` has 300 digits.
+      if (column.numeric === "float") return { kind: "number", v: toSafeText(cell.value) };
       const canonical = decimalToString(parseDecimal(rowId.trim())!);
-      return column.numeric === "decimal" || column.numeric === "float" ? { kind: "number", v: canonical } : { kind: "bigint", v: BigInt(canonical) };
+      return column.numeric === "decimal" ? { kind: "number", v: canonical } : { kind: "bigint", v: BigInt(canonical) };
     }
     case "checkbox":
       return { kind: "boolean", v: cell.value as boolean };

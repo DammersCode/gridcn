@@ -181,6 +181,15 @@ describe("validateChange", () => {
     expect(date.deletes).toEqual([{ rowId: "2024-02-29", where: keyWhere(date.map, "k", { kind: "date", v: "2024-02-29" }) }]);
   });
 
+  it("refuses a key whose exponent outgrows any stored number, and keeps a float key short", () => {
+    const keyed = (spec: ColumnSpec, rowId: string) =>
+      createGridQuery<Record<string, unknown>, never, Predicate>({ columns: defineColumnMap({ k: spec }), executor }).validateChange({ ops: [{ type: "delete", rowId }] });
+    const decimal: ColumnSpec = { type: "number", numeric: "decimal", primaryKey: true };
+    for (const rowId of ["1e9999", "1e-9999"]) expect(keyed(decimal, rowId).rejected).toEqual([{ rowId, code: "not-an-id", message: "Not a valid id" }]);
+    const float = keyed({ type: "number", numeric: "float", primaryKey: true }, "1e-300");
+    expect(float.deletes[0]?.where).toMatchObject({ t: "leaf", test: { value: { kind: "number", v: "1e-300" } } });
+  });
+
   it("refuses a whole-row update with any refused value and keeps the valid cells of a cells update", () => {
     const whole = validate([{ type: "update", rowId: "1", row: { name: "Bo", qty: "x" }, prev: { name: "A", qty: 1 } }]);
     expect(whole.updates).toEqual([]);
