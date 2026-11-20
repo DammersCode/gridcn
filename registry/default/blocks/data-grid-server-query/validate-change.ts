@@ -109,7 +109,7 @@ const optionalId = (op: Raw, key: string, path: (string | number)[]): string | u
  * Applies the column map to the `DataChange` of `onSave`. Unmapped and `serverOnly` keys are skipped, never written.
  * A column that shares the physical field of the key or of a `rowScope` column is fixed: a `cells` entry or a changed
  * whole-row value for it is `not-writable`, while the row's key entry and the fixed entries of an insert are skipped;
- * an insert writes the parsed `rowScope` values. A refused cell drops that cell of a `cells` update; any refusal drops
+ * an insert writes the parsed `rowScope` values. A refused cell drops every entry of its column from a `cells` update; any refusal drops
  * a whole-row update or an insert. A row or neighbor id that gives no key refuses its operation as `not-an-id`.
  * A malformed change throws `invalid-request`; more than `maxChangeOps` operations
  * or more than 10,000 refusals throw `limit-exceeded`; a map without one `primaryKey` throws `unsupported`.
@@ -205,7 +205,7 @@ export function validateChange(input: unknown, options: ValidateChangeOptions): 
         ...(afterWhere === undefined ? {} : { afterRowId, afterWhere }),
       });
     } else {
-      const values: Raw = {};
+      const accepted = new Map<string, [field: string, value: unknown]>();
       const refused: WriteRefusal[] = [];
       for (const [columnId, value] of changes) {
         const column = writable(columnId);
@@ -215,10 +215,19 @@ export function validateChange(input: unknown, options: ValidateChangeOptions): 
           continue;
         }
         const cell = writeCell(column, value, limits, [...path, "cells", columnId]);
-        if (cell.ok) put(values, column.field, cell.value);
-        else refused.push(refusal(rowId, cell.code, columnId));
+        // Delete first so the last entry also wins between two ids that share a field.
+        if (!cell.ok) {
+          refused.push(refusal(rowId, cell.code, columnId));
+          continue;
+        }
+        accepted.delete(columnId);
+        accepted.set(columnId, [column.field, cell.value]);
       }
       reject(refused);
+      // The grid reverts every entry of a refused column, so a repeated valid entry for it is not written.
+      const refusedIds = new Set(refused.map((entry) => entry.columnId));
+      const values: Raw = {};
+      for (const [columnId, [field, value]] of accepted) if (!refusedIds.has(columnId)) put(values, field, value);
       // The grid reverts a whole-row update on any refusal, so the server writes none of it.
       if (Object.keys(values).length > 0 && !(wholeRow && refused.length > 0)) result.updates.push({ rowId, values, where });
     }
