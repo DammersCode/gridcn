@@ -1,5 +1,5 @@
 import { type AdapterCapabilities, type ColumnMap, type GridQuery, QueryError, type QueryLimits, type RowCountMode, type RowScope } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
-import { type AggregatesPlan, type PlanColumn, type RawGroupRow, createGridQuery, mapOf, toSafeText } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query-sdk";
+import { type AggregatesPlan, type GroupsPlan, type PlanColumn, type RawGroupRow, createGridQuery, mapOf, toSafeText } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query-sdk";
 import {
   type PrismaNode,
   type PrismaOrderBy,
@@ -94,7 +94,7 @@ function aggregateValues(found: unknown, columns: AggregatesPlan["columns"]): Ro
  *   generated model: `nullable` decides the NULL branches and `nulls: "last"`, which Prisma refuses on a field without `?`.
  * - Every statement counts its bound values and answers `limit-exceeded` past the provider budget (PostgreSQL 32,766,
  *   SQLite 999), because Prisma splits a plain `in` beyond it and merges wrong rows. On SQLite a selection of about 990
- *   ids or excluded ids is `limit-exceeded`. `where` also reserves one value per mapped column for the `data` of a write.
+ *   ids or excluded ids, and a requested page of about 990 groups that have a next level, is `limit-exceeded`. `where` also reserves one value per mapped column for the `data` of a write.
  * - Its `capabilities` refuse, before any call, what the object API has no exact form for (`unsupported`): on SQLite
  *   case-insensitive `equals` and set filters, case-sensitive LIKE leaves, and excluded ids on a uuid key; LIKE leaves on
  *   a native enum or uuid; set values of `time` columns and of text without `caseSensitive`, and a value query on a
@@ -168,6 +168,60 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
     maxBoundIds: maxBoundIds(provider),
   };
 
+  const pairWhere = (plan: GroupsPlan, keys: readonly unknown[], withBlank: boolean): PrismaWhere => {
+    const { level } = plan;
+    const blankLevel = withBlank ? renderer.blank(level, false, false, foldsEmptyText(level)) : false;
+    return where(and([renderer.node(plan.where), or([keys.length > 0 ? field(level, { in: keys }) : false, blankLevel])]));
+  };
+  const selectGroupPage = async (plan: GroupsPlan, page: { offset: number; limit: number }): Promise<RawGroupRow[]> => {
+    assertAggregates(plan.aggregates);
+    const { level } = plan;
+    const base = renderer.node(plan.where);
+    const emptyIsBlank = foldsEmptyText(level);
+    const blankLevel = renderer.blank(level, false, false, emptyIsBlank);
+    const keyed = where(and([base, renderer.blank(level, true, false, emptyIsBlank)]));
+    const selection = aggregateSelection(plan.aggregates);
+    own((selection["_count"] ??= {}), "_all", true);
+    const order = [own({}, level.field, plan.direction)];
+    const found = await many("groupBy", { by: [level.field], where: keyed, ...selection, orderBy: order, skip: page.offset, take: page.limit });
+    const groupRow = (group: unknown, key: unknown): RawGroupRow => ({
+      key: plainValue(level, key),
+      count: get(get(group, "_count"), "_all"),
+      childCount: null,
+      aggregates: aggregateValues(group, plan.aggregates),
+    });
+    const keys = found.map((group) => get(group, level.field));
+    const rows = found.map((group, index) => groupRow(group, keys[index]));
+    // The blank group sorts last in both directions: it is on this page when the non-blank groups end inside it.
+    const endsHere = async () => found.length > 0 || page.offset === 0 || (await many("groupBy", { by: [level.field], where: keyed, orderBy: order, skip: page.offset - 1, take: 1 })).length > 0;
+    let blankOnPage = false;
+    if (blankLevel !== false && found.length < page.limit && (await endsHere())) {
+      const blank = await run("aggregate", { where: where(and([base, blankLevel])), ...selection });
+      blankOnPage = Number(get(get(blank, "_count"), "_all")) > 0;
+      if (blankOnPage) rows.push(groupRow(blank, null));
+    }
+    const next = plan.nextLevel;
+    if (!next || rows.length === 0) return rows;
+    // `_count` is COUNT(col), not a distinct count, so the child groups come from a second groupBy over this page's keys.
+    const pairs = await many("groupBy", {
+      by: [level.field, next.field],
+      where: pairWhere(plan, keys, blankOnPage),
+      orderBy: [own({}, level.field, "asc"), own({}, next.field, "asc")],
+      take: maxGroupRows + 1,
+    });
+    tooMany(pairs);
+    // A set per level key: the `''` and NULL rows of either level fold into one group.
+    const children = new Map<string, Set<string>>();
+    for (const pair of pairs) {
+      const id = keyId(level, get(pair, level.field));
+      const set = children.get(id) ?? new Set<string>();
+      set.add(keyId(next, get(pair, next.field)));
+      children.set(id, set);
+    }
+    const groupKeys = [...keys, ...(blankOnPage ? [null] : [])];
+    return rows.map((row, index) => ({ ...row, childCount: children.get(keyId(level, groupKeys[index]))?.size ?? 0 }));
+  };
+
   return createGridQuery<TRow, TContext, PrismaWhere, PrismaOrderBy, string>({
     columns,
     rowScope: options.rowScope,
@@ -216,54 +270,10 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
         assertAggregates(plan.columns);
         return aggregateValues(await run("aggregate", { where: where(renderer.node(plan.where)), ...aggregateSelection(plan.columns) }), plan.columns);
       },
-      selectGroups: async (plan, page) => {
-        assertAggregates(plan.aggregates);
-        const { level } = plan;
-        const base = renderer.node(plan.where);
-        const emptyIsBlank = foldsEmptyText(level);
-        const blankLevel = renderer.blank(level, false, false, emptyIsBlank);
-        const keyed = where(and([base, renderer.blank(level, true, false, emptyIsBlank)]));
-        const selection = aggregateSelection(plan.aggregates);
-        own((selection["_count"] ??= {}), "_all", true);
-        const order = [own({}, level.field, plan.direction)];
-        const found = await many("groupBy", { by: [level.field], where: keyed, ...selection, orderBy: order, skip: page.offset, take: page.limit });
-        const groupRow = (group: unknown, key: unknown): RawGroupRow => ({
-          key: plainValue(level, key),
-          count: get(get(group, "_count"), "_all"),
-          childCount: null,
-          aggregates: aggregateValues(group, plan.aggregates),
-        });
-        const keys = found.map((group) => get(group, level.field));
-        const rows = found.map((group, index) => groupRow(group, keys[index]));
-        // The blank group sorts last in both directions: it is on this page when the non-blank groups end inside it.
-        const endsHere = async () => found.length > 0 || page.offset === 0 || (await many("groupBy", { by: [level.field], where: keyed, orderBy: order, skip: page.offset - 1, take: 1 })).length > 0;
-        let blankOnPage = false;
-        if (blankLevel !== false && found.length < page.limit && (await endsHere())) {
-          const blank = await run("aggregate", { where: where(and([base, blankLevel])), ...selection });
-          blankOnPage = Number(get(get(blank, "_count"), "_all")) > 0;
-          if (blankOnPage) rows.push(groupRow(blank, null));
-        }
-        const next = plan.nextLevel;
-        if (!next || rows.length === 0) return rows;
-        // `_count` is COUNT(col), not a distinct count, so the child groups come from a second groupBy over this page's keys.
-        const onPage = or([keys.length > 0 ? field(level, { in: keys }) : false, blankOnPage ? blankLevel : false]);
-        const pairs = await many("groupBy", {
-          by: [level.field, next.field],
-          where: where(and([base, onPage])),
-          orderBy: [own({}, level.field, "asc"), own({}, next.field, "asc")],
-          take: maxGroupRows + 1,
-        });
-        tooMany(pairs);
-        // A set per level key: the `''` and NULL rows of either level fold into one group.
-        const children = new Map<string, Set<string>>();
-        for (const pair of pairs) {
-          const id = keyId(level, get(pair, level.field));
-          const set = children.get(id) ?? new Set<string>();
-          set.add(keyId(next, get(pair, next.field)));
-          children.set(id, set);
-        }
-        const groupKeys = [...keys, ...(blankOnPage ? [null] : [])];
-        return rows.map((row, index) => ({ ...row, childCount: children.get(keyId(level, groupKeys[index]))?.size ?? 0 }));
+      selectGroups: (plan, page) => {
+        // Throws synchronously, so the core never starts the countGroups and countRows calls it runs beside this one.
+        if (plan.nextLevel) assertBindBudget(pairWhere(plan, Array<number>(page.limit).fill(0), true), provider);
+        return selectGroupPage(plan, page);
       },
       countGroups: async (plan) => {
         const { level } = plan;
