@@ -395,10 +395,14 @@ begin
       'SELECT COALESCE(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(''key'', s.k, ''count'', s.n, ''childCount'', s.c, ''aggregates'', s.a)), ''[]''::pg_catalog.jsonb) FROM (SELECT (%1$s)::pg_catalog.text AS k, pg_catalog.count(*) AS n, %2$s AS c, pg_catalog.jsonb_build_array(%3$s) AS a FROM %4$s AS t WHERE %5$s GROUP BY %1$s ORDER BY %1$s %6$s NULLS LAST LIMIT ($1 OPERATOR(pg_catalog.->>) ''limit'')::pg_catalog.int8 OFFSET ($1 OPERATOR(pg_catalog.->>) ''offset'')::pg_catalog.int8) s',
       key, value_sql, coalesce(list, ''), rel, w, dir);
   when 'pivotKeys' then
-    perform gridcn.check_page(plan, false, max_pivot_columns);
+    perform gridcn.check_page(plan, false, 1000);
+    if jsonb_typeof(plan -> 'values') is distinct from 'number' or (plan ->> 'values')::numeric not between 1 and max_pivot_columns or (plan ->> 'values')::numeric % 1 <> 0 then
+      raise exception 'gridcn: values is a whole number from 1 to %', max_pivot_columns using errcode = '22023';
+    end if;
     key := gridcn.key_sql(tbl, allowed, plan -> 'level');
-    return format('SELECT COALESCE(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(''key'', s.k, ''total'', s.n)), ''[]''::pg_catalog.jsonb) FROM (SELECT (%1$s)::pg_catalog.text AS k, pg_catalog.count(*) OVER () AS n FROM %2$s AS t WHERE %3$s GROUP BY %1$s ORDER BY %1$s %4$s NULLS LAST LIMIT ($1 OPERATOR(pg_catalog.->>) ''limit'')::pg_catalog.int8) s',
-      key, rel, w, case when gridcn.flag(plan -> 'desc', 'desc') then 'DESC' else 'ASC' end);
+    -- A cap below the client's cuts the keys here, so the cells call fits it; `total` still counts every key.
+    return format('SELECT COALESCE(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(''key'', s.k, ''total'', s.n)), ''[]''::pg_catalog.jsonb) FROM (SELECT (%1$s)::pg_catalog.text AS k, pg_catalog.count(*) OVER () AS n FROM %2$s AS t WHERE %3$s GROUP BY %1$s ORDER BY %1$s %4$s NULLS LAST LIMIT LEAST(($1 OPERATOR(pg_catalog.->>) ''limit'')::pg_catalog.int8, %5$s)) s',
+      key, rel, w, case when gridcn.flag(plan -> 'desc', 'desc') then 'DESC' else 'ASC' end, max_pivot_columns / (plan ->> 'values')::int);
   when 'groupCount' then
     key := gridcn.key_sql(tbl, allowed, plan -> 'level');
     return format('SELECT pg_catalog.to_jsonb(pg_catalog.count(DISTINCT %1$s) OPERATOR(pg_catalog.+) COALESCE(pg_catalog.max(CASE WHEN %1$s IS NULL THEN 1 ELSE 0 END), 0)) FROM %2$s AS t WHERE %3$s', key, rel, w);
@@ -411,7 +415,8 @@ end $$;
 -- Runs one plan of `createSupabaseGridQuery` against `tbl`, naming only the columns of `allowed`. It sets no
 -- search_path, so the caller's policy helpers resolve their unqualified names; it names its own with their schema.
 -- The defaults of the caps accept every plan the adapter sends under the core's default limits; a page is 1,000 rows
--- plus the look-ahead row, and a pivot answers at most 200 cells per group.
+-- plus the look-ahead row, and a pivot answers at most 200 cells per group. A lower `max_pivot_columns` cuts the pivot
+-- keys, and the cut columns count in `pivotOmitted`; keep it at least the value count of a request.
 create or replace function gridcn.grid_query(tbl regclass, allowed text[], plan jsonb, max_plan_bytes int default 16777216, max_nodes int default 50000, max_list int default 200000, max_limit int default 1001, max_pivot_columns int default 200)
 returns jsonb
 language plpgsql stable security invoker

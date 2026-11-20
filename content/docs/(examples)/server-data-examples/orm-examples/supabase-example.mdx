@@ -80,6 +80,7 @@ Without `rpc`, these requests answer `unsupported`, and a long URL answers `limi
 - `maxUrlLength` (default 8,000) bounds the request URL. A longer request goes to `rpc`.
 - A literal `*` in a LIKE filter or the quick search answers `unsupported-value`, because PostgREST reads it as a wildcard.
 - LIKE filters on a native enum or uuid column answer `unsupported`.
+- `max_pivot_columns` (default 200) bounds the pivot cells per group. A wrapper can pass a lower value by name to `gridcn.grid_query`. The grid function then cuts the pivot keys, and `pivotOmitted` counts the cut columns. Keep it at or above the number of values of one request.
 
 ## Cursors, selection, and saves [#more-routes]
 
