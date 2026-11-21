@@ -33,3 +33,6 @@ references/
 /.serena/
 # Prisma client that the conformance globalSetup generates
 /tests/server-query/prisma/generated/
+
+# CREW working folder
+.crew/
