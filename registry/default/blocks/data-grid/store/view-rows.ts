@@ -27,6 +27,24 @@ export function viewRowOfGroupId(view: readonly number[], groupId: string): numb
   return at === -1 ? -1 : view.indexOf(-at - 1);
 }
 
+/** The view row in `nextView` of the nearest group above `prevViewRow` of `prevView` (its own group for a data row) that `nextView` still shows, or -1. */
+export function viewRowOfSurvivingParent(prevView: readonly number[], prevViewRow: number, nextView: readonly number[]): number {
+  const rows = groupLayoutOfView(prevView)?.rows;
+  if (!rows) return -1;
+  let header = prevViewRow;
+  while (header > 0 && !(prevView[header]! < 0)) header--;
+  if (!(prevView[header]! < 0)) return -1;
+  const at = -prevView[header]! - 1;
+  let depth = header === prevViewRow ? rows[at]!.depth : rows[at]!.depth + 1;
+  for (let i = at; i >= 0 && depth > 0; i--) {
+    if (rows[i]!.depth >= depth) continue;
+    depth = rows[i]!.depth;
+    const next = viewRowOfGroupId(nextView, rows[i]!.id);
+    if (next !== -1) return next;
+  }
+  return -1;
+}
+
 type ViewRowsState = { readonly viewIndex: ArrayLike<number>; readonly data: readonly unknown[] };
 
 /** What a view row shows: a data row, a group row (an entry below 0), or a hole (out of range or an unloaded row). */

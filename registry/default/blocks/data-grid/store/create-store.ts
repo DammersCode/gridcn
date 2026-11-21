@@ -140,7 +140,7 @@ import { warnUnhandledServerSpec } from "./server-spec-warning";
 import { keepKnownFilters, keepKnownSorts } from "./known-columns";
 import { groupAnnouncementLabel, loadedRowCount, newlyFailedGroup, nextAnnouncement } from "./announcements";
 import { allMatchingCheckedCount } from "./selected-rows";
-import { dataIndexAt, dataIndexOf, groupLayoutOfView, recordKeyAt, viewRowOfGroupId } from "./view-rows";
+import { dataIndexAt, dataIndexOf, groupLayoutOfView, recordKeyAt, viewRowOfGroupId, viewRowOfSurvivingParent } from "./view-rows";
 import { createGroupActions } from "./group-actions";
 import { EXPANDED_CUT_MESSAGE, initGroupMemory, initialExpanded, initialGroupBy } from "./group-sync";
 import { groupModeOf, groupingOf, withGroupLayout } from "./group-view";
@@ -450,6 +450,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       const nextDataRow = toNextDataRow ? toNextDataRow(prevRecord) : prevRecord;
       row = nextDataRow === undefined ? -1 : viewRowOfDataIndex(viewIndex, nextDataRow);
     }
+    if (row === -1) row = viewRowOfSurvivingParent(s.viewIndex, active.row, viewIndex);
     const col = visibleColumns[active.col]?.id === columnId ? active.col : visibleColumns.findIndex((column) => column.id === columnId);
     if (row === -1 || col === -1) return undefined;
     return row === active.row && col === active.col ? active : { row, col };
