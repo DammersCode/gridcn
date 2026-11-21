@@ -242,11 +242,14 @@ answers these codes.
 - **Order:** phase 1 runs alone. Phase 2 and the counts start after it, so a failed phase 1 starts
   no other query.
 
-Prisma: declines. A two-field `groupBy` over a 200-group page and 200 keys returns 40,000 pairs,
-above `maxGroupRows`, and it cannot fold `''` into the empty key. The step 6 spike measured it with
-the real client: 40,200 rows at 200 groups (20,100 at 100), `''` and NULL as two buckets on both
-engines, and one `groupBy` per key under the cap costs 630 to 660 ms. `prisma.test.ts` asserts the
-refusal.
+Prisma: pivots through the object API. Phase 1 is one `groupBy` on the pivot field of at most
+`maxGroupRows` keys; `''` and NULL fold into the empty key in code. Phase 2 is up to four calls:
+`groupBy [level, pivot]` over the page's non-blank keys and the kept key tests, `groupBy [pivot]`
+for the blank group, `groupBy [level]` for the blank key, and `aggregate` for both blank, so the
+database reduces every cell. A page over 40,000 group and key pairs, or more pivot keys than
+`maxGroupRows`, is `limit-exceeded`; a PostgreSQL enum pivot column and a SQLite decimal `sum`,
+`min`, or `max` are `unsupported`. `tests/server-query/prisma/pivot.test.ts` compares every answer
+with Kysely on the same engine; a 200-group page of 40,000 pairs over 100,000 rows takes 73 to 105 ms.
 
 Supabase: `capabilities.pivot` is `rpc !== undefined`. Supabase is unreleased, so the branch needs
 no re-install note.
@@ -351,7 +354,7 @@ cells call, `groupCount`, and `count` in series; PostgREST runs them side by sid
 |---|---|
 | `S11-L` | L and PC: pivot needs a server. Client buckets are a separate engine. |
 | `S11-M` | Closed: the layer and the server hook take 1 to 4 levels with subtotals. |
-| `S11-P` | Prisma declines pivot. |
+| `S11-P` | Closed: Prisma pivots through the object API; it refuses a PostgreSQL native enum pivot column and SQLite decimal `sum`, `min`, and `max`. |
 | `S11-UI` | Out of scope: a pivot chooser, a sort list, and menu items for pivot. |
 | `S11-V` | Out of scope: widths of generated columns in saved views. |
 

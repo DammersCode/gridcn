@@ -177,6 +177,12 @@ Bugs that shipped or reached review more than once. Check each against your chan
 - Bound every import, paste, URL value, and export on each dimension before the parse or the build: bytes, rows, cells per row, sheets, list lengths. Each missing dimension shipped as its own fix.
 - Validate URL state against the live columns, their visibility, and their choices. Specs for hidden or removed columns reached the view.
 
+### Visual stability
+
+- A change of sort, filter, search, group, pivot, page, or column layout never flashes the grid. Keep the previous rows and columns on screen until the new answer lands, and show progress with the busy state. The empty state appears only after an answer with zero rows.
+- A reorder, resize, or toggle never shows an intermediate frame that differs from both the old and the new state: no empty body, no source columns before generated ones, no header without rows.
+- Test it with a timeline: sample the rows, the empty state, and the header on every frame across the change, and assert that no frame is empty or mismatched. A test that checks only the final state does not cover a flash.
+
 ### Docs and release
 
 - A fix to shipped behavior gets its changelog entry in the fix commit. A fix to unreleased behavior needs none. A release audit found nine fixes without an entry.
