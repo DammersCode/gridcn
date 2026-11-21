@@ -30,6 +30,7 @@ Each row is a callback prop of the grid. Add-on callbacks are on [Options A to Z
 | `onGroupByChange` | Fires after the user (or `setGroupBy`, `toggleGroupBy`) changes the group columns. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `onPageChange` | Fires with the new page after a page change, and with 1 after a filter change. | [Client pagination](/docs/rows-pages-menus/client-pagination#client-mode) |
 | `onPageSizeChange` | Fires with the new page size after a change of the page size. | [Client pagination](/docs/rows-pages-menus/client-pagination#client-mode) |
+| `onPivotChange` | Fires after `setPivot` changes the pivot, with `{ columnIds: [] }` when it turns off. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `onRenderedRowsChange` | Fires with the range of rendered view rows. | [Column and viewport events](/docs/events-state/column-viewport-events#onrenderedrowschange) |
 | `onRetry` | Runs on a press of the Retry button. | [DataGrid props](/docs/components-props/data-grid-props#prop-onretry) |
 | `onRowActionSkipped` | Fires when a row action (`insertRows`, `duplicateRows`, `deleteRows`, `moveRows`) does nothing, with its name and the reason. The insert, duplicate, and delete actions also return `{ ok: false, reason }`. `reorderRows` and `moveRowsBy` (both report as `moveRows`) return `false`. | [Handle row action results](/docs/rows-live-data/handle-row-action-results#action-results) |

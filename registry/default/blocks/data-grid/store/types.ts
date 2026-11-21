@@ -4,7 +4,7 @@ import type { AutosizeFonts } from "../columns/autosize-columns";
 import type { ColumnGroupModel } from "../columns/column-groups";
 import type { ColumnOrderResult } from "./column-order";
 import type { SelectionChangeDetails } from "./selection-change";
-import type { ExpandedState, GroupActionResult, GroupStoreState, ServerGroupLayout } from "../group-types";
+import type { ExpandedState, GroupActionResult, GroupStoreState, PivotSpec, ServerGroupLayout } from "../group-types";
 import type {
   CellRef, ViewCellRef, ViewCoord,
   AutosizeOptions,
@@ -330,6 +330,12 @@ export type DataGridSyncProps<TData = unknown> = {
   defaultGroupBy?: readonly string[] | (() => readonly string[] | null | undefined);
   /** Fires after the user (or `setGroupBy`, `toggleGroupBy`) changes the group columns. */
   onGroupByChange?: (next: readonly string[]) => void;
+  /** Controlled pivot: one generated column per key of the pivot column and per built-in `aggregate`; needs `groupBy`. `{ columnIds: [] }` is off. */
+  pivot?: PivotSpec;
+  /** Seeds the pivot once at store creation. A function runs once on the client after mount. */
+  defaultPivot?: PivotSpec | (() => PivotSpec | null | undefined);
+  /** Fires after `setPivot` changes the pivot, with `{ columnIds: [] }` when it turns off. */
+  onPivotChange?: (next: PivotSpec) => void;
   /** Controlled open groups. A toggle applies at once and emits. Default: every group collapsed. */
   expanded?: ExpandedState;
   /** Seeds the open groups once at store creation. */
@@ -654,7 +660,7 @@ export type DeleteRowsOptions = {
 export type DataGridStoreState = Omit<
   InternalSyncProps,
   | "data"
-  | "groupLayout"
+  | "groupLayout" | "pivot" | "defaultPivot"
   | "defaultData"
   | "cellTypes"
   | "commands"
@@ -924,7 +930,7 @@ export type DataGridStoreState = Omit<
 /** `DataGridStoreState` with `data` typed as `readonly TData[]` — the state view {@link useDataGridSelector} hands its selector. Every row in `data` originated from the grid's own `TData`-typed `data`/`defaultData` prop, so the widening is safe. */
 export type DataGridStoreStateOf<TData> = Omit<DataGridStoreState, "data" | DataGridInternalStateKey> & { data: readonly TData[] };
 
-type DataGridInternalStateKey = "dataControlled" | "selectAllStage" | "editingRejectionCount" | "selectionPointer" | "lastHighlightedRow" | "lastHighlightedCol" | "rowRangeGesture" | "sortControlled" | "filterControlled" | "filterJoinControlled" | "searchControlled" | "pageControlled" | "pageSizeControlled" | "searchMatchSet" | "groupByControlled" | "expandedControlled" | "serverGroupLayout" | "rowIdentityVersion" | "scrollToCellImpl" | "focusImpl" | "runShortcutImpl" | "focusSearchImpl" | "measureFonts" | "dataWrite";
+type DataGridInternalStateKey = "dataControlled" | "selectAllStage" | "editingRejectionCount" | "selectionPointer" | "lastHighlightedRow" | "lastHighlightedCol" | "rowRangeGesture" | "sortControlled" | "filterControlled" | "filterJoinControlled" | "searchControlled" | "pageControlled" | "pageSizeControlled" | "searchMatchSet" | "groupByControlled" | "pivotControlled" | "expandedControlled" | "serverGroupLayout" | "rowIdentityVersion" | "scrollToCellImpl" | "focusImpl" | "runShortcutImpl" | "focusSearchImpl" | "measureFonts" | "dataWrite";
 
 /** Mutations for a single grid instance, nested under the stable `actions` key. */
 export type DataGridActions = {
@@ -1067,6 +1073,8 @@ export type DataGridActions = {
   setGroupBy(next: readonly string[]): void;
   /** Adds the column as the innermost group level, or removes it. */
   toggleGroupBy(columnId: string): void;
+  /** Sets the pivot column, or turns the pivot off with `undefined`. */
+  setPivot(next: PivotSpec | undefined): void;
   /** Sets the open groups. */
   setExpanded(next: ExpandedState): void;
   /** Opens a closed group and closes an open one. */
@@ -1334,18 +1342,7 @@ export type RowActionResult = { ok: true } | { ok: false; reason: RowActionSkipR
 export type { SyncInputs } from "./sync-inputs";
 export { syncInputsEqual } from "./sync-inputs";
 
-/**
- * `warnings` (only on the success/noop arms) carries `validationMode: "warn"` rejections that committed
- * anyway — the store merges them into `cellErrors` AFTER the gesture's auto-clear and `validateRow`
- * verdict, so the freshest per-cell signal wins.
- */
-export type CommitResult =
-  | { data: readonly unknown[]; change: DataChange<unknown>; warnings?: readonly CellErrorEntry[] }
-  | { error: string }
-  | { noop: true; warnings?: readonly CellErrorEntry[] };
-
-/** Per-row accumulator: the row as edited so far, plus its per-column cell deltas (columnId -> entry). */
-export type RowEdit = { row: unknown; cells: Map<string, { columnId: string; value: unknown; prev: unknown }> };
+export type { CommitResult, RowEdit } from "./commit";
 
 /**
  * The `store` branch of {@link DataGridProviderProps}/{@link DataGridProps}: a consumer-created

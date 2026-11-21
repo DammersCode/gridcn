@@ -7,8 +7,21 @@ import { runValidateBatch, type ValidateBatchItem } from "../validation/validate
 import { cellErrorKey, isColumnReadOnly } from "./compute";
 import { resolveColumnValidate } from "../cell-types/capabilities";
 import type { GateContext } from "./gate-signal";
-import type { AnyColumnDef, CellErrorEntry, CellPatch, CommitResult, DataGridStoreState, InternalSyncProps, RowEdit, UpdateCellsSkip } from "./types";
+import type { AnyColumnDef, CellErrorEntry, CellPatch, DataGridStoreState, InternalSyncProps, UpdateCellsSkip } from "./types";
 import { dataIndexAt } from "./view-rows";
+
+/**
+ * `warnings` (only on the success/noop arms) carries `validationMode: "warn"` rejections that committed
+ * anyway — the store merges them into `cellErrors` AFTER the gesture's auto-clear and `validateRow`
+ * verdict, so the freshest per-cell signal wins.
+ */
+export type CommitResult =
+  | { data: readonly unknown[]; change: DataChange<unknown>; warnings?: readonly CellErrorEntry[] }
+  | { error: string }
+  | { noop: true; warnings?: readonly CellErrorEntry[] };
+
+/** Per-row accumulator: the row as edited so far, plus its per-column cell deltas (columnId -> entry). */
+export type RowEdit = { row: unknown; cells: Map<string, { columnId: string; value: unknown; prev: unknown }> };
 
 /**
  * Warns once per instance (per passed Set) for every column whose `type` resolves to nothing in
