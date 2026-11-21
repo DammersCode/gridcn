@@ -121,7 +121,7 @@ export function computeAutosizeWidths(
   const sortedColumnIds = new Set(sortState.map((spec) => spec.columnId));
   const textFallback = cellTypes["text"]!;
   const pivotState = state.pivot ? { viewIndex, groupLayout: groupLayoutOfView(viewIndex), cellTypes, locale: state.locale ?? "en-US", pivot: state.pivot, groupBy: state.groupBy } : null;
-  // Under pivot the label of a pivot row at any depth sits in the key column, the one visible column that is not generated.
+  // Under pivot the label of a pivot row at any depth sits in the `groupBy` column, the one visible column that is not generated.
   const keyColumnId = pivotState ? visibleColumns.find((column) => !isPivotColumn(column))?.id : undefined;
   const columnById = new Map(columns.map((column) => [column.id, column] as const));
   const groupIndent = fonts.groupIndent ?? DEFAULT_GROUP_INDENT;

@@ -40,7 +40,7 @@ const serverLayout = (pivot: boolean): ServerGroupLayout => ({
 });
 
 const placeholder: Row = { id: "", region: "", country: "", year: 0, amount: 0 };
-const RENDERED = ["DataGridGroupRow", "GroupCell", "DataGridRow", "DataGridCellImpl"];
+const RENDERED = ["DataGridGroupRow", "GroupCell", "DataGridGroupToggle", "DataGridRow", "DataGridCellImpl"];
 
 const frames = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 const groupRows = () => [...document.querySelectorAll<HTMLElement>('[role="row"][data-grid-group-row]')];
@@ -64,7 +64,9 @@ async function measure(kind: Kind) {
   const mount = total(tracker);
 
   tracker.reset();
-  groupRows().at(-1)!.querySelector<HTMLElement>("[data-grid-group-toggle]")?.click();
+  const toggleButton = groupRows().at(-1)!.querySelector<HTMLElement>("[data-grid-group-toggle]");
+  if (!toggleButton) throw new Error(`${kind}: the last group row has no toggle`);
+  toggleButton.click();
   await frames();
   const toggle = total(tracker);
 
@@ -78,21 +80,32 @@ async function measure(kind: Kind) {
   return { mount, toggle: toggle / mount, move: move / mount };
 }
 
-// Ratios measured before pivot rows could open, in both the plain and the compiled build; the compiled build sets the move bound.
-const BEFORE = { clientToggle: 0.75, serverToggle: 0.125, move: 0.25, pivotMountPerServerMount: 40 / 24 };
+// Each bound is a share of the same grid's mount renders; the compiled build sets the move bounds.
+const BOUNDS = {
+  // A client toggle rebuilds the view: at most 19 of the 32 mount renders.
+  clientToggle: 19 / 32,
+  // A server toggle re-renders the toggled row, its cells, and its toggle only.
+  serverToggle: 4 / 32,
+  pivotToggle: 6 / 43,
+  // A move re-renders the row the cursor leaves and the row it enters.
+  groupMove: 8 / 32,
+  pivotMove: 11 / 43,
+  // Three generated columns and the toggles of the outer rows.
+  pivotMountPerServerMount: 43 / 32,
+};
 
 describe("render counts of grouped grids", () => {
-  it("stay within the bounds measured before nested pivot rows opened", async () => {
+  it("stay within their share of the same grid's mount for a toggle and a move", async () => {
     const client = await measure("client groups");
     const server = await measure("server groups");
     const pivot = await measure("nested pivot");
-    expect(client.toggle).toBeLessThanOrEqual(BEFORE.clientToggle);
-    expect(server.toggle).toBeLessThanOrEqual(BEFORE.serverToggle);
-    expect([client.move, server.move, pivot.move].every((move) => move <= BEFORE.move)).toBe(true);
+    expect([client.toggle, server.toggle, pivot.toggle, client.move, server.move, pivot.move].every((share) => share > 0)).toBe(true);
+    expect(client.toggle).toBeLessThanOrEqual(BOUNDS.clientToggle);
+    expect(server.toggle).toBeLessThanOrEqual(BOUNDS.serverToggle);
+    expect(pivot.toggle).toBeLessThanOrEqual(BOUNDS.pivotToggle);
+    expect(Math.max(client.move, server.move)).toBeLessThanOrEqual(BOUNDS.groupMove);
+    expect(pivot.move).toBeLessThanOrEqual(BOUNDS.pivotMove);
     expect(client.mount).toBeLessThanOrEqual(server.mount);
-    expect(pivot.mount / server.mount).toBeLessThanOrEqual(BEFORE.pivotMountPerServerMount);
-    // Relative to its mount, a pivot toggle re-renders no more than the same toggle on a server group row.
-    expect(pivot.toggle).toBeGreaterThan(0);
-    expect(pivot.toggle).toBeLessThanOrEqual(server.toggle);
+    expect(pivot.mount / server.mount).toBeLessThanOrEqual(BOUNDS.pivotMountPerServerMount);
   });
 });

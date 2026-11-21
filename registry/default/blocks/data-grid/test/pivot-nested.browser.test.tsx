@@ -104,7 +104,7 @@ describe("a nested pivot grid", () => {
     expect(document.querySelector(gridAttrSelector("cellEditor"))).toBeNull();
   });
 
-  it("paints an active outer label with an unpinned key column", async () => {
+  it("paints an active outer label with an unpinned groupBy column", async () => {
     await render(<NestedPivot pinned={false} />);
     await vi.waitFor(() => expect(rows()).toHaveLength(slots.length));
     const grid = document.querySelector<HTMLElement>('[role="treegrid"]')!;
@@ -114,7 +114,7 @@ describe("a nested pivot grid", () => {
     ]);
   });
 
-  it.each([undefined, "3rem"])("autosizes the key column to fit the label, indent, and toggle of every depth (indent %s)", async (indent) => {
+  it.each([undefined, "3rem"])("autosizes the groupBy column to fit the label, indent, and toggle of every depth (indent %s)", async (indent) => {
     await render(<NestedPivot indent={indent} />);
     await vi.waitFor(() => expect(rows()).toHaveLength(slots.length));
     const header = document.querySelector<HTMLElement>('[role="columnheader"][data-column-id="region"]')!;

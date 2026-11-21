@@ -140,11 +140,11 @@ export function pivotCellText(s: PivotTextState & { readonly pivot: PivotView | 
   return column.id === (s.groupBy?.[0] ?? node.columnId) ? node.label : "";
 }
 
-/** The quick-search text of the pivot rows of `view`: the pivot cells, the row's key text in the key column, `undefined` elsewhere. */
+/** The quick-search text of the pivot rows of `view`: the pivot cells, the row's key text in the `groupBy` column, `undefined` elsewhere. */
 export function pivotTextReader(view: readonly number[], visibleColumns: readonly AnyColumnDef[], cellTypes: Readonly<Record<string, CellType | undefined>>, locale: string): (viewRow: number, columnId: string) => string | undefined {
   const pivotColumns = new Map(visibleColumns.filter(isPivotColumn).map((column) => [column.id, column] as const));
   if (pivotColumns.size === 0) return () => undefined;
-  // Under pivot the only visible column that is not generated is the key column.
+  // Under pivot the only visible column that is not generated is the `groupBy` column.
   const keyColumnId = visibleColumns.find((column) => !isPivotColumn(column))?.id;
   const rows = groupLayoutOfView(view)?.rows;
   return (viewRow, columnId) => {

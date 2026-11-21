@@ -408,7 +408,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       // Body cells inherit the root's font; with no row mounted yet the root stands in.
       const cellStyle = getComputedStyle(cell ?? root);
       const toggle = root.querySelector<HTMLElement>("[data-grid-group-toggle]");
-      // A probe resolves `--grid-group-indent` with its 1rem fallback, wherever the consumer sets it.
+      // A probe resolves `--grid-group-indent` with its 1rem fallback, from a value the scroll root inherits.
       const indentProbe = root.ownerDocument.createElement("div");
       indentProbe.style.cssText = "position:absolute;visibility:hidden;width:var(--grid-group-indent, 1rem)";
       root.append(indentProbe);

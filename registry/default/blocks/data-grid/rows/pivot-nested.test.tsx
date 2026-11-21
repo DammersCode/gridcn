@@ -165,7 +165,7 @@ describe("the store on nested pivot rows", () => {
     expect(onExpandedChange).toHaveBeenCalledWith({ mode: "collapsed", ids: [EU, US] });
   });
 
-  it("reads the row's own label in the key column at every depth, and find matches it", () => {
+  it("reads the row's own label in the groupBy column at every depth, and find matches it", () => {
     const { state } = make();
     const key = state().visibleColumns[0];
     expect([0, 1, 2].map((row) => pivotCellText(state(), row, key))).toEqual(["EU", "DE", "FR"]);
@@ -200,7 +200,7 @@ describe("the store on nested pivot rows", () => {
   });
 });
 
-describe("autosize of the key column on nested pivot rows", () => {
+describe("autosize of the groupBy column on nested pivot rows", () => {
   beforeAll(() => {
     HTMLCanvasElement.prototype.getContext = ((contextId: string) =>
       contextId === "2d" ? { set font(_value: string) {}, measureText: (text: string) => ({ width: text.length * 7 }) } : null) as typeof HTMLCanvasElement.prototype.getContext;
