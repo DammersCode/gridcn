@@ -9,19 +9,19 @@ const POSTGREST_URL = process.env["POSTGREST_URL"];
 const JWT_SECRET = process.env["POSTGREST_JWT_SECRET"];
 if ((!POSTGREST_URL || !JWT_SECRET) && process.env["CI"] === "true") throw new Error("POSTGREST_URL and POSTGREST_JWT_SECRET must be set: in CI the postgrest project runs against a live PostgREST");
 
-const HOSTILE: [string, string][] = [
-  ['"', "1"],
-  ["\\", "2"],
-  ["%22", "3"],
-  ["%5C", "4"],
-  ["+", "5"],
-  ["a b", "6"],
-  [",)", "7"],
-  ["line\nbreak", "8"],
-  ['"),tenant_id.neq.(1', "9"],
-  ['\\"),id.gt.(0', "10"],
-  ["{a}", "11"],
-  ["null", "12"],
+const HOSTILE: [string, number][] = [
+  ['"', 1],
+  ["\\", 2],
+  ["%22", 3],
+  ["%5C", 4],
+  ["+", 5],
+  ["a b", 6],
+  [",)", 7],
+  ["line\nbreak", 8],
+  ['"),tenant_id.neq.(1', 9],
+  ['\\"),id.gt.(0', 10],
+  ["{a}", 11],
+  ["null", 12],
 ];
 const TENANT_ONE_ROWS = 2013;
 
@@ -64,7 +64,7 @@ describe.skipIf(!POSTGREST_URL || !JWT_SECRET)("the Supabase adapter against a l
     });
 
     it("row-level security is the boundary: a rowScope of another tenant reads no row", async () => {
-      expect(await ids(grid(2, options), {}, 2)).toEqual(Array.from({ length: 10 }, (_, index) => String(3000 + index)));
+      expect(await ids(grid(2, options), {}, 2)).toEqual(Array.from({ length: 10 }, (_, index) => 3000 + index));
       expect(await ids(grid(2, options), {}, 1)).toEqual([]);
     });
   });
@@ -79,7 +79,7 @@ describe.skipIf(!POSTGREST_URL || !JWT_SECRET)("the Supabase adapter against a l
     expect(data).toHaveLength(1000);
     const answer = (await grid(1).fetchRows({ spec: { sorts: [{ columnId: "id", direction: "asc" }] }, start: 1000, end: 2000 }, { context: { tenant: 1 } })) as { rows: Record<string, unknown>[]; hasMore?: boolean };
     // Only the look-ahead row, which REST would cut, makes `hasMore` true.
-    expect([answer.rows.length, answer.rows[0]!["id"], answer.rows.at(-1)!["id"], answer.hasMore]).toEqual([1000, "1087", "2086", true]);
+    expect([answer.rows.length, answer.rows[0]!["id"], answer.rows.at(-1)!["id"], answer.hasMore]).toEqual([1000, 1087, 2086, true]);
   });
 
   it("the anon role can neither read the table nor call the grid function", async () => {
