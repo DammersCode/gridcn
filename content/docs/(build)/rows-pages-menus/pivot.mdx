@@ -79,12 +79,12 @@ export function SalesPivot() {
 - A stream write to a value column and an appended row in a known group and key refresh the cells in place. Other changes rebuild the pivot.
 
 <Callout type="warn">
-If a cell value has more than 15 significant digits, the pivot cell loses its last digits. A pivot cell holds a JavaScript number, also in a server answer.
+If a number has more than 15 significant digits, the pivot cell loses its last digits. A pivot cell holds a JavaScript number, also in a server answer. On the client, a decimal string in a number column adds nothing to a pivot cell.
 </Callout>
 
 ## Development warnings [#warnings]
 
-Each of these warns once in development. Each text is exact, with `<id>` for the column id:
+Each of these warns once in development, with the prefix `[data-grid] `. Each text reads as follows, with `<id>` for the column id:
 
 - `pivot needs groupBy: the grid ignores the pivot until groupBy names a column`
 - `pivot names the column "<id>", which is unknown, not groupable, or a groupBy column, so the grid ignores the pivot`
@@ -100,7 +100,7 @@ Each of these warns once in development. Each text is exact, with `<id>` for the
 | `defaultPivot` | `{ columnIds }` or a function | Off |
 | `onPivotChange` | `(next) => void` | None |
 
-`onPivotChange` fires after each change of the pivot. When the pivot turns off, it fires with `{ columnIds: [] }`. The action `setPivot` from `useDataGridActions` sets the pivot column. `setPivot(undefined)` turns it off. A `defaultPivot` function runs once on the client after mount.
+`onPivotChange` fires after `setPivot` changes the pivot. When the pivot turns off, it fires with `{ columnIds: [] }`. The action `setPivot` from `useDataGridActions` sets the pivot column. `setPivot(undefined)` turns it off. A `defaultPivot` function runs once on the client after mount.
 
 ## Server mode [#server-mode]
 

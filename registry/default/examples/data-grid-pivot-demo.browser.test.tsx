@@ -33,9 +33,14 @@ function revenueByRegion(): Map<string, Map<string, number>> {
   return table;
 }
 
-type Frame = { header: string[]; rows: number };
+type Frame = { header: string[]; rows: number; orphanCells: number };
 
-const frame = (): Frame => ({ header: headerTexts(), rows: document.querySelectorAll('[role="row"][data-grid-row-index]').length });
+const headerIds = () => new Set([...document.querySelectorAll<HTMLElement>('[role="columnheader"][data-column-id]')].map((header) => header.getAttribute("data-column-id")));
+const orphanCells = () => {
+  const ids = headerIds();
+  return [...document.querySelectorAll<HTMLElement>('[role="row"][data-grid-row-index] [role="gridcell"][data-column-id]')].filter((cell) => !ids.has(cell.getAttribute("data-column-id"))).length;
+};
+const frame = (): Frame => ({ header: headerTexts(), rows: document.querySelectorAll('[role="row"][data-grid-row-index]').length, orphanCells: orphanCells() });
 
 /** Samples the painted grid once per frame while `run` acts, then until `frames` frames passed. */
 async function timeline(run: () => void, frames = 8): Promise<Frame[]> {
@@ -59,6 +64,7 @@ function expectOldOrNew(samples: readonly Frame[], before: Frame, after: Frame) 
   expect(after).not.toEqual(before);
   for (const [i, sample] of samples.entries()) {
     expect(sample.rows, `frame ${i}`).toBeGreaterThan(0);
+    expect(sample.orphanCells, `frame ${i}`).toBe(0);
     expect([before.header, after.header], `frame ${i}`).toContainEqual(sample.header);
   }
 }
