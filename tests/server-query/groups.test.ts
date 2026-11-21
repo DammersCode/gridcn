@@ -142,7 +142,7 @@ describe.each([
     const aggregates = Object.entries(numeric).map(([columnId, reducer]) => ({ columnId, reducer }));
     const ids = Object.keys(numeric);
     const warnings: string[] = [];
-    const read = readGroupsAnswer(await groupsOf(query(), { groupBy: ["active"], aggregates }), { start: 0, end: 1000 }, { topLevel: true, aggregateIds: ids }, (_kind, message) => warnings.push(message));
+    const read = readGroupsAnswer(await groupsOf(query(), { groupBy: ["active"], aggregates }), { start: 0, end: 1000 }, { topLevel: true, aggregates }, (_kind, message) => warnings.push(message));
     expect(warnings).toEqual([]);
     const yes = read.groups.find((group) => group.key === true)!;
     const prices = FIXTURE_ROWS.filter((row) => row.active === true && row.price !== null).map((row) => Number(row.price));

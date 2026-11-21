@@ -92,9 +92,9 @@ Paste and parse follow these rules:
 
 To read other formats, set `processCellFromClipboard` for paste, or `processCellFromText` for import.
 
-`format` takes `Intl.NumberFormatOptions`. `locale` sets the language of `format`. Alone, it groups the digits in that language. It defaults to the grid `locale`, or `"en-US"` without one. `format` and `locale` change only the display.
+`format` takes `Intl.NumberFormatOptions`. `locale` sets the language of `format`. Alone, it groups the digits in that language. It defaults to the grid `locale`, or `"en-US"` without one.
 
-The editor, copy, paste, sort, and export keep the plain number, so a stored `0.25` under `style: "percent"` shows `25%` and edits as `0.25`. When the format sets no fraction digits, `decimals` sets both the minimum and the maximum. A format that `Intl` rejects, such as `style: "currency"` without a `currency`, shows the plain number and logs one development warning per locale and format.
+The editor, copy, paste, sort, and export keep the plain number, so a stored `0.25` under `style: "percent"` shows `25%` and edits as `0.25`. When the format sets no fraction digits, `decimals` sets both the minimum and the maximum. A format that `Intl` rejects shows the plain number and logs one development warning per locale and format. A decimal string keeps its exact digits. Copy, export, search, and fill round it to `decimals`.
 
 This column shows a price as US dollars:
 

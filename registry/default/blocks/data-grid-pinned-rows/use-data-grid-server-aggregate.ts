@@ -5,8 +5,10 @@ import { useStore } from "zustand";
 import { serverSpecKey, type ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { isDev, serverSpecOf, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
-/** Longest text a server value keeps; longer strings are cut. */
-const MAX_SERVER_AGGREGATE_TEXT = 1000;
+/** Longest text a server value keeps: longer text is cut, and a longer decimal string drops, because a cut changes its value. */
+const MAX_SERVER_AGGREGATE_TEXT = 1024;
+
+const DECIMAL_TEXT = /^-?\d+(?:\.\d+)?$/;
 
 /** What `fetchAggregates` receives. */
 export type FetchAggregatesRequest = {
@@ -82,7 +84,8 @@ function sanitizeAnswer(answer: unknown, columnIds: readonly string[], warnDropp
   for (const id of columnIds) {
     if (!Object.prototype.hasOwnProperty.call(answer, id)) continue;
     const value = (answer as Record<string, unknown>)[id];
-    if (typeof value === "string") row.push([id, value.length > MAX_SERVER_AGGREGATE_TEXT ? value.slice(0, MAX_SERVER_AGGREGATE_TEXT) : value]);
+    if (typeof value === "string" && value.length <= MAX_SERVER_AGGREGATE_TEXT) row.push([id, value]);
+    else if (typeof value === "string" && !DECIMAL_TEXT.test(value)) row.push([id, value.slice(0, MAX_SERVER_AGGREGATE_TEXT)]);
     else if ((typeof value === "number" && Number.isFinite(value)) || typeof value === "boolean" || value === null) row.push([id, value]);
     else warnDropped(id);
   }

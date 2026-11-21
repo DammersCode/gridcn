@@ -176,7 +176,8 @@ as equality filters, and merges `null` and `""` into one empty group.
 
 Built-in reducers, the same on server and client (`row-grouping-spec.md` decision 6 owns the client
 alignment): `count` counts values other than `null`, `undefined`, `""`; `sum`, `avg`, `min`, `max`
-use finite numbers only; no counted value gives `null` (`count` gives `0`).
+use finite numbers only; no counted value gives `null` (`count` gives `0`). A server answer can also
+carry a decimal string, and a text or date string for `min` and `max` (`pivot-21-spec.md`).
 
 ### Server checks
 
@@ -199,7 +200,8 @@ parameters. The server recipe and the ORM recipes mirror this, with a recipe tes
   `totalRowCount`; on the last level `childCount === totalRowCount`, except under `spec.pivot`, where
   it must be `0` (pivot spec). The view row count clamps to `MAX_ROW_COUNT`. The layout of one open group of 1,000,000 children takes about 45 ms.
 - `label` is cut to 1,024 characters. `aggregates` and `totals` read only requested ids
-  (`Object.hasOwn`); a value is a finite number or `null`, else `null` with one dev warning per column.
+  (`Object.hasOwn`); a value is a finite number, a decimal string, a string for `min` and `max` (at
+  most 1,024 characters), or `null`, else `null` with one dev warning per column.
 - A leaf id starting with `__group:`, `__pinned-`, or `__lazy-unloaded-` fails its block.
 - Newest wins for counts and totals; parent counts are not checked against child sums. A short block
   leaves the rest unloaded.
