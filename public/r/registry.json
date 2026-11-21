@@ -2780,7 +2780,7 @@
       "name": "data-grid-pinning-all-sides-demo",
       "type": "registry:example",
       "title": "Data Grid Pinning All Sides Demo",
-      "description": "All four pin zones at once: Name pinned left, Score pinned right, plus an averages row pinned to the top band and a totals row pinned to the bottom band via the data-grid-pinned-rows add-on, over 200 rows so both directions scroll.",
+      "description": "All four pin zones at once: Name pinned left, Logins pinned right, plus an averages row pinned to the top band and a totals row pinned to the bottom band via the data-grid-pinned-rows add-on, over 200 rows so both directions scroll.",
       "author": "gridcn",
       "registryDependencies": [
         "@gridcn/data-grid",
@@ -2864,7 +2864,7 @@
       "name": "data-grid-column-groups-demo",
       "type": "registry:example",
       "title": "Data Grid Column Groups Demo",
-      "description": "Column groups: Contact, Work with a nested History group, and Standing sit above their columns. Click a group header to select its columns, drag a group header to move the block, and use the columns menu to hide members.",
+      "description": "Column groups: Contact, Work with a nested History group, and Activity sit above their columns. Click a group header to select its columns, drag a group header to move the block, and use the columns menu to hide members.",
       "author": "gridcn",
       "registryDependencies": [
         "@gridcn/data-grid",
