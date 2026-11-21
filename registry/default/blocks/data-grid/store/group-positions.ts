@@ -36,10 +36,11 @@ export function stepColumn(s: StepState, viewRow: number, col: number, dx: numbe
   return next < span ? 0 : next;
 }
 
-/** {@link stepColumn} for a range edge: a left step inside the label reaches the label start, so a range can grow over it. */
+/** {@link stepColumn} for a range edge: a step that stays inside the label reaches the label's far end, so a range edge always moves. */
 export function stepRangeEdge(s: StepState, viewRow: number, col: number, dx: number): number {
   const step = stepColumn(s, viewRow, col, dx);
-  return dx < 0 && step === col ? 0 : step;
+  if (step !== col || dx === 0) return step;
+  return dx < 0 ? 0 : Math.max(0, s.visibleColumns.length - 1);
 }
 
 /** Per view row: the group index of its parent (-1 at the top level) and its position among the parent's children. */
