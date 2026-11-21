@@ -112,7 +112,7 @@ The grid shows a non-finite cell as empty and reads a bad `pivotOmitted` as `0`.
 
 - The grid shows at most 200 generated columns. A note below the grid shows "+N more columns" for the columns the server or the grid cut.
 - A pivot takes 1 to 4 `groupBy` levels. With more levels, or with no aggregates, the request carries no pivot, and the hook warns once in development.
-- A local array and client pagination pivot on the client. See [Pivot](/docs/rows-pages-menus/pivot).
+- A local array and client pagination pivot on the client: see [Pivot](/docs/rows-pages-menus/pivot).
 - Pivot rows cannot be checked. The header checkbox is disabled. `selectAllMatching()` does nothing and warns in development.
 - Pivot cells refuse every write: edit, paste, fill, cut, clear, and comments.
 - Only a pivot row above the innermost level opens. Its child rows carry their own cells.

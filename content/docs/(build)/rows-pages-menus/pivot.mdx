@@ -70,13 +70,13 @@ export function SalesPivot() {
 
 ## Limits [#limits]
 
-- A group row with pivot cells takes no edit, paste, fill, or cut.
-- The grid shows at most 200 generated columns divided by the number of values. A note below the grid reads "+N more columns" for the cut columns.
+- A group row holds no data, so its pivot cells show values and take no edit.
+- The grid keeps the first `floor(200 / values)` keys, so it shows at most 200 generated columns. A note below the grid reads "+N more columns" for the cut columns.
 - Above 1,000,000 cells (group rows times generated columns), the grid shows the rows ungrouped.
 - A lazy source, `totalRowCount`, and `sortMode="server"` show the rows ungrouped. The client does not hold every row there.
 - A pivot without `groupBy` does nothing. An unknown pivot column, a `groupable: false` column, and a `groupBy` column keep the grid grouped without the pivot.
 - With `pageSize` set, a page holds `pageSize` top-level group rows. See [Client pagination](/docs/rows-pages-menus/client-pagination).
-- A stream write to a value column refreshes the cells in place. Other changes rebuild the pivot.
+- A stream write to a value column and an appended row in a known group and key refresh the cells in place. Other changes rebuild the pivot.
 
 <Callout type="warn">
 If a cell value has more than 15 significant digits, the pivot cell loses its last digits. A pivot cell holds a JavaScript number, also in a server answer.
