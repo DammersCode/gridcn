@@ -118,7 +118,10 @@ export type GroupActionResult = { ok: true } | { ok: false; reason: "server-grou
 
 /** The grouping state of the store. */
 export type GroupStoreState = {
+  /** The group columns on screen. A server layout keeps the old ones until the layout for the requested ones lands. */
   groupBy: readonly string[];
+  /** @internal Under a controlled server layout: the group columns a gesture emitted that the `groupBy` prop has not brought yet, else `null`. Read it through `requestedGroupByOf`. */
+  requestedGroupBy: readonly string[] | null;
   expanded: ExpandedState;
   groupLayout: GroupLayout | null;
   /** `"server"` shows the group rows of `serverGroupLayout` and never buckets rows. */

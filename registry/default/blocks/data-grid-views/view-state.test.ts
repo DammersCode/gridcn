@@ -469,3 +469,86 @@ describe("groupBy in a view", () => {
     expect(parseViewDocument(JSON.parse(JSON.stringify({ version: 1, defaultViewId: null, views: [{ id: "v", name: "G", state }] })))?.views[0]?.state.groupBy).toEqual(["name"]);
   });
 });
+
+describe("pivot in a view", () => {
+  const live = new Map<string, { groupable?: boolean }>([["name", {}], ["age", {}], ["secret", { groupable: false }]]);
+  const id = (key: number) => `__pivot:age=${key}|age=sum`;
+  const pivoted: DataGridViewState = { ...state, groupBy: ["name"], pivotColumnId: "age", pivotWidths: { [id(30)]: 140 } };
+
+  it("is kept by a capture and leaves an unpivoted capture unchanged", () => {
+    expect(captureViewState(pivoted)).toMatchObject({ pivotColumnId: "age", pivotWidths: { [id(30)]: 140 } });
+    expect("pivotColumnId" in captureViewState(state)).toBe(false);
+    expect("pivotWidths" in captureViewState(state)).toBe(false);
+  });
+
+  it("changes the state key for another pivot column or another generated width", () => {
+    expect(viewStateKey(pivoted)).not.toBe(viewStateKey(state));
+    expect(viewStateKey(pivoted)).not.toBe(viewStateKey({ ...pivoted, pivotColumnId: "secret" }));
+    expect(viewStateKey(pivoted)).not.toBe(viewStateKey({ ...pivoted, pivotWidths: { [id(30)]: 150 } }));
+  });
+
+  it("is saved with the view and survives a stored document as JSON", () => {
+    expect(savableViewState(pivoted)).toEqual(pivoted);
+    const stored = JSON.parse(JSON.stringify({ version: 1, defaultViewId: null, views: [{ id: "v", name: "P", state: pivoted }] }));
+    expect(parseViewDocument(stored)!.views[0]!.state).toEqual(pivoted);
+  });
+
+  it("reads a stored view without the fields as no pivot", () => {
+    const stored = JSON.parse(JSON.stringify(state));
+    expect(sanitizeViewState(stored, live)).toEqual({ state, dropped: 0 });
+  });
+
+  it.each([
+    ["an unknown column", { pivotColumnId: "gone" }],
+    ["a column that is not groupable", { pivotColumnId: "secret" }],
+    ["a groupBy column", { pivotColumnId: "name" }],
+    ["a view without groupBy", { groupBy: [] }],
+    ["a non-string id", { pivotColumnId: 7 }],
+    ["an empty id", { pivotColumnId: "" }],
+  ])("drops the pivot and its widths for %s", (_name, change) => {
+    const { state: clean, dropped } = sanitizeViewState({ ...pivoted, ...change }, live);
+    expect("pivotColumnId" in clean).toBe(false);
+    expect("pivotWidths" in clean).toBe(false);
+    expect(dropped).toBeGreaterThan(0);
+  });
+
+  it("drops a pivot column that the layout of an imported file hides", () => {
+    const file = serializeViewFile({ name: "v", state: { ...pivoted, columnLayout: { ...pivoted.columnLayout, hidden: ["age"] } } });
+    const result = parseViewFile(file, live);
+    expect(result.ok && "pivotColumnId" in result.state).toBe(false);
+    expect(result.ok && result.dropped).toBeGreaterThan(0);
+  });
+
+  it("keeps only generated widths: a header group id, a source id, and __proto__ drop", () => {
+    const raw = JSON.parse(`{"__proto__": 100, "__pivotgroup:age=30": 100, "age": 100, "${id(30)}": 120}`);
+    const { state: clean, dropped } = sanitizeViewState({ ...pivoted, pivotWidths: raw }, live);
+    expect(clean.pivotWidths).toEqual({ [id(30)]: 120 });
+    expect(Object.getPrototypeOf(clean.pivotWidths)).toBe(Object.prototype);
+    expect(dropped).toBe(3);
+  });
+
+  it("drops widths that are not finite, not positive, over 10,000 px, or not numbers", () => {
+    const raw = { [id(1)]: Number.NaN, [id(2)]: Number.POSITIVE_INFINITY, [id(3)]: 0, [id(4)]: -5, [id(5)]: 10_001, [id(6)]: "100", [id(7)]: 90 };
+    const { state: clean, dropped } = sanitizeViewState({ ...pivoted, pivotWidths: raw }, live);
+    expect(clean.pivotWidths).toEqual({ [id(7)]: 90 });
+    expect(dropped).toBe(6);
+  });
+
+  it("keeps at most 200 widths and drops a generated id over 256 characters", () => {
+    const long = `__pivot:${"x".repeat(300)}`;
+    const many = Object.fromEntries(Array.from({ length: 50_000 }, (_, i) => [id(i), 100]));
+    const { state: clean, dropped } = sanitizeViewState({ ...pivoted, pivotWidths: { [long]: 100, ...many } }, live);
+    expect(Object.keys(clean.pivotWidths!)).toHaveLength(200);
+    expect(long in clean.pivotWidths!).toBe(false);
+    expect(dropped).toBe(50_001 - 200);
+  });
+
+  it("leaves pivotWidths out when none is left", () => {
+    expect("pivotWidths" in sanitizeViewState({ ...pivoted, pivotWidths: { age: 100 } }, live).state).toBe(false);
+    expect("pivotWidths" in sanitizeViewState({ ...pivoted, pivotWidths: [100] }, live).state).toBe(false);
+  });
+
+  it("round-trips through a view file", () => {
+    expect(parseViewFile(serializeViewFile({ name: "p", state: pivoted }), live)).toEqual({ ok: true, name: "p", state: pivoted, dropped: 0 });
+  });
+});

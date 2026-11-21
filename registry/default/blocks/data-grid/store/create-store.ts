@@ -1138,6 +1138,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
     groupLayout: groupLayoutOfView(initViewIndex),
     groupingEnabled: init.groupBy !== undefined || init.defaultGroupBy !== undefined || init.onGroupByChange !== undefined,
     groupByControlled: init.groupBy !== undefined,
+    requestedGroupBy: null,
     expandedControlled: init.expanded !== undefined,
     pivotColumnIds: initPivotColumnIds,
     pivotControlled: init.pivot !== undefined,

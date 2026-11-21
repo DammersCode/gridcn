@@ -39,6 +39,9 @@ This note fixes the contracts that the 2.1 steps share. `research/server-pivot-s
 
 - The view state gains the pivot column id. It is additive and needs no migration.
 - Generated column widths restore only for ids in the held set. Widths for an id that has not landed wait for the landing. At most 200 ids are kept.
+- A view without the pivot column restores with no pivot. A restore drops a pivot that the grid would ignore: an unknown, hidden, or not groupable column, a `groupBy` column, or no `groupBy`.
+- A server consumer passes `pivot` and `onPivotChange` to the grid and sends the pivot in the hook's `spec`.
+- During a server hold, a saved view and the URL read the requested `groupBy` (`requestedGroupByOf`), not the one on screen.
 
 ## Export
 

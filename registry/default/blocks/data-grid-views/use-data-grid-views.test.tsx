@@ -13,6 +13,8 @@ import {
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { pivotColumnId, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
+import { fakeServer } from "@/registry/default/blocks/data-grid-server/group-fake-server.test-helper";
+import type { ServerRowsRequest } from "@/registry/default/blocks/data-grid-server/read-answer";
 import { useDataGridViews, type UseDataGridViewsOptions, type UseDataGridViewsResult } from "./use-data-grid-views";
 import { createMemoryViewsStorage, type DataGridViewsStorage } from "./view-storage";
 import { emptyViewState, type DataGridViewState, type DataGridViewsDocument } from "./view-state";
@@ -934,22 +936,194 @@ describe("useDataGridViews limits", () => {
   });
 });
 
-describe("saved views under pivot", () => {
-  it("capture no generated id, also after a generated column is resized", async () => {
-    const sum = { columnId: "age", reducer: "sum" } as const;
-    const groupLayout = {
-      rows: [{ viewRow: 0, path: [{ columnId: "name", key: "Alice" }], count: 1, childCount: 0, pivotCells: Float64Array.of(30) }],
-      leafCount: 1,
-      pivot: { columnId: "age", values: [sum], columns: [{ path: [30], valueIndex: 0 }], omitted: 0 },
-    };
-    const { probe } = setup({ storage: createMemoryViewsStorage() }, { data: [rows[0]], groupBy: ["name"], groupLayout });
+describe("saved views on a server grid that holds its rows", () => {
+  it("save the requested groupBy next to the sorts while the old groups stay on screen", async () => {
+    const people: Row[] = [...rows, { id: "r2", name: "Carol", age: 30 }];
+    const fake = fakeServer(people);
+    let open = true;
+    const parked: (() => void)[] = [];
+    const fetchRows = (request: ServerRowsRequest<never>) => (open ? fake.fetchRows(request) : new Promise((resolve) => parked.push(() => void fake.fetchRows(request).then(resolve))));
+    const probe: { current: Probe | null } = { current: null };
+    let shownGroupBy: () => readonly string[] = () => [];
+    function Shown() {
+      const storeApi = useDataGridStoreApi();
+      shownGroupBy = () => storeApi.getState().groupBy;
+      return null;
+    }
+    function ServerGrid() {
+      const server = useDataGridServerRows<Row>({ mode: "scroll", getRowId: (r) => r.id, fetchRows: fetchRows as never, loadDelayMs: 0, defaultSpec: { sorts: [], filters: [], searchText: "", groupBy: ["name"] } });
+      return (
+        <DataGridProvider columns={columns} {...server.providerProps}>
+          <Harness options={{ storage: createMemoryViewsStorage(), enableDefaultView: false }} onProbe={(p) => (probe.current = p)} />
+          <Shown />
+        </DataGridProvider>
+      );
+    }
+    render(<ServerGrid />);
     await ready(probe);
-    act(() => probe.current!.actions.setColumnWidth(pivotColumnId("age", 30, sum), 200));
+    await waitFor(() => expect(fake.fetchRows).toHaveBeenCalled());
+    open = false;
+    act(() => {
+      probe.current!.actions.setGroupBy(["age"]);
+      probe.current!.actions.setSorts([{ columnId: "age", direction: "desc" }]);
+    });
+    expect(shownGroupBy()).toEqual(["name"]);
     let saved: ReturnType<UseDataGridViewsResult["saveView"]> = null;
     act(() => {
-      saved = probe.current!.views.saveView("Pivot");
+      saved = probe.current!.views.saveView("Held");
     });
-    expect(saved).not.toBeNull();
-    expect(JSON.stringify(saved!.state)).not.toContain("__pivot");
+    expect(saved!.state).toMatchObject({ groupBy: ["age"], sorts: [{ columnId: "age", direction: "desc" }] });
+    open = true;
+    act(() => parked.splice(0).forEach((go) => go()));
+  });
+});
+
+describe("saved views under pivot", () => {
+  type PivotRow = { id: string; region: string; make: string; qty: number; secret: string };
+  const pivotRows: PivotRow[] = [
+    { id: "p0", region: "North", make: "Audi", qty: 1, secret: "x" },
+    { id: "p1", region: "North", make: "BMW", qty: 2, secret: "y" },
+    { id: "p2", region: "South", make: "Audi", qty: 3, secret: "x" },
+  ];
+  const pivotColumns = defineColumns<PivotRow>()([
+    { id: "region", header: "Region", accessorKey: "region", type: "text" },
+    { id: "make", header: "Make", accessorKey: "make", type: "text" },
+    { id: "qty", header: "Qty", accessorKey: "qty", type: "number", aggregate: "sum" },
+    { id: "secret", header: "Secret", accessorKey: "secret", type: "text", groupable: false },
+  ] as const);
+  const sum = { columnId: "qty", reducer: "sum" } as const;
+  const audi = pivotColumnId("make", "Audi", sum);
+  const bmw = pivotColumnId("make", "BMW", sum);
+  const pivoted = (extra: Partial<DataGridViewState> = {}): DataGridViewState => ({ ...emptyViewState(), groupBy: ["region"], pivotColumnId: "make", pivotWidths: { [audi]: 210, [bmw]: 160 }, ...extra });
+  const docOf = (...states: DataGridViewState[]): DataGridViewsDocument => ({ version: 1, defaultViewId: null, views: states.map((state, i) => ({ id: `v${i}`, name: `V${i}`, state })) });
+
+  function pivotSetup(doc: DataGridViewsDocument, providerProps: Record<string, unknown> = {}) {
+    const probe: { current: Probe | null } = { current: null };
+    let store: ReturnType<typeof useDataGridStoreApi> | null = null;
+    function Store() {
+      store = useDataGridStoreApi();
+      return null;
+    }
+    const storage = createMemoryViewsStorage(doc);
+    const tree = (props: Record<string, unknown>, mounted = true) => (
+      <DataGridProvider data={pivotRows} columns={pivotColumns} getRowId={(r) => r.id} {...props}>
+        {mounted ? <Harness options={{ storage, enableDefaultView: false }} onProbe={(p) => (probe.current = p)} /> : null}
+        <Store />
+      </DataGridProvider>
+    );
+    const view = render(tree(providerProps));
+    return { probe, state: () => store!.getState(), rerender: (props: Record<string, unknown>, mounted?: boolean) => view.rerender(tree(props, mounted)) };
+  }
+
+  it("capture the pivot column and the widths of generated columns", async () => {
+    const t = pivotSetup(docOf(), { defaultGroupBy: ["region"], defaultPivot: { columnIds: ["make"] } });
+    await ready(t.probe);
+    act(() => t.probe.current!.actions.setColumnWidth(audi, 200));
+    let saved: ReturnType<UseDataGridViewsResult["saveView"]> = null;
+    act(() => {
+      saved = t.probe.current!.views.saveView("Pivot");
+    });
+    expect(saved!.state).toMatchObject({ groupBy: ["region"], pivotColumnId: "make", pivotWidths: { [audi]: 200 } });
+    expect(Object.keys(saved!.state.columnLayout.widths).some((id) => id.startsWith("__pivot"))).toBe(false);
+    expect(t.probe.current!.views.modified).toBe(false);
+    act(() => t.probe.current!.actions.setColumnWidth(audi, 230));
+    expect(t.probe.current!.views.modified).toBe(true);
+  });
+
+  it("restore the pivot through setPivot and the generated widths, and turn the pivot off for a view without one", async () => {
+    const onPivotChange = vi.fn();
+    const t = pivotSetup(docOf(pivoted(), { ...emptyViewState(), groupBy: ["region"] }), { onPivotChange });
+    await ready(t.probe);
+    act(() => t.probe.current!.views.selectView("v0"));
+    expect(t.state().pivotColumnIds).toEqual(["make"]);
+    expect(t.state().pivot?.columns.map((c) => c.id)).toEqual([audi, bmw]);
+    expect(t.state().columnWidths).toMatchObject({ [audi]: 210, [bmw]: 160 });
+    expect(onPivotChange).toHaveBeenLastCalledWith({ columnIds: ["make"] });
+    expect(t.probe.current!.views.modified).toBe(false);
+    act(() => t.probe.current!.views.selectView("v1"));
+    expect(t.state().pivotColumnIds).toEqual([]);
+    expect(t.state().pivot).toBeNull();
+    expect(onPivotChange).toHaveBeenLastCalledWith({ columnIds: [] });
+  });
+
+  it("restore an old view without the pivot fields as before", async () => {
+    const old = { ...emptyViewState(), groupBy: ["region"], sorts: [{ columnId: "qty", direction: "desc" as const }] };
+    const t = pivotSetup(docOf(old));
+    await ready(t.probe);
+    act(() => t.probe.current!.views.selectView("v0"));
+    expect(t.state().groupBy).toEqual(["region"]);
+    expect(t.state().sortState).toEqual(old.sorts);
+    expect(t.state().pivotColumnIds).toEqual([]);
+    expect(t.probe.current!.views.modified).toBe(false);
+  });
+
+  it("hold the widths of generated columns that have not landed until they land, and drop them on the next view change", async () => {
+    const north = { viewRow: 0, path: [{ columnId: "region", key: "North" }], count: 2, childCount: 0, pivotCells: Float64Array.of(1, 2) };
+    const layoutOf = (keys: string[]) => ({ rows: [north], leafCount: 2, pivot: { columnId: "make", values: [sum], columns: keys.map((key) => ({ path: [key], valueIndex: 0 })), omitted: 0 } });
+    const server = { groupBy: ["region"], groupMode: "server", pivot: { columnIds: ["make"] } };
+    const t = pivotSetup(docOf(pivoted(), pivoted({ pivotWidths: { [bmw]: 120 } })), { ...server, groupLayout: layoutOf(["Audi"]) });
+    await ready(t.probe);
+    act(() => t.probe.current!.views.selectView("v0"));
+    expect(t.state().columnWidths[audi]).toBe(210);
+    expect(t.state().columnWidths[bmw]).toBeUndefined();
+    t.rerender({ ...server, groupLayout: layoutOf(["Audi", "BMW"]) });
+    await waitFor(() => expect(t.state().columnWidths[bmw]).toBe(160));
+    expect(t.probe.current!.views.modified).toBe(false);
+    act(() => t.probe.current!.views.selectView("v1"));
+    t.rerender({ ...server, groupLayout: layoutOf(["Audi"]) });
+    act(() => t.probe.current!.views.selectView("v0"));
+    act(() => t.probe.current!.views.selectView("v1"));
+    t.rerender({ ...server, groupLayout: layoutOf(["Audi", "BMW"]) });
+    await waitFor(() => expect(t.state().pivot?.columns).toHaveLength(2));
+    expect(t.state().columnWidths[bmw]).toBe(120);
+  });
+
+  it("stop holding widths when the views hook unmounts", async () => {
+    const north = { viewRow: 0, path: [{ columnId: "region", key: "North" }], count: 2, childCount: 0, pivotCells: Float64Array.of(1) };
+    const server = { groupBy: ["region"], groupMode: "server", pivot: { columnIds: ["make"] } };
+    const t = pivotSetup(docOf(pivoted()), { ...server, groupLayout: { rows: [north], leafCount: 2 } });
+    await ready(t.probe);
+    act(() => t.probe.current!.views.selectView("v0"));
+    t.rerender({ ...server, groupLayout: { rows: [north], leafCount: 2 } }, false);
+    t.rerender({ ...server, groupLayout: { rows: [north], leafCount: 2, pivot: { columnId: "make", values: [sum], columns: [{ path: ["Audi"], valueIndex: 0 }], omitted: 0 } } }, false);
+    await waitFor(() => expect(t.state().pivot?.columns).toHaveLength(1));
+    expect(t.state().columnWidths[audi]).toBeUndefined();
+  });
+
+  it.each([
+    ["an unknown pivot column", { pivotColumnId: "gone" }],
+    ["a pivot column that is not groupable", { pivotColumnId: "secret" }],
+    ["a pivot column the view hides", { columnLayout: { widths: {}, order: [], pins: {}, hidden: ["make"] } }],
+    ["a pivot column in groupBy", { groupBy: ["region", "make"] }],
+    ["a view without groupBy", { groupBy: [] }],
+    ["a hostile width list", { pivotWidths: JSON.parse(`{"__proto__": 5, "__pivotgroup:make=Audi": 90, "qty": 90, "${audi}": "wide", "${bmw}": 1e400}`) }],
+    ["a long generated id", { pivotWidths: { [`__pivot:${"x".repeat(5000)}`]: 100 } }],
+  ])("restore a stored view with %s without a throw or a warning, and never pivot where the grid would ignore it", async (_name, change) => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const stored = JSON.parse(JSON.stringify(docOf(pivoted(change as Partial<DataGridViewState>))));
+    const t = pivotSetup(stored, { defaultGroupBy: ["region"], defaultPivot: { columnIds: ["make"] } });
+    await ready(t.probe);
+    act(() => t.probe.current!.views.selectView("v0"));
+    const s = t.state();
+    if (s.pivotColumnIds.length > 0) {
+      expect(s.groupBy.length).toBeGreaterThan(0);
+      expect(s.groupBy).not.toContain(s.pivotColumnIds[0]);
+      expect(s.pivot).not.toBeNull();
+    }
+    expect(Object.keys(s.columnWidths).every((id) => !id.startsWith("__pivot") || s.pivot?.columns.some((c) => c.id === id))).toBe(true);
+    expect(warn.mock.calls.concat(error.mock.calls).map(String).filter((call) => call.includes("pivot"))).toEqual([]);
+    warn.mockRestore();
+    error.mockRestore();
+  });
+
+  it("keep a pivot saved over 200 widths to 200", async () => {
+    const many = Object.fromEntries(Array.from({ length: 300 }, (_, i) => [pivotColumnId("make", `k${i}`, sum), 100]));
+    const stored = JSON.parse(JSON.stringify(docOf(pivoted({ pivotWidths: { [audi]: 190, ...many } }))));
+    const t = pivotSetup(stored);
+    await ready(t.probe);
+    expect(Object.keys(t.probe.current!.views.views[0]!.state.pivotWidths!)).toHaveLength(200);
+    act(() => t.probe.current!.views.selectView("v0"));
+    expect(t.state().columnWidths[audi]).toBe(190);
   });
 });

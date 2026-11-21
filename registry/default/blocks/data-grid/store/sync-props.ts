@@ -532,6 +532,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           s.filterControlled !== (props.filterState !== undefined) ||
           s.searchControlled !== (props.searchText !== undefined) ||
           s.groupBy !== nextGroup.groupBy ||
+          s.requestedGroupBy !== nextGroup.requestedGroupBy ||
           s.expanded !== nextGroup.expanded ||
           s.pivotColumnIds !== nextPivotColumnIds ||
           s.pivotControlled !== (props.pivot !== undefined);
@@ -582,6 +583,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           viewIndex: nextViewIndex,
           ...(appendedLayout ? { groupLayout: appendedLayout } : null),
           groupBy: nextGroup.groupBy,
+          requestedGroupBy: nextGroup.requestedGroupBy,
           expanded: nextGroup.expanded,
           groupMode: nextGroupMode,
           serverGroupLayout: nextServerLayout,

@@ -1,5 +1,5 @@
 import type { ColumnLayout, ColumnPin, BuiltInFilterOperator, FilterNode, FilterOperator, FilterOperatorInput, FilterSpec, SearchOptions, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { MAX_FILTER_GROUP_DEPTH, MAX_SPEC_SEARCH_LENGTH, MAX_GROUP_LEVELS, MAX_SPEC_SORTS, countFilterSpecs, isFilterGroup, pruneFilterSpecs } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { MAX_FILTER_GROUP_DEPTH, MAX_PIVOT_COLUMNS, MAX_SPEC_SEARCH_LENGTH, MAX_GROUP_LEVELS, MAX_SPEC_SORTS, countFilterSpecs, isFilterGroup, pruneFilterSpecs } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 export const MAX_VIEWS = 50;
 /** Largest stored document, in characters; a save over it is refused so the next load can read it. */
@@ -16,6 +16,8 @@ const MAX_TEXT_LENGTH = 1000;
 const MAX_LAYOUT_ENTRIES = 1000;
 const MAX_COLUMN_WIDTH = 10_000;
 const MAX_VIEW_ID_LENGTH = 64;
+const MAX_GENERATED_ID_LENGTH = 256;
+const GENERATED_ID_PREFIX = "__pivot:";
 const FILE_FORMAT = "gridcn-view";
 
 /** The grid state a saved view restores. `groupBy` holds the group columns, outermost first; which groups are open is not saved. */
@@ -28,6 +30,10 @@ export type DataGridViewState = {
   searchText: string;
   searchOptions: Required<SearchOptions>;
   columnLayout: ColumnLayout;
+  /** The pivot column; absent means no pivot. It needs `groupBy` and is never a `groupBy` column. */
+  pivotColumnId?: string;
+  /** Widths of generated columns by id, at most 200. A width waits until its column is in the held set. Present only with `pivotColumnId`. */
+  pivotWidths?: Record<string, number>;
 };
 
 export type DataGridView = { id: string; name: string; state: DataGridViewState };
@@ -96,6 +102,8 @@ export function captureViewState(source: DataGridViewState): DataGridViewState {
     searchText: source.searchText,
     searchOptions: { matchCase: source.searchOptions.matchCase, wholeCell: source.searchOptions.wholeCell },
     columnLayout: { widths: { ...widths }, order: [...order], pins: { ...pins }, hidden: [...hidden] },
+    ...(source.pivotColumnId !== undefined ? { pivotColumnId: source.pivotColumnId } : null),
+    ...(source.pivotColumnId !== undefined && source.pivotWidths && Object.keys(source.pivotWidths).length > 0 ? { pivotWidths: { ...source.pivotWidths } } : null),
   };
 }
 
@@ -117,7 +125,7 @@ export type ViewStatePart = "sorts" | "filters" | "search" | "layout";
 export type OverLimitPart = ViewStatePart;
 
 /** One string per part of a state; equal strings mean the part restores the same grid. */
-export function viewPartKeys(state: DataGridViewState): Record<ViewStatePart | "group", string> {
+export function viewPartKeys(state: DataGridViewState): Record<ViewStatePart | "group" | "pivot" | "pivotWidths", string> {
   // lossless except for the one thing storage drops: the unused `value` of `empty` and `notEmpty`
   const captured = captureViewState(state);
   captured.filters = withoutUnusedValues(captured.filters);
@@ -128,6 +136,8 @@ export function viewPartKeys(state: DataGridViewState): Record<ViewStatePart | "
     filters: JSON.stringify(captured.filters, sortKeys) + (captured.filterJoin === "or" ? "|or" : ""),
     search: JSON.stringify([captured.searchText, captured.searchOptions]),
     layout: JSON.stringify(captured.columnLayout, sortKeys),
+    pivot: captured.pivotColumnId ?? "",
+    pivotWidths: JSON.stringify(captured.pivotWidths ?? {}, sortKeys),
   };
 }
 
@@ -152,7 +162,7 @@ export function savableViewState(state: DataGridViewState): DataGridViewState | 
 type RawSort = { columnId?: unknown; direction?: unknown };
 type RawFilter = { columnId?: unknown; operator?: unknown; value?: unknown; join?: unknown; not?: unknown; filters?: unknown };
 type RawLayout = { widths?: unknown; order?: unknown; pins?: unknown; hidden?: unknown };
-type RawState = { sorts?: unknown; groupBy?: unknown; filters?: unknown; filterJoin?: unknown; searchText?: unknown; searchOptions?: unknown; columnLayout?: unknown };
+type RawState = { sorts?: unknown; groupBy?: unknown; filters?: unknown; filterJoin?: unknown; searchText?: unknown; searchOptions?: unknown; columnLayout?: unknown; pivotColumnId?: unknown; pivotWidths?: unknown };
 type RawSearchOptions = { matchCase?: unknown; wholeCell?: unknown };
 type RawView = { id?: unknown; name?: unknown; state?: unknown };
 type RawDocument = { version?: unknown; views?: unknown; defaultViewId?: unknown };
@@ -310,13 +320,15 @@ function sanitizeIdList(raw: unknown, columns: ViewColumns | undefined, tally: T
   return [...seen];
 }
 
+const acceptsWidth = (width: unknown): width is number => typeof width === "number" && Number.isFinite(width) && width > 0 && width <= MAX_COLUMN_WIDTH;
+
 function sanitizeLayout(raw: unknown, columns: ViewColumns | undefined, tally: Tally): ColumnLayout {
   const layout = asRecord<RawLayout>(raw) ?? {};
   const widths: [string, number][] = [];
   const pins: [string, ColumnPin][] = [];
   const widthEntries = boundedEntries(Object.entries(asRecord<Record<string, unknown>>(layout.widths) ?? {}), MAX_LAYOUT_ENTRIES, tally);
   for (const [id, width] of widthEntries) {
-    if (acceptsColumnId(id, columns) && typeof width === "number" && Number.isFinite(width) && width > 0 && width <= MAX_COLUMN_WIDTH) widths.push([id, width]);
+    if (acceptsColumnId(id, columns) && acceptsWidth(width)) widths.push([id, width]);
     else tally.dropped++;
   }
   const pinEntries = boundedEntries(Object.entries(asRecord<Record<string, unknown>>(layout.pins) ?? {}), MAX_LAYOUT_ENTRIES, tally);
@@ -333,6 +345,28 @@ function sanitizeLayout(raw: unknown, columns: ViewColumns | undefined, tally: T
   };
 }
 
+/** The generated widths a view keeps: ids with the generated column prefix and at most 256 characters, at most 200 entries. */
+export function generatedWidthsOf(raw: unknown, tally: Tally = { dropped: 0 }): Record<string, number> {
+  const kept: [string, number][] = [];
+  for (const [id, width] of boundedEntries(Object.entries(asRecord<Record<string, unknown>>(raw) ?? {}), MAX_LAYOUT_ENTRIES, tally)) {
+    if (kept.length < MAX_PIVOT_COLUMNS && id.startsWith(GENERATED_ID_PREFIX) && id.length <= MAX_GENERATED_ID_LENGTH && acceptsWidth(width)) kept.push([id, width]);
+    else tally.dropped++;
+  }
+  return Object.fromEntries(kept);
+}
+
+/** The pivot of a view and its widths. A pivot needs a groupable column outside a non-empty `groupBy`; without `columns` any id passes. */
+function sanitizePivot(source: RawState, groupBy: readonly string[], columns: ViewColumns | undefined, tally: Tally): Pick<DataGridViewState, "pivotColumnId" | "pivotWidths"> {
+  const id = source.pivotColumnId;
+  const widths = generatedWidthsOf(source.pivotWidths, tally);
+  const count = Object.keys(widths).length;
+  if (id !== undefined && acceptsColumnId(id, columns) && columns?.get(id)?.groupable !== false && groupBy.length > 0 && !groupBy.includes(id)) {
+    return count > 0 ? { pivotColumnId: id, pivotWidths: widths } : { pivotColumnId: id };
+  }
+  tally.dropped += (id === undefined ? 0 : 1) + count;
+  return {};
+}
+
 /**
  * Checks untrusted view state: unknown shapes, operators, and columns drop, lists and strings are
  * bounded. `dropped` counts every rejected or cut entry so the caller can tell the user; text cut to its limit is not counted.
@@ -342,15 +376,17 @@ export function sanitizeViewState(raw: unknown, columns?: ViewColumns): { state:
   if (!source) return { state: emptyViewState(), dropped: 0 };
   const tally: Tally = { dropped: 0 };
   const options = asRecord<RawSearchOptions>(source.searchOptions) ?? {};
+  const groupBy = sanitizeGroupBy(source.groupBy, columns, tally);
   return {
     state: {
       sorts: sanitizeSorts(source.sorts, columns, tally),
-      groupBy: sanitizeGroupBy(source.groupBy, columns, tally),
+      groupBy,
       filters: sanitizeFilterNodes(source.filters, 0, columns, { leaves: 0, groups: 0 }, tally),
       ...(source.filterJoin === "or" ? { filterJoin: "or" as const } : null),
       searchText: typeof source.searchText === "string" ? source.searchText.slice(0, MAX_SPEC_SEARCH_LENGTH) : "",
       searchOptions: { matchCase: options.matchCase === true, wholeCell: options.wholeCell === true },
       columnLayout: sanitizeLayout(source.columnLayout, columns, tally),
+      ...sanitizePivot(source, groupBy, columns, tally),
     },
     dropped: tally.dropped,
   };
@@ -400,6 +436,10 @@ export function parseViewFile(text: string, columns: ViewColumns): ViewFileResul
   const sorts = sanitized.state.sorts.filter((s) => !hidden.has(s.columnId));
   const groupBy = sanitized.state.groupBy.filter((id) => !hidden.has(id));
   const filters = pruneFilterSpecs(sanitized.state.filters, (spec) => !hidden.has(spec.columnId), true);
-  const dropped = sanitized.dropped + (sanitized.state.sorts.length - sorts.length) + (sanitized.state.groupBy.length - groupBy.length) + (countFilterSpecs(sanitized.state.filters) - countFilterSpecs(filters));
-  return { ok: true, name: cleanViewName(file.name), state: { ...sanitized.state, sorts, groupBy, filters }, dropped };
+  const { pivotColumnId, pivotWidths, ...rest } = sanitized.state;
+  const keepsPivot = pivotColumnId !== undefined && !hidden.has(pivotColumnId) && groupBy.length > 0;
+  const pivotDropped = pivotColumnId !== undefined && !keepsPivot ? 1 + Object.keys(pivotWidths ?? {}).length : 0;
+  const dropped = sanitized.dropped + (sanitized.state.sorts.length - sorts.length) + (sanitized.state.groupBy.length - groupBy.length) + (countFilterSpecs(sanitized.state.filters) - countFilterSpecs(filters)) + pivotDropped;
+  const pivot = keepsPivot ? { pivotColumnId, ...(pivotWidths ? { pivotWidths } : null) } : null;
+  return { ok: true, name: cleanViewName(file.name), state: { ...rest, sorts, groupBy, filters, ...pivot }, dropped };
 }
