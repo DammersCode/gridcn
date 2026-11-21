@@ -21,7 +21,16 @@ export type InstallPickerItem = {
   defaultChecked?: boolean;
 };
 
+export type InstallChoice = {
+  /** Registry item name of this choice. */
+  value: RegistryItemName;
+  /** Tab label, e.g. "Prisma". */
+  label: string;
+};
+
 type InstallCommandProps = {
+  /** Mutually exclusive items: one tab per choice, and each tab shows its own install command. Wins over `item` and `items`. */
+  choices?: InstallChoice[];
   /** Registry item name, e.g. "data-grid" — rendered as `<runner> shadcn@latest add @gridcn/<item>`. */
   item?: RegistryItemName;
   /** Picker mode: the command joins the checked items in `items` order. */
@@ -42,7 +51,21 @@ const MANUAL_TABS: readonly DocsTabItem[] = [
 ];
 
 /** Package-manager-tabbed install command (diceui pattern): persisted choice, synced across all instances, copy button. */
-export function InstallCommand({ item, items, command, manual = false, manualSlot, label = "Install command" }: InstallCommandProps): ReactNode {
+export function InstallCommand(props: InstallCommandProps): ReactNode {
+  const { choices, label = "Install command" } = props;
+  if (!choices?.length) return <SingleInstallCommand {...props} />;
+  return (
+    <DocsTabs tabs={choices.map((c) => ({ value: c.value, label: c.label }))} defaultValue={choices[0]?.value} className="my-4">
+      {choices.map((c) => (
+        <Tabs.Panel key={c.value} value={c.value}>
+          <SingleInstallCommand item={c.value} label={`${label}: ${c.label}`} embedded />
+        </Tabs.Panel>
+      ))}
+    </DocsTabs>
+  );
+}
+
+function SingleInstallCommand({ item, items, command, manual = false, manualSlot, label = "Install command", embedded = false }: InstallCommandProps & { embedded?: boolean }): ReactNode {
   const [manager, setManager] = usePackageManager();
   const { status, copy } = useCopyText();
   const [selected, setSelected] = useState(() => new Set((items ?? []).filter((i) => i.defaultChecked).map((i) => i.value)));
@@ -96,7 +119,7 @@ export function InstallCommand({ item, items, command, manual = false, manualSlo
       tabs={PACKAGE_MANAGERS.map((pm) => ({ value: pm, label: pm }))}
       value={manager}
       onValueChange={(value) => setManager(value as PackageManager)}
-      className={manual ? "border-0 rounded-none" : "my-4"}
+      className={manual || embedded ? "border-0 rounded-none" : "my-4"}
       headerClassName="justify-between px-2.5 py-1"
       tabClassName="px-2.5"
       headerEnd={copyButton}

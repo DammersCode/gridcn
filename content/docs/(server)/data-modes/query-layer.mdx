@@ -1,7 +1,7 @@
 ---
 title: Query layer
 icon: DatabaseZap
-description: Turn the request of a server grid into a safe query for Drizzle or Kysely, and answer it in one route handler.
+description: Turn the request of a server grid into a safe query for Drizzle, Kysely, Prisma, or Supabase, and answer it in one route handler.
 type: feature
 aliases: ["orm", "drizzle", "kysely", "sql injection", "column map", "row scope", "tenant", "fetchRows server", "query plan"]
 ---
@@ -10,9 +10,16 @@ A server grid sends its sort, filter tree, search text, and row range to your ro
 
 <ComponentPreview name="data-grid-server-query-demo" />
 
-<InstallCommand item="data-grid-server-query-drizzle" />
+<InstallCommand
+  choices={[
+    { value: "data-grid-server-query-drizzle", label: "Drizzle" },
+    { value: "data-grid-server-query-kysely", label: "Kysely" },
+    { value: "data-grid-server-query-prisma", label: "Prisma" },
+    { value: "data-grid-server-query-supabase", label: "Supabase" },
+  ]}
+/>
 
-Install `data-grid-server-query-kysely` instead to use Kysely, `data-grid-server-query-prisma` to use Prisma, or `data-grid-server-query-supabase` to use a Supabase client. Each item installs `data-grid-server-query`, which has no dependency. Use the layer on a server only.
+Each item installs `data-grid-server-query`, which has no dependency. Use the layer on a server only.
 
 ## Define the column map [#column-map]
 
