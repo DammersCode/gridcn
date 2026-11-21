@@ -109,7 +109,7 @@ async function sourcePrintRows(state: DataGridReadState, source: ExportSource, m
  * Prints the grid's rows as a plain paged table: the rows are resolved through the cell-type
  * pipeline's display text (`toDisplayText ?? toText`), built into a hidden, sandboxed iframe's
  * document with `textContent` only (no value ever passes an HTML parser), and the browser print
- * dialog is opened — its "Save as PDF" produces the PDF. Visible columns only, in view order;
+ * dialog is opened — its "Save as PDF" produces the PDF. Visible columns only, in view order (a `source` print under pivot prints the source columns);
  * lazy holes and hidden columns never print. `options.maxRows` caps the rows (default 10,000,
  * further cut to fit the 500,000-cell ceiling); when the cap cut the output, the table ends
  * with a truncation note. The iframe is removed on `afterprint` (with a 60 s fallback timer),

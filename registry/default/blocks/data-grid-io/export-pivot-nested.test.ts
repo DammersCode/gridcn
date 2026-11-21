@@ -68,7 +68,7 @@ describe("export with a source under pivot", () => {
   it("rejects a generated column id in `columns` before the source runs", async () => {
     const source = vi.fn(() => [sourceRow]);
     const generated = state().visibleColumns[1]!.id;
-    await expect(exportGrid(state(), { source, columns: ["region", generated], output: () => {} })).rejects.toThrow(RangeError);
+    await expect(exportGrid(state(), { source, columns: ["region", generated], output: () => {} })).rejects.toThrow(new RangeError(`[data-grid-io] unknown export column: ${generated}`));
     expect(source).not.toHaveBeenCalled();
   });
 

@@ -167,8 +167,11 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
       // the DOM carries only view-index coords; the stable row id and the selection both come off
       // the store at event time.
       const s = storeApi.getState();
-      // A generated column has no built-in header item, so only a consumer resolver gives it a menu.
-      const headerMenu = resolved?.kind === "header" && (getHeaderMenuItems !== undefined || !isPivotColumn(s.visibleColumns[resolved.col]));
+      // A generated column has no built-in header item, so it gets a menu only when the consumer resolver returns an item.
+      const headerMenu =
+        resolved?.kind === "header" &&
+        (!isPivotColumn(s.visibleColumns[resolved.col]) ||
+          (getHeaderMenuItems?.({ columnId: resolved.columnId, scrollRoot: event.target instanceof Element ? event.target.closest<HTMLElement>(GRID_ROLE_SELECTOR) : null, actions }, []).length ?? 0) > 0);
       let next: MenuTarget | null = resolved?.kind === "header" && headerMenu ? resolved : null;
       if (resolved?.kind === "cell") {
         const entry = viewEntryAt(s, resolved.row);

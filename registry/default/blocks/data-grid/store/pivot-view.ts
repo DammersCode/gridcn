@@ -78,8 +78,8 @@ export function isPivotColumn(column: AnyColumnDef | undefined): column is Pivot
 }
 
 /**
- * The pivot cell at a view row: a number, `null` when no value counted or the row holds no cells, and `undefined` when
- * `column` is not a generated column.
+ * The pivot cell at a view row: a finite number, `null` when no value counted, the value is not finite, or the row holds no
+ * cells, and `undefined` when `column` is not a generated column.
  */
 export function pivotCellAt(s: { readonly viewIndex: ArrayLike<number>; readonly groupLayout: GroupLayout | null }, viewRow: number, column: AnyColumnDef | undefined): number | null | undefined {
   if (!isPivotColumn(column)) return undefined;

@@ -73,6 +73,15 @@ describe("the context menu on nested pivot rows", () => {
     expect(document.querySelector("[data-grid-context-menu]")).toBeNull();
   });
 
+  it.each([
+    ["an identity resolver", (_ctx: unknown, defaults: readonly unknown[]) => defaults],
+    ["a filtering resolver", (_ctx: unknown, defaults: readonly { id: string }[]) => defaults.filter((spec) => spec.id !== "hide-column")],
+  ])("leaves a generated column header to the browser menu with %s that returns no item", async (_name, resolver) => {
+    renderGrid({ getHeaderMenuItems: resolver as never });
+    expect(fireEvent.contextMenu(generatedHeader())).toBe(true);
+    expect(document.querySelector("[data-grid-context-menu]")).toBeNull();
+  });
+
   it("opens the items of a consumer resolver on a generated column header", async () => {
     renderGrid({ getHeaderMenuItems: (_ctx, defaults) => [...defaults, { id: "note", label: "Note" }] });
     expect(await openOn(generatedHeader())).toEqual(["Note"]);

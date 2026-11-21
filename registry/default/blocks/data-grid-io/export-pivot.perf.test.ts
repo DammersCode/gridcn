@@ -4,25 +4,37 @@ import type { ServerGroupSlot } from "@/registry/default/blocks/data-grid/group-
 import { createDataGridStore } from "@/registry/default/blocks/data-grid/store/create-store";
 import type { InternalSyncProps } from "@/registry/default/blocks/data-grid/store/types";
 import { heldYears, nestedPivotStore } from "@/registry/default/blocks/data-grid/test/nested-pivot.test-helper";
-import { buildCsv } from "./export-grid";
+import { buildExportRows } from "./export-grid";
 
 const ROWS = 10_000;
 const COLS = 200;
-/** Pivot cells read a typed array instead of an accessor, so the pivot export stays within this many same-run flat exports. */
+/** Pivot cells read a typed array instead of an accessor, so building the pivot rows stays within this many same-run flat row builds. */
 const BUDGET_FLAT_EXPORTS = 1.5;
 
-function fastest(run: () => void): number {
-  let best = Number.POSITIVE_INFINITY;
-  for (let i = 0; i < 3; i++) {
+/** Fastest of 5 interleaved runs after one warmup of each, alternating which side runs first. */
+function fastestPair(a: () => void, b: () => void): [number, number] {
+  a();
+  b();
+  const best: [number, number] = [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY];
+  const time = (run: () => void, side: 0 | 1) => {
     const start = performance.now();
     run();
-    best = Math.min(best, performance.now() - start);
+    best[side] = Math.min(best[side], performance.now() - start);
+  };
+  for (let i = 0; i < 5; i++) {
+    if (i % 2 === 0) {
+      time(a, 0);
+      time(b, 1);
+    } else {
+      time(b, 1);
+      time(a, 0);
+    }
   }
   return best;
 }
 
 describe("export of a 10,000 x 200 pivot", () => {
-  it("stays within 1.5 same-run exports of a flat grid of the same size", async ({ annotate }) => {
+  it("builds its rows within 1.5 same-run row builds of a flat grid of the same size", async ({ annotate }) => {
     const years = Array.from({ length: COLS }, (_, i) => 1800 + i);
     const slots: ServerGroupSlot[] = [];
     for (let row = 0; row < ROWS; row++) {
@@ -38,11 +50,13 @@ describe("export of a 10,000 x 200 pivot", () => {
     const data = Array.from({ length: ROWS }, (_, row) => Object.fromEntries(columns.map((_, col) => [`c${col}`, row * 0.5 + col])) as Flat);
     const flat = createDataGridStore({ defaultData: data, columns, getRowId: (_r: Flat, i: number) => `r${i}` } as unknown as InternalSyncProps).getState();
 
-    let pivotSize = 0;
-    const pivotMs = fastest(() => void (pivotSize = buildCsv(pivot).size));
-    const flatMs = fastest(() => void buildCsv(flat));
-    await annotate(`pivot export ${pivotMs.toFixed(0)} ms, flat export ${flatMs.toFixed(0)} ms`);
-    expect(pivotSize).toBeGreaterThan(ROWS * COLS);
+    let pivotRows = 0;
+    const [pivotMs, flatMs] = fastestPair(
+      () => void (pivotRows = buildExportRows(pivot, "view").length),
+      () => void buildExportRows(flat, "view"),
+    );
+    await annotate(`pivot rows ${pivotMs.toFixed(0)} ms, flat rows ${flatMs.toFixed(0)} ms`);
+    expect(pivotRows).toBe(ROWS);
     expect(pivotMs).toBeLessThan(BUDGET_FLAT_EXPORTS * flatMs);
   }, 60_000);
 });
