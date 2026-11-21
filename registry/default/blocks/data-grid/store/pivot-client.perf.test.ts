@@ -105,3 +105,56 @@ describe("client pivot at 100k rows (1,040 group rows, 198 generated columns)", 
     expect(ms).toBeLessThan(budget);
   });
 });
+
+describe("client pivot full rebuilds at 100k rows", () => {
+  const data = rows();
+  const frames: (() => void)[] = [];
+  const timed = (fn: () => void) => {
+    const start = performance.now();
+    fn();
+    return performance.now() - start;
+  };
+
+  it("rebuilds at the next frame after a groupBy write within 3 same-run grouped rebuilds", ({ annotate }) => {
+    const raf = globalThis.requestAnimationFrame;
+    globalThis.requestAnimationFrame = ((run: () => void) => frames.push(run)) as typeof requestAnimationFrame;
+    try {
+      const rebuild = (store: ReturnType<typeof make>, i: number) => {
+        store.getState().actions.updateCells([{ rowId: `r${i}`, columnId: "region", value: `a${(i + 1) % 40}` }], { source: "stream", reorder: "frame" });
+        return timed(() => frames.splice(0).forEach((run) => run()));
+      };
+      const grouped = make(data.map((row) => ({ ...row })), false);
+      const pivoted = make(data.map((row) => ({ ...row })), true);
+      let groupMs = Infinity;
+      let pivotMs = Infinity;
+      for (let i = 0; i < 4; i++) {
+        groupMs = Math.min(groupMs, rebuild(grouped, i));
+        pivotMs = Math.min(pivotMs, rebuild(pivoted, i));
+      }
+      expect(pivoted.getState().viewStale).toBe(false);
+      const budget = within(40, 400, 3 * groupMs);
+      annotate(`next-frame rebuild: pivot ${pivotMs.toFixed(1)} ms, grouped ${groupMs.toFixed(1)} ms, budget ${budget.toFixed(0)} ms`);
+      expect(pivotMs).toBeLessThan(budget);
+    } finally {
+      globalThis.requestAnimationFrame = raf;
+    }
+  }, 60_000);
+
+  it("rebuilds once per undo or redo within 3 same-run grouped rebuilds", ({ annotate }) => {
+    const step = (store: ReturnType<typeof make>, i: number) => {
+      const prev = store.getState().data[i] as Row;
+      return timed(() => store.getState().actions.commitChange({ source: "history", ops: [{ type: "update", rowId: prev.id, row: { ...prev, qty: prev.qty + 1 }, prev }] }));
+    };
+    const grouped = make(data.map((row) => ({ ...row })), false);
+    const pivoted = make(data.map((row) => ({ ...row })), true);
+    let groupMs = Infinity;
+    let pivotMs = Infinity;
+    for (let i = 0; i < 4; i++) {
+      groupMs = Math.min(groupMs, step(grouped, i));
+      pivotMs = Math.min(pivotMs, step(pivoted, i));
+    }
+    const budget = within(40, 400, 3 * groupMs);
+    annotate(`undo or redo: pivot ${pivotMs.toFixed(1)} ms, grouped ${groupMs.toFixed(1)} ms, budget ${budget.toFixed(0)} ms`);
+    expect(pivotMs).toBeLessThan(budget);
+  }, 60_000);
+});

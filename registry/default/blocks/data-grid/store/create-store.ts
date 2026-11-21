@@ -215,8 +215,8 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
     pivotViewOf(held ? { pivot: held } : null, columns, memory.groupModel?.groups.keys() ?? [], labels.pivot, reportPrefixClash);
   /**
    * A client pivot's held set comes out of the view build, so a write that lands a view, columns, or labels gets the pivot view,
-   * the visible columns, and the widths of the same write here. The cursor and the selection the patch computed against the old
-   * visible columns follow their column ids.
+   * the visible columns, and the widths of the same write here. The cursor the patch computed against the old visible columns
+   * follows its column id, the column channel follows its ids, and a range collapses onto the cursor.
    */
   const withClientPivot = (s: DataGridStoreState, patch: Partial<DataGridStoreState>): Partial<DataGridStoreState> => {
     if (!("groupLayout" in patch || "pivot" in patch || "visibleColumns" in patch || "columns" in patch || "labels" in patch)) return patch;
