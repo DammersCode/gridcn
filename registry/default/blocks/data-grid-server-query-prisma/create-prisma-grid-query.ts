@@ -1,5 +1,5 @@
 import { type AdapterCapabilities, type ColumnMap, type GridQuery, QueryError, type QueryLimits, type RowCountMode, type RowScope } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
-import { type AggregatesPlan, type GroupsPlan, type PlanColumn, type RawGroupRow, createGridQuery, mapOf, toSafeText } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query-sdk";
+import { type AggregatesPlan, type GroupsPlan, type PlanColumn, type RawGroupRow, createGridQuery, mapOf, serializeValue, toSafeText } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query-sdk";
 import {
   type PrismaNode,
   type PrismaOrderBy,
@@ -90,6 +90,15 @@ function aggregateSelection(columns: AggregatesPlan["columns"]): Record<string, 
   return out;
 }
 
+/** Most group and key pairs one pivot page reads. */
+const MAX_PIVOT_PAIRS = 40_000;
+
+/** The key the core answers for a stored pivot value, so a cell finds its generated column. */
+function pivotKey(column: PlanColumn, value: unknown): unknown {
+  const key = serializeValue(plainValue(column, value), column);
+  return key === "" || key === undefined ? null : key;
+}
+
 function aggregateValues(found: unknown, columns: AggregatesPlan["columns"]): Row {
   const out: Row = {};
   for (const { column, reducer } of columns) own(out, column.id, plainValue(column, get(get(found, `_${reducer}`), column.field)));
@@ -114,8 +123,10 @@ function aggregateValues(found: unknown, columns: AggregatesPlan["columns"]): Ro
  *   column a comparison or range rounds a fraction of a second to the exact whole second; any other instant with a
  *   fraction, such as an `equals` value or a written value, is `unsupported-value`.
  * - Group child counts and group counts read one extra `groupBy` of at most `maxGroupRows` rows.
- * - A pivot (`spec.pivot`) is `unsupported`: a two-field `groupBy` returns one row per group and key, 40,000 for a
- *   200-group page and 200 keys, past `maxGroupRows`, and it answers `''` and NULL as two keys.
+ * - A pivot (`spec.pivot`) reads its keys in one `groupBy` and its cells in up to four calls, so the database reduces
+ *   every cell. A pivot column with more than `maxGroupRows` keys, or a page whose groups times its kept keys exceed
+ *   40,000, is `limit-exceeded`. On PostgreSQL a native enum or uuid pivot column is `unsupported`: Prisma orders it by its
+ *   type, the SQL renderers as text. On SQLite a pivot `sum`, `min`, or `max` of a decimal column is `unsupported`.
  *
  * @example
  * import { Prisma, PrismaClient, type User } from "@/generated/prisma/client";
@@ -182,8 +193,7 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
     // `groupBy` takes fields only, and the object API has no `NULLIF(col, '')`.
     expressionValues: false,
     blankTextAggregates: false,
-    // A two-field `groupBy` returns one row per group and key, past `maxGroupRows` at a full page.
-    pivot: false,
+    pivot: true,
     maxBoundIds: maxBoundIds(provider),
   };
 
@@ -219,8 +229,11 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
       blankOnPage = Number(get(get(blank, "_count"), "_all")) > 0;
       if (blankOnPage) rows.push(groupRow(blank, null));
     }
+    const groupKeys = [...keys, ...(blankOnPage ? [null] : [])];
+    const cellsOf = plan.pivot && rows.length > 0 ? await selectPivotCells(plan, plan.pivot, keys, blankOnPage) : undefined;
+    const withCells = cellsOf ? rows.map((row, index) => ({ ...row, pivotCells: cellsOf(keyId(level, groupKeys[index])) })) : rows;
     const next = plan.nextLevel;
-    if (!next || rows.length === 0) return rows;
+    if (!next || rows.length === 0) return withCells;
     // `_count` is COUNT(col), not a distinct count, so the child groups come from a second groupBy over this page's keys.
     const pairs = await many("groupBy", {
       by: [level.field, next.field],
@@ -237,8 +250,51 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
       set.add(keyId(next, get(pair, next.field)));
       children.set(id, set);
     }
-    const groupKeys = [...keys, ...(blankOnPage ? [null] : [])];
-    return rows.map((row, index) => ({ ...row, childCount: children.get(keyId(level, groupKeys[index]))?.size ?? 0 }));
+    return withCells.map((row, index) => ({ ...row, childCount: children.get(keyId(level, groupKeys[index]))?.size ?? 0 }));
+  };
+
+  /**
+   * The cells of a pivot page by group key id. A non-blank group and key pair is one `groupBy` bucket; the blank group and
+   * the blank key read their own calls, whose `where` folds `''` and NULL, so the database reduces every cell.
+   */
+  const selectPivotCells = async (plan: GroupsPlan, pivot: NonNullable<GroupsPlan["pivot"]>, keys: readonly unknown[], blankOnPage: boolean): Promise<(id: string) => unknown[]> => {
+    const { level, aggregates } = plan;
+    const { column } = pivot;
+    if ((keys.length + (blankOnPage ? 1 : 0)) * pivot.keys.length > MAX_PIVOT_PAIRS) throw new QueryError("limit-exceeded", ["spec", "pivot"]);
+    const width = pivot.keys.length * aggregates.length;
+    const keyAt = new Map<unknown, number>(pivot.keys.map(({ key }, index) => [key, index]));
+    const blankKey = keyAt.get(null);
+    const keyTests = or(pivot.keys.filter(({ key }) => key !== null).map(({ test }) => renderer.node(test)));
+    const blankKeyTest = blankKey === undefined ? false : renderer.node(pivot.keys[blankKey]!.test);
+    const base = renderer.node(plan.where);
+    const pageKeys = keys.length > 0 ? oneOf(level, keys) : false;
+    const blankLevel = blankOnPage ? renderer.blank(level, false, false, foldsEmptyText(level)) : false;
+    const selection = aggregateSelection(aggregates);
+    const cells = new Map<string, unknown[]>();
+    const put = (groupId: string, index: number | undefined, found: unknown): void => {
+      if (index === undefined) return;
+      const row = cells.get(groupId) ?? new Array<unknown>(width).fill(null);
+      cells.set(groupId, row);
+      aggregates.forEach(({ column: value, reducer }, a) => {
+        row[index * aggregates.length + a] = plainValue(value, get(get(found, `_${reducer}`), value.field));
+      });
+    };
+    const buckets = async (by: readonly PlanColumn[], groups: PrismaNode, tests: PrismaNode, at: (bucket: Row) => [string, number | undefined]): Promise<void> => {
+      if (groups === false || tests === false) return;
+      const found = await many("groupBy", { by: by.map((entry) => entry.field), where: where(and([base, groups, tests])), ...selection });
+      for (const bucket of found) put(...at(bucket), bucket);
+    };
+    const bothBlank = async (): Promise<void> => {
+      if (blankLevel === false || blankKeyTest === false) return;
+      put("blank", blankKey, await run("aggregate", { where: where(and([base, blankLevel, blankKeyTest])), ...selection }));
+    };
+    await Promise.all([
+      buckets([level, column], pageKeys, keyTests, (bucket) => [keyId(level, get(bucket, level.field)), keyAt.get(pivotKey(column, get(bucket, column.field)))]),
+      buckets([column], blankLevel, keyTests, (bucket) => ["blank", keyAt.get(pivotKey(column, get(bucket, column.field)))]),
+      buckets([level], pageKeys, blankKeyTest, (bucket) => [keyId(level, get(bucket, level.field)), blankKey]),
+      bothBlank(),
+    ]);
+    return (id) => cells.get(id) ?? new Array<unknown>(width).fill(null);
   };
 
   return createGridQuery<TRow, TContext, PrismaWhere, PrismaOrderBy, string>({
@@ -300,6 +356,20 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
         return aggregateValues(await run("aggregate", { where: where(renderer.node(plan.where)), ...aggregateSelection(plan.columns) }), plan.columns);
       },
       selectGroups: selectGroupPage,
+      selectPivotKeys: async (plan, { limit }) => {
+        assertAggregates(plan.aggregates);
+        const { level } = plan;
+        if (pg && level.native !== undefined) throw unsupported(level);
+        // Prisma's SQLite adapter types an aggregate column by its first row, so a sum of 12.5 after a sum of 0 reads 12.
+        const typedByFirstRow = pg ? undefined : plan.aggregates.find(({ column, reducer }) => column.numeric === "decimal" && reducer !== "avg" && reducer !== "count");
+        if (typedByFirstRow) throw unsupported(typedByFirstRow.column);
+        // Two rows past the bound, because `''` and NULL fold into one key.
+        const found = await many("groupBy", { by: [level.field], where: where(renderer.node(plan.where)), orderBy: [own({}, level.field, plan.direction)], take: maxGroupRows + 2 });
+        const keys = found.map((group) => get(group, level.field)).filter((key) => !isBlankValue(level, key));
+        const total = keys.length + (keys.length < found.length ? 1 : 0);
+        if (total > maxGroupRows) throw new QueryError("limit-exceeded", ["spec", "pivot"]);
+        return [...keys, ...(keys.length < found.length ? [null] : [])].slice(0, limit).map((key) => ({ key: plainValue(level, key), total }));
+      },
       countGroups: async (plan) => {
         const { level } = plan;
         const groups = await many("groupBy", { by: [level.field], where: where(renderer.node(plan.where)), orderBy: [own({}, level.field, "asc")], take: maxGroupRows + 1 });

@@ -122,7 +122,7 @@ The grid shows a cell that is not a finite number as empty, and reads a bad `piv
 
 ## Pivot with the query layer [#query-layer]
 
-The query layer answers `spec.pivot` with Drizzle and Kysely. Supabase needs `rpc`, the grid function of the table. Prisma answers `unsupported`, because its `groupBy` cannot merge `""` and `null` into one key.
+The query layer answers `spec.pivot` with Drizzle, Kysely, and Prisma. Supabase needs `rpc`, the grid function of the table. Prisma has its own limits: see [What Prisma declines](/docs/server-data-examples/orm-examples/prisma-example#declines).
 
 `maxPivotColumns` (default 200, also the most) bounds keys times values. The layer keeps the first `floor(maxPivotColumns / values)` keys. `pivotOmitted` counts the cut columns, and those of a stored key with no exact match, such as an enum value outside `choices`. A refused request fails with these codes:
 
