@@ -84,14 +84,14 @@ export function useServerSpec(source: ServerSpecOptions, afterChange: () => void
   const lateSeed = typeof source.defaultSpec === "function" && source.spec === undefined ? source.defaultSpec : null;
   const [spec, setSpec, seedSpec] = useControlled<ServerSpec>(source.spec, () => specOf({ pivot: source.defaultPivot, ...(lateSeed ? undefined : (source.defaultSpec as Partial<ServerSpec> | undefined)) }, groups), source.onSpecChange);
   const [ready, setReady] = useState(lateSeed === null);
-  const lateSeedRef = useRef(lateSeed);
+  const lateSeedRef = useRef({ seed: lateSeed, pivot: source.defaultPivot });
   // A function seed runs after mount, on the client only, so the server render and the first client render match.
   useLayoutEffect(() => {
-    const seed = lateSeedRef.current;
+    const { seed, pivot } = lateSeedRef.current;
     if (seed) {
       let value: Partial<ServerSpec> | undefined;
       isolate("defaultSpec", () => (value = seed()));
-      if (value) seedSpec(specOf(value, groups));
+      if (value) seedSpec(specOf({ pivot, ...value }, groups));
     }
     setReady(true);
   }, [seedSpec, groups]);
@@ -121,6 +121,7 @@ export function useServerSpec(source: ServerSpecOptions, afterChange: () => void
     (next: PivotSpec) => {
       const { pivot: controlled, onPivotChange: notify } = live.current.source;
       if (controlled === undefined) changeSpec({ pivot: { columnIds: [...next.columnIds] } });
+      else live.current.afterChange();
       if (notify) isolate("onPivotChange", () => notify(next));
     },
     [changeSpec],

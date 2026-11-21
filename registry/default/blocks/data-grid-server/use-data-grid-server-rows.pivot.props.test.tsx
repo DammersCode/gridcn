@@ -60,6 +60,13 @@ describe.each(["pages", "scroll"] as const)("the pivot props of a grouped server
     await waitFor(() => expect(server.calls.at(-1)!.spec.pivot).toBeUndefined());
   });
 
+  it("keeps the defaultPivot seed when defaultSpec is a function", async () => {
+    const server = fakeServer(rowsOf({ A: 2, B: 2 }));
+    mount(server, { defaultSpec: () => GROUPED, defaultPivot: { columnIds: ["city"] }, defaultExpanded: { mode: "collapsed", ids: [] } });
+    await waitFor(() => expect(server.calls.length).toBeGreaterThan(0));
+    expect(server.calls[0]!.spec.pivot).toEqual({ columnIds: ["city"] });
+  });
+
   it("follows a controlled pivot over spec.pivot, and round-trips a grid change through onPivotChange", async () => {
     const server = fakeServer(rowsOf({ A: 2, B: 2 }));
     const { result } = renderHook(() => {

@@ -24,6 +24,13 @@ This note fixes the contracts that the 2.1 steps share. `research/server-pivot-s
 - In server mode the hook maps the props to `spec.pivot`.
 - A write or a streamed row refreshes the cells. The step that wires it measures one edit at 100k rows first. A full rebuild above 16 ms needs an incremental refresh.
 
+## Pivot UI (S11-UI)
+
+- The header menu holds the pivot UI: "Pivot by" and "Turn off pivot", hidden without `groupBy`, as the group-by items are. Under a pivot only the `groupBy` column shows a header with a menu, so "Turn off pivot" sits there. A generated column keeps no menu.
+- The sort list offers the hidden pivot column under a pivot; its sort orders the keys. Generated columns are `sortable: false`.
+- The server hook takes `pivot`, `defaultPivot`, and `onPivotChange`. A controlled `pivot` wins over `spec.pivot`.
+- A grouped server source keeps its last view until the first top-level answer of a new request key lands, then returns a scrolled grid to the top.
+
 ## Decimal and string aggregates
 
 - The layer answers a number aggregate as a number. It answers a decimal string when the value has more than 15 significant digits and is not a safe integer. `avg` and a `float` column always answer a number.
