@@ -10,6 +10,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 ## Unreleased
 
 - Fixed the active cell of a grouped grid landing on another record when its group, or the row it sat on, left the view. The active cell moves to the nearest parent group that stays. A cursor on a top-level group that left still stays at its row index.
+- Fixed `aria-level`, `aria-posinset`, and `aria-setsize` of a grouped server grid while some rows are unloaded. A group row counts its position in the whole set, the set size comes from the child count the server sends, and an unloaded top-level row after an open group reads level 1.
 - Fixed the active cell of a group row in a pinned column hiding the selection tint: the group label and a pinned aggregate cell paint the tint while they are active and inside the selected range.
 - Fixed the group aggregates of `createGridQuery` showing empty for `sum`, `min`, and `max` of a decimal column on PostgreSQL. The query layer answered the value as text, and the grid shows only finite numbers. A reducer over a number column now answers a JavaScript number in group and flat aggregates; a value beyond 15 significant digits loses precision.
 - Fixed the grid, header included, blanking for single frames while scrolling in Firefox, mostly upward. The sticky viewport no longer sits in an absolutely positioned, clipped track.
