@@ -46,10 +46,21 @@ describe("a pivot pages source (server pagination)", () => {
     await waitFor(() => expect(result.current.gridProps.groupLayout?.rows).toHaveLength(200));
     expect(server.calls[0]).toMatchObject({ start: 0, end: 200, page: 1, pageSize: 200 });
     expect([result.current.pager.pageSize, result.current.pager.pageCount]).toEqual([200, 3]);
+    expect(result.current.pager.pageSizeOptions).toEqual([200]);
     act(() => result.current.pager.onPageChange(3));
     await waitFor(() => expect(keysOf(result)).toHaveLength(50));
     expect(server.calls.at(-1)).toMatchObject({ start: 400, end: 450, page: 3, pageSize: 200 });
     expect(keysOf(result)![0]).toBe("r400");
+  });
+
+  it("offers only the page sizes a pivot page can hold, and drops a larger size to the largest of them", async () => {
+    const regions = Object.fromEntries(Array.from({ length: 450 }, (_, index) => [`r${String(index).padStart(3, "0")}`, 1]));
+    const server = fakeServer(rowsOf(regions));
+    const { result } = mount(server, { defaultPageSize: 500, pageSizeOptions: [50, 100, 500] });
+    await waitFor(() => expect(result.current.gridProps.groupLayout?.rows).toHaveLength(100));
+    expect(result.current.pager.pageSizeOptions).toEqual([50, 100]);
+    expect(result.current.pager.pageSize).toBe(100);
+    expect(server.calls[0]).toMatchObject({ start: 0, end: 100, pageSize: 100 });
   });
 
   it("never sends a rows request when groups open on any page", async () => {
