@@ -50,14 +50,15 @@ The client is the one in the [Drizzle example](/docs/server-data-examples/orm-ex
 
 The adapter refuses, before any call, a request that the object API has no exact form for. It answers `unsupported` and never returns wrong rows:
 
-- A pivot (`spec.pivot`). See [Pivot server rows](/docs/data-modes/pivot-server-rows#query-layer).
+- A pivot on PostgreSQL whose pivot column is a native enum. Prisma orders an enum in its declared order, and the other adapters order it as text.
+- On SQLite: a group or pivot `sum`, `min`, or `max` of a decimal column. Prisma's SQLite driver reads each aggregate column of a `groupBy` in the type of its first row and cuts `12.5` to `12`.
 - On SQLite: case-insensitive `equals` and set filters, case-sensitive LIKE filters, and excluded ids on a uuid key. A `%` or `_` in a LIKE filter answers `unsupported-value`.
 - On PostgreSQL: a cursor sort on a `time` column, and grouping by a `time` column.
 - LIKE filters on a native enum or uuid column.
 - Set values of a `time` column or of text without `caseSensitive`, and a value query on a column that is not text.
 - `min`, `max`, and `count` of text without `keepBlankText`.
 
-Each statement also counts its bound values. Past the budget of the provider (PostgreSQL 32,766, SQLite 999), the adapter answers `limit-exceeded`. On SQLite, a selection of about 990 ids or excluded ids is over it. Group counts read one extra `groupBy` of at most `maxGroupRows` rows (default 10,000), and more answer `limit-exceeded`.
+Each statement also counts its bound values. Past the budget of the provider (PostgreSQL 32,766, SQLite 999), the adapter answers `limit-exceeded`. On SQLite, a selection of about 990 ids or excluded ids is over it. Group counts read one extra `groupBy` of at most `maxGroupRows` rows (default 10,000), and more answer `limit-exceeded`. A pivot reads its keys the same way, so a pivot column with more than `maxGroupRows` keys answers `limit-exceeded`. A pivot page whose groups times its kept keys exceed 40,000 also answers `limit-exceeded`.
 
 ## Cursors, selection, and saves [#more-routes]
 

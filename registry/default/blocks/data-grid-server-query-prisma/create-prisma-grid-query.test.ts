@@ -693,7 +693,7 @@ describe("hostile keys and creation", () => {
   });
 
   it("states honest capabilities per provider", () => {
-    const both = { literalAsterisk: true, aggregates: true, groupBy: true, localDayGrouping: false, nativeLike: false, expressionValues: false, blankTextAggregates: false, pivot: false };
+    const both = { literalAsterisk: true, aggregates: true, groupBy: true, localDayGrouping: false, nativeLike: false, expressionValues: false, blankTextAggregates: false, pivot: true };
     expect(make("postgresql").query.capabilities).toStrictEqual({ ...both, caseInsensitiveText: "native", likeEscape: true, nullsLast: "native", exactInstantKeys: false, maxBoundIds: 32_764 });
     expect(make("sqlite").query.capabilities).toStrictEqual({ ...both, caseInsensitiveText: "like-only", caseSensitiveLike: false, likeEscape: false, nullsLast: "emulated", exactInstantKeys: true, maxBoundIds: 997 });
   });
