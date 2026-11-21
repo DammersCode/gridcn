@@ -930,7 +930,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     }
     const applied = batch.ops.reduce((n, op) => (op.type === "update" ? n + (op.cells?.length ?? 0) : n), 0);
 
-    const reorder = resolveReorder(options?.reorder, patches, viewInputSorts(s), viewFilters(s.filterMode, s.filterState, s.filterJoin));
+    // Under a client pivot no row shows, so a write that moves a row between groups or keys rebuilds at the next frame.
+    const reorder = resolveReorder(options?.reorder ?? (s.groupLayout?.pivot ? "frame" : undefined), patches, viewInputSorts(s), viewFilters(s.filterMode, s.filterState, s.filterJoin));
     ctx.rowIndexCache.rebase(nextData);
     ctx.lastEmittedData = nextData;
     const marks = markStaleRows(ctx, s, batch.ops, batch.touchedRows, (options?.reorder ?? "defer") !== "never");

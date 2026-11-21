@@ -47,6 +47,7 @@ import type { ServerPivotLayout } from "../group-types";
 import { EXPANDED_CUT_MESSAGE, syncGroupState, syncPivotState, type GroupSyncMemory } from "./group-sync";
 import { groupModeOf, groupingOf, heldSetOf } from "./group-view";
 import { groupLayoutOfView } from "./view-rows";
+import { appendedPivotLayout } from "./group-patch";
 import { withMatchCase } from "./filter-match-case";
 import { createWarnOnce, isDev, warnDev } from "../is-dev";
 import { NO_REMEMBERED_ROWS, hiddenCheckedRowsActive } from "./hidden-checked-rows";
@@ -423,12 +424,13 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           pivotColumnIds: nextPivotColumnIds,
         };
         // An echo skips the recompute only when `data` is the only input that moved.
-        const echoOnly =
-          isEcho && syncInputsEqual({ ...nextSyncInputs, data: memory.lastSyncInputs.data }, memory.lastSyncInputs);
+        const dataOnly = syncInputsEqual({ ...nextSyncInputs, data: memory.lastSyncInputs.data }, memory.lastSyncInputs);
+        const echoOnly = isEcho && dataOnly;
         const unchanged = syncInputsEqual(nextSyncInputs, memory.lastSyncInputs) || echoOnly;
         memory.lastSyncInputs = nextSyncInputs;
 
-        const nextViewIndex = unchanged
+        const appendedLayout = !unchanged && dataOnly && foreignData ? appendedPivotLayout(s, nextData, viewFilters(nextFilterMode, nextFilterState, nextFilterJoin)) : null;
+        const nextViewIndex = unchanged || appendedLayout
           ? s.viewIndex
           : computeViewIndex(nextData, nextColumns, nextViewSorts, viewFilters(nextFilterMode, nextFilterState, nextFilterJoin), s.viewIndex, nextCellTypes, nextPageSize === null ? null : { page: nextPage, pageSize: nextPageSize }, nextSortLocale, groupingOf({ ...nextGroup, groupMode: nextGroupMode, serverGroupLayout: nextServerLayout, totalRowCount: s.totalRowCount, sortMode: nextSortMode, dataWrite: s.dataWrite, pivotColumnIds: nextPivotColumnIds, columns: nextColumns, groupLayout: s.groupLayout }));
         const nextPivot = unchanged ? s.pivot : pivotOf(heldSetOf({ groupMode: nextGroupMode, serverGroupLayout: nextServerLayout, groupLayout: groupLayoutOfView(nextViewIndex) }), nextColumns, s.labels);
@@ -577,6 +579,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           pageControlled: props.page !== undefined,
           pageSizeControlled: props.pageSize !== undefined,
           viewIndex: nextViewIndex,
+          ...(appendedLayout ? { groupLayout: appendedLayout } : null),
           groupBy: nextGroup.groupBy,
           expanded: nextGroup.expanded,
           groupMode: nextGroupMode,

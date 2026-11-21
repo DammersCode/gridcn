@@ -214,3 +214,127 @@ describe("pivot props", () => {
     expect(state().viewIndex).toHaveLength(1);
   });
 });
+
+describe("pivot refresh after a write", () => {
+  const frames: (() => void)[] = [];
+  const runFrames = () => frames.splice(0).forEach((run) => run());
+  const stubFrames = () => {
+    vi.stubGlobal("requestAnimationFrame", (run: () => void) => frames.push(run));
+    vi.stubGlobal("cancelAnimationFrame", () => {});
+  };
+  afterEach(() => {
+    frames.length = 0;
+    vi.unstubAllGlobals();
+  });
+
+  it("refreshes the cells of a value write in place and keeps the view, the generated columns, and the visible columns", () => {
+    const { state, cells } = make();
+    const before = { view: state().viewIndex, generated: state().pivot!.columns, visible: state().visibleColumns, us: state().groupLayout!.rows[1] };
+    state().actions.updateCells([{ rowId: "r0", columnId: "amount", value: 10 }], { source: "stream" });
+    expect(cells()).toEqual([
+      ["__group:region=EU", 10, 2, 5],
+      ["__group:region=US", 3, 4, null],
+    ]);
+    expect(state().viewIndex).toBe(before.view);
+    expect(state().pivot!.columns).toBe(before.generated);
+    expect(state().visibleColumns).toBe(before.visible);
+    expect(state().groupLayout!.rows[1]).toBe(before.us);
+    expect(state().viewStale).toBe(false);
+  });
+
+  it("keeps the view settled under a sort on a value column", () => {
+    const { state, cells } = make({ defaultSortState: [{ columnId: "amount", direction: "desc" }] });
+    state().actions.updateCells([{ rowId: "r3", columnId: "amount", value: 40 }], { source: "stream" });
+    expect(cells()[1]).toEqual(["__group:region=US", 3, 40, null]);
+    expect(state().viewStale).toBe(false);
+  });
+
+  it("rebuilds on the next frame after a write to the pivot column, with a new key", () => {
+    stubFrames();
+    const { state, ids, cells } = make();
+    state().actions.updateCells([{ rowId: "r4", columnId: "year", value: 2026 }], { source: "stream" });
+    expect(state().viewStale).toBe(false);
+    runFrames();
+    expect(ids()).toEqual(["region", id(2024), id(2025), id(2026)]);
+    expect(cells()[0]).toEqual(["__group:region=EU", 1, 2, 5]);
+  });
+
+  it("rebuilds on the next frame after a write to a groupBy column", () => {
+    stubFrames();
+    const { state, cells } = make();
+    state().actions.updateCells([{ rowId: "r0", columnId: "region", value: "US" }], { source: "stream" });
+    runFrames();
+    expect(cells()).toEqual([
+      ["__group:region=EU", null, 2, 5],
+      ["__group:region=US", 4, 4, null],
+    ]);
+  });
+
+  it("refreshes the cells and keeps the generated columns through a committed change, as undo and redo apply it", () => {
+    const { state, cells } = make();
+    const generated = state().pivot!.columns;
+    const prev = state().data[1] as Row;
+    state().actions.commitChange({ source: "undo", ops: [{ type: "update", rowId: "r1", row: { ...prev, amount: 20 }, prev }] });
+    expect(cells()[0]).toEqual(["__group:region=EU", 1, 20, 5]);
+    expect(state().pivot!.columns).toBe(generated);
+  });
+
+  it("refreshes the cells of a replaced row id", () => {
+    const { state, cells } = make();
+    state().actions.replaceRowId("r1", { ...(state().data[1] as Row), id: "n1", amount: 7 });
+    expect(cells()[0]).toEqual(["__group:region=EU", 1, 7, 5]);
+  });
+});
+
+describe("pivot refresh against a full build", () => {
+  it("matches a fresh grid after random value writes, with averages of fractional values", () => {
+    let seed = 9;
+    const random = () => {
+      seed = (seed * 16807) % 2147483647;
+      return seed / 2147483647;
+    };
+    const avgColumns = columns.map((c) => (c.id === "amount" ? { ...c, aggregate: "avg" as const } : c));
+    const data: Row[] = Array.from({ length: 300 }, (_, i) => ({ id: `r${i}`, region: `g${i % 5}`, city: `c${i % 3}`, year: i % 7, amount: random() * 100 - 50, note: "" }));
+    const live = make({ data, columns: avgColumns, groupBy: ["region", "city"], defaultExpanded: { mode: "expanded", ids: [] } });
+    for (let step = 0; step < 40; step++) {
+      const patches = Array.from({ length: 1 + Math.floor(random() * 3) }, () => ({ rowId: `r${Math.floor(random() * 300)}`, columnId: "amount", value: random() < 0.1 ? null : random() * 100 - 50 }));
+      live.state().actions.updateCells(patches, { source: "stream" });
+      const fresh = make({ data: live.state().data, columns: avgColumns, groupBy: ["region", "city"], defaultExpanded: { mode: "expanded", ids: [] } });
+      expect(live.cells(), `step ${step}`).toEqual(fresh.cells());
+    }
+  });
+});
+
+describe("streamed rows under a client pivot", () => {
+  const extra = (id: string, region: string, year: number | null, amount: number): Row => ({ id, region, city: "Paris", year, amount, note: "" });
+
+  it("places appended rows of known groups and keys in place, keeping the view and the generated columns", () => {
+    const live = make();
+    const before = { view: live.state().viewIndex, generated: live.state().pivot!.columns, visible: live.state().visibleColumns };
+    const data = [...(live.state().data as Row[]), extra("s0", "US", 2024, 10), extra("s1", "EU", null, 0.5)];
+    live.sync({ data });
+    expect(live.state().viewIndex).toBe(before.view);
+    expect(live.state().pivot!.columns).toBe(before.generated);
+    expect(live.state().visibleColumns).toBe(before.visible);
+    expect(live.cells()).toEqual(make({ data }).cells());
+    expect(live.state().groupLayout!.rows.map((node) => node.count)).toEqual([4, 3]);
+    expect(live.state().groupLayout!.leafCount).toBe(7);
+  });
+
+  it("rebuilds for an appended row with a new key or a new group", () => {
+    const live = make();
+    const view = live.state().viewIndex;
+    live.sync({ data: [...(live.state().data as Row[]), extra("s0", "US", 2030, 1)] });
+    expect(live.ids()).toContain(id(2030));
+    live.sync({ data: [...(live.state().data as Row[]), extra("s1", "APAC", 2024, 1)] });
+    expect(live.state().viewIndex).not.toBe(view);
+    expect(live.cells().map((row) => row[0])).toEqual(["__group:region=APAC", "__group:region=EU", "__group:region=US"]);
+  });
+
+  it("skips an appended row that the filters drop", () => {
+    const live = make({ defaultFilterState: [{ columnId: "city", operator: "equals", value: "Paris" }] });
+    const before = live.cells();
+    live.sync({ data: [...(live.state().data as Row[]), { ...extra("s0", "EU", 2024, 100), city: "Rome" }] });
+    expect(live.cells()).toEqual(before);
+  });
+});
