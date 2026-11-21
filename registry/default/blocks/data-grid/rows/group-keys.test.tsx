@@ -59,16 +59,15 @@ describe("keys on a group row", () => {
     expect(isOpen()).toBe("false");
   });
 
-  it("opens with ArrowRight, then moves right; closes with ArrowLeft, then moves left", () => {
+  it("opens with ArrowRight and closes with ArrowLeft; a label over every column stays one stop", () => {
     const grid = mount();
     press(grid, "ArrowRight");
     expect(isOpen()).toBe("true");
     expect(state().activeCell).toEqual({ col: 0, row: 0 });
     press(grid, "ArrowRight");
-    expect(state().activeCell).toEqual({ col: 1, row: 0 });
+    expect(state().activeCell).toEqual({ col: 0, row: 0 });
     press(grid, "ArrowLeft");
     expect(isOpen()).toBe("false");
-    expect(state().activeCell).toEqual({ col: 1, row: 0 });
     press(grid, "ArrowLeft");
     expect(state().activeCell).toEqual({ col: 0, row: 0 });
   });

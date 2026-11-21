@@ -3,13 +3,13 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { PGlite } from "@electric-sql/pglite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { groupKeyText } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { GroupsAnswer, QueryLimits } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
 import { type SupabaseClientLike, createSupabaseGridQuery } from "@/registry/default/blocks/data-grid-server-query-supabase/data-grid-server-query-supabase";
-import { type OraclePath, oraclePivot } from "../server-query/client-oracle";
+import { type OraclePath, oraclePivot, sortedKeys } from "../server-query/client-oracle";
 import { type Harness, type LooseQuery, openPg } from "../server-query/engines";
 import { FIXTURE_ROWS, groupColumns } from "../server-query/fixture";
 import { captureSupabase } from "./capture-supabase";
+import { type Aggregate, type Ask, VIEW_SQL, body, expectArrayAndCompositeLevels, expectCellsLike, expectLevelsLike, viewColumns } from "./pivot-oracle";
 
 const GRID_SQL = readFileSync(join(process.cwd(), "registry/default/blocks/data-grid-server-query-supabase/grid-query.sql"), "utf8");
 const ALLOWED = ["id", "name", "tag", "score", "qty", "active", "price", "createdAt", "tenantId"];
@@ -28,6 +28,9 @@ beforeAll(async () => {
     as $$ select gridcn.grid_query('public.items'::pg_catalog.regclass, array[${ALLOWED.map((name) => `'${name}'`).join(", ")}]::pg_catalog.text[], plan) $$`);
   await pg.exec(`create function public.items_grid_capped(plan jsonb) returns jsonb language sql stable security invoker
     as $$ select gridcn.grid_query('public.items'::pg_catalog.regclass, array[${ALLOWED.map((name) => `'${name}'`).join(", ")}]::pg_catalog.text[], plan, max_pivot_columns => 5) $$`);
+  await pg.exec(VIEW_SQL);
+  await pg.exec(`create function public.fixture_grid(plan jsonb) returns jsonb language sql stable security invoker
+    as $$ select gridcn.grid_query('public.fixture_view'::pg_catalog.regclass, array[${[...ALLOWED, "tags", "pair"].map((name) => `'${name}'`).join(", ")}]::pg_catalog.text[], plan) $$`);
 }, 60_000);
 
 afterAll(async () => {
@@ -41,7 +44,7 @@ const client: SupabaseClientLike = {
     const run = async () => {
       plans.push(args.plan);
       try {
-        return { data: (await pg.query<{ r: unknown }>(`select public.${name === "items_grid_capped" ? name : "items_grid"}($1::jsonb) as r`, [JSON.stringify(args.plan)])).rows[0]!.r, error: null };
+        return { data: (await pg.query<{ r: unknown }>(`select public.${name}($1::jsonb) as r`, [JSON.stringify(args.plan)])).rows[0]!.r, error: null };
       } catch (error) {
         return { data: null, error: { message: (error as Error).message } };
       }
@@ -63,53 +66,10 @@ const supabase = (options: { rowScope?: boolean; limits?: QueryLimits; rpc?: str
     ...(options.rowScope ? { rowScope: (context: { tenantId: number }) => ({ tenantId: context.tenantId }) } : {}),
   }) as unknown as LooseQuery;
 
-type Sort = { columnId: string; direction: "asc" | "desc" };
-type Aggregate = { columnId: string; reducer: "sum" | "avg" | "min" | "max" | "count" };
-type Ask = { groupBy: string[]; pivot: string; path?: OraclePath; sorts?: Sort[]; filters?: Record<string, unknown>[]; aggregates?: Aggregate[]; start?: number; end?: number };
-
-const VALUES: Aggregate[] = [
-  { columnId: "qty", reducer: "sum" },
-  { columnId: "score", reducer: "avg" },
-  { columnId: "qtyMin", reducer: "min" },
-  { columnId: "qtyMax", reducer: "max" },
-  { columnId: "nameCount", reducer: "count" },
-];
-
-const body = ({ groupBy, pivot, path = [], sorts = [], filters = [], aggregates = VALUES, start = 0, end = 1000 }: Ask) => ({
-  spec: { sorts, filters, searchText: "", groupBy, aggregates, pivot: { columnIds: [pivot] } },
-  groupPath: path,
-  childKind: path.length < groupBy.length ? "groups" : "rows",
-  start,
-  end,
-});
 const pivotOf = async (query: LooseQuery, ask: Ask, context?: { tenantId: number }): Promise<GroupsAnswer> =>
   (await query.fetchRows(body(ask), context ? { context } : undefined)) as unknown as GroupsAnswer;
-const sortedKeys = (keys: readonly unknown[]) => [...keys].map((key) => (key === null ? "\u{10FFFF}" : `${typeof key}:${String(key)}`)).sort();
 const statement = async (plan: unknown, caps = "") =>
   (await pg.query<{ s: string }>(`select gridcn.grid_sql('public.items'::regclass, $1::text[], $2::jsonb${caps}) as s`, [ALLOWED, JSON.stringify(plan)])).rows[0]!.s;
-
-function expectCellsLike(answer: GroupsAnswer, ask: Ask, options: { ordered: boolean }): void {
-  const expected = oraclePivot({ filters: ask.filters ?? [], groupBy: ask.groupBy, path: ask.path, pivot: ask.pivot, aggregates: ask.aggregates ?? VALUES, directions: new Map((ask.sorts ?? []).map((sort) => [sort.columnId, sort.direction] as const)) });
-  const valueCount = (ask.aggregates ?? VALUES).length;
-  const answerKeys = answer.pivotColumns!.filter((column) => column.valueIndex === 0).map((column) => column.path[0]);
-  if (options.ordered) expect(answerKeys).toEqual(expected.keys);
-  else expect(sortedKeys(answerKeys)).toEqual(sortedKeys(expected.keys));
-  expect(answer.pivotOmitted).toBe(0);
-  expect(answer.groups).toHaveLength(expected.groups.length);
-  const truthOf = new Map(expected.groups.map((group) => [groupKeyText(group.key), group]));
-  for (const group of answer.groups) {
-    const truth = truthOf.get(groupKeyText(group.key))!;
-    const byColumn = new Map(expected.keys.flatMap((key, keyIndex) => Array.from({ length: valueCount }, (_, valueIndex) => [`${groupKeyText(key)}|${valueIndex}`, truth.cells[keyIndex * valueCount + valueIndex]] as const)));
-    answer.pivotColumns!.forEach((column, index) => {
-      const got = group.pivotCells![index];
-      const want = byColumn.get(`${groupKeyText(column.path[0] as never)}|${column.valueIndex}`);
-      const where = `group ${String(group.key)}, key ${String(column.path[0])}, value ${column.valueIndex}`;
-      expect(got === null || typeof got === "number", where).toBe(true);
-      if (typeof want === "number" && typeof got === "number") expect(got, where).toBeCloseTo(want, 9);
-      else expect(got, where).toEqual(want);
-    });
-  }
-}
 
 describe("pivot through the grid function", () => {
   it.each([
@@ -151,6 +111,16 @@ describe("pivot through the grid function", () => {
       expect(answer).toEqual(await pivotOf(drizzle.make({ groups: true }), ask));
       path.push({ columnId: groupBy[depth]!, key: answer.groups.find((group) => group.key !== null)!.key });
     }
+  });
+
+  const viewQuery = () => createSupabaseGridQuery({ client, table: "fixture_view", columns: viewColumns, rpc: "fixture_grid", maxUrlLength: 1 });
+
+  it("matches the client at every depth of two to four levels, the empty group included", async () => {
+    await expectLevelsLike(viewQuery);
+  });
+
+  it("matches the client over an array and a composite group level, and drills only the array", async () => {
+    await expectArrayAndCompositeLevels(viewQuery);
   });
 
   it("cuts the keys past maxPivotColumns in key order and counts the cut columns", async () => {
@@ -260,6 +230,15 @@ describe("pivot through the grid function", () => {
     for (const key of [{ or: Array.from({ length: 3 }, () => eq) }, { or: [eq, { or: [eq, eq] }] }, { and: [eq, eq] }, { not: eq }, deep, { c: "name", op: "in", v: ["x"] }, { c: "name", op: "ilike", v: "%" }, { or: [eq, false] }, "x", null]) {
       await expect(statement(cells(key)), JSON.stringify(key)).rejects.toThrow(/pivot key/);
     }
+  });
+});
+
+describe("a second run of grid-query.sql", () => {
+  it("replaces the gridcn functions, and the existing wrappers keep answering", async () => {
+    const ask: Ask = { groupBy: ["tag"], pivot: "active" };
+    const before = await pivotOf(supabase(), ask);
+    await pg.exec(GRID_SQL);
+    expect(await pivotOf(supabase(), ask)).toEqual(before);
   });
 });
 

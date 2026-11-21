@@ -63,7 +63,7 @@ export type GridFunctionPlan =
 type GridFunctionAggregate = { c: string; reducer: AggregateReducer; blank: boolean };
 type GridFunctionKey = { c: string; blank: boolean };
 
-type Result = { data: unknown; error: { message?: unknown } | null; count?: number | null };
+type Result = { data: unknown; error: { message?: unknown } | null; count?: number | null; status?: number };
 type Builder = PromiseLike<Result> & {
   or(filters: string): Builder;
   order(column: string, options: { ascending: boolean; nullsFirst: boolean }): Builder;
@@ -85,7 +85,6 @@ const rowsOf = (data: unknown): unknown[] => (Array.isArray(data) ? data : []);
 /** JSON numbers lose int8 and decimal digits, so those columns travel as text. */
 const asText = (column: PlanColumn): boolean => column.kind === "number" && (column.numeric === "int8" || column.numeric === "decimal");
 const blankText = (column: PlanColumn): boolean => isTextual(column) && !column.keepBlankText;
-
 /** The request URL's length; postgrest-js keeps the URL in its builder's `url`, which its types mark protected. */
 function urlLength(builder: Builder): number {
   const url = (builder as { url?: unknown }).url;
@@ -97,7 +96,8 @@ function urlLength(builder: Builder): number {
 
 async function read(request: PromiseLike<Result>): Promise<Result> {
   const result = await request;
-  if (result.error) throw new Error(`Supabase request failed: ${toSafeText(result.error.message)}`);
+  // A HEAD answer, such as a count's, has no body, so its error has no message.
+  if (result.error) throw new Error(`Supabase request failed: ${toSafeText(result.error.message) || `HTTP ${toSafeText(result.status)}`}`);
   return result;
 }
 
@@ -184,6 +184,7 @@ export function createSupabaseGridQuery<TRow, TContext>(options: SupabaseGridQue
     pivot: rpc !== undefined,
     localDayGrouping: true,
     exactInstantKeys: true,
+    millisecondInstantKeys: true,
     nativeLike: false,
   };
 

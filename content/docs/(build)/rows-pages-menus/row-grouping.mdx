@@ -71,10 +71,11 @@ On a group row:
 | Key | Result |
 |---|---|
 | Enter, Space | Opens a closed group and closes an open one. |
-| ArrowRight | Opens a closed group. Otherwise moves right. |
-| ArrowLeft | Closes an open group. Otherwise moves left. |
+| ArrowRight | Opens a closed group. Otherwise moves to the first column after the label. |
+| ArrowLeft | Closes an open group. Otherwise moves left. On the label, the active cell stays. |
+| Arrows, Shift+arrows | Treat the group label as one cell. The label covers the columns up to the first `aggregate` column. |
 
-Right-to-left layouts mirror the arrows. The keymap actions are `toggleGroupRow`, `expandGroupRow`, and `collapseGroupRow`. The [context menu](/docs/rows-pages-menus/context-menu) adds Group by and Ungroup to the header menu and a menu to each group row. The live region reads `labels.grouping.expanded`, `collapsed`, and `loadFailed`.
+The label is active when `activeCell.col` is any column inside the label. ArrowUp and ArrowDown keep that column, so the active cell returns to it on the next data row. Right-to-left layouts mirror the arrows. The keymap actions are `toggleGroupRow`, `expandGroupRow`, and `collapseGroupRow`. The [context menu](/docs/rows-pages-menus/context-menu) adds Group by and Ungroup to the header menu and a menu to each group row. The live region reads `labels.grouping.expanded`, `collapsed`, and `loadFailed`.
 
 While the grid groups, it takes the role `treegrid`. The row marker numbers each row inside its innermost group. Export, find and replace, fill, comments, the status bar, and `useDataGridAggregate` read rows and skip group rows. A group row holds no data, so a row operation that starts on one reports the reason `"group-row"`. Read a view row through `dataIndexAt`: `viewIndex` holds an entry below 0 for a group row.
 
@@ -109,5 +110,6 @@ The server answers `childKind: "groups"` with `groups`, `groupCount`, and, at th
 
 - [Row grouping example](/docs/row-examples/row-grouping-example): both wirings in full
 - [Group server rows](/docs/data-modes/group-server-rows): the server request and answer
+- [Pivot](/docs/rows-pages-menus/pivot): the keys of one column as columns
 - [Pinned rows](/docs/rows-pages-menus/pinned-rows): the same reducers over a band
 - [Client pagination](/docs/rows-pages-menus/client-pagination): pages of groups

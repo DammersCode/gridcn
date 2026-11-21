@@ -74,7 +74,7 @@ A client grid with `defaultPageSize` holds every row, so its plain items cover a
 - Set `maxRows` and `maxBytes` to what the memory of your users' devices can hold. The defaults stop at 1,000,000 rows or 256 MiB of file text, whichever comes first. To export more, raise both together: 2,000,000 rows of 150 bytes make about 300 MB, which is above the default `maxBytes`.
 - For a result larger than a browser holds, export on the server and link to the file.
 - An xlsx export with an invalid `sheetName` rejects before the source runs.
-- Under a [pivot](/docs/data-modes/pivot-server-rows), a source export and a source print write the source rows in the source columns. They do not read the pivot view. A generated column id in `columns` rejects.
+- Under a [pivot](/docs/rows-pages-menus/pivot) or a [server pivot](/docs/data-modes/pivot-server-rows), a source export and a source print write the source rows in the source columns. They do not read the pivot view. A generated column id in `columns` rejects.
 
 ## Related
 

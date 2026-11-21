@@ -4824,6 +4824,27 @@
       ]
     },
     {
+      "name": "data-grid-pivot-demo",
+      "type": "registry:example",
+      "title": "Data Grid Pivot Demo",
+      "description": "5,000 car sales pivoted on the client: one row per region, one column per make, and the revenue in each cell, with buttons that switch the pivot column to financed or turn the pivot off.",
+      "author": "gridcn",
+      "registryDependencies": [
+        "@gridcn/data-grid",
+        "button"
+      ],
+      "files": [
+        {
+          "path": "registry/default/examples/data-grid-pivot-demo.tsx",
+          "type": "registry:example",
+          "target": "components/data-grid-pivot-demo.tsx"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    },
+    {
       "name": "data-grid-server-grouping-demo",
       "type": "registry:example",
       "title": "Data Grid Server Grouping Demo",
@@ -4888,5 +4909,6 @@
         "data"
       ]
     }
-  ]
+  ],
+  "files": []
 }

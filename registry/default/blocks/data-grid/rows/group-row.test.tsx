@@ -3,7 +3,7 @@ import { renderToString } from "react-dom/server";
 import { hydrateRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { DataGridBody, DataGridHeader, DataGridProvider, DataGridRoot, type ColumnDef } from "../data-grid";
-import { groupLabelSpan } from "./group-row";
+import { groupLabelSpan } from "../store/group-positions";
 
 type Row = { id: string; region: string | null; team: string; qty: number };
 

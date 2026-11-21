@@ -65,7 +65,7 @@ export function Tasks({ tasks }: { tasks: Task[] }) {
 }
 ```
 
-With this binding, Tab moves the active cell. At the last column, Tab leaves the grid. Shift+Tab leaves it at the first column. In an edit, Tab still commits and moves focus out of the grid.
+With this binding, Tab moves the active cell. At the last column, Tab leaves the grid. Shift+Tab leaves it at the first column. On a group row, the label is one stop. Shift+Tab leaves the grid from the label. Tab leaves it from the label only when the label covers every column. In an edit, Tab still commits and moves focus out of the grid.
 
 ## Touch targets [#touch-targets]
 

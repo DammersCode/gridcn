@@ -142,6 +142,7 @@ import { keepKnownFilters, keepKnownSorts } from "./known-columns";
 import { groupAnnouncementLabel, loadedRowCount, newlyFailedGroup, nextAnnouncement } from "./announcements";
 import { allMatchingCheckedCount } from "./selected-rows";
 import { dataIndexAt, dataIndexOf, groupLayoutOfView, recordKeyAt, viewRowOfGroupId, viewRowOfSurvivingParent } from "./view-rows";
+import { stepColumn, stepRangeEdge } from "./group-positions";
 import { createGroupActions } from "./group-actions";
 import { EXPANDED_CUT_MESSAGE, initGroupMemory, initialExpanded, initialGroupBy, normalizePivot } from "./group-sync";
 import { groupModeOf, groupingOf, heldSetOf, withGroupLayout } from "./group-view";
@@ -960,13 +961,13 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
         const s = get();
         const active = s.activeCell ?? { col: 0, row: 0 };
         const maxRow = Math.max(0, s.viewIndex.length - 1);
-        const maxCol = Math.max(0, s.visibleColumns.length - 1);
         if (opts?.extend && s.enableRangeSelection) {
           // Grow from the anchor's far edge; the anchor stays put for the whole extend gesture.
           const direction: ExtendDirection = d.dy < 0 ? "up" : d.dy > 0 ? "down" : d.dx < 0 ? "left" : "right";
           const selection = extendSelection(s.selection.current ? s.selection : selectCellOf(s, active), direction, {
             rowCount: s.viewIndex.length,
             colCount: s.visibleColumns.length,
+            stepCol: (col, dx, row) => stepRangeEdge(s, row, col, dx),
           });
           const edge = selection.current?.range;
           set({
@@ -975,7 +976,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
             lastHighlightedCol: edge ? (d.dx < 0 ? edge.x : edge.x + edge.width - 1) : active.col,
           });
         } else {
-          const next = { col: clampIndex(active.col + d.dx, maxCol), row: clampIndex(active.row + d.dy, maxRow) };
+          const next = { col: stepColumn(s, active.row, active.col, d.dx), row: clampIndex(active.row + d.dy, maxRow) };
           if (opts?.retain) {
             set({ activeCell: next, lastHighlightedRow: next.row, lastHighlightedCol: next.col });
           } else {
@@ -1206,13 +1207,15 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       },
       extendSelection(direction, opts) {
         // Bounded by the view row count, so growth stays inside the filtered display order.
-        const { viewIndex, visibleColumns, selection, enableRangeSelection } = get();
+        const s = get();
+        const { viewIndex, visibleColumns, selection, enableRangeSelection } = s;
         if (!enableRangeSelection) return;
         set({
           selection: extendSelection(selection, direction, {
             toEdge: opts?.toEdge,
             rowCount: viewIndex.length,
             colCount: visibleColumns.length,
+            stepCol: (col, dx, row) => stepRangeEdge(s, row, col, dx),
           }),
         });
       },
