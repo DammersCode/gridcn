@@ -12,9 +12,12 @@ import {
   useDataGridPluginOverlays,
   useDataGridSelection,
   useDataGridSelectionPointer,
+  useDataGridSelector,
   useDataGridVisibleColumns,
   type AnyColumnDef,
 } from "./store";
+import { groupLabelSpan } from "./store/group-positions";
+import { groupIndexAt } from "./store/view-rows";
 import type { SelectionPointer } from "./store/types";
 import { GRID_ATTR } from "./data-attributes";
 
@@ -108,6 +111,29 @@ export function splitRectByPinZones(rect: GridRect, track: PinTrackData): RectSe
     });
   }
   return segments;
+}
+
+/**
+ * Splits `rect` at the group rows it crosses so that a group row's piece covers its whole label. A label piece is never pinned,
+ * like the label it covers; the rest of that row keeps its pin zones.
+ */
+function splitAtGroupLabels(rect: GridRect, span: number, isGroupRow: (viewRow: number) => boolean): { rect: GridRect; label: boolean }[] {
+  if (rect.x >= span) return [{ rect, label: false }];
+  const pieces: { rect: GridRect; label: boolean }[] = [];
+  const right = rect.x + rect.width;
+  const end = rect.y + rect.height;
+  for (let y = rect.y; y < end; ) {
+    const group = isGroupRow(y);
+    let next = y + 1;
+    while (next < end && isGroupRow(next) === group) next++;
+    if (!group) pieces.push({ rect: { ...rect, y, height: next - y }, label: false });
+    else {
+      pieces.push({ rect: { x: 0, y, width: span, height: next - y }, label: true });
+      if (right > span) pieces.push({ rect: { x: span, y, width: right - span, height: next - y }, label: false });
+    }
+    y = next;
+  }
+  return pieces;
 }
 
 /** One selection-range fill overlay, grid-line placed, window-relative; pinned segments add their zone's counter-offset + elevated z-index (above pinned cells). */
@@ -248,8 +274,13 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
   const editing = useDataGridEditing();
   const pinned = hasAnyPin(pinTrack) ? pinTrack : undefined;
 
+  const viewIndex = useDataGridSelector((s) => (s.groupLayout === null ? null : s.viewIndex));
+  const labelSpan = viewIndex === null ? 0 : Math.min(groupLabelSpan(visibleColumns), visibleColumns.length);
+  const isGroupRow = (viewRow: number) => viewIndex !== null && groupIndexAt(viewIndex, viewRow) !== undefined;
+
   /** Splits into pin-zone segments when the grid has pinned columns, else the rect as a single "segment". */
-  const segment = (rect: GridRect): RectSegment[] => (pinned ? splitRectByPinZones(rect, pinned) : [{ rect }]);
+  const segment = (rect: GridRect): RectSegment[] =>
+    splitAtGroupLabels(rect, labelSpan, isGroupRow).flatMap((piece) => (pinned && !piece.label ? splitRectByPinZones(piece.rect, pinned) : [{ rect: piece.rect }]));
 
   const rangeRects: GridRect[] = [];
   if (selection.current) {
@@ -282,7 +313,8 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
 
   const activeInWindow: ViewCoord | null =
     activeCell && activeCell.row >= windowStart && activeCell.row < clampedRowEnd ? activeCell : null;
-  const activePinStyle = activeInWindow && pinned ? pinned.pins[activeInWindow.col] && pinnedInsetStyle(
+  const activeLabelSpan = activeInWindow && activeInWindow.col < labelSpan && isGroupRow(activeInWindow.row) ? labelSpan : 0;
+  const activePinStyle = activeInWindow && pinned && activeLabelSpan === 0 ? pinned.pins[activeInWindow.col] && pinnedInsetStyle(
     pinned.pins[activeInWindow.col],
     activeInWindow.col,
   ) : undefined;
@@ -346,15 +378,14 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
           aria-hidden="true"
           className={cn("pointer-events-none ring-2 ring-inset ring-primary forced-colors:outline-2 forced-colors:-outline-offset-2 forced-colors:outline-[Highlight]")}
           style={{
-            gridColumnStart: activeInWindow.col + colOffset,
-            gridColumnEnd: activeInWindow.col + colOffset + 1,
+            gridColumnStart: activeLabelSpan > 0 ? colOffset : activeInWindow.col + colOffset,
+            gridColumnEnd: activeLabelSpan > 0 ? activeLabelSpan + colOffset : activeInWindow.col + colOffset + 1,
             gridRowStart: activeInWindow.row - windowStart + 1,
             gridRowEnd: activeInWindow.row - windowStart + 2,
-            // The ring ranks with the cell it decorates (same DOM-later sibling wins ties): an
-            // unpinned ring must lose to any pinned cell that scrolls over it, a pinned ring must
-            // beat its own cell's opaque background. A fixed rank floats the former over the pin
-            // band and buries the latter under its own cell.
-            zIndex: activePinStyle ? GRID_LAYER.activePinnedCell : GRID_LAYER.activeCell,
+            // The ring ranks with the cell it decorates (DOM-later sibling wins ties): an unpinned ring loses to a pinned cell
+            // scrolled over it, a pinned ring beats its own opaque cell. A group label ranks on the pinned layer but scrolls,
+            // so its ring stays unpinned and ranks above it.
+            zIndex: activePinStyle || activeLabelSpan > 0 ? GRID_LAYER.activePinnedCell : GRID_LAYER.activeCell,
             ...(activePinStyle ?? { position: "absolute", inset: 0 }),
           }}
         />

@@ -1,4 +1,5 @@
 import type { ExpandedState, GroupLayout, GroupNode } from "../group-types";
+import type { AnyColumnDef } from "./types";
 import { expandedTest } from "./group-state";
 import { dataIndexAt, groupIndexAt } from "./view-rows";
 
@@ -11,6 +12,28 @@ export type GroupRowMeta = GroupPosition & { node: GroupNode; expanded: boolean;
 /** Whether a group row can open: always without pivot, and only above the innermost `groupBy` level under pivot. */
 export function groupRowExpandable(s: { pivot?: object | null; groupBy?: readonly string[] }, node: GroupNode): boolean {
   return !s.pivot || node.depth < (s.groupBy?.length ?? 0) - 1;
+}
+
+/** How many visible columns the label covers: up to the first `aggregate` column, at least one. */
+export function groupLabelSpan(columns: readonly Pick<AnyColumnDef, "aggregate">[]): number {
+  const firstAggregate = columns.findIndex((column) => column.aggregate !== undefined);
+  return Math.max(1, firstAggregate === -1 ? columns.length : firstAggregate);
+}
+
+type StepState = { viewIndex: ArrayLike<number>; visibleColumns: readonly Pick<AnyColumnDef, "aggregate">[] };
+
+/** The label span of the group row at `viewRow`; 0 for any other row. */
+function labelSpanAt(s: StepState, viewRow: number): number {
+  return groupIndexAt(s.viewIndex, viewRow) === undefined ? 0 : Math.min(groupLabelSpan(s.visibleColumns), s.visibleColumns.length);
+}
+
+/** The column a horizontal step of `dx` from `col` lands on: the label of a group row is one stop over the columns `[0, span)`. */
+export function stepColumn(s: StepState, viewRow: number, col: number, dx: number): number {
+  const maxCol = Math.max(0, s.visibleColumns.length - 1);
+  const next = Math.max(0, Math.min(maxCol, col + dx));
+  const span = dx === 0 ? 0 : labelSpanAt(s, viewRow);
+  if (col < span) return dx > 0 && span <= maxCol ? span : col;
+  return next < span ? 0 : next;
 }
 
 /** Per view row: the group index of its parent (-1 at the top level) and its position among the parent's children. */

@@ -73,6 +73,7 @@ On a group row:
 | Enter, Space | Opens a closed group and closes an open one. |
 | ArrowRight | Opens a closed group. Otherwise moves right. |
 | ArrowLeft | Closes an open group. Otherwise moves left. |
+| Arrows, Shift+arrows | Treat the group label as one cell. The label covers the columns up to the first `aggregate` column. ArrowUp and ArrowDown keep the column. |
 
 Right-to-left layouts mirror the arrows. The keymap actions are `toggleGroupRow`, `expandGroupRow`, and `collapseGroupRow`. The [context menu](/docs/rows-pages-menus/context-menu) adds Group by and Ungroup to the header menu and a menu to each group row. The live region reads `labels.grouping.expanded`, `collapsed`, and `loadFailed`.
 

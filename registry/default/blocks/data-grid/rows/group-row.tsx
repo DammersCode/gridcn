@@ -20,6 +20,7 @@ import {
   useDataGridVisibleColumns,
   type AnyColumnDef,
 } from "../store";
+import { groupLabelSpan } from "../store/group-positions";
 import { aggregateText, isPivotColumn, pivotCellOf } from "../store/pivot-view";
 import type { RowMarkersMode } from "../types";
 import { DataGridGroupToggle } from "./group-toggle";
@@ -40,12 +41,7 @@ export type DataGridGroupRowProps = {
   renderGroupLabel?: GroupLabelRenderer;
 };
 
-
-/** How many visible columns the label covers: up to the first `aggregate` column, at least one. */
-export function groupLabelSpan(columns: readonly Pick<AnyColumnDef, "aggregate">[]): number {
-  const firstAggregate = columns.findIndex((column) => column.aggregate !== undefined);
-  return Math.max(1, firstAggregate === -1 ? columns.length : firstAggregate);
-}
+export { groupLabelSpan };
 
 // srgb mixes composite exactly like the translucent row tint and selection overlay they stand in for.
 const GROUP_TINT = "bg-[color-mix(in_srgb,var(--color-muted)_40%,var(--color-background))] group-data-hovered/row:bg-[color-mix(in_srgb,var(--color-muted)_60%,var(--color-background))]";
@@ -144,8 +140,6 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
   const labelActive = cellState.activeCol !== null && cellState.activeCol < span;
   const labelRangeSelected = cellState.selectedColRanges.some(([start]) => start < span);
   const labelSelected = labelActive || labelRangeSelected;
-  // The label always sits on a pinned layer; a pinned overlay segment covers it unless the label is active.
-  const labelPaintsSelection = labelRangeSelected && (labelActive || visibleColumns[0]?.pin === undefined);
   return (
     <div
       ref={rowRef}
@@ -174,7 +168,7 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
         <span
           data-grid-group-label=""
           style={{ paddingInlineStart: `calc(var(--grid-group-indent, 1rem) * ${node.depth})`, insetInlineStart: "var(--grid-scroll-left, 0px)" }}
-          className={cn("relative flex min-w-0 items-center gap-1", GROUP_TINT, labelPaintsSelection && GROUP_SELECTED_TINT)}
+          className={cn("relative flex min-w-0 items-center gap-1", GROUP_TINT, labelRangeSelected && GROUP_SELECTED_TINT)}
         >
           {expandable && <DataGridGroupToggle groupId={node.id} label={labelText} expanded={expanded} />}
           <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
