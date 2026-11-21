@@ -109,20 +109,21 @@ export function landRows<TData>(store: GroupStore<TData>, list: GroupList<TData>
 }
 
 /**
- * Writes a block of pivot groups: maps each group's cells into the held set, then lands the groups. The first landing after
- * `pending` sets the held set. With equal ids it keeps the old object; with other ids the other blocks drop, because their
- * cells follow the old order.
+ * Writes a block of pivot groups: maps each group's cells into the held set, then lands the groups. The first top-level landing
+ * after `pending` sets the held set. With equal ids it keeps the old object; with other ids every other group block drops,
+ * because its cells follow the old order. A child list's keys cover its subtree only, so it never sets the held set.
  */
 export function landPivotGroups<TData>(store: GroupStore<TData>, list: GroupList<TData>, block: number, answer: unknown, read: ReadGroupsAnswer, options: { columnId: string; values: readonly ServerAggregate[] }, stamp: number, warn: (kind: string, message: string) => void): "ok" | "shifted" | "failed" {
   const hold = store.pivot!;
-  const held = hold.pending ? undefined : hold.layout?.columns;
+  const top = list.id === "";
+  const held = top && (hold.pending || !hold.layout) ? undefined : (hold.layout?.columns ?? []);
   const pivot = readPivotAnswer(answer, read.groups.length, held ? { ...options, held } : options, warn);
   const groups: PivotGroupRow[] = read.groups.map((group, index) => ({ ...group, cells: pivot.cells[index] }));
   const landed = landGroups(store, list, block, groups, read.groupCount, stamp);
-  if (landed === "failed") return landed;
+  if (landed === "failed" || !top) return landed;
   const layout = hold.layout;
   if (layout === null || pivot.ids.length !== hold.ids.length || pivot.ids.some((id, index) => id !== hold.ids[index])) {
-    if (layout !== null) for (const other of Array.from(list.blocks.keys())) if (other !== block) evictBlock(store, list, other);
+    if (layout !== null) for (const other of store.lists.values()) for (const loaded of Array.from(other.blocks.keys())) if (other !== list || loaded !== block) evictBlock(store, other, loaded);
     store.pivot = { layout: { columnId: options.columnId, values: options.values, columns: pivot.columns, omitted: pivot.omitted }, ids: pivot.ids, pending: false };
   } else {
     store.pivot = { layout: pivot.omitted === layout.omitted ? layout : { ...layout, omitted: pivot.omitted }, ids: hold.ids, pending: false };
@@ -164,7 +165,7 @@ export function evictBlock<TData>(store: GroupStore<TData>, list: GroupList<TDat
 // An unchanged group keeps its slot object, so the grid keeps its group node and the row skips its render.
 const slotOfEntry = new WeakMap<object, { list: object; slot: ServerGroupSlot }>();
 
-/** Lays the open lists out as view rows. A child list that is not loaded yet shows as unloaded rows, sized by the `childCount` of its group. `topWindow` cuts the top level to one page of groups. The walk stops at `cap` view rows (default `MAX_ROW_COUNT`) and calls `onCapped` once. Under pivot no group opens, and every slot has `childCount: 0`. */
+/** Lays the open lists out as view rows. A child list that is not loaded yet shows as unloaded rows, sized by the `childCount` of its group. `topWindow` cuts the top level to one page of groups. The walk stops at `cap` view rows (default `MAX_ROW_COUNT`) and calls `onCapped` once. Under pivot a group of the innermost level never opens and has `childCount: 0`, so no rows list is laid. */
 export function layoutView<TData>(store: GroupStore<TData>, isOpen: (groupId: string) => boolean, statusOf: (groupId: string) => "loading" | "failed" | undefined, topWindow?: { start: number; end: number }, { cap = MAX_ROW_COUNT, onCapped }: { cap?: number; onCapped?: () => void } = {}): GroupView<TData> {
   const view: GroupView<TData> = { data: [], slots: [], owners: [], offsets: [], leafCount: store.leafCount ?? 0, holes: 0 };
   const top = store.lists.get("");
@@ -193,10 +194,11 @@ export function layoutView<TData>(store: GroupStore<TData>, isOpen: (groupId: st
       const group = entry as PivotGroupRow;
       const path = [...list.path, { columnId: store.groupBy[list.path.length]!, key: group.key }];
       const id = groupIdOf(path);
-      const open = !pivoted && isOpen(id);
+      const leaf = pivoted && path.length === store.groupBy.length;
+      const open = !leaf && isOpen(id);
       const status = open ? statusOf(id) : undefined;
       const viewRow = view.data.length;
-      const childCount = pivoted ? 0 : group.childCount;
+      const childCount = leaf ? 0 : group.childCount;
       const reused = slotOfEntry.get(group);
       const same = reused?.list === list && reused.slot.viewRow === viewRow && reused.slot.childCount === childCount && reused.slot.status === status;
       if (same && reused.slot.count === group.totalRowCount && reused.slot.label === group.label && reused.slot.aggregates === group.aggregates && reused.slot.pivotCells === group.cells) view.slots.push(reused.slot);

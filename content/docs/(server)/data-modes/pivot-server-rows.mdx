@@ -6,11 +6,11 @@ type: task
 aliases: ["server pivot", "pivot table", "spec.pivot", "pivotColumns", "pivotCells", "pivotOmitted", "generated column", "held set", "pivot cell"]
 ---
 
-A pivot turns the keys of one column into columns. Each row is one group of the `groupBy` column. Each cell is an aggregate over the rows of that group that hold one key. The server computes every cell, and the grid shows the answer as read-only generated columns.
+A pivot turns the keys of one column into columns. Each row is one group of the `groupBy` columns. Each cell is an aggregate over the rows of that group that hold one key. The server computes every cell, and the grid shows the answer as read-only generated columns.
 
 <ComponentPreview name="data-grid-server-pivot-demo" />
 
-1. Set `groupBy` to 1 column in `defaultSpec` of `useDataGridServerRows`.
+1. Set `groupBy` to 1 to 4 columns in `defaultSpec` of `useDataGridServerRows`.
 2. List the values in `aggregates`.
 3. Set `pivot: { columnIds: [id] }` with the pivot column.
 4. Answer the groups request with `pivotColumns` and `pivotCells`, or let the [query layer](/docs/data-modes/query-layer#groups) answer it.
@@ -56,7 +56,7 @@ export function SalesPivot() {
 }
 ```
 
-Each request is a groups request: `childKind: "groups"`, `groupPath: []`, and `spec.pivot`. Its `sorts` hold only the entries of the `groupBy` and pivot columns. A scroll block or a page holds at most 200 groups.
+Each request is a groups request: `childKind: "groups"`, `groupPath`, and `spec.pivot`. Its `sorts` hold only the entries of the `groupBy` and pivot columns. A scroll block or a page holds at most 200 groups.
 
 ## Answer the pivot [#answer]
 
@@ -104,18 +104,18 @@ The grid shows a cell that is not a finite number as empty, and reads a bad `piv
 - The grid shows the `groupBy` column and one generated column per entry. When pivot turns off, the source columns return with their layout.
 - With 2 or more values, each key gets one header over its value columns. With 1 value, the header holds the key text. `labels.pivot` names the values ("Sum of Amount") and the empty key.
 - A generated column is read-only. It has no sort, filter, move, pin, or header menu. Its cell type is the cell type of the value column, and `count` uses `number`.
-- The first answer after a spec change or `refresh()` sets the held set. Later answers map their cells into it by column id. A held column that an answer lacks shows empty cells.
+- The first top-level answer after a spec change or `refresh()` sets the held set. Later answers map their cells into it by column id. A held column that an answer lacks shows empty cells.
 - URL state and saved views store no generated column.
 - Under pivot, the grid drops a column or column group whose id starts with `__pivot:` or `__pivotgroup:`, and logs an error in development.
 
 ## Limits and behavior [#limits]
 
 - The grid shows at most 200 generated columns. A note below the grid shows "+N more columns" for the columns the server or the grid cut.
-- A pivot takes 1 `groupBy` level. With more levels, or with no aggregates, the request carries no pivot, and the hook warns once in development.
+- A pivot takes 1 to 4 `groupBy` levels. With more levels, or with no aggregates, the request carries no pivot, and the hook warns once in development.
 - A local array and client pagination have no pivot. See [Data mode support](/docs/data-modes/data-mode-support#parity-server-pivot).
 - Pivot rows cannot be checked. The header checkbox is disabled. `selectAllMatching()` does nothing and warns in development.
 - Pivot cells refuse every write: edit, paste, fill, cut, clear, and comments.
-- A pivot row has no toggle, and Enter does nothing.
+- Only a pivot row above the innermost level opens. Its child rows carry their own cells.
 - Past 1,000,000 held cells, the oldest group blocks unload.
 - Copy writes the `toText` of the cell type.
 - Export and print hold one row per pivot row whose cells landed. A header under a key reads `key / value`. CSV neutralizes formula-like keys, and XLSX keeps pivot cells as numbers.
