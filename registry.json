@@ -3078,6 +3078,11 @@
                "path": "registry/default/examples/fake-remote-server.ts",
                "type": "registry:example",
                "target": "components/fake-remote-server.ts"
+            },
+            {
+              "path": "registry/default/examples/sales-data.ts",
+              "type": "registry:example",
+              "target": "components/sales-data.ts"
             }
          ],
          "categories": [
@@ -3172,6 +3177,11 @@
                "path": "registry/default/examples/demo-data.ts",
                "type": "registry:example",
                "target": "components/demo-data.ts"
+            },
+            {
+              "path": "registry/default/examples/sales-data.ts",
+              "type": "registry:example",
+              "target": "components/sales-data.ts"
             }
          ],
          "categories": [
@@ -3239,6 +3249,11 @@
                "path": "registry/default/examples/data-grid-server-selection-demo.tsx",
                "type": "registry:example",
                "target": "components/data-grid-server-selection-demo.tsx"
+            },
+            {
+              "path": "registry/default/examples/sales-data.ts",
+              "type": "registry:example",
+              "target": "components/sales-data.ts"
             }
          ],
          "categories": [
@@ -4288,6 +4303,11 @@
                "path": "registry/default/examples/demo-data.ts",
                "type": "registry:example",
                "target": "components/demo-data.ts"
+            },
+            {
+              "path": "registry/default/examples/sales-data.ts",
+              "type": "registry:example",
+              "target": "components/sales-data.ts"
             }
          ],
          "categories": [
@@ -4795,6 +4815,11 @@
           "path": "registry/default/examples/data-grid-server-query-demo-db.ts",
           "type": "registry:example",
           "target": "components/data-grid-server-query-demo-db.ts"
+        },
+        {
+          "path": "registry/default/examples/sales-data.ts",
+          "type": "registry:example",
+          "target": "components/sales-data.ts"
         }
       ],
       "categories": [
@@ -4871,6 +4896,11 @@
           "path": "registry/default/examples/data-grid-server-query-demo-db.ts",
           "type": "registry:example",
           "target": "components/data-grid-server-query-demo-db.ts"
+        },
+        {
+          "path": "registry/default/examples/sales-data.ts",
+          "type": "registry:example",
+          "target": "components/sales-data.ts"
         }
       ],
       "categories": [
@@ -4903,6 +4933,11 @@
           "path": "registry/default/examples/data-grid-server-query-demo-db.ts",
           "type": "registry:example",
           "target": "components/data-grid-server-query-demo-db.ts"
+        },
+        {
+          "path": "registry/default/examples/sales-data.ts",
+          "type": "registry:example",
+          "target": "components/sales-data.ts"
         }
       ],
       "categories": [
