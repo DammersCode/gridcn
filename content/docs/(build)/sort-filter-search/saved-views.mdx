@@ -175,7 +175,7 @@ A filter whose value does not fit its operator, such as a list on `contains`, al
 A view stores the grid state only, so it works in every data mode:
 
 - **Local array and client pagination.** Opening a view sorts and filters the local rows again.
-- **Server pagination and scroll mode** with `sortMode="server"` or `filterMode="server"`. Opening a view calls `onSortChange`, `onFilterChange`, and `onSearchTextChange` for the parts that differ, and `useDataGridServerRows` sends the new spec. Every set filter value stays, and your server checks the values. For a pivot, pass `pivot` and `onPivotChange` to the grid and `spec.pivot` to the hook.
+- **Server pagination and scroll mode** with `sortMode="server"` or `filterMode="server"`. Opening a view calls `onSortChange`, `onFilterChange`, and `onSearchTextChange` for the parts that differ, and `useDataGridServerRows` sends the new spec. Every set filter value stays, and your server checks the values. A pivot needs [its own state](/docs/add-options/sort-filter-search/saved-views-options#server-mode).
 - **Controlled state.** Your props receive the change callbacks.
 
 A view saves no page number. A view that changes the sort, the filters, or the search text sends server rows back to page 1. A layout-only view keeps the page.

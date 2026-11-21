@@ -126,7 +126,7 @@ function viewStateOf(s: ViewSource): DataGridViewState {
     searchText: s.searchText,
     searchOptions: s.searchOptions,
     columnLayout: s.columnLayout,
-    ...(pivoted ? { pivotColumnId, pivotWidths: generatedWidthsOf(s.pivotWidths) } : null),
+    ...(pivoted ? { pivotColumnId, pivotWidths: generatedWidthsOf(s.pivotWidths) } : { pivotColumnId: null }),
   });
 }
 
@@ -240,7 +240,12 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
       let left = pending;
       pendingWidths.current = storeApi.subscribe((s, prev) => {
         if (s.pivot?.columns === prev.pivot?.columns) return;
-        left = applyPivotWidths(storeApi.getState, Object.fromEntries(left), false);
+        const waiting = left;
+        left = applyPivotWidths(storeApi.getState, Object.fromEntries(waiting), false);
+        const widths = storeApi.getState().columnWidths;
+        // the store clamps a width, so the baseline takes the landed widths back from it
+        const landed = [...waiting.keys()].filter((id) => !left.has(id) && widths[id] !== undefined).map((id) => [id, widths[id]!] as const);
+        if (landed.length > 0) setApplied((view) => view && { ...view, pivotWidths: { ...view.pivotWidths, ...Object.fromEntries(landed) } });
         if (left.size === 0) stopPendingWidths();
       });
     },
@@ -268,12 +273,19 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
       const s = storeApi.getState();
       const groupBy = requestedGroupByOf(s);
       const id = clean.pivotColumnId;
-      const pivotId = id !== undefined && columnMap.get(id)?.groupable !== false && !s.hiddenColumns.includes(id) && groupBy.length > 0 && !groupBy.includes(id) ? id : undefined;
-      if (pivotId !== s.pivotColumnIds[0]) actions.setPivot({ columnIds: pivotId === undefined ? [] : [pivotId] });
+      const pivotId = typeof id === "string" && columnMap.get(id)?.groupable !== false && !s.hiddenColumns.includes(id) && groupBy.length > 0 && !groupBy.includes(id) ? id : undefined;
+      if (id !== undefined && pivotId !== s.pivotColumnIds[0]) actions.setPivot({ columnIds: pivotId === undefined ? [] : [pivotId] });
       if (pivotId !== undefined) holdWidths(applyPivotWidths(storeApi.getState, clean.pivotWidths ?? {}, true));
       const { pivotColumnId: _pivot, pivotWidths, ...rest } = clean;
-      // the store fills in layout parts a view leaves out, so the baseline reads the layout back
-      setApplied({ ...rest, columnLayout: storeApi.getState().columnLayout, ...(pivotId === undefined ? null : { pivotColumnId: pivotId, ...(pivotWidths ? { pivotWidths } : null) }) });
+      const after = readState();
+      // the store fills in layout parts a view leaves out, and a view without the pivot field keeps the pivot, so the baseline reads both back
+      const pivot =
+        id === undefined
+          ? { pivotColumnId: after.pivotColumnId, pivotWidths: after.pivotWidths }
+          : pivotId === undefined
+            ? { pivotColumnId: null }
+            : { pivotColumnId: pivotId, pivotWidths: { ...pivotWidths, ...after.pivotWidths } };
+      setApplied({ ...rest, columnLayout: after.columnLayout, ...pivot });
     },
     [actions, readState, storeApi, holdWidths, stopPendingWidths],
   );

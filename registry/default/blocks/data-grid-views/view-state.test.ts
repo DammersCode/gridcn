@@ -475,10 +475,17 @@ describe("pivot in a view", () => {
   const id = (key: number) => `__pivot:age=${key}|age=sum`;
   const pivoted: DataGridViewState = { ...state, groupBy: ["name"], pivotColumnId: "age", pivotWidths: { [id(30)]: 140 } };
 
-  it("is kept by a capture and leaves an unpivoted capture unchanged", () => {
+  it("is kept by a capture, null included, and leaves a state without the fields unchanged", () => {
     expect(captureViewState(pivoted)).toMatchObject({ pivotColumnId: "age", pivotWidths: { [id(30)]: 140 } });
+    expect(captureViewState({ ...state, pivotColumnId: null, pivotWidths: { [id(30)]: 140 } })).toEqual({ ...state, pivotColumnId: null });
     expect("pivotColumnId" in captureViewState(state)).toBe(false);
     expect("pivotWidths" in captureViewState(state)).toBe(false);
+  });
+
+  it("keeps null as no pivot through a stored document", () => {
+    const off = { ...state, pivotColumnId: null };
+    expect(savableViewState(off)).toEqual(off);
+    expect(parseViewDocument(JSON.parse(JSON.stringify({ version: 1, defaultViewId: null, views: [{ id: "v", name: "Off", state: off }] })))!.views[0]!.state).toEqual(off);
   });
 
   it("changes the state key for another pivot column or another generated width", () => {
@@ -493,7 +500,7 @@ describe("pivot in a view", () => {
     expect(parseViewDocument(stored)!.views[0]!.state).toEqual(pivoted);
   });
 
-  it("reads a stored view without the fields as no pivot", () => {
+  it("leaves a stored view without the fields without them", () => {
     const stored = JSON.parse(JSON.stringify(state));
     expect(sanitizeViewState(stored, live)).toEqual({ state, dropped: 0 });
   });
@@ -505,17 +512,18 @@ describe("pivot in a view", () => {
     ["a view without groupBy", { groupBy: [] }],
     ["a non-string id", { pivotColumnId: 7 }],
     ["an empty id", { pivotColumnId: "" }],
-  ])("drops the pivot and its widths for %s", (_name, change) => {
+  ])("reads %s as no pivot and drops its widths", (_name, change) => {
     const { state: clean, dropped } = sanitizeViewState({ ...pivoted, ...change }, live);
-    expect("pivotColumnId" in clean).toBe(false);
+    expect(clean.pivotColumnId).toBeNull();
     expect("pivotWidths" in clean).toBe(false);
     expect(dropped).toBeGreaterThan(0);
   });
 
-  it("drops a pivot column that the layout of an imported file hides", () => {
+  it("reads a pivot column that the layout of an imported file hides as no pivot", () => {
     const file = serializeViewFile({ name: "v", state: { ...pivoted, columnLayout: { ...pivoted.columnLayout, hidden: ["age"] } } });
     const result = parseViewFile(file, live);
-    expect(result.ok && "pivotColumnId" in result.state).toBe(false);
+    expect(result.ok && result.state.pivotColumnId).toBeNull();
+    expect(result.ok && "pivotWidths" in result.state).toBe(false);
     expect(result.ok && result.dropped).toBeGreaterThan(0);
   });
 

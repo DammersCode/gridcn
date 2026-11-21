@@ -30,8 +30,8 @@ export type DataGridViewState = {
   searchText: string;
   searchOptions: Required<SearchOptions>;
   columnLayout: ColumnLayout;
-  /** The pivot column; absent means no pivot. It needs `groupBy` and is never a `groupBy` column. */
-  pivotColumnId?: string;
+  /** The pivot column, or `null` for no pivot. It needs `groupBy` and is never a `groupBy` column. A view without the field leaves the pivot as it is. */
+  pivotColumnId?: string | null;
   /** Widths of generated columns by id, at most 200. A width waits until its column is in the held set. Present only with `pivotColumnId`. */
   pivotWidths?: Record<string, number>;
 };
@@ -103,7 +103,7 @@ export function captureViewState(source: DataGridViewState): DataGridViewState {
     searchOptions: { matchCase: source.searchOptions.matchCase, wholeCell: source.searchOptions.wholeCell },
     columnLayout: { widths: { ...widths }, order: [...order], pins: { ...pins }, hidden: [...hidden] },
     ...(source.pivotColumnId !== undefined ? { pivotColumnId: source.pivotColumnId } : null),
-    ...(source.pivotColumnId !== undefined && source.pivotWidths && Object.keys(source.pivotWidths).length > 0 ? { pivotWidths: { ...source.pivotWidths } } : null),
+    ...(typeof source.pivotColumnId === "string" && source.pivotWidths && Object.keys(source.pivotWidths).length > 0 ? { pivotWidths: { ...source.pivotWidths } } : null),
   };
 }
 
@@ -355,16 +355,19 @@ export function generatedWidthsOf(raw: unknown, tally: Tally = { dropped: 0 }): 
   return Object.fromEntries(kept);
 }
 
-/** The pivot of a view and its widths. A pivot needs a groupable column outside a non-empty `groupBy`; without `columns` any id passes. */
+/**
+ * The pivot of a view and its widths. A pivot needs a groupable column outside a non-empty `groupBy`, and reads as `null`
+ * without one; without `columns` any id passes. An absent field stays absent.
+ */
 function sanitizePivot(source: RawState, groupBy: readonly string[], columns: ViewColumns | undefined, tally: Tally): Pick<DataGridViewState, "pivotColumnId" | "pivotWidths"> {
   const id = source.pivotColumnId;
   const widths = generatedWidthsOf(source.pivotWidths, tally);
   const count = Object.keys(widths).length;
-  if (id !== undefined && acceptsColumnId(id, columns) && columns?.get(id)?.groupable !== false && groupBy.length > 0 && !groupBy.includes(id)) {
+  if (id !== undefined && id !== null && acceptsColumnId(id, columns) && columns?.get(id)?.groupable !== false && groupBy.length > 0 && !groupBy.includes(id)) {
     return count > 0 ? { pivotColumnId: id, pivotWidths: widths } : { pivotColumnId: id };
   }
-  tally.dropped += (id === undefined ? 0 : 1) + count;
-  return {};
+  tally.dropped += (id === undefined || id === null ? 0 : 1) + count;
+  return id === undefined ? {} : { pivotColumnId: null };
 }
 
 /**
@@ -437,9 +440,9 @@ export function parseViewFile(text: string, columns: ViewColumns): ViewFileResul
   const groupBy = sanitized.state.groupBy.filter((id) => !hidden.has(id));
   const filters = pruneFilterSpecs(sanitized.state.filters, (spec) => !hidden.has(spec.columnId), true);
   const { pivotColumnId, pivotWidths, ...rest } = sanitized.state;
-  const keepsPivot = pivotColumnId !== undefined && !hidden.has(pivotColumnId) && groupBy.length > 0;
-  const pivotDropped = pivotColumnId !== undefined && !keepsPivot ? 1 + Object.keys(pivotWidths ?? {}).length : 0;
+  const dropsPivot = typeof pivotColumnId === "string" && (hidden.has(pivotColumnId) || groupBy.length === 0);
+  const pivotDropped = dropsPivot ? 1 + Object.keys(pivotWidths ?? {}).length : 0;
   const dropped = sanitized.dropped + (sanitized.state.sorts.length - sorts.length) + (sanitized.state.groupBy.length - groupBy.length) + (countFilterSpecs(sanitized.state.filters) - countFilterSpecs(filters)) + pivotDropped;
-  const pivot = keepsPivot ? { pivotColumnId, ...(pivotWidths ? { pivotWidths } : null) } : null;
+  const pivot = pivotColumnId === undefined ? null : dropsPivot ? { pivotColumnId: null } : { pivotColumnId, ...(pivotWidths ? { pivotWidths } : null) };
   return { ok: true, name: cleanViewName(file.name), state: { ...rest, sorts, groupBy, filters, ...pivot }, dropped };
 }

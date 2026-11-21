@@ -405,6 +405,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           queueMicrotask(() => s.onPageChange?.(1));
         }
         const nextGroupMode = groupModeOf(props);
+        const nextRequestedGroupBy = nextGroupMode === "server" && nextGroup.groupByControlled ? nextGroup.requestedGroupBy : null;
         const nextServerLayout = props.groupLayout ?? null;
         const nextSyncInputs: SyncInputs = {
           data: nextData,
@@ -532,7 +533,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           s.filterControlled !== (props.filterState !== undefined) ||
           s.searchControlled !== (props.searchText !== undefined) ||
           s.groupBy !== nextGroup.groupBy ||
-          s.requestedGroupBy !== nextGroup.requestedGroupBy ||
+          s.requestedGroupBy !== nextRequestedGroupBy ||
           s.expanded !== nextGroup.expanded ||
           s.pivotColumnIds !== nextPivotColumnIds ||
           s.pivotControlled !== (props.pivot !== undefined);
@@ -583,7 +584,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           viewIndex: nextViewIndex,
           ...(appendedLayout ? { groupLayout: appendedLayout } : null),
           groupBy: nextGroup.groupBy,
-          requestedGroupBy: nextGroup.requestedGroupBy,
+          requestedGroupBy: nextRequestedGroupBy,
           expanded: nextGroup.expanded,
           groupMode: nextGroupMode,
           serverGroupLayout: nextServerLayout,

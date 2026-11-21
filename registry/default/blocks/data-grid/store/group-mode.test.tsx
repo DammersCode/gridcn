@@ -8,6 +8,8 @@ import { DataGridProvider } from ".";
 import { useDataGridStoreApi } from "./provider";
 import { groupLayoutOfView, rowAtViewRow, rowIdAtViewRow } from "./view-rows";
 import { COLLAPSED } from "./group-state";
+import { requestedGroupByOf } from "./group-sync";
+import { getInternalActions } from "./internal-actions";
 import type { DataGridStoreState, InternalSyncProps } from "./types";
 
 type Row = { id: string; region: string; qty: number };
@@ -158,6 +160,19 @@ describe("a layout the core refuses", () => {
     act(() => state().actions.toggleGroupBy("region"));
     act(() => state().actions.setGroupBy(["region"]));
     expect(onGroupByChange.mock.calls.map(([groupBy]) => groupBy)).toEqual([["region", "qty"], ["qty"], ["region"]]);
+  });
+
+  it("reads the requested group columns until the prop brings them, and forgets them once groupBy is uncontrolled", () => {
+    const onGroupByChange = vi.fn();
+    const props = { data: data(), columns, getRowId: (r: Row, i: number) => r.id || `slot-${i}`, groupLayout: layout(), onGroupByChange } as unknown as InternalSyncProps;
+    const { store, state } = make({ onGroupByChange });
+    act(() => state().actions.setGroupBy(["qty"]));
+    expect(state().groupBy).toEqual(["region"]);
+    expect(requestedGroupByOf(state())).toEqual(["qty"]);
+    act(() => getInternalActions(store)._syncProps({ ...props, groupMode: "client" }));
+    expect(requestedGroupByOf(state())).toEqual(state().groupBy);
+    act(() => state().actions.setGroupBy(["qty"]));
+    expect(state().groupBy).toEqual(["qty"]);
   });
 });
 

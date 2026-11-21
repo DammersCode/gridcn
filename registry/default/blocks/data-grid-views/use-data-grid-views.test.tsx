@@ -1032,7 +1032,7 @@ describe("saved views under pivot", () => {
 
   it("restore the pivot through setPivot and the generated widths, and turn the pivot off for a view without one", async () => {
     const onPivotChange = vi.fn();
-    const t = pivotSetup(docOf(pivoted(), { ...emptyViewState(), groupBy: ["region"] }), { onPivotChange });
+    const t = pivotSetup(docOf(pivoted(), { ...emptyViewState(), groupBy: ["region"], pivotColumnId: null }), { onPivotChange });
     await ready(t.probe);
     act(() => t.probe.current!.views.selectView("v0"));
     expect(t.state().pivotColumnIds).toEqual(["make"]);
@@ -1046,14 +1046,18 @@ describe("saved views under pivot", () => {
     expect(onPivotChange).toHaveBeenLastCalledWith({ columnIds: [] });
   });
 
-  it("restore an old view without the pivot fields as before", async () => {
+  it("restore an old view without the pivot fields as before, leaving the pivot and its widths alone", async () => {
     const old = { ...emptyViewState(), groupBy: ["region"], sorts: [{ columnId: "qty", direction: "desc" as const }] };
-    const t = pivotSetup(docOf(old));
+    const onPivotChange = vi.fn();
+    const t = pivotSetup(docOf(old), { defaultGroupBy: ["region"], defaultPivot: { columnIds: ["make"] }, onPivotChange });
     await ready(t.probe);
+    act(() => t.probe.current!.actions.setColumnWidth(audi, 190));
     act(() => t.probe.current!.views.selectView("v0"));
     expect(t.state().groupBy).toEqual(["region"]);
     expect(t.state().sortState).toEqual(old.sorts);
-    expect(t.state().pivotColumnIds).toEqual([]);
+    expect(t.state().pivotColumnIds).toEqual(["make"]);
+    expect(t.state().columnWidths[audi]).toBe(190);
+    expect(onPivotChange).not.toHaveBeenCalled();
     expect(t.probe.current!.views.modified).toBe(false);
   });
 
@@ -1115,6 +1119,20 @@ describe("saved views under pivot", () => {
     expect(warn.mock.calls.concat(error.mock.calls).map(String).filter((call) => call.includes("pivot"))).toEqual([]);
     warn.mockRestore();
     error.mockRestore();
+  });
+
+  it("is not modified after a restore clamps a generated width, also for a width that lands later", async () => {
+    const north = { viewRow: 0, path: [{ columnId: "region", key: "North" }], count: 2, childCount: 0, pivotCells: Float64Array.of(1, 2) };
+    const layoutOf = (keys: string[]) => ({ rows: [north], leafCount: 2, pivot: { columnId: "make", values: [sum], columns: keys.map((key) => ({ path: [key], valueIndex: 0 })), omitted: 0 } });
+    const server = { groupBy: ["region"], groupMode: "server", pivot: { columnIds: ["make"] } };
+    const t = pivotSetup(docOf(pivoted({ pivotWidths: { [audi]: 1, [bmw]: 1 } })), { ...server, groupLayout: layoutOf(["Audi"]) });
+    await ready(t.probe);
+    act(() => t.probe.current!.views.selectView("v0"));
+    expect(t.state().columnWidths[audi]).toBeGreaterThan(1);
+    expect(t.probe.current!.views.modified).toBe(false);
+    t.rerender({ ...server, groupLayout: layoutOf(["Audi", "BMW"]) });
+    await waitFor(() => expect(t.state().columnWidths[bmw]).toBeGreaterThan(1));
+    expect(t.probe.current!.views.modified).toBe(false);
   });
 
   it("keep a pivot saved over 200 widths to 200", async () => {
