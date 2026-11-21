@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { serverSpecKey, type DataChange, type RowRange, type ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { COLLAPSED, expandedTest, groupIdOf, holeRowId, isDev, normalizeExpanded, pivotSorts, type ExpandedState, type ServerGroupLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { serverSpecKey, type DataChange, type DataGridPlugin, type RowRange, type ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import { COLLAPSED, expandedTest, groupIdOf, holeRowId, isDev, normalizeExpanded, pivotSorts, useDataGridRootContext, useDataGridSelector, type ExpandedState, type ServerGroupLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { blockOf, createGroupStore, evictBlock, evictPivotCells, landGroups, landPivotGroups, landRows, layoutView, listFor, type GroupList, type GroupStore, type GroupView, type PivotHold } from "./group-lists";
 import { isGroupsAnswer, pageWindowOf, seedGroupStore, useGroupPager, type GroupPagesConfig } from "./group-pages";
 import { assertRowIdsNotReserved, readGroupsAnswer } from "./read-groups-answer";
@@ -12,7 +12,7 @@ import { groupSaveScope } from "./group-save-scope";
 import { useSaveRefresh, type SaveRefreshPolicy, type SaveRefreshReport } from "./save-refresh";
 import type { UseDataGridServerRowsScrollOptions } from "./scroll-blocks";
 import type { UseDataGridServerRowsScrollProviderProps, UseDataGridServerRowsScrollResult } from "./scroll-types";
-import { isolate, scheduleFrame, useControlled, useMountedPlugins, useRegisteredWiring, useReshape, useRevalidation, withoutPivot, type ServerSpecState } from "./server-state";
+import { isolate, scheduleFrame, useControlled, useMountedPlugins, useRegisteredWiring, useReshape, useRevalidation, withoutPivot, type ServerPivotOptions, type ServerSpecState } from "./server-state";
 import type { UseDataGridServerRowsRootProps } from "./use-data-grid-server-rows";
 
 const DEFAULT_BLOCK_SIZE = 50;
@@ -32,7 +32,7 @@ export type UseDataGridServerRowsGroupOptions = {
   /** Seeds the open groups once. Default: every group closed. */
   defaultExpanded?: ExpandedState;
   onExpandedChange?: (next: ExpandedState) => void;
-};
+} & ServerPivotOptions;
 
 type Flight = { list: GroupList<never>; block: number; controller: AbortController; ids: ReadonlySet<string> | null; mark: number };
 type Failure = { listId: string; error: unknown };
@@ -40,6 +40,7 @@ function createEngine<TData>() {
   return {
     store: null as GroupStore<TData> | null,
     view: null as ViewState<TData> | null,
+    hold: false,
     flight: new Map<string, Flight>(),
     failed: new Map<string, Failure>(),
     stale: new Set<string>(),
@@ -99,7 +100,7 @@ export function useGroupBlocks<TData, TCursor = never>(
   active: boolean,
   pagesIn?: GroupPagesConfig,
 ) {
-  const { spec, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, onGroupByChange } = specState;
+  const { spec, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, onGroupByChange, pivot: pivotSpec, onPivotChange } = specState;
   const groupBy = spec.groupBy ?? NO_GROUPS;
   const pivot = pivotColumnOf(spec);
   // Under pivot a page is one block, so the pager, the window, and the requests all count pages of the clamped size.
@@ -120,6 +121,7 @@ export function useGroupBlocks<TData, TCursor = never>(
   const { plugins: guardPlugins, protectedRows, savingRows, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, setSettleListener, setReshapeListener, evictionProtected } = useRefreshGuard({ trackUnacknowledged: true });
   const { pager, plugins: pagerPlugins } = useGroupPager(pages, view.groupCount);
   const seedRef = useRef(seed);
+  const [scrollTop] = useState(scrollTopOnLanding);
 
   const pivotHold = view.pivotHold;
   const live = useRef({ options, spec, requestSpec, pivot, pivotHold, expanded, groupBy, active, pages, engineKey });
@@ -154,6 +156,20 @@ export function useGroupBlocks<TData, TCursor = never>(
 
   const publish = () => {
     const store = getEngine().store;
+    if (getEngine().hold) {
+      // A new request key keeps the last view on screen until the first top-level answer lands, so the grid never flashes empty.
+      const landedTop = (store?.lists.get("")?.blocks.size ?? 0) > 0;
+      if (live.current.active && !landedTop) {
+        const loadingNow = getEngine().flight.size > 0;
+        setView((prev) => (prev.loading === loadingNow ? prev : { ...prev, loading: loadingNow }));
+        return;
+      }
+      getEngine().hold = false;
+      if ((getEngine().window?.start ?? 0) > 0) {
+        scrollTop.request();
+        getEngine().window = null;
+      }
+    }
     if (!store) {
       getEngine().view = null;
       const { active: on, pivot: columnId } = live.current;
@@ -362,6 +378,7 @@ export function useGroupBlocks<TData, TCursor = never>(
     engine.pumpTimer = null;
     engine.cancelFrame?.();
     engine.cancelFrame = null;
+    engine.hold = engine.hold || (engine.view?.data.length ?? 0) > 0;
     engine.store = null;
     engine.view = null;
     engine.idIndex = null;
@@ -557,7 +574,7 @@ export function useGroupBlocks<TData, TCursor = never>(
   const refreshAfterSave = useCallback((report: SaveRefreshReport) => apiRef.current.refreshForSaves(report), []);
   const { onSave, wrapSave } = useSaveRefresh({ onSave: options.onSave, refreshAfterSave: options.refreshAfterSave as SaveRefreshPolicy | undefined }, refreshAfterSave);
   const paged = pages !== undefined;
-  const ownPlugins = useMemo(() => (paged ? [...guardPlugins, ...pagerPlugins] : guardPlugins), [paged, guardPlugins, pagerPlugins]);
+  const ownPlugins = useMemo(() => (paged ? [...guardPlugins, ...pagerPlugins, scrollTop.plugin] : [...guardPlugins, scrollTop.plugin]), [paged, guardPlugins, pagerPlugins, scrollTop]);
   const plugins = useMountedPlugins(ownPlugins, options.plugins);
   const getRowId = useCallback((row: TData, index: number) => (row === undefined ? holeRowId(index) : live.current.options.getRowId(row, index)), []);
   const groupLayout = useMemo<ServerGroupLayout>(() => ({ rows: view.slots, leafCount: view.leafCount, ...(view.pivotHold?.layout ? { pivot: view.pivotHold.layout } : null) }), [view]);
@@ -585,12 +602,14 @@ export function useGroupBlocks<TData, TCursor = never>(
       plugins,
       groupBy,
       onGroupByChange,
+      pivot: pivotSpec,
+      onPivotChange,
       expanded,
       onExpandedChange: setExpanded,
       groupMode: "server",
       groupLayout,
     }),
-    [view, getRowId, onDataChange, onSave, onRenderedRowsChange, spec, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, plugins, groupBy, onGroupByChange, expanded, setExpanded, groupLayout],
+    [view, getRowId, onDataChange, onSave, onRenderedRowsChange, spec, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, plugins, groupBy, onGroupByChange, pivotSpec, onPivotChange, expanded, setExpanded, groupLayout],
   );
   useRegisteredWiring(providerProps, wrapSave);
   const rootProps = useMemo<UseDataGridServerRowsRootProps>(() => ({ loading, error, onRetry: retry }), [loading, error, retry]);
@@ -612,8 +631,25 @@ export function useGroupBlocks<TData, TCursor = never>(
 
   const status = error !== null ? "error" : loading ? "loading" : "ready";
   const result: UseDataGridServerRowsScrollResult<TData> = { gridProps, providerProps, rootProps, spec, totalRowCount: view.leafCount, status, loading, error, retry, refresh, reshape, canRevalidate: () => true, unloadedCount: view.holes, getLoadedRanges, evict };
-  const groupProps = useMemo(() => ({ groupBy, onGroupByChange, expanded, onExpandedChange: setExpanded }), [groupBy, onGroupByChange, expanded, setExpanded]);
+  const groupProps = useMemo(() => ({ groupBy, onGroupByChange, pivot: pivotSpec, onPivotChange, expanded, onExpandedChange: setExpanded }), [groupBy, onGroupByChange, pivotSpec, onPivotChange, expanded, setExpanded]);
   return { result, groupProps, pager, pagerPlugins, groupCount: view.groupCount };
+}
+
+/** A plugin that returns the grid to the top once a pending request key's first rows reach the grid. */
+function scrollTopOnLanding() {
+  let pending = false;
+  function ServerGroupsScrollTop() {
+    const { scrollRef } = useDataGridRootContext();
+    const data = useDataGridSelector((s) => s.data);
+    useLayoutEffect(() => {
+      if (!pending) return;
+      pending = false;
+      if (scrollRef.current) scrollRef.current.scrollTop = 0;
+    }, [data, scrollRef]);
+    return null;
+  }
+  const plugin: DataGridPlugin<unknown> = { name: "server-groups-scroll-top", Mount: ServerGroupsScrollTop };
+  return { plugin, request: () => void (pending = true) };
 }
 
 function noop() {}

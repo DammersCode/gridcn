@@ -431,6 +431,71 @@ describe("useDefaultGroupRowMenuItems", () => {
   });
 });
 
+describe("the pivot items of the header menu", () => {
+  type Sale = { id: string; region: string; year: number; amount: number };
+  const saleColumns = defineColumns<Sale>()([
+    { id: "region", header: "Region", accessorKey: "region", type: "text" },
+    { id: "year", header: "Year", accessorKey: "year", type: "number" },
+    { id: "amount", header: "Amount", accessorKey: "amount", type: "number", aggregate: "sum", groupable: false },
+  ] as const);
+  const sales: Sale[] = [
+    { id: "s0", region: "EU", year: 2024, amount: 1 },
+    { id: "s1", region: "US", year: 2025, amount: 2 },
+  ];
+
+  function renderHeader(columnId: string, props: { groupBy?: string[]; defaultPivot?: { columnIds: string[] }; onPivotChange?: (next: { columnIds: readonly string[] }) => void } = {}) {
+    const result: { specs: GridMenuItemSpec[]; state?: () => DataGridReadState } = { specs: [] };
+    function HeaderProbe() {
+      const store = useDataGridStoreApi();
+      result.state = store.getState;
+      result.specs = useDefaultHeaderMenuItems({ columnId, scrollRoot: null });
+      return null;
+    }
+    render(
+      <DataGridProvider data={sales} columns={saleColumns} getRowId={(row) => row.id} {...props}>
+        <DataGridRoot>
+          <HeaderProbe />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    return result;
+  }
+
+  it("offers Pivot by on a groupable column outside groupBy, after the group items", () => {
+    const header = renderHeader("year", { groupBy: ["region"] });
+    expect(ids(header.specs).slice(0, 7)).toEqual(["sort-asc", "sort-desc", "sep-sort", "group-by", "sep-group", "pivot-by", "sep-pivot"]);
+    expect(item(header.specs, "pivot-by")!.label).toBe("Pivot by Year");
+    expect(item(header.specs, "pivot-off")).toBeUndefined();
+  });
+
+  it("hides the pivot items without groupBy, on the groupBy column without a pivot, and on a column that cannot group", () => {
+    expect(ids(renderHeader("year").specs)).not.toContain("pivot-by");
+    cleanup();
+    expect(ids(renderHeader("region", { groupBy: ["region"] }).specs)).not.toContain("pivot-by");
+    cleanup();
+    expect(ids(renderHeader("amount", { groupBy: ["region"] }).specs)).not.toContain("pivot-by");
+  });
+
+  it("pivots by the column and reports the pivot", () => {
+    const onPivotChange = vi.fn();
+    const header = renderHeader("year", { groupBy: ["region"], onPivotChange });
+    act(() => item(header.specs, "pivot-by")!.onClick!());
+    expect(header.state!().pivotColumnIds).toEqual(["year"]);
+    expect(onPivotChange).toHaveBeenCalledWith({ columnIds: ["year"] });
+  });
+
+  it("offers Turn off pivot on the groupBy column under a pivot, and turns it off with the off value", () => {
+    const onPivotChange = vi.fn();
+    const header = renderHeader("region", { groupBy: ["region"], defaultPivot: { columnIds: ["year"] }, onPivotChange });
+    expect(item(header.specs, "pivot-by")).toBeUndefined();
+    expect(item(header.specs, "pivot-off")!.label).toBe("Turn off pivot");
+    act(() => item(header.specs, "pivot-off")!.onClick!());
+    expect(header.state!().pivotColumnIds).toEqual([]);
+    expect(onPivotChange).toHaveBeenCalledWith({ columnIds: [] });
+    expect(item(header.specs, "pivot-off")).toBeUndefined();
+  });
+});
+
 describe("MenuShortcut", () => {
   it("pushes the keycaps to the inline end with a logical margin", async () => {
     const { MenuShortcut } = await import("./menu-shortcut");

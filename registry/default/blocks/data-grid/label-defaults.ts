@@ -249,6 +249,9 @@ export function buildDefaultLabels(locale: string): DataGridLabels {
       value: (reducer, column) => `${{ sum: "Sum", avg: "Average", min: "Min", max: "Max", count: "Count" }[reducer]} of ${column}`,
       columnName: (key, value) => `${key}, ${value}`,
       moreColumns: (count) => `+${fmt(count)} more ${count === 1 ? "column" : "columns"}`,
+      pivotBy: (column) => `Pivot by ${column}`,
+      turnOff: "Turn off pivot",
+      sortColumn: (column) => `${column} (pivot)`,
     },
     markers: {
       columnHeader: "Row markers",

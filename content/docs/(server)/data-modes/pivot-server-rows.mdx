@@ -30,13 +30,8 @@ type Sale = { id: string; region: string; year: number; amount: number };
 const columns = defineColumns<Sale>()([
   { id: "region", header: "Region", accessorKey: "region" },
   { id: "year", header: "Year", accessorKey: "year", type: "number" },
-  {
-    id: "amount",
-    header: "Amount",
-    accessorKey: "amount",
-    type: "number",
-    aggregate: "sum",
-  },
+  { id: "amount", header: "Amount", accessorKey: "amount",
+    type: "number", aggregate: "sum" },
 ]);
 
 export function SalesPivot() {
@@ -56,7 +51,7 @@ export function SalesPivot() {
 }
 ```
 
-Each request is a groups request: `childKind: "groups"`, `groupPath`, and `spec.pivot`. Its `sorts` hold only the entries of the `groupBy` and pivot columns. A scroll block or a page holds at most 200 groups.
+Each request is a groups request: `childKind: "groups"`, `groupPath`, and `spec.pivot`. Its `sorts` hold only the entries of the `groupBy` and pivot columns. A scroll block or a page holds at most 200 groups. The hook takes `pivot`, `defaultPivot`, and `onPivotChange` as the grid does. A controlled `pivot` wins over `spec.pivot`. The [header menu](/docs/rows-pages-menus/context-menu) changes it.
 
 ## Answer the pivot [#answer]
 
@@ -112,7 +107,6 @@ The grid shows a non-finite cell as empty and reads a bad `pivotOmitted` as `0`.
 
 - The grid shows at most 200 generated columns. A note below the grid shows "+N more columns" for the columns the server or the grid cut.
 - A pivot takes 1 to 4 `groupBy` levels. With more levels, or with no aggregates, the request carries no pivot, and the hook warns once in development.
-- A local array and client pagination have no pivot. See [Data mode support](/docs/data-modes/data-mode-support#parity-server-pivot).
 - Pivot rows cannot be checked. The header checkbox is disabled. `selectAllMatching()` does nothing and warns in development.
 - Pivot cells refuse every write: edit, paste, fill, cut, clear, and comments.
 - Only a pivot row above the innermost level opens. Its child rows carry their own cells.

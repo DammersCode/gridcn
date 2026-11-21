@@ -1,5 +1,5 @@
 import type { DataChange, DataGridPlugin, FilterNode, RowRange, ServerSpec, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import type { ExpandedState, ServerGroupLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import type { ExpandedState, PivotSpec, ServerGroupLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { SaveRefreshOptions } from "./save-refresh";
 import type { UseDataGridServerRowsRootProps } from "./use-data-grid-server-rows";
 
@@ -37,6 +37,10 @@ export type UseDataGridServerRowsScrollProviderProps<TData> = {
   groupBy?: readonly string[];
   /** Present while the source groups. */
   onGroupByChange?: (next: readonly string[]) => void;
+  /** Present while the source groups: the pivot of the spec, `{ columnIds: [] }` when off. */
+  pivot?: PivotSpec;
+  /** Present while the source groups. */
+  onPivotChange?: (next: PivotSpec) => void;
   /** Present while the source groups: the open groups. */
   expanded?: ExpandedState;
   /** Present while the source groups. */

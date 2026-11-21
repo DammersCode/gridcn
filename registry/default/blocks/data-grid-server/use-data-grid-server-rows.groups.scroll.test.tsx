@@ -204,7 +204,8 @@ describe("grouped scroll source", () => {
     server.fetchRows.mockImplementationOnce((request) => ((held = request), new Promise<Answer>((resolve) => (late = resolve))));
     act(() => result.current.gridProps.onSearchTextChange("x"));
     await waitFor(() => expect(held?.spec.searchText).toBe("x"));
-    expect(result.current.gridProps.data).toHaveLength(0);
+    expect(result.current.gridProps.data[3]?.id).toBe("C0");
+    expect(result.current.loading).toBe(true);
     act(() => result.current.gridProps.onSearchTextChange("y"));
     await waitFor(() => expect(result.current.gridProps.groupLayout?.rows).toHaveLength(3));
     expect(held!.signal.aborted).toBe(true);
@@ -212,6 +213,31 @@ describe("grouped scroll source", () => {
     await settle();
     expect(result.current.gridProps.groupLayout!.rows.map((slot) => slot.path[0]!.key)).toEqual(["A", "B", "C"]);
     expect(result.current.gridProps.expanded?.ids).toEqual([idOf("C")]);
+  });
+
+  it("drops the kept rows once a spec change answers no groups", async () => {
+    const server = fakeServer(rowsOf(REGIONS), (request) => (request.spec.searchText === "none" ? { groups: [], groupCount: 0, totalRowCount: 0 } : undefined));
+    const { result } = mount(server);
+    await waitFor(() => expect(result.current.gridProps.groupLayout?.rows).toHaveLength(3));
+    act(() => result.current.gridProps.onSearchTextChange("none"));
+    await waitFor(() => expect(result.current.gridProps.groupLayout?.rows).toHaveLength(0));
+    expect(result.current.gridProps.data).toHaveLength(0);
+    expect(result.current.loading).toBe(false);
+  });
+
+  it("keeps the rows with the error after a spec change fails, and shows the answer of the retry", async () => {
+    let failing = true;
+    const server = fakeServer(rowsOf(REGIONS), (request) => (request.spec.searchText === "x" && failing ? { rows: "bad" } as never : undefined));
+    const { result } = mount(server);
+    await waitFor(() => expect(result.current.gridProps.groupLayout?.rows).toHaveLength(3));
+    act(() => result.current.gridProps.onSearchTextChange("x"));
+    await waitFor(() => expect(result.current.error).not.toBeNull());
+    expect(result.current.gridProps.groupLayout?.rows).toHaveLength(3);
+    failing = false;
+    act(() => result.current.retry());
+    await waitFor(() => expect(result.current.error).toBeNull());
+    await waitFor(() => expect(server.calls.at(-1)!.spec.searchText).toBe("x"));
+    expect(result.current.gridProps.groupLayout?.rows).toHaveLength(3);
   });
 
   it("hands the rows back to the flat engine when the last group column goes", async () => {

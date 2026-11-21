@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DataGridPlugin, FilterNode, ServerSpec, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev, registerServerWiring } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { isDev, registerServerWiring, type PivotSpec } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { DEFAULT_RESHAPE_DELAY, MIN_RESHAPE_DELAY, MIN_REVALIDATE_INTERVAL, readReshapeDelay, readRevalidateInterval } from "./fetch-hygiene";
 
 /** The request state every mode of `useDataGridServerRows` returns. */
@@ -65,12 +65,24 @@ export type ServerSpecOptions = {
   spec?: ServerSpec;
   defaultSpec?: Partial<ServerSpec> | (() => Partial<ServerSpec> | undefined);
   onSpecChange?: (spec: ServerSpec) => void;
+} & ServerPivotOptions;
+
+/** The pivot of a grouped server source, with the shape and the controlled-pair rules of the grid's `pivot` props. */
+export type ServerPivotOptions = {
+  /** Controls the pivot; it wins over `spec.pivot`. `{ columnIds: [] }` is off. Pair it with `onPivotChange`. */
+  pivot?: PivotSpec;
+  /** Seeds the pivot once when `defaultSpec` holds no `pivot`. */
+  defaultPivot?: PivotSpec;
+  /** Fires after the grid changes the pivot, with `{ columnIds: [] }` when it turns off. */
+  onPivotChange?: (next: PivotSpec) => void;
 };
+
+const PIVOT_OFF: PivotSpec = { columnIds: [] };
 
 /** The sort, filter, and search of a server source, with stable change handlers for the grid's controlled state. */
 export function useServerSpec(source: ServerSpecOptions, afterChange: () => void, groups = false) {
   const lateSeed = typeof source.defaultSpec === "function" && source.spec === undefined ? source.defaultSpec : null;
-  const [spec, setSpec, seedSpec] = useControlled<ServerSpec>(source.spec, () => specOf(lateSeed ? undefined : (source.defaultSpec as Partial<ServerSpec> | undefined), groups), source.onSpecChange);
+  const [spec, setSpec, seedSpec] = useControlled<ServerSpec>(source.spec, () => specOf({ pivot: source.defaultPivot, ...(lateSeed ? undefined : (source.defaultSpec as Partial<ServerSpec> | undefined)) }, groups), source.onSpecChange);
   const [ready, setReady] = useState(lateSeed === null);
   const lateSeedRef = useRef(lateSeed);
   // A function seed runs after mount, on the client only, so the server render and the first client render match.
@@ -83,15 +95,16 @@ export function useServerSpec(source: ServerSpecOptions, afterChange: () => void
     }
     setReady(true);
   }, [seedSpec, groups]);
-  const live = useRef({ spec, afterChange });
+  const live = useRef({ spec, afterChange, source });
   useLayoutEffect(() => {
-    live.current = { spec, afterChange };
+    live.current = { spec, afterChange, source };
   });
   const changeSpec = useCallback(
     (next: Partial<ServerSpec>) => {
       const merged = { ...live.current.spec, ...next };
       if (merged.groupBy?.length === 0) delete merged.groupBy;
       if (merged.filterJoin !== "or") delete merged.filterJoin;
+      if (!merged.pivot?.columnIds.length) delete merged.pivot;
       // Two changes in one effect (a URL restore) merge instead of overwriting each other.
       live.current.spec = merged;
       setSpec(merged);
@@ -104,9 +117,28 @@ export function useServerSpec(source: ServerSpecOptions, afterChange: () => void
   const onFilterJoinChange = useCallback((join: "and" | "or") => changeSpec({ filterJoin: join === "or" ? "or" : undefined }), [changeSpec]);
   const onSearchTextChange = useCallback((searchText: string) => changeSpec({ searchText }), [changeSpec]);
   const onGroupByChange = useCallback((groupBy: readonly string[]) => changeSpec({ groupBy }), [changeSpec]);
+  const onPivotChange = useCallback(
+    (next: PivotSpec) => {
+      const { pivot: controlled, onPivotChange: notify } = live.current.source;
+      if (controlled === undefined) changeSpec({ pivot: { columnIds: [...next.columnIds] } });
+      if (notify) isolate("onPivotChange", () => notify(next));
+    },
+    [changeSpec],
+  );
+  const controlledKey = source.pivot === undefined ? undefined : JSON.stringify(source.pivot.columnIds);
+  // Keyed by the ids, so an equal controlled pivot keeps its identity and the grid skips the sync.
+  const controlled = useMemo(() => {
+    if (controlledKey === undefined) return undefined;
+    const columnIds = JSON.parse(controlledKey) as string[];
+    return columnIds.length ? { columnIds } : null;
+  }, [controlledKey]);
   // An ungrouped request with `pivot` is refused, so `pivot` waits in the raw spec until `groupBy` returns.
-  const shown = useMemo(() => (spec.pivot && !spec.groupBy?.length ? withoutPivot(spec) : spec), [spec]);
-  return { spec: shown, ready, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, onGroupByChange };
+  const shown = useMemo(() => {
+    const own = controlled === undefined ? spec : controlled === null ? withoutPivot(spec) : { ...spec, pivot: controlled };
+    return own.pivot && !own.groupBy?.length ? withoutPivot(own) : own;
+  }, [spec, controlled]);
+  const pivot = shown.pivot ?? PIVOT_OFF;
+  return { spec: shown, ready, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, onGroupByChange, pivot, onPivotChange };
 }
 
 /** The result of {@link useServerSpec}: the scroll hook takes it from its caller so the group engine and the flat engine share one spec. */
@@ -119,7 +151,7 @@ const specOf = (seed?: Partial<ServerSpec>, groups = false): ServerSpec => ({
   searchText: seed?.searchText ?? EMPTY_SPEC.searchText,
   ...(groups && seed?.groupBy?.length ? { groupBy: [...seed.groupBy] } : null),
   ...(groups && seed?.aggregates?.length ? { aggregates: [...seed.aggregates] } : null),
-  ...(groups && seed?.pivot ? { pivot: { columnIds: [...seed.pivot.columnIds] } } : null),
+  ...(groups && seed?.pivot?.columnIds.length ? { pivot: { columnIds: [...seed.pivot.columnIds] } } : null),
 });
 
 /** `spec` without `pivot`. */

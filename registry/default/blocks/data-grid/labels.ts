@@ -231,7 +231,7 @@ export type DataGridGroupingLabels = {
   tooManyOpen: string;
 };
 
-/** Server pivot strings: the headers of the generated columns and the note on cut columns. */
+/** Pivot strings: the headers of the generated columns, the note on cut columns, the menu items, and the sort list name. */
 export type DataGridPivotLabels = {
   /** Header of the empty pivot key. */
   empty: string;
@@ -241,6 +241,12 @@ export type DataGridPivotLabels = {
   columnName: (key: string, value: string) => string;
   /** Note below the grid when the server or the grid cut `count` generated columns. */
   moreColumns: (count: number) => string;
+  /** Header menu item that pivots by `column`. */
+  pivotBy: (column: string) => string;
+  /** Header menu item that turns the pivot off. */
+  turnOff: string;
+  /** Sort list name of the pivot column, whose sort orders the generated columns. */
+  sortColumn: (column: string) => string;
 };
 
 /** Row-marker column strings (select-all header checkbox, per-row checkbox, reorder handle). */

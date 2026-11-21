@@ -26,6 +26,8 @@ import {
   PinOff,
   Plus,
   Scissors,
+  Table2,
+  TableCellsMerge,
   Trash2,
   Ungroup,
   X,
@@ -71,6 +73,8 @@ export type BuiltInMenuItemId =
   | "collapse-all"
   | "group-by"
   | "ungroup"
+  | "pivot-by"
+  | "pivot-off"
   | "sort-asc"
   | "sort-desc"
   | "clear-sort"
@@ -88,6 +92,7 @@ export type BuiltInMenuItemId =
   | "sep-rows"
   | "sep-sort"
   | "sep-group"
+  | "sep-pivot"
   | "sep-autosize"
   | "sep-move";
 
@@ -304,6 +309,7 @@ export function useDefaultHeaderMenuItems(args: { columnId: string; scrollRoot: 
   const { enableColumnPinning, enableColumnResize, enableColumnReorder } = useDataGridColumnFeatureFlags();
   const labels = useDataGridLabels();
   const groupBy = useDataGridSelector((s) => s.groupBy);
+  const pivotColumnId = useDataGridSelector((s) => s.pivotColumnIds[0]);
   const canGroup = useDataGridSelector((s) => s.groupingEnabled && (s.groupMode === "server" || (s.totalRowCount === undefined && s.sortMode !== "server")));
 
   const column = columns.find((c) => c.id === columnId);
@@ -336,6 +342,12 @@ export function useDefaultHeaderMenuItems(args: { columnId: string; scrollRoot: 
         : { id: "group-by", label: labels.grouping.groupBy(name), icon: <Group className="size-4 text-muted-foreground" />, onClick: () => actions.toggleGroupBy(columnId) },
       { id: "sep-group", separator: true },
     );
+  }
+  if (canGroup && groupBy.length > 0) {
+    const pivotBy = !grouped && column.groupable !== false && pivotColumnId !== columnId;
+    if (pivotBy) specs.push({ id: "pivot-by", label: labels.pivot.pivotBy(columnLabelText(column)), icon: <Table2 className="size-4 text-muted-foreground" />, onClick: () => actions.setPivot({ columnIds: [columnId] }) });
+    if (pivotColumnId !== undefined) specs.push({ id: "pivot-off", label: labels.pivot.turnOff, icon: <TableCellsMerge className="size-4 text-muted-foreground" />, onClick: () => actions.setPivot({ columnIds: [] }) });
+    if (pivotBy || pivotColumnId !== undefined) specs.push({ id: "sep-pivot", separator: true });
   }
   specs.push(
     { id: "pin-start", label: labels.contextMenu.pinStart, icon: <Pin className="size-4 text-muted-foreground" />, disabled: !pinnable, onClick: () => actions.setColumnPin(columnId, "start") },
