@@ -63,7 +63,7 @@ export type GridFunctionPlan =
 type GridFunctionAggregate = { c: string; reducer: AggregateReducer; blank: boolean };
 type GridFunctionKey = { c: string; blank: boolean };
 
-type Result = { data: unknown; error: { message?: unknown } | null; count?: number | null };
+type Result = { data: unknown; error: { message?: unknown } | null; count?: number | null; status?: number };
 type Builder = PromiseLike<Result> & {
   or(filters: string): Builder;
   order(column: string, options: { ascending: boolean; nullsFirst: boolean }): Builder;
@@ -97,7 +97,8 @@ function urlLength(builder: Builder): number {
 
 async function read(request: PromiseLike<Result>): Promise<Result> {
   const result = await request;
-  if (result.error) throw new Error(`Supabase request failed: ${toSafeText(result.error.message)}`);
+  // A HEAD answer, such as a count's, has no body, so its error has no message.
+  if (result.error) throw new Error(`Supabase request failed: ${toSafeText(result.error.message) || `HTTP ${toSafeText(result.status)}`}`);
   return result;
 }
 

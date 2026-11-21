@@ -109,6 +109,11 @@ describe("rows requests", () => {
     const query2 = createSupabaseGridQuery({ client: bare as never, table: "items", columns, limits: FITS_MAX_ROWS });
     expect(await failure(query2.fetchRows(rowsRequest({}), {}))).toMatch(/no `url`/);
   });
+
+  it("names the HTTP status of a failed count, whose HEAD answer has no message", async () => {
+    const { query } = make({ answer: (request) => (request.method === "HEAD" ? { error: { message: "" } } : undefined) });
+    expect(await failure(query.fetchRows(rowsRequest({}), CONTEXT))).toMatch(/^Error: Supabase request failed: HTTP 400$/);
+  });
 });
 
 describe("filters as one logic tree", () => {
