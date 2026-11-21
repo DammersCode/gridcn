@@ -1,7 +1,7 @@
 import { type ColumnMap, type PlanColumn, mapOf } from "./column-map";
 import { QueryError } from "./errors";
 import type { ResolvedLimits } from "./limits";
-import { parseDate, parseInstant } from "./operands";
+import { holdsInstant, parseDate, parseInstant } from "./operands";
 import { type Operand, type OrderTerm, type Predicate, type RowsPlan, combine, leaf } from "./plan";
 import { instantText, serializeValue } from "./serialize-row";
 import { toSafeText } from "./safe-text";
@@ -108,7 +108,7 @@ function instantKey(text: string): boolean {
 function keyFromText(column: PlanColumn, text: string, limits: ResolvedLimits): Operand | null {
   if (isTime(column)) {
     // An epoch key travels as the `toISOString` text the encoder wrote; other storages compare the stored text exactly.
-    const valid = isEpoch(column) ? parseInstant(text) === text : instantKey(text);
+    const valid = isEpoch(column) ? parseInstant(text) === text && holdsInstant(column, text) : instantKey(text);
     return valid ? { kind: "instant", v: text } : null;
   }
   const operand = keyOperand(column, text, limits);

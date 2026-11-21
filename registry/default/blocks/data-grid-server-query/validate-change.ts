@@ -1,7 +1,7 @@
 import { type ColumnMap, type PlanColumn, mapOf } from "./column-map";
 import { QueryError } from "./errors";
 import { type QueryLimits, resolveLimits } from "./limits";
-import { decimalToString, isIntType, parseBoolean, parseDate, parseDecimal, parseInstant, parseUuid } from "./operands";
+import { decimalToString, holdsInstant, isIntType, parseBoolean, parseDate, parseDecimal, parseInstant, parseUuid } from "./operands";
 import { type CellRead, IMPORT_REFUSAL_MESSAGES, type ImportRefusalCode, readCell } from "./parse-import-rows";
 import { type Operand, type Predicate, combine, leaf } from "./plan";
 import { toSafeText } from "./safe-text";
@@ -116,7 +116,7 @@ export function keyOperand(column: PlanColumn, rowId: string, limits: Limits): O
     }
     case "date": {
       const parsed = column.time ? parseInstant(rowId) : parseDate(rowId);
-      return parsed === null ? "shape" : { kind: column.time ? "instant" : "date", v: parsed };
+      return parsed === null || !holdsInstant(column, parsed) ? "shape" : { kind: column.time ? "instant" : "date", v: parsed };
     }
     default:
       return column.native === "uuid" && parseUuid(rowId) === null ? "shape" : { kind: "text", v: rowId };

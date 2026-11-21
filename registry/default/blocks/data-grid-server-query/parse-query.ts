@@ -11,8 +11,10 @@ import {
   decimalToString,
   exceedsDigits,
   floorDecimal,
+  holdsInstant,
   isInteger,
   isIntType,
+  isSubMillisecond,
   nextDay,
   parseBoolean,
   parseDate,
@@ -21,7 +23,7 @@ import {
   parseUuid,
   startOfLocalDay,
 } from "./operands";
-import { type AggregatesPlan, FALSE, type GroupsPlan, type Operand, type OrderTerm, type PlanOf, type Predicate, type QueryRequestKind, type RowsPlan, TRUE, type ValuesPlan, combine, leaf, negate } from "./plan";
+import { type AggregatesPlan, FALSE, type GroupsPlan, type Operand, type OrderTerm, type PlanOf, type Predicate, type QueryRequestKind, type RowsPlan, TRUE, type Test, type ValuesPlan, combine, leaf, negate } from "./plan";
 
 /** How often a rows request also counts the result: the first scroll block (default), every request, or never. */
 export type RowCountMode = "firstBlock" | "always" | "none";
@@ -208,8 +210,16 @@ function groupEquality(column: PlanColumn, key: unknown, path: Path, ctx: Ctx): 
     }
     case "date": {
       if (typeof key !== "string") throw new QueryError("invalid-value", path);
-      const v = column.time ? parseInstant(key.trim()) : parseDate(key.trim());
-      return v === null ? FALSE : equal({ kind: column.time ? "instant" : "date", v });
+      if (!column.time) {
+        const day = parseDate(key.trim());
+        return day === null ? FALSE : equal({ kind: "date", v: day });
+      }
+      const v = instantOperand(key, path);
+      if (v === null || !holdsInstant(column, v)) return FALSE;
+      // Where the adapter cuts a native key to its millisecond, the group holds that whole millisecond.
+      if (column.storage !== "native" || ctx.capabilities?.millisecondInstantKeys !== true) return equal({ kind: "instant", v });
+      const next = new Date(Date.parse(v) + 1).toISOString();
+      return leaf(column, { k: "range", lo: { kind: "instant", v }, hi: { kind: "instant", v: next }, hiExclusive: true });
     }
     default: {
       if (typeof key !== "string") throw new QueryError("invalid-value", path);
@@ -450,7 +460,7 @@ function compile(column: PlanColumn, op: string, shaped: Shaped, path: Path, ctx
   if (bad || badOrdering) throw new QueryError("operator-not-allowed", [...path, "operator"]);
 
   if (kind === "number") return compileNumber(column, op, shaped, path, ctx);
-  if (kind === "date") return compileDate(column, op, shaped, ctx);
+  if (kind === "date") return compileDate(column, op, shaped, path, ctx);
   if (kind === "checkbox") return compileCheckbox(column, op, shaped);
   return compileText(column, op, shaped, path, ctx);
 }
@@ -624,50 +634,71 @@ function compileNumberRange(column: PlanColumn, lo: Decimal | undefined, hi: Dec
 
 type DateBound = { day: string } | { instant: string };
 
-function dateBound(column: PlanColumn, raw: string): DateBound | null {
+/** The canonical instant of the text, or `null`; a digit past the millisecond is `unsupported-value`, never a silent cut. */
+function instantOperand(raw: string, path: Path): string | null {
   const trimmed = raw.trim();
-  const day = parseDate(trimmed);
+  if (isSubMillisecond(trimmed)) throw new QueryError("unsupported-value", path);
+  return parseInstant(trimmed);
+}
+
+function dateBound(column: PlanColumn, raw: string, path: Path): DateBound | null {
+  const day = parseDate(raw.trim());
   if (day) return { day };
   if (!column.time) return null;
-  const instant = parseInstant(trimmed);
+  const instant = instantOperand(raw, path);
   return instant ? { instant } : null;
 }
 
-function compileDate(column: PlanColumn, op: string, { text, pair, list }: Shaped, ctx: Ctx): Predicate {
+/** On an `epoch-s` column a bound with a fraction of a second rounds to the whole second that keeps the same rows; an exact test with one is `unsupported-value`. */
+function wholeSeconds(column: PlanColumn, test: Test, path: Path): Test {
+  if (column.storage !== "epoch-s") return test;
+  const fraction = (value: Operand | undefined): value is Extract<Operand, { kind: "instant" }> => value?.kind === "instant" && !holdsInstant(column, value.v);
+  const round = (value: Operand | undefined, up: boolean): Operand | undefined =>
+    fraction(value) ? { kind: "instant", v: new Date((up ? Math.ceil : Math.floor)(Date.parse(value.v) / 1000) * 1000).toISOString() } : value;
+  if (test.k === "cmp") return { ...test, value: round(test.value, test.op === "gte" || test.op === "lt")! };
+  if (test.k === "range") return { ...test, lo: round(test.lo, true), hi: round(test.hi, test.hiExclusive) };
+  if ((test.k === "eq" || test.k === "ne") && fraction(test.value)) throw new QueryError("unsupported-value", path);
+  if (test.k === "in" && test.values.some(fraction)) throw new QueryError("unsupported-value", path);
+  return test;
+}
+
+function compileDate(column: PlanColumn, op: string, { text, pair, list }: Shaped, path: Path, ctx: Ctx): Predicate {
+  const valuePath = [...path, "value"];
   const tz = ctx.timeZone;
+  const at = (test: Test): Predicate => leaf(column, wholeSeconds(column, test, valuePath));
   const instantOf = (v: string): Operand => ({ kind: "instant", v });
   const dayStart = (day: string): Operand => instantOf(startOfLocalDay(day, tz));
   const plain = (bound: DateBound): Operand => ("day" in bound ? { kind: "date", v: bound.day } : instantOf(bound.instant));
-  const dayIncluded = (day: string): Predicate => leaf(column, { k: "range", lo: dayStart(day), hi: dayStart(nextDay(day)), hiExclusive: true });
+  const dayIncluded = (day: string): Predicate => at({ k: "range", lo: dayStart(day), hi: dayStart(nextDay(day)), hiExclusive: true });
   const dayExcluded = (day: string): Predicate =>
-    combine("or", [leaf(column, { k: "cmp", op: "lt", value: dayStart(day) }), leaf(column, { k: "cmp", op: "gte", value: dayStart(nextDay(day)) })]);
+    combine("or", [at({ k: "cmp", op: "lt", value: dayStart(day) }), at({ k: "cmp", op: "gte", value: dayStart(nextDay(day)) })]);
 
   if (op === "equals" || op === "notEquals") {
-    const bound = dateBound(column, text);
+    const bound = dateBound(column, text, valuePath);
     if (!bound) return op === "equals" ? FALSE : TRUE;
     if (column.time && "day" in bound) return op === "equals" ? dayIncluded(bound.day) : combine("or", [blank(column, false), dayExcluded(bound.day)]);
-    return leaf(column, { k: op === "equals" ? "eq" : "ne", value: plain(bound) });
+    return at({ k: op === "equals" ? "eq" : "ne", value: plain(bound) });
   }
   if (op === "gt" || op === "gte" || op === "lt" || op === "lte") {
-    const bound = dateBound(column, text);
+    const bound = dateBound(column, text, valuePath);
     if (!bound) return FALSE;
     if (column.time && "day" in bound) {
       const edge = op === "gt" || op === "lte" ? dayStart(nextDay(bound.day)) : dayStart(bound.day);
-      return leaf(column, { k: "cmp", op: op === "gt" || op === "gte" ? "gte" : "lt", value: edge });
+      return at({ k: "cmp", op: op === "gt" || op === "gte" ? "gte" : "lt", value: edge });
     }
-    return leaf(column, { k: "cmp", op, value: plain(bound) });
+    return at({ k: "cmp", op, value: plain(bound) });
   }
   if (op === "isBetween") {
-    const lo = pair[0] === "" ? undefined : dateBound(column, pair[0]);
-    const hi = pair[1] === "" ? undefined : dateBound(column, pair[1]);
+    const lo = pair[0] === "" ? undefined : dateBound(column, pair[0], valuePath);
+    const hi = pair[1] === "" ? undefined : dateBound(column, pair[1], valuePath);
     if (lo === null || hi === null) return FALSE;
     const dayWise = column.time && ((lo && "day" in lo) || (hi && "day" in hi));
     if (dayWise) {
       const low = lo ? ("day" in lo ? dayStart(lo.day) : instantOf(lo.instant)) : undefined;
       const high = hi ? ("day" in hi ? dayStart(nextDay(hi.day)) : instantOf(hi.instant)) : undefined;
-      return leaf(column, { k: "range", lo: low, hi: high, hiExclusive: true });
+      return at({ k: "range", lo: low, hi: high, hiExclusive: true });
     }
-    return leaf(column, { k: "range", lo: lo && plain(lo), hi: hi && plain(hi), hiExclusive: false });
+    return at({ k: "range", lo: lo && plain(lo), hi: hi && plain(hi), hiExclusive: false });
   }
   const days: string[] = [];
   const exact = new Map<string, Operand>();
@@ -677,16 +708,16 @@ function compileDate(column: PlanColumn, op: string, { text, pair, list }: Shape
       hasBlank = true;
       continue;
     }
-    const bound = dateBound(column, entry);
+    const bound = dateBound(column, entry, valuePath);
     if (!bound) continue;
     if (column.time && "day" in bound) days.push(bound.day);
     else exact.set(JSON.stringify(plain(bound)), plain(bound));
   }
   if (!column.time) return inTest(column, op, [...exact.values()], hasBlank, true);
   const uniqueDays = [...new Set(days)];
-  const included = [...uniqueDays.map(dayIncluded), ...(exact.size > 0 ? [leaf(column, { k: "in", values: [...exact.values()], negate: false, blank: false, caseSensitive: true })] : [])];
+  const included = [...uniqueDays.map(dayIncluded), ...(exact.size > 0 ? [at({ k: "in", values: [...exact.values()], negate: false, blank: false, caseSensitive: true })] : [])];
   if (op === "isAnyOf") return included.length === 0 && !hasBlank ? FALSE : combine("or", [...included, ...(hasBlank ? [blank(column, false)] : [])]);
-  const excluded = [...uniqueDays.map(dayExcluded), ...(exact.size > 0 ? [leaf(column, { k: "in", values: [...exact.values()], negate: true, blank: false, caseSensitive: true })] : [])];
+  const excluded = [...uniqueDays.map(dayExcluded), ...(exact.size > 0 ? [at({ k: "in", values: [...exact.values()], negate: true, blank: false, caseSensitive: true })] : [])];
   if (excluded.length === 0) return hasBlank ? blank(column, true) : TRUE;
   return hasBlank ? combine("and", [blank(column, true), ...excluded]) : combine("or", [blank(column, false), combine("and", excluded)]);
 }

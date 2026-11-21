@@ -135,7 +135,7 @@ The route must pass `context` when the factory sets `rowScope`. A missing value,
 - A filter row that the user has not filled in yet means what it means in the grid. `contains` with no text matches every row. `equals` with no text matches the empty rows.
 - `notEquals`, `notContains`, and `isNoneOf` match the rows with NULL. `empty` matches NULL and, for text columns, the empty string.
 - A number column parses the value with the HTML number grammar. An integer column rounds a bound the exact way: `gt 2.5` becomes `gt 2`. A bound outside the width of the column matches all rows or none.
-- A `date` column with `time: true` holds instants. A day filter covers the local day in the `timeZone` option, which defaults to `UTC`.
+- A `date` column with `time: true` holds instants. Its filter values are exact to the millisecond. A day filter covers the local day in the `timeZone` option, which defaults to `UTC`.
 - Text tests ignore letter case. A filter row of a column with `matchCase` carries `matchCase: true`, and the layer then compares case. Set `caseSensitive` on the column to compare case for every request.
 - Quick search is a case-insensitive substring match over the columns with `searchable`. The search narrows the result.
 - Every sort ends with the primary key, so a page never repeats a row. NULL values sort last in both directions.
@@ -190,7 +190,8 @@ The factory throws at creation when a declared operator has no handler.
 
 `fetchRows` answers a request that holds `groupBy` and `childKind: "groups"` with the groups of one level. Each group has `key`, `childCount`, `totalRowCount`, and one reduced value for each aggregate column. A request with `childKind: "rows"` and a full `groupPath` answers the rows of one group. See [Group server rows](/docs/data-modes/group-server-rows) and [Pivot server rows](/docs/data-modes/pivot-server-rows#query-layer) for the grid side.
 
-- A group key is the stored value. A text column keys `""` as the empty group, and a date-time column keys the stored instant.
+- A group key is the stored value. A text column keys `""` as the empty group, and a date-time column keys the instant to the millisecond.
+- Drizzle and Kysely on PostgreSQL group a `native` timestamp by its millisecond. Elsewhere, a stored key with a digit after the millisecond answers `unsupported`.
 - A `serverOnly` or `keepBlankText` column cannot group and answers `unsupported`.
 - A filter applies before grouping, and the group column sorts the groups. The empty group comes last.
 - `rowScope` applies to every group list and every row list.

@@ -1,6 +1,6 @@
 import { type ColumnMap, type PlanColumn, mapOf } from "./column-map";
 import { DEFAULT_LIMITS } from "./limits";
-import { INT_RANGE, decimalToFloat, decimalToString, exceedsDigits, isIntType, parseBoolean, parseDate, parseDecimal, parseInstant, parseUuid } from "./operands";
+import { INT_RANGE, decimalToFloat, decimalToString, exceedsDigits, holdsInstant, isIntType, parseBoolean, parseDate, parseDecimal, parseInstant, parseUuid } from "./operands";
 import { type Operand, type Predicate, combine, leaf } from "./plan";
 
 /** Returns equalities on mapped columns (`{ tenantId: ctx.tenantId }`) that every query of the factory ANDs in. */
@@ -37,7 +37,7 @@ function scopeOperand(column: PlanColumn, value: unknown, maxNumberLength: numbe
   if (typeof value !== "string") return refuse(column);
   if (column.kind === "date") {
     const parsed = column.time ? parseInstant(value) : parseDate(value);
-    return parsed === null ? refuse(column) : { kind: column.time ? "instant" : "date", v: parsed };
+    return parsed === null || !holdsInstant(column, parsed) ? refuse(column) : { kind: column.time ? "instant" : "date", v: parsed };
   }
   if (value.trim() === "") return refuse(column);
   const text = column.native === "uuid" ? parseUuid(value) : value;
