@@ -68,7 +68,7 @@ The layer reads an empty value before it checks the kind of the column:
 
 An empty entry in a list stands for the empty rows. `isAnyOf ["a", ""]` matches `a` and the empty rows.
 
-A value that cannot parse never fails the request. A positive test matches no row. `notEquals` matches every row. A day on a `time` column matches from the local midnight to the next one in `timeZone`.
+A value that cannot parse fails the request only when it is an instant with a digit after the millisecond. Any other such value matches no row in a positive test. `notEquals` matches every row. A day on a `time` column matches from the local midnight to the next one in `timeZone`.
 
 An instant with a nonzero digit after the millisecond answers `unsupported-value`. On an `epoch-s` column, `gt` and `lte` round a fraction of a second down, and `gte` and `lt` round it up. An exact test with a fraction answers `unsupported-value`.
 
@@ -79,7 +79,7 @@ An instant with a nonzero digit after the millisecond answers `unsupported-value
 - A request over `maxImportRows` rows throws a `QueryError`. So does a row that is not an object, a key that is not a mapped column, or a `serverOnly` key.
 - A value over `maxValueLength`, or a number text over `maxNumberLength`, throws `limit-exceeded`.
 - An int or decimal value that expands past `maxNumberLength` digits, such as `1e9999`, is an `out-of-range` refusal. Trailing zeros do not count, so `1.000e-9` passes.
-- An instant with a nonzero digit after the millisecond is a `too-many-decimals` refusal.
+- An instant with a nonzero digit after the millisecond is a `too-many-decimals` refusal. An `epoch-s` value with a fraction of a second throws `unsupported-value`.
 - A value that does not fit its column kind is a refusal. A missing value in a `required` column is one too. The row stays out of `rows`, and `rejected` names it as `{ rowIndex, columnId, code, message }`. `message` is English. `code` names the reason, such as `"required"` or `"not-a-number"`. `IMPORT_REFUSAL_MESSAGES` lists every code. A route maps the code to its own language.
 - `rows` holds the parsed values. A number stays a number, or becomes canonical text when it came as text. A date is `YYYY-MM-DD`, an instant is ISO text, and a blank value is `null`.
 

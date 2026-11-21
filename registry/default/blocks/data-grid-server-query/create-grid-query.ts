@@ -38,6 +38,8 @@ export type AdapterCapabilities = {
    * `selectGroups`. Default `true`; `false` makes a cursor sort on a `time` column, and grouping by one, `unsupported`.
    */
   exactInstantKeys?: boolean;
+  /** `selectGroups` keys a `native` time column by its millisecond, so a group path keeps that whole millisecond. Default `false`: a group path compares the instant exactly. */
+  millisecondInstantKeys?: boolean;
   /** A LIKE leaf can match case. Default `true`; `false` makes a case-sensitive contains, notContains, startsWith, or endsWith `unsupported`. */
   caseSensitiveLike?: boolean;
   /** LIKE matches a native enum or uuid column as text. Default `true`; `false` makes such a leaf, and a quick search over such a column, `unsupported`. */

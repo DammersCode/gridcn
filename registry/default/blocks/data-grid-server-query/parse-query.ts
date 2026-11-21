@@ -216,8 +216,8 @@ function groupEquality(column: PlanColumn, key: unknown, path: Path, ctx: Ctx): 
       }
       const v = instantOperand(key, path);
       if (v === null || !holdsInstant(column, v)) return FALSE;
-      // A native timestamp keys by its millisecond, so the group holds that whole millisecond.
-      if (column.storage !== "native") return equal({ kind: "instant", v });
+      // Where the adapter cuts a native key to its millisecond, the group holds that whole millisecond.
+      if (column.storage !== "native" || ctx.capabilities?.millisecondInstantKeys !== true) return equal({ kind: "instant", v });
       const next = new Date(Date.parse(v) + 1).toISOString();
       return leaf(column, { k: "range", lo: { kind: "instant", v }, hi: { kind: "instant", v: next }, hiExclusive: true });
     }

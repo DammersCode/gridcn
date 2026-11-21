@@ -80,6 +80,7 @@ export function createDrizzleGridQuery<TRow, TContext>(options: DrizzleGridQuery
     groupBy: true,
     localDayGrouping: dialect === "pg",
     exactInstantKeys: true,
+    millisecondInstantKeys: dialect === "pg",
     pivot: true,
   };
 

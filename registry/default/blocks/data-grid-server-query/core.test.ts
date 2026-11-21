@@ -115,7 +115,34 @@ describe("operands", () => {
     expect(isSubMillisecond("2024-01-01 00:00:00.123456+00")).toBe(true);
     for (const exact of ["2024-01-01T00:00:00.123000Z", "2024-01-01T00:00:00Z", "junk"]) expect(isSubMillisecond(exact)).toBe(false);
     const hostile = `2024-01-01T00:00:00.${"1".repeat(100_000)}Z`;
-    expect([parseInstant(hostile), isSubMillisecond(hostile), parseInstant("2024-01-01T00:00:00.1234567891Z")]).toEqual([null, false, null]);
+    expect([parseInstant(hostile), isSubMillisecond(hostile), parseInstant("2024-01-01T00:00:00.1234567891Z")]).toEqual([null, true, null]);
+  });
+
+  it("finds a digit past the millisecond in every text shape a stored key takes, with or without a zone", () => {
+    for (const digits of [4, 5, 6, 7, 8, 9]) {
+      const fraction = `123${"0".repeat(digits - 4)}1`;
+      for (const zone of ["", "Z", "+00", "+02:00", "-0530"]) {
+        for (const separator of ["T", " "]) {
+          expect(isSubMillisecond(`2024-01-01${separator}10:00:00.${fraction}${zone}`)).toBe(true);
+          expect(isSubMillisecond(`2024-01-01${separator}10:00:00.${"1230000000".slice(0, digits)}${zone}`)).toBe(false);
+        }
+      }
+    }
+  });
+
+  it("refuses a group key without a zone that holds a digit past the millisecond", async () => {
+    const stamped = defineColumnMap({ id: { type: "number", numeric: "int8", primaryKey: true }, at: { type: "date", time: true } });
+    for (const key of ["2024-01-01 10:00:00.123456", "2024-01-01T10:00:00.1230001"]) {
+      const { executor } = fakeExecutor();
+      executor.selectGroups = async () => [{ key, count: 1, childCount: 0, aggregates: {} }];
+      const query = createGridQuery({ columns: stamped, executor });
+      await expect(query.fetchRows({ spec: { groupBy: ["at"] }, childKind: "groups", start: 0, end: 10 })).rejects.toMatchObject({ code: "unsupported", path: ["spec", "groupBy", "at"] });
+    }
+  });
+
+  it("refuses an epoch-s import or write value with a fraction of a second", () => {
+    expect(() => parseImportRows({ rows: [{ seen: "2024-01-01T00:00:00.500Z" }] }, { columns })).toThrow(expect.objectContaining({ code: "unsupported-value" }));
+    expect(parseImportRows({ rows: [{ seen: "2024-01-01T00:00:01.000Z" }] }, { columns }).rows).toEqual([{ seen: "2024-01-01T00:00:01.000Z" }]);
   });
 
   it("parses an instant in linear time, a hostile text no slower than a valid one", () => {

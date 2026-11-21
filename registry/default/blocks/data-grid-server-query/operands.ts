@@ -131,9 +131,12 @@ const MAX_INSTANT_TEXT = 40;
 const instantMatch = (text: string): RegExpExecArray | null => (text.length > MAX_INSTANT_TEXT ? null : INSTANT_GRAMMAR.exec(text));
 const pastMillisecond = (fraction: string | undefined): boolean => fraction !== undefined && /[1-9]/.test(fraction.slice(3));
 
-/** Whether the ISO instant text holds a nonzero digit past the millisecond, which `parseInstant` refuses. */
+// Every shape `instantText` reads: `T` or a space, any zone or none.
+const SECOND_FRACTION = /^\d{4}-\d{2}-\d{2}[Tt ]\d{2}:\d{2}:\d{2}\.(\d+)/;
+
+/** Whether the instant text holds a nonzero digit past the millisecond, which `parseInstant` refuses. */
 export function isSubMillisecond(text: string): boolean {
-  return pastMillisecond(instantMatch(text)?.[5]);
+  return pastMillisecond(SECOND_FRACTION.exec(text)?.[1]);
 }
 
 /** Whether the column stores the instant exactly: an `epoch-s` column holds whole seconds only. */

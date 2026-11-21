@@ -19,7 +19,15 @@ const STAMPS: [number, string | null, number | null][] = [
   [3, "2024-01-01T00:00:00.123999Z", 1_704_067_199],
   [4, "2024-01-01T00:00:00.124001Z", null],
   [5, null, 1_704_067_202],
+  [6, null, -1],
 ];
+// On a SQLite text column, `+` sorts before `.`, so a range on the text would take row 2 into the group of row 1.
+const ZONED: [number, string][] = [
+  [1, "2024-01-01T10:00:00.999Z"],
+  [2, "2024-01-01T10:00:01+02:00"],
+];
+const zonedColumns = defineColumnMap({ id: { type: "number", numeric: "int4", primaryKey: true }, at: { type: "date", time: true } });
+const sqliteZoned = sqliteTable("zoned", { id: sqliteInteger("id").primaryKey(), at: sqliteText("at") });
 
 const columnsOf = (engine: Engine) =>
   defineColumnMap({
@@ -48,6 +56,8 @@ beforeAll(async () => {
   sqlite.exec("create table stamps (id integer primary key, at text, secs integer)");
   const insert = sqlite.prepare("insert into stamps values (?, ?, ?)");
   for (const row of STAMPS) insert.run(...row);
+  sqlite.exec("create table zoned (id integer primary key, at text)");
+  for (const row of ZONED) sqlite.prepare("insert into zoned values (?, ?)").run(...row);
 }, 60_000);
 
 afterAll(async () => {
@@ -66,15 +76,26 @@ const secondsWhere = (keep: (ms: number) => boolean) => STAMPS.filter(([, , secs
 describe.each(adapters.filter(([, engine]) => engine === "pg"))("PGlite %s: microsecond group keys", (_name, _engine, make) => {
   it("groups by the millisecond, the precision of the key, and drills to the rows of each group", async () => {
     const answer = await groupsOf(make(), "at");
-    expect(answer.groups.map(({ key, totalRowCount }) => [key, totalRowCount])).toEqual([["2024-01-01T00:00:00.123Z", 3], ["2024-01-01T00:00:00.124Z", 1], [null, 1]]);
+    expect(answer.groups.map(({ key, totalRowCount }) => [key, totalRowCount])).toEqual([["2024-01-01T00:00:00.123Z", 3], ["2024-01-01T00:00:00.124Z", 1], [null, 2]]);
     const drilled = await Promise.all(answer.groups.map(async (group) => idsOf(await drill(make(), "at", group.key))));
-    expect(drilled).toEqual([[1, 2, 3], [4], [5]]);
+    expect(drilled).toEqual([[1, 2, 3], [4], [5, 6]]);
   });
 });
+
+const zonedAdapters: [string, () => FetchRows][] = [
+  ["drizzle", () => createDrizzleGridQuery({ db: drizzleSqlite(sqlite) as never, table: sqliteZoned, columns: zonedColumns }).fetchRows as FetchRows],
+  ["kysely", () => createKyselyGridQuery({ db: new Kysely({ dialect: new SqliteDialect({ database: sqlite }) }) as never, table: "zoned", dialect: "sqlite", columns: zonedColumns }).fetchRows as FetchRows],
+];
 
 describe.each(adapters.filter(([, engine]) => engine === "sqlite"))("SQLite %s: microsecond group keys", (_name, _engine, make) => {
   it("refuses to group a stored text instant with a digit past the millisecond", async () => {
     await expect(groupsOf(make(), "at")).rejects.toMatchObject({ code: "unsupported", path: ["spec", "groupBy", "at"] });
+  });
+});
+
+describe.each(zonedAdapters)("SQLite %s: native text group keys", (_name, make) => {
+  it("drills a key to the stored text that equals it, never to the rows of another group", async () => {
+    expect(idsOf(await drill(make(), "at", "2024-01-01T10:00:00.999Z"))).toEqual([1]);
   });
 });
 
@@ -85,12 +106,12 @@ describe.each(adapters)("%s on %s: instant precision", (_name, _engine, make) =>
     }
     await expect(rowsWhere(make(), [filter("at", "isBetween", ["2024-01-01T00:00:00.1231Z", ""])])).rejects.toMatchObject({ code: "unsupported-value" });
     await expect(rowsWhere(make(), [filter("at", "isAnyOf", ["2024-01-01", "2024-01-01T00:00:00.123000001Z"])])).rejects.toMatchObject({ code: "unsupported-value" });
-    expect(await rowsWhere(make(), [filter("secs", "lt", "2024-01-01T00:00:01.000000000Z")])).toEqual([1, 3]);
+    expect(await rowsWhere(make(), [filter("secs", "lt", "2024-01-01T00:00:01.000000000Z")])).toEqual([1, 3, 6]);
   });
 
   it("rounds an epoch-s bound with a fraction of a second to the whole second that keeps the same rows", async () => {
     const compare = { gt: (a: number, b: number) => a > b, gte: (a: number, b: number) => a >= b, lt: (a: number, b: number) => a < b, lte: (a: number, b: number) => a <= b };
-    for (const value of ["2024-01-01T00:00:00.500Z", "2024-01-01T00:00:01.999Z", "2023-12-31T23:59:59.001Z"]) {
+    for (const value of ["2024-01-01T00:00:00.500Z", "2024-01-01T00:00:01.999Z", "2023-12-31T23:59:59.001Z", "1969-12-31T23:59:59.500Z"]) {
       for (const [operator, keep] of Object.entries(compare)) {
         expect(await rowsWhere(make(), [filter("secs", operator, value)])).toEqual(secondsWhere((ms) => keep(ms, Date.parse(value))));
       }
@@ -104,7 +125,7 @@ describe.each(adapters)("%s on %s: instant precision", (_name, _engine, make) =>
 
   it("groups an epoch-s column and drills to the rows of each group", async () => {
     const answer = await groupsOf(make(), "secs");
-    expect(answer.groups.map((group) => group.totalRowCount)).toEqual([1, 1, 1, 1, 1]);
+    expect(answer.groups.map((group) => group.totalRowCount)).toEqual([1, 1, 1, 1, 1, 1]);
     for (const group of answer.groups) expect(idsOf(await drill(make(), "secs", group.key))).toHaveLength(1);
   });
 });
