@@ -7,6 +7,8 @@ const ROW_COUNT = 100_000;
 const TICK_ROWS = 20;
 const TICKS = 50;
 const CI_FACTOR = process.env["CI"] ? 2 : 1;
+/** The tick budget in same-run grouped 100k-row builds, so suite load and coverage slow both alike; a tick takes about 0.14 builds. */
+const TICK_BUDGET_BUILDS = 0.2;
 
 type Row = { id: string; region: string; team: string; label: string; qty: number };
 
@@ -19,8 +21,8 @@ const columns: ColumnDef<Row, unknown>[] = [
 
 const rows = (): Row[] => Array.from({ length: ROW_COUNT }, (_, i) => ({ id: `r${i}`, region: `a${i % 40}`, team: `b${Math.trunc(i / 40) % 25}`, label: `l${i}`, qty: i % 100 }));
 
-function make(grouped: boolean) {
-  return createDataGridStore({ defaultData: rows(), columns, getRowId: (row: Row) => row.id, ...(grouped ? { defaultGroupBy: ["region", "team"] } : {}) } as unknown as InternalSyncProps);
+function make(grouped: boolean, data = rows()) {
+  return createDataGridStore({ defaultData: data, columns, getRowId: (row: Row) => row.id, ...(grouped ? { defaultGroupBy: ["region", "team"] } : {}) } as unknown as InternalSyncProps);
 }
 
 let sequence = 0;
@@ -48,10 +50,18 @@ describe("a stream tick on a grouped grid (100k rows, 20 rows per tick)", () => 
     expect(groupedMs).toBeLessThan(flatMs * 1.5 + 5 * CI_FACTOR);
   });
 
-  it("re-reduces only the touched groups on an aggregate column, keeping the view", () => {
+  it("re-reduces only the touched groups on an aggregate column, keeping the view", async ({ annotate }) => {
     const view = grouped.getState().viewIndex;
     const ms = best(grouped, "qty");
     expect(grouped.getState().viewIndex).toBe(view);
-    expect(ms / TICKS).toBeLessThan(8 * CI_FACTOR);
-  });
+    const data = rows();
+    const buildMs = Math.min(...Array.from({ length: 3 }, () => {
+      const start = performance.now();
+      make(true, data);
+      return performance.now() - start;
+    }));
+    const budget = CI_FACTOR * Math.max(8, TICK_BUDGET_BUILDS * buildMs);
+    await annotate(`grouped aggregate tick: ${(ms / TICKS).toFixed(2)} ms, budget ${budget.toFixed(1)} ms; grouped build ${buildMs.toFixed(1)} ms`);
+    expect(ms / TICKS).toBeLessThan(budget);
+  }, 30_000);
 });

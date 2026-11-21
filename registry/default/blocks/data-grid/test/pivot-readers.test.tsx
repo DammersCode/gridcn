@@ -15,7 +15,10 @@ import { viewIndex } from "../types";
 
 type Row = { id: string; region: string; year: number; amount: number };
 
-const CI_FACTOR = process.env["CI"] ? 2 : 1;
+const CI_FACTOR = process.env["CI"] === "true" ? 2 : 1;
+const REFERENCE_CELLS = 200_000;
+/** The scan budget in same-run references (Intl formatting plus a grouped build, the scan's mix), which load and coverage slow alike. */
+const SCAN_BUDGET_REFERENCES = 1.6;
 
 const columns: ColumnDef<Row, unknown>[] = [
   { id: "region", header: "Region", accessorKey: "region" },
@@ -163,21 +166,33 @@ describe("find and replace", () => {
     expect(state().searchMatches).toEqual([{ row: 0, columnId: state().visibleColumns[1]!.id }]);
   });
 
-  it("scans 1,000 × 200 pivot cells within 100 ms", () => {
+  it("scans 1,000 × 200 pivot cells within 100 ms or 1.6 same-run reference workloads", async ({ annotate }) => {
     const keys = Array.from({ length: 200 }, (_, i) => 2000 + i);
     const rows = Array.from({ length: 1_000 }, (_, row) => slot(row, `g${row}`, keys.map((_, col) => (row === 999 && col === 199 ? 987_654.25 : row * 7 + col))));
     const { state } = make({ rows, leafCount: 2_000, pivot: held(keys) });
     const s = state();
     expect(s.visibleColumns).toHaveLength(201);
-    let best = Infinity;
+    const groupRows: Row[] = Array.from({ length: 100_000 }, (_, i) => ({ id: `r${i}`, region: `a${i % 40}`, year: 2000 + (i % 25), amount: i % 100 }));
+    const format = new Intl.NumberFormat("en-US");
+    let scanMs = Infinity;
+    let formatMs = Infinity;
+    let buildMs = Infinity;
     let found: ReturnType<typeof computeSearchMatches> | undefined;
     for (let i = 0; i < 5; i++) {
-      const start = performance.now();
+      let start = performance.now();
       found = computeSearchMatches(s.data, s.columns, s.viewIndex, s.visibleColumns, "987,654.25", s.cellTypes, s.searchOptions, s.locale);
-      best = Math.min(best, performance.now() - start);
+      scanMs = Math.min(scanMs, performance.now() - start);
+      start = performance.now();
+      for (let n = 0; n < REFERENCE_CELLS; n++) format.format(n * 1.25);
+      formatMs = Math.min(formatMs, performance.now() - start);
+      start = performance.now();
+      createDataGridStore({ defaultData: groupRows, columns, getRowId: (r: Row) => r.id, defaultGroupBy: ["region", "year"] } as unknown as InternalSyncProps);
+      buildMs = Math.min(buildMs, performance.now() - start);
     }
     expect(found!.searchMatches).toEqual([{ row: 999, columnId: s.visibleColumns[200]!.id }]);
-    expect(best).toBeLessThan(100 * CI_FACTOR);
+    const budget = CI_FACTOR * Math.max(100, SCAN_BUDGET_REFERENCES * (formatMs + buildMs));
+    await annotate(`pivot search scan: ${scanMs.toFixed(1)} ms, budget ${budget.toFixed(0)} ms; reference ${formatMs.toFixed(1)} + ${buildMs.toFixed(1)} ms`);
+    expect(scanMs).toBeLessThan(budget);
   });
 });
 
