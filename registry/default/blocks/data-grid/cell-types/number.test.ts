@@ -35,9 +35,12 @@ describe("number display formatting", () => {
     expect(toDisplayText("-0.001" as never, { format: { style: "decimal" }, decimals: 2 })).toBe("0.00");
     expect(numberCellType.toText("12345678901234567.885" as never, { decimals: 2 })).toBe("12345678901234567.89");
     expect(numberCellType.toText("12345678901234567.80" as never)).toBe("12345678901234567.80");
+    expect(numberCellType.toText("12.50" as never, { decimals: 2 })).toBe("12.50");
   });
 
-  it("shows a string that is not a decimal as its text", () => {
+  it("shows a string that is not a decimal, or is over 1,024 characters, as its text", () => {
+    const long = "1".repeat(100_000);
+    expect(toDisplayText(long as never, { format: { style: "decimal" }, decimals: 2 })).toBe(long);
     expect(toDisplayText("1e5" as never, { format: { style: "decimal" } })).toBe("1e5");
     expect(numberCellType.toText("abc" as never, { decimals: 2 })).toBe("abc");
   });

@@ -91,7 +91,7 @@ const answer = {
 - `key` is the stored value. `null` is the empty group. The server merges `null` and `""` into one group, and puts it last.
 - `childCount` counts the groups of the next level, or the rows of the last level.
 - `totalRowCount` counts the rows of the result under the group.
-- `aggregates` holds one value for each requested column id. The value is a finite number, a decimal string such as `"123456789012345.67"`, or `null` when no value counted. For `min` and `max`, it can also be the text or date string of the column. A string holds at most 1,024 characters. The group row shows a decimal string with every digit, in the number format of the column.
+- `aggregates` holds one value for each requested column id. The value is a finite number, a decimal string such as `"123456789012345.67"`, or `null` when no value counted. For `min` and `max`, it can also be the text or date string of the column. A string holds at most 1,024 characters. The group row formats a decimal string from its exact digits, in the number format of the column.
 - `label` is optional display text. The default is the text of the column's cell type.
 
 Answer `childKind: "rows"` with `{ rows, totalRowCount }` for the rows of that group, as for a flat request. Sort and filter the groups and the rows with the same spec. A sort on a group column orders the groups. A filter applies before grouping.

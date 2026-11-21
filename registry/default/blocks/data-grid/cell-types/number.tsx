@@ -108,10 +108,14 @@ const formatsDecimalText = (() => {
   }
 })();
 
-const isDecimalText = (value: unknown): value is Intl.StringNumericLiteral => formatsDecimalText && typeof value === "string" && DECIMAL_TEXT.test(value);
+const MAX_DECIMAL_TEXT = 1024;
 
-/** Rounds a decimal string like {@link roundToDecimals}: half up, no `-0`, no padded zeros. */
+const isDecimalText = (value: unknown): value is Intl.StringNumericLiteral => formatsDecimalText && typeof value === "string" && value.length <= MAX_DECIMAL_TEXT && DECIMAL_TEXT.test(value);
+
+/** Rounds a decimal string like {@link roundToDecimals}: half up, no `-0`. A string within `decimals` stays as it is. */
 function roundDecimalText(text: Intl.StringNumericLiteral, decimals: number): string {
+  const dot = text.indexOf(".");
+  if (dot === -1 || text.length - dot - 1 <= decimals) return text;
   const formatter = cachedNumberFormatter(`exact|${decimals}`, () => new Intl.NumberFormat("en-US", { useGrouping: false, maximumFractionDigits: decimals, roundingMode: "halfCeil", signDisplay: "negative" }));
   return formatter ? formatter.format(text) : text;
 }

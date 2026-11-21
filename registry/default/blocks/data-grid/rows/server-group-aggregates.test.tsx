@@ -26,15 +26,15 @@ const cellText = (columnId: string): string | null => document.querySelector(`[r
 describe("server group row aggregates", () => {
   it("shows an exact decimal sum in the number format and text and date strings for min and max", async () => {
     render(
-      <DataGridProvider columns={columns} data={[placeholder]} getRowId={(_r: Row, i: number) => `slot-${i}`} groupBy={["region"]} groupLayout={layout({ amount: "123456789012345.67", name: "alpha", at: "2024-03-10" })}>
+      <DataGridProvider columns={columns} data={[placeholder]} getRowId={(_r: Row, i: number) => `slot-${i}`} groupBy={["region"]} groupLayout={layout({ amount: "123456789012345.675", name: "alpha", at: "2024-03-10" })}>
         <DataGridRoot aria-label="Sales">
           <DataGridBody />
         </DataGridRoot>
       </DataGridProvider>,
     );
     await screen.findByText("alpha");
-    expect(cellText("amount")).toBe("123,456,789,012,345.67");
-    expect(cellText("at")).not.toBe("");
+    expect(cellText("amount")).toBe("123,456,789,012,345.68");
+    expect(cellText("at")).toBe("2024-03-10");
   });
 
   it("keeps a number sum in the number format", async () => {
