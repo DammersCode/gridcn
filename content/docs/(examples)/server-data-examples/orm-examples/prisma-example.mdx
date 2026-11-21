@@ -50,8 +50,8 @@ The client is the one in the [Drizzle example](/docs/server-data-examples/orm-ex
 
 The adapter refuses, before any call, a request that the object API has no exact form for. It answers `unsupported` and never returns wrong rows:
 
-- A pivot on PostgreSQL whose pivot column is a native enum or uuid. Prisma orders such a column by its type, and the other adapters order it as text.
-- A pivot on SQLite with `sum`, `min`, or `max` of a decimal column. Prisma's SQLite driver reads an aggregate in the type of its first row, so it would cut `12.5` to `12`.
+- A pivot on PostgreSQL whose pivot column is a native enum. Prisma orders an enum in its declared order, and the other adapters order it as text.
+- A pivot on SQLite with `sum`, `min`, or `max` of a decimal column. Prisma's SQLite driver reads an aggregate in the type of its first row and cuts `12.5` to `12`.
 - On SQLite: case-insensitive `equals` and set filters, case-sensitive LIKE filters, and excluded ids on a uuid key. A `%` or `_` in a LIKE filter answers `unsupported-value`.
 - On PostgreSQL: a cursor sort on a `time` column, and grouping by a `time` column.
 - LIKE filters on a native enum or uuid column.

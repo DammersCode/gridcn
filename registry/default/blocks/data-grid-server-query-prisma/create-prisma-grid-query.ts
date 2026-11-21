@@ -125,8 +125,8 @@ function aggregateValues(found: unknown, columns: AggregatesPlan["columns"]): Ro
  * - Group child counts and group counts read one extra `groupBy` of at most `maxGroupRows` rows.
  * - A pivot (`spec.pivot`) reads its keys in one `groupBy` and its cells in up to four calls, so the database reduces
  *   every cell. A pivot column with more than `maxGroupRows` keys, or a page whose groups times its kept keys exceed
- *   40,000, is `limit-exceeded`. On PostgreSQL a native enum or uuid pivot column is `unsupported`: Prisma orders it by its
- *   type, the SQL renderers as text. On SQLite a pivot `sum`, `min`, or `max` of a decimal column is `unsupported`.
+ *   40,000, is `limit-exceeded`. On PostgreSQL a native enum pivot column is `unsupported`: Prisma orders it by declaration,
+ *   the SQL renderers as text. On SQLite a pivot `sum`, `min`, or `max` of a decimal column is `unsupported`.
  *
  * @example
  * import { Prisma, PrismaClient, type User } from "@/generated/prisma/client";
@@ -359,7 +359,7 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
       selectPivotKeys: async (plan, { limit }) => {
         assertAggregates(plan.aggregates);
         const { level } = plan;
-        if (pg && level.native !== undefined) throw unsupported(level);
+        if (pg && level.native === "enum") throw unsupported(level);
         // Prisma's SQLite adapter types an aggregate column by its first row, so a sum of 12.5 after a sum of 0 reads 12.
         const typedByFirstRow = pg ? undefined : plan.aggregates.find(({ column, reducer }) => column.numeric === "decimal" && reducer !== "avg" && reducer !== "count");
         if (typedByFirstRow) throw unsupported(typedByFirstRow.column);

@@ -263,24 +263,20 @@ describe.each(opened.map((setup) => [setup.engine, setup] as const))("Prisma on 
     expect(blankChildren.groups).toEqual((await groupsOf(kysely(), { groupBy: ["mood", "label"] }, { start: 0, end: 10 }, [{ columnId: "mood", key: "calm" }])).groups);
   });
 
-  it("pivots like Kysely over day, decimal, int8, and blank text keys, and declines a PostgreSQL native pivot column before any statement", async () => {
+  it("pivots like Kysely over day, decimal, int8, uuid, and blank text keys, and declines a PostgreSQL enum pivot column before any statement", async () => {
     const pivotBody = (groupBy: string, pivot: string) => ({ spec: { groupBy: [groupBy], aggregates: [{ columnId: "big", reducer: "sum" }], pivot: { columnIds: [pivot] } }, groupPath: [], childKind: "groups", start: 0, end: 100 });
     // better-sqlite3 reads an int8 past 2^53 as a rounded number for Kysely; Prisma reads it exactly.
     const int8 = (await prisma().fetchRows(pivotBody("label", "big"))) as GroupsAnswer;
     expect(int8.pivotColumns!.map((column) => column.path[0])).toEqual(expect.arrayContaining(["9007199254740993", "9007199254740992", "-9007199254740993"]));
-    const pairs = [["label", "day"], ["day", "label"], ["label", "amount"], ...(engine === "pg" ? [["label", "big"], ["big", "label"]] : [])] as const;
+    const pairs = [["label", "day"], ["day", "label"], ["label", "amount"], ["label", "ref"], ...(engine === "pg" ? [["label", "big"], ["big", "label"]] : [["label", "mood"]])] as const;
     for (const [groupBy, pivot] of pairs) {
       const want = (await kysely().fetchRows(pivotBody(groupBy, pivot))) as GroupsAnswer;
       expect(want.pivotColumns?.length).toBeGreaterThan(1);
       expect(await prisma().fetchRows(pivotBody(groupBy, pivot)), `${groupBy} by ${pivot}`).toEqual(want);
     }
-    for (const pivot of ["mood", "ref"]) {
-      if (engine === "sqlite") {
-        expect(await prisma().fetchRows(pivotBody("label", pivot))).toEqual(await kysely().fetchRows(pivotBody("label", pivot)));
-        continue;
-      }
+    if (engine === "pg") {
       const before = setup.db.statements.length;
-      await expect(prisma().fetchRows(pivotBody("label", pivot))).rejects.toMatchObject({ code: "unsupported", path: [pivot] });
+      await expect(prisma().fetchRows(pivotBody("label", "mood"))).rejects.toMatchObject({ code: "unsupported", path: ["mood"] });
       expect(setup.db.statements.length).toBe(before);
     }
   });

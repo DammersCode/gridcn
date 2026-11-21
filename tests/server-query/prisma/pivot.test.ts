@@ -72,14 +72,8 @@ const body = ({ groupBy, pivot, path = [], sorts = [], filters = [], aggregates 
   end,
 });
 const pivotOf = async (query: Query, ask: Ask, context?: { tenantId: number }) => (await query.fetchRows(body(ask), context ? { context } : undefined)) as GroupsAnswer;
-// The engines add floats in their own order, and a SQLite decimal sum reads back as 16 digits through Prisma's `Decimal`.
-const rounded = (answer: GroupsAnswer): unknown =>
-  JSON.parse(
-    JSON.stringify(answer, (_key, value: unknown) => {
-      const n = typeof value === "string" && /^-?\d+\.\d+$/.test(value) ? Number(value) : value;
-      return typeof n === "number" && !Number.isInteger(n) ? Number(n.toPrecision(12)) : n;
-    }),
-  );
+// The engines add floats in their own order, so a float may differ in the last bits.
+const rounded = (answer: GroupsAnswer): unknown => JSON.parse(JSON.stringify(answer, (_key, value: unknown) => (typeof value === "number" && !Number.isInteger(value) ? Number(value.toPrecision(12)) : value)));
 
 /** The Prisma answer equals the Kysely answer on the same engine: key order, the empty key, the cut, and every cell. */
 async function expectLayerAnswer(engine: Engine, ask: Ask, options: { limits?: QueryLimits; rowScope?: boolean; context?: { tenantId: number } } = {}): Promise<GroupsAnswer> {
@@ -89,19 +83,21 @@ async function expectLayerAnswer(engine: Engine, ask: Ask, options: { limits?: Q
   return got;
 }
 
-/** The cells match the grid's own buckets; the client cuts no keys, so a cut answer only meets the layer check. */
+/** The cells match the grid's own buckets. The client cuts no keys, so the answer must hold every key. */
 function expectClientCells(answer: GroupsAnswer, ask: Ask): void {
-  if (answer.pivotOmitted! > 0) return;
-  const truth = oraclePivot({ filters: ask.filters ?? [], groupBy: ask.groupBy, path: ask.path, pivot: ask.pivot, aggregates: ORACLE_VALUES, directions: new Map((ask.sorts ?? []).map((sort) => [sort.columnId, sort.direction] as const)) });
+  expect(answer.pivotOmitted).toBe(0);
+  // `ask.aggregates` is a prefix of `VALUES`, whose first entries the client reduces too.
+  const oracleValues = ORACLE_VALUES.slice(0, (ask.aggregates ?? VALUES).length);
+  const truth = oraclePivot({ filters: ask.filters ?? [], groupBy: ask.groupBy, path: ask.path, pivot: ask.pivot, aggregates: oracleValues, directions: new Map((ask.sorts ?? []).map((sort) => [sort.columnId, sort.direction] as const)) });
   const valueCount = (ask.aggregates ?? VALUES).length;
   const keys = (answer.pivotColumns ?? []).filter((column) => column.valueIndex === 0).map((column) => groupKeyText(column.path[0] as never));
   expect([...keys].sort()).toEqual(truth.keys.map((key) => groupKeyText(key)).sort());
   for (const group of truth.groups) {
     const got = answer.groups.find((entry) => groupKeyText(entry.key) === groupKeyText(group.key))!;
     truth.keys.forEach((key, keyIndex) =>
-      ORACLE_VALUES.forEach((_, valueIndex) => {
+      oracleValues.forEach((_, valueIndex) => {
         const cell = got.pivotCells![keys.indexOf(groupKeyText(key)) * valueCount + valueIndex];
-        const want = group.cells[keyIndex * ORACLE_VALUES.length + valueIndex];
+        const want = group.cells[keyIndex * oracleValues.length + valueIndex];
         if (typeof want === "number") expect(cell).toBeCloseTo(want, 9);
         else expect(cell).toBeNull();
       }),
@@ -117,13 +113,24 @@ describe.each(["sqlite", "pg"] as const)("prisma pivot: %s", (engine) => {
     ["a checkbox pivot column", { groupBy: ["tag"], pivot: "active" }],
     ["a number pivot column", { groupBy: ["tag"], pivot: "qty" }],
     ["a text group column", { groupBy: ["name"], pivot: "active" }],
-    ["a text pivot column", { groupBy: ["active"], pivot: "name" }],
-    ["a decimal pivot column", { groupBy: ["tag"], pivot: "price" }],
+    ["a text pivot column", { groupBy: ["active"], pivot: "name", aggregates: VALUES.slice(0, 2) }],
     ["a filtered result", { groupBy: ["tag"], pivot: "active", filters: [{ columnId: "qty", operator: "gt", value: "0" }] }],
   ] as [string, Ask][])("matches the layer and the client over %s", async (_name, ask) => {
     const answer = await expectLayerAnswer(engine, ask);
     expectClientCells(answer, ask);
     expect(answer.groups.some((group) => group.pivotCells!.some((cell) => cell !== null && cell !== 0))).toBe(true);
+  });
+
+  it("keys a decimal pivot column in the form of its own group keys", async () => {
+    const ask: Ask = { groupBy: ["tag"], pivot: "price" };
+    const got = await pivotOf(setup().prisma(), ask);
+    const want = await pivotOf(setup().kysely(), ask);
+    const ownGroupKeys = ((await setup().prisma().fetchRows({ spec: { groupBy: ["price"] }, groupPath: [], childKind: "groups", start: 0, end: 1000 })) as GroupsAnswer).groups.map((group) => group.key);
+    expect(got.pivotColumns!.filter((column) => column.valueIndex === 0).map((column) => column.path[0])).toEqual(ownGroupKeys);
+    // On SQLite the driver hands Kysely a float, while Prisma's `Decimal` keeps the `scale` digits as text, as its group keys do.
+    const keyForm = (key: unknown) => (engine === "sqlite" && typeof key === "number" ? key.toFixed(2) : key);
+    expect(rounded(got)).toEqual(rounded({ ...want, pivotColumns: want.pivotColumns!.map((column) => ({ ...column, path: column.path.map(keyForm) })) } as GroupsAnswer));
+    expectClientCells(got, ask);
   });
 
   it("orders the keys in both directions with the empty key last, and cuts past maxPivotColumns with the omitted count", async () => {
