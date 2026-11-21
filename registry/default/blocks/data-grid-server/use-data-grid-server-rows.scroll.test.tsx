@@ -410,7 +410,7 @@ describe("useDataGridServerRows scroll mode: aborts and races", () => {
 });
 
 describe("useDataGridServerRows scroll mode: spec and refresh", () => {
-  it("sends the spec and resets to block 0 when its content changes, keeping the skeleton count", async () => {
+  it("sends the spec and resets to block 0 when its content changes, keeping the old rows until the answer lands", async () => {
     const fetchRows = countedServer();
     const { result, rerender } = renderHook(({ spec }: { spec: ServerSpec }) => useDataGridServerRows<Row>(optionsOf(fetchRows, { spec })), { initialProps: { spec: { sorts: [], filters: [], searchText: "a" } } });
     await settled(result);
@@ -419,7 +419,8 @@ describe("useDataGridServerRows scroll mode: spec and refresh", () => {
     expect(fetchRows).toHaveBeenCalledTimes(1);
     rerender({ spec: { sorts: [], filters: [], searchText: "b" } });
     expect(result.current.gridProps.data.length).toBe(1000);
-    expect(result.current.gridProps.data[0]).toBeUndefined();
+    expect(result.current.gridProps.data[0]).toEqual(person(0));
+    expect(result.current.loading).toBe(true);
     await waitFor(() => expect(fetchRows.mock.calls.at(-1)![0].spec.searchText).toBe("b"));
     await settled(result);
     expect(result.current.gridProps.data[0]).toEqual(person(0));

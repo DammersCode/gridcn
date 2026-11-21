@@ -169,7 +169,8 @@ describe("a pivot scroll source", () => {
     rerender({ spec: { ...base, ...change } });
     await waitFor(() => expect(pending).toHaveLength(1));
     await act(settle);
-    expect(result.current.gridProps.groupLayout!.rows).toEqual([]);
+    expect(result.current.gridProps.groupLayout!.rows).toHaveLength(3);
+    expect(result.current.loading).toBe(true);
     expect(shown.every((pivot) => pivot === held)).toBe(true);
     act(() => pending[0]!());
     await waitFor(() => expect(result.current.gridProps.groupLayout!.pivot!.columnId).toBe(columnId));

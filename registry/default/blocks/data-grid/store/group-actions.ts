@@ -68,6 +68,11 @@ export function createGroupActions({ set, get, dataWrite, followView, memory }: 
     const s = get();
     const groupBy = normalizeGroupBy(requested, s.columns);
     if (sameGroupBy(groupBy, s.groupBy)) return;
+    // A server layout matches only the group columns it was built for, so the grid keeps them until the prop brings the new layout.
+    if (s.groupMode === "server" && s.groupByControlled) {
+      emitAfterWrites(dataWrite, () => s.onGroupByChange?.(groupBy));
+      return;
+    }
     set((s2) => regroup(s2, groupBy));
     memory.lastSyncInputs = { ...memory.lastSyncInputs, groupBy };
     if (s.groupByControlled) rememberEmitted(memory.group.groupByEcho, groupBy);

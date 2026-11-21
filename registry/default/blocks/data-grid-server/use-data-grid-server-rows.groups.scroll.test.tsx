@@ -204,7 +204,8 @@ describe("grouped scroll source", () => {
     server.fetchRows.mockImplementationOnce((request) => ((held = request), new Promise<Answer>((resolve) => (late = resolve))));
     act(() => result.current.gridProps.onSearchTextChange("x"));
     await waitFor(() => expect(held?.spec.searchText).toBe("x"));
-    expect(result.current.gridProps.data).toHaveLength(0);
+    expect(result.current.gridProps.groupLayout?.rows.map((slot) => slot.path[0]!.key)).toEqual(["A", "B", "C"]);
+    expect(result.current.loading).toBe(true);
     act(() => result.current.gridProps.onSearchTextChange("y"));
     await waitFor(() => expect(result.current.gridProps.groupLayout?.rows).toHaveLength(3));
     expect(held!.signal.aborted).toBe(true);

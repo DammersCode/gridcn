@@ -121,7 +121,7 @@ describe("selecting rows of a grouped server source", () => {
     expect(t.selected()).toMatchObject({ mode: "allMatching", count: 10 });
   });
 
-  it("swaps between grouped and ungrouped rows with an edit session open", async () => {
+  it("swaps between grouped and ungrouped rows with an edit session open, which follows its row", async () => {
     const t = setup();
     await t.ready();
     await t.open("A");
@@ -131,12 +131,10 @@ describe("selecting rows of a grouped server source", () => {
     act(() => t.hook().providerProps.onGroupByChange!([]));
     await waitFor(() => expect(t.hook().providerProps.data).toHaveLength(10));
     expect(t.hook().providerProps.groupLayout).toBeUndefined();
-    expect(t.state().editing).toBeNull();
-    expect(t.onEditEnd).toHaveBeenCalledTimes(1);
-    expect(t.onEditEnd).toHaveBeenCalledWith(expect.objectContaining({ rowId: "A0", result: "cancel" }));
+    expect(t.state().editing).toMatchObject({ rowId: "A0", coord: { row: 0 } });
+    expect(t.onEditEnd).not.toHaveBeenCalled();
     act(() => t.hook().providerProps.onGroupByChange!(["region"]));
     await waitFor(() => expect(t.hook().providerProps.groupLayout?.rows).toHaveLength(2));
-    expect(t.state().editing).toBeNull();
   });
 });
 

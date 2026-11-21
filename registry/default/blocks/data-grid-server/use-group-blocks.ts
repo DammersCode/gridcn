@@ -51,10 +51,12 @@ function createEngine<TData>() {
     cancelFrame: null as (() => void) | null,
     pumpTimer: null as ReturnType<typeof setTimeout> | null,
     warned: new Set<string>(),
+    holding: false,
   };
 }
 type Engine<TData> = ReturnType<typeof createEngine<TData>>;
-type ViewState<TData> = GroupView<TData> & { loading: boolean; groupCount: number | null; pivotHold?: PivotHold };
+/** `laidFor` is the `groupBy` of the layout, so a held view keeps the group columns it shows. */
+type ViewState<TData> = GroupView<TData> & { loading: boolean; groupCount: number | null; pivotHold?: PivotHold; laidFor?: readonly string[] };
 
 const emptyView = <TData,>(): ViewState<TData> => ({ data: [], slots: [], owners: [], offsets: [], leafCount: 0, holes: 0, loading: false, groupCount: null });
 
@@ -152,8 +154,17 @@ export function useGroupBlocks<TData, TCursor = never>(
 
   const syncError = () => setError(getEngine().failed.size > 0 ? [...getEngine().failed.values()].at(-1)!.error : null);
 
+  const hold = (loading: boolean) => setView((prev) => (prev.loading === loading ? prev : { ...prev, loading }));
+
+  /** Whether a block under the rendered rows still waits for its answer; a failed block counts as answered. */
+  const unsettled = (store: GroupStore<TData>) => {
+    const engine = getEngine();
+    return [...wantedBlocks(store)].some(([key, entry]) => engine.flight.has(key) || (!entry.list.blocks.has(entry.block) && !engine.failed.has(key)));
+  };
+
   const publish = () => {
     const store = getEngine().store;
+    if (!store && getEngine().holding) return hold(true);
     if (!store) {
       getEngine().view = null;
       const { active: on, pivot: columnId } = live.current;
@@ -167,9 +178,16 @@ export function useGroupBlocks<TData, TCursor = never>(
     const states = new Map<string, "loading" | "failed">();
     for (const { listId } of getEngine().failed.values()) states.set(listId, "failed");
     for (const { list } of getEngine().flight.values()) if (!states.has(list.id)) states.set(list.id, "loading");
-    const next = { ...layoutView(store, expandedTest(live.current.expanded), (id) => states.get(id), pageWindowOf(livePages(store)), { onCapped: () => warn("view-cap", `the open groups hold more than ${MAX_ROW_COUNT} view rows; the view stops at ${MAX_ROW_COUNT}. Collapse a group or add a filter`) }), loading: getEngine().flight.size > 0, groupCount: store.lists.get("")?.count ?? null, ...pivotOf(store) } satisfies ViewState<TData>;
-    getEngine().view = next;
-    setView(next);
+    const next = { ...layoutView(store, expandedTest(live.current.expanded), (id) => states.get(id), pageWindowOf(livePages(store)), { onCapped: () => warn("view-cap", `the open groups hold more than ${MAX_ROW_COUNT} view rows; the view stops at ${MAX_ROW_COUNT}. Collapse a group or add a filter`) }), loading: getEngine().flight.size > 0, groupCount: store.lists.get("")?.count ?? null, ...pivotOf(store), laidFor: store.groupBy } satisfies ViewState<TData>;
+    const engine = getEngine();
+    engine.view = next;
+    // The old view stays until the rows under the window answer; a failed top block keeps it next to the error bar.
+    const waiting = engine.holding && unsettled(store);
+    if (waiting || (engine.holding && !store.lists.get("")?.blocks.size)) hold(waiting);
+    else {
+      engine.holding = false;
+      setView(next);
+    }
     const { onLoaded } = live.current.options;
     for (const { list, start, end } of getEngine().landed.splice(0)) {
       const first = firstViewRow(next, list, start);
@@ -489,10 +507,16 @@ export function useGroupBlocks<TData, TCursor = never>(
     [getEngine],
   );
 
+  const shownRows = useRef(view.data.length);
+  useLayoutEffect(() => {
+    shownRows.current = view.data.length;
+  });
+
   // A new request key drops every list and fetches the top level again; `expanded` stays, because group ids come from the keys.
   useLayoutEffect(() => {
     if (seedRef.current && seedRef.current.key !== engineKey) seedRef.current = null;
     apiRef.current.reset();
+    getEngine().holding = shownRows.current > 0;
     if (active) apiRef.current.seedStore();
     apiRef.current.publish();
     if (!active) return;
@@ -521,9 +545,12 @@ export function useGroupBlocks<TData, TCursor = never>(
     if (live.current.pivot === null) apiRef.current.staleGroupBlocks();
   }, [aggregateKey]);
 
-  // A toggle lays the view out again and asks for the rows the open group shows.
+  // A toggle lays the view out again and asks for the rows the open group shows; a new page keeps the old one until it lands.
+  const shownPage = useRef(pages?.page);
   useLayoutEffect(() => {
     if (!getEngine().store) return;
+    if (shownPage.current !== pages?.page && shownRows.current > 0) getEngine().holding = true;
+    shownPage.current = pages?.page;
     apiRef.current.publish();
     apiRef.current.pumpSoon(true);
   }, [expanded, pages?.page, getEngine]);
@@ -583,7 +610,7 @@ export function useGroupBlocks<TData, TCursor = never>(
       checkedRowsLifetime: "across-filters",
       headerClickBehavior: "sort",
       plugins,
-      groupBy,
+      groupBy: view.laidFor ?? groupBy,
       onGroupByChange,
       expanded,
       onExpandedChange: setExpanded,
@@ -613,7 +640,8 @@ export function useGroupBlocks<TData, TCursor = never>(
   const status = error !== null ? "error" : loading ? "loading" : "ready";
   const result: UseDataGridServerRowsScrollResult<TData> = { gridProps, providerProps, rootProps, spec, totalRowCount: view.leafCount, status, loading, error, retry, refresh, reshape, canRevalidate: () => true, unloadedCount: view.holes, getLoadedRanges, evict };
   const groupProps = useMemo(() => ({ groupBy, onGroupByChange, expanded, onExpandedChange: setExpanded }), [groupBy, onGroupByChange, expanded, setExpanded]);
-  return { result, groupProps, pager, pagerPlugins, groupCount: view.groupCount };
+  const answered = !view.loading && view.laidFor !== undefined && view.laidFor.join("\u0000") === groupBy.join("\u0000");
+  return { result, groupProps, pager, pagerPlugins, groupCount: view.groupCount, answered };
 }
 
 function noop() {}

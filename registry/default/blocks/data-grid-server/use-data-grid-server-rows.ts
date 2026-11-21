@@ -662,7 +662,14 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   const rootProps = useMemo<UseDataGridServerRowsRootProps>(() => ({ loading, error, onRetry: retry }), [loading, error, retry]);
   const gridProps = useMemo(() => ({ ...providerProps, ...rootProps }), [providerProps, rootProps]);
 
-  if (grouped) {
+  // Across a hand-off between the flat and the group engine, the engine on screen stays until the other one has answered.
+  // Both report loading meanwhile: the flat key carries `groupBy`, and the group engine holds its view.
+  const [shownGrouped, setShownGrouped] = useState(grouped);
+  const arrived = grouped ? groupPages.answered || groupPages.result.error !== null : !loading || error !== null;
+  useLayoutEffect(() => {
+    if (shownGrouped !== grouped && arrived) setShownGrouped(grouped);
+  }, [shownGrouped, grouped, arrived]);
+  if (shownGrouped !== grouped && !arrived ? shownGrouped : grouped) {
     const { gridProps: groupedGrid, providerProps: groupedProvider, rootProps: groupedRoot, totalRowCount, status: groupedStatus, loading: groupedLoading, error: groupedError, retry: groupedRetry, refresh: groupedRefresh, reshape: groupedReshape } = groupPages.result;
     return { gridProps: groupedGrid, providerProps: groupedProvider, rootProps: groupedRoot, spec, totalRowCount, pager: groupPages.pager, status: groupedStatus, loading: groupedLoading, error: groupedError, retry: groupedRetry, refresh: groupedRefresh, reshape: groupedReshape } as UseDataGridServerRowsResult<TData>;
   }

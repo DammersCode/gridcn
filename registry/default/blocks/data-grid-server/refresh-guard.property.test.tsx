@@ -128,6 +128,8 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
   let filterNow = "";
   const pendingDeletes = new Set<string>();
   let shownLabel = "";
+  // A scroll source shows the rows of the old filter until the first answer of the new one lands; they are no baseline for it.
+  let heldOldFilter = false;
   let editCount = 0;
   let localCount = 0;
   let fetchCalls = 0;
@@ -269,7 +271,8 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
   async function land(request: Request) {
     held.splice(held.indexOf(request), 1);
     if (request.signal.aborted) return;
-    const preRows = data();
+    const preRows = heldOldFilter ? [] : data();
+    heldOldFilter = false;
     const mustKeep = new Set([...request.saving0, ...request.savedSince, ...savingIds()]);
     if (state().editing) mustKeep.add(state().editing!.rowId);
     const gone = new Set([...request.deleted0, ...request.deletedSince, ...pendingDeletes]);
@@ -413,6 +416,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
       backend.setFilter(filter);
       const changed = filter !== filterNow;
       filterNow = filter;
+      if (changed && kind !== "pages") heldOldFilter = true;
       act(() => (kind === "pages" ? pages.gridProps.onSearchTextChange?.(filter) : scroll.gridProps.onSearchTextChange?.(filter)));
       // A repeated id on the server keeps rows mixed: the view is not consistent until it leaves the result.
       if (changed && !(variant.repeatRows && backend.hasRepeat())) {

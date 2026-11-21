@@ -2066,14 +2066,16 @@
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/loading-error.parity.test.tsx"
+            "tests/parity/loading-error.parity.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.flash.browser.test.tsx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
             "content/docs/(server)/scroll-mode/recover-load-errors.mdx",
-            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.browser.test.tsx"
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.browser.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.flash.browser.test.tsx"
           ]
         },
         "C": {

@@ -11,7 +11,7 @@ import { cursorKey, MAX_SEEN_CURSORS, needsNextBlock, skeletonCount, startsSeque
 import { chunkAligned, chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes } from "./range-math";
 import { DEFAULT_MAX_LOADED_ROWS, MAX_SEQUENTIAL_REVALIDATE_BLOCKS, distanceToCentre, dueWanted, keepRange, rangesIntersect, readFetchLimits, trackWanted, type FetchLimits } from "./fetch-hygiene";
 import { readScrollSeed } from "./scroll-seed";
-import { createCore, freshSequence, type Core, type Guard } from "./scroll-core";
+import { abortRequestsExcept, busy, createCore, freshSequence, oldestMark, rangeKey, resetQueues, runPumps, unacknowledgedWithoutSave, type Core, type Guard } from "./scroll-core";
 import { evictedBlocksIn, evictSequenceRows, sequenceLoaded, shiftBlocks } from "./sequence-eviction";
 import { evictRows, forgetUnloaded, stampLanded, stampViewed, unloadRows } from "./scroll-eviction";
 import { useSaveRefresh, type SaveRefreshOptions, type SaveRefreshPolicy } from "./save-refresh";
@@ -108,28 +108,6 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
 import type { UseDataGridServerRowsScrollProviderProps, UseDataGridServerRowsScrollResult } from "./scroll-types";
 export type { UseDataGridServerRowsScrollProviderProps, UseDataGridServerRowsScrollResult } from "./scroll-types";
 
-function oldestMark<TData>(core: Core<TData>): number | null {
-  let oldest: number | null = null;
-  const note = (mark: number) => {
-    if (oldest === null || mark < oldest) oldest = mark;
-  };
-  for (const { guard } of core.inFlight.values()) note(guard.mark);
-  for (const { mark } of core.pending) note(mark);
-  return oldest;
-}
-
-function busy<TData>(core: Core<TData>): boolean {
-  return core.inFlight.size > 0 || core.pending.length > 0 || core.owed.length > 0;
-}
-
-function resetQueues<TData>(core: Core<TData>) {
-  if (core.delayTimer !== null) clearTimeout(core.delayTimer);
-  core.delayTimer = null;
-  core.wanted.clear();
-  core.reloads.clear();
-  core.owed = [];
-}
-
 /** Keeps the entries of rows that are still protected: a queued commit may still read or fill the map. */
 function forgetDisplacedWhenIdle<TData>(core: Core<TData>, stillProtected: ProtectedRows) {
   if (oldestMark(core) !== null) return;
@@ -147,8 +125,6 @@ function commitOnFrame<TData>(core: Core<TData>, commit: () => void, onIdle: () 
     else onIdle();
   });
 }
-
-const rangeKey = (range: RowRange) => `${range.start}:${range.end}`;
 
 function positiveInteger(value: number | undefined, fallback: number, min: number): number {
   return typeof value === "number" && Number.isFinite(value) ? Math.max(min, Math.floor(value)) : fallback;
@@ -171,6 +147,9 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
   const { plugins: guardPlugins, protectedRows, savingRows, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, setSettleListener, setReshapeListener, forgetStructural, evictionProtected, acknowledge, unacknowledgedRows } = useRefreshGuard({ trackUnacknowledged: true });
   const [loading, setLoading] = useState(seed === null);
   const [error, setError] = useState<unknown>(null);
+  const [held, setHeld] = useState<{ rows: (TData | undefined)[]; count: number | null } | null>(null);
+  const shown = useRef({ rows, count });
+  const holding = useRef(false);
   const live = useRef({ options, spec });
   useLayoutEffect(() => {
     live.current = { options, spec };
@@ -344,7 +323,8 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       const at = refresh ? refresh.local : seq.length;
       const idOf = live.current.options.getRowId;
       const serverLength = Math.min(read.rows.length, range.end - range.start);
-      const guarded = refresh ? null : unionIds(unionIds(guard.ids, savedSince(guard.mark)), protectedRows());
+      // While the old rows are held, a row edited or saved on screen has no local copy here, so its answer row lands.
+      const guarded = refresh || holding.current ? null : unionIds(unionIds(guard.ids, savedSince(guard.mark)), protectedRows());
       const incoming: TData[] = [];
       read.rows.slice(0, serverLength).forEach((row, index) => {
         if (row === undefined) return;
@@ -501,6 +481,13 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     [getCore, warn, commitSoon, landSequence, landReload, notifyLoaded, protectedRows, savedSince, forgetStructural, blockSize, limits],
   );
 
+  // shortcut: the first answer of a new spec ends the hold, so a window scrolled past block 0 shows placeholders until its block lands.
+  const releaseHold = useCallback(() => {
+    if (!holding.current) return;
+    holding.current = false;
+    setHeld(null);
+  }, []);
+
   const runFetch = useCallback(
     (range: RowRange, cursor?: unknown) => {
       const core = getCore();
@@ -543,6 +530,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
             if (entry?.controller === controller) entry.landed = true;
             land(range, answer, cursor, guard);
             landed = true;
+            releaseHold();
           })
           .catch(fail)
           .finally(afterSettle);
@@ -551,7 +539,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
         settle();
       }
     },
-    [getCore, land, savingRows, saveMark, release],
+    [getCore, land, savingRows, saveMark, release, releaseHold],
   );
   useLayoutEffect(() => {
     runFetchRef.current = runFetch;
@@ -690,8 +678,16 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
 
   const specKey = serverSpecKey(spec);
   useLayoutEffect(() => {
+    shown.current = held ?? { rows, count };
+  });
+  useLayoutEffect(() => {
     if (!specReady) return;
     const core = getCore();
+    // The rows on screen stay, busy, until the first answer of the new spec lands; an error keeps them next to the error bar.
+    if (holding.current || core.loaded.length > 0 || core.stale.length > 0) {
+      holding.current = true;
+      setHeld(shown.current);
+    }
     const wasSequence = core.kind === "sequence";
     dropBlocks(wasSequence ? 0 : (core.count ?? 0));
     if (wasSequence) {
@@ -708,6 +704,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       seeding.current = true;
       land({ start: 0, end: blockSize() }, answer, undefined, { ids: savingRows(), mark: saveMark() });
       seeding.current = false;
+      releaseHold();
       return () => {
         resetQueues(core);
         abortRequests();
@@ -821,6 +818,8 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     const core = getCore();
     core.reason = reason;
     if (!core.ready || (core.kind !== "sequence" && core.count === null)) {
+      // A first block requested under another block size would land next to this one.
+      abortRequests();
       core.failed.clear();
       setError(null);
       runFetch({ start: 0, end: blockSize() });
@@ -906,10 +905,20 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       const core = getCore();
       commit();
       // `next` is the grid's snapshot and can predate rows a landed block wrote; replaying the operations on the latest rows keeps them.
+      const replay = (prev: (TData | undefined)[]) => (change.ops.length > 0 ? (applyChangeWith(prev as TData[], change, getRowId, { rowOfUpdate: streamUpdateRow(change) }) as (TData | undefined)[]) : (next.slice() as (TData | undefined)[]));
+      const onScreen = holding.current;
       setRows((prev) => {
-        if (isDev() && !core.warned.has("dropped")) warnDroppedEdit(prev, change, live.current.options.getRowId, warn);
-        return change.ops.length > 0 ? (applyChangeWith(prev as TData[], change, getRowId, { rowOfUpdate: streamUpdateRow(change) }) as (TData | undefined)[]) : (next.slice() as (TData | undefined)[]);
+        if (isDev() && !onScreen && !core.warned.has("dropped")) warnDroppedEdit(prev, change, live.current.options.getRowId, warn);
+        return replay(prev);
       });
+      // The grid edits the held rows; the answer of the new spec replaces them.
+      if (onScreen) {
+        setHeld((prev) => {
+          if (prev === null) return prev;
+          const rows = replay(prev.rows);
+          return { rows, count: prev.count === null ? null : prev.count + rows.length - prev.rows.length };
+        });
+      }
       if (core.kind === "sequence") followRowOperations(change);
       trackDeletes(core.deleted, change);
       if (core.kind !== "sequence" && core.ready && change.ops.some((op) => op.type !== "update")) {
@@ -943,7 +952,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
   const plugins = useMountedPlugins(guardPlugins, options.plugins);
   const providerProps = useMemo<UseDataGridServerRowsScrollProviderProps<TData>>(
     () => ({
-      data: rows as TData[],
+      data: (held?.rows ?? rows) as TData[],
       getRowId,
       onDataChange,
       ...(onSave ? { onSave } : {}),
@@ -956,12 +965,12 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       onFilterChange, onFilterJoinChange, filterJoin: spec.filterJoin ?? "and",
       searchText: spec.searchText,
       onSearchTextChange,
-      totalRowCount: count,
+      totalRowCount: held ? held.count : count,
       checkedRowsLifetime: "across-filters",
       headerClickBehavior: "sort",
       plugins,
     }),
-    [rows, count, spec, getRowId, onDataChange, onSave, onRenderedRowsChange, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, plugins],
+    [held, rows, count, spec, getRowId, onDataChange, onSave, onRenderedRowsChange, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, plugins],
   );
   useRegisteredWiring(providerProps, wrapSave);
   const rootProps = useMemo<UseDataGridServerRowsRootProps>(() => ({ loading, error, onRetry: retry }), [loading, error, retry]);
@@ -969,44 +978,10 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
 
   const status = error !== null ? "error" : loading ? "loading" : "ready";
   const unloadedCount = skeletons ?? (count ?? 0) - loadedCount;
-  return { gridProps, providerProps, rootProps, spec, totalRowCount: count, status, loading, error, retry, refresh, reshape, canRevalidate, unloadedCount, getLoadedRanges, evict };
+  return { gridProps, providerProps, rootProps, spec, totalRowCount: providerProps.totalRowCount, status, loading, error, retry, refresh, reshape, canRevalidate, unloadedCount, getLoadedRanges, evict };
 }
 
 function noop() {}
-
-/** Unacknowledged rows that no save is pending for: a landed block replaces them, while a saving row keeps its local value. */
-function unacknowledgedWithoutSave(unacknowledged: ReadonlySet<string> | null, saving: ProtectedRows): ReadonlySet<string> | null {
-  if (unacknowledged === null || saving === null) return unacknowledged;
-  const rest = new Set<string>();
-  for (const id of unacknowledged) if (!saving.has(id)) rest.add(id);
-  return rest.size > 0 ? rest : null;
-}
-
-/** Runs `step` until no call asked for another pass; a call from inside `step` only asks. */
-function runPumps<TData>(core: Core<TData>, step: () => void) {
-  if (core.pumping) {
-    core.pumpAgain = true;
-    return;
-  }
-  core.pumping = true;
-  try {
-    do {
-      core.pumpAgain = false;
-      step();
-    } while (core.pumpAgain);
-  } finally {
-    core.pumping = false;
-  }
-}
-
-function abortRequestsExcept<TData>(core: Core<TData>, keep: RowRange) {
-  const keepKey = rangeKey(keep);
-  for (const [key, { controller }] of core.inFlight) {
-    if (key === keepKey) continue;
-    controller.abort();
-    core.inFlight.delete(key);
-  }
-}
 
 function warnDroppedEdit<TData>(prev: readonly (TData | undefined)[], change: DataChange<TData>, getRowId: (row: TData, index: number) => string, warn: (kind: string, message: string) => void) {
   const missing = new Map<string, string>();

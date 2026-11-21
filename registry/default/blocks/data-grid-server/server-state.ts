@@ -47,6 +47,11 @@ export function useControlled<T>(controlled: T | undefined, initial: () => T, on
   return [controlled ?? inner, set, setInner] as const;
 }
 
+/** The result of the engine on screen while the other engine of a hand-off still loads. */
+export function busyResult<TResult extends { loading: boolean; error: unknown; status: string; rootProps: object; gridProps: object }>(result: TResult): TResult {
+  return { ...result, loading: true, status: result.error !== null ? "error" : "loading", rootProps: { ...result.rootProps, loading: true }, gridProps: { ...result.gridProps, loading: true } };
+}
+
 /** Runs a consumer callback so that a throw cannot break the caller's bookkeeping. */
 export function isolate(label: string, call: () => void) {
   try {

@@ -91,3 +91,61 @@ export type Core<TData> = {
 export function createCore<TData>(): Core<TData> {
   return { count: null, ready: false, loaded: [], kind: "unknown", seq: freshSequence(), inFlight: new Map(), failed: new Map(), pending: [], cancelFrame: null, lastWindow: null, rowsLength: 0, warned: new Set(), displaced: new Map(), absent: new Set(), deleted: new Set(), cancelQueuedRefresh: null, orphans: new Map(), carried: new Set(), empty: [], stale: [], cleared: new Set(), restored: new Set(), wanted: new Map(), reloads: new Map(), delayTimer: null, reason: "load", owed: [], viewed: new Map(), tick: 0, keep: null, evictedBlocks: new Set(), unloaded: false, reportAfterUnload: false, pumping: false, pumpAgain: false };
 }
+
+export const rangeKey = (range: RowRange) => `${range.start}:${range.end}`;
+
+export function oldestMark<TData>(core: Core<TData>): number | null {
+  let oldest: number | null = null;
+  const note = (mark: number) => {
+    if (oldest === null || mark < oldest) oldest = mark;
+  };
+  for (const { guard } of core.inFlight.values()) note(guard.mark);
+  for (const { mark } of core.pending) note(mark);
+  return oldest;
+}
+
+export function busy<TData>(core: Core<TData>): boolean {
+  return core.inFlight.size > 0 || core.pending.length > 0 || core.owed.length > 0;
+}
+
+export function resetQueues<TData>(core: Core<TData>) {
+  if (core.delayTimer !== null) clearTimeout(core.delayTimer);
+  core.delayTimer = null;
+  core.wanted.clear();
+  core.reloads.clear();
+  core.owed = [];
+}
+
+/** Unacknowledged rows that no save is pending for: a landed block replaces them, while a saving row keeps its local value. */
+export function unacknowledgedWithoutSave(unacknowledged: ReadonlySet<string> | null, saving: ProtectedRows): ReadonlySet<string> | null {
+  if (unacknowledged === null || saving === null) return unacknowledged;
+  const rest = new Set<string>();
+  for (const id of unacknowledged) if (!saving.has(id)) rest.add(id);
+  return rest.size > 0 ? rest : null;
+}
+
+/** Runs `step` until no call asked for another pass; a call from inside `step` only asks. */
+export function runPumps<TData>(core: Core<TData>, step: () => void) {
+  if (core.pumping) {
+    core.pumpAgain = true;
+    return;
+  }
+  core.pumping = true;
+  try {
+    do {
+      core.pumpAgain = false;
+      step();
+    } while (core.pumpAgain);
+  } finally {
+    core.pumping = false;
+  }
+}
+
+export function abortRequestsExcept<TData>(core: Core<TData>, keep: RowRange) {
+  const keepKey = rangeKey(keep);
+  for (const [key, { controller }] of core.inFlight) {
+    if (key === keepKey) continue;
+    controller.abort();
+    core.inFlight.delete(key);
+  }
+}
