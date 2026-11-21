@@ -126,11 +126,25 @@ export function parseDate(text: string): string | null {
 }
 
 const INSTANT_GRAMMAR = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,9}))?)?(Z|[-+]\d{2}(?::?\d{2})?)$/i;
+const MAX_INSTANT_TEXT = 40;
 
-/** An ISO instant with an explicit offset as a canonical `toISOString` text, else `null`. */
+const instantMatch = (text: string): RegExpExecArray | null => (text.length > MAX_INSTANT_TEXT ? null : INSTANT_GRAMMAR.exec(text));
+const pastMillisecond = (fraction: string | undefined): boolean => fraction !== undefined && /[1-9]/.test(fraction.slice(3));
+
+/** Whether the ISO instant text holds a nonzero digit past the millisecond, which `parseInstant` refuses. */
+export function isSubMillisecond(text: string): boolean {
+  return pastMillisecond(instantMatch(text)?.[5]);
+}
+
+/** Whether the column stores the instant exactly: an `epoch-s` column holds whole seconds only. */
+export function holdsInstant(column: { storage?: string }, instant: string): boolean {
+  return column.storage !== "epoch-s" || Date.parse(instant) % 1000 === 0;
+}
+
+/** An ISO instant with an explicit offset as a canonical `toISOString` text, else `null`, also for a nonzero digit past the millisecond. */
 export function parseInstant(text: string): string | null {
-  const match = INSTANT_GRAMMAR.exec(text);
-  if (!match || parseDate(match[1]!) === null) return null;
+  const match = instantMatch(text);
+  if (!match || parseDate(match[1]!) === null || pastMillisecond(match[5])) return null;
   const [, day, hour, minute, second = "00", fraction = "0", zone = "Z"] = match;
   if (Number(hour) > 23 || Number(minute) > 59 || Number(second) > 59) return null;
   let offset = "Z";

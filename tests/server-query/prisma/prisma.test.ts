@@ -182,14 +182,18 @@ describe.each(opened.map((setup) => [setup.engine, setup] as const))("Prisma on 
         } while (next && walked.length <= N);
         expect(walked).toEqual(expected);
       }
+      // A stored text past the millisecond has no key that drills back to its rows, so both refuse to group it.
+      if (column === "micro") {
+        for (const query of [prisma(), kysely()]) await expect(groupsOf(query, groups)).rejects.toMatchObject({ code: "unsupported", path: ["spec", "groupBy", "micro"] });
+        continue;
+      }
       const all = await groupsOf(prisma(), groups);
       expect(all).toEqual(await groupsOf(kysely(), groups));
       for (const group of all.groups) {
         const drill = { spec: groups, groupPath: [{ columnId: column, key: group.key }], childKind: "rows", start: 0, end: 100 };
         const rows = (await prisma().fetchRows(drill)) as RowsAnswer<Row, string>;
         expect(sorted(idsOf(rows))).toEqual(sorted(idsOf((await kysely().fetchRows(drill)) as RowsAnswer<Row, string>)));
-        // The core answers a sub-millisecond iso-text key in milliseconds, so a micro group drills to no row on Kysely too.
-        if (column !== "micro") expect(rows.rows).toHaveLength(group.totalRowCount);
+        expect(rows.rows).toHaveLength(group.totalRowCount);
       }
     }
   });

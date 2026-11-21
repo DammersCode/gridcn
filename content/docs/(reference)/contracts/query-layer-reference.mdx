@@ -70,6 +70,8 @@ An empty entry in a list stands for the empty rows. `isAnyOf ["a", ""]` matches 
 
 A value that cannot parse never fails the request. A positive test matches no row. `notEquals` matches every row. A day on a `time` column matches from the local midnight to the next one in `timeZone`.
 
+An instant with a nonzero digit after the millisecond answers `unsupported-value`. On an `epoch-s` column, `gt` and `lte` round a fraction of a second down, and `gte` and `lt` round it up. An exact test with a fraction answers `unsupported-value`.
+
 ## Import rows [#import-rows]
 
 `parseImportRows(input, { columns, limits })` reads the body of an import request, `{ rows: Record<string, unknown>[] }`. It returns `{ rows, rejected }`.
@@ -77,6 +79,7 @@ A value that cannot parse never fails the request. A positive test matches no ro
 - A request over `maxImportRows` rows throws a `QueryError`. So does a row that is not an object, a key that is not a mapped column, or a `serverOnly` key.
 - A value over `maxValueLength`, or a number text over `maxNumberLength`, throws `limit-exceeded`.
 - An int or decimal value that expands past `maxNumberLength` digits, such as `1e9999`, is an `out-of-range` refusal. Trailing zeros do not count, so `1.000e-9` passes.
+- An instant with a nonzero digit after the millisecond is a `too-many-decimals` refusal.
 - A value that does not fit its column kind is a refusal. A missing value in a `required` column is one too. The row stays out of `rows`, and `rejected` names it as `{ rowIndex, columnId, code, message }`. `message` is English. `code` names the reason, such as `"required"` or `"not-a-number"`. `IMPORT_REFUSAL_MESSAGES` lists every code. A route maps the code to its own language.
 - `rows` holds the parsed values. A number stays a number, or becomes canonical text when it came as text. A date is `YYYY-MM-DD`, an instant is ISO text, and a blank value is `null`.
 
@@ -117,7 +120,7 @@ A group nests one group at most. A deeper group fails with `limit-exceeded`. Wit
 
 ## Group answer [#groups-answer]
 
-A request with `groupBy` and `childKind: "groups"` resolves a `GroupsAnswer`: `groups`, `groupCount`, and, at the top level, `totalRowCount`. Each group holds `key`, `childCount`, `totalRowCount`, and `aggregates` keyed by column id. A reducer with no counted value gives `null`. A `number` column answers a number. If the value has more than 15 significant digits and is not a safe integer, it answers a decimal string, so an `int8` or `decimal` sum keeps every digit. `avg` and a `float` column always answer a number. Text and date columns answer `min` and `max` as strings. `fetchRows` has the type `Promise<RowsAnswer | GroupsAnswer>`. A `capabilities.groupBy` of `false` answers `unsupported`. A group page with a text key longer than `maxGroupKeyLength` fails with `limit-exceeded` at `spec.groupBy.<columnId>`. The bound never goes above 1,024, which is what the grid accepts.
+A request with `groupBy` and `childKind: "groups"` resolves a `GroupsAnswer`: `groups`, `groupCount`, and, at the top level, `totalRowCount`. Each group holds `key`, `childCount`, `totalRowCount`, and `aggregates` keyed by column id. A reducer with no counted value gives `null`. A `number` column answers a number. If the value has more than 15 significant digits and is not a safe integer, it answers a decimal string, so an `int8` or `decimal` sum keeps every digit. `avg` and a `float` column always answer a number. SQLite sums a `decimal` column as a float, so its sum keeps only about 15 significant digits. Text and date columns answer `min` and `max` as strings. `fetchRows` has the type `Promise<RowsAnswer | GroupsAnswer>`. A `capabilities.groupBy` of `false` answers `unsupported`. A group page with a text key longer than `maxGroupKeyLength` fails with `limit-exceeded` at `spec.groupBy.<columnId>`. The bound never goes above 1,024, which is what the grid accepts.
 
 A groups request with `spec.pivot` also resolves `pivotColumns`, `pivotOmitted`, and `pivotCells` on each group. A `capabilities.pivot` of `false`, the default of an executor, answers `unsupported`. Drizzle and Kysely set it, Supabase sets it with `rpc`, and Prisma never sets it.
 
@@ -132,6 +135,7 @@ The query layer throws `QueryError` with a `code` and a `path`. The path holds f
 | `unknown-operator` | 400 | The operator is not built in and the column does not declare it. |
 | `operator-not-allowed` | 400 | The operator does not fit the kind of the column, or the column is not filterable or sortable. |
 | `invalid-value` | 400 | A value is over its length, a range does not match the page, or the layer declines an excluded id of a selection. |
+| `unsupported-value` | 400 | The adapter cannot compare the value exactly, such as an instant with a digit after the millisecond. |
 | `limit-exceeded` | 400 | A tree, list, change, or pivot is over a bound, a key is over `maxGroupKeyLength`, or a cursor cannot carry a key. |
 | `offset-too-deep` | 400 | `start` is above `maxOffset`. |
 | `bad-cursor` | 400 | The cursor does not parse, is over `maxCursorBytes`, or comes from another filter or sort. |

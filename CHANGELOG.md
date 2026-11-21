@@ -9,6 +9,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- Fixed the server group keys of a `time` column in `createGridQuery`. Drizzle and Kysely on PostgreSQL group a `native` timestamp by its millisecond, so each group drills to all of its rows. Before, rows a few microseconds apart answered one key several times, and the key drilled to no row. A stored text instant with a digit after the millisecond answers `unsupported`.
+- Fixed `parseQuery`, `parseImportRows`, `validateChange`, and `rowScope` cutting an instant to the millisecond. A filter value or group key with a nonzero digit after the millisecond answers `unsupported-value`, an import or write cell is a `too-many-decimals` refusal, and a `rowScope` value throws. Trailing zeros pass.
+- Fixed a filter with a fraction of a second on an `epoch-s` column failing in the PostgreSQL driver. `gt` and `lte` round the bound down to the whole second, and `gte` and `lt` round it up. An exact test with a fraction answers `unsupported-value`, and a cursor key with one answers `bad-cursor`.
+- Fixed an `int8` sum on SQLite losing the digits past 2^53 in the driver. The layer reads the sum as text, so `9007199254740995` keeps every digit. A `decimal` sum on SQLite stays a float, because SQLite sums it as REAL.
+
 - Fixed the active cell of a group row in a pinned column hiding the selection tint: the group label and a pinned aggregate cell paint the tint while they are active and inside the selected range.
 - Fixed the group aggregates of `createGridQuery` showing empty for `sum`, `min`, and `max` of a decimal column on PostgreSQL. The query layer answered the value as text, and the grid shows only finite numbers. A reducer over a number column now answers a JavaScript number in group and flat aggregates. A value with more than 15 significant digits that is not a safe integer answers a decimal string, so an `int8` or `decimal` sum keeps every digit. `avg`, a `float` column, and pivot cells stay numbers, and a pivot cell keeps at most 15 significant digits.
 - Fixed a server group row showing empty for a string aggregate. The grid keeps a decimal string for each reducer, and a text or date string for `min` and `max`, up to 1,024 characters. The group row shows it. Another string shows empty and warns in development.

@@ -2,6 +2,7 @@ import { type ColumnMap, type PlanColumn, mapOf } from "./column-map";
 import { isDev } from "./is-dev";
 import { QueryError } from "./errors";
 import { type QueryLimits, resolveLimits } from "./limits";
+import { isSubMillisecond } from "./operands";
 import { assertCursorColumns, cursorAfter, cursorBytes, decodeCursor, keyTextAliases, planHash, resumePredicate } from "./cursor";
 import { type Paging, type RowCountMode, parseQuery, pivotKeyTest } from "./parse-query";
 import { parseSelection, selectionBodyBytes } from "./parse-selection";
@@ -321,6 +322,8 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
     const pivot = paged.pivot;
     const groups = found.slice(0, size).map((entry) => {
       const count = countOf(entry.count) ?? 0;
+      // A stored text instant past the millisecond would answer a key that matches none of its rows.
+      if (plan.level.time && typeof entry.key === "string" && isSubMillisecond(entry.key.trim())) throw new QueryError("unsupported", ["spec", "groupBy", plan.level.id]);
       const key = groupKeyValue(entry.key, plan.level);
       if (typeof key === "string" && key.length > groupKeyCap) throw new QueryError("limit-exceeded", ["spec", "groupBy", plan.level.id]);
       const group: GroupsAnswer["groups"][number] = { key, childCount: plan.nextLevel ? (countOf(entry.childCount) ?? 0) : count, totalRowCount: count };

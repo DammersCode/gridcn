@@ -91,7 +91,10 @@ describe("grouped requests", () => {
     expect(key("price", "12.50")).toMatchObject({ test: { k: "eq", value: { kind: "number", v: "12.5" } } });
     expect(key("active", true)).toMatchObject({ test: { k: "eq", value: { kind: "boolean", v: true } } });
     expect(key("born", "2024-01-01")).toMatchObject({ test: { k: "eq", value: { kind: "date", v: "2024-01-01" } } });
-    expect(key("seen", "2024-01-01T10:00:00.000Z")).toMatchObject({ test: { k: "eq", value: { kind: "instant" } } });
+    expect(key("seen", "2024-01-01T10:00:00.000Z")).toMatchObject({
+      test: { k: "range", lo: { kind: "instant", v: "2024-01-01T10:00:00.000Z" }, hi: { kind: "instant", v: "2024-01-01T10:00:00.001Z" }, hiExclusive: true },
+    });
+    expect(() => key("seen", "2024-01-01T10:00:00.000001Z")).toThrow(expect.objectContaining({ code: "unsupported-value" }));
   });
 
   it("matches nothing for a key no stored value can have", () => {
