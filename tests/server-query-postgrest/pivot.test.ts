@@ -13,6 +13,7 @@ const stampColumns = defineColumnMap({
   atMs: { type: "date", time: true, field: "at_ms" },
   atzMs: { type: "date", time: true, field: "atz_ms" },
   secs: { type: "date", time: true, storage: "epoch-s", aggregate: "max" },
+  ms: { type: "date", time: true, storage: "epoch-ms", aggregate: "max" },
 });
 
 type Query = { fetchRows(input: unknown): Promise<unknown> };
@@ -52,9 +53,14 @@ describe.skipIf(!live)("the Supabase adapter's pivot and instants against a live
       }
     });
 
-    it("groups an epoch-s column by the instant of each second, with its max aggregate", async () => {
-      const answer = (await stamps().fetchRows({ spec: { groupBy: ["secs"], aggregates: [{ columnId: "secs", reducer: "max" }] }, start: 0, end: 10, childKind: "groups" })) as { groups: { key: unknown; aggregates: Record<string, unknown> }[] };
-      expect(answer.groups.map((group) => [group.key, group.aggregates["secs"]])).toEqual(["1969-12-31T23:59:59.000Z", "2024-01-01T10:00:00.000Z", "2024-01-01T10:00:01.000Z"].map((key) => [key, key]));
+    it("groups an epoch-s and an epoch-ms column by their instants, with the max aggregate and the rows", async () => {
+      const instants = ["1969-12-31T23:59:59.000Z", "2024-01-01T10:00:00.000Z", "2024-01-01T10:00:01.000Z"];
+      for (const columnId of ["secs", "ms"]) {
+        const answer = (await stamps().fetchRows({ spec: { groupBy: [columnId], aggregates: [{ columnId, reducer: "max" }] }, start: 0, end: 10, childKind: "groups" })) as { groups: { key: unknown; aggregates: Record<string, unknown> }[] };
+        expect(answer.groups.map((group) => [group.key, group.aggregates[columnId]])).toEqual(instants.map((key) => [key, key]));
+        const rows = (await stamps().fetchRows({ spec: { sorts: [{ columnId, direction: "asc" }] }, start: 0, end: 10 })) as { rows: Record<string, unknown>[] };
+        expect(rows.rows.map((row) => row[columnId])).toEqual(instants);
+      }
     });
 
     it("groups millisecond keys of both types and drills each key to its own row", async () => {

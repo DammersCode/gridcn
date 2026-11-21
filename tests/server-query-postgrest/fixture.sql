@@ -97,15 +97,15 @@ revoke execute on function public.fixture_grid(jsonb) from public, anon;
 grant execute on function public.fixture_grid(jsonb) to authenticated;
 
 -- Instants past the millisecond in both PostgreSQL types, millisecond-only controls, and whole epoch seconds.
-create table public.stamps (id int4 primary key, at timestamp, atz timestamptz, at_ms timestamp, atz_ms timestamptz, secs int8);
+create table public.stamps (id int4 primary key, at timestamp, atz timestamptz, at_ms timestamp, atz_ms timestamptz, secs int8, ms int8);
 insert into public.stamps values
-  (1, '2024-01-01 10:00:00.123456', '2024-01-01 10:00:00.123456+00', '2024-01-01 10:00:00.123', '2024-01-01 10:00:00.123+00', 1704103200),
-  (2, '2024-01-01 10:00:00.123', '2024-01-01 10:00:00.123+00', '2024-01-01 10:00:00.124', '2024-01-01 10:00:00.124+00', 1704103201),
-  (3, null, null, null, null, -1);
+  (1, '2024-01-01 10:00:00.123456', '2024-01-01 10:00:00.123456+00', '2024-01-01 10:00:00.123', '2024-01-01 10:00:00.123+00', 1704103200, 1704103200000),
+  (2, '2024-01-01 10:00:00.123', '2024-01-01 10:00:00.123+00', '2024-01-01 10:00:00.124', '2024-01-01 10:00:00.124+00', 1704103201, 1704103201000),
+  (3, null, null, null, null, -1, -1000);
 grant select on public.stamps to authenticated;
 create function public.stamps_grid(plan jsonb)
 returns jsonb
 language sql stable security invoker
-as $$ select gridcn.grid_query('public.stamps'::pg_catalog.regclass, array['id', 'at', 'atz', 'at_ms', 'atz_ms', 'secs']::pg_catalog.text[], plan) $$;
+as $$ select gridcn.grid_query('public.stamps'::pg_catalog.regclass, array['id', 'at', 'atz', 'at_ms', 'atz_ms', 'secs', 'ms']::pg_catalog.text[], plan) $$;
 revoke execute on function public.stamps_grid(jsonb) from public, anon;
 grant execute on function public.stamps_grid(jsonb) to authenticated;

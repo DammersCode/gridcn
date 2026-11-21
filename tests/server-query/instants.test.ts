@@ -5,7 +5,7 @@ import Database from "better-sqlite3";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { drizzle as drizzleSqlite } from "drizzle-orm/better-sqlite3";
-import { integer, pgTable, timestamp } from "drizzle-orm/pg-core";
+import { bigint, integer, pgTable, timestamp } from "drizzle-orm/pg-core";
 import { integer as sqliteInteger, sqliteTable, text as sqliteText } from "drizzle-orm/sqlite-core";
 import { Kysely, PGliteDialect, SqliteDialect } from "kysely";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -40,9 +40,10 @@ const columnsOf = (engine: Engine) =>
     id: { type: "number", numeric: "int4", primaryKey: true },
     at: { type: "date", time: true, storage: engine === "pg" ? "native" : "iso-text" },
     secs: { type: "date", time: true, storage: "epoch-s", aggregate: "max" },
+    ms: { type: "date", time: true, storage: "epoch-ms", aggregate: "max" },
   });
-const pgStamps = pgTable("stamps", { id: integer("id").primaryKey(), at: timestamp("at", { withTimezone: true }), secs: integer("secs") });
-const sqliteStamps = sqliteTable("stamps", { id: sqliteInteger("id").primaryKey(), at: sqliteText("at"), secs: sqliteInteger("secs") });
+const pgStamps = pgTable("stamps", { id: integer("id").primaryKey(), at: timestamp("at", { withTimezone: true }), secs: integer("secs"), ms: bigint("ms", { mode: "number" }) });
+const sqliteStamps = sqliteTable("stamps", { id: sqliteInteger("id").primaryKey(), at: sqliteText("at"), secs: sqliteInteger("secs"), ms: sqliteInteger("ms") });
 
 let pg: PGlite;
 let sqlite: Database.Database;
@@ -56,17 +57,23 @@ const adapters: [string, Engine, () => FetchRows][] = [
 ];
 
 beforeAll(async () => {
-  pg = new PGlite();
-  await pg.exec("create table stamps (id integer primary key, at timestamptz, secs integer)");
-  for (const row of STAMPS) await pg.query("insert into stamps values ($1, $2, $3)", row);
+  // node-postgres answers int8 as text; read it so here too.
+  pg = new PGlite({ parsers: { 20: (value: string) => value } });
+  await pg.exec("create table stamps (id integer primary key, at timestamptz, secs integer, ms bigint)");
+  for (const row of STAMPS) await pg.query("insert into stamps values ($1, $2, $3, $4)", [...row, row[2] === null ? null : row[2] * 1000]);
   await pg.exec("create role anon nologin; create role authenticated nologin;");
   await pg.exec(GRID_SQL);
   await pg.exec(`create function public.stamps_grid(plan jsonb) returns jsonb language sql stable security invoker
-    as $$ select gridcn.grid_query('public.stamps'::pg_catalog.regclass, array['id', 'at', 'secs']::pg_catalog.text[], plan) $$`);
+    as $$ select gridcn.grid_query('public.stamps'::pg_catalog.regclass, array['id', 'at', 'secs', 'ms']::pg_catalog.text[], plan) $$`);
+  await pg.exec(`create domain stamp as timestamptz;
+    create table old_stamps (id integer primary key, at stamp);
+    insert into old_stamps values (1, '1969-12-31 23:59:59.9995+00'), (2, '1969-12-31 23:59:59.9999+00'), (3, '1969-12-31 23:59:59.998+00'), (4, null);
+    create function public.old_stamps_grid(plan jsonb) returns jsonb language sql stable security invoker
+      as $$ select gridcn.grid_query('public.old_stamps'::pg_catalog.regclass, array['id', 'at']::pg_catalog.text[], plan) $$`);
   sqlite = new Database(":memory:");
-  sqlite.exec("create table stamps (id integer primary key, at text, secs integer)");
-  const insert = sqlite.prepare("insert into stamps values (?, ?, ?)");
-  for (const row of STAMPS) insert.run(...row);
+  sqlite.exec("create table stamps (id integer primary key, at text, secs integer, ms integer)");
+  const insert = sqlite.prepare("insert into stamps values (?, ?, ?, ? * 1000)");
+  for (const row of STAMPS) insert.run(...row, row[2]);
   sqlite.exec("create table zoned (id integer primary key, at text)");
   for (const row of ZONED) sqlite.prepare("insert into zoned values (?, ?)").run(...row);
 }, 60_000);
@@ -83,6 +90,22 @@ const drill = (fetch: FetchRows, columnId: string, key: unknown) =>
 const idsOf = (answer: RowsAnswer<Record<string, unknown>>) => answer.rows.map((row) => Number(row["id"])).sort((a, b) => a - b);
 const rowsWhere = async (fetch: FetchRows, filters: unknown[]) => idsOf((await fetch({ spec: { filters }, start: 0, end: 10 })) as RowsAnswer<Record<string, unknown>>);
 const secondsWhere = (keep: (ms: number) => boolean) => STAMPS.filter(([, , secs]) => secs !== null && keep(secs * 1000)).map(([id]) => id);
+
+const pgOld = pgTable("old_stamps", { id: integer("id").primaryKey(), at: timestamp("at", { withTimezone: true }) });
+const oldColumns = defineColumnMap({ id: { type: "number", numeric: "int4", primaryKey: true }, at: { type: "date", time: true } });
+const oldAdapters: [string, () => FetchRows][] = [
+  ["drizzle", () => createDrizzleGridQuery({ db: drizzle(pg) as never, table: pgOld, columns: oldColumns }).fetchRows as FetchRows],
+  ["kysely", () => createKyselyGridQuery({ db: new Kysely({ dialect: new PGliteDialect({ pglite: pg }) }) as never, table: "old_stamps", dialect: "pg", columns: oldColumns }).fetchRows as FetchRows],
+  ["supabase", () => createSupabaseGridQuery({ client: pgliteSupabase(pg), table: "old_stamps", columns: oldColumns, rpc: "old_stamps_grid", maxUrlLength: 1 }).fetchRows as FetchRows],
+];
+
+describe.each(oldAdapters)("PGlite %s: a domain over a timestamp, before 1970", (_name, make) => {
+  it("groups by the millisecond and drills to the rows of each group", async () => {
+    const answer = await groupsOf(make(), "at");
+    expect(answer.groups.map(({ key, totalRowCount }) => [key, totalRowCount])).toEqual([["1969-12-31T23:59:59.998Z", 1], ["1969-12-31T23:59:59.999Z", 2], [null, 1]]);
+    expect(await Promise.all(answer.groups.map(async (group) => idsOf(await drill(make(), "at", group.key))))).toEqual([[3], [1, 2], [4]]);
+  });
+});
 
 describe.each(adapters.filter(([, engine]) => engine === "pg"))("PGlite %s: microsecond group keys", (_name, _engine, make) => {
   it("groups by the millisecond, the precision of the key, and drills to the rows of each group", async () => {
@@ -140,5 +163,15 @@ describe.each(adapters)("%s on %s: instant precision", (_name, _engine, make) =>
     for (const group of answer.groups) expect(idsOf(await drill(make(), "secs", group.key))).toHaveLength(1);
     const max = (await make()({ spec: { groupBy: ["secs"], aggregates: [{ columnId: "secs", reducer: "max" }] }, groupPath: [], childKind: "groups", start: 0, end: 10 })) as GroupsAnswer;
     expect(max.groups.map((group) => group.aggregates?.["secs"])).toEqual(answer.groups.map((group) => group.key));
+  });
+
+  it("reads an int8 epoch-ms column as instants in rows, group keys, and max", async () => {
+    const want = STAMPS.map(([, , secs]) => (secs === null ? null : new Date(secs * 1000).toISOString()));
+    const rows = (await make()({ spec: { sorts: [{ columnId: "id", direction: "asc" }] }, start: 0, end: 10 })) as RowsAnswer<Record<string, unknown>>;
+    expect(rows.rows.map((row) => row["ms"])).toEqual(want);
+    const answer = (await make()({ spec: { groupBy: ["ms"], aggregates: [{ columnId: "ms", reducer: "max" }] }, groupPath: [], childKind: "groups", start: 0, end: 10 })) as GroupsAnswer;
+    const keys = [...want.filter((key) => key !== null).sort(), null];
+    expect(answer.groups.map((group) => [group.key, group.aggregates?.["ms"]])).toEqual(keys.map((key) => [key, key]));
+    for (const group of answer.groups) expect(idsOf(await drill(make(), "ms", group.key))).toHaveLength(1);
   });
 });
