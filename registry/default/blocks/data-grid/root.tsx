@@ -407,7 +407,16 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
       const header = root.querySelector<HTMLElement>('[role="columnheader"]');
       // Body cells inherit the root's font; with no row mounted yet the root stands in.
       const cellStyle = getComputedStyle(cell ?? root);
+      const toggle = root.querySelector<HTMLElement>("[data-grid-group-toggle]");
+      // A probe resolves `--grid-group-indent` with its 1rem fallback, from a value the scroll root inherits.
+      const indentProbe = root.ownerDocument.createElement("div");
+      indentProbe.style.cssText = "position:absolute;visibility:hidden;width:var(--grid-group-indent, 1rem)";
+      root.append(indentProbe);
+      const groupIndent = indentProbe.getBoundingClientRect().width;
+      indentProbe.remove();
       return {
+        groupIndent,
+        groupToggleWidth: toggle?.parentElement ? toggle.getBoundingClientRect().width + (parseFloat(getComputedStyle(toggle.parentElement).columnGap) || 0) : undefined,
         cellFont: cellStyle.font,
         cellPadding: cell ? parseFloat(cellStyle.paddingLeft) + parseFloat(cellStyle.paddingRight) : undefined,
         headerFont: header ? getComputedStyle(header).font : "",

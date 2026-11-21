@@ -49,9 +49,9 @@ export function groupLabelSpan(columns: readonly Pick<AnyColumnDef, "aggregate">
 
 // srgb mixes composite exactly like the translucent row tint and selection overlay they stand in for.
 const GROUP_TINT = "bg-[color-mix(in_srgb,var(--color-muted)_40%,var(--color-background))] group-data-hovered/row:bg-[color-mix(in_srgb,var(--color-muted)_60%,var(--color-background))]";
-// An unpinned label sits above the selection overlay, so it paints the overlay's tint itself.
-const GROUP_LABEL_SELECTED_TINT =
-  "data-[selected]:bg-[color-mix(in_srgb,var(--color-primary)_10%,color-mix(in_srgb,var(--color-muted)_40%,var(--color-background)))] group-data-hovered/row:data-[selected]:bg-[color-mix(in_srgb,var(--color-primary)_10%,color-mix(in_srgb,var(--color-muted)_60%,var(--color-background)))]";
+// An opaque group cell above the selection overlay paints the overlay's tint itself.
+const GROUP_SELECTED_TINT =
+  "bg-[color-mix(in_srgb,var(--color-primary)_10%,color-mix(in_srgb,var(--color-muted)_40%,var(--color-background)))] group-data-hovered/row:bg-[color-mix(in_srgb,var(--color-primary)_10%,color-mix(in_srgb,var(--color-muted)_60%,var(--color-background)))]";
 
 const aggregateOf = (node: GroupNode, column: AnyColumnDef): unknown => (isPivotColumn(column) ? pivotCellOf(node, column) : node.aggregates[column.id]);
 
@@ -136,7 +136,7 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
     return column ? columnLabelText(column) : (meta?.node.columnId ?? "");
   });
   if (!meta) return null;
-  const { node, expanded } = meta;
+  const { node, expanded, expandable } = meta;
   const markerColOffset = layout.markerWidth > 0 ? 2 : 1;
   const span = Math.min(groupLabelSpan(visibleColumns), visibleColumns.length);
   const labelText = node.label || labels.grouping.empty;
@@ -144,14 +144,15 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
   const labelActive = cellState.activeCol !== null && cellState.activeCol < span;
   const labelRangeSelected = cellState.selectedColRanges.some(([start]) => start < span);
   const labelSelected = labelActive || labelRangeSelected;
-  const labelPinned = visibleColumns[0]?.pin !== undefined;
+  // The label always sits on a pinned layer; a pinned overlay segment covers it unless the label is active.
+  const labelPaintsSelection = labelRangeSelected && (labelActive || visibleColumns[0]?.pin === undefined);
   return (
     <div
       ref={rowRef}
       role="row"
       aria-rowindex={viewRowIndex + 2 + ariaRowIndexOffset}
       aria-level={meta.level}
-      aria-expanded={pivot ? undefined : expanded}
+      aria-expanded={expandable ? expanded : undefined}
       aria-posinset={meta.posInSet}
       aria-setsize={meta.setSize}
       data-grid-row-index={viewRowIndex}
@@ -173,10 +174,9 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
         <span
           data-grid-group-label=""
           style={{ paddingInlineStart: `calc(var(--grid-group-indent, 1rem) * ${node.depth})`, insetInlineStart: "var(--grid-scroll-left, 0px)" }}
-          data-selected={(labelRangeSelected && !labelPinned) || undefined}
-          className={cn("relative flex min-w-0 items-center gap-1", GROUP_TINT, GROUP_LABEL_SELECTED_TINT)}
+          className={cn("relative flex min-w-0 items-center gap-1", GROUP_TINT, labelPaintsSelection && GROUP_SELECTED_TINT)}
         >
-          {!pivot && <DataGridGroupToggle groupId={node.id} label={labelText} expanded={expanded} />}
+          {expandable && <DataGridGroupToggle groupId={node.id} label={labelText} expanded={expanded} />}
           <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
             {renderGroupLabel ? renderGroupLabel(ctx) : labels.grouping.rowLabel(columnHeader, labelText, node.count)}
           </span>
@@ -185,6 +185,7 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
       {renderedColumns.map(({ column, index }) => {
         if (index < span) return null;
         const isActive = cellState.activeCol === index;
+        const inRange = colRangesContain(cellState.selectedColRanges, index);
         const pinned = column.pin !== undefined;
         return (
           <GroupCell
@@ -194,12 +195,12 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
             columnId={column.id}
             startTrack={index + markerColOffset}
             isActive={isActive}
-            isSelected={isActive || colRangesContain(cellState.selectedColRanges, index)}
+            isSelected={isActive || inRange}
             isSearchMatch={pivot && !pinned && (cellState.searchMatchCols?.has(index) ?? false)}
             pin={column.pin}
             className={cn(
               cellTypes[column.type ?? "text"]?.numeric === true && "justify-end tabular-nums",
-              pinned ? GROUP_TINT : pivot && SEARCH_MATCH_PAINT,
+              pinned ? cn(GROUP_TINT, isActive && inRange && GROUP_SELECTED_TINT) : pivot && SEARCH_MATCH_PAINT,
             )}
           >
             <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{column.aggregate === undefined ? null : aggregateText(column, aggregateOf(node, column), cellTypes, locale)}</span>

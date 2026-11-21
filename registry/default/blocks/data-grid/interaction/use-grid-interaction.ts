@@ -28,6 +28,7 @@ import { GRID_ATTR, gridAttrSelector } from "../data-attributes";
 import { isCellEditorEvent, markPortaledPointerDown, wasPortaledPointerDown } from "./portaled-events";
 import { type RowRangeGesture } from "../selection/row-range-gesture";
 import { getInternalActions } from "../store/internal-actions";
+import { groupRowExpandable } from "../store/group-positions";
 import { groupIndexAt } from "../store/view-rows";
 import { isComposingKey } from "./is-composing-key";
 import { createLongPressTimer, isDoubleTap, isTap, movedBeyondSlop, type TapSample } from "./touch-gestures";
@@ -442,8 +443,10 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       }
 
       const commands = state.commands;
-      // A pivot row never opens, so Enter falls to `edit`, which it refuses, and the arrows move.
-      const onGroupRow = state.pivot === null && state.activeCell !== null && groupIndexAt(state.viewIndex, state.activeCell.row) !== undefined;
+      // An innermost pivot row never opens, so Enter falls to `edit`, which it refuses, and the arrows move.
+      const groupIndex = state.activeCell === null ? undefined : groupIndexAt(state.viewIndex, state.activeCell.row);
+      const groupNode = groupIndex === undefined ? undefined : state.groupLayout?.rows[groupIndex];
+      const onGroupRow = groupNode !== undefined && groupRowExpandable(state, groupNode);
       const offered = (a: GridAction) => (onGroupRow || !GROUP_ROW_ACTIONS.has(a)) && commands?.[a]?.scope !== "editing";
       // unbound printable key = implicit typeToReplace trigger (Excel behavior); a consumer keymap that DEFINES typeToReplace (even []) takes it over and disables the fallback
       const action =

@@ -127,6 +127,7 @@ describe("a pivot grid", () => {
     await expectNoPaintMismatch(grid, [
       { name: "default", apply: () => {} },
       { name: "active pivot cell", apply: () => userEvent.click(cellsOf(rows()[0]!)[3]!) },
+      { name: "active pinned label", apply: () => userEvent.click(cellsOf(rows()[0]!)[0]!) },
     ]);
   });
 
