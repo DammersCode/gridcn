@@ -10,6 +10,7 @@ import { clampColumnWidth } from "./resolve-column-width";
 import { dataIndexOf, groupIndexAt, groupLayoutOfView } from "../store/view-rows";
 import type { DataGridGroupingLabels } from "../labels";
 import { isPivotColumn, pivotCellText, type PivotView } from "../store/pivot-view";
+import { groupRowExpandable } from "../store/group-positions";
 
 /** Default view rows sampled by one autosize pass. */
 export const DEFAULT_AUTOSIZE_SAMPLE_ROWS = 1_000;
@@ -23,6 +24,9 @@ const SORTED_HEADER_AFFORDANCE = 30;
 const HEADER_MENU_AFFORDANCE = 18;
 /** Fixed header allowance for the header-filter button, the same size as the header-menu trigger. */
 const HEADER_FILTER_AFFORDANCE = 18;
+// `--grid-group-indent` falls back to 1rem; the toggle is `size-6` plus the label's `gap-1`.
+const DEFAULT_GROUP_INDENT = 16;
+const DEFAULT_GROUP_TOGGLE_WIDTH = 28;
 
 /** The view-shaped subset of store state the engine measures over. */
 export type AutosizeState = {
@@ -47,6 +51,8 @@ export type AutosizeState = {
   locale?: string;
   /** Under pivot, the labels of the group label a pivot row shows in the `groupBy` column. */
   groupingLabels?: Pick<DataGridGroupingLabels, "rowLabel" | "empty">;
+  /** Under pivot, the group columns: a pivot row above the innermost level shows a toggle. */
+  groupBy?: readonly string[];
 };
 
 /** The mounted view-row window `[start, end)` (the rows the user sees), `null` when nothing is mounted. */
@@ -54,10 +60,16 @@ export type AutosizeWindow = { start: number; end: number } | null;
 
 /** Canvas fonts for `measureText`: the body cell font and the header cell font (headers render `font-medium`, so the two differ). */
 export type AutosizeFonts = {
+  /** The computed `font` of one mounted body cell. */
   cellFont: string;
+  /** The computed `font` of one mounted header cell. */
   headerFont: string;
   /** Total horizontal padding (px) of a mounted cell; defaults to 16. */
   cellPadding?: number;
+  /** Indent (px) of one group level, `--grid-group-indent`; defaults to 16. */
+  groupIndent?: number;
+  /** Width (px) of a group toggle and its gap to the label; defaults to 28. */
+  groupToggleWidth?: number;
 };
 
 /**
@@ -108,12 +120,18 @@ export function computeAutosizeWidths(
 
   const sortedColumnIds = new Set(sortState.map((spec) => spec.columnId));
   const textFallback = cellTypes["text"]!;
-  const pivotState = state.pivot ? { viewIndex, groupLayout: groupLayoutOfView(viewIndex), cellTypes, locale: state.locale ?? "en-US", pivot: state.pivot } : null;
+  const pivotState = state.pivot ? { viewIndex, groupLayout: groupLayoutOfView(viewIndex), cellTypes, locale: state.locale ?? "en-US", pivot: state.pivot, groupBy: state.groupBy } : null;
+  // Under pivot the label of a pivot row at any depth sits in the key column, the one visible column that is not generated.
+  const keyColumnId = pivotState ? visibleColumns.find((column) => !isPivotColumn(column))?.id : undefined;
+  const columnById = new Map(columns.map((column) => [column.id, column] as const));
+  const groupIndent = fonts.groupIndent ?? DEFAULT_GROUP_INDENT;
+  const groupToggleWidth = fonts.groupToggleWidth ?? DEFAULT_GROUP_TOGGLE_WIDTH;
   const result: [string, number][] = [];
   for (const column of targets) {
     const cellType = cellTypes[column.type ?? "text"] ?? textFallback;
     const cellTexts = new Set<string>();
-    const labelTexts = new Set<string>();
+    // Label texts keyed by the indent and toggle width in front of them.
+    const labelTexts = new Map<number, Set<string>>();
     for (const row of sampled) {
       const dataRow = dataIndexOf(viewIndex, row);
       const rowValue = dataRow === undefined ? undefined : data[dataRow];
@@ -121,7 +139,12 @@ export function computeAutosizeWidths(
       if (pivotText) cellTexts.add(pivotText.slice(0, MAX_SAMPLE_TEXT_LENGTH));
       const groupIndex = rowValue === undefined && pivotState && state.groupingLabels ? groupIndexAt(viewIndex, row) : undefined;
       const node = groupIndex === undefined ? undefined : pivotState!.groupLayout?.rows[groupIndex];
-      if (node && node.columnId === column.id) labelTexts.add(state.groupingLabels!.rowLabel(columnLabelText(column), node.label || state.groupingLabels!.empty, node.count).slice(0, MAX_SAMPLE_TEXT_LENGTH));
+      if (node && column.id === keyColumnId) {
+        const owner = columnById.get(node.columnId);
+        const lead = node.depth * groupIndent + (groupRowExpandable(pivotState!, node) ? groupToggleWidth : 0);
+        const texts = labelTexts.get(lead) ?? labelTexts.set(lead, new Set()).get(lead)!;
+        texts.add(state.groupingLabels!.rowLabel(owner ? columnLabelText(owner) : node.columnId, node.label || state.groupingLabels!.empty, node.count).slice(0, MAX_SAMPLE_TEXT_LENGTH));
+      }
       if (rowValue === undefined) continue; // lazy hole
       const value = getCellValue<unknown, AnyColumnDef>(rowValue, column);
       const text = displayText(cellType, value, column.options).slice(0, MAX_SAMPLE_TEXT_LENGTH);
@@ -134,7 +157,8 @@ export function computeAutosizeWidths(
       ? measureTextWidths([headerText], fonts.headerFont) + (sortedColumnIds.has(column.id) ? SORTED_HEADER_AFFORDANCE : 0) + (hasHeaderMenu ? HEADER_MENU_AFFORDANCE : 0) + (hasHeaderFilter && offersSetFilter(column, cellType) ? HEADER_FILTER_AFFORDANCE : 0)
       : 0;
     // A group row paints `font-medium`, the weight of the header font.
-    const cellWidth = Math.max(measureTextWidths([...cellTexts], fonts.cellFont), measureTextWidths([...labelTexts], fonts.headerFont));
+    let cellWidth = measureTextWidths([...cellTexts], fonts.cellFont);
+    for (const [lead, texts] of labelTexts) cellWidth = Math.max(cellWidth, lead + measureTextWidths([...texts], fonts.headerFont));
     result.push([column.id, clampColumnWidth(column, Math.max(headerWidth, cellWidth) + (fonts.cellPadding ?? DEFAULT_CELL_INLINE_PADDING) + CELL_PADDING_BUFFER)]);
   }
   return Object.fromEntries(result);

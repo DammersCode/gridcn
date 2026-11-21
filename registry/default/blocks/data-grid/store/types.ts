@@ -1,5 +1,6 @@
 import type { ComponentType, ReactNode, Ref } from "react";
 import type { StoreApi } from "zustand/vanilla";
+import type { AutosizeFonts } from "../columns/autosize-columns";
 import type { ColumnGroupModel } from "../columns/column-groups";
 import type { ColumnOrderResult } from "./column-order";
 import type { SelectionChangeDetails } from "./selection-change";
@@ -53,13 +54,7 @@ export type SelectAllMatchingResult = { ok: true } | { ok: false; reason: "disab
 export type SelectionPointer = "touch" | "mouse" | "pen" | "keyboard";
 
 /** The lazily-read context `DataGridRoot` registers for {@link DataGridActions.autosizeColumns}. */
-export type AutosizeMeasureContext = {
-  /** The computed `font` of one mounted body cell (canvas `measureText` font). */
-  cellFont: string;
-  /** The computed `font` of one mounted header cell (headers render `font-medium`). */
-  headerFont: string;
-  /** Total horizontal padding (px) of one mounted body cell; omitted falls back to 16. */
-  cellPadding?: number;
+export type AutosizeMeasureContext = AutosizeFonts & {
   /** The currently mounted view-row window `[start, end)`, or `null` when no rows are mounted. */
   window: { start: number; end: number } | null;
   /** The consumer renders a per-column header-menu trigger (adds its fixed width allowance). */

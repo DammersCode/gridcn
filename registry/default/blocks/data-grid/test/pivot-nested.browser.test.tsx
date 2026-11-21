@@ -41,9 +41,9 @@ const q = <T extends HTMLElement>(selector: string) => [...document.querySelecto
 const rows = () => q('[role="row"][data-grid-group-row]');
 const cellsOf = (row: Element) => [...row.querySelectorAll<HTMLElement>('[role="gridcell"]:not([data-grid-marker-cell])')];
 
-function NestedPivot({ radius, pinned = true }: { radius?: string; pinned?: boolean }) {
+function NestedPivot({ radius, pinned = true, indent }: { radius?: string; pinned?: boolean; indent?: string }) {
   return (
-    <div style={{ width: 720, ...(radius === undefined ? null : { "--radius": radius }) } as CSSProperties}>
+    <div style={{ width: 720, ...(radius === undefined ? null : { "--radius": radius }), ...(indent === undefined ? null : { "--grid-group-indent": indent }) } as CSSProperties}>
       <DataGrid
         data={layout.rows.map(() => placeholder)}
         columns={pinned ? columns : unpinnedColumns}
@@ -112,6 +112,15 @@ describe("a nested pivot grid", () => {
       { name: "active outer label", apply: () => userEvent.click(cellsOf(rows()[0]!)[0]!) },
       { name: "active innermost label", apply: () => userEvent.click(cellsOf(rows()[1]!)[0]!) },
     ]);
+  });
+
+  it.each([undefined, "3rem"])("autosizes the key column to fit the label, indent, and toggle of every depth (indent %s)", async (indent) => {
+    await render(<NestedPivot indent={indent} />);
+    await vi.waitFor(() => expect(rows()).toHaveLength(slots.length));
+    const header = document.querySelector<HTMLElement>('[role="columnheader"][data-column-id="region"]')!;
+    await userEvent.dblClick(header.querySelector<HTMLElement>(gridAttrSelector("resizeHandle"))!);
+    const labelText = (row: Element) => row.querySelector<HTMLElement>("[data-grid-group-label] > span:last-child")!;
+    await vi.waitFor(() => expect(rows().map((row) => labelText(row).scrollWidth <= labelText(row).clientWidth)).toEqual(rows().map(() => true)));
   });
 
   it.each(["0px", "1rem"])("paints the same with --radius %s", async (radius) => {

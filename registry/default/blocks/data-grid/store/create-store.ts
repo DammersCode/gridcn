@@ -1407,8 +1407,9 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
             pivot: s.pivot,
             locale: s.locale,
             groupingLabels: s.labels.grouping,
+            groupBy: s.groupBy,
           },
-          { cellFont: context.cellFont, headerFont: context.headerFont, cellPadding: context.cellPadding },
+          { cellFont: context.cellFont, headerFont: context.headerFont, cellPadding: context.cellPadding, groupIndent: context.groupIndent, groupToggleWidth: context.groupToggleWidth },
           context.window,
           options,
         );

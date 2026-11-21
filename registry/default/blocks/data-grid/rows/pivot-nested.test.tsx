@@ -75,7 +75,7 @@ function make(extra: Record<string, unknown> = {}) {
   const onDataChange = vi.fn();
   const onExpandedChange = vi.fn();
   const store = createDataGridStore({ ...providerProps(openLayout, { enableRowSelection: true, onDataChange, onExpandedChange, ...extra }), data: openLayout.rows.map(() => undefined) } as unknown as InternalSyncProps);
-  return { state: () => store.getState(), onDataChange, onExpandedChange };
+  return { store, state: () => store.getState(), onDataChange, onExpandedChange };
 }
 
 const pivotRows = () => Array.from(document.querySelectorAll<HTMLElement>("[data-grid-group-row]"));
@@ -197,6 +197,32 @@ describe("the store on nested pivot rows", () => {
     state().actions.extendSelection("right");
     expect(getRangeValues(state(), { x: 1, y: 0, width: 2, height: 3 })).toEqual([[10, 20], [1, 2], [9, null]]);
     expect(state().selection.current?.range).toMatchObject({ x: 1, y: 0, width: 2, height: 3 });
+  });
+});
+
+describe("autosize of the key column on nested pivot rows", () => {
+  beforeAll(() => {
+    HTMLCanvasElement.prototype.getContext = ((contextId: string) =>
+      contextId === "2d" ? { set font(_value: string) {}, measureText: (text: string) => ({ width: text.length * 7 }) } : null) as typeof HTMLCanvasElement.prototype.getContext;
+  });
+
+  const keyWidth = (rows: ServerGroupSlot[], metrics: Record<string, number> = {}) => {
+    const { store, state } = make({ groupLayout: { rows, leafCount: 8, pivot: held } });
+    store.setState({ measureFonts: () => ({ cellFont: "14px sans", headerFont: "14px sans", cellPadding: 16, hasHeaderMenu: false, hasHeaderFilter: false, window: null, ...metrics }) });
+    return state().actions.autosizeColumns({ columnIds: ["region"] })["region"]!;
+  };
+  const LONG = "A very long country name";
+
+  it("measures the label of an innermost row with its header and its indent", () => {
+    const rows = [slot(0, ["EU"], 1, [1, 2]), slot(1, ["EU", LONG], 0, [1, 2]), slot(2, ["US"], 1, [1, 2]), slot(3, ["US", "CA"], 0, [1, 2])];
+    expect(keyWidth(rows)).toBeGreaterThanOrEqual(`Country: ${LONG} (2)`.length * 7 + 16 + 16);
+    expect(keyWidth(rows, { groupIndent: 40 }) - keyWidth(rows)).toBe(24);
+  });
+
+  it("measures the toggle of a row that opens", () => {
+    const rows = [slot(0, [LONG], 1, [1, 2]), slot(1, [LONG, "DE"], 0, [1, 2]), slot(2, ["US"], 1, [1, 2]), slot(3, ["US", "CA"], 0, [1, 2])];
+    expect(keyWidth(rows)).toBeGreaterThanOrEqual(`Region: ${LONG} (2)`.length * 7 + 28 + 16);
+    expect(keyWidth(rows, { groupToggleWidth: 40 }) - keyWidth(rows)).toBe(12);
   });
 });
 
