@@ -71,7 +71,7 @@ describe("client pivot", () => {
   });
 
   it("shows the group counts only when no column has an aggregate", () => {
-    const { ids, state } = make({ columns: columns.map(({ aggregate: _, ...c }) => c) });
+    const { ids, state } = make({ columns: columns.filter((c) => c.id !== "amount") });
     expect(ids()).toEqual(["region"]);
     expect(state().groupLayout?.rows.map((node) => node.count)).toEqual([3, 2]);
   });
@@ -274,7 +274,7 @@ describe("pivot refresh after a write", () => {
     const { state, cells } = make();
     const generated = state().pivot!.columns;
     const prev = state().data[1] as Row;
-    state().actions.commitChange({ source: "undo", ops: [{ type: "update", rowId: "r1", row: { ...prev, amount: 20 }, prev }] });
+    state().actions.commitChange({ source: "history", ops: [{ type: "update", rowId: "r1", row: { ...prev, amount: 20 }, prev }] });
     expect(cells()[0]).toEqual(["__group:region=EU", 1, 20, 5]);
     expect(state().pivot!.columns).toBe(generated);
   });

@@ -330,10 +330,7 @@ export type DataGridSyncProps<TData = unknown> = {
   defaultGroupBy?: readonly string[] | (() => readonly string[] | null | undefined);
   /** Fires after the user (or `setGroupBy`, `toggleGroupBy`) changes the group columns. */
   onGroupByChange?: (next: readonly string[]) => void;
-  /**
-   * Controlled pivot: the group rows of `groupBy` get one generated column per key of the pivot column and per column with a
-   * built-in `aggregate`. Needs `groupBy` and every row on the client. `{ columnIds: [] }` keeps the pivot off under control.
-   */
+  /** Controlled pivot: one generated column per key of the pivot column and per built-in `aggregate`; needs `groupBy`. `{ columnIds: [] }` is off. */
   pivot?: PivotSpec;
   /** Seeds the pivot once at store creation. */
   defaultPivot?: PivotSpec;
@@ -663,9 +660,7 @@ export type DeleteRowsOptions = {
 export type DataGridStoreState = Omit<
   InternalSyncProps,
   | "data"
-  | "groupLayout"
-  | "pivot"
-  | "defaultPivot"
+  | "groupLayout" | "pivot" | "defaultPivot"
   | "defaultData"
   | "cellTypes"
   | "commands"
@@ -1347,18 +1342,7 @@ export type RowActionResult = { ok: true } | { ok: false; reason: RowActionSkipR
 export type { SyncInputs } from "./sync-inputs";
 export { syncInputsEqual } from "./sync-inputs";
 
-/**
- * `warnings` (only on the success/noop arms) carries `validationMode: "warn"` rejections that committed
- * anyway — the store merges them into `cellErrors` AFTER the gesture's auto-clear and `validateRow`
- * verdict, so the freshest per-cell signal wins.
- */
-export type CommitResult =
-  | { data: readonly unknown[]; change: DataChange<unknown>; warnings?: readonly CellErrorEntry[] }
-  | { error: string }
-  | { noop: true; warnings?: readonly CellErrorEntry[] };
-
-/** Per-row accumulator: the row as edited so far, plus its per-column cell deltas (columnId -> entry). */
-export type RowEdit = { row: unknown; cells: Map<string, { columnId: string; value: unknown; prev: unknown }> };
+export type { CommitResult, RowEdit } from "./commit";
 
 /**
  * The `store` branch of {@link DataGridProviderProps}/{@link DataGridProps}: a consumer-created
