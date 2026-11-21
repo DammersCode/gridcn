@@ -1,11 +1,11 @@
 ---
 title: "Row grouping example"
-description: Group 200 rows by role, show a count and two reduced values on each group row, and change the groups with buttons and the header menu.
+description: Group 200 car sales by region, show a count and two reduced values on each group row, and change the groups with buttons and the header menu.
 icon: ListTree
 type: example
 ---
 
-One grid groups its rows by role. Each group row shows the row count, the average age, and the total score. The [row grouping](/docs/rows-pages-menus/row-grouping) feature owns the props.
+One grid groups 200 car sales by region. Each group row shows the row count, the average discount, and the revenue. The [row grouping](/docs/rows-pages-menus/row-grouping) feature owns the props.
 
 <ComponentPreview name="data-grid-row-grouping-demo" />
 
@@ -13,9 +13,9 @@ One grid groups its rows by role. Each group row shows the row count, the averag
 
 ## What the demo shows [#whats-in-the-demo]
 
-- `defaultGroupBy={["role"]}` groups the rows. Every group starts closed.
-- `aggregate: "avg"` on Age and `aggregate: "sum"` on Score set the reduced values of the group rows.
-- `groupable: false` on Name keeps it out of the Group by items.
+- `defaultGroupBy={["region"]}` groups the rows. Every group starts closed.
+- `aggregate: "avg"` on Discount and `aggregate: "sum"` on Price set the reduced values of the group rows.
+- `groupable: false` on Customer keeps it out of the Group by items.
 - The buttons call `expandAll`, `collapseAll`, and `setGroupBy` from `useDataGridActions`.
 - The header menu has Group by and Ungroup items. The cell menu has a menu for each group row.
 
@@ -30,20 +30,20 @@ import {
   useDataGridActions,
 } from "@/components/data-grid/data-grid";
 
-type Row = { id: string; role: string; score: number };
+type Row = { id: string; region: string; price: number };
 
 const columns = defineColumns<Row>()([
-  { id: "role", header: "Role", accessorKey: "role" },
+  { id: "region", header: "Region", accessorKey: "region" },
   {
-    id: "score",
-    header: "Score",
-    accessorKey: "score",
+    id: "price",
+    header: "Price",
+    accessorKey: "price",
     type: "number",
     aggregate: "sum",
   },
 ]);
 
-const rows: Row[] = [{ id: "1", role: "Admin", score: 90 }];
+const rows: Row[] = [{ id: "1", region: "North", price: 32500 }];
 
 function OpenAll() {
   const actions = useDataGridActions();
@@ -52,7 +52,7 @@ function OpenAll() {
 
 function GroupedGrid() {
   return (
-    <DataGrid defaultData={rows} columns={columns} defaultGroupBy={["role"]}>
+    <DataGrid defaultData={rows} columns={columns} defaultGroupBy={["region"]}>
       <OpenAll />
     </DataGrid>
   );

@@ -8,9 +8,11 @@ const groupRows = () => [...document.querySelectorAll<HTMLElement>("[data-grid-g
 const button = (name: string) => [...document.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === name)!;
 
 describe("data-grid-server-grouping-demo", () => {
-  it("shows the groups of the database, loads the rows of an open group, and shows the group statement", async () => {
+  it("shows the regions of the database, loads the rows of an open group, and shows the group statement", async () => {
     await render(<DataGridServerGroupingDemo />);
-    await vi.waitFor(() => expect(groupRows()).toHaveLength(3), { timeout: 20_000 });
+    await vi.waitFor(() => expect(groupRows()).toHaveLength(4), { timeout: 20_000 });
+    const labels = groupRows().map((row) => row.querySelector("[data-grid-group-label]")!.textContent).join(" ");
+    for (const region of ["North", "South", "East", "West"]) expect(labels).toContain(region);
 
     await userEvent.click(groupRows()[0]!.querySelector("button")!);
     await vi.waitFor(() => expect(groupRows()[0]!.getAttribute("aria-expanded")).toBe("true"));

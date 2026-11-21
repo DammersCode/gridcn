@@ -8,9 +8,9 @@ const groupRows = () => [...document.querySelectorAll<HTMLElement>("[data-grid-g
 const button = (name: string) => [...document.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === name)!;
 
 describe("data-grid-row-grouping-demo", () => {
-  it("shows one group row per role, opens a group with Enter, and regroups by two columns", async () => {
+  it("shows one group row per region, opens a group with Enter, and regroups by two columns", async () => {
     await render(<DataGridRowGroupingDemo />);
-    await vi.waitFor(() => expect(groupRows()).toHaveLength(5));
+    await vi.waitFor(() => expect(groupRows()).toHaveLength(4));
     expect(document.querySelector('[role="treegrid"]')).toBeTruthy();
     expect(groupRows().every((row) => row.getAttribute("aria-expanded") === "false")).toBe(true);
 
@@ -23,16 +23,16 @@ describe("data-grid-row-grouping-demo", () => {
     await userEvent.keyboard("{Enter}");
     await vi.waitFor(() => expect(groupRows()[0]!.getAttribute("aria-expanded")).toBe("true"));
 
-    await userEvent.click(button("Group by role, then active"));
+    await userEvent.click(button("Group by region, then dealership"));
     await vi.waitFor(() => expect(groupRows().some((row) => row.getAttribute("aria-level") === "2")).toBe(true));
     await userEvent.click(button("Ungroup"));
     await vi.waitFor(() => expect(groupRows()).toHaveLength(0));
   });
 
-  it("shows the average age with at most two fraction digits", async () => {
+  it("shows the average discount with at most two fraction digits", async () => {
     await render(<DataGridRowGroupingDemo />);
-    await vi.waitFor(() => expect(groupRows()).toHaveLength(5));
-    const ages = groupRows().map((row) => row.querySelector('[data-column-id="age"]')!.textContent!);
-    expect(ages.every((text) => /^\d+(\.\d{1,2})?$/.test(text))).toBe(true);
+    await vi.waitFor(() => expect(groupRows()).toHaveLength(4));
+    const discounts = groupRows().map((row) => row.querySelector('[data-column-id="discount"]')!.textContent!);
+    expect(discounts.every((text) => /^[\d,]+(\.\d{1,2})?$/.test(text))).toBe(true);
   });
 });
