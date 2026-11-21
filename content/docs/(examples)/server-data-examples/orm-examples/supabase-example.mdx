@@ -70,7 +70,7 @@ grant execute on function public.items_grid(jsonb) to authenticated;
 
 Without `rpc`, these requests answer `unsupported`, and a long URL answers `limit-exceeded`.
 
-A pivot takes 1 to 4 `groupBy` levels. The grid function answers the pivot keys in one call and the cells of the page's groups in a second call. Each group row at each level holds the cells of its own rows. A `time` pivot column answers `unsupported`. On PostgreSQL 17 over PostgREST, a page of 200 groups with 200 pivot keys over 100,000 rows takes about 75 ms. Without the pivot, the same page takes about 55 ms.
+A pivot takes 1 to 4 `groupBy` levels. The grid function answers the pivot keys in one call and the cells of the page's groups in a second call. Each group row at each level holds the cells of its own rows. A `time` pivot column answers `unsupported`. On a local PostgreSQL 17 over PostgREST, a page of 200 groups with 200 pivot keys over 100,000 rows takes about 75 ms. Without the pivot, the same page takes about 55 ms.
 
 <Callout type="warn" title="Row-level security is the only tenancy boundary">
   Never make the wrapper or the `gridcn` functions SECURITY DEFINER. Row-level security then checks the owner, and the caller writes the plan. The function does not enforce `rowScope`. A direct caller reads every column of the allow-list, `serverOnly` columns included. Hide a column with a column GRANT. Never use the service role key in the route, because it bypasses row-level security.

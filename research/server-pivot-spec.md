@@ -329,9 +329,11 @@ The full fetch meets the 150 ms budget with about 30 ms to spare on PGlite. A se
 query costs about 42 ms more and misses it. Not measured: multi-level `groupBy` under pivot,
 decimal value columns, and a selective `where`.
 
-Supabase, the same shape (`tests/server-query-supabase/pivot-perf.test.ts`), fastest of 6 to 8 warm runs:
+Supabase, the same shape, fastest of 6 to 8 warm runs. The PGlite column is
+`tests/server-query-supabase/pivot-perf.test.ts`; the PostgREST column is one local run of the same
+table and requests, with no committed test:
 
-| Call | PGlite, calls in series | PostgreSQL 17 over PostgREST v16.6 (docker) |
+| Call | PGlite, calls in series | PostgreSQL 17 over PostgREST v16.6 (local docker, one run) |
 |---|---|---|
 | `pivotKeys` | 23 ms | 11 ms |
 | `groups` with pivot (`FILTER (WHERE ...)` cells) | 90 ms | 62 ms |
