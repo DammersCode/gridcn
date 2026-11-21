@@ -123,10 +123,10 @@ type PivotTextState = { readonly viewIndex: ArrayLike<number>; readonly groupLay
 
 /**
  * The text of a pivot row in `column`, which copy, export, print, find, and autosize read: for a generated column the shown text
- * (`"display"`, the default) or the cell type's `toText` (`"export"`), empty for no value; the plain key text in the `groupBy`
- * column; `undefined` off a pivot row.
+ * (`"display"`, the default) or the cell type's `toText` (`"export"`), empty for no value; the row's own key text in the first
+ * `groupBy` column at every depth; `undefined` off a pivot row.
  */
-export function pivotCellText(s: PivotTextState & { readonly pivot: PivotView | null }, viewRow: number, column: AnyColumnDef | undefined, text: "display" | "export" = "display"): string | undefined {
+export function pivotCellText(s: PivotTextState & { readonly pivot: PivotView | null; readonly groupBy?: readonly string[] }, viewRow: number, column: AnyColumnDef | undefined, text: "display" | "export" = "display"): string | undefined {
   if (s.pivot === null || column === undefined) return undefined;
   const groupIndex = groupIndexAt(s.viewIndex, viewRow);
   const node = groupIndex === undefined ? undefined : s.groupLayout?.rows[groupIndex];
@@ -137,19 +137,23 @@ export function pivotCellText(s: PivotTextState & { readonly pivot: PivotView | 
     const cellType = s.cellTypes[column.type ?? "text"];
     return value === null ? "" : cellType ? exportText(cellType as Parameters<typeof exportText>[0], value, column.options) : toSafeText(value);
   }
-  return column.id === node.columnId ? node.label : "";
+  return column.id === (s.groupBy?.[0] ?? node.columnId) ? node.label : "";
 }
 
-/** The quick-search text of the pivot cells of `view`: `undefined` for a column that is not generated. */
+/** The quick-search text of the pivot rows of `view`: the pivot cells, the row's key text in the key column, `undefined` elsewhere. */
 export function pivotTextReader(view: readonly number[], visibleColumns: readonly AnyColumnDef[], cellTypes: Readonly<Record<string, CellType | undefined>>, locale: string): (viewRow: number, columnId: string) => string | undefined {
   const pivotColumns = new Map(visibleColumns.filter(isPivotColumn).map((column) => [column.id, column] as const));
   if (pivotColumns.size === 0) return () => undefined;
+  // Under pivot the only visible column that is not generated is the key column.
+  const keyColumnId = visibleColumns.find((column) => !isPivotColumn(column))?.id;
   const rows = groupLayoutOfView(view)?.rows;
   return (viewRow, columnId) => {
     const column = pivotColumns.get(columnId);
-    if (column === undefined) return undefined;
+    if (column === undefined && columnId !== keyColumnId) return undefined;
     const groupIndex = groupIndexAt(view, viewRow);
-    return aggregateText(column, pivotCellOf(groupIndex === undefined ? undefined : rows?.[groupIndex], column), cellTypes, locale);
+    const node = groupIndex === undefined ? undefined : rows?.[groupIndex];
+    if (column === undefined) return node?.label;
+    return aggregateText(column, pivotCellOf(node, column), cellTypes, locale);
   };
 }
 

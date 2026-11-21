@@ -136,7 +136,7 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
     return column ? columnLabelText(column) : (meta?.node.columnId ?? "");
   });
   if (!meta) return null;
-  const { node, expanded } = meta;
+  const { node, expanded, expandable } = meta;
   const markerColOffset = layout.markerWidth > 0 ? 2 : 1;
   const span = Math.min(groupLabelSpan(visibleColumns), visibleColumns.length);
   const labelText = node.label || labels.grouping.empty;
@@ -151,7 +151,7 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
       role="row"
       aria-rowindex={viewRowIndex + 2 + ariaRowIndexOffset}
       aria-level={meta.level}
-      aria-expanded={pivot ? undefined : expanded}
+      aria-expanded={expandable ? expanded : undefined}
       aria-posinset={meta.posInSet}
       aria-setsize={meta.setSize}
       data-grid-row-index={viewRowIndex}
@@ -176,7 +176,7 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
           data-selected={(labelRangeSelected && !labelPinned) || undefined}
           className={cn("relative flex min-w-0 items-center gap-1", GROUP_TINT, GROUP_LABEL_SELECTED_TINT)}
         >
-          {!pivot && <DataGridGroupToggle groupId={node.id} label={labelText} expanded={expanded} />}
+          {expandable && <DataGridGroupToggle groupId={node.id} label={labelText} expanded={expanded} />}
           <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
             {renderGroupLabel ? renderGroupLabel(ctx) : labels.grouping.rowLabel(columnHeader, labelText, node.count)}
           </span>

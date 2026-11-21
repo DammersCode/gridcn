@@ -6,6 +6,7 @@ import { computeSearchMatches, computeViewIndex, viewFilters, viewSorts, viewWin
 import { emitAfterWrites, resetDeferredRows, type DataWriteContext } from "./data-write";
 import { groupAnnouncementLabel, nextAnnouncement } from "./announcements";
 import { EXPANDED, COLLAPSED, expandedTest, normalizeExpanded, normalizeGroupBy, sameExpanded, sameGroupBy, toggleExpanded } from "./group-state";
+import { groupRowExpandable } from "./group-positions";
 import { rememberEmitted } from "./group-sync";
 import { groupingOf, warnGroupOnce } from "./group-view";
 import { viewRowOfDataIndex } from "./row-index";
@@ -96,8 +97,8 @@ export function createGroupActions({ set, get, dataWrite, followView, memory }: 
     setExpanded: commitExpanded,
     toggleGroup(groupId) {
       const s = get();
-      if (s.pivot) return;
       const node = s.groupLayout?.rows.find((row) => row.id === groupId);
+      if (s.pivot && !(node && groupRowExpandable(s, node))) return;
       const opens = !expandedTest(s.expanded)(groupId);
       const next = toggleExpanded(s.expanded, groupId);
       if (next === s.expanded) {
