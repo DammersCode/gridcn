@@ -8,7 +8,7 @@ import { pinnedInsetStyle } from "../columns/pinned-inset-style";
 import { keepsFocusOutsideGrid, SEARCH_MATCH_PAINT } from "../cell";
 import { GRID_ATTR, GRID_ROLE_SELECTOR } from "../data-attributes";
 import type { GroupLabelCtx, GroupNode } from "../group-types";
-import { cellLayer } from "../layers";
+import { cellLayer, GRID_LAYER } from "../layers";
 import { useDataGridRootContext, type GridColumnLayout, type GroupLabelRenderer, type RenderedColumn } from "../layout-context";
 import { colRangesContain } from "../selection/selected-col-ranges-for-row";
 import {
@@ -41,13 +41,16 @@ export type DataGridGroupRowProps = {
   renderGroupLabel?: GroupLabelRenderer;
 };
 
-export { groupLabelSpan };
 
 // srgb mixes composite exactly like the translucent row tint and selection overlay they stand in for.
 const GROUP_TINT = "bg-[color-mix(in_srgb,var(--color-muted)_40%,var(--color-background))] group-data-hovered/row:bg-[color-mix(in_srgb,var(--color-muted)_60%,var(--color-background))]";
 // An opaque group cell above the selection overlay paints the overlay's tint itself.
 const GROUP_SELECTED_TINT =
   "bg-[color-mix(in_srgb,var(--color-primary)_10%,color-mix(in_srgb,var(--color-muted)_40%,var(--color-background)))] group-data-hovered/row:bg-[color-mix(in_srgb,var(--color-primary)_10%,color-mix(in_srgb,var(--color-muted)_60%,var(--color-background)))]";
+
+// The label draws its own ring: it spans its columns and scrolls like an unpinned cell while it ranks with pinned ones.
+const LABEL_RING =
+  "after:pointer-events-none after:absolute after:inset-0 after:ring-2 after:ring-inset after:ring-primary forced-colors:after:outline-2 forced-colors:after:-outline-offset-2 forced-colors:after:outline-[Highlight]";
 
 const aggregateOf = (node: GroupNode, column: AnyColumnDef): unknown => (isPivotColumn(column) ? pivotCellOf(node, column) : node.aggregates[column.id]);
 
@@ -78,7 +81,8 @@ function GroupCell({ viewRowIndex, col, columnId, startTrack, span, isActive, is
   }, [isActive]);
   const style: CSSProperties = {
     gridColumn: span === undefined ? startTrack : `${startTrack} / span ${span}`,
-    zIndex: span === undefined ? cellLayer(pin !== undefined, isActive) : cellLayer(true, isActive),
+    // The label ranks with pinned cells, never above them, so a pinned column scrolled over it covers it and its ring.
+    zIndex: span === undefined ? cellLayer(pin !== undefined, isActive) : GRID_LAYER.pinnedCell,
     ...pinnedInsetStyle(pin, col),
   };
   return (
@@ -95,7 +99,7 @@ function GroupCell({ viewRowIndex, col, columnId, startTrack, span, isActive, is
       data-active={isActive || undefined}
       data-search-match={isSearchMatch || undefined}
       data-readonly=""
-      className={cn("relative flex items-center border-b border-border px-2 outline-none", COLUMN_BORDER, span === undefined && "overflow-hidden", className)}
+      className={cn("relative flex items-center border-b border-border px-2 outline-none", COLUMN_BORDER, span === undefined ? "overflow-hidden" : isActive && LABEL_RING, className)}
       style={style}
       onPointerDown={(event) => interaction.onCellPointerDown(coord, event)}
       onClick={(event) => interaction.onCellClick(coord, event)}

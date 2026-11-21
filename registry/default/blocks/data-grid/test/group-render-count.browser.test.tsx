@@ -77,8 +77,15 @@ async function measure(kind: Kind) {
   await userEvent.keyboard("{ArrowDown}");
   await frames();
   const move = total(tracker);
+
+  groupRows()[0]!.querySelectorAll<HTMLElement>('[role="gridcell"]')[1]!.click();
+  await frames();
+  tracker.reset();
+  await userEvent.keyboard("{Alt>}{ArrowLeft}{/Alt}");
+  await frames();
+  const labelMove = total(tracker);
   await screen.unmount();
-  return { mount, toggle: toggle / mount, move: move / mount };
+  return { mount, toggle: toggle / mount, move: move / mount, labelMove: labelMove / mount };
 }
 
 // Each bound is a share of the same grid's mount renders; the compiled build sets the move bounds.
@@ -109,6 +116,8 @@ describe("render counts of grouped grids", () => {
     expect(server.toggle).toBeLessThanOrEqual(BOUNDS.serverToggle);
     expect(pivot.toggle).toBeLessThanOrEqual(BOUNDS.pivotToggle);
     expect(Math.max(client.move, server.move)).toBeLessThanOrEqual(BOUNDS.groupMove);
+    expect(Math.min(client.labelMove, server.labelMove)).toBeGreaterThan(0);
+    expect(Math.max(client.labelMove, server.labelMove)).toBeLessThanOrEqual(BOUNDS.groupMove);
     expect(pivot.move).toBeLessThanOrEqual(BOUNDS.pivotMove);
     expect(client.mount).toBeLessThanOrEqual(server.mount);
     expect(pivot.mount / server.mount).toBeLessThanOrEqual(BOUNDS.pivotMountPerServerMount);

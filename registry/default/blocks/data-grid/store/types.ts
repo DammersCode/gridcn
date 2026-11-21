@@ -726,6 +726,7 @@ export type DataGridStoreState = Omit<
   enableColumnReorder: boolean;
   enableColumnPinning: boolean;
   headerClickBehavior: HeaderClickBehavior;
+  /** The cell with focus. On a group row, any `col` inside the label span means the label is active; ArrowUp and ArrowDown keep `col`. */
   activeCell: ViewCoord | null;
   selection: GridSelection;
   /**

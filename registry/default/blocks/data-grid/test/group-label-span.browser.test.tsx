@@ -2,19 +2,20 @@ import { page, userEvent } from "vitest/browser";
 import { describe, expect, it, onTestFinished, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { DataGrid, defineColumns } from "../data-grid";
-import { expectNoPaintMismatch, type PaintState } from "./paint-parity.test-helper";
+import { gridAttrSelector } from "../data-grid-sdk";
+import { DEFAULT_ALLOW, expectNoPaintMismatch, type PaintState } from "./paint-parity.test-helper";
 import "@/app/global.css";
 
 type Sale = { id: string; customer: string; region: string; dealership: string; make: string; price: number; discount: number };
 
-const makeColumns = (opts: { pinFirst?: boolean; width?: number; firstWidth?: number }) =>
+const makeColumns = (opts: { pinFirst?: boolean; pinLastEnd?: boolean; width?: number; firstWidth?: number }) =>
   defineColumns<Sale>()([
     { id: "customer", header: "Customer", accessorKey: "customer", type: "text", width: opts.firstWidth ?? opts.width ?? 150, ...(opts.pinFirst ? { pin: "start" as const } : {}) },
     { id: "region", header: "Region", accessorKey: "region", type: "text", width: opts.width ?? 100 },
     { id: "dealership", header: "Dealership", accessorKey: "dealership", type: "text", width: opts.width ?? 170 },
     { id: "make", header: "Make", accessorKey: "make", type: "text", width: opts.width ?? 100 },
     { id: "price", header: "Price", accessorKey: "price", type: "number", width: 120, aggregate: "sum" },
-    { id: "discount", header: "Discount", accessorKey: "discount", type: "number", width: 120, aggregate: "avg" },
+    { id: "discount", header: "Discount", accessorKey: "discount", type: "number", width: 120, aggregate: "avg", ...(opts.pinLastEnd ? { pin: "end" as const } : {}) },
   ] as const);
 
 const data: Sale[] = Array.from({ length: 12 }, (_, i) => ({
@@ -28,7 +29,7 @@ const data: Sale[] = Array.from({ length: 12 }, (_, i) => ({
 }));
 
 /** `theme` sets CSS variables on the root, where a shadcn preset sets them. */
-type Variant = { pinFirst?: boolean; direction?: "ltr" | "rtl"; width?: number; firstWidth?: number; gridWidth?: number; theme?: Record<string, string> };
+type Variant = { pinFirst?: boolean; pinLastEnd?: boolean; markers?: boolean; direction?: "ltr" | "rtl"; width?: number; firstWidth?: number; gridWidth?: number; theme?: Record<string, string> };
 
 async function renderGrid(variant: Variant = {}) {
   await page.viewport(1280, 800);
@@ -48,6 +49,7 @@ async function renderGrid(variant: Variant = {}) {
         groupBy={["region", "dealership"]}
         defaultExpanded={{ mode: "expanded", ids: [] }}
         direction={variant.direction}
+        rowMarkers={variant.markers ? "checkbox" : "none"}
         className="h-[480px]"
         aria-label="Sales"
       />
@@ -63,7 +65,17 @@ const nestedGroupRow = () => groupRows().find((row) => row.getAttribute("aria-le
 const gridCells = (row: Element) => [...row.querySelectorAll<HTMLElement>('[role="gridcell"]:not([data-grid-marker-cell])')];
 const rowBelow = (by = 1) => document.querySelector<HTMLElement>(`[role="row"][data-grid-row-index="${Number(nestedGroupRow().dataset["gridRowIndex"]) + by}"]`)!;
 const label = () => gridCells(nestedGroupRow())[0]!;
-const ring = () => document.querySelector<HTMLElement>("[data-grid-active-cell-overlay]");
+/** The active outline: the ring overlay, or the active cell that draws its own ring. */
+function activeOutlineRect(): DOMRect {
+  const overlay = document.querySelector<HTMLElement>("[data-grid-active-cell-overlay]");
+  if (overlay) return overlay.getBoundingClientRect();
+  const cell = document.querySelector<HTMLElement>('[role="gridcell"][data-active]')!;
+  const after = getComputedStyle(cell, "::after");
+  expect(after.boxShadow).not.toBe("none");
+  expect([after.position, after.inset]).toEqual(["absolute", "0px"]);
+  return cell.getBoundingClientRect();
+}
+const outlines = () => q("[data-grid-selection-overlay]").filter((el) => getComputedStyle(el).borderLeftWidth !== "0px");
 const frames = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 
 async function shiftClick(el: HTMLElement) {
@@ -98,7 +110,7 @@ describe("the active outline of a group label", () => {
     await userEvent.click(label());
     await frames();
     expect(label().getAttribute("aria-colspan")).toBe("4");
-    expectSameRect(ring()!.getBoundingClientRect(), label().getBoundingClientRect());
+    expectSameRect(activeOutlineRect(), label().getBoundingClientRect());
   });
 
   it("follows the label while a grid with a pinned first column scrolls", async () => {
@@ -107,7 +119,34 @@ describe("the active outline of a group label", () => {
     grid.scrollLeft = 120;
     grid.dispatchEvent(new Event("scroll"));
     await frames();
-    expectSameRect(ring()!.getBoundingClientRect(), label().getBoundingClientRect());
+    expectSameRect(activeOutlineRect(), label().getBoundingClientRect());
+  });
+
+  it("stays under a pinned-end column that covers the label", async () => {
+    await renderGrid({ pinLastEnd: true, gridWidth: 500 });
+    await userEvent.click(label());
+    await frames();
+    const pinnedEnd = gridCells(nestedGroupRow()).at(-1)!;
+    const rect = pinnedEnd.getBoundingClientRect();
+    expect(rect.left).toBeLessThan(label().getBoundingClientRect().right);
+    const guard = document.createElement("style");
+    guard.textContent = "* { pointer-events: auto !important; }";
+    document.head.append(guard);
+    const top = document.elementFromPoint(rect.left + rect.width / 2, label().getBoundingClientRect().top + 1);
+    guard.remove();
+    expect(pinnedEnd.contains(top)).toBe(true);
+  });
+
+  it("puts the touch handles at the label corners", async () => {
+    await renderGrid({ pinFirst: true });
+    const rect = label().getBoundingClientRect();
+    const point = { clientX: rect.left + 20, clientY: rect.top + rect.height / 2 };
+    label().dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, pointerType: "touch", pointerId: 7, isPrimary: true, button: 0, ...point }));
+    document.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, cancelable: true, pointerType: "touch", pointerId: 7, isPrimary: true, button: 0, ...point }));
+    await frames();
+    const end = document.querySelector<HTMLElement>(`${gridAttrSelector("selectionHandle")}[data-grid-selection-handle="end"]`)!.getBoundingClientRect();
+    expect(Math.abs(end.left + end.width / 2 - rect.right)).toBeLessThan(2);
+    expect(Math.abs(end.top + end.height / 2 - rect.bottom)).toBeLessThan(2);
   });
 
   it("covers one column on a data row", async () => {
@@ -115,7 +154,7 @@ describe("the active outline of a group label", () => {
     const cell = gridCells(rowBelow())[1]!;
     await userEvent.click(cell);
     await frames();
-    expectSameRect(ring()!.getBoundingClientRect(), cell.getBoundingClientRect());
+    expectSameRect(activeOutlineRect(), cell.getBoundingClientRect());
   });
 });
 
@@ -137,24 +176,49 @@ describe("the selected look of a group label", () => {
 });
 
 describe("the outline of a selection across group rows", () => {
-  it("stays one overlay when the range covers the whole label", async () => {
-    await renderGrid();
+  async function selectAll() {
     await userEvent.click(label());
     await userEvent.keyboard("{Control>}a{/Control}");
     await userEvent.keyboard("{Control>}a{/Control}");
     await frames();
-    expect(q("[data-grid-selection-overlay]")).toHaveLength(1);
+  }
+
+  async function rangeUpOverTwoLabels() {
+    await userEvent.click(gridCells(rowBelow())[2]!);
+    await userEvent.keyboard("{Shift>}{ArrowUp}{ArrowUp}{/Shift}");
+    await frames();
+  }
+
+  it("draws one rectangle for select all", async () => {
+    await renderGrid();
+    await selectAll();
+    expect(outlines()).toHaveLength(1);
   });
 
-  it("draws no second line where a range down from the label meets the label", async () => {
+  it("draws one rectangle per pin zone for select all with a pinned first column", async () => {
+    await renderGrid({ pinFirst: true });
+    await selectAll();
+    expect(outlines()).toHaveLength(2);
+  });
+
+  it.each<[string, Variant]>([
+    ["unpinned", {}],
+    ["with a pinned first column", { pinFirst: true }],
+  ])("draws one rectangle for a range that covers part of two labels, %s", async (_, variant) => {
+    await renderGrid(variant);
+    await rangeUpOverTwoLabels();
+    expect(outlines()).toHaveLength(1);
+    const outline = outlines()[0]!.getBoundingClientRect();
+    const cell = gridCells(rowBelow())[2]!.getBoundingClientRect();
+    expect([Math.round(outline.left), Math.round(outline.right), Math.round(outline.bottom)]).toEqual([Math.round(cell.left), Math.round(cell.right), Math.round(cell.bottom)]);
+  });
+
+  it("draws one rectangle for a range down from the label", async () => {
     await renderGrid();
     await userEvent.click(label());
     await shiftClick(gridCells(rowBelow(2))[0]!);
     await frames();
-    const labelBottom = Math.round(label().getBoundingClientRect().bottom);
-    const below = q("[data-grid-selection-overlay]").filter((el) => Math.round(el.getBoundingClientRect().top) === labelBottom);
-    expect(below.length).toBeGreaterThan(0);
-    expect(below.map((el) => getComputedStyle(el).borderTopWidth)).toEqual(below.map(() => "0px"));
+    expect(outlines()).toHaveLength(1);
   });
 });
 
@@ -181,6 +245,8 @@ describe("paint parity of a group label", () => {
     ["a first column narrower than the label text", { firstWidth: 60 }],
     ["pinned first column, radius 0", { pinFirst: true, theme: { "--radius": "0rem" } }],
     ["pinned first column, radius 1rem, tinted primary", { pinFirst: true, theme: { "--radius": "1rem", "--primary": "oklch(0.55 0.2 260)" } }],
+    ["row markers, unpinned", { markers: true }],
+    ["row markers, pinned first column", { markers: true, pinFirst: true }],
   ])("paints nothing that differs from the row and selection layers, %s", async (_, variant) => {
     const grid = await renderGrid(variant);
     const states: PaintState[] = [
@@ -193,7 +259,30 @@ describe("paint parity of a group label", () => {
         await shiftClick(gridCells(rowBelow())[1]!);
       } },
       { name: "hovered inside the range", apply: () => userEvent.hover(label()) },
+      { name: "row band over the label", apply: async () => {
+        await userEvent.click(label());
+        await userEvent.keyboard("{Shift>} {/Shift}");
+      } },
+      { name: "column band over the label", apply: async () => {
+        await userEvent.click(label());
+        await userEvent.keyboard("{Control>} {/Control}");
+      } },
+      { name: "two ranges over the label", apply: async () => {
+        await userEvent.click(label());
+        await userEvent.keyboard("{Control>}");
+        await userEvent.click(gridCells(rowBelow())[1]!);
+        await userEvent.keyboard("{/Control}");
+        await userEvent.keyboard("{Shift>}{ArrowUp}{/Shift}");
+      } },
+      ...(variant.markers
+        ? [{ name: "checked rows", apply: async () => {
+            await userEvent.keyboard("{Escape}");
+            await userEvent.click(rowBelow().querySelector<HTMLElement>('[role="checkbox"]')!);
+            await userEvent.click(rowBelow(2).querySelector<HTMLElement>('[role="checkbox"]')!);
+          } }]
+        : []),
     ];
-    await expectNoPaintMismatch(grid, states);
+    // A selected marker paints the selection tint itself: the overlay does not reach the marker column.
+    await expectNoPaintMismatch(grid, states, { allow: `${DEFAULT_ALLOW}, [data-grid-marker-cell][data-row-selected]` });
   });
 });
