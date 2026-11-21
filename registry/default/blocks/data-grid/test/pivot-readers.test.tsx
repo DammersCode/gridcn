@@ -166,7 +166,7 @@ describe("find and replace", () => {
     expect(state().searchMatches).toEqual([{ row: 0, columnId: state().visibleColumns[1]!.id }]);
   });
 
-  it("scans 1,000 × 200 pivot cells within 100 ms or 1.6 same-run reference workloads", async ({ annotate }) => {
+  it("scans 1,000 × 200 pivot cells within 100 ms or 1.6 same-run reference workloads, never over 300 ms", async ({ annotate }) => {
     const keys = Array.from({ length: 200 }, (_, i) => 2000 + i);
     const rows = Array.from({ length: 1_000 }, (_, row) => slot(row, `g${row}`, keys.map((_, col) => (row === 999 && col === 199 ? 987_654.25 : row * 7 + col))));
     const { state } = make({ rows, leafCount: 2_000, pivot: held(keys) });
@@ -190,7 +190,7 @@ describe("find and replace", () => {
       buildMs = Math.min(buildMs, performance.now() - start);
     }
     expect(found!.searchMatches).toEqual([{ row: 999, columnId: s.visibleColumns[200]!.id }]);
-    const budget = CI_FACTOR * Math.max(100, SCAN_BUDGET_REFERENCES * (formatMs + buildMs));
+    const budget = Math.min(CI_FACTOR * 300, Math.max(CI_FACTOR * 100, SCAN_BUDGET_REFERENCES * (formatMs + buildMs)));
     await annotate(`pivot search scan: ${scanMs.toFixed(1)} ms, budget ${budget.toFixed(0)} ms; reference ${formatMs.toFixed(1)} + ${buildMs.toFixed(1)} ms`);
     expect(scanMs).toBeLessThan(budget);
   });

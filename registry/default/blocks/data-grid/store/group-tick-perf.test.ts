@@ -6,9 +6,9 @@ import type { InternalSyncProps } from "./types";
 const ROW_COUNT = 100_000;
 const TICK_ROWS = 20;
 const TICKS = 50;
-const CI_FACTOR = process.env["CI"] ? 2 : 1;
-/** The tick budget in same-run grouped 100k-row builds, so suite load and coverage slow both alike; a tick takes about 0.14 builds. */
-const TICK_BUDGET_BUILDS = 0.2;
+const CI_FACTOR = process.env["CI"] === "true" ? 2 : 1;
+/** The tick budget in same-run grouped 100k-row builds, so suite load and coverage slow both alike; a tick takes 0.14 builds idle, up to 0.32 under suite load. */
+const TICK_BUDGET_BUILDS = 0.45;
 
 type Row = { id: string; region: string; team: string; label: string; qty: number };
 
@@ -60,7 +60,7 @@ describe("a stream tick on a grouped grid (100k rows, 20 rows per tick)", () => 
       make(true, data);
       return performance.now() - start;
     }));
-    const budget = CI_FACTOR * Math.max(8, TICK_BUDGET_BUILDS * buildMs);
+    const budget = Math.min(CI_FACTOR * 30, Math.max(CI_FACTOR * 4, TICK_BUDGET_BUILDS * buildMs));
     await annotate(`grouped aggregate tick: ${(ms / TICKS).toFixed(2)} ms, budget ${budget.toFixed(1)} ms; grouped build ${buildMs.toFixed(1)} ms`);
     expect(ms / TICKS).toBeLessThan(budget);
   }, 30_000);
