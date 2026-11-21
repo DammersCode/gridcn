@@ -17,12 +17,12 @@ const data: Row[] = Array.from({ length: 12 }, (_, i) => ({ id: `r${i}`, name: `
 
 type Handles = { api: ReturnType<typeof createRef<DataGridApi<Row>>>; setDir: { current: (dir: "ltr" | "rtl") => void } };
 
-function Harness({ handles }: { handles: Handles }) {
+function Harness({ handles, paged }: { handles: Handles; paged: boolean }) {
   const [dir, setDir] = useState<"ltr" | "rtl">("ltr");
   handles.setDir.current = setDir;
   return (
     <div dir={dir} style={{ height: 400, width: 600 }}>
-      <DataGrid ref={handles.api} columns={columns} data={data} getRowId={(row) => row.id} defaultPageSize={5} className="h-100 w-150" aria-label="Client" />
+      <DataGrid ref={handles.api} columns={columns} data={data} getRowId={(row) => row.id} {...(paged ? { defaultPageSize: 5 } : null)} className="h-100 w-150" aria-label="Client" />
     </div>
   );
 }
@@ -39,10 +39,11 @@ const ACTIONS: { name: string; run: (api: DataGridApi<Row>, handles: Handles) =>
 ];
 
 describe("a client grid paints no frame that differs from both the old and the new state", () => {
-  for (const action of ACTIONS) {
-    it(`across a ${action.name}`, async () => {
+  for (const [paged, action] of [true, false].flatMap((grid) => ACTIONS.map((one) => [grid, one] as const))) {
+    if (!paged && action.name === "page change") continue;
+    it(`across a ${action.name} (${paged ? "client pages" : "a plain local grid"})`, async () => {
       const handles: Handles = { api: createRef<DataGridApi<Row>>(), setDir: { current: () => {} } };
-      const screen = await render(<Harness handles={handles} />);
+      const screen = await render(<Harness handles={handles} paged={paged} />);
       await vi.waitFor(() => expect(sampleGrid().rows).not.toBe(""));
       const before = sampleGrid();
       let frames = 0;

@@ -420,12 +420,12 @@ describe("useDataGridServerRows scroll mode: spec and refresh", () => {
     const shown = result.current.gridProps.data;
     rerender({ spec: { sorts: [], filters: [], searchText: "b" } });
     expect(result.current.gridProps.data).toBe(shown);
-    expect(result.current.gridProps.readOnly).toBe(true);
+    expect(result.current.gridProps.serverHeld).toBe(true);
     expect(result.current.loading).toBe(true);
     await waitFor(() => expect(fetchRows.mock.calls.at(-1)![0].spec.searchText).toBe("b"));
     await settled(result);
     expect(result.current.gridProps.data).not.toBe(shown);
-    expect(result.current.gridProps.readOnly).toBeUndefined();
+    expect(result.current.gridProps.serverHeld).toBeUndefined();
     expect(result.current.gridProps.data[0]).toEqual(person(0));
   });
 

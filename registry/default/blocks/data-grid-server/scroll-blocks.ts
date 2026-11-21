@@ -132,9 +132,9 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
   const heldEdits = useRef(new Set<string>());
   // A copy: a commit reads the set later, inside its state update, after the hold may have cleared it.
   const guardedNow = useCallback(() => unionIds(protectedRows(), heldEdits.current.size > 0 ? new Set(heldEdits.current) : null), [protectedRows]);
-  const live = useRef({ options, spec });
+  const live = useRef({ options, spec, refreshElsewhere: specState.refreshElsewhere });
   useLayoutEffect(() => {
-    live.current = { options, spec };
+    live.current = { options, spec, refreshElsewhere: specState.refreshElsewhere };
   });
 
   const warn = useCallback(
@@ -818,8 +818,8 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     return () => setReshapeListener(null);
   }, [setReshapeListener, requestReshape]);
   const refreshFor = useCallback((reason: FetchReason) => {
-    // While the group engine owns the spec, a refresh, a tick, or a reshape of this engine would send a flat request that carries `groupBy`.
-    if (!specReady) return;
+    // While the group engine owns the spec, this engine would send a flat request that carries `groupBy`: a save settling here refreshes that engine.
+    if (!specReady) return void live.current.refreshElsewhere?.();
     cancelReshape();
     restartClockRef.current();
     const core = getCore();
@@ -984,7 +984,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
       checkedRowsLifetime: "across-filters",
       headerClickBehavior: "sort",
       plugins,
-      ...(held ? { readOnly: true as const } : null),
+      ...(held ? { serverHeld: true as const } : null),
     }),
     [held, rows, count, spec, getRowId, onDataChange, onSave, onRenderedRowsChange, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, plugins],
   );

@@ -428,6 +428,7 @@ export function useGroupBlocks<TData, TCursor = never>(
   };
 
   const refreshForSaves = (report: SaveRefreshReport) => {
+    if (!live.current.active) return void specState.refreshElsewhere?.();
     const engine = getEngine();
     const store = engine.store;
     const total = report.saved + report.rejected + report.failed;
@@ -453,6 +454,8 @@ export function useGroupBlocks<TData, TCursor = never>(
   const restartClock = useRevalidation({ interval: active ? options.revalidateIntervalMs : undefined, onTick: () => apiRef.current.refreshFor("refresh"), busy: loading, resetKey: requestKey });
 
   const refreshFor = (reason: FetchReason) => {
+    // While the flat engine answers the spec, a save settling here refreshes that engine.
+    if (!live.current.active) return void specState.refreshElsewhere?.();
     const engine = getEngine();
     cancelReshape();
     restartClock();
@@ -676,7 +679,7 @@ export function useGroupBlocks<TData, TCursor = never>(
       expanded,
       onExpandedChange: setExpanded,
       groupMode: "server",
-      ...(view.held ? { readOnly: true as const } : null),
+      ...(view.held ? { serverHeld: true as const } : null),
       groupLayout,
     }),
     [view, getRowId, onDataChange, onSave, onRenderedRowsChange, spec, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, plugins, groupBy, onGroupByChange, expanded, setExpanded, groupLayout],

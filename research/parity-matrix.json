@@ -2106,7 +2106,8 @@
           ]
         }
       },
-      "doc": "/docs/theme-style-language/loading-state"
+      "doc": "/docs/theme-style-language/loading-state",
+      "note": "A server spec change keeps the old rows on screen until the answers for the rendered rows land. Open: a change that leaves fewer rows than the scroll position blanks one frame (V1)."
     },
     {
       "id": "find-replace",

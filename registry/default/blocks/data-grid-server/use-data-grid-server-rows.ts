@@ -145,8 +145,8 @@ export type UseDataGridServerRowsProviderProps<TData> = {
   plugins: readonly DataGridPlugin<unknown>[];
   /** Sorts on a header click. Override it after the spread. */
   headerClickBehavior: "sort";
-  /** Present while the old rows stay on screen across a switch between grouped and flat rows: they take no user write until the answer lands. */
-  readOnly?: true;
+  /** @internal Present while the old rows stay on screen across a switch between grouped and flat rows: the grid refuses user gestures that write. */
+  serverHeld?: true;
   /** @internal Present while the source groups: reports the rendered rows so the open groups load their rows. */
   onRenderedRowsChange?: (range: RowRange) => void;
   /** Present while the source groups: the group columns, outermost first. */
@@ -550,14 +550,17 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
     setReshapeListener(requestReshape);
     return () => setReshapeListener(null);
   }, [setReshapeListener, requestReshape]);
+  const refreshGroups = useRef<() => void>(() => {});
   const refreshFor = useCallback(
     (reason: FetchReason) => {
+      // While the group engine answers the spec, a save settling here refreshes that engine.
+      if (grouped) return void refreshGroups.current();
       cancelReshape();
       restartClockRef.current();
       nextReason.current = reason;
       setTick((n) => n + 1);
     },
-    [cancelReshape],
+    [cancelReshape, grouped],
   );
   const refresh = useCallback(() => refreshFor("refresh"), [refreshFor]);
   const refreshAfterSave = useCallback(() => refreshFor("save"), [refreshFor]);
@@ -624,9 +627,12 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
 
   const { onSave, wrapSave } = useSaveRefresh(options, refreshAfterSave);
 
-  const groupPages = useGroupBlocks(options as unknown as Parameters<typeof useGroupBlocks<TData, TCursor>>[0], specState, grouped, { page, pageSize, pageSizeOptions, onPageChange: setPage, onPageSizeChange });
+  // A save settles in the engine whose plugins wrote it; the refresh it asks for goes to the engine that answers the spec.
+  const groupSpec = useMemo(() => ({ ...specState, refreshElsewhere: () => refreshRef.current("save") }), [specState]);
+  const groupPages = useGroupBlocks(options as unknown as Parameters<typeof useGroupBlocks<TData, TCursor>>[0], groupSpec, grouped, { page, pageSize, pageSizeOptions, onPageChange: setPage, onPageSizeChange });
   useLayoutEffect(() => {
     if (groupPages.groupCount !== null) live.current.settledOnce = true;
+    refreshGroups.current = groupPages.result.refresh;
   });
   useMemo(() => armPagerRead(groupPages.pagerPlugins, pagerWatch), [groupPages.pagerPlugins, pagerWatch]);
 
@@ -666,7 +672,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
       checkedRowsLifetime: "across-filters",
       headerClickBehavior: "sort",
       plugins,
-      ...(flatWaits ? { readOnly: true as const } : null),
+      ...(flatWaits ? { serverHeld: true as const } : null),
     }),
     [flatWaits, shown.rows, shown.totalRowCount, spec, getRowId, onDataChange, onSave, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, plugins],
   );

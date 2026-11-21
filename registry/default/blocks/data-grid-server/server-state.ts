@@ -66,8 +66,8 @@ export function handOffResult<TResult extends EngineResult>(shown: TResult, requ
     refresh: requested.refresh,
     reshape: requested.reshape,
     rootProps: { ...shown.rootProps, ...root },
-    providerProps: { ...shown.providerProps, readOnly: true },
-    gridProps: { ...shown.gridProps, ...root, readOnly: true },
+    providerProps: { ...shown.providerProps, serverHeld: true },
+    gridProps: { ...shown.gridProps, ...root, serverHeld: true },
   };
 }
 
@@ -134,7 +134,8 @@ export function useServerSpec(source: ServerSpecOptions, afterChange: () => void
 }
 
 /** The result of {@link useServerSpec}: the scroll hook takes it from its caller so the group engine and the flat engine share one spec. */
-export type ServerSpecState = ReturnType<typeof useServerSpec>;
+/** The spec of a hook, plus the refresh of the other engine while this one does not answer the spec. */
+export type ServerSpecState = ReturnType<typeof useServerSpec> & { refreshElsewhere?: () => void };
 
 const specOf = (seed?: Partial<ServerSpec>, groups = false): ServerSpec => ({
   sorts: [...(seed?.sorts ?? EMPTY_SPEC.sorts)],

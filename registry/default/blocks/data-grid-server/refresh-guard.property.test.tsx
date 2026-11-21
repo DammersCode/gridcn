@@ -128,9 +128,9 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
   let filterNow = "";
   const pendingDeletes = new Set<string>();
   let shownLabel = "";
-  // A scroll source shows the rows of the old filter until the first answer of the new one lands; they are no baseline for it.
-  let heldOldFilter = false;
-  const holding = () => kind !== "pages" && scroll.providerProps.readOnly === true;  let editCount = 0;
+  // A scroll source shows the rows of the old filter until the answers of the new one cover the rendered rows.
+  const holding = () => kind !== "pages" && scroll.providerProps.serverHeld === true;
+  let editCount = 0;
   let localCount = 0;
   let fetchCalls = 0;
   let dirty = false;
@@ -234,7 +234,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     }
     scroll = useDataGridServerRows<Row, number>({ mode: "scroll", loadDelayMs: 0, getRowId, fetchRows: fetchScroll, blockSize, overscan: 0, refreshAfterSave: false });
     return (
-      <DataGridProvider {...scroll.providerProps} columns={columns} onSave={onSave} createRow={createRow} readOnly={readOnly || scroll.providerProps.readOnly === true}>
+      <DataGridProvider {...scroll.providerProps} columns={columns} onSave={onSave} createRow={createRow} readOnly={readOnly}>
         <DataGridRoot>
           <Probe />
         </DataGridRoot>
@@ -251,15 +251,11 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
 
   /** Invariants after every step. A source that mixed snapshots (rows moved on the server or locally) is consistent again once one refresh settled. */
   function checkAlways() {
-    if (holding()) {
-      // The held rows are what the user sees and writes, so they name the local values.
-      for (const row of data()) if (row) known.set(row.id, row.name);
-      return;
-    }
     const rows = data();
     const consistent = !dirty;
     const settledLocally = !shifted;
-    if (kind === "counted" || kind === "pages" || consistent) {
+    // The loaded ranges name the rows of the new filter, not the held rows on screen.
+    if (!holding() && (kind === "counted" || kind === "pages" || consistent)) {
       for (const { start, end } of loadedRanges()) {
         for (let i = start; i < Math.min(end, rows.length); i++) expect(rows[i], `hole at ${i}`).toBeDefined();
       }
@@ -276,7 +272,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
   async function land(request: Request) {
     held.splice(held.indexOf(request), 1);
     if (request.signal.aborted) return;
-    const preRows = heldOldFilter ? [] : data();
+    const preRows = data();
 
     const mustKeep = new Set([...request.saving0, ...request.savedSince, ...savingIds()]);
     if (state().editing) mustKeep.add(state().editing!.rowId);
@@ -287,9 +283,8 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     request.land();
     await flush();
     shownLabel = request.label;
-    // While the hook still shows the rows of the old filter, the answers land out of sight; the first one in sight is checked.
+    // While the hook still shows the rows of the old filter, an answer lands out of sight: its slots are not on screen to check.
     if (variant.indexIds || holding()) return;
-    heldOldFilter = false;
     const post = data();
     const carriedIds = new Set(request.rows.map((row) => row.id));
     request.rows.forEach((carried, i) => {
@@ -423,7 +418,6 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
       backend.setFilter(filter);
       const changed = filter !== filterNow;
       filterNow = filter;
-      if (changed && kind !== "pages") heldOldFilter = true;
       act(() => (kind === "pages" ? pages.gridProps.onSearchTextChange?.(filter) : scroll.gridProps.onSearchTextChange?.(filter)));
       // A repeated id on the server keeps rows mixed: the view is not consistent until it leaves the result.
       if (changed && !(variant.repeatRows && backend.hasRepeat())) {

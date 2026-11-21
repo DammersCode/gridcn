@@ -606,7 +606,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
   const rowValidation = createRowValidation({ getStore: () => store, rowIndexCache, gates, warnOnce: warnGateOnce });
   let editStartRun: GateRun | null = null;
   const cursorLeft = (now: DataGridStoreState, ref: CellRef, askedActive: ViewCoord | null): boolean => {
-    if (now.readOnly) return true;
+    if (now.readOnly || now.serverHeld) return true;
     const active = now.activeCell;
     if (active === askedActive) return false;
     const coord = resolveCellRef(now, rowIndexCache, ref);
@@ -650,7 +650,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       (allowed) => {
         if (!finish() || allowed === false) return;
         const now = store.getState();
-        if (now.readOnly) return;
+        if (now.readOnly || now.serverHeld) return;
         const coord = resolveCellRef(now, rowIndexCache, ref);
         if (!coord) return;
         const target = resolveEditTarget(now, coord);
@@ -899,7 +899,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       _commitChange,
       _activateCellAt(coord) {
         const s = get();
-        if (s.readOnly) return;
+        if (s.readOnly || s.serverHeld) return;
         const target = resolveEditTarget(s, coord);
         const activate = target?.cellType.activate;
         if (!target || !activate || isColumnReadOnly(target.column, target.row)) return;
@@ -1164,6 +1164,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
     plugins: initPlugins,
     // Seeded from the sync props so SSR and the first client paint already see them.
     readOnly: Boolean(init.readOnly),
+    serverHeld: Boolean(init.serverHeld),
     keymap: initKeymap,
     commands: initCommands,
     locale: initLocale,
@@ -1369,6 +1370,8 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
           return { ok: false, reason: "disabled" };
         }
         if (!s.enableRowSelection) return { ok: false, reason: "disabled" };
+        // The held rows belong to the previous spec: a check of the current one waits for its count.
+        if (s.serverHeld) return { ok: false, reason: "needs-total-row-count" };
         const total = matchingRowTotal(s);
         if (total === undefined) {
           if (s.sortMode === "server" || s.filterMode === "server" || viewHoldsUnloadedRows(s)) return { ok: false, reason: "needs-total-row-count" };
@@ -1639,7 +1642,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       },
       startEditingAt(coord, initialText) {
         const s = get();
-        if (s.readOnly) return;
+        if (s.readOnly || s.serverHeld) return;
         const target = resolveEditTarget(s, coord);
         if (!target || target.cellType.activate || isColumnReadOnly(target.column, target.row)) return;
         const rowId = s.getRowId(target.row, target.dataRowIndex);

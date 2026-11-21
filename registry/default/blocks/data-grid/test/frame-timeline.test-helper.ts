@@ -11,6 +11,9 @@ export type FrameSample = {
   header: string;
   rowCount: string | null;
   colCount: string | null;
+  /** Cells of the counted rows that carry `data-readonly`, and the root `aria-readonly`: a hold leaves both alone. */
+  readonlyCells: number;
+  ariaReadOnly: string | null;
 };
 
 const gridOf = (root: ParentNode) => root.querySelector<HTMLElement>('[role="grid"], [role="treegrid"]');
@@ -35,6 +38,8 @@ export function sampleGrid(root: ParentNode = document, via: FrameSample["via"] 
     header: [...(grid?.querySelectorAll('[role="columnheader"]') ?? [])].map((cell) => cell.textContent ?? "").join("|"),
     rowCount: grid?.getAttribute("aria-rowcount") ?? null,
     colCount: grid?.getAttribute("aria-colcount") ?? null,
+    readonlyCells: rows.reduce((total, row) => total + row.querySelectorAll("[data-readonly]").length, 0),
+    ariaReadOnly: grid?.getAttribute("aria-readonly") ?? null,
   };
 }
 
@@ -74,8 +79,8 @@ export async function recordAcross(
   return samples;
 }
 
-const FIELDS = ["rows", "placeholders", "groupRows", "empty", "header", "rowCount", "colCount"] as const;
-const HELD = ["rows", "empty", "header"] as const;
+const FIELDS = ["rows", "placeholders", "groupRows", "empty", "header", "rowCount", "colCount", "readonlyCells", "ariaReadOnly"] as const;
+const HELD = ["rows", "empty", "header", "readonlyCells", "ariaReadOnly"] as const;
 
 const same = (a: FrameSample, b: FrameSample, fields: readonly (keyof FrameSample)[]) => fields.every((field) => a[field] === b[field]);
 const show = (sample: FrameSample) => JSON.stringify({ rows: sample.rows.slice(0, 60), empty: sample.empty, header: sample.header.slice(0, 40), placeholders: sample.placeholders });

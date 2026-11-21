@@ -1,8 +1,8 @@
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { StoreApi } from "zustand/vanilla";
-import { DataGridBody, DataGridHeader, DataGridProvider, DataGridRoot, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
-import { useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { DataGridBody, DataGridHeader, DataGridProvider, DataGridRoot, defineColumns, useDataGridSelectedRows, type DataChange, type DataGridSelectedRows } from "@/registry/default/blocks/data-grid/data-grid";
+import { groupIdOf, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { DataGridStoreState } from "@/registry/default/blocks/data-grid/store";
 import { fakeServer, rowsOf, type Row } from "./group-fake-server.test-helper";
 import type { ServerRowsRequest } from "./read-answer";
@@ -25,10 +25,10 @@ afterEach(() => {
 
 const settle = () => act(async () => void (await new Promise((resolve) => setTimeout(resolve, 40))));
 
-type Options = { grouped?: boolean; sequential?: boolean; onSave?: boolean; readOnly?: boolean };
+type Options = { grouped?: boolean; sequential?: boolean; onSave?: boolean };
 
-/** A scroll source whose answers can be parked; `readOnly: false` after the spread stands for a consumer that overrides the hold. */
-function setup({ grouped = false, sequential = false, onSave = false, readOnly }: Options = {}) {
+/** A scroll source whose answers can be parked. */
+function setup({ grouped = false, sequential = false, onSave = false }: Options = {}) {
   const server = fakeServer(rowsOf({ A: 4, B: 3 }));
   let parked: ((fail: boolean) => void)[] | null = null;
   const requests: ServerRowsRequest<never>[] = [];
@@ -41,8 +41,11 @@ function setup({ grouped = false, sequential = false, onSave = false, readOnly }
   const saves: (() => void)[] = [];
   let hook!: UseDataGridServerRowsResult<Row>;
   let store!: StoreApi<DataGridStoreState>;
+  let selected!: DataGridSelectedRows;
+  const changes: DataChange<Row>[] = [];
   function Probe() {
     store = useDataGridStoreApi() as unknown as StoreApi<DataGridStoreState>;
+    selected = useDataGridSelectedRows();
     return null;
   }
   function Harness() {
@@ -52,11 +55,12 @@ function setup({ grouped = false, sequential = false, onSave = false, readOnly }
       overscan: 0,
       loadDelayMs: 0,
       fetchRows: fetchRows as never,
+      onDataChange: (_: unknown, change: DataChange<Row>) => void changes.push(change),
       ...(onSave ? { onSave: () => new Promise<void>((resolve) => saves.push(resolve)) } : null),
       defaultSpec: { groupBy: grouped ? ["region"] : [] },
     } as never) as unknown as UseDataGridServerRowsResult<Row>;
     return (
-      <DataGridProvider {...hook.providerProps} {...(readOnly === undefined ? null : { readOnly })} columns={columns}>
+      <DataGridProvider {...hook.providerProps} columns={columns} enableRowSelection>
         <DataGridRoot aria-label="Sales" {...hook.rootProps}>
           <DataGridHeader />
           <DataGridBody />
@@ -70,6 +74,10 @@ function setup({ grouped = false, sequential = false, onSave = false, readOnly }
   const cityOf = (id: string) => hook.providerProps.data.find((row) => row?.id === id)?.city;
   return {
     hook: () => hook,
+    state: () => store.getState(),
+    selected: () => selected,
+    changes,
+    server,
     actions,
     cityOf,
     park: () => void (parked = []),
@@ -93,7 +101,7 @@ describe("a switch between flat and grouped rows", () => {
     act(() => t.hook().gridProps.onGroupByChange!(["region"]));
     await settle();
     expect(t.cityOf("A0")).toBe("A-c0");
-    expect(t.hook().providerProps.readOnly).toBe(true);
+    expect(t.hook().providerProps.serverHeld).toBe(true);
     const sent = t.requests.length;
     act(() => t.hook().refresh());
     await settle();
@@ -144,19 +152,42 @@ describe("a switch between flat and grouped rows", () => {
 });
 
 describe("a write while the old rows are held", () => {
-  it("is refused while the hook holds the rows, so no answer asked for earlier lands over it", async () => {
-    const t = setup();
-    await waitFor(() => expect(t.cityOf("A0")).toBe("A-c0"));
+  const holdOnSort = async (t: ReturnType<typeof setup>, city = "A-c0") => {
+    await waitFor(() => expect(t.cityOf("A0")).toBe(city));
     t.park();
     act(() => t.hook().gridProps.onSortChange([{ columnId: "qty", direction: "desc" }]));
     await settle();
-    expect(t.hook().providerProps.readOnly).toBe(true);
+    expect(t.hook().providerProps.serverHeld).toBe(true);
+  };
+
+  it("refuses user gestures while the hook holds the rows, and leaves the grid's readOnly alone", async () => {
+    const t = setup();
+    await holdOnSort(t);
+    expect(t.state().readOnly).toBe(false);
+    expect(t.state().serverHeld).toBe(true);
     act(() => void t.actions().commitCellValue({ rowId: "A0", columnId: "city" }, "Held"));
+    act(() => t.actions().startEditing({ rowId: "A0", columnId: "city" }));
+    expect(t.state().editing).toBeNull();
+    expect(t.actions().reorderRows(4, 0)).toBe(false);
+    expect(t.actions().selectAllMatching()).toEqual({ ok: false, reason: "needs-total-row-count" });
     expect(t.cityOf("A0")).toBe("A-c0");
     await t.land();
-    expect(t.hook().providerProps.readOnly).toBeUndefined();
+    expect(t.state().serverHeld).toBe(false);
     act(() => void t.actions().commitCellValue({ rowId: "A0", columnId: "city" }, "After"));
     expect(t.cityOf("A0")).toBe("After");
+  });
+
+  it("reports no count of all matching rows while the rows are held", async () => {
+    const t = setup();
+    await waitFor(() => expect(t.cityOf("A0")).toBe("A-c0"));
+    act(() => void t.actions().selectAllMatching());
+    expect(t.selected()).toMatchObject({ mode: "allMatching", count: 7 });
+    t.park();
+    act(() => t.hook().gridProps.onSortChange([{ columnId: "qty", direction: "desc" }]));
+    await settle();
+    expect(t.selected()).toMatchObject({ mode: "allMatching", count: null });
+    await t.land();
+    expect(t.selected()).toMatchObject({ mode: "allMatching", count: 7 });
   });
 
   for (const variant of [
@@ -165,18 +196,28 @@ describe("a write while the old rows are held", () => {
     { name: "a sequential source without onSave", options: { sequential: true } },
     { name: "a sequential source with onSave", options: { sequential: true, onSave: true } },
   ] as { name: string; options: Options }[]) {
-    it(`keeps its value when the answer lands, under a readOnly override (${variant.name})`, async () => {
-      const t = setup({ ...variant.options, readOnly: false });
-      await waitFor(() => expect(t.cityOf("A0")).toBe("A-c0"));
-      t.park();
-      act(() => t.hook().gridProps.onSortChange([{ columnId: "qty", direction: "desc" }]));
-      await settle();
-      act(() => void t.actions().commitCellValue({ rowId: "A0", columnId: "city" }, "Held"));
+    it(`keeps a consumer updateCells write when the answer lands (${variant.name})`, async () => {
+      const t = setup(variant.options);
+      await holdOnSort(t);
+      act(() => void t.actions().updateCells([{ rowId: "A0", columnId: "city", value: "Held" }], { source: "edit" }));
       expect(t.cityOf("A0")).toBe("Held");
       await t.land();
       expect(t.cityOf("A0")).toBe("Held");
     });
   }
+
+  it("applies a replaceRowId that a save settling during the hold calls", async () => {
+    const t = setup({ onSave: true });
+    await waitFor(() => expect(t.cityOf("A0")).toBe("A-c0"));
+    act(() => void t.actions().commitCellValue({ rowId: "A0", columnId: "city" }, "Saving"));
+    await holdOnSort(t, "Saving");
+    act(() => {
+      t.saves[0]!();
+      t.actions().replaceRowId("A0", { id: "A9", region: "A", city: "Saving", qty: 1 });
+    });
+    expect(t.hook().providerProps.data.some((row) => row?.id === "A9")).toBe(true);
+    expect(t.changes.some((change) => change.source === "id-swap")).toBe(true);
+  });
 
   it("keeps the local value of a row that was saving before the spec changed", async () => {
     const t = setup({ onSave: true });
@@ -189,17 +230,33 @@ describe("a write while the old rows are held", () => {
     expect(t.cityOf("A0")).toBe("Saving");
   });
 
-  it("leaves no stray row when a push inserts or moves rows during the hold", async () => {
-    const t = setup({ readOnly: false });
-    await waitFor(() => expect(t.cityOf("A0")).toBe("A-c0"));
-    t.park();
-    act(() => t.hook().gridProps.onSortChange([{ columnId: "qty", direction: "desc" }]));
-    await settle();
+  it("leaves no stray row when a push inserts rows during the hold", async () => {
+    const t = setup();
+    await holdOnSort(t);
     const pushed = { id: "X1", region: "Z", city: "Z-c0", qty: 9 };
     act(() => t.hook().providerProps.onDataChange([pushed, ...(t.hook().providerProps.data as Row[])], { source: "stream", ops: [{ type: "insert", rowId: "X1", row: pushed, index: 0 }] } as never));
-    act(() => void t.actions().reorderRows(4, 0));
     await t.land();
     const ids = t.hook().providerProps.data.map((row) => row?.id);
     expect(ids.filter((id) => id !== undefined)).toEqual(["A0", "A1", "A2", "A3", "B0", "B1", "B2"]);
+  });
+});
+
+describe("a save before a switch between flat and grouped rows", () => {
+  it("keeps the saved value when the groups land, and refreshes the engine that answers", async () => {
+    const t = setup({ onSave: true });
+    await waitFor(() => expect(t.cityOf("A0")).toBe("A-c0"));
+    act(() => void t.actions().commitCellValue({ rowId: "A0", columnId: "city" }, "Saved"));
+    t.server.rows[0]!.city = "Saved";
+    act(() => t.hook().gridProps.onGroupByChange!(["region"]));
+    await waitFor(() => expect(t.hook().providerProps.groupLayout?.rows).toHaveLength(2));
+    act(() => t.actions().setExpanded({ mode: "collapsed", ids: [groupIdOf([{ columnId: "region", key: "A" }])] }));
+    act(() => t.hook().providerProps.onRenderedRowsChange?.({ start: 0, end: 12 }));
+    await waitFor(() => expect(t.cityOf("A0")).toBe("Saved"));
+    const sent = t.requests.length;
+    await act(async () => t.saves[0]!());
+    await settle();
+    expect(t.requests.slice(sent).length).toBeGreaterThan(0);
+    expect(t.requests.slice(sent).every((request) => request.childKind !== undefined)).toBe(true);
+    expect(t.cityOf("A0")).toBe("Saved");
   });
 });

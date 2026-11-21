@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { WithRowId } from "./read-answer";
 import { useScrollBlocks, type UseDataGridServerRowsScrollOptions } from "./scroll-blocks";
 import type { UseDataGridServerRowsScrollResult } from "./scroll-types";
@@ -22,9 +22,17 @@ export function useScrollRows<TData, TCursor = never>(options: Options<TData, TC
   const [grouping] = useState(() => groupsEnabled(options));
   const specState = useServerSpec(options, noop, grouping);
   const grouped = grouping && (specState.spec.groupBy?.length ?? 0) > 0;
-  const flatSpec = useMemo(() => (grouped ? { ...specState, ready: false } : specState), [grouped, specState]);
+  // A save settles in the engine whose plugins wrote it; the refresh it asks for goes to the engine that answers the spec.
+  const refreshFlat = useRef(noop);
+  const refreshGroups = useRef(noop);
+  const flatSpec = useMemo(() => (grouped ? { ...specState, ready: false, refreshElsewhere: () => refreshGroups.current() } : specState), [grouped, specState]);
+  const groupSpec = useMemo(() => ({ ...specState, refreshElsewhere: () => refreshFlat.current() }), [specState]);
   const flat = useScrollBlocks(options, flatSpec);
-  const groups = useGroupBlocks(options, specState, grouped);
+  const groups = useGroupBlocks(options, groupSpec, grouped);
+  useLayoutEffect(() => {
+    refreshFlat.current = flat.refresh;
+    refreshGroups.current = groups.result.refresh;
+  });
   const extra = useMemo(() => (grouping ? { ...groups.groupProps, groupBy: NO_GROUPS } : undefined), [grouping, groups.groupProps]);
   const gridProps = useMemo(() => (extra ? { ...flat.gridProps, ...extra } : flat.gridProps), [flat.gridProps, extra]);
   const providerProps = useMemo(() => (extra ? { ...flat.providerProps, ...extra } : flat.providerProps), [flat.providerProps, extra]);

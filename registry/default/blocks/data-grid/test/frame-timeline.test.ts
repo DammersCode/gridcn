@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { flashesIn, type FrameSample } from "./frame-timeline.test-helper";
 
-const frame = (patch: Partial<FrameSample>): FrameSample => ({ via: "frame", released: true, rows: "a\nb", placeholders: 0, groupRows: 0, empty: false, busy: false, header: "Name|Qty", rowCount: "3", colCount: "2", ...patch });
+const frame = (patch: Partial<FrameSample>): FrameSample => ({ via: "frame", released: true, rows: "a\nb", placeholders: 0, groupRows: 0, empty: false, busy: false, header: "Name|Qty", rowCount: "3", colCount: "2", readonlyCells: 0, ariaReadOnly: null, ...patch });
 
 const before = frame({});
 const after = frame({ rows: "b\na", header: "Qty|Name" });
@@ -18,6 +18,10 @@ describe("flashesIn", () => {
   it("flags an empty state before the release, even when the new state is empty", () => {
     const empty = frame({ rows: "", empty: true, rowCount: "1" });
     expect(flashesIn([frame({ released: false }), frame({ released: false, rows: "", empty: true, rowCount: "1" }), empty], before, empty)).toHaveLength(1);
+  });
+
+  it("flags a hold that flips the read-only markers of the cells or the root", () => {
+    expect(flashesIn([frame({ released: false, ariaReadOnly: "true" }), frame({ released: false, readonlyCells: 4 }), after], before, after)).toHaveLength(2);
   });
 
   it("flags a return to the old state after the new one", () => {

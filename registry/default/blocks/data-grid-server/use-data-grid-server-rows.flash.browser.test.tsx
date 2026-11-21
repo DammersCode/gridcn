@@ -96,7 +96,7 @@ const GRIDS: Setup[] = [
 type Ctx = { api: DataGridApi<Row>; server: Server; spec: ServerSpec; setSpec: (next: ServerSpec) => void; setLabels: (next: object) => void; grouped: boolean };
 type Action = { name: string; run: (ctx: Ctx) => void; applies?: (setup: Setup) => boolean; fetches?: boolean | ((setup: Setup) => boolean); lands?: (before: FrameSample, after: FrameSample, setup: Setup) => boolean | null };
 
-// A change that leaves fewer rows than the scroll position blanks one frame until the browser clamps the scroll; that case is open.
+// `V1`: a change that leaves fewer rows than the scroll position blanks one frame until the browser clamps the scroll; that case is open.
 const unscrolled = (setup: Setup) => setup.scrollTop === undefined;
 const rowsChange = (before: FrameSample, after: FrameSample) => after.rows !== before.rows;
 const headerChanges = (before: FrameSample, after: FrameSample) => after.header !== before.header;
