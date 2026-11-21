@@ -112,7 +112,7 @@ export function aggregateText(column: AnyColumnDef, value: unknown, cellTypes: R
   if (value === null || value === undefined) return "";
   const cellType = cellTypes[column.type ?? "text"];
   try {
-    const options = column.type === "number" && typeof value === "number" ? aggregateOptionsOf(column, locale) : column.options;
+    const options = column.type === "number" && (typeof value === "number" || typeof value === "string") ? aggregateOptionsOf(column, locale) : column.options;
     return toSafeText(cellType ? displayText(cellType as Parameters<typeof displayText>[0], value, options) : value);
   } catch {
     return toSafeText(value);

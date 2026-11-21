@@ -96,10 +96,10 @@ describe("a server layout", () => {
     expect(make({ groupLayout: { rows: [forged], leafCount: 1 } }).ids()[0]).toBe("__group:region=EU");
   });
 
-  it("reads a hostile aggregates bag as plain numbers and nulls", () => {
-    const aggregates = JSON.parse('{"qty":"x","__proto__":{"polluted":1},"n":3}') as Record<string, unknown>;
+  it("reads a hostile aggregates bag as plain numbers, short strings, and nulls", () => {
+    const aggregates = JSON.parse(`{"qty":{"x":1},"__proto__":{"polluted":1},"n":3,"sum":"123456789012345.67","name":"alpha","long":"${"x".repeat(1025)}"}`) as Record<string, unknown>;
     const node = make({ groupLayout: { rows: [slot(0, "EU", { aggregates })], leafCount: 1 } }).state().groupLayout!.rows[0]!;
-    expect(node.aggregates).toEqual({ qty: null, n: 3 });
+    expect(node.aggregates).toEqual({ qty: null, n: 3, sum: "123456789012345.67", name: "alpha", long: null });
     expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
   });
 });
