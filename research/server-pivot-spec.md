@@ -296,7 +296,7 @@ through the PGlite path and the same oracle, with the same `search_path` and ope
 
 - **Group bound (key-expression range, empty-group branch):**
   - Prisma: none (declined).
-  - Supabase: the same range on the key expression and the same empty-group branch, in SQL.
+  - Supabase: `key = ANY (SELECT k FROM page)` with the column type's equality, and the same empty-group branch, in SQL.
 - **Empty pivot key (`''` and NULL fold into one key):**
   - Prisma: cannot fold `''` into the empty key with `groupBy`. This is one reason it declines.
   - Supabase: `keys->>i` is NULL for the empty key, and `IS NOT DISTINCT FROM` matches it.

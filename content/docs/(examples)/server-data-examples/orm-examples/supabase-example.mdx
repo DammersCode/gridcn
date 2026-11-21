@@ -51,7 +51,7 @@ The client is the one in the [Drizzle example](/docs/server-data-examples/orm-ex
 
 ## The grid function [#grid-function]
 
-Set values, aggregates, groups, pivots, long URLs, and large reads run in the grid function. Run `grid-query.sql` once per database. After each update of the add-on, run it again. The file replaces the `gridcn` functions, and your wrappers keep their calls. Then create one wrapper per table. List the fields of the mapped columns in its allow-list:
+Set values, aggregates, groups, pivots, long URLs, and large reads run in the grid function. Run `grid-query.sql` once per database. After each update of the add-on, run it again. Your wrappers keep working. Then create one wrapper per table. List the fields of the mapped columns in its allow-list:
 
 ```sql title="supabase/migrations/items_grid.sql"
 create or replace function public.items_grid(plan jsonb)
@@ -70,7 +70,7 @@ grant execute on function public.items_grid(jsonb) to authenticated;
 
 Without `rpc`, these requests answer `unsupported`, and a long URL answers `limit-exceeded`.
 
-A pivot takes 1 to 4 `groupBy` levels. The grid function answers the pivot keys in one call and the cells of the page's groups in a second call. Each group row at each level holds the cells of its own rows. A `time` pivot column answers `unsupported`. On a local PostgreSQL 17 over PostgREST, a page of 200 groups with 200 pivot keys over 100,000 rows takes about 75 ms. Without the pivot, the same page takes about 55 ms.
+A pivot takes 1 to 4 `groupBy` levels. The grid function answers the pivot keys in one call and the cells of the page's groups in a second call. Each group row at each level holds the cells of its own rows. A `time` pivot column answers `unsupported`. One run on the maintainer's machine (PostgreSQL 17, PostgREST) measured these times. A page of 200 groups and 200 pivot keys over 100,000 rows took 75 ms, or 55 ms without the pivot.
 
 <Callout type="warn" title="Row-level security is the only tenancy boundary">
   Never make the wrapper or the `gridcn` functions SECURITY DEFINER. Row-level security then checks the owner, and the caller writes the plan. The function does not enforce `rowScope`. A direct caller reads every column of the allow-list, `serverOnly` columns included. Hide a column with a column GRANT. Never use the service role key in the route, because it bypasses row-level security.
@@ -84,6 +84,7 @@ A pivot takes 1 to 4 `groupBy` levels. The grid function answers the pivot keys 
 - LIKE filters on a native enum or uuid column answer `unsupported`.
 - `max_pivot_columns` (default 200) bounds the pivot cells per group. A wrapper can pass a lower value by name to `gridcn.grid_query`. The grid function then cuts the pivot keys, and `pivotOmitted` counts the cut columns. Keep it at or above the number of values of one request.
 - The grid function groups a `timestamp` or `timestamptz` column by its millisecond. A group drills to every row of its millisecond, such as the rows that `now()` filled.
+- Map scalar columns only. A group level on a composite column cannot open its groups, and an array pivot column fails with an error. A composite column mapped as `text` reads as `[object Object]`.
 
 ## Cursors, selection, and saves [#more-routes]
 

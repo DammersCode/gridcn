@@ -86,4 +86,8 @@ export async function expectArrayAndCompositeLevels(make: () => Query): Promise<
   expectCellsLike(await pivotOf(make(), drill), { ...drill, groupBy: ["tag", "qty"], path: [{ columnId: "tag", key: "red" }] }, { ordered: true });
   // A composite type has no default btree operator class, so the grid function refuses the equality of its key.
   await expect(pivotOf(make(), { groupBy: ["pair", "qty"], pivot: "active", path: [{ columnId: "pair", key: "(red)" }] })).rejects.toThrow(/no default btree operator class/);
+  // The empty pivot key compares the array column with '', which PostgreSQL cannot cast to an array.
+  await expect(pivotOf(make(), { groupBy: ["active"], pivot: "tags" })).rejects.toThrow(/malformed array literal/);
+  const rows = (await make().fetchRows({ spec: { sorts: [{ columnId: "id", direction: "asc" }] }, start: 0, end: 1 })) as { rows: Record<string, unknown>[] };
+  expect(rows.rows[0]!["pair"]).toBe("[object Object]");
 }

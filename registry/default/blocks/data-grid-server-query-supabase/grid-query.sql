@@ -1,5 +1,5 @@
 -- The grid function of the gridcn Supabase adapter: `createSupabaseGridQuery({ rpc: "items_grid" })`.
--- Run this file once per database, then create one wrapper per table (see the end of the file).
+-- Run this file once per database, and again after each update of the add-on; then create one wrapper per table (see the end of the file).
 --
 -- Trust: the plan comes from the CALLER. PostgREST exposes the wrapper, so any signed-in user can call it with any
 -- plan. The function does NOT enforce `rowScope`: row-level security is the only tenancy boundary. A direct caller can

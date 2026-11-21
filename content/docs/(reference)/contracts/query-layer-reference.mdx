@@ -128,6 +128,11 @@ SQLite sums a `decimal` column as a float, so the sum keeps about 15 significant
 
 `fetchRows` has the type `Promise<RowsAnswer | GroupsAnswer>`. A `capabilities.groupBy` of `false` answers `unsupported`. A group page with a text key longer than `maxGroupKeyLength` fails with `limit-exceeded` at `spec.groupBy.<columnId>`. The bound never goes above 1,024, which is what the grid accepts.
 
+Two capabilities set how an executor keys a `time` column:
+
+- `exactInstantKeys` (default `true`): the executor reads cursor keys and group keys of a `time` column exactly. `false` makes a cursor sort and a group level on a `time` column answer `unsupported`.
+- `millisecondInstantKeys` (default `false`): `selectGroups` cuts a `native` time key to its millisecond, and a group path holds the whole millisecond. Drizzle and Kysely on PostgreSQL set it, and so does Supabase. Without it, a group path compares the instant exactly, and a stored key with a digit after the millisecond answers `unsupported`.
+
 A groups request with `spec.pivot` also resolves `pivotColumns`, `pivotOmitted`, and `pivotCells` on each group. A `capabilities.pivot` of `false`, the default of an executor, answers `unsupported`. Drizzle, Kysely, and Prisma set it, and Supabase sets it with `rpc`.
 
 ## Errors [#errors]

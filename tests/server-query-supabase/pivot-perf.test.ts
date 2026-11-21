@@ -16,7 +16,7 @@ const KEYS = 200;
 const PAGE = 200;
 const FLOOR_MS = 150;
 const CAP_MS = 600;
-/** The budget in same-run fetches of the page without pivot, so load and coverage cannot fail it. */
+/** The budget in same-run fetches of the page without pivot, so load and coverage move it; the floor and the cap stay absolute. */
 const BUDGET_BASELINES = 3;
 const CI_FACTOR = process.env["CI"] === "true" ? 2 : 1;
 
