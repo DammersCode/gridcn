@@ -64,16 +64,26 @@ export function createGroupActions({ set, get, dataWrite, followView, memory }: 
     return { expanded, ...patch, ...anchorOnGroup(s, viewIndex, tree, patch) };
   };
 
+  // A server layout matches only the group columns it was built for, so the grid keeps them until the prop brings the new layout.
+  const heldForServer = (s: DataGridStoreState) => s.groupMode === "server" && s.groupByControlled;
+  const latestGroupBy = (s: DataGridStoreState) => (heldForServer(s) ? (memory.group.requestedGroupBy ?? s.groupBy) : s.groupBy);
+
   const commitGroupBy = (requested: readonly string[]): void => {
     const s = get();
     const groupBy = normalizeGroupBy(requested, s.columns);
-    if (sameGroupBy(groupBy, s.groupBy)) return;
+    if (sameGroupBy(groupBy, latestGroupBy(s))) return;
+    const resetPage = () => {
+      if (s.pageSize !== null && s.page !== 1) s.onPageChange?.(1);
+    };
+    if (heldForServer(s)) {
+      memory.group.requestedGroupBy = groupBy;
+      emitAfterWrites(dataWrite, () => s.onGroupByChange?.(groupBy), resetPage);
+      return;
+    }
     set((s2) => regroup(s2, groupBy));
     memory.lastSyncInputs = { ...memory.lastSyncInputs, groupBy };
     if (s.groupByControlled) rememberEmitted(memory.group.groupByEcho, groupBy);
-    emitAfterWrites(dataWrite, () => s.onGroupByChange?.(groupBy), () => {
-      if (s.pageSize !== null && s.page !== 1) s.onPageChange?.(1);
-    });
+    emitAfterWrites(dataWrite, () => s.onGroupByChange?.(groupBy), resetPage);
   };
 
   const commitPivot = (requested: PivotSpec | undefined): void => {
@@ -104,7 +114,7 @@ export function createGroupActions({ set, get, dataWrite, followView, memory }: 
   return {
     setGroupBy: commitGroupBy,
     toggleGroupBy(columnId) {
-      const { groupBy } = get();
+      const groupBy = latestGroupBy(get());
       commitGroupBy(groupBy.includes(columnId) ? groupBy.filter((id) => id !== columnId) : [...groupBy, columnId]);
     },
     setPivot: commitPivot,

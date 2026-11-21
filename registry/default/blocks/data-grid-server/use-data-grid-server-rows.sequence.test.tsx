@@ -307,10 +307,11 @@ describe("scroll mode, sequential: spec, aborts, and races", () => {
     expect(pending[1]!.signal.aborted).toBe(true);
     expect(pending[2]).toMatchObject({ cursor: undefined });
     expect(pending[2]!.spec.searchText).toBe("b");
-    expect(result.current.gridProps.data).toHaveLength(0);
+    const shown = result.current.gridProps.data;
+    expect(shown[0]?.name).not.toBe("b");
     report(result, view(5));
     await act(async () => pending[1]!.resolve());
-    expect(result.current.gridProps.data).toHaveLength(0);
+    expect(result.current.gridProps.data).toBe(shown);
     await act(async () => pending[2]!.resolve());
     await settled(result);
     expect(result.current.gridProps.data[0]?.name).toBe("b");

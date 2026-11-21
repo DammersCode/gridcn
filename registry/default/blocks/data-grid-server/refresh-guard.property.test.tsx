@@ -128,6 +128,8 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
   let filterNow = "";
   const pendingDeletes = new Set<string>();
   let shownLabel = "";
+  // A scroll source shows the rows of the old filter until the answers of the new one cover the rendered rows.
+  const holding = () => kind !== "pages" && scroll.providerProps.serverHeld === true;
   let editCount = 0;
   let localCount = 0;
   let fetchCalls = 0;
@@ -252,7 +254,8 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     const rows = data();
     const consistent = !dirty;
     const settledLocally = !shifted;
-    if (kind === "counted" || kind === "pages" || consistent) {
+    // The loaded ranges name the rows of the new filter, not the held rows on screen.
+    if (!holding() && (kind === "counted" || kind === "pages" || consistent)) {
       for (const { start, end } of loadedRanges()) {
         for (let i = start; i < Math.min(end, rows.length); i++) expect(rows[i], `hole at ${i}`).toBeDefined();
       }
@@ -270,6 +273,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     held.splice(held.indexOf(request), 1);
     if (request.signal.aborted) return;
     const preRows = data();
+
     const mustKeep = new Set([...request.saving0, ...request.savedSince, ...savingIds()]);
     if (state().editing) mustKeep.add(state().editing!.rowId);
     const gone = new Set([...request.deleted0, ...request.deletedSince, ...pendingDeletes]);
@@ -279,7 +283,8 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     request.land();
     await flush();
     shownLabel = request.label;
-    if (variant.indexIds) return;
+    // While the hook still shows the rows of the old filter, an answer lands out of sight: its slots are not on screen to check.
+    if (variant.indexIds || holding()) return;
     const post = data();
     const carriedIds = new Set(request.rows.map((row) => row.id));
     request.rows.forEach((carried, i) => {

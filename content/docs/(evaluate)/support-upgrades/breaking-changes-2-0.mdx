@@ -127,6 +127,7 @@ The props of 1.3 map to `checkedRowsLifetime` like this:
 | <span id="url-page-size" />URL page size | 25 | The first of `pageSizeOptions` (10) | To keep 25, pass `defaultPageSize: 25`. |
 | <span id="url-pagination-total" />URL pagination count | The `total` option | No count option. The pager clamps. | Delete `total`. |
 | <span id="query-fetchrows-union" />`fetchRows` of the query layer | Resolves `RowsAnswer` | Resolves `RowsAnswer | GroupsAnswer` | Narrow with `"groups" in answer` before you read `rows`. A `fetchRows` option of `useDataGridServerRows` needs no change. |
+| <span id="server-group-by-gesture" />Group gesture with server groups and a controlled `groupBy` | Regroups at once | Emits `onGroupByChange` and regroups when `groupBy` changes | Pass the value back as `groupBy`. |
 | <span id="query-sub-ms-instants" />Instant with a digit after the millisecond in the query layer | Cut to the millisecond | A filter answers `unsupported-value`. An import or write cell is a `too-many-decimals` refusal, and `rowScope` throws. | Cut the value to the millisecond before the import. |
 
 ## Exports and labels [#exports-add-ons]

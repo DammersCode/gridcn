@@ -2054,26 +2054,30 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "tests/parity/loading-error.parity.test.tsx"
+            "tests/parity/loading-error.parity.test.tsx",
+            "registry/default/blocks/data-grid/test/client-flash.timeline.browser.test.tsx"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/loading-error.parity.test.tsx"
+            "tests/parity/loading-error.parity.test.tsx",
+            "registry/default/blocks/data-grid/test/client-flash.timeline.browser.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/loading-error.parity.test.tsx"
+            "tests/parity/loading-error.parity.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.flash.browser.test.tsx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
             "content/docs/(server)/scroll-mode/recover-load-errors.mdx",
-            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.browser.test.tsx"
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.browser.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.flash.browser.test.tsx"
           ]
         },
         "C": {
@@ -2102,7 +2106,8 @@
           ]
         }
       },
-      "doc": "/docs/theme-style-language/loading-state"
+      "doc": "/docs/theme-style-language/loading-state",
+      "note": "A server spec change keeps the old rows on screen until the answers for the rendered rows land. Open: a change that leaves fewer rows than the scroll position blanks one frame (V1)."
     },
     {
       "id": "find-replace",

@@ -121,22 +121,25 @@ describe("selecting rows of a grouped server source", () => {
     expect(t.selected()).toMatchObject({ mode: "allMatching", count: 10 });
   });
 
-  it("swaps between grouped and ungrouped rows with an edit session open", async () => {
+  it("cancels an open edit session when the rows swap between grouped and ungrouped, as the held rows take no write", async () => {
     const t = setup();
     await t.ready();
     await t.open("A");
     await waitFor(() => expect(t.hook().providerProps.data[1]?.id).toBe("A0"));
     act(() => t.actions().startEditingAt({ row: 1, col: 0 }));
-    expect(t.state().editing).not.toBeNull();
+    expect(t.state().editing).toMatchObject({ rowId: "A0", columnId: "region" });
     act(() => t.hook().providerProps.onGroupByChange!([]));
     await waitFor(() => expect(t.hook().providerProps.data).toHaveLength(10));
     expect(t.hook().providerProps.groupLayout).toBeUndefined();
     expect(t.state().editing).toBeNull();
     expect(t.onEditEnd).toHaveBeenCalledTimes(1);
-    expect(t.onEditEnd).toHaveBeenCalledWith(expect.objectContaining({ rowId: "A0", result: "cancel" }));
+    expect(t.onEditEnd).toHaveBeenCalledWith(expect.objectContaining({ rowId: "A0", columnId: "region", result: "cancel" }));
+    act(() => t.actions().startEditingAt({ row: 0, col: 0 }));
+    expect(t.state().editing).toMatchObject({ rowId: "A0", columnId: "region" });
     act(() => t.hook().providerProps.onGroupByChange!(["region"]));
     await waitFor(() => expect(t.hook().providerProps.groupLayout?.rows).toHaveLength(2));
     expect(t.state().editing).toBeNull();
+    expect(t.onEditEnd).toHaveBeenCalledTimes(2);
   });
 });
 

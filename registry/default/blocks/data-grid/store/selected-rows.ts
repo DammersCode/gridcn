@@ -24,9 +24,9 @@ export type DataGridSelectedRows =
       spec: ServerSpec;
     };
 
-type Source = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "allMatching" | "data" | "viewIndex" | "getRowId" | "totalRowCount" | "sortState" | "filterState" | "filterJoin" | "searchText" | "groupLayout"> & Partial<Pick<DataGridStoreState, "groupMode">>;
+type Source = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "allMatching" | "data" | "viewIndex" | "getRowId" | "totalRowCount" | "sortState" | "filterState" | "filterJoin" | "searchText" | "groupLayout"> & Partial<Pick<DataGridStoreState, "groupMode" | "serverHeld">>;
 
-type CountSource = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "data" | "viewIndex" | "totalRowCount" | "groupLayout"> & Partial<Pick<DataGridStoreState, "groupMode">>;
+type CountSource = Pick<DataGridStoreState, "selection" | "hiddenCheckedRowIds" | "data" | "viewIndex" | "totalRowCount" | "groupLayout"> & Partial<Pick<DataGridStoreState, "groupMode" | "serverHeld">>;
 
 const excludedOutsideViewCache = new WeakMap<ReadonlySet<string>, { data: readonly unknown[]; viewIndex: readonly number[]; count: number }>();
 

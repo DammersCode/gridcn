@@ -47,6 +47,30 @@ export function useControlled<T>(controlled: T | undefined, initial: () => T, on
   return [controlled ?? inner, set, setInner] as const;
 }
 
+/** The result of the engine on screen while the other engine of a hand-off still loads. */
+type EngineResult = { loading: boolean; error: unknown; status: string; rootProps: object; providerProps: object; gridProps: object; retry: () => void; refresh: () => void; reshape: () => void };
+
+/**
+ * The rows of the engine on screen, read-only, with the state and the controls of the engine the spec asks for: a refresh or a
+ * retry reaches the engine that answers, and its failure shows next to the rows on screen.
+ */
+export function handOffResult<TResult extends EngineResult>(shown: TResult, requested: TResult): TResult {
+  const failed = requested.error !== null;
+  const root = { loading: !failed, error: requested.error, onRetry: requested.retry };
+  return {
+    ...shown,
+    loading: !failed,
+    error: requested.error,
+    status: failed ? "error" : "loading",
+    retry: requested.retry,
+    refresh: requested.refresh,
+    reshape: requested.reshape,
+    rootProps: { ...shown.rootProps, ...root },
+    providerProps: { ...shown.providerProps, serverHeld: true },
+    gridProps: { ...shown.gridProps, ...root, serverHeld: true },
+  };
+}
+
 /** Runs a consumer callback so that a throw cannot break the caller's bookkeeping. */
 export function isolate(label: string, call: () => void) {
   try {
@@ -110,7 +134,8 @@ export function useServerSpec(source: ServerSpecOptions, afterChange: () => void
 }
 
 /** The result of {@link useServerSpec}: the scroll hook takes it from its caller so the group engine and the flat engine share one spec. */
-export type ServerSpecState = ReturnType<typeof useServerSpec>;
+/** The spec of a hook, plus the refresh of the other engine while this one does not answer the spec. */
+export type ServerSpecState = ReturnType<typeof useServerSpec> & { refreshElsewhere?: () => void };
 
 const specOf = (seed?: Partial<ServerSpec>, groups = false): ServerSpec => ({
   sorts: [...(seed?.sorts ?? EMPTY_SPEC.sorts)],
