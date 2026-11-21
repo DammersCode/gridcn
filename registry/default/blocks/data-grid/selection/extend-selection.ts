@@ -10,6 +10,8 @@ export type ExtendSelectionOptions = {
   toEdge?: boolean;
   rowCount: number;
   colCount: number;
+  /** The column one step of `dx` from `col` lands on in `row`; one column without it. */
+  stepCol?: (col: number, dx: -1 | 1, row: number) => number;
 };
 
 /**
@@ -32,6 +34,8 @@ export function extendSelection(
   let right = range.x + range.width - 1;
   let top = range.y;
   let bottom = range.y + range.height - 1;
+  const focusRow = cell.row <= top ? bottom : top;
+  const step = (col: number, dx: -1 | 1) => (opts.stepCol ? opts.stepCol(col, dx, focusRow) : col + dx);
 
   // Each direction either grows the far edge (anchor sits on the opposite edge)
   // or shrinks the near edge back toward the anchor (anchor sits on this edge already).
@@ -65,9 +69,9 @@ export function extendSelection(
         left = 0;
         right = cell.col;
       } else if (cell.col >= right) {
-        left = Math.max(0, left - 1);
+        left = Math.max(0, step(left, -1));
       } else {
-        right = Math.max(cell.col, right - 1);
+        right = Math.max(cell.col, step(right, -1));
       }
       break;
     }
@@ -76,9 +80,9 @@ export function extendSelection(
         right = maxCol;
         left = cell.col;
       } else if (cell.col <= left) {
-        right = Math.min(maxCol, right + 1);
+        right = Math.min(maxCol, step(right, 1));
       } else {
-        left = Math.min(cell.col, left + 1);
+        left = Math.min(cell.col, step(left, 1));
       }
       break;
     }

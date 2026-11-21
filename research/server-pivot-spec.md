@@ -25,7 +25,7 @@ decision 9 ("strips elsewhere") is stale: server grouping runs in scroll mode an
   (`group-types.ts:54-64`).
 - `group-row.tsx` renders one read-only aggregate cell per virtualized column
   (`data-grid/rows/group-row.tsx:219`). The label covers the columns up to the first column with an
-  `aggregate` (`groupLabelSpan`, `:46`).
+  `aggregate` (`groupLabelSpan`, `data-grid/store/group-positions.ts:18`).
 - `GroupsPlan` (`data-grid-server-query/plan.ts:44`) runs through `selectGroups` and `countGroups`
   (`data-grid-server-query/create-grid-query.ts:66-67,263-264`) in all 4 adapters. The level
   direction comes from a sort on the group column (`parse-query.ts:207`).
@@ -414,7 +414,7 @@ Paths are relative to `registry/default/blocks/`. Behavior codes:
 | `data-grid/store/create-store.ts:1247` | R | Ctrl+Arrow edge detection (`isEmptyAt`) treats NaN as empty. Step 11 does not list it yet. |
 | `data-grid/interaction/dispatch-grid-action.ts:476` | R | The same edge detection on the keyboard path. Step 11 does not list it yet. |
 | `data-grid/rows/group-row.tsx:219` | R | A generated column cell shows the pivot cell, not `aggregates[column.id]`. |
-| `data-grid/rows/group-row.tsx:46` | S | `groupLabelSpan` stays 1: generated columns carry `aggregate`. |
+| `data-grid/store/group-positions.ts:18` | S | `groupLabelSpan` stays 1: generated columns carry `aggregate`. |
 | `data-grid/rows/group-row.tsx:156` | S | The label span is clamped to the visible columns. |
 | `data-grid/rows/group-row.tsx:169` | T | `aria-expanded` on a pivot row above the innermost level; none on an innermost row. |
 | `data-grid/rows/group-row.tsx:194` | T | `DataGridGroupToggle` on a pivot row above the innermost level; none on an innermost row. |

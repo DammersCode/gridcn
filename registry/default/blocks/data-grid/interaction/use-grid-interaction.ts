@@ -28,7 +28,7 @@ import { GRID_ATTR, gridAttrSelector } from "../data-attributes";
 import { isCellEditorEvent, markPortaledPointerDown, wasPortaledPointerDown } from "./portaled-events";
 import { type RowRangeGesture } from "../selection/row-range-gesture";
 import { getInternalActions } from "../store/internal-actions";
-import { groupRowExpandable } from "../store/group-positions";
+import { groupRowExpandable, stepColumn } from "../store/group-positions";
 import { groupIndexAt } from "../store/view-rows";
 import { isComposingKey } from "./is-composing-key";
 import { createLongPressTimer, isDoubleTap, isTap, movedBeyondSlop, type TapSample } from "./touch-gestures";
@@ -48,8 +48,9 @@ const isActivationKey = (event: ReactKeyboardEvent<HTMLElement>) =>
 /** A Tab bound to a move at the first or last column leaves the grid, so a remapped Tab never traps the keyboard. */
 function leavesGridOnTab(action: GridAction, key: string, state: DataGridStoreState): boolean {
   if (key !== "Tab" || !state.activeCell) return false;
-  const col = state.activeCell.col;
-  return (action === "moveRight" || action === "moveRightKeepSelection") ? col >= state.visibleColumns.length - 1 : (action === "moveLeft" || action === "moveLeftKeepSelection") && col <= 0;
+  const dx = action === "moveRight" || action === "moveRightKeepSelection" ? 1 : action === "moveLeft" || action === "moveLeftKeepSelection" ? -1 : 0;
+  const { col, row } = state.activeCell;
+  return dx !== 0 && stepColumn(state, row, col, dx) === col;
 }
 
 const KEEP_RANGE_SURFACES = (["cellEditor", "headerFilterPopup", "headerMenuPopup", "findReplacePanel", "commentsPopup", "contextMenu"] as const).map((name) => gridAttrSelector(name)).join(", ");

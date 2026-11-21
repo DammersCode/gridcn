@@ -8,7 +8,7 @@ import { pinnedInsetStyle } from "../columns/pinned-inset-style";
 import { keepsFocusOutsideGrid, SEARCH_MATCH_PAINT } from "../cell";
 import { GRID_ATTR, GRID_ROLE_SELECTOR } from "../data-attributes";
 import type { GroupLabelCtx, GroupNode } from "../group-types";
-import { cellLayer } from "../layers";
+import { cellLayer, GRID_LAYER } from "../layers";
 import { useDataGridRootContext, type GridColumnLayout, type GroupLabelRenderer, type RenderedColumn } from "../layout-context";
 import { colRangesContain } from "../selection/selected-col-ranges-for-row";
 import {
@@ -20,6 +20,7 @@ import {
   useDataGridVisibleColumns,
   type AnyColumnDef,
 } from "../store";
+import { groupLabelSpan } from "../store/group-positions";
 import { aggregateText, isPivotColumn, pivotCellOf } from "../store/pivot-view";
 import type { RowMarkersMode } from "../types";
 import { DataGridGroupToggle } from "./group-toggle";
@@ -41,17 +42,15 @@ export type DataGridGroupRowProps = {
 };
 
 
-/** How many visible columns the label covers: up to the first `aggregate` column, at least one. */
-export function groupLabelSpan(columns: readonly Pick<AnyColumnDef, "aggregate">[]): number {
-  const firstAggregate = columns.findIndex((column) => column.aggregate !== undefined);
-  return Math.max(1, firstAggregate === -1 ? columns.length : firstAggregate);
-}
-
 // srgb mixes composite exactly like the translucent row tint and selection overlay they stand in for.
 const GROUP_TINT = "bg-[color-mix(in_srgb,var(--color-muted)_40%,var(--color-background))] group-data-hovered/row:bg-[color-mix(in_srgb,var(--color-muted)_60%,var(--color-background))]";
 // An opaque group cell above the selection overlay paints the overlay's tint itself.
 const GROUP_SELECTED_TINT =
   "bg-[color-mix(in_srgb,var(--color-primary)_10%,color-mix(in_srgb,var(--color-muted)_40%,var(--color-background)))] group-data-hovered/row:bg-[color-mix(in_srgb,var(--color-primary)_10%,color-mix(in_srgb,var(--color-muted)_60%,var(--color-background)))]";
+
+// The label draws its own ring: it spans its columns and scrolls like an unpinned cell while it ranks with pinned ones.
+const LABEL_RING =
+  "after:pointer-events-none after:absolute after:inset-0 after:ring-2 after:ring-inset after:ring-primary forced-colors:after:outline-2 forced-colors:after:-outline-offset-2 forced-colors:after:outline-[Highlight]";
 
 const aggregateOf = (node: GroupNode, column: AnyColumnDef): unknown => (isPivotColumn(column) ? pivotCellOf(node, column) : node.aggregates[column.id]);
 
@@ -82,7 +81,8 @@ function GroupCell({ viewRowIndex, col, columnId, startTrack, span, isActive, is
   }, [isActive]);
   const style: CSSProperties = {
     gridColumn: span === undefined ? startTrack : `${startTrack} / span ${span}`,
-    zIndex: span === undefined ? cellLayer(pin !== undefined, isActive) : cellLayer(true, isActive),
+    // The label ranks with pinned cells, never above them, so a pinned column scrolled over it covers it and its ring.
+    zIndex: span === undefined ? cellLayer(pin !== undefined, isActive) : GRID_LAYER.pinnedCell,
     ...pinnedInsetStyle(pin, col),
   };
   return (
@@ -99,7 +99,7 @@ function GroupCell({ viewRowIndex, col, columnId, startTrack, span, isActive, is
       data-active={isActive || undefined}
       data-search-match={isSearchMatch || undefined}
       data-readonly=""
-      className={cn("relative flex items-center border-b border-border px-2 outline-none", COLUMN_BORDER, span === undefined && "overflow-hidden", className)}
+      className={cn("relative flex items-center border-b border-border px-2 outline-none", COLUMN_BORDER, span === undefined ? "overflow-hidden" : isActive && LABEL_RING, className)}
       style={style}
       onPointerDown={(event) => interaction.onCellPointerDown(coord, event)}
       onClick={(event) => interaction.onCellClick(coord, event)}
@@ -144,8 +144,6 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
   const labelActive = cellState.activeCol !== null && cellState.activeCol < span;
   const labelRangeSelected = cellState.selectedColRanges.some(([start]) => start < span);
   const labelSelected = labelActive || labelRangeSelected;
-  // The label always sits on a pinned layer; a pinned overlay segment covers it unless the label is active.
-  const labelPaintsSelection = labelRangeSelected && (labelActive || visibleColumns[0]?.pin === undefined);
   return (
     <div
       ref={rowRef}
@@ -174,7 +172,7 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
         <span
           data-grid-group-label=""
           style={{ paddingInlineStart: `calc(var(--grid-group-indent, 1rem) * ${node.depth})`, insetInlineStart: "var(--grid-scroll-left, 0px)" }}
-          className={cn("relative flex min-w-0 items-center gap-1", GROUP_TINT, labelPaintsSelection && GROUP_SELECTED_TINT)}
+          className={cn("relative flex min-w-0 items-center gap-1", GROUP_TINT, labelRangeSelected && GROUP_SELECTED_TINT)}
         >
           {expandable && <DataGridGroupToggle groupId={node.id} label={labelText} expanded={expanded} />}
           <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
