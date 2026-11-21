@@ -296,7 +296,7 @@ through the PGlite path and the same oracle, with the same `search_path` and ope
 
 - **Group bound (key-expression range, empty-group branch):**
   - Prisma: none (declined).
-  - Supabase: the same range on the key expression and the same empty-group branch, in SQL.
+  - Supabase: `key = ANY (SELECT k FROM page)` with the column type's equality, and the same empty-group branch, in SQL.
 - **Empty pivot key (`''` and NULL fold into one key):**
   - Prisma: cannot fold `''` into the empty key with `groupBy`. This is one reason it declines.
   - Supabase: `keys->>i` is NULL for the empty key, and `IS NOT DISTINCT FROM` matches it.
@@ -330,8 +330,23 @@ through the PGlite path and the same oracle, with the same `search_path` and ope
 
 The full fetch meets the 150 ms budget with about 30 ms to spare on PGlite. A separate key-count
 query costs about 42 ms more and misses it. Not measured: multi-level `groupBy` under pivot,
-decimal value columns, a selective `where`, PostgREST over HTTP, and `FILTER (WHERE ...)` in place
-of `CASE`.
+decimal value columns, and a selective `where`.
+
+Supabase, the same shape, fastest of 6 to 8 warm runs. The PGlite column is
+`tests/server-query-supabase/pivot-perf.test.ts`; the PostgREST column is one local run of the same
+table and requests, with no committed test:
+
+| Call | PGlite, calls in series | PostgreSQL 17 over PostgREST v16.6 (local docker, one run) |
+|---|---|---|
+| `pivotKeys` | 23 ms | 11 ms |
+| `groups` with pivot (`FILTER (WHERE ...)` cells) | 90 ms | 62 ms |
+| `groups` without pivot | 42 ms | 21 ms |
+| `groupCount` | 84 ms | 54 ms |
+| Full `fetchGroups` with pivot / without | 216 / 139 ms | 74 / 54 ms |
+
+Each grid function call stays under 150 ms. The PGlite fetch is over it because PGlite runs the
+cells call, `groupCount`, and `count` in series; PostgREST runs them side by side. `groupCount`
+(`count(DISTINCT key)`) is the slowest call without pivot, so the timings ask for no change to grid-query.sql. A GROUP BY count runs in about a quarter of its time.
 
 ## Client parity gaps
 
