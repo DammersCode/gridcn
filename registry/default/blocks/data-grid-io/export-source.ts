@@ -68,7 +68,7 @@ export type ExportResult = {
 /** Resolved limits and callbacks of one source export. */
 export type ExportRowsOptions<TData = unknown> = {
   source: ExportSource;
-  /** Column ids to write, in order; default the visible columns. An unknown id throws before the source runs. */
+  /** Column ids to write, in order; default the visible columns, or the source columns under pivot. An unknown id throws before the source runs. */
   columns?: readonly string[];
   formatCell?: FormatExportCell<TData>;
   /** Cell text source: `"export"` uses the cell type's `toText` (default), `"display"` its display text (print). */

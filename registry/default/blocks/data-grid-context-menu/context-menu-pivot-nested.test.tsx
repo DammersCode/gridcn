@@ -11,7 +11,7 @@ beforeAll(() => {
   Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 2000 });
 });
 
-function renderGrid() {
+function renderGrid(menuProps: Parameters<typeof DataGridContextMenu>[0] = {}) {
   const layout = twoLevelLayout();
   const props = {
     data: Array.from({ length: 7 }, () => undefined),
@@ -25,7 +25,7 @@ function renderGrid() {
   } as unknown as Parameters<typeof DataGridProvider>[0];
   render(
     <DataGridProvider {...props}>
-      <DataGridContextMenu>
+      <DataGridContextMenu {...menuProps}>
         <DataGridRoot aria-label="Sales">
           <DataGridHeader />
           <DataGridBody />
@@ -65,9 +65,16 @@ describe("the context menu on nested pivot rows", () => {
     expect(await openOn(active)).toEqual([COPY]);
   });
 
-  it("offers no Group by on a generated column header", async () => {
+  const generatedHeader = () => screen.getAllByRole("columnheader").find((header) => header.getAttribute("data-column-id")?.startsWith("__pivot:"))!;
+
+  it("leaves a generated column header to the browser menu, so no empty menu and no Group by opens", async () => {
     renderGrid();
-    const generated = screen.getAllByRole("columnheader").find((header) => header.getAttribute("data-column-id")?.startsWith("__pivot:"))!;
-    expect(await openOn(generated)).not.toContainEqual(expect.stringMatching(/group/i));
+    expect(fireEvent.contextMenu(generatedHeader())).toBe(true);
+    expect(document.querySelector("[data-grid-context-menu]")).toBeNull();
+  });
+
+  it("opens the items of a consumer resolver on a generated column header", async () => {
+    renderGrid({ getHeaderMenuItems: (_ctx, defaults) => [...defaults, { id: "note", label: "Note" }] });
+    expect(await openOn(generatedHeader())).toEqual(["Note"]);
   });
 });

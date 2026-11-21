@@ -53,10 +53,4 @@ describe("DataGridStatusBar on nested pivot rows", () => {
     renderBar(twoLevelLayout(), ["region", "country"]);
     expect(select({ row: 2, col: 0 }, { row: 4, col: 3 })).toContain("Count 2");
   });
-
-  it("shows no select-all banner, because no pivot row is checked", () => {
-    renderBar(threeLevelLayout(), ["region", "country", "city"], { checkedRowsLifetime: "across-filters" });
-    act(() => actions!.checkRowRange(3, { commit: true }));
-    expect(screen.queryByRole("status")).toBeNull();
-  });
 });

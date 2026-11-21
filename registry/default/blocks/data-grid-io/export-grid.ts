@@ -108,7 +108,7 @@ export type ExportGridOptions<TData = unknown> = ExportShapeOptions<TData> & {
   sheetName?: string;
   /** Caps the number of data rows exported (the header row is not counted); when the scope exceeds the cap, the export is truncated with a dev-only warning. With `source` the default is 1,000,000, and an xlsx file also stops at the Excel sheet limit and at 5,000,000 cells. */
   maxRows?: number;
-  /** Where the rows of the whole result come from, for a grid that holds one page or some loaded blocks. With `source` the export ignores `scope` and the held rows; the grid's `spec` goes to the source. */
+  /** Where the rows of the whole result come from, for a grid that holds one page or some loaded blocks. With `source` the export ignores `scope` and the held rows; the grid's `spec` goes to the source. Under pivot it writes the source columns and never reads the pivot view. */
   source?: ExportSource;
   /** With `source`: stop after the slice of rows that passes this many bytes of file text (xlsx: characters); default 256 MiB. The export keeps what it has and reports `truncated` when more rows follow. */
   maxBytes?: number;

@@ -34,7 +34,7 @@ export type PrintGridOptions = {
   maxRows?: number;
   /** Reading direction of the printed page. Default: the direction of the page that calls print. */
   direction?: GridDirection;
-  /** Where the rows come from, for a grid that holds one page or some loaded blocks. With `source` the print ignores `scope` and the held rows. It receives the same context as the export source, and the `maxRows` and cell bounds apply. */
+  /** Where the rows come from, for a grid that holds one page or some loaded blocks. With `source` the print ignores `scope` and the held rows. It receives the same context as the export source, and the `maxRows` and cell bounds apply. Under pivot it prints the source columns and never reads the pivot view. */
   source?: ExportSource;
   /** Header text per column id, replacing the column's label. A column without an entry keeps its label. */
   headers?: Readonly<Record<string, string>>;

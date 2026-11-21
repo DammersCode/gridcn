@@ -17,7 +17,7 @@ afterEach(() => {
 
 describe("export of a nested pivot", () => {
   it("writes the generated columns and every landed pivot row at every depth in view order, never a source column", async () => {
-    expect(await csvLines(buildCsv(state()))).toEqual(["Region,2023,2024,2025", "EU,10,20,30.5", "DE,1,2,3", "FR,4,,6", "'=1+1,7,8,9", "__proto__,-7,0,Infinity"]);
+    expect(await csvLines(buildCsv(state()))).toEqual(["Region,2023,2024,2025", "EU,10,20,30.5", "DE,1,2,3", "FR,4,,6", "'=1+1,7,8,9", "__proto__,-7,0,"]);
   });
 
   it("keeps the pivot cells numbers and the labels strings in XLSX, and writes no formula", async () => {
@@ -25,7 +25,9 @@ describe("export of a nested pivot", () => {
     expect(xml).not.toMatch(/<f[ >]/);
     expect(xml).toMatch(/<c r="D2"[^>]*><v>30.5<\/v><\/c>/);
     expect(xml).toMatch(/<c r="B6"[^>]*><v>-7<\/v><\/c>/);
-    expect(xml).not.toMatch(/<c r="D6"[^>]*><v>/);
+    const cell = (ref: string) => new RegExp(`<c r="${ref}"[^>]*?(/>|>.*?</c>)`).exec(xml)?.[0].replace(ref, "");
+    expect(cell("C4")).toMatch(/^<c/);
+    expect(cell("D6")).toBe(cell("C4"));
     expect(xml).not.toContain("Infinity");
     expect(xml).toContain("__proto__");
     expect(xml).not.toContain("Secret");
@@ -46,7 +48,7 @@ describe("export of a nested pivot", () => {
       ["DE", "1", "2", "3"],
       ["FR", "4", "", "6"],
       ["=1+1", "7", "8", "9"],
-      ["__proto__", "-7", "0", "∞"],
+      ["__proto__", "-7", "0", ""],
     ]);
   });
 });

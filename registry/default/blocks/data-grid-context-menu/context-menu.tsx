@@ -8,7 +8,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { useDataGridActions } from "@/registry/default/blocks/data-grid/data-grid";
-import { GRID_ROLE_SELECTOR, dataIndexAt, gridAttrSelector, pluginCellMenuItems, rowAtViewRow, rowIdAtViewRow, useDataGridStoreApi, viewEntryAt, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { GRID_ROLE_SELECTOR, dataIndexAt, gridAttrSelector, isPivotColumn, pluginCellMenuItems, rowAtViewRow, rowIdAtViewRow, useDataGridStoreApi, viewEntryAt, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { resolveContextMenuTarget, type ContextMenuTarget } from "./resolve-context-menu-target";
 import { isCellInSelection } from "./selection-queries";
 import {
@@ -167,7 +167,9 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
       // the DOM carries only view-index coords; the stable row id and the selection both come off
       // the store at event time.
       const s = storeApi.getState();
-      let next: MenuTarget | null = resolved?.kind === "header" ? resolved : null;
+      // A generated column has no built-in header item, so only a consumer resolver gives it a menu.
+      const headerMenu = resolved?.kind === "header" && (getHeaderMenuItems !== undefined || !isPivotColumn(s.visibleColumns[resolved.col]));
+      let next: MenuTarget | null = resolved?.kind === "header" && headerMenu ? resolved : null;
       if (resolved?.kind === "cell") {
         const entry = viewEntryAt(s, resolved.row);
         if (entry.kind === "group") next = { ...resolved, rowId: rowIdAtViewRow(s, resolved.row)!, group: true };
@@ -186,7 +188,7 @@ export function DataGridContextMenu(props: DataGridContextMenuProps): ReactNode 
         actions.selectCellAt({ row: next.row, col: next.col });
       }
     },
-    [actions, storeApi],
+    [actions, getHeaderMenuItems, storeApi],
   );
 
   const onOpenChange = useCallback((open: boolean, eventDetails: ContextMenuPrimitive.Root.ChangeEventDetails) => {
