@@ -355,7 +355,7 @@ cells call, `groupCount`, and `count` in series; PostgREST runs them side by sid
 | `S11-L` | L and PC: pivot needs a server. Client buckets are a separate engine. |
 | `S11-M` | Closed: the layer and the server hook take 1 to 4 levels with subtotals. |
 | `S11-P` | Closed: Prisma pivots through the object API; it refuses a PostgreSQL native enum pivot column and SQLite decimal `sum`, `min`, and `max`. |
-| `S11-UI` | Out of scope: a pivot chooser, a sort list, and menu items for pivot. |
+| `S11-UI` | Closed: the header menu offers Pivot by and Turn off pivot, the sort list offers the pivot column, and the server hook takes the pivot props. A generated column has no menu. |
 | `S11-V` | Out of scope: widths of generated columns in saved views. |
 
 The PR body lists these ids. No follow-up issue exists yet.
@@ -459,7 +459,7 @@ Paths are relative to `registry/default/blocks/`. Behavior codes:
 | `data-grid-context-menu/menu-items.tsx:178` | S | Row id lookup. |
 | `data-grid-context-menu/menu-items.tsx:195` | S | Expand all is client only. |
 | `data-grid-context-menu/menu-items.tsx:222` | W | Server groups hide insert, duplicate, and delete, so a pivot row offers no write item. |
-| `data-grid-context-menu/menu-items.tsx:307` | T | The group-by items offer nothing on a generated column. Other pivot menu items are `S11-UI`. |
+| `data-grid-context-menu/menu-items.tsx:307` | T | A generated column has no menu: the group-by and pivot items need a registry column. |
 | `data-grid-comments/comment-popover.tsx:71` | W | No comment on a pivot cell. |
 | `data-grid-comments/comments-mount.tsx:68` | W | No comment on a pivot cell. |
 | `data-grid-comments/comments-overlay.tsx:107` | S | Markers for data rows only. |

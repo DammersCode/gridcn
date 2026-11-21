@@ -90,7 +90,7 @@ To follow the browser language, read `navigator.language` after mount and pass i
 
 ## Sort list
 
-`DataGridSortList` belongs in a `DataGridToolbar`. The button shows a count badge once a sort is active. Each row of the popover has a column select, a direction select, a remove button, and a drag handle. A column appears in one row only, and `sortable: false` columns do not appear. The popover also has "Add sort" and "Clear all" buttons.
+`DataGridSortList` belongs in a `DataGridToolbar`. The button shows a count badge once a sort is active. Each row of the popover has a column select, a direction select, a remove button, and a drag handle. A column appears in one row only, and `sortable: false` columns do not appear. The popover also has "Add sort" and "Clear all" buttons. Under a pivot, the list offers the pivot column with the name from `labels.pivot.sortColumn`, and its sort orders the generated columns. Generated columns do not appear.
 
 The list reads and writes the same state as the headers, so both stay in step. The order of the rows is the sort precedence.
 

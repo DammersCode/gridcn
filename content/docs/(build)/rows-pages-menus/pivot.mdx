@@ -102,9 +102,15 @@ Each of these warns once in development, with the prefix `[data-grid] `. Each te
 
 `onPivotChange` fires after `setPivot` changes the pivot. When the pivot turns off, it fires with `{ columnIds: [] }`. The action `setPivot` from `useDataGridActions` sets the pivot column. `setPivot(undefined)` turns it off. A `defaultPivot` function runs once on the client after mount.
 
+## Menu and sort list [#menu]
+
+- The [context menu](/docs/rows-pages-menus/context-menu) add-on adds **Pivot by** and **Turn off pivot** to the header menu while `groupBy` is set. The last **Ungroup** turns the pivot off too.
+- Under a pivot, [`DataGridSortList`](/docs/sort-filter-search/sorting) offers the pivot column. Its sort orders the generated columns.
+- `labels.pivot.pivotBy`, `labels.pivot.turnOff`, and `labels.pivot.sortColumn` name these items.
+
 ## Server mode [#server-mode]
 
-`useDataGridServerRows` pivots on your server. Set `spec.pivot` together with `groupBy` and `aggregates`. Each groups request carries `spec.pivot`, and the server answers `pivotColumns` and one `pivotCells` list per group. [Pivot server rows](/docs/data-modes/pivot-server-rows) lists the request, the answer, and the checks.
+`useDataGridServerRows` pivots on your server. Set `spec.pivot` together with `groupBy` and `aggregates`, or pass the hook the same `pivot`, `defaultPivot`, and `onPivotChange` props. Each groups request carries `spec.pivot`, and the server answers `pivotColumns` and one `pivotCells` list per group. [Pivot server rows](/docs/data-modes/pivot-server-rows) lists the request, the answer, and the checks.
 
 ## Related
 
