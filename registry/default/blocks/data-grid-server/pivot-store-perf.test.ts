@@ -26,7 +26,7 @@ describe("pivot store perf", () => {
     let stamp = 0;
     const landOne = (block: number) => {
       const range = { start: block * BLOCK, end: (block + 1) * BLOCK };
-      const read = readGroupsAnswer(answers[block], range, { topLevel: true, aggregateIds: ["qty"] }, () => {});
+      const read = readGroupsAnswer(answers[block], range, { topLevel: true, aggregates: [{ columnId: "qty", reducer: "sum" }] }, () => {});
       landPivotGroups(store, top, block, answers[block], read, OPTIONS, ++stamp, () => {});
       evictPivotCells(store, (_, kept) => kept === block);
       return layoutView(store, () => false, () => undefined);

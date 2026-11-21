@@ -9,15 +9,20 @@ import { DataGridHeaderFilter } from "@/registry/default/blocks/data-grid-toolba
 import type { LoggedQuery, QueryDemoRow } from "./data-grid-server-query-demo-db";
 
 const columnDefs = defineColumns<QueryDemoRow>()([
-  { id: "id", header: "Id", accessorKey: "id", type: "number", width: 80 },
-  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 150, flex: 1 },
-  { id: "email", header: "Email", accessorKey: "email", type: "text", width: 220, flex: 1 },
-  { id: "role", header: "Role", accessorKey: "role", type: "select", width: 100 },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 90 },
-  { id: "active", header: "Active", accessorFn: (row) => row.active === true, type: "checkbox", width: 80 },
+  { id: "id", header: "Id", accessorKey: "id", type: "number", width: 70 },
+  { id: "soldOn", header: "Sold on", accessorKey: "soldOn", type: "date", width: 110 },
+  { id: "customer", header: "Customer", accessorKey: "customer", type: "text", width: 140, flex: 1 },
+  { id: "region", header: "Region", accessorKey: "region", type: "select", width: 90 },
+  { id: "dealership", header: "Dealership", accessorKey: "dealership", type: "select", width: 160 },
+  { id: "salesperson", header: "Salesperson", accessorKey: "salesperson", type: "text", width: 130 },
+  { id: "make", header: "Make", accessorKey: "make", type: "select", width: 90 },
+  { id: "model", header: "Model", accessorKey: "model", type: "text", width: 90 },
+  { id: "price", header: "Price", accessorKey: "price", type: "number", width: 90 },
+  { id: "discount", header: "Discount", accessorKey: "discount", type: "number", width: 90 },
+  { id: "financed", header: "Financed", accessorKey: "financed", type: "checkbox", width: 90 },
 ] as const);
 
-const HOSTILE_FILTER = { filterId: "hostile", columnId: "name", operator: "contains", value: "'; DROP TABLE users; --" };
+const HOSTILE_FILTER = { filterId: "hostile", columnId: "customer", operator: "contains", value: "'; DROP TABLE car_sales; --" };
 
 type Demo = Awaited<ReturnType<typeof import("./data-grid-server-query-demo-db").createQueryDemo>>;
 

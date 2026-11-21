@@ -223,7 +223,7 @@ export function useGroupBlocks<TData, TCursor = never>(
     const stamp = ++getEngine().tick;
     if (list.kind === "groups") {
       const { pivot: columnId, spec: { aggregates = [] } } = live.current;
-      const read = readGroupsAnswer(answer, range, { topLevel: list.id === "", aggregateIds: aggregates.map((aggregate) => aggregate.columnId) }, warn);
+      const read = readGroupsAnswer(answer, range, { topLevel: list.id === "", aggregates }, warn);
       const landed = store.pivot && columnId !== null ? landPivotGroups(store, list, flight.block, answer, read, { columnId, values: aggregates }, stamp, warn) : landGroups(store, list, flight.block, read.groups, read.groupCount, stamp);
       if (landed === "failed") return new TypeError("fetchRows answered groups that shifted twice since the last reload; make the group order total");
       if (list.id === "" && read.totalRowCount !== undefined) store.leafCount = read.totalRowCount;

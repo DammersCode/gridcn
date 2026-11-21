@@ -29,6 +29,48 @@ describe("number display formatting", () => {
     expect(toDisplayText(1.234, { format: { style: "currency", currency: "USD" }, decimals: 2 })).toBe("$1.23");
   });
 
+  it("formats an exact decimal string without a round trip through Number", () => {
+    expect(toDisplayText("12345678901234567.89" as never, { format: { style: "decimal" } })).toBe("12,345,678,901,234,567.89");
+    expect(toDisplayText("12345678901234567.885" as never, { format: { style: "currency", currency: "USD" }, decimals: 2 })).toBe("$12,345,678,901,234,567.89");
+    expect(toDisplayText("-0.001" as never, { format: { style: "decimal" }, decimals: 2 })).toBe("0.00");
+    expect(numberCellType.toText("12345678901234567.885" as never, { decimals: 2 })).toBe("12345678901234567.89");
+    expect(numberCellType.toText("12345678901234567.80" as never)).toBe("12345678901234567.80");
+    expect(numberCellType.toText("12.50" as never, { decimals: 2 })).toBe("12.50");
+  });
+
+  it("rounds a decimal string like a number: half up, never -0", () => {
+    for (const text of ["-0", "-0.00", "-0.001"]) {
+      expect(numberCellType.toText(text as never, { decimals: 2 }), text).toBe("0");
+      expect(toDisplayText(text as never, { format: { style: "decimal" }, decimals: 2 }), text).toBe("0.00");
+    }
+    for (const [text, number] of [["-1.5", -1.5], ["-2.5", -2.5], ["2.5", 2.5], ["-0.5", -0.5]] as const) {
+      expect(numberCellType.toText(text as never, { decimals: 0 }), text).toBe(numberCellType.toText(number, { decimals: 0 }));
+    }
+  });
+
+  it("keeps a string with spaces or other digits as its text", () => {
+    for (const text of [" 1", "١٢٣"]) {
+      expect(numberCellType.toText(text as never, { decimals: 2 })).toBe(text);
+      expect(toDisplayText(text as never, { format: { style: "decimal" }, decimals: 2 })).toBe(text);
+    }
+  });
+
+  it("shows a string that is not a decimal, or is over 1,024 characters, as its text", () => {
+    const long = "1".repeat(100_000);
+    expect(toDisplayText(long as never, { format: { style: "decimal" }, decimals: 2 })).toBe(long);
+    expect(toDisplayText("1e5" as never, { format: { style: "decimal" } })).toBe("1e5");
+    expect(numberCellType.toText("abc" as never, { decimals: 2 })).toBe("abc");
+  });
+
+  it("formats numbers exactly as before", () => {
+    expect(toDisplayText(1.005, { format: { style: "decimal" }, decimals: 2 })).toBe("1.01");
+    expect(toDisplayText(-1.5, { format: { style: "decimal" }, decimals: 0 })).toBe("-1");
+    expect(toDisplayText(-0.001, { format: { style: "decimal" }, decimals: 2 })).toBe("0.00");
+    expect(numberCellType.toText(1.005, { decimals: 2 })).toBe("1.01");
+    expect(numberCellType.toText(-1.5, { decimals: 0 })).toBe("-1");
+    expect(numberCellType.toText(12.5, { decimals: 2 })).toBe("12.5");
+  });
+
   it("keeps explicit fraction-digit options over decimals", () => {
     expect(toDisplayText(1.234, { format: { style: "currency", currency: "USD", minimumFractionDigits: 0 }, decimals: 2 })).toBe(
       new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(1.23),

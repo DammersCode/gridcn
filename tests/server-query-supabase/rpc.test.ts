@@ -131,6 +131,13 @@ describe("the grid function answers what the Drizzle renderer answers on the sam
     }
   });
 
+  it("answers float aggregates as numbers, like Drizzle", async () => {
+    const request = { spec: { groupBy: ["tag"], aggregates: [{ columnId: "scoreSum", reducer: "sum" }] }, start: 0, end: 50, childKind: "groups" };
+    const answer = (await supabase({ groups: true }).fetchRows(request)) as unknown as { groups: { aggregates: Record<string, unknown> }[] };
+    expect(answer.groups.map((group) => typeof group.aggregates["scoreSum"])).not.toContain("string");
+    expect(answer).toEqual(await drizzle.make({ groups: true }).fetchRows(request));
+  });
+
   it("selection ids under rowScope", async () => {
     const selection = { selection: { mode: "allMatching", excludedIds: ["1", "5"], spec: { filters: [{ columnId: "qty", operator: "gte", value: "0" }] } }, include: "ids", start: 0, end: 100 };
     const context = { context: { tenantId: 1 } };

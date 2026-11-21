@@ -314,7 +314,7 @@ describe.each(opened.map((setup) => [setup.engine, setup] as const))("Prisma on 
     const values = await query.filterValues({ columnId: "label", query: "", filters: [] }, tenantOne);
     expect(values.values.reduce((sum, entry) => sum + (entry.count ?? 0), 0)).toBe(mine.length);
     const totals = await query.aggregates({ spec: {}, columnIds: ["big"] }, tenantOne);
-    expect(totals["big"]).toBe(Number("36028797018963972"));
+    expect(totals["big"]).toBe("36028797018963972");
     const groups = await groupsOf(query, { groupBy: ["mood", "label"] }, { start: 0, end: 10 }, [], tenantOne);
     expect(groups.groups.reduce((sum, group) => sum + group.totalRowCount, 0)).toBe(mine.length);
     expect(groups.totalRowCount).toBe(mine.length);

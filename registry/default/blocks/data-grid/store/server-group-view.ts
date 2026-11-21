@@ -18,7 +18,8 @@ function readAggregates(raw: unknown): Readonly<Record<string, unknown>> {
   if (typeof raw !== "object" || raw === null) return out;
   for (const id of Object.keys(raw).filter((key) => key !== "__proto__")) {
     const value = (raw as Record<string, unknown>)[id];
-    out[id] = typeof value === "number" && Number.isFinite(value) ? value : null;
+    if (typeof value === "number") out[id] = Number.isFinite(value) ? value : null;
+    else out[id] = typeof value === "string" && value.length <= MAX_KEY_LENGTH ? toSafeText(value) : null;
   }
   return out;
 }

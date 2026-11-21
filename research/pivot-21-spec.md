@@ -26,7 +26,7 @@ This note fixes the contracts that the 2.1 steps share. `research/server-pivot-s
 
 ## Decimal and string aggregates
 
-- The layer answers a number aggregate as a number when it round-trips through `Number`, as `serializeValue` does for `int8`. Otherwise it answers a string.
+- The layer answers a number aggregate as a number. It answers a decimal string when the value has more than 15 significant digits and is not a safe integer. `avg` and a `float` column always answer a number.
 - The grid reader accepts a numeric string for a number column and a string for text and date `min` and `max`. A string stays within the 1,024 character bound.
 - Pivot cells stay numbers. A value beyond 15 digits loses precision there, and the docs state the limit.
 

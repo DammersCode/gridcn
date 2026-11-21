@@ -29,7 +29,7 @@ export function seedGroupStore<TData>(answer: unknown, groupBy: readonly string[
   if (!isGroupsAnswer(answer)) return null;
   try {
     const start = block * blockSize;
-    const read = readGroupsAnswer(answer, { start, end: start + blockSize }, { topLevel: true, aggregateIds: aggregates.map((aggregate) => aggregate.columnId) }, warn);
+    const read = readGroupsAnswer(answer, { start, end: start + blockSize }, { topLevel: true, aggregates }, warn);
     const store = createGroupStore<TData>(groupBy, blockSize, pivot !== undefined);
     if (store.pivot && hold) store.pivot = { ...hold, pending: true };
     const top = listFor(store, [], null);
