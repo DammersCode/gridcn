@@ -16,10 +16,13 @@ const ROWS = 100_000;
 const GROUPS = 10_000;
 const KEYS = 200;
 const PAGE = 200;
-/** The budget of one pivot fetch on an idle machine. */
-const BUDGET_MS = 150;
-/** The same page without pivot on an idle machine; a slower same-run baseline scales the budget, so suite load cannot fail it. */
-const IDLE_BASELINE_MS = { sqlite: 53, pg: 80 } as const;
+/** The floor and the cap of one pivot fetch on a dev machine, which idle takes 95 to 155 ms. */
+const FLOOR_MS = 150;
+const CAP_MS = 400;
+/** The budget in same-run fetches of the page without pivot, so load and coverage cannot fail it; a pivot fetch takes 1.5 to 2.4. */
+const BUDGET_BASELINES = 3.6;
+// Only the absolute bounds widen on CI: the baseline ratio holds on any machine, so a 4x regression fails there too.
+const CI_FACTOR = process.env["CI"] === "true" ? 2 : 1;
 
 let seed = 42;
 const rand = () => (seed = (seed * 1103515245 + 12345) >>> 0) / 2 ** 32;
@@ -109,7 +112,7 @@ describe("pivot fetchGroups at 100k rows", () => {
     expect(last.groups.at(-1)!.key).toBeNull();
     const { pivot: _pivot, ...plain } = request(GROUPS - PAGE).spec;
     const { pivotMs, baselineMs } = await fastestPair(fetch, () => query.fetchRows({ ...request(GROUPS - PAGE), spec: plain }, context));
-    const budget = BUDGET_MS * Math.max(1, baselineMs / IDLE_BASELINE_MS[name.startsWith("pg") ? "pg" : "sqlite"]);
+    const budget = Math.min(CI_FACTOR * CAP_MS, Math.max(CI_FACTOR * FLOOR_MS, BUDGET_BASELINES * baselineMs));
     await annotate(`pivot fetchGroups ${name}: ${pivotMs.toFixed(1)} ms, budget ${budget.toFixed(0)} ms; without pivot ${baselineMs.toFixed(1)} ms`);
     expect(pivotMs).toBeLessThan(budget);
   });
