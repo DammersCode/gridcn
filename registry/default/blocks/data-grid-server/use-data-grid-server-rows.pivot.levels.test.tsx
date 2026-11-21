@@ -205,16 +205,19 @@ describe("a nested server pivot", () => {
     await waitFor(() => expect(four.calls).toHaveLength(1));
     expect(four.calls[0]!.spec.pivot).toEqual({ columnIds: ["qty"] });
     const five = fakeServer(ROWS());
-    mount(five, { defaultSpec: { ...TWO, groupBy: ["region", "city", "id", "x", "y"] } });
+    const { result } = mount(five, { defaultSpec: { ...TWO, groupBy: ["region", "city", "id", "x", "y"] } });
     await waitFor(() => expect(five.calls).toHaveLength(1));
     expect("pivot" in five.calls[0]!.spec).toBe(false);
+    act(() => result.current.refresh());
+    await waitFor(() => expect(five.calls).toHaveLength(2));
+    expect("pivot" in five.calls[1]!.spec).toBe(false);
     await act(settle);
     const pivotWarnings = warn.mock.calls.filter(([message]) => String(message).includes("spec.pivot"));
     expect(pivotWarnings).toHaveLength(1);
     expect(String(pivotWarnings[0]![0])).toContain("4");
   });
 
-  it("evicts the oldest child blocks so the held cells stay within the cap, and keeps the blocks above the rendered rows", async () => {
+  it("evicts the oldest child blocks so the held cells stay within the cap, and keeps the rows of their open headers", async () => {
     const COLUMNS = 200;
     const BLOCK = 200;
     const TOP = 2 * BLOCK;
@@ -238,11 +241,44 @@ describe("a nested server pivot", () => {
       await waitFor(() => expect(layoutOf(result).rows.some((slot) => slot.viewRow === header + 5 && slot.path.length === 2)).toBe(true));
     }
     const slots = layoutOf(result).rows;
-    const bytes = slots.reduce((total, slot) => total + slot.pivotCells!.byteLength, 0);
+    const bytes = slots.reduce((total, slot) => total + (slot.pivotCells?.byteLength ?? 0), 0);
     expect(bytes).toBeLessThanOrEqual(MAX_PIVOT_CELLS * 8);
     const last = lists - 1;
     expect(slots.some((slot) => slot.path[0]!.key === `g${BLOCK + last}` && slot.path.length === 1)).toBe(true);
     expect(slots.some((slot) => slot.path[0]!.key === `g${BLOCK}` && slot.path.length === 2)).toBe(false);
     expect(fetchRows.mock.calls.every(([request]) => request.childKind === "groups")).toBe(true);
+  });
+
+  it("keeps every row in place when the budget evicts the block of an open group far above the rendered rows", async () => {
+    const COLUMNS = 200;
+    const BLOCK = 200;
+    const TOP = Math.ceil(MAX_PIVOT_CELLS / (COLUMNS * BLOCK) + 4) * BLOCK;
+    const OPEN = BLOCK + 10;
+    const pivotColumns = Array.from({ length: COLUMNS }, (_, key) => ({ path: [`k${key}`], valueIndex: 0 }));
+    const cells = Array.from({ length: COLUMNS }, (_, key) => key);
+    const fetchRows = vi.fn(async (request: ServerRowsRequest<never>): Promise<Answer> => {
+      const top = request.groupPath?.length === 0;
+      const prefix = top ? "g" : `${String(request.groupPath![0]!.key)}-c`;
+      return { groups: Array.from({ length: request.end - request.start }, (_, i) => ({ key: `${prefix}${request.start + i}`, childCount: top ? BLOCK : 1, totalRowCount: 1, pivotCells: cells })), groupCount: top ? TOP : BLOCK, totalRowCount: TOP, pivotColumns };
+    });
+    const { result } = mount({ fetchRows }, { blockSize: BLOCK, defaultExpanded: { mode: "collapsed", ids: [idOf(`g${OPEN}`)] } });
+    await waitFor(() => expect(layoutOf(result)?.rows).toHaveLength(BLOCK));
+    act(() => result.current.gridProps.onRenderedRowsChange({ start: OPEN, end: OPEN + 3 }));
+    await waitFor(() => expect(keysOf(result)).toContain(`g${OPEN}/g${OPEN}-c0`));
+    const keyAt = (viewRow: number) => layoutOf(result).rows.find((slot) => slot.viewRow === viewRow)?.path.map((segment) => segment.key).join("/");
+    expect(result.current.gridProps.data).toHaveLength(TOP + BLOCK);
+    for (let block = 2; block * BLOCK < TOP; block++) {
+      const row = block * BLOCK + BLOCK + 5;
+      act(() => result.current.gridProps.onRenderedRowsChange({ start: row, end: row + 3 }));
+      await waitFor(() => expect(keyAt(row)).toBe(`g${block * BLOCK + 5}`));
+    }
+    expect(layoutOf(result).rows.some((slot) => slot.viewRow === BLOCK + 1 && slot.path.length === 2)).toBe(false);
+    expect(keyAt(OPEN)).toBe(`g${OPEN}`);
+    expect(result.current.gridProps.data).toHaveLength(TOP + BLOCK);
+    const below = layoutOf(result).rows.filter((slot) => slot.path.length === 1 && Number(String(slot.path[0]!.key).slice(1)) > OPEN);
+    expect(below.length).toBeGreaterThan(BLOCK);
+    expect(below.filter((slot) => slot.viewRow !== Number(String(slot.path[0]!.key).slice(1)) + BLOCK)).toEqual([]);
+    const bytes = layoutOf(result).rows.reduce((total, slot) => total + (slot.pivotCells?.byteLength ?? 0), 0);
+    expect(bytes).toBeLessThanOrEqual(MAX_PIVOT_CELLS * 8);
   });
 });

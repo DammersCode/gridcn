@@ -155,11 +155,19 @@ export function evictPivotCells<TData>(store: GroupStore<TData>, keep: (listId: 
   }
 }
 
+/** Unloads a block. Under pivot a group with a child list keeps its row without cells, so its open children keep their view rows. */
 export function evictBlock<TData>(store: GroupStore<TData>, list: GroupList<TData>, block: number) {
   if (!list.blocks.delete(block)) return;
   const start = block * store.blockSize;
   const end = Math.min(start + store.blockSize, list.entries.length);
-  for (let offset = start; offset < end; offset++) list.entries[offset] = undefined;
+  const parent = store.pivot && list.kind === "groups";
+  for (let offset = start; offset < end; offset++) list.entries[offset] = parent ? shellOf(store, list, list.entries[offset] as PivotGroupRow | undefined) : undefined;
+}
+
+function shellOf<TData>(store: GroupStore<TData>, list: GroupList<TData>, group: PivotGroupRow | undefined): PivotGroupRow | undefined {
+  if (!group || !store.lists.has(groupIdOf([...list.path, { columnId: store.groupBy[list.path.length]!, key: group.key }]))) return undefined;
+  const { cells: _cells, ...shell } = group;
+  return shell;
 }
 
 // An unchanged group keeps its slot object, so the grid keeps its group node and the row skips its render.

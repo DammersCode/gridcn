@@ -303,16 +303,6 @@ export function useGroupBlocks<TData, TCursor = never>(
       const key = `${list.id}|${block}`;
       if (!found.has(key)) found.set(key, { list, block, distance: Math.abs(row - middle) });
     }
-    // Pivot cells evict group blocks: the blocks of the headers above the rendered rows stay, or their child lists drop out of the view.
-    let depth = store.pivot && from < to ? laid.owners[from]!.path.length : 0;
-    for (let row = from - 1; row >= 0 && depth > 0; row--) {
-      const list = laid.owners[row]!;
-      if (list.path.length >= depth) continue;
-      depth = list.path.length;
-      const block = blockOf(laid.offsets[row]!, store.blockSize);
-      const key = `${list.id}|${block}`;
-      if (!found.has(key)) found.set(key, { list, block, distance: Math.abs(row - middle) });
-    }
     return found;
   };
 

@@ -17,6 +17,17 @@ const answerFor = (block: number) => ({
   pivotColumns,
 });
 
+function fastest(fn: () => void, iterations = 10, warmup = 2): number {
+  for (let i = 0; i < warmup; i++) fn();
+  let best = Infinity;
+  for (let i = 0; i < iterations; i++) {
+    const start = performance.now();
+    fn();
+    best = Math.min(best, performance.now() - start);
+  }
+  return best;
+}
+
 describe("pivot store perf", () => {
   it("lands one 200-group block of a 10,000 × 200 pivot, with eviction and layout, within 16 ms", () => {
     const store = createGroupStore<never>(["region"], BLOCK, true);
@@ -46,14 +57,14 @@ describe("pivot store perf", () => {
     expect(best).toBeLessThan(16 * CI_FACTOR);
   });
 
-  it("lands one 200-group child block 3 levels deep under 10,000 × 200 pivot rows, with eviction and layout, within 16 ms", () => {
+  it("lands one 200-group child block 3 levels deep under 10,000 × 200 pivot rows, with eviction and layout, within a few times a same-run reference", () => {
     const groupBy = ["region", "city", "store"];
     const store = createGroupStore<never>(groupBy, BLOCK, true);
     const top = listFor(store, [], null);
     const blocks = GROUPS / BLOCK;
     let stamp = 0;
     const land = (list: ReturnType<typeof listFor<never>>, block: number, answer: ReturnType<typeof answerFor>, keep: (listId: string, block: number) => boolean) => {
-      const read = readGroupsAnswer(answer, { start: block * BLOCK, end: (block + 1) * BLOCK }, { topLevel: list.id === "", aggregateIds: ["qty"] }, () => {});
+      const read = readGroupsAnswer(answer, { start: block * BLOCK, end: (block + 1) * BLOCK }, { topLevel: list.id === "", aggregates: OPTIONS.values }, () => {});
       landPivotGroups(store, list, block, answer, read, OPTIONS, ++stamp, () => {});
       evictPivotCells(store, keep);
     };
@@ -65,18 +76,25 @@ describe("pivot store perf", () => {
     const open = new Set(["", ...[region, city].map((path) => groupIdOf(path))]);
     const deepest = listFor(store, city, BLOCK);
     const keep = (listId: string, kept: number) => kept === 0 && open.has(listId);
-    let best = Infinity;
-    for (let i = 0; i < 10; i++) {
-      const start = performance.now();
-      land(deepest, 0, { ...answerFor(i % blocks), groupCount: BLOCK }, keep);
-      const view = layoutView(store, (id) => open.has(id), () => undefined);
-      best = Math.min(best, performance.now() - start);
-      expect(view.data).toHaveLength(GROUPS + 2 * BLOCK);
-    }
+    const answers = Array.from({ length: 12 }, (_, i) => ({ ...answerFor(i), groupCount: BLOCK }));
+    let next = 0;
+    let length = 0;
+    const timed = fastest(() => {
+      land(deepest, 0, answers[next++ % answers.length]!, keep);
+      length = layoutView(store, (id) => open.has(id), () => undefined).data.length;
+    });
+    // Copies one block's cells into typed arrays and pushes the view rows once: the floor of any landing.
+    const reference = fastest(() => {
+      const rows: unknown[] = [];
+      for (const group of answers[0]!.groups) Float64Array.from(group.pivotCells, (cell) => cell ?? NaN);
+      for (let row = 0; row < GROUPS + 2 * BLOCK; row++) rows.push(undefined);
+    });
+    expect(length).toBe(GROUPS + 2 * BLOCK);
     let cells = 0;
     for (const list of store.lists.values()) for (const entry of list.entries) cells += (entry as { cells?: Float64Array } | undefined)?.cells?.length ?? 0;
     expect(cells).toBeLessThanOrEqual(MAX_PIVOT_CELLS);
     expect(deepest.entries.filter(Boolean)).toHaveLength(BLOCK);
-    expect(best).toBeLessThan(16 * CI_FACTOR);
+    // The landing takes about 2 ms here, so the 8 ms cap fails a 5x regression; the reference term absorbs a slower machine.
+    expect(timed).toBeLessThan(Math.min(8 * CI_FACTOR, Math.max(4, reference * 4)));
   });
 });
