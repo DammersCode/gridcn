@@ -72,6 +72,7 @@ Each row is a method of `DataGridActions`. `useDataGridActions()` and `api.actio
 | `setGroupBy` | Sets the group columns. Unknown, `groupable: false`, and repeated ids drop. | [Row grouping](/docs/rows-pages-menus/row-grouping#control) |
 | `setPage` | Shows a page of the view. Pages start at 1. Calls `onPageChange`. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | `setPageSize` | Shows `pageSize` rows per page and keeps the first row of the page on screen. `null` shows every row for an uncontrolled page size. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
+| `setPivot` | Sets the pivot column, or turns the pivot off with `undefined`. | [Store hooks](/docs/types-hooks/store-hooks#handle) |
 | `setRowChecked` | Checks or unchecks one row by id. It sets the state and never toggles. | [State and view index](/docs/concepts/state-view-index) |
 | `setRowCheckedAt` | Checks or unchecks one row by view index. It sets the state and never toggles. | [State and view index](/docs/concepts/state-view-index) |
 | `setSearch` | Sets the quick-search text. With `options`, it also sets the search options. | [Quick search](/docs/sort-filter-search/quick-search) |
