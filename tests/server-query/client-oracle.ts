@@ -1,5 +1,6 @@
 import { buildGroupView, groupKeyText, makeFilterPredicate, rowAccessorFor, type GroupKey } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { GroupAggregateSpec, GroupBucket, GroupTree } from "@/registry/default/blocks/data-grid/sort-filter/build-group-view";
+import { buildPivot } from "@/registry/default/blocks/data-grid/sort-filter/build-pivot";
 import { withRootJoin } from "@/registry/default/blocks/data-grid/sort-filter/filter-tree";
 import { FIXTURE_ROWS, type FixtureRow } from "./fixture";
 
@@ -19,6 +20,7 @@ const GROUP_COLUMNS = [
   ...COLUMNS.map((column) => (NUMERIC_IDS.has(column.id) ? { ...column, sortCompare: (a: unknown, b: unknown) => Number((a as Record<string, unknown>)[column.id]) - Number((b as Record<string, unknown>)[column.id]) } : column)),
   ...["qtyMin", "qtyMax"].map((id) => ({ id, header: id, accessorFn: (row: unknown) => (row as Record<string, unknown>)["qty"] })),
   { id: "nameCount", header: "nameCount", accessorFn: (row: unknown) => (row as Record<string, unknown>)["name"] },
+  { id: "idSum", header: "idSum", accessorFn: (row: unknown) => (row as Record<string, unknown>)["id"] },
 ];
 
 export type OracleGroup = { key: GroupKey; count: number; childCount: number; aggregates: Record<string, unknown> };
@@ -86,4 +88,21 @@ export function oraclePivot(request: OracleRequest & { pivot: string }): OracleP
 export function oracleGroupRowIds({ filters, groupBy, path = [] }: OracleRequest): number[] {
   const bucket = bucketAt(oracleTree(filters, groupBy, {}), path);
   return (bucket?.leaves ?? []).map((index) => FIXTURE_ROWS[index]!.id).sort((a, b) => a - b);
+}
+
+export type OraclePivotAnswer = { groups: { key: GroupKey; pivotCells: (number | null)[] }[]; pivotColumns: { path: GroupKey[]; valueIndex: number }[]; pivotOmitted: number };
+
+/** The pivot answer of the grid's own `buildPivot` over the fixture literals, or over `rows`: the held set and the cells of the child groups of `path`. */
+export function oracleClientPivot(request: OracleRequest & { pivot: string; rows?: readonly FixtureRow[] }): OraclePivotAnswer {
+  const { filters, groupBy, path = [], directions, aggregates = [], pivot, rows = FIXTURE_ROWS } = request;
+  const accessor = rowAccessorFor(GROUP_COLUMNS as never, rows, undefined);
+  const keep = makeFilterPredicate(accessor, filters as never);
+  const leaves = rows.flatMap((_, index) => (keep(index) ? [index] : []));
+  const built = buildPivot({ leaves, accessor, groupBy, directions, pivotColumnId: pivot, values: aggregates })!;
+  const level = path.length === 0 ? built.tree.roots : (bucketAt(built.tree, path)?.groups ?? []);
+  return {
+    groups: level.map(({ node }) => ({ key: node.key, pivotCells: Array.from(node.pivotCells!, (cell) => (Number.isNaN(cell) ? null : cell)) })),
+    pivotColumns: built.pivot.columns.map((column) => ({ path: [...column.path], valueIndex: column.valueIndex })),
+    pivotOmitted: built.pivot.omitted,
+  };
 }
