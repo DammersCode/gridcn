@@ -38,11 +38,17 @@ const DEALERSHIPS = ["Northgate Motors", "Pine Ridge Cars", "Bayview Autos", "So
 const SALESPEOPLE = ["Dana Brooks", "Eli Moreno", "Fern Walsh", "Gus Ortega", "Hana Ito", "Ivan Petrov", "Jade Lin", "Kofi Mensah", "Lena Fischer", "Milo Grant", "Nia Duarte", "Omar Aziz", "Pia Lund", "Raul Vega", "Sana Mir", "Theo Clark"];
 const MAKES = ["Kestrel", "Marlow", "Nordvik", "Solenne", "Vantor"];
 const MODELS = [["Brook", "Glide", "Summit"], ["Coast", "Harbor", "Tide"], ["Birch", "Fjord", "Frost"], ["Dawn", "Lumen", "Opal"], ["Ember", "Flint", "Quarry"]];
+// Unequal shares per region and a different make mix in each region, so the pivot and the group totals differ.
+const REGION_SLOTS = [0, 0, 0, 0, 1, 1, 1, 2, 2, 3];
+const MAKE_MIX = [
+  [0, 0, 0, 1, 2, 3, 4, 1],
+  [1, 1, 1, 2, 0, 3, 4, 2],
+  [2, 2, 3, 3, 3, 0, 1, 4],
+  [4, 4, 4, 3, 0, 1, 2, 4],
+];
 const FIRST = ["Alex", "Sam", "Jordan", "Taylor", "Morgan", "Casey", "Riley", "Jamie", "Avery", "Quinn", "Drew", "Robin"];
 const LAST = ["Smith", "Garcia", "Chen", "Patel", "Novak", "Okafor", "Larsen", "Rossi", "Kim", "Silva", "Meyer", "Haddad"];
 const ROW_COUNT = 5000;
-
-const pad = (value: number) => String(value).padStart(2, "0");
 
 /** Opens an in-browser PostgreSQL, seeds it with 5,000 fictional car sales, and wires the query layer to it. Every statement the layer runs goes to `onQuery`. */
 export async function createQueryDemo(onQuery: (entry: LoggedQuery) => void) {
@@ -52,13 +58,14 @@ export async function createQueryDemo(onQuery: (entry: LoggedQuery) => void) {
   );
   // The seed names hold no quote, so plain interpolation stays valid SQL.
   const values = Array.from({ length: ROW_COUNT }, (_, index) => {
-    const region = index % REGIONS.length;
-    const make = Math.floor(index / REGIONS.length) % MAKES.length;
-    const model = Math.floor(index / 20) % 3;
-    const dealership = region * 2 + (Math.floor(index / 60) % 2);
-    const salesperson = SALESPEOPLE[dealership * 2 + (Math.floor(index / 120) % 2)]!;
+    const region = REGION_SLOTS[index % REGION_SLOTS.length]!;
+    const mix = MAKE_MIX[region]!;
+    const make = mix[Math.floor(index / REGION_SLOTS.length) % mix.length]!;
+    const model = Math.floor(index / 80) % 3;
+    const dealership = region * 2 + (Math.floor(index / 7) % 3 === 0 ? 1 : 0);
+    const salesperson = SALESPEOPLE[dealership * 2 + (Math.floor(index / 13) % 2)]!;
     const customer = `${FIRST[Math.floor(index / 5) % FIRST.length]!} ${LAST[(index * 7) % LAST.length]!}`;
-    const soldOn = `2025-${pad(((index * 5) % 12) + 1)}-${pad(((index * 11) % 28) + 1)}`;
+    const soldOn = new Date(Date.UTC(2025, 0, 1 + ((index * 7) % 365))).toISOString().slice(0, 10);
     const price = 21000 + make * 6000 + model * 9000 + ((index * 37) % 41) * 100;
     const discount = ((index * 7) % 13) * 250;
     return `(${index + 1}, '${soldOn}', '${REGIONS[region]!}', '${DEALERSHIPS[dealership]!}', '${salesperson}', '${MAKES[make]!}', '${MODELS[make]![model]!}', '${customer}', ${price}, ${discount}, ${index % 3 !== 0})`;

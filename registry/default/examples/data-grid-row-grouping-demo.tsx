@@ -17,19 +17,28 @@ type CarSale = { id: string; customer: string; region: string; dealership: strin
 const REGIONS = ["North", "South", "East", "West"];
 const DEALERSHIPS = ["Northgate Motors", "Pine Ridge Cars", "Bayview Autos", "Southfield Motors", "Eastbrook Cars", "Harbor Point Motors", "Westlake Autos", "Canyon Road Motors"];
 const MAKES = ["Kestrel", "Marlow", "Nordvik", "Solenne", "Vantor"];
+// Unequal shares per region and a different make mix in each region, so the group totals differ.
+const REGION_SLOTS = [0, 0, 0, 0, 1, 1, 1, 2, 2, 3];
+const MAKE_MIX = [
+  [0, 0, 0, 1, 2, 3, 4, 1],
+  [1, 1, 1, 2, 0, 3, 4, 2],
+  [2, 2, 3, 3, 3, 0, 1, 4],
+  [4, 4, 4, 3, 0, 1, 2, 4],
+];
 const FIRST = ["Alex", "Sam", "Jordan", "Taylor", "Morgan", "Casey", "Riley", "Jamie", "Avery", "Quinn", "Drew", "Robin"];
 const LAST = ["Smith", "Garcia", "Chen", "Patel", "Novak", "Okafor", "Larsen", "Rossi", "Kim", "Silva", "Meyer", "Haddad"];
 
 // Index arithmetic instead of Math.random keeps the server and client markup equal.
 const carSales = (count: number): CarSale[] =>
   Array.from({ length: count }, (_, index) => {
-    const region = index % REGIONS.length;
-    const make = Math.floor(index / REGIONS.length) % MAKES.length;
+    const region = REGION_SLOTS[index % REGION_SLOTS.length]!;
+    const mix = MAKE_MIX[region]!;
+    const make = mix[Math.floor(index / REGION_SLOTS.length) % mix.length]!;
     return {
       id: `sale-${index}`,
       customer: `${FIRST[Math.floor(index / 5) % FIRST.length]!} ${LAST[(index * 7) % LAST.length]!}`,
       region: REGIONS[region]!,
-      dealership: DEALERSHIPS[region * 2 + (Math.floor(index / 12) % 2)]!,
+      dealership: DEALERSHIPS[region * 2 + (Math.floor(index / 7) % 3 === 0 ? 1 : 0)]!,
       make: MAKES[make]!,
       financed: index % 3 !== 0,
       price: 21000 + make * 6000 + ((index * 37) % 41) * 100,
