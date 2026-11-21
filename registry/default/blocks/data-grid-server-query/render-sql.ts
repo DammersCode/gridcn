@@ -217,6 +217,8 @@ export function createSqlRenderer<S>(a: SqlAlgebra<S>, customHandlers: ReadonlyM
     const nonBlank = isTextual(column) && !column.keepBlankText ? only(cat(raw("NULLIF("), subject(column), raw(", '')"))) : col;
     switch (reducer) {
       case "sum":
+        // SQLite sums integers exactly, but a driver reads the result past 2^53 as a rounded double; text keeps every digit.
+        if (!pg && column.numeric === "int8") return cat(raw("CAST(SUM("), col, raw(") AS TEXT)"));
         return cat(raw("SUM("), col, raw(")"));
       case "avg":
         return cat(raw("AVG("), col, raw(")"));
@@ -248,8 +250,9 @@ export function createSqlRenderer<S>(a: SqlAlgebra<S>, customHandlers: ReadonlyM
     return group(cat(group(onPage), raw(" OR "), group(cat(key, raw(` IS NULL AND EXISTS (SELECT 1 FROM "${name}" WHERE "${k}" IS NULL)`)))));
   }
 
-  /** The group key of a column: the stored value, with `''` folded into NULL for text. A time column keeps the full instant. */
+  /** The group key of a column: the stored value, with `''` folded into NULL for text. A PostgreSQL timestamp keys by its millisecond, the precision of the key on the wire. */
   function groupKey(column: PlanColumn): S {
+    if (pg && column.time && column.storage === "native") return cat(raw("date_trunc('milliseconds', "), ref(column), raw(")"));
     return isTextual(column) ? cat(raw("NULLIF("), subject(column), raw(", '')")) : ref(column);
   }
 

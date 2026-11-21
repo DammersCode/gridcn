@@ -10,7 +10,8 @@ import { handleGridRequest } from "./handle-grid-request";
 import { escapeLike, likePattern } from "./like";
 import { MAX_FILTER_DEPTH } from "./parse-query";
 import type { GroupsPlan } from "./plan";
-import { ceilDecimal, decimalToString, floorDecimal, isInteger, nextDay, parseDate, parseDecimal, parseInstant, parseUuid, startOfLocalDay } from "./operands";
+import { ceilDecimal, decimalToString, floorDecimal, isInteger, isSubMillisecond, nextDay, parseDate, parseDecimal, parseInstant, parseUuid, startOfLocalDay } from "./operands";
+import { parseImportRows } from "./parse-import-rows";
 import { rowScopePredicate } from "./row-scope";
 import { serializeRow, serializeValue, instantText } from "./serialize-row";
 import { withColumnMap } from "./with-column-map";
@@ -104,6 +105,64 @@ describe("operands", () => {
     expect(parseUuid("0f8fad5b")).toBeNull();
   });
 
+  it("keeps an instant exact to the millisecond and refuses a nonzero digit past it", () => {
+    expect(parseInstant("2024-01-01T00:00:00.1230Z")).toBe("2024-01-01T00:00:00.123Z");
+    expect(parseInstant("2024-01-01T00:00:00.123000000+00:00")).toBe("2024-01-01T00:00:00.123Z");
+    for (const fraction of ["1231", "12301", "123456", "1230001", "12300001", "123000001", "999999999"]) {
+      expect(parseInstant(`2024-01-01T00:00:00.${fraction}Z`)).toBeNull();
+      expect(isSubMillisecond(`2024-01-01T00:00:00.${fraction}Z`)).toBe(true);
+    }
+    expect(isSubMillisecond("2024-01-01 00:00:00.123456+00")).toBe(true);
+    for (const exact of ["2024-01-01T00:00:00.123000Z", "2024-01-01T00:00:00Z", "junk"]) expect(isSubMillisecond(exact)).toBe(false);
+    const hostile = `2024-01-01T00:00:00.${"1".repeat(100_000)}Z`;
+    expect([parseInstant(hostile), isSubMillisecond(hostile), parseInstant("2024-01-01T00:00:00.1234567891Z")]).toEqual([null, true, null]);
+  });
+
+  it("finds a digit past the millisecond in every text shape a stored key takes, with or without a zone", () => {
+    for (const digits of [4, 5, 6, 7, 8, 9]) {
+      const fraction = `123${"0".repeat(digits - 4)}1`;
+      for (const zone of ["", "Z", "+00", "+02:00", "-0530"]) {
+        for (const separator of ["T", " "]) {
+          expect(isSubMillisecond(`2024-01-01${separator}10:00:00.${fraction}${zone}`)).toBe(true);
+          expect(isSubMillisecond(`2024-01-01${separator}10:00:00.${"1230000000".slice(0, digits)}${zone}`)).toBe(false);
+        }
+      }
+    }
+  });
+
+  it("refuses a group key without a zone that holds a digit past the millisecond", async () => {
+    const stamped = defineColumnMap({ id: { type: "number", numeric: "int8", primaryKey: true }, at: { type: "date", time: true } });
+    for (const key of ["2024-01-01 10:00:00.123456", "2024-01-01T10:00:00.1230001"]) {
+      const { executor } = fakeExecutor();
+      executor.selectGroups = async () => [{ key, count: 1, childCount: 0, aggregates: {} }];
+      const query = createGridQuery({ columns: stamped, executor });
+      await expect(query.fetchRows({ spec: { groupBy: ["at"] }, childKind: "groups", start: 0, end: 10 })).rejects.toMatchObject({ code: "unsupported", path: ["spec", "groupBy", "at"] });
+    }
+  });
+
+  it("refuses an epoch-s import or write value with a fraction of a second", () => {
+    expect(() => parseImportRows({ rows: [{ seen: "2024-01-01T00:00:00.500Z" }] }, { columns })).toThrow(expect.objectContaining({ code: "unsupported-value" }));
+    expect(parseImportRows({ rows: [{ seen: "2024-01-01T00:00:01.000Z" }] }, { columns }).rows).toEqual([{ seen: "2024-01-01T00:00:01.000Z" }]);
+  });
+
+  it("parses an instant in linear time, a hostile text no slower than a valid one", () => {
+    const time = (text: string) => {
+      const started = performance.now();
+      for (let i = 0; i < 100_000; i++) parseInstant(text);
+      return performance.now() - started;
+    };
+    const baseline = time("2024-01-01T00:00:00.123Z");
+    for (const hostile of [`2024-01-01T00:00:00.${"1".repeat(5_000)}`, `2024-01-01T00:00:${"0".repeat(5_000)}Z`, "2024-01-01T".repeat(500)]) {
+      expect(time(hostile)).toBeLessThan(baseline * 3 + 20);
+    }
+  });
+
+  it("refuses an import or write with a nonzero digit past the millisecond", () => {
+    const codesOf = (seen: string) => parseImportRows({ rows: [{ seen }] }, { columns }).rejected.map((entry) => entry.code);
+    expect(codesOf("2024-01-01T00:00:00.123456Z")).toEqual(["too-many-decimals"]);
+    expect(codesOf("2024-01-01T00:00:01.000000Z")).toEqual([]);
+  });
+
   it("computes local day bounds across DST and in far offsets", () => {
     expect(startOfLocalDay("2024-03-31", "Europe/Berlin")).toBe("2024-03-30T23:00:00.000Z");
     expect(startOfLocalDay("2024-04-01", "Europe/Berlin")).toBe("2024-03-31T22:00:00.000Z");
@@ -144,6 +203,9 @@ describe("row scope", () => {
     throwsFor(1n);
     throwsFor(1, "unmapped");
     throwsFor(Number.MAX_SAFE_INTEGER + 2, "tenantId8");
+    throwsFor("2024-01-01T00:00:00.500Z", "seen");
+    throwsFor("2024-01-01T00:00:01.000001Z", "seen");
+    expect(rowScopePredicate(columns, { seen: "2024-01-01T00:00:01Z" })).toMatchObject({ test: { value: { kind: "instant", v: "2024-01-01T00:00:01.000Z" } } });
     expect(() => rowScopePredicate(columns, {})).toThrow(/no keys/);
     expect(() => rowScopePredicate(columns, [] as never)).toThrow();
     expect(() => rowScopePredicate(columns, null)).toThrow();

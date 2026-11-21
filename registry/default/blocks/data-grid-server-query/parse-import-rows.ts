@@ -1,7 +1,7 @@
 import { mapOf, type ColumnMap, type PlanColumn } from "./column-map";
 import { QueryError } from "./errors";
 import { resolveLimits, type QueryLimits } from "./limits";
-import { decimalToString, exceedsDigits, INT_RANGE, isIntType, parseBoolean, parseDate, parseDecimal, parseInstant, parseUuid } from "./operands";
+import { decimalToString, exceedsDigits, holdsInstant, INT_RANGE, isIntType, isSubMillisecond, parseBoolean, parseDate, parseDecimal, parseInstant, parseUuid } from "./operands";
 
 /** The English text of each refusal code; map the `code` of a refusal to your own language. */
 export const IMPORT_REFUSAL_MESSAGES = {
@@ -86,8 +86,16 @@ function textCell(column: PlanColumn, value: unknown, limits: Limits, path: (str
 function dateCell(column: PlanColumn, value: unknown, limits: Limits, path: (string | number)[]): CellRead {
   if (typeof value !== "string") return refuse("not-a-date");
   if (value.length > limits.maxValueLength) throw new QueryError("limit-exceeded", path);
-  const parsed = column.time ? parseInstant(value) : parseDate(value);
-  return parsed === null ? refuse("not-a-date") : ok(parsed);
+  if (!column.time) {
+    const day = parseDate(value);
+    return day === null ? refuse("not-a-date") : ok(day);
+  }
+  if (isSubMillisecond(value)) return refuse("too-many-decimals");
+  const instant = parseInstant(value);
+  if (instant === null) return refuse("not-a-date");
+  // An integer seconds column would cut the fraction silently.
+  if (!holdsInstant(column, instant)) throw new QueryError("unsupported-value", path);
+  return ok(instant);
 }
 
 function checkboxCell(value: unknown): CellRead {

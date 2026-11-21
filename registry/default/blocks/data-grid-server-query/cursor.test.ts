@@ -269,6 +269,23 @@ describe("cursor paging: time keys", () => {
     expect(show(fake.calls[1]!.plan.where)).toBe('(stamp gt "2024-01-01T00:00:00.123456Z" OR stamp null OR (stamp eq "2024-01-01T00:00:00.123456Z" AND id gt 1))');
   });
 
+  it("refuses an epoch-s key with a fraction of a second, which no stored second holds", async () => {
+    const seconds = defineColumnMap({ id: { type: "number", numeric: "int8", primaryKey: true }, secs: { type: "date", time: true, storage: "epoch-s" } });
+    const fake = spy([]);
+    fake.executor.selectRows = async (plan) => {
+      const as = plan.keyText![0]!.as;
+      return [{ id: 1, [as]: 1_704_067_200 }, { id: 2, [as]: 1_704_067_201 }];
+    };
+    const query = createGridQuery<Row, never, Predicate, unknown, string>({ columns: seconds, executor: fake.executor, paging: "cursor" });
+    const bySecs = { sorts: [{ columnId: "secs", direction: "asc" }] };
+    const first = (await query.fetchRows({ spec: bySecs, start: 0, end: 1 })) as RowsAnswer<Row, string>;
+    const [version, hash, key, id] = JSON.parse(atob(first.nextCursor!.replace(/-/g, "+").replace(/_/g, "/"))) as unknown[];
+    expect(key).toBe("2024-01-01T00:00:00.000Z");
+    const forged = btoa(JSON.stringify([version, hash, "2024-01-01T00:00:00.500Z", id])).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    await expectBadCursor(query.fetchRows({ spec: bySecs, start: 1, end: 2, cursor: forged }));
+    await query.fetchRows({ spec: bySecs, start: 1, end: 2, cursor: first.nextCursor });
+  });
+
   it("refuses a time sort when the adapter has no exact instant keys", async () => {
     await expect(cursorQuery(ROWS, { capabilities: { exactInstantKeys: false } }).fetch(page(spec))).rejects.toMatchObject({ code: "unsupported", path: ["spec", "sorts"] });
   });

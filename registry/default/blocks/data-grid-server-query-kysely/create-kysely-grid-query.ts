@@ -63,6 +63,7 @@ export function createKyselyGridQuery<TRow, TContext>(options: KyselyGridQueryOp
     groupBy: true,
     localDayGrouping: dialect === "pg",
     exactInstantKeys: true,
+    millisecondInstantKeys: dialect === "pg",
     pivot: true,
   };
   const from = sql`from ${sql.id(table)}`;

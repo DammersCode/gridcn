@@ -71,12 +71,12 @@ describe.each(pgAdapters)("PGlite %s: number aggregates beyond 15 digits", (_nam
   });
 });
 
-// The SQLite driver answers an int8 sum as a JS number and SQL sums decimal text as REAL, so digits beyond 15 are lost before the layer.
+// SQLite sums a decimal as REAL, so its digits beyond 15 are lost in SQL; the documented limit.
 describe.each(sqliteAdapters)("SQLite %s: number aggregates", (_name, make) => {
-  it("answer numbers, the nearest double beyond 15 digits", async () => {
+  it("answer an int8 sum digit for digit and a decimal sum as the nearest double", async () => {
     const groupOf = await readAnswer(make);
     const realSum = 123456789012345.6 + 0.07;
-    expect(groupOf("a")).toEqual({ n: 9007199254740996, d: realSum, dAvg: realSum / 2, f: 0.1 + 0.2 });
+    expect(groupOf("a")).toEqual({ n: "9007199254740995", d: realSum, dAvg: realSum / 2, f: 0.1 + 0.2 });
     expect(groupOf("b")).toEqual({ n: 5, d: 10.5, dAvg: 10.5, f: 1.5 });
   });
 });

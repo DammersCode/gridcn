@@ -424,6 +424,7 @@ export const OMITTED = [
   { file: `${B}/data-grid-server-query/create-grid-query.ts`, line: "if (maxBoundIds !== undefined && !(Number.isSafeInteger(maxBoundIds)", reason: QUERY_LAYER },
   { file: `${B}/data-grid-server-query/create-grid-query.ts`, line: "?.pivot && !executor.selectPivotKeys) throw new Error(", reason: QUERY_LAYER },
   { file: `${B}/data-grid-server-query/create-grid-query.ts`, line: "throw new Error(`gridcn query layer: the executor answered ${", reason: QUERY_LAYER },
+  { file: `${B}/data-grid-server-query-prisma/create-prisma-grid-query.ts`, line: 'throw new Error("gridcn query layer: a Prisma pivot bucket matched no kept key")', reason: QUERY_LAYER },
   { file: `${B}/data-grid-server-query-prisma/columns.ts`, line: "if (!known.has(name)) throw new Error(`definePrismaColumnMap: column", reason: QUERY_LAYER },
   { file: `${B}/data-grid-server-query-prisma/columns.ts`, line: "if (!ids) throw new Error(\"createPrismaGridQuery: `columns` must come from definePrismaColumnMap", reason: QUERY_LAYER },
   { file: `${B}/data-grid-server-query-prisma/create-prisma-grid-query.ts`, line: "if (provider !== \"postgresql\" && provider !== \"sqlite\") throw new Error('createPrismaGridQuery: `pro", reason: QUERY_LAYER },

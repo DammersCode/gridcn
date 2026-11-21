@@ -56,6 +56,12 @@ export const PRISMA_DECLINES: readonly Decline[] = [
   },
   {
     engines: SQLITE,
+    match: /^decimal (reducers|max) per group$/,
+    code: "unsupported",
+    because: "Prisma's SQLite adapter types each aggregate column of a groupBy by its first row, so a decimal sum, min, or max after a whole number reads cut",
+  },
+  {
+    engines: SQLITE,
     match: /^excluded uuid ids$/,
     code: "unsupported",
     because: "keeping an excluded uuid out in any case needs lower(col), which the object API lacks",

@@ -182,14 +182,18 @@ describe.each(opened.map((setup) => [setup.engine, setup] as const))("Prisma on 
         } while (next && walked.length <= N);
         expect(walked).toEqual(expected);
       }
+      // A stored text past the millisecond has no key that drills back to its rows, so both refuse to group it.
+      if (column === "micro") {
+        for (const query of [prisma(), kysely()]) await expect(groupsOf(query, groups)).rejects.toMatchObject({ code: "unsupported", path: ["spec", "groupBy", "micro"] });
+        continue;
+      }
       const all = await groupsOf(prisma(), groups);
       expect(all).toEqual(await groupsOf(kysely(), groups));
       for (const group of all.groups) {
         const drill = { spec: groups, groupPath: [{ columnId: column, key: group.key }], childKind: "rows", start: 0, end: 100 };
         const rows = (await prisma().fetchRows(drill)) as RowsAnswer<Row, string>;
         expect(sorted(idsOf(rows))).toEqual(sorted(idsOf((await kysely().fetchRows(drill)) as RowsAnswer<Row, string>)));
-        // The core answers a sub-millisecond iso-text key in milliseconds, so a micro group drills to no row on Kysely too.
-        if (column !== "micro") expect(rows.rows).toHaveLength(group.totalRowCount);
+        expect(rows.rows).toHaveLength(group.totalRowCount);
       }
     }
   });
@@ -259,12 +263,31 @@ describe.each(opened.map((setup) => [setup.engine, setup] as const))("Prisma on 
     expect(blankChildren.groups).toEqual((await groupsOf(kysely(), { groupBy: ["mood", "label"] }, { start: 0, end: 10 }, [{ columnId: "mood", key: "calm" }])).groups);
   });
 
-  it("declines a pivot that Kysely answers with unsupported, before any statement", async () => {
-    const pivot = { spec: { groupBy: ["label"], aggregates: [{ columnId: "big", reducer: "sum" }], pivot: { columnIds: ["day"] } }, groupPath: [], childKind: "groups", start: 0, end: 100 };
-    expect(((await kysely().fetchRows(pivot)) as GroupsAnswer).pivotColumns?.length).toBeGreaterThan(0);
-    const before = setup.db.statements.length;
-    await expect(prisma().fetchRows(pivot)).rejects.toMatchObject({ code: "unsupported", path: ["spec"] });
-    expect(setup.db.statements.length).toBe(before);
+  it("pivots like Kysely over day, decimal, int8, uuid, and blank text keys, and declines a PostgreSQL enum pivot column before any statement", async () => {
+    const pivotBody = (groupBy: string, pivot: string) => ({ spec: { groupBy: [groupBy], aggregates: [{ columnId: "big", reducer: "sum" }], pivot: { columnIds: [pivot] } }, groupPath: [], childKind: "groups", start: 0, end: 100 });
+    // better-sqlite3 reads an int8 past 2^53 as a rounded number for Kysely; Prisma reads it exactly.
+    const int8 = (await prisma().fetchRows(pivotBody("label", "big"))) as GroupsAnswer;
+    expect(int8.pivotColumns!.map((column) => column.path[0])).toEqual(expect.arrayContaining(["9007199254740993", "9007199254740992", "-9007199254740993"]));
+    // Each cell is the sum of the fixture rows of its label group and its exact int8 key.
+    const labelOf = (label: string | null) => (label === "" ? null : label);
+    for (const group of int8.groups) {
+      const cells = int8.pivotColumns!.map(({ path: [key] }) => {
+        const rows = kindRows(engine).filter((row) => labelOf(row.label) === group.key && row.big !== null && row.big === (key === null ? null : String(key)));
+        return rows.length === 0 ? null : Number(rows.reduce((sum, row) => sum + BigInt(row.big!), BigInt(0)));
+      });
+      expect(group.pivotCells, `label ${String(group.key)}`).toEqual(cells);
+    }
+    const pairs = [["label", "day"], ["day", "label"], ["label", "amount"], ["label", "ref"], ...(engine === "pg" ? [["label", "big"], ["big", "label"]] : [["label", "mood"]])] as const;
+    for (const [groupBy, pivot] of pairs) {
+      const want = (await kysely().fetchRows(pivotBody(groupBy, pivot))) as GroupsAnswer;
+      expect(want.pivotColumns?.length).toBeGreaterThan(1);
+      expect(await prisma().fetchRows(pivotBody(groupBy, pivot)), `${groupBy} by ${pivot}`).toEqual(want);
+    }
+    if (engine === "pg") {
+      const before = setup.db.statements.length;
+      await expect(prisma().fetchRows(pivotBody("label", "mood"))).rejects.toMatchObject({ code: "unsupported", path: ["mood"] });
+      expect(setup.db.statements.length).toBe(before);
+    }
   });
 
   it("writes BigInt, Date, date-only, Decimal text, enum, and uuid values through nativeValue", async () => {

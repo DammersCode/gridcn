@@ -47,6 +47,20 @@ describe("group SQL", () => {
     expect(key.sql).toBe(`NULLIF("name", '')`);
     expect(renderer.keyCount(key).sql).toContain("COUNT(DISTINCT");
   });
+
+  it("cuts a PostgreSQL timestamp key to the millisecond and reads a SQLite int8 sum as text; other keys and sums stay byte-equal", () => {
+    const typed = mapOf(defineColumnMap({
+      id: { type: "number", numeric: "int8", primaryKey: true, aggregate: "sum" },
+      at: { type: "date", time: true },
+      secs: { type: "date", time: true, storage: "epoch-s" },
+      qty: { type: "number", numeric: "int4", aggregate: "sum" },
+    })).byId;
+    const [pg, sqlite] = [createSqlRenderer(algebra("pg"), new Map()), createSqlRenderer(algebra("sqlite"), new Map())];
+    expect(pg.groupKey(typed.get("at")!).sql).toBe(`date_trunc('milliseconds', "at")`);
+    expect([sqlite.groupKey(typed.get("at")!).sql, pg.groupKey(typed.get("secs")!).sql, pg.groupKey(typed.get("qty")!).sql]).toEqual([`"at"`, `"secs"`, `"qty"`]);
+    expect(sqlite.aggregate(typed.get("id")!, "sum").sql).toBe(`CAST(SUM("id") AS TEXT)`);
+    expect([pg.aggregate(typed.get("id")!, "sum").sql, sqlite.aggregate(typed.get("qty")!, "sum").sql, sqlite.aggregate(typed.get("id")!, "max").sql]).toEqual([`SUM("id")`, `SUM("qty")`, `MAX("id")`]);
+  });
 });
 
 type Captured = { sql: string; params: readonly unknown[] }[];

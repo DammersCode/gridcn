@@ -656,6 +656,7 @@
           "evidence": [
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.pages.test.tsx",
             "tests/server-query/pivot.test.ts",
+            "tests/server-query/prisma/pivot.test.ts",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.levels.test.tsx"
           ]
         },
@@ -693,7 +694,7 @@
           "reason": "An edit, paste, fill, or cut writes no pivot cell, so no change reaches onSave or onDataChange."
         }
       },
-      "note": "`spec.pivot` pivots 1 to 4 `groupBy` levels. A pivot row above the innermost level opens and lists the pivot rows of the next level. Known gaps: the Prisma adapter (S11-P; it answers `unsupported`), a pivot chooser, sort list, and menus for generated columns (S11-UI), and generated column widths in saved views (S11-V).",
+      "note": "`spec.pivot` pivots 1 to 4 `groupBy` levels. A pivot row above the innermost level opens and lists the pivot rows of the next level. Known gaps: a pivot chooser, sort list, and menus for generated columns (S11-UI), and generated column widths in saved views (S11-V).",
       "doc": "/docs/data-modes/pivot-server-rows"
     },
     {
