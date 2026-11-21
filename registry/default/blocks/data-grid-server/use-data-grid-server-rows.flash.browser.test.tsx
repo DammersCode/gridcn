@@ -102,6 +102,7 @@ type Action = { name: string; run: (ctx: Ctx) => void; applies?: (setup: Setup) 
 const unscrolled = (setup: Setup) => setup.scrollTop === undefined;
 const rowsChange = (before: FrameSample, after: FrameSample) => after.rows !== before.rows;
 const headerChanges = (before: FrameSample, after: FrameSample) => after.header !== before.header;
+const pivoted = (setup: Setup) => setup.spec.pivot !== undefined || setup.pivot !== undefined;
 
 const ACTIONS: Action[] = [
   { name: "sort", lands: (before, after, setup) => (setup.spec.groupBy ? null : rowsChange(before, after)), fetches: true, run: ({ api, grouped }) => api.actions.setSorts([{ columnId: grouped ? "region" : "qty", direction: "desc" }]) },
@@ -114,9 +115,9 @@ const ACTIONS: Action[] = [
   { name: "setPivot", lands: headerChanges, fetches: true, run: ({ api }) => api.actions.setPivot({ columnIds: api.store.getState().pivotColumnIds.length ? [] : ["tier"] }), applies: (setup) => setup.spec.groupBy !== undefined },
   { name: "refresh", fetches: true, run: ({ server }) => server.refresh() },
   { name: "page", lands: rowsChange, fetches: true, run: ({ server }) => (server as UseDataGridServerRowsResult<Row>).pager.onPageChange(2), applies: (setup) => setup.mode === "pages" },
-  { name: "column reorder", lands: (before, after, setup) => (setup.spec.pivot ? null : headerChanges(before, after)), run: ({ api }) => void api.actions.setColumnOrder("qty", "city", "before") },
+  { name: "column reorder", lands: (before, after, setup) => (pivoted(setup) ? null : headerChanges(before, after)), run: ({ api }) => void api.actions.setColumnOrder("qty", "city", "before") },
   { name: "column resize", run: ({ api }) => api.actions.setColumnWidth("city", 200) },
-  { name: "column hide", lands: (before, after, setup) => (setup.spec.pivot ? null : headerChanges(before, after)), run: ({ api }) => api.actions.setColumnHidden("city", true) },
+  { name: "column hide", lands: (before, after, setup) => (pivoted(setup) ? null : headerChanges(before, after)), run: ({ api }) => api.actions.setColumnHidden("city", true) },
   { name: "labels", run: ({ setLabels }) => setLabels({ grid: { noResults: "Nothing found" } }) },
 ];
 

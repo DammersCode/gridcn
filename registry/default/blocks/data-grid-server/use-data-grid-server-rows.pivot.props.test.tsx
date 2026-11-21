@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { useState } from "react";
+import { StrictMode, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PivotSpec, ServerAggregate } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { fakeServer, rowsOf, type Row } from "./group-fake-server.test-helper";
@@ -67,18 +67,48 @@ describe.each(["pages", "scroll"] as const)("the pivot props of a grouped server
     expect(server.calls[0]!.spec.pivot).toEqual({ columnIds: ["city"] });
   });
 
-  it("follows a controlled pivot over spec.pivot, and round-trips a grid change through onPivotChange", async () => {
+  it("runs a function defaultPivot once after mount, and the first request carries its pivot", async () => {
     const server = fakeServer(rowsOf({ A: 2, B: 2 }));
-    const { result } = renderHook(() => {
-      const [pivot, setPivot] = useState<PivotSpec>({ columnIds: ["city"] });
-      return { pivot, ...useDataGridServerRows<Row>({ ...(mode === "scroll" ? { mode, overscan: 0, loadDelayMs: 0 } : null), fetchRows: server.fetchRows as never, defaultSpec: GROUPED, pivot, onPivotChange: setPivot } as never) };
-    });
-    await waitFor(() => expect(server.calls[0]?.spec.pivot).toEqual({ columnIds: ["city"] }));
+    const seed = vi.fn(() => ({ columnIds: ["city"] }));
+    mount(server, { defaultPivot: seed });
+    await waitFor(() => expect(server.calls.length).toBeGreaterThan(0));
+    await act(settle);
+    expect(server.calls.map((call) => call.spec.pivot)).toEqual(server.calls.map(() => ({ columnIds: ["city"] })));
+    expect(seed).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores defaultPivot under a controlled spec", async () => {
+    const server = fakeServer(rowsOf({ A: 2, B: 2 }));
+    mount(server, { spec: { sorts: [], filters: [], searchText: "", ...GROUPED }, onSpecChange: () => {}, defaultPivot: () => ({ columnIds: ["city"] }) });
+    await waitFor(() => expect(server.calls.length).toBeGreaterThan(0));
+    await act(settle);
+    expect(server.calls.every((call) => call.spec.pivot === undefined)).toBe(true);
+  });
+
+  it.each([
+    ["", undefined],
+    [" under StrictMode", StrictMode],
+  ] as const)("follows a controlled pivot over a different spec.pivot, with one request per change%s", async (_, Wrapper) => {
+    const server = fakeServer(rowsOf({ A: 2, B: 2 }));
+    const { result } = renderHook(
+      () => {
+        const [pivot, setPivot] = useState<PivotSpec>({ columnIds: ["city"] });
+        return { pivot, ...useDataGridServerRows<Row>({ ...(mode === "scroll" ? { mode, overscan: 0, loadDelayMs: 0 } : null), fetchRows: server.fetchRows as never, defaultSpec: { ...GROUPED, pivot: { columnIds: ["id"] } }, pivot, onPivotChange: setPivot } as never) };
+      },
+      Wrapper ? { wrapper: Wrapper } : undefined,
+    );
+    await waitFor(() => expect(server.calls.length).toBeGreaterThan(0));
+    await act(settle);
+    expect(new Set(server.calls.map((call) => JSON.stringify(call.spec.pivot)))).toEqual(new Set([JSON.stringify({ columnIds: ["city"] })]));
+    let before = server.calls.length;
     act(() => gridOf(result).onPivotChange!({ columnIds: [] }));
+    await act(settle);
     expect(result.current.pivot).toEqual({ columnIds: [] });
-    await waitFor(() => expect(server.calls.at(-1)!.spec.pivot).toBeUndefined());
+    expect(server.calls.slice(before).map((call) => call.spec.pivot)).toEqual([undefined]);
     expect(gridOf(result).pivot).toEqual({ columnIds: [] });
+    before = server.calls.length;
     act(() => gridOf(result).onPivotChange!({ columnIds: ["city"] }));
-    await waitFor(() => expect(server.calls.at(-1)!.spec.pivot).toEqual({ columnIds: ["city"] }));
+    await act(settle);
+    expect(server.calls.slice(before).map((call) => call.spec.pivot)).toEqual([{ columnIds: ["city"] }]);
   });
 });

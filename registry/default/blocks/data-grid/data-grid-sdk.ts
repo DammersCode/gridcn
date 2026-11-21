@@ -7,6 +7,7 @@
  */
 
 import { use, useCallback, useEffect } from "react";
+import { useStore } from "zustand";
 import { useDataGridInternalActions, useDataGridStoreApi as useDataGridStoreApiRaw } from "./store";
 import { gridStoreWrapper, setServerReshapeHandler } from "./store/api";
 import { nextAnnouncement } from "./store/announcements";
@@ -174,6 +175,10 @@ export function useDataGridAnnounce(): (kind: LiveAnnouncementKind, count: numbe
     (kind, count, partial) => store.setState((s) => ({ liveAnnouncement: nextAnnouncement(s.liveAnnouncement, kind, count, partial) })),
     [store],
   );
+}
+/** Whether the source can pivot: `true` on a client grid, `false` while the server layout says `pivotable: false`. */
+export function useDataGridSourcePivots(): boolean {
+  return useStore(useDataGridStoreApiRaw(), (s) => s.groupMode !== "server" || s.serverGroupLayout?.pivotable !== false);
 }
 export { setCellValue } from "./columns/column-helpers";
 export { applyChangeWith, type ApplyChangeOptions } from "./interaction/history";

@@ -60,7 +60,7 @@ The header dropdown and the right-click header menu show the same items:
 - **Sort ascending** and **Sort descending**. A column with `sortable: false` shows neither, and no sort group.
 - **Pin to start** and **Pin to end**. If the column cannot pin, they stay but turn off.
 - **Clear sort**, only for a sorted column. **Unpin**, only for a pinned column.
-- **Pivot by** and **Turn off pivot**, only while `groupBy` is set. **Pivot by** needs a column that can group and is not a group column. A generated column has no menu.
+- **Pivot by** and **Turn off pivot**, only while `groupBy` is set. On a client grid, a lazy source, `totalRowCount`, and `sortMode="server"` hide both. Only a column that can group and is not a group column offers **Pivot by**. On a server grid it also needs `spec.aggregates` and a sortable column, and the query layer refuses a `time` pivot column. A generated column has no menu.
 - **Hide column**. A column with `hideable: false` does not show it.
 - **Move toward start** and **Move toward end**, only while column reorder is on and the column is reorderable. Each one turns off when no neighbor takes the move.
 - **Widen column**, **Narrow column**, **Autosize column**, and **Autosize all columns**, only while column resize is on and the column is resizable.

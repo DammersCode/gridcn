@@ -112,7 +112,7 @@ These ids appear only under a condition:
 | `sort-asc`, `sort-desc`, `sep-sort` | On a sortable column |
 | `clear-sort` | On a sorted column |
 | `group-by`, `ungroup`, `sep-group` | On a grid that groups, on a column that can group or that is a group column |
-| `pivot-by` | While `groupBy` is set, on a column that can group and is not a group column or the pivot column |
+| `pivot-by` | On a grid that groups, while `groupBy` is set, on a column that can group and is not a group column or the pivot column. A server grid also needs `spec.aggregates` and a sortable column. |
 | `pivot-off` | While `groupBy` is set and a pivot is on |
 | `sep-pivot` | With `pivot-by` or `pivot-off` |
 | `expand-all` | When the client builds the groups |

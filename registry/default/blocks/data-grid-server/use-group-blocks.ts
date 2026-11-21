@@ -651,7 +651,8 @@ export function useGroupBlocks<TData, TCursor = never>(
   const ownPlugins = useMemo(() => (paged ? [...guardPlugins, ...pagerPlugins] : guardPlugins), [paged, guardPlugins, pagerPlugins]);
   const plugins = useMountedPlugins(ownPlugins, options.plugins);
   const getRowId = useCallback((row: TData, index: number) => (row === undefined ? holeRowId(index) : live.current.options.getRowId(row, index)), []);
-  const groupLayout = useMemo<ServerGroupLayout>(() => ({ rows: view.slots, leafCount: view.leafCount, ...(view.pivotHold?.layout ? { pivot: view.pivotHold.layout } : null) }), [view]);
+  const pivotable = (spec.aggregates?.length ?? 0) > 0 && groupBy.length <= MAX_PIVOT_LEVELS;
+  const groupLayout = useMemo<ServerGroupLayout>(() => ({ rows: view.slots, leafCount: view.leafCount, ...(view.pivotHold?.layout ? { pivot: view.pivotHold.layout } : null), ...(pivotable ? null : { pivotable: false as const }) }), [view, pivotable]);
 
   const providerProps = useMemo<UseDataGridServerRowsScrollProviderProps<TData>>(
     () => ({
