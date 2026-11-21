@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { ServerGroupLayout } from "../group-types";
+import type { GroupNode, ServerGroupLayout } from "../group-types";
+import { windowView } from "./compute";
 import { groupPositionAt, groupRowMetaAt } from "./group-positions";
 import { buildServerGroupView } from "./server-group-view";
+import { groupLayoutOfView, registerGroupLayout } from "./view-rows";
 
 const GROUP_BY = ["region"];
 const slot = (viewRow: number) => ({ viewRow, path: [{ columnId: "region", key: `g${viewRow}` }], count: 1, childCount: 0 });
@@ -33,6 +35,28 @@ describe("positions of a sparse layout where no group opens", () => {
     const open = { ...base, expanded: { mode: "collapsed" as const, ids: [groupRowMetaAt(base, 2)!.node.id] } };
     expect(groupRowMetaAt(open, 2)!.expanded).toBe(true);
     expect(groupRowMetaAt({ ...open, pivot: { columnId: "city" } }, 2)!.expanded).toBe(false);
+  });
+});
+
+describe("positions on a client page", () => {
+  const node = (id: string, depth: number, childCount: number): GroupNode => ({ id, depth, columnId: "c", key: id, label: id, count: 0, childCount, aggregates: {} });
+  // A (A/x: rows 0 1, A/y: row 2), B (closed), C (rows 3 4); 2 top-level groups per page.
+  const full = [-1, -2, 0, 1, -3, 2, -4, -5, 3, 4];
+  registerGroupLayout(full, { rows: [node("A", 0, 2), node("A/x", 1, 2), node("A/y", 1, 1), node("B", 0, 3), node("C", 0, 2)], leafCount: 5 });
+  const expanded = { mode: "expanded" as const, ids: [] };
+
+  it("counts the top-level groups of the page as the set, as it does for the rows", () => {
+    const first = { viewIndex: windowView(full, { page: 1, pageSize: 2 }), groupLayout: groupLayoutOfView(full), expanded };
+    expect([0, 6].map((row) => groupPositionAt(first, row))).toEqual([
+      { level: 1, posInSet: 1, setSize: 2 },
+      { level: 1, posInSet: 2, setSize: 2 },
+    ]);
+    const second = { viewIndex: windowView(full, { page: 2, pageSize: 2 }), groupLayout: groupLayoutOfView(full), expanded };
+    expect([0, 1, 2].map((row) => groupPositionAt(second, row))).toEqual([
+      { level: 1, posInSet: 1, setSize: 1 },
+      { level: 2, posInSet: 1, setSize: 2 },
+      { level: 2, posInSet: 2, setSize: 2 },
+    ]);
   });
 });
 

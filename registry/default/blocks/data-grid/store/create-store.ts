@@ -427,14 +427,12 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       ...(anchoredOnEditCell ? { selection: { ...selectCellPure(moved), rows: s.selection.rows, columns: s.selection.columns } } : {}),
     };
   };
-  /**
-   * The active cell's coord in a rebuilt view: it follows its record and its column id. Returns
-   * `undefined` when its row or column left the view, so the caller clamps instead.
-   */
+  /** The active cell's coord in a rebuilt view, anchored to ids so a rebuild never moves it onto another record; `undefined` makes the caller clamp. */
   const followActiveCell = (
     s: DataGridStoreState,
     viewIndex: readonly number[],
     visibleColumns: readonly AnyColumnDef[],
+    data: readonly unknown[],
     toNextDataRow: ((prevDataRow: number) => number | undefined) | undefined,
     sameRecordAt: ((viewRow: number) => boolean) | undefined,
   ): DataGridStoreState["activeCell"] | undefined => {
@@ -446,6 +444,9 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
     let row = active.row;
     if (typeof prevRecord === "string") {
       row = viewRowOfGroupId(viewIndex, prevRecord);
+      // A server group row whose block unloaded leaves a hole at its index, and the next load fills it with the same group.
+      const at = dataIndexOf(viewIndex, active.row);
+      if (row === -1 && at !== undefined && data[at] === undefined) row = active.row;
     } else if (sameRecordAt ? !sameRecordAt(active.row) : dataIndexOf(viewIndex, active.row) !== prevRecord) {
       const nextDataRow = toNextDataRow ? toNextDataRow(prevRecord) : prevRecord;
       row = nextDataRow === undefined ? -1 : viewRowOfDataIndex(viewIndex, nextDataRow);
@@ -495,7 +496,8 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
    * The cursor, the open edit, and the selection carried into a rebuilt view. `sameRecords` keeps
    * data indices as identity (no `data` swap, or our own echo); otherwise records map by rowId, and
    * a duplicated rowId resolves to the first row with that id. The active cell follows its record and
-   * column and clamps only when one of them left the view. The row channel follows its records, the
+   * column; a record whose group left moves to the nearest parent group that stays, and only an active cell
+   * that finds neither clamps. The row channel follows its records, the
    * column channel its column ids. A range that now covers other records or columns collapses onto
    * the followed active cell; a clamp that moves the cursor collapses onto it, and a clamp in place
    * drops the range, so a row operation never reaches a record nobody selected.
@@ -527,7 +529,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
           return prevRow !== undefined && nextRow !== undefined && s.getRowId(prevRow, prevDataRow) === getRowId(nextRow, nextDataRow);
         }
       : undefined;
-    const followed = followActiveCell(s, viewIndex, visibleColumns, toNextDataRow, sameRecordAt);
+    const followed = followActiveCell(s, viewIndex, visibleColumns, data, toNextDataRow, sameRecordAt);
     const clamped = followed === undefined ? clampCursor(s, viewIndex.length, visibleColumns.length) : undefined;
     const clampedSelection = clamped?.selection;
     const editRemap = remapEditing(s, viewIndex, visibleColumns, data, getRowId);
