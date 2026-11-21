@@ -40,7 +40,7 @@ export type WriteCounts = { updates: readonly (number | bigint)[]; deletes: read
 /** The answer of a save route; it assigns to the grid's `SaveAck`. */
 export type SaveAnswer = { rejected: WriteRefusal[] };
 
-const isCount = (count: unknown): count is number | bigint => (typeof count === "number" && Number.isSafeInteger(count) && count >= 0) || (typeof count === "bigint" && count >= 0n);
+const isCount = (count: unknown): count is number | bigint => (typeof count === "number" && Number.isSafeInteger(count) && count >= 0) || (typeof count === "bigint" && count >= 0);
 
 /**
  * The save answer of a validated change after its writes ran: a row id with any write that matched no row answers one
