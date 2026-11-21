@@ -51,14 +51,14 @@ const columns = defineColumns<DemoRow>()([
     type: "text",
     width: 110,
   },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 90, pin: "end" },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 90, pin: "end" },
 ] as const);
 
 const AVERAGES = aggregateRow<DemoRow>({ age: "avg", score: "avg" }, { cells: { id: "averages", name: "Average" } });
 const TOTALS = aggregateRow<DemoRow>({ name: (_values, rows) => `${rows.length} rows`, age: "sum", score: "sum" }, { cells: { id: "totals" } });
 
 /**
- * All four pin zones at once: Name start-pinned, Score end-pinned, an averages row pinned to
+ * All four pin zones at once: Name start-pinned, Logins end-pinned, an averages row pinned to
  * the top band, and a totals row pinned to the bottom band (`data-grid-pinned-rows` add-on).
  * Enough columns overflow the ~900px viewport to scroll horizontally, and 200 rows fill the
  * fixed-height viewport to scroll vertically, so both pinned column bands and both pinned row
@@ -72,7 +72,7 @@ export default function DataGridPinningAllSidesDemo(): ReactNode {
   return (
     <div className="w-full flex flex-col gap-3">
       <p className="text-sm text-muted-foreground">
-        Scroll the grid both ways: Name and Score stay pinned to their column bands while the
+        Scroll the grid both ways: Name and Logins stay pinned to their column bands while the
         middle columns scroll underneath, and the Average/Total rows stay pinned to their row
         bands while the data rows scroll underneath.
       </p>

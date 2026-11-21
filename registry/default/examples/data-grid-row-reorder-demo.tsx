@@ -19,7 +19,7 @@ const columns = defineColumns<DemoRow>()([
   { id: "name", header: "Name", accessorKey: "name", type: "text", width: 130, flex: 1 },
   { id: "email", header: "Email", accessorKey: "email", type: "text", width: 170, flex: 2 },
   { id: "role", header: "Role", accessorKey: "role", type: "text", width: 90, flex: 1 },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 70, flex: 1 },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 70, flex: 1 },
 ] as const);
 
 type MoveOp = { type: "move"; rowId: string; row: DemoRow; from: number; to: number };

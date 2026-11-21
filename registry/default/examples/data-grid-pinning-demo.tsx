@@ -44,11 +44,11 @@ const columns = defineColumns<DemoRow>()([
     width: 140,
     flex: 1,
   },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 90, pin: "end" },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 90, pin: "end" },
 ] as const);
 
 /**
- * Column pinning (Name start-pinned, Score end-pinned by default), resize (drag a header's
+ * Column pinning (Name start-pinned, Logins end-pinned by default), resize (drag a header's
  * inline-end edge, double-click to autosize), and drag-to-reorder — all on by default, adjustable
  * per column (`pinnable`, `resizable`, `reorderable`) or grid-wide (`enableColumnPinning`, etc).
  * Email opts out of resize (`resizable: false`); Bio is long content sized via `flex: 1` and is a

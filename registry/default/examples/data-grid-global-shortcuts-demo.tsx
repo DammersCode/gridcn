@@ -9,7 +9,7 @@ import { generateDemoRows, type DemoRow } from "./demo-data";
 
 const columns = defineColumns<DemoRow>()([
   { id: "name", header: "Name", accessorKey: "name", type: "text", width: 180, flex: 2 },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 90, flex: 1 },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 90, flex: 1 },
 ] as const);
 
 /**

@@ -40,7 +40,7 @@ const columns = defineColumns<DemoRow>()([
     width: 130,
     filterable: true,
   },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 90 },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 90 },
 ] as const);
 
 /** The pagination hook reads `useSearchParams()` through nuqs; Next.js requires Suspense around it during static prerendering. */
