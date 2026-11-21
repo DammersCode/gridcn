@@ -16,6 +16,7 @@ const columns = defineColumns<Row>()([
   { id: "year", header: "Year", accessorKey: "year", type: "number" },
   { id: "amount", header: "Amount", accessorKey: "amount", type: "number", aggregate: "sum" },
 ] as const);
+const unpinnedColumns = columns.map((column) => ({ ...column, pin: undefined }));
 
 const KEYS = [2023, 2024, 2025, 2026];
 const TREE = [
@@ -40,12 +41,12 @@ const q = <T extends HTMLElement>(selector: string) => [...document.querySelecto
 const rows = () => q('[role="row"][data-grid-group-row]');
 const cellsOf = (row: Element) => [...row.querySelectorAll<HTMLElement>('[role="gridcell"]:not([data-grid-marker-cell])')];
 
-function NestedPivot({ radius }: { radius?: string }) {
+function NestedPivot({ radius, pinned = true }: { radius?: string; pinned?: boolean }) {
   return (
     <div style={{ width: 720, ...(radius === undefined ? null : { "--radius": radius }) } as CSSProperties}>
       <DataGrid
         data={layout.rows.map(() => placeholder)}
-        columns={columns}
+        columns={pinned ? columns : unpinnedColumns}
         getRowId={(_r, i) => `slot-${i}`}
         groupBy={["region", "country"]}
         groupLayout={layout}
@@ -101,6 +102,16 @@ describe("a nested pivot grid", () => {
     await userEvent.keyboard("{ArrowDown}{Enter}");
     expect(rows()[1]!.hasAttribute("aria-expanded")).toBe(false);
     expect(document.querySelector(gridAttrSelector("cellEditor"))).toBeNull();
+  });
+
+  it("paints an active outer label with an unpinned key column", async () => {
+    await render(<NestedPivot pinned={false} />);
+    await vi.waitFor(() => expect(rows()).toHaveLength(slots.length));
+    const grid = document.querySelector<HTMLElement>('[role="treegrid"]')!;
+    await expectNoPaintMismatch(grid, [
+      { name: "active outer label", apply: () => userEvent.click(cellsOf(rows()[0]!)[0]!) },
+      { name: "active innermost label", apply: () => userEvent.click(cellsOf(rows()[1]!)[0]!) },
+    ]);
   });
 
   it.each(["0px", "1rem"])("paints the same with --radius %s", async (radius) => {

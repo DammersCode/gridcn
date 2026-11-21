@@ -140,13 +140,14 @@ describe("nested pivot rows", () => {
     expect(document.querySelector("input, textarea")).toBeNull();
   });
 
-  it("keep the cursor on the closed row's group when a layout without its children lands", () => {
+  it("keep the cursor on its row when a layout without the closed row's children lands", () => {
     const { rerender } = render(<Grid />);
     fireEvent.click(cellsOf(pivotRows()[3]!)[1]!);
     rerender(<Grid layout={closedLayout} />);
     expect(pivotRows()).toHaveLength(2);
     expect(cellsOf(pivotRows()[1]!)[1]!.hasAttribute("data-active")).toBe(true);
   });
+
 });
 
 describe("the store on nested pivot rows", () => {
