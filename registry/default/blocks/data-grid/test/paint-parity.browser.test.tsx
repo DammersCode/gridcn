@@ -77,6 +77,30 @@ describe("paint parity", () => {
     expect(seeSameColor(selectedMarker, neighbour)).toBe(true);
   });
 
+  it("group rows with pinned label and aggregate columns paint nothing that differs from the row and selection layers", async () => {
+    const columns = defineColumns<{ id: string; team: string; name: string; score: number }>()([
+      { id: "team", header: "Team", accessorKey: "team", type: "text", width: 140, pin: "start" },
+      { id: "name", header: "Name", accessorKey: "name", type: "text", width: 120 },
+      { id: "score", header: "Score", accessorKey: "score", type: "number", width: 100, pin: "end", aggregate: "sum" },
+    ] as const);
+    const data = Array.from({ length: 12 }, (_, i) => ({ id: `r${i}`, team: `T${i % 3}`, name: `n${i}`, score: i }));
+    await render(
+      <div style={{ width: 400 }}>
+        <DataGrid data={data} columns={columns} getRowId={(r) => r.id} groupBy={["team"]} defaultExpanded={{ mode: "expanded", ids: [] }} className="h-[400px]" aria-label="Scores by team" />
+      </div>,
+    );
+    await vi.waitFor(() => expect(q("[data-grid-group-row]")).toHaveLength(3));
+    const grid = document.querySelector<HTMLElement>('[role="treegrid"]')!;
+    const groupRow = (i: number) => q("[data-grid-group-row]")[i]!;
+    const states: PaintState[] = [
+      { name: "active pinned group label", apply: () => userEvent.click(gridCells(groupRow(0))[0]!) },
+      { name: "hovered active pinned group label", apply: () => userEvent.hover(gridCells(groupRow(0))[0]!) },
+      { name: "active pinned aggregate cell", apply: () => userEvent.click(gridCells(groupRow(1))[1]!) },
+      { name: "active pinned aggregate cell inside a range", apply: () => shiftClick(gridCells(groupRow(2))[0]!) },
+    ];
+    await expectNoPaintMismatch(grid, states);
+  });
+
   it("cells with inner elements paint nothing that differs from the row and selection layers", async () => {
     const columns = defineColumns<{ id: string; name: string; role: string; site: string; done: boolean; note: string }>()([
       { id: "name", header: "Name", accessorKey: "name", type: "text", width: 120 },

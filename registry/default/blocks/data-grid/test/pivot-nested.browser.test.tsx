@@ -122,6 +122,8 @@ describe("a nested pivot grid", () => {
       { name: "default", apply: () => {} },
       { name: "active innermost cell", apply: () => userEvent.click(cellsOf(rows()[1]!)[3]!) },
       { name: "active outer pivot cell", apply: () => userEvent.click(cellsOf(rows()[0]!)[2]!) },
+      { name: "active outer label", apply: () => userEvent.click(cellsOf(rows()[0]!)[0]!) },
+      { name: "active innermost label", apply: () => userEvent.click(cellsOf(rows()[1]!)[0]!) },
     ]);
   });
 });
