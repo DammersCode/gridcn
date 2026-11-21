@@ -1,13 +1,17 @@
 import { isCounted } from "../aggregate";
-import type { GroupKey, PivotColumnDescriptor, ServerPivotLayout } from "../group-types";
-import { MAX_PIVOT_COLUMNS } from "../pivot-columns";
+import type { GroupKey, GroupNode, PivotColumnDescriptor, ServerPivotLayout } from "../group-types";
+import { MAX_PIVOT_COLUMNS, pivotColumnId as generatedIdOf } from "../pivot-columns";
 import type { ServerAggregate } from "../server-spec";
 import { groupKeyOf, groupKeyText } from "../store/group-state";
-import { buildGroupTree, type GroupBucket, type GroupBuildInput, type GroupTree } from "./build-group-view";
+import { buildGroupTree, ownersOf, type GroupBucket, type GroupBuildInput, type GroupTree } from "./build-group-view";
+import type { CellAccessor } from "./build-view-index";
 import { sortCollator } from "./sort-collator";
 
 /** Most cells a client pivot holds: group rows times generated columns, the cap of the server pivot store. */
 export const MAX_PIVOT_CELLS = 1_000_000;
+
+/** Longest generated id the grid keeps, as the server pivot reader does. */
+const MAX_GENERATED_ID_LENGTH = 2048;
 
 export type PivotBuildInput = GroupBuildInput & {
   /** The pivot column; `directions` holds its sort direction. */
@@ -32,7 +36,7 @@ const combine = (reducer: ServerAggregate["reducer"], was: number, v: number): n
   Number.isNaN(was) ? v : reducer === "min" ? Math.min(was, v) : reducer === "max" ? Math.max(was, v) : was + v;
 
 /** The first `limit` keys in `compare` order, the empty key last; a key past the cut costs one comparison. */
-function heldKeys(keys: Iterable<Key>, limit: number, compare: (a: Key, b: Key) => number): Key[] {
+function heldKeys(keys: Iterable<Key>, limit: number, compare: (a: Key, b: Key) => number, accepts: (key: Key) => boolean): Key[] {
   const held: Key[] = [];
   if (limit === 0) return held;
   let empty: Key | undefined;
@@ -42,6 +46,7 @@ function heldKeys(keys: Iterable<Key>, limit: number, compare: (a: Key, b: Key) 
       continue;
     }
     if (held.length === limit && compare(key, held[limit - 1]!) >= 0) continue;
+    if (!accepts(key)) continue;
     let lo = 0;
     let hi = held.length;
     while (lo < hi) {
@@ -52,7 +57,7 @@ function heldKeys(keys: Iterable<Key>, limit: number, compare: (a: Key, b: Key) 
     held.splice(lo, 0, key);
     if (held.length > limit) held.pop();
   }
-  if (empty && held.length < limit) held.push(empty);
+  if (empty && held.length < limit && accepts(empty)) held.push(empty);
   return held;
 }
 
@@ -101,7 +106,14 @@ export function buildPivot(input: PivotBuildInput): PivotBuild | PivotTooLarge |
     if (result !== 0) return direction * result;
     return a.text < b.text ? -1 : a.text > b.text ? 1 : 0;
   };
-  const held = heldKeys(byText.values(), valueCount === 0 ? 0 : Math.floor(MAX_PIVOT_COLUMNS / valueCount), compare);
+  const fits = (key: Key): boolean => {
+    try {
+      return values.every((value) => generatedIdOf(pivotColumnId, key.key, value).length <= MAX_GENERATED_ID_LENGTH);
+    } catch {
+      return false;
+    }
+  };
+  const held = heldKeys(byText.values(), valueCount === 0 ? 0 : Math.floor(MAX_PIVOT_COLUMNS / valueCount), compare, fits);
   const keyCount = held.length;
   const width = keyCount * valueCount;
 
@@ -127,7 +139,42 @@ export function buildPivot(input: PivotBuildInput): PivotBuild | PivotTooLarge |
 
   const rankOf = new Int32Array(byText.size).fill(-1);
   held.forEach((key, rank) => (rankOf[key.id] = rank));
-  const readers = values.map(({ columnId }) => (accessor.getValue ? (row: number) => accessor.getValue!(row, columnId) : (row: number) => accessor.getText(row, columnId)));
+  const reducer = pivotReducer(accessor, values, width, (row) => rankOf[keyIdOf[row]!]!);
+  for (const root of tree.roots) reducer.finish(root, reducer.fill(root, null));
+  tree.pivot = pivot;
+  return { tree, pivot };
+}
+
+/**
+ * Reduces again the pivot cells of the groups that hold `touchedRows` (data indices) and of their parents, over the kept buckets
+ * and the held set of `pivot`; the result equals a full {@link buildPivot} while every touched row keeps its pivot key and its group.
+ * Returns the replaced nodes by id; the buckets point at the new nodes afterwards.
+ */
+export function refreshPivotCells(tree: GroupTree, pivot: ServerPivotLayout, touchedRows: readonly number[], accessor: CellAccessor): Map<string, GroupNode> {
+  const stale = new Set<GroupBucket>();
+  const owners = ownersOf(tree);
+  for (const row of touchedRows) for (let bucket = owners.get(row) ?? null; bucket && !stale.has(bucket); bucket = bucket.parent) stale.add(bucket);
+  const replaced = new Map<string, GroupNode>();
+  if (stale.size === 0) return replaced;
+  const valueCount = pivot.values.length;
+  const rankByText = new Map<string, number>();
+  for (let rank = 0; rank * valueCount < pivot.columns.length; rank++) rankByText.set(groupKeyText(pivot.columns[rank * valueCount]!.path[0] ?? null), rank);
+  const read = readerOf(accessor, pivot.columnId);
+  const reducer = pivotReducer(accessor, pivot.values, pivot.columns.length, (row) => {
+    const key = groupKeyOf(read(row));
+    return rankByText.get(typeof key === "string" ? key : groupKeyText(key)) ?? -1;
+  });
+  for (const root of tree.roots) if (stale.has(root)) reducer.finish(root, reducer.fill(root, stale));
+  for (const bucket of stale) replaced.set(bucket.node.id, bucket.node);
+  return replaced;
+}
+
+const readerOf = (accessor: CellAccessor, columnId: string) => (accessor.getValue ? (row: number) => accessor.getValue!(row, columnId) : (row: number) => accessor.getText(row, columnId));
+
+/** The reduction that {@link buildPivot} and {@link refreshPivotCells} share, so both sum in the same order. */
+function pivotReducer(accessor: CellAccessor, values: readonly ServerAggregate[], width: number, rankOfRow: (row: number) => number) {
+  const valueCount = values.length;
+  const readers = values.map(({ columnId }) => readerOf(accessor, columnId));
   const reducers = values.map((value) => value.reducer);
   const hasAvg = reducers.includes("avg");
 
@@ -159,27 +206,31 @@ export function buildPivot(input: PivotBuildInput): PivotBuild | PivotTooLarge |
 
   const finish = (bucket: GroupBucket, own: Cells): void => {
     if (own.counted) for (let slot = 0; slot < width; slot++) if (reducers[slot % valueCount] === "avg" && own.counted[slot]! > 0) own.cells[slot]! /= own.counted[slot]!;
-    bucket.node = { ...bucket.node, pivotCells: own.cells };
+    bucket.node = { ...bucket.node, pivotCells: own.cells, ...(bucket.leaves ? { childCount: 0 } : null) };
   };
 
-  // Sums and counts roll up before `finish` turns a node's sums into averages.
-  const fill = (bucket: GroupBucket): Cells => {
+  // Sums and counts roll up before `finish` turns a node's sums into averages. Without `avg` a finished node equals its sums,
+  // so a refresh merges a kept child's cells instead of reducing its rows again.
+  const fill = (bucket: GroupBucket, stale: ReadonlySet<GroupBucket> | null): Cells => {
     const own = empty();
     if (bucket.leaves) {
       for (const row of bucket.leaves) {
-        const k = rankOf[keyIdOf[row]!]!;
+        const k = rankOfRow(row);
         if (k < 0) continue;
         for (let a = 0; a < valueCount; a++) addValue(own, k * valueCount + a, reducers[a]!, readers[a]!(row));
       }
     } else {
       for (const child of bucket.groups!) {
-        const sub = fill(child);
+        if (stale && !stale.has(child) && !hasAvg) {
+          merge(own, { cells: child.node.pivotCells!, counted: null });
+          continue;
+        }
+        const sub = fill(child, stale);
         merge(own, sub);
-        finish(child, sub);
+        if (!stale || stale.has(child)) finish(child, sub);
       }
     }
     return own;
   };
-  for (const root of tree.roots) finish(root, fill(root));
-  return { tree, pivot };
+  return { fill, finish };
 }

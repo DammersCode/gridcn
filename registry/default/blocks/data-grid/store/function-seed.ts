@@ -43,6 +43,7 @@ const CONTROLLED_SEEDS = [
   ["defaultSearchText", "searchText"],
   ["defaultGroupBy", "groupBy"],
   ["defaultExpanded", "expanded"],
+  ["defaultPivot", "pivot"],
 ] as const;
 
 function warnIgnoredSeeds(init: InternalSyncProps): void {

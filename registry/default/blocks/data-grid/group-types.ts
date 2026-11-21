@@ -53,6 +53,8 @@ export type GroupLayout = {
   readonly leafCount: number;
   /** @internal The client buckets; a server layout has none. */
   readonly tree?: unknown;
+  /** @internal The held set of a client pivot; a server layout keeps its own in `ServerGroupLayout.pivot`. */
+  readonly pivot?: ServerPivotLayout;
 };
 
 /** One group row of a {@link ServerGroupLayout}: where it sits in `data`, the group it heads, and what the server said about it. */
@@ -97,6 +99,9 @@ export type ServerGroupLayout = {
   readonly pivot?: ServerPivotLayout;
 };
 
+/** A pivot: the pivot column, the one entry of `columnIds`. */
+export type PivotSpec = { readonly columnIds: readonly string[] };
+
 /** What `renderGroupLabel` receives for a group row. */
 export type GroupLabelCtx = {
   groupId: string;
@@ -120,10 +125,13 @@ export type GroupStoreState = {
   groupMode: "client" | "server";
   /** The `groupLayout` prop as given; `groupLayout` above is the layout the core derived from it. */
   serverGroupLayout: ServerGroupLayout | null;
-  /** @internal Under pivot: the generated columns of the held set (`serverGroupLayout.pivot`); `null` otherwise. */
+  /** @internal Under pivot: the generated columns of the held set (`serverGroupLayout.pivot`, or `groupLayout.pivot` of a client pivot); `null` otherwise. */
   pivot: PivotView | null;
   /** Whether a grouping prop was given: the menus and keys show only then. */
   groupingEnabled: boolean;
   groupByControlled: boolean;
   expandedControlled: boolean;
+  /** The pivot column as given (at most 1 id); a rebuild checks it against the live columns and ignores it without `groupBy`. */
+  pivotColumnIds: readonly string[];
+  pivotControlled: boolean;
 };

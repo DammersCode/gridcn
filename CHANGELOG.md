@@ -9,6 +9,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## Unreleased
 
+- Added the client pivot: the `pivot`, `defaultPivot`, and `onPivotChange` props and the `setPivot` action turn the group rows of `groupBy` into one generated column per key of the pivot column and per column with a built-in `aggregate`, on a local array and under client pagination. A lazy source, `totalRowCount`, `sortMode="server"`, a pivot without `groupBy`, an unknown or non-groupable pivot column, and a pivot above 1,000,000 cells keep the grid without the pivot and warn in development.
 - Fixed the active cell of a grouped grid landing on another record when its group left the view, with the active cell on the group row or on one of its rows. The active cell moves to the nearest parent group that stays. An active cell on a row whose group stays, on a server group row whose block unloaded, or on a top-level group that left stays at its row index.
 - Fixed `aria-level`, `aria-posinset`, and `aria-setsize` of a grouped server grid while some rows are unloaded. A group row counts its position in the whole set, the set size comes from the child count the server sends, and an unloaded top-level row after an open group reads level 1.
 - Changed `aria-posinset` and `aria-setsize` of the top-level group rows under client pagination: the page is the set, as it is for the rows. They counted the whole result before, and a row on a page that does not start the result read a wrong position.

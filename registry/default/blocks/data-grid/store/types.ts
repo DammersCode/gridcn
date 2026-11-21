@@ -4,7 +4,7 @@ import type { AutosizeFonts } from "../columns/autosize-columns";
 import type { ColumnGroupModel } from "../columns/column-groups";
 import type { ColumnOrderResult } from "./column-order";
 import type { SelectionChangeDetails } from "./selection-change";
-import type { ExpandedState, GroupActionResult, GroupStoreState, ServerGroupLayout } from "../group-types";
+import type { ExpandedState, GroupActionResult, GroupStoreState, PivotSpec, ServerGroupLayout } from "../group-types";
 import type {
   CellRef, ViewCellRef, ViewCoord,
   AutosizeOptions,
@@ -330,6 +330,15 @@ export type DataGridSyncProps<TData = unknown> = {
   defaultGroupBy?: readonly string[] | (() => readonly string[] | null | undefined);
   /** Fires after the user (or `setGroupBy`, `toggleGroupBy`) changes the group columns. */
   onGroupByChange?: (next: readonly string[]) => void;
+  /**
+   * Controlled pivot: the group rows of `groupBy` get one generated column per key of the pivot column and per column with a
+   * built-in `aggregate`. Needs `groupBy` and every row on the client. `{ columnIds: [] }` keeps the pivot off under control.
+   */
+  pivot?: PivotSpec;
+  /** Seeds the pivot once at store creation. */
+  defaultPivot?: PivotSpec;
+  /** Fires after `setPivot` changes the pivot, with `undefined` when it turns off. */
+  onPivotChange?: (next: PivotSpec | undefined) => void;
   /** Controlled open groups. A toggle applies at once and emits. Default: every group collapsed. */
   expanded?: ExpandedState;
   /** Seeds the open groups once at store creation. */
@@ -655,6 +664,8 @@ export type DataGridStoreState = Omit<
   InternalSyncProps,
   | "data"
   | "groupLayout"
+  | "pivot"
+  | "defaultPivot"
   | "defaultData"
   | "cellTypes"
   | "commands"
@@ -924,7 +935,7 @@ export type DataGridStoreState = Omit<
 /** `DataGridStoreState` with `data` typed as `readonly TData[]` — the state view {@link useDataGridSelector} hands its selector. Every row in `data` originated from the grid's own `TData`-typed `data`/`defaultData` prop, so the widening is safe. */
 export type DataGridStoreStateOf<TData> = Omit<DataGridStoreState, "data" | DataGridInternalStateKey> & { data: readonly TData[] };
 
-type DataGridInternalStateKey = "dataControlled" | "selectAllStage" | "editingRejectionCount" | "selectionPointer" | "lastHighlightedRow" | "lastHighlightedCol" | "rowRangeGesture" | "sortControlled" | "filterControlled" | "filterJoinControlled" | "searchControlled" | "pageControlled" | "pageSizeControlled" | "searchMatchSet" | "groupByControlled" | "expandedControlled" | "serverGroupLayout" | "rowIdentityVersion" | "scrollToCellImpl" | "focusImpl" | "runShortcutImpl" | "focusSearchImpl" | "measureFonts" | "dataWrite";
+type DataGridInternalStateKey = "dataControlled" | "selectAllStage" | "editingRejectionCount" | "selectionPointer" | "lastHighlightedRow" | "lastHighlightedCol" | "rowRangeGesture" | "sortControlled" | "filterControlled" | "filterJoinControlled" | "searchControlled" | "pageControlled" | "pageSizeControlled" | "searchMatchSet" | "groupByControlled" | "pivotControlled" | "expandedControlled" | "serverGroupLayout" | "rowIdentityVersion" | "scrollToCellImpl" | "focusImpl" | "runShortcutImpl" | "focusSearchImpl" | "measureFonts" | "dataWrite";
 
 /** Mutations for a single grid instance, nested under the stable `actions` key. */
 export type DataGridActions = {
@@ -1067,6 +1078,8 @@ export type DataGridActions = {
   setGroupBy(next: readonly string[]): void;
   /** Adds the column as the innermost group level, or removes it. */
   toggleGroupBy(columnId: string): void;
+  /** Sets the pivot column, or turns the pivot off with `undefined`. */
+  setPivot(next: PivotSpec | undefined): void;
   /** Sets the open groups. */
   setExpanded(next: ExpandedState): void;
   /** Opens a closed group and closes an open one. */

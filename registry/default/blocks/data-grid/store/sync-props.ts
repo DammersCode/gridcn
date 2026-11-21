@@ -43,8 +43,10 @@ import {
 } from "./compute";
 import { resolveSelectionConfig } from "./selection-config";
 import { sameGroupBy } from "./group-state";
-import { EXPANDED_CUT_MESSAGE, syncGroupState, type GroupSyncMemory } from "./group-sync";
-import { groupModeOf, groupingOf } from "./group-view";
+import type { ServerPivotLayout } from "../group-types";
+import { EXPANDED_CUT_MESSAGE, syncGroupState, syncPivotState, type GroupSyncMemory } from "./group-sync";
+import { groupModeOf, groupingOf, heldSetOf } from "./group-view";
+import { groupLayoutOfView } from "./view-rows";
 import { withMatchCase } from "./filter-match-case";
 import { createWarnOnce, isDev, warnDev } from "../is-dev";
 import { NO_REMEMBERED_ROWS, hiddenCheckedRowsActive } from "./hidden-checked-rows";
@@ -176,7 +178,7 @@ export type SyncPhaseDeps = {
   completeColumnOrder: (columns: readonly AnyColumnDef[], order: readonly string[] | null) => ReturnType<typeof completeColumnOrderBase>;
   computeColumnLayout: (columns: readonly AnyColumnDef[], order: string[] | null, widths: Record<string, number>, hidden: readonly string[]) => ReturnType<typeof computeColumnLayoutBase>;
   computeVisibleColumns: (columns: readonly AnyColumnDef[], order: string[] | null, hidden: readonly string[], pivot: PivotView | null, groupBy: readonly string[]) => ReturnType<typeof computeVisibleColumnsBase>;
-  pivotOf: (layout: DataGridStoreState["serverGroupLayout"], columns: readonly AnyColumnDef[], labels: DataGridStoreState["labels"]) => PivotView | null;
+  pivotOf: (held: ServerPivotLayout | undefined, columns: readonly AnyColumnDef[], labels: DataGridStoreState["labels"]) => PivotView | null;
   normalizeColumnLayout: (columns: readonly AnyColumnDef[], parts: ColumnLayoutParts, hidden: string[]) => ReturnType<typeof normalizeColumnLayoutBase>;
 };
 
@@ -245,7 +247,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
       set((s) => {
         const selectionConfig = resolveSelectionConfig(props);
         const labels = mergeLabels(props.labels, props.locale ?? DEFAULT_LOCALE);
-        const pivot = s.pivot && labels !== s.labels ? pivotOf(s.serverGroupLayout, s.columns, labels) : s.pivot;
+        const pivot = s.pivot && labels !== s.labels ? pivotOf(heldSetOf(s), s.columns, labels) : s.pivot;
         if (props.checkedRowsLifetime === "across-filters" && selectionConfig.totalRowCount === undefined && (s.sortMode === "server" || s.filterMode === "server")) {
           warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
         }
@@ -287,6 +289,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           duplicateRow: props.duplicateRow,
           onSortChange: props.onSortChange,
           onGroupByChange: props.onGroupByChange,
+          onPivotChange: props.onPivotChange,
           onExpandedChange: props.onExpandedChange,
           groupingEnabled: s.groupingEnabled || props.onGroupByChange !== undefined,
           onFilterChange: props.onFilterChange,
@@ -394,7 +397,8 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
         const nextCellTypes = sameCellTypeEntries(propsCellTypes, memory.lastPropsCellTypes) ? s.cellTypes : resolveCellTypes(propsCellTypes);
         memory.lastPropsCellTypes = propsCellTypes;
         const nextGroup = syncGroupState(s, props, nextColumns, memory.group, () => warnStoreOnce("expanded cut", EXPANDED_CUT_MESSAGE));
-        if (props.page === undefined && nextPage !== 1 && nextPageSize !== null && !sameGroupBy(nextGroup.groupBy, s.groupBy)) {
+        const nextPivotColumnIds = syncPivotState(s.pivotColumnIds, props.pivot, memory.group);
+        if (props.page === undefined && nextPage !== 1 && nextPageSize !== null && (!sameGroupBy(nextGroup.groupBy, s.groupBy) || nextPivotColumnIds !== s.pivotColumnIds)) {
           nextPage = 1;
           queueMicrotask(() => s.onPageChange?.(1));
         }
@@ -416,6 +420,7 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           expanded: nextGroup.expanded,
           groupMode: nextGroupMode,
           serverGroupLayout: nextServerLayout,
+          pivotColumnIds: nextPivotColumnIds,
         };
         // An echo skips the recompute only when `data` is the only input that moved.
         const echoOnly =
@@ -423,11 +428,11 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
         const unchanged = syncInputsEqual(nextSyncInputs, memory.lastSyncInputs) || echoOnly;
         memory.lastSyncInputs = nextSyncInputs;
 
-        const nextPivot = unchanged ? s.pivot : pivotOf(nextServerLayout, nextColumns, s.labels);
-        const nextVisibleColumns = unchanged ? s.visibleColumns : computeVisibleColumns(nextColumns, s.columnOrder, nextHiddenColumns, nextPivot, nextGroup.groupBy);
         const nextViewIndex = unchanged
           ? s.viewIndex
-          : computeViewIndex(nextData, nextColumns, nextViewSorts, viewFilters(nextFilterMode, nextFilterState, nextFilterJoin), s.viewIndex, nextCellTypes, nextPageSize === null ? null : { page: nextPage, pageSize: nextPageSize }, nextSortLocale, groupingOf({ ...nextGroup, groupMode: nextGroupMode, serverGroupLayout: nextServerLayout, totalRowCount: s.totalRowCount, sortMode: nextSortMode, dataWrite: s.dataWrite }));
+          : computeViewIndex(nextData, nextColumns, nextViewSorts, viewFilters(nextFilterMode, nextFilterState, nextFilterJoin), s.viewIndex, nextCellTypes, nextPageSize === null ? null : { page: nextPage, pageSize: nextPageSize }, nextSortLocale, groupingOf({ ...nextGroup, groupMode: nextGroupMode, serverGroupLayout: nextServerLayout, totalRowCount: s.totalRowCount, sortMode: nextSortMode, dataWrite: s.dataWrite, pivotColumnIds: nextPivotColumnIds, columns: nextColumns, groupLayout: s.groupLayout }));
+        const nextPivot = unchanged ? s.pivot : pivotOf(heldSetOf({ groupMode: nextGroupMode, serverGroupLayout: nextServerLayout, groupLayout: groupLayoutOfView(nextViewIndex) }), nextColumns, s.labels);
+        const nextVisibleColumns = unchanged ? s.visibleColumns : computeVisibleColumns(nextColumns, s.columnOrder, nextHiddenColumns, nextPivot, nextGroup.groupBy);
         // Controlled columnLayout (decision 8): the same echo/structural-equal rule as selection,
         // merged over the incoming column state; a new `columns` array re-applies the controlled
         // parts over the new defs (normalize re-seeds def-hidden and ignores pins on `pinnable: false` columns).
@@ -524,7 +529,9 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           s.filterControlled !== (props.filterState !== undefined) ||
           s.searchControlled !== (props.searchText !== undefined) ||
           s.groupBy !== nextGroup.groupBy ||
-          s.expanded !== nextGroup.expanded;
+          s.expanded !== nextGroup.expanded ||
+          s.pivotColumnIds !== nextPivotColumnIds ||
+          s.pivotControlled !== (props.pivot !== undefined);
         if (unchanged && nextGetRowId === s.getRowId && layoutApply === null && selectionApply === null && !flagsChanged) return s;
         // A layout-only apply still remaps the selection's column channel (its visible columns
         // moved), so the remap runs whenever a layout apply is in flight.
@@ -577,6 +584,8 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           groupingEnabled: s.groupingEnabled || props.groupBy !== undefined,
           groupByControlled: nextGroup.groupByControlled,
           expandedControlled: nextGroup.expandedControlled,
+          pivotColumnIds: nextPivotColumnIds,
+          pivotControlled: props.pivot !== undefined,
           // A real recompute reconciles a deferred updateCells; an echo or unchanged sync keeps the flag. Stale rows stay until the server delivers them.
           viewStale: !staleChanged && unchanged ? s.viewStale : nextStaleRowIds.size > 0 || (unchanged && s.viewStale && clientViewActive),
           staleRowIds: nextStaleRowIds,

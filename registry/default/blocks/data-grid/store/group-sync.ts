@@ -1,5 +1,5 @@
-import type { ExpandedState } from "../group-types";
-import { normalizeExpanded, normalizeGroupBy, sameExpanded, sameGroupBy } from "./group-state";
+import type { ExpandedState, PivotSpec } from "../group-types";
+import { NO_GROUPS, normalizeExpanded, normalizeGroupBy, sameExpanded, sameGroupBy } from "./group-state";
 import type { AnyColumnDef, DataGridStoreState, InternalSyncProps } from "./types";
 
 const MAX_ECHOES = 32;
@@ -12,10 +12,35 @@ export type GroupSyncMemory = {
   expandedProp: ExpandedState | undefined;
   groupByEcho: (readonly string[])[];
   expandedEcho: ExpandedState[];
+  pivotProp: PivotSpec | undefined;
+  pivotEcho: (PivotSpec | undefined)[];
 };
 
-export function initGroupMemory(init: Pick<InternalSyncProps, "groupBy" | "expanded">): GroupSyncMemory {
-  return { groupByProp: init.groupBy, expandedProp: init.expanded, groupByEcho: [], expandedEcho: [] };
+export function initGroupMemory(init: Pick<InternalSyncProps, "groupBy" | "expanded" | "pivot">): GroupSyncMemory {
+  return { groupByProp: init.groupBy, expandedProp: init.expanded, groupByEcho: [], expandedEcho: [], pivotProp: init.pivot, pivotEcho: [] };
+}
+
+/** The pivot column of an untrusted spec: its first id when that is a string, else none. */
+export function normalizePivot(spec: PivotSpec | undefined): readonly string[] {
+  const id: unknown = Array.isArray(spec?.columnIds) ? spec.columnIds[0] : undefined;
+  return typeof id === "string" ? [id] : NO_GROUPS;
+}
+
+/** The pivot column after a sync, with the echo and equality rules of {@link syncGroupState}. */
+export function syncPivotState(current: readonly string[], prop: PivotSpec | undefined, memory: GroupSyncMemory): readonly string[] {
+  let next = current;
+  if (prop === undefined) memory.pivotEcho.length = 0;
+  else if (prop !== memory.pivotProp) {
+    const echoed = memory.pivotEcho.indexOf(prop);
+    if (echoed !== -1) memory.pivotEcho.splice(0, echoed + 1);
+    else {
+      memory.pivotEcho.length = 0;
+      const given = normalizePivot(prop);
+      if (!sameGroupBy(given, current)) next = given;
+    }
+  }
+  memory.pivotProp = prop;
+  return next;
 }
 
 /** Records a value the grid emitted so its echo from the controlled prop changes nothing. */
