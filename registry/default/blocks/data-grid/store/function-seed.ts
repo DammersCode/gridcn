@@ -1,6 +1,7 @@
 import type { StoreApi } from "zustand/vanilla";
 import { toSafeText } from "../cell-types/safe-text";
 import { warnDev } from "../is-dev";
+import type { PivotSpec } from "../group-types";
 import type { FilterNode, SortSpec } from "../types";
 import type { DataGridStoreState, InternalSyncProps } from "./types";
 
@@ -29,6 +30,8 @@ export function applyFunctionSeeds(store: StoreApi<DataGridStoreState>, init: In
   if (Array.isArray(sorts)) actions.setSorts(sorts as SortSpec[]);
   const groupBy = init.groupBy === undefined ? readSeed("defaultGroupBy", init.defaultGroupBy) : undefined;
   if (Array.isArray(groupBy)) actions.setGroupBy(groupBy as string[]);
+  const pivot = init.pivot === undefined ? readSeed("defaultPivot", init.defaultPivot) : undefined;
+  if (pivot !== null && typeof pivot === "object") actions.setPivot(pivot as PivotSpec);
   const filters = init.filterState === undefined ? readSeed("defaultFilterState", init.defaultFilterState) : undefined;
   if (Array.isArray(filters)) actions.setFilters(filters as FilterNode[]);
   const search = init.searchText === undefined ? readSeed("defaultSearchText", init.defaultSearchText) : undefined;
@@ -43,6 +46,7 @@ const CONTROLLED_SEEDS = [
   ["defaultSearchText", "searchText"],
   ["defaultGroupBy", "groupBy"],
   ["defaultExpanded", "expanded"],
+  ["defaultPivot", "pivot"],
 ] as const;
 
 function warnIgnoredSeeds(init: InternalSyncProps): void {

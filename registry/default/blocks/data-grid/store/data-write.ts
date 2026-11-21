@@ -256,15 +256,25 @@ export function resolveViewIndex(s: DataGridStoreState, data: readonly unknown[]
  * recomputed in place. Both halves no-op unless a search or a view-feeding column is involved.
  */
 export function reconcileAfterWrite(s: DataGridStoreState, nextData: readonly unknown[], ops: readonly DataOp<unknown>[]): Partial<DataGridStoreState> {
-  const written: CellPatch[] = ops.flatMap((op) => (op.type === "update" && op.cells ? op.cells.map((cell) => ({ rowId: op.rowId, columnId: cell.columnId, value: cell.value })) : []));
-  const viewStale = s.viewStale || touchesViewInputs(written, viewInputSorts(s), viewFilters(s.filterMode, s.filterState, s.filterJoin));
-  const groups = refreshedGroups(s, nextData, null, written);
+  const written = writtenCells(ops);
+  const touches = touchesViewInputs(written, viewInputSorts(s), viewFilters(s.filterMode, s.filterState, s.filterJoin));
+  const viewStale = s.viewStale || touches;
+  // A pivot rebuild follows a write that moves a row between groups or keys; refreshing first would paint a frame that matches neither state.
+  const groups = touches && s.groupLayout?.pivot ? {} : refreshedGroups(s, nextData, null, written);
   if (s.searchText.trim() === "") return viewStale === s.viewStale ? groups : { ...groups, viewStale };
   return {
     ...groups,
     ...(viewStale === s.viewStale ? {} : { viewStale }),
     ...computeSearchMatches(nextData, s.columns, s.viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions, s.locale),
   };
+}
+
+const writtenCells = (ops: readonly DataOp<unknown>[]): CellPatch[] =>
+  ops.flatMap((op) => (op.type === "update" && op.cells ? op.cells.map((cell) => ({ rowId: op.rowId, columnId: cell.columnId, value: cell.value })) : []));
+
+/** Whether `ops` move a row between the groups or keys of a client pivot, which then rebuilds at the next frame. */
+export function movesPivotRows(s: DataGridStoreState, ops: readonly DataOp<unknown>[]): boolean {
+  return s.groupLayout?.pivot !== undefined && touchesViewInputs(writtenCells(ops), viewInputSorts(s), viewFilters(s.filterMode, s.filterState, s.filterJoin));
 }
 
 /**
@@ -930,7 +940,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     }
     const applied = batch.ops.reduce((n, op) => (op.type === "update" ? n + (op.cells?.length ?? 0) : n), 0);
 
-    const reorder = resolveReorder(options?.reorder, patches, viewInputSorts(s), viewFilters(s.filterMode, s.filterState, s.filterJoin));
+    // Under a client pivot no row shows, so a write that moves a row between groups or keys rebuilds at the next frame.
+    const reorder = resolveReorder(options?.reorder ?? (s.groupLayout?.pivot ? "frame" : undefined), patches, viewInputSorts(s), viewFilters(s.filterMode, s.filterState, s.filterJoin));
     ctx.rowIndexCache.rebase(nextData);
     ctx.lastEmittedData = nextData;
     const marks = markStaleRows(ctx, s, batch.ops, batch.touchedRows, (options?.reorder ?? "defer") !== "never");
@@ -951,14 +962,12 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     if (reorder !== "immediate") {
       // Recorded for `"never"` too, so a later reconcile stays correct when the caller's assertion was wrong.
       rememberDeferredRows(ctx, batch.touchedRows);
+      // A pivot rebuild at the next frame replaces the cells; refreshing them first would paint a frame that matches neither state.
+      const groups = reorder === "frame" && s.groupLayout?.pivot ? {} : refreshedGroups(s, nextData, batch.touchedRows, patches);
       writeThenEmit(ctx, s, nextData, change, () =>
-        set(
-          reorder === "defer" && !s.viewStale
-            ? { data: nextData, viewStale: true, cellErrors, ...stale, ...refreshedGroups(s, nextData, batch.touchedRows, patches) }
-            : { data: nextData, cellErrors, ...stale, ...refreshedGroups(s, nextData, batch.touchedRows, patches) },
-        ),
+        set(reorder === "defer" && !s.viewStale ? { data: nextData, viewStale: true, cellErrors, ...stale, ...groups } : { data: nextData, cellErrors, ...stale, ...groups }),
       );
-      if (reorder === "frame") ctx.frame.schedule(() => reconcileNow(false));
+      if (reorder === "frame" && !ctx.disposed) ctx.frame.schedule(() => reconcileNow(false));
       if (marks.touched && options?.reorder !== "never") ctx.reshape?.("stale");
       emitStreamRejections(patches, batch.rejected, options?.source);
       return { applied, skipped: batch.skipped, pending: false };
@@ -1434,7 +1443,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       ctx.lastEmittedData = nextData;
       const swapped = plan.map(({ newId, row, index }): DataOp<unknown> => ({ type: "update", rowId: newId, row, prev: s.data[index] }));
       cellErrors = applyRowValidation(s, cellErrors, nextData, swapped);
-      const touched: DataOp<unknown> = { ...swapped[0]!, cells: columnIds.map((columnId) => ({ columnId, value: undefined, prev: undefined })) } as DataOp<unknown>;
+      const cells = columnIds.map((columnId) => ({ columnId, value: undefined, prev: undefined }));
+      const touched = swapped.map((op) => ({ ...op, cells }) as DataOp<unknown>);
       writeThenEmit(ctx, s, nextData, change, () =>
         set({
           data: nextData,
@@ -1443,9 +1453,10 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           flashingCells,
           hiddenCheckedRowIds,
           editing,
-          ...reconcileAfterWrite(s, nextData, [touched]),
+          ...reconcileAfterWrite(s, nextData, touched),
         }),
       );
+      if (movesPivotRows(s, touched) && !ctx.disposed) ctx.frame.schedule(() => reconcileNow(false));
       saveTracker.publishSaveStatus();
     },
     clearSaveStatus() {

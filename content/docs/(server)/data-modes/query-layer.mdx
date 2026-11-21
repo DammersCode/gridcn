@@ -191,7 +191,7 @@ The factory throws at creation when a declared operator has no handler.
 `fetchRows` answers a request that holds `groupBy` and `childKind: "groups"` with the groups of one level. Each group has `key`, `childCount`, `totalRowCount`, and one reduced value for each aggregate column. A request with `childKind: "rows"` and a full `groupPath` answers the rows of one group. See [Group server rows](/docs/data-modes/group-server-rows) and [Pivot server rows](/docs/data-modes/pivot-server-rows#query-layer) for the grid side.
 
 - A group key is the stored value. A text column keys `""` as the empty group, and a date-time column keys the instant to the millisecond.
-- Drizzle and Kysely on PostgreSQL group a `native` timestamp by its millisecond. Elsewhere, a stored key with a digit after the millisecond answers `unsupported`.
+- Drizzle, Kysely, and the Supabase grid function on PostgreSQL group a `native` timestamp by its millisecond. Elsewhere, a stored key with a digit after the millisecond answers `unsupported`.
 - A `serverOnly` or `keepBlankText` column cannot group and answers `unsupported`.
 - A filter applies before grouping, and the group column sorts the groups. The empty group comes last.
 - `rowScope` applies to every group list and every row list.

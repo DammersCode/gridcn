@@ -1,9 +1,11 @@
 import type { StoreApi } from "zustand/vanilla";
 import { toSafeText } from "../cell-types/safe-text";
 import type { CellType, FilterNode, SortSpec } from "../types";
-import type { GroupKey, ExpandedState, ServerGroupLayout } from "../group-types";
+import type { GroupKey, ExpandedState, ServerGroupLayout, ServerPivotLayout } from "../group-types";
+import type { ServerAggregate } from "../server-spec";
 import { buildViewIndex, type CellAccessor } from "../sort-filter/build-view-index";
-import { buildGroupView, type GroupAggregateSpec, type GroupBuildInput, type GroupedView } from "../sort-filter/build-group-view";
+import { buildGroupView, flattenGroupTree, type GroupAggregateSpec, type GroupBuildInput, type GroupedView } from "../sort-filter/build-group-view";
+import { buildPivot, MAX_PIVOT_CELLS } from "../sort-filter/build-pivot";
 import { createWarnOnce } from "../is-dev";
 import type { AnyColumnDef, DataGridStoreState } from "./types";
 import { buildServerGroupView } from "./server-group-view";
@@ -16,9 +18,11 @@ export type GroupingInput = {
   warn?: (key: string, message: string) => void;
   /** Set under `groupMode="server"`: the view comes from the layout and no row is bucketed. */
   server?: { layout: ServerGroupLayout | null };
+  /** Set for a client pivot: the pivot column, its values, and the held set of the last build, whose `columns` a build with equal ids keeps. */
+  pivot?: { columnId: string; values: readonly ServerAggregate[]; previous: ServerPivotLayout | undefined };
 };
 
-type GroupingState = Pick<DataGridStoreState, "groupBy" | "expanded" | "totalRowCount" | "sortMode" | "dataWrite" | "groupMode" | "serverGroupLayout">;
+type GroupingState = Pick<DataGridStoreState, "groupBy" | "expanded" | "totalRowCount" | "sortMode" | "dataWrite" | "groupMode" | "serverGroupLayout" | "pivotColumnIds" | "columns" | "groupLayout">;
 
 const warners = new WeakMap<object, (key: string, message: string) => void>();
 
@@ -42,14 +46,36 @@ export function groupModeOf(props: { groupMode?: "client" | "server"; groupLayou
 
 /** The grouping a rebuild applies; `null` for a grid that does not group, and for a result the client cannot group (a window of a larger result, rows sorted by the server). */
 export function groupingOf(s: GroupingState): GroupingInput | null {
-  if (s.groupBy.length === 0) return null;
+  if (s.groupBy.length === 0) {
+    if (s.pivotColumnIds.length > 0) warnerOf(s.dataWrite)("pivot without groupBy", "pivot needs groupBy: the grid ignores the pivot until groupBy names a column");
+    return null;
+  }
   const warn = warnerOf(s.dataWrite);
   if (s.groupMode === "server") return { groupBy: s.groupBy, expanded: s.expanded, warn, server: { layout: s.serverGroupLayout } };
   if (s.totalRowCount !== undefined || s.sortMode === "server") {
     warn("ungrouped window", "groupBy needs every row on the client: with totalRowCount or sortMode=\"server\" the grid shows the rows ungrouped");
     return null;
   }
-  return { groupBy: s.groupBy, expanded: s.expanded, warn };
+  const pivot = clientPivotOf(s, warn);
+  return pivot ? { groupBy: s.groupBy, expanded: s.expanded, warn, pivot } : { groupBy: s.groupBy, expanded: s.expanded, warn };
+}
+
+function clientPivotOf(s: GroupingState, warn: (key: string, message: string) => void): GroupingInput["pivot"] {
+  const columnId = s.pivotColumnIds[0];
+  if (columnId === undefined) return undefined;
+  const column = s.columns.find((c) => c.id === columnId);
+  if (!column || column.groupable === false || s.groupBy.includes(columnId)) {
+    warn("pivot column", `pivot names the column ${JSON.stringify(columnId.slice(0, 64))}, which is unknown, not groupable, or a groupBy column, so the grid ignores the pivot`);
+    return undefined;
+  }
+  return { columnId, values: pivotValues(s.columns), previous: s.groupLayout?.pivot };
+}
+
+/** The values of a client pivot: one per column with a built-in `aggregate`, in column order. A function reducer has no pivot cell. */
+export function pivotValues(columns: readonly AnyColumnDef[]): ServerAggregate[] {
+  const values: ServerAggregate[] = [];
+  for (const column of columns) if (typeof column.aggregate === "string") values.push({ columnId: column.id, reducer: column.aggregate });
+  return values;
 }
 
 /** The sorts that order rows inside groups: a sort on a group column orders that level instead. */
@@ -89,7 +115,7 @@ export function groupBuildInput(
   leaves: readonly number[],
 ): GroupBuildInput {
   const directions = new Map<string, "asc" | "desc">();
-  for (const sort of sortState) if (grouping.groupBy.includes(sort.columnId) && !directions.has(sort.columnId)) directions.set(sort.columnId, sort.direction);
+  for (const sort of sortState) if ((grouping.groupBy.includes(sort.columnId) || sort.columnId === grouping.pivot?.columnId) && !directions.has(sort.columnId)) directions.set(sort.columnId, sort.direction);
   return {
     leaves,
     accessor,
@@ -117,10 +143,28 @@ export function computeGroupedView(args: {
 }): GroupedView | null {
   const { data, columns, accessor, sortState, filterState, cellTypes, grouping } = args;
   if (grouping.server) return serverGroupedView(data.length, grouping);
+  if (grouping.pivot) return pivotGroupedView(args, grouping.pivot);
   const leaves = buildViewIndex(data.length, accessor, { sorts: sortsBesideGroups(sortState, grouping.groupBy), filters: filterState });
   const grouped = buildGroupView(groupBuildInput(data, columns, accessor, cellTypes, grouping, sortState, leaves), grouping.expanded);
   if (!grouped) grouping.warn?.("ungrouped holes", "groupBy needs loaded rows: while rows are unloaded (a lazy source) the grid shows them ungrouped");
   return grouped;
+}
+
+// The rows of a pivot never show, so their order is the data order: no sort reorders the sums.
+function pivotGroupedView(args: Parameters<typeof computeGroupedView>[0], pivot: NonNullable<GroupingInput["pivot"]>): GroupedView | null {
+  const { data, columns, accessor, sortState, filterState, cellTypes, grouping } = args;
+  const leaves = buildViewIndex(data.length, accessor, { sorts: [], filters: filterState });
+  const input = groupBuildInput(data, columns, accessor, cellTypes, grouping, sortState, leaves);
+  const built = buildPivot({ ...input, aggregates: [], pivotColumnId: pivot.columnId, values: pivot.values, previous: pivot.previous });
+  if (!built) {
+    grouping.warn?.("ungrouped holes", "groupBy needs loaded rows: while rows are unloaded (a lazy source) the grid shows them ungrouped");
+    return null;
+  }
+  if ("tooLarge" in built) {
+    grouping.warn?.("pivot too large", `the pivot holds more than ${MAX_PIVOT_CELLS.toLocaleString("en-US")} cells (group rows times generated columns), so the grid shows the rows ungrouped; filter the rows, or pivot or group by a column with fewer keys`);
+    return null;
+  }
+  return flattenGroupTree(built.tree, grouping.expanded);
 }
 
 function serverGroupedView(dataLength: number, grouping: GroupingInput): GroupedView | null {
@@ -134,13 +178,22 @@ function serverGroupedView(dataLength: number, grouping: GroupingInput): Grouped
   return "view" in result ? result.view : null;
 }
 
+/** The held set the pivot view shows: the server layout's under `groupMode="server"`, else the client build's. */
+export function heldSetOf(s: Pick<DataGridStoreState, "groupMode" | "serverGroupLayout" | "groupLayout">): ServerPivotLayout | undefined {
+  return s.groupMode === "server" ? s.serverGroupLayout?.pivot : s.groupLayout?.pivot;
+}
+
 /** A `setState` that fills `groupLayout` from the view a patch writes, so `viewIndex` and the group rows land in one write. */
-export function withGroupLayout(set: StoreApi<DataGridStoreState>["setState"]): StoreApi<DataGridStoreState>["setState"] {
+export function withGroupLayout(
+  set: StoreApi<DataGridStoreState>["setState"],
+  derive: (s: DataGridStoreState, patch: Partial<DataGridStoreState>) => Partial<DataGridStoreState> = (_, patch) => patch,
+): StoreApi<DataGridStoreState>["setState"] {
   return ((partial: unknown, replace?: boolean) => {
     if (replace) return set(partial as DataGridStoreState, true);
     return set((s) => {
       const patch = (typeof partial === "function" ? (partial as (state: DataGridStoreState) => Partial<DataGridStoreState>)(s) : partial) as Partial<DataGridStoreState>;
-      return patch.viewIndex !== undefined && patch.viewIndex !== s.viewIndex && !("groupLayout" in patch) ? { ...patch, groupLayout: groupLayoutOfView(patch.viewIndex) } : patch;
+      if (patch === s) return s;
+      return derive(s, patch.viewIndex !== undefined && patch.viewIndex !== s.viewIndex && !("groupLayout" in patch) ? { ...patch, groupLayout: groupLayoutOfView(patch.viewIndex) } : patch);
     });
   }) as StoreApi<DataGridStoreState>["setState"];
 }

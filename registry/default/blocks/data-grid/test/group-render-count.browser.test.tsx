@@ -46,11 +46,12 @@ const frames = () => new Promise<void>((resolve) => requestAnimationFrame(() => 
 const groupRows = () => [...document.querySelectorAll<HTMLElement>('[role="row"][data-grid-group-row]')];
 const total = (tracker: RenderTracker) => RENDERED.reduce((sum, name) => sum + tracker.count(name), 0);
 
-type Kind = "client groups" | "server groups" | "nested pivot";
+type Kind = "client groups" | "server groups" | "nested pivot" | "client pivot";
 
 function Grid({ kind }: { kind: Kind }) {
   const common = { columns, getRowId: (row: Row, i: number) => row.id || `slot-${i}`, groupBy: GROUP_BY, className: "h-[480px]", "aria-label": kind } as const;
   if (kind === "client groups") return <DataGrid {...common} data={data} defaultExpanded={OPEN} />;
+  if (kind === "client pivot") return <DataGrid {...common} data={data} defaultExpanded={OPEN} defaultPivot={{ columnIds: ["year"] }} />;
   const layout = serverLayout(kind === "nested pivot");
   return <DataGrid {...common} data={layout.rows.map(() => placeholder)} groupLayout={layout} defaultExpanded={OPEN} />;
 }
@@ -64,8 +65,8 @@ async function measure(kind: Kind) {
   const mount = total(tracker);
 
   tracker.reset();
-  const toggleButton = groupRows().at(-1)!.querySelector<HTMLElement>("[data-grid-group-toggle]");
-  if (!toggleButton) throw new Error(`${kind}: the last group row has no toggle`);
+  const toggleButton = groupRows().findLast((row) => row.querySelector("[data-grid-group-toggle]"))?.querySelector<HTMLElement>("[data-grid-group-toggle]");
+  if (!toggleButton) throw new Error(`${kind}: no group row has a toggle`);
   toggleButton.click();
   await frames();
   const toggle = total(tracker);
@@ -90,6 +91,9 @@ const BOUNDS = {
   // A move re-renders the row the cursor leaves and the row it enters.
   groupMove: 8 / 32,
   pivotMove: 11 / 43,
+  // A client pivot toggle lays out the kept tree again; its rows keep their nodes, so only the toggled row re-renders.
+  clientPivotToggle: 6 / 43,
+  clientPivotMove: 12 / 43,
   // Three generated columns and the toggles of the outer rows.
   pivotMountPerServerMount: 43 / 32,
 };
@@ -99,6 +103,7 @@ describe("render counts of grouped grids", () => {
     const client = await measure("client groups");
     const server = await measure("server groups");
     const pivot = await measure("nested pivot");
+    const clientPivot = await measure("client pivot");
     expect([client.toggle, server.toggle, pivot.toggle, client.move, server.move, pivot.move].every((share) => share > 0)).toBe(true);
     expect(client.toggle).toBeLessThanOrEqual(BOUNDS.clientToggle);
     expect(server.toggle).toBeLessThanOrEqual(BOUNDS.serverToggle);
@@ -107,5 +112,9 @@ describe("render counts of grouped grids", () => {
     expect(pivot.move).toBeLessThanOrEqual(BOUNDS.pivotMove);
     expect(client.mount).toBeLessThanOrEqual(server.mount);
     expect(pivot.mount / server.mount).toBeLessThanOrEqual(BOUNDS.pivotMountPerServerMount);
+    expect(clientPivot.toggle).toBeGreaterThan(0);
+    expect(clientPivot.toggle).toBeLessThanOrEqual(BOUNDS.clientPivotToggle);
+    expect(clientPivot.move).toBeLessThanOrEqual(BOUNDS.clientPivotMove);
+    expect(clientPivot.mount).toBeLessThanOrEqual(pivot.mount);
   });
 });

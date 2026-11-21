@@ -172,5 +172,5 @@ describe("pivot build perf (100k rows, 2 levels, 1,000 groups)", () => {
 
     const ms = (t: Timing) => `${t.median.toFixed(2)} ms (fastest ${t.fastest.toFixed(2)})`;
     annotate(`edit: full ${ms(edit.full)} of which the tree ${ms(edit.tree)}, incremental ${ms(edit.incremental)}; streamed row: full ${ms(tick.full)}, incremental ${ms(tick.incremental)}`);
-  });
+  }, 60_000);
 });

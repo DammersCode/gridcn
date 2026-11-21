@@ -35,7 +35,8 @@ export type AdapterCapabilities = {
   localDayGrouping: boolean;
   /**
    * The adapter reads a `time` value exactly: the `keyText` of a cursor key in `selectRows`, and the group keys of
-   * `selectGroups`. Default `true`; `false` makes a cursor sort on a `time` column, and grouping by one, `unsupported`.
+   * `selectGroups`, which `millisecondInstantKeys` cuts to the millisecond. Default `true`; `false` makes a cursor sort
+   * on a `time` column, and grouping by one, `unsupported`.
    */
   exactInstantKeys?: boolean;
   /** `selectGroups` keys a `native` time column by its millisecond, so a group path keeps that whole millisecond. Default `false`: a group path compares the instant exactly. */

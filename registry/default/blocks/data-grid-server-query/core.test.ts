@@ -254,6 +254,8 @@ describe("serializer", () => {
     expect(instantText("2024-01-01 10:00:00+00", byId("seen"))).toBe("2024-01-01T10:00:00.000Z");
     expect(instantText("2024-01-01 10:00:00", byId("seen"))).toBe("2024-01-01T10:00:00.000Z");
     expect(instantText("bad", byId("seen"))).toBeNull();
+    expect([instantText(" 1704067200 ", byId("seen")), instantText("-1", byId("seen"))]).toEqual(["2024-01-01T00:00:00.000Z", "1969-12-31T23:59:59.000Z"]);
+    expect([instantText("9999999999999999", byId("seen")), instantText(9_999_999_999_999, byId("seen")), instantText("1e3", byId("seen"))]).toEqual([null, null, null]);
     expect([serializeValue(1, byId("active")), serializeValue("f", byId("active")), serializeValue("x", byId("active"))]).toEqual([true, false, null]);
   });
 

@@ -120,7 +120,18 @@ A group nests one group at most. A deeper group fails with `limit-exceeded`. Wit
 
 ## Group answer [#groups-answer]
 
-A request with `groupBy` and `childKind: "groups"` resolves a `GroupsAnswer`: `groups`, `groupCount`, and, at the top level, `totalRowCount`. Each group holds `key`, `childCount`, `totalRowCount`, and `aggregates` keyed by column id. A reducer with no counted value gives `null`. A `number` column answers a number. If the value has more than 15 significant digits and is not a safe integer, it answers a decimal string, so an `int8` or `decimal` sum keeps every digit. `avg` and a `float` column always answer a number. SQLite sums a `decimal` column as a float, so its sum keeps only about 15 significant digits. On SQLite, Prisma answers a group `sum`, `min`, or `max` of a `decimal` column with `unsupported`, because its driver reads each aggregate column of a `groupBy` in the type of its first row. Text and date columns answer `min` and `max` as strings. `fetchRows` has the type `Promise<RowsAnswer | GroupsAnswer>`. A `capabilities.groupBy` of `false` answers `unsupported`. A group page with a text key longer than `maxGroupKeyLength` fails with `limit-exceeded` at `spec.groupBy.<columnId>`. The bound never goes above 1,024, which is what the grid accepts.
+A request with `groupBy` and `childKind: "groups"` resolves a `GroupsAnswer`: `groups`, `groupCount`, and, at the top level, `totalRowCount`. Each group holds `key`, `childCount`, `totalRowCount`, and `aggregates` keyed by column id. A reducer with no counted value gives `null`. Text and date columns answer `min` and `max` as strings.
+
+A `number` column answers a number. A value that is not a safe integer and has more than 15 significant digits answers a decimal string. So an `int8` or `decimal` sum keeps every digit. `avg` and a `float` column always answer a number.
+
+SQLite sums a `decimal` column as a float, so the sum keeps about 15 significant digits. On SQLite, Prisma answers a group `sum`, `min`, or `max` of a `decimal` column with `unsupported`. Its driver reads each aggregate column of a `groupBy` in the type of its first row.
+
+`fetchRows` has the type `Promise<RowsAnswer | GroupsAnswer>`. A `capabilities.groupBy` of `false` answers `unsupported`. A group page with a text key longer than `maxGroupKeyLength` fails with `limit-exceeded` at `spec.groupBy.<columnId>`. The bound never goes above 1,024, which is what the grid accepts.
+
+Two capabilities set how an executor keys a `time` column:
+
+- `exactInstantKeys` (default `true`): the executor reads cursor keys and group keys of a `time` column exactly. `false` makes a cursor sort and a group level on a `time` column answer `unsupported`.
+- `millisecondInstantKeys` (default `false`): `selectGroups` cuts a `native` time key to its millisecond, and a group path holds the whole millisecond. Drizzle and Kysely on PostgreSQL set it, and so does Supabase. Without it, a group path compares the instant exactly, and a stored key with a digit after the millisecond answers `unsupported`.
 
 A groups request with `spec.pivot` also resolves `pivotColumns`, `pivotOmitted`, and `pivotCells` on each group. A `capabilities.pivot` of `false`, the default of an executor, answers `unsupported`. Drizzle, Kysely, and Prisma set it, and Supabase sets it with `rpc`.
 

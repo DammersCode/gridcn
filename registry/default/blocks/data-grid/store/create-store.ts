@@ -1,4 +1,5 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
+import type { ServerPivotLayout } from "../group-types";
 import {
   viewIndex,
   type CellRef,
@@ -143,8 +144,8 @@ import { allMatchingCheckedCount } from "./selected-rows";
 import { dataIndexAt, dataIndexOf, groupLayoutOfView, recordKeyAt, viewRowOfGroupId, viewRowOfSurvivingParent } from "./view-rows";
 import { stepColumn, stepRangeEdge } from "./group-positions";
 import { createGroupActions } from "./group-actions";
-import { EXPANDED_CUT_MESSAGE, initGroupMemory, initialExpanded, initialGroupBy } from "./group-sync";
-import { groupModeOf, groupingOf, withGroupLayout } from "./group-view";
+import { EXPANDED_CUT_MESSAGE, initGroupMemory, initialExpanded, initialGroupBy, normalizePivot } from "./group-sync";
+import { groupModeOf, groupingOf, heldSetOf, withGroupLayout } from "./group-view";
 import { leafViewOf } from "./group-readers";
 import { pageUnitsOf } from "./group-pages";
 import { matchingRowTotal } from "./matching-total";
@@ -211,8 +212,51 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
   const computeVisibleColumns = (columns: readonly AnyColumnDef[], order: string[] | null, hidden: readonly string[], pivot: PivotView | null, groupBy: readonly string[]) =>
     pivot ? pivotVisibleColumns(pivot, columns, groupBy) : computeVisibleColumnsBase(columns, order, hidden, memory.groupModel);
   const reportPrefixClash = createPrefixClashReporter();
-  const pivotOf = (layout: DataGridStoreState["serverGroupLayout"], columns: readonly AnyColumnDef[], labels: DataGridStoreState["labels"]) =>
-    pivotViewOf(layout, columns, memory.groupModel?.groups.keys() ?? [], labels.pivot, reportPrefixClash);
+  const pivotOf = (held: ServerPivotLayout | undefined, columns: readonly AnyColumnDef[], labels: DataGridStoreState["labels"]) =>
+    pivotViewOf(held ? { pivot: held } : null, columns, memory.groupModel?.groups.keys() ?? [], labels.pivot, reportPrefixClash);
+  /**
+   * A client pivot's held set comes out of the view build, so a write that lands a view, columns, or labels gets the pivot view,
+   * the visible columns, and the widths of the same write here. The cursor the patch computed against the old visible columns
+   * follows its column id, the column channel follows its ids, and a range collapses onto the cursor.
+   */
+  const withClientPivot = (s: DataGridStoreState, patch: Partial<DataGridStoreState>): Partial<DataGridStoreState> => {
+    if (!("groupLayout" in patch || "pivot" in patch || "visibleColumns" in patch || "columns" in patch || "labels" in patch)) return patch;
+    if ((patch.groupMode ?? s.groupMode) === "server") return patch;
+    const assumed = "pivot" in patch ? (patch.pivot ?? null) : s.pivot;
+    const held = ("groupLayout" in patch ? patch.groupLayout : s.groupLayout)?.pivot;
+    if (!held && !assumed) return patch;
+    const next = { ...s, ...patch };
+    const pivot = pivotOf(held, next.columns, next.labels);
+    const assumedVisible = next.visibleColumns;
+    const visibleColumns = computeVisibleColumns(next.columns, next.columnOrder, next.hiddenColumns, pivot, next.groupBy);
+    if (pivot === assumed && visibleColumns === assumedVisible) return patch;
+    const derived: Partial<DataGridStoreState> = {
+      ...patch,
+      pivot,
+      visibleColumns,
+      columnWidths: pivot?.columns === s.pivot?.columns ? next.columnWidths : withoutGeneratedWidths(next.columnWidths, visibleColumns),
+    };
+    if (visibleColumns === assumedVisible) return derived;
+    const colOf = (col: number): number => {
+      const id = assumedVisible[col]?.id;
+      const at = id === undefined ? -1 : visibleColumns.findIndex((column) => column.id === id);
+      return at === -1 ? Math.max(0, Math.min(col, visibleColumns.length - 1)) : at;
+    };
+    const active = next.activeCell;
+    const activeCell = active === null || visibleColumns.length === 0 ? null : colOf(active.col) === active.col ? active : { row: active.row, col: colOf(active.col) };
+    const columnChannel = remapColumnChannel(next.selection.columns, assumedVisible, visibleColumns);
+    const current = next.selection.current;
+    const selection =
+      current === null || activeCell === null
+        ? { ...next.selection, current: null, columns: columnChannel }
+        : { ...selectCellPure(activeCell), rows: next.selection.rows, columns: columnChannel };
+    return {
+      ...derived,
+      activeCell,
+      selection,
+      ...(next.searchText.trim() === "" ? {} : computeSearchMatches(next.data, next.columns, next.viewIndex, visibleColumns, next.searchText, next.cellTypes, next.searchOptions, next.locale)),
+    };
+  };
   const normalizeColumnLayout = (columns: readonly AnyColumnDef[], parts: ColumnLayoutParts, hidden: string[]) => normalizeColumnLayoutBase(columns, parts, hidden, memory.groupModel, warnStoreOnce);
   const defHidden = defHiddenColumnIds(initColumns);
   const seeded = applyDefaultColumnLayout(initColumns, defHidden, plainSeed(init.defaultColumnLayout));
@@ -261,8 +305,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
     queueMicrotask(() => warnDev('totalRowCount makes sorting and filtering server-side by default, and nothing here handles onSortChange or onFilterChange, so the grid will not reorder or narrow its rows. Fetch rows for the spec, or set sortMode="client" and filterMode="client" to work on the loaded rows'));
   }
   const initGroupBy = initialGroupBy(init, effectiveLayout.columns);
-  const initPivot = pivotOf(init.groupLayout ?? null, effectiveLayout.columns, initLabels);
-  const visibleColumns = computeVisibleColumns(effectiveLayout.columns, effectiveLayout.columnOrder, effectiveLayout.hiddenColumns, initPivot, initGroupBy);
+  const initPivotColumnIds = normalizePivot(init.pivot ?? plainSeed(init.defaultPivot));
   const initGroupMode = groupModeOf(init);
   const initExpanded = initialExpanded(init, () => warnStoreOnce("expanded cut", EXPANDED_CUT_MESSAGE));
   const initSearchText = init.searchText ?? plainSeed(init.defaultSearchText) ?? "";
@@ -289,6 +332,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       expanded: initExpanded,
       groupMode: initGroupMode,
       serverGroupLayout: init.groupLayout ?? null,
+      pivotColumnIds: initPivotColumnIds,
     } satisfies SyncInputs,
     group: initGroupMemory(init),
     lastPropsColumnGroups: init.columnGroups,
@@ -653,8 +697,10 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
   if (init.checkedRowsLifetime === "across-filters" && init.totalRowCount === undefined && (initSortMode === "server" || initFilterMode === "server")) {
     warnHiddenCheckedIgnored("with sortMode=\"server\" or filterMode=\"server\" (the grid does not hold every row)");
   }
-  const initGrouping = groupingOf({ groupBy: initGroupBy, expanded: initExpanded, groupMode: initGroupMode, serverGroupLayout: init.groupLayout ?? null, totalRowCount: init.totalRowCount, sortMode: initSortMode, dataWrite });
+  const initGrouping = groupingOf({ groupBy: initGroupBy, expanded: initExpanded, groupMode: initGroupMode, serverGroupLayout: init.groupLayout ?? null, totalRowCount: init.totalRowCount, sortMode: initSortMode, dataWrite, pivotColumnIds: initPivotColumnIds, columns: effectiveLayout.columns, groupLayout: null });
   const initViewIndex = computeViewIndex(initData, effectiveLayout.columns, viewSorts(initSortMode, initSortState), viewFilters(initFilterMode, initFilterState, initFilterJoin), undefined, initCellTypes, initPageSize === null ? null : { page: initPage, pageSize: initPageSize }, initSortLocale, initGrouping);
+  const initPivot = pivotOf(heldSetOf({ groupMode: initGroupMode, serverGroupLayout: init.groupLayout ?? null, groupLayout: groupLayoutOfView(initViewIndex) }), effectiveLayout.columns, initLabels);
+  const visibleColumns = computeVisibleColumns(effectiveLayout.columns, effectiveLayout.columnOrder, effectiveLayout.hiddenColumns, initPivot, initGroupBy);
   // `selection` wins over `defaultSelection`, and both resolve here (not in the provider), so the
   // server render and the first client paint already show them.
   const initSelectionValue = init.selection ?? init.defaultSelection;
@@ -674,7 +720,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
   }
   let resultsAnnouncementArmed = false;
   const store = createStore<DataGridStoreState>((rawSet, get, api) => {
-    const set = withGroupLayout(rawSet);
+    const set = withGroupLayout(rawSet, withClientPivot);
     /**
      * Derives the public SelectionState with per-channel caches (decision 4): a range-drag step
      * re-derives the three corner refs only, and the rowIds/columnIds arrays keep their identity
@@ -733,7 +779,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       const normalized = normalizeColumnLayout(s.columns, merged, defHiddenColumnIds(s.columns));
       const snapshot = computeColumnLayout(normalized.columns, normalized.columnOrder, normalized.columnWidths, normalized.hiddenColumns);
       if (layoutSnapshotsEqual(snapshot, s.columnLayout)) return;
-      const pivot = pivotOf(s.serverGroupLayout, normalized.columns, s.labels);
+      const pivot = pivotOf(heldSetOf(s), normalized.columns, s.labels);
       const nextVisibleColumns = computeVisibleColumns(normalized.columns, normalized.columnOrder, normalized.hiddenColumns, pivot, s.groupBy);
       const columnsChanged = changedParts.order !== undefined || changedParts.pins !== undefined || changedParts.hidden !== undefined;
       set({
@@ -1093,6 +1139,8 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
     groupingEnabled: init.groupBy !== undefined || init.defaultGroupBy !== undefined || init.onGroupByChange !== undefined,
     groupByControlled: init.groupBy !== undefined,
     expandedControlled: init.expanded !== undefined,
+    pivotColumnIds: initPivotColumnIds,
+    pivotControlled: init.pivot !== undefined,
     page: initPage,
     pageSize: initPageSize,
     pageControlled: init.page !== undefined,

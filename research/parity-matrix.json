@@ -638,18 +638,28 @@
     },
     {
       "id": "server-pivot",
-      "feature": "Server pivot",
-      "options": [],
+      "feature": "Pivot",
+      "options": [
+        "pivot",
+        "defaultPivot",
+        "onPivotChange"
+      ],
       "cells": {
         "L": {
-          "status": "gap",
-          "track": "S11-L",
-          "note": "Pivot needs a server. The query layer or your route answers the pivot columns and cells."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/pivot.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/pivot-client.test.tsx"
+          ],
+          "note": "The grid builds the pivot from the client rows. A lazy source, totalRowCount, and sortMode=\"server\" show the rows ungrouped."
         },
         "PC": {
-          "status": "gap",
-          "track": "S11-L",
-          "note": "Pivot needs a server. The query layer or your route answers the pivot columns and cells."
+          "status": "supported",
+          "evidence": [
+            "tests/parity/pivot.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/pivot-client.test.tsx"
+          ],
+          "note": "A page holds pageSize top-level pivot rows."
         },
         "PS": {
           "status": "supported",

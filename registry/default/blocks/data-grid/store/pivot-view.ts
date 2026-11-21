@@ -30,7 +30,7 @@ const views = new WeakMap<ServerPivotLayout["columns"], { valueColumns: readonly
  * Under pivot, a consumer column or group id with a generated prefix drops, and `onPrefixClash` reports it.
  */
 export function pivotViewOf(
-  layout: ServerGroupLayout | null,
+  layout: Pick<ServerGroupLayout, "pivot"> | null,
   columns: readonly AnyColumnDef[],
   consumerGroupIds: Iterable<string>,
   labels: DataGridPivotLabels,
