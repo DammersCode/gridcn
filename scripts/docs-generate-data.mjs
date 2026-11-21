@@ -289,6 +289,7 @@ export const TERM_PAGES = {
 // The generator fails when an action has no entry or an entry names no action.
 export const ACTION_PAGES = {
   setGroupBy: "/docs/rows-pages-menus/row-grouping#control",
+  setPivot: "/docs/types-hooks/store-hooks#handle",
   toggleGroupBy: "/docs/rows-pages-menus/row-grouping#control",
   setExpanded: "/docs/rows-pages-menus/row-grouping#control",
   toggleGroup: "/docs/rows-pages-menus/row-grouping#control",

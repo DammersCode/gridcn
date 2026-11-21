@@ -1,5 +1,5 @@
 import { aggregateRows } from "../aggregate";
-import type { AggregateReducer, ExpandedState, GroupKey, GroupLayout, GroupNode, GroupPathSegment } from "../group-types";
+import type { AggregateReducer, ExpandedState, GroupKey, GroupLayout, GroupNode, GroupPathSegment, ServerPivotLayout } from "../group-types";
 import { expandedTest, groupIdOf, groupKeyOf, groupKeyText } from "../store/group-state";
 import type { CellAccessor } from "./build-view-index";
 import { sortCollator } from "./sort-collator";
@@ -23,7 +23,8 @@ export type GroupBuildInput = {
 /** One group with its children; the innermost level holds `leaves`, the others `groups`. */
 export type GroupBucket = { node: GroupNode; parent: GroupBucket | null; groups: GroupBucket[] | null; leaves: number[] | null };
 
-export type GroupTree = { roots: GroupBucket[]; leafCount: number; owners?: Map<number, GroupBucket>; leavesInOrder?: number[] };
+/** `pivot` holds the held set of a client pivot: its innermost groups never lay out their rows. */
+export type GroupTree = { roots: GroupBucket[]; leafCount: number; owners?: Map<number, GroupBucket>; leavesInOrder?: number[]; pivot?: ServerPivotLayout };
 
 export type GroupedView = { viewIndex: number[]; layout: GroupLayout };
 
@@ -128,11 +129,11 @@ export function flattenGroupTree(tree: GroupTree, expanded: ExpandedState): Grou
       viewIndex.push(-rows.length);
       if (!isOpen(bucket.node.id)) continue;
       if (bucket.groups) visit(bucket.groups);
-      else for (const row of bucket.leaves!) viewIndex.push(row);
+      else if (!tree.pivot) for (const row of bucket.leaves!) viewIndex.push(row);
     }
   };
   visit(tree.roots);
-  return { viewIndex, layout: { rows, leafCount: tree.leafCount, tree } };
+  return { viewIndex, layout: tree.pivot ? { rows, leafCount: tree.leafCount, tree, pivot: tree.pivot } : { rows, leafCount: tree.leafCount, tree } };
 }
 
 /** The grouped view of `input.leaves`, or `null` when a leaf is an unloaded row. */
@@ -156,7 +157,8 @@ export function leavesOfTree(tree: GroupTree): number[] {
   return out;
 }
 
-function ownersOf(tree: GroupTree): Map<number, GroupBucket> {
+/** The innermost bucket of each row of the tree, by data index. */
+export function ownersOf(tree: GroupTree): Map<number, GroupBucket> {
   if (tree.owners) return tree.owners;
   const owners = new Map<number, GroupBucket>();
   const visit = (buckets: readonly GroupBucket[]): void => {
