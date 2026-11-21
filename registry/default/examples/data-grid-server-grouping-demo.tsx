@@ -8,10 +8,12 @@ import { describeFilterOperators, withColumnMap } from "@/registry/default/block
 import type { LoggedQuery, QueryDemoRow } from "./data-grid-server-query-demo-db";
 
 const columnDefs = defineColumns<QueryDemoRow>()([
-  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 170, flex: 1, groupable: false },
-  { id: "role", header: "Role", accessorKey: "role", type: "select", width: 110 },
-  { id: "active", header: "Active", accessorFn: (row) => row.active === true, type: "checkbox", width: 90 },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 110, aggregate: "avg" },
+  { id: "customer", header: "Customer", accessorKey: "customer", type: "text", width: 150, flex: 1, groupable: false },
+  { id: "region", header: "Region", accessorKey: "region", type: "select", width: 100 },
+  { id: "dealership", header: "Dealership", accessorKey: "dealership", type: "select", width: 170 },
+  { id: "make", header: "Make", accessorKey: "make", type: "select", width: 100 },
+  { id: "financed", header: "Financed", accessorKey: "financed", type: "checkbox", width: 90 },
+  { id: "price", header: "Price", accessorKey: "price", type: "number", width: 120, aggregate: "sum" },
 ] as const);
 
 type Demo = Awaited<ReturnType<typeof import("./data-grid-server-query-demo-db").createQueryDemo>>;
@@ -22,11 +24,11 @@ function GroupControls(): ReactNode {
   const actions = useDataGridActions();
   return (
     <div className="flex gap-2">
-      <Button size="sm" variant="outline" onClick={() => actions.setGroupBy(["role"])}>
-        Group by role
+      <Button size="sm" variant="outline" onClick={() => actions.setGroupBy(["region"])}>
+        Group by region
       </Button>
-      <Button size="sm" variant="outline" onClick={() => actions.setGroupBy(["role", "active"])}>
-        Group by role, then active
+      <Button size="sm" variant="outline" onClick={() => actions.setGroupBy(["region", "dealership"])}>
+        Group by region, then dealership
       </Button>
       <Button size="sm" variant="outline" onClick={() => actions.setGroupBy([])}>
         Ungroup
@@ -41,7 +43,7 @@ function GroupedGrid({ demo, lastQuery }: { demo: Demo; lastQuery: LoggedQuery |
     mode: "scroll",
     getRowId: (row) => String(row.id),
     blockSize: 50,
-    defaultSpec: { sorts: [], filters: [], searchText: "", groupBy: ["role"] },
+    defaultSpec: { sorts: [], filters: [], searchText: "", groupBy: ["region"] },
     fetchRows: ({ signal, ...request }) => demo.query.fetchRows(request, { signal }),
   });
   return (
@@ -49,7 +51,7 @@ function GroupedGrid({ demo, lastQuery }: { demo: Demo; lastQuery: LoggedQuery |
       <DataGridProvider {...server.providerProps} columns={columns} readOnly>
         <GroupControls />
         <div className="flex h-[360px] flex-col overflow-hidden rounded-md border border-border">
-          <DataGridRoot aria-label="Users grouped on the server" className="min-h-0 flex-1 rounded-[inherit] border-none" {...server.rootProps}>
+          <DataGridRoot aria-label="Car sales grouped on the server" className="min-h-0 flex-1 rounded-[inherit] border-none" {...server.rootProps}>
             <DataGridHeader />
             <DataGridBody />
           </DataGridRoot>

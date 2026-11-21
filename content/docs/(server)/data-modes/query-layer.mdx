@@ -25,22 +25,22 @@ Each item installs `data-grid-server-query`, which has no dependency. Use the la
 
 The column map is the allow-list and the projection. A request can use only the columns in the map. `columnsFromDrizzleTable` builds the map from a Drizzle table. It needs `pick`, so no helper maps a whole table:
 
-```ts title="lib/users-query.ts"
+```ts title="lib/sales-query.ts"
 import { columnsFromDrizzleTable, createDrizzleGridQuery } from "@/components/data-grid-server-query-drizzle/data-grid-server-query-drizzle";
 import { db } from "./db";
-import { users } from "./schema";
+import { carSales } from "./schema";
 
-export const columns = columnsFromDrizzleTable(users, {
-  pick: ["id", "name", "email", "role", "score", "tenantId"],
+export const columns = columnsFromDrizzleTable(carSales, {
+  pick: ["id", "customer", "salesperson", "make", "price", "tenantId"],
   overrides: {
-    name: { searchable: true },
-    email: { searchable: true },
+    customer: { searchable: true },
+    salesperson: { searchable: true },
     tenantId: { serverOnly: true },
   },
 });
 
-export const usersQuery = createDrizzleGridQuery({
-  db, table: users, columns,
+export const salesQuery = createDrizzleGridQuery({
+  db, table: carSales, columns,
 });
 ```
 
@@ -50,12 +50,12 @@ A column with `serverOnly` is never selected, filtered, sorted, or searched for 
 
 `handleGridRequest` reads the body with a size cap, runs the query, and answers JSON. It passes `req.signal` to the query, which stops before it starts when the request is already aborted. A running statement is not cancelled, so set a `statement_timeout` in PostgreSQL. A refused request becomes a 400 with an error code and no value. Any other error becomes a 500 with no message:
 
-```ts title="app/api/users/route.ts"
+```ts title="app/api/sales/route.ts"
 import { handleGridRequest } from "@/components/data-grid-server-query/data-grid-server-query";
-import { usersQuery } from "./users-query";
+import { salesQuery } from "./sales-query";
 
 export const POST = (req: Request) =>
-  handleGridRequest(req, usersQuery.fetchRows);
+  handleGridRequest(req, salesQuery.fetchRows);
 ```
 
 ## Connect the grid [#connect-the-grid]
@@ -69,7 +69,7 @@ import { useMemo } from "react";
 import { withColumnMap, type ColumnMapDescriptor } from "@/components/data-grid-server-query/data-grid-server-query";
 import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
 
-export function useUsers(
+export function useSales(
   descriptor: ColumnMapDescriptor,
   columnDefs: { id: string }[],
 ) {
@@ -83,7 +83,7 @@ export function useUsers(
     fetchRows: async ({ signal, ...request }) => {
       const body = JSON.stringify(request);
       const init = { method: "POST", body, signal };
-      const response = await fetch("/api/users", init);
+      const response = await fetch("/api/sales", init);
       if (!response.ok) throw new Error("The request failed");
       return response.json();
     },
@@ -100,14 +100,14 @@ The layer joins the top-level filters with `filterJoin`: "or" when the spec hold
 
 `rowScope` returns equalities on mapped columns. Every query of the factory adds them with AND:
 
-```ts title="lib/scoped-users-query.ts"
+```ts title="lib/scoped-sales-query.ts"
 import { createDrizzleGridQuery } from "@/components/data-grid-server-query-drizzle/data-grid-server-query-drizzle";
-import { columns } from "./users-query";
+import { columns } from "./sales-query";
 import { db } from "./db";
-import { users } from "./schema";
+import { carSales } from "./schema";
 
-export const usersQuery = createDrizzleGridQuery({
-  db, table: users, columns,
+export const salesQuery = createDrizzleGridQuery({
+  db, table: carSales, columns,
   rowScope: (session: { tenantId: number }) => ({
     tenantId: session.tenantId,
   }),
@@ -116,15 +116,15 @@ export const usersQuery = createDrizzleGridQuery({
 
 The route reads the session and passes it as `context`:
 
-```ts title="app/api/users/route.ts"
+```ts title="app/api/sales/route.ts"
 import { handleGridRequest } from "@/components/data-grid-server-query/data-grid-server-query";
 import { getSession } from "./session";
-import { usersQuery } from "./scoped-users-query";
+import { salesQuery } from "./scoped-sales-query";
 
 export const POST = async (req: Request) => {
   const session = await getSession(req);
   if (!session) return new Response(null, { status: 401 });
-  return handleGridRequest(req, usersQuery.fetchRows, { context: session });
+  return handleGridRequest(req, salesQuery.fetchRows, { context: session });
 };
 ```
 
@@ -149,12 +149,12 @@ Values reach the database only as bound parameters. A column, an operator, and a
 
 `filterValues` answers `fetchFilterValues`: it lists the values of one column with their counts, for the filters the user set on the other columns. `aggregates` answers `fetchAggregates` with one value per column that sets `aggregate`:
 
-```ts title="app/api/users/values/route.ts"
+```ts title="app/api/sales/values/route.ts"
 import { handleGridRequest } from "@/components/data-grid-server-query/data-grid-server-query";
-import { usersQuery } from "../users-query";
+import { salesQuery } from "../sales-query";
 
 export const POST = (req: Request) =>
-  handleGridRequest(req, usersQuery.filterValues);
+  handleGridRequest(req, salesQuery.filterValues);
 ```
 
 ### Custom operators [#custom-operators]
