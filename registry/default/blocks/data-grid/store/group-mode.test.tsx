@@ -133,12 +133,31 @@ describe("a layout the core refuses", () => {
     expect(String(warn.mock.calls[0]![0])).toContain("groupLayout");
   });
 
-  it("waits quietly for a layout of the new group columns after groupBy changed", () => {
+  it("waits quietly for a layout of the new group columns after an uncontrolled groupBy changed", () => {
     spyWarn();
-    const { state, store } = make();
+    const { state, store } = make({ groupBy: undefined, defaultGroupBy: ["region"] });
     act(() => state().actions.setGroupBy(["qty"]));
     expect(store.getState().viewIndex).toEqual([0, 1, 2, 3, 4]);
     expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("keeps the shown layout and emits the new group columns when a controlled groupBy changes", () => {
+    const onGroupByChange = vi.fn();
+    const { state } = make({ onGroupByChange });
+    const view = state().viewIndex;
+    act(() => state().actions.setGroupBy(["qty"]));
+    expect(onGroupByChange).toHaveBeenCalledWith(["qty"]);
+    expect(state().groupBy).toEqual(["region"]);
+    expect(state().viewIndex).toBe(view);
+  });
+
+  it("builds on the emitted group columns while the controlled prop has not brought them", () => {
+    const onGroupByChange = vi.fn();
+    const { state } = make({ onGroupByChange });
+    act(() => state().actions.toggleGroupBy("qty"));
+    act(() => state().actions.toggleGroupBy("region"));
+    act(() => state().actions.setGroupBy(["region"]));
+    expect(onGroupByChange.mock.calls.map(([groupBy]) => groupBy)).toEqual([["region", "qty"], ["qty"], ["region"]]);
   });
 });
 

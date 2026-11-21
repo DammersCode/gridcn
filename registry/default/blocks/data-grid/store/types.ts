@@ -498,6 +498,8 @@ export type DataGridSyncProps<TData = unknown> = {
      * Useful for lazy-loading/prefetch/analytics add-ons; core has no fetching logic of its own.
      */
     onRenderedRowsChange?: (range: { start: number; end: number }) => void;
+    /** @internal `useDataGridServerRows` sets it while it holds the rows of the previous spec on screen. */
+    serverHeld?: boolean;
     /**
      * Fires on every live width write during a resize drag (`actions.previewColumnWidth`, per drag
     * frame) — the in-progress counterpart to `onColumnLayoutChange`'s once-per-commit snapshot.
@@ -907,6 +909,8 @@ export type DataGridStoreState = Omit<
    * context menu) goes through this field.
    */
   readOnly: boolean;
+  /** @internal The server hook holds the rows of the previous spec: user gestures that write are refused, consumer writes pass. Only write paths read it. */
+  serverHeld: boolean;
   /**
    * The effective keymap — `DEFAULT_KEYMAP` merged with the `keymap` sync prop — seeded at store
    * creation and kept in sync by the config phase, the single source of truth for bindings

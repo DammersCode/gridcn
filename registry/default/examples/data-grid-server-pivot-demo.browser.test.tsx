@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
+import { flashesIn, recordAcross, sampleGrid } from "@/registry/default/blocks/data-grid/test/frame-timeline.test-helper";
 import DataGridServerPivotDemo from "./data-grid-server-pivot-demo";
 import "@/app/global.css";
 
@@ -23,4 +24,16 @@ describe("data-grid-server-pivot-demo", () => {
       }
     });
   });
+
+  it("keeps the pivot rows and the header on screen across a sort click", async () => {
+    await render(<DataGridServerPivotDemo />);
+    await vi.waitFor(() => expect(pivotRows()).toHaveLength(4), { timeout: 20_000 });
+    await vi.waitFor(() => expect(sampleGrid().busy).toBe(false));
+    const before = sampleGrid();
+    const region = [...document.querySelectorAll<HTMLElement>('[role="columnheader"]')].find((header) => header.textContent?.includes("Region"))!;
+    const sortBefore = region.getAttribute("aria-sort");
+    const samples = await recordAcross(() => region.click(), () => region.getAttribute("aria-sort") !== sortBefore && !sampleGrid().busy, { timeout: 20_000 });
+    expect(samples.some((sample) => sample.busy)).toBe(true);
+    expect(flashesIn(samples, before, sampleGrid()).slice(0, 3)).toEqual([]);
+  }, 40_000);
 });

@@ -770,6 +770,10 @@ Mode-neutral by design.
 
 Mode-neutral by design. Comments are addressed by row id and column id, so a sort, a filter, a page change, or an eviction moves markers and never comments. `fetchComments` loads the comments of the rendered rows. Without `currentUser` and `onCommentSave`, comments are anonymous and stay on the client. `onCommentSave` covers your own API, and `applyRemote` takes the changes of other clients.
 
+### Loading and error state
+
+A server spec change keeps the old rows on screen until the answers for the rendered rows land. Open: a change that leaves fewer rows than the scroll position blanks one frame (V1).
+
 ### Scroll row fetching
 
 - **L, PC**: n/a: Rows are in memory.

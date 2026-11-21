@@ -33,6 +33,8 @@ export type UseDataGridServerRowsScrollProviderProps<TData> = {
   plugins: readonly DataGridPlugin<unknown>[];
   /** Sorts on a header click. Override it after the spread. */
   headerClickBehavior: "sort";
+  /** @internal Present while the old rows stay on screen for a new spec: the grid refuses user gestures that write until the answer lands. */
+  serverHeld?: true;
   /** Present while the source groups: the group columns, outermost first. */
   groupBy?: readonly string[];
   /** Present while the source groups. */

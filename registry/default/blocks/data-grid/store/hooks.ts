@@ -710,12 +710,13 @@ export function useDataGridSelectedRows(): DataGridSelectedRows {
   const filterJoin = useDataGridStore((s) => s.filterJoin);
   const searchText = useDataGridStore((s) => s.searchText);
   const rowIdentityVersion = useDataGridStore((s) => s.rowIdentityVersion);
+  const serverHeld = useDataGridStore((s) => s.serverHeld);
   const storeApi = useDataGridStoreApi();
   // Value writes keep the row ids, so `data` is read at compute time and is not a dependency.
   return useMemo(
-    () => readSelectedRows({ selection: { rows } as DataGridStoreState["selection"], hiddenCheckedRowIds, allMatching, data: storeApi.getState().data, viewIndex, getRowId, totalRowCount, sortState, filterState, filterJoin, searchText, groupLayout: storeApi.getState().groupLayout, groupMode: storeApi.getState().groupMode }),
+    () => readSelectedRows({ selection: { rows } as DataGridStoreState["selection"], hiddenCheckedRowIds, allMatching, data: storeApi.getState().data, viewIndex, getRowId, totalRowCount, sortState, filterState, filterJoin, searchText, groupLayout: storeApi.getState().groupLayout, groupMode: storeApi.getState().groupMode, serverHeld }),
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-    [rows, hiddenCheckedRowIds, allMatching, viewIndex, getRowId, totalRowCount, sortState, filterState, filterJoin, searchText, rowIdentityVersion, storeApi],
+    [rows, hiddenCheckedRowIds, allMatching, viewIndex, getRowId, totalRowCount, sortState, filterState, filterJoin, searchText, rowIdentityVersion, serverHeld, storeApi],
   );
 }
 

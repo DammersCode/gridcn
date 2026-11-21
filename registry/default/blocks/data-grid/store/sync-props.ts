@@ -308,13 +308,14 @@ export function createSyncPhase(set: StoreApi<DataGridStoreState>["setState"], g
           onCellClick: props.onCellClick,
           onRenderedRowsChange: props.onRenderedRowsChange,
           readOnly: Boolean(props.readOnly),
+          serverHeld: Boolean(props.serverHeld),
           announceResults: props.announceResults ?? false,
           keymap: nextKeymap ?? s.keymap,
         };
       });
-      // A flip to readOnly cancels an open edit session (so onEditEnd fires with `cancel`); an
-      // already-closed session has nothing to cancel.
-      if (props.readOnly && get().editing) get().actions.cancelEditing();
+      // A flip to readOnly or to a server hold cancels an open edit session (so onEditEnd fires with `cancel`): a hold
+      // refuses the commit. An already-closed session has nothing to cancel.
+      if ((props.readOnly || props.serverHeld) && get().editing) get().actions.cancelEditing();
     },
     syncProps(rawProps: InternalSyncProps): void {
       const props = rawProps.getRowId ? { ...rawProps, getRowId: holeSafeRowId(rawProps.getRowId) } : rawProps;

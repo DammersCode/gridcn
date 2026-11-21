@@ -217,6 +217,9 @@ export const MAX_STREAM_PATCHES = 100_000;
 /** Rejected rows up to this count resolve their view row with one `indexOf` each instead of one full pass. */
 const STREAM_REJECTION_SCAN_LIMIT = 16;
 
+/** Sources only a user gesture writes; a server hold refuses them, while the sources of consumer writes pass. */
+const HELD_GESTURE_SOURCES: ReadonlySet<DataChange<unknown>["source"]> = new Set(["paste", "fill", "cut", "delete", "row-operation", "history", "import"]);
+
 /** Queues `emits` behind the pending emits; runs the queue at once when no store write is in progress. */
 export function emitAfterWrites(ctx: DataWriteContext, ...emits: (() => void)[]): void {
   ctx.pendingEmits.push(...emits);
@@ -791,7 +794,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     );
   };
   const moveBlockedReason = (s: DataGridStoreState): RowActionSkipReason | null => {
-    if (s.readOnly) return "readOnly";
+    if (s.readOnly || s.serverHeld) return s.readOnly ? "readOnly" : "unloaded-rows";
     if (serverOwnsGroups(s)) return "server-groups";
     // A server sort owns the order too: the next fetch would put the moved rows back.
     if (s.sortState.length > 0 || viewFilters(s.filterMode, s.filterState, s.filterJoin).length > 0) {
@@ -1001,6 +1004,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   const commitChangeCore = (change: DataChange<unknown>, flags?: readonly CellErrorEntry[]): void => {
     const s = get();
     if (s.readOnly && change.source !== "stream" && change.source !== "rollback") return;
+    if (s.serverHeld && HELD_GESTURE_SOURCES.has(change.source)) return;
     if (change.ops.length === 0) return;
     const nextData = applyChange(s.data, change, s.getRowId);
     followStaleRows(ctx, change.ops);
@@ -1057,7 +1061,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   /** Returns whether the value committed (a no-op counts), or `null` on a `readOnly` grid. */
   const commitValueAt = (coord: ViewCoord, value: unknown, reportRejection: boolean): boolean | null => {
     const s = get();
-    if (s.readOnly) return null;
+    if (s.readOnly || s.serverHeld) return null;
     const result = computeCommit(s, coord, value);
     if ("error" in result) {
       const target = reportRejection ? resolveEditTarget(s, coord) : undefined;
@@ -1086,7 +1090,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     _commitCellEdit(value, movement, rejection) {
       const s = get();
       const editing = s.editing;
-      if (!editing || s.readOnly) return;
+      if (!editing || s.readOnly || s.serverHeld) return;
       // Resolve by rowId, so a view rebuild the remap missed discards the draft instead of writing another row.
       const dataRowIndex = ctx.rowIndexCache.resolve(s.data, s.getRowId).get(editing.rowId);
       const anchorStale =
@@ -1160,7 +1164,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     _commitActivation: (coord, value) => commitValueAt(coord, value, true),
     deleteSelection() {
       const s = get();
-      if (s.readOnly) return;
+      if (s.readOnly || s.serverHeld) return;
       const rects = selectionRects(s.selection, s.viewIndex.length, s.visibleColumns.length);
       if (rects.length === 0) return;
 
@@ -1185,7 +1189,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     _deleteCellsById(rowIds, columnIds) {
       const s = get();
-      if (s.readOnly || rowIds.length === 0 || columnIds.length === 0) return;
+      if (s.readOnly || s.serverHeld || rowIds.length === 0 || columnIds.length === 0) return;
       const cleared = columnIds.flatMap((columnId) => {
         const column = s.visibleColumns.find((c) => c.id === columnId);
         const cellType = column ? s.cellTypes[column.type ?? "text"] : undefined;
@@ -1207,7 +1211,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     applyCellUpdates(updates, source, rejected, warnings) {
       const s = get();
-      if (s.readOnly) return;
+      if (s.readOnly || (s.serverHeld && source !== "stream")) return;
       if (rejected === undefined && warnings === undefined && updates.length > 0) return resolveClearWritesThen(s, updates, (r) => get().actions.applyCellUpdates(r.writes, source, r.rejected, r.warnings));
       // every cell rejected: the write is a no-op, but the consumer still gets the rejection report
       if (updates.length === 0) return rejected ? emitBulkRejections(source, rejected) : undefined;
@@ -1274,7 +1278,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     insertRows(viewRowIndex, count, position = "below") {
       const s = get();
-      if (s.readOnly) return skippedBy("insertRows", "readOnly");
+      if (s.readOnly || s.serverHeld) return skippedBy("insertRows", s.readOnly ? "readOnly" : "unloaded-rows");
       if (serverOwnsGroups(s)) return skippedBy("insertRows", "server-groups");
       if (!s.createRow) {
         warnGateOnce("no createRow", "row insertion is a no-op because no `createRow` prop was provided");
@@ -1302,6 +1306,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     deleteRowsAt(viewRowIndexes) {
       const s = get();
+      if (s.serverHeld) return skippedBy("deleteRows", "unloaded-rows");
       return requestDelete(viewRowIndexes.map((viewRow) => dataIndexAt(s, viewRow)).filter((i): i is number => i !== undefined));
     },
     deleteRows(rowIds, options) {
@@ -1341,7 +1346,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     duplicateRowsAt(viewRowIndexes) {
       const s = get();
-      if (s.readOnly) return skippedBy("duplicateRows", "readOnly");
+      if (s.readOnly || s.serverHeld) return skippedBy("duplicateRows", s.readOnly ? "readOnly" : "unloaded-rows");
       if (serverOwnsGroups(s)) return skippedBy("duplicateRows", "server-groups");
       if (!s.duplicateRow) {
         warnGateOnce("no duplicateRow", "duplicateRows is a no-op because no `duplicateRow` prop was provided");

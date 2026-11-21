@@ -14,10 +14,12 @@ export type GroupSyncMemory = {
   expandedEcho: ExpandedState[];
   pivotProp: PivotSpec | undefined;
   pivotEcho: PivotSpec[];
+  /** The group columns emitted under a server layout that the `groupBy` prop has not brought yet. */
+  requestedGroupBy: readonly string[] | null;
 };
 
 export function initGroupMemory(init: Pick<InternalSyncProps, "groupBy" | "expanded" | "pivot">): GroupSyncMemory {
-  return { groupByProp: init.groupBy, expandedProp: init.expanded, groupByEcho: [], expandedEcho: [], pivotProp: init.pivot, pivotEcho: [] };
+  return { groupByProp: init.groupBy, expandedProp: init.expanded, groupByEcho: [], expandedEcho: [], pivotProp: init.pivot, pivotEcho: [], requestedGroupBy: null };
 }
 
 /** The pivot column of an untrusted spec: its first id when that is a string, else none. */
@@ -74,6 +76,7 @@ export function syncGroupState(
   let groupBy = s.groupBy;
   if (props.groupBy === undefined) memory.groupByEcho.length = 0;
   else if (props.groupBy !== memory.groupByProp) {
+    memory.requestedGroupBy = null;
     const echoed = memory.groupByEcho.indexOf(props.groupBy);
     if (echoed !== -1) memory.groupByEcho.splice(0, echoed + 1);
     else {

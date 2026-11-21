@@ -98,7 +98,7 @@ export const FEATURES = {
   "row-ids": F(["/docs/learning-path/define-columns"], ["/docs/components-props/data-grid-props#rows-and-ids"]),
   counts: F(["/docs/server-pagination/load-rows-page"], ["/docs/contracts/server-rows-contract"]),
   grouping: F(["/docs/data-modes/data-mode-support#parity-grouping", "Data mode support"], ["/docs/data-modes/data-mode-support"]),
-  "server-pivot": F(["/docs/data-modes/pivot-server-rows"], ["/docs/contracts/query-layer-reference#limits"], "data-grid-server"),
+  "server-pivot": F(["/docs/rows-pages-menus/pivot"], ["/docs/components-props/data-grid-props#all-props"]),
   "pinned-rows": F(["/docs/rows-pages-menus/pinned-rows"], ["/docs/add-options/rows-pages-menus/pinned-rows-options"], "data-grid-pinned-rows"),
   "server-aggregate": F(["/docs/data-modes/show-server-totals"], ["/docs/add-options/rows-pages-menus/pinned-rows-options"], "data-grid-pinned-rows"),
   columns: F(["/docs/columns/column-order-pinning"], ["/docs/components-props/column-def"]),
@@ -289,7 +289,7 @@ export const TERM_PAGES = {
 // The generator fails when an action has no entry or an entry names no action.
 export const ACTION_PAGES = {
   setGroupBy: "/docs/rows-pages-menus/row-grouping#control",
-  setPivot: "/docs/types-hooks/store-hooks#handle",
+  setPivot: "/docs/rows-pages-menus/pivot#control",
   toggleGroupBy: "/docs/rows-pages-menus/row-grouping#control",
   setExpanded: "/docs/rows-pages-menus/row-grouping#control",
   toggleGroup: "/docs/rows-pages-menus/row-grouping#control",
