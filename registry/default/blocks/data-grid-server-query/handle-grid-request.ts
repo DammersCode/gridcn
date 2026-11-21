@@ -1,7 +1,7 @@
 import { QueryError, statusForCode } from "./errors";
 
 export type HandleGridRequestOptions = {
-  /** Most body bytes read before `JSON.parse`. Default 524288. */
+  /** Most body bytes read before `JSON.parse`. Default: the `maxBodyBytes` of `run` (about 8.1 MiB for `selection`, 8 MiB for `save`), else 524288. */
   maxBodyBytes?: number;
 };
 
@@ -51,7 +51,8 @@ export async function handleGridRequest<TContext = never, TAnswer = unknown>(
 ): Promise<Response> {
   const options = (opts[0] ?? {}) as HandleGridRequestOptions & { context?: TContext };
   try {
-    const text = await readBody(req, options.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES);
+    const ownCap: unknown = (run as { maxBodyBytes?: unknown }).maxBodyBytes;
+    const text = await readBody(req, options.maxBodyBytes ?? (typeof ownCap === "number" ? ownCap : DEFAULT_MAX_BODY_BYTES));
     if (text === null) return json(413, { error: "payload-too-large" });
     let body: unknown;
     try {

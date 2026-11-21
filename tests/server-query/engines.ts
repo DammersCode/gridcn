@@ -6,7 +6,7 @@ import { bigint, boolean, doublePrecision, integer, numeric, pgTable, text, time
 import { integer as sqliteInteger, real, sqliteTable, text as sqliteText } from "drizzle-orm/sqlite-core";
 import { inArray } from "drizzle-orm";
 import { Kysely, PGliteDialect, SqliteDialect } from "kysely";
-import type { AggregatesAnswer, RowsAnswer, ValuesAnswer } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
+import type { AggregatesAnswer, QueryLimits, RowsAnswer, ValuesAnswer } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
 import type { RowsPlan } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query-sdk";
 import { createDrizzleGridQuery } from "@/registry/default/blocks/data-grid-server-query-drizzle/data-grid-server-query-drizzle";
 import { createKyselyGridQuery } from "@/registry/default/blocks/data-grid-server-query-kysely/data-grid-server-query-kysely";
@@ -50,8 +50,8 @@ export type LooseQuery = {
 
 export type Harness = {
   engine: Engine;
-  adapter: "drizzle" | "kysely";
-  make(options?: { rowScope?: boolean; groups?: boolean; searchable?: boolean; rowCount?: "always" | "none" | "firstBlock"; timeZone?: string }): LooseQuery;
+  adapter: "drizzle" | "kysely" | "prisma";
+  make(options?: { rowScope?: boolean; groups?: boolean; searchable?: boolean; rowCount?: "always" | "none" | "firstBlock"; timeZone?: string; limits?: QueryLimits }): LooseQuery;
   /** Inserts rows through the adapter's own client, the way an import save route does. */
   insert(rows: Record<string, unknown>[]): Promise<void>;
   remove(ids: number[]): Promise<void>;
@@ -59,11 +59,24 @@ export type Harness = {
 
 const insertRows = FIXTURE_ROWS.map((row) => ({ ...row }));
 
-export async function openSqlite(): Promise<{ database: Database.Database; harnesses: Harness[] }> {
-  const database = new Database(":memory:");
+export function seedSqlite(database: Database.Database): void {
   database.exec(SQLITE_DDL);
   const insert = database.prepare('insert into items (id, name, tag, score, qty, active, price, "createdAt", "tenantId") values (?, ?, ?, ?, ?, ?, ?, ?, ?)');
   for (const row of insertRows) insert.run(row.id, row.name, row.tag, row.score, row.qty, row.active === null ? null : row.active ? 1 : 0, row.price, row.createdAt, row.tenantId);
+}
+
+export async function seedPg(pg: PGlite): Promise<void> {
+  await pg.exec(PG_DDL);
+  for (const row of insertRows) {
+    await pg.query('insert into items (id, name, tag, score, qty, active, price, "createdAt", "tenantId") values ($1, $2, $3, $4, $5, $6, $7, $8, $9)', [
+      row.id, row.name, row.tag, row.score, row.qty, row.active, row.price, row.createdAt, row.tenantId,
+    ]);
+  }
+}
+
+export async function openSqlite(): Promise<{ database: Database.Database; harnesses: Harness[] }> {
+  const database = new Database(":memory:");
+  seedSqlite(database);
   const db = drizzleSqlite(database);
   const kysely = new Kysely({ dialect: new SqliteDialect({ database }) });
   return { database, harnesses: harnessesFor("sqlite", db, kysely) };
@@ -71,12 +84,7 @@ export async function openSqlite(): Promise<{ database: Database.Database; harne
 
 export async function openPg(): Promise<{ pg: PGlite; harnesses: Harness[] }> {
   const pg = new PGlite();
-  await pg.exec(PG_DDL);
-  for (const row of insertRows) {
-    await pg.query('insert into items (id, name, tag, score, qty, active, price, "createdAt", "tenantId") values ($1, $2, $3, $4, $5, $6, $7, $8, $9)', [
-      row.id, row.name, row.tag, row.score, row.qty, row.active, row.price, row.createdAt, row.tenantId,
-    ]);
-  }
+  await seedPg(pg);
   const db = drizzlePglite(pg);
   const kysely = new Kysely({ dialect: new PGliteDialect({ pglite: pg }) });
   return { pg, harnesses: harnessesFor("pg", db, kysely) };
@@ -101,6 +109,7 @@ function harnessesFor(engine: Engine, db: unknown, kysely: Kysely<any>): Harness
         rowScope: options.rowScope ? (context) => ({ tenantId: context.tenantId }) : undefined,
         rowCount: options.rowCount,
         timeZone: options.timeZone,
+        limits: options.limits,
       }) as never,
   };
   const kyselyHarness: Harness = {
@@ -122,6 +131,7 @@ function harnessesFor(engine: Engine, db: unknown, kysely: Kysely<any>): Harness
         rowScope: options.rowScope ? (context) => ({ tenantId: context.tenantId }) : undefined,
         rowCount: options.rowCount,
         timeZone: options.timeZone,
+        limits: options.limits,
       }) as never,
   };
   return [drizzleHarness, kyselyHarness];

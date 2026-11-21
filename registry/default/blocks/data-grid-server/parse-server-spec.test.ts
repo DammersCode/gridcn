@@ -160,6 +160,28 @@ describe("parseServerSpec grouping", () => {
   });
 });
 
+describe("parseServerSpec pivot", () => {
+  const grouped = { groupBy: ["name"], aggregates: [{ columnId: "age", reducer: "sum" }] };
+
+  it("reads one pivot column and drops unknown keys", () => {
+    expect(parse({ ...grouped, pivot: { columnIds: ["status"], extra: 1 } }).pivot).toEqual({ columnIds: ["status"] });
+    for (const pivot of [null, {}, []]) expect(parse({ pivot })).not.toHaveProperty("pivot");
+  });
+
+  it("rejects a pivot without groupBy or aggregates", () => {
+    expect(() => parse({ pivot: { columnIds: ["status"] } })).toThrow(/pivot: needs groupBy and aggregates/);
+    expect(() => parse({ groupBy: ["name"], pivot: { columnIds: ["status"] } })).toThrow(/needs groupBy and aggregates/);
+  });
+
+  it("rejects a bad shape, no or more than 1 column, an unknown or ungroupable column, and a group column", () => {
+    expect(() => parse({ ...grouped, pivot: ["status"] })).toThrow(/pivot: must be an object/);
+    for (const columnIds of [[], ["status", "age"], "status"]) expect(() => parse({ ...grouped, pivot: { columnIds } })).toThrow(/exactly 1 column id/);
+    expect(() => parse({ ...grouped, pivot: { columnIds: ["nope"] } })).toThrow(/pivot.columnIds\[0\]: names an unknown column/);
+    expect(() => parse({ ...grouped, pivot: { columnIds: ["status"] } }, { columns: { name: {}, age: {}, status: { groupable: false } } })).toThrow(/cannot be pivoted/);
+    expect(() => parse({ ...grouped, pivot: { columnIds: ["name"] } })).toThrow(/is in groupBy/);
+  });
+});
+
 describe("parseGroupPath", () => {
   const spec = parse({ groupBy: ["name", "age"] });
 

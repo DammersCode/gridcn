@@ -9,7 +9,7 @@ import {
   useDataGridVisibleColumns,
   type AnyColumnDef,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { rowAtViewRow, selectionRects, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { pivotCellAt, rowAtViewRow, selectionRects, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { computeSelectionStats, EMPTY_SELECTION_STATS, type SelectionStats } from "./compute-selection-stats";
 
 /** Total rect area up to which the walk runs at once; above it, the settle timer defers it. */
@@ -29,6 +29,7 @@ export function useDataGridSelectionStats(): SelectionStats {
   const visibleColumns = useDataGridVisibleColumns();
   const cellTypes = useDataGridCellTypes();
   const data = useDataGridSelector((s) => s.data);
+  const groupLayout = useDataGridSelector((s) => s.groupLayout);
   const [stats, setStats] = useState(EMPTY_SELECTION_STATS);
 
   useEffect(() => {
@@ -47,6 +48,8 @@ export function useDataGridSelectionStats(): SelectionStats {
           rowCount: viewIndex.length,
           colCount: columns.length,
           valueAt: (viewRow, viewCol) => {
+            const pivotCell = pivotCellAt({ viewIndex, groupLayout }, viewRow, columns[viewCol]);
+            if (pivotCell !== undefined) return pivotCell;
             const row = rowAtViewRow({ viewIndex, data }, viewRow);
             if (row === undefined) return undefined;
             return getCellValue<unknown, AnyColumnDef>(row, columns[viewCol]!);
@@ -68,7 +71,7 @@ export function useDataGridSelectionStats(): SelectionStats {
     }
     const timer = window.setTimeout(compute, SELECTION_STATS_SETTLE_MS);
     return () => window.clearTimeout(timer);
-  }, [selection, viewIndex, visibleColumns, cellTypes, data]);
+  }, [selection, viewIndex, visibleColumns, cellTypes, data, groupLayout]);
 
   return stats;
 }

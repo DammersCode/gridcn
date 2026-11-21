@@ -5,11 +5,9 @@ import { cn } from "@/lib/utils";
 import { COLUMN_BORDER } from "../columns/column-border";
 import { columnLabelText } from "../columns/column-format-helpers";
 import { pinnedInsetStyle } from "../columns/pinned-inset-style";
-import { keepsFocusOutsideGrid } from "../cell";
-import { displayText } from "../cell-types/display-text";
-import { toSafeText } from "../cell-types/safe-text";
+import { keepsFocusOutsideGrid, SEARCH_MATCH_PAINT } from "../cell";
 import { GRID_ATTR, GRID_ROLE_SELECTOR } from "../data-attributes";
-import type { GroupLabelCtx } from "../group-types";
+import type { GroupLabelCtx, GroupNode } from "../group-types";
 import { cellLayer } from "../layers";
 import { useDataGridRootContext, type GridColumnLayout, type GroupLabelRenderer, type RenderedColumn } from "../layout-context";
 import { colRangesContain } from "../selection/selected-col-ranges-for-row";
@@ -22,6 +20,7 @@ import {
   useDataGridVisibleColumns,
   type AnyColumnDef,
 } from "../store";
+import { aggregateText, isPivotColumn, pivotCellOf } from "../store/pivot-view";
 import type { RowMarkersMode } from "../types";
 import { DataGridGroupToggle } from "./group-toggle";
 import { DataGridGroupMarkerCell } from "./marker-cell";
@@ -54,24 +53,7 @@ const GROUP_TINT = "bg-[color-mix(in_srgb,var(--color-muted)_40%,var(--color-bac
 const GROUP_LABEL_SELECTED_TINT =
   "data-[selected]:bg-[color-mix(in_srgb,var(--color-primary)_10%,color-mix(in_srgb,var(--color-muted)_40%,var(--color-background)))] group-data-hovered/row:data-[selected]:bg-[color-mix(in_srgb,var(--color-primary)_10%,color-mix(in_srgb,var(--color-muted)_60%,var(--color-background)))]";
 
-const DEFAULT_AGGREGATE_FORMAT: Intl.NumberFormatOptions = { maximumFractionDigits: 2 };
-
-/** An average has no natural precision, so a number column without its own `format` or `decimals` shows at most two fraction digits. */
-function withDefaultAggregateFormat(options: unknown, locale: string): unknown {
-  const own = (options ?? {}) as { format?: unknown; decimals?: unknown; locale?: string };
-  return own.format === undefined && own.decimals === undefined ? { ...own, format: DEFAULT_AGGREGATE_FORMAT, locale: own.locale ?? locale } : options;
-}
-
-function aggregateText(column: AnyColumnDef, value: unknown, cellTypes: ReturnType<typeof useDataGridCellTypes>, locale: string): string {
-  if (value === null || value === undefined) return "";
-  const cellType = cellTypes[column.type ?? "text"];
-  try {
-    const options = column.type === "number" && typeof value === "number" ? withDefaultAggregateFormat(column.options, locale) : column.options;
-    return toSafeText(cellType ? displayText(cellType as Parameters<typeof displayText>[0], value, options) : value);
-  } catch {
-    return toSafeText(value);
-  }
-}
+const aggregateOf = (node: GroupNode, column: AnyColumnDef): unknown => (isPivotColumn(column) ? pivotCellOf(node, column) : node.aggregates[column.id]);
 
 type GroupCellProps = {
   viewRowIndex: number;
@@ -81,13 +63,14 @@ type GroupCellProps = {
   span?: number;
   isActive: boolean;
   isSelected: boolean;
+  isSearchMatch?: boolean;
   pin?: AnyColumnDef["pin"];
   className?: string;
   children?: ReactNode;
 };
 
 /** A group row cell: navigable and selectable, never editable. */
-function GroupCell({ viewRowIndex, col, columnId, startTrack, span, isActive, isSelected, pin, className, children }: GroupCellProps): ReactNode {
+function GroupCell({ viewRowIndex, col, columnId, startTrack, span, isActive, isSelected, isSearchMatch, pin, className, children }: GroupCellProps): ReactNode {
   const { interaction } = useDataGridRootContext();
   const ref = useRef<HTMLDivElement>(null);
   const coord = useMemo(() => ({ col, row: viewRowIndex }), [col, viewRowIndex]);
@@ -114,6 +97,7 @@ function GroupCell({ viewRowIndex, col, columnId, startTrack, span, isActive, is
       data-column-id={columnId}
       data-pinned={pin}
       data-active={isActive || undefined}
+      data-search-match={isSearchMatch || undefined}
       data-readonly=""
       className={cn("relative flex items-center border-b border-border px-2 outline-none", COLUMN_BORDER, span === undefined && "overflow-hidden", className)}
       style={style}
@@ -146,6 +130,7 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
   const locale = useDataGridSelector((s) => s.locale);
   const cellTypes = useDataGridCellTypes();
   const visibleColumns = useDataGridVisibleColumns();
+  const pivot = useDataGridSelector((s) => s.pivot !== null);
   const columnHeader = useDataGridSelector((s) => {
     const column = s.columns.find((candidate) => candidate.id === meta?.node.columnId);
     return column ? columnLabelText(column) : (meta?.node.columnId ?? "");
@@ -166,7 +151,7 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
       role="row"
       aria-rowindex={viewRowIndex + 2 + ariaRowIndexOffset}
       aria-level={meta.level}
-      aria-expanded={expanded}
+      aria-expanded={pivot ? undefined : expanded}
       aria-posinset={meta.posInSet}
       aria-setsize={meta.setSize}
       data-grid-row-index={viewRowIndex}
@@ -191,7 +176,7 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
           data-selected={(labelRangeSelected && !labelPinned) || undefined}
           className={cn("relative flex min-w-0 items-center gap-1", GROUP_TINT, GROUP_LABEL_SELECTED_TINT)}
         >
-          <DataGridGroupToggle groupId={node.id} label={labelText} expanded={expanded} />
+          {!pivot && <DataGridGroupToggle groupId={node.id} label={labelText} expanded={expanded} />}
           <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
             {renderGroupLabel ? renderGroupLabel(ctx) : labels.grouping.rowLabel(columnHeader, labelText, node.count)}
           </span>
@@ -210,13 +195,14 @@ export const DataGridGroupRow = memo(function DataGridGroupRow({
             startTrack={index + markerColOffset}
             isActive={isActive}
             isSelected={isActive || colRangesContain(cellState.selectedColRanges, index)}
+            isSearchMatch={pivot && !pinned && (cellState.searchMatchCols?.has(index) ?? false)}
             pin={column.pin}
             className={cn(
               cellTypes[column.type ?? "text"]?.numeric === true && "justify-end tabular-nums",
-              pinned && GROUP_TINT,
+              pinned ? GROUP_TINT : pivot && SEARCH_MATCH_PAINT,
             )}
           >
-            <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{column.aggregate === undefined ? null : aggregateText(column, node.aggregates[column.id], cellTypes, locale)}</span>
+            <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{column.aggregate === undefined ? null : aggregateText(column, aggregateOf(node, column), cellTypes, locale)}</span>
           </GroupCell>
         );
       })}

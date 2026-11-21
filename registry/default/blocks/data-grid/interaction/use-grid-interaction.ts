@@ -442,7 +442,8 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       }
 
       const commands = state.commands;
-      const onGroupRow = state.activeCell !== null && groupIndexAt(state.viewIndex, state.activeCell.row) !== undefined;
+      // A pivot row never opens, so Enter falls to `edit`, which it refuses, and the arrows move.
+      const onGroupRow = state.pivot === null && state.activeCell !== null && groupIndexAt(state.viewIndex, state.activeCell.row) !== undefined;
       const offered = (a: GridAction) => (onGroupRow || !GROUP_ROW_ACTIONS.has(a)) && commands?.[a]?.scope !== "editing";
       // unbound printable key = implicit typeToReplace trigger (Excel behavior); a consumer keymap that DEFINES typeToReplace (even []) takes it over and disables the fallback
       const action =

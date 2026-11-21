@@ -12,7 +12,7 @@ A server grid sends its sort, filter tree, search text, and row range to your ro
 
 <InstallCommand item="data-grid-server-query-drizzle" />
 
-Install `data-grid-server-query-kysely` instead to use Kysely. Both items install `data-grid-server-query`, which has no dependency. Use the layer on a server only.
+Install `data-grid-server-query-kysely` instead to use Kysely, `data-grid-server-query-prisma` to use Prisma, or `data-grid-server-query-supabase` to use a Supabase client. Each item installs `data-grid-server-query`, which has no dependency. Use the layer on a server only.
 
 ## Define the column map [#column-map]
 
@@ -85,7 +85,7 @@ export function useUsers(
 }
 ```
 
-Keep the column map in a module without the database. Then the client can import it. Do not import the module that holds `db` into a client component.
+Keep the column map in a module without `db`, so a client component can import it.
 
 ## Limit rows to a tenant [#row-scope]
 
@@ -117,8 +117,7 @@ import { usersQuery } from "./scoped-users-query";
 export const POST = async (req: Request) => {
   const session = await getSession(req);
   if (!session) return new Response(null, { status: 401 });
-  const options = { context: session };
-  return handleGridRequest(req, usersQuery.fetchRows, options);
+  return handleGridRequest(req, usersQuery.fetchRows, { context: session });
 };
 ```
 
@@ -129,7 +128,6 @@ The route must pass `context` when the factory sets `rowScope`. A missing value,
 - A filter row that the user has not filled in yet means what it means in the grid. `contains` with no text matches every row. `equals` with no text matches the empty rows.
 - `notEquals`, `notContains`, and `isNoneOf` match the rows with NULL. `empty` matches NULL and, for text columns, the empty string.
 - A number column parses the value with the HTML number grammar. An integer column rounds a bound the exact way: `gt 2.5` becomes `gt 2`. A bound outside the width of the column matches all rows or none.
-- A text operator on a number, date, or checkbox column fails with `operator-not-allowed`. Use `describeFilterOperators` so the filter menu never offers it.
 - A `date` column with `time: true` holds instants. A day filter covers the local day in the `timeZone` option, which defaults to `UTC`.
 - Text tests ignore letter case. A filter row of a column with `matchCase` carries `matchCase: true`, and the layer then compares case. Set `caseSensitive` on the column to compare case for every request.
 - Quick search is a case-insensitive substring match over the columns with `searchable`. The search narrows the result.
@@ -183,15 +181,15 @@ The factory throws at creation when a declared operator has no handler.
 
 ### Group rows [#groups]
 
-`fetchRows` answers a request that holds `groupBy` and `childKind: "groups"` with the groups of one level. Each group has `key`, `childCount`, `totalRowCount`, and one reduced value for each aggregate column. A request with `childKind: "rows"` and a full `groupPath` answers the rows of one group. See [Group server rows](/docs/data-modes/group-server-rows) for the grid side.
+`fetchRows` answers a request that holds `groupBy` and `childKind: "groups"` with the groups of one level. Each group has `key`, `childCount`, `totalRowCount`, and one reduced value for each aggregate column. A request with `childKind: "rows"` and a full `groupPath` answers the rows of one group. See [Group server rows](/docs/data-modes/group-server-rows) and [Pivot server rows](/docs/data-modes/pivot-server-rows#query-layer) for the grid side.
 
 - A group key is the stored value. A text column keys `""` as the empty group, and a date-time column keys the stored instant.
-- A `serverOnly` column cannot group, and a `keepBlankText` column cannot group. Both answer `unsupported`.
+- A `serverOnly` or `keepBlankText` column cannot group and answers `unsupported`.
 - A filter applies before grouping, and the group column sorts the groups. The empty group comes last.
 - `rowScope` applies to every group list and every row list.
-- The adapter runs one `group by` statement for each page of groups, and counts the groups and the child lists in the same pass. The group queries have no performance measurement.
+- The adapter runs one `group by` statement for each page of groups, and counts the groups and the child lists in the same pass.
 - `fetchRows` resolves `RowsAnswer | GroupsAnswer`. A direct caller narrows with `"groups" in answer`.
-- Text keys sort by the collation of the database. The client orders text keys with a locale collator, so the order can differ.
+- Text keys sort by the collation of the database, and the client by a locale collator, so the order can differ.
 
 ## Factory options [#options]
 
@@ -200,6 +198,7 @@ The factory throws at creation when a declared operator has no handler.
 | `columns` | `ColumnMap` | Required |
 | `rowScope` | `(context) => Record<columnId, value>` | None |
 | `rowCount` | `"firstBlock" \| "always" \| "none"` | `"firstBlock"` |
+| `paging` | `"offset" \| "cursor"` | `"offset"` |
 | `timeZone` | IANA zone or fixed offset | `"UTC"` |
 | `limits` | `QueryLimits` | See the [reference](/docs/contracts/query-layer-reference#limits) |
 | `customOperators` | `{ [id]: ({ column, value }) => fragment }` | None |

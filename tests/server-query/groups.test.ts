@@ -1,10 +1,13 @@
 // @vitest-environment node
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { GroupsAnswer } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
+import { readGroupsAnswer } from "@/registry/default/blocks/data-grid-server/read-groups-answer";
 import { type OracleGroup, type OraclePath, type OracleRequest, oracleGroupRowIds, oracleGroups } from "./client-oracle";
 import { type Harness, type LooseQuery, openPg, openSqlite } from "./engines";
 import { FIXTURE_ROWS } from "./fixture";
 import { KNOWN_DIFFERENCES } from "./groups-differences";
+import { unlessDeclined } from "./prisma/declines";
+import { openPrisma } from "./prisma/engines";
 
 const harnesses: Harness[] = [];
 const closers: (() => Promise<void> | void)[] = [];
@@ -12,8 +15,9 @@ const closers: (() => Promise<void> | void)[] = [];
 beforeAll(async () => {
   const sqlite = await openSqlite();
   const pg = await openPg();
-  harnesses.push(...sqlite.harnesses, ...pg.harnesses);
-  closers.push(() => void sqlite.database.close(), () => pg.pg.close());
+  const prisma = await Promise.all([openPrisma("sqlite"), openPrisma("pg")]);
+  harnesses.push(...sqlite.harnesses, ...pg.harnesses, ...prisma.map((entry) => entry.harness));
+  closers.push(() => void sqlite.database.close(), () => pg.pg.close(), ...prisma.map((entry) => entry.close));
 }, 60_000);
 
 afterAll(async () => {
@@ -69,9 +73,12 @@ describe.each([
   ["sqlite", "kysely"],
   ["pg", "drizzle"],
   ["pg", "kysely"],
+  ["sqlite", "prisma"],
+  ["pg", "prisma"],
 ] as const)("groups: %s + %s", (engine, adapter) => {
   const harness = () => harnesses.find((h) => h.engine === engine && h.adapter === adapter)!;
   const query = () => harness().make({ groups: true });
+  const declinable = <T>(name: string, call: () => Promise<T>) => unlessDeclined(adapter, engine, name, call);
 
   it.each([
     ["a text column, case kept, blank and NULL merged", { groupBy: ["name"] }, false],
@@ -80,8 +87,9 @@ describe.each([
     ["a number column", { groupBy: ["qty"] }, true],
     ["a float column", { groupBy: ["score"] }, true],
     ["a time column, by the stored instant", { groupBy: ["createdAt"] }, true],
-  ] as [string, Ask, boolean][])("matches the client over %s", async (_name, ask, ordered) => {
-    const answer = await groupsOf(query(), ask);
+  ] as [string, Ask, boolean][])("matches the client over %s", async (name, ask, ordered) => {
+    const answer = await declinable(`group level: ${name}`, () => groupsOf(query(), ask));
+    if (!answer) return;
     const expected = oracleGroups(oracleOf(ask));
     expectLike(answer.groups, expected, { ordered });
     expect(answer.groupCount).toBe(expected.length);
@@ -110,7 +118,7 @@ describe.each([
   });
 
   it("answers an empty result with no groups and zero counts", async () => {
-    const answer = await groupsOf(query(), { groupBy: ["tag"], filters: [{ columnId: "name", operator: "equals", value: "no such name" }] });
+    const answer = await groupsOf(query(), { groupBy: ["tag"], filters: [{ columnId: "name", operator: "contains", value: "no such name" }] });
     expect(answer).toEqual({ groups: [], groupCount: 0, totalRowCount: 0 });
   });
 
@@ -123,9 +131,27 @@ describe.each([
       { columnId: "nameCount", reducer: "count" },
     ];
     const ask: Ask = { groupBy: ["tag"], aggregates };
-    const answer = await groupsOf(query(), ask);
+    const answer = await declinable("every reducer per group", () => groupsOf(query(), ask));
+    if (!answer) return;
     expect(answer.groups.some((group) => group.key === null)).toBe(true);
     expectLike(answer.groups, oracleGroups(oracleOf(ask)), { ordered: false });
+  });
+
+  it("answers numeric-column reducers as finite numbers that the grid reader keeps", async () => {
+    const numeric = { price: "max", priceSum: "sum", priceMin: "min", priceAvg: "avg", idSum: "sum", score: "avg" } as const;
+    const aggregates = Object.entries(numeric).map(([columnId, reducer]) => ({ columnId, reducer }));
+    const ids = Object.keys(numeric);
+    const warnings: string[] = [];
+    const read = readGroupsAnswer(await groupsOf(query(), { groupBy: ["active"], aggregates }), { start: 0, end: 1000 }, { topLevel: true, aggregateIds: ids }, (_kind, message) => warnings.push(message));
+    expect(warnings).toEqual([]);
+    const yes = read.groups.find((group) => group.key === true)!;
+    const prices = FIXTURE_ROWS.filter((row) => row.active === true && row.price !== null).map((row) => Number(row.price));
+    expect(yes.aggregates?.["price"]).toBe(Math.max(...prices));
+    expect(yes.aggregates?.["priceMin"]).toBe(Math.min(...prices));
+    expect(yes.aggregates?.["priceSum"] as number).toBeCloseTo(prices.reduce((a, b) => a + b, 0), 6);
+    expect(yes.aggregates?.["priceAvg"] as number).toBeCloseTo(prices.reduce((a, b) => a + b, 0) / prices.length, 6);
+    const flat = await query().aggregates({ spec: { sorts: [], filters: [], searchText: "" }, columnIds: ids });
+    for (const id of ids) expect(Number.isFinite(flat[id]), `${id} = ${JSON.stringify(flat[id])}`).toBe(true);
   });
 
   it(`keeps a named difference: ${KNOWN_DIFFERENCES.reducerOnNonNumbers.name}`, async () => {
@@ -168,6 +194,13 @@ describe.each([
         expect(await idsOf(query(), rowsAsk)).toEqual(oracleGroupRowIds(oracleOf(rowsAsk)));
       }
     }
+  });
+
+  it("builds a checkbox level above another level", async () => {
+    const ask: Ask = { groupBy: ["active", "tag"], end: 10 };
+    expectLike((await groupsOf(query(), ask)).groups, oracleGroups(oracleOf(ask)), { ordered: false });
+    const inner: Ask = { ...ask, path: [{ columnId: "active", key: false }] };
+    expectLike((await groupsOf(query(), inner)).groups, oracleGroups(oracleOf(inner)), { ordered: true });
   });
 
   it("reads the rows of a group in the order of the other sorts", async () => {

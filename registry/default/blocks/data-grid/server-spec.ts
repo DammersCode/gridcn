@@ -14,6 +14,8 @@ export type ServerSpec = {
   groupBy?: readonly string[];
   /** The reducers of the group rows, one per column. Present only while the grid is grouped and a column has an aggregate. */
   aggregates?: readonly ServerAggregate[];
+  /** Present only under pivot. Needs `groupBy` and `aggregates`; the values are `aggregates`. Takes 1 column id. `useDataGridServerRows` sends it only with 1 `groupBy` column and never on an ungrouped request. */
+  pivot?: { columnIds: readonly string[] };
 };
 
 /** One reducer the server computes for a column of every group row. */

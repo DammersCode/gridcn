@@ -5,6 +5,7 @@
     "change-server-rows",
     "handle-row-action-results",
     "select-server-rows",
+    "query-selected-rows",
     "stream-updates",
     "push-server-ordered-view",
     "read-push-verdict",

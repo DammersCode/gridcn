@@ -4,10 +4,12 @@ import { isDev } from "../is-dev";
 import { offersSetFilter } from "../cell-types/capabilities";
 import { displayText } from "../cell-types/display-text";
 import { getCellValue } from "./column-helpers";
-import { columnHeaderText } from "./column-format-helpers";
+import { columnHeaderText, columnLabelText } from "./column-format-helpers";
 import { CELL_PADDING_BUFFER, DEFAULT_CELL_INLINE_PADDING, measureTextWidths } from "./measure-column-text";
 import { clampColumnWidth } from "./resolve-column-width";
-import { dataIndexOf } from "../store/view-rows";
+import { dataIndexOf, groupIndexAt, groupLayoutOfView } from "../store/view-rows";
+import type { DataGridGroupingLabels } from "../labels";
+import { isPivotColumn, pivotCellText, type PivotView } from "../store/pivot-view";
 
 /** Default view rows sampled by one autosize pass. */
 export const DEFAULT_AUTOSIZE_SAMPLE_ROWS = 1_000;
@@ -39,6 +41,12 @@ export type AutosizeState = {
   hasHeaderMenu: boolean;
   /** A header-filter button is rendered (adds its allowance to the headers of columns with a set filter). */
   hasHeaderFilter: boolean;
+  /** Under pivot, the pivot rows' cell texts are measured too. */
+  pivot?: PivotView | null;
+  /** The locale of pivot cell text; default `"en-US"`. */
+  locale?: string;
+  /** Under pivot, the labels of the group label a pivot row shows in the `groupBy` column. */
+  groupingLabels?: Pick<DataGridGroupingLabels, "rowLabel" | "empty">;
 };
 
 /** The mounted view-row window `[start, end)` (the rows the user sees), `null` when nothing is mounted. */
@@ -100,13 +108,20 @@ export function computeAutosizeWidths(
 
   const sortedColumnIds = new Set(sortState.map((spec) => spec.columnId));
   const textFallback = cellTypes["text"]!;
+  const pivotState = state.pivot ? { viewIndex, groupLayout: groupLayoutOfView(viewIndex), cellTypes, locale: state.locale ?? "en-US", pivot: state.pivot } : null;
   const result: [string, number][] = [];
   for (const column of targets) {
     const cellType = cellTypes[column.type ?? "text"] ?? textFallback;
     const cellTexts = new Set<string>();
+    const labelTexts = new Set<string>();
     for (const row of sampled) {
       const dataRow = dataIndexOf(viewIndex, row);
       const rowValue = dataRow === undefined ? undefined : data[dataRow];
+      const pivotText = rowValue === undefined && pivotState && isPivotColumn(column) ? pivotCellText(pivotState, row, column) : undefined;
+      if (pivotText) cellTexts.add(pivotText.slice(0, MAX_SAMPLE_TEXT_LENGTH));
+      const groupIndex = rowValue === undefined && pivotState && state.groupingLabels ? groupIndexAt(viewIndex, row) : undefined;
+      const node = groupIndex === undefined ? undefined : pivotState!.groupLayout?.rows[groupIndex];
+      if (node && node.columnId === column.id) labelTexts.add(state.groupingLabels!.rowLabel(columnLabelText(column), node.label || state.groupingLabels!.empty, node.count).slice(0, MAX_SAMPLE_TEXT_LENGTH));
       if (rowValue === undefined) continue; // lazy hole
       const value = getCellValue<unknown, AnyColumnDef>(rowValue, column);
       const text = displayText(cellType, value, column.options).slice(0, MAX_SAMPLE_TEXT_LENGTH);
@@ -118,7 +133,8 @@ export function computeAutosizeWidths(
     const headerWidth = headerText
       ? measureTextWidths([headerText], fonts.headerFont) + (sortedColumnIds.has(column.id) ? SORTED_HEADER_AFFORDANCE : 0) + (hasHeaderMenu ? HEADER_MENU_AFFORDANCE : 0) + (hasHeaderFilter && offersSetFilter(column, cellType) ? HEADER_FILTER_AFFORDANCE : 0)
       : 0;
-    const cellWidth = measureTextWidths([...cellTexts], fonts.cellFont);
+    // A group row paints `font-medium`, the weight of the header font.
+    const cellWidth = Math.max(measureTextWidths([...cellTexts], fonts.cellFont), measureTextWidths([...labelTexts], fonts.headerFont));
     result.push([column.id, clampColumnWidth(column, Math.max(headerWidth, cellWidth) + (fonts.cellPadding ?? DEFAULT_CELL_INLINE_PADDING) + CELL_PADDING_BUFFER)]);
   }
   return Object.fromEntries(result);

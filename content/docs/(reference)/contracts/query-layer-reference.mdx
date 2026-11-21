@@ -30,13 +30,14 @@ This page lists the exact rules of the [query layer](/docs/data-modes/query-laye
 | `serverOnly` | Never selected, filtered, sorted, searched, or aggregated for the client. `rowScope` can use it. | `false` |
 | `searchable` | Quick search covers the column. At most 16 columns. | `false` |
 | `filterable`, `sortable` | `false` rejects a filter or a sort on the column. | `true` |
-| `required` | The column is NOT NULL. | `false` |
+| `required` | A write or an import refuses a blank value for the column. The layer does not assume that the database column is NOT NULL. | `false` |
 | `caseSensitive` | Text tests compare case. A filter row with `matchCase: true`, which the grid sets for a `matchCase` column, compares case on any text column. | `false` |
 | `keepBlankText` | A stored empty string is a value, not empty. | `false` |
 | `time` | A `date` column that holds instants. Day filters use local days. | `false` |
 | `storage` | How a `date` column stores instants: `native`, `iso-text`, `epoch-ms`, or `epoch-s`. | `native` |
 | `native` | The PostgreSQL type of a `text` or `select` column: `enum` or `uuid`. | None |
 | `choices` | The values of a `select` column. A native enum needs them. | None |
+| `maxLength` | The longest text that an import or a save writes. With `paging: "cursor"`, every sortable text and `select` column needs it. | None |
 | `aggregate` | The reducer of the flat totals: `sum`, `avg`, `min`, `max`, or `count`. | None |
 | `operators` | Custom operators: `{ id, label, input }`. `input` is `none`, `single`, `range`, or `list`. | None |
 
@@ -75,6 +76,7 @@ A value that cannot parse never fails the request. A positive test matches no ro
 
 - A request over `maxImportRows` rows throws a `QueryError`. So does a row that is not an object, a key that is not a mapped column, or a `serverOnly` key.
 - A value over `maxValueLength`, or a number text over `maxNumberLength`, throws `limit-exceeded`.
+- An int or decimal value that expands past `maxNumberLength` digits, such as `1e9999`, is an `out-of-range` refusal. Trailing zeros do not count, so `1.000e-9` passes.
 - A value that does not fit its column kind is a refusal. A missing value in a `required` column is one too. The row stays out of `rows`, and `rejected` names it as `{ rowIndex, columnId, code, message }`. `message` is English. `code` names the reason, such as `"required"` or `"not-a-number"`. `IMPORT_REFUSAL_MESSAGES` lists every code. A route maps the code to its own language.
 - `rows` holds the parsed values. A number stays a number, or becomes canonical text when it came as text. A date is `YYYY-MM-DD`, an instant is ISO text, and a blank value is `null`.
 
@@ -100,9 +102,16 @@ Set `limits` on the factory to change a bound. A request over a bound fails with
 | `maxOffset` | None |
 | `maxColumnIds` | 10000 |
 | `maxImportRows` | 10000 |
+| `maxChangeOps` | 10000 |
+| `maxChangeBytes` | 8388608 |
 | `maxGroupLevels` | 4 |
 | `maxGroupKeyLength` | 1024 |
 | `maxGroupAggregates` | 32 |
+| `maxPivotColumns` | 200 |
+| `maxSelectionIds` | 200000 |
+| `maxCursorBytes` | 2048 |
+
+`maxNumberLength` also bounds the digits of an int or decimal value after its exponent expands. `maxChangeOps` and `maxChangeBytes` bound a [save](/docs/save-server/validate-server-saves#limits). `maxSelectionIds` bounds each id list of a [selection](/docs/rows-live-data/query-selected-rows#limits). `maxCursorBytes` bounds the text of a [cursor](/docs/scroll-mode/page-queries-cursor#limits). `maxPivotColumns` bounds the pivot keys times the values of a [pivot](/docs/data-modes/pivot-server-rows#query-layer), and a larger value than 200 reads as 200. The layer keeps the first keys and counts the rest in `pivotOmitted`.
 
 A group nests one group at most. A deeper group fails with `limit-exceeded`. With `maxOffset`, a `start` above the bound fails with `offset-too-deep`.
 
@@ -110,20 +119,23 @@ A group nests one group at most. A deeper group fails with `limit-exceeded`. Wit
 
 A request with `groupBy` and `childKind: "groups"` resolves a `GroupsAnswer`: `groups`, `groupCount`, and, at the top level, `totalRowCount`. Each group holds `key`, `childCount`, `totalRowCount`, and `aggregates` keyed by column id. A reducer with no counted value gives `null`. `fetchRows` has the type `Promise<RowsAnswer | GroupsAnswer>`. A `capabilities.groupBy` of `false` answers `unsupported`. A group page with a text key longer than `maxGroupKeyLength` fails with `limit-exceeded` at `spec.groupBy.<columnId>`. The bound never goes above 1,024, which is what the grid accepts.
 
+A groups request with `spec.pivot` also resolves `pivotColumns`, `pivotOmitted`, and `pivotCells` on each group. A `capabilities.pivot` of `false`, the default of an executor, answers `unsupported`. Drizzle and Kysely set it, Supabase sets it with `rpc`, and Prisma never sets it.
+
 ## Errors [#errors]
 
 The query layer throws `QueryError` with a `code` and a `path`. The path holds field names and indices, never request text. `handleGridRequest` answers `{ error, path }`.
 
 | Code | Status | Meaning |
 |---|---|---|
-| `invalid-request` | 400 | The body has the wrong shape. |
-| `unknown-column` | 400 | The column is not in the map, or is `serverOnly`. |
+| `invalid-request` | 400 | The body has the wrong shape, or a pivot has no `groupBy`, no aggregates, or its column in `groupBy`. |
+| `unknown-column` | 400 | The column is not in the map, or is `serverOnly`. A pivot column that is not sortable also answers this code. |
 | `unknown-operator` | 400 | The operator is not built in and the column does not declare it. |
 | `operator-not-allowed` | 400 | The operator does not fit the kind of the column, or the column is not filterable or sortable. |
-| `invalid-value` | 400 | A value is over its length, or a range does not match the page. |
-| `limit-exceeded` | 400 | The tree or a list is over a bound, or a group key is over `maxGroupKeyLength`. |
+| `invalid-value` | 400 | A value is over its length, a range does not match the page, or the layer declines an excluded id of a selection. |
+| `limit-exceeded` | 400 | A tree, list, change, or pivot is over a bound, a key is over `maxGroupKeyLength`, or a cursor cannot carry a key. |
 | `offset-too-deep` | 400 | `start` is above `maxOffset`. |
-| `unsupported` | 501 | The request asks for a pivot, or the adapter cannot group. |
+| `bad-cursor` | 400 | The cursor does not parse, is over `maxCursorBytes`, or comes from another filter or sort. |
+| `unsupported` | 501 | The adapter cannot run the request, a cursor request groups, or a selection or a save has no single `primaryKey`. See [pivot refusals](/docs/data-modes/pivot-server-rows#query-layer). |
 | `payload-too-large` | 413 | The body is over `maxBodyBytes`. |
 
 ## Client differences [#client-differences]
@@ -142,3 +154,6 @@ The query layer throws `QueryError` with a `code` and a `path`. The path holds f
 
 - [Query layer](/docs/data-modes/query-layer)
 - [Server rows contract](/docs/contracts/server-rows-contract)
+- [Page queries by cursor](/docs/scroll-mode/page-queries-cursor)
+- [Query the selected rows](/docs/rows-live-data/query-selected-rows)
+- [Validate server saves](/docs/save-server/validate-server-saves)

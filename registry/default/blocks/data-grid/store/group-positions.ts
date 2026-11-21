@@ -8,7 +8,8 @@ export type GroupPosition = { level: number; posInSet: number; setSize: number }
 /** What a group row renders from. */
 export type GroupRowMeta = GroupPosition & { node: GroupNode; expanded: boolean };
 
-type GroupIndex = { viewRows: Int32Array; posInSet: Int32Array; setSize: Int32Array };
+// `flat`: no row opens (pivot), so every view row, loaded or not, is a top-level row at its own position.
+type GroupIndex = { viewRows: Int32Array; posInSet: Int32Array; setSize: Int32Array; flat: boolean };
 
 const indexByView = new WeakMap<object, GroupIndex>();
 const openByExpanded = new WeakMap<ExpandedState, (id: string) => boolean>();
@@ -34,8 +35,12 @@ function buildIndex(view: ArrayLike<number>, layout: GroupLayout): GroupIndex {
     if (node.depth === 0) topLevel++;
     else setSize[i] = parents[node.depth - 1]?.childCount ?? 0;
   }
-  for (let i = 0; i < rows.length; i++) if (rows[i]!.depth === 0) setSize[i] = topLevel;
-  return { viewRows, posInSet, setSize };
+  const flat = rows.length > 0 && rows.every((node) => node.depth === 0 && node.childCount === 0);
+  for (let i = 0; i < rows.length; i++) {
+    if (flat) posInSet[i] = viewRows[i]! + 1;
+    if (rows[i]!.depth === 0) setSize[i] = flat ? view.length : topLevel;
+  }
+  return { viewRows, posInSet, setSize, flat };
 }
 
 function indexOfView(view: ArrayLike<number>, layout: GroupLayout): GroupIndex {
@@ -69,6 +74,7 @@ export function groupPositionAt(s: { viewIndex: ArrayLike<number>; groupLayout: 
   if (at !== undefined) {
     return { level: layout.rows[at]!.depth + 1, posInSet: index.posInSet[at]!, setSize: index.setSize[at]! };
   }
+  if (index.flat) return { level: 1, posInSet: viewRow + 1, setSize: s.viewIndex.length };
   const owner = owningGroup(index, viewRow);
   if (owner < 0) return null;
   const group = layout.rows[owner]!;
@@ -77,7 +83,7 @@ export function groupPositionAt(s: { viewIndex: ArrayLike<number>; groupLayout: 
 
 /** The group row at `viewRow` with its position and open state; `null` for a data row, a hole, or a grid that does not group. */
 export function groupRowMetaAt(
-  s: { viewIndex: ArrayLike<number>; groupLayout: GroupLayout | null; expanded: ExpandedState },
+  s: { viewIndex: ArrayLike<number>; groupLayout: GroupLayout | null; expanded: ExpandedState; pivot?: object | null },
   viewRow: number,
 ): GroupRowMeta | null {
   const at = groupIndexAt(s.viewIndex, viewRow);
@@ -90,6 +96,6 @@ export function groupRowMetaAt(
     isOpen = expandedTest(s.expanded);
     openByExpanded.set(s.expanded, isOpen);
   }
-  return { ...position, node, expanded: isOpen(node.id) };
+  return { ...position, node, expanded: !s.pivot && isOpen(node.id) };
 }
 

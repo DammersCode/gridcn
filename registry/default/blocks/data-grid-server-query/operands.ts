@@ -20,8 +20,22 @@ export function parseDecimal(text: string): Decimal | null {
   const match = /^(-?)(\d*)(?:\.(\d*))?(?:[eE]([-+]?\d+))?$/.exec(text);
   if (!match) return null;
   const [, sign = "", whole = "", fraction = "", exponent = "0"] = match;
-  const coef = BigInt(`${whole}${fraction}` || "0");
-  return { neg: sign === "-" && coef !== ZERO, coef, scale: fraction.length - Number(exponent) };
+  const mantissa = `${whole}${fraction}`;
+  let end = mantissa.length;
+  while (end > 0 && mantissa[end - 1] === "0") end--;
+  const coef = BigInt(mantissa.slice(0, end) || "0");
+  const scale = coef === ZERO ? 0 : fraction.length - Number(exponent) - (mantissa.length - end);
+  return { neg: sign === "-" && coef !== ZERO, coef, scale };
+}
+
+/** Whether the expanded value has more than `maxDigits` whole or fractional digits; check it before any exact math on untrusted text. */
+export function exceedsDigits(value: Decimal, maxDigits: number): boolean {
+  return value.coef !== ZERO && (value.coef.toString().length - value.scale > maxDigits || value.scale > maxDigits);
+}
+
+/** The nearest finite float, read without expanding the digits. */
+export function decimalToFloat(value: Decimal): number {
+  return clampFloat(`${value.neg ? "-" : ""}${value.coef.toString()}e${-value.scale}`);
 }
 
 // BigInt literals and `**` need ES2020 targets; consumer apps may compile lower.

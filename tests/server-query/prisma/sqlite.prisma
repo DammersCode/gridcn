@@ -1,0 +1,97 @@
+generator client {
+  provider               = "prisma-client"
+  output                 = "./generated/sqlite"
+  moduleFormat           = "esm"
+  generatedFileExtension = "ts"
+  importFileExtension    = "ts"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// Mirrors SQLITE_DDL in fixture.ts; the tests create the tables through the raw driver.
+model Item {
+  id        BigInt   @id
+  name      String?
+  tag       String?
+  score     Float?
+  qty       Int?
+  active    Boolean?
+  price     Decimal?
+  createdAt String?
+  tenantId  Int
+
+  @@map("items")
+}
+
+model CursorItem {
+  id     BigInt   @id
+  name   String?
+  qty    Int?
+  price  Decimal?
+  active Boolean?
+  stamp  String?
+  tenant Int
+
+  @@map("cursor_items")
+}
+
+model Kind {
+  id      BigInt    @id
+  ref     String?
+  mood    String?
+  amount  Decimal?
+  big     BigInt?
+  day     String?
+  milli   String?
+  micro   String?
+  seconds Int?
+  label   String?
+  tenant  Int
+
+  @@map("kinds")
+}
+
+// The key-type tables of selection.test.ts.
+model KText {
+  k     String  @id
+  label String?
+
+  @@map("k_text")
+}
+
+model KUuid {
+  k     String  @id
+  label String?
+
+  @@map("k_uuid")
+}
+
+model KInt {
+  k     Int     @id
+  label String?
+
+  @@map("k_int")
+}
+
+model KDecimal {
+  k     Decimal @id
+  label String?
+
+  @@map("k_decimal")
+}
+
+model KFloat {
+  k     Float   @id
+  label String?
+
+  @@map("k_float")
+}
+
+model KCase {
+  k     String  @id
+  label String?
+
+  @@map("k_case")
+}

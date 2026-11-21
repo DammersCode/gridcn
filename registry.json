@@ -803,6 +803,26 @@
                "target": "components/data-grid/store/group-positions.ts"
             },
             {
+               "path": "registry/default/blocks/data-grid/store/pivot-view.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/store/pivot-view.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/pivot-columns.ts",
+               "type": "registry:component",
+               "target": "components/data-grid/pivot-columns.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/pivot-note.tsx",
+               "type": "registry:component",
+               "target": "components/data-grid/pivot-note.tsx"
+            },
+            {
+               "path": "registry/default/blocks/data-grid/error-bar.tsx",
+               "type": "registry:component",
+               "target": "components/data-grid/error-bar.tsx"
+            },
+            {
                "path": "registry/default/blocks/data-grid/store/group-patch.ts",
                "type": "registry:component",
                "target": "components/data-grid/store/group-patch.ts"
@@ -1914,6 +1934,11 @@
                "path": "registry/default/blocks/data-grid-server/read-groups-answer.ts",
                "type": "registry:component",
                "target": "components/data-grid-server/read-groups-answer.ts"
+            },
+            {
+               "path": "registry/default/blocks/data-grid-server/read-pivot-answer.ts",
+               "type": "registry:component",
+               "target": "components/data-grid-server/read-pivot-answer.ts"
             },
             {
                "path": "registry/default/blocks/data-grid-server/server-state.ts",
@@ -4542,6 +4567,21 @@
           "target": "components/data-grid-server-query/parse-import-rows.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid-server-query/validate-change.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/validate-change.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query/parse-selection.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/parse-selection.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query/cursor.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query/cursor.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid-server-query/operands.ts",
           "type": "registry:component",
           "target": "components/data-grid-server-query/operands.ts"
@@ -4648,6 +4688,81 @@
       ]
     },
     {
+      "name": "data-grid-server-query-prisma",
+      "type": "registry:block",
+      "title": "Data Grid Server Query Prisma",
+      "description": "Runs the grid's sort, filter tree, quick search, row range, row count, set values, flat aggregates, and groups with the Prisma Client object API on PostgreSQL and SQLite: definePrismaColumnMap builds the column map, typed by a generated model, and createPrismaGridQuery returns fetchRows for useDataGridServerRows.",
+      "author": "gridcn",
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid-server-query"
+      ],
+      "files": [
+        {
+          "path": "registry/default/blocks/data-grid-server-query-prisma/columns.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query-prisma/columns.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query-prisma/create-prisma-grid-query.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query-prisma/create-prisma-grid-query.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query-prisma/render-prisma.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query-prisma/render-prisma.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query-prisma/data-grid-server-query-prisma.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query-prisma/data-grid-server-query-prisma.ts"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    },
+    {
+      "name": "data-grid-server-query-supabase",
+      "type": "registry:block",
+      "title": "Data Grid Server Query Supabase",
+      "description": "Runs the grid's sort, filter tree, quick search, row range, and row count through the caller's Supabase client over PostgREST: createSupabaseGridQuery returns fetchRows for useDataGridServerRows. grid-query.sql defines the grid function that answers set values, aggregates, groups, and pivots.",
+      "author": "gridcn",
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid-server-query"
+      ],
+      "files": [
+        {
+          "path": "registry/default/blocks/data-grid-server-query-supabase/create-supabase-grid-query.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query-supabase/create-supabase-grid-query.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query-supabase/render-postgrest.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query-supabase/render-postgrest.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query-supabase/quote.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query-supabase/quote.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query-supabase/data-grid-server-query-supabase.ts",
+          "type": "registry:component",
+          "target": "components/data-grid-server-query-supabase/data-grid-server-query-supabase.ts"
+        },
+        {
+          "path": "registry/default/blocks/data-grid-server-query-supabase/grid-query.sql",
+          "type": "registry:file",
+          "target": "components/data-grid-server-query-supabase/grid-query.sql"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    },
+    {
       "name": "data-grid-server-query-demo",
       "type": "registry:example",
       "title": "Data Grid Server Query Demo",
@@ -4730,6 +4845,38 @@
           "path": "registry/default/examples/data-grid-server-grouping-demo.tsx",
           "type": "registry:example",
           "target": "components/data-grid-server-grouping-demo.tsx"
+        },
+        {
+          "path": "registry/default/examples/data-grid-server-query-demo-db.ts",
+          "type": "registry:example",
+          "target": "components/data-grid-server-query-demo-db.ts"
+        }
+      ],
+      "categories": [
+        "data"
+      ]
+    },
+    {
+      "name": "data-grid-server-pivot-demo",
+      "type": "registry:example",
+      "title": "Data Grid Server Pivot Demo",
+      "description": "A server pivot on an in-browser PostgreSQL (PGlite): one row per role, one generated column per key of the active column, and the average score in each cell. A panel shows the last statement with its bound parameters.",
+      "author": "gridcn",
+      "dependencies": [
+        "@electric-sql/pglite@^0.5.15",
+        "drizzle-orm@>=0.45.0 <1"
+      ],
+      "registryDependencies": [
+        "DammersCode/gridcn/data-grid",
+        "DammersCode/gridcn/data-grid-server",
+        "DammersCode/gridcn/data-grid-server-query",
+        "DammersCode/gridcn/data-grid-server-query-drizzle"
+      ],
+      "files": [
+        {
+          "path": "registry/default/examples/data-grid-server-pivot-demo.tsx",
+          "type": "registry:example",
+          "target": "components/data-grid-server-pivot-demo.tsx"
         },
         {
           "path": "registry/default/examples/data-grid-server-query-demo-db.ts",

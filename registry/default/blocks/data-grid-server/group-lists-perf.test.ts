@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createGroupStore, landGroups, landRows, layoutView, listFor } from "./group-lists";
+import { createGroupStore, evictPivotCells, landGroups, landPivotGroups, landRows, layoutView, listFor, MAX_PIVOT_CELLS } from "./group-lists";
 import type { ServerGroupRow } from "./read-groups-answer";
 
 /** The server layout at 100k view rows: 1,000 groups, 10 open with 10k rows each. */
@@ -57,6 +57,30 @@ describe("server layoutView perf", () => {
     expect(view.data).toHaveLength(2_500);
     expect(view.owners).toHaveLength(2_500);
     expect(onCapped).toHaveBeenCalledTimes(1);
+  });
+
+  it("lays out 10,000 pivot groups within the same budget and holds at most 16 MB of cells", () => {
+    const PIVOT_GROUPS = 10_000;
+    const PIVOT_BLOCK = 200;
+    const columns = Array.from({ length: 200 }, (_, key) => ({ path: [`k${key}`], valueIndex: 0 }));
+    const store = createGroupStore<string>(["region"], PIVOT_BLOCK, true);
+    const top = listFor(store, [], null);
+    for (let block = 0; block * PIVOT_BLOCK < PIVOT_GROUPS; block++) {
+      const groups = Array.from({ length: PIVOT_BLOCK }, (_, i) => ({ key: `g${block * PIVOT_BLOCK + i}`, childCount: 1, totalRowCount: 1, pivotCells: columns.map((_, key) => key) }));
+      const answer = { groups, groupCount: PIVOT_GROUPS, totalRowCount: PIVOT_GROUPS, pivotColumns: columns };
+      landPivotGroups(store, top, block, answer, { groups, groupCount: PIVOT_GROUPS, totalRowCount: PIVOT_GROUPS }, { columnId: "city", values: [{ columnId: "qty", reducer: "sum" }] }, block + 1, () => {});
+      evictPivotCells(store, (_, kept) => kept === block);
+    }
+    const view = layoutView(store, () => true, () => undefined);
+    expect(view.data).toHaveLength(PIVOT_GROUPS);
+    const bytes = view.slots.reduce((total, slot) => total + slot.pivotCells!.byteLength, 0);
+    expect(bytes).toBeLessThanOrEqual(16_000_000);
+    expect(bytes).toBeLessThanOrEqual(MAX_PIVOT_CELLS * 8);
+    const flat = fastest(() => {
+      const filled: (string | undefined)[] = [];
+      for (let i = 0; i < PIVOT_GROUPS; i++) filled.push(undefined);
+    });
+    expect(fastest(() => layoutView(store, () => true, () => undefined))).toBeLessThan(Math.max(60, flat * 40) * CI_FACTOR);
   });
 
   it("does not report a view that fits the cap", () => {

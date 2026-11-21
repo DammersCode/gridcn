@@ -101,7 +101,10 @@ export type DataGridCellProps = {
 };
 
 const SEARCH_MATCH_COLOR =
-  "data-[search-match]:[--grid-search-color:var(--search-highlight,var(--color-search-highlight,color-mix(in_oklch,var(--color-primary,var(--primary))_var(--grid-search-fallback),var(--color-background,var(--background)))))] data-[search-match]:[--grid-search-fallback:50%] dark:data-[search-match]:[--grid-search-fallback:100%]";
+  "data-[search-match]:[--grid-search-color:var(--search-highlight,var(--color-search-highlight,color-mix(in_oklch,var(--color-primary,var(--primary))_var(--grid-search-fallback),var(--color-background,var(--background)))))] data-[search-match]:[--grid-search-fallback:50%] dark:data-[search-match]:[--grid-search-fallback:100%] forced-colors:data-[search-match]:outline-1 forced-colors:data-[search-match]:-outline-offset-1 forced-colors:data-[search-match]:outline-solid forced-colors:data-[search-match]:outline-[Mark]";
+
+/** The find highlight of a cell without its own background; the row and selection layers show through it. */
+export const SEARCH_MATCH_PAINT = `${SEARCH_MATCH_COLOR} data-[search-match]:bg-[color-mix(in_oklch,var(--grid-search-color)_60%,transparent)] dark:data-[search-match]:bg-[color-mix(in_oklch,var(--grid-search-color)_25%,transparent)]`;
 
 const TEXT_FIELD = 'input:not([type="checkbox"],[type="radio"],[type="button"],[type="submit"],[type="reset"],[type="range"],[type="color"],[type="file"]), textarea';
 
@@ -407,11 +410,9 @@ function DataGridCellImpl(props: DataGridCellProps): ReactNode {
         // a hover rule on each cell restyles the whole row on every hover change, which costs a scroll frame.
         opaque && "bg-background [--grid-flash-base:var(--color-background)] group-data-hovered/row:bg-[color-mix(in_srgb,var(--color-muted)_50%,var(--color-background))]",
         // own token, not accent/muted; presets without it fall back to a primary tint stronger than the selection fill.
-        SEARCH_MATCH_COLOR,
-        "forced-colors:data-[search-match]:outline-1 forced-colors:data-[search-match]:-outline-offset-1 forced-colors:data-[search-match]:outline-solid forced-colors:data-[search-match]:outline-[Mark]",
         opaque
-          ? "data-[search-match]:bg-[color-mix(in_oklch,var(--grid-search-color)_60%,var(--color-background))] dark:data-[search-match]:bg-[color-mix(in_oklch,var(--grid-search-color)_25%,var(--color-background))]"
-          : "data-[search-match]:bg-[color-mix(in_oklch,var(--grid-search-color)_60%,transparent)] dark:data-[search-match]:bg-[color-mix(in_oklch,var(--grid-search-color)_25%,transparent)]",
+          ? `${SEARCH_MATCH_COLOR} data-[search-match]:bg-[color-mix(in_oklch,var(--grid-search-color)_60%,var(--color-background))] dark:data-[search-match]:bg-[color-mix(in_oklch,var(--grid-search-color)_25%,var(--color-background))]`
+          : SEARCH_MATCH_PAINT,
         // Pinned-row bands are opaque too; color-mix() keeps their 30% tint opaque.
         isPinnedRow && "bg-[color-mix(in_oklch,var(--color-muted)_30%,var(--color-background))] font-medium",
         align === "start" && "justify-start text-start",

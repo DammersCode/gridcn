@@ -31,3 +31,5 @@ references/
 /.cocoindex_code/
 # Serena
 /.serena/
+# Prisma client that the conformance globalSetup generates
+/tests/server-query/prisma/generated/

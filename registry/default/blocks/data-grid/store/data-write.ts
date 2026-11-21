@@ -263,7 +263,7 @@ export function reconcileAfterWrite(s: DataGridStoreState, nextData: readonly un
   return {
     ...groups,
     ...(viewStale === s.viewStale ? {} : { viewStale }),
-    ...computeSearchMatches(nextData, s.columns, s.viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
+    ...computeSearchMatches(nextData, s.columns, s.viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions, s.locale),
   };
 }
 
@@ -280,7 +280,7 @@ export function rebuildRowOpView(s: DataGridStoreState, nextData: readonly unkno
     viewIndex,
     viewStale: staleRowIds.size > 0,
     ...(staleRowIds === s.staleRowIds ? {} : { staleRowIds }),
-    ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
+    ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions, s.locale),
   };
 }
 
@@ -434,7 +434,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       staleRowIds: stale.staleRowIds,
       viewStale: stale.staleRowIds.size > 0,
       ...followView(s, viewIndex, s.visibleColumns),
-      ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
+      ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions, s.locale),
     });
   };
 
@@ -861,7 +861,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         lastHighlightedRow: s.lastHighlightedRow === null ? null : follow(s.lastHighlightedRow),
         rowMoveAnnouncement: announcement,
         liveAnnouncement: nextAnnouncement(s.liveAnnouncement, "rowMove", movedCount),
-        ...computeSearchMatches(nextData, s.columns, s.viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
+        ...computeSearchMatches(nextData, s.columns, s.viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions, s.locale),
         ...editRemap,
       }),
     );
@@ -981,7 +981,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         viewStale: s.staleRowIds.size > 0,
         ...stale,
         ...followView(s, viewIndex, s.visibleColumns, nextData, s.getRowId, true),
-        ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
+        ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions, s.locale),
       }),
     );
     if (marks.touched) requestReshape(ctx, warnDev);

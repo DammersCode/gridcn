@@ -396,13 +396,15 @@
           "status": "supported",
           "evidence": [
             "tests/parity/row-check.parity.test.tsx",
-            "registry/default/blocks/data-grid/store/server-selection.test.tsx"
+            "registry/default/blocks/data-grid/store/server-selection.test.tsx",
+            "tests/server-query/selection.test.ts"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid/store/server-selection.test.tsx"
+            "registry/default/blocks/data-grid/store/server-selection.test.tsx",
+            "tests/server-query/selection.test.ts"
           ]
         },
         "C": {
@@ -420,7 +422,8 @@
         "FS": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid/store/server-selection.test.tsx"
+            "registry/default/blocks/data-grid/store/server-selection.test.tsx",
+            "tests/server-query/selection.test.ts"
           ]
         },
         "API": {
@@ -430,7 +433,8 @@
           ]
         }
       },
-      "doc": "/docs/selection-shortcuts/checked-rows"
+      "doc": "/docs/selection-shortcuts/checked-rows",
+      "note": "On the server, `query.selection` counts the rows of a `DataGridSelectedRows` value within `rowScope`, and `selectionPlan` gives the filter of a bulk write over them."
     },
     {
       "id": "row-ids",
@@ -631,6 +635,61 @@
           ]
         }
       }
+    },
+    {
+      "id": "server-pivot",
+      "feature": "Server pivot",
+      "options": [],
+      "cells": {
+        "L": {
+          "status": "gap",
+          "track": "S11-L",
+          "note": "Pivot needs a server. The query layer or your route answers the pivot columns and cells."
+        },
+        "PC": {
+          "status": "gap",
+          "track": "S11-L",
+          "note": "Pivot needs a server. The query layer or your route answers the pivot columns and cells."
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.pages.test.tsx",
+            "tests/server-query/pivot.test.ts"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.scroll.test.tsx",
+            "registry/default/blocks/data-grid-server/pivot.perf.browser.test.tsx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.scroll.test.tsx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.scroll.test.tsx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.scroll.test.tsx"
+          ]
+        },
+        "API": {
+          "status": "n/a",
+          "reason": "An edit, paste, fill, or cut writes no pivot cell, so no change reaches onSave or onDataChange."
+        }
+      },
+      "note": "`spec.pivot` pivots 1 `groupBy` level. Known gaps: more than 1 `groupBy` level (S11-M; the grid sends no pivot and warns in development), the Prisma adapter (S11-P; it answers `unsupported`), a pivot chooser, sort list, and menus for generated columns (S11-UI), and generated column widths in saved views (S11-V).",
+      "doc": "/docs/data-modes/pivot-server-rows"
     },
     {
       "id": "pinned-rows",
@@ -1473,12 +1532,13 @@
           "evidence": [
             "registry/default/blocks/data-grid/store/write-ack.test.tsx",
             "content/docs/(server)/save-server/save-revert.mdx",
-            "registry/default/blocks/data-grid/store/save-conflict.test.tsx"
+            "registry/default/blocks/data-grid/store/save-conflict.test.tsx",
+            "tests/server-query/writes.test.ts"
           ]
         }
       },
       "doc": "/docs/save-server/save-revert",
-      "note": "`editRows` writes with source `edit`, so a server grid receives it in `onSave`."
+      "note": "`editRows` writes with source `edit`, so a server grid receives it in `onSave`. On the server, `query.save` validates each change before the writes run."
     },
     {
       "id": "streaming",
@@ -3123,7 +3183,8 @@
           "status": "supported",
           "evidence": [
             "content/docs/(server)/server-pagination/load-rows-page.mdx",
-            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.cursor.test.tsx"
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.cursor.test.tsx",
+            "tests/server-query/cursor.test.ts"
           ]
         },
         "Z": {
@@ -3131,7 +3192,8 @@
           "evidence": [
             "content/docs/(server)/scroll-mode/load-without-row-count.mdx",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.sequence.test.tsx",
-            "registry/default/examples/data-grid-open-ended-demo.browser.test.tsx"
+            "registry/default/examples/data-grid-open-ended-demo.browser.test.tsx",
+            "tests/server-query/cursor.test.ts"
           ]
         },
         "C": {
@@ -3159,7 +3221,7 @@
           ]
         }
       },
-      "note": "Pages mode pages without a total through `hasMore`, or through a `nextCursor` chain: each page request carries the `cursor` of the page before. Scroll mode loads a source without a count in order.",
+      "note": "Pages mode pages without a total through `hasMore`, or through a `nextCursor` chain: each page request carries the `cursor` of the page before. Scroll mode loads a source without a count in order. The query layer answers such a chain with `paging: \"cursor\"`: keyset pages, `nextCursor`, and no count query.",
       "doc": "/docs/scroll-mode/load-without-row-count"
     },
     {
@@ -3513,8 +3575,12 @@
           "note": "A root `filterJoin: \"or\"` joins the top-level filters in SQL; `rowScope` still ANDs on top. A group with `not: true` renders as `IS NOT TRUE`, so a NULL cell stays in the result as on the client."
         },
         "API": {
-          "status": "n/a",
-          "reason": "The layer reads rows; writing rows stays the consumer's code."
+          "status": "supported",
+          "evidence": [
+            "tests/server-query/writes.test.ts",
+            "registry/default/blocks/data-grid/store/write-ack.test.tsx"
+          ],
+          "note": "`query.save` checks the `DataChange` of `onSave` against the column map and `rowScope`, and `apply` runs the writes in one transaction."
         }
       },
       "doc": "/docs/data-modes/query-layer"

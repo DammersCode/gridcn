@@ -12,7 +12,7 @@ export type ServerSpecColumnRules = {
   operators?: readonly FilterOperator[];
   /** Custom operators the column accepts, with the value shape of each. */
   customOperators?: Readonly<Record<string, FilterOperatorInput>>;
-  /** `false` rejects `groupBy` on the column. Default `true`. */
+  /** `false` rejects `groupBy` and `pivot` on the column. Default `true`. */
   groupable?: boolean;
   /** `false` rejects an aggregate on the column. Default `true`. */
   aggregatable?: boolean;
@@ -60,7 +60,7 @@ const DEFAULT_LIMITS = { maxSorts: MAX_SPEC_SORTS, maxFilters: 64, maxGroups: 16
 
 type Budget = { filters: number; groups: number };
 
-type Raw = { sorts?: unknown; filters?: unknown; filterJoin?: unknown; not?: unknown; searchText?: unknown; groupBy?: unknown; aggregates?: unknown; columnId?: unknown; direction?: unknown; join?: unknown; operator?: unknown; value?: unknown; matchCase?: unknown };
+type Raw = { sorts?: unknown; filters?: unknown; filterJoin?: unknown; not?: unknown; searchText?: unknown; groupBy?: unknown; aggregates?: unknown; pivot?: unknown; columnId?: unknown; direction?: unknown; join?: unknown; operator?: unknown; value?: unknown; matchCase?: unknown };
 
 const isRecord = (value: unknown): value is Raw => typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -84,7 +84,8 @@ export function parseServerSpec(input: unknown, options: ParseServerSpecOptions)
   const filterJoin = parseFilterJoin(input.filterJoin);
   const groupBy = parseGroupBy(input.groupBy, rules, limits);
   const aggregates = parseAggregates(input.aggregates, groupBy.length > 0, rules, limits);
-  return { ...spec, ...(filterJoin === "or" ? { filterJoin } : null), ...(groupBy.length > 0 ? { groupBy } : null), ...(aggregates.length > 0 ? { aggregates } : null) };
+  const pivot = parsePivot(input.pivot, groupBy, aggregates.length > 0, rules);
+  return { ...spec, ...(filterJoin === "or" ? { filterJoin } : null), ...(groupBy.length > 0 ? { groupBy } : null), ...(aggregates.length > 0 ? { aggregates } : null), ...(pivot ? { pivot } : null) };
 }
 
 /**
@@ -170,6 +171,19 @@ function parseAggregates(value: unknown, grouped: boolean, rules: ReadonlyMap<st
     if (typeof raw.reducer !== "string" || !REDUCERS.includes(raw.reducer)) throw new ServerSpecError(`${path}.reducer`, `must be one of ${REDUCERS.join(", ")}`);
     return { columnId, reducer: raw.reducer as ServerAggregate["reducer"] };
   });
+}
+
+function parsePivot(value: unknown, groupBy: readonly string[], aggregated: boolean, rules: ReadonlyMap<string, ServerSpecColumnRules>): ServerSpec["pivot"] {
+  const empty = Array.isArray(value) ? value.length === 0 : isRecord(value) && Object.keys(value).length === 0;
+  if (value === undefined || value === null || empty) return undefined;
+  if (!isRecord(value)) throw new ServerSpecError("pivot", "must be an object");
+  if (groupBy.length === 0 || !aggregated) throw new ServerSpecError("pivot", "needs groupBy and aggregates");
+  const columnIds = (value as { columnIds?: unknown }).columnIds;
+  if (!Array.isArray(columnIds) || columnIds.length !== 1) throw new ServerSpecError("pivot.columnIds", "must hold exactly 1 column id");
+  const columnId = knownColumn(columnIds[0], rules, "pivot.columnIds[0]");
+  if (rules.get(columnId)!.groupable === false) throw new ServerSpecError("pivot.columnIds[0]", `"${columnId}" cannot be pivoted`);
+  if (groupBy.includes(columnId)) throw new ServerSpecError("pivot.columnIds[0]", `"${columnId}" is in groupBy`);
+  return { columnIds: [columnId] };
 }
 
 function columnRules(columns: ParseServerSpecOptions["columns"]): ReadonlyMap<string, ServerSpecColumnRules> {
