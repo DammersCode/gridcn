@@ -60,6 +60,14 @@ describe("the cursor when its server group leaves the layout", () => {
     expect(m.cursorRecord()).toBe("__group:region=EU");
   });
 
+  it("keeps a cursor at its index when its row unloads and its group stays", () => {
+    const { layout, data } = before();
+    const m = mount(layout, data);
+    act(() => m.state().actions.selectCellAt({ row: 4, col: 0 }));
+    m.rerender(layout, data.map((row) => (row?.id === "r1" ? hole : row)));
+    expect(m.state().activeCell).toEqual({ row: 4, col: 0 });
+  });
+
   it("clamps a cursor on a top-level group that left, as before", () => {
     const m = mount({ rows: [slot(0, ["EU"], 0), slot(1, ["US"], 0), slot(2, ["XX"], 0)], leafCount: 0 }, [hole, hole, hole]);
     act(() => m.state().actions.selectCellAt({ row: 2, col: 0 }));

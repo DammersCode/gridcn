@@ -27,7 +27,10 @@ export function viewRowOfGroupId(view: readonly number[], groupId: string): numb
   return at === -1 ? -1 : view.indexOf(-at - 1);
 }
 
-/** The view row in `nextView` of the nearest group above `prevViewRow` of `prevView` (its own group for a data row) that `nextView` still shows, or -1. */
+/**
+ * The view row in `nextView` of the nearest group above the row `prevViewRow` of `prevView` that `nextView` still shows, or -1.
+ * For a data row whose own group stays, -1: the row only left, and the caller clamps.
+ */
 export function viewRowOfSurvivingParent(prevView: readonly number[], prevViewRow: number, nextView: readonly number[]): number {
   const rows = groupLayoutOfView(prevView)?.rows;
   if (!rows) return -1;
@@ -35,7 +38,8 @@ export function viewRowOfSurvivingParent(prevView: readonly number[], prevViewRo
   while (header > 0 && !(prevView[header]! < 0)) header--;
   if (!(prevView[header]! < 0)) return -1;
   const at = -prevView[header]! - 1;
-  let depth = header === prevViewRow ? rows[at]!.depth : rows[at]!.depth + 1;
+  if (header !== prevViewRow && viewRowOfGroupId(nextView, rows[at]!.id) !== -1) return -1;
+  let depth = rows[at]!.depth;
   for (let i = at; i >= 0 && depth > 0; i--) {
     if (rows[i]!.depth >= depth) continue;
     depth = rows[i]!.depth;

@@ -76,7 +76,8 @@ export function groupPositionAt(s: PositionState, viewRow: number): GroupPositio
   const index = indexOfView(s, layout);
   const parent = index.parent[viewRow]!;
   const owner = parent < 0 ? undefined : layout.rows[parent]!;
-  return { level: owner ? owner.depth + 2 : 1, posInSet: index.posInSet[viewRow]!, setSize: owner ? owner.childCount : index.topLevel };
+  const level = at !== undefined ? layout.rows[at]!.depth + 1 : owner ? owner.depth + 2 : 1;
+  return { level, posInSet: index.posInSet[viewRow]!, setSize: owner ? owner.childCount : index.topLevel };
 }
 
 /** The group row at `viewRow` with its position and open state; `null` for a data row, a hole, or a grid that does not group. */

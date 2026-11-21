@@ -8,7 +8,7 @@ This note fixes the contracts that the 2.1 steps share. `research/server-pivot-s
 - A pivot row at depth `d` opens when `d < groupBy.length - 1`. Opening it lists the child group rows of the next level.
 - The innermost pivot row has `childCount` 0 and no toggle. No `childKind: "rows"` list ever leaves a pivot grid.
 - Every pivot row at every depth carries its own `pivotCells` (its subtree).
-- The generated columns and the held set are the same for all levels. Any answer can land them.
+- The generated columns and the held set are the same for all levels. A child answer's `pivotColumns` hold the keys of its subtree only (the layer scopes the key query to the group path), so only a top-level answer sets the held set. Every answer maps its cells into it by generated id.
 - Pivot rows stay read-only. Selection, copy, export and find read `pivotCellText`.
 - A group row that cannot show a toggle reports `expanded: false`.
 
