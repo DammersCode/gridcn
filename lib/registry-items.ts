@@ -72,6 +72,7 @@ export type RegistryItemName =
   | "data-grid-open-ended-demo"
   | "data-grid-server-selection-demo"
   | "data-grid-row-grouping-demo"
+  | "data-grid-pivot-demo"
   | "data-grid-server-grouping-demo"
   | "data-grid-server-pivot-demo"
   | "data-grid-write-ack-demo"
