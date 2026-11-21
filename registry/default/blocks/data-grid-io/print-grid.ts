@@ -1,7 +1,7 @@
 import { type DataGridReadState, type GridDirection } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { normalizeLimit } from "./normalize-limit";
 import { MAX_CELL_TEXT, buildExportHeaders, buildExportRows, exportRowPlan, exportRows } from "./export-grid";
-import { abortReason, type ExportSource } from "./export-source";
+import { abortReason, sourceStateOf, type ExportSource } from "./export-source";
 
 /** Default number of rows printed when `maxRows` is not given. */
 const DEFAULT_PRINT_MAX_ROWS = 10_000;
@@ -34,7 +34,7 @@ export type PrintGridOptions = {
   maxRows?: number;
   /** Reading direction of the printed page. Default: the direction of the page that calls print. */
   direction?: GridDirection;
-  /** Where the rows come from, for a grid that holds one page or some loaded blocks. With `source` the print ignores `scope` and the held rows. It receives the same context as the export source, and the `maxRows` and cell bounds apply. */
+  /** Where the rows come from, for a grid that holds one page or some loaded blocks. With `source` the print ignores `scope` and the held rows. It receives the same context as the export source, and the `maxRows` and cell bounds apply. Under pivot it prints the source columns and never reads the pivot view. */
   source?: ExportSource;
   /** Header text per column id, replacing the column's label. A column without an entry keeps its label. */
   headers?: Readonly<Record<string, string>>;
@@ -109,15 +109,16 @@ async function sourcePrintRows(state: DataGridReadState, source: ExportSource, m
  * Prints the grid's rows as a plain paged table: the rows are resolved through the cell-type
  * pipeline's display text (`toDisplayText ?? toText`), built into a hidden, sandboxed iframe's
  * document with `textContent` only (no value ever passes an HTML parser), and the browser print
- * dialog is opened — its "Save as PDF" produces the PDF. Visible columns only, in view order;
+ * dialog is opened — its "Save as PDF" produces the PDF. Visible columns only, in view order (a `source` print under pivot prints the source columns);
  * lazy holes and hidden columns never print. `options.maxRows` caps the rows (default 10,000,
  * further cut to fit the 500,000-cell ceiling); when the cap cut the output, the table ends
  * with a truncation note. The iframe is removed on `afterprint` (with a 60 s fallback timer),
  * and a second call replaces the first, aborting its pending `source`. Without `source` the
  * dialog opens before the call returns. No-op without a DOM (SSR).
  */
-export async function printGrid(state: DataGridReadState, options: PrintGridOptions = {}): Promise<PrintGridResult> {
+export async function printGrid(gridState: DataGridReadState, options: PrintGridOptions = {}): Promise<PrintGridResult> {
   if (typeof document === "undefined") return { rowCount: 0, truncated: false };
+  const state = options.source ? sourceStateOf(gridState) : gridState;
   if (options.css !== undefined && options.css.length > MAX_PRINT_CSS_LENGTH) throw new RangeError(`[data-grid-io] print css is longer than ${MAX_PRINT_CSS_LENGTH} characters`);
   removeOpenIframe();
   activeRun?.abort();

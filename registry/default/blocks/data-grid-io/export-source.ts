@@ -1,5 +1,5 @@
 import { getCellValue, type AnyColumnDef, type ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { serverSpecOf } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { computeVisibleColumns, serverSpecOf } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { normalizeLimit } from "./normalize-limit";
 import { displayText, isDev, isThenable, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
@@ -68,7 +68,7 @@ export type ExportResult = {
 /** Resolved limits and callbacks of one source export. */
 export type ExportRowsOptions<TData = unknown> = {
   source: ExportSource;
-  /** Column ids to write, in order; default the visible columns. An unknown id throws before the source runs. */
+  /** Column ids to write, in order; default the visible columns, or the source columns under pivot. An unknown id throws before the source runs. */
   columns?: readonly string[];
   formatCell?: FormatExportCell<TData>;
   /** Cell text source: `"export"` uses the cell type's `toText` (default), `"display"` its display text (print). */
@@ -109,10 +109,11 @@ export function abortReason(signal: AbortSignal): unknown {
  * `onBatch` (which returns the byte size it kept). Stops at `maxRows` or `maxBytes` and aborts the source.
  */
 export async function exportRows<TData = unknown, TCell extends ExportCell = string>(
-  state: DataGridReadState,
+  gridState: DataGridReadState,
   options: ExportRowsOptions<TData>,
   onBatch: (rows: TCell[][]) => number,
 ): Promise<ExportResult> {
+  const state = sourceStateOf(gridState);
   const { source, signal: outer, onProgress, formatCell, typed = false } = options;
   const maxRows = normalizeLimit(options.maxRows, DEFAULT_SOURCE_MAX_ROWS);
   const maxBytes = normalizeLimit(options.maxBytes, DEFAULT_SOURCE_MAX_BYTES);
@@ -215,6 +216,12 @@ export async function exportRows<TData = unknown, TCell extends ExportCell = str
 
   if (truncated && isDev()) console.warn(`[data-grid-io] export stopped at ${rowCount} rows (maxRows ${maxRows}, maxBytes ${maxBytes})`);
   return { rowCount, truncated };
+}
+
+/** The state a `source` export reads: under pivot, the source columns in place of the pivot view. */
+export function sourceStateOf(state: DataGridReadState): DataGridReadState {
+  if (!state.pivot) return state;
+  return { ...state, pivot: null, visibleColumns: computeVisibleColumns(state.columns, state.columnOrder, state.hiddenColumns, state.columnGroupModel) };
 }
 
 /** Resolves column ids against all grid columns, hidden ones included; no ids means the visible columns. */
