@@ -20,7 +20,7 @@ async function shiftClick(el: HTMLElement) {
 describe("paint parity", () => {
   it("group rows and data rows of the row-grouping demo paint nothing that differs from the row and selection layers", async () => {
     await render(<DataGridRowGroupingDemo />);
-    await vi.waitFor(() => expect(q("[data-grid-group-row]")).toHaveLength(5));
+    await vi.waitFor(() => expect(q("[data-grid-group-row]")).toHaveLength(4));
     await userEvent.click(button("Expand all"));
     await vi.waitFor(() => expect(q('[role="row"][data-grid-row-index]').length).toBeGreaterThan(8));
     const grid = document.querySelector<HTMLElement>('[role="treegrid"]')!;

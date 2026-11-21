@@ -4805,7 +4805,7 @@
       "name": "data-grid-row-grouping-demo",
       "type": "registry:example",
       "title": "Data Grid Row Grouping Demo",
-      "description": "Rows grouped by role with a count, an average age, and a total score on each group row, buttons to open, close, and regroup, and Group by items in the header menu.",
+      "description": "Car sales grouped by region and then by dealership, with a count, an average discount, and the revenue on each group row, buttons to open, close, and regroup, and Group by items in the header menu.",
       "author": "gridcn",
       "registryDependencies": [
         "DammersCode/gridcn/data-grid",
@@ -4817,11 +4817,6 @@
           "path": "registry/default/examples/data-grid-row-grouping-demo.tsx",
           "type": "registry:example",
           "target": "components/data-grid-row-grouping-demo.tsx"
-        },
-        {
-          "path": "registry/default/examples/demo-data.ts",
-          "type": "registry:example",
-          "target": "components/demo-data.ts"
         }
       ],
       "categories": [
@@ -4865,7 +4860,7 @@
       "name": "data-grid-server-pivot-demo",
       "type": "registry:example",
       "title": "Data Grid Server Pivot Demo",
-      "description": "A server pivot on an in-browser PostgreSQL (PGlite): one row per role, one generated column per key of the active column, and the average score in each cell. A panel shows the last statement with its bound parameters.",
+      "description": "A server pivot on an in-browser PostgreSQL (PGlite): one row per region, one generated column per make, and the revenue in each cell. A panel shows the last statement with its bound parameters.",
       "author": "gridcn",
       "dependencies": [
         "@electric-sql/pglite@^0.5.15",

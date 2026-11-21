@@ -15,9 +15,12 @@ describe("data-grid-server-pivot-demo", () => {
     const headers = [...document.querySelectorAll('[role="columnheader"]')].map((header) => header.textContent).join(" ");
     expect(headers).toContain(MAKES[0]);
     await vi.waitFor(() => {
-      const revenues = cellsOf(pivotRows()[0]!).slice(1).map((cell) => Number(cell.textContent!.replace(/[^\d.]/g, "")));
-      expect(revenues.length).toBeGreaterThan(0);
-      expect(revenues.every((revenue) => revenue > 1_000_000)).toBe(true);
+      expect(pivotRows()).toHaveLength(4);
+      for (const row of pivotRows()) {
+        const revenues = cellsOf(row).slice(1).map((cell) => Number(cell.textContent!.replace(/[^\d.]/g, "")));
+        expect(revenues.length).toBeGreaterThan(0);
+        expect(revenues.every((revenue) => revenue > 1_000_000)).toBe(true);
+      }
     });
   });
 });

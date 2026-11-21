@@ -26,6 +26,6 @@ describe("data-grid-server-query-demo", () => {
     await vi.waitFor(() => expect(options().length).toBeGreaterThan(0));
     await userEvent.click(options()[0]!);
     await userEvent.click([...popup()!.querySelectorAll<HTMLButtonElement>("button")].find((b) => b.textContent === "Apply")!);
-    await vi.waitFor(() => expect(document.body.textContent).toMatch(/(^|\D)\d{1,2} rows match/));
+    await vi.waitFor(() => expect(document.body.textContent).toMatch(/(^|\D)1[34] rows match/));
   });
 });
