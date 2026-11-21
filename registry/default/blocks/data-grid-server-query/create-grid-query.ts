@@ -497,7 +497,7 @@ function numberAggregate(raw: unknown): number | string | null {
 function aggregateValue(raw: unknown, column: PlanColumn, reducer: string): number | string | null {
   if (raw === null || raw === undefined) return reducer === "count" ? 0 : null;
   if (reducer === "count") return countOf(raw) ?? 0;
-  if (reducer === "avg") {
+  if (reducer === "avg" || column.numeric === "float") {
     const n = Number(raw);
     return Number.isFinite(n) ? n : null;
   }

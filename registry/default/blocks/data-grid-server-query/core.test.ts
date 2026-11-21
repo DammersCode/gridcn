@@ -272,6 +272,20 @@ describe("createGridQuery number aggregates", () => {
     expect(await answerFor({ n: 9007199254740993n, d: "123456789012345.67" })).toEqual({ n: "9007199254740993", d: "123456789012345.67" });
   });
 
+  it("answers avg as a number, also beyond 15 digits", async () => {
+    const avgColumns = defineColumnMap({ id: { type: "number", numeric: "int8", primaryKey: true }, d: { type: "number", numeric: "decimal", scale: 2, aggregate: "avg" } });
+    const { executor } = fakeExecutor();
+    executor.aggregate = async () => ({ d: "123456789012345.678" });
+    expect(await createGridQuery({ columns: avgColumns, executor }).aggregates({ spec: { sorts: [], filters: [], searchText: "" }, columnIds: ["d"] })).toEqual({ d: Number("123456789012345.678") });
+  });
+
+  it("answers a float as a number, also as text beyond 15 digits", async () => {
+    const floatColumns = defineColumnMap({ id: { type: "number", numeric: "int8", primaryKey: true }, f: { type: "number", numeric: "float", aggregate: "sum" } });
+    const { executor } = fakeExecutor();
+    executor.aggregate = async () => ({ f: "0.30000000000000004" });
+    expect(await createGridQuery({ columns: floatColumns, executor }).aggregates({ spec: { sorts: [], filters: [], searchText: "" }, columnIds: ["f"] })).toEqual({ f: 0.30000000000000004 });
+  });
+
   it("answers null for a value that is not a number", async () => {
     expect(await answerFor({ n: "abc", d: Number.NaN })).toEqual({ n: null, d: null });
   });

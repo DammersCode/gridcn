@@ -71,6 +71,7 @@ export function groupSpecs(engine: Engine) {
     name: { type: "text", searchable: true },
     tag: { type: "select", choices: ["red", "green", "blue", "Red"], searchable: true },
     score: { type: "number", numeric: "float", aggregate: "avg" },
+    scoreSum: { type: "number", numeric: "float", field: "score", aggregate: "sum" },
     qty: { type: "number", numeric: "int4", aggregate: "sum" },
     qtyMin: { type: "number", numeric: "int4", field: "qty", aggregate: "min" },
     qtyMax: { type: "number", numeric: "int4", field: "qty", aggregate: "max" },

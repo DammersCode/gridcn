@@ -115,9 +115,22 @@ const isDecimalText = (value: unknown): value is Intl.StringNumericLiteral => fo
 /** Rounds a decimal string like {@link roundToDecimals}: half up, no `-0`. A string within `decimals` stays as it is. */
 function roundDecimalText(text: Intl.StringNumericLiteral, decimals: number): string {
   const dot = text.indexOf(".");
-  if (dot === -1 || text.length - dot - 1 <= decimals) return text;
-  const formatter = cachedNumberFormatter(`exact|${decimals}`, () => new Intl.NumberFormat("en-US", { useGrouping: false, maximumFractionDigits: decimals, roundingMode: "halfCeil", signDisplay: "negative" }));
+  if (dot === -1 || text.length - dot - 1 <= decimals) return NEGATIVE_ZERO.test(text) ? "0" : text;
+  const formatter = exactFormatter(decimals);
   return formatter ? formatter.format(text) : text;
+}
+
+const NEGATIVE_ZERO = /^-0(?:\.0+)?$/;
+
+const exactFormatters = new Map<number, Intl.NumberFormat | null>();
+
+function exactFormatter(decimals: number): Intl.NumberFormat | null {
+  let formatter = exactFormatters.get(decimals);
+  if (formatter === undefined) {
+    formatter = cachedNumberFormatter(`exact|${decimals}`, () => new Intl.NumberFormat("en-US", { useGrouping: false, maximumFractionDigits: decimals, roundingMode: "halfCeil", signDisplay: "negative" }));
+    exactFormatters.set(decimals, formatter);
+  }
+  return formatter;
 }
 
 function NumberCell({ value, options }: CellRenderProps<unknown, number | null, GridCellTypes["number"]["options"]>) {

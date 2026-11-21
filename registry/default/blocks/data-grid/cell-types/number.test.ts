@@ -38,6 +38,23 @@ describe("number display formatting", () => {
     expect(numberCellType.toText("12.50" as never, { decimals: 2 })).toBe("12.50");
   });
 
+  it("rounds a decimal string like a number: half up, never -0", () => {
+    for (const text of ["-0", "-0.00", "-0.001"]) {
+      expect(numberCellType.toText(text as never, { decimals: 2 }), text).toBe("0");
+      expect(toDisplayText(text as never, { format: { style: "decimal" }, decimals: 2 }), text).toBe("0.00");
+    }
+    for (const [text, number] of [["-1.5", -1.5], ["-2.5", -2.5], ["2.5", 2.5], ["-0.5", -0.5]] as const) {
+      expect(numberCellType.toText(text as never, { decimals: 0 }), text).toBe(numberCellType.toText(number, { decimals: 0 }));
+    }
+  });
+
+  it("keeps a string with spaces or other digits as its text", () => {
+    for (const text of [" 1", "١٢٣"]) {
+      expect(numberCellType.toText(text as never, { decimals: 2 })).toBe(text);
+      expect(toDisplayText(text as never, { format: { style: "decimal" }, decimals: 2 })).toBe(text);
+    }
+  });
+
   it("shows a string that is not a decimal, or is over 1,024 characters, as its text", () => {
     const long = "1".repeat(100_000);
     expect(toDisplayText(long as never, { format: { style: "decimal" }, decimals: 2 })).toBe(long);
