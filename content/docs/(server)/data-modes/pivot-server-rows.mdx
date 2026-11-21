@@ -117,10 +117,8 @@ The grid shows a cell that is not a finite number as empty, and reads a bad `piv
 - Pivot cells refuse every write: edit, paste, fill, cut, clear, and comments.
 - A pivot row has no toggle, and Enter does nothing.
 - Past 1,000,000 held cells, the oldest group blocks unload.
-- Copy writes the `toText` of the cell type.
-- Export and print hold one row per pivot row whose cells landed. A header under a key reads `key / value`. CSV neutralizes formula-like keys, and XLSX keeps pivot cells as numbers.
+- Copy, export, and print write group keys in the `groupBy` column. Export and print skip a pivot row whose cells did not land. A header under a key reads `key / value`. CSV neutralizes formula-like keys. XLSX writes pivot cells as numbers and group keys as text, even for a number column.
 - Find matches the text a pivot cell shows. Replace leaves pivot cells unchanged.
-- A decimal pivot cell beyond 15 significant digits loses precision.
 
 ## Pivot with the query layer [#query-layer]
 

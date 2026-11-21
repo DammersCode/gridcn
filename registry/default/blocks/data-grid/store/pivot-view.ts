@@ -78,8 +78,8 @@ export function isPivotColumn(column: AnyColumnDef | undefined): column is Pivot
 }
 
 /**
- * The pivot cell at a view row: a number, `null` when no value counted or the row holds no cells, and `undefined` when
- * `column` is not a generated column.
+ * The pivot cell at a view row: a finite number, `null` when no value counted, the value is not finite, or the row holds no
+ * cells, and `undefined` when `column` is not a generated column.
  */
 export function pivotCellAt(s: { readonly viewIndex: ArrayLike<number>; readonly groupLayout: GroupLayout | null }, viewRow: number, column: AnyColumnDef | undefined): number | null | undefined {
   if (!isPivotColumn(column)) return undefined;
@@ -87,10 +87,10 @@ export function pivotCellAt(s: { readonly viewIndex: ArrayLike<number>; readonly
   return pivotCellOf(groupIndex === undefined ? undefined : s.groupLayout?.rows[groupIndex], column);
 }
 
-/** A group row's pivot cell: a number, or `null` when no value counted or the row holds no cells. */
+/** A group row's pivot cell: a finite number, or `null` when no value counted, the value is not finite, or the row holds no cells. */
 export function pivotCellOf(node: GroupNode | undefined, column: PivotColumnDef<unknown>): number | null {
   const value = node?.pivotCells?.[column.pivotIndex];
-  return value === undefined || Number.isNaN(value) ? null : value;
+  return value === undefined || !Number.isFinite(value) ? null : value;
 }
 
 const DEFAULT_AGGREGATE_FORMAT: Intl.NumberFormatOptions = { maximumFractionDigits: 2 };

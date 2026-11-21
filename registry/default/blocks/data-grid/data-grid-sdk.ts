@@ -98,7 +98,7 @@ export {
 } from "./validation/bulk-generation";
 
 export { combineRects, getSelectedViewRows, selectionContainsCell, selectionRects } from "./selection";
-export { holeRowId, isColumnReadOnly, rowIdAtViewRow, viewRowsMoved, visibleColumnsMoved, fullViewOf, effectivePage, pageStartOf } from "./store/compute";
+export { computeVisibleColumns, holeRowId, isColumnReadOnly, rowIdAtViewRow, viewRowsMoved, visibleColumnsMoved, fullViewOf, effectivePage, pageStartOf } from "./store/compute";
 export { matchingRowTotal } from "./store/matching-total";
 export { pageOfFullRow, pageUnitsOf } from "./store/group-pages";
 export { measureColumnAutosizeWidth } from "./columns/measure-column-text";
