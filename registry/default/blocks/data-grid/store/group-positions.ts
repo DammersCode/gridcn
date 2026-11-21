@@ -36,6 +36,12 @@ export function stepColumn(s: StepState, viewRow: number, col: number, dx: numbe
   return next < span ? 0 : next;
 }
 
+/** {@link stepColumn} for a range edge: a left step inside the label reaches the label start, so a range can grow over it. */
+export function stepRangeEdge(s: StepState, viewRow: number, col: number, dx: number): number {
+  const step = stepColumn(s, viewRow, col, dx);
+  return dx < 0 && step === col ? 0 : step;
+}
+
 /** Per view row: the group index of its parent (-1 at the top level) and its position among the parent's children. */
 type GroupIndex = { expanded: ExpandedState | undefined; parent: Int32Array; posInSet: Int32Array; topLevel: number };
 type PositionState = { viewIndex: ArrayLike<number>; groupLayout: GroupLayout | null; expanded?: ExpandedState; pivot?: object | null; groupBy?: readonly string[] };

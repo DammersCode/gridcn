@@ -141,7 +141,7 @@ import { keepKnownFilters, keepKnownSorts } from "./known-columns";
 import { groupAnnouncementLabel, loadedRowCount, newlyFailedGroup, nextAnnouncement } from "./announcements";
 import { allMatchingCheckedCount } from "./selected-rows";
 import { dataIndexAt, dataIndexOf, groupLayoutOfView, recordKeyAt, viewRowOfGroupId, viewRowOfSurvivingParent } from "./view-rows";
-import { stepColumn } from "./group-positions";
+import { stepColumn, stepRangeEdge } from "./group-positions";
 import { createGroupActions } from "./group-actions";
 import { EXPANDED_CUT_MESSAGE, initGroupMemory, initialExpanded, initialGroupBy } from "./group-sync";
 import { groupModeOf, groupingOf, withGroupLayout } from "./group-view";
@@ -921,7 +921,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
           const selection = extendSelection(s.selection.current ? s.selection : selectCellOf(s, active), direction, {
             rowCount: s.viewIndex.length,
             colCount: s.visibleColumns.length,
-            stepCol: (col, dx, row) => stepColumn(s, row, col, dx),
+            stepCol: (col, dx, row) => stepRangeEdge(s, row, col, dx),
           });
           const edge = selection.current?.range;
           set({
@@ -1167,7 +1167,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
             toEdge: opts?.toEdge,
             rowCount: viewIndex.length,
             colCount: visibleColumns.length,
-            stepCol: (col, dx, row) => stepColumn(s, row, col, dx),
+            stepCol: (col, dx, row) => stepRangeEdge(s, row, col, dx),
           }),
         });
       },

@@ -113,37 +113,47 @@ export function splitRectByPinZones(rect: GridRect, track: PinTrackData): RectSe
   return segments;
 }
 
+/** A border side a piece drops because it meets another piece of the same rect there. */
+type OverlayTrim = "top" | "bottom" | "y";
+type OverlayPiece = { rect: GridRect; label: boolean; trim?: OverlayTrim };
+
+const TRIM_CLASS: Record<OverlayTrim, string> = { top: "border-t-0", bottom: "border-b-0", y: "border-y-0" };
+
 /**
  * Splits `rect` at the group rows it crosses so that a group row's piece covers its whole label. A label piece is never pinned,
- * like the label it covers; the rest of that row keeps its pin zones.
+ * like the label it covers, and keeps its full border; the other pieces drop the border sides they share.
  */
-function splitAtGroupLabels(rect: GridRect, span: number, isGroupRow: (viewRow: number) => boolean): { rect: GridRect; label: boolean }[] {
-  if (rect.x >= span) return [{ rect, label: false }];
-  const pieces: { rect: GridRect; label: boolean }[] = [];
+function splitAtGroupLabels(rect: GridRect, span: number, labelPinned: boolean, isGroupRow: (viewRow: number) => boolean): OverlayPiece[] {
   const right = rect.x + rect.width;
+  if (rect.x >= span || (rect.x === 0 && right >= span && !labelPinned)) return [{ rect, label: false }];
+  const runs: { y: number; height: number; group: boolean }[] = [];
   const end = rect.y + rect.height;
   for (let y = rect.y; y < end; ) {
     const group = isGroupRow(y);
     let next = y + 1;
     while (next < end && isGroupRow(next) === group) next++;
-    if (!group) pieces.push({ rect: { ...rect, y, height: next - y }, label: false });
-    else {
-      pieces.push({ rect: { x: 0, y, width: span, height: next - y }, label: true });
-      if (right > span) pieces.push({ rect: { x: span, y, width: right - span, height: next - y }, label: false });
-    }
+    runs.push({ y, height: next - y, group });
     y = next;
   }
-  return pieces;
+  if (runs.length === 1 && !runs[0]!.group) return [{ rect, label: false }];
+  return runs.flatMap(({ y, height, group }, i) => {
+    const top = i > 0;
+    const bottom = i < runs.length - 1;
+    const trim: OverlayTrim | undefined = top && bottom ? "y" : top ? "top" : bottom ? "bottom" : undefined;
+    if (!group) return [{ rect: { ...rect, y, height }, label: false, trim }];
+    const label = { rect: { x: 0, y, width: span, height }, label: true };
+    return right > span ? [label, { rect: { x: span, y, width: right - span, height }, label: false, trim }] : [label];
+  });
 }
 
 /** One selection-range fill overlay, grid-line placed, window-relative; pinned segments add their zone's counter-offset + elevated z-index (above pinned cells). */
-function RangeOverlay({ rect, windowStart, colOffset, pinStyle }: { rect: GridRect; windowStart: number; colOffset: number; pinStyle?: CSSProperties }) {
+function RangeOverlay({ rect, windowStart, colOffset, pinStyle, trim }: { rect: GridRect; windowStart: number; colOffset: number; pinStyle?: CSSProperties; trim?: OverlayTrim }) {
   return (
     <div
       data-grid-selection-overlay=""
       data-pinned={pinStyle ? "" : undefined}
       aria-hidden="true"
-      className="pointer-events-none border border-primary/40 bg-primary/10"
+      className={cn("pointer-events-none border border-primary/40 bg-primary/10", trim && TRIM_CLASS[trim])}
       style={{
         // positioned: cells are position:relative, so a static overlay would paint below them;
         // out-of-flow when unpinned, so moving it does not re-lay out the canvas grid
@@ -279,8 +289,11 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
   const isGroupRow = (viewRow: number) => viewIndex !== null && groupIndexAt(viewIndex, viewRow) !== undefined;
 
   /** Splits into pin-zone segments when the grid has pinned columns, else the rect as a single "segment". */
-  const segment = (rect: GridRect): RectSegment[] =>
-    splitAtGroupLabels(rect, labelSpan, isGroupRow).flatMap((piece) => (pinned && !piece.label ? splitRectByPinZones(piece.rect, pinned) : [{ rect: piece.rect }]));
+  const labelPinned = pinned !== undefined && pinned.pins.slice(0, labelSpan).some((pin) => pin !== undefined);
+  const segment = (rect: GridRect): (RectSegment & { trim?: OverlayTrim })[] =>
+    splitAtGroupLabels(rect, labelSpan, labelPinned, isGroupRow).flatMap(({ rect: piece, label, trim }) =>
+      pinned && !label ? splitRectByPinZones(piece, pinned).map((seg) => ({ ...seg, trim })) : [{ rect: piece, trim }],
+    );
 
   const rangeRects: GridRect[] = [];
   if (selection.current) {
@@ -325,17 +338,17 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
         const clamped = clampRectToWindow(rect, clampedRowStart, clampedRowEnd, colCount);
         if (!clamped) return null;
         return segment(clamped).map((seg, j) => (
-          <RangeOverlay key={`${i}-${j}`} rect={seg.rect} windowStart={windowStart} colOffset={colOffset} pinStyle={seg.pinStyle} />
+          <RangeOverlay key={`${i}-${j}`} rect={seg.rect} windowStart={windowStart} colOffset={colOffset} pinStyle={seg.pinStyle} trim={seg.trim} />
         ));
       })}
       {columnBands.map((rect, i) =>
         segment(rect).map((seg, j) => (
-          <RangeOverlay key={`col-band-${i}-${j}`} rect={seg.rect} windowStart={windowStart} colOffset={colOffset} pinStyle={seg.pinStyle} />
+          <RangeOverlay key={`col-band-${i}-${j}`} rect={seg.rect} windowStart={windowStart} colOffset={colOffset} pinStyle={seg.pinStyle} trim={seg.trim} />
         )),
       )}
       {rowBands.map((rect, i) =>
         segment(rect).map((seg, j) => (
-          <RangeOverlay key={`row-band-${i}-${j}`} rect={seg.rect} windowStart={windowStart} colOffset={colOffset} pinStyle={seg.pinStyle} />
+          <RangeOverlay key={`row-band-${i}-${j}`} rect={seg.rect} windowStart={windowStart} colOffset={colOffset} pinStyle={seg.pinStyle} trim={seg.trim} />
         )),
       )}
       {overlays.length > 0 &&

@@ -123,6 +123,14 @@ describe("keys across a group label that spans three columns", () => {
     expect(g.range()).toEqual([3, 4]);
   });
 
+  it("extends a range from a data row left into the label of the group row above", () => {
+    const g = mount(SPAN_3);
+    g.at(1, 1);
+    g.press("ArrowUp", { shiftKey: true });
+    g.press("ArrowLeft", { shiftKey: true });
+    expect(g.range()).toEqual([0, 1]);
+  });
+
   it("moves a Tab bound to moveRight past the label and leaves the grid at its edges", () => {
     const g = mount(SPAN_3, { keymap: { moveRight: ["Tab"], moveLeft: ["shift+Tab"] } });
     g.at(0, 0);

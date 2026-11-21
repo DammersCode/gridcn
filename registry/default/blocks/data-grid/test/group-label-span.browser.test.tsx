@@ -1,16 +1,15 @@
 import { page, userEvent } from "vitest/browser";
 import { describe, expect, it, onTestFinished, vi } from "vitest";
 import { render } from "vitest-browser-react";
-import type { CSSProperties } from "react";
 import { DataGrid, defineColumns } from "../data-grid";
 import { expectNoPaintMismatch, type PaintState } from "./paint-parity.test-helper";
 import "@/app/global.css";
 
 type Sale = { id: string; customer: string; region: string; dealership: string; make: string; price: number; discount: number };
 
-const makeColumns = (opts: { pinFirst?: boolean; width?: number }) =>
+const makeColumns = (opts: { pinFirst?: boolean; width?: number; firstWidth?: number }) =>
   defineColumns<Sale>()([
-    { id: "customer", header: "Customer", accessorKey: "customer", type: "text", width: opts.width ?? 150, ...(opts.pinFirst ? { pin: "start" as const } : {}) },
+    { id: "customer", header: "Customer", accessorKey: "customer", type: "text", width: opts.firstWidth ?? opts.width ?? 150, ...(opts.pinFirst ? { pin: "start" as const } : {}) },
     { id: "region", header: "Region", accessorKey: "region", type: "text", width: opts.width ?? 100 },
     { id: "dealership", header: "Dealership", accessorKey: "dealership", type: "text", width: opts.width ?? 170 },
     { id: "make", header: "Make", accessorKey: "make", type: "text", width: opts.width ?? 100 },
@@ -29,7 +28,7 @@ const data: Sale[] = Array.from({ length: 12 }, (_, i) => ({
 }));
 
 /** `theme` sets CSS variables on the root, where a shadcn preset sets them. */
-type Variant = { pinFirst?: boolean; direction?: "ltr" | "rtl"; width?: number; gridWidth?: number; style?: CSSProperties; theme?: Record<string, string> };
+type Variant = { pinFirst?: boolean; direction?: "ltr" | "rtl"; width?: number; firstWidth?: number; gridWidth?: number; theme?: Record<string, string> };
 
 async function renderGrid(variant: Variant = {}) {
   await page.viewport(1280, 800);
@@ -41,7 +40,7 @@ async function renderGrid(variant: Variant = {}) {
     });
   }
   await render(
-    <div dir={variant.direction} style={{ width: variant.gridWidth ?? 900, ...variant.style }}>
+    <div dir={variant.direction} style={{ width: variant.gridWidth ?? 900 }}>
       <DataGrid
         data={data}
         columns={makeColumns(variant)}
@@ -137,6 +136,28 @@ describe("the selected look of a group label", () => {
   });
 });
 
+describe("the outline of a selection across group rows", () => {
+  it("stays one overlay when the range covers the whole label", async () => {
+    await renderGrid();
+    await userEvent.click(label());
+    await userEvent.keyboard("{Control>}a{/Control}");
+    await userEvent.keyboard("{Control>}a{/Control}");
+    await frames();
+    expect(q("[data-grid-selection-overlay]")).toHaveLength(1);
+  });
+
+  it("draws no second line where a range down from the label meets the label", async () => {
+    await renderGrid();
+    await userEvent.click(label());
+    await shiftClick(gridCells(rowBelow(2))[0]!);
+    await frames();
+    const labelBottom = Math.round(label().getBoundingClientRect().bottom);
+    const below = q("[data-grid-selection-overlay]").filter((el) => Math.round(el.getBoundingClientRect().top) === labelBottom);
+    expect(below.length).toBeGreaterThan(0);
+    expect(below.map((el) => getComputedStyle(el).borderTopWidth)).toEqual(below.map(() => "0px"));
+  });
+});
+
 describe("the label text", () => {
   const text = () => label().querySelector<HTMLElement>("[data-grid-group-label] > span:last-child")!;
 
@@ -156,7 +177,8 @@ describe("the label text", () => {
 describe("paint parity of a group label", () => {
   it.each<[string, Variant]>([
     ["unpinned, radius 0", { theme: { "--radius": "0rem" } }],
-    ["unpinned, radius 1rem, tinted primary, larger font", { theme: { "--radius": "1rem", "--primary": "oklch(0.55 0.2 260)" }, style: { fontSize: "20px" } }],
+    ["unpinned, radius 1rem, tinted primary, larger font", { theme: { "--radius": "1rem", "--primary": "oklch(0.55 0.2 260)", "font-size": "20px" } }],
+    ["a first column narrower than the label text", { firstWidth: 60 }],
     ["pinned first column, radius 0", { pinFirst: true, theme: { "--radius": "0rem" } }],
     ["pinned first column, radius 1rem, tinted primary", { pinFirst: true, theme: { "--radius": "1rem", "--primary": "oklch(0.55 0.2 260)" } }],
   ])("paints nothing that differs from the row and selection layers, %s", async (_, variant) => {
