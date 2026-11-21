@@ -4,7 +4,7 @@ import { useLayoutEffect, useMemo, useState } from "react";
 import type { WithRowId } from "./read-answer";
 import { useScrollBlocks, type UseDataGridServerRowsScrollOptions } from "./scroll-blocks";
 import type { UseDataGridServerRowsScrollResult } from "./scroll-types";
-import { busyResult, useServerSpec } from "./server-state";
+import { handOffResult, useServerSpec } from "./server-state";
 import { groupsEnabled, useGroupBlocks, type UseDataGridServerRowsGroupOptions } from "./use-group-blocks";
 
 function noop() {}
@@ -31,7 +31,8 @@ export function useScrollRows<TData, TCursor = never>(options: Options<TData, TC
   const ungrouped = useMemo(() => ({ ...flat, gridProps, providerProps }), [flat, gridProps, providerProps]);
   const [shown, setShown] = useState({ grouped, flipped: false });
   const next = grouped ? groups.result : ungrouped;
-  const arrived = grouped ? groups.answered || groups.result.error !== null : !flat.loading || flat.error !== null;
+  // A failed answer keeps the rows on screen next to its error bar; the switch waits for an answer that lands.
+  const arrived = grouped ? groups.answered && groups.result.error === null : !flat.loading && flat.error === null;
   // The render of the flip still carries the old loading state of the flat engine, so the switch waits one render.
   useLayoutEffect(() => {
     if (shown.grouped === grouped) {
@@ -41,5 +42,5 @@ export function useScrollRows<TData, TCursor = never>(options: Options<TData, TC
   });
   const previous = shown.grouped ? groups.result : ungrouped;
   const waiting = shown.grouped !== grouped;
-  return useMemo(() => (waiting ? busyResult(previous) : next), [waiting, previous, next]);
+  return useMemo(() => (waiting ? handOffResult(previous, next) : next), [waiting, previous, next]);
 }

@@ -207,7 +207,8 @@ describe("grouped scroll source", () => {
     expect(result.current.gridProps.groupLayout?.rows.map((slot) => slot.path[0]!.key)).toEqual(["A", "B", "C"]);
     expect(result.current.loading).toBe(true);
     act(() => result.current.gridProps.onSearchTextChange("y"));
-    await waitFor(() => expect(result.current.gridProps.groupLayout?.rows).toHaveLength(3));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.gridProps.groupLayout?.rows).toHaveLength(3);
     expect(held!.signal.aborted).toBe(true);
     late({ groups: [{ key: "stale", childCount: 1, totalRowCount: 1 }], groupCount: 1, totalRowCount: 1 });
     await settle();

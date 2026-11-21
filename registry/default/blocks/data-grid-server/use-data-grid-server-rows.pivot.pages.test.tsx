@@ -56,10 +56,12 @@ describe("a pivot pages source (server pagination)", () => {
   it("offers only the page sizes a pivot page can hold, and drops a larger size to the largest of them", async () => {
     const regions = Object.fromEntries(Array.from({ length: 450 }, (_, index) => [`r${String(index).padStart(3, "0")}`, 1]));
     const server = fakeServer(rowsOf(regions));
-    const { result } = mount(server, { defaultPageSize: 500, pageSizeOptions: [50, 100, 500] });
+    const onPageSizeChange = vi.fn();
+    const { result } = mount(server, { defaultPageSize: 500, pageSizeOptions: [50, 100, 500], onPageSizeChange });
     await waitFor(() => expect(result.current.gridProps.groupLayout?.rows).toHaveLength(100));
     expect(result.current.pager.pageSizeOptions).toEqual([50, 100]);
     expect(result.current.pager.pageSize).toBe(100);
+    expect(onPageSizeChange).toHaveBeenCalledWith(100);
     expect(server.calls[0]).toMatchObject({ start: 0, end: 100, pageSize: 100 });
   });
 

@@ -130,7 +130,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
   let shownLabel = "";
   // A scroll source shows the rows of the old filter until the first answer of the new one lands; they are no baseline for it.
   let heldOldFilter = false;
-  let editCount = 0;
+  const holding = () => kind !== "pages" && scroll.providerProps.readOnly === true;  let editCount = 0;
   let localCount = 0;
   let fetchCalls = 0;
   let dirty = false;
@@ -234,7 +234,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     }
     scroll = useDataGridServerRows<Row, number>({ mode: "scroll", loadDelayMs: 0, getRowId, fetchRows: fetchScroll, blockSize, overscan: 0, refreshAfterSave: false });
     return (
-      <DataGridProvider {...scroll.providerProps} columns={columns} onSave={onSave} createRow={createRow} readOnly={readOnly}>
+      <DataGridProvider {...scroll.providerProps} columns={columns} onSave={onSave} createRow={createRow} readOnly={readOnly || scroll.providerProps.readOnly === true}>
         <DataGridRoot>
           <Probe />
         </DataGridRoot>
@@ -251,6 +251,11 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
 
   /** Invariants after every step. A source that mixed snapshots (rows moved on the server or locally) is consistent again once one refresh settled. */
   function checkAlways() {
+    if (holding()) {
+      // The held rows are what the user sees and writes, so they name the local values.
+      for (const row of data()) if (row) known.set(row.id, row.name);
+      return;
+    }
     const rows = data();
     const consistent = !dirty;
     const settledLocally = !shifted;
@@ -272,7 +277,7 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     held.splice(held.indexOf(request), 1);
     if (request.signal.aborted) return;
     const preRows = heldOldFilter ? [] : data();
-    heldOldFilter = false;
+
     const mustKeep = new Set([...request.saving0, ...request.savedSince, ...savingIds()]);
     if (state().editing) mustKeep.add(state().editing!.rowId);
     const gone = new Set([...request.deleted0, ...request.deletedSince, ...pendingDeletes]);
@@ -282,7 +287,9 @@ function createWorld(kind: SourceKind, rnd: ReturnType<typeof prng>, variant: Va
     request.land();
     await flush();
     shownLabel = request.label;
-    if (variant.indexIds) return;
+    // While the hook still shows the rows of the old filter, the answers land out of sight; the first one in sight is checked.
+    if (variant.indexIds || holding()) return;
+    heldOldFilter = false;
     const post = data();
     const carriedIds = new Set(request.rows.map((row) => row.id));
     request.rows.forEach((carried, i) => {

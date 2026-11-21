@@ -14,6 +14,8 @@ type Row = { id: string; region: string; city: string; tier: string; qty: number
 
 const ROWS: Row[] = ["A", "B", "C"].flatMap((region, r) => Array.from({ length: 3 }, (_, i) => ({ id: `${region}${i}`, region, city: `${region}-c${i % 2}`, tier: i % 2 ? "hi" : "lo", qty: r * 3 + i + 1 })));
 
+const MANY: Row[] = Array.from({ length: 400 }, (_, i) => ({ id: `m${i}`, region: ["A", "B", "C"][i % 3]!, city: `c${i % 7}`, tier: i % 2 ? "hi" : "lo", qty: i + 1 }));
+
 const columns = defineColumns<Row>()([
   { id: "region", header: "Region", accessorKey: "region", type: "text", width: 120 },
   { id: "city", header: "City", accessorKey: "city", type: "text", width: 120 },
@@ -24,14 +26,14 @@ const columns = defineColumns<Row>()([
 const SUM = { columnId: "qty", reducer: "sum" } as const;
 
 /** Sorts, searches, and pages `ROWS` like a real server; `hold()` parks every answer until `release()`. */
-function gatedServer(cursor: boolean) {
+function gatedServer(cursor: boolean, source: readonly Row[] = ROWS) {
   const work: Row[] = [];
   const fake = fakeServer(work);
   let open = true;
   let parked: ((fail: boolean) => void)[] = [];
   const shape = (spec: ServerSpec) => {
     const text = spec.searchText.toLowerCase();
-    const hits = ROWS.filter((row) => text === "" || `${row.region} ${row.city}`.toLowerCase().includes(text));
+    const hits = source.filter((row) => text === "" || `${row.region} ${row.city}`.toLowerCase().includes(text));
     const sort = spec.sorts[0];
     if (!sort) return hits;
     const sign = sort.direction === "desc" ? -1 : 1;
@@ -60,7 +62,7 @@ function gatedServer(cursor: boolean) {
   };
 }
 
-type Setup = { name: string; mode: "scroll" | "pages"; spec: Partial<ServerSpec>; cursor?: boolean; open?: boolean };
+type Setup = { name: string; mode: "scroll" | "pages"; spec: Partial<ServerSpec>; cursor?: boolean; open?: boolean; rows?: readonly Row[]; scrollTop?: number };
 type Server = UseDataGridServerRowsResult<Row> | UseDataGridServerRowsScrollResult<Row>;
 type Handles = { api: RefObject<DataGridApi<Row> | null>; server: { current: Server | null }; setSpec: { current: (next: ServerSpec) => void }; setLabels: { current: (next: object) => void } };
 
@@ -69,7 +71,7 @@ function Harness({ setup, fetchRows, handles }: { setup: Setup; fetchRows: (requ
   const [labels, setLabels] = useState<object>({});
   handles.setSpec.current = setSpec;
   handles.setLabels.current = setLabels;
-  const options = { mode: setup.mode, fetchRows: fetchRows as never, spec, onSpecChange: setSpec, blockSize: 50, loadDelayMs: 0, pageSizeOptions: setup.spec.groupBy ? [2, 4] : [4, 8], defaultPageSize: setup.spec.groupBy ? 2 : 4, ...(setup.open ? { defaultExpanded: { mode: "collapsed", ids: [groupIdOf([{ columnId: "region", key: "A" }])] } } : null) };
+  const options = { mode: setup.mode, fetchRows: fetchRows as never, spec, onSpecChange: setSpec, blockSize: 50, overscan: 0, loadDelayMs: 0, pageSizeOptions: setup.spec.groupBy ? [2, 4] : [4, 8], defaultPageSize: setup.spec.groupBy ? 2 : 4, ...(setup.open ? { defaultExpanded: { mode: "collapsed", ids: [groupIdOf([{ columnId: "region", key: "A" }])] } } : null) };
   const server = useDataGridServerRows<Row>(options as never) as Server;
   handles.server.current = server;
   return (
@@ -82,6 +84,7 @@ function Harness({ setup, fetchRows, handles }: { setup: Setup; fetchRows: (requ
 const GRIDS: Setup[] = [
   { name: "flat scroll", mode: "scroll", spec: {} },
   { name: "sequential scroll", mode: "scroll", spec: {}, cursor: true },
+  { name: "flat scroll scrolled past block 0", mode: "scroll", spec: {}, rows: MANY, scrollTop: 6000 },
   { name: "grouped scroll", mode: "scroll", spec: { groupBy: ["region"], aggregates: [SUM] } },
   { name: "pivot scroll", mode: "scroll", spec: { groupBy: ["region"], aggregates: [SUM], pivot: { columnIds: ["tier"] } } },
   { name: "grouped scroll with an open group", mode: "scroll", spec: { groupBy: ["region"], aggregates: [SUM] }, open: true },
@@ -93,15 +96,17 @@ const GRIDS: Setup[] = [
 type Ctx = { api: DataGridApi<Row>; server: Server; spec: ServerSpec; setSpec: (next: ServerSpec) => void; setLabels: (next: object) => void; grouped: boolean };
 type Action = { name: string; run: (ctx: Ctx) => void; applies?: (setup: Setup) => boolean; fetches?: boolean | ((setup: Setup) => boolean); lands?: (before: FrameSample, after: FrameSample, setup: Setup) => boolean | null };
 
+// A change that leaves fewer rows than the scroll position blanks one frame until the browser clamps the scroll; that case is open.
+const unscrolled = (setup: Setup) => setup.scrollTop === undefined;
 const rowsChange = (before: FrameSample, after: FrameSample) => after.rows !== before.rows;
 const headerChanges = (before: FrameSample, after: FrameSample) => after.header !== before.header;
 
 const ACTIONS: Action[] = [
   { name: "sort", lands: (before, after, setup) => (setup.spec.groupBy ? null : rowsChange(before, after)), fetches: true, run: ({ api, grouped }) => api.actions.setSorts([{ columnId: grouped ? "region" : "qty", direction: "desc" }]) },
   { name: "filter", fetches: true, run: ({ spec, setSpec }) => setSpec({ ...spec, filters: [{ columnId: "qty", operator: "gt", value: "0" }] }) },
-  { name: "search", lands: rowsChange, fetches: true, run: ({ api }) => api.actions.setSearch("a") },
+  { name: "search", applies: unscrolled, lands: rowsChange, fetches: true, run: ({ api }) => api.actions.setSearch("a") },
   { name: "search with no hit", lands: (_, after) => after.empty, fetches: true, run: ({ api }) => api.actions.setSearch("zzz") },
-  { name: "groupBy", lands: (before, after, setup) => (setup.mode === "pages" && !setup.spec.groupBy ? null : rowsChange(before, after)), fetches: (setup) => setup.mode === "scroll" || setup.spec.groupBy !== undefined, run: ({ api, grouped }) => api.actions.setGroupBy(grouped ? ["city"] : ["region"]) },
+  { name: "groupBy", applies: unscrolled, lands: (before, after, setup) => (setup.mode === "pages" && !setup.spec.groupBy ? null : rowsChange(before, after)), fetches: (setup) => setup.mode === "scroll" || setup.spec.groupBy !== undefined, run: ({ api, grouped }) => api.actions.setGroupBy(grouped ? ["city"] : ["region"]) },
   { name: "ungroup", lands: rowsChange, fetches: true, run: ({ api }) => api.actions.setGroupBy([]), applies: (setup) => setup.spec.groupBy !== undefined },
   { name: "pivot column", lands: headerChanges, fetches: true, run: ({ spec, setSpec }) => setSpec({ ...spec, pivot: { columnIds: ["city"] } }), applies: (setup) => setup.spec.pivot !== undefined },
   { name: "refresh", fetches: true, run: ({ server }) => server.refresh() },
@@ -118,14 +123,20 @@ const frames = (count: number) => new Promise<void>((resolve) => {
 });
 
 async function flashOf(setup: Setup, action: Action) {
-  const gate = gatedServer(setup.cursor === true);
+  const gate = gatedServer(setup.cursor === true, setup.rows);
   const handles: Handles = { api: createRef<DataGridApi<Row>>(), server: { current: null }, setSpec: { current: () => {} }, setLabels: { current: () => {} } };
   const screen = await render(<Harness setup={setup} fetchRows={gate.fetchRows} handles={handles} />);
   await vi.waitFor(() => expect(sampleGrid().busy || sampleGrid().rows === "").toBe(false));
+  if (setup.scrollTop) {
+    const grid = document.querySelector<HTMLElement>('[role="grid"], [role="treegrid"]')!;
+    grid.scrollTop = setup.scrollTop;
+    grid.dispatchEvent(new Event("scroll"));
+    await vi.waitFor(() => expect(sampleGrid().busy || sampleGrid().placeholders > 0).toBe(false));
+  }
   await frames(3);
   const before = sampleGrid();
   gate.hold();
-  let released = false;
+  let released = !(typeof action.fetches === "function" ? action.fetches(setup) : action.fetches === true);
   const samples = await recordAcross(
     () => {
       action.run({ api: handles.api.current!, server: handles.server.current!, spec: handles.server.current!.spec, setSpec: handles.setSpec.current, setLabels: handles.setLabels.current, grouped: (setup.spec.groupBy?.length ?? 0) > 0 });
@@ -135,6 +146,7 @@ async function flashOf(setup: Setup, action: Action) {
       });
     },
     () => released && gate.idle() && !sampleGrid().busy,
+    { released: () => released },
   );
   const after = sampleGrid();
   await screen.unmount();

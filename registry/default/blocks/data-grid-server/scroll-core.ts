@@ -1,4 +1,5 @@
 import type { RowRange } from "@/registry/default/blocks/data-grid/data-grid";
+import { scheduleFrame } from "./server-state";
 import type { Wanted } from "./fetch-hygiene";
 import type { SeqBlock } from "./sequence-eviction";
 import type { FetchReason } from "./read-answer";
@@ -93,6 +94,28 @@ export function createCore<TData>(): Core<TData> {
 }
 
 export const rangeKey = (range: RowRange) => `${range.start}:${range.end}`;
+
+export function positiveInteger(value: number | undefined, fallback: number, min: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? Math.max(min, Math.floor(value)) : fallback;
+}
+
+/** Keeps the entries of rows that are still protected: a queued commit may still read or fill the map. */
+export function forgetDisplacedWhenIdle<TData>(core: Core<TData>, stillProtected: ProtectedRows) {
+  if (oldestMark(core) !== null) return;
+  for (const id of core.displaced.keys()) if (!stillProtected?.has(id)) core.displaced.delete(id);
+  core.orphans = new Map();
+  core.carried = new Set();
+}
+
+export function commitOnFrame<TData>(core: Core<TData>, commit: () => void, onIdle: () => void) {
+  if (core.cancelFrame !== null) return;
+  commit();
+  core.cancelFrame = scheduleFrame(() => {
+    core.cancelFrame = null;
+    if (core.pending.length > 0) commitOnFrame(core, commit, onIdle);
+    else onIdle();
+  });
+}
 
 export function oldestMark<TData>(core: Core<TData>): number | null {
   let oldest: number | null = null;

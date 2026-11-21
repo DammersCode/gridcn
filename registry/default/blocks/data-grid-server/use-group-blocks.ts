@@ -53,11 +53,15 @@ function createEngine<TData>() {
     pumpTimer: null as ReturnType<typeof setTimeout> | null,
     warned: new Set<string>(),
     holding: false,
+    /** Rows a user wrote while the view was held; the answers asked for before the write keep the written values. */
+    heldEdits: new Set<string>(),
+    /** Local copies of rows that were saving when the store was dropped; an answer asked for before the save settles keeps them. */
+    displaced: new Map<string, unknown>(),
   };
 }
 type Engine<TData> = ReturnType<typeof createEngine<TData>>;
 /** `laidFor` is the `groupBy` of the layout, so a held view keeps the group columns it shows. */
-type ViewState<TData> = GroupView<TData> & { loading: boolean; groupCount: number | null; pivotHold?: PivotHold; laidFor?: readonly string[] };
+type ViewState<TData> = GroupView<TData> & { loading: boolean; groupCount: number | null; pivotHold?: PivotHold; laidFor?: readonly string[]; held?: true };
 
 const emptyView = <TData,>(): ViewState<TData> => ({ data: [], slots: [], owners: [], offsets: [], leafCount: 0, holes: 0, loading: false, groupCount: null });
 
@@ -166,7 +170,7 @@ export function useGroupBlocks<TData, TCursor = never>(
 
   const syncError = () => setError(getEngine().failed.size > 0 ? [...getEngine().failed.values()].at(-1)!.error : null);
 
-  const hold = (loading: boolean) => setView((prev) => (prev.loading === loading ? prev : { ...prev, loading }));
+  const hold = (loading: boolean) => setView((prev) => (prev.loading === loading && prev.held ? prev : { ...prev, loading, held: true }));
 
   /** Whether a block under the rendered rows still waits for its answer; a failed block counts as answered. */
   const unsettled = (store: GroupStore<TData>) => {
@@ -198,6 +202,7 @@ export function useGroupBlocks<TData, TCursor = never>(
     if (waiting || (engine.holding && !store.lists.get("")?.blocks.size)) hold(waiting);
     else {
       engine.holding = false;
+      engine.heldEdits.clear();
       setView(next);
     }
     const { onLoaded } = live.current.options;
@@ -261,9 +266,14 @@ export function useGroupBlocks<TData, TCursor = never>(
     }
     const read = readAnswer<TData, TCursor>(answer, range, warn, idOf);
     assertRowIdsNotReserved(read.rows.flatMap((row, index) => (row === undefined ? [] : [idOf(row, range.start + index)])));
-    const guarded = unionIds(unionIds(flight.ids, savedSince(flight.mark)), protectedRows());
+    const { heldEdits } = getEngine();
+    const guarded = unionIds(unionIds(unionIds(flight.ids, savedSince(flight.mark)), protectedRows()), heldEdits.size > 0 ? heldEdits : null);
     const count = typeof read.totalRowCount === "number" ? read.totalRowCount : undefined;
-    landRows(store, list, flight.block, overlayPushed(read.rows as TData[], flight.mark, range.start, idOf), count, stamp, (existing, offset) => guarded?.has(idOf(existing, offset)) === true);
+    const { displaced } = getEngine();
+    const pushed = overlayPushed(read.rows as TData[], flight.mark, range.start, idOf);
+    const rows = displaced.size === 0 || guarded === null ? pushed : pushed.map((row, index) => (row !== undefined && guarded.has(idOf(row, range.start + index)) ? ((displaced.get(idOf(row, range.start + index)) as TData | undefined) ?? row) : row));
+    landRows(store, list, flight.block, rows, count, stamp, (existing, offset) => guarded?.has(idOf(existing, offset)) === true);
+    if (getEngine().flight.size === 0) for (const id of displaced.keys()) if (!protectedRows()?.has(id) && !heldEdits.has(id)) displaced.delete(id);
     return null;
   };
 
@@ -392,6 +402,13 @@ export function useGroupBlocks<TData, TCursor = never>(
     engine.pumpTimer = null;
     engine.cancelFrame?.();
     engine.cancelFrame = null;
+    const saving = protectedRows();
+    if (engine.store && saving) {
+      for (const list of engine.store.lists.values()) {
+        if (list.kind !== "rows") continue;
+        list.entries.forEach((row, offset) => row !== undefined && saving.has(idOf(row as TData, offset)) && engine.displaced.set(idOf(row as TData, offset), row));
+      }
+    }
     engine.store = null;
     engine.view = null;
     engine.idIndex = null;
@@ -484,8 +501,32 @@ export function useGroupBlocks<TData, TCursor = never>(
     publish();
   };
 
+  /** Writes the updates into the held view, and keeps a user write as the local copy that the answers of the new spec keep. */
+  const holdUpdates = (change: DataChange<TData>) => {
+    const engine = getEngine();
+    const rowOf = streamUpdateRow(change);
+    const updates = new Map(change.ops.flatMap((op) => (op.type === "update" ? [[op.rowId, op] as const] : [])));
+    if (updates.size === 0) return;
+    if (change.source !== "stream") {
+      for (const [id, op] of updates) {
+        engine.displaced.set(id, op.row);
+        engine.heldEdits.add(id);
+      }
+    }
+    setView((prev) => {
+      if (!prev.held) return prev;
+      const groupRows = new Set(prev.slots.map((slot) => slot.viewRow));
+      const data = prev.data.map((row, index) => {
+        const op = row === undefined || groupRows.has(index) ? undefined : updates.get(idOf(row, index));
+        return op ? (rowOf ? rowOf(op, row as TData) : op.row) : row;
+      });
+      return { ...prev, data };
+    });
+  };
+
   const applyUpdates = (change: DataChange<TData>) => {
     const engine = getEngine();
+    if (engine.holding) holdUpdates(change);
     const store = engine.store;
     if (!store) return;
     const index = engine.idIndex ?? indexRows(store, idOf);
@@ -520,6 +561,7 @@ export function useGroupBlocks<TData, TCursor = never>(
   );
 
   const shownRows = useRef(view.data.length);
+  const wasActive = useRef(active);
   useLayoutEffect(() => {
     shownRows.current = view.data.length;
   });
@@ -528,7 +570,9 @@ export function useGroupBlocks<TData, TCursor = never>(
   useLayoutEffect(() => {
     if (seedRef.current && seedRef.current.key !== engineKey) seedRef.current = null;
     apiRef.current.reset();
-    getEngine().holding = shownRows.current > 0;
+    // A view from an earlier grouped period is not on screen when the engine wakes up, so only a live view is held.
+    getEngine().holding = shownRows.current > 0 && (!active || wasActive.current);
+    wasActive.current = active;
     if (active) apiRef.current.seedStore();
     apiRef.current.publish();
     if (!active) return;
@@ -556,6 +600,11 @@ export function useGroupBlocks<TData, TCursor = never>(
     firstAggregates.current = aggregateKey;
     if (live.current.pivot === null) apiRef.current.staleGroupBlocks();
   }, [aggregateKey]);
+
+  // A page size that a pivot page cannot hold becomes the size the pager shows, so a controlled size and URL state follow it.
+  useLayoutEffect(() => {
+    if (active && pagesIn && pages && pages.pageSize !== pagesIn.pageSize) pagesIn.onPageSizeChange?.(pages.pageSize);
+  }, [active, pagesIn, pages]);
 
   // A toggle lays the view out again and asks for the rows the open group shows; a new page keeps the old one until it lands.
   const shownPage = useRef(pages?.page);
@@ -627,6 +676,7 @@ export function useGroupBlocks<TData, TCursor = never>(
       expanded,
       onExpandedChange: setExpanded,
       groupMode: "server",
+      ...(view.held ? { readOnly: true as const } : null),
       groupLayout,
     }),
     [view, getRowId, onDataChange, onSave, onRenderedRowsChange, spec, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, plugins, groupBy, onGroupByChange, expanded, setExpanded, groupLayout],

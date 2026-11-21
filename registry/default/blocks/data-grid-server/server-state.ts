@@ -48,8 +48,27 @@ export function useControlled<T>(controlled: T | undefined, initial: () => T, on
 }
 
 /** The result of the engine on screen while the other engine of a hand-off still loads. */
-export function busyResult<TResult extends { loading: boolean; error: unknown; status: string; rootProps: object; gridProps: object }>(result: TResult): TResult {
-  return { ...result, loading: true, status: result.error !== null ? "error" : "loading", rootProps: { ...result.rootProps, loading: true }, gridProps: { ...result.gridProps, loading: true } };
+type EngineResult = { loading: boolean; error: unknown; status: string; rootProps: object; providerProps: object; gridProps: object; retry: () => void; refresh: () => void; reshape: () => void };
+
+/**
+ * The rows of the engine on screen, read-only, with the state and the controls of the engine the spec asks for: a refresh or a
+ * retry reaches the engine that answers, and its failure shows next to the rows on screen.
+ */
+export function handOffResult<TResult extends EngineResult>(shown: TResult, requested: TResult): TResult {
+  const failed = requested.error !== null;
+  const root = { loading: !failed, error: requested.error, onRetry: requested.retry };
+  return {
+    ...shown,
+    loading: !failed,
+    error: requested.error,
+    status: failed ? "error" : "loading",
+    retry: requested.retry,
+    refresh: requested.refresh,
+    reshape: requested.reshape,
+    rootProps: { ...shown.rootProps, ...root },
+    providerProps: { ...shown.providerProps, readOnly: true },
+    gridProps: { ...shown.gridProps, ...root, readOnly: true },
+  };
 }
 
 /** Runs a consumer callback so that a throw cannot break the caller's bookkeeping. */

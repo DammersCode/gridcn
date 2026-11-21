@@ -145,6 +145,8 @@ export type UseDataGridServerRowsProviderProps<TData> = {
   plugins: readonly DataGridPlugin<unknown>[];
   /** Sorts on a header click. Override it after the spread. */
   headerClickBehavior: "sort";
+  /** Present while the old rows stay on screen across a switch between grouped and flat rows: they take no user write until the answer lands. */
+  readOnly?: true;
   /** @internal Present while the source groups: reports the rendered rows so the open groups load their rows. */
   onRenderedRowsChange?: (range: RowRange) => void;
   /** Present while the source groups: the group columns, outermost first. */
@@ -635,6 +637,15 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   }, [guardPlugins, pagerGridProps.plugins, pagerWatch]);
   const plugins = useMountedPlugins(pagerGuardPlugins, options.plugins);
 
+  // Across a hand-off between the flat and the group engine, the engine on screen stays until the other one has answered.
+  // Both report loading meanwhile, as the flat key carries `groupBy` and the group engine holds its view, and neither takes a user write.
+  const [shownGrouped, setShownGrouped] = useState(grouped);
+  const arrived = grouped ? groupPages.answered || groupPages.result.error !== null : !loading || error !== null;
+  useLayoutEffect(() => {
+    if (shownGrouped !== grouped && arrived) setShownGrouped(grouped);
+  }, [shownGrouped, grouped, arrived]);
+  const waiting = shownGrouped !== grouped && !arrived;
+  const flatWaits = waiting && !shownGrouped;
   const providerProps = useMemo<UseDataGridServerRowsProviderProps<TData>>(
     () => ({
       data: shown.rows,
@@ -655,25 +666,21 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
       checkedRowsLifetime: "across-filters",
       headerClickBehavior: "sort",
       plugins,
+      ...(flatWaits ? { readOnly: true as const } : null),
     }),
-    [shown.rows, shown.totalRowCount, spec, getRowId, onDataChange, onSave, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, plugins],
+    [flatWaits, shown.rows, shown.totalRowCount, spec, getRowId, onDataChange, onSave, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, plugins],
   );
   useRegisteredWiring(providerProps, wrapSave);
   const rootProps = useMemo<UseDataGridServerRowsRootProps>(() => ({ loading, error, onRetry: retry }), [loading, error, retry]);
   const gridProps = useMemo(() => ({ ...providerProps, ...rootProps }), [providerProps, rootProps]);
 
-  // Across a hand-off between the flat and the group engine, the engine on screen stays until the other one has answered.
-  // Both report loading meanwhile: the flat key carries `groupBy`, and the group engine holds its view.
-  const [shownGrouped, setShownGrouped] = useState(grouped);
-  const arrived = grouped ? groupPages.answered || groupPages.result.error !== null : !loading || error !== null;
-  useLayoutEffect(() => {
-    if (shownGrouped !== grouped && arrived) setShownGrouped(grouped);
-  }, [shownGrouped, grouped, arrived]);
-  if (shownGrouped !== grouped && !arrived ? shownGrouped : grouped) {
-    const { gridProps: groupedGrid, providerProps: groupedProvider, rootProps: groupedRoot, totalRowCount, status: groupedStatus, loading: groupedLoading, error: groupedError, retry: groupedRetry, refresh: groupedRefresh, reshape: groupedReshape } = groupPages.result;
-    return { gridProps: groupedGrid, providerProps: groupedProvider, rootProps: groupedRoot, spec, totalRowCount, pager: groupPages.pager, status: groupedStatus, loading: groupedLoading, error: groupedError, retry: groupedRetry, refresh: groupedRefresh, reshape: groupedReshape } as UseDataGridServerRowsResult<TData>;
+  // A refresh or a retry reaches the engine that answers the spec.
+  const control = grouped ? groupPages.result : { retry, refresh, reshape };
+  if (waiting ? shownGrouped : grouped) {
+    const { gridProps: groupedGrid, providerProps: groupedProvider, rootProps: groupedRoot, totalRowCount, status: groupedStatus, loading: groupedLoading, error: groupedError } = groupPages.result;
+    return { gridProps: groupedGrid, providerProps: groupedProvider, rootProps: groupedRoot, spec, totalRowCount, pager: groupPages.pager, status: groupedStatus, loading: groupedLoading, error: groupedError, retry: control.retry, refresh: control.refresh, reshape: control.reshape } as UseDataGridServerRowsResult<TData>;
   }
-  return { gridProps, providerProps, rootProps, spec, totalRowCount: shown.totalRowCount, pager, status, loading, error, retry, refresh, reshape };
+  return { gridProps, providerProps, rootProps, spec, totalRowCount: shown.totalRowCount, pager, status, loading, error, retry: control.retry, refresh: control.refresh, reshape: control.reshape };
 }
 
 /** Records whether the consumer read `pager`, so the hook can warn about a pager that nothing reads. */

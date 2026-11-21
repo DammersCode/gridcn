@@ -2054,13 +2054,15 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "tests/parity/loading-error.parity.test.tsx"
+            "tests/parity/loading-error.parity.test.tsx",
+            "registry/default/blocks/data-grid/test/client-flash.timeline.browser.test.tsx"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/loading-error.parity.test.tsx"
+            "tests/parity/loading-error.parity.test.tsx",
+            "registry/default/blocks/data-grid/test/client-flash.timeline.browser.test.tsx"
           ]
         },
         "PS": {
