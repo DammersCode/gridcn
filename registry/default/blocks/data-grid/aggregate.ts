@@ -2,7 +2,8 @@ import type { AggregateReducer } from "./group-types";
 
 export type { AggregateReducer, AggregateSpecs } from "./group-types";
 
-const isCounted = (value: unknown): boolean => value !== null && value !== undefined && value !== "";
+/** Whether `count` counts a value: anything but `null`, `undefined`, and `""`. */
+export const isCounted = (value: unknown): boolean => value !== null && value !== undefined && value !== "";
 
 /** Reduces the `value` of each of `rows` like {@link aggregateValues}, without building an array for a named reducer. */
 export function aggregateRows<TData = unknown>(reducer: AggregateReducer<TData>, rows: readonly number[], value: (row: number) => unknown, rowAt?: (row: number) => unknown): unknown {

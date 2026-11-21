@@ -2,7 +2,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { groupKeyText } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { GroupsAnswer } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
-import { type OraclePath, oraclePivot } from "./client-oracle";
+import { type OraclePath, oraclePivot, sortedKeys } from "./client-oracle";
 import { type Harness, type LooseQuery, openPg, openSqlite } from "./engines";
 import { FIXTURE_ROWS } from "./fixture";
 
@@ -43,8 +43,6 @@ const pivotOf = async (query: LooseQuery, ask: Ask, context?: { tenantId: number
   (await query.fetchRows(body(ask), context ? { context } : undefined)) as unknown as GroupsAnswer;
 const oracleOf = (ask: Ask) =>
   oraclePivot({ filters: ask.filters ?? [], groupBy: ask.groupBy, path: ask.path, pivot: ask.pivot, aggregates: ask.aggregates ?? VALUES, directions: new Map((ask.sorts ?? []).map((sort) => [sort.columnId, sort.direction] as const)) });
-
-const sortedKeys = (keys: readonly unknown[]) => [...keys].map((key) => (key === null ? "\u{10FFFF}" : `${typeof key}:${String(key)}`)).sort();
 
 function expectCellsLike(answer: GroupsAnswer, ask: Ask, options: { ordered: boolean }): void {
   const expected = oracleOf(ask);
