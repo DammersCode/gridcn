@@ -91,7 +91,7 @@ const answer = {
 - `key` is the stored value. `null` is the empty group. The server merges `null` and `""` into one group, and puts it last.
 - `childCount` counts the groups of the next level, or the rows of the last level.
 - `totalRowCount` counts the rows of the result under the group.
-- `aggregates` holds a finite number for each requested column id, or `null` when no value counted.
+- `aggregates` holds one value for each requested column id. The value is a finite number, a decimal string such as `"123456789012345.67"`, or `null` when no value counted. For `min` and `max`, it can also be the text or date string of the column. A string holds at most 1,024 characters.
 - `label` is optional display text. The default is the text of the column's cell type.
 
 Answer `childKind: "rows"` with `{ rows, totalRowCount }` for the rows of that group, as for a flat request. Sort and filter the groups and the rows with the same spec. A sort on a group column orders the groups. A filter applies before grouping.
@@ -100,7 +100,7 @@ Answer `childKind: "rows"` with `{ rows, totalRowCount }` for the rows of that g
 
 `parseServerSpec` reads `groupBy` and `aggregates`, and `parseGroupPath(body, spec)` reads `{ groupPath, childKind }`. Both bound the input. The limits are 4 levels, 1,024 characters per key, and 32 aggregates. List the columns a client can group by with `groupable` and `aggregatable` in `ServerSpecColumnRules`. Pass every key to your query as a parameter and never build SQL text from it. See the [server rows contract](/docs/contracts/server-rows-contract#parse-group-path).
 
-The grid checks each answer. It throws on an answer with no `groups`. It throws on a repeated key (`1` and `"1"` repeat), on a bad count, and on a top level without `totalRowCount`. It cuts a list that is longer than the request, and shows `null` for an aggregate that is not a finite number.
+The grid checks each answer. It throws on an answer with no `groups`. It throws on a repeated key (`1` and `"1"` repeat), on a bad count, and on a top level without `totalRowCount`. It cuts a list that is longer than the request, and shows `null` for any other aggregate value. A string that is not a decimal is valid only for `min` and `max`.
 
 ## Behavior [#behavior]
 

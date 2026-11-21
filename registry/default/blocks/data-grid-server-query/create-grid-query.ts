@@ -297,7 +297,8 @@ export function createGridQuery<TRow = Record<string, unknown>, TContext = never
     return cells.map((raw: unknown, index) => {
       const { column, reducer } = plan.aggregates[index % plan.aggregates.length]!;
       const value = aggregateValue(raw, column, reducer);
-      return typeof value === "number" ? value : null;
+      if (typeof value === "number") return value;
+      return column.kind === "number" && typeof value === "string" ? Number(value) : null;
     });
   };
 
@@ -473,13 +474,34 @@ function groupKeyValue(raw: unknown, column: PlanColumn): string | number | bool
   return key === "" || key === undefined ? null : (key as string | number | boolean | null);
 }
 
+const DECIMAL_TEXT = /^-?\d+(?:\.\d+)?$/;
+const MAX_AGGREGATE_TEXT = 1024;
+
+// Every decimal of at most 15 significant digits survives Number and back; a longer one stays a string.
+function significantDigits(text: string): number {
+  const digits = text.replace("-", "").replace(".", "");
+  let start = 0;
+  let end = digits.length;
+  while (start < end && digits[start] === "0") start++;
+  while (end > start && digits[end - 1] === "0") end--;
+  return end - start;
+}
+
+function numberAggregate(raw: unknown): number | string | null {
+  const text = typeof raw === "number" ? "" : toSafeText(raw).trim();
+  const n = Number(raw);
+  if (text.length <= MAX_AGGREGATE_TEXT && DECIMAL_TEXT.test(text) && significantDigits(text) > 15 && !Number.isSafeInteger(n)) return text;
+  return Number.isFinite(n) ? n : null;
+}
+
 function aggregateValue(raw: unknown, column: PlanColumn, reducer: string): number | string | null {
   if (raw === null || raw === undefined) return reducer === "count" ? 0 : null;
   if (reducer === "count") return countOf(raw) ?? 0;
-  if (reducer === "avg" || column.kind === "number") {
+  if (reducer === "avg") {
     const n = Number(raw);
     return Number.isFinite(n) ? n : null;
   }
+  if (column.kind === "number") return numberAggregate(raw);
   const value = serializeValue(raw, column);
   return typeof value === "number" || typeof value === "string" ? value : null;
 }

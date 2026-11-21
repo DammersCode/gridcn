@@ -255,6 +255,28 @@ describe("createGridQuery with a column id of __proto__", () => {
   });
 });
 
+describe("createGridQuery number aggregates", () => {
+  const precise = defineColumnMap({ id: { type: "number", numeric: "int8", primaryKey: true }, n: { type: "number", numeric: "int8", aggregate: "sum" }, d: { type: "number", numeric: "decimal", scale: 2, aggregate: "sum" } });
+  const answerFor = async (raw: Record<string, unknown>) => {
+    const { executor } = fakeExecutor();
+    executor.aggregate = async () => raw;
+    return createGridQuery({ columns: precise, executor }).aggregates({ spec: { sorts: [], filters: [], searchText: "" }, columnIds: ["n", "d"] });
+  };
+
+  it("answers a number when the value round-trips through Number", async () => {
+    expect(await answerFor({ n: 9007199254740991n, d: "10.50" })).toEqual({ n: 9007199254740991, d: 10.5 });
+    expect(await answerFor({ n: "-42", d: "999999999999.99" })).toEqual({ n: -42, d: 999999999999.99 });
+  });
+
+  it("answers a string when the value has more than 15 significant digits", async () => {
+    expect(await answerFor({ n: 9007199254740993n, d: "123456789012345.67" })).toEqual({ n: "9007199254740993", d: "123456789012345.67" });
+  });
+
+  it("answers null for a value that is not a number", async () => {
+    expect(await answerFor({ n: "abc", d: Number.NaN })).toEqual({ n: null, d: null });
+  });
+});
+
 describe("createGridQuery", () => {
   const request = (extra: Record<string, unknown> = {}) => ({ spec: { sorts: [], filters: [], searchText: "" }, start: 0, end: 5, ...extra });
 
@@ -428,6 +450,13 @@ describe("createGridQuery pivot", () => {
     const { executor } = pivotExecutor(["a"], 1, () => [["12.50"]]);
     const answer = (await createGridQuery({ columns: pivotColumns, executor }).fetchRows(ask(aggregates))) as GroupsAnswer;
     expect(answer.groups[0]!.pivotCells).toEqual([12.5]);
+  });
+
+  it("reads a decimal cell beyond 15 digits as its nearest number", async () => {
+    const aggregates = [{ columnId: "price", reducer: "max" }];
+    const { executor } = pivotExecutor(["a"], 1, () => [["123456789012345.67"]]);
+    const answer = (await createGridQuery({ columns: pivotColumns, executor }).fetchRows(ask(aggregates))) as GroupsAnswer;
+    expect(answer.groups[0]!.pivotCells).toEqual([123456789012345.67]);
   });
 
   it("scopes the keys query, so another tenant's key never becomes a column", async () => {
