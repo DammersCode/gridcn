@@ -2,7 +2,7 @@
 
 ## Goal
 
-A server grid shows its result as a pivot. The rows are the groups of one `groupBy` column. The
+A server grid shows its result as a pivot. The rows are the groups of 1 to 4 `groupBy` columns. The
 columns come from the distinct keys of one pivot column. Each cell is an aggregate of the rows of
 one row group that hold one key. The server computes every cell. The grid checks the answer, makes
 bounded generated columns with stable ids, and shows read-only pivot cells.
@@ -66,12 +66,12 @@ What the server receives and sends:
 
 ## Decisions
 
-1. **Pivot rows are group rows.** They are the group rows of the one `groupBy` level. The wire
-   `childCount` keeps its meaning (rows under the group), and the hook writes `childCount: 0` into
-   each pivot slot. Pivot rows show no toggle and no `aria-expanded`. No request with
-   `childKind: "rows"` leaves under pivot.
-   - Keys: the grid does not offer `GROUP_ROW_ACTIONS` on a pivot row. Enter and Space then fall
-     to `edit`, which a pivot row refuses. ArrowRight and ArrowLeft fall to `moveRight` and
+1. **Pivot rows are group rows.** They are the group rows of 1 to 4 `groupBy` levels. A pivot row
+   above the innermost level opens and lists the pivot rows of the next level. The hook writes
+   `childCount: 0` into each innermost slot, which shows no toggle and no `aria-expanded`. No request
+   with `childKind: "rows"` leaves under pivot.
+   - Keys: the grid does not offer `GROUP_ROW_ACTIONS` on an innermost pivot row. Enter and Space
+     then fall to `edit`, which a pivot row refuses. ArrowRight and ArrowLeft fall to `moveRight` and
      `moveLeft`.
 2. **The values are `spec.aggregates`.** One parser, the `reducer === column.aggregate` rule, and
    `maxGroupAggregates` 32 apply. Issue #99 says 20. The docs state the difference.
@@ -138,8 +138,10 @@ export type ServerGroupLayout = {
 - The `serverSpecKey` of a spec without `pivot` stays the same.
 - Under pivot the hook clamps the block size and the page size to 200 groups, so one page holds
   at most 40,000 cells.
-- With more than 1 `groupBy` level, the grid sends no `pivot` and warns once in development
-  (`S11-M`). The layer takes up to 4 levels: each level's group rows carry the cells of their subtree.
+- The hook sends `pivot` with 1 to 4 `groupBy` levels. With more, it sends no `pivot` and warns once
+  in development. Each level's group rows carry the cells of their subtree, and a child answer's
+  `pivotColumns` hold the keys of its subtree. So only a top-level answer sets the held set; a child
+  answer maps its cells into it by generated id.
 
 ### Answer checks (grid, `readPivotAnswer`)
 
@@ -333,7 +335,7 @@ of `CASE`.
 | Id | Gap |
 |---|---|
 | `S11-L` | L and PC: pivot needs a server. Client buckets are a separate engine. |
-| `S11-M` | The layer takes 4 levels with subtotals. The grid takes 1 and warns in development. |
+| `S11-M` | Closed: the layer and the server hook take 1 to 4 levels with subtotals. |
 | `S11-P` | Prisma declines pivot. |
 | `S11-UI` | Out of scope: a pivot chooser, a sort list, and menu items for pivot. |
 | `S11-V` | Out of scope: widths of generated columns in saved views. |
@@ -396,30 +398,25 @@ Paths are relative to `registry/default/blocks/`. Behavior codes:
 | `data-grid/rows/group-row.tsx:219` | R | A generated column cell shows the pivot cell, not `aggregates[column.id]`. |
 | `data-grid/rows/group-row.tsx:46` | S | `groupLabelSpan` stays 1: generated columns carry `aggregate`. |
 | `data-grid/rows/group-row.tsx:156` | S | The label span is clamped to the visible columns. |
-| `data-grid/rows/group-row.tsx:169` | T | No `aria-expanded` on a pivot row. |
-| `data-grid/rows/group-row.tsx:194` | T | No `DataGridGroupToggle` on a pivot row. |
-| `data-grid/rows/group-toggle.tsx:30` | T | Not rendered under pivot. |
-| `data-grid/interaction/dispatch-grid-action.ts:410` | S | Keys do not reach it on a pivot row. A command dispatch reaches `toggleGroup`, which does nothing (`data-grid/store/group-actions.ts:99`). |
-| `data-grid/interaction/use-grid-interaction.ts:42` | T | `GROUP_ROW_ACTIONS` are not offered on a pivot row. |
-| `data-grid/interaction/use-grid-interaction.ts:445` | T | `onGroupRow` is false for a pivot row, so Enter falls to `edit` and the arrows move. |
+| `data-grid/rows/group-row.tsx:169` | T | `aria-expanded` on a pivot row above the innermost level; none on an innermost row. |
+| `data-grid/rows/group-row.tsx:194` | T | `DataGridGroupToggle` on a pivot row above the innermost level; none on an innermost row. |
+| `data-grid/rows/group-toggle.tsx:30` | T | Rendered only where `expandable` is true. |
+| `data-grid/interaction/dispatch-grid-action.ts:410` | S | Opens and closes a pivot row above the innermost level. On an innermost row `toggleGroup` does nothing (`data-grid/store/group-actions.ts:99`). |
+| `data-grid/interaction/use-grid-interaction.ts:42` | T | `GROUP_ROW_ACTIONS` are offered on an expandable pivot row only. |
+| `data-grid/interaction/use-grid-interaction.ts:445` | T | On an innermost pivot row Enter falls to `edit`, which the row refuses, and the arrows move. |
 | `data-grid/interaction/dispatch-grid-action.ts:70` | S | A command gets no data row on a pivot row. |
 | `data-grid/interaction/dispatch-grid-action.ts:436` | S | Open link needs a data row. Generated columns have no `href`. |
-| `data-grid/store/group-actions.ts:30` | T | The active cell anchor on toggle. No toggle under pivot. |
-| `data-grid/store/group-actions.ts:33` | T | `viewRowOfGroupId` on toggle. No toggle under pivot. |
+| `data-grid/store/group-actions.ts:30` | T | The active cell anchor on toggle of an expandable pivot row. |
+| `data-grid/store/group-actions.ts:33` | T | `viewRowOfGroupId` on toggle of an expandable pivot row. |
 | `data-grid/store/group-actions.ts:57` | S | Client tree only. |
-| `data-grid/store/group-actions.ts:81` | T | The server expanded state is irrelevant: no pivot row opens. |
-| `data-grid/store/group-actions.ts:99` | T | `toggleGroup` on a pivot row does nothing (`childCount: 0`). |
+| `data-grid/store/group-actions.ts:81` | T | The server expanded state opens pivot rows above the innermost level; the hook never lays an innermost row open. |
+| `data-grid/store/group-actions.ts:99` | T | `toggleGroup` on an innermost pivot row does nothing. |
 | `data-grid/store/group-actions.ts:111` | S | Server groups refuse client-only actions. |
-| `data-grid/store/group-positions.ts:21` | S | View row per group row. |
-| `data-grid/store/group-positions.ts:35` | S | `aria-setsize` from the parent's `childCount`. |
-| `data-grid/store/group-positions.ts:64` | S | Position lookup. |
-| `data-grid/store/group-positions.ts:66` | S | Position lookup. |
-| `data-grid/store/group-positions.ts:67` | S | Position lookup. |
-| `data-grid/store/group-positions.ts:75` | S | `aria-level`, `aria-posinset`, `aria-setsize`. |
-| `data-grid/store/group-positions.ts:79` | T | `groupRowMetaAt` reports `expanded: false` and a no-op toggle for a pivot row. |
-| `data-grid/store/group-positions.ts:83` | T | The same meta lookup. |
-| `data-grid/store/group-positions.ts:84` | T | The same meta lookup. |
-| `data-grid/store/group-positions.ts:85` | T | The same meta lookup. |
+| `data-grid/store/group-positions.ts:33` | S | One pass over the view rows: each open group owns its next `childCount` rows, so a sparse layout places every row. |
+| `data-grid/store/group-positions.ts:56` | S | A group opens by the expanded state and `groupRowExpandable`, or when a deeper group row follows it. |
+| `data-grid/store/group-positions.ts:76` | S | Position lookup, cached per view and expanded state. |
+| `data-grid/store/group-positions.ts:79` | S | `aria-level`, `aria-posinset`, and `aria-setsize` from the parent's `childCount`; the top level counts its view rows. |
+| `data-grid/store/group-positions.ts:92` | T | `groupRowMetaAt` reports `expandable` and `expanded: false` for an innermost pivot row. |
 | `data-grid/store/hooks.ts:419` | T | `useDataGridGroupRow` returns the pivot row meta. |
 | `data-grid/rows/marker-header.tsx:62` | K | The header checkbox is disabled under pivot. |
 | `data-grid/store/create-store.ts:1295` | K | `selectAllMatching()` is a no-op with a dev warning under pivot. |
@@ -439,7 +436,7 @@ Paths are relative to `registry/default/blocks/`. Behavior codes:
 | `data-grid-status-bar/status-bar.tsx:29` | N | The same count. |
 | `data-grid-context-menu/context-menu.tsx:35` | S | The menu gets no data row on a pivot row. |
 | `data-grid-context-menu/context-menu.tsx:36` | S | The same. |
-| `data-grid-context-menu/context-menu.tsx:172` | T | The group-row menu offers no expand or collapse on a pivot row. |
+| `data-grid-context-menu/context-menu.tsx:172` | T | The group-row menu offers expand and collapse on an expandable pivot row only. |
 | `data-grid-context-menu/context-menu.tsx:173` | T | The same. |
 | `data-grid-context-menu/menu-items.tsx:178` | S | Row id lookup. |
 | `data-grid-context-menu/menu-items.tsx:195` | S | Expand all is client only. |
@@ -544,7 +541,7 @@ Paths are relative to `registry/default/blocks/`. Behavior codes:
 | `data-grid-server/group-lists.ts:80` | S | Child counts. They are `0` under pivot. |
 | `data-grid-server/group-lists.ts:142` | T | Writes `childCount: 0` and `pivotCells` into the slot. |
 | `data-grid-server/group-lists.ts:148` | T | Opens no child list under pivot, also under `expanded: "expanded"`, expand all, or restored ids. |
-| `data-grid-server/parse-server-spec.ts:112` | S | `childKind` is `"groups"` for the one level. |
+| `data-grid-server/parse-server-spec.ts:112` | S | `childKind` is `"groups"` at every pivot level. |
 
 Count: 176 sites.
 

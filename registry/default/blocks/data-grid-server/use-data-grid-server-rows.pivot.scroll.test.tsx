@@ -118,18 +118,6 @@ describe("a pivot scroll source", () => {
     expect(server.calls.every((call) => call.childKind === "groups")).toBe(true);
   });
 
-  it("sends no pivot with 2 groupBy levels and warns once", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const server = fakeServer(rowsOf(REGIONS));
-    const { result } = mount(server, { defaultSpec: { ...PIVOT_SPEC, groupBy: ["region", "qty"] } });
-    await waitFor(() => expect(result.current.gridProps.groupLayout?.rows).toHaveLength(3));
-    expect("pivot" in server.calls[0]!.spec).toBe(false);
-    expect(result.current.gridProps.groupLayout!.pivot).toBeUndefined();
-    act(() => result.current.refresh());
-    await act(settle);
-    expect(warn.mock.calls.filter(([message]) => String(message).includes("spec.pivot"))).toHaveLength(1);
-  });
-
   it("sends no pivot on the flat request once groupBy goes, and pivots again when it returns", async () => {
     const server = fakeServer(rowsOf(REGIONS));
     const { result } = mount(server);

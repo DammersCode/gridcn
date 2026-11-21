@@ -13,77 +13,71 @@ export function groupRowExpandable(s: { pivot?: object | null; groupBy?: readonl
   return !s.pivot || node.depth < (s.groupBy?.length ?? 0) - 1;
 }
 
-// `flat`: no row opens (one-level pivot), so every view row, loaded or not, is a top-level row at its own position.
-type GroupIndex = { viewRows: Int32Array; posInSet: Int32Array; setSize: Int32Array; flat: boolean };
+/** Per view row: the group index of its parent (-1 at the top level) and its position among the parent's children. */
+type GroupIndex = { expanded: ExpandedState | undefined; parent: Int32Array; posInSet: Int32Array; topLevel: number };
+type PositionState = { viewIndex: ArrayLike<number>; groupLayout: GroupLayout | null; expanded?: ExpandedState; pivot?: object | null; groupBy?: readonly string[] };
 
 const indexByView = new WeakMap<object, GroupIndex>();
 const openByExpanded = new WeakMap<ExpandedState, (id: string) => boolean>();
 
-function buildIndex(view: ArrayLike<number>, layout: GroupLayout): GroupIndex {
-  const rows = layout.rows;
-  const viewRows = new Int32Array(rows.length);
-  for (let viewRow = 0; viewRow < view.length; viewRow++) {
-    const entry = view[viewRow]!; // viewRow < length by loop condition
-    if (entry < 0) viewRows[-entry - 1] = viewRow;
+function openTest(expanded: ExpandedState): (id: string) => boolean {
+  let isOpen = openByExpanded.get(expanded);
+  if (!isOpen) {
+    isOpen = expandedTest(expanded);
+    openByExpanded.set(expanded, isOpen);
   }
-  const posInSet = new Int32Array(rows.length);
-  const setSize = new Int32Array(rows.length);
-  const counts: number[] = [];
-  const parents: GroupNode[] = [];
-  let topLevel = 0;
-  for (let i = 0; i < rows.length; i++) {
-    const node = rows[i]!; // i < length by loop condition
-    counts.length = node.depth + 1;
-    counts[node.depth] = (counts[node.depth] ?? 0) + 1;
-    posInSet[i] = counts[node.depth]!;
-    parents[node.depth] = node;
-    if (node.depth === 0) topLevel++;
-    else setSize[i] = parents[node.depth - 1]?.childCount ?? 0;
-  }
-  const flat = rows.length > 0 && rows.every((node) => node.depth === 0 && node.childCount === 0);
-  for (let i = 0; i < rows.length; i++) {
-    if (flat) posInSet[i] = viewRows[i]! + 1;
-    if (rows[i]!.depth === 0) setSize[i] = flat ? view.length : topLevel;
-  }
-  return { viewRows, posInSet, setSize, flat };
+  return isOpen;
 }
 
-function indexOfView(view: ArrayLike<number>, layout: GroupLayout): GroupIndex {
-  let index = indexByView.get(view);
-  if (!index) {
-    index = buildIndex(view, layout);
-    indexByView.set(view, index);
+// A server layout is sparse: an unloaded row is no group row, so an open group's children are its next `childCount` view rows.
+function buildIndex(s: PositionState, layout: GroupLayout): GroupIndex {
+  const view = s.viewIndex;
+  const rows = layout.rows;
+  const isOpen = s.expanded ? openTest(s.expanded) : () => false;
+  const parent = new Int32Array(view.length);
+  const posInSet = new Int32Array(view.length);
+  const frames: { group: number; left: number; count: number }[] = [];
+  let topLevel = 0;
+  for (let viewRow = 0; viewRow < view.length; viewRow++) {
+    const entry = view[viewRow]!; // viewRow < length by loop condition
+    const node: GroupNode | undefined = entry < 0 ? rows[-entry - 1] : undefined;
+    while (frames.length > 0 && (frames.at(-1)!.left === 0 || (node !== undefined && node.depth < frames.length))) frames.pop();
+    const frame = frames.at(-1);
+    if (frame) {
+      frame.left--;
+      parent[viewRow] = frame.group;
+      posInSet[viewRow] = ++frame.count;
+    } else {
+      parent[viewRow] = -1;
+      posInSet[viewRow] = ++topLevel;
+    }
+    const next = view[viewRow + 1];
+    const deeper = next !== undefined && next < 0 && node !== undefined && rows[-next - 1]!.depth > node.depth;
+    if (node && node.childCount > 0 && (deeper || (isOpen(node.id) && groupRowExpandable(s, node)))) frames.push({ group: -entry - 1, left: node.childCount, count: 0 });
+  }
+  return { expanded: s.expanded, parent, posInSet, topLevel };
+}
+
+function indexOfView(s: PositionState, layout: GroupLayout): GroupIndex {
+  let index = indexByView.get(s.viewIndex);
+  if (!index || index.expanded !== s.expanded) {
+    index = buildIndex(s, layout);
+    indexByView.set(s.viewIndex, index);
   }
   return index;
 }
 
-/** The group row that heads the row at `viewRow` (the innermost open group above it), or -1. */
-function owningGroup(index: GroupIndex, viewRow: number): number {
-  let low = 0;
-  let high = index.viewRows.length - 1;
-  while (low <= high) {
-    const mid = (low + high) >> 1;
-    if (index.viewRows[mid]! <= viewRow) low = mid + 1;
-    else high = mid - 1;
-  }
-  return high;
-}
-
 /** Level, position, and set size of a view row of a grouped view; `null` when the grid does not group or the row is missing. */
-export function groupPositionAt(s: { viewIndex: ArrayLike<number>; groupLayout: GroupLayout | null }, viewRow: number): GroupPosition | null {
+export function groupPositionAt(s: PositionState, viewRow: number): GroupPosition | null {
   const layout = s.groupLayout;
   if (!layout) return null;
   const at = groupIndexAt(s.viewIndex, viewRow);
   if (at === undefined && dataIndexAt(s, viewRow) === undefined) return null;
-  const index = indexOfView(s.viewIndex, layout);
-  if (at !== undefined) {
-    return { level: layout.rows[at]!.depth + 1, posInSet: index.posInSet[at]!, setSize: index.setSize[at]! };
-  }
-  if (index.flat) return { level: 1, posInSet: viewRow + 1, setSize: s.viewIndex.length };
-  const owner = owningGroup(index, viewRow);
-  if (owner < 0) return null;
-  const group = layout.rows[owner]!;
-  return { level: group.depth + 2, posInSet: viewRow - index.viewRows[owner]!, setSize: group.childCount };
+  const index = indexOfView(s, layout);
+  const parent = index.parent[viewRow]!;
+  const owner = parent < 0 ? undefined : layout.rows[parent]!;
+  const level = at !== undefined ? layout.rows[at]!.depth + 1 : owner ? owner.depth + 2 : 1;
+  return { level, posInSet: index.posInSet[viewRow]!, setSize: owner ? owner.childCount : index.topLevel };
 }
 
 /** The group row at `viewRow` with its position and open state; `null` for a data row, a hole, or a grid that does not group. */
@@ -96,12 +90,7 @@ export function groupRowMetaAt(
   const node = s.groupLayout.rows[at];
   const position = groupPositionAt(s, viewRow);
   if (!node || !position) return null;
-  let isOpen = openByExpanded.get(s.expanded);
-  if (!isOpen) {
-    isOpen = expandedTest(s.expanded);
-    openByExpanded.set(s.expanded, isOpen);
-  }
   const expandable = groupRowExpandable(s, node);
-  return { ...position, node, expanded: expandable && isOpen(node.id), expandable };
+  return { ...position, node, expanded: expandable && openTest(s.expanded)(node.id), expandable };
 }
 

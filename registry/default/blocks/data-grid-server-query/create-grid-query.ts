@@ -75,7 +75,7 @@ export type QueryExecutor<TWhere, TOrder> = {
   countGroups(plan: GroupsPlan, signal?: AbortSignal): Promise<unknown>;
   /**
    * The first `limit` groups of `plan.level` in key order with the empty key last, in one query; each row's `total` is
-   * the group count of the whole result. `plan.aggregates` holds the values of each key. Required when `capabilities.pivot` is on.
+   * the key count under the plan's scoped `where`, the group path included. `plan.aggregates` holds the values of each key. Required when `capabilities.pivot` is on.
    */
   selectPivotKeys?(plan: GroupsPlan, page: { limit: number; signal?: AbortSignal }): Promise<{ key: unknown; total: unknown }[]>;
   where(plan: { where: Predicate }): TWhere;

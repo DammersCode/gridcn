@@ -22,6 +22,7 @@ const MAX_CONCURRENT = 16;
 const DEFAULT_LOAD_DELAY_MS = 100;
 const DEFAULT_MAX_LOADED_ROWS = 10_000;
 const MAX_PIVOT_BLOCK_SIZE = 200;
+const MAX_PIVOT_LEVELS = 4;
 const NO_GROUPS: readonly string[] = [];
 
 /** The open groups of a grouped server source. */
@@ -66,10 +67,11 @@ const blockSizeOf = (options: { blockSize?: number }, pages: GroupPagesConfig | 
   return pivot !== null ? Math.min(size, MAX_PIVOT_BLOCK_SIZE) : size;
 };
 
-/** The pivot column when `spec.pivot` can be sent: 1 pivot column outside the 1 `groupBy` column, and at least 1 aggregate. */
+/** The pivot column when `spec.pivot` can be sent: 1 pivot column outside 1 to 4 `groupBy` columns, and at least 1 aggregate. */
 function pivotColumnOf(spec: ServerSpec): string | null {
   const ids = spec.pivot?.columnIds;
-  if (ids?.length !== 1 || spec.groupBy?.length !== 1 || !spec.aggregates?.length || spec.groupBy.includes(ids[0]!)) return null;
+  const levels = spec.groupBy?.length ?? 0;
+  if (ids?.length !== 1 || levels < 1 || levels > MAX_PIVOT_LEVELS || !spec.aggregates?.length || spec.groupBy!.includes(ids[0]!)) return null;
   return ids[0]!;
 }
 
@@ -507,7 +509,7 @@ export function useGroupBlocks<TData, TCursor = never>(
 
   useEffect(() => {
     if (!active || !spec.pivot || pivot !== null) return;
-    if (groupBy.length > 1) warn("pivot-levels", "spec.pivot takes 1 groupBy column; with more, the request carries no pivot");
+    if (groupBy.length > MAX_PIVOT_LEVELS) warn("pivot-levels", "spec.pivot takes 1 to 4 groupBy columns; with more, the request carries no pivot");
     else warn("pivot-shape", "spec.pivot needs 1 pivot column outside groupBy and at least 1 aggregate; the request carries no pivot");
   }, [active, spec.pivot, pivot, groupBy, warn]);
 

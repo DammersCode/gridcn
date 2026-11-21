@@ -32,7 +32,7 @@ export type ServerGroupsAnswer = {
   groupCount: number;
   /** Top level: the row count of the result. Required there. */
   totalRowCount?: number;
-  /** Under `spec.pivot`: the generated columns of the whole result, key-major. Required there. */
+  /** Under `spec.pivot`: the generated columns of the rows under `groupPath` (the whole result at the top level), key-major. Required there. */
   pivotColumns?: readonly PivotColumnDescriptor[];
   /** Generated columns the server cut past its cap. */
   pivotOmitted?: number;
