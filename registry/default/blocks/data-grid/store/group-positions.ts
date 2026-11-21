@@ -5,10 +5,15 @@ import { dataIndexAt, groupIndexAt } from "./view-rows";
 /** Where a view row sits in the tree of a grouped view: `level` and `posInSet` count from 1, like `aria-level` and `aria-posinset`. */
 export type GroupPosition = { level: number; posInSet: number; setSize: number };
 
-/** What a group row renders from. */
-export type GroupRowMeta = GroupPosition & { node: GroupNode; expanded: boolean };
+/** What a group row renders from. `expandable` is false for an innermost pivot row, which never opens and reports `expanded: false`. */
+export type GroupRowMeta = GroupPosition & { node: GroupNode; expanded: boolean; expandable: boolean };
 
-// `flat`: no row opens (pivot), so every view row, loaded or not, is a top-level row at its own position.
+/** Whether a group row can open: always without pivot, and only above the innermost `groupBy` level under pivot. */
+export function groupRowExpandable(s: { pivot?: object | null; groupBy?: readonly string[] }, node: GroupNode): boolean {
+  return !s.pivot || node.depth < (s.groupBy?.length ?? 0) - 1;
+}
+
+// `flat`: no row opens (one-level pivot), so every view row, loaded or not, is a top-level row at its own position.
 type GroupIndex = { viewRows: Int32Array; posInSet: Int32Array; setSize: Int32Array; flat: boolean };
 
 const indexByView = new WeakMap<object, GroupIndex>();
@@ -83,7 +88,7 @@ export function groupPositionAt(s: { viewIndex: ArrayLike<number>; groupLayout: 
 
 /** The group row at `viewRow` with its position and open state; `null` for a data row, a hole, or a grid that does not group. */
 export function groupRowMetaAt(
-  s: { viewIndex: ArrayLike<number>; groupLayout: GroupLayout | null; expanded: ExpandedState; pivot?: object | null },
+  s: { viewIndex: ArrayLike<number>; groupLayout: GroupLayout | null; expanded: ExpandedState; pivot?: object | null; groupBy?: readonly string[] },
   viewRow: number,
 ): GroupRowMeta | null {
   const at = groupIndexAt(s.viewIndex, viewRow);
@@ -96,6 +101,7 @@ export function groupRowMetaAt(
     isOpen = expandedTest(s.expanded);
     openByExpanded.set(s.expanded, isOpen);
   }
-  return { ...position, node, expanded: !s.pivot && isOpen(node.id) };
+  const expandable = groupRowExpandable(s, node);
+  return { ...position, node, expanded: expandable && isOpen(node.id), expandable };
 }
 
