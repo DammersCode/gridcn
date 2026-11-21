@@ -35,6 +35,7 @@ export function refreshedGroups(s: DataGridStoreState, nextData: readonly unknow
     if (replaced.size === 0) return {};
     const next = { ...layout, rows: layout.rows.map((node) => replaced.get(node.id) ?? node) };
     registerGroupLayout(s.viewIndex, next);
+    registerGroupLayout(fullViewOf(s.viewIndex), next);
     return { groupLayout: next };
   }
   if (!aggregateSpecs(s.columns).some((spec) => writtenIds.has(spec.columnId))) return {};
@@ -66,7 +67,8 @@ export function appendedPivotLayout(s: DataGridStoreState, nextData: readonly un
   const layout = s.groupLayout;
   const pivot = layout?.pivot;
   const tree = layout?.tree as GroupTree | undefined;
-  if (!layout || !pivot || !tree || nextData.length <= s.data.length) return null;
+  // A pending rebuild may move rows that the buckets still hold.
+  if (!layout || !pivot || !tree || nextData.length <= s.data.length || s.viewStale || (s.dataWrite.deferredRows?.size ?? 0) > 0) return null;
   for (let row = 0; row < s.data.length; row++) if (nextData[row] !== s.data[row]) return null;
   const accessor = textAccessorFor(s.columns, nextData, s.cellTypes);
   const keep = filters.length === 0 ? null : makeFilterPredicate(accessor, filters);

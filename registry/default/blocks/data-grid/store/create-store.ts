@@ -304,7 +304,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
     queueMicrotask(() => warnDev('totalRowCount makes sorting and filtering server-side by default, and nothing here handles onSortChange or onFilterChange, so the grid will not reorder or narrow its rows. Fetch rows for the spec, or set sortMode="client" and filterMode="client" to work on the loaded rows'));
   }
   const initGroupBy = initialGroupBy(init, effectiveLayout.columns);
-  const initPivotColumnIds = normalizePivot(init.pivot ?? init.defaultPivot);
+  const initPivotColumnIds = normalizePivot(init.pivot ?? plainSeed(init.defaultPivot));
   const initGroupMode = groupModeOf(init);
   const initExpanded = initialExpanded(init, () => warnStoreOnce("expanded cut", EXPANDED_CUT_MESSAGE));
   const initSearchText = init.searchText ?? plainSeed(init.defaultSearchText) ?? "";

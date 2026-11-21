@@ -332,8 +332,8 @@ export type DataGridSyncProps<TData = unknown> = {
   onGroupByChange?: (next: readonly string[]) => void;
   /** Controlled pivot: one generated column per key of the pivot column and per built-in `aggregate`; needs `groupBy`. `{ columnIds: [] }` is off. */
   pivot?: PivotSpec;
-  /** Seeds the pivot once at store creation. */
-  defaultPivot?: PivotSpec;
+  /** Seeds the pivot once at store creation. A function runs once on the client after mount. */
+  defaultPivot?: PivotSpec | (() => PivotSpec | null | undefined);
   /** Fires after `setPivot` changes the pivot, with `undefined` when it turns off. */
   onPivotChange?: (next: PivotSpec | undefined) => void;
   /** Controlled open groups. A toggle applies at once and emits. Default: every group collapsed. */

@@ -338,3 +338,43 @@ describe("streamed rows under a client pivot", () => {
     expect(live.cells()).toEqual(before);
   });
 });
+
+describe("client pivot refresh edge cases", () => {
+  const frames: (() => void)[] = [];
+  afterEach(() => {
+    frames.length = 0;
+    vi.unstubAllGlobals();
+  });
+
+  it.each(["defer", "frame"] as const)("rebuilds an appended row over a pending %s write to a groupBy column", (reorder) => {
+    vi.stubGlobal("requestAnimationFrame", (run: () => void) => frames.push(run));
+    vi.stubGlobal("cancelAnimationFrame", () => {});
+    const live = make();
+    live.state().actions.updateCells([{ rowId: "r0", columnId: "region", value: "US" }], { source: "stream", reorder });
+    const data = [...(live.state().data as Row[]), { id: "s0", region: "EU", city: "", year: 2025, amount: 7, note: "" }];
+    live.sync({ data });
+    frames.splice(0).forEach((run) => run());
+    expect(live.cells()).toEqual(make({ data }).cells());
+  });
+
+  it("shows a value write on another page under client pagination", () => {
+    const live = make({ pageSize: 1 });
+    live.state().actions.updateCells([{ rowId: "r3", columnId: "amount", value: 40 }], { source: "stream" });
+    live.state().actions.setPage(2);
+    expect(live.cells()).toEqual([["__group:region=US", 3, 40, null]]);
+  });
+});
+
+describe("a function seed of the pivot", () => {
+  it("starts without the pivot and applies the seed once after mount", async () => {
+    const { applyFunctionSeeds } = await import("./function-seed");
+    const seed = vi.fn(() => ({ columnIds: ["year"] }));
+    const init = { data: rows.map((row) => ({ ...row })), columns, getRowId: (row: Row) => row.id, groupBy: ["region"], defaultPivot: seed } as unknown as InternalSyncProps;
+    const store = createDataGridStore(init);
+    expect(store.getState().pivot).toBeNull();
+    applyFunctionSeeds(store, init);
+    applyFunctionSeeds(store, init);
+    expect(seed).toHaveBeenCalledTimes(1);
+    expect(store.getState().pivot?.columnId).toBe("year");
+  });
+});
