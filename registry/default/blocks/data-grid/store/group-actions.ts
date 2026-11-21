@@ -15,7 +15,9 @@ import type { FollowView, SyncMemory } from "./sync-props";
 import type { DataGridActions, DataGridStoreState } from "./types";
 import { dataIndexAt, registerGroupLayout, viewRowOfGroupId } from "./view-rows";
 
-type GroupActions = Pick<DataGridActions, "setGroupBy" | "toggleGroupBy" | "setPivot" | "setExpanded" | "toggleGroup" | "expandAll" | "collapseAll">;
+const NO_PIVOT: readonly string[] = [];
+
+type GroupActions =Pick<DataGridActions, "setGroupBy" | "toggleGroupBy" | "setPivot" | "setExpanded" | "toggleGroup" | "expandAll" | "collapseAll">;
 
 type Deps = {
   set: StoreApi<DataGridStoreState>["setState"];
@@ -74,15 +76,19 @@ export function createGroupActions({ set, get, dataWrite, followView, memory }: 
     const resetPage = () => {
       if (s.pageSize !== null && s.page !== 1) s.onPageChange?.(1);
     };
+    // A pivot needs groupBy, so the last ungroup turns it off too.
+    const pivotOff = groupBy.length === 0 && s.pivotColumnIds.length > 0 ? { columnIds: NO_PIVOT } : null;
+    const emitPivotOff = () => pivotOff && s.onPivotChange?.(pivotOff);
     if (heldForServer(s)) {
       set({ requestedGroupBy: groupBy });
-      emitAfterWrites(dataWrite, () => s.onGroupByChange?.(groupBy), resetPage);
+      emitAfterWrites(dataWrite, () => s.onGroupByChange?.(groupBy), emitPivotOff, resetPage);
       return;
     }
-    set((s2) => ({ ...regroup(s2, groupBy), requestedGroupBy: null }));
-    memory.lastSyncInputs = { ...memory.lastSyncInputs, groupBy };
+    set((s2) => ({ ...regroup(s2, groupBy, pivotOff ? NO_PIVOT : s2.pivotColumnIds), requestedGroupBy: null }));
+    memory.lastSyncInputs = { ...memory.lastSyncInputs, groupBy, ...(pivotOff ? { pivotColumnIds: NO_PIVOT } : null) };
     if (s.groupByControlled) rememberEmitted(memory.group.groupByEcho, groupBy);
-    emitAfterWrites(dataWrite, () => s.onGroupByChange?.(groupBy), resetPage);
+    if (pivotOff && s.pivotControlled) rememberEmitted(memory.group.pivotEcho, pivotOff);
+    emitAfterWrites(dataWrite, () => s.onGroupByChange?.(groupBy), emitPivotOff, resetPage);
   };
 
   const commitPivot = (requested: PivotSpec | undefined): void => {

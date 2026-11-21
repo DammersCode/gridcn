@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createRemoteServer } from "./fake-remote-server";
+import { generateSales } from "./sales-data";
 
 async function ids(server: ReturnType<typeof createRemoteServer>, count: number) {
   const { rows } = await server.fetchPage({ page: 1, pageSize: count });
@@ -134,5 +135,32 @@ describe("createRemoteServer ranges and values", () => {
 
   it("rejects a column outside the allowed set", async () => {
     await expect(createRemoteServer().fetchValues({ columnId: "secret", search: "" })).rejects.toThrow();
+  });
+});
+
+describe("createRemoteServer with its own rows", () => {
+  it("serves the given rows and filters on their columns", async () => {
+    const server = createRemoteServer({ rows: generateSales(50) });
+    const financed = await server.fetchPage({ page: 1, pageSize: 50, filters: [{ columnId: "financed", operator: "equals", value: "true" }] });
+
+    expect(server.total).toBe(50);
+    expect(financed.total).toBeGreaterThan(0);
+    expect(financed.total).toBeLessThan(50);
+    expect(financed.rows.every((row) => row.financed)).toBe(true);
+  });
+
+  it("rejects a column the given rows do not have", async () => {
+    const server = createRemoteServer({ rows: generateSales(5) });
+
+    await expect(server.fetchPage({ page: 1, pageSize: 5, filters: [{ columnId: "role", operator: "equals", value: "Admin" }] })).rejects.toThrow();
+  });
+
+  it("bumps a number column and keeps the new value for the next fetch", async () => {
+    const server = createRemoteServer({ rows: generateSales(5) });
+    const [first] = (await server.fetchPage({ page: 1, pageSize: 1 })).rows;
+    const pushes = server.bumpNumbers([first!.id, "missing"], "price", (price) => price + 100);
+
+    expect(pushes).toEqual([{ rowId: first!.id, changes: { price: first!.price + 100 } }]);
+    expect((await server.fetchPage({ page: 1, pageSize: 1 })).rows[0]!.price).toBe(first!.price + 100);
   });
 });

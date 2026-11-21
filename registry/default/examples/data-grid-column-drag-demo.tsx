@@ -42,7 +42,7 @@ const columns = defineColumns<DemoRow>()([
   },
   { id: "age", header: "Age", accessorKey: "age", type: "number", options: { min: 18, max: 100 }, width: 80, flex: 1 },
   { id: "joined", header: "Joined", accessorKey: "joined", type: "date", width: 110, flex: 1 },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", options: { min: 0, max: 100 }, width: 80, flex: 1, pin: "end" },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", options: { min: 0, max: 100 }, width: 80, flex: 1, pin: "end" },
 ] as const);
 
 /** Pick a column + move it one step left/right through the programmatic `setColumnOrder` path. */
@@ -94,7 +94,7 @@ function ReorderControls(): ReactNode {
 
 /**
  * Column drag & drop: `enableColumnReorder` lets a header drag within its pin zone (Name opts
- * out via `reorderable: false`, Score is end-pinned and moves only with the pinned zone), and
+ * out via `reorderable: false`, Logins is end-pinned and moves only with the pinned zone), and
  * the picker + buttons show the programmatic `setColumnOrder(id, targetId, position)` path.
  */
 export default function DataGridColumnDragDemo(): ReactNode {
@@ -104,7 +104,7 @@ export default function DataGridColumnDragDemo(): ReactNode {
     <div className="w-full flex flex-col gap-3">
       <p className="text-sm text-muted-foreground">
         Drag a header to reorder it — the move stays inside its pin zone. Name cannot be moved
-        (<code>reorderable: false</code>) and Score is pinned to the end. The picker below the line
+        (<code>reorderable: false</code>) and Logins is pinned to the end. The picker below the line
         moves the chosen column programmatically.
       </p>
       <DataGridProvider defaultData={rows} columns={columns} enableColumnReorder>

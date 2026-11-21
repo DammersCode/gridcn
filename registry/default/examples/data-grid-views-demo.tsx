@@ -31,7 +31,7 @@ const columns = defineColumns<DemoRow>()([
     width: 120,
     filterable: true,
   },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 90 },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 90 },
 ] as const);
 
 const emptyLayout = { widths: {}, order: [], pins: {}, hidden: [] };
@@ -41,7 +41,7 @@ const SEED: DataGridViewsDocument = {
   version: 1,
   defaultViewId: null,
   views: [
-    { id: "top-scores", name: "Top scores", state: { sorts: [{ columnId: "score", direction: "desc" }], groupBy: [], filters: [], searchText: "", searchOptions: noSearch, columnLayout: emptyLayout } },
+    { id: "top-scores", name: "Most active", state: { sorts: [{ columnId: "score", direction: "desc" }], groupBy: [], filters: [], searchText: "", searchOptions: noSearch, columnLayout: emptyLayout } },
     {
       id: "admins",
       name: "Admins, compact",

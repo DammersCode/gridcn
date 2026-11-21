@@ -30,13 +30,8 @@ type Sale = { id: string; region: string; year: number; amount: number };
 const columns = defineColumns<Sale>()([
   { id: "region", header: "Region", accessorKey: "region" },
   { id: "year", header: "Year", accessorKey: "year", type: "number" },
-  {
-    id: "amount",
-    header: "Amount",
-    accessorKey: "amount",
-    type: "number",
-    aggregate: "sum",
-  },
+  { id: "amount", header: "Amount", accessorKey: "amount",
+    type: "number", aggregate: "sum" },
 ]);
 
 export function SalesPivot() {
@@ -56,7 +51,7 @@ export function SalesPivot() {
 }
 ```
 
-Each request is a groups request: `childKind: "groups"`, `groupPath`, and `spec.pivot`. Its `sorts` hold only the entries of the `groupBy` and pivot columns. A scroll block or a page holds at most 200 groups.
+Each request is a groups request: `childKind: "groups"`, `groupPath`, and `spec.pivot`. Its `sorts` hold only the entries of the `groupBy` and pivot columns. A scroll block or a page holds at most 200 groups. The hook takes `pivot`, `defaultPivot`, and `onPivotChange`. A controlled `pivot` wins over `spec.pivot`, and a controlled `spec` or `pivot` ignores `defaultPivot`.
 
 ## Answer the pivot [#answer]
 
@@ -85,7 +80,7 @@ const answer = {
 - `path` holds the pivot key. `valueIndex` is the index of the value in `spec.aggregates`.
 - `pivotColumns` is key-major: all values of one key are adjacent. A sort on the pivot column sets the key order. Without one, keys ascend. The empty key comes last, and `null` and `""` are one key.
 - `pivotCells` holds one finite number or `null` per `pivotColumns` entry. `null` shows an empty cell.
-- `pivotOmitted` counts the generated columns that the server cut.
+- `pivotOmitted` counts the columns that the server cut.
 
 ## Answer checks [#checks]
 
@@ -105,20 +100,20 @@ The grid shows a non-finite cell as empty and reads a bad `pivotOmitted` as `0`.
 - With 2 or more values, each key gets one header over its value columns. With 1 value, the header holds the key text. `labels.pivot` names the values ("Sum of Amount") and the empty key.
 - A generated column is read-only. It has no sort, filter, move, pin, or header menu. Its cell type is the cell type of the value column, and `count` uses `number`.
 - The first top-level answer after a spec change or `refresh()` sets the held set. Later answers map their cells into it by column id. A held column that an answer lacks shows empty cells.
-- URL state and saved views store no generated column.
-- Under pivot, the grid drops a column or column group whose id starts with `__pivot:` or `__pivotgroup:`, and logs an error in development.
+- URL state and saved views skip generated columns.
+- Under pivot, a column or column group id that starts with `__pivot:` or `__pivotgroup:` drops with a development error.
 
 ## Limits and behavior [#limits]
 
-- The grid shows at most 200 generated columns. A note below the grid shows "+N more columns" for the columns the server or the grid cut.
-- A pivot takes 1 to 4 `groupBy` levels. With more levels, or with no aggregates, the request carries no pivot, and the hook warns once in development.
+- The grid shows at most 200 generated columns. A "+N more columns" note counts the rest.
+- A pivot takes 1 to 4 `groupBy` levels. With more levels, or with no aggregates, the request carries no pivot, the hook warns once in development, and the menu hides **Pivot by**.
 - A local array and client pagination pivot on the client: see [Pivot](/docs/rows-pages-menus/pivot).
-- Pivot rows cannot be checked. The header checkbox is disabled. `selectAllMatching()` does nothing and warns in development.
+- Pivot rows cannot be checked. The header checkbox is disabled, and `selectAllMatching()` warns in development.
 - Pivot cells refuse every write: edit, paste, fill, cut, clear, and comments.
 - Only a pivot row above the innermost level opens. Its child rows carry their own cells.
 - Past 1,000,000 held cells, the oldest group blocks unload.
 - Copy, export, and print write group keys in the `groupBy` column. Export and print skip a pivot row whose cells did not land. A header under a key reads `key / value`. CSV neutralizes formula-like keys. XLSX writes pivot cells as numbers and group keys as text, even for a number column.
-- Find matches the text a pivot cell shows. Replace leaves pivot cells unchanged.
+- Find matches the shown text of a pivot cell, and replace skips it.
 
 ## Pivot with the query layer [#query-layer]
 

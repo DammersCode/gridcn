@@ -97,6 +97,8 @@ export type ServerGroupLayout = {
   readonly leafCount: number;
   /** The held set. Present under pivot. */
   readonly pivot?: ServerPivotLayout;
+  /** `false` while the source cannot send `spec.pivot` (no aggregates, more than 4 `groupBy` levels); the header menu then hides "Pivot by". */
+  readonly pivotable?: false;
 };
 
 /** A pivot: the pivot column, the one entry of `columnIds`. */

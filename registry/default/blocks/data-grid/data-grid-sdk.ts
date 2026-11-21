@@ -7,6 +7,7 @@
  */
 
 import { use, useCallback, useEffect } from "react";
+import { useStore } from "zustand";
 import { useDataGridInternalActions, useDataGridStoreApi as useDataGridStoreApiRaw } from "./store";
 import { gridStoreWrapper, setServerReshapeHandler } from "./store/api";
 import { nextAnnouncement } from "./store/announcements";
@@ -175,6 +176,10 @@ export function useDataGridAnnounce(): (kind: LiveAnnouncementKind, count: numbe
     [store],
   );
 }
+/** Whether the source can pivot: `true` on a client grid, `false` while the server layout says `pivotable: false`. */
+export function useDataGridSourcePivots(): boolean {
+  return useStore(useDataGridStoreApiRaw(), (s) => s.groupMode !== "server" || s.serverGroupLayout?.pivotable !== false);
+}
 export { setCellValue } from "./columns/column-helpers";
 export { applyChangeWith, type ApplyChangeOptions } from "./interaction/history";
 export { columnLabelText } from "./columns/column-format-helpers";
@@ -198,5 +203,5 @@ export { requestedGroupByOf } from "./store/group-sync";
 export { buildGroupView } from "./sort-filter/build-group-view";
 export { useDataGridGroupRow } from "./store/hooks";
 export { aggregateValues } from "./aggregate";
-export type { AggregateReducer, AggregateSpecs, ExpandedState, GroupActionResult, GroupKey, GroupLabelCtx, GroupLayout, GroupNode, GroupPathSegment, PivotColumnDescriptor, ServerGroupLayout, ServerGroupSlot, ServerPivotLayout } from "./group-types";
+export type { AggregateReducer, AggregateSpecs, ExpandedState, GroupActionResult, GroupKey, GroupLabelCtx, GroupLayout, GroupNode, GroupPathSegment, PivotColumnDescriptor, PivotSpec, ServerGroupLayout, ServerGroupSlot, ServerPivotLayout } from "./group-types";
 export { MAX_PIVOT_COLUMNS, pivotColumnId, pivotSorts } from "./pivot-columns";

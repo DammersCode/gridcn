@@ -13,7 +13,7 @@ import { groupSaveScope } from "./group-save-scope";
 import { useSaveRefresh, type SaveRefreshPolicy, type SaveRefreshReport } from "./save-refresh";
 import type { UseDataGridServerRowsScrollOptions } from "./scroll-blocks";
 import type { UseDataGridServerRowsScrollProviderProps, UseDataGridServerRowsScrollResult } from "./scroll-types";
-import { isolate, scheduleFrame, useControlled, useMountedPlugins, useRegisteredWiring, useReshape, useRevalidation, withoutPivot, type ServerSpecState } from "./server-state";
+import { isolate, scheduleFrame, useControlled, useMountedPlugins, useRegisteredWiring, useReshape, useRevalidation, withoutPivot, type ServerPivotOptions, type ServerSpecState } from "./server-state";
 import type { UseDataGridServerRowsRootProps } from "./use-data-grid-server-rows";
 
 const DEFAULT_BLOCK_SIZE = 50;
@@ -33,7 +33,7 @@ export type UseDataGridServerRowsGroupOptions = {
   /** Seeds the open groups once. Default: every group closed. */
   defaultExpanded?: ExpandedState;
   onExpandedChange?: (next: ExpandedState) => void;
-};
+} & ServerPivotOptions;
 
 type Flight = { list: GroupList<never>; block: number; controller: AbortController; ids: ReadonlySet<string> | null; mark: number };
 type Failure = { listId: string; error: unknown };
@@ -116,7 +116,7 @@ export function useGroupBlocks<TData, TCursor = never>(
   active: boolean,
   pagesIn?: GroupPagesConfig,
 ) {
-  const { spec, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, onGroupByChange } = specState;
+  const { spec, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, onGroupByChange, pivot: pivotSpec, onPivotChange } = specState;
   const groupBy = spec.groupBy ?? NO_GROUPS;
   const pivot = pivotColumnOf(spec);
   // Under pivot a page is one block, so the pager, the window, and the requests all count pages of the clamped size.
@@ -651,7 +651,8 @@ export function useGroupBlocks<TData, TCursor = never>(
   const ownPlugins = useMemo(() => (paged ? [...guardPlugins, ...pagerPlugins] : guardPlugins), [paged, guardPlugins, pagerPlugins]);
   const plugins = useMountedPlugins(ownPlugins, options.plugins);
   const getRowId = useCallback((row: TData, index: number) => (row === undefined ? holeRowId(index) : live.current.options.getRowId(row, index)), []);
-  const groupLayout = useMemo<ServerGroupLayout>(() => ({ rows: view.slots, leafCount: view.leafCount, ...(view.pivotHold?.layout ? { pivot: view.pivotHold.layout } : null) }), [view]);
+  const pivotable = (spec.aggregates?.length ?? 0) > 0 && groupBy.length <= MAX_PIVOT_LEVELS;
+  const groupLayout = useMemo<ServerGroupLayout>(() => ({ rows: view.slots, leafCount: view.leafCount, ...(view.pivotHold?.layout ? { pivot: view.pivotHold.layout } : null), ...(pivotable ? null : { pivotable: false as const }) }), [view, pivotable]);
 
   const providerProps = useMemo<UseDataGridServerRowsScrollProviderProps<TData>>(
     () => ({
@@ -676,13 +677,15 @@ export function useGroupBlocks<TData, TCursor = never>(
       plugins,
       groupBy: view.laidFor ?? groupBy,
       onGroupByChange,
+      pivot: pivotSpec,
+      onPivotChange,
       expanded,
       onExpandedChange: setExpanded,
       groupMode: "server",
       ...(view.held ? { serverHeld: true as const } : null),
       groupLayout,
     }),
-    [view, getRowId, onDataChange, onSave, onRenderedRowsChange, spec, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, plugins, groupBy, onGroupByChange, expanded, setExpanded, groupLayout],
+    [view, getRowId, onDataChange, onSave, onRenderedRowsChange, spec, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, plugins, groupBy, onGroupByChange, pivotSpec, onPivotChange, expanded, setExpanded, groupLayout],
   );
   useRegisteredWiring(providerProps, wrapSave);
   const rootProps = useMemo<UseDataGridServerRowsRootProps>(() => ({ loading, error, onRetry: retry }), [loading, error, retry]);
@@ -704,7 +707,7 @@ export function useGroupBlocks<TData, TCursor = never>(
 
   const status = error !== null ? "error" : loading ? "loading" : "ready";
   const result: UseDataGridServerRowsScrollResult<TData> = { gridProps, providerProps, rootProps, spec, totalRowCount: view.leafCount, status, loading, error, retry, refresh, reshape, canRevalidate: () => true, unloadedCount: view.holes, getLoadedRanges, evict };
-  const groupProps = useMemo(() => ({ groupBy, onGroupByChange, expanded, onExpandedChange: setExpanded }), [groupBy, onGroupByChange, expanded, setExpanded]);
+  const groupProps = useMemo(() => ({ groupBy, onGroupByChange, pivot: pivotSpec, onPivotChange, expanded, onExpandedChange: setExpanded }), [groupBy, onGroupByChange, pivotSpec, onPivotChange, expanded, setExpanded]);
   const answered = !view.loading && view.laidFor !== undefined && view.laidFor.join("\u0000") === groupBy.join("\u0000");
   return { result, groupProps, pager, pagerPlugins, groupCount: view.groupCount, answered };
 }

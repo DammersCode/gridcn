@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { applyChangeWith, defaultGetRowId, isDev, type ExpandedState, type ServerGroupLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { applyChangeWith, defaultGetRowId, isDev, type ExpandedState, type PivotSpec, type ServerGroupLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridServerPager, type DataGridPaginationControls } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import { DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-pagination/pagination-math";
@@ -153,6 +153,10 @@ export type UseDataGridServerRowsProviderProps<TData> = {
   groupBy?: readonly string[];
   /** Present while the source groups. */
   onGroupByChange?: (next: readonly string[]) => void;
+  /** Present while the source groups: the pivot of the spec, `{ columnIds: [] }` when off. */
+  pivot?: PivotSpec;
+  /** Present while the source groups. */
+  onPivotChange?: (next: PivotSpec) => void;
   /** Present while the source groups: the open groups. */
   expanded?: ExpandedState;
   /** Present while the source groups. */

@@ -5,40 +5,37 @@ import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineCol
 import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
 import { serverAggregateRow, useDataGridPinnedRows } from "@/registry/default/blocks/data-grid-pinned-rows/data-grid-pinned-rows";
 import { DataGridHeaderFilter } from "@/registry/default/blocks/data-grid-toolbar/data-grid-toolbar";
-import type { DemoRow } from "./demo-data";
 import { createRemoteServer, type RemoteFilterNode } from "./fake-remote-server";
+import { generateSales, type SaleRow } from "./sales-data";
 
-const columns = defineColumns<DemoRow>()([
-  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 120, flex: 1 },
-  { id: "role", header: "Role", accessorKey: "role", type: "text", width: 110, flex: 1 },
-  { id: "age", header: "Age", accessorKey: "age", type: "number", width: 90, flex: 1 },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 90, flex: 1 },
+const columns = defineColumns<SaleRow>()([
+  { id: "customer", header: "Customer", accessorKey: "customer", type: "text", width: 140, flex: 1 },
+  { id: "make", header: "Make", accessorKey: "make", type: "text", width: 100, flex: 1 },
+  { id: "model", header: "Model", accessorKey: "model", type: "text", width: 100, flex: 1 },
+  { id: "price", header: "Price", accessorKey: "price", type: "number", width: 110, flex: 1 },
 ] as const);
 
 /**
  * A scrolling grid over a fake server with a totals row that the server computes. The grid holds only the loaded blocks, but the
- * band sums the whole filtered result: `fetchAggregates` receives the spec, so a filter change requests new totals. The band dims
+ * band sums the price of the whole filtered result: `fetchAggregates` receives the spec, so a filter change requests new totals. The band dims
  * while the request runs and keeps the old numbers until the answer lands.
  */
 export default function DataGridServerTotalsDemo(): ReactNode {
-  const remote = useMemo(() => createRemoteServer(), []);
+  const remote = useMemo(() => createRemoteServer({ rows: generateSales(1000) }), []);
   const totals = useMemo(
     () =>
       serverAggregateRow({
-        columnIds: ["age", "score"],
-        cells: { id: "__totals__", name: "Total" },
+        columnIds: ["price"],
+        cells: { id: "__totals__", customer: "Total revenue" },
         fetchAggregates: async ({ spec, signal }) => {
           const all = await remote.fetchRange({ start: 0, end: remote.total, filters: spec.filters as RemoteFilterNode[], signal });
-          return {
-            age: all.rows.reduce((sum, row) => sum + row.age, 0),
-            score: all.rows.reduce((sum, row) => sum + row.score, 0),
-          };
+          return { price: all.rows.reduce((sum, row) => sum + row.price, 0) };
         },
       }),
     [remote],
   );
 
-  const server = useDataGridServerRows<DemoRow>({
+  const server = useDataGridServerRows<SaleRow>({
     mode: "scroll",
     fetchRows: async ({ start, end, signal, spec }) => {
       const page = await remote.fetchRange({ start, end, filters: spec.filters as RemoteFilterNode[], signal });

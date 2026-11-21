@@ -54,7 +54,7 @@ const columns = defineColumns<DemoRow>()([
     width: 130,
   },
   { id: "joined", header: "Joined", accessorKey: "joined", type: "date", width: 140 },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 90 },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 90 },
 ] as const);
 
 /** rAF-loop FPS readout. */

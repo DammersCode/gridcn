@@ -33,7 +33,7 @@ const columns = defineColumns<DemoRow>()([
   },
   { id: "joined", header: "Joined", accessorKey: "joined", type: "date", width: 140 },
   { id: "age", header: "Age", accessorKey: "age", type: "number", width: 90 },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 90 },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 90 },
   { id: "active", header: "Active", accessorKey: "active", type: "checkbox", width: 90 },
 ] as const);
 
@@ -44,11 +44,11 @@ const columnGroups: readonly ColumnGroupDef[] = [
     header: "Work",
     children: ["role", { id: "history", header: "History", children: ["joined", "age"] }],
   },
-  { id: "standing", header: "Standing", children: ["score", "active"] },
+  { id: "activity", header: "Activity", children: ["score", "active"] },
 ];
 
 /**
- * Column groups: Contact, Work (with a nested History group), and Standing sit above their
+ * Column groups: Contact, Work (with a nested History group), and Activity sit above their
  * columns. Click a group header to select its columns. Drag a group header to move the block, or
  * drag a column inside its group. Name is start-pinned, so the Contact header splits at the pin
  * edge. The columns menu lists each group's members under its heading.

@@ -2,7 +2,7 @@ import { createRef, useState, type RefObject } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { DataGrid, defineColumns, type DataGridApi, type ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { groupIdOf } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { groupIdOf, type PivotSpec } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { flashesIn, recordAcross, sampleGrid, type FrameSample } from "@/registry/default/blocks/data-grid/test/frame-timeline.test-helper";
 import { fakeServer } from "./group-fake-server.test-helper";
 import type { ServerRowsRequest } from "./read-answer";
@@ -62,16 +62,17 @@ function gatedServer(cursor: boolean, source: readonly Row[] = ROWS) {
   };
 }
 
-type Setup = { name: string; mode: "scroll" | "pages"; spec: Partial<ServerSpec>; cursor?: boolean; open?: boolean; rows?: readonly Row[]; scrollTop?: number };
+type Setup = { name: string; mode: "scroll" | "pages"; spec: Partial<ServerSpec>; cursor?: boolean; open?: boolean; rows?: readonly Row[]; scrollTop?: number; pivot?: PivotSpec };
 type Server = UseDataGridServerRowsResult<Row> | UseDataGridServerRowsScrollResult<Row>;
 type Handles = { api: RefObject<DataGridApi<Row> | null>; server: { current: Server | null }; setSpec: { current: (next: ServerSpec) => void }; setLabels: { current: (next: object) => void } };
 
 function Harness({ setup, fetchRows, handles }: { setup: Setup; fetchRows: (request: ServerRowsRequest<never>) => Promise<unknown>; handles: Handles }) {
   const [spec, setSpec] = useState<ServerSpec>({ sorts: [], filters: [], searchText: "", groupBy: [], ...setup.spec });
   const [labels, setLabels] = useState<object>({});
+  const [pivot, setPivot] = useState(setup.pivot);
   handles.setSpec.current = setSpec;
   handles.setLabels.current = setLabels;
-  const options = { mode: setup.mode, fetchRows: fetchRows as never, spec, onSpecChange: setSpec, blockSize: 50, overscan: 0, loadDelayMs: 0, pageSizeOptions: setup.spec.groupBy ? [2, 4] : [4, 8], defaultPageSize: setup.spec.groupBy ? 2 : 4, ...(setup.open ? { defaultExpanded: { mode: "collapsed", ids: [groupIdOf([{ columnId: "region", key: "A" }])] } } : null) };
+  const options = { mode: setup.mode, fetchRows: fetchRows as never, spec, onSpecChange: setSpec, blockSize: 50, overscan: 0, loadDelayMs: 0, pageSizeOptions: setup.spec.groupBy ? [2, 4] : [4, 8], defaultPageSize: setup.spec.groupBy ? 2 : 4, ...(setup.open ? { defaultExpanded: { mode: "collapsed", ids: [groupIdOf([{ columnId: "region", key: "A" }])] } } : null), ...(pivot ? { pivot, onPivotChange: setPivot } : null) };
   const server = useDataGridServerRows<Row>(options as never) as Server;
   handles.server.current = server;
   return (
@@ -87,6 +88,7 @@ const GRIDS: Setup[] = [
   { name: "flat scroll scrolled past block 0", mode: "scroll", spec: {}, rows: MANY, scrollTop: 6000 },
   { name: "grouped scroll", mode: "scroll", spec: { groupBy: ["region"], aggregates: [SUM] } },
   { name: "pivot scroll", mode: "scroll", spec: { groupBy: ["region"], aggregates: [SUM], pivot: { columnIds: ["tier"] } } },
+  { name: "pivot scroll with a controlled pivot", mode: "scroll", spec: { groupBy: ["region"], aggregates: [SUM] }, pivot: { columnIds: ["tier"] } },
   { name: "grouped scroll with an open group", mode: "scroll", spec: { groupBy: ["region"], aggregates: [SUM] }, open: true },
   { name: "grouped pages", mode: "pages", spec: { groupBy: ["region"], aggregates: [SUM] } },
   { name: "flat pages", mode: "pages", spec: {} },
@@ -100,6 +102,7 @@ type Action = { name: string; run: (ctx: Ctx) => void; applies?: (setup: Setup) 
 const unscrolled = (setup: Setup) => setup.scrollTop === undefined;
 const rowsChange = (before: FrameSample, after: FrameSample) => after.rows !== before.rows;
 const headerChanges = (before: FrameSample, after: FrameSample) => after.header !== before.header;
+const pivoted = (setup: Setup) => setup.spec.pivot !== undefined || setup.pivot !== undefined;
 
 const ACTIONS: Action[] = [
   { name: "sort", lands: (before, after, setup) => (setup.spec.groupBy ? null : rowsChange(before, after)), fetches: true, run: ({ api, grouped }) => api.actions.setSorts([{ columnId: grouped ? "region" : "qty", direction: "desc" }]) },
@@ -109,11 +112,12 @@ const ACTIONS: Action[] = [
   { name: "groupBy", applies: unscrolled, lands: (before, after, setup) => (setup.mode === "pages" && !setup.spec.groupBy ? null : rowsChange(before, after)), fetches: (setup) => setup.mode === "scroll" || setup.spec.groupBy !== undefined, run: ({ api, grouped }) => api.actions.setGroupBy(grouped ? ["city"] : ["region"]) },
   { name: "ungroup", lands: rowsChange, fetches: true, run: ({ api }) => api.actions.setGroupBy([]), applies: (setup) => setup.spec.groupBy !== undefined },
   { name: "pivot column", lands: headerChanges, fetches: true, run: ({ spec, setSpec }) => setSpec({ ...spec, pivot: { columnIds: ["city"] } }), applies: (setup) => setup.spec.pivot !== undefined },
+  { name: "setPivot", lands: headerChanges, fetches: true, run: ({ api }) => api.actions.setPivot({ columnIds: api.store.getState().pivotColumnIds.length ? [] : ["tier"] }), applies: (setup) => setup.spec.groupBy !== undefined },
   { name: "refresh", fetches: true, run: ({ server }) => server.refresh() },
   { name: "page", lands: rowsChange, fetches: true, run: ({ server }) => (server as UseDataGridServerRowsResult<Row>).pager.onPageChange(2), applies: (setup) => setup.mode === "pages" },
-  { name: "column reorder", lands: (before, after, setup) => (setup.spec.pivot ? null : headerChanges(before, after)), run: ({ api }) => void api.actions.setColumnOrder("qty", "city", "before") },
+  { name: "column reorder", lands: (before, after, setup) => (pivoted(setup) ? null : headerChanges(before, after)), run: ({ api }) => void api.actions.setColumnOrder("qty", "city", "before") },
   { name: "column resize", run: ({ api }) => api.actions.setColumnWidth("city", 200) },
-  { name: "column hide", lands: (before, after, setup) => (setup.spec.pivot ? null : headerChanges(before, after)), run: ({ api }) => api.actions.setColumnHidden("city", true) },
+  { name: "column hide", lands: (before, after, setup) => (pivoted(setup) ? null : headerChanges(before, after)), run: ({ api }) => api.actions.setColumnHidden("city", true) },
   { name: "labels", run: ({ setLabels }) => setLabels({ grid: { noResults: "Nothing found" } }) },
 ];
 

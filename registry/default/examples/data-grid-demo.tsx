@@ -46,7 +46,7 @@ const columns = defineColumns<DemoRow>()([
   },
   {
     id: "score",
-    header: "Score",
+    header: "Logins (30 days)",
     accessorKey: "score",
     type: "number",
     options: { min: 0, max: 100 },
