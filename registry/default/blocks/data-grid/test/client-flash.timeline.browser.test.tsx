@@ -47,7 +47,10 @@ describe("a client grid paints no frame that differs from both the old and the n
       const before = sampleGrid();
       let frames = 0;
       const samples = await recordAcross(() => action.run(handles.api.current!, handles), () => ++frames > 3);
-      expect(flashesIn(samples, before, sampleGrid()).slice(0, 3)).toEqual([]);
+      const after = sampleGrid();
+      // A direction switch moves no text and a search only highlights, so only the other changes can show that they landed.
+      if (action.name !== "direction switch" && action.name !== "search") expect(after, "the change landed").not.toEqual(before);
+      expect(flashesIn(samples, before, after).slice(0, 3)).toEqual([]);
       await screen.unmount();
     });
   }

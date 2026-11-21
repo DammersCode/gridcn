@@ -71,10 +71,13 @@ const blockSizeOf = (options: { blockSize?: number }, pages: GroupPagesConfig | 
 };
 
 /** The pages under pivot: the pager offers only sizes up to the pivot block cap, and a larger size drops to the largest one it offers. */
-function pivotPagesOf(pages: GroupPagesConfig): GroupPagesConfig {
-  const fitting = (pages.pageSizeOptions ?? DEFAULT_PAGE_SIZES).filter((size) => size <= MAX_PIVOT_BLOCK_SIZE);
-  const pageSizeOptions = fitting.length > 0 ? fitting : [MAX_PIVOT_BLOCK_SIZE];
+function pivotPagesOf(pages: GroupPagesConfig, pageSizeOptions: readonly number[]): GroupPagesConfig {
   return { ...pages, pageSizeOptions, pageSize: pages.pageSize <= MAX_PIVOT_BLOCK_SIZE ? pages.pageSize : pageSizeOptions.reduce((a, b) => Math.max(a, b)) };
+}
+
+function pivotPageSizes(options: readonly number[] = DEFAULT_PAGE_SIZES): readonly number[] {
+  const fitting = options.filter((size) => size <= MAX_PIVOT_BLOCK_SIZE);
+  return fitting.length > 0 ? fitting : [MAX_PIVOT_BLOCK_SIZE];
 }
 
 /** The pivot column when `spec.pivot` can be sent: 1 pivot column outside 1 to 4 `groupBy` columns, and at least 1 aggregate. */
@@ -113,7 +116,8 @@ export function useGroupBlocks<TData, TCursor = never>(
   const groupBy = spec.groupBy ?? NO_GROUPS;
   const pivot = pivotColumnOf(spec);
   // Under pivot a page is one block, so the pager, the window, and the requests all count pages of the clamped size.
-  const pages = pagesIn && pivot !== null ? pivotPagesOf(pagesIn) : pagesIn;
+  const pivotSizes = useMemo(() => pivotPageSizes(pagesIn?.pageSizeOptions), [pagesIn?.pageSizeOptions]);
+  const pages = pagesIn && pivot !== null ? pivotPagesOf(pagesIn, pivotSizes) : pagesIn;
   const requestSpec = useMemo(() => requestSpecOf(spec, pivot), [spec, pivot]);
   // Without pivot an aggregate change reloads the group rows in place; under pivot the aggregates are the values of the held set.
   const requestKey = serverSpecKey(pivot === null ? { ...requestSpec, aggregates: undefined } : requestSpec);

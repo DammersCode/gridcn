@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { DataGrid, defineColumns, type DataGridApi, type ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { groupIdOf } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { flashesIn, recordAcross, sampleGrid } from "@/registry/default/blocks/data-grid/test/frame-timeline.test-helper";
+import { flashesIn, recordAcross, sampleGrid, type FrameSample } from "@/registry/default/blocks/data-grid/test/frame-timeline.test-helper";
 import { fakeServer } from "./group-fake-server.test-helper";
 import type { ServerRowsRequest } from "./read-answer";
 import { useDataGridServerRows, type UseDataGridServerRowsResult } from "./use-data-grid-server-rows";
@@ -28,7 +28,7 @@ function gatedServer(cursor: boolean) {
   const work: Row[] = [];
   const fake = fakeServer(work);
   let open = true;
-  let parked: (() => void)[] = [];
+  let parked: ((fail: boolean) => void)[] = [];
   const shape = (spec: ServerSpec) => {
     const text = spec.searchText.toLowerCase();
     const hits = ROWS.filter((row) => text === "" || `${row.region} ${row.city}`.toLowerCase().includes(text));
@@ -47,14 +47,14 @@ function gatedServer(cursor: boolean) {
     fetchRows: (request: ServerRowsRequest<never>) => {
       const result = answer(request);
       if (open) return result;
-      return new Promise((resolve, reject) => parked.push(() => void result.then(resolve, reject)));
+      return new Promise((resolve, reject) => parked.push((fail) => (fail ? reject(new Error("down")) : void result.then(resolve, reject))));
     },
     hold: () => void (open = false),
-    release: () => {
+    release: (fail = false) => {
       open = true;
       const run = parked;
       parked = [];
-      for (const go of run) go();
+      for (const go of run) go(fail);
     },
     idle: () => open && parked.length === 0,
   };
@@ -91,21 +91,24 @@ const GRIDS: Setup[] = [
 ];
 
 type Ctx = { api: DataGridApi<Row>; server: Server; spec: ServerSpec; setSpec: (next: ServerSpec) => void; setLabels: (next: object) => void; grouped: boolean };
-type Action = { name: string; run: (ctx: Ctx) => void; applies?: (setup: Setup) => boolean; fetches?: boolean | ((setup: Setup) => boolean) };
+type Action = { name: string; run: (ctx: Ctx) => void; applies?: (setup: Setup) => boolean; fetches?: boolean | ((setup: Setup) => boolean); lands?: (before: FrameSample, after: FrameSample, setup: Setup) => boolean | null };
+
+const rowsChange = (before: FrameSample, after: FrameSample) => after.rows !== before.rows;
+const headerChanges = (before: FrameSample, after: FrameSample) => after.header !== before.header;
 
 const ACTIONS: Action[] = [
-  { name: "sort", fetches: true, run: ({ api, grouped }) => api.actions.setSorts([{ columnId: grouped ? "region" : "qty", direction: "desc" }]) },
+  { name: "sort", lands: (before, after, setup) => (setup.spec.groupBy ? null : rowsChange(before, after)), fetches: true, run: ({ api, grouped }) => api.actions.setSorts([{ columnId: grouped ? "region" : "qty", direction: "desc" }]) },
   { name: "filter", fetches: true, run: ({ spec, setSpec }) => setSpec({ ...spec, filters: [{ columnId: "qty", operator: "gt", value: "0" }] }) },
-  { name: "search", fetches: true, run: ({ api }) => api.actions.setSearch("a") },
-  { name: "search with no hit", fetches: true, run: ({ api }) => api.actions.setSearch("zzz") },
-  { name: "groupBy", fetches: (setup) => setup.mode === "scroll" || setup.spec.groupBy !== undefined, run: ({ api, grouped }) => api.actions.setGroupBy(grouped ? ["city"] : ["region"]) },
-  { name: "ungroup", fetches: true, run: ({ api }) => api.actions.setGroupBy([]), applies: (setup) => setup.spec.groupBy !== undefined },
-  { name: "pivot column", fetches: true, run: ({ spec, setSpec }) => setSpec({ ...spec, pivot: { columnIds: ["city"] } }), applies: (setup) => setup.spec.pivot !== undefined },
+  { name: "search", lands: rowsChange, fetches: true, run: ({ api }) => api.actions.setSearch("a") },
+  { name: "search with no hit", lands: (_, after) => after.empty, fetches: true, run: ({ api }) => api.actions.setSearch("zzz") },
+  { name: "groupBy", lands: (before, after, setup) => (setup.mode === "pages" && !setup.spec.groupBy ? null : rowsChange(before, after)), fetches: (setup) => setup.mode === "scroll" || setup.spec.groupBy !== undefined, run: ({ api, grouped }) => api.actions.setGroupBy(grouped ? ["city"] : ["region"]) },
+  { name: "ungroup", lands: rowsChange, fetches: true, run: ({ api }) => api.actions.setGroupBy([]), applies: (setup) => setup.spec.groupBy !== undefined },
+  { name: "pivot column", lands: headerChanges, fetches: true, run: ({ spec, setSpec }) => setSpec({ ...spec, pivot: { columnIds: ["city"] } }), applies: (setup) => setup.spec.pivot !== undefined },
   { name: "refresh", fetches: true, run: ({ server }) => server.refresh() },
-  { name: "page", fetches: true, run: ({ server }) => (server as UseDataGridServerRowsResult<Row>).pager.onPageChange(2), applies: (setup) => setup.mode === "pages" },
-  { name: "column reorder", run: ({ api }) => void api.actions.setColumnOrder("qty", "city", "before") },
+  { name: "page", lands: rowsChange, fetches: true, run: ({ server }) => (server as UseDataGridServerRowsResult<Row>).pager.onPageChange(2), applies: (setup) => setup.mode === "pages" },
+  { name: "column reorder", lands: (before, after, setup) => (setup.spec.pivot ? null : headerChanges(before, after)), run: ({ api }) => void api.actions.setColumnOrder("qty", "city", "before") },
   { name: "column resize", run: ({ api }) => api.actions.setColumnWidth("city", 200) },
-  { name: "column hide", run: ({ api }) => api.actions.setColumnHidden("city", true) },
+  { name: "column hide", lands: (before, after, setup) => (setup.spec.pivot ? null : headerChanges(before, after)), run: ({ api }) => api.actions.setColumnHidden("city", true) },
   { name: "labels", run: ({ setLabels }) => setLabels({ grid: { noResults: "Nothing found" } }) },
 ];
 
@@ -138,13 +141,40 @@ async function flashOf(setup: Setup, action: Action) {
   return { flashes: flashesIn(samples, before, after), busy: samples.some((sample) => sample.busy), before, after };
 }
 
+describe("a server grid whose answer to a new spec fails", () => {
+  for (const setup of GRIDS.filter((grid) => grid.name === "flat scroll" || grid.name === "grouped scroll")) {
+    it(`keeps the old rows next to the error bar, then shows the answer of a retry (${setup.name})`, async () => {
+      const gate = gatedServer(false);
+      const handles: Handles = { api: createRef<DataGridApi<Row>>(), server: { current: null }, setSpec: { current: () => {} }, setLabels: { current: () => {} } };
+      const screen = await render(<Harness setup={setup} fetchRows={gate.fetchRows} handles={handles} />);
+      await vi.waitFor(() => expect(sampleGrid().busy || sampleGrid().rows === "").toBe(false));
+      const before = sampleGrid();
+      gate.hold();
+      handles.api.current!.actions.setSearch("a");
+      await frames(4);
+      gate.release(true);
+      await vi.waitFor(() => expect(handles.server.current!.status).toBe("error"));
+      await frames(2);
+      expect(sampleGrid().rows).toBe(before.rows);
+      expect(sampleGrid().empty).toBe(false);
+      expect(document.querySelector("[data-grid-error-state]")).not.toBeNull();
+      handles.server.current!.retry();
+      await vi.waitFor(() => expect(handles.server.current!.status).toBe("ready"));
+      await vi.waitFor(() => expect(sampleGrid().rows).not.toBe(before.rows));
+      await screen.unmount();
+    });
+  }
+});
+
 describe("a server grid paints no frame that differs from both the old and the new state", () => {
   for (const setup of GRIDS) {
     describe(setup.name, () => {
       for (const action of ACTIONS) {
         if (action.applies && !action.applies(setup)) continue;
         it(`across a ${action.name} change`, async () => {
-          const { flashes, busy } = await flashOf(setup, action);
+          const { flashes, busy, before, after } = await flashOf(setup, action);
+          const landed = action.lands?.(before, after, setup) ?? null;
+          if (landed !== null) expect(landed, "the change landed").toBe(true);
           expect(flashes.slice(0, 3)).toEqual([]);
           if (typeof action.fetches === "function" ? action.fetches(setup) : action.fetches) expect(busy).toBe(true);
         });

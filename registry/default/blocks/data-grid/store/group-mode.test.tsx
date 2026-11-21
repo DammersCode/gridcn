@@ -150,6 +150,15 @@ describe("a layout the core refuses", () => {
     expect(state().groupBy).toEqual(["region"]);
     expect(state().viewIndex).toBe(view);
   });
+
+  it("builds on the emitted group columns while the controlled prop has not brought them", () => {
+    const onGroupByChange = vi.fn();
+    const { state } = make({ onGroupByChange });
+    act(() => state().actions.toggleGroupBy("qty"));
+    act(() => state().actions.toggleGroupBy("region"));
+    act(() => state().actions.setGroupBy(["region"]));
+    expect(onGroupByChange.mock.calls.map(([groupBy]) => groupBy)).toEqual([["region", "qty"], ["qty"], ["region"]]);
+  });
 });
 
 describe("expanded state under a server layout", () => {
