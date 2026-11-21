@@ -90,6 +90,9 @@ export function oracleGroupRowIds({ filters, groupBy, path = [] }: OracleRequest
   return (bucket?.leaves ?? []).map((index) => FIXTURE_ROWS[index]!.id).sort((a, b) => a - b);
 }
 
+/** Keys as typed text in code-unit order, the empty key last: a comparison that ignores key order. */
+export const sortedKeys = (keys: readonly unknown[]) => [...keys].map((key) => (key === null ? "\u{10FFFF}" : `${typeof key}:${String(key)}`)).sort();
+
 export type OraclePivotAnswer = { groups: { key: GroupKey; pivotCells: (number | null)[] }[]; pivotColumns: { path: GroupKey[]; valueIndex: number }[]; pivotOmitted: number };
 
 /** The pivot answer of the grid's own `buildPivot` over the fixture literals, or over `rows`: the held set and the cells of the child groups of `path`. */
@@ -98,7 +101,8 @@ export function oracleClientPivot(request: OracleRequest & { pivot: string; rows
   const accessor = rowAccessorFor(GROUP_COLUMNS as never, rows, undefined);
   const keep = makeFilterPredicate(accessor, filters as never);
   const leaves = rows.flatMap((_, index) => (keep(index) ? [index] : []));
-  const built = buildPivot({ leaves, accessor, groupBy, directions, pivotColumnId: pivot, values: aggregates })!;
+  const built = buildPivot({ leaves, accessor, groupBy, directions, pivotColumnId: pivot, values: aggregates });
+  if (!built || "tooLarge" in built) throw new Error("the fixture pivot did not build");
   const level = path.length === 0 ? built.tree.roots : (bucketAt(built.tree, path)?.groups ?? []);
   return {
     groups: level.map(({ node }) => ({ key: node.key, pivotCells: Array.from(node.pivotCells!, (cell) => (Number.isNaN(cell) ? null : cell)) })),

@@ -132,6 +132,8 @@ export type ServerGroupLayout = {
 - Key-major order: all values of one key are adjacent.
 - Key order: a `spec.sorts` entry on the pivot column sets the direction, else ascending. The
   empty key sorts last, as `NULLS LAST` does for group keys.
+- Text keys order by the database collation. The client pivot orders them by the client collator,
+  so the cut can keep other text keys there.
 - `totalRowCount` is the row count of the result. `groupCount` sizes the pivot rows.
 - The `serverSpecKey` of a spec without `pivot` stays the same.
 - Under pivot the hook clamps the block size and the page size to 200 groups, so one page holds

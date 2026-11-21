@@ -4,7 +4,7 @@ import type { ServerAggregate } from "../server-spec";
 import { groupKeyOf, groupKeyText } from "../store/group-state";
 import { buildGroupTree, groupIdsOfRow, type GroupBucket, type GroupTree } from "./build-group-view";
 import type { CellAccessor } from "./build-view-index";
-import { buildPivot } from "./build-pivot";
+import { buildPivot, type PivotBuild, type PivotBuildInput } from "./build-pivot";
 
 const ROW_COUNT = 100_000;
 const KEYS = 200;
@@ -14,8 +14,8 @@ const IDLE_BASELINE_MS = 7;
 
 type Row = { g1: string; g2: string; p: number; v1: number; v2: number; v3: number };
 
-const makeRows = (): Row[] =>
-  Array.from({ length: ROW_COUNT }, (_, i) => ({ g1: `a${i % 40}`, g2: `b${Math.trunc(i / 40) % 25}`, p: (i * 7) % KEYS, v1: i % 997, v2: (i * 13) % 101, v3: i % 50 }));
+const makeRows = (keyCount = KEYS): Row[] =>
+  Array.from({ length: ROW_COUNT }, (_, i) => ({ g1: `a${i % 40}`, g2: `b${Math.trunc(i / 40) % 25}`, p: (i * 7) % keyCount, v1: i % 997, v2: (i * 13) % 101, v3: i % 50 }));
 
 const accessorOf = (rows: readonly Row[], reads?: Map<string, number>): CellAccessor => ({
   getText: (row, id) => String(rows[row]![id as keyof Row]),
@@ -30,6 +30,12 @@ const VALUES: ServerAggregate[] = [
   { columnId: "v2", reducer: "avg" },
   { columnId: "v3", reducer: "max" },
 ];
+
+const pivotOf = (input: PivotBuildInput): PivotBuild => {
+  const result = buildPivot(input);
+  if (!result || "tooLarge" in result) throw new Error("no pivot");
+  return result;
+};
 
 const indices = (n: number) => Array.from({ length: n }, (_, i) => i);
 
@@ -78,7 +84,7 @@ function cellsOver(leaves: readonly number[], rows: readonly Row[], pivot: Serve
 
 const leavesOf = (bucket: GroupBucket): number[] => (bucket.leaves ? bucket.leaves : bucket.groups!.flatMap(leavesOf));
 
-/** The incremental refresh step 9 weighs: reduce the touched innermost group and its ancestors again; min and max cannot subtract. */
+/** Reduces the touched innermost group and each ancestor again from its leaves, because min and max cannot subtract a value. */
 function refreshChain(bucket: GroupBucket, rows: readonly Row[], pivot: ServerPivotLayout): void {
   for (let at: GroupBucket | null = bucket; at; at = at.parent) at.node = { ...at.node, pivotCells: cellsOver(leavesOf(at), rows, pivot) };
 }
@@ -95,16 +101,21 @@ const cellsByNode = (tree: GroupTree) => {
   return out;
 };
 
-describe("pivot build perf (100k rows, 2 levels, 1,000 groups, 200 keys)", () => {
-  it.for([3, 1])("builds the held set and every node's cells with %i values in one pass, within the budget", (valueCount, { annotate }) => {
-    const rows = makeRows();
+describe("pivot build perf (100k rows, 2 levels, 1,000 groups)", () => {
+  it.for([
+    { valueCount: 3, distinct: KEYS },
+    { valueCount: 1, distinct: KEYS },
+    { valueCount: 1, distinct: ROW_COUNT },
+  ])("builds the held set and every node's cells with $valueCount values over $distinct keys in one pass, within the budget", ({ valueCount, distinct }, { annotate }) => {
+    const rows = makeRows(distinct);
     const values = VALUES.slice(0, valueCount);
     const leaves = indices(ROW_COUNT);
     const reads = new Map<string, number>();
-    const built = buildPivot({ leaves, accessor: accessorOf(rows, reads), groupBy: ["g1", "g2"], pivotColumnId: "p", values })!;
-    const keyCount = Math.min(KEYS, Math.floor(200 / valueCount));
+    const built = pivotOf({ leaves, accessor: accessorOf(rows, reads), groupBy: ["g1", "g2"], pivotColumnId: "p", values });
+    const keyCount = Math.min(distinct, Math.floor(200 / valueCount));
     expect(built.pivot.columns).toHaveLength(keyCount * valueCount);
-    expect(built.pivot.omitted).toBe((KEYS - keyCount) * valueCount);
+    expect(built.pivot.columns.at(-1)!.path).toEqual([keyCount - 1]);
+    expect(built.pivot.omitted).toBe((distinct - keyCount) * valueCount);
     for (const id of ["g1", "g2", "p"]) expect(reads.get(id), id).toBe(ROW_COUNT);
     for (const { columnId } of values) expect(reads.get(columnId)!, columnId).toBeLessThanOrEqual(ROW_COUNT);
     const slots = [...cellsByNode(built.tree).values()];
@@ -116,7 +127,7 @@ describe("pivot build perf (100k rows, 2 levels, 1,000 groups, 200 keys)", () =>
     const baseline = tree.fastest;
     const pivot = build.fastest;
     const budget = BUDGET_MS * Math.max(1, baseline / IDLE_BASELINE_MS);
-    annotate(`buildPivot ${valueCount} values: ${pivot.toFixed(1)} ms, budget ${budget.toFixed(0)} ms; group tree alone ${baseline.toFixed(1)} ms`);
+    annotate(`buildPivot ${valueCount} values, ${distinct} keys: ${pivot.toFixed(1)} ms, budget ${budget.toFixed(0)} ms; group tree alone ${baseline.toFixed(1)} ms`);
     expect(pivot).toBeLessThan(budget);
   });
 
@@ -124,7 +135,7 @@ describe("pivot build perf (100k rows, 2 levels, 1,000 groups, 200 keys)", () =>
     const rows = makeRows();
     const leaves = indices(ROW_COUNT);
     const input = { leaves, accessor: accessorOf(rows), groupBy: ["g1", "g2"], pivotColumnId: "p", values: VALUES };
-    const built = buildPivot(input)!;
+    const built = pivotOf(input);
     const edited = 54_321;
     groupIdsOfRow(built.tree, edited);
     const owner = built.tree.owners!.get(edited)!;
@@ -143,7 +154,7 @@ describe("pivot build perf (100k rows, 2 levels, 1,000 groups, 200 keys)", () =>
     });
     rows[edited]!.v1 = ++flip;
     refreshChain(owner, rows, built.pivot);
-    expect(cellsByNode(built.tree)).toEqual(cellsByNode(buildPivot(input)!.tree));
+    expect(cellsByNode(built.tree)).toEqual(cellsByNode(pivotOf(input).tree));
 
     const grown = [...rows, { ...rows[edited]! }];
     const grownInput = { ...input, leaves: indices(ROW_COUNT + 1), accessor: accessorOf(grown) };
@@ -157,7 +168,7 @@ describe("pivot build perf (100k rows, 2 levels, 1,000 groups, 200 keys)", () =>
     });
     owner.leaves!.push(ROW_COUNT);
     refreshChain(owner, grown, built.pivot);
-    expect(cellsByNode(built.tree)).toEqual(cellsByNode(buildPivot(grownInput)!.tree));
+    expect(cellsByNode(built.tree)).toEqual(cellsByNode(pivotOf(grownInput).tree));
 
     const ms = (t: Timing) => `${t.median.toFixed(2)} ms (fastest ${t.fastest.toFixed(2)})`;
     annotate(`edit: full ${ms(edit.full)} of which the tree ${ms(edit.tree)}, incremental ${ms(edit.incremental)}; streamed row: full ${ms(tick.full)}, incremental ${ms(tick.incremental)}`);
