@@ -85,6 +85,9 @@ const rowsOf = (data: unknown): unknown[] => (Array.isArray(data) ? data : []);
 /** JSON numbers lose int8 and decimal digits, so those columns travel as text. */
 const asText = (column: PlanColumn): boolean => column.kind === "number" && (column.numeric === "int8" || column.numeric === "decimal");
 const blankText = (column: PlanColumn): boolean => isTextual(column) && !column.keepBlankText;
+/** The grid function answers keys and aggregates as text; an epoch instant reads as its number. */
+const fromText = (column: PlanColumn, value: unknown): unknown =>
+  column.time && (column.storage === "epoch-ms" || column.storage === "epoch-s") && typeof value === "string" ? Number(value) : value;
 
 /** The request URL's length; postgrest-js keeps the URL in its builder's `url`, which its types mark protected. */
 function urlLength(builder: Builder): number {
@@ -172,7 +175,7 @@ export function createSupabaseGridQuery<TRow, TContext>(options: SupabaseGridQue
   const key = (column: PlanColumn): GridFunctionKey => ({ c: column.field, blank: isTextual(column) });
   const aggregatesOf = (list: readonly { column: PlanColumn; reducer: AggregateReducer }[]): GridFunctionAggregate[] =>
     list.map(({ column, reducer }) => ({ c: column.field, reducer, blank: blankText(column) }));
-  const byIndex = (list: readonly { column: PlanColumn }[], values: unknown): Row => Object.fromEntries(list.map(({ column }, index) => [column.id, rowsOf(values)[index] ?? null]));
+  const byIndex = (list: readonly { column: PlanColumn }[], values: unknown): Row => Object.fromEntries(list.map(({ column }, index) => [column.id, fromText(column, rowsOf(values)[index] ?? null)]));
 
   const capabilities: AdapterCapabilities = {
     caseInsensitiveText: "native",
@@ -185,6 +188,7 @@ export function createSupabaseGridQuery<TRow, TContext>(options: SupabaseGridQue
     pivot: rpc !== undefined,
     localDayGrouping: true,
     exactInstantKeys: true,
+    millisecondInstantKeys: true,
     nativeLike: false,
   };
 
@@ -245,7 +249,7 @@ export function createSupabaseGridQuery<TRow, TContext>(options: SupabaseGridQue
           ["spec", "groupBy"],
         );
         return rowsOf(data).map((group) => ({
-          key: get(group, "key"),
+          key: fromText(plan.level, get(group, "key")),
           count: get(group, "count"),
           childCount: get(group, "childCount"),
           aggregates: byIndex(plan.aggregates, get(group, "aggregates")),

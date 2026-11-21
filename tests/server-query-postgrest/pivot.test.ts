@@ -12,7 +12,7 @@ const stampColumns = defineColumnMap({
   atz: { type: "date", time: true },
   atMs: { type: "date", time: true, field: "at_ms" },
   atzMs: { type: "date", time: true, field: "atz_ms" },
-  secs: { type: "date", time: true, storage: "epoch-s" },
+  secs: { type: "date", time: true, storage: "epoch-s", aggregate: "max" },
 });
 
 type Query = { fetchRows(input: unknown): Promise<unknown> };
@@ -44,10 +44,17 @@ describe.skipIf(!live)("the Supabase adapter's pivot and instants against a live
       await expect(ids(view(), { groupBy: ["pair"] }, [{ columnId: "pair", key: "(red)" }])).rejects.toThrow(/^Supabase request failed: (input of anonymous composite types is not implemented|HTTP 400|gridcn: the column "pair" has no default btree operator class)$/);
     });
 
-    it("refuses to group a time column with a key past the millisecond, a zoneless timestamp included", async () => {
+    it("groups a time column with values past the millisecond by the millisecond, a zoneless timestamp included, and drills each key", async () => {
       for (const columnId of ["at", "atz"]) {
-        await expect(stamps().fetchRows({ spec: { groupBy: [columnId] }, start: 0, end: 10, childKind: "groups" })).rejects.toMatchObject({ code: "unsupported", path: ["spec", "groupBy", columnId] });
+        const answer = (await stamps().fetchRows({ spec: { groupBy: [columnId] }, start: 0, end: 10, childKind: "groups" })) as { groups: { key: unknown; totalRowCount: number }[] };
+        expect(answer.groups.map((group) => [group.key, group.totalRowCount])).toEqual([["2024-01-01T10:00:00.123Z", 2], [null, 1]]);
+        expect(await Promise.all(answer.groups.map((group) => ids(stamps(), { groupBy: [columnId] }, [{ columnId, key: group.key }])))).toEqual([[1, 2], [3]]);
       }
+    });
+
+    it("groups an epoch-s column by the instant of each second, with its max aggregate", async () => {
+      const answer = (await stamps().fetchRows({ spec: { groupBy: ["secs"], aggregates: [{ columnId: "secs", reducer: "max" }] }, start: 0, end: 10, childKind: "groups" })) as { groups: { key: unknown; aggregates: Record<string, unknown> }[] };
+      expect(answer.groups.map((group) => [group.key, group.aggregates["secs"]])).toEqual(["1969-12-31T23:59:59.000Z", "2024-01-01T10:00:00.000Z", "2024-01-01T10:00:01.000Z"].map((key) => [key, key]));
     });
 
     it("groups millisecond keys of both types and drills each key to its own row", async () => {

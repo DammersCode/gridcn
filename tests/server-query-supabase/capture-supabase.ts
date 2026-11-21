@@ -31,3 +31,20 @@ export function captureSupabase(answer: Answer = () => undefined): { client: Pos
   };
   return { client: new PostgrestClient(REST_URL, { fetch, retry: false }), sent };
 }
+
+/** A client whose grid function calls run on `database`, as PostgREST's RPC would; with `maxUrlLength: 1`, every request is one. */
+export function pgliteSupabase(database: { query<T>(sql: string, params: unknown[]): Promise<{ rows: T[] }> }) {
+  const rpc = (name: string, args: { plan: unknown }) => {
+    const run = async () => {
+      try {
+        return { data: (await database.query<{ r: unknown }>(`select public.${name}($1::jsonb) as r`, [JSON.stringify(args.plan)])).rows[0]!.r, error: null };
+      } catch (error) {
+        return { data: null, error: { message: (error as Error).message } };
+      }
+    };
+    // eslint-disable-next-line unicorn/no-thenable -- a postgrest-js builder is a thenable
+    const request = { then: (ok: (value: unknown) => unknown, fail: (reason: unknown) => unknown) => run().then(ok, fail), abortSignal: () => request };
+    return request;
+  };
+  return { from: (relation: string) => captureSupabase().client.from(relation), rpc };
+}

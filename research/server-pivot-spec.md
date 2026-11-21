@@ -346,7 +346,7 @@ table and requests, with no committed test:
 
 Each grid function call stays under 150 ms. The PGlite fetch is over it because PGlite runs the
 cells call, `groupCount`, and `count` in series; PostgREST runs them side by side. `groupCount`
-(`count(DISTINCT key)`) is the slowest call without pivot, so grid-query.sql stays unchanged.
+(`count(DISTINCT key)`) is the slowest call without pivot, so the timings ask for no change to grid-query.sql. A GROUP BY count runs in about a quarter of its time.
 
 ## Client parity gaps
 

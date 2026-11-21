@@ -294,7 +294,8 @@ begin
   end;
 end $$;
 
--- A group key `{ c, blank }`: the column, with '' read as NULL when `blank`.
+-- A group key `{ c, blank }`: the column, with '' read as NULL when `blank`. A timestamp, or a domain over one, keys by
+-- its millisecond, the precision of a key on the wire, so the adapter drills a key by the range of its millisecond.
 create or replace function gridcn.key_sql(tbl regclass, allowed text[], key jsonb)
 returns text
 language plpgsql stable security invoker
@@ -302,8 +303,22 @@ set search_path = pg_catalog, pg_temp
 as $$
 declare
   col text := gridcn.column_sql(tbl, allowed, key ->> 'c');
+  typ oid;
+  t record;
 begin
-  return case when gridcn.flag(key -> 'blank', 'blank') then gridcn.nonblank_sql(col) else col end;
+  if gridcn.flag(key -> 'blank', 'blank') then
+    return gridcn.nonblank_sql(col);
+  end if;
+  select a.atttypid into typ from pg_attribute a where a.attrelid = tbl and a.attname = key ->> 'c' and a.attnum > 0 and not a.attisdropped;
+  loop
+    select ty.typtype, ty.typbasetype into t from pg_type ty where ty.oid = typ;
+    exit when t.typtype <> 'd';
+    typ := t.typbasetype;
+  end loop;
+  if typ in ('pg_catalog.timestamp'::regtype, 'pg_catalog.timestamptz'::regtype) then
+    return format('pg_catalog.date_trunc(''milliseconds'', %s)', col);
+  end if;
+  return col;
 end $$;
 
 -- The statement of one plan. It holds names and SQL only; `grid_query` runs it with the plan bound as $1.

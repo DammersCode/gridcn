@@ -83,7 +83,7 @@ A pivot takes 1 to 4 `groupBy` levels. The grid function answers the pivot keys 
 - A literal `*` in a LIKE filter or the quick search answers `unsupported-value`, because PostgREST reads it as a wildcard.
 - LIKE filters on a native enum or uuid column answer `unsupported`.
 - `max_pivot_columns` (default 200) bounds the pivot cells per group. A wrapper can pass a lower value by name to `gridcn.grid_query`. The grid function then cuts the pivot keys, and `pivotOmitted` counts the cut columns. Keep it at or above the number of values of one request.
-- The grid function answers a group key as the stored text. So a group level on a `time` column with a stored digit past the millisecond answers `unsupported`.
+- The grid function groups a `timestamp` or `timestamptz` column by its millisecond. A group drills to every row of its millisecond, such as the rows that `now()` filled.
 
 ## Cursors, selection, and saves [#more-routes]
 
