@@ -177,7 +177,7 @@ describe("pivot props", () => {
     expect(state().pivotControlled).toBe(true);
   });
 
-  it("fires onPivotChange after the write, with undefined when it turns off, and a throwing consumer keeps the page reset", () => {
+  it("fires onPivotChange after the write, with { columnIds: [] } when it turns off, and a throwing consumer keeps the page reset", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     const seen: unknown[] = [];
     const onPageChange = vi.fn();
@@ -194,7 +194,7 @@ describe("pivot props", () => {
     state().actions.setPivot({ columnIds: ["year"] });
     state().actions.setPivot({ columnIds: ["year"] });
     state().actions.setPivot(undefined);
-    expect(seen).toEqual([[{ columnIds: ["year"] }, "year"], [undefined, null]]);
+    expect(seen).toEqual([[{ columnIds: ["year"] }, "year"], [{ columnIds: [] }, null]]);
     expect(onPageChange).toHaveBeenCalledWith(1);
   });
 
@@ -279,9 +279,12 @@ describe("pivot refresh after a write", () => {
     expect(state().pivot!.columns).toBe(generated);
   });
 
-  it("refreshes the cells of a replaced row id", () => {
+  it("rebuilds the cells of a replaced row id at the next frame", () => {
+    stubFrames();
     const { state, cells } = make();
     state().actions.replaceRowId("r1", { ...(state().data[1] as Row), id: "n1", amount: 7 });
+    expect(cells()[0]).toEqual(["__group:region=EU", 1, 2, 5]);
+    runFrames();
     expect(cells()[0]).toEqual(["__group:region=EU", 1, 7, 5]);
   });
 });
@@ -376,5 +379,76 @@ describe("a function seed of the pivot", () => {
     applyFunctionSeeds(store, init);
     expect(seed).toHaveBeenCalledTimes(1);
     expect(store.getState().pivot?.columnId).toBe("year");
+  });
+});
+
+describe("client pivot fix round", () => {
+  const frames: (() => void)[] = [];
+  const runFrames = () => frames.splice(0).forEach((run) => run());
+  afterEach(() => {
+    frames.length = 0;
+    vi.unstubAllGlobals();
+  });
+  const stubFrames = () => {
+    vi.stubGlobal("requestAnimationFrame", (run: () => void) => frames.push(run));
+    vi.stubGlobal("cancelAnimationFrame", () => {});
+  };
+
+  it("keeps the old cells until the next-frame rebuild when one push writes a value and a groupBy column of the same row", () => {
+    stubFrames();
+    const live = make();
+    const before = live.cells();
+    live.state().actions.updateRows([{ rowId: "r0", changes: { amount: 10, region: "US" } }], { source: "stream" });
+    expect(live.cells()).toEqual(before);
+    runFrames();
+    expect(live.cells()).toEqual(make({ data: live.state().data }).cells());
+  });
+
+  it("keeps the old cells until the next-frame rebuild for a value write to a filtered column", () => {
+    stubFrames();
+    const live = make({ defaultFilterState: [{ columnId: "amount", operator: "lt", value: "100" }] });
+    const before = live.cells();
+    live.state().actions.updateCells([{ rowId: "r1", columnId: "amount", value: 500 }], { source: "stream" });
+    expect(live.cells()).toEqual(before);
+    runFrames();
+    expect(live.cells()[0]).toEqual(["__group:region=EU", 1, null, 5]);
+  });
+
+  it("schedules no rebuild for a stream write after the writes are disposed", () => {
+    stubFrames();
+    const live = make();
+    getInternalActions(live.store)._disposeWrites();
+    live.state().actions.updateCells([{ rowId: "r0", columnId: "region", value: "US" }], { source: "stream" });
+    expect(frames).toHaveLength(0);
+  });
+
+  it("emits { columnIds: [] } for off, and a controlled round trip with late parent renders stays consistent", () => {
+    const emitted: unknown[] = [];
+    const live = make({ defaultPivot: undefined, pivot: { columnIds: [] }, onPivotChange: (next: unknown) => emitted.push(next) });
+    live.state().actions.setPivot({ columnIds: ["year"] });
+    live.state().actions.setPivot({ columnIds: [] });
+    live.state().actions.setPivot({ columnIds: ["city"] });
+    live.state().actions.setPivot(undefined);
+    expect(emitted).toEqual([{ columnIds: ["year"] }, { columnIds: [] }, { columnIds: ["city"] }, { columnIds: [] }]);
+    const view = live.state().viewIndex;
+    for (const pivot of emitted) {
+      live.sync({ pivot });
+      expect(live.state().pivot).toBeNull();
+      expect(live.state().viewIndex).toBe(view);
+    }
+  });
+
+  it("refreshes every swapped row of replaceRowIds and rebuilds at the next frame for a key change", () => {
+    stubFrames();
+    const live = make();
+    const data = live.state().data as Row[];
+    live.state().actions.replaceRowIds([
+      { oldId: "r0", row: { ...data[0]!, id: "n0", amount: 11 } },
+      { oldId: "r3", row: { ...data[3]!, id: "n3", amount: 44 } },
+      { oldId: "r1", row: { ...data[1]!, id: "n1", year: 2024 } },
+    ]);
+    runFrames();
+    expect(live.cells()).toEqual(make({ data: live.state().data }).cells());
+    expect(live.state().viewStale).toBe(false);
   });
 });

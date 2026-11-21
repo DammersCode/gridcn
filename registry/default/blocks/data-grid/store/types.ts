@@ -334,8 +334,8 @@ export type DataGridSyncProps<TData = unknown> = {
   pivot?: PivotSpec;
   /** Seeds the pivot once at store creation. A function runs once on the client after mount. */
   defaultPivot?: PivotSpec | (() => PivotSpec | null | undefined);
-  /** Fires after `setPivot` changes the pivot, with `undefined` when it turns off. */
-  onPivotChange?: (next: PivotSpec | undefined) => void;
+  /** Fires after `setPivot` changes the pivot, with `{ columnIds: [] }` when it turns off. */
+  onPivotChange?: (next: PivotSpec) => void;
   /** Controlled open groups. A toggle applies at once and emits. Default: every group collapsed. */
   expanded?: ExpandedState;
   /** Seeds the open groups once at store creation. */

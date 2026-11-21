@@ -80,7 +80,7 @@ export function createGroupActions({ set, get, dataWrite, followView, memory }: 
     const s = get();
     const pivotColumnIds = normalizePivot(requested);
     if (sameGroupBy(pivotColumnIds, s.pivotColumnIds)) return;
-    const emitted = pivotColumnIds.length === 0 ? undefined : { columnIds: pivotColumnIds };
+    const emitted = { columnIds: pivotColumnIds };
     set((s2) => regroup(s2, s2.groupBy, pivotColumnIds));
     memory.lastSyncInputs = { ...memory.lastSyncInputs, pivotColumnIds };
     if (s.pivotControlled) rememberEmitted(memory.group.pivotEcho, emitted);

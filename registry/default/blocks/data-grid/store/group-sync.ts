@@ -13,7 +13,7 @@ export type GroupSyncMemory = {
   groupByEcho: (readonly string[])[];
   expandedEcho: ExpandedState[];
   pivotProp: PivotSpec | undefined;
-  pivotEcho: (PivotSpec | undefined)[];
+  pivotEcho: PivotSpec[];
 };
 
 export function initGroupMemory(init: Pick<InternalSyncProps, "groupBy" | "expanded" | "pivot">): GroupSyncMemory {
