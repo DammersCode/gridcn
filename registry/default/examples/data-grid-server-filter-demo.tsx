@@ -8,10 +8,10 @@ import { createRemoteServer, type RemoteFilterNode } from "./fake-remote-server"
 import { generateSales, type SaleRow } from "./sales-data";
 
 const columns = defineColumns<SaleRow>()([
-  { id: "customer", header: "Customer", accessorKey: "customer", type: "text", width: 140, flex: 1 },
-  { id: "make", header: "Make", accessorKey: "make", type: "text", width: 110, flex: 1 },
+  { id: "customer", header: "Customer", accessorKey: "customer", type: "text", width: 115, flex: 1 },
+  { id: "make", header: "Make", accessorKey: "make", type: "text", width: 90, flex: 1 },
   { id: "model", header: "Model", accessorKey: "model", type: "text", width: 100, flex: 1 },
-  { id: "financed", header: "Financed", accessorKey: "financed", type: "checkbox", width: 100 },
+  { id: "financed", header: "Financed", accessorKey: "financed", type: "checkbox", width: 95 },
 ] as const);
 
 /**
