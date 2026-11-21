@@ -192,19 +192,52 @@ describe.each(["sqlite", "pg"] as const)("prisma pivot: %s", (engine) => {
     const rows = [
       ...hostile.map((name, i) => ({ id: 9001 + i, name, qty: i + 1, score: i * 2, tenantId: 3 })),
       { id: 9100, name: "other tenant", qty: 3, score: 8, tenantId: 4 },
+      // Blank names and quantities in both tenants: every blank group and blank key call must AND the scope.
+      { id: 9101, name: null, qty: 1, score: 10, tenantId: 3 },
+      { id: 9102, name: "", qty: null, score: 12, tenantId: 3 },
+      { id: 9103, name: null, qty: null, score: 14, tenantId: 3 },
+      { id: 9104, name: null, qty: 1, score: 1000, tenantId: 4 },
+      { id: 9105, name: "", qty: null, score: 2000, tenantId: 4 },
+      { id: 9106, name: "1", qty: null, score: 3000, tenantId: 4 },
     ];
     await setup().insert(rows);
     try {
       const options = { rowScope: true, context: { tenantId: 3 } };
       const aggregates: Aggregate[] = [{ columnId: "score", reducer: "avg" }];
       const byName = await expectLayerAnswer(engine, { groupBy: ["qty"], pivot: "name", aggregates }, options);
-      expect(byName.pivotColumns).toHaveLength(hostile.length);
+      expect(byName.pivotColumns).toHaveLength(hostile.length + 1);
       expect(Object.getPrototypeOf(byName.pivotColumns![0]!)).toBe(Object.prototype);
       expect(byName.pivotColumns!.map((column) => column.path[0])).toContain("__proto__");
+      const blankRow = byName.groups.find((group) => group.key === null)!;
+      expect([blankRow.pivotCells![0], blankRow.pivotCells!.at(-1)]).toEqual([null, 13]);
+      expect(byName.groups.find((group) => group.key === 1)!.pivotCells!.at(-1)).toBe(10);
       const byQty = await expectLayerAnswer(engine, { groupBy: ["name"], pivot: "qty", aggregates }, options);
       expect(byQty.pivotColumns!.slice(0, 2).map((column) => column.path[0])).toEqual([1, 2]);
       const other = await expectLayerAnswer(engine, { groupBy: ["qty"], pivot: "name", aggregates }, { ...options, context: { tenantId: 4 } });
-      expect(other.pivotColumns!.map((column) => column.path[0])).toEqual(["other tenant"]);
+      expect(other.pivotColumns!.map((column) => column.path[0])).toEqual(["1", "other tenant", null]);
+    } finally {
+      await setup().remove(rows.map((row) => row.id));
+    }
+  });
+
+  it("answers decimal sum, min, and max on a plain group page like Kysely on PostgreSQL and refuses them on SQLite", async () => {
+    // The first group's sum is a whole number, so SQLite hands the driver an integer before the 12.5.
+    const rows = [
+      { id: 9201, name: "da", price: "3", tenantId: 5 },
+      { id: 9202, name: "db", price: "12.5", tenantId: 5 },
+    ];
+    await setup().insert(rows);
+    try {
+      const group = { spec: { groupBy: ["name"], aggregates: [{ columnId: "priceSum", reducer: "sum" }, { columnId: "priceMin", reducer: "min" }, { columnId: "price", reducer: "max" }] }, groupPath: [], childKind: "groups", start: 0, end: 10 };
+      const options = { context: { tenantId: 5 } };
+      const want = (await setup().kysely({ rowScope: true }).fetchRows(group, options)) as GroupsAnswer;
+      expect(want.groups.map((entry) => entry.aggregates)).toEqual([
+        { priceSum: 3, priceMin: 3, price: 3 },
+        { priceSum: 12.5, priceMin: 12.5, price: 12.5 },
+      ]);
+      const prisma = setup().prisma({ rowScope: true }).fetchRows(group, options);
+      if (engine === "pg") expect(await prisma).toEqual(want);
+      else await expect(prisma).rejects.toMatchObject({ code: "unsupported", path: ["priceSum"] });
     } finally {
       await setup().remove(rows.map((row) => row.id));
     }

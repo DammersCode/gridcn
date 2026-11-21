@@ -43,7 +43,7 @@ export type PrismaGridQueryOptions<TContext = never> = {
   timeZone?: string;
   /** `"cursor"` pages `fetchRows` by keyset cursors and never counts; every sortable text column then needs `maxLength`, and a sortable native enum throws at creation. Default `"offset"`. */
   paging?: "offset" | "cursor";
-  /** Most rows of the `groupBy` that counts a level's groups or a page's child groups; more is `limit-exceeded`. Default 10,000. */
+  /** Most rows of the `groupBy` that counts a level's groups, a page's child groups, or a pivot column's keys; more is `limit-exceeded`. Default 10,000. */
   maxGroupRows?: number;
 };
 
@@ -122,11 +122,12 @@ function aggregateValues(found: unknown, columns: AggregatesPlan["columns"]): Ro
  * - On SQLite a `%` or `_` in a LIKE leaf is `unsupported-value`: SQLite LIKE has no ESCAPE clause there. On an `epoch-s`
  *   column a comparison or range rounds a fraction of a second to the exact whole second; any other instant with a
  *   fraction, such as an `equals` value or a written value, is `unsupported-value`.
- * - Group child counts and group counts read one extra `groupBy` of at most `maxGroupRows` rows.
+ * - Group child counts and group counts read one extra `groupBy` of at most `maxGroupRows` rows. On SQLite a group or pivot
+ *   `sum`, `min`, or `max` of a decimal column is `unsupported`: the driver types an aggregate column by its first row.
  * - A pivot (`spec.pivot`) reads its keys in one `groupBy` and its cells in up to four calls, so the database reduces
  *   every cell. A pivot column with more than `maxGroupRows` keys, or a page whose groups times its kept keys exceed
  *   40,000, is `limit-exceeded`. On PostgreSQL a native enum pivot column is `unsupported`: Prisma orders it by declaration,
- *   the SQL renderers as text. On SQLite a pivot `sum`, `min`, or `max` of a decimal column is `unsupported`.
+ *   the SQL renderers as text.
  *
  * @example
  * import { Prisma, PrismaClient, type User } from "@/generated/prisma/client";
@@ -202,8 +203,14 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
     const blankLevel = withBlank ? renderer.blank(level, false, false, foldsEmptyText(level)) : false;
     return where(and([renderer.node(plan.where), or([keys.length > 0 ? oneOf(level, keys) : false, blankLevel])]));
   };
+  /** The aggregates of a `groupBy` with many rows: Prisma's SQLite adapter types each column by its first row, so a sum of 12.5 after a sum of 3 reads 12. */
+  const assertGroupAggregates = (aggregates: GroupsPlan["aggregates"]): void => {
+    assertAggregates(aggregates);
+    const typedByFirstRow = pg ? undefined : aggregates.find(({ column, reducer }) => column.numeric === "decimal" && reducer !== "avg" && reducer !== "count");
+    if (typedByFirstRow) throw unsupported(typedByFirstRow.column);
+  };
   const selectGroupPage = async (plan: GroupsPlan, page: { offset: number; limit: number }): Promise<RawGroupRow[]> => {
-    assertAggregates(plan.aggregates);
+    assertGroupAggregates(plan.aggregates);
     const { level } = plan;
     const base = renderer.node(plan.where);
     const emptyIsBlank = foldsEmptyText(level);
@@ -260,6 +267,7 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
   const selectPivotCells = async (plan: GroupsPlan, pivot: NonNullable<GroupsPlan["pivot"]>, keys: readonly unknown[], blankOnPage: boolean): Promise<(id: string) => unknown[]> => {
     const { level, aggregates } = plan;
     const { column } = pivot;
+    // The page's group count is known only after its query, so the core's counts have started; they finish unread.
     if ((keys.length + (blankOnPage ? 1 : 0)) * pivot.keys.length > MAX_PIVOT_PAIRS) throw new QueryError("limit-exceeded", ["spec", "pivot"]);
     const width = pivot.keys.length * aggregates.length;
     const keyAt = new Map<unknown, number>(pivot.keys.map(({ key }, index) => [key, index]));
@@ -272,7 +280,8 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
     const selection = aggregateSelection(aggregates);
     const cells = new Map<string, unknown[]>();
     const put = (groupId: string, index: number | undefined, found: unknown): void => {
-      if (index === undefined) return;
+      // Every bucket passed a kept key's exact test, so a miss is a key form drift that would drop the cell silently.
+      if (index === undefined) throw new Error("gridcn query layer: a Prisma pivot bucket matched no kept key");
       const row = cells.get(groupId) ?? new Array<unknown>(width).fill(null);
       cells.set(groupId, row);
       aggregates.forEach(({ column: value, reducer }, a) => {
@@ -357,12 +366,9 @@ export function createPrismaGridQuery<TRow, TContext>(options: PrismaGridQueryOp
       },
       selectGroups: selectGroupPage,
       selectPivotKeys: async (plan, { limit }) => {
-        assertAggregates(plan.aggregates);
+        assertGroupAggregates(plan.aggregates);
         const { level } = plan;
         if (pg && level.native === "enum") throw unsupported(level);
-        // Prisma's SQLite adapter types an aggregate column by its first row, so a sum of 12.5 after a sum of 0 reads 12.
-        const typedByFirstRow = pg ? undefined : plan.aggregates.find(({ column, reducer }) => column.numeric === "decimal" && reducer !== "avg" && reducer !== "count");
-        if (typedByFirstRow) throw unsupported(typedByFirstRow.column);
         // Two rows past the bound, because `''` and NULL fold into one key.
         const found = await many("groupBy", { by: [level.field], where: where(renderer.node(plan.where)), orderBy: [own({}, level.field, plan.direction)], take: maxGroupRows + 2 });
         const keys = found.map((group) => get(group, level.field)).filter((key) => !isBlankValue(level, key));

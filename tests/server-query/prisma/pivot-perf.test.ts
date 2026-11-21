@@ -11,10 +11,10 @@ const ROWS = 100_000;
 const GROUPS = 10_000;
 const KEYS = 200;
 const PAGE = 200;
-/** The floor and the cap of one pivot fetch on a dev machine. */
+/** The floor and the cap of one pivot fetch on a dev machine, which idle takes 73 to 105 ms (73 to 87 on PGlite, 87 to 105 on SQLite). */
 const FLOOR_MS = 150;
 const CAP_MS = 400;
-/** The budget in same-run fetches of the page without pivot, so load and coverage cannot fail it. */
+/** The budget in same-run fetches of the page without pivot (49 to 59 ms idle), so load and coverage cannot fail it; a pivot fetch takes 1.4 to 1.8. */
 const BUDGET_BASELINES = 3;
 // Only the absolute bounds widen on CI: the baseline ratio holds on any machine, so a 4x regression fails there too.
 const CI_FACTOR = process.env["CI"] === "true" ? 2 : 1;

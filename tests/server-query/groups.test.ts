@@ -142,20 +142,24 @@ describe.each([
     const aggregates = Object.entries(numeric).map(([columnId, reducer]) => ({ columnId, reducer }));
     const ids = Object.keys(numeric);
     const warnings: string[] = [];
-    const read = readGroupsAnswer(await groupsOf(query(), { groupBy: ["active"], aggregates }), { start: 0, end: 1000 }, { topLevel: true, aggregates }, (_kind, message) => warnings.push(message));
-    expect(warnings).toEqual([]);
-    const yes = read.groups.find((group) => group.key === true)!;
-    const prices = FIXTURE_ROWS.filter((row) => row.active === true && row.price !== null).map((row) => Number(row.price));
-    expect(yes.aggregates?.["price"]).toBe(Math.max(...prices));
-    expect(yes.aggregates?.["priceMin"]).toBe(Math.min(...prices));
-    expect(yes.aggregates?.["priceSum"] as number).toBeCloseTo(prices.reduce((a, b) => a + b, 0), 6);
-    expect(yes.aggregates?.["priceAvg"] as number).toBeCloseTo(prices.reduce((a, b) => a + b, 0) / prices.length, 6);
+    const answer = await declinable("decimal reducers per group", () => groupsOf(query(), { groupBy: ["active"], aggregates }));
+    if (answer) {
+      const read = readGroupsAnswer(answer, { start: 0, end: 1000 }, { topLevel: true, aggregates }, (_kind, message) => warnings.push(message));
+      expect(warnings).toEqual([]);
+      const yes = read.groups.find((group) => group.key === true)!;
+      const prices = FIXTURE_ROWS.filter((row) => row.active === true && row.price !== null).map((row) => Number(row.price));
+      expect(yes.aggregates?.["price"]).toBe(Math.max(...prices));
+      expect(yes.aggregates?.["priceMin"]).toBe(Math.min(...prices));
+      expect(yes.aggregates?.["priceSum"] as number).toBeCloseTo(prices.reduce((a, b) => a + b, 0), 6);
+      expect(yes.aggregates?.["priceAvg"] as number).toBeCloseTo(prices.reduce((a, b) => a + b, 0) / prices.length, 6);
+    }
     const flat = await query().aggregates({ spec: { sorts: [], filters: [], searchText: "" }, columnIds: ids });
     for (const id of ids) expect(Number.isFinite(flat[id]), `${id} = ${JSON.stringify(flat[id])}`).toBe(true);
   });
 
   it(`keeps a named difference: ${KNOWN_DIFFERENCES.reducerOnNonNumbers.name}`, async () => {
-    const answer = await groupsOf(query(), { groupBy: ["active"], aggregates: [{ columnId: "createdAt", reducer: "max" }, { columnId: "price", reducer: "max" }] });
+    const answer = await declinable("decimal max per group", () => groupsOf(query(), { groupBy: ["active"], aggregates: [{ columnId: "createdAt", reducer: "max" }, { columnId: "price", reducer: "max" }] }));
+    if (!answer) return;
     const truth = FIXTURE_ROWS.filter((row) => row.active === true);
     const group = answer.groups.find((entry) => entry.key === true)!;
     expect(group.aggregates?.["createdAt"]).toBe(truth.map((row) => row.createdAt).filter((v): v is string => v !== null).sort().at(-1));

@@ -268,6 +268,15 @@ describe.each(opened.map((setup) => [setup.engine, setup] as const))("Prisma on 
     // better-sqlite3 reads an int8 past 2^53 as a rounded number for Kysely; Prisma reads it exactly.
     const int8 = (await prisma().fetchRows(pivotBody("label", "big"))) as GroupsAnswer;
     expect(int8.pivotColumns!.map((column) => column.path[0])).toEqual(expect.arrayContaining(["9007199254740993", "9007199254740992", "-9007199254740993"]));
+    // Each cell is the sum of the fixture rows of its label group and its exact int8 key.
+    const labelOf = (label: string | null) => (label === "" ? null : label);
+    for (const group of int8.groups) {
+      const cells = int8.pivotColumns!.map(({ path: [key] }) => {
+        const rows = kindRows(engine).filter((row) => labelOf(row.label) === group.key && row.big !== null && row.big === (key === null ? null : String(key)));
+        return rows.length === 0 ? null : Number(rows.reduce((sum, row) => sum + BigInt(row.big!), BigInt(0)));
+      });
+      expect(group.pivotCells, `label ${String(group.key)}`).toEqual(cells);
+    }
     const pairs = [["label", "day"], ["day", "label"], ["label", "amount"], ["label", "ref"], ...(engine === "pg" ? [["label", "big"], ["big", "label"]] : [["label", "mood"]])] as const;
     for (const [groupBy, pivot] of pairs) {
       const want = (await kysely().fetchRows(pivotBody(groupBy, pivot))) as GroupsAnswer;
