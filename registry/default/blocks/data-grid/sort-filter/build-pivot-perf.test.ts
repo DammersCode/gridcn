@@ -9,8 +9,8 @@ import { buildPivot } from "./build-pivot";
 const ROW_COUNT = 100_000;
 const KEYS = 200;
 /** The pivot build on an idle machine, and the same-run group build it scales with, so suite load cannot fail it. */
-const BUDGET_MS = 90;
-const IDLE_BASELINE_MS = 12;
+const BUDGET_MS = 50;
+const IDLE_BASELINE_MS = 7;
 
 type Row = { g1: string; g2: string; p: number; v1: number; v2: number; v3: number };
 
@@ -33,16 +33,23 @@ const VALUES: ServerAggregate[] = [
 
 const indices = (n: number) => Array.from({ length: n }, (_, i) => i);
 
-function timings(fn: () => void, iterations = 9, warmup = 2): { fastest: number; median: number } {
-  for (let i = 0; i < warmup; i++) fn();
-  const runs: number[] = [];
-  for (let i = 0; i < iterations; i++) {
-    const start = performance.now();
-    fn();
-    runs.push(performance.now() - start);
+type Timing = { fastest: number; median: number };
+
+/** Runs each of `fns` in turn per round, so every one sees the same load; later runs are warmer, hence the long warm-up. */
+function interleaved<K extends string>(fns: Record<K, () => void>, rounds = 25, warmup = 10): Record<K, Timing> {
+  const names = Object.keys(fns) as K[];
+  const runs = Object.fromEntries(names.map((name) => [name, [] as number[]])) as Record<K, number[]>;
+  for (let round = 0; round < warmup + rounds; round++) {
+    for (const name of names) {
+      const start = performance.now();
+      fns[name]();
+      if (round >= warmup) runs[name].push(performance.now() - start);
+    }
   }
-  runs.sort((a, b) => a - b);
-  return { fastest: runs[0]!, median: runs[Math.floor(iterations / 2)]! };
+  return Object.fromEntries(names.map((name) => {
+    const sorted = runs[name].sort((a, b) => a - b);
+    return [name, { fastest: sorted[0]!, median: sorted[Math.floor(rounds / 2)]! }];
+  })) as Record<K, Timing>;
 }
 
 /** The cells of one bucket over its own leaves, as `buildPivot` reduces them. */
@@ -105,8 +112,9 @@ describe("pivot build perf (100k rows, 2 levels, 1,000 groups, 200 keys)", () =>
     expect(slots.every((cells) => cells instanceof Float64Array && cells.length === keyCount * valueCount)).toBe(true);
 
     const input = { leaves, accessor: accessorOf(rows), groupBy: ["g1", "g2"], pivotColumnId: "p", values };
-    const baseline = timings(() => buildGroupTree(input)).fastest;
-    const pivot = timings(() => buildPivot(input)).fastest;
+    const { tree, build } = interleaved({ tree: () => buildGroupTree(input), build: () => buildPivot(input) }, 9, 3);
+    const baseline = tree.fastest;
+    const pivot = build.fastest;
     const budget = BUDGET_MS * Math.max(1, baseline / IDLE_BASELINE_MS);
     annotate(`buildPivot ${valueCount} values: ${pivot.toFixed(1)} ms, budget ${budget.toFixed(0)} ms; group tree alone ${baseline.toFixed(1)} ms`);
     expect(pivot).toBeLessThan(budget);
@@ -122,30 +130,36 @@ describe("pivot build perf (100k rows, 2 levels, 1,000 groups, 200 keys)", () =>
     const owner = built.tree.owners!.get(edited)!;
 
     let flip = 0;
-    const editFull = timings(() => {
-      rows[edited]!.v1 = ++flip;
-      buildPivot(input);
+    const edit = interleaved({
+      tree: () => buildGroupTree(input),
+      full: () => {
+        rows[edited]!.v1 = ++flip;
+        buildPivot(input);
+      },
+      incremental: () => {
+        rows[edited]!.v1 = ++flip;
+        refreshChain(owner, rows, built.pivot);
+      },
     });
-    const editIncremental = timings(() => {
-      rows[edited]!.v1 = ++flip;
-      refreshChain(owner, rows, built.pivot);
-    });
+    rows[edited]!.v1 = ++flip;
+    refreshChain(owner, rows, built.pivot);
     expect(cellsByNode(built.tree)).toEqual(cellsByNode(buildPivot(input)!.tree));
 
-    const streamed = { ...rows[edited]! };
-    const grown = [...rows, streamed];
+    const grown = [...rows, { ...rows[edited]! }];
     const grownInput = { ...input, leaves: indices(ROW_COUNT + 1), accessor: accessorOf(grown) };
-    const tickFull = timings(() => buildPivot(grownInput));
-    const tickIncremental = timings(() => {
-      owner.leaves!.push(ROW_COUNT);
-      refreshChain(owner, grown, built.pivot);
-      owner.leaves!.pop();
+    const tick = interleaved({
+      full: () => buildPivot(grownInput),
+      incremental: () => {
+        owner.leaves!.push(ROW_COUNT);
+        refreshChain(owner, grown, built.pivot);
+        owner.leaves!.pop();
+      },
     });
     owner.leaves!.push(ROW_COUNT);
     refreshChain(owner, grown, built.pivot);
     expect(cellsByNode(built.tree)).toEqual(cellsByNode(buildPivot(grownInput)!.tree));
 
-    const ms = (t: { fastest: number; median: number }) => `${t.median.toFixed(2)} ms (fastest ${t.fastest.toFixed(2)})`;
-    annotate(`edit: full ${ms(editFull)}, incremental ${ms(editIncremental)}; streamed row: full ${ms(tickFull)}, incremental ${ms(tickIncremental)}`);
+    const ms = (t: Timing) => `${t.median.toFixed(2)} ms (fastest ${t.fastest.toFixed(2)})`;
+    annotate(`edit: full ${ms(edit.full)} of which the tree ${ms(edit.tree)}, incremental ${ms(edit.incremental)}; streamed row: full ${ms(tick.full)}, incremental ${ms(tick.incremental)}`);
   });
 });
