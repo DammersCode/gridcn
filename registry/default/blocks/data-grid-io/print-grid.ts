@@ -1,7 +1,7 @@
 import { type DataGridReadState, type GridDirection } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { normalizeLimit } from "./normalize-limit";
 import { MAX_CELL_TEXT, buildExportHeaders, buildExportRows, exportRowPlan, exportRows } from "./export-grid";
-import { abortReason, type ExportSource } from "./export-source";
+import { abortReason, sourceStateOf, type ExportSource } from "./export-source";
 
 /** Default number of rows printed when `maxRows` is not given. */
 const DEFAULT_PRINT_MAX_ROWS = 10_000;
@@ -116,8 +116,9 @@ async function sourcePrintRows(state: DataGridReadState, source: ExportSource, m
  * and a second call replaces the first, aborting its pending `source`. Without `source` the
  * dialog opens before the call returns. No-op without a DOM (SSR).
  */
-export async function printGrid(state: DataGridReadState, options: PrintGridOptions = {}): Promise<PrintGridResult> {
+export async function printGrid(gridState: DataGridReadState, options: PrintGridOptions = {}): Promise<PrintGridResult> {
   if (typeof document === "undefined") return { rowCount: 0, truncated: false };
+  const state = options.source ? sourceStateOf(gridState) : gridState;
   if (options.css !== undefined && options.css.length > MAX_PRINT_CSS_LENGTH) throw new RangeError(`[data-grid-io] print css is longer than ${MAX_PRINT_CSS_LENGTH} characters`);
   removeOpenIframe();
   activeRun?.abort();

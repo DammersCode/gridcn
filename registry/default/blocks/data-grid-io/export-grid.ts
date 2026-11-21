@@ -13,6 +13,7 @@ import {
   mapExportRow,
   resolveExportColumns,
   settlePending,
+  sourceStateOf,
   type PendingCell,
   type ExportCell,
   type ExportCellContext,
@@ -504,7 +505,7 @@ export async function exportGrid<TData = unknown>(state: DataGridReadState, opti
 async function runExport<TData>(state: DataGridReadState, options: ExportGridOptions<TData>, signal: AbortSignal): Promise<ExportResult> {
   const { source, output, format = "csv", scope = "view", fileName = "export" } = options;
   const delivery: ExportDelivery = { fileName, output, signal };
-  if (source) return exportFromSource(state, source, options, delivery);
+  if (source) return exportFromSource(sourceStateOf(state), source, options, delivery);
   const maxRows = options.maxRows === undefined ? undefined : normalizeLimit(options.maxRows, Number.POSITIVE_INFINITY);
   if (format === "csv") {
     await deliver(await buildCsvAsync(state, { ...options, maxRows }, signal), "csv", delivery);
