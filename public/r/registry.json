@@ -783,6 +783,11 @@
           "target": "components/data-grid/sort-filter/build-group-view.ts"
         },
         {
+          "path": "registry/default/blocks/data-grid/sort-filter/build-pivot.ts",
+          "type": "registry:component",
+          "target": "components/data-grid/sort-filter/build-pivot.ts"
+        },
+        {
           "path": "registry/default/blocks/data-grid/store/group-state.ts",
           "type": "registry:component",
           "target": "components/data-grid/store/group-state.ts"
@@ -4888,6 +4893,5 @@
         "data"
       ]
     }
-  ],
-  "files": []
+  ]
 }
