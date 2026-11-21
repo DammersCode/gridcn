@@ -31,7 +31,7 @@ const columns = defineColumns<DemoRow>()([
     width: 120,
     filterable: true,
   },
-  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 130 },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 90 },
 ] as const);
 
 const emptyLayout = { widths: {}, order: [], pins: {}, hidden: [] };

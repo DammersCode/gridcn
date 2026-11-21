@@ -14,7 +14,7 @@ import { generateDemoRows, type DemoRow } from "./demo-data";
 const columns = defineColumns<DemoRow>()([
   { id: "name", header: "Name", accessorKey: "name", type: "text", width: 150, flex: 2 },
   { id: "age", header: "Age", accessorKey: "age", type: "number", width: 80, flex: 1 },
-  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 130, flex: 1 },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 90, flex: 1 },
 ] as const);
 
 export default function DataGridStatusBarDemo(): ReactNode {

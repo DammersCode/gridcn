@@ -9,7 +9,7 @@ const columns = defineColumns<DemoRow>()([
   { id: "name", header: "Name", accessorKey: "name", type: "text", width: 120, flex: 1 },
   { id: "role", header: "Role", accessorKey: "role", type: "text", width: 110, flex: 1 },
   { id: "age", header: "Age", accessorKey: "age", type: "number", width: 90, flex: 1 },
-  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 130, flex: 1 },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 90, flex: 1 },
 ] as const);
 
 /** Header filter button: pick the values to keep from a searchable list with counts. */

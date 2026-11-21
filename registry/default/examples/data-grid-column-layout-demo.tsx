@@ -50,7 +50,7 @@ const columns = defineColumns<DemoRow>()([
   },
   { id: "age", header: "Age", accessorKey: "age", type: "number", options: { min: 18, max: 100 }, width: 80, flex: 1 },
   { id: "joined", header: "Joined", accessorKey: "joined", type: "date", width: 110, flex: 1 },
-  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", options: { min: 0, max: 100 }, width: 130, flex: 1, pin: "end" },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", options: { min: 0, max: 100 }, width: 80, flex: 1, pin: "end" },
 ] as const);
 
 /**

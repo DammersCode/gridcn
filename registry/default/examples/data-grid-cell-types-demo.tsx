@@ -112,7 +112,7 @@ export const cellTypesDemoColumns = defineColumns<CellTypesDemoRow>()([
  * Every built-in cell type in one grid, plus a read-only column, a `validate` rule (Validated rejects
  * under-18 edits), a clamped number column (Clamped keeps 18 to 100), a formatted currency column
  * (display-only locale formatting), a `url` column (its one `javascript:` value renders as plain text), a `longText` column (popover editor), and
- * a `renderCell` override on Logins that keeps the number type's edit/sort/clipboard pipeline but
+ * a `renderCell` override on the logins column that keeps the number type's edit/sort/clipboard pipeline but
  * renders a progress bar instead of plain text.
  */
 export default function DataGridCellTypesDemo(): ReactNode {

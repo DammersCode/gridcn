@@ -36,7 +36,7 @@ const columns = defineColumns<DemoRow>()([
   { id: "name", header: "Name", accessorKey: "name", type: "text", width: 70, flex: 1 },
   { id: "email", header: "Email", accessorKey: "email", type: "text", width: 90, flex: 2 },
   { id: "age", header: "Age", accessorKey: "age", type: "number", width: 50, flex: 1, filterable: true },
-  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 130, flex: 1, filterable: true },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 50, flex: 1, filterable: true },
 ] as const);
 
 /** One inspector entry: which event fired, when, and its pretty-printed payload. */

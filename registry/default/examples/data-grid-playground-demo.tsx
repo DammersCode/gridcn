@@ -73,7 +73,7 @@ const BASE_COLUMNS = defineColumns<DemoRow>()([
     },
     width: 130,
   },
-  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 130, filterable: true },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 90, filterable: true },
 ] as const);
 
 // Hand-rolled `validate` swap-in for the Age column — kept independent of the dedicated validation

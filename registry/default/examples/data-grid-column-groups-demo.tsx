@@ -33,7 +33,7 @@ const columns = defineColumns<DemoRow>()([
   },
   { id: "joined", header: "Joined", accessorKey: "joined", type: "date", width: 140 },
   { id: "age", header: "Age", accessorKey: "age", type: "number", width: 90 },
-  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 130 },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 90 },
   { id: "active", header: "Active", accessorKey: "active", type: "checkbox", width: 90 },
 ] as const);
 

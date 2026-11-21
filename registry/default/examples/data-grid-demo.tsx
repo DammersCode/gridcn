@@ -50,7 +50,7 @@ const columns = defineColumns<DemoRow>()([
     accessorKey: "score",
     type: "number",
     options: { min: 0, max: 100 },
-    width: 130,
+    width: 45,
     flex: 1,
   },
 ] as const);

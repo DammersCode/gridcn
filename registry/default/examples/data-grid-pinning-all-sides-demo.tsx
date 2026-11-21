@@ -51,7 +51,7 @@ const columns = defineColumns<DemoRow>()([
     type: "text",
     width: 110,
   },
-  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 130, pin: "end" },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 90, pin: "end" },
 ] as const);
 
 const AVERAGES = aggregateRow<DemoRow>({ age: "avg", score: "avg" }, { cells: { id: "averages", name: "Average" } });

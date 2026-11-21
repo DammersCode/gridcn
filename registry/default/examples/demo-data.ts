@@ -26,10 +26,10 @@ const FIRST_NAMES = [
   "Aisha", "Pavel", "Clara", "Hugo", "Nina", "Samir", "Alma", "Oskar", "Lucia", "Dev",
 ] as const;
 const LAST_NAMES = [
-  "Becker", "Okafor", "Nguyen", "Lindqvist", "Alvarez", "Tanaka", "Haddad", "Moreau", "Kowalski", "Patel",
-  "Rossi", "Silva", "Novak", "Fischer", "Mensah", "Larsen", "Castillo", "Ivanov", "Yamamoto", "Duarte",
+  "Becker", "Okafor", "Nguyen", "Lindqvist", "Alvarez", "Tanaka", "Haddad", "Moreau", "Kowalski", "Joshi",
+  "Rossi", "Teixeira", "Novak", "Fischer", "Mensah", "Larsen", "Castillo", "Ivanov", "Yamamoto", "Duarte",
   "Brennan", "Hoffmann", "Santos", "Kaya", "Weber", "Adeyemi", "Petrov", "Lopez", "Chen", "Murphy",
-  "Bianchi", "Haas", "Ito", "Reyes", "Sorensen", "Khan", "Costa", "Dubois", "Park", "Svensson",
+  "Bianchi", "Hartmann", "Ito", "Reyes", "Sorensen", "Qureshi", "Ferraz", "Dubois", "Park", "Svensson",
 ] as const;
 
 /**

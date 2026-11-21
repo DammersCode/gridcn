@@ -15,7 +15,7 @@ import { generateDemoRows, type DemoRow } from "./demo-data";
 const columns = defineColumns<DemoRow>()([
   { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140, flex: 2 },
   { id: "role", header: "Role", accessorKey: "role", type: "text", width: 110, flex: 1 },
-  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 130, flex: 1 },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 90, flex: 1 },
 ] as const);
 
 export default function DataGridCheckedRowsDemo(): ReactNode {

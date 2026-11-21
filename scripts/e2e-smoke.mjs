@@ -326,7 +326,7 @@ const SCENARIOS = [
       await dialog.locator('input[type="file"]').setInputFiles({
         name: "people.csv",
         mimeType: "text/csv",
-        buffer: Buffer.from("Name,Email,Score\nZed Zebra,zed@example.com,5\nYuri Yak,yuri@example.com,7\n"),
+        buffer: Buffer.from("Name,Email,Logins (30 days)\nZed Zebra,zed@example.com,5\nYuri Yak,yuri@example.com,7\n"),
       });
       await dialog.getByRole("button", { name: /^Import/ }).last().click();
       await dialog.waitFor({ state: "hidden" });
