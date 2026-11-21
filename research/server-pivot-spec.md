@@ -327,8 +327,21 @@ through the PGlite path and the same oracle, with the same `search_path` and ope
 
 The full fetch meets the 150 ms budget with about 30 ms to spare on PGlite. A separate key-count
 query costs about 42 ms more and misses it. Not measured: multi-level `groupBy` under pivot,
-decimal value columns, a selective `where`, PostgREST over HTTP, and `FILTER (WHERE ...)` in place
-of `CASE`.
+decimal value columns, and a selective `where`.
+
+Supabase, the same shape (`tests/server-query-supabase/pivot-perf.test.ts`), fastest of 6 to 8 warm runs:
+
+| Call | PGlite, calls in series | PostgreSQL 17 over PostgREST v16.6 (docker) |
+|---|---|---|
+| `pivotKeys` | 23 ms | 11 ms |
+| `groups` with pivot (`FILTER (WHERE ...)` cells) | 90 ms | 62 ms |
+| `groups` without pivot | 42 ms | 21 ms |
+| `groupCount` | 84 ms | 54 ms |
+| Full `fetchGroups` with pivot / without | 216 / 139 ms | 74 / 54 ms |
+
+Each grid function call stays under 150 ms. The PGlite fetch is over it because PGlite runs the
+cells call, `groupCount`, and `count` in series; PostgREST runs them side by side. `groupCount`
+(`count(DISTINCT key)`) is the slowest call without pivot, so grid-query.sql stays unchanged.
 
 ## Client parity gaps
 
