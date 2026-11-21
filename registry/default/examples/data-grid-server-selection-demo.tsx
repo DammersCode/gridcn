@@ -11,19 +11,19 @@ import {
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { DataGridStatusBar } from "@/registry/default/blocks/data-grid-status-bar/data-grid-status-bar";
 import { DataGridPaginationBar, useDataGridServerPager } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
-
-type Row = { id: string; name: string; email: string };
+import { generateSales, type SaleRow } from "./sales-data";
 
 const TOTAL = 237;
 const PAGE_SIZE = 10;
+const SALES = generateSales(TOTAL);
 
-const columns = defineColumns<Row>()([
+const columns = defineColumns<SaleRow>()([
   { id: "id", header: "ID", accessorKey: "id", type: "text", width: 90 },
-  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 140, flex: 1 },
-  { id: "email", header: "Email", accessorKey: "email", type: "text", width: 200, flex: 2 },
+  { id: "customer", header: "Customer", accessorKey: "customer", type: "text", width: 140, flex: 1 },
+  { id: "make", header: "Make", accessorKey: "make", type: "text", width: 100, flex: 1 },
+  { id: "model", header: "Model", accessorKey: "model", type: "text", width: 100, flex: 1 },
+  { id: "price", header: "Price", accessorKey: "price", type: "number", width: 100 },
 ] as const);
-
-const rowAt = (index: number): Row => ({ id: `row-${index}`, name: `Person ${index}`, email: `person${index}@example.com` });
 
 function SelectionPanel(): ReactNode {
   const selected = useDataGridSelectedRows();
@@ -43,7 +43,7 @@ function SelectionPanel(): ReactNode {
 /** A paged "server": checks survive page changes, and "select all matching" covers rows that were never loaded. */
 export default function DataGridServerSelectionDemo(): ReactNode {
   const [page, setPage] = useState(1);
-  const rows = useMemo(() => Array.from({ length: PAGE_SIZE }, (_, i) => rowAt((page - 1) * PAGE_SIZE + i)).filter((row) => Number(row.id.slice(4)) < TOTAL), [page]);
+  const rows = useMemo(() => SALES.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [page]);
   const { pager } = useDataGridServerPager({ page, pageSize: PAGE_SIZE, totalRowCount: TOTAL, onPageChange: setPage, pageSizeOptions: [PAGE_SIZE] });
 
   return (

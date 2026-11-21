@@ -4,13 +4,14 @@ import { useMemo, type ReactNode } from "react";
 import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineColumns } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
 import { DataGridHeaderFilter } from "@/registry/default/blocks/data-grid-toolbar/data-grid-toolbar";
-import type { DemoRow } from "./demo-data";
 import { createRemoteServer, type RemoteFilterNode } from "./fake-remote-server";
+import { generateSales, type SaleRow } from "./sales-data";
 
-const columns = defineColumns<DemoRow>()([
-  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 120, flex: 1 },
-  { id: "role", header: "Role", accessorKey: "role", type: "text", width: 110, flex: 1 },
-  { id: "age", header: "Age", accessorKey: "age", type: "number", width: 90, flex: 1 },
+const columns = defineColumns<SaleRow>()([
+  { id: "customer", header: "Customer", accessorKey: "customer", type: "text", width: 140, flex: 1 },
+  { id: "make", header: "Make", accessorKey: "make", type: "text", width: 110, flex: 1 },
+  { id: "model", header: "Model", accessorKey: "model", type: "text", width: 100, flex: 1 },
+  { id: "financed", header: "Financed", accessorKey: "financed", type: "checkbox", width: 100 },
 ] as const);
 
 /**
@@ -19,9 +20,9 @@ const columns = defineColumns<DemoRow>()([
  * the new spec. Each answer carries the matching row count.
  */
 export default function DataGridServerFilterDemo(): ReactNode {
-  const remote = useMemo(() => createRemoteServer(), []);
+  const remote = useMemo(() => createRemoteServer({ rows: generateSales(1000) }), []);
 
-  const server = useDataGridServerRows<DemoRow>({
+  const server = useDataGridServerRows<SaleRow>({
     mode: "scroll",
     fetchRows: async ({ start, end, signal, spec }) => {
       const page = await remote.fetchRange({ start, end, filters: spec.filters as RemoteFilterNode[], signal });

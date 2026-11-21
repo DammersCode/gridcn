@@ -17,7 +17,7 @@ describe("data-grid-server-side-demo", () => {
     await expect.element(page.getByText("Page 1 of 40", { exact: false }), { timeout: 4000 }).toBeInTheDocument();
     await page.getByRole("button", { name: "Next page" }).click();
     await expect.element(page.getByText("Page 2 of 40", { exact: false }), { timeout: 4000 }).toBeInTheDocument();
-    await page.getByRole("columnheader", { name: /Name/ }).click();
+    await page.getByRole("columnheader", { name: /Customer/ }).click();
     await expect.element(page.getByText("Page 1 of 40", { exact: false }), { timeout: 4000 }).toBeInTheDocument();
   });
 
@@ -39,9 +39,9 @@ describe("data-grid-server-side-demo", () => {
     await expect.poll(stale, { timeout: 4000 }).toBeGreaterThan(0);
     await page.getByText("Server pushes", { exact: true }).click();
     await expect.poll(stale, { timeout: 6000 }).toBe(0);
-    const scores = [...document.querySelectorAll("[data-grid-row-index]")].map((row) => Number(row.lastElementChild?.textContent));
-    expect(scores.length).toBeGreaterThan(2);
-    expect(scores).toEqual([...scores].sort((a, b) => b - a));
+    const prices = [...document.querySelectorAll("[data-grid-row-index]")].map((row) => Number(row.lastElementChild?.textContent?.replace(/D/g, "")));
+    expect(prices.length).toBeGreaterThan(2);
+    expect(prices).toEqual([...prices].sort((a, b) => b - a));
   });
 
   it("keeps a stale row marked without a reshape delay", async () => {
