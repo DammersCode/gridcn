@@ -19,7 +19,7 @@ const columns = defineColumns<DemoRow>()([
   { id: "email", header: "Email", accessorKey: "email", type: "text", width: 100, flex: 2 },
   { id: "age", header: "Age", accessorKey: "age", type: "number", width: 55, flex: 1 },
   { id: "role", header: "Role", accessorKey: "role", type: "text", width: 70, flex: 1 },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 55, flex: 1 },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 130, flex: 1 },
 ] as const);
 
 const ROW_COUNT = 24;

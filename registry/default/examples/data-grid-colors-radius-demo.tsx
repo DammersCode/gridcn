@@ -8,7 +8,7 @@ import { generateDemoRows, type DemoRow } from "./demo-data";
 const columns = defineColumns<DemoRow>()([
   { id: "name", header: "Name", accessorKey: "name", type: "text", width: 150, flex: 2 },
   { id: "active", header: "Active", accessorKey: "active", type: "checkbox", width: 80, flex: 1 },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 90, flex: 1 },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 130, flex: 1 },
 ] as const);
 
 const RADII = ["0", "0.625rem", "1rem"] as const;

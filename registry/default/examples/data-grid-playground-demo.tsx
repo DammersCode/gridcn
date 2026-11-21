@@ -73,7 +73,7 @@ const BASE_COLUMNS = defineColumns<DemoRow>()([
     },
     width: 130,
   },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 90, filterable: true },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 130, filterable: true },
 ] as const);
 
 // Hand-rolled `validate` swap-in for the Age column — kept independent of the dedicated validation
@@ -131,12 +131,12 @@ const withIconHeaders = (columns: readonly ColumnDef<DemoRow, unknown>[]): reado
         header: (
           <LiveSortHeader
             columnId="score"
-            label="Score"
+            label="Logins (30 days)"
             ascIcon={<TrendingUp className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />}
             descIcon={<TrendingDown className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />}
           />
         ),
-        headerText: "Score",
+        headerText: "Logins (30 days)",
       };
     }
     return column;
@@ -223,7 +223,7 @@ function useLatestRef<T>(value: T): { current: T } {
   return ref;
 }
 
-/** Streams random Score patches into the grid four times a second while `enabled`. Rendered only inside the virtualized/paginated subtrees — never under lazy mode, where unloaded windows have no rows to patch. */
+/** Streams random login-count patches into the grid four times a second while `enabled`. Rendered only inside the virtualized/paginated subtrees — never under lazy mode, where unloaded windows have no rows to patch. */
 function StreamingFeed({ enabled, reorder, rowIds }: { enabled: boolean; reorder: ReorderMode; rowIds: readonly string[] }): ReactNode {
   const { updateCells } = useDataGridActions();
   const rowIdsRef = useLatestRef(rowIds);

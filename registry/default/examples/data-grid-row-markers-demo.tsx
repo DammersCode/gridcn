@@ -37,7 +37,7 @@ const columns = defineColumns<DemoRow>()([
     width: 110,
     flex: 1,
   },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 80, flex: 1 },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 130, flex: 1 },
 ] as const);
 
 const ROW_MARKERS_OPTIONS: readonly RowMarkersMode[] = ["none", "number", "checkbox", "both", "reorder", "reorder-number", "reorder-checkbox", "reorder-both"];

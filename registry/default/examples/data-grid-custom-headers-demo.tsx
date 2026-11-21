@@ -52,7 +52,7 @@ const columns = defineColumns<DemoRow>()([
     sortIndicator: false,
     header: (
       <span className="flex items-center gap-1.5">
-        Score
+        Logins (30 days)
         <SortStateIcon
           columnId="score"
           unsorted={unsortedIcon}
@@ -63,7 +63,7 @@ const columns = defineColumns<DemoRow>()([
     ),
     accessorKey: "score",
     type: "number",
-    width: 90,
+    width: 150,
   },
 ] as const);
 
@@ -78,7 +78,7 @@ export default function DataGridCustomHeadersDemo(): ReactNode {
   return (
     <div className="w-full flex h-[360px] flex-col gap-2">
       <span className="text-sm text-muted-foreground">
-        Click the Name or Score header to sort: a minus means unsorted, an up icon ascending, a down icon descending.
+        Click the Name or Logins header to sort: a minus means unsorted, an up icon ascending, a down icon descending.
       </span>
       <div className="min-h-0 flex-1 overflow-hidden rounded-md border border-border">
         <DataGridProvider defaultData={rows} columns={columns} headerClickBehavior="sort">

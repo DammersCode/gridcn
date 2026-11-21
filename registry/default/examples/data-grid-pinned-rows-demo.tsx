@@ -38,7 +38,7 @@ const columns = defineColumns<DemoRow>()([
     flex: 1,
     filterable: true,
   },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 55, flex: 1 },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 130, flex: 1 },
 ] as const);
 
 const AVERAGES = aggregateRow<DemoRow>({ age: "avg", score: "avg" }, { cells: { id: "averages", role: "Average" } });
@@ -52,7 +52,7 @@ const TOTALS = aggregateRow<DemoRow>(
  * totals row pinned at the viewport's bottom edge, both declared with `aggregateRow` —
  * filter-aware, so the bands only reflect the rows the filter/sort view actually shows. Filter the
  * Role column via the toolbar to watch both bands recompute over just the filtered rows.
- * Edit a Score or Age cell to watch both bands update too.
+ * Edit a Logins or Age cell to watch both bands update too.
  */
 export default function DataGridPinnedRowsDemo(): ReactNode {
   const grid = useDataGridState(generateDemoRows(30), { getRowId: (row) => row.id });

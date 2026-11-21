@@ -263,11 +263,11 @@ const SCENARIOS = [
       await page.getByRole("button", { name: "Filters" }).click();
       await page.getByRole("button", { name: "Clear all" }).click();
       await page.getByRole("button", { name: "Add filter" }).click();
-      await page.getByLabel("Filter value").fill("Tiger");
+      await page.getByLabel("Filter value").fill("Moreau");
       await eventually(async () => {
         const names = await page.locator('[role="gridcell"][data-column-id="name"]').allTextContents();
-        return names.length > 0 && names.length < 20 && names.every((n) => n.includes("Tiger"));
-      }, "rows are not narrowed to names containing Tiger");
+        return names.length > 0 && names.length < 20 && names.every((n) => n.includes("Moreau"));
+      }, "rows are not narrowed to names containing Moreau");
     },
   },
   {

@@ -59,6 +59,7 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - Fixed a landing of a grouped server grid rendering every loaded group row again. Only the landed rows render.
 - Fixed a header render rendering every header cell again. `DataGridHeaderCell` is memoized, so a header render after a landing renders no cell whose props did not change.
 - Added the optional executor hook `nativeValue(column, value)`. The factory applies it to the values of `validateChange`, so an adapter can hand its driver `BigInt` or `Date` values.
+- Changed the shared demo data to a user directory: realistic full names with matching `example.com` emails, ages 21 to 64, and `score` shown as "Logins (30 days)". The Score column header is now Logins (30 days), and the "Standing" column group is now "Activity".
 
 ## 2.0.0 - 2026-11-17
 

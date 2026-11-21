@@ -12,7 +12,7 @@ import { createRemoteServer, type RemoteFilterNode } from "./fake-remote-server"
 const columns = defineColumns<DemoRow>()([
   { id: "name", header: "Name", accessorKey: "name", type: "text", width: 120, flex: 1 },
   { id: "email", header: "Email", accessorKey: "email", type: "text", width: 150, flex: 2 },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 70, flex: 1 },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 130, flex: 1 },
 ] as const);
 
 const BATCH = 200;

@@ -5,7 +5,7 @@ icon: Heading
 type: example
 ---
 
-`ColumnDef.header` takes a string or a React node. Click the Name or Score header to sort. A minus icon means no sort. An up icon means ascending. A down icon means descending.
+`ColumnDef.header` takes a string or a React node. Click the Name or Logins header to sort. A minus icon means no sort. An up icon means ascending. A down icon means descending.
 
 <ComponentPreview name="data-grid-custom-headers-demo" />
 
@@ -14,7 +14,7 @@ type: example
 ## What the demo shows [#whats-in-the-demo]
 
 - `headerClickBehavior="sort"` makes a header click sort the column up, then down, then clear the sort.
-- `header` on Name and Score is a node. A node header renders as it is and owns its display. Both set `sortIndicator: false` because their own icon replaces the built-in arrow.
+- `header` on Name and Logins is a node. A node header renders as it is and owns its display. Both set `sortIndicator: false` because their own icon replaces the built-in arrow.
 - `SortStateIcon` calls `useDataGridSortState()` to read the sort list and picks an icon from the entry of its column.
 - No demo column sets `headerText`. The plain-text label of a node header is the text of its HTML elements, or the column id when they hold no text. A component inside the node adds no text. Set `headerText` to give the label directly.
 - Email keeps a string header and the built-in sort arrow.
@@ -37,7 +37,7 @@ export const columns = defineColumns<Row>()([
     sortIndicator: false,
     header: (
       <span>
-        Score <DataGridSortIndicator columnId="score" />
+        Logins <DataGridSortIndicator columnId="score" />
       </span>
     ),
   },

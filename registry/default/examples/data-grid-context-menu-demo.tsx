@@ -34,7 +34,7 @@ const columns = defineColumns<DemoRow>()([
     width: 90,
     flex: 1,
   },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 70, flex: 1 },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 130, flex: 1 },
 ] as const);
 
 // Module-scope so the identity stays stable across renders (same rule as columns/data).

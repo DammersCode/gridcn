@@ -5,7 +5,7 @@ icon: Pin
 type: example
 ---
 
-One grid uses all four pin zones. Name is pinned to the start side and Score to the end side. An averages row fills the top band and a totals row fills the bottom band. The [pinned rows](/docs/rows-pages-menus/pinned-rows) add-on owns the bands.
+One grid uses all four pin zones. Name is pinned to the start side and Logins to the end side. An averages row fills the top band and a totals row fills the bottom band. The [pinned rows](/docs/rows-pages-menus/pinned-rows) add-on owns the bands.
 
 <ComponentPreview name="data-grid-pinning-all-sides-demo" />
 
@@ -13,7 +13,7 @@ One grid uses all four pin zones. Name is pinned to the start side and Score to 
 
 ## What the demo shows [#whats-in-the-demo]
 
-- `pin: "start"` on Name and `pin: "end"` on Score pin the two columns.
+- `pin: "start"` on Name and `pin: "end"` on Logins pin the two columns.
 - `useDataGridPinnedRows` takes `topRows` and `bottomRows`. The top band holds the averages row. The bottom band holds the totals row.
 - `aggregateRow` declares both rows. The band computes them from the rows that pass the filter (the `scope` defaults to `"view"`).
 - The totals row sets the Name cell with a function reducer, `(values, rows) => ...`, that shows the row count.
@@ -37,7 +37,7 @@ const columns = defineColumns<Row>()([
   { id: "age", header: "Age", accessorKey: "age", type: "number" },
   {
     id: "score",
-    header: "Score",
+    header: "Logins (30 days)",
     accessorKey: "score",
     type: "number",
     pin: "end",
