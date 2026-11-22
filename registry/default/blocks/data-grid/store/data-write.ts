@@ -220,8 +220,6 @@ const STREAM_REJECTION_SCAN_LIMIT = 16;
 /** Sources only a user gesture writes; a server hold refuses them, while the sources of consumer writes pass. */
 const HELD_GESTURE_SOURCES: ReadonlySet<DataChange<unknown>["source"]> = new Set(["paste", "fill", "cut", "delete", "replace", "row-operation", "history", "import"]);
 
-const refusedWhileHeld = (s: DataGridStoreState, source: DataChange<unknown>["source"]): boolean => s.serverHeld && HELD_GESTURE_SOURCES.has(source);
-
 /** Queues `emits` behind the pending emits; runs the queue at once when no store write is in progress. */
 export function emitAfterWrites(ctx: DataWriteContext, ...emits: (() => void)[]): void {
   ctx.pendingEmits.push(...emits);
@@ -903,7 +901,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       return { applied: 0, skipped: patches.map((_, patchIndex) => ({ patchIndex, reason: "no-source" })), pending: false };
     }
     if (s.readOnly && options.source !== "stream") return { applied: 0, skipped: patches.map((_, patchIndex) => ({ patchIndex, reason: "readonly" })), pending: false };
-    if (refusedWhileHeld(s, options.source)) return { applied: 0, skipped: patches.map((_, patchIndex) => ({ patchIndex, reason: "server-held" })), pending: false };
+    if (s.serverHeld && HELD_GESTURE_SOURCES.has(options.source)) return { applied: 0, skipped: patches.map((_, patchIndex) => ({ patchIndex, reason: "server-held" })), pending: false };
     if (patches.length > MAX_STREAM_PATCHES && options.source === "stream") {
       warnGateOnce("stream patch limit", `a "stream" call takes at most ${MAX_STREAM_PATCHES} patches; the ${patches.length - MAX_STREAM_PATCHES} after them skip with reason "limit". Send smaller batches`);
       const beyond: UpdateCellsSkip[] = [];
@@ -1007,10 +1005,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   const commitChangeCore = (change: DataChange<unknown>, flags?: readonly CellErrorEntry[]): void => {
     const s = get();
     if (s.readOnly && change.source !== "stream" && change.source !== "rollback") return;
-    if (refusedWhileHeld(s, change.source)) {
-      warnGateOnce("held gesture source", `commitChange with source "${change.source}" is refused while the server hook holds the rows of the previous spec; pass source "app" for a write from your code`);
-      return;
-    }
+    if (s.serverHeld && HELD_GESTURE_SOURCES.has(change.source)) return warnGateOnce("held gesture source", `commitChange with source "${change.source}" is refused while the server hook holds the rows of the previous spec; pass source "app" for a write from your code`);
     if (change.ops.length === 0) return;
     const nextData = applyChange(s.data, change, s.getRowId);
     followStaleRows(ctx, change.ops);
@@ -1217,7 +1212,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     applyCellUpdates(updates, source, rejected, warnings) {
       const s = get();
-      if (s.readOnly || refusedWhileHeld(s, source)) return;
+      if (s.readOnly || (s.serverHeld && HELD_GESTURE_SOURCES.has(source))) return;
       if (rejected === undefined && warnings === undefined && updates.length > 0) return resolveClearWritesThen(s, updates, (r) => get().actions.applyCellUpdates(r.writes, source, r.rejected, r.warnings));
       // every cell rejected: the write is a no-op, but the consumer still gets the rejection report
       if (updates.length === 0) return rejected ? emitBulkRejections(source, rejected) : undefined;
