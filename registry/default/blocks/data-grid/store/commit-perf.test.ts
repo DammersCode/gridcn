@@ -3,13 +3,14 @@ import type { ColumnDef } from "../types";
 import { cellTypes } from "../cell-types/cell-types";
 import { computeRowEditsBatch } from "./commit";
 import type { DataGridStoreState } from "./types";
+import { ciFactor } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
 const ROW_COUNT = 100_000;
 const WRITE_COUNT = 200_000;
 
 // Shared GitHub Actions runners are several × slower than a dev machine; the ceiling guards the
 // order of magnitude, not machine jitter.
-const CI_FACTOR = process.env["CI"] ? 2 : 1;
+const CI_FACTOR = ciFactor(2);
 
 type WideRow = { [key: string]: number | string | undefined } & { id: string };
 

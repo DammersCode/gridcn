@@ -1,11 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { exportGrid } from "./export-grid";
+import { ciFactor } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
 const ROW_COUNT = 100_000;
 const COL_COUNT = 10;
 const BATCH = 2_000;
-const BUDGET_MS = 3_000 * (process.env["CI"] ? 2 : 1);
+const BUDGET_MS = 3_000 * (ciFactor(2));
 
 type Row = Record<string, string>;
 

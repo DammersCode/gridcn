@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import { applyChange, invertChange } from "../interaction/history";
 import type { DataOp } from "../types";
 import { planBlockMove, planShiftMove, type RowMovePlan } from "./plan-row-moves";
+import { ciFactor } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
-const CI_FACTOR = process.env["CI"] ? 2 : 1;
+const CI_FACTOR = ciFactor(2);
 const ids = (n: number) => Array.from({ length: n }, (_, i) => `r${i}`);
 const getId = (row: string) => row;
 

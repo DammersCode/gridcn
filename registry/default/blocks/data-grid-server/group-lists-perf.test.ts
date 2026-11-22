@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createGroupStore, evictPivotCells, landGroups, landPivotGroups, landRows, layoutView, listFor, MAX_PIVOT_CELLS } from "./group-lists";
 import type { ServerGroupRow } from "./read-groups-answer";
+import { ciFactor } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
 /** The server layout at 100k view rows: 1,000 groups, 10 open with 10k rows each. */
 
@@ -8,7 +9,7 @@ const GROUPS = 1_000;
 const OPEN = 10;
 const ROWS = 10_000;
 const BLOCK = 100;
-const CI_FACTOR = process.env["CI"] ? 2 : 1;
+const CI_FACTOR = ciFactor(2);
 
 const group = (key: string): ServerGroupRow => ({ key, childCount: ROWS, totalRowCount: ROWS });
 

@@ -7,6 +7,7 @@ import {
   serializeLayoutPart,
   type UrlLayoutPart,
 } from "./layout-param";
+import { ciFactor } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
 const layout: ColumnLayout = {
   widths: { name: 240, "a,b": 80 },
@@ -102,7 +103,7 @@ describe("layout param codec", () => {
 });
 
 describe("layout param performance", () => {
-  const CI_FACTOR = process.env["CI"] ? 2 : 1;
+  const CI_FACTOR = ciFactor(2);
   const BUDGET_MS = 10;
 
   // Three maximum-size parses per run; ~5x the measured 0.8-1.7 ms (x CI_FACTOR on CI).

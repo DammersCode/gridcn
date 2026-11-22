@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { cellTypes, type AnyColumnDef, type FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { distinctColumnValues, type DistinctValuesInput } from "./distinct-values";
-
-// Shared GitHub Actions runners are several x slower than a dev machine; the ceiling guards an
-// algorithmic regression, not machine jitter.
-const CI_FACTOR = process.env["CI"] ? 2 : 1;
+import { bestMs as fastestMs, budget } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
 const ROWS = 100_000;
 const MAX_RUNS = 9;
@@ -30,6 +27,18 @@ function makeInput(cardinality: number): DistinctValuesInput {
   return { data, columns, cellTypes: cellTypes as DistinctValuesInput["cellTypes"], filterState: filters };
 }
 
+type PlainRow = { city: string; age: number; status: string };
+
+/** The same filter and count mix without the library code. */
+function plainCount(data: readonly PlainRow[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const row of data) {
+    if (row.age < 10 || row.status === "closed") continue;
+    counts.set(row.city, (counts.get(row.city) ?? 0) + 1);
+  }
+  return counts;
+}
+
 /** Best of up to {@link MAX_RUNS} runs after a warmup, stopping at the first run within `budgetMs`: load only slows single runs. */
 function bestMs(input: DistinctValuesInput, budgetMs: number): number {
   distinctColumnValues(input, "city");
@@ -43,15 +52,18 @@ function bestMs(input: DistinctValuesInput, budgetMs: number): number {
 }
 
 describe("distinctColumnValues perf", () => {
+  // Columns: cardinality, idle floor in ms (about 5x the idle run, wide enough for coverage), k times the same-run plain count.
   it.each([
-    [10, 200],
-    [1_000, 200],
-    [10_000, 200],
-    [100_000, 600],
-  ])("counts %i distinct values over 100k rows with two other filters within %i ms", (cardinality, budgetMs) => {
+    [10, 60, 50],
+    [1_000, 60, 40],
+    [10_000, 150, 60],
+    [100_000, 1200, 200],
+  ])("counts %i distinct values over 100k rows with two other filters within %i ms", (cardinality, budgetMs, k) => {
     const input = makeInput(cardinality);
-    const elapsed = bestMs(input, budgetMs * CI_FACTOR);
+    const referenceMs = fastestMs(() => plainCount(input.data as PlainRow[]));
+    const limit = budget({ floor: budgetMs, cap: budgetMs * 3, k, reference: referenceMs });
+    const elapsed = bestMs(input, limit);
     expect(distinctColumnValues(input, "city").values.length).toBeLessThanOrEqual(cardinality);
-    expect(elapsed).toBeLessThan(budgetMs * CI_FACTOR);
+    expect(elapsed).toBeLessThan(limit);
   });
 });

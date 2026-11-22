@@ -2,9 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import { createDataGridStore } from "./create-store";
 import { EMPTY_GATES_PENDING } from "./gate-signal";
 import type { InternalSyncProps } from "./types";
+import { ciFactor } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
 const ROW_COUNT = 100_000;
-const CI_FACTOR = process.env["CI"] ? 2 : 1;
+const CI_FACTOR = ciFactor(2);
 
 type Row = { id: string; name: string };
 

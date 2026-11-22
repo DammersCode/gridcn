@@ -3,15 +3,16 @@ import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { DataGrid, defineColumns, type DataGridApi } from "../data-grid";
+import { budget, plainLoopMs } from "./perf-budget.test-helper";
 import { measureScrollLongTasks } from "./perf-probe.test-helper";
 import "@/app/global.css";
 
 const ROWS = 100_000;
 const GROUPS = 5_000;
 const KEYS = 200;
-// perf.browser.test.tsx measured 585-6399 ms of long tasks on a healthy grid in CI: keep its 20 s ceiling there.
-const CI_FACTOR = import.meta.env.CI ? 100 : 1;
-const LONG_TASK_BUDGET_MS = 200 * CI_FACTOR;
+const IDLE_LOOP_MS = 3;
+// Idle: 0ms of long tasks; perf.browser.test.tsx measured 585-6399ms on a healthy grid in CI, so CI widens the floor tenfold and the budget rises with the same-run loop slowdown.
+const longTaskBudgetMs = () => budget({ floor: 200, cap: 1000, k: 200 / IDLE_LOOP_MS, reference: plainLoopMs(), ciFactor: 10 });
 
 type Row = { id: string; region: string; year: string; qty: number };
 
@@ -58,7 +59,7 @@ describe("a client pivot of 100,000 rows into 5,000 group rows x 200 generated c
     const { count, totalMs } = await measureScrollLongTasks(grid, 240, 240, direction);
     await settle();
     await annotate(`perf client pivot ${direction} fling: longTasks=${count} total=${Math.round(totalMs)}ms`);
-    expect(totalMs).toBeLessThan(LONG_TASK_BUDGET_MS);
+    expect(totalMs).toBeLessThan(longTaskBudgetMs());
     expect(direction === "vertical" ? grid.scrollTop : grid.scrollLeft).toBeGreaterThan(0);
     await screen.unmount();
   });

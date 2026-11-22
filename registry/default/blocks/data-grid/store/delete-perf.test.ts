@@ -2,13 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import type { ColumnDef, DataChange } from "../types";
 import { createDataGridStore } from "./create-store";
 import type { InternalSyncProps } from "./types";
+import { ciFactor } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
 const ROW_COUNT = 100_000;
 const COLUMN_COUNT = 20;
 
 // Shared GitHub Actions runners are several × slower than a dev machine; the ceiling guards the
 // order of magnitude, not machine jitter.
-const CI_FACTOR = process.env["CI"] ? 2 : 1;
+const CI_FACTOR = ciFactor(2);
 
 type WideRow = { [key: string]: string | number } & { id: string };
 
