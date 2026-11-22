@@ -49,6 +49,6 @@ export function useScrollRows<TData, TCursor = never>(options: Options<TData, TC
     else if (arrived) setShown({ grouped, flipped: false });
   });
   const previous = shown.grouped ? groups.result : ungrouped;
-  const waiting = shown.grouped !== grouped;
+  const waiting = shown.grouped !== grouped && options.enableHold !== false;
   return useMemo(() => (waiting ? handOffResult(previous, next) : next), [waiting, previous, next]);
 }

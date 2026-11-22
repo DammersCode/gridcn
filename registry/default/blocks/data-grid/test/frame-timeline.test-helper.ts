@@ -8,6 +8,8 @@ export type FrameSample = {
   groupRows: number;
   empty: boolean;
   busy: boolean;
+  /** Whether the loading bar or a custom loading display paints: present, and not held transparent by its show delay. */
+  loadingBar: boolean;
   header: string;
   /** The text of the pinned row bands, the comment markers, the header widths, and every `aria-label` of the grid. */
   pinned: string;
@@ -40,6 +42,7 @@ export function sampleGrid(root: ParentNode = document, via: FrameSample["via"] 
     groupRows: rows.filter((row) => row.hasAttribute("data-grid-group-row")).length,
     empty: grid?.querySelector("[data-grid-empty-state]") != null,
     busy: grid?.getAttribute("aria-busy") === "true",
+    loadingBar: loadingBarPaints(grid),
     header: [...(grid?.querySelectorAll('[role="columnheader"]') ?? [])].map((cell) => cell.textContent ?? "").join("|"),
     pinned: [...(grid?.querySelectorAll("[data-grid-pinned-row-band] [role=row]") ?? [])].map((row) => row.textContent ?? "").join("\n"),
     commentMarkers: grid?.querySelectorAll("[data-grid-comment-marker]").length ?? 0,
@@ -50,6 +53,12 @@ export function sampleGrid(root: ParentNode = document, via: FrameSample["via"] 
     readonlyCells: rows.reduce((total, row) => total + row.querySelectorAll("[data-readonly]").length, 0),
     ariaReadOnly: grid?.getAttribute("aria-readonly") ?? null,
   };
+}
+
+function loadingBarPaints(grid: HTMLElement | null | undefined): boolean {
+  if (grid?.querySelector("[data-grid-loading-state]")) return true;
+  const bar = grid?.querySelector<HTMLElement>("[data-grid-loading-bar]");
+  return bar != null && Number(getComputedStyle(bar).opacity) > 0;
 }
 
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
@@ -103,6 +112,7 @@ export function flashesIn(samples: readonly FrameSample[], before: FrameSample, 
   let arrived = false;
   for (const [index, sample] of samples.entries()) {
     const where = `${sample.via} ${index}`;
+    if (sample.loadingBar && !sample.busy) found.push(`${where}: the loading bar shows on an idle grid`);
     if (!sample.released) {
       if (!same(sample, before, HELD)) found.push(`${where} before the release: ${show(sample)} is not the old state ${show(before)}`);
       continue;

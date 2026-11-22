@@ -86,6 +86,12 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
    * `false` turns it off, and a stale row then waits for `reshape()`, `refresh()`, or a spec change.
    */
   reshapeDelayMs?: number | false;
+  /**
+   * Keeps the old rows on screen after a spec change until the answers for the rendered rows land. The grid refuses the writes
+   * of user gestures meanwhile. `false` never starts the hold, and the grid behaves as in 2.0. A flat grid shows placeholder rows,
+   * and a grouped or pivoted grid shows the empty state and the source columns until the answer lands. Default `true`.
+   */
+  enableHold?: boolean;
   /** Fires after a request fails. */
   onError?: (error: unknown) => void;
   /** Fires after the rows of a block land, with the range they cover. The grid shows them on the next frame. */
@@ -681,7 +687,7 @@ export function useScrollBlocks<TData, TCursor = never>(options: WithRowId<UseDa
     if (!specReady) return;
     const core = getCore();
     // The rows on screen stay, busy and read-only, until the answers under the rendered rows land; an error keeps them next to the error bar.
-    const hold = holding.current || core.loaded.length > 0 || core.stale.length > 0;
+    const hold = live.current.options.enableHold !== false && (holding.current || core.loaded.length > 0 || core.stale.length > 0);
     const onScreen = mergeRanges([...core.loaded, ...core.stale]);
     if (hold) {
       holding.current = true;

@@ -567,7 +567,7 @@ export const OPTION_GROUPS = [
     title: "Server",
     intro: "Options of the server rows, presence, and comments add-ons.",
     rows: [
-      { names: ["mode","getRowId","fetchRows","defaultSpec","spec","onSpecChange","onError","onLoaded","onDataChange","revalidateIntervalMs","reshapeDelayMs","plugins","initialAnswer"], owners: ["useDataGridServerRows"], page: "/docs/add-options/server/server-rows-options" },
+      { names: ["mode","getRowId","fetchRows","defaultSpec","spec","onSpecChange","onError","onLoaded","onDataChange","revalidateIntervalMs","reshapeDelayMs","enableHold","plugins","initialAnswer"], owners: ["useDataGridServerRows"], page: "/docs/add-options/server/server-rows-options" },
       { names: ["onSave","refreshAfterSave"], owners: ["useDataGridServerRows"], page: "/docs/add-options/server/server-rows-options#save-options" },
       { names: ["page","defaultPage","pageSize","defaultPageSize","pageSizeOptions","onPageChange","onPageSizeChange","prefetchNextPage"], owners: ["useDataGridServerRows pages mode"], page: "/docs/add-options/server/server-rows-options#server-mode" },
       { names: ["source","blockSize","overscan","loadDelayMs","maxConcurrentFetches","maxLoadedRows","plugins","onRenderedRowsChange"], owners: ["useDataGridServerRows scroll mode"], page: "/docs/add-options/server/server-rows-options#usedatagridserverrowsscrolloptions" },
@@ -623,6 +623,7 @@ export const PROP_PAGES = {
 
 // Purpose of an option whose type carries no usable JSDoc sentence, keyed "owner.option".
 export const OPTION_PURPOSE = {
+  "useDataGridServerRows.enableHold": "Keeps the old rows on screen until the answers land. `false` never starts the hold, and the grid behaves as in 2.0.",
   "DataGridToolbar.className": "Adds a class name to the toolbar bar.",
   "DataGridSearch.className": "Adds a class name to the search box wrapper.",
   "DataGridFilterMenu.className": "Adds a class name to the trigger button.",

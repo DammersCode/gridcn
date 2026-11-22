@@ -54,7 +54,10 @@ export type DataGridLoadingBarProps = {
 };
 
 /** Scoped keyframes (not a `@theme` global.css addition) so this file stays self-contained as a registry item — no consumer build-config step beyond installing the component. */
-const SWEEP_KEYFRAMES = "@keyframes grid-loading-sweep{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}";
+const SWEEP_KEYFRAMES = "@keyframes grid-loading-sweep{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}@keyframes grid-loading-show{from{opacity:0}}";
+
+// An answer within this time removes the bar before it paints, so a fast answer does not blink.
+const LOADING_BAR_SHOW_DELAY_MS = 150;
 
 /**
  * Grid-wide loading state, data-present case (`loading && rowCount > 0` — a background
@@ -69,6 +72,7 @@ export function DataGridLoadingBar(props: DataGridLoadingBarProps): ReactNode {
     insetInlineStart: 0,
     insetBlockStart: headerHeight,
     zIndex: GRID_LAYER.skeleton,
+    animation: `grid-loading-show var(--grid-loading-bar-delay, ${LOADING_BAR_SHOW_DELAY_MS}ms) step-end`,
   };
   return (
     <div

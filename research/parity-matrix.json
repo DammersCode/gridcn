@@ -2054,6 +2054,7 @@
       "id": "loading",
       "feature": "Loading and error state",
       "options": [
+        "enableHold",
         "onError",
         "onLoaded"
       ],
@@ -2114,7 +2115,7 @@
         }
       },
       "doc": "/docs/theme-style-language/loading-state",
-      "note": "A server spec change keeps the old rows on screen until the answers for the rendered rows land. Open: a change that leaves fewer rows than the scroll position blanks one frame (V1)."
+      "note": "A server spec change keeps the old rows on screen until the answers for the rendered rows land. With `enableHold: false` the hold never starts, and the grid behaves as in 2.0."
     },
     {
       "id": "find-replace",
