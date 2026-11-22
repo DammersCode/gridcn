@@ -50,7 +50,8 @@ export type UseDataGridServerRowsOptions<TData, TCursor = never> = {
   onSpecChange?: (spec: ServerSpec) => void;
   /**
    * Keeps the old rows on screen after a spec or page change until the answers for the rendered rows land. The grid refuses
-   * the writes of user gestures meanwhile. `false` clears the rows at the change and shows the loading state. Default `true`.
+   * the writes of user gestures meanwhile. `false` never starts the hold, and the grid behaves as in 2.0. A flat page keeps its
+   * rows until the next page lands, and a grouped or pivoted grid shows the empty state after a spec change. Default `true`.
    */
   enableHold?: boolean;
   /** Fires after a request fails. */

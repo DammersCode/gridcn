@@ -87,8 +87,9 @@ export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {
    */
   reshapeDelayMs?: number | false;
   /**
-   * Keeps the old rows on screen after a spec or page change until the answers for the rendered rows land. The grid refuses
-   * the writes of user gestures meanwhile. `false` clears the rows at the change and shows the loading state. Default `true`.
+   * Keeps the old rows on screen after a spec change until the answers for the rendered rows land. The grid refuses the writes
+   * of user gestures meanwhile. `false` never starts the hold, and the grid behaves as in 2.0. A flat grid shows placeholder rows,
+   * and a grouped or pivoted grid shows the empty state and the source columns until the answer lands. Default `true`.
    */
   enableHold?: boolean;
   /** Fires after a request fails. */

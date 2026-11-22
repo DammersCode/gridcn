@@ -2115,7 +2115,7 @@
         }
       },
       "doc": "/docs/theme-style-language/loading-state",
-      "note": "A server spec change keeps the old rows on screen until the answers for the rendered rows land. `enableHold: false` clears them at the change."
+      "note": "A server spec change keeps the old rows on screen until the answers for the rendered rows land. With `enableHold: false` the hold never starts, and the grid behaves as in 2.0."
     },
     {
       "id": "find-replace",

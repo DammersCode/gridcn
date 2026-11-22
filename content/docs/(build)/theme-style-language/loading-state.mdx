@@ -46,7 +46,7 @@ export function LoadingGrid({ rows }: { rows: Row[] }) {
 - With zero rows, a skeleton fills the viewport. The empty state does not show while `loading` is true.
 - With rows present, such as a background refresh, the rows stay visible. A slim indeterminate bar appears under the header after 150 ms, so a faster answer shows no bar.
 - When the spec or the page of `useDataGridServerRows` changes, the old rows and columns stay visible until the answers for the rendered rows land. Meanwhile the grid refuses the writes of user gestures: edits, pastes, fills, cuts, deletes, replaces, imports, row operations, undo, and redo. A refused row action or `selectAllMatching()` returns the reason `"server-held"`. A write from your code applies: `updateCells`, `updateRows`, `editRows`, and `commitChange` with a source such as `"app"` or `"stream"`. A write from your code with a gesture source, such as `updateCells` with `source: "paste"`, is refused too. The empty state shows only after an answer with zero rows.
-- With `enableHold: false` on `useDataGridServerRows`, the hook clears the rows at the change and refuses no write.
+- With `enableHold: false` on `useDataGridServerRows`, the hold never starts, and the grid behaves as in 2.0. A flat scroll grid shows placeholder rows. A flat page keeps its rows until the next page lands. A grouped or pivoted grid shows the empty state.
 - The grid root has `aria-busy="true"` while `loading` is true.
 - The screen reader progress element uses `labels.grid.loading` as its label. The skeleton and the bar are hidden from assistive technology.
 - With `prefers-reduced-motion`, the skeleton does not pulse and the bar does not sweep.

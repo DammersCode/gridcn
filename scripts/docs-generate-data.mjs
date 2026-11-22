@@ -623,6 +623,7 @@ export const PROP_PAGES = {
 
 // Purpose of an option whose type carries no usable JSDoc sentence, keyed "owner.option".
 export const OPTION_PURPOSE = {
+  "useDataGridServerRows.enableHold": "Keeps the old rows on screen until the answers land. `false` never starts the hold, and the grid behaves as in 2.0.",
   "DataGridToolbar.className": "Adds a class name to the toolbar bar.",
   "DataGridSearch.className": "Adds a class name to the search box wrapper.",
   "DataGridFilterMenu.className": "Adds a class name to the trigger button.",

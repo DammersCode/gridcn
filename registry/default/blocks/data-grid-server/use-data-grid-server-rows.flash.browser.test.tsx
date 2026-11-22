@@ -1,4 +1,4 @@
-import { createRef, useState, type RefObject } from "react";
+import { createRef, useState, type CSSProperties, type RefObject } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { DataGrid, defineColumns, type DataGridApi, type ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
@@ -62,7 +62,7 @@ function gatedServer(cursor: boolean, source: readonly Row[] = ROWS) {
   };
 }
 
-type Setup = { name: string; mode: "scroll" | "pages"; spec: Partial<ServerSpec>; cursor?: boolean; open?: boolean; rows?: readonly Row[]; scrollTop?: number; pivot?: PivotSpec; enableHold?: false };
+type Setup = { name: string; mode: "scroll" | "pages"; spec: Partial<ServerSpec>; cursor?: boolean; open?: boolean; rows?: readonly Row[]; scrollTop?: number; pivot?: PivotSpec; enableHold?: false; barDelay?: string; onRendered?: (range: { start: number; end: number }) => void };
 type Server = UseDataGridServerRowsResult<Row> | UseDataGridServerRowsScrollResult<Row>;
 type Handles = { api: RefObject<DataGridApi<Row> | null>; server: { current: Server | null }; setSpec: { current: (next: ServerSpec) => void }; setLabels: { current: (next: object) => void } };
 
@@ -72,11 +72,11 @@ function Harness({ setup, fetchRows, handles }: { setup: Setup; fetchRows: (requ
   const [pivot, setPivot] = useState(setup.pivot);
   handles.setSpec.current = setSpec;
   handles.setLabels.current = setLabels;
-  const options = { mode: setup.mode, fetchRows: fetchRows as never, spec, onSpecChange: setSpec, blockSize: 50, overscan: 0, loadDelayMs: 0, pageSizeOptions: setup.spec.groupBy ? [2, 4] : [4, 8], defaultPageSize: setup.spec.groupBy ? 2 : 4, ...(setup.open ? { defaultExpanded: { mode: "collapsed", ids: [groupIdOf([{ columnId: "region", key: "A" }])] } } : null), ...(pivot ? { pivot, onPivotChange: setPivot } : null), ...(setup.enableHold === false ? { enableHold: false } : null) };
+  const options = { mode: setup.mode, fetchRows: fetchRows as never, spec, onSpecChange: setSpec, blockSize: 50, overscan: 0, loadDelayMs: 0, pageSizeOptions: setup.spec.groupBy ? [2, 4] : [4, 8], defaultPageSize: setup.spec.groupBy ? 2 : 4, ...(setup.open ? { defaultExpanded: { mode: "collapsed", ids: [groupIdOf([{ columnId: "region", key: "A" }])] } } : null), ...(pivot ? { pivot, onPivotChange: setPivot } : null), ...(setup.enableHold === false ? { enableHold: false } : null), ...(setup.onRendered ? { onRenderedRowsChange: setup.onRendered } : null) };
   const server = useDataGridServerRows<Row>(options as never) as Server;
   handles.server.current = server;
   return (
-    <div style={{ height: 400, width: 700 }}>
+    <div style={{ height: 400, width: 700, ...(setup.barDelay ? { "--grid-loading-bar-delay": setup.barDelay } : null) } as CSSProperties}>
       <DataGrid ref={handles.api} {...server.gridProps} columns={columns} labels={labels} className="h-100 w-175" aria-label="Flash" />
     </div>
   );
@@ -139,12 +139,10 @@ async function flashOf(setup: Setup, action: Action, releaseAfterMs?: number) {
   const before = sampleGrid();
   gate.hold();
   let released = !(typeof action.fetches === "function" ? action.fetches(setup) : action.fetches === true);
-  let actionAt = 0;
   let heldSeen = false;
   const unsubscribe = handles.api.current!.store.subscribe((state) => void (heldSeen ||= state.serverHeld));
   const samples = await recordAcross(
     () => {
-      actionAt = performance.now();
       action.run({ api: handles.api.current!, server: handles.server.current!, spec: handles.server.current!.spec, setSpec: handles.setSpec.current, setLabels: handles.setLabels.current, grouped: (setup.spec.groupBy?.length ?? 0) > 0 });
       void (releaseAfterMs === undefined ? frames(4) : new Promise((resolve) => setTimeout(resolve, releaseAfterMs))).then(() => {
         released = true;
@@ -157,7 +155,7 @@ async function flashOf(setup: Setup, action: Action, releaseAfterMs?: number) {
   unsubscribe();
   const after = sampleGrid();
   await screen.unmount();
-  return { heldSeen, flashes: flashesIn(samples, before, after), busy: samples.some((sample) => sample.busy), heldBusy: samples.filter((sample) => !sample.released).every((sample) => sample.busy), samples, actionAt, before, after };
+  return { heldSeen, flashes: flashesIn(samples, before, after), busy: samples.some((sample) => sample.busy), heldBusy: samples.filter((sample) => !sample.released).every((sample) => sample.busy), samples, before, after };
 }
 
 describe("a server grid whose answer to a new spec fails", () => {
@@ -210,22 +208,33 @@ describe("a held server grid shows the loading bar only for a slow answer", () =
   const filter = ACTIONS.find((action) => action.name === "filter")!;
   for (const setup of GRIDS.filter((grid) => grid.name === "flat scroll" || grid.name === "grouped scroll" || grid.name === "flat pages")) {
     it(`shows no bar for a fast answer (${setup.name})`, async () => {
-      const { flashes, heldBusy, samples } = await flashOf(setup, filter, 20);
+      // A show delay far above the answer time keeps the test independent of the runner load.
+      const { flashes, heldBusy, samples } = await flashOf({ ...setup, barDelay: "60s" }, filter, 20);
       expect(flashes.slice(0, 3)).toEqual([]);
       expect(heldBusy).toBe(true);
       expect(samples.filter((sample) => sample.loadingBar)).toEqual([]);
     });
 
     it(`shows the bar after the show delay for a slow answer (${setup.name})`, async () => {
-      const { flashes, heldBusy, samples, actionAt } = await flashOf(setup, filter, 600);
+      const { flashes, heldBusy, samples } = await flashOf(setup, filter, 600);
       expect(flashes.slice(0, 3)).toEqual([]);
       expect(heldBusy).toBe(true);
       const shown = samples.filter((sample) => sample.loadingBar && !sample.released);
       expect(shown.length, "the bar shows while the rows are held").toBeGreaterThan(0);
-      expect(shown[0]!.at - actionAt).toBeGreaterThanOrEqual(140);
+      expect(samples.find((sample) => !sample.released)?.loadingBar, "the first held sample is inside the show delay").toBe(false);
     });
   }
 });
+
+/** What a change shows before its answer with `enableHold: false`, as in 2.0. */
+function OFF_SHAPE(setup: Setup, action: Action) {
+  const groupedAfter = setup.spec.groupBy !== undefined ? action.name !== "ungroup" : action.name === "groupBy";
+  // A new group request shows the empty state, busy only once its request leaves; a group page shows its unloaded rows.
+  if (groupedAfter) return { busy: true, allBusy: false, empty: action.name !== "page", kept: false };
+  // A flat page keeps its rows until the next page lands; the switch from groups starts with no flat rows.
+  if (setup.mode === "pages") return { busy: true, allBusy: true, empty: false, kept: action.name !== "ungroup" };
+  return { busy: true, allBusy: true, empty: false, kept: false };
+}
 
 describe("a server grid with enableHold: false clears the rows as before and never holds", () => {
   const fetching = (action: Action, setup: Setup) => action.name !== "refresh" && (typeof action.fetches === "function" ? action.fetches(setup) : action.fetches === true);
@@ -242,8 +251,54 @@ describe("a server grid with enableHold: false clears the rows as before and nev
           if (landed !== null) expect(landed, "the change landed").toBe(true);
           expect(heldSeen, "serverHeld stays false").toBe(false);
           if (clears) expect(samples.some((sample) => !sample.released && sample.rows !== before.rows), "the old rows leave before the answer").toBe(true);
+          const held = samples.filter((sample) => !sample.released);
+          const shape = { busy: held.some((sample) => sample.busy), allBusy: held.every((sample) => sample.busy), empty: held.some((sample) => sample.empty), kept: held.every((sample) => sample.rows === before.rows) };
+          expect(shape).toEqual(OFF_SHAPE(setup, action));
+          if (pivoted(setup)) expect(held.some((sample) => sample.header !== before.header), "the held pivot columns clear with the rows").toBe(true);
         });
       }
     });
   }
+});
+
+describe("a scrolled server grid whose row count grows back after a shrink", () => {
+  it("renders the rows of the grown count at once and reports their range, with no scroll in between", async () => {
+    const ranges: { start: number; end: number }[] = [];
+    const setup: Setup = { name: "flat scroll scrolled", mode: "scroll", spec: {}, rows: MANY, onRendered: (range) => ranges.push(range) };
+    const gate = gatedServer(false, MANY);
+    const handles: Handles = { api: createRef<DataGridApi<Row>>(), server: { current: null }, setSpec: { current: () => {} }, setLabels: { current: () => {} } };
+    const screen = await render(<Harness setup={setup} fetchRows={gate.fetchRows} handles={handles} />);
+    await vi.waitFor(() => expect(sampleGrid().busy || sampleGrid().rows === "").toBe(false));
+    const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+    grid.scrollTop = 6000;
+    grid.dispatchEvent(new Event("scroll"));
+    await vi.waitFor(() => expect(sampleGrid().busy || sampleGrid().placeholders > 0).toBe(false));
+    handles.api.current!.actions.setSearch("A c1");
+    await vi.waitFor(() => expect(!sampleGrid().busy && sampleGrid().rows.split("\n").every((row) => row.startsWith("Ac1"))).toBe(true));
+    await frames(3);
+    const before = sampleGrid();
+    gate.hold();
+    let released = false;
+    const samples = await recordAcross(
+      () => {
+        handles.api.current!.actions.setSearch("");
+        void frames(4).then(() => {
+          released = true;
+          gate.release();
+        });
+      },
+      () => released && gate.idle() && !sampleGrid().busy && sampleGrid().placeholders === 0,
+      { released: () => released },
+    );
+    const after = sampleGrid();
+    expect(after.rows).not.toBe("");
+    expect(after.placeholders).toBe(0);
+    expect(flashesIn(samples, before, after).slice(0, 3)).toEqual([]);
+    const canvas = document.querySelector<HTMLElement>("[data-grid-rows-canvas]")!;
+    expect(ranges.at(-1)).toEqual({ start: Number(canvas.dataset["gridWindowStart"]), end: Number(canvas.dataset["gridWindowEnd"]) });
+    const shown = [...canvas.querySelectorAll<HTMLElement>("[role=row][data-grid-row-index]")].map((row) => Number(row.dataset["gridRowIndex"]));
+    expect(Math.min(...shown)).toBe(ranges.at(-1)!.start);
+    expect(Math.max(...shown) + 1).toBe(ranges.at(-1)!.end);
+    await screen.unmount();
+  });
 });

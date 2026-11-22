@@ -184,7 +184,7 @@ export function useGroupBlocks<TData, TCursor = never>(
       getEngine().view = null;
       const { active: on, pivot: columnId } = live.current;
       setView((prev) => {
-        const hold = on && columnId !== null ? prev.pivotHold : undefined;
+        const hold = on && columnId !== null && live.current.options.enableHold !== false ? prev.pivotHold : undefined;
         if (prev.data.length === 0 && prev.slots.length === 0 && !prev.loading && prev.groupCount === null && prev.pivotHold === hold) return prev;
         return hold ? { ...emptyView<TData>(), pivotHold: hold } : emptyView<TData>();
       });
@@ -356,7 +356,7 @@ export function useGroupBlocks<TData, TCursor = never>(
     if (seeded) return seeded;
     const store = createGroupStore<TData>(by, blockSize(), columnId !== null);
     // The shown held set stays until the first answer of the new spec lands, so the header never flips to the source columns.
-    if (store.pivot && shown?.layout) store.pivot = { ...shown, pending: true };
+    if (store.pivot && shown?.layout && live.current.options.enableHold !== false) store.pivot = { ...shown, pending: true };
     return store;
   };
 
