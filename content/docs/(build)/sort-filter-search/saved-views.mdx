@@ -96,7 +96,7 @@ export function ControlledViews() {
 }
 ```
 
-When `value` changes, the hook opens that view. A pick only calls `onValueChange`. Saving or importing a view opens it at once and then calls `onValueChange` with its id.
+When `value` changes, the hook opens that view. A pick only calls `onValueChange`. The grid changes when you pass the new `value` back. Saving or importing a view opens it at once and then calls `onValueChange` with its id.
 
 ## Storage [#storage]
 
@@ -175,7 +175,7 @@ A filter whose value does not fit its operator, such as a list on `contains`, al
 A view stores the grid state only, so it works in every data mode:
 
 - **Local array and client pagination.** Opening a view sorts and filters the local rows again.
-- **Server pagination and scroll mode** with `sortMode="server"` or `filterMode="server"`. Opening a view calls `onSortChange`, `onFilterChange`, and `onSearchTextChange` for the parts that differ, and `useDataGridServerRows` sends the new spec. Every set filter value stays, and your server checks the values. A pivot needs [its own state](/docs/add-options/sort-filter-search/saved-views-options#server-mode).
+- **Server pagination and scroll mode** with `sortMode="server"` or `filterMode="server"`. Opening a view calls `onSortChange`, `onFilterChange`, `onSearchTextChange`, and `onPivotChange` for the parts that differ, and `useDataGridServerRows` sends the new spec. Every set filter value stays, and your server checks the values.
 - **Controlled state.** Your props receive the change callbacks.
 
 A view saves no page number. A view that changes the sort, the filters, or the search text sends server rows back to page 1. A layout-only view keeps the page.

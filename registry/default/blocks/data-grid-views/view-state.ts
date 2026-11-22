@@ -16,7 +16,7 @@ const MAX_TEXT_LENGTH = 1000;
 const MAX_LAYOUT_ENTRIES = 1000;
 const MAX_COLUMN_WIDTH = 10_000;
 const MAX_VIEW_ID_LENGTH = 64;
-const MAX_GENERATED_ID_LENGTH = 256;
+const MAX_GENERATED_ID_LENGTH = 2048;
 const GENERATED_ID_PREFIX = "__pivot:";
 const FILE_FORMAT = "gridcn-view";
 
@@ -345,7 +345,7 @@ function sanitizeLayout(raw: unknown, columns: ViewColumns | undefined, tally: T
   };
 }
 
-/** The generated widths a view keeps: ids with the generated column prefix and at most 256 characters, at most 200 entries. */
+/** The generated widths a view keeps: ids with the generated column prefix and at most 2,048 characters (the longest the grid builds), at most 200 entries. */
 export function generatedWidthsOf(raw: unknown, tally: Tally = { dropped: 0 }): Record<string, number> {
   const kept: [string, number][] = [];
   for (const [id, width] of boundedEntries(Object.entries(asRecord<Record<string, unknown>>(raw) ?? {}), MAX_LAYOUT_ENTRIES, tally)) {
@@ -440,6 +440,7 @@ export function parseViewFile(text: string, columns: ViewColumns): ViewFileResul
   const groupBy = sanitized.state.groupBy.filter((id) => !hidden.has(id));
   const filters = pruneFilterSpecs(sanitized.state.filters, (spec) => !hidden.has(spec.columnId), true);
   const { pivotColumnId, pivotWidths, ...rest } = sanitized.state;
+  // a shared file applies no spec on a column it hides, so its pivot drops like its sorts, groups, and filters
   const dropsPivot = typeof pivotColumnId === "string" && (hidden.has(pivotColumnId) || groupBy.length === 0);
   const pivotDropped = dropsPivot ? 1 + Object.keys(pivotWidths ?? {}).length : 0;
   const dropped = sanitized.dropped + (sanitized.state.sorts.length - sorts.length) + (sanitized.state.groupBy.length - groupBy.length) + (countFilterSpecs(sanitized.state.filters) - countFilterSpecs(filters)) + pivotDropped;

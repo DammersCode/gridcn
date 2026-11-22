@@ -8,7 +8,7 @@ import {
   useDataGridSearchText,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { pivotWidthsOf, requestedGroupByOf, resolveCustomFilterOperators, setFilterValuesOf, useDataGridSelector, useDataGridStoreApi, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { pivotWidthsOf, requestedGroupByOf, resolveCustomFilterOperators, setFilterValuesOf, useDataGridPivotWidthsWriter, useDataGridSelector, useDataGridStoreApi, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
   MAX_DOCUMENT_LENGTH,
   MAX_VIEW_FILE_LENGTH,
@@ -133,19 +133,15 @@ function viewStateOf(s: ViewSource): DataGridViewState {
 /** The view state of a grid: the requested `groupBy` while a server layout holds the old one, and the widths of the held generated columns. */
 const gridViewState = (s: DataGridReadState): DataGridViewState => viewStateOf({ ...s, groupBy: requestedGroupByOf(s), pivotWidths: pivotWidthsOf(s.columnWidths, s.pivot) });
 
-/**
- * Sets the widths of `wanted` for the generated columns of the held set and, with `resetOthers`, drops the other generated widths.
- * Returns the widths whose columns have not landed.
- */
-export function applyPivotWidths(get: () => DataGridReadState, wanted: Readonly<Record<string, number>>, resetOthers: boolean): Map<string, number> {
-  const held = new Set(get().pivot?.columns.map((column) => column.id));
-  const pending = new Map<string, number>();
-  for (const [id, width] of Object.entries(wanted)) {
-    if (!held.has(id)) pending.set(id, width);
-    else if (get().columnWidths[id] !== width) get().actions.setColumnWidth(id, width);
-  }
-  if (resetOthers) for (const id of held) if (wanted[id] === undefined && get().columnWidths[id] !== undefined) get().actions.resetColumnWidth(id);
-  return pending;
+const widthKeys = new WeakMap<object, { pivot: DataGridReadState["pivot"]; key: string }>();
+
+/** The generated widths of the held set as a string, read again only when `columnWidths` or the held set changes. */
+function pivotWidthsKeyOf(s: Pick<DataGridReadState, "columnWidths" | "pivot">): string {
+  const cached = widthKeys.get(s.columnWidths);
+  if (cached?.pivot === s.pivot) return cached.key;
+  const key = JSON.stringify(pivotWidthsOf(s.columnWidths, s.pivot));
+  widthKeys.set(s.columnWidths, { pivot: s.pivot, key });
+  return key;
 }
 
 /**
@@ -172,7 +168,8 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
   const pivotColumnIds = useDataGridSelector((s) => s.pivotColumnIds);
   const heldColumns = useDataGridSelector((s) => s.pivot?.columns);
   // a string keeps a resize drag of a source column from rendering the hook
-  const pivotWidthsKey = useDataGridSelector((s) => JSON.stringify(pivotWidthsOf(s.columnWidths, s.pivot)));
+  const pivotWidthsKey = useDataGridSelector(pivotWidthsKeyOf);
+  const writePivotWidths = useDataGridPivotWidthsWriter();
 
   useWarnSharedViewsKey(typeof options.storage === "object" ? undefined : (storageKey ?? DEFAULT_VIEWS_KEY), allColumns.map((c) => c.id).join("\u0000"));
 
@@ -239,9 +236,11 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
       if (pending.size === 0) return;
       let left = pending;
       pendingWidths.current = storeApi.subscribe((s, prev) => {
+        // a pivot change after the restore is the user's own, so the widths of the view no longer apply
+        if (s.pivotColumnIds.join("\u0000") !== prev.pivotColumnIds.join("\u0000")) return stopPendingWidths();
         if (s.pivot?.columns === prev.pivot?.columns) return;
         const waiting = left;
-        left = applyPivotWidths(storeApi.getState, Object.fromEntries(waiting), false);
+        left = writePivotWidths(Object.fromEntries(waiting), false);
         const widths = storeApi.getState().columnWidths;
         // the store clamps a width, so the baseline takes the landed widths back from it
         const landed = [...waiting.keys()].filter((id) => !left.has(id) && widths[id] !== undefined).map((id) => [id, widths[id]!] as const);
@@ -249,7 +248,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
         if (left.size === 0) stopPendingWidths();
       });
     },
-    [storeApi, stopPendingWidths],
+    [storeApi, stopPendingWidths, writePivotWidths],
   );
 
   const applyState = useCallback(
@@ -273,9 +272,10 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
       const s = storeApi.getState();
       const groupBy = requestedGroupByOf(s);
       const id = clean.pivotColumnId;
-      const pivotId = typeof id === "string" && columnMap.get(id)?.groupable !== false && !s.hiddenColumns.includes(id) && groupBy.length > 0 && !groupBy.includes(id) ? id : undefined;
+      const pivotId = typeof id === "string" && columnMap.get(id)?.groupable !== false && groupBy.length > 0 && !groupBy.includes(id) ? id : undefined;
       if (id !== undefined && pivotId !== s.pivotColumnIds[0]) actions.setPivot({ columnIds: pivotId === undefined ? [] : [pivotId] });
-      if (pivotId !== undefined) holdWidths(applyPivotWidths(storeApi.getState, clean.pivotWidths ?? {}, true));
+      // a server grid shows the held set of the old pivot until the answer lands, so only the held set of this pivot resets
+      if (pivotId !== undefined) holdWidths(writePivotWidths(clean.pivotWidths ?? {}, storeApi.getState().pivot?.columnId === pivotId));
       const { pivotColumnId: _pivot, pivotWidths, ...rest } = clean;
       const after = readState();
       // the store fills in layout parts a view leaves out, and a view without the pivot field keeps the pivot, so the baseline reads both back
@@ -287,7 +287,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
             : { pivotColumnId: pivotId, pivotWidths: { ...pivotWidths, ...after.pivotWidths } };
       setApplied({ ...rest, columnLayout: after.columnLayout, ...pivot });
     },
-    [actions, readState, storeApi, holdWidths, stopPendingWidths],
+    [actions, readState, storeApi, holdWidths, stopPendingWidths, writePivotWidths],
   );
 
   const notify = useCallback((id: string | null) => callSafely(latest.current.onValueChange, id), []);

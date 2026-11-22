@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { DataGridBody, DataGridHeader, DataGridProvider, DataGridRoot, defineColumns, type ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { pivotColumnId } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { flashesIn, recordAcross, sampleGrid } from "@/registry/default/blocks/data-grid/test/frame-timeline.test-helper";
+import { flashesIn, recordAcross, sampleGrid, type FrameSample } from "@/registry/default/blocks/data-grid/test/frame-timeline.test-helper";
 import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
 import { fakeServer } from "@/registry/default/blocks/data-grid-server/group-fake-server.test-helper";
 import type { ServerRowsRequest } from "@/registry/default/blocks/data-grid-server/read-answer";
@@ -27,7 +27,18 @@ const HI = pivotColumnId("tier", "hi", SUM);
 const LO = pivotColumnId("tier", "lo", SUM);
 const PIVOTED: DataGridViewState = { ...emptyViewState(), groupBy: ["region"], sorts: [{ columnId: "region", direction: "desc" }], pivotColumnId: "tier", pivotWidths: { [HI]: 230, [LO]: 170 } };
 const FLAT: DataGridViewState = { ...emptyViewState(), sorts: [{ columnId: "qty", direction: "desc" }] };
-const doc = (): DataGridViewsDocument => ({ version: 1, defaultViewId: null, views: [{ id: "pivot", name: "Pivot", state: PIVOTED }, { id: "flat", name: "Flat", state: FLAT }] });
+const BY_REGION: DataGridViewState = { ...emptyViewState(), groupBy: ["tier"], pivotColumnId: "region" };
+const DEEP: DataGridViewState = { ...PIVOTED, groupBy: ["region", "qty"] };
+const doc = (): DataGridViewsDocument => ({
+  version: 1,
+  defaultViewId: null,
+  views: [
+    { id: "pivot", name: "Pivot", state: PIVOTED },
+    { id: "flat", name: "Flat", state: FLAT },
+    { id: "region", name: "Pivot by region", state: BY_REGION },
+    { id: "deep", name: "Two levels", state: DEEP },
+  ],
+});
 
 type Handle = { current: UseDataGridViewsResult | null };
 
@@ -77,19 +88,13 @@ function gatedServer() {
   };
 }
 
-type PivotSpec = { columnIds: readonly string[] };
-
-const OFF: PivotSpec = { columnIds: [] };
-
-/** A server consumer keeps the pivot next to the spec: `pivot` and `onPivotChange` on the grid, `spec.pivot` to the hook. */
+/** One spec state: the hook carries the pivot of the grid into its spec. */
 function ServerGrid({ handle, fetchRows }: { handle: Handle; fetchRows: (request: ServerRowsRequest<never>) => Promise<unknown> }) {
   const [storage] = useState(() => createMemoryViewsStorage(doc()));
   const [spec, setSpec] = useState<ServerSpec>({ sorts: [], filters: [], searchText: "", groupBy: [], aggregates: [SUM] });
-  const [pivot, setPivot] = useState<PivotSpec>(OFF);
-  const sent = useMemo(() => (pivot.columnIds.length > 0 ? { ...spec, pivot } : spec), [spec, pivot]);
-  const server = useDataGridServerRows<Row>({ mode: "scroll", getRowId: (row) => row.id, fetchRows: fetchRows as never, spec: sent, onSpecChange: ({ pivot: _pivot, ...rest }) => setSpec(rest), blockSize: 50, overscan: 0, loadDelayMs: 0 });
+  const server = useDataGridServerRows<Row>({ mode: "scroll", getRowId: (row) => row.id, fetchRows: fetchRows as never, spec, onSpecChange: setSpec, blockSize: 50, overscan: 0, loadDelayMs: 0 });
   return (
-    <DataGridProvider {...server.providerProps} columns={columns} pivot={pivot} onPivotChange={setPivot}>
+    <DataGridProvider {...server.providerProps} columns={columns}>
       <DataGridRoot aria-label="Views" className="h-100 w-225" {...server.rootProps}>
         <DataGridHeader />
         <DataGridBody />
@@ -113,9 +118,25 @@ function widthWatch() {
   return { check, wrong };
 }
 
+/** The pivot warnings of the grid; a built-in restore is no misuse, so it raises none. */
+function warnSpy() {
+  const warn = vi.spyOn(console, "warn");
+  const error = vi.spyOn(console, "error");
+  return () => {
+    const found = [...warn.mock.calls, ...error.mock.calls].map(String).filter((call) => call.includes("pivot"));
+    warn.mockRestore();
+    error.mockRestore();
+    return found;
+  };
+}
+
+// Under a second groupBy level the top-level pivot rows paint as before, so that change lands without a visible difference.
+const landed = (before: FrameSample, after: FrameSample, to: string) => to === "deep" || after.header !== before.header;
+
 describe("restoring a saved view paints no frame that differs from both the old and the new state", () => {
-  for (const [from, to] of [["flat", "pivot"], ["pivot", "flat"]] as const) {
+  for (const [from, to] of [["flat", "pivot"], ["pivot", "flat"], ["pivot", "region"], ["pivot", "deep"]] as const) {
     it(`on a client grid, from the ${from} view to the ${to} view`, async () => {
+      const warnings = warnSpy();
       const handle: Handle = { current: null };
       const screen = await render(<ClientGrid handle={handle} />);
       await vi.waitFor(() => expect(handle.current?.loading).toBe(false));
@@ -129,14 +150,17 @@ describe("restoring a saved view paints no frame that differs from both the old 
         return ++frames > 3;
       });
       const after = sampleGrid();
-      expect(after.header, "the view landed").not.toBe(before.header);
+      expect(landed(before, after, to), "the view landed").toBe(true);
+      expect(handle.current!.modified).toBe(false);
       expect(flashesIn(samples, before, after).slice(0, 3)).toEqual([]);
       expect(widths.wrong.slice(0, 3)).toEqual([]);
       if (to === "pivot") expect(headerWidth(HI)).toBeCloseTo(230, 0);
+      expect(warnings()).toEqual([]);
       await screen.unmount();
     });
 
     it(`on a server grid, from the ${from} view to the ${to} view`, async () => {
+      const warnings = warnSpy();
       const gate = gatedServer();
       const handle: Handle = { current: null };
       const screen = await render(<ServerGrid handle={handle} fetchRows={gate.fetchRows} />);
@@ -164,10 +188,12 @@ describe("restoring a saved view paints no frame that differs from both the old 
         { released: () => released },
       );
       const after = sampleGrid();
-      expect(after.header, "the view landed").not.toBe(before.header);
+      expect(landed(before, after, to), "the view landed").toBe(true);
+      expect(handle.current!.modified).toBe(false);
       expect(flashesIn(samples, before, after).slice(0, 3)).toEqual([]);
       expect(widths.wrong.slice(0, 3)).toEqual([]);
       if (to === "pivot") expect(headerWidth(HI)).toBeCloseTo(230, 0);
+      expect(warnings()).toEqual([]);
       await screen.unmount();
     });
   }

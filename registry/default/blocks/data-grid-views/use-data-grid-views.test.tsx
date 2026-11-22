@@ -1,4 +1,4 @@
-import { StrictMode, useEffect } from "react";
+import { StrictMode, useEffect, useState } from "react";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -9,6 +9,7 @@ import {
   useDataGridSearchText,
   useDataGridSortState,
   type FilterNode,
+  type ServerSpec,
   type SortSpec,
 } from "@/registry/default/blocks/data-grid/data-grid";
 import { pivotColumnId, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
@@ -1012,7 +1013,7 @@ describe("saved views under pivot", () => {
       </DataGridProvider>
     );
     const view = render(tree(providerProps));
-    return { probe, state: () => store!.getState(), rerender: (props: Record<string, unknown>, mounted?: boolean) => view.rerender(tree(props, mounted)) };
+    return { probe, state: () => store!.getState(), store: () => store!, rerender: (props: Record<string, unknown>, mounted?: boolean) => view.rerender(tree(props, mounted)) };
   }
 
   it("capture the pivot column and the widths of generated columns", async () => {
@@ -1097,7 +1098,6 @@ describe("saved views under pivot", () => {
   it.each([
     ["an unknown pivot column", { pivotColumnId: "gone" }],
     ["a pivot column that is not groupable", { pivotColumnId: "secret" }],
-    ["a pivot column the view hides", { columnLayout: { widths: {}, order: [], pins: {}, hidden: ["make"] } }],
     ["a pivot column in groupBy", { groupBy: ["region", "make"] }],
     ["a view without groupBy", { groupBy: [] }],
     ["a hostile width list", { pivotWidths: JSON.parse(`{"__proto__": 5, "__pivotgroup:make=Audi": 90, "qty": 90, "${audi}": "wide", "${bmw}": 1e400}`) }],
@@ -1119,6 +1119,90 @@ describe("saved views under pivot", () => {
     expect(warn.mock.calls.concat(error.mock.calls).map(String).filter((call) => call.includes("pivot"))).toEqual([]);
     warn.mockRestore();
     error.mockRestore();
+  });
+
+  it("restore the pivot of a server grid wired with one spec state, keep it off after a sort change, and warn about nothing", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const fake = fakeServer([...pivotRows]);
+    const probe: { current: Probe | null } = { current: null };
+    let sent: Record<string, unknown> = {};
+    const storage = createMemoryViewsStorage(docOf(pivoted(), { ...emptyViewState(), pivotColumnId: null }));
+    function ServerGrid() {
+      const [spec, setSpec] = useState<ServerSpec>({ sorts: [], filters: [], searchText: "", groupBy: [], aggregates: [sum] });
+      sent = spec;
+      const server = useDataGridServerRows<PivotRow>({ mode: "scroll", getRowId: (r) => r.id, fetchRows: fake.fetchRows as never, spec, onSpecChange: setSpec, loadDelayMs: 0 });
+      return (
+        <DataGridProvider columns={pivotColumns} {...server.providerProps}>
+          <Harness options={{ storage, enableDefaultView: false }} onProbe={(p) => (probe.current = p)} />
+        </DataGridProvider>
+      );
+    }
+    render(<ServerGrid />);
+    await ready(probe);
+    act(() => probe.current!.views.selectView("v0"));
+    await waitFor(() => expect(sent).toMatchObject({ groupBy: ["region"], pivot: { columnIds: ["make"] } }));
+    act(() => probe.current!.views.selectView("v1"));
+    act(() => probe.current!.actions.setSorts([{ columnId: "qty", direction: "desc" }]));
+    await waitFor(() => expect(sent).toMatchObject({ sorts: [{ columnId: "qty", direction: "desc" }] }));
+    expect(sent["pivot"]).toBeUndefined();
+    expect(warn.mock.calls.concat(error.mock.calls).map(String).filter((call) => call.includes("pivot"))).toEqual([]);
+    warn.mockRestore();
+    error.mockRestore();
+  });
+
+  it("restore a pivot on a column the view hides, as the grid pivots it", async () => {
+    const hidden = { widths: {}, order: [], pins: {}, hidden: ["make"] };
+    const t = pivotSetup(docOf(pivoted({ columnLayout: hidden })));
+    await ready(t.probe);
+    act(() => t.probe.current!.views.selectView("v0"));
+    expect(t.state().hiddenColumns).toContain("make");
+    expect(t.state().pivotColumnIds).toEqual(["make"]);
+    expect(t.state().columnWidths[audi]).toBe(210);
+    expect(t.probe.current!.views.modified).toBe(false);
+  });
+
+  it("write every generated width of a restore in one store write", async () => {
+    const t = pivotSetup(docOf(pivoted(), pivoted({ pivotWidths: undefined })), { defaultGroupBy: ["region"] });
+    await ready(t.probe);
+    const writes = (id: string) => {
+      act(() => t.probe.current!.views.selectView(null));
+      act(() => t.probe.current!.actions.setPivot({ columnIds: [] }));
+      let count = 0;
+      const stop = t.store().subscribe(() => count++);
+      act(() => t.probe.current!.views.selectView(id));
+      stop();
+      return count;
+    };
+    const bare = writes("v1");
+    expect(writes("v0")).toBeLessThanOrEqual(bare + 1);
+    expect(t.state().columnWidths).toMatchObject({ [audi]: 210, [bmw]: 160 });
+  });
+
+  it("read the generated widths again only when the widths or the held set change", async () => {
+    const t = pivotSetup(docOf(), { defaultGroupBy: ["region"], defaultPivot: { columnIds: ["make"] } });
+    await ready(t.probe);
+    const stringify = vi.spyOn(JSON, "stringify");
+    act(() => {
+      t.probe.current!.actions.selectAll();
+      t.probe.current!.actions.clearSelection();
+    });
+    expect(stringify).not.toHaveBeenCalled();
+    stringify.mockRestore();
+  });
+
+  it("drop the pending widths when the user changes the pivot", async () => {
+    const north = { viewRow: 0, path: [{ columnId: "region", key: "North" }], count: 2, childCount: 0, pivotCells: Float64Array.of(1, 2) };
+    const layoutOf = (keys: string[]) => ({ rows: [north], leafCount: 2, pivot: { columnId: "make", values: [sum], columns: keys.map((key) => ({ path: [key], valueIndex: 0 })), omitted: 0 } });
+    const server = { groupBy: ["region"], groupMode: "server" };
+    const t = pivotSetup(docOf(pivoted()), { ...server, groupLayout: layoutOf(["Audi"]) });
+    await ready(t.probe);
+    act(() => t.probe.current!.views.selectView("v0"));
+    act(() => t.probe.current!.actions.setPivot({ columnIds: ["secret"] }));
+    act(() => t.probe.current!.actions.setPivot({ columnIds: ["make"] }));
+    t.rerender({ ...server, groupLayout: layoutOf(["Audi", "BMW"]) });
+    await waitFor(() => expect(t.state().pivot?.columns).toHaveLength(2));
+    expect(t.state().columnWidths[bmw]).toBeUndefined();
   });
 
   it("is not modified after a restore clamps a generated width, also for a width that lands later", async () => {

@@ -542,8 +542,14 @@ describe("pivot in a view", () => {
     expect(dropped).toBe(6);
   });
 
-  it("keeps at most 200 widths and drops a generated id over 256 characters", () => {
-    const long = `__pivot:${"x".repeat(300)}`;
+  it("keeps a generated id of 2,048 characters, the longest the grid builds, and drops a longer one", () => {
+    const longest = `__pivot:${"x".repeat(2048 - 8)}`;
+    expect(savableViewState({ ...pivoted, pivotWidths: { [longest]: 100 } })?.pivotWidths).toEqual({ [longest]: 100 });
+    expect(sanitizeViewState({ ...pivoted, pivotWidths: { [`${longest}x`]: 100 } }, live).state.pivotWidths).toBeUndefined();
+  });
+
+  it("keeps at most 200 widths and drops a generated id over 2,048 characters", () => {
+    const long = `__pivot:${"x".repeat(3000)}`;
     const many = Object.fromEntries(Array.from({ length: 50_000 }, (_, i) => [id(i), 100]));
     const { state: clean, dropped } = sanitizeViewState({ ...pivoted, pivotWidths: { [long]: 100, ...many } }, live);
     expect(Object.keys(clean.pivotWidths!)).toHaveLength(200);

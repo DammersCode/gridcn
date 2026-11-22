@@ -126,48 +126,37 @@ A `DataGridView` has an `id`, a `name`, and a `DataGridViewState`. The state hol
 
 A view stores the grid state only. Opening a view calls the change callbacks of a server grid, and a view saves no page number. See [Saved views: Server mode](/docs/sort-filter-search/saved-views#server-mode).
 
-On a server grid, keep the pivot in its own state. Pass it to the grid as `pivot` with `onPivotChange`, and add it to the `spec` of `useDataGridServerRows`:
+On a server grid, `providerProps` carry `pivot` and `onPivotChange`, and the hook writes the pivot into its `spec`. A pivot needs `groupBy` and an aggregate in the spec:
 
 ```tsx
 "use client";
 
-import { useMemo, useState } from "react";
-import {
-  DataGridProvider,
-  defineColumns,
-  type ServerSpec,
-} from "@/components/data-grid/data-grid";
+import { DataGridProvider, defineColumns } from "@/components/data-grid/data-grid";
 import {
   useDataGridServerRows,
 } from "@/components/data-grid-server/data-grid-server";
 import { DataGridViews } from "@/components/data-grid-views/data-grid-views";
 
-type Sale = { id: string; region: string; make: string };
-type Pivot = { columnIds: readonly string[] };
+type Sale = { id: string; region: string; make: string; price: number };
 
 const columns = defineColumns<Sale>()([
   { id: "region", header: "Region", accessorKey: "region" },
   { id: "make", header: "Make", accessorKey: "make" },
+  { id: "price", header: "Price", accessorKey: "price", type: "number" },
 ]);
 
 export function SalesGrid() {
-  const [spec, setSpec] = useState<ServerSpec>({
-    sorts: [],
-    filters: [],
-    searchText: "",
-    groupBy: [],
-  });
-  const [pivot, setPivot] = useState<Pivot>({ columnIds: [] });
-  const sent = useMemo(
-    () => (pivot.columnIds.length > 0 ? { ...spec, pivot } : spec),
-    [spec, pivot],
-  );
   const server = useDataGridServerRows<Sale>({
     mode: "scroll",
     getRowId: (row) => row.id,
-    spec: sent,
-    // the pivot state owns the pivot
-    onSpecChange: ({ pivot: _pivot, ...rest }) => setSpec(rest),
+    defaultSpec: {
+      sorts: [],
+      filters: [],
+      searchText: "",
+      groupBy: ["region"],
+      aggregates: [{ columnId: "price", reducer: "sum" }],
+      pivot: { columnIds: ["make"] },
+    },
     fetchRows: async ({ signal, ...request }) => {
       const body = JSON.stringify(request);
       const init = { method: "POST", body, signal };
@@ -177,12 +166,7 @@ export function SalesGrid() {
     },
   });
   return (
-    <DataGridProvider
-      {...server.providerProps}
-      columns={columns}
-      pivot={pivot}
-      onPivotChange={setPivot}
-    >
+    <DataGridProvider {...server.providerProps} columns={columns}>
       <DataGridViews />
     </DataGridProvider>
   );

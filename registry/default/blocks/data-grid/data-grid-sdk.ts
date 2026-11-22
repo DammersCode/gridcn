@@ -149,6 +149,11 @@ export function useDataGridFocusSearchRegistration(focus: () => void): void {
   }, [internalActions, focus]);
 }
 
+/** Returns a stable function that sets many generated column widths in one write and returns the widths whose columns are not held. */
+export function useDataGridPivotWidthsWriter(): (widths: Readonly<Record<string, number>>, resetOthers: boolean) => Map<string, number> {
+  return useDataGridInternalActions()._setPivotWidths;
+}
+
 /** Returns a stable `commitChange` that also merges `flags` into `cellErrors` in the same write; flags of rows the change did not leave in the data drop. */
 export function useDataGridFlaggedCommit(): (change: DataChange<unknown>, flags: readonly CellErrorEntry[]) => void {
   return useDataGridInternalActions()._commitChange;

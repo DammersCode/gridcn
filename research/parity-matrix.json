@@ -1776,7 +1776,8 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "tests/parity/saved-views.parity.test.tsx"
+            "tests/parity/saved-views.parity.test.tsx",
+            "registry/default/blocks/data-grid-views/restore-view.timeline.browser.test.tsx"
           ]
         },
         "C": {
@@ -1788,13 +1789,15 @@
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/saved-views.parity.test.tsx"
+            "tests/parity/saved-views.parity.test.tsx",
+            "registry/default/blocks/data-grid-views/restore-view.timeline.browser.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
             "tests/parity/saved-views.parity.test.tsx",
+            "registry/default/blocks/data-grid-views/restore-view.timeline.browser.test.tsx",
             "registry/default/blocks/data-grid-views/use-data-grid-views.test.tsx"
           ]
         },

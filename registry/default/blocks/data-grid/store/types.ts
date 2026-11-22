@@ -1319,6 +1319,8 @@ export type DataGridInternalActions = {
   _registerFocusSearch(impl: () => void): () => void;
   /** @internal `DataGridRoot` registers/clears its autosize measure context (fonts, mounted row window, header-menu flag) on mount/unmount; `autosizeColumns` reads it lazily. Not part of the public hook surface. */
   _registerMeasureFonts(impl: (() => AutosizeMeasureContext | null) | null): void;
+  /** @internal Sets held generated widths in one write, clamped as `setColumnWidth` clamps; `resetOthers` drops the rest. Returns the widths of columns not held. */
+  _setPivotWidths(widths: Readonly<Record<string, number>>, resetOthers: boolean): Map<string, number>;
   /**
    * @internal Drops the flash keys whose row left `keptViewRows` (the body's rendered window),
    * so a cell that scrolls out and back in never replays its one-shot pulse. Not part of the
