@@ -37,6 +37,9 @@ export type UseRowWindowOptions = {
 /** Hard cap on rendered rows. The root bounds an unbounded-height grid, so only a huge viewport reaches it. */
 export const MAX_RENDERED_ROWS = 200;
 
+/** Sub-pixel scroll offsets past the end, such as under fractional zoom, are not a shrink. */
+const CLAMP_TOLERANCE_PX = 1;
+
 /** Rows rendered while the measured viewport height is 0 (a test environment without layout, or a hidden grid). */
 const ZERO_HEIGHT_ROWS = 10;
 
@@ -160,12 +163,18 @@ export function useRowWindow(scrollRef: RefObject<HTMLElement | null>, opts: Use
   });
 
   // The browser clamps the scroll at its next layout, after this commit, so the clamp and the canvas offset land here, before paint.
+  // Only a shrink acts: an overscroll bounce or a sub-pixel zoom offset past the end leaves the scroll to the browser.
+  const maxTopRef = useRef<number | null>(null);
   useLayoutEffect(() => {
     const snapshot = tick.snapshot;
     if (!element || !snapshot) return;
     const maxTop = maxScrollTop({ rowCount, rowHeight, dataRowTop, bottomInset, overscan }, snapshot.clientHeight);
-    if (snapshot.scrollTop <= maxTop) return;
-    getElementStore(element).clampScrollTop(maxTop);
+    const previous = maxTopRef.current;
+    maxTopRef.current = maxTop;
+    if (previous === null || maxTop >= previous || snapshot.scrollTop <= maxTop + CLAMP_TOLERANCE_PX) return;
+    const clamped = getElementStore(element).clampScrollTop(maxTop);
+    // The scroll event of the clamp finds the window unchanged, so the snapshot a later growth reads is set here.
+    setTick((prev) => ({ estimate: prev.estimate, snapshot: clamped, token: prev.token + 1 }));
   });
 
   // One estimator per hook instance: state lives in the hook, not the shared element store,

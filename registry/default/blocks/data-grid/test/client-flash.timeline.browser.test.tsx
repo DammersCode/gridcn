@@ -181,6 +181,30 @@ describe("a client grid paints no mixed frame across a change beyond the core vi
     );
   });
 
+  it("across a cleared filter after a shrink at the bottom, with no scroll in between", async () => {
+    const many: Row[] = Array.from({ length: 400 }, (_, i) => ({ id: `m${i}`, name: `Name ${i}`, city: i < 3 ? "Bern" : "Rome", qty: i }));
+    const api = createRef<DataGridApi<Row>>();
+    const ranges: { start: number; end: number }[] = [];
+    const screen = await render(box(<DataGrid ref={api} columns={columns} data={many} getRowId={(row) => row.id} onRenderedRowsChange={(range) => ranges.push(range)} className="h-100 w-150" aria-label="Client" />));
+    await vi.waitFor(() => expect(sampleGrid().rows).not.toBe(""));
+    const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+    grid.scrollTop = grid.scrollHeight;
+    grid.dispatchEvent(new Event("scroll"));
+    await frames(3);
+    api.current!.actions.setFilters([{ columnId: "city", operator: "equals", value: "Bern" }]);
+    await frames(3);
+    const before = sampleGrid();
+    let ticks = 0;
+    const samples = await recordAcross(() => api.current!.actions.setFilters([]), () => ++ticks > 3);
+    const after = sampleGrid();
+    expect(after.rows.split("\n")[0]).toContain("Name 0");
+    expect(flashesIn(samples, before, after).slice(0, 3)).toEqual([]);
+    const canvas = document.querySelector<HTMLElement>("[data-grid-rows-canvas]")!;
+    expect(ranges.at(-1)).toEqual({ start: Number(canvas.dataset["gridWindowStart"]), end: Number(canvas.dataset["gridWindowEnd"]) });
+    expect(ranges.at(-1)!.start).toBe(0);
+    await screen.unmount();
+  });
+
   it("across a labels switch", async () => {
     const set = { current: (_labels: object) => {} };
     function Labelled() {
