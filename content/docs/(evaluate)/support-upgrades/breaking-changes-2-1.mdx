@@ -1,0 +1,22 @@
+---
+title: 2.1 breaking changes
+icon: TriangleAlert
+description: Each breaking change from 2.0 to 2.1 with the 2.0 form, the 2.1 form, and the change to make in your code.
+type: reference
+aliases: ["2.1 breaking changes", "renamed in 2.1", "removed in 2.1"]
+---
+
+Each row is one **Breaking:** entry of the [changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) under `## Unreleased`. [2.0 breaking changes](/docs/support-upgrades/breaking-changes-2-0) lists the changes from 1.3 to 2.0.
+
+## Server data and query layer [#server-query]
+
+| Change | 2.0 | 2.1 | What to change |
+|---|---|---|---|
+| <span id="server-group-by-gesture" />Group gesture with server groups and a controlled `groupBy` | Shows the new group columns at once, with the rows ungrouped until the answer lands | Emits `onGroupByChange` and keeps the shown group columns until `groupBy` brings the new layout | Pass the value back as `groupBy`. |
+| <span id="query-sub-ms-instants" />Instant with a digit after the millisecond in the query layer | Cut to the millisecond | A filter answers `unsupported-value`. An import or write cell is a `too-many-decimals` refusal, and `rowScope` throws. | Cut the value to the millisecond before the import. |
+
+## Related
+
+- [2.0 breaking changes](/docs/support-upgrades/breaking-changes-2-0)
+- [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn)
+- [Version policy and changelog](/docs/support-upgrades/version-policy-changelog)

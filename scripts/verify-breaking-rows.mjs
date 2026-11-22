@@ -1,22 +1,24 @@
-// Fails when a **Breaking:** entry of release 2.0 names no row of the 2.0 breaking changes page, or a row names no entry.
+// Fails when a **Breaking:** entry of release 2.0 or 2.1 names no row of that release's breaking changes page, or a row names no entry.
 // An entry carries its row id as `<!-- row: id -->`; the page row carries `<span id="id" />`. CHANGELOG-2.0.md holds no Breaking entry.
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const PAGES = ["breaking-changes-2-0", "breaking-changes-2-0-addons"].map((slug) => `content/docs/(evaluate)/support-upgrades/${slug}.mdx`);
-const PAGE = "a 2.0 breaking changes page";
-const RELEASE_SECTION = /^## (?:Unreleased|2\.0\.\d+)\b/;
+const pagePath = (slug) => `content/docs/(evaluate)/support-upgrades/${slug}.mdx`;
+const RELEASES = [
+  { name: "2.0", pages: ["breaking-changes-2-0", "breaking-changes-2-0-addons"].map(pagePath), section: /^## 2\.0\.\d+\b/ },
+  { name: "2.1", pages: [pagePath("breaking-changes-2-1")], section: /^## (?:Unreleased|2\.1\.\d+)\b/ },
+];
 
-/** The `**Breaking` entries of the 2.0 section of `changelog`: `{ line, id }`, `id` null without a row comment. */
-function breakingEntries(changelog) {
+/** The `**Breaking` entries of the changelog sections that match `section`: `{ line, id }`, `id` null without a row comment. */
+function breakingEntries(changelog, section) {
   const entries = [];
   let inRelease = false;
   let entry = null;
   changelog.split(/\r?\n/).forEach((text, i) => {
     if (text.startsWith("## ")) {
-      inRelease = RELEASE_SECTION.test(text);
+      inRelease = section.test(text);
       entry = null;
       return;
     }
@@ -30,21 +32,29 @@ function breakingEntries(changelog) {
   return entries;
 }
 
-/** Problems for the two changelogs against the breaking changes page. */
-export function breakingRowProblems({ changelog, changelog20, page }) {
+/** Problems for one release: its changelog entries against its breaking changes page. */
+function releaseProblems(changelog, section, page, release) {
   const problems = [];
+  const where = `a ${release} breaking changes page`;
   const rows = new Set([...page.matchAll(/^\|\s*<span id="([^"]+)" \/>/gm)].map((m) => m[1]));
   const named = new Map();
-  for (const { line, id, inline } of breakingEntries(changelog)) {
+  for (const { line, id, inline } of breakingEntries(changelog, section)) {
     if (inline) problems.push(`CHANGELOG.md line ${line}: a **Breaking** marker inside an entry; give it its own top-level entry`);
-    else if (!id) problems.push(`CHANGELOG.md line ${line}: a Breaking entry with no <!-- row: id --> comment; add one and a row on ${PAGE}`);
+    else if (!id) problems.push(`CHANGELOG.md line ${line}: a Breaking entry with no <!-- row: id --> comment; add one and a row on ${where}`);
     else if (named.has(id)) problems.push(`CHANGELOG.md line ${line}: row id "${id}" is used twice (line ${named.get(id)})`);
     else {
       named.set(id, line);
-      if (!rows.has(id)) problems.push(`CHANGELOG.md line ${line}: row id "${id}" has no <span id="${id}" /> row on ${PAGE}`);
+      if (!rows.has(id)) problems.push(`CHANGELOG.md line ${line}: row id "${id}" has no <span id="${id}" /> row on ${where}`);
     }
   }
-  for (const id of rows) if (!named.has(id)) problems.push(`${PAGE}: row "${id}" names no Breaking entry of CHANGELOG.md; delete the row or add the entry`);
+  for (const id of rows) if (!named.has(id)) problems.push(`${where}: row "${id}" names no ${release} Breaking entry of CHANGELOG.md; delete the row or add the entry`);
+  return problems;
+}
+
+/** Problems for the two changelogs against the breaking changes pages of 2.0 (`page20`) and 2.1 (`page21`). */
+export function breakingRowProblems({ changelog, changelog20, page20 = "", page21 = "" }) {
+  const pages = { "2.0": page20, "2.1": page21 };
+  const problems = RELEASES.flatMap(({ name, section }) => releaseProblems(changelog, section, pages[name], name));
   changelog20.split(/\r?\n/).forEach((text, i) => {
     if (/\*\*breaking\b/i.test(text)) problems.push(`CHANGELOG-2.0.md line ${i + 1}: a Breaking change; move it to CHANGELOG.md under ## Unreleased with a row`);
   });
@@ -53,10 +63,11 @@ export function breakingRowProblems({ changelog, changelog20, page }) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const read = (path) => readFileSync(join(root, path), "utf8");
-  const problems = breakingRowProblems({ changelog: read("CHANGELOG.md"), changelog20: read("CHANGELOG-2.0.md"), page: PAGES.map(read).join("\n") });
+  const [page20, page21] = RELEASES.map(({ pages }) => pages.map(read).join("\n"));
+  const problems = breakingRowProblems({ changelog: read("CHANGELOG.md"), changelog20: read("CHANGELOG-2.0.md"), page20, page21 });
   if (problems.length) {
     console.error(`breaking rows: ${problems.length} problems\n${problems.map((p) => `  ${p}`).join("\n")}`);
     process.exit(1);
   }
-  console.log("breaking rows: every 2.0 Breaking entry has a row");
+  console.log("breaking rows: every 2.0 and 2.1 Breaking entry has a row");
 }
