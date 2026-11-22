@@ -56,9 +56,10 @@ The ref applies to the item you name. The CLI fetches every registry dependency 
 
 | Add-on | Also depends on |
 |---|---|
-| `data-grid-server`, `data-grid-url-state` | `data-grid-pagination` |
+| `data-grid-server`, `data-grid-url-state`, `data-grid-find-replace` | `data-grid-pagination` |
 | `data-grid-toolbar`, `data-grid-find-replace`, `data-grid-lookup` | `use-debounce` |
 | `data-grid-io` | `dropzone` |
+| `data-grid-server-query-drizzle`, `data-grid-server-query-kysely`, `data-grid-server-query-prisma`, `data-grid-server-query-supabase` | `data-grid-server-query` |
 
 To pin the whole install, install each dependency with the same ref first. Install `data-grid` before the others. Then install the add-on. If the CLI asks to overwrite a dependency file, answer no.
 

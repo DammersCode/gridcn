@@ -1087,7 +1087,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       _registerMeasureFonts(impl) {
         set({ measureFonts: impl });
       },
-      _setPivotWidths(widths, resetOthers) {
+      _setPivotWidths(widths, { resetOthers = false } = {}) {
         const s = get();
         const next: Record<string, number> = { ...(resetOthers ? withoutGeneratedWidths(s.columnWidths, s.columns) : s.columnWidths) };
         const pending = new Map<string, number>();

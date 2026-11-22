@@ -1,4 +1,4 @@
-// Fails when a block source file passes 800 lines or a test file 1500, or when a listed oversize file grows. Fix: split the file.
+// Fails when a block source file passes 800 lines or a test file 1500, or when a listed oversize file grows or shrinks far under its ceiling. Fix: split the file, or run --write.
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -8,6 +8,8 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const baselinePath = join(root, "scripts", "source-size-baseline.json");
 export const SOURCE_BUDGET = 800;
 export const TEST_BUDGET = 1500;
+// Room for small edits between ratchets, so a sibling branch's shrink does not turn lint red.
+export const CEILING_SLACK = 50;
 
 export function budgetFor(path) {
   return isTestFile(path) || path.includes("/test/") ? TEST_BUDGET : SOURCE_BUDGET;
@@ -27,6 +29,8 @@ export function sizeProblems(files, baseline) {
       problems.push(`${path} — ${lines} lines, over its ceiling of ${ceiling}; split the file instead of growing it`);
     } else if (lines <= budget) {
       problems.push(`${path} — ${lines} lines, within the budget of ${budget}; remove it from source-size-baseline.json (run --write)`);
+    } else if (lines < ceiling - CEILING_SLACK) {
+      problems.push(`${path} — ${lines} lines, more than ${CEILING_SLACK} under its ceiling of ${ceiling}; lower the ceiling (run --write)`);
     }
   }
   for (const path of Object.keys(baseline)) {

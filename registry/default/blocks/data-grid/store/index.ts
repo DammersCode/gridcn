@@ -1,4 +1,3 @@
-/** Domain barrel — every symbol previously exported from the monolithic store.tsx, re-exported at the same paths so `from "./store"` / `from "../store"` call sites are unaffected by the split. */
 export type {
   DataGridSyncProps,
   ExternalStoreProps,

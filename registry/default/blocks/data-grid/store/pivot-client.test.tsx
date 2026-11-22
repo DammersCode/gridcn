@@ -163,6 +163,19 @@ describe("client pivot", () => {
     state().actions.setColumnLayout({ widths: { city: 120 } });
     expect(ids()).toEqual(before);
   });
+
+  it("writes generated widths, keeps the other generated widths unless resetOthers, and returns the widths of columns it does not hold", () => {
+    const { store, state } = make();
+    state().actions.setColumnWidth("city", 222);
+    state().actions.setColumnWidth(id(2024), 150);
+    const write = getInternalActions(store)._setPivotWidths;
+    expect([...write({ [id(2025)]: 160, missing: 90 })]).toEqual([["missing", 90]]);
+    write({ [id(2025)]: 160 }, { resetOthers: false });
+    expect(state().columnWidths).toMatchObject({ city: 222, [id(2024)]: 150, [id(2025)]: 160 });
+    write({ [id(2025)]: 170 }, { resetOthers: true });
+    expect(state().columnWidths[id(2024)]).toBeUndefined();
+    expect(state().columnWidths).toMatchObject({ city: 222, [id(2025)]: 170 });
+  });
 });
 
 describe("pivot props", () => {
