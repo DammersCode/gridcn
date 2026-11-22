@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { page } from "vitest/browser";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
@@ -78,6 +79,41 @@ describe("loading + rows present: indeterminate bar", () => {
     const cells = document.querySelectorAll('[role="gridcell"][data-column-id="name"]');
     expect(cells.length).toBeGreaterThan(0);
     expect(cells[0]!.textContent).toBe("Person 0");
+  });
+
+  it("paints the bar after a 150 ms show delay, while aria-busy is on at once", async () => {
+    await render(
+      <div style={{ height: 360, width: 600 }}>
+        <DataGrid data={makeRows(20)} columns={columns} getRowId={(r: Row) => r.id} className="h-90 w-150" loading />
+      </div>,
+    );
+    await expect.element(page.getByRole("grid")).toHaveAttribute("aria-busy", "true");
+    const bar = document.querySelector<HTMLElement>(gridAttrSelector("loadingBar"))!;
+    const style = getComputedStyle(bar);
+    expect(style.animationName).toBe("grid-loading-show");
+    expect(style.animationDuration).toBe("0.15s");
+    await expect.poll(() => getComputedStyle(bar).opacity).toBe("1");
+  });
+
+  it("paints the bar at once with --grid-loading-bar-delay: 0ms", async () => {
+    await render(
+      <div style={{ height: 360, width: 600, "--grid-loading-bar-delay": "0ms" } as CSSProperties}>
+        <DataGrid data={makeRows(20)} columns={columns} getRowId={(r: Row) => r.id} className="h-90 w-150" loading />
+      </div>,
+    );
+    const bar = document.querySelector<HTMLElement>(gridAttrSelector("loadingBar"))!;
+    expect(getComputedStyle(bar).animationDuration).toBe("0s");
+    expect(getComputedStyle(bar).opacity).toBe("1");
+  });
+
+  it("keeps the bar transparent while the show delay runs", async () => {
+    await render(
+      <div style={{ height: 360, width: 600, "--grid-loading-bar-delay": "60s" } as CSSProperties}>
+        <DataGrid data={makeRows(20)} columns={columns} getRowId={(r: Row) => r.id} className="h-90 w-150" loading />
+      </div>,
+    );
+    const bar = document.querySelector<HTMLElement>(gridAttrSelector("loadingBar"))!;
+    expect(getComputedStyle(bar).opacity).toBe("0");
   });
 });
 

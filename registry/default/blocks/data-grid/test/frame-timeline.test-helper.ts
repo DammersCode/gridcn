@@ -10,8 +10,6 @@ export type FrameSample = {
   busy: boolean;
   /** Whether the loading bar or a custom loading display paints: present, and not held transparent by its show delay. */
   loadingBar: boolean;
-  /** `performance.now()` when the sample was taken. */
-  at: number;
   header: string;
   /** The text of the pinned row bands, the comment markers, the header widths, and every `aria-label` of the grid. */
   pinned: string;
@@ -45,7 +43,6 @@ export function sampleGrid(root: ParentNode = document, via: FrameSample["via"] 
     empty: grid?.querySelector("[data-grid-empty-state]") != null,
     busy: grid?.getAttribute("aria-busy") === "true",
     loadingBar: loadingBarPaints(grid),
-    at: performance.now(),
     header: [...(grid?.querySelectorAll('[role="columnheader"]') ?? [])].map((cell) => cell.textContent ?? "").join("|"),
     pinned: [...(grid?.querySelectorAll("[data-grid-pinned-row-band] [role=row]") ?? [])].map((row) => row.textContent ?? "").join("\n"),
     commentMarkers: grid?.querySelectorAll("[data-grid-comment-marker]").length ?? 0,

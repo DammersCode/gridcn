@@ -39,6 +39,7 @@ Set a variable on the grid or on any ancestor.
 | `--grid-flash-intensity` | Share of the flash color at the start of the flash | `24%` |
 | `--grid-flash-color` | Color of the cell flash | `var(--color-primary)` |
 | `--grid-loading-sweep-duration` | Duration of the loading bar sweep | `1.2s` |
+| `--grid-loading-bar-delay` | Time a load runs before the loading bar shows | `150ms` |
 | `--presence-label-foreground` | Text color of a presence name chip | Black or white, from the user color |
 
 The CLI install adds `--grid-pin-shadow` and `--search-highlight` to your CSS for light and dark mode. `--color-search-highlight` also works. If both exist, `--search-highlight` wins.
@@ -62,7 +63,7 @@ These are the classes that the grid renders and the place where you override the
 | Column line | A 1px border at the end side of a column. An end-pinned column has it at the start side instead | `--grid-column-border` |
 | Empty state | `pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground` | The `emptyState` prop or `labels.grid.emptyState`. A filter or a server search that leaves zero rows shows `labels.grid.noResults` instead |
 | Loading skeleton | One `h-4 flex-1 rounded-md bg-muted` bar per column. The bars pulse. Under reduced motion they stay still | The `loading` flag |
-| Loading bar | A 2px track `bg-primary/20` with a `bg-primary` sweep. Under reduced motion the sweep is a full-width static bar | `--primary`, `--grid-loading-sweep-duration` |
+| Loading bar | A 2px track `bg-primary/20` with a `bg-primary` sweep. Under reduced motion the sweep is a full-width static bar. The bar shows after the delay | `--primary`, `--grid-loading-sweep-duration`, `--grid-loading-bar-delay` |
 | Validation message | `rounded-sm border border-destructive/30 bg-background px-1.5 py-0.5 text-xs text-destructive` | `--destructive` |
 | Resize handle | An 8px column with a 3px `bg-primary` line. The line shows on hover and during a drag | `--primary` |
 | Drop indicator | A 2px `--color-primary` line at the drag boundary | `--primary` |
