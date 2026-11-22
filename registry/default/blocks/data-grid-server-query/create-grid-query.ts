@@ -99,7 +99,7 @@ export type CallArgs<TContext> = [TContext] extends [never] ? [opts?: QueryCallO
 export type RowsAnswer<TRow, TCursor = never> = { rows: TRow[]; totalRowCount?: number | null; hasMore?: boolean } & ([TCursor] extends [never] ? unknown : { nextCursor?: TCursor | null });
 export type ValuesAnswer = { values: { value: string; label?: string; count?: number }[] };
 /**
- * One value per column id. A number column answers a JavaScript number, so a value beyond 15 significant digits loses precision.
+ * One value per column id. A number column answers a JavaScript number, or a decimal string for a value that is not a safe integer and has more than 15 significant digits.
  * `min` and `max` of a text or date column answer text; `count` answers an integer.
  */
 export type AggregatesAnswer = Record<string, number | string | null>;
