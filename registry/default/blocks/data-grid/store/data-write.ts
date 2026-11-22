@@ -583,7 +583,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   const skippedBy = (action: RowActionName, reason: RowActionSkipReason): RowActionResult => reportRowActionSkipped(get(), action, reason);
   const requestDelete = (requested: number[]): RowActionResult => {
     const s = get();
-    if (s.readOnly) return skippedBy("deleteRows", "readOnly");
+    if (s.readOnly || s.serverHeld) return skippedBy("deleteRows", s.readOnly ? "readOnly" : "server-held");
     if (serverOwnsGroups(s)) return skippedBy("deleteRows", "server-groups");
     const dataRowIndexes = requested.filter((i) => s.data[i] !== undefined);
     const unloaded = requested.filter((i) => s.data[i] === undefined && i >= 0 && i < s.data.length).length;
@@ -1307,7 +1307,6 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     deleteRowsAt(viewRowIndexes) {
       const s = get();
-      if (s.serverHeld) return skippedBy("deleteRows", "server-held");
       return requestDelete(viewRowIndexes.map((viewRow) => dataIndexAt(s, viewRow)).filter((i): i is number => i !== undefined));
     },
     deleteRows(rowIds, options) {

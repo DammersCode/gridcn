@@ -209,6 +209,7 @@ describe("a write while the old rows are held", () => {
     { name: "import", run: (t) => t.actions().commitChange({ source: "import", ops: [{ type: "insert", rowId: "I1", row: { id: "I1", region: "I", city: "I-c0", qty: 1 }, index: 7 }] }), wrote: hasRow("I1") },
     { name: "insert rows", run: (t) => t.actions().insertRows(0, 1), wrote: (t) => t.hook().providerProps.data.some((row) => row?.region === "N"), refused: { ok: false, reason: "server-held" } },
     { name: "duplicate rows", run: (t) => t.actions().duplicateRowsAt([0]), wrote: (t) => t.hook().providerProps.data.some((row) => row?.id.endsWith("-copy")), refused: { ok: false, reason: "server-held" } },
+    { name: "delete rows by id", run: (t) => t.actions().deleteRows(["B2"]), wrote: (t) => !hasRow("B2")(t), refused: { ok: false, reason: "server-held" } },
     { name: "delete rows", run: (t) => t.actions().deleteRowsAt([0]), wrote: (t) => t.hook().providerProps.data.filter((row) => row !== undefined).length < 7, refused: { ok: false, reason: "server-held" } },
     { name: "move rows", run: (t) => t.actions().reorderRows(1, 0), wrote: (t) => t.hook().providerProps.data[0]?.id !== "A0", refused: false },
     { name: "undo", withHistory: true, before: editBefore, run: (t) => t.history().undo(), wrote: (t) => city(t) === "A-c0" },
@@ -259,13 +260,15 @@ describe("a write while the old rows are held", () => {
     expect(t.cityOf("A0")).toBe("App");
   });
 
-  it("applies updateRows and editRows from your code during the hold", async () => {
+  it("applies updateRows, editRows, and a stream deleteRows from your code during the hold", async () => {
     const t = setup();
     await holdOnSort(t);
     act(() => void t.actions().updateRows([{ rowId: "A0", changes: { city: "Rows" } }], { source: "stream" }));
     expect(t.cityOf("A0")).toBe("Rows");
     act(() => void t.actions().editRows([{ rowId: "A1", changes: { city: "Edited" } }]));
     expect(t.cityOf("A1")).toBe("Edited");
+    act(() => void t.actions().deleteRows(["B2"], { source: "stream" }));
+    expect(hasRow("B2")(t)).toBe(false);
   });
 
   it("reports no count of all matching rows while the rows are held", async () => {
