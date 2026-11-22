@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DataGridPlugin, FilterNode, ServerSpec, SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
-import { isDev, registerServerWiring, type PivotSpec } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { EMPTY_SERVER_SPEC, isDev, registerServerWiring, type PivotSpec } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { DEFAULT_RESHAPE_DELAY, MIN_RESHAPE_DELAY, MIN_REVALIDATE_INTERVAL, readReshapeDelay, readRevalidateInterval } from "./fetch-hygiene";
 
 /** The request state every mode of `useDataGridServerRows` returns. */
@@ -31,7 +31,6 @@ export function scheduleFrame(callback: () => void): () => void {
   return () => clearTimeout(id);
 }
 
-const EMPTY_SPEC: ServerSpec = { sorts: [], filters: [], searchText: "" };
 
 /** Controlled or uncontrolled state with a stable setter that always calls the latest `onChange`. */
 export function useControlled<T>(controlled: T | undefined, initial: () => T, onChange: ((next: T) => void) | undefined) {
@@ -162,7 +161,9 @@ export function useServerSpec(source: ServerSpecOptions, afterChange: () => void
   // An ungrouped request with `pivot` is refused, so `pivot` waits in the raw spec until `groupBy` returns.
   const shown = useMemo(() => {
     const own = controlled === undefined ? spec : controlled === null ? withoutPivot(spec) : { ...spec, pivot: controlled };
-    return own.pivot && !own.groupBy?.length ? withoutPivot(own) : own;
+    if (own.pivot && !own.groupBy?.length) return withoutPivot(own);
+    // The grid reads the first pivot column id only, so the request carries that one.
+    return own.pivot && own.pivot.columnIds.length > 1 ? { ...own, pivot: { columnIds: own.pivot.columnIds.slice(0, 1) } } : own;
   }, [spec, controlled]);
   const pivot = shown.pivot ?? PIVOT_OFF;
   return { spec: shown, ready, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, onGroupByChange, pivot, onPivotChange };
@@ -173,10 +174,10 @@ export function useServerSpec(source: ServerSpecOptions, afterChange: () => void
 export type ServerSpecState = ReturnType<typeof useServerSpec> & { refreshElsewhere?: () => void };
 
 const specOf = (seed?: Partial<ServerSpec>, groups = false): ServerSpec => ({
-  sorts: [...(seed?.sorts ?? EMPTY_SPEC.sorts)],
-  filters: [...(seed?.filters ?? EMPTY_SPEC.filters)],
+  sorts: [...(seed?.sorts ?? EMPTY_SERVER_SPEC.sorts)],
+  filters: [...(seed?.filters ?? EMPTY_SERVER_SPEC.filters)],
   ...(seed?.filterJoin === "or" ? { filterJoin: "or" as const } : null),
-  searchText: seed?.searchText ?? EMPTY_SPEC.searchText,
+  searchText: seed?.searchText ?? EMPTY_SERVER_SPEC.searchText,
   ...(groups && seed?.groupBy?.length ? { groupBy: [...seed.groupBy] } : null),
   ...(groups && seed?.aggregates?.length ? { aggregates: [...seed.aggregates] } : null),
   ...(groups && seed?.pivot?.columnIds.length ? { pivot: { columnIds: [...seed.pivot.columnIds] } } : null),

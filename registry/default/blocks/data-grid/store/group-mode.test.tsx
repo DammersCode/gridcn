@@ -7,7 +7,7 @@ import { createDataGridStore } from "./create-store";
 import { DataGridProvider } from ".";
 import { useDataGridStoreApi } from "./provider";
 import { groupLayoutOfView, rowAtViewRow, rowIdAtViewRow } from "./view-rows";
-import { COLLAPSED } from "./group-state";
+import { COLLAPSED, groupIdOf } from "./group-state";
 import { requestedGroupByOf } from "./group-sync";
 import { getInternalActions } from "./internal-actions";
 import type { DataGridStoreState, InternalSyncProps } from "./types";
@@ -259,5 +259,18 @@ describe("row actions under a server layout", () => {
   it("leave a grid that does not group to its own rules", () => {
     const { state } = make({ groupBy: undefined, groupLayout: undefined, createRow: () => row("n", "EU") } as Partial<InternalSyncProps>);
     expect(state().actions.insertRows(1, 1).ok).toBe(true);
+  });
+});
+
+describe("a group key with a lone surrogate", () => {
+  it("groups the rows on the client and opens the group by its id", () => {
+    const { state } = make({ data: [row("1", "x\uD800"), row("2", "EU")], groupLayout: undefined, defaultExpanded: { mode: "collapsed", ids: [groupIdOf([{ columnId: "region", key: "x\uD800" }])] } } as Partial<InternalSyncProps>);
+    expect(state().groupLayout?.rows.map((node) => node.id)).toEqual(["__group:region=EU", "__group:region=x%uD800"]);
+    expect(state().viewIndex).toHaveLength(3);
+  });
+
+  it("lays out the server group rows", () => {
+    const { ids } = make({ groupLayout: layout([slot(0, "\uD800"), slot(3, "US")]) });
+    expect(ids()[0]).toBe("__group:region=%uD800");
   });
 });

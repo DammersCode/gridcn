@@ -1,5 +1,5 @@
 import { type Expression, type Kysely, type RawBuilder, sql } from "kysely";
-import type { AdapterCapabilities, ColumnMap, GridQuery, QueryLimits, RowCountMode, RowScope } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
+import type { ColumnMap, GridQuery, QueryLimits, RowCountMode, RowScope } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
 import {
   type CustomHandler,
   type PlanColumn,
@@ -7,6 +7,7 @@ import {
   assertCustomOperatorHandlers,
   createGridQuery,
   createSqlRenderer,
+  sqlCapabilities,
 } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query-sdk";
 
 type Fragment = RawBuilder<unknown>;
@@ -54,18 +55,7 @@ export function createKyselyGridQuery<TRow, TContext>(options: KyselyGridQueryOp
   };
   const renderer = createSqlRenderer(algebra, new Map(Object.entries(options.customOperators ?? {})) as ReadonlyMap<string, CustomHandler>);
   const run = async (query: Fragment): Promise<Rows> => (await query.execute(db)).rows as Rows;
-  const capabilities: AdapterCapabilities = {
-    caseInsensitiveText: dialect === "pg" ? "collation" : "ascii",
-    likeEscape: true,
-    literalAsterisk: true,
-    nullsLast: "native",
-    aggregates: true,
-    groupBy: true,
-    localDayGrouping: dialect === "pg",
-    exactInstantKeys: true,
-    millisecondInstantKeys: dialect === "pg",
-    pivot: true,
-  };
+  const capabilities = sqlCapabilities(dialect);
   const from = sql`from ${sql.id(table)}`;
   const aliasList = (items: { alias: string; expr: Fragment }[]): Fragment => sql.join(items.map(({ alias, expr }) => sql`${expr} as ${sql.id(alias)}`));
 

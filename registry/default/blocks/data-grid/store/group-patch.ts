@@ -43,6 +43,7 @@ export function refreshedGroups(s: DataGridStoreState, nextData: readonly unknow
   const replaced = refreshGroupAggregates(layout.tree as GroupTree, touchedRows, { accessor, aggregates: aggregateSpecs(s.columns), rowAt: (row) => nextData[row] });
   const next = { ...layout, rows: layout.rows.map((node) => replaced.get(node.id) ?? node) };
   registerGroupLayout(s.viewIndex, next);
+  registerGroupLayout(fullViewOf(s.viewIndex), next);
   return { groupLayout: next };
 }
 

@@ -1,5 +1,5 @@
 import { type Column, SQL, type Table, getTableColumns, sql } from "drizzle-orm";
-import type { AdapterCapabilities, ColumnMap, GridQuery, QueryLimits, RowCountMode, RowScope } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
+import type { ColumnMap, GridQuery, QueryLimits, RowCountMode, RowScope } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
 import {
   type CustomHandler,
   type PlanColumn,
@@ -7,6 +7,7 @@ import {
   assertCustomOperatorHandlers,
   createGridQuery,
   createSqlRenderer,
+  sqlCapabilities,
   mapOf,
 } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query-sdk";
 
@@ -71,18 +72,7 @@ export function createDrizzleGridQuery<TRow, TContext>(options: DrizzleGridQuery
   };
   const renderer = createSqlRenderer(algebra, new Map(Object.entries(options.customOperators ?? {})) as ReadonlyMap<string, CustomHandler>);
   const selectFrom = (fields: Record<string, unknown>) => (db as unknown as { select(fields: Record<string, unknown>): { from(table: Table): Builder } }).select(fields).from(table);
-  const capabilities: AdapterCapabilities = {
-    caseInsensitiveText: dialect === "pg" ? "collation" : "ascii",
-    likeEscape: true,
-    literalAsterisk: true,
-    nullsLast: "native",
-    aggregates: true,
-    groupBy: true,
-    localDayGrouping: dialect === "pg",
-    exactInstantKeys: true,
-    millisecondInstantKeys: dialect === "pg",
-    pivot: true,
-  };
+  const capabilities = sqlCapabilities(dialect);
 
   return createGridQuery<TRow, TContext, SQL, SQL, string>({
     columns,

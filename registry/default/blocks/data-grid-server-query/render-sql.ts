@@ -1,4 +1,5 @@
-import type { PlanColumn } from "./column-map";
+import { isTextual, type PlanColumn } from "./column-map";
+import type { AdapterCapabilities } from "./create-grid-query";
 import { LIKE_ESCAPE, escapeLike } from "./like";
 import type { GroupsPlan, Operand, OrderTerm, Predicate, Test, ValuesPlan } from "./plan";
 import { toSafeText } from "./safe-text";
@@ -7,6 +8,22 @@ import { toSafeText } from "./safe-text";
  * The few SQL pieces an ORM supplies, so one renderer holds every semantic decision. `raw` takes text from the closed tables
  * in this file only; `param` binds a value; `column` is a qualified identifier from the column map.
  */
+/** What a SQL adapter that renders through {@link createSqlRenderer} supports on `dialect`. */
+export function sqlCapabilities(dialect: SqlAlgebra<unknown>["dialect"]): AdapterCapabilities {
+  return {
+    caseInsensitiveText: dialect === "pg" ? "collation" : "ascii",
+    likeEscape: true,
+    literalAsterisk: true,
+    nullsLast: "native",
+    aggregates: true,
+    groupBy: true,
+    localDayGrouping: dialect === "pg",
+    exactInstantKeys: true,
+    millisecondInstantKeys: dialect === "pg",
+    pivot: true,
+  };
+}
+
 export type SqlAlgebra<S> = {
   dialect: "pg" | "sqlite";
   raw(text: string): S;
@@ -25,7 +42,6 @@ const KEY_SQL = new Map<string, string>([["gt", " > "], ["lt", " < "], ["eq", " 
 
 const PG_ARRAY_TYPES = new Map<string, string>([["int2", "int2[]"], ["int4", "int4[]"], ["int8", "int8[]"], ["float", "float8[]"], ["decimal", "numeric[]"]]);
 
-const isTextual = (column: PlanColumn): boolean => column.kind === "text" || column.kind === "select";
 const idText = (value: Operand): string => (value.kind === "bigint" ? value.v.toString() : toSafeText(value.v));
 
 /** The CTE that holds the group keys of one pivot page, and its key column. */

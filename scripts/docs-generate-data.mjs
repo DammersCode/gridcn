@@ -261,6 +261,7 @@ export const TERM_PAGES = {
   "request, answer": "/docs/contracts/server-rows-contract",
   "value query": "/docs/contracts/server-rows-contract",
   "server grid": "/docs/data-modes",
+  "server hold": "/docs/theme-style-language/loading-state",
   "server mode": "/docs/data-modes",
   result: "/docs/data-modes",
   clearContents: "/docs/cheatsheets-messages/keyboard-shortcuts",

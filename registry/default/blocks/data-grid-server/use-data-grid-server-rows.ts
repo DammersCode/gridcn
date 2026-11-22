@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { applyChangeWith, defaultGetRowId, isDev, type ExpandedState, type PivotSpec, type ServerGroupLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { EMPTY_SERVER_SPEC, applyChangeWith, defaultGetRowId, isDev, type ExpandedState, type PivotSpec, type ServerGroupLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridServerPager, type DataGridPaginationControls } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import { DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-pagination/pagination-math";
@@ -244,7 +244,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   const [rawPage, setPage] = useControlled(options.page, () => options.defaultPage ?? 1, options.onPageChange);
   const maxPage = Math.max(1, Math.ceil(MAX_ROW_COUNT / Math.max(1, pageSize)));
   const wantedPage = Number.isSafeInteger(rawPage) && rawPage >= 1 ? Math.min(rawPage, maxPage) : 1;
-  const live = useRef({ options, spec: EMPTY_LIVE_SPEC, page: wantedPage, pageSize, settledOnce: false, requested: false, error: null as unknown, leftInitial: false });
+  const live = useRef({ options, spec: EMPTY_SERVER_SPEC, page: wantedPage, pageSize, settledOnce: false, requested: false, error: null as unknown, leftInitial: false });
   const [grouping] = useState(() => groupsEnabled(options));
   const specState = useServerSpec(
     options,
@@ -718,4 +718,3 @@ class PagerWatch {
   }
 }
 
-const EMPTY_LIVE_SPEC: ServerSpec = { sorts: [], filters: [], searchText: "" };

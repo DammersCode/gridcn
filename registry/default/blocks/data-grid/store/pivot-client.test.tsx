@@ -123,6 +123,12 @@ describe("client pivot", () => {
     expect(state().pivot?.omitted).toBe(1);
   });
 
+  it("pivots the groups of a groupBy key with a lone surrogate", () => {
+    const { state } = make({ data: [...rows, { id: "r5", region: "x\uD800", city: "", year: 2024, amount: 9, note: "" }] });
+    expect(state().groupLayout?.rows.map((node) => node.id)).toEqual(["__group:region=EU", "__group:region=US", "__group:region=x%uD800"]);
+    expect(state().pivot?.columnId).toBe("year");
+  });
+
   it("orders the keys by a sort on the pivot column", () => {
     const { state, ids } = make();
     state().actions.setSorts([{ columnId: "year", direction: "desc" }]);
@@ -378,6 +384,15 @@ describe("client pivot refresh edge cases", () => {
     live.state().actions.updateCells([{ rowId: "r3", columnId: "amount", value: 40 }], { source: "stream" });
     live.state().actions.setPage(2);
     expect(live.cells()).toEqual([["__group:region=US", 3, 40, null]]);
+  });
+
+  it("keeps a stream write to an aggregate column of a grouped grid across a page change", () => {
+    const live = make({ defaultPivot: undefined, pageSize: 1 });
+    const usSum = () => live.state().groupLayout?.rows.find((node) => node.id === "__group:region=US")?.aggregates["amount"];
+    live.state().actions.updateCells([{ rowId: "r3", columnId: "amount", value: 40 }], { source: "stream" });
+    expect(usSum()).toBe(43);
+    live.state().actions.setPage(2);
+    expect(usSum()).toBe(43);
   });
 });
 

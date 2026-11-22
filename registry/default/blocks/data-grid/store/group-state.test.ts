@@ -29,6 +29,13 @@ describe("group ids and keys", () => {
     expect(isGroupRowId("row-1")).toBe(false);
   });
 
+  it("encodes a lone surrogate in a key or column id as %u and 4 hex digits, distinct from every other key", () => {
+    expect(groupIdOf([{ columnId: "a", key: "x\uD800y" }])).toBe("__group:a=x%uD800y");
+    expect(groupIdOf([{ columnId: "\uDC00", key: "😀\uDC01" }])).toBe("__group:%uDC00=%F0%9F%98%80%uDC01");
+    const ids = ["\uD800", "%uD800", "%25uD800", "\uDBFF", "\uD800\uD800"].map((key) => groupIdOf([{ columnId: "a", key }]));
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
   it("keeps primitives, merges the empty values, and keys anything else by its text", () => {
     expect([groupKeyOf(null), groupKeyOf(undefined), groupKeyOf("")]).toEqual([null, null, null]);
     expect([groupKeyOf("x"), groupKeyOf(2), groupKeyOf(false), groupKeyOf(0)]).toEqual(["x", 2, false, 0]);

@@ -1,5 +1,5 @@
 import { QueryError } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
-import { type Operand, type OrderTerm, type PlanColumn, type Predicate, type Test, escapeLike } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query-sdk";
+import { type Operand, type OrderTerm, type PlanColumn, type Predicate, type Test, escapeLike, isTextual } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query-sdk";
 
 /** A Prisma `where` input of the model. */
 export type PrismaWhere = Record<string, unknown>;
@@ -24,7 +24,7 @@ export function own<T extends object>(target: T, key: string, value: unknown): T
 }
 
 export const field = (column: PlanColumn, filter: unknown): PrismaWhere => own({}, column.field, filter);
-export const isTextual = (column: PlanColumn): boolean => column.kind === "text" || column.kind === "select";
+export { isTextual };
 /** Whether a stored `''` counts as blank in a group key or a set value, as the SQL renderers fold it into NULL. */
 export const foldsEmptyText = (column: PlanColumn): boolean => isTextual(column) && column.native === undefined;
 export const unsupported = (column: PlanColumn): QueryError => new QueryError("unsupported", [column.id]);

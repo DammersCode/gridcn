@@ -1,5 +1,5 @@
 import { QueryError } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
-import { type Operand, type PlanColumn, type Predicate, type Test, likePattern } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query-sdk";
+import { type Operand, type PlanColumn, type Predicate, type Test, isTextual, likePattern } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query-sdk";
 import { quote } from "./quote";
 
 /** One PostgREST filter on a physical column; `v` is text, as PostgREST reads every value. */
@@ -12,7 +12,7 @@ export type FilterNode = { and: FilterNode[] } | { or: FilterNode[] } | { not: F
 /** `true` and `false` fold away inside groups, so they only stand at the root. */
 export type Filter = boolean | FilterNode;
 
-export const isTextual = (column: PlanColumn): boolean => column.kind === "text" || column.kind === "select";
+export { isTextual };
 
 function join(key: "and" | "or", items: readonly Filter[]): Filter {
   const neutral = key === "and";

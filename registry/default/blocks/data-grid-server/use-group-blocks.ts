@@ -12,12 +12,11 @@ import { unionIds, useRefreshGuard } from "./refresh-guard";
 import { groupSaveScope } from "./group-save-scope";
 import { useSaveRefresh, type SaveRefreshPolicy, type SaveRefreshReport } from "./save-refresh";
 import type { UseDataGridServerRowsScrollOptions } from "./scroll-blocks";
+import { DEFAULT_BLOCK_SIZE, DEFAULT_OVERSCAN, positiveInteger } from "./scroll-core";
 import type { UseDataGridServerRowsScrollProviderProps, UseDataGridServerRowsScrollResult } from "./scroll-types";
 import { isolate, scheduleFrame, useControlled, useMountedPlugins, useRegisteredWiring, useReshape, useRevalidation, withoutPivot, type ServerPivotOptions, type ServerSpecState } from "./server-state";
 import type { UseDataGridServerRowsRootProps } from "./use-data-grid-server-rows";
 
-const DEFAULT_BLOCK_SIZE = 50;
-const DEFAULT_OVERSCAN = 30;
 const DEFAULT_CONCURRENT = 6;
 const MAX_CONCURRENT = 16;
 const DEFAULT_LOAD_DELAY_MS = 100;
@@ -67,7 +66,7 @@ const emptyView = <TData,>(): ViewState<TData> => ({ data: [], slots: [], owners
 
 const pivotOf = <TData,>(store: GroupStore<TData>) => (store.pivot?.layout ? { pivotHold: store.pivot } : null);
 
-const positiveInteger =(value: number | undefined, fallback: number, min: number) => (typeof value === "number" && Number.isFinite(value) ? Math.max(min, Math.floor(value)) : fallback);
+const sameRows = (a: readonly unknown[], b: readonly unknown[]): boolean => a.length === b.length && a.every((row, index) => row === b[index]);
 
 const blockSizeOf = (options: { blockSize?: number }, pages: GroupPagesConfig | undefined, pivot: string | null) => {
   const size = pages?.pageSize ?? positiveInteger(options.blockSize, DEFAULT_BLOCK_SIZE, 1);
@@ -194,8 +193,11 @@ export function useGroupBlocks<TData, TCursor = never>(
     const states = new Map<string, "loading" | "failed">();
     for (const { listId } of getEngine().failed.values()) states.set(listId, "failed");
     for (const { list } of getEngine().flight.values()) if (!states.has(list.id)) states.set(list.id, "loading");
-    const next = { ...layoutView(store, expandedTest(live.current.expanded), (id) => states.get(id), pageWindowOf(livePages(store)), { onCapped: () => warn("view-cap", `the open groups hold more than ${MAX_ROW_COUNT} view rows; the view stops at ${MAX_ROW_COUNT}. Collapse a group or add a filter`) }), loading: getEngine().flight.size > 0, groupCount: store.lists.get("")?.count ?? null, ...pivotOf(store), laidFor: store.groupBy } satisfies ViewState<TData>;
+    const laid = layoutView(store, expandedTest(live.current.expanded), (id) => states.get(id), pageWindowOf(livePages(store)), { onCapped: () => warn("view-cap", `the open groups hold more than ${MAX_ROW_COUNT} view rows; the view stops at ${MAX_ROW_COUNT}. Collapse a group or add a filter`) });
     const engine = getEngine();
+    // Group rows are `undefined`, so a landing that only fills groups keeps the array and the grid sees no data change.
+    const data = engine.view && sameRows(engine.view.data, laid.data) ? engine.view.data : laid.data;
+    const next = { ...laid, data, loading: engine.flight.size > 0, groupCount: store.lists.get("")?.count ?? null, ...pivotOf(store), laidFor: store.groupBy } satisfies ViewState<TData>;
     engine.view = next;
     // The old view stays until the rows under the window answer; a failed top block keeps it next to the error bar.
     const waiting = engine.holding && unsettled(store);
