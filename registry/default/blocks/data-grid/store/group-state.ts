@@ -20,9 +20,20 @@ export function groupKeyText(key: GroupKey): string {
   return key === null ? "" : toSafeText(key);
 }
 
+const TEXT_RUN = /[\uD800-\uDBFF][\uDC00-\uDFFF]|[\uD800-\uDFFF]|[^\uD800-\uDFFF]+/g;
+
+// encodeURIComponent throws on a lone surrogate and never emits `%u`, so `%u` plus its 4 hex digits stays distinct.
+const encodeIdText = (text: string): string => {
+  try {
+    return encodeURIComponent(text);
+  } catch {
+    return text.replace(TEXT_RUN, (run) => (run.length === 1 && run >= "\uD800" && run <= "\uDFFF" ? `%u${run.charCodeAt(0).toString(16).toUpperCase()}` : encodeURIComponent(run)));
+  }
+};
+
 /** The id of the group at the end of `path`: one `column=key` segment per level, percent-encoded so a value cannot forge another id. */
 export function groupIdOf(path: readonly GroupPathSegment[]): string {
-  return GROUP_ID_PREFIX + path.map((s) => `${encodeURIComponent(s.columnId)}=${encodeURIComponent(groupKeyText(s.key))}`).join("/");
+  return GROUP_ID_PREFIX + path.map((s) => `${encodeIdText(s.columnId)}=${encodeIdText(groupKeyText(s.key))}`).join("/");
 }
 
 /** The stored value as a group key: empty values form the one empty group, other primitives keep their type, anything else keys by its text. */

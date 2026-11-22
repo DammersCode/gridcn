@@ -50,4 +50,15 @@ describe("a grouped server grid", () => {
     expect(document.querySelectorAll<HTMLElement>("[data-grid-group-row]")[0]!.getAttribute("aria-expanded")).toBe("true");
     expect(fetchRows.mock.calls.some(([request]) => request.childKind === "rows" && request.groupPath?.[0]?.key === "east")).toBe(true);
   });
+
+  it("shows and opens a group whose key holds a lone surrogate", async () => {
+    const lone = vi.fn(async (request: ServerRowsRequest<never>): Promise<ServerRowsAnswer<Row, never> | ServerGroupsAnswer> => {
+      if (request.childKind === "groups") return { groups: [{ key: "\uD800", childCount: 2, totalRowCount: 2 }, { key: "west", childCount: 1, totalRowCount: 1 }], groupCount: 2, totalRowCount: 3 };
+      return { rows: [{ id: `${request.groupPath?.[0]?.key}-0`, region: "lone", qty: 1 }], totalRowCount: 1 };
+    });
+    render(<Harness rowCalls={lone} />);
+    await waitFor(() => expect(document.querySelectorAll("[data-grid-group-row]")).toHaveLength(2));
+    await act(async () => void fireEvent.click(within(document.querySelectorAll<HTMLElement>("[data-grid-group-row]")[0]!).getByRole("button")));
+    await waitFor(() => expect(lone.mock.calls.some(([request]) => request.childKind === "rows" && request.groupPath?.[0]?.key === "\uD800")).toBe(true));
+  });
 });

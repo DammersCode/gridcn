@@ -123,6 +123,12 @@ describe("client pivot", () => {
     expect(state().pivot?.omitted).toBe(1);
   });
 
+  it("pivots the groups of a groupBy key with a lone surrogate", () => {
+    const { state } = make({ data: [...rows, { id: "r5", region: "x\uD800", city: "", year: 2024, amount: 9, note: "" }] });
+    expect(state().groupLayout?.rows.map((node) => node.id)).toEqual(["__group:region=EU", "__group:region=US", "__group:region=x%uD800"]);
+    expect(state().pivot?.columnId).toBe("year");
+  });
+
   it("orders the keys by a sort on the pivot column", () => {
     const { state, ids } = make();
     state().actions.setSorts([{ columnId: "year", direction: "desc" }]);
