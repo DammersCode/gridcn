@@ -270,6 +270,7 @@ exports[`lists the runtime names of the \`data-grid-server-query-sdk\` module so
   "instantText",
   "isBuiltInOperatorId",
   "isDev",
+  "isTextual",
   "likePattern",
   "mapOf",
   "parseQuery",
@@ -277,6 +278,7 @@ exports[`lists the runtime names of the \`data-grid-server-query-sdk\` module so
   "rowScopePredicate",
   "serializeRow",
   "serializeValue",
+  "sqlCapabilities",
   "statusForCode",
   "toSafeText",
 ]
