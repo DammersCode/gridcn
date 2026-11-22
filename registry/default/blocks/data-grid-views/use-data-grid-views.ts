@@ -240,7 +240,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
         if (s.pivotColumnIds.join("\u0000") !== prev.pivotColumnIds.join("\u0000")) return stopPendingWidths();
         if (s.pivot?.columns === prev.pivot?.columns) return;
         const waiting = left;
-        left = writePivotWidths(Object.fromEntries(waiting), false);
+        left = writePivotWidths(Object.fromEntries(waiting));
         const widths = storeApi.getState().columnWidths;
         // the store clamps a width, so the baseline takes the landed widths back from it
         const landed = [...waiting.keys()].filter((id) => !left.has(id) && widths[id] !== undefined).map((id) => [id, widths[id]!] as const);
@@ -275,7 +275,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
       const pivotId = typeof id === "string" && columnMap.get(id)?.groupable !== false && groupBy.length > 0 && !groupBy.includes(id) ? id : undefined;
       if (id !== undefined && pivotId !== s.pivotColumnIds[0]) actions.setPivot({ columnIds: pivotId === undefined ? [] : [pivotId] });
       // a server grid shows the held set of the old pivot until the answer lands, so only the held set of this pivot resets
-      if (pivotId !== undefined) holdWidths(writePivotWidths(clean.pivotWidths ?? {}, storeApi.getState().pivot?.columnId === pivotId));
+      if (pivotId !== undefined) holdWidths(writePivotWidths(clean.pivotWidths ?? {}, { resetOthers: storeApi.getState().pivot?.columnId === pivotId }));
       const { pivotColumnId: _pivot, pivotWidths, ...rest } = clean;
       const after = readState();
       // the store fills in layout parts a view leaves out, and a view without the pivot field keeps the pivot, so the baseline reads both back

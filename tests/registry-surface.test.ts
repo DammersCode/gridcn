@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import * as dataGrid from "@/registry/default/blocks/data-grid/data-grid";
 import * as dataGridSdk from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import * as dataGridKeybindings from "@/registry/default/blocks/data-grid-keybindings/data-grid-keybindings";
+import * as serverQuerySdk from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query-sdk";
 
 // Docs teach only `formatShortcut`/`isMacPlatform`; the instance id is an add-on seam on the sdk surface.
 it("keeps the add-on seams off the `data-grid` consumer barrel", () => {
@@ -72,4 +73,12 @@ it("keeps the removed core hooks and helpers off the `data-grid` barrel", () => 
 
 it("lists the runtime names of the `data-grid` barrel so an addition is a visible diff", () => {
   expect(Object.keys(dataGrid).sort()).toMatchSnapshot();
+});
+
+it("lists the runtime names of the `data-grid-sdk` module, a public add-on surface, so an addition is a visible diff", () => {
+  expect(Object.keys(dataGridSdk).sort()).toMatchSnapshot();
+});
+
+it("lists the runtime names of the `data-grid-server-query-sdk` module so an addition is a visible diff", () => {
+  expect(Object.keys(serverQuerySdk).sort()).toMatchSnapshot();
 });

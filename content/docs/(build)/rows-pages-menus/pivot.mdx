@@ -20,7 +20,7 @@ Set `groupBy` to the row columns and `pivot` to `{ columnIds: [id] }`. The `aggr
 "use client";
 
 import { useState } from "react";
-import { DataGrid, defineColumns } from "@/components/data-grid/data-grid";
+import { DataGrid, defineColumns, type PivotSpec } from "@/components/data-grid/data-grid";
 
 type Sale = { id: string; region: string; make: string; price: number };
 
@@ -39,9 +39,7 @@ const columns = defineColumns<Sale>()([
 const rows: Sale[] = [{ id: "1", region: "North", make: "Kestrel", price: 1 }];
 
 export function SalesPivot() {
-  const [pivot, setPivot] = useState<{ columnIds: readonly string[] }>({
-    columnIds: ["make"],
-  });
+  const [pivot, setPivot] = useState<PivotSpec>({ columnIds: ["make"] });
   return (
     <>
       <button onClick={() => setPivot({ columnIds: [] })}>Pivot off</button>
@@ -96,9 +94,9 @@ Each of these warns once in development, with the prefix `[data-grid] `. Each te
 
 | Prop | Type | Default |
 |---|---|---|
-| `pivot` | `{ columnIds }` | Uncontrolled |
-| `defaultPivot` | `{ columnIds }` or a function | Off |
-| `onPivotChange` | `(next) => void` | None |
+| `pivot` | `PivotSpec` | Uncontrolled |
+| `defaultPivot` | `PivotSpec` or a function | Off |
+| `onPivotChange` | `(next: PivotSpec) => void` | None |
 
 `onPivotChange` fires after `setPivot` changes the pivot. When the pivot turns off, it fires with `{ columnIds: [] }`. The action `setPivot` from `useDataGridActions` sets the pivot column. `setPivot(undefined)` turns it off. A `defaultPivot` function runs once on the client after mount.
 

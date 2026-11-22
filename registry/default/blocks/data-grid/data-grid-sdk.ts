@@ -1,8 +1,6 @@
 /**
- * Add-on-facing SDK surface of the grid core: the internal seams first-party add-ons
- * build on, and the API for add-on and plugin authors. App code imports from `./data-grid`;
- * the docs teach this file for plugin work and store reads (`useDataGridStoreApi`,
- * `DataGridReadState`, `GRID_LAYER`, `hasAnyPin`, `createHistory`, `isComposingKey`). Add-on
+ * Public API for add-on and plugin authors, the same surface the first-party add-ons build on.
+ * Every export is covered by the version policy; app code imports from `./data-grid`. Add-on
  * imports of this file are rewritten to the registry alias by scripts/fix-registry-imports.mjs at registry build.
  */
 
@@ -104,8 +102,7 @@ export { matchingRowTotal } from "./store/matching-total";
 export { pageOfFullRow, pageUnitsOf } from "./store/group-pages";
 export { measureColumnAutosizeWidth } from "./columns/measure-column-text";
 export { groupPathOf, type ColumnGroupModel } from "./columns/column-groups";
-export { isDev } from "./is-dev";
-export { createWarnOnce } from "./is-dev";
+export { createWarnOnce, isDev } from "./is-dev";
 export { isThenable } from "./store/async-gate";
 export { keepsCheckedRows } from "./store/hidden-checked-rows";
 export { isComposingKey } from "./interaction/is-composing-key";
@@ -149,8 +146,8 @@ export function useDataGridFocusSearchRegistration(focus: () => void): void {
   }, [internalActions, focus]);
 }
 
-/** Returns a stable function that sets many generated column widths in one write and returns the widths whose columns are not held. */
-export function useDataGridPivotWidthsWriter(): (widths: Readonly<Record<string, number>>, resetOthers: boolean) => Map<string, number> {
+/** Returns a stable function that sets many generated column widths in one write and returns the widths whose columns are not held; `resetOthers` drops the other generated widths. */
+export function useDataGridPivotWidthsWriter(): (widths: Readonly<Record<string, number>>, options?: { resetOthers?: boolean }) => Map<string, number> {
   return useDataGridInternalActions()._setPivotWidths;
 }
 
@@ -186,22 +183,18 @@ export function useDataGridSourcePivots(): boolean {
   return useStore(useDataGridStoreApiRaw(), (s) => s.groupMode !== "server" || s.serverGroupLayout?.pivotable !== false);
 }
 export { setCellValue } from "./columns/column-helpers";
-export { applyChangeWith, type ApplyChangeOptions } from "./interaction/history";
 export { columnLabelText } from "./columns/column-format-helpers";
 export { COLUMN_WIDTH_STEP, shownColumnWidth } from "./columns/column-step";
 export { validateContextsFor } from "./validation/validate-context";
-export { createHistory, type History, type HistoryOptions } from "./interaction/history";
+export { applyChangeWith, createHistory, type ApplyChangeOptions, type History, type HistoryOptions } from "./interaction/history";
 export { buildRollback, rebaseOntoCurrent } from "./interaction/rollback";
-export { mergeLabelLayers } from "./labels";
+export { deepMergeLabels, mergeLabelLayers, type DataGridFilterOperatorLabels, type DataGridCommentsLabels } from "./labels";
 export { useOptionalDataGridColumnSource, useOptionalDataGridLabels } from "./store";
-export type { DataGridFilterOperatorLabels, DataGridCommentsLabels } from "./labels";
-export { deepMergeLabels } from "./labels";
 export { GRID_ATTR, GRID_ROLE_SELECTOR, gridAttrSelector, type GridAttrName, type GridAttr, type GridAttrValue } from "./data-attributes";
 export { EMPTY_SERVER_SPEC, serverSpecOf, type ServerAggregate } from "./server-spec";
 export { defaultGetRowId } from "./store/types";
-export { dataIndexAt, dataIndexOf, forEachDataIndex, rowAtViewRow, viewEntryAt, type ViewEntry } from "./store/view-rows";
+export { dataIndexAt, dataIndexOf, forEachDataIndex, groupIndexAt, groupLayoutOfView, rowAtViewRow, viewEntryAt, type ViewEntry } from "./store/view-rows";
 export { isPivotColumn, pivotCellAt, pivotCellText, pivotWidthsOf } from "./store/pivot-view";
-export { groupIndexAt, groupLayoutOfView } from "./store/view-rows";
 export { leafCountOf, leafViewOf, groupRowsOf } from "./store/group-readers";
 export { isGroupRowId, groupIdOf, groupKeyText, MAX_GROUP_LEVELS, COLLAPSED, expandedTest, normalizeExpanded } from "./store/group-state";
 export { requestedGroupByOf } from "./store/group-sync";
