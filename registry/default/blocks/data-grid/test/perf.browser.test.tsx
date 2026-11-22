@@ -107,7 +107,7 @@ describe("long tasks during rAF-paced fling scroll", () => {
     }
     // Idle: 0ms of long tasks; CI healthy runs measured 585-6399ms, so CI widens the floor tenfold and the budget rises with the same-run loop slowdown.
     const loopMs = plainLoopMs();
-    expect(totalMs).toBeLessThan(budget({ floor: 200, cap: 1000, k: 200 / IDLE_LOOP_MS, reference: loopMs, ciFactor: 10 }));
+    expect(totalMs).toBeLessThan(budget({ floor: 700, cap: 1000, k: 200 / IDLE_LOOP_MS, reference: loopMs, ciFactor: 10 }));
   });
 });
 

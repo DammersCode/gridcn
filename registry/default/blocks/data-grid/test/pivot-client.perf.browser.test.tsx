@@ -12,7 +12,7 @@ const GROUPS = 5_000;
 const KEYS = 200;
 const IDLE_LOOP_MS = 3;
 // Idle: 0ms of long tasks; perf.browser.test.tsx measured 585-6399ms on a healthy grid in CI, so CI widens the floor tenfold and the budget rises with the same-run loop slowdown.
-const longTaskBudgetMs = () => budget({ floor: 200, cap: 1000, k: 200 / IDLE_LOOP_MS, reference: plainLoopMs(), ciFactor: 10 });
+const longTaskBudgetMs = () => budget({ floor: 700, cap: 1000, k: 200 / IDLE_LOOP_MS, reference: plainLoopMs(), ciFactor: 10 });
 
 type Row = { id: string; region: string; year: string; qty: number };
 
