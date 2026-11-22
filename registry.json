@@ -4655,7 +4655,7 @@
       "name": "data-grid-server-query-drizzle",
       "type": "registry:block",
       "title": "Data Grid Server Query Drizzle",
-      "description": "Runs the grid's sort, filter tree, quick search, row range, row count, set values, and flat aggregates with Drizzle on PostgreSQL and SQLite: columnsFromDrizzleTable builds the column map from a schema, createDrizzleGridQuery returns fetchRows for useDataGridServerRows.",
+      "description": "Runs the grid's sort, filter tree, quick search, offset or cursor paging, row count, set values, aggregates, groups, and pivots with Drizzle on PostgreSQL and SQLite: columnsFromDrizzleTable builds the column map from a schema, createDrizzleGridQuery returns fetchRows for useDataGridServerRows.",
       "author": "gridcn",
       "dependencies": [
         "drizzle-orm@>=0.45.0 <1"
@@ -4688,7 +4688,7 @@
       "name": "data-grid-server-query-kysely",
       "type": "registry:block",
       "title": "Data Grid Server Query Kysely",
-      "description": "Runs the grid's sort, filter tree, quick search, row range, row count, set values, and flat aggregates with Kysely on PostgreSQL and SQLite: createKyselyGridQuery returns fetchRows for useDataGridServerRows.",
+      "description": "Runs the grid's sort, filter tree, quick search, offset or cursor paging, row count, set values, aggregates, groups, and pivots with Kysely on PostgreSQL and SQLite: createKyselyGridQuery returns fetchRows for useDataGridServerRows.",
       "author": "gridcn",
       "dependencies": [
         "kysely@>=0.29.0 <1"
@@ -4716,7 +4716,7 @@
       "name": "data-grid-server-query-prisma",
       "type": "registry:block",
       "title": "Data Grid Server Query Prisma",
-      "description": "Runs the grid's sort, filter tree, quick search, row range, row count, set values, flat aggregates, and groups with the Prisma Client object API on PostgreSQL and SQLite: definePrismaColumnMap builds the column map, typed by a generated model, and createPrismaGridQuery returns fetchRows for useDataGridServerRows.",
+      "description": "Runs the grid's sort, filter tree, quick search, offset or cursor paging, row count, set values, aggregates, groups, and pivots with the Prisma Client object API on PostgreSQL and SQLite: definePrismaColumnMap builds the column map, typed by a generated model, and createPrismaGridQuery returns fetchRows for useDataGridServerRows.",
       "author": "gridcn",
       "registryDependencies": [
         "DammersCode/gridcn/data-grid-server-query"
@@ -4751,7 +4751,7 @@
       "name": "data-grid-server-query-supabase",
       "type": "registry:block",
       "title": "Data Grid Server Query Supabase",
-      "description": "Runs the grid's sort, filter tree, quick search, row range, and row count through the caller's Supabase client over PostgREST: createSupabaseGridQuery returns fetchRows for useDataGridServerRows. grid-query.sql defines the grid function that answers set values, aggregates, groups, and pivots.",
+      "description": "Runs the grid's sort, filter tree, quick search, offset or cursor paging, and row count through the caller's Supabase client over PostgREST: createSupabaseGridQuery returns fetchRows for useDataGridServerRows. grid-query.sql defines the grid function that answers set values, aggregates, groups, and pivots.",
       "author": "gridcn",
       "registryDependencies": [
         "DammersCode/gridcn/data-grid-server-query"
@@ -4842,6 +4842,11 @@
           "path": "registry/default/examples/data-grid-row-grouping-demo.tsx",
           "type": "registry:example",
           "target": "components/data-grid-row-grouping-demo.tsx"
+        },
+        {
+          "path": "registry/default/examples/sales-data.ts",
+          "type": "registry:example",
+          "target": "components/sales-data.ts"
         }
       ],
       "categories": [
@@ -4863,6 +4868,11 @@
           "path": "registry/default/examples/data-grid-pivot-demo.tsx",
           "type": "registry:example",
           "target": "components/data-grid-pivot-demo.tsx"
+        },
+        {
+          "path": "registry/default/examples/sales-data.ts",
+          "type": "registry:example",
+          "target": "components/sales-data.ts"
         }
       ],
       "categories": [

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
-import DataGridPivotDemo, { carSales } from "./data-grid-pivot-demo";
+import DataGridPivotDemo from "./data-grid-pivot-demo";
+import { MAKES, REGIONS, generateSales } from "./sales-data";
 import "@/app/global.css";
 
 const Wide = () => (
@@ -8,9 +9,6 @@ const Wide = () => (
     <DataGridPivotDemo />
   </div>
 );
-
-const REGIONS = ["North", "South", "East", "West"];
-const MAKES = ["Kestrel", "Marlow", "Nordvik", "Solenne", "Vantor"];
 
 const groupRows = () => [...document.querySelectorAll<HTMLElement>('[role="row"][data-grid-group-row]')];
 const headerTexts = () => [...document.querySelectorAll<HTMLElement>('[role="columnheader"][data-column-id]')].map((header) => header.textContent ?? "");
@@ -75,7 +73,7 @@ describe("data-grid-pivot-demo", () => {
     await vi.waitFor(() => expect(groupRows()).toHaveLength(4));
     expect(headerTexts()).toEqual(["Region", ...MAKES]);
     const expected = new Map<string, Map<string, number>>();
-    for (const sale of carSales(5000)) {
+    for (const sale of generateSales(5000)) {
       const byMake = expected.get(sale.region) ?? new Map<string, number>();
       byMake.set(sale.make, (byMake.get(sale.make) ?? 0) + sale.price);
       expected.set(sale.region, byMake);
