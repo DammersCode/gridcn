@@ -81,9 +81,9 @@ export const ADDONS = [
  * The generator fails when a row's title names a symbol that CHANGELOG.md first names in a later release than this one.
  */
 export const FEATURE_SINCE = {
-  Unreleased: ["server-pivot"],
   "1.2.0": ["find-replace", "filter-values", "column-groups", "touch"],
   "2.0.0": ["import-check", "grouping", "comments", "unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "server-initial-answer", "error-state", "input-debounce", "lookup-cell", "server-aggregate", "zero-row-header", "server-query"],
+  "2.1.0": ["server-pivot"],
 };
 
 const F = (guide, reference, item) => ({ item, guide, reference });

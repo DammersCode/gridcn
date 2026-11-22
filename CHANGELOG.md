@@ -7,7 +7,7 @@ asks before overwriting a file that differs.
 
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## Unreleased
+## 2.1.0 - 2026-11-22
 
 - Changed the loading bar of a grid with rows: it shows after the load has run for 150 ms, so a fast answer, such as the answer to a server spec change while the old rows stay on screen, shows no bar. `aria-busy` and the screen reader progress element turn on at once. `--grid-loading-bar-delay` sets the delay; `0ms` shows the bar at once.
 - Fixed a grid blanking for one frame when a filter, a search, a group change, or a server answer left fewer rows than the scroll position. The grid shows the last rows at once and moves the scroll to the end of the shorter content before the frame paints.
