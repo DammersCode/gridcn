@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createDataGridStore } from "./create-store";
 import type { InternalSyncProps } from "./types";
+import { ciFactor } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
 type Row = { id: string; name: string; price: number };
 
@@ -146,7 +147,7 @@ describe("onValidationError for updateCells", () => {
 
 describe("onValidationError cost on a streaming tick", () => {
   // Shared CI runners are several times slower; the ceiling guards the order of magnitude.
-  const CI_FACTOR = process.env["CI"] ? 3 : 1;
+  const CI_FACTOR = ciFactor(3);
 
   it("resolves view rows only for the rejected cells (100k sorted rows)", () => {
     const data = Array.from({ length: 100_000 }, (_, i) => ({ id: `r${i}`, name: `n${i}`, price: i }));

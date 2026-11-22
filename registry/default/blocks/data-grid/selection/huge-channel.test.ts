@@ -6,6 +6,7 @@ import { getSelectedViewRows } from "./selected-view-rows";
 import { selectLine } from "./select-line-options";
 import { emptySelection, selectCell } from "./selection-ops";
 import type { CompactSelectionLike, GridSelection } from "../types";
+import { bestMs, budget } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
 const HUGE = 100_000;
 
@@ -59,13 +60,18 @@ describe("offsetSelectionForRows over a huge row channel", () => {
   it("shifts 100,000 separate checked rows by runs within 200 ms, without listing them", () => {
     const checked = alternating(HUGE);
     const toArray = vi.spyOn(CompactSelection.prototype, "toArray");
+    const plainShiftMs = bestMs(() => {
+      const shifted: [number, number][] = [];
+      for (let i = 0; i < HUGE; i++) shifted.push([i * 2 - 1, i * 2]);
+      return shifted;
+    });
     const start = performance.now();
     const next = offsetSelectionForRows(rowsSelection(checked), 1, -1);
     const elapsed = performance.now() - start;
     expect(toArray).not.toHaveBeenCalled();
     expect(next.rows.length).toBe(HUGE);
     expect(next.rows.runs().slice(0, 2)).toEqual([[0, 2], [3, 4]]);
-    expect(elapsed).toBeLessThan(200);
+    expect(elapsed).toBeLessThan(budget({ floor: 90, cap: 270, k: 40, reference: plainShiftMs }));
   });
 });
 

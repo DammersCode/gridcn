@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { type ColumnSpec, defineColumnMap } from "./column-map";
 import { type AdapterCapabilities, type QueryExecutor, type RowsAnswer, createGridQuery } from "./create-grid-query";
+import { bestMs, budget } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 import { QueryError } from "./errors";
 import type { Predicate, RowsPlan } from "./plan";
 
@@ -335,9 +336,11 @@ describe("cursor paging: bad cursors", () => {
 
   it("refuses an over-long cursor before it decodes it", async () => {
     const { fetch } = await realCursor();
+    const decodeMs = bestMs(() => { try { JSON.parse(atob("A".repeat(5_000_000))); } catch { /* the cost under test is the decode */ } });
     const started = performance.now();
     await expectBadCursor(fetch(page({}, { cursor: "A".repeat(5_000_000) })));
-    expect(performance.now() - started).toBeLessThan(200);
+    const elapsed = performance.now() - started;
+    expect(elapsed).toBeLessThan(budget({ floor: 1, cap: 4, k: 0.5, reference: decodeMs }));
   });
 
   it("answers bad-cursor when the filter or the sort changed", async () => {

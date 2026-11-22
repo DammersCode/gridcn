@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import { buildColumnGroupModel, computeHeaderRows } from "./columns/column-groups";
 import { buildPivotColumns } from "./pivot-columns";
 import type { ColumnDef } from "./types";
+import { ciFactor } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
 const KEYS = 50;
-const CI_FACTOR = process.env["CI"] ? 2 : 1;
+const CI_FACTOR = ciFactor(2);
 const values = [
   { columnId: "a", reducer: "sum" },
   { columnId: "b", reducer: "avg" },

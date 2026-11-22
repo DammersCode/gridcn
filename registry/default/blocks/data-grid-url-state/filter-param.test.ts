@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FilterNode, FilterSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import { bestMs, budget } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 import { serializeFilterState, parseFilterState } from "./filter-param";
 
 /** The flat-list view of the parser result, for the tests that predate groups. */
@@ -191,10 +192,13 @@ describe("serializeFilterState / parseFilterState", () => {
     });
 
     it("parses a long run of empty-entry tokens in linear time", () => {
+      const raw = `city:isAnyOf:${"%|".repeat(200_000)}%`;
+      const splitMs = bestMs(() => raw.split("|").map((part) => (part === "%" ? "" : part)));
       const started = performance.now();
-      const parsed = parse(`city:isAnyOf:${"%|".repeat(200_000)}%`);
+      const parsed = parse(raw);
+      const elapsed = performance.now() - started;
       expect(parsed[0]!.value).toHaveLength(1000);
-      expect(performance.now() - started).toBeLessThan(1000);
+      expect(elapsed).toBeLessThan(budget({ floor: 0.6, cap: 3, k: 0.1, reference: splitMs }));
     });
 
     it("drops a choice list with malformed percent-encoding", () => {

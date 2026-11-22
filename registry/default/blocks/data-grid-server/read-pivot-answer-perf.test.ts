@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { MAX_PIVOT_DESCRIPTORS, readPivotAnswer } from "./read-pivot-answer";
+import { ciFactor } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
 const GROUPS = 200;
 const COLUMNS = 200;
-const CI_FACTOR = process.env["CI"] ? 2 : 1;
+const CI_FACTOR = ciFactor(2);
 const options = { columnId: "year", values: [{ columnId: "amount", reducer: "sum" }] } as const;
 const noWarn = () => undefined;
 

@@ -4,10 +4,11 @@ import { CompactSelection } from "../selection/compact-selection";
 import { createDataGridStore } from "./create-store";
 import { getInternalActions } from "./internal-actions";
 import type { InternalSyncProps } from "./types";
+import { ciFactor } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
 // Shared GitHub Actions runners are several × slower than a dev machine; the ceilings guard the
 // order of magnitude, not machine jitter (baseline + 20 %, recorded below).
-const CI_FACTOR = process.env["CI"] ? 2 : 1;
+const CI_FACTOR = ciFactor(2);
 
 const DRAG_STEPS = 1000;
 const ROW_COUNT = 100_000;

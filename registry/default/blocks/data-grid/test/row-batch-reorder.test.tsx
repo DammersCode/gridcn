@@ -11,8 +11,9 @@ import {
   type DataGridSyncProps,
 } from "../store";
 import { viewIndex } from "@/registry/default/blocks/data-grid/types";
+import { ciFactor } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
-const CI_FACTOR = process.env["CI"] ? 2 : 1;
+const CI_FACTOR = ciFactor(2);
 
 type Row = { id: string; name: string };
 

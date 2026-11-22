@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 import { DataGridBody, DataGridHeader, DataGridProvider, DataGridRoot, defineColumns, type ColumnDef, type ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import { budget, plainLoopMs } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 import { measureScrollLongTasks } from "@/registry/default/blocks/data-grid/test/perf-probe.test-helper";
 import { fakeServer, type Answer, type Row } from "./group-fake-server.test-helper";
 import { MAX_PIVOT_CELLS } from "./group-lists";
@@ -13,10 +14,10 @@ import "@/app/global.css";
 const GROUPS = 100_000;
 const KEYS = 200;
 const BLOCK = 200;
-// perf.browser.test.tsx measured 585-6399 ms of long tasks on a healthy grid in CI: keep its 20 s ceiling there.
-const CI_FACTOR = import.meta.env.CI ? 100 : 1;
+const IDLE_LOOP_MS = 3;
+// Idle: 0ms of long tasks; perf.browser.test.tsx measured 585-6399ms on a healthy grid in CI, so CI widens the floor tenfold and the budget rises with the same-run loop slowdown.
 // The baseline, a grouped grid without pivot of the same size, is recorded for comparison and holds no budget.
-const LONG_TASK_BUDGET_MS = 200 * CI_FACTOR;
+const longTaskBudgetMs = () => budget({ floor: 200, cap: 1000, k: 200 / IDLE_LOOP_MS, reference: plainLoopMs(), ciFactor: 10 });
 
 const SUM = { columnId: "qty", reducer: "sum" } as const;
 const pivotColumns = defineColumns<Row>()([
@@ -105,7 +106,7 @@ describe("a pivot grid at 100,000 groups x 200 generated columns", () => {
     await settle();
     const landings = server.calls.length - callsBefore;
     await annotate(`perf ${kind} vertical fling: longTasks=${count} total=${Math.round(totalMs)}ms landings=${landings} heldBytes=${heldBytes(latest())}`);
-    if (kind === "pivot") expect(totalMs).toBeLessThan(LONG_TASK_BUDGET_MS);
+    if (kind === "pivot") expect(totalMs).toBeLessThan(longTaskBudgetMs());
     expect(landings).toBeGreaterThan(1);
     expect(server.calls.every((call) => call.childKind === "groups")).toBe(true);
     if (kind === "pivot") {
@@ -130,7 +131,7 @@ describe("a pivot grid at 100,000 groups x 200 generated columns", () => {
     const { count, totalMs } = await measureScrollLongTasks(grid, 240, 240, "horizontal");
     await settle();
     await annotate(`perf ${kind} horizontal fling: longTasks=${count} total=${Math.round(totalMs)}ms mountedHeaders=${headers().length} bound=${bound}`);
-    if (kind === "pivot") expect(totalMs).toBeLessThan(LONG_TASK_BUDGET_MS);
+    if (kind === "pivot") expect(totalMs).toBeLessThan(longTaskBudgetMs());
     expect(grid.scrollLeft).toBeGreaterThan(0);
     expectOnlyVisibleColumns();
     await screen.unmount();

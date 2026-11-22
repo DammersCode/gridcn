@@ -4,8 +4,9 @@ import { CompactSelection } from "@/registry/default/blocks/data-grid/selection/
 import { emptySelection as emptySelectionOps } from "@/registry/default/blocks/data-grid/selection/selection-ops";
 import type { AnyColumnDef, GridSelection } from "@/registry/default/blocks/data-grid/data-grid";
 import { parseReturnedPatches, planReplace, type ReplaceState } from "./plan-replace";
+import { ciFactor } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
-const CI_FACTOR = process.env["CI"] ? 2 : 1;
+const CI_FACTOR = ciFactor(2);
 
 type Row = { id: string; name: string; qty: number | null; tag: string | null };
 

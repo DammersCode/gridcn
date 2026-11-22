@@ -2,11 +2,12 @@ import { describe, expect, it } from "vitest";
 import { groupIdOf } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { createGroupStore, evictPivotCells, landPivotGroups, layoutView, listFor, MAX_PIVOT_CELLS } from "./group-lists";
 import { readGroupsAnswer } from "./read-groups-answer";
+import { ciFactor } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
 const GROUPS = 10_000;
 const COLUMNS = 200;
 const BLOCK = 200;
-const CI_FACTOR = process.env["CI"] ? 2 : 1;
+const CI_FACTOR = ciFactor(2);
 const OPTIONS = { columnId: "city", values: [{ columnId: "qty", reducer: "sum" as const }] };
 const pivotColumns = Array.from({ length: COLUMNS }, (_, key) => ({ path: [`k${key}`], valueIndex: 0 }));
 
