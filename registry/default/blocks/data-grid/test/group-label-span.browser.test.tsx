@@ -88,13 +88,13 @@ function expectSameRect(a: DOMRect, b: DOMRect) {
   expect([a.left, a.top, a.right, a.bottom].map(Math.round)).toEqual([b.left, b.top, b.right, b.bottom].map(Math.round));
 }
 
-/** The selection overlays a viewer sees at a point, pointer-events aside. */
+/** The selection fills a viewer sees at a point, pointer-events aside. */
 function selectionOverlaysAt(x: number, y: number): Element[] {
   const guard = document.createElement("style");
   guard.textContent = "* { pointer-events: auto !important; }";
   document.head.append(guard);
   try {
-    return document.elementsFromPoint(x, y).filter((el) => el.hasAttribute("data-grid-selection-overlay"));
+    return document.elementsFromPoint(x, y).filter((el) => el.hasAttribute("data-grid-selection-overlay") && getComputedStyle(el).backgroundColor !== "rgba(0, 0, 0, 0)");
   } finally {
     guard.remove();
   }
@@ -176,49 +176,116 @@ describe("the selected look of a group label", () => {
 });
 
 describe("the outline of a selection across group rows", () => {
-  async function selectAll() {
-    await userEvent.click(label());
-    await userEvent.keyboard("{Control>}a{/Control}");
-    await userEvent.keyboard("{Control>}a{/Control}");
-    await frames();
+  const overlaps = (r: DOMRect, l: DOMRect) => r.left < l.right - 1 && r.right > l.left + 1 && r.top < l.bottom - 1 && r.bottom > l.top + 1;
+  /** The bordered selection overlays over the label of `row`. */
+  const outlinesOver = (row = nestedGroupRow()) => {
+    const rect = gridCells(row)[0]!.getBoundingClientRect();
+    return outlines().filter((el) => overlaps(el.getBoundingClientRect(), rect));
+  };
+  /** One bordered overlay on the group row, and it is the label rect. */
+  function expectOneLabelOutline(row = nestedGroupRow()) {
+    const over = outlinesOver(row);
+    expect(over).toHaveLength(1);
+    expectSameRect(over[0]!.getBoundingClientRect(), gridCells(row)[0]!.getBoundingClientRect());
   }
-
-  async function rangeUpOverTwoLabels() {
-    await userEvent.click(gridCells(rowBelow())[2]!);
-    await userEvent.keyboard("{Shift>}{ArrowUp}{ArrowUp}{/Shift}");
-    await frames();
+  /** No bordered overlay draws an edge inside a label. */
+  function expectNoEdgeInsideLabels() {
+    for (const row of groupRows()) {
+      const rect = gridCells(row)[0]!.getBoundingClientRect();
+      for (const el of outlinesOver(row)) {
+        const r = el.getBoundingClientRect();
+        expect([r.left <= rect.left + 1, r.right >= rect.right - 1]).toEqual([true, true]);
+      }
+    }
   }
+  const secondNestedGroupRow = () => groupRows().filter((row) => row.getAttribute("aria-level") === "2")[1]!;
+  const rowAt = (index: number) => document.querySelector<HTMLElement>(`[role="row"][data-grid-row-index="${index}"]`)!;
 
-  it("draws one rectangle for select all", async () => {
-    await renderGrid();
-    await selectAll();
-    expect(outlines()).toHaveLength(1);
+  it.each<[string, Variant, number]>([
+    ["from the Region column", {}, 1],
+    ["from the Make column", {}, 3],
+    ["with a pinned first column", { pinFirst: true }, 1],
+    ["under RTL", { direction: "rtl" }, 1],
+  ])("draws one outline over the whole label for ArrowUp onto it %s", async (_, variant, col) => {
+    await renderGrid(variant);
+    await userEvent.click(gridCells(rowBelow())[col]!);
+    await userEvent.keyboard("{ArrowUp}");
+    await frames();
+    expectOneLabelOutline();
   });
 
-  it("draws one rectangle per pin zone for select all with a pinned first column", async () => {
-    await renderGrid({ pinFirst: true });
-    await selectAll();
-    expect(outlines()).toHaveLength(2);
+  it("draws one outline over the whole label for ArrowDown onto it", async () => {
+    await renderGrid();
+    const target = secondNestedGroupRow();
+    await userEvent.click(gridCells(rowAt(Number(target.dataset["gridRowIndex"]) - 1))[2]!);
+    await userEvent.keyboard("{ArrowDown}");
+    await frames();
+    expectOneLabelOutline(secondNestedGroupRow());
+  });
+
+  it("draws one outline over the whole label for a click inside it", async () => {
+    await renderGrid();
+    const rect = label().getBoundingClientRect();
+    await userEvent.click(label(), { position: { x: rect.width - 20, y: rect.height / 2 } });
+    await frames();
+    expectOneLabelOutline();
   });
 
   it.each<[string, Variant]>([
     ["unpinned", {}],
     ["with a pinned first column", { pinFirst: true }],
-  ])("draws one rectangle for a range that covers part of two labels, %s", async (_, variant) => {
+  ])("draws one outline over the whole label for Shift+ArrowUp from a data row, %s", async (_, variant) => {
     await renderGrid(variant);
-    await rangeUpOverTwoLabels();
-    expect(outlines()).toHaveLength(1);
-    const outline = outlines()[0]!.getBoundingClientRect();
-    const cell = gridCells(rowBelow())[2]!.getBoundingClientRect();
-    expect([Math.round(outline.left), Math.round(outline.right), Math.round(outline.bottom)]).toEqual([Math.round(cell.left), Math.round(cell.right), Math.round(cell.bottom)]);
+    await userEvent.click(gridCells(rowBelow())[1]!);
+    await userEvent.keyboard("{Shift>}{ArrowUp}{/Shift}");
+    await frames();
+    expectOneLabelOutline();
+    expectNoEdgeInsideLabels();
   });
 
-  it("draws one rectangle for a range down from the label", async () => {
-    await renderGrid();
+  it.each<[string, Variant]>([
+    ["unpinned", {}],
+    ["with a pinned first column", { pinFirst: true }],
+  ])("draws no edge inside a label for select all and a row band, %s", async (_, variant) => {
+    await renderGrid(variant);
     await userEvent.click(label());
-    await shiftClick(gridCells(rowBelow(2))[0]!);
+    await userEvent.keyboard("{Control>}a{/Control}");
+    await userEvent.keyboard("{Control>}a{/Control}");
     await frames();
-    expect(outlines()).toHaveLength(1);
+    expectNoEdgeInsideLabels();
+    await userEvent.click(gridCells(rowBelow())[2]!);
+    await userEvent.keyboard("{Shift>}{ArrowUp}{/Shift}{Shift>} {/Shift}");
+    await frames();
+    expectNoEdgeInsideLabels();
+  });
+
+  it("shows no frame with a box inside the label across ArrowUp", async () => {
+    await renderGrid();
+    await userEvent.click(gridCells(rowBelow())[1]!);
+    await frames();
+    const partial: string[] = [];
+    const sample = () => {
+      const rect = label().getBoundingClientRect();
+      for (const el of outlinesOver()) {
+        const r = el.getBoundingClientRect();
+        if (r.left > rect.left + 1 || r.right < rect.right - 1) partial.push(`${Math.round(r.left)}-${Math.round(r.right)}`);
+      }
+    };
+    const observer = new MutationObserver(sample);
+    observer.observe(document.body, { subtree: true, childList: true, attributes: true });
+    let running = true;
+    const tick = () => {
+      if (!running) return;
+      sample();
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    document.activeElement!.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true, cancelable: true }));
+    for (let i = 0; i < 6; i++) await frames();
+    running = false;
+    observer.disconnect();
+    expect(label().hasAttribute("data-active")).toBe(true);
+    expect(partial).toEqual([]);
   });
 });
 
@@ -259,6 +326,10 @@ describe("paint parity of a group label", () => {
         await shiftClick(gridCells(rowBelow())[1]!);
       } },
       { name: "hovered inside the range", apply: () => userEvent.hover(label()) },
+      { name: "ArrowUp onto the label from the Region column", apply: async () => {
+        await userEvent.click(gridCells(rowBelow())[1]!);
+        await userEvent.keyboard("{ArrowUp}");
+      } },
       { name: "row band over the label", apply: async () => {
         await userEvent.click(label());
         await userEvent.keyboard("{Shift>} {/Shift}");

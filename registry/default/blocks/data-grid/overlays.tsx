@@ -138,16 +138,46 @@ function fillOutsideLabels(rect: GridRect, span: number, isGroupRow: (viewRow: n
   return crosses ? pieces : null;
 }
 
+/** A border side an outline piece drops where it meets another piece of the same rect. */
+type OutlineTrim = "top" | "bottom" | "start";
+type OutlinePiece = { rect: GridRect; label: boolean; trim: OutlineTrim[] };
+
+const TRIM_CLASS: Record<OutlineTrim, string> = { top: "border-t-0", bottom: "border-b-0", start: "border-s-0" };
+
+/**
+ * The outline pieces of `rect` over group rows: a label is one cell, so a group row's piece outlines the whole label, unpinned
+ * like the label, whatever columns of it the rect holds. A rect that holds every label column whole stays one piece.
+ */
+function outlineOverLabels(rect: GridRect, span: number, labelPinned: boolean, isGroupRow: (viewRow: number) => boolean): OutlinePiece[] {
+  const right = rect.x + rect.width;
+  if (rect.x === 0 && right >= span && !labelPinned) return [{ rect, label: false, trim: [] }];
+  const runs: { y: number; height: number; group: boolean }[] = [];
+  const end = rect.y + rect.height;
+  for (let y = rect.y; y < end; ) {
+    const group = isGroupRow(y);
+    let next = y + 1;
+    while (next < end && isGroupRow(next) === group) next++;
+    runs.push({ y, height: next - y, group });
+    y = next;
+  }
+  return runs.flatMap(({ y, height, group }, i): OutlinePiece[] => {
+    const shared: OutlineTrim[] = [...(i > 0 ? ["top" as const] : []), ...(i < runs.length - 1 ? ["bottom" as const] : [])];
+    if (!group) return [{ rect: { ...rect, y, height }, label: false, trim: shared }];
+    const label: OutlinePiece = { rect: { x: 0, y, width: span, height }, label: true, trim: [] };
+    return right > span ? [label, { rect: { x: span, y, width: right - span, height }, label: false, trim: [...shared, "start"] }] : [label];
+  });
+}
+
 const RANGE_PAINT = { both: "border border-primary/40 bg-primary/10", fill: "bg-primary/10", outline: "border border-primary/40" } as const;
 
 /** One selection-range overlay, grid-line placed, window-relative; pinned segments add their zone's counter-offset + elevated z-index (above pinned cells). */
-function RangeOverlay({ rect, windowStart, colOffset, pinStyle, paint = "both" }: { rect: GridRect; windowStart: number; colOffset: number; pinStyle?: CSSProperties; paint?: keyof typeof RANGE_PAINT }) {
+function RangeOverlay({ rect, windowStart, colOffset, pinStyle, paint = "both", trim }: { rect: GridRect; windowStart: number; colOffset: number; pinStyle?: CSSProperties; paint?: keyof typeof RANGE_PAINT; trim?: readonly OutlineTrim[] }) {
   return (
     <div
       data-grid-selection-overlay=""
       data-pinned={pinStyle ? "" : undefined}
       aria-hidden="true"
-      className={cn("pointer-events-none", RANGE_PAINT[paint])}
+      className={cn("pointer-events-none", RANGE_PAINT[paint], trim?.map((side) => TRIM_CLASS[side]))}
       style={{
         // positioned: cells are position:relative, so a static overlay would paint below them;
         // out-of-flow when unpinned, so moving it does not re-lay out the canvas grid
@@ -285,13 +315,20 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
   /** Splits into pin-zone segments when the grid has pinned columns, else the rect as a single "segment". */
   const segment = (rect: GridRect): RectSegment[] => (pinned ? splitRectByPinZones(rect, pinned) : [{ rect }]);
 
-  /** A rect over a group label draws its outline whole and its fill outside the label. */
+  const labelPinned = pinned !== undefined && pinned.pins.slice(0, labelSpan).some((pin) => pin !== undefined);
+
+  /** A rect over a group label outlines each label whole and fills outside the labels. */
   const rectOverlays = (rect: GridRect, key: string): ReactNode[] => {
     const fills = labelSpan > 0 ? fillOutsideLabels(rect, labelSpan, isGroupRow) : null;
-    const place = (piece: GridRect, pieceKey: string, paint: keyof typeof RANGE_PAINT) =>
-      segment(piece).map((seg, j) => <RangeOverlay key={`${pieceKey}-${j}`} rect={seg.rect} windowStart={windowStart} colOffset={colOffset} pinStyle={seg.pinStyle} paint={paint} />);
+    const place = (piece: GridRect, pieceKey: string, paint: keyof typeof RANGE_PAINT, trim?: readonly OutlineTrim[]) =>
+      segment(piece).map((seg, j) => <RangeOverlay key={`${pieceKey}-${j}`} rect={seg.rect} windowStart={windowStart} colOffset={colOffset} pinStyle={seg.pinStyle} paint={paint} trim={trim} />);
     if (!fills) return place(rect, key, "both");
-    return [...place(rect, `${key}-outline`, "outline"), ...fills.flatMap((fill, f) => place(fill, `${key}-fill-${f}`, "fill"))];
+    const outline = outlineOverLabels(rect, labelSpan, labelPinned, isGroupRow).flatMap((piece, o) =>
+      piece.label
+        ? [<RangeOverlay key={`${key}-label-${o}`} rect={piece.rect} windowStart={windowStart} colOffset={colOffset} paint="outline" />]
+        : place(piece.rect, `${key}-outline-${o}`, "outline", piece.trim),
+    );
+    return [...outline, ...fills.flatMap((fill, f) => place(fill, `${key}-fill-${f}`, "fill"))];
   };
 
   const rangeRects: GridRect[] = [];
