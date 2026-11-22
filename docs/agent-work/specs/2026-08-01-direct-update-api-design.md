@@ -350,7 +350,7 @@ headline, prod build for headline numbers only.
 5. **API surface growth.** Three new actions plus a hook plus a `DataChange` source, on a store that
    already has a large action surface. `updateRows` is arguably redundant with `updateCells` — worth
    considering shipping only `updateCells` first and adding `updateRows` if demand appears. (Cutting
-   it is the ponytail-correct call; MUI's partial-row shape is convenient but not load-bearing.)
+   it is the smallest call; MUI's partial-row shape is convenient but not load-bearing.)
 6. **The unsorted win is small.** ~0.46 -> ~0.15 ms. If the build lane is justified on "streaming is
    slow" generally rather than "streaming under a sort is broken", it will underdeliver. The
    go/no-go should rest on whether sorted streaming is a real requirement.

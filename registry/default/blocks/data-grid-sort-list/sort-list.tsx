@@ -77,7 +77,7 @@ export function DataGridSortList(props: DataGridSortListProps): ReactNode {
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const pendingFocusColumnIdRef = useRef<string | null>(null);
 
-  // ponytail: lock root scroll during a drag - at drag end the browser re-focuses the drag handle and natively re-centers it in the viewport, jumping the page
+  // At drag end the browser re-focuses the drag handle and re-centers it, jumping the page; lock root scroll during a drag.
   const rootScrollLockRef = useRef<(() => void) | null>(null);
   const lockRootScroll = useCallback(() => {
     if (rootScrollLockRef.current) return;
@@ -175,9 +175,7 @@ export function DataGridSortList(props: DataGridSortListProps): ReactNode {
           </div>
           {sorts.length > 0 && (
             <DragDropProvider<SortRowDragData>
-              // ponytail: drop AutoScroller — the popover portals to body, so the page is a scrollable
-              // ancestor and dragging near a viewport edge scrolls the page; re-add it if the list
-              // (max-h-75) overflows often enough that mid-drag auto-scrolling is needed
+              // No AutoScroller: the popover portals to body, so an edge drag would scroll the page.
               plugins={(defaults) => defaults.filter((p) => p !== AutoScroller)}
               onDragStart={lockRootScroll}
               onDragEnd={(event) => {
