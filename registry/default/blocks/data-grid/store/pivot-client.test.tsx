@@ -375,7 +375,7 @@ describe("client pivot refresh edge cases", () => {
 
   it("keeps a stream write to an aggregate column of a grouped grid across a page change", () => {
     const live = make({ defaultPivot: undefined, pageSize: 1 });
-    const usSum = () => live.state().groupLayout?.rows.find((node) => node.id === "__group:region=US")?.aggregates.amount;
+    const usSum = () => live.state().groupLayout?.rows.find((node) => node.id === "__group:region=US")?.aggregates["amount"];
     live.state().actions.updateCells([{ rowId: "r3", columnId: "amount", value: 40 }], { source: "stream" });
     expect(usSum()).toBe(43);
     live.state().actions.setPage(2);
