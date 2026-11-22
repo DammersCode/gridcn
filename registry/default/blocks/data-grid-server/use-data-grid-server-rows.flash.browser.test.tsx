@@ -124,7 +124,7 @@ const frames = (count: number) => new Promise<void>((resolve) => {
   step(count);
 });
 
-async function flashOf(setup: Setup, action: Action) {
+async function flashOf(setup: Setup, action: Action, releaseAfterMs?: number) {
   const gate = gatedServer(setup.cursor === true, setup.rows);
   const handles: Handles = { api: createRef<DataGridApi<Row>>(), server: { current: null }, setSpec: { current: () => {} }, setLabels: { current: () => {} } };
   const screen = await render(<Harness setup={setup} fetchRows={gate.fetchRows} handles={handles} />);
@@ -139,10 +139,12 @@ async function flashOf(setup: Setup, action: Action) {
   const before = sampleGrid();
   gate.hold();
   let released = !(typeof action.fetches === "function" ? action.fetches(setup) : action.fetches === true);
+  let actionAt = 0;
   const samples = await recordAcross(
     () => {
+      actionAt = performance.now();
       action.run({ api: handles.api.current!, server: handles.server.current!, spec: handles.server.current!.spec, setSpec: handles.setSpec.current, setLabels: handles.setLabels.current, grouped: (setup.spec.groupBy?.length ?? 0) > 0 });
-      void frames(4).then(() => {
+      void (releaseAfterMs === undefined ? frames(4) : new Promise((resolve) => setTimeout(resolve, releaseAfterMs))).then(() => {
         released = true;
         gate.release();
       });
@@ -152,7 +154,7 @@ async function flashOf(setup: Setup, action: Action) {
   );
   const after = sampleGrid();
   await screen.unmount();
-  return { flashes: flashesIn(samples, before, after), busy: samples.some((sample) => sample.busy), before, after };
+  return { flashes: flashesIn(samples, before, after), busy: samples.some((sample) => sample.busy), heldBusy: samples.filter((sample) => !sample.released).every((sample) => sample.busy), samples, actionAt, before, after };
 }
 
 describe("a server grid whose answer to a new spec fails", () => {
@@ -186,13 +188,38 @@ describe("a server grid paints no frame that differs from both the old and the n
       for (const action of ACTIONS) {
         if (action.applies && !action.applies(setup)) continue;
         it(`across a ${action.name} change`, async () => {
-          const { flashes, busy, before, after } = await flashOf(setup, action);
+          const { flashes, busy, heldBusy, before, after } = await flashOf(setup, action);
           const landed = action.lands?.(before, after, setup) ?? null;
           if (landed !== null) expect(landed, "the change landed").toBe(true);
           expect(flashes.slice(0, 3)).toEqual([]);
-          if (typeof action.fetches === "function" ? action.fetches(setup) : action.fetches) expect(busy).toBe(true);
+          if (typeof action.fetches === "function" ? action.fetches(setup) : action.fetches) {
+            expect(busy).toBe(true);
+            // A refresh revalidates in place and starts no hold.
+            if (action.name !== "refresh") expect(heldBusy, "aria-busy holds until the release").toBe(true);
+          }
         });
       }
+    });
+  }
+});
+
+describe("a held server grid shows the loading bar only for a slow answer", () => {
+  const filter = ACTIONS.find((action) => action.name === "filter")!;
+  for (const setup of GRIDS.filter((grid) => grid.name === "flat scroll" || grid.name === "grouped scroll" || grid.name === "flat pages")) {
+    it(`shows no bar for a fast answer (${setup.name})`, async () => {
+      const { flashes, heldBusy, samples } = await flashOf(setup, filter, 20);
+      expect(flashes.slice(0, 3)).toEqual([]);
+      expect(heldBusy).toBe(true);
+      expect(samples.filter((sample) => sample.loadingBar)).toEqual([]);
+    });
+
+    it(`shows the bar after the show delay for a slow answer (${setup.name})`, async () => {
+      const { flashes, heldBusy, samples, actionAt } = await flashOf(setup, filter, 600);
+      expect(flashes.slice(0, 3)).toEqual([]);
+      expect(heldBusy).toBe(true);
+      const shown = samples.filter((sample) => sample.loadingBar && !sample.released);
+      expect(shown.length, "the bar shows while the rows are held").toBeGreaterThan(0);
+      expect(shown[0]!.at - actionAt).toBeGreaterThanOrEqual(140);
     });
   }
 });
