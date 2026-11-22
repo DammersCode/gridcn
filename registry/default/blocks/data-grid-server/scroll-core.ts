@@ -95,6 +95,9 @@ export function createCore<TData>(): Core<TData> {
 
 export const rangeKey = (range: RowRange) => `${range.start}:${range.end}`;
 
+export const DEFAULT_BLOCK_SIZE = 50;
+export const DEFAULT_OVERSCAN = 30;
+
 export function positiveInteger(value: number | undefined, fallback: number, min: number): number {
   return typeof value === "number" && Number.isFinite(value) ? Math.max(min, Math.floor(value)) : fallback;
 }

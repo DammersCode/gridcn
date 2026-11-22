@@ -72,6 +72,9 @@ export type PlanColumn = Readonly<{
   type: string;
 }>;
 
+/** Whether the column holds text: a `text` or a `select` column. */
+export const isTextual = (column: PlanColumn): boolean => column.kind === "text" || column.kind === "select";
+
 export type ColumnMapOptions<Id extends string = string> = {
   /** Unique, non-null, non-`serverOnly` columns that order rows when the map has no `primaryKey`. */
   tieBreaker?: readonly Id[];

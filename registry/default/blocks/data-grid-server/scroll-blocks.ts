@@ -11,15 +11,12 @@ import { cursorKey, MAX_SEEN_CURSORS, needsNextBlock, skeletonCount, startsSeque
 import { chunkAligned, chunkRange, expandRange, mergeRanges, rangeSize, subtractRanges, sumRangeSizes } from "./range-math";
 import { DEFAULT_MAX_LOADED_ROWS, MAX_SEQUENTIAL_REVALIDATE_BLOCKS, distanceToCentre, dueWanted, keepRange, rangesIntersect, readFetchLimits, trackWanted, type FetchLimits } from "./fetch-hygiene";
 import { readScrollSeed } from "./scroll-seed";
-import { abortRequestsExcept, busy, commitOnFrame, createCore, forgetDisplacedWhenIdle, freshSequence, oldestMark, positiveInteger, rangeKey, resetQueues, runPumps, unacknowledgedWithoutSave, type Core, type Guard } from "./scroll-core";
+import { DEFAULT_BLOCK_SIZE, DEFAULT_OVERSCAN, abortRequestsExcept, busy, commitOnFrame, createCore, forgetDisplacedWhenIdle, freshSequence, oldestMark, positiveInteger, rangeKey, resetQueues, runPumps, unacknowledgedWithoutSave, type Core, type Guard } from "./scroll-core";
 import { evictedBlocksIn, evictSequenceRows, sequenceLoaded, shiftBlocks } from "./sequence-eviction";
 import { evictRows, forgetUnloaded, stampLanded, stampViewed, unloadRows } from "./scroll-eviction";
 import { useSaveRefresh, type SaveRefreshOptions, type SaveRefreshPolicy } from "./save-refresh";
 import { isolate, scheduleFrame, useMountedPlugins, useRegisteredWiring, useReshape, useRevalidation, type ServerSpecState } from "./server-state";
 import type { UseDataGridServerRowsRootProps } from "./use-data-grid-server-rows";
-
-const DEFAULT_OVERSCAN = 30;
-const DEFAULT_BLOCK_SIZE = 50;
 
 /** Options of `useDataGridServerRows` in scroll mode. */
 export type UseDataGridServerRowsScrollOptions<TData, TCursor = never> = {

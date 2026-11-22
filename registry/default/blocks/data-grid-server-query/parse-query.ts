@@ -1,4 +1,4 @@
-import { type ColumnMap, type PlanColumn, isBuiltInOperatorId, mapOf } from "./column-map";
+import { type ColumnMap, type PlanColumn, isBuiltInOperatorId, isTextual, mapOf } from "./column-map";
 import type { AdapterCapabilities } from "./create-grid-query";
 import { QueryError } from "./errors";
 import { type QueryLimits, type ResolvedLimits, resolveLimits } from "./limits";
@@ -60,8 +60,6 @@ function charge(ctx: Ctx, text: string, path: Path, max = ctx.limits.maxValueLen
   ctx.budget.bytes += encoder.encode(text).length;
   if (ctx.budget.bytes > ctx.limits.maxTreeStringBytes) throw new QueryError("limit-exceeded", path);
 }
-
-const isTextual = (column: PlanColumn): boolean => column.kind === "text" || column.kind === "select";
 
 /** Refuses a text test the executor cannot run; `like` is a contains, startsWith, or endsWith test. */
 function assertTextTest(column: PlanColumn, like: boolean, caseSensitive: boolean, text: string, ctx: Ctx, path: Path, valuePath: Path): void {

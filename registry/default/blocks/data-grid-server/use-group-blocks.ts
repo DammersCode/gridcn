@@ -12,12 +12,11 @@ import { unionIds, useRefreshGuard } from "./refresh-guard";
 import { groupSaveScope } from "./group-save-scope";
 import { useSaveRefresh, type SaveRefreshPolicy, type SaveRefreshReport } from "./save-refresh";
 import type { UseDataGridServerRowsScrollOptions } from "./scroll-blocks";
+import { DEFAULT_BLOCK_SIZE, DEFAULT_OVERSCAN, positiveInteger } from "./scroll-core";
 import type { UseDataGridServerRowsScrollProviderProps, UseDataGridServerRowsScrollResult } from "./scroll-types";
 import { isolate, scheduleFrame, useControlled, useMountedPlugins, useRegisteredWiring, useReshape, useRevalidation, withoutPivot, type ServerPivotOptions, type ServerSpecState } from "./server-state";
 import type { UseDataGridServerRowsRootProps } from "./use-data-grid-server-rows";
 
-const DEFAULT_BLOCK_SIZE = 50;
-const DEFAULT_OVERSCAN = 30;
 const DEFAULT_CONCURRENT = 6;
 const MAX_CONCURRENT = 16;
 const DEFAULT_LOAD_DELAY_MS = 100;
@@ -68,8 +67,6 @@ const emptyView = <TData,>(): ViewState<TData> => ({ data: [], slots: [], owners
 const pivotOf = <TData,>(store: GroupStore<TData>) => (store.pivot?.layout ? { pivotHold: store.pivot } : null);
 
 const sameRows = (a: readonly unknown[], b: readonly unknown[]): boolean => a.length === b.length && a.every((row, index) => row === b[index]);
-
-const positiveInteger =(value: number | undefined, fallback: number, min: number) => (typeof value === "number" && Number.isFinite(value) ? Math.max(min, Math.floor(value)) : fallback);
 
 const blockSizeOf = (options: { blockSize?: number }, pages: GroupPagesConfig | undefined, pivot: string | null) => {
   const size = pages?.pageSize ?? positiveInteger(options.blockSize, DEFAULT_BLOCK_SIZE, 1);
