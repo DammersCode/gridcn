@@ -162,7 +162,9 @@ export function useServerSpec(source: ServerSpecOptions, afterChange: () => void
   // An ungrouped request with `pivot` is refused, so `pivot` waits in the raw spec until `groupBy` returns.
   const shown = useMemo(() => {
     const own = controlled === undefined ? spec : controlled === null ? withoutPivot(spec) : { ...spec, pivot: controlled };
-    return own.pivot && !own.groupBy?.length ? withoutPivot(own) : own;
+    if (own.pivot && !own.groupBy?.length) return withoutPivot(own);
+    // The grid reads the first pivot column id only, so the request carries that one.
+    return own.pivot && own.pivot.columnIds.length > 1 ? { ...own, pivot: { columnIds: own.pivot.columnIds.slice(0, 1) } } : own;
   }, [spec, controlled]);
   const pivot = shown.pivot ?? PIVOT_OFF;
   return { spec: shown, ready, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, onGroupByChange, pivot, onPivotChange };

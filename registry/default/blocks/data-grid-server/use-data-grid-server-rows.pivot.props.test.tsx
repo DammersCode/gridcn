@@ -41,6 +41,20 @@ describe.each(["pages", "scroll"] as const)("the pivot props of a grouped server
     expect(onSpecChange.mock.calls.at(-1)![0]).not.toHaveProperty("pivot");
   });
 
+  it("sends only the first column id of a pivot with more ids, as the grid reads it", async () => {
+    for (const extra of [{ pivot: { columnIds: ["city", "qty"] } }, { defaultSpec: { ...GROUPED, pivot: { columnIds: ["city", "qty"] } } }]) {
+      const server = fakeServer(rowsOf({ A: 2, B: 2 }));
+      const { result } = mount(server, extra);
+      await waitFor(() => expect(server.calls.at(-1)?.spec.pivot).toEqual({ columnIds: ["city"] }));
+      expect(gridOf(result).pivot).toEqual({ columnIds: ["city"] });
+    }
+    const server = fakeServer(rowsOf({ A: 2, B: 2 }));
+    const { result } = mount(server);
+    await waitFor(() => expect(server.calls.length).toBeGreaterThan(0));
+    act(() => gridOf(result).onPivotChange!({ columnIds: ["city", "qty"] }));
+    await waitFor(() => expect(server.calls.at(-1)!.spec.pivot).toEqual({ columnIds: ["city"] }));
+  });
+
   it("keeps the pivot prop's identity across renders with the same pivot column", async () => {
     const server = fakeServer(rowsOf({ A: 2 }));
     const { result, rerender } = mount(server, { defaultSpec: { ...GROUPED, pivot: { columnIds: ["city"] } } });
