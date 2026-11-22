@@ -70,7 +70,7 @@ grant execute on function public.items_grid(jsonb) to authenticated;
 
 Without `rpc`, these requests answer `unsupported`, and a long URL answers `limit-exceeded`.
 
-A pivot takes 1 to 4 `groupBy` levels. The grid function answers the pivot keys in one call and the cells of the page's groups in a second call. Each group row at each level holds the cells of its own rows. A `time` pivot column answers `unsupported`. One run on the maintainer's machine (PostgreSQL 17, PostgREST) measured these times. A page of 200 groups and 200 pivot keys over 100,000 rows took 75 ms, or 55 ms without the pivot.
+A pivot takes 1 to 4 `groupBy` levels. The grid function answers the pivot keys in one call and the cells of the page's groups in a second call. A `time` pivot column answers `unsupported`. On the maintainer's machine (PostgreSQL 17, PostgREST), a page of 200 groups and 200 pivot keys over 100,000 rows took 75 ms. Without the pivot, it took 55 ms.
 
 <Callout type="warn" title="Row-level security is the only tenancy boundary">
   Never make the wrapper or the `gridcn` functions SECURITY DEFINER. Row-level security then checks the owner, and the caller writes the plan. The function does not enforce `rowScope`. A direct caller reads every column of the allow-list, `serverOnly` columns included. Hide a column with a column GRANT. Never use the service role key in the route, because it bypasses row-level security.
@@ -78,11 +78,12 @@ A pivot takes 1 to 4 `groupBy` levels. The grid function answers the pivot keys 
 
 ## Limits [#limits]
 
-- `maxRows` (default 1,000) is the `max-rows` setting of PostgREST, which cuts an answer without an error. A read of more rows goes to `rpc`. Without `rpc`, creation throws for a `limits.maxPageSize` plus 1 over `maxRows`. Then set `rpc`, or set `limits.maxPageSize` to `maxRows` minus 1 or less.
+- `maxRows` (default 1,000) is the `max-rows` setting of PostgREST, which cuts an answer without an error. A read of more rows goes to `rpc`. Without `rpc`, creation throws while `limits.maxPageSize` is `maxRows` or more. Then set `rpc`, or lower `limits.maxPageSize`.
 - `maxUrlLength` (default 8,000) bounds the request URL. A longer request goes to `rpc`.
 - A literal `*` in a LIKE filter or the quick search answers `unsupported-value`, because PostgREST reads it as a wildcard.
 - LIKE filters on a native enum or uuid column answer `unsupported`.
-- `max_pivot_columns` (default 200) bounds the pivot cells per group. A wrapper can pass a lower value by name to `gridcn.grid_query`. The grid function then cuts the pivot keys, and `pivotOmitted` counts the cut columns. Keep it at or above the number of values of one request.
+- The grid function caps the plan: `max_plan_bytes` 16 MiB, `max_nodes` 50,000, `max_list` 200,000, and `max_pivot_columns` 200 cells per group by default. The first three far exceed the adapter's plans. A wrapper can pass lower values by name to `gridcn.grid_query`. A lower `max_pivot_columns` cuts pivot keys, and `pivotOmitted` counts the cut columns. Keep it at or above the number of values of one request.
+- Keep the `gridcn` schema out of the exposed schemas of PostgREST, so calls go through a wrapper.
 - The grid function groups a `timestamp` or `timestamptz` column by its millisecond. A group drills to every row of its millisecond, such as the rows that `now()` filled.
 - Map scalar columns only. A group level on a composite column cannot open its groups, and an array pivot column fails with an error. A composite column mapped as `text` reads as `[object Object]`.
 
@@ -94,7 +95,7 @@ A pivot takes 1 to 4 `groupBy` levels. The grid function answers the pivot keys 
 
 A `where` is safe only as the sole argument of one `.or()`, as in `.update(values).or(where).select("id")`. In one `.or()` with another condition, the scope becomes one branch of the OR and stops narrowing.
 
-`query.save(apply)` validates the change and hands its writes to your `apply`. A save is atomic only as far as `apply` is. Each REST call is its own transaction, so a loop of `.update()` calls is not atomic. Write the whole change in one database function of your own, which runs in one transaction. Call that function from `apply` with `client.rpc`.
+`query.save(apply)` validates the change and hands its writes to your `apply`. Each REST call is its own transaction, so a loop of `.update()` calls is not atomic. For an atomic save, write the change in one database function of your own, and call it from `apply` with `client.rpc`.
 
 ## Related
 
