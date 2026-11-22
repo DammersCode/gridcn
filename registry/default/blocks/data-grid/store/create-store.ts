@@ -1385,7 +1385,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
         }
         if (!s.enableRowSelection) return { ok: false, reason: "disabled" };
         // The held rows belong to the previous spec: a check of the current one waits for its count.
-        if (s.serverHeld) return { ok: false, reason: "needs-total-row-count" };
+        if (s.serverHeld) return { ok: false, reason: "server-held" };
         const total = matchingRowTotal(s);
         if (total === undefined) {
           if (s.sortMode === "server" || s.filterMode === "server" || viewHoldsUnloadedRows(s)) return { ok: false, reason: "needs-total-row-count" };

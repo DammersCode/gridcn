@@ -49,6 +49,7 @@ mirror the change there.
 | row range | `RowRange`: `{ start, end }` over rows, `end` excluded. A scroll-mode request asks for one. | range (a range is a cell selection) |
 | value query | The text a `fetchFilterValues` request carries as `query`. The server lists the values that match it. | value search |
 | server grid | A grid with `sortMode="server"` and `filterMode="server"`. Your backend applies the spec and the grid shows the answer. | |
+| server hold | The time after a spec change in which `useDataGridServerRows` keeps the old rows on screen until the answers for the rendered rows land. The grid refuses the writes of user gestures then, with the reason `"server-held"`. | |
 | server mode | How a feature behaves when your server holds the rows, the sort, or the filter: `sortMode` or `filterMode` `"server"`, or `useDataGridServerRows`. The heading of that section on a feature page. | |
 | result | Every row that matches the spec on the server. `data` holds the loaded rows of it. | result set, dataset |
 | sort locale | The BCP 47 tag that orders text compares in a client sort, text range filters, and filter value lists. The `sortLocale` prop sets it, then `locale`, then `"en-US"`. | |

@@ -4,9 +4,11 @@ import type { StoreApi } from "zustand/vanilla";
 import { DataGridBody, DataGridHeader, DataGridProvider, DataGridRoot, defineColumns, useDataGridSelectedRows, type DataChange, type DataGridSelectedRows } from "@/registry/default/blocks/data-grid/data-grid";
 import { groupIdOf, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { DataGridStoreState } from "@/registry/default/blocks/data-grid/store";
+import { useDataGridInternalActions, type DataGridInternalActions } from "@/registry/default/blocks/data-grid/store";
 import { fakeServer, rowsOf, type Row } from "./group-fake-server.test-helper";
 import type { ServerRowsRequest } from "./read-answer";
 import { useDataGridServerRows, type UseDataGridServerRowsResult } from "./use-data-grid-server-rows";
+import { useDataGridHistory, type UseDataGridHistoryResult } from "@/registry/default/blocks/data-grid-history/data-grid-history";
 
 const columns = defineColumns<Row>()([
   { id: "region", header: "Region", accessorKey: "region", type: "text" },
@@ -25,10 +27,10 @@ afterEach(() => {
 
 const settle = () => act(async () => void (await new Promise((resolve) => setTimeout(resolve, 40))));
 
-type Options = { grouped?: boolean; sequential?: boolean; onSave?: boolean };
+type Options = { grouped?: boolean; sequential?: boolean; onSave?: boolean; withHistory?: boolean };
 
 /** A scroll source whose answers can be parked. */
-function setup({ grouped = false, sequential = false, onSave = false }: Options = {}) {
+function setup({ grouped = false, sequential = false, onSave = false, withHistory = false }: Options = {}) {
   const server = fakeServer(rowsOf({ A: 4, B: 3 }));
   let parked: ((fail: boolean) => void)[] | null = null;
   const requests: ServerRowsRequest<never>[] = [];
@@ -43,9 +45,12 @@ function setup({ grouped = false, sequential = false, onSave = false }: Options 
   let store!: StoreApi<DataGridStoreState>;
   let selected!: DataGridSelectedRows;
   const changes: DataChange<Row>[] = [];
+  let history!: UseDataGridHistoryResult<Row>;
+  let internal!: DataGridInternalActions;
   function Probe() {
     store = useDataGridStoreApi() as unknown as StoreApi<DataGridStoreState>;
     selected = useDataGridSelectedRows();
+    internal = useDataGridInternalActions();
     return null;
   }
   function Harness() {
@@ -59,8 +64,10 @@ function setup({ grouped = false, sequential = false, onSave = false }: Options 
       ...(onSave ? { onSave: () => new Promise<void>((resolve) => saves.push(resolve)) } : null),
       defaultSpec: { groupBy: grouped ? ["region"] : [] },
     } as never) as unknown as UseDataGridServerRowsResult<Row>;
+    history = useDataGridHistory<Row>();
+    const rowFactories = { createRow: (index: number) => ({ id: `N${index}`, region: "N", city: "N-c0", qty: 1 }), duplicateRow: (row: Row) => ({ ...row, id: `${row.id}-copy` }) };
     return (
-      <DataGridProvider {...hook.providerProps} columns={columns} enableRowSelection>
+      <DataGridProvider {...hook.providerProps} columns={columns} enableRowSelection {...rowFactories} plugins={withHistory ? [history.plugin] : undefined}>
         <DataGridRoot aria-label="Sales" {...hook.rootProps}>
           <DataGridHeader />
           <DataGridBody />
@@ -74,6 +81,8 @@ function setup({ grouped = false, sequential = false, onSave = false }: Options 
   const cityOf = (id: string) => hook.providerProps.data.find((row) => row?.id === id)?.city;
   return {
     hook: () => hook,
+    history: () => history,
+    internal: () => internal,
     state: () => store.getState(),
     selected: () => selected,
     changes,
@@ -169,12 +178,94 @@ describe("a write while the old rows are held", () => {
     act(() => t.actions().startEditing({ rowId: "A0", columnId: "city" }));
     expect(t.state().editing).toBeNull();
     expect(t.actions().reorderRows(4, 0)).toBe(false);
-    expect(t.actions().selectAllMatching()).toEqual({ ok: false, reason: "needs-total-row-count" });
+    expect(t.actions().selectAllMatching()).toEqual({ ok: false, reason: "server-held" });
     expect(t.cityOf("A0")).toBe("A-c0");
     await t.land();
     expect(t.state().serverHeld).toBe(false);
     act(() => void t.actions().commitCellValue({ rowId: "A0", columnId: "city" }, "After"));
     expect(t.cityOf("A0")).toBe("After");
+  });
+
+  type Setup = ReturnType<typeof setup>;
+  const city = (t: Setup) => t.cityOf("A0");
+  const changedCity = (t: Setup) => city(t) !== "A-c0";
+  const hasRow = (id: string) => (t: Setup) => t.hook().providerProps.data.some((row) => row?.id === id);
+  const editBefore = (t: Setup) => act(() => void t.actions().commitCellValue({ rowId: "A0", columnId: "city" }, "Edited"));
+  const gestures: { name: string; withHistory?: boolean; before?: (t: Setup) => void; run: (t: Setup) => unknown; wrote: (t: Setup) => boolean; refused?: unknown }[] = [
+    { name: "edit commit", run: (t) => t.actions().commitCellValue({ rowId: "A0", columnId: "city" }, "Typed"), wrote: changedCity },
+    { name: "edit start", run: (t) => t.actions().startEditing({ rowId: "A0", columnId: "city" }), wrote: (t) => t.state().editing !== null },
+    { name: "paste", run: (t) => t.actions().applyCellUpdates([{ viewRowIndex: 0, columnId: "city", value: "Pasted" }], "paste"), wrote: (t) => t.hook().providerProps.data.some((row) => row?.city === "Pasted") },
+    { name: "fill", run: (t) => t.actions().applyCellUpdates([{ viewRowIndex: 0, columnId: "city", value: "Filled" }], "fill"), wrote: (t) => t.hook().providerProps.data.some((row) => row?.city === "Filled") },
+    { name: "cut", run: (t) => t.internal()._deleteCellsById(["A0"], ["city"]), wrote: changedCity },
+    {
+      name: "delete",
+      run: (t) => {
+        t.actions().selectAll();
+        t.actions().deleteSelection();
+      },
+      wrote: changedCity,
+    },
+    { name: "replace", run: (t) => t.actions().updateCells([{ rowId: "A0", columnId: "city", value: "Replaced" }], { source: "replace" }), wrote: changedCity, refused: { applied: 0, skipped: [{ patchIndex: 0, reason: "server-held" }], pending: false } },
+    { name: "import", run: (t) => t.actions().commitChange({ source: "import", ops: [{ type: "insert", rowId: "I1", row: { id: "I1", region: "I", city: "I-c0", qty: 1 }, index: 7 }] }), wrote: hasRow("I1") },
+    { name: "insert rows", run: (t) => t.actions().insertRows(0, 1), wrote: (t) => t.hook().providerProps.data.some((row) => row?.region === "N"), refused: { ok: false, reason: "server-held" } },
+    { name: "duplicate rows", run: (t) => t.actions().duplicateRowsAt([0]), wrote: (t) => t.hook().providerProps.data.some((row) => row?.id.endsWith("-copy")), refused: { ok: false, reason: "server-held" } },
+    { name: "delete rows", run: (t) => t.actions().deleteRowsAt([0]), wrote: (t) => t.hook().providerProps.data.filter((row) => row !== undefined).length < 7, refused: { ok: false, reason: "server-held" } },
+    { name: "move rows", run: (t) => t.actions().reorderRows(1, 0), wrote: (t) => t.hook().providerProps.data[0]?.id !== "A0", refused: false },
+    { name: "undo", withHistory: true, before: editBefore, run: (t) => t.history().undo(), wrote: (t) => city(t) === "A-c0" },
+    {
+      name: "redo",
+      withHistory: true,
+      before: (t) => {
+        editBefore(t);
+        act(() => t.history().undo());
+      },
+      run: (t) => t.history().redo(),
+      wrote: (t) => city(t) === "Edited",
+    },
+  ];
+
+  for (const gesture of gestures) {
+    it(`refuses ${gesture.name} while the rows are held, and runs it after the answer lands`, async () => {
+      vi.spyOn(console, "warn").mockImplementation(() => {});
+      const t = setup({ withHistory: gesture.withHistory });
+      await waitFor(() => expect(t.cityOf("A0")).toBe("A-c0"));
+      gesture.before?.(t);
+      t.park();
+      act(() => t.hook().gridProps.onSearchTextChange("x"));
+      await settle();
+      expect(t.state().serverHeld).toBe(true);
+      const shown = t.hook().providerProps.data;
+      let result: unknown;
+      act(() => void (result = gesture.run(t)));
+      if ("refused" in gesture) expect(result).toEqual(gesture.refused);
+      expect(t.hook().providerProps.data).toBe(shown);
+      expect(gesture.wrote(t)).toBe(false);
+      await t.land();
+      act(() => void gesture.run(t));
+      expect(gesture.wrote(t)).toBe(true);
+    });
+  }
+
+  it("warns once in development when commitChange carries a user gesture source during the hold, and applies an app source", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const t = setup();
+    await holdOnSort(t);
+    const update = (source: DataChange<Row>["source"], value: string): DataChange<unknown> => ({ source, ops: [{ type: "update", rowId: "A0", row: { id: "A0", region: "A", city: value, qty: 1 }, prev: { id: "A0", region: "A", city: "A-c0", qty: 1 } }] });
+    act(() => t.actions().commitChange(update("paste", "Gesture")));
+    act(() => t.actions().commitChange(update("fill", "Gesture")));
+    expect(t.cityOf("A0")).toBe("A-c0");
+    expect(warn.mock.calls.filter(([message]) => String(message).includes("while the server hook holds the rows"))).toHaveLength(1);
+    act(() => t.actions().commitChange(update("app", "App")));
+    expect(t.cityOf("A0")).toBe("App");
+  });
+
+  it("applies updateRows and editRows from your code during the hold", async () => {
+    const t = setup();
+    await holdOnSort(t);
+    act(() => void t.actions().updateRows([{ rowId: "A0", changes: { city: "Rows" } }], { source: "stream" }));
+    expect(t.cityOf("A0")).toBe("Rows");
+    act(() => void t.actions().editRows([{ rowId: "A1", changes: { city: "Edited" } }]));
+    expect(t.cityOf("A1")).toBe("Edited");
   });
 
   it("reports no count of all matching rows while the rows are held", async () => {

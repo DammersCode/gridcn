@@ -48,7 +48,7 @@ import type { RowSaveStatus, SaveAck, SaveConflictContext, SaveContext, SaveReje
 export type { RowSaveStatus, SaveAck, SaveConflictContext, SaveContext, SaveRejectedContext, SaveRejection, SaveResolution } from "./write-ack";
 
 /** The result of `actions.selectAllMatching()`. */
-export type SelectAllMatchingResult = { ok: true } | { ok: false; reason: "disabled" | "needs-across-filters" | "needs-total-row-count" };
+export type SelectAllMatchingResult = { ok: true } | { ok: false; reason: "disabled" | "needs-across-filters" | "needs-total-row-count" | "server-held" };
 
 /** The input that wrote the current selection. */
 export type SelectionPointer = "touch" | "mouse" | "pen" | "keyboard";
@@ -980,7 +980,7 @@ export type DataGridActions = {
   /**
    * Checks every row of the result: every page of a client-paged grid, or every row of a server result, loaded or not. Rows that load later show as checked; unchecking a row excludes it.
    * Returns `{ ok: false, reason }` and changes nothing when row selection is off (`"disabled"`), when the result outruns the shown rows and `checkedRowsLifetime` is not `"across-filters"` (`"needs-across-filters"`),
-   * or when a server-sorted or server-filtered grid lacks `totalRowCount` (`"needs-total-row-count"`). A client grid without paging checks its rows. Read the outcome with `useDataGridSelectedRows`.
+   * or when a server-sorted or server-filtered grid lacks `totalRowCount` (`"needs-total-row-count"`), or while the server hook holds the rows of the previous spec (`"server-held"`). A client grid without paging checks its rows. Read the outcome with `useDataGridSelectedRows`.
    */
   selectAllMatching(): SelectAllMatchingResult;
   /** Shows page `page` (1-based) of the view. Calls `onPageChange`; a controlled `page` changes when the parent passes the next one. */
@@ -1167,7 +1167,7 @@ export type DataGridActions = {
    * above/below `viewRowIndex` (view-index) as ONE `{source: 'row-operation'}` DataChange with one
    * row-id-based `insert` operation per row - a single undo entry. Does nothing and returns a skip reason:
    * `"readOnly"`, `"no-factory"` (no `createRow`, dev-warned), `"nothing-to-do"` (`count` is not a positive
-   * integer), or `"unloaded-rows"` (the target row is not loaded yet in scroll mode). A new insert aborts a
+   * integer), `"unloaded-rows"` (the target row is not loaded yet in scroll mode), or `"server-held"` (the server hook holds the rows of the previous spec). A new insert aborts a
    * pending `createRow` promise (`onGateAborted` reason `"superseded"`); a rejected promise reports `"gate-threw"`.
    */
   insertRows(viewRowIndex: number, count: number, position?: "above" | "below"): RowActionResult;
@@ -1189,7 +1189,7 @@ export type DataGridActions = {
    * source row, as one `{source: 'row-operation'}` DataChange with row-id-based `insert` operations. Returns
    * `"no-factory"` (dev-warned) when the `duplicateRow` prop is absent — required so
    * every duplicated row gets a distinct id, never colliding with its source's React key — and
-   * `"readOnly"`, `"unloaded-rows"`, or `"nothing-to-do"` when it does nothing else. A new duplicate aborts a pending `duplicateRow` promise (`"superseded"`).
+   * `"readOnly"`, `"unloaded-rows"`, `"server-held"`, or `"nothing-to-do"` when it does nothing else. A new duplicate aborts a pending `duplicateRow` promise (`"superseded"`).
    */
   duplicateRowsAt(viewRowIndexes: readonly number[]): RowActionResult;
   /**
@@ -1337,8 +1337,8 @@ export type LiveAnnouncement = { kind: LiveAnnouncementKind; count: number; seq:
 /** Full store shape: interaction state + the stable actions object. */
 export type DataGridStore = DataGridStoreState;
 
-/** Why a row action did nothing: the grid is read-only, a target row is unloaded, the factory prop is missing, an `onBeforeDeleteRows`, `createRow`, or `duplicateRow` gate returned `false` (`"gate-declined"`) or threw or rejected (`"gate-threw"`), or no row matched. `"group-row"` marks an insert or duplicate refused on a group row, and `"server-groups"` any row operation refused while the server lays out the groups. `"view-ordered"` marks a row move refused because an active sort (client or server) or client filter owns the row order, and `"disabled"` a row move shortcut without a reorder `rowMarkers` mode. `"all-matching"` and `"hidden-rows-only"` mark a key or menu row action refused because the checked rows are not in the grid: every matching row is checked, or every checked row is outside the view. */
-export type RowActionSkipReason = "readOnly" | "unloaded-rows" | "no-factory" | "gate-declined" | "gate-threw" | "nothing-to-do" | "view-ordered" | "group-row" | "server-groups" | "disabled" | "all-matching" | "hidden-rows-only";
+/** Why a row action did nothing: the grid is read-only, a target row is unloaded, the factory prop is missing, an `onBeforeDeleteRows`, `createRow`, or `duplicateRow` gate returned `false` (`"gate-declined"`) or threw or rejected (`"gate-threw"`), or no row matched. `"server-held"` marks a row action refused while the server hook holds the rows of the previous spec. `"group-row"` marks an insert or duplicate refused on a group row, and `"server-groups"` any row operation refused while the server lays out the groups. `"view-ordered"` marks a row move refused because an active sort (client or server) or client filter owns the row order, and `"disabled"` a row move shortcut without a reorder `rowMarkers` mode. `"all-matching"` and `"hidden-rows-only"` mark a key or menu row action refused because the checked rows are not in the grid: every matching row is checked, or every checked row is outside the view. */
+export type RowActionSkipReason = "readOnly" | "unloaded-rows" | "server-held" | "no-factory" | "gate-declined" | "gate-threw" | "nothing-to-do" | "view-ordered" | "group-row" | "server-groups" | "disabled" | "all-matching" | "hidden-rows-only";
 
 /** The row actions that report through `onRowActionSkipped`; `deleteRowsAt` reports as `deleteRows`, and `reorderRows` and `moveRowsBy` as `moveRows`. */
 export type RowActionName = "insertRows" | "duplicateRows" | "deleteRows" | "moveRows";

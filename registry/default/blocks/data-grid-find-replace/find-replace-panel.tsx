@@ -109,6 +109,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
   const api = useDataGridApi();
   const labels = useDataGridLabels().findReplace;
   const readOnly = useDataGridReadOnly();
+  const serverHeld = useDataGridSelector<unknown, boolean>((state) => state.serverHeld);
   const instanceId = useDataGridInstanceId();
   const replaceRowId = useId();
   const matches = useDataGridSearchMatches();
@@ -262,7 +263,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
     runSearch(find, next);
   };
 
-  const canReplace = !readOnly && find.trim() !== "";
+  const canReplace = !readOnly && !serverHeld && find.trim() !== "";
 
   const refOfIndex = (s: ReturnType<typeof api.store.getState>, index: number): { rowId: string; columnId: string } | null => {
     const match = s.searchMatches[index];
@@ -286,7 +287,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
 
   const apply = (only: { rowId: string; columnId: string } | undefined, nextIndex = cursor) => {
     const s = api.store.getState();
-    if (s.readOnly || s.editing !== null || find.trim() === "") return;
+    if (s.readOnly || s.serverHeld || s.editing !== null || find.trim() === "") return;
     const replaced = replacedRef.current;
     const replacedAt = only ? refOfIndex(s, nextIndex) : null;
     const skip = only ? undefined : (ref: { rowId: string; columnId: string }) => replaced.get(ref.rowId)?.has(ref.columnId) === true;
@@ -343,7 +344,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
       return;
     }
     abortHook();
-    const hookRun = gates.begin("processReplace", (now) => now.readOnly || now.editing !== null);
+    const hookRun = gates.begin("processReplace", (now) => now.readOnly || now.serverHeld || now.editing !== null);
     hookRunRef.current = hookRun;
     const hookToken = ++applyTokenRef.current;
     setStatus({ kind: "validating" });
@@ -360,7 +361,7 @@ function PanelBody({ panelStore, showReplace }: PanelProps & { showReplace: bool
           gates.settle(hookRun);
           if (!current()) return;
           const latest = api.store.getState();
-          if (latest.readOnly || latest.editing !== null || result === false) {
+          if (latest.readOnly || latest.serverHeld || latest.editing !== null || result === false) {
             setStatus({ kind: "cancelled" });
             return;
           }
