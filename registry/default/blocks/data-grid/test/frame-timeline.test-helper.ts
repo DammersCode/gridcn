@@ -9,6 +9,11 @@ export type FrameSample = {
   empty: boolean;
   busy: boolean;
   header: string;
+  /** The text of the pinned row bands, the comment markers, the header widths, and every `aria-label` of the grid. */
+  pinned: string;
+  commentMarkers: number;
+  columnWidths: string;
+  ariaLabels: string;
   rowCount: string | null;
   colCount: string | null;
   /** Cells of the counted rows that carry `data-readonly`, and the root `aria-readonly`: a hold leaves both alone. */
@@ -36,6 +41,10 @@ export function sampleGrid(root: ParentNode = document, via: FrameSample["via"] 
     empty: grid?.querySelector("[data-grid-empty-state]") != null,
     busy: grid?.getAttribute("aria-busy") === "true",
     header: [...(grid?.querySelectorAll('[role="columnheader"]') ?? [])].map((cell) => cell.textContent ?? "").join("|"),
+    pinned: [...(grid?.querySelectorAll("[data-grid-pinned-row-band] [role=row]") ?? [])].map((row) => row.textContent ?? "").join("\n"),
+    commentMarkers: grid?.querySelectorAll("[data-grid-comment-marker]").length ?? 0,
+    columnWidths: [...(grid?.querySelectorAll("[role=columnheader]") ?? [])].map((cell) => Math.round(cell.getBoundingClientRect().width)).join("|"),
+    ariaLabels: [...(grid?.querySelectorAll("[aria-label]") ?? [])].map((node) => node.getAttribute("aria-label")).join("|"),
     rowCount: grid?.getAttribute("aria-rowcount") ?? null,
     colCount: grid?.getAttribute("aria-colcount") ?? null,
     readonlyCells: rows.reduce((total, row) => total + row.querySelectorAll("[data-readonly]").length, 0),
@@ -79,7 +88,7 @@ export async function recordAcross(
   return samples;
 }
 
-const FIELDS = ["rows", "placeholders", "groupRows", "empty", "header", "rowCount", "colCount", "readonlyCells", "ariaReadOnly"] as const;
+const FIELDS = ["rows", "placeholders", "groupRows", "empty", "header", "pinned", "commentMarkers", "columnWidths", "ariaLabels", "rowCount", "colCount", "readonlyCells", "ariaReadOnly"] as const;
 const HELD = ["rows", "empty", "header", "readonlyCells", "ariaReadOnly"] as const;
 
 const same = (a: FrameSample, b: FrameSample, fields: readonly (keyof FrameSample)[]) => fields.every((field) => a[field] === b[field]);
