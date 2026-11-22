@@ -8,7 +8,7 @@ import {
   useDataGridSearchText,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { resolveCustomFilterOperators, setFilterValuesOf, useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { pivotWidthsOf, requestedGroupByOf, resolveCustomFilterOperators, setFilterValuesOf, useDataGridPivotWidthsWriter, useDataGridSelector, useDataGridStoreApi, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import {
   MAX_DOCUMENT_LENGTH,
   MAX_VIEW_FILE_LENGTH,
@@ -16,6 +16,7 @@ import {
   captureViewState,
   cleanViewName,
   emptyViewsDocument,
+  generatedWidthsOf,
   parseViewDocument,
   parseViewFile,
   sanitizeViewState,
@@ -111,10 +112,42 @@ function createViewId(): string {
   return `v${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }
 
+type ViewSource = Pick<DataGridReadState, "sortState" | "filterState" | "filterJoin" | "searchText" | "searchOptions" | "columnLayout" | "pivotColumnIds"> & { groupBy: readonly string[]; pivotWidths: Readonly<Record<string, number>> };
+
+/** The view state of grid parts; the pivot counts only where the grid applies it. */
+function viewStateOf(s: ViewSource): DataGridViewState {
+  const pivotColumnId = s.pivotColumnIds[0];
+  const pivoted = pivotColumnId !== undefined && s.groupBy.length > 0 && !s.groupBy.includes(pivotColumnId);
+  return captureViewState({
+    sorts: s.sortState,
+    groupBy: [...s.groupBy],
+    filters: s.filterState,
+    filterJoin: s.filterJoin,
+    searchText: s.searchText,
+    searchOptions: s.searchOptions,
+    columnLayout: s.columnLayout,
+    ...(pivoted ? { pivotColumnId, pivotWidths: generatedWidthsOf(s.pivotWidths) } : { pivotColumnId: null }),
+  });
+}
+
+/** The view state of a grid: the requested `groupBy` while a server layout holds the old one, and the widths of the held generated columns. */
+const gridViewState = (s: DataGridReadState): DataGridViewState => viewStateOf({ ...s, groupBy: requestedGroupByOf(s), pivotWidths: pivotWidthsOf(s.columnWidths, s.pivot) });
+
+const widthKeys = new WeakMap<object, { pivot: DataGridReadState["pivot"]; key: string }>();
+
+/** The generated widths of the held set as a string, read again only when `columnWidths` or the held set changes. */
+function pivotWidthsKeyOf(s: Pick<DataGridReadState, "columnWidths" | "pivot">): string {
+  const cached = widthKeys.get(s.columnWidths);
+  if (cached?.pivot === s.pivot) return cached.key;
+  const key = JSON.stringify(pivotWidthsOf(s.columnWidths, s.pivot));
+  widthKeys.set(s.columnWidths, { pivot: s.pivot, key });
+  return key;
+}
+
 /**
- * Saves and restores named grid views: sort, filters, search, and column layout. Call it inside the
+ * Saves and restores named grid views: sort, group, pivot, filters, search, and column layout. Call it inside the
  * grid provider. Opening a view runs the same store actions as a user gesture, only for the parts
- * that differ, so controlled `sortState` and `filterState` receive their change callbacks.
+ * that differ, so controlled `sortState`, `filterState`, `groupBy`, and `pivot` receive their change callbacks.
  */
 export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseDataGridViewsResult {
   const { value, defaultValue, onValueChange, enableDefaultView = true, onError } = options;
@@ -126,12 +159,17 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
   const actions = useDataGridActions();
   const allColumns = useDataGridAllColumns();
   const sortState = useDataGridSortState();
-  const groupBy = useDataGridSelector((s) => s.groupBy);
+  const groupBy = useDataGridSelector(requestedGroupByOf);
   const filterState = useDataGridFilterState();
   const filterJoin = useDataGridSelector((s) => s.filterJoin);
   const searchText = useDataGridSearchText();
   const searchOptions = useDataGridSelector((s) => s.searchOptions);
   const columnLayout = useDataGridSelector((s) => s.columnLayout);
+  const pivotColumnIds = useDataGridSelector((s) => s.pivotColumnIds);
+  const heldColumns = useDataGridSelector((s) => s.pivot?.columns);
+  // a string keeps a resize drag of a source column from rendering the hook
+  const pivotWidthsKey = useDataGridSelector(pivotWidthsKeyOf);
+  const writePivotWidths = useDataGridPivotWidthsWriter();
 
   useWarnSharedViewsKey(typeof options.storage === "object" ? undefined : (storageKey ?? DEFAULT_VIEWS_KEY), allColumns.map((c) => c.id).join("\u0000"));
 
@@ -154,7 +192,8 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
   const loaded = document !== null;
   const [internalActiveId, setInternalActiveId] = useState<string | null>(defaultValue ?? null);
   const activeViewId = value !== undefined ? value : internalActiveId;
-  const [appliedKey, setAppliedKey] = useState<string | null>(null);
+  const [applied, setApplied] = useState<DataGridViewState | null>(null);
+  const pendingWidths = useRef<(() => void) | null>(null);
   const appliedIdRef = useRef<string | null | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -168,10 +207,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
     storageRef.current = storage;
   });
 
-  const readState = useCallback((): DataGridViewState => {
-    const s = storeApi.getState();
-    return captureViewState({ sorts: s.sortState, groupBy: [...s.groupBy], filters: s.filterState, filterJoin: s.filterJoin, searchText: s.searchText, searchOptions: s.searchOptions, columnLayout: s.columnLayout });
-  }, [storeApi]);
+  const readState = useCallback((): DataGridViewState => gridViewState(storeApi.getState()), [storeApi]);
 
   const readSavableState = useCallback(() => savableViewState(readState()), [readState]);
 
@@ -188,11 +224,43 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
     setFailed(null);
   }, []);
 
+  const stopPendingWidths = useCallback(() => {
+    pendingWidths.current?.();
+    pendingWidths.current = null;
+  }, []);
+  useEffect(() => stopPendingWidths, [stopPendingWidths]);
+
+  /** Applies each pending width in the store write that lands its generated column, so no frame paints it at the default width. */
+  const holdWidths = useCallback(
+    (pending: Map<string, number>) => {
+      if (pending.size === 0) return;
+      let left = pending;
+      pendingWidths.current = storeApi.subscribe((s, prev) => {
+        // a pivot change after the restore is the user's own, so the widths of the view no longer apply
+        if (s.pivotColumnIds.join("\u0000") !== prev.pivotColumnIds.join("\u0000")) return stopPendingWidths();
+        if (s.pivot?.columns === prev.pivot?.columns) return;
+        const waiting = left;
+        left = writePivotWidths(Object.fromEntries(waiting), false);
+        const widths = storeApi.getState().columnWidths;
+        // the store clamps a width, so the baseline takes the landed widths back from it
+        const landed = [...waiting.keys()].filter((id) => !left.has(id) && widths[id] !== undefined).map((id) => [id, widths[id]!] as const);
+        if (landed.length > 0) setApplied((view) => view && { ...view, pivotWidths: { ...view.pivotWidths, ...Object.fromEntries(landed) } });
+        if (left.size === 0) stopPendingWidths();
+      });
+    },
+    [storeApi, stopPendingWidths, writePivotWidths],
+  );
+
   const applyState = useCallback(
     (state: DataGridViewState) => {
-      const clean = sanitizeViewState(state, latest.current.knownColumns).state;
+      stopPendingWidths();
+      const { knownColumns, columnMap } = latest.current;
+      const clean = sanitizeViewState(state, knownColumns).state;
       const wanted = viewPartKeys(clean);
       const now = viewPartKeys(readState());
+      const pivotNow = storeApi.getState().pivotColumnIds[0];
+      // the grid ignores a pivot on a groupBy column, or without groupBy, and warns, so such a pivot goes off before the regroup
+      if (wanted.group !== now.group && pivotNow !== undefined && (clean.groupBy.length === 0 || clean.groupBy.includes(pivotNow))) actions.setPivot({ columnIds: [] });
       if (wanted.sorts !== now.sorts) actions.setSorts(clean.sorts);
       if (wanted.group !== now.group) actions.setGroupBy(clean.groupBy);
       if (wanted.filters !== now.filters) {
@@ -201,10 +269,25 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
       }
       if (wanted.search !== now.search) actions.setSearch(clean.searchText, clean.searchOptions);
       if (wanted.layout !== now.layout) actions.setColumnLayout(clean.columnLayout);
-      // the store fills in layout parts a view leaves out, so the baseline reads the layout back
-      setAppliedKey(viewStateKey({ ...clean, columnLayout: storeApi.getState().columnLayout }));
+      const s = storeApi.getState();
+      const groupBy = requestedGroupByOf(s);
+      const id = clean.pivotColumnId;
+      const pivotId = typeof id === "string" && columnMap.get(id)?.groupable !== false && groupBy.length > 0 && !groupBy.includes(id) ? id : undefined;
+      if (id !== undefined && pivotId !== s.pivotColumnIds[0]) actions.setPivot({ columnIds: pivotId === undefined ? [] : [pivotId] });
+      // a server grid shows the held set of the old pivot until the answer lands, so only the held set of this pivot resets
+      if (pivotId !== undefined) holdWidths(writePivotWidths(clean.pivotWidths ?? {}, storeApi.getState().pivot?.columnId === pivotId));
+      const { pivotColumnId: _pivot, pivotWidths, ...rest } = clean;
+      const after = readState();
+      // the store fills in layout parts a view leaves out, and a view without the pivot field keeps the pivot, so the baseline reads both back
+      const pivot =
+        id === undefined
+          ? { pivotColumnId: after.pivotColumnId, pivotWidths: after.pivotWidths }
+          : pivotId === undefined
+            ? { pivotColumnId: null }
+            : { pivotColumnId: pivotId, pivotWidths: { ...pivotWidths, ...after.pivotWidths } };
+      setApplied({ ...rest, columnLayout: after.columnLayout, ...pivot });
     },
-    [actions, readState, storeApi],
+    [actions, readState, storeApi, holdWidths, stopPendingWidths, writePivotWidths],
   );
 
   const notify = useCallback((id: string | null) => callSafely(latest.current.onValueChange, id), []);
@@ -280,10 +363,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
       setDocument(parsed);
       clearError();
       const { value: controlled, defaultValue: seed, enableDefaultView: useDefault } = latest.current;
-      const initial = storeApi.getInitialState();
-      const untouched =
-        viewStateKey(readState()) ===
-        viewStateKey(captureViewState({ sorts: initial.sortState, groupBy: [...initial.groupBy], filters: initial.filterState, filterJoin: initial.filterJoin, searchText: initial.searchText, searchOptions: initial.searchOptions, columnLayout: initial.columnLayout }));
+      const untouched = viewStateKey(readState()) === viewStateKey(gridViewState(storeApi.getInitialState()));
       const view = useDefault && controlled === undefined && seed === undefined && untouched ? parsed.views.find((v) => v.id === parsed.defaultViewId) : undefined;
       if (view) {
         applyState(view.state);
@@ -331,15 +411,19 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
   const views = document?.views ?? EMPTY_VIEWS;
   const activeView = views.find((v) => v.id === activeViewId) ?? null;
 
-  const currentKey = useMemo(
-    () => (activeView ? viewStateKey({ sorts: sortState, groupBy: [...groupBy], filters: filterState, filterJoin, searchText, searchOptions, columnLayout }) : null),
-    [activeView, sortState, groupBy, filterState, filterJoin, searchText, searchOptions, columnLayout],
+  const current = useMemo(
+    () => viewStateOf({ sortState, groupBy, filterState, filterJoin, searchText, searchOptions, columnLayout, pivotColumnIds, pivotWidths: JSON.parse(pivotWidthsKey) as Record<string, number> }),
+    [sortState, groupBy, filterState, filterJoin, searchText, searchOptions, columnLayout, pivotColumnIds, pivotWidthsKey],
   );
+  const currentKey = useMemo(() => (activeView ? viewStateKey(current) : null), [activeView, current]);
+  const overLimit = useMemo(() => overLimitPart(current), [current]);
 
-  const overLimit = useMemo(
-    () => overLimitPart(captureViewState({ sorts: sortState, groupBy: [...groupBy], filters: filterState, filterJoin, searchText, searchOptions, columnLayout })),
-    [sortState, groupBy, filterState, filterJoin, searchText, searchOptions, columnLayout],
-  );
+  // a saved width of a generated column that the held set lacks changes nothing on screen
+  const appliedKey = useMemo(() => {
+    if (!applied?.pivotWidths) return applied && viewStateKey(applied);
+    const held = new Set(heldColumns?.map((column) => column.id));
+    return viewStateKey({ ...applied, pivotWidths: Object.fromEntries(Object.entries(applied.pivotWidths).filter(([id]) => held.has(id))) });
+  }, [applied, heldColumns]);
 
   const activeIdNow = useCallback(() => (latest.current.value !== undefined ? latest.current.value : appliedIdRef.current) ?? null, []);
 
@@ -368,7 +452,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
       if (!state) return null;
       const view: DataGridView = { id: createViewId(), name: clean, state };
       commit({ ...current, views: [...current.views, view] });
-      setAppliedKey(viewStateKey(view.state));
+      setApplied(view.state);
       setActive(view.id);
       return view;
     },
@@ -383,7 +467,7 @@ export function useDataGridViews(options: UseDataGridViewsOptions = {}): UseData
       const state = readSavableState();
       if (!state) return false;
       commit({ ...current, views: current.views.map((v) => (v.id === targetId ? { ...v, state } : v)) });
-      if (targetId === activeIdNow()) setAppliedKey(viewStateKey(state));
+      if (targetId === activeIdNow()) setApplied(state);
       return true;
     },
     [activeIdNow, commit, readSavableState],

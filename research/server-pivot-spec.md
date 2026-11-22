@@ -356,7 +356,7 @@ cells call, `groupCount`, and `count` in series; PostgREST runs them side by sid
 | `S11-M` | Closed: the layer and the server hook take 1 to 4 levels with subtotals. |
 | `S11-P` | Closed: Prisma pivots through the object API; it refuses a PostgreSQL native enum pivot column and SQLite decimal `sum`, `min`, and `max`. |
 | `S11-UI` | Closed: the header menu offers Pivot by and Turn off pivot, the sort list offers the pivot column, and the server hook takes the pivot props. A generated column has no menu. |
-| `S11-V` | Out of scope: widths of generated columns in saved views. |
+| `S11-V` | Closed: a saved view keeps the pivot column and the widths of generated columns. |
 
 The PR body lists these ids. No follow-up issue exists yet.
 

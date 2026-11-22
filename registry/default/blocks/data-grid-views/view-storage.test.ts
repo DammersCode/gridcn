@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createLocalStorageViewsStorage, createMemoryViewsStorage } from "./view-storage";
-import { emptyViewState, type DataGridViewsDocument } from "./view-state";
+import { emptyViewState, parseViewDocument, type DataGridViewsDocument } from "./view-state";
 
 const ctx = { signal: new AbortController().signal };
 const doc: DataGridViewsDocument = { version: 1, defaultViewId: "a", views: [{ id: "a", name: "A", state: emptyViewState() }] };
@@ -53,6 +53,13 @@ describe("createLocalStorageViewsStorage", () => {
     await storage.save(doc);
     expect(JSON.parse(localStorage.getItem("k1")!)).toEqual(doc);
     expect(await createLocalStorageViewsStorage("k1").load(ctx)).toEqual(doc);
+  });
+
+  it("round-trips the pivot column and the generated widths of a view as JSON", async () => {
+    const state = { ...emptyViewState(), groupBy: ["region"], pivotColumnId: "make", pivotWidths: { "__pivot:make=Audi|qty=sum": 180 } };
+    const pivoted: DataGridViewsDocument = { version: 1, defaultViewId: "p", views: [{ id: "p", name: "Pivot", state }] };
+    await createLocalStorageViewsStorage("k-pivot").save(pivoted);
+    expect(parseViewDocument(await createLocalStorageViewsStorage("k-pivot").load(ctx))).toEqual(pivoted);
   });
 
   it("treats malformed text as no document and throws on oversize text", async () => {

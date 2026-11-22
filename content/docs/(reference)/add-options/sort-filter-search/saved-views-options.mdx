@@ -112,7 +112,7 @@ The result reads and changes the views:
 - `defaultViewId` names the view that opens first.
 - `selectView(id)` opens a view, and `selectView(null)` clears the active view. `saveView(name)` saves the grid state under a name. `updateView(id)` replaces a view with the grid state. Without an `id`, `updateView` and `exportView` use the active view. `renameView(id, name)` and `deleteView(id)` edit the list. `setDefaultView(id)` picks the default view.
 
-A `DataGridView` has an `id`, a `name`, and a `DataGridViewState`. The state holds the sorts, `groupBy`, the filters, the search text, the search options, and the column layout. The storage adapter persists a `DataGridViewsDocument`: its `version`, its `views`, and its `defaultViewId`.
+A `DataGridView` has an `id`, a `name`, and a `DataGridViewState`. The state holds the sorts, `groupBy`, the filters, the search text, the search options, and the column layout. Under pivot, it also holds `pivotColumnId` and `pivotWidths`. The storage adapter persists a `DataGridViewsDocument`: its `version`, its `views`, and its `defaultViewId`.
 
 `importView(text, { name })` returns an `ImportViewResult`: `{ ok: true, view, dropped }` or `{ ok: false, reason }`. `name` applies when the file has none. `exportView(id)` returns the view as compact JSON text, or `null` for an unknown id or a view over 100,000 characters.
 
@@ -125,6 +125,55 @@ A `DataGridView` has an `id`, a `name`, and a `DataGridViewState`. The state hol
 ## Server mode [#server-mode]
 
 A view stores the grid state only. Opening a view calls the change callbacks of a server grid, and a view saves no page number. See [Saved views: Server mode](/docs/sort-filter-search/saved-views#server-mode).
+
+On a server grid, `providerProps` carry `pivot` and `onPivotChange`, and the hook writes the pivot into its `spec`. A pivot needs `groupBy` and an aggregate in the spec:
+
+```tsx
+"use client";
+
+import { DataGridProvider, defineColumns } from "@/components/data-grid/data-grid";
+import {
+  useDataGridServerRows,
+} from "@/components/data-grid-server/data-grid-server";
+import { DataGridViews } from "@/components/data-grid-views/data-grid-views";
+
+type Sale = { id: string; region: string; make: string; price: number };
+
+const columns = defineColumns<Sale>()([
+  { id: "region", header: "Region", accessorKey: "region" },
+  { id: "make", header: "Make", accessorKey: "make" },
+  { id: "price", header: "Price", accessorKey: "price", type: "number" },
+]);
+
+export function SalesGrid() {
+  const server = useDataGridServerRows<Sale>({
+    mode: "scroll",
+    getRowId: (row) => row.id,
+    defaultSpec: {
+      sorts: [],
+      filters: [],
+      searchText: "",
+      groupBy: ["region"],
+      aggregates: [{ columnId: "price", reducer: "sum" }],
+      pivot: { columnIds: ["make"] },
+    },
+    fetchRows: async ({ signal, ...request }) => {
+      const body = JSON.stringify(request);
+      const init = { method: "POST", body, signal };
+      const response = await fetch("/api/sales", init);
+      if (!response.ok) throw new Error("Request failed");
+      return response.json();
+    },
+  });
+  return (
+    <DataGridProvider {...server.providerProps} columns={columns}>
+      <DataGridViews />
+    </DataGridProvider>
+  );
+}
+```
+
+A view without `pivotColumnId` leaves the pivot as it is. `null` turns the pivot off.
 
 ## Related
 

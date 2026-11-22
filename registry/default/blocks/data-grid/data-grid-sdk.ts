@@ -149,6 +149,11 @@ export function useDataGridFocusSearchRegistration(focus: () => void): void {
   }, [internalActions, focus]);
 }
 
+/** Returns a stable function that sets many generated column widths in one write and returns the widths whose columns are not held. */
+export function useDataGridPivotWidthsWriter(): (widths: Readonly<Record<string, number>>, resetOthers: boolean) => Map<string, number> {
+  return useDataGridInternalActions()._setPivotWidths;
+}
+
 /** Returns a stable `commitChange` that also merges `flags` into `cellErrors` in the same write; flags of rows the change did not leave in the data drop. */
 export function useDataGridFlaggedCommit(): (change: DataChange<unknown>, flags: readonly CellErrorEntry[]) => void {
   return useDataGridInternalActions()._commitChange;
@@ -195,10 +200,11 @@ export { GRID_ATTR, GRID_ROLE_SELECTOR, gridAttrSelector, type GridAttrName, typ
 export { EMPTY_SERVER_SPEC, serverSpecOf, type ServerAggregate } from "./server-spec";
 export { defaultGetRowId } from "./store/types";
 export { dataIndexAt, dataIndexOf, forEachDataIndex, rowAtViewRow, viewEntryAt, type ViewEntry } from "./store/view-rows";
-export { isPivotColumn, pivotCellAt, pivotCellText } from "./store/pivot-view";
+export { isPivotColumn, pivotCellAt, pivotCellText, pivotWidthsOf } from "./store/pivot-view";
 export { groupIndexAt, groupLayoutOfView } from "./store/view-rows";
 export { leafCountOf, leafViewOf, groupRowsOf } from "./store/group-readers";
 export { isGroupRowId, groupIdOf, groupKeyText, MAX_GROUP_LEVELS, COLLAPSED, expandedTest, normalizeExpanded } from "./store/group-state";
+export { requestedGroupByOf } from "./store/group-sync";
 export { buildGroupView } from "./sort-filter/build-group-view";
 export { useDataGridGroupRow } from "./store/hooks";
 export { aggregateValues } from "./aggregate";

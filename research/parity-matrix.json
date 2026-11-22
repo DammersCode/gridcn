@@ -707,7 +707,7 @@
           "reason": "An edit, paste, fill, or cut writes no pivot cell, so no change reaches onSave or onDataChange."
         }
       },
-      "note": "`spec.pivot` pivots 1 to 4 `groupBy` levels. A pivot row above the innermost level opens and lists the pivot rows of the next level. The header menu pivots by a column and turns the pivot off; a generated column has no menu. Known gap: generated column widths in saved views (S11-V).",
+      "note": "`spec.pivot` pivots 1 to 4 `groupBy` levels. A pivot row above the innermost level opens and lists the pivot rows of the next level. The header menu pivots by a column and turns the pivot off; a generated column has no menu.",
       "doc": "/docs/data-modes/pivot-server-rows"
     },
     {
@@ -1756,9 +1756,10 @@
           "evidence": [
             "tests/parity/saved-views.parity.test.tsx",
             "registry/default/blocks/data-grid-views/use-data-grid-views.test.tsx",
-            "registry/default/blocks/data-grid-views/view-state.test.ts"
+            "registry/default/blocks/data-grid-views/view-state.test.ts",
+            "registry/default/blocks/data-grid-views/restore-view.timeline.browser.test.tsx"
           ],
-          "note": "A view keeps `groupBy`, validated against live, groupable columns and capped at 4 levels. The open groups stay out. A view keeps the top-level join of its filters."
+          "note": "A view keeps `groupBy`, validated against live, groupable columns and capped at 4 levels. The open groups stay out. A view keeps the top-level join of its filters. A view keeps the pivot column and at most 200 generated column widths; a width waits until its generated column lands."
         },
         "PC": {
           "status": "supported",
@@ -1775,7 +1776,8 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "tests/parity/saved-views.parity.test.tsx"
+            "tests/parity/saved-views.parity.test.tsx",
+            "registry/default/blocks/data-grid-views/restore-view.timeline.browser.test.tsx"
           ]
         },
         "C": {
@@ -1787,13 +1789,15 @@
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/saved-views.parity.test.tsx"
+            "tests/parity/saved-views.parity.test.tsx",
+            "registry/default/blocks/data-grid-views/restore-view.timeline.browser.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
             "tests/parity/saved-views.parity.test.tsx",
+            "registry/default/blocks/data-grid-views/restore-view.timeline.browser.test.tsx",
             "registry/default/blocks/data-grid-views/use-data-grid-views.test.tsx"
           ]
         },

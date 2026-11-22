@@ -56,9 +56,9 @@ With no props, views persist in `localStorage` under `gridcn-views`. Grids with 
 
 ## What a view holds [#what-a-view-holds]
 
-A view holds the sort, the `groupBy` columns, and the filters, with their groups, the join of the top level, and custom operators. A negated group stays negated. It holds the search text with its two options, match case and whole cell. It holds the column layout: order, hidden columns, pins, and widths. A view holds no rows, no selection, no page, and no scroll position.
+A view holds the sort, the `groupBy` columns, and the filters, with their groups, the join of the top level, and custom operators. A negated group stays negated. It holds the search text with its two options, match case and whole cell. It holds the column layout: order, hidden columns, pins, and widths. Under [pivot](/docs/rows-pages-menus/pivot), it holds the pivot column and up to 200 generated column widths. A view holds no rows, no selection, no page, and no scroll position.
 
-Opening a view runs the same actions as a user gesture, and only for the parts that differ from the grid. The change callbacks of a controlled `sortState`, `filterState`, `searchText`, or `columnLayout` fire for those parts.
+Opening a view runs the same actions as a user gesture, and only for the parts that differ from the grid. The change callbacks of a controlled `sortState`, `filterState`, `searchText`, `pivot`, or `columnLayout` fire for those parts.
 
 ## The button [#the-button]
 
@@ -79,7 +79,7 @@ The star marks one view as the default. After the views load, the default view a
 - `value` and `defaultValue` are both unset.
 - The grid still holds its first state.
 
-A grid that something else already changed keeps its state. With both add-ons mounted, a [URL state](/docs/sort-filter-search/url-state) link with a param that changes the first state wins over the default view.
+With both add-ons mounted, a [URL state](/docs/sort-filter-search/url-state) link with a param that changes the first state wins over the default view.
 
 `value` and `onValueChange` control which view is active, and `defaultValue` seeds it once:
 
@@ -129,7 +129,7 @@ const serverViews: DataGridViewsStorage = {
 };
 ```
 
-Pass it as `storage`. A thrown error from `save` shows in the popover with a Retry button, and `onError` receives it. The change stays on screen. Saves that start while another save runs collapse into one, so the last document wins. `createLocalStorageViewsStorage(key)` is the default adapter. `createMemoryViewsStorage(seed?)` keeps views for the life of the page.
+Pass it as `storage`. A thrown error from `save` shows in the popover with a Retry button, and `onError` receives it. Saves that start while another save runs collapse into one, so the last document wins. `createLocalStorageViewsStorage(key)` is the default adapter. `createMemoryViewsStorage(seed?)` keeps views for the life of the page.
 
 The default adapter listens to the `storage` event, so a save in one tab reloads the views of another tab on the same key. A custom adapter that offers `subscribe` gets the same reload.
 
@@ -164,9 +164,9 @@ export function SaveViewButton() {
 
 ### Limits [#limits]
 
-A save never cuts a view. `overLimit` names the part that is over a limit. It is `"sorts"`, `"filters"`, `"search"`, or `"layout"`. A sort, filter, or layout entry for a column that the grid lacks is not over a limit.
+A save never cuts a view. `overLimit` names the part that is over a limit. It is `"sorts"`, `"filters"`, `"search"`, or `"layout"`. An entry for a column that the grid lacks is not over a limit.
 
-A filter whose value does not fit its operator, such as a list on `contains`, also counts as over the `"filters"` limit. Only code builds such a filter: `setFilters`, `filterState`, or `defaultFilterState`. A filter without a value on an operator that takes one, such as `equals`, is not over a limit.
+A filter whose value does not fit its operator, such as a list on `contains`, also counts as over the `"filters"` limit. A filter without a value on an operator that takes one, such as `equals`, is not over a limit.
 
 "Save as new view" and "Update" are off with a line for that part. `saveView` returns `null` and `updateView` returns `false`.
 
@@ -175,7 +175,7 @@ A filter whose value does not fit its operator, such as a list on `contains`, al
 A view stores the grid state only, so it works in every data mode:
 
 - **Local array and client pagination.** Opening a view sorts and filters the local rows again.
-- **Server pagination and scroll mode** with `sortMode="server"` or `filterMode="server"`. Opening a view calls `onSortChange`, `onFilterChange`, and `onSearchTextChange` for the parts that differ, and `useDataGridServerRows` sends the new spec. Every set filter value stays, and your server checks the values.
+- **Server pagination and scroll mode** with `sortMode="server"` or `filterMode="server"`. Opening a view calls `onSortChange`, `onFilterChange`, `onSearchTextChange`, and `onPivotChange` for the parts that differ, and `useDataGridServerRows` sends the new spec. Every set filter value stays, and your server checks the values.
 - **Controlled state.** Your props receive the change callbacks.
 
 A view saves no page number. A view that changes the sort, the filters, or the search text sends server rows back to page 1. A layout-only view keeps the page.

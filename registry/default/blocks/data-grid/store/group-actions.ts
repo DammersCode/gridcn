@@ -7,7 +7,7 @@ import { emitAfterWrites, resetDeferredRows, type DataWriteContext } from "./dat
 import { groupAnnouncementLabel, nextAnnouncement } from "./announcements";
 import { EXPANDED, COLLAPSED, expandedTest, normalizeExpanded, normalizeGroupBy, sameExpanded, sameGroupBy, toggleExpanded } from "./group-state";
 import { groupRowExpandable } from "./group-positions";
-import { normalizePivot, rememberEmitted } from "./group-sync";
+import { normalizePivot, rememberEmitted, requestedGroupByOf } from "./group-sync";
 import { groupingOf, warnGroupOnce } from "./group-view";
 import { viewRowOfDataIndex } from "./row-index";
 import { clearStaleRows } from "./server-stale";
@@ -68,12 +68,11 @@ export function createGroupActions({ set, get, dataWrite, followView, memory }: 
 
   // A server layout matches only the group columns it was built for, so the grid keeps them until the prop brings the new layout.
   const heldForServer = (s: DataGridStoreState) => s.groupMode === "server" && s.groupByControlled;
-  const latestGroupBy = (s: DataGridStoreState) => (heldForServer(s) ? (memory.group.requestedGroupBy ?? s.groupBy) : s.groupBy);
 
   const commitGroupBy = (requested: readonly string[]): void => {
     const s = get();
     const groupBy = normalizeGroupBy(requested, s.columns);
-    if (sameGroupBy(groupBy, latestGroupBy(s))) return;
+    if (sameGroupBy(groupBy, requestedGroupByOf(s))) return;
     const resetPage = () => {
       if (s.pageSize !== null && s.page !== 1) s.onPageChange?.(1);
     };
@@ -81,11 +80,11 @@ export function createGroupActions({ set, get, dataWrite, followView, memory }: 
     const pivotOff = groupBy.length === 0 && s.pivotColumnIds.length > 0 ? { columnIds: NO_PIVOT } : null;
     const emitPivotOff = () => pivotOff && s.onPivotChange?.(pivotOff);
     if (heldForServer(s)) {
-      memory.group.requestedGroupBy = groupBy;
+      set({ requestedGroupBy: groupBy });
       emitAfterWrites(dataWrite, () => s.onGroupByChange?.(groupBy), emitPivotOff, resetPage);
       return;
     }
-    set((s2) => regroup(s2, groupBy, pivotOff ? NO_PIVOT : s2.pivotColumnIds));
+    set((s2) => ({ ...regroup(s2, groupBy, pivotOff ? NO_PIVOT : s2.pivotColumnIds), requestedGroupBy: null }));
     memory.lastSyncInputs = { ...memory.lastSyncInputs, groupBy, ...(pivotOff ? { pivotColumnIds: NO_PIVOT } : null) };
     if (s.groupByControlled) rememberEmitted(memory.group.groupByEcho, groupBy);
     if (pivotOff && s.pivotControlled) rememberEmitted(memory.group.pivotEcho, pivotOff);
@@ -120,7 +119,7 @@ export function createGroupActions({ set, get, dataWrite, followView, memory }: 
   return {
     setGroupBy: commitGroupBy,
     toggleGroupBy(columnId) {
-      const groupBy = latestGroupBy(get());
+      const groupBy = requestedGroupByOf(get());
       commitGroupBy(groupBy.includes(columnId) ? groupBy.filter((id) => id !== columnId) : [...groupBy, columnId]);
     },
     setPivot: commitPivot,

@@ -1087,6 +1087,19 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
       _registerMeasureFonts(impl) {
         set({ measureFonts: impl });
       },
+      _setPivotWidths(widths, resetOthers) {
+        const s = get();
+        const next: Record<string, number> = { ...(resetOthers ? withoutGeneratedWidths(s.columnWidths, s.columns) : s.columnWidths) };
+        const pending = new Map<string, number>();
+        for (const [id, width] of Object.entries(widths)) {
+          const column = s.pivot?.columns.find((c) => c.id === id);
+          if (column) next[id] = clampColumnWidth(column, width);
+          else pending.set(id, width);
+        }
+        const changed = Object.keys(next).length !== Object.keys(s.columnWidths).length || Object.keys(next).some((id) => next[id] !== s.columnWidths[id]);
+        if (changed) set({ columnWidths: next });
+        return pending;
+      },
     };
     registerInternalActions(api, internal);
 
@@ -1138,6 +1151,7 @@ export function createDataGridStore(rawInit: InternalSyncProps): StoreApi<DataGr
     groupLayout: groupLayoutOfView(initViewIndex),
     groupingEnabled: init.groupBy !== undefined || init.defaultGroupBy !== undefined || init.onGroupByChange !== undefined,
     groupByControlled: init.groupBy !== undefined,
+    requestedGroupBy: null,
     expandedControlled: init.expanded !== undefined,
     pivotColumnIds: initPivotColumnIds,
     pivotControlled: init.pivot !== undefined,
