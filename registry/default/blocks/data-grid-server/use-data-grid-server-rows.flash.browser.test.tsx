@@ -98,8 +98,6 @@ const GRIDS: Setup[] = [
 type Ctx = { api: DataGridApi<Row>; server: Server; spec: ServerSpec; setSpec: (next: ServerSpec) => void; setLabels: (next: object) => void; grouped: boolean };
 type Action = { name: string; run: (ctx: Ctx) => void; applies?: (setup: Setup) => boolean; fetches?: boolean | ((setup: Setup) => boolean); lands?: (before: FrameSample, after: FrameSample, setup: Setup) => boolean | null };
 
-// `V1`: a change that leaves fewer rows than the scroll position blanks one frame until the browser clamps the scroll; that case is open.
-const unscrolled = (setup: Setup) => setup.scrollTop === undefined;
 const rowsChange = (before: FrameSample, after: FrameSample) => after.rows !== before.rows;
 const headerChanges = (before: FrameSample, after: FrameSample) => after.header !== before.header;
 const pivoted = (setup: Setup) => setup.spec.pivot !== undefined || setup.pivot !== undefined;
@@ -107,9 +105,9 @@ const pivoted = (setup: Setup) => setup.spec.pivot !== undefined || setup.pivot 
 const ACTIONS: Action[] = [
   { name: "sort", lands: (before, after, setup) => (setup.spec.groupBy ? null : rowsChange(before, after)), fetches: true, run: ({ api, grouped }) => api.actions.setSorts([{ columnId: grouped ? "region" : "qty", direction: "desc" }]) },
   { name: "filter", fetches: true, run: ({ spec, setSpec }) => setSpec({ ...spec, filters: [{ columnId: "qty", operator: "gt", value: "0" }] }) },
-  { name: "search", applies: unscrolled, lands: rowsChange, fetches: true, run: ({ api }) => api.actions.setSearch("a") },
+  { name: "search", lands: rowsChange, fetches: true, run: ({ api }) => api.actions.setSearch("a") },
   { name: "search with no hit", lands: (_, after) => after.empty, fetches: true, run: ({ api }) => api.actions.setSearch("zzz") },
-  { name: "groupBy", applies: unscrolled, lands: (before, after, setup) => (setup.mode === "pages" && !setup.spec.groupBy ? null : rowsChange(before, after)), fetches: (setup) => setup.mode === "scroll" || setup.spec.groupBy !== undefined, run: ({ api, grouped }) => api.actions.setGroupBy(grouped ? ["city"] : ["region"]) },
+  { name: "groupBy", lands: (before, after, setup) => (setup.mode === "pages" && !setup.spec.groupBy ? null : rowsChange(before, after)), fetches: (setup) => setup.mode === "scroll" || setup.spec.groupBy !== undefined, run: ({ api, grouped }) => api.actions.setGroupBy(grouped ? ["city"] : ["region"]) },
   { name: "ungroup", lands: rowsChange, fetches: true, run: ({ api }) => api.actions.setGroupBy([]), applies: (setup) => setup.spec.groupBy !== undefined },
   { name: "pivot column", lands: headerChanges, fetches: true, run: ({ spec, setSpec }) => setSpec({ ...spec, pivot: { columnIds: ["city"] } }), applies: (setup) => setup.spec.pivot !== undefined },
   { name: "setPivot", lands: headerChanges, fetches: true, run: ({ api }) => api.actions.setPivot({ columnIds: api.store.getState().pivotColumnIds.length ? [] : ["tier"] }), applies: (setup) => setup.spec.groupBy !== undefined },

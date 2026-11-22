@@ -165,6 +165,22 @@ describe("a client grid paints no mixed frame across a change beyond the core vi
     );
   });
 
+  it("across a filter that leaves fewer rows than the scroll position", async () => {
+    const many: Row[] = Array.from({ length: 400 }, (_, i) => ({ id: `m${i}`, name: `Name ${i}`, city: i < 3 ? "Bern" : "Rome", qty: i }));
+    const api = createRef<DataGridApi<Row>>();
+    await expectNoFlash(
+      box(<DataGrid ref={api} columns={columns} data={many} getRowId={(row) => row.id} className="h-100 w-150" aria-label="Client" />),
+      () => api.current!.actions.setFilters([{ columnId: "city", operator: "equals", value: "Bern" }]),
+      async () => {
+        const grid = document.querySelector<HTMLElement>('[role="grid"]')!;
+        grid.scrollTop = grid.scrollHeight;
+        grid.dispatchEvent(new Event("scroll"));
+        await frames(3);
+      },
+      (after) => expect(after.rows.split("\n")).toHaveLength(3),
+    );
+  });
+
   it("across a labels switch", async () => {
     const set = { current: (_labels: object) => {} };
     function Labelled() {

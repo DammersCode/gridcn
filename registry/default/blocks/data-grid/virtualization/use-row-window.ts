@@ -50,6 +50,11 @@ function useServerPass(): boolean {
   return useSyncExternalStore(subscribeNever, () => false, () => true);
 }
 
+/** The largest scrollTop the content allows; it matches the content height the root sets. */
+function maxScrollTop({ rowCount, rowHeight, dataRowTop, bottomInset }: Required<UseRowWindowOptions>, clientHeight: number): number {
+  return Math.max(0, dataRowTop + rowCount * rowHeight + bottomInset - clientHeight);
+}
+
 function computeWindow(
   element: HTMLElement | null,
   snapshot: ScrollSnapshot,
@@ -61,7 +66,9 @@ function computeWindow(
   if (!element) {
     return { start: 0, end: Math.min(rowCount, previewRows), windowTop: 0, measured: false, element: null };
   }
-  const { scrollTop, clientHeight: rawClientHeight, deltaTop } = snapshot;
+  const { clientHeight: rawClientHeight, deltaTop } = snapshot;
+  // A shrunken row count leaves the snapshot past the end until the browser clamps the scroll.
+  const scrollTop = Math.min(snapshot.scrollTop, maxScrollTop(opts, rawClientHeight));
   const clientHeight = rawClientHeight === 0 ? ZERO_HEIGHT_ROWS * rowHeight : Math.max(0, rawClientHeight - bottomInset);
   // Velocity overscan biases the LEADING edge only (the direction of travel) — the trailing edge
   // a fling is scrolling away from keeps the floor.
@@ -150,6 +157,15 @@ export function useRowWindow(scrollRef: RefObject<HTMLElement | null>, opts: Use
   const windowRef = useRef<RowWindow | null>(null);
   useLayoutEffect(() => {
     windowRef.current = rowWindow;
+  });
+
+  // The browser clamps the scroll at its next layout, after this commit, so the clamp and the canvas offset land here, before paint.
+  useLayoutEffect(() => {
+    const snapshot = tick.snapshot;
+    if (!element || !snapshot) return;
+    const maxTop = maxScrollTop({ rowCount, rowHeight, dataRowTop, bottomInset, overscan }, snapshot.clientHeight);
+    if (snapshot.scrollTop <= maxTop) return;
+    getElementStore(element).clampScrollTop(maxTop);
   });
 
   // One estimator per hook instance: state lives in the hook, not the shared element store,
