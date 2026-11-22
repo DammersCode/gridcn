@@ -567,7 +567,7 @@ export const OPTION_GROUPS = [
     title: "Server",
     intro: "Options of the server rows, presence, and comments add-ons.",
     rows: [
-      { names: ["mode","getRowId","fetchRows","defaultSpec","spec","onSpecChange","onError","onLoaded","onDataChange","revalidateIntervalMs","reshapeDelayMs","plugins","initialAnswer"], owners: ["useDataGridServerRows"], page: "/docs/add-options/server/server-rows-options" },
+      { names: ["mode","getRowId","fetchRows","defaultSpec","spec","onSpecChange","onError","onLoaded","onDataChange","revalidateIntervalMs","reshapeDelayMs","enableHold","plugins","initialAnswer"], owners: ["useDataGridServerRows"], page: "/docs/add-options/server/server-rows-options" },
       { names: ["onSave","refreshAfterSave"], owners: ["useDataGridServerRows"], page: "/docs/add-options/server/server-rows-options#save-options" },
       { names: ["page","defaultPage","pageSize","defaultPageSize","pageSizeOptions","onPageChange","onPageSizeChange","prefetchNextPage"], owners: ["useDataGridServerRows pages mode"], page: "/docs/add-options/server/server-rows-options#server-mode" },
       { names: ["source","blockSize","overscan","loadDelayMs","maxConcurrentFetches","maxLoadedRows","plugins","onRenderedRowsChange"], owners: ["useDataGridServerRows scroll mode"], page: "/docs/add-options/server/server-rows-options#usedatagridserverrowsscrolloptions" },

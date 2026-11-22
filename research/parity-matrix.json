@@ -2054,6 +2054,7 @@
       "id": "loading",
       "feature": "Loading and error state",
       "options": [
+        "enableHold",
         "onError",
         "onLoaded"
       ],
@@ -2114,7 +2115,7 @@
         }
       },
       "doc": "/docs/theme-style-language/loading-state",
-      "note": "A server spec change keeps the old rows on screen until the answers for the rendered rows land."
+      "note": "A server spec change keeps the old rows on screen until the answers for the rendered rows land. `enableHold: false` clears them at the change."
     },
     {
       "id": "find-replace",

@@ -62,7 +62,7 @@ function gatedServer(cursor: boolean, source: readonly Row[] = ROWS) {
   };
 }
 
-type Setup = { name: string; mode: "scroll" | "pages"; spec: Partial<ServerSpec>; cursor?: boolean; open?: boolean; rows?: readonly Row[]; scrollTop?: number; pivot?: PivotSpec };
+type Setup = { name: string; mode: "scroll" | "pages"; spec: Partial<ServerSpec>; cursor?: boolean; open?: boolean; rows?: readonly Row[]; scrollTop?: number; pivot?: PivotSpec; enableHold?: false };
 type Server = UseDataGridServerRowsResult<Row> | UseDataGridServerRowsScrollResult<Row>;
 type Handles = { api: RefObject<DataGridApi<Row> | null>; server: { current: Server | null }; setSpec: { current: (next: ServerSpec) => void }; setLabels: { current: (next: object) => void } };
 
@@ -72,7 +72,7 @@ function Harness({ setup, fetchRows, handles }: { setup: Setup; fetchRows: (requ
   const [pivot, setPivot] = useState(setup.pivot);
   handles.setSpec.current = setSpec;
   handles.setLabels.current = setLabels;
-  const options = { mode: setup.mode, fetchRows: fetchRows as never, spec, onSpecChange: setSpec, blockSize: 50, overscan: 0, loadDelayMs: 0, pageSizeOptions: setup.spec.groupBy ? [2, 4] : [4, 8], defaultPageSize: setup.spec.groupBy ? 2 : 4, ...(setup.open ? { defaultExpanded: { mode: "collapsed", ids: [groupIdOf([{ columnId: "region", key: "A" }])] } } : null), ...(pivot ? { pivot, onPivotChange: setPivot } : null) };
+  const options = { mode: setup.mode, fetchRows: fetchRows as never, spec, onSpecChange: setSpec, blockSize: 50, overscan: 0, loadDelayMs: 0, pageSizeOptions: setup.spec.groupBy ? [2, 4] : [4, 8], defaultPageSize: setup.spec.groupBy ? 2 : 4, ...(setup.open ? { defaultExpanded: { mode: "collapsed", ids: [groupIdOf([{ columnId: "region", key: "A" }])] } } : null), ...(pivot ? { pivot, onPivotChange: setPivot } : null), ...(setup.enableHold === false ? { enableHold: false } : null) };
   const server = useDataGridServerRows<Row>(options as never) as Server;
   handles.server.current = server;
   return (
@@ -140,6 +140,8 @@ async function flashOf(setup: Setup, action: Action, releaseAfterMs?: number) {
   gate.hold();
   let released = !(typeof action.fetches === "function" ? action.fetches(setup) : action.fetches === true);
   let actionAt = 0;
+  let heldSeen = false;
+  const unsubscribe = handles.api.current!.store.subscribe((state) => void (heldSeen ||= state.serverHeld));
   const samples = await recordAcross(
     () => {
       actionAt = performance.now();
@@ -152,9 +154,10 @@ async function flashOf(setup: Setup, action: Action, releaseAfterMs?: number) {
     () => released && gate.idle() && !sampleGrid().busy,
     { released: () => released },
   );
+  unsubscribe();
   const after = sampleGrid();
   await screen.unmount();
-  return { flashes: flashesIn(samples, before, after), busy: samples.some((sample) => sample.busy), heldBusy: samples.filter((sample) => !sample.released).every((sample) => sample.busy), samples, actionAt, before, after };
+  return { heldSeen, flashes: flashesIn(samples, before, after), busy: samples.some((sample) => sample.busy), heldBusy: samples.filter((sample) => !sample.released).every((sample) => sample.busy), samples, actionAt, before, after };
 }
 
 describe("a server grid whose answer to a new spec fails", () => {
@@ -220,6 +223,27 @@ describe("a held server grid shows the loading bar only for a slow answer", () =
       const shown = samples.filter((sample) => sample.loadingBar && !sample.released);
       expect(shown.length, "the bar shows while the rows are held").toBeGreaterThan(0);
       expect(shown[0]!.at - actionAt).toBeGreaterThanOrEqual(140);
+    });
+  }
+});
+
+describe("a server grid with enableHold: false clears the rows as before and never holds", () => {
+  const fetching = (action: Action, setup: Setup) => action.name !== "refresh" && (typeof action.fetches === "function" ? action.fetches(setup) : action.fetches === true);
+  for (const grid of GRIDS) {
+    const setup: Setup = { ...grid, enableHold: false };
+    describe(setup.name, () => {
+      for (const action of ACTIONS) {
+        if ((action.applies && !action.applies(setup)) || !fetching(action, setup)) continue;
+        // A flat page keeps its rows until the next page lands, as it did before the hold.
+        const clears = setup.mode === "scroll" || setup.spec.groupBy !== undefined || action.name === "groupBy";
+        it(`across a ${action.name} change`, async () => {
+          const { heldSeen, samples, before, after } = await flashOf(setup, action);
+          const landed = action.lands?.(before, after, setup) ?? null;
+          if (landed !== null) expect(landed, "the change landed").toBe(true);
+          expect(heldSeen, "serverHeld stays false").toBe(false);
+          if (clears) expect(samples.some((sample) => !sample.released && sample.rows !== before.rows), "the old rows leave before the answer").toBe(true);
+        });
+      }
     });
   }
 });

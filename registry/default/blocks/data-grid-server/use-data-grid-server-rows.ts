@@ -48,6 +48,11 @@ export type UseDataGridServerRowsOptions<TData, TCursor = never> = {
   /** Controls the sort, filter, and search; pair it with `onSpecChange`. */
   spec?: ServerSpec;
   onSpecChange?: (spec: ServerSpec) => void;
+  /**
+   * Keeps the old rows on screen after a spec or page change until the answers for the rendered rows land. The grid refuses
+   * the writes of user gestures meanwhile. `false` clears the rows at the change and shows the loading state. Default `true`.
+   */
+  enableHold?: boolean;
   /** Fires after a request fails. */
   onError?: (error: unknown) => void;
   /**
@@ -654,7 +659,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   useLayoutEffect(() => {
     if (shownGrouped !== grouped && arrived) setShownGrouped(grouped);
   }, [shownGrouped, grouped, arrived]);
-  const waiting = shownGrouped !== grouped && !arrived;
+  const waiting = shownGrouped !== grouped && !arrived && options.enableHold !== false;
   const flatWaits = waiting && !shownGrouped;
   const providerProps = useMemo<UseDataGridServerRowsProviderProps<TData>>(
     () => ({

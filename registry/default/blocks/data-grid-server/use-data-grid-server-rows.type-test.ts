@@ -110,3 +110,10 @@ export function groupedPagesMode() {
   });
   server.pager.page satisfies number;
 }
+
+export function holdOptOut() {
+  useDataGridServerRows<Row>({ getRowId, enableHold: false, fetchRows: async () => ({ rows: [] as Row[], totalRowCount: 0 }) });
+  useDataGridServerRows<Row>({ mode: "scroll", getRowId, enableHold: false, fetchRows: async () => ({ rows: [] as Row[], totalRowCount: 0 }) });
+  // @ts-expect-error enableHold is a boolean
+  useDataGridServerRows<Row>({ getRowId, enableHold: "off", fetchRows: async () => ({ rows: [] as Row[], totalRowCount: 0 }) });
+}

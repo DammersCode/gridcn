@@ -576,7 +576,7 @@ export function useGroupBlocks<TData, TCursor = never>(
     if (seedRef.current && seedRef.current.key !== engineKey) seedRef.current = null;
     apiRef.current.reset();
     // A view from an earlier grouped period is not on screen when the engine wakes up, so only a live view is held.
-    getEngine().holding = shownRows.current > 0 && (!active || wasActive.current);
+    getEngine().holding = live.current.options.enableHold !== false && shownRows.current > 0 && (!active || wasActive.current);
     wasActive.current = active;
     if (active) apiRef.current.seedStore();
     apiRef.current.publish();
@@ -615,7 +615,7 @@ export function useGroupBlocks<TData, TCursor = never>(
   const shownPage = useRef(pages?.page);
   useLayoutEffect(() => {
     if (!getEngine().store) return;
-    if (shownPage.current !== pages?.page && shownRows.current > 0) getEngine().holding = true;
+    if (shownPage.current !== pages?.page && shownRows.current > 0 && live.current.options.enableHold !== false) getEngine().holding = true;
     shownPage.current = pages?.page;
     apiRef.current.publish();
     apiRef.current.pumpSoon(true);
