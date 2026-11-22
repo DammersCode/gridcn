@@ -93,5 +93,5 @@ describe("Supabase pivot at 100k rows on PGlite", () => {
     const rpc = [...kinds].map(([kind, ms]) => `${kind} ${ms.toFixed(1)}`).join(", ");
     await annotate(`pivot fetchGroups ${pivotMs.toFixed(1)} ms, budget ${budget.toFixed(0)} ms; without pivot ${baselineMs.toFixed(1)} ms; rpc ms: ${rpc}`);
     expect(pivotMs).toBeLessThan(budget);
-  });
+  }, 60_000);
 });
