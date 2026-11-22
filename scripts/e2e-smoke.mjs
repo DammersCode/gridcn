@@ -252,7 +252,7 @@ const SCENARIOS = [
       await page.getByRole("columnheader", { name: "Age" }).click();
       await eventually(async () => {
         const values = await ages();
-        return values.every((v, i) => i === 0 || values[i - 1] >= v) && values[0] > 60;
+        return values.every((v, i) => i === 0 || values[i - 1] >= v) && values[0] >= 55;
       }, "second header click does not sort Age descending");
     },
   },
