@@ -67,6 +67,8 @@ const emptyView = <TData,>(): ViewState<TData> => ({ data: [], slots: [], owners
 
 const pivotOf = <TData,>(store: GroupStore<TData>) => (store.pivot?.layout ? { pivotHold: store.pivot } : null);
 
+const sameRows = (a: readonly unknown[], b: readonly unknown[]): boolean => a.length === b.length && a.every((row, index) => row === b[index]);
+
 const positiveInteger =(value: number | undefined, fallback: number, min: number) => (typeof value === "number" && Number.isFinite(value) ? Math.max(min, Math.floor(value)) : fallback);
 
 const blockSizeOf = (options: { blockSize?: number }, pages: GroupPagesConfig | undefined, pivot: string | null) => {
@@ -194,8 +196,11 @@ export function useGroupBlocks<TData, TCursor = never>(
     const states = new Map<string, "loading" | "failed">();
     for (const { listId } of getEngine().failed.values()) states.set(listId, "failed");
     for (const { list } of getEngine().flight.values()) if (!states.has(list.id)) states.set(list.id, "loading");
-    const next = { ...layoutView(store, expandedTest(live.current.expanded), (id) => states.get(id), pageWindowOf(livePages(store)), { onCapped: () => warn("view-cap", `the open groups hold more than ${MAX_ROW_COUNT} view rows; the view stops at ${MAX_ROW_COUNT}. Collapse a group or add a filter`) }), loading: getEngine().flight.size > 0, groupCount: store.lists.get("")?.count ?? null, ...pivotOf(store), laidFor: store.groupBy } satisfies ViewState<TData>;
+    const laid = layoutView(store, expandedTest(live.current.expanded), (id) => states.get(id), pageWindowOf(livePages(store)), { onCapped: () => warn("view-cap", `the open groups hold more than ${MAX_ROW_COUNT} view rows; the view stops at ${MAX_ROW_COUNT}. Collapse a group or add a filter`) });
     const engine = getEngine();
+    // Group rows are `undefined`, so a landing that only fills groups keeps the array and the grid sees no data change.
+    const data = engine.view && sameRows(engine.view.data, laid.data) ? engine.view.data : laid.data;
+    const next = { ...laid, data, loading: engine.flight.size > 0, groupCount: store.lists.get("")?.count ?? null, ...pivotOf(store), laidFor: store.groupBy } satisfies ViewState<TData>;
     engine.view = next;
     // The old view stays until the rows under the window answer; a failed top block keeps it next to the error bar.
     const waiting = engine.holding && unsettled(store);
