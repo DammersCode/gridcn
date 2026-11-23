@@ -4,6 +4,9 @@ import { useLayoutEffect, type RefObject } from "react";
 import { inlineDistanceFromEnd, inlineDistanceFromStart, inlineEndEdge, inlineStartEdge, type GridDirection } from "./direction";
 import { gridAttrSelector } from "../data-attributes";
 
+/** A band-edge shadow reaches 1px under the band, so rounding at a fractional scale leaves no gap. */
+export const tuckUnderBand = (size: number) => (size > 0 ? size - 1 : 0);
+
 /**
  * Measures the ACTUAL rendered edge of the last pinned-left / first pinned-right HEADER cell and
  * writes it as `--grid-pin-shadow-start-x`/`-end-x` on `viewportRef`, instead of trusting a
