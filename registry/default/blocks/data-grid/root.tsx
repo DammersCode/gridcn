@@ -49,7 +49,7 @@ import {
 import { MAX_RENDERED_ROWS } from "./virtualization/use-row-window";
 import { resolveHeaderHeight, resolveRowHeight } from "./rows/density";
 import { useScrolledEdges } from "./virtualization/use-scrolled-edges";
-import { usePinShadowEdges } from "./virtualization/use-pin-shadow-edges";
+import { tuckUnderBand, usePinShadowEdges } from "./virtualization/use-pin-shadow-edges";
 import { GRID_LAYER } from "./layers";
 import { useLoadAnnouncement } from "./use-load-announcement";
 import { DataGridLoadingSkeleton, DataGridLoadingBar, DataGridLoadingProgress } from "./rows/loading-skeleton";
@@ -756,8 +756,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-start:opacity-100 from-(--grid-shadow-color) to-transparent bg-linear-to-r/srgb rtl:bg-linear-to-l/srgb"
                 style={{
                   insetInlineStart: `var(--grid-pin-shadow-start-x, ${interactionLayout.pinnedLeftWidth}px)`,
-                  insetBlockStart: effectiveHeaderHeight,
-                  insetBlockEnd: pinnedBottomHeight,
+                  insetBlockStart: tuckUnderBand(effectiveHeaderHeight),
+                  insetBlockEnd: tuckUnderBand(pinnedBottomHeight),
                   width: SHADOW_SIZE,
                   // background gradient, not box-shadow: a box-shadow's offset+blur paints its darkest
                   // pixels well outside this element's own box, floating the visible shadow off the
@@ -775,8 +775,8 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-end:opacity-100 from-(--grid-shadow-color) to-transparent bg-linear-to-l/srgb rtl:bg-linear-to-r/srgb"
                 style={{
                   insetInlineEnd: `var(--grid-pin-shadow-end-x, ${interactionLayout.pinnedRightWidth}px)`,
-                  insetBlockStart: effectiveHeaderHeight,
-                  insetBlockEnd: pinnedBottomHeight,
+                  insetBlockStart: tuckUnderBand(effectiveHeaderHeight),
+                  insetBlockEnd: tuckUnderBand(pinnedBottomHeight),
                   width: SHADOW_SIZE,
                   ...shadowVar(shadowColor(hasPinnedRight)),
                   zIndex: GRID_LAYER.pinShadow,
@@ -788,7 +788,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 aria-hidden="true"
                 className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-top:opacity-100 from-(--grid-shadow-color) to-transparent bg-linear-to-b/srgb"
                 style={{
-                  insetBlockStart: effectiveHeaderHeight,
+                  insetBlockStart: tuckUnderBand(effectiveHeaderHeight),
                   insetInlineStart: `var(--grid-pin-shadow-start-x, ${interactionLayout.pinnedLeftWidth}px)`,
                   insetInlineEnd: `var(--grid-pin-shadow-end-x, ${interactionLayout.pinnedRightWidth}px)`,
                   height: SHADOW_SIZE,
@@ -802,7 +802,7 @@ export function DataGridRoot<TData = unknown>(props: DataGridRootProps<TData>): 
                 aria-hidden="true"
                 className="pointer-events-none absolute opacity-0 transition-opacity in-data-scrolled-bottom:opacity-100 from-(--grid-shadow-color) to-transparent bg-linear-to-t/srgb"
                 style={{
-                  insetBlockEnd: pinnedBottomHeight,
+                  insetBlockEnd: tuckUnderBand(pinnedBottomHeight),
                   insetInlineStart: `var(--grid-pin-shadow-start-x, ${interactionLayout.pinnedLeftWidth}px)`,
                   insetInlineEnd: `var(--grid-pin-shadow-end-x, ${interactionLayout.pinnedRightWidth}px)`,
                   height: SHADOW_SIZE,

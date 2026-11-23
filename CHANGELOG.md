@@ -7,6 +7,10 @@ asks before overwriting a file that differs.
 
 The format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## Unreleased
+
+- Fixed a 1px strip between the pin-edge shadows and the header or a pinned row band at a fractional display scale, where the last row above a bottom band showed a lighter line. The four shadows now reach 1px under the band.
+
 ## 2.1.0 - 2026-11-23
 
 - **Breaking:** the loading bar of a grid with rows shows after the load has run for 150 ms, so a fast answer, such as the answer to a server spec change while the old rows stay on screen, shows no bar. `aria-busy` and the screen reader progress element turn on at once. `--grid-loading-bar-delay` sets the delay; `0ms` shows the bar at once. Set `--grid-loading-bar-delay: 0ms` for the 2.0 timing. <!-- row: loading-bar-delay -->
