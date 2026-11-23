@@ -1,5 +1,5 @@
 import type { RowRange } from "@/registry/default/blocks/data-grid/data-grid";
-import { groupKeyText, type GroupKey, type GroupPathSegment } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { groupKeyText, toSafeText, type GroupKey, type GroupPathSegment, type PivotColumnDescriptor, type ServerAggregate } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { MAX_ROW_COUNT } from "./read-answer";
 
 /** What a request asks of the server while the grid is grouped: the children of one group. */
@@ -18,8 +18,10 @@ export type ServerGroupRow = {
   childCount: number;
   /** Rows of the result under this group; equals `childCount` on the last level. */
   totalRowCount: number;
-  /** One value per requested aggregate column id: a finite number, or `null` when no value counted. */
+  /** One value per requested aggregate column id: a finite number, a decimal string, a string for `min` and `max`, or `null` when no value counted. Strings hold at most 1,024 characters. */
   aggregates?: Readonly<Record<string, unknown>>;
+  /** Under `spec.pivot`: one value per entry of this answer's `pivotColumns`; `null` when no value counted. */
+  pivotCells?: readonly (number | null)[];
 };
 
 /** What `fetchRows` resolves with for a request of `childKind: "groups"`. */
@@ -30,6 +32,10 @@ export type ServerGroupsAnswer = {
   groupCount: number;
   /** Top level: the row count of the result. Required there. */
   totalRowCount?: number;
+  /** Under `spec.pivot`: the generated columns of the rows under `groupPath` (the whole result at the top level), key-major. Required there. */
+  pivotColumns?: readonly PivotColumnDescriptor[];
+  /** Generated columns the server cut past its cap. */
+  pivotOmitted?: number;
 };
 
 /** A groups answer after validation. */
@@ -55,22 +61,30 @@ function count(value: unknown, field: string, warn: Warn): number {
   return MAX_ROW_COUNT;
 }
 
-function readKey(key: unknown, field: string): GroupKey {
+export function readKey(key: unknown, field: string): GroupKey {
   if (key === null || typeof key === "boolean" || (typeof key === "number" && Number.isFinite(key))) return key;
   if (typeof key === "string" && key.length <= MAX_GROUP_TEXT_LENGTH) return key;
   throw new TypeError(`fetchRows answered ${field} that is not a string of at most ${MAX_GROUP_TEXT_LENGTH} characters, a finite number, a boolean, or null`);
 }
 
-function readAggregates(raw: unknown, ids: readonly string[], field: string, warn: Warn): Record<string, unknown> | undefined {
+const DECIMAL_TEXT = /^-?\d+(?:\.\d+)?$/;
+
+// The reader has no column types, so the reducer decides: only min and max reduce text and dates.
+function isAggregateText(value: string, reducer: ServerAggregate["reducer"]): boolean {
+  return value.length <= MAX_GROUP_TEXT_LENGTH && (reducer === "min" || reducer === "max" || DECIMAL_TEXT.test(value));
+}
+
+function readAggregates(raw: unknown, aggregates: readonly ServerAggregate[], field: string, warn: Warn): Record<string, unknown> | undefined {
   if (typeof raw !== "object" || raw === null) return undefined;
   const out = Object.create(null) as Record<string, unknown>;
-  for (const id of ids) {
+  for (const { columnId: id, reducer } of aggregates) {
     if (!Object.hasOwn(raw, id)) continue;
     const value = (raw as Record<string, unknown>)[id];
     if (typeof value === "number" && Number.isFinite(value)) out[id] = value;
+    else if (typeof value === "string" && isAggregateText(value, reducer)) out[id] = toSafeText(value);
     else {
       out[id] = null;
-      if (value !== null) warn(`aggregate ${id}`, `${field}.aggregates.${id} must be a finite number or null; showing null`);
+      if (value !== null) warn(`aggregate ${id}`, `${field}.aggregates.${id} must be a finite number, a decimal string, a string of at most ${MAX_GROUP_TEXT_LENGTH} characters for min or max, or null; showing null`);
     }
   }
   return out;
@@ -78,10 +92,10 @@ function readAggregates(raw: unknown, ids: readonly string[], field: string, war
 
 /**
  * Validates an untrusted groups answer. It cuts `groups` to the requested size, bounds keys, labels, counts, and aggregates,
- * and reads only the aggregate ids that the request named. Throws a `TypeError` that names the group and the field when the
+ * and reads only the aggregate columns that the request named. Throws a `TypeError` that names the group and the field when the
  * answer has no `groups` array, a key is invalid or repeated (`1` and `"1"` repeat), a count is invalid, or the top level lacks `totalRowCount`.
  */
-export function readGroupsAnswer(answer: unknown, range: RowRange, options: { topLevel: boolean; aggregateIds: readonly string[] }, warn: Warn): ReadGroupsAnswer {
+export function readGroupsAnswer(answer: unknown, range: RowRange, options: { topLevel: boolean; aggregates: readonly ServerAggregate[] }, warn: Warn): ReadGroupsAnswer {
   const raw = answer as { groups?: unknown; groupCount?: unknown; totalRowCount?: unknown; rows?: unknown } | null | undefined;
   if (!Array.isArray(raw?.groups)) {
     const kind = Array.isArray(raw?.rows) ? " (it answered rows)" : "";
@@ -107,7 +121,7 @@ export function readGroupsAnswer(answer: unknown, range: RowRange, options: { to
       label = item.label.slice(0, MAX_GROUP_TEXT_LENGTH);
       if (label.length !== item.label.length) warn("label", `${field}.label is longer than ${MAX_GROUP_TEXT_LENGTH}; cut`);
     }
-    const aggregates = readAggregates(item.aggregates, options.aggregateIds, field, warn);
+    const aggregates = readAggregates(item.aggregates, options.aggregates, field, warn);
     return {
       key,
       ...(label === undefined ? null : { label }),

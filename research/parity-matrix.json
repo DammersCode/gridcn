@@ -396,13 +396,15 @@
           "status": "supported",
           "evidence": [
             "tests/parity/row-check.parity.test.tsx",
-            "registry/default/blocks/data-grid/store/server-selection.test.tsx"
+            "registry/default/blocks/data-grid/store/server-selection.test.tsx",
+            "tests/server-query/selection.test.ts"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid/store/server-selection.test.tsx"
+            "registry/default/blocks/data-grid/store/server-selection.test.tsx",
+            "tests/server-query/selection.test.ts"
           ]
         },
         "C": {
@@ -420,7 +422,8 @@
         "FS": {
           "status": "supported",
           "evidence": [
-            "registry/default/blocks/data-grid/store/server-selection.test.tsx"
+            "registry/default/blocks/data-grid/store/server-selection.test.tsx",
+            "tests/server-query/selection.test.ts"
           ]
         },
         "API": {
@@ -430,7 +433,8 @@
           ]
         }
       },
-      "doc": "/docs/selection-shortcuts/checked-rows"
+      "doc": "/docs/selection-shortcuts/checked-rows",
+      "note": "On the server, `query.selection` counts the rows of a `DataGridSelectedRows` value within `rowScope`, and `selectionPlan` gives the filter of a bulk write over them."
     },
     {
       "id": "row-ids",
@@ -631,6 +635,80 @@
           ]
         }
       }
+    },
+    {
+      "id": "server-pivot",
+      "feature": "Pivot",
+      "options": [
+        "pivot",
+        "defaultPivot",
+        "onPivotChange"
+      ],
+      "cells": {
+        "L": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/pivot.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/pivot-client.test.tsx"
+          ],
+          "note": "The grid builds the pivot from the client rows. A lazy source, totalRowCount, and sortMode=\"server\" show the rows ungrouped."
+        },
+        "PC": {
+          "status": "supported",
+          "evidence": [
+            "tests/parity/pivot.parity.test.tsx",
+            "registry/default/blocks/data-grid/store/pivot-client.test.tsx"
+          ],
+          "note": "A page holds pageSize top-level pivot rows."
+        },
+        "PS": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.pages.test.tsx",
+            "tests/server-query/pivot.test.ts",
+            "tests/server-query/prisma/pivot.test.ts",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.levels.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.props.test.tsx"
+          ]
+        },
+        "Z": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.scroll.test.tsx",
+            "registry/default/blocks/data-grid-server/pivot.perf.browser.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.levels.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.props.test.tsx"
+          ]
+        },
+        "C": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.scroll.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.levels.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.props.test.tsx"
+          ]
+        },
+        "SS": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.scroll.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.levels.test.tsx"
+          ]
+        },
+        "FS": {
+          "status": "supported",
+          "evidence": [
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.scroll.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.pivot.levels.test.tsx"
+          ]
+        },
+        "API": {
+          "status": "n/a",
+          "reason": "An edit, paste, fill, or cut writes no pivot cell, so no change reaches onSave or onDataChange."
+        }
+      },
+      "note": "`spec.pivot` pivots 1 to 4 `groupBy` levels. A pivot row above the innermost level opens and lists the pivot rows of the next level. The header menu pivots by a column and turns the pivot off; a generated column has no menu.",
+      "doc": "/docs/data-modes/pivot-server-rows"
     },
     {
       "id": "pinned-rows",
@@ -1473,12 +1551,13 @@
           "evidence": [
             "registry/default/blocks/data-grid/store/write-ack.test.tsx",
             "content/docs/(server)/save-server/save-revert.mdx",
-            "registry/default/blocks/data-grid/store/save-conflict.test.tsx"
+            "registry/default/blocks/data-grid/store/save-conflict.test.tsx",
+            "tests/server-query/writes.test.ts"
           ]
         }
       },
       "doc": "/docs/save-server/save-revert",
-      "note": "`editRows` writes with source `edit`, so a server grid receives it in `onSave`."
+      "note": "`editRows` writes with source `edit`, so a server grid receives it in `onSave`. On the server, `query.save` validates each change before the writes run."
     },
     {
       "id": "streaming",
@@ -1677,9 +1756,10 @@
           "evidence": [
             "tests/parity/saved-views.parity.test.tsx",
             "registry/default/blocks/data-grid-views/use-data-grid-views.test.tsx",
-            "registry/default/blocks/data-grid-views/view-state.test.ts"
+            "registry/default/blocks/data-grid-views/view-state.test.ts",
+            "registry/default/blocks/data-grid-views/restore-view.timeline.browser.test.tsx"
           ],
-          "note": "A view keeps `groupBy`, validated against live, groupable columns and capped at 4 levels. The open groups stay out. A view keeps the top-level join of its filters."
+          "note": "A view keeps `groupBy`, validated against live, groupable columns and capped at 4 levels. The open groups stay out. A view keeps the top-level join of its filters. A view keeps the pivot column and at most 200 generated column widths; a width waits until its generated column lands."
         },
         "PC": {
           "status": "supported",
@@ -1696,7 +1776,8 @@
         "Z": {
           "status": "supported",
           "evidence": [
-            "tests/parity/saved-views.parity.test.tsx"
+            "tests/parity/saved-views.parity.test.tsx",
+            "registry/default/blocks/data-grid-views/restore-view.timeline.browser.test.tsx"
           ]
         },
         "C": {
@@ -1708,13 +1789,15 @@
         "SS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/saved-views.parity.test.tsx"
+            "tests/parity/saved-views.parity.test.tsx",
+            "registry/default/blocks/data-grid-views/restore-view.timeline.browser.test.tsx"
           ]
         },
         "FS": {
           "status": "supported",
           "evidence": [
             "tests/parity/saved-views.parity.test.tsx",
+            "registry/default/blocks/data-grid-views/restore-view.timeline.browser.test.tsx",
             "registry/default/blocks/data-grid-views/use-data-grid-views.test.tsx"
           ]
         },
@@ -1971,6 +2054,7 @@
       "id": "loading",
       "feature": "Loading and error state",
       "options": [
+        "enableHold",
         "onError",
         "onLoaded"
       ],
@@ -1978,26 +2062,30 @@
         "L": {
           "status": "supported",
           "evidence": [
-            "tests/parity/loading-error.parity.test.tsx"
+            "tests/parity/loading-error.parity.test.tsx",
+            "registry/default/blocks/data-grid/test/client-flash.timeline.browser.test.tsx"
           ]
         },
         "PC": {
           "status": "supported",
           "evidence": [
-            "tests/parity/loading-error.parity.test.tsx"
+            "tests/parity/loading-error.parity.test.tsx",
+            "registry/default/blocks/data-grid/test/client-flash.timeline.browser.test.tsx"
           ]
         },
         "PS": {
           "status": "supported",
           "evidence": [
-            "tests/parity/loading-error.parity.test.tsx"
+            "tests/parity/loading-error.parity.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.flash.browser.test.tsx"
           ]
         },
         "Z": {
           "status": "supported",
           "evidence": [
             "content/docs/(server)/scroll-mode/recover-load-errors.mdx",
-            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.browser.test.tsx"
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.scroll.browser.test.tsx",
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.flash.browser.test.tsx"
           ]
         },
         "C": {
@@ -2026,7 +2114,8 @@
           ]
         }
       },
-      "doc": "/docs/theme-style-language/loading-state"
+      "doc": "/docs/theme-style-language/loading-state",
+      "note": "A server spec change keeps the old rows on screen until the answers for the rendered rows land. With `enableHold: false` the hold never starts, and the grid behaves as in 2.0."
     },
     {
       "id": "find-replace",
@@ -3123,7 +3212,8 @@
           "status": "supported",
           "evidence": [
             "content/docs/(server)/server-pagination/load-rows-page.mdx",
-            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.cursor.test.tsx"
+            "registry/default/blocks/data-grid-server/use-data-grid-server-rows.cursor.test.tsx",
+            "tests/server-query/cursor.test.ts"
           ]
         },
         "Z": {
@@ -3131,7 +3221,8 @@
           "evidence": [
             "content/docs/(server)/scroll-mode/load-without-row-count.mdx",
             "registry/default/blocks/data-grid-server/use-data-grid-server-rows.sequence.test.tsx",
-            "registry/default/examples/data-grid-open-ended-demo.browser.test.tsx"
+            "registry/default/examples/data-grid-open-ended-demo.browser.test.tsx",
+            "tests/server-query/cursor.test.ts"
           ]
         },
         "C": {
@@ -3159,7 +3250,7 @@
           ]
         }
       },
-      "note": "Pages mode pages without a total through `hasMore`, or through a `nextCursor` chain: each page request carries the `cursor` of the page before. Scroll mode loads a source without a count in order.",
+      "note": "Pages mode pages without a total through `hasMore`, or through a `nextCursor` chain: each page request carries the `cursor` of the page before. Scroll mode loads a source without a count in order. The query layer answers such a chain with `paging: \"cursor\"`: keyset pages, `nextCursor`, and no count query.",
       "doc": "/docs/scroll-mode/load-without-row-count"
     },
     {
@@ -3513,8 +3604,12 @@
           "note": "A root `filterJoin: \"or\"` joins the top-level filters in SQL; `rowScope` still ANDs on top. A group with `not: true` renders as `IS NOT TRUE`, so a NULL cell stays in the result as on the client."
         },
         "API": {
-          "status": "n/a",
-          "reason": "The layer reads rows; writing rows stays the consumer's code."
+          "status": "supported",
+          "evidence": [
+            "tests/server-query/writes.test.ts",
+            "registry/default/blocks/data-grid/store/write-ack.test.tsx"
+          ],
+          "note": "`query.save` checks the `DataChange` of `onSave` against the column map and `rowScope`, and `apply` runs the writes in one transaction."
         }
       },
       "doc": "/docs/data-modes/query-layer"

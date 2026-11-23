@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { GRID_LAYER } from "./layers";
 import type { ViewCoord, CompactSelectionLike, GridRect } from "./types";
 import { intersectRect } from "./selection";
+import { selectedColRangesForRow } from "./selection/selected-col-ranges-for-row";
 import { pinnedInsetStyle } from "./columns/pinned-inset-style";
 import {
   useDataGridActiveCell,
@@ -12,9 +13,12 @@ import {
   useDataGridPluginOverlays,
   useDataGridSelection,
   useDataGridSelectionPointer,
+  useDataGridSelector,
   useDataGridVisibleColumns,
   type AnyColumnDef,
 } from "./store";
+import { groupLabelSpan } from "./store/group-positions";
+import { groupIndexAt } from "./store/view-rows";
 import type { SelectionPointer } from "./store/types";
 import { GRID_ATTR } from "./data-attributes";
 
@@ -110,14 +114,70 @@ export function splitRectByPinZones(rect: GridRect, track: PinTrackData): RectSe
   return segments;
 }
 
-/** One selection-range fill overlay, grid-line placed, window-relative; pinned segments add their zone's counter-offset + elevated z-index (above pinned cells). */
-function RangeOverlay({ rect, windowStart, colOffset, pinStyle }: { rect: GridRect; windowStart: number; colOffset: number; pinStyle?: CSSProperties }) {
+/**
+ * The fill pieces of `rect` outside the labels of the group rows it crosses, or `null` when it crosses no label. The labels
+ * get one fill each from the whole selection, so two rects over one label tint it once, like the label paints itself.
+ */
+function fillOutsideLabels(rect: GridRect, span: number, isGroupRow: (viewRow: number) => boolean): GridRect[] | null {
+  if (rect.x >= span) return null;
+  const right = rect.x + rect.width;
+  const end = rect.y + rect.height;
+  const pieces: GridRect[] = [];
+  let crosses = false;
+  for (let y = rect.y; y < end; ) {
+    const group = isGroupRow(y);
+    let next = y + 1;
+    while (next < end && isGroupRow(next) === group) next++;
+    if (!group) pieces.push({ ...rect, y, height: next - y });
+    else {
+      crosses = true;
+      if (right > span) pieces.push({ x: span, y, width: right - span, height: next - y });
+    }
+    y = next;
+  }
+  return crosses ? pieces : null;
+}
+
+/** A border side an outline piece drops where it meets another piece of the same rect. */
+type OutlineTrim = "top" | "bottom" | "start";
+type OutlinePiece = { rect: GridRect; label: boolean; trim: OutlineTrim[] };
+
+const TRIM_CLASS: Record<OutlineTrim, string> = { top: "border-t-0", bottom: "border-b-0", start: "border-s-0" };
+
+/**
+ * The outline pieces of `rect` over group rows: a label is one cell, so a group row's piece outlines the whole label, unpinned
+ * like the label, whatever columns of it the rect holds. A rect that holds every label column whole stays one piece.
+ */
+function outlineOverLabels(rect: GridRect, span: number, labelPinned: boolean, isGroupRow: (viewRow: number) => boolean): OutlinePiece[] {
+  const right = rect.x + rect.width;
+  if (rect.x === 0 && right >= span && !labelPinned) return [{ rect, label: false, trim: [] }];
+  const runs: { y: number; height: number; group: boolean }[] = [];
+  const end = rect.y + rect.height;
+  for (let y = rect.y; y < end; ) {
+    const group = isGroupRow(y);
+    let next = y + 1;
+    while (next < end && isGroupRow(next) === group) next++;
+    runs.push({ y, height: next - y, group });
+    y = next;
+  }
+  return runs.flatMap(({ y, height, group }, i): OutlinePiece[] => {
+    const shared: OutlineTrim[] = [...(i > 0 ? ["top" as const] : []), ...(i < runs.length - 1 ? ["bottom" as const] : [])];
+    if (!group) return [{ rect: { ...rect, y, height }, label: false, trim: shared }];
+    const label: OutlinePiece = { rect: { x: 0, y, width: span, height }, label: true, trim: [] };
+    return right > span ? [label, { rect: { x: span, y, width: right - span, height }, label: false, trim: [...shared, "start"] }] : [label];
+  });
+}
+
+const RANGE_PAINT = { both: "border border-primary/40 bg-primary/10", fill: "bg-primary/10", outline: "border border-primary/40" } as const;
+
+/** One selection-range overlay, grid-line placed, window-relative; pinned segments add their zone's counter-offset + elevated z-index (above pinned cells). */
+function RangeOverlay({ rect, windowStart, colOffset, pinStyle, paint = "both", trim }: { rect: GridRect; windowStart: number; colOffset: number; pinStyle?: CSSProperties; paint?: keyof typeof RANGE_PAINT; trim?: readonly OutlineTrim[] }) {
   return (
     <div
       data-grid-selection-overlay=""
       data-pinned={pinStyle ? "" : undefined}
       aria-hidden="true"
-      className="pointer-events-none border border-primary/40 bg-primary/10"
+      className={cn("pointer-events-none", RANGE_PAINT[paint], trim?.map((side) => TRIM_CLASS[side]))}
       style={{
         // positioned: cells are position:relative, so a static overlay would paint below them;
         // out-of-flow when unpinned, so moving it does not re-lay out the canvas grid
@@ -248,8 +308,28 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
   const editing = useDataGridEditing();
   const pinned = hasAnyPin(pinTrack) ? pinTrack : undefined;
 
+  const viewIndex = useDataGridSelector((s) => (s.groupLayout === null ? null : s.viewIndex));
+  const labelSpan = viewIndex === null ? 0 : Math.min(groupLabelSpan(visibleColumns), visibleColumns.length);
+  const isGroupRow = (viewRow: number) => viewIndex !== null && groupIndexAt(viewIndex, viewRow) !== undefined;
+
   /** Splits into pin-zone segments when the grid has pinned columns, else the rect as a single "segment". */
   const segment = (rect: GridRect): RectSegment[] => (pinned ? splitRectByPinZones(rect, pinned) : [{ rect }]);
+
+  const labelPinned = pinned !== undefined && pinned.pins.slice(0, labelSpan).some((pin) => pin !== undefined);
+
+  /** A rect over a group label outlines each label whole and fills outside the labels. */
+  const rectOverlays = (rect: GridRect, key: string): ReactNode[] => {
+    const fills = labelSpan > 0 ? fillOutsideLabels(rect, labelSpan, isGroupRow) : null;
+    const place = (piece: GridRect, pieceKey: string, paint: keyof typeof RANGE_PAINT, trim?: readonly OutlineTrim[]) =>
+      segment(piece).map((seg, j) => <RangeOverlay key={`${pieceKey}-${j}`} rect={seg.rect} windowStart={windowStart} colOffset={colOffset} pinStyle={seg.pinStyle} paint={paint} trim={trim} />);
+    if (!fills) return place(rect, key, "both");
+    const outline = outlineOverLabels(rect, labelSpan, labelPinned, isGroupRow).flatMap((piece, o) =>
+      piece.label
+        ? [<RangeOverlay key={`${key}-label-${o}`} rect={piece.rect} windowStart={windowStart} colOffset={colOffset} paint="outline" />]
+        : place(piece.rect, `${key}-outline-${o}`, "outline", piece.trim),
+    );
+    return [...outline, ...fills.flatMap((fill, f) => place(fill, `${key}-fill-${f}`, "fill"))];
+  };
 
   const rangeRects: GridRect[] = [];
   if (selection.current) {
@@ -273,39 +353,47 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
     height: run.length,
   }));
 
+  // One fill per run of group rows whose label any selected rect or band touches.
+  const labelFills: GridRect[] = [];
+  for (let row = clampedRowStart; labelSpan > 0 && row < clampedRowEnd; row++) {
+    if (!isGroupRow(row) || !selectedColRangesForRow(selection, row, colCount).some(([start]) => start < labelSpan)) continue;
+    const last = labelFills.at(-1);
+    if (last && last.y + last.height === row) last.height++;
+    else labelFills.push({ x: 0, y: row, width: labelSpan, height: 1 });
+  }
+
   const handleRange = selectionPointer === "touch" && !editing && selection.current ? selection.current.range : null;
-  const handleCorners: Array<{ corner: "start" | "end"; coord: ViewCoord }> = [];
+  const handleCorners: Array<{ corner: "start" | "end"; coord: ViewCoord; onLabel: boolean }> = [];
   if (handleRange) {
-    handleCorners.push({ corner: "start", coord: { col: handleRange.x, row: handleRange.y } });
-    handleCorners.push({ corner: "end", coord: { col: handleRange.x + handleRange.width - 1, row: handleRange.y + handleRange.height - 1 } });
+    const corner = (corner: "start" | "end", col: number, row: number) => {
+      const onLabel = col < labelSpan && isGroupRow(row);
+      handleCorners.push({ corner, coord: { col: onLabel && corner === "end" ? labelSpan - 1 : col, row }, onLabel });
+    };
+    corner("start", handleRange.x, handleRange.y);
+    corner("end", handleRange.x + handleRange.width - 1, handleRange.y + handleRange.height - 1);
   }
 
   const activeInWindow: ViewCoord | null =
     activeCell && activeCell.row >= windowStart && activeCell.row < clampedRowEnd ? activeCell : null;
-  const activePinStyle = activeInWindow && pinned ? pinned.pins[activeInWindow.col] && pinnedInsetStyle(
-    pinned.pins[activeInWindow.col],
-    activeInWindow.col,
+  // An active group label draws its own ring, so a pinned column scrolled over the label covers the ring too.
+  const ringCell = activeInWindow && !(activeInWindow.col < labelSpan && isGroupRow(activeInWindow.row)) ? activeInWindow : null;
+  const activePinStyle = ringCell && pinned ? pinned.pins[ringCell.col] && pinnedInsetStyle(
+    pinned.pins[ringCell.col],
+    ringCell.col,
   ) : undefined;
 
   return (
     <>
       {rangeRects.map((rect, i) => {
         const clamped = clampRectToWindow(rect, clampedRowStart, clampedRowEnd, colCount);
-        if (!clamped) return null;
-        return segment(clamped).map((seg, j) => (
-          <RangeOverlay key={`${i}-${j}`} rect={seg.rect} windowStart={windowStart} colOffset={colOffset} pinStyle={seg.pinStyle} />
-        ));
+        return clamped && rectOverlays(clamped, `${i}`);
       })}
-      {columnBands.map((rect, i) =>
-        segment(rect).map((seg, j) => (
-          <RangeOverlay key={`col-band-${i}-${j}`} rect={seg.rect} windowStart={windowStart} colOffset={colOffset} pinStyle={seg.pinStyle} />
-        )),
-      )}
-      {rowBands.map((rect, i) =>
-        segment(rect).map((seg, j) => (
-          <RangeOverlay key={`row-band-${i}-${j}`} rect={seg.rect} windowStart={windowStart} colOffset={colOffset} pinStyle={seg.pinStyle} />
-        )),
-      )}
+      {columnBands.map((rect, i) => rectOverlays(rect, `col-band-${i}`))}
+      {rowBands.map((rect, i) => rectOverlays(rect, `row-band-${i}`))}
+      {labelFills.map((rect) => (
+        // A label is never pin-offset, so its fill is unpinned like the label.
+        <RangeOverlay key={`label-${rect.y}`} rect={rect} windowStart={windowStart} colOffset={colOffset} paint="fill" />
+      ))}
       {overlays.length > 0 &&
         overlays.map(({ name, Overlay }) => (
           // rendered here (after range/band layers, BEFORE the active-cell ring) so a plugin like
@@ -325,9 +413,9 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
             clampRectToWindow={clampRectToWindow}
           />
         ))}
-      {handleCorners.map(({ corner, coord }) => {
+      {handleCorners.map(({ corner, coord, onLabel }) => {
         if (!clampRectToWindow({ x: coord.col, y: coord.row, width: 1, height: 1 }, clampedRowStart, clampedRowEnd, colCount)) return null;
-        const pin = pinned?.pins[coord.col];
+        const pin = onLabel ? undefined : pinned?.pins[coord.col];
         return (
           <SelectionHandle
             key={corner}
@@ -339,17 +427,17 @@ export function DataGridOverlays(props: DataGridOverlaysProps): ReactNode {
           />
         );
       })}
-      {activeInWindow && (
+      {ringCell && (
         <div
           data-grid-active-cell-overlay=""
           data-pinned={activePinStyle ? "" : undefined}
           aria-hidden="true"
           className={cn("pointer-events-none ring-2 ring-inset ring-primary forced-colors:outline-2 forced-colors:-outline-offset-2 forced-colors:outline-[Highlight]")}
           style={{
-            gridColumnStart: activeInWindow.col + colOffset,
-            gridColumnEnd: activeInWindow.col + colOffset + 1,
-            gridRowStart: activeInWindow.row - windowStart + 1,
-            gridRowEnd: activeInWindow.row - windowStart + 2,
+            gridColumnStart: ringCell.col + colOffset,
+            gridColumnEnd: ringCell.col + colOffset + 1,
+            gridRowStart: ringCell.row - windowStart + 1,
+            gridRowEnd: ringCell.row - windowStart + 2,
             // The ring ranks with the cell it decorates (same DOM-later sibling wins ties): an
             // unpinned ring must lose to any pinned cell that scrolls over it, a pinned ring must
             // beat its own cell's opaque background. A fixed rank floats the former over the pin

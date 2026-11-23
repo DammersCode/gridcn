@@ -2,7 +2,7 @@
 name: gridcn-upgrade
 description: "gridcn upgrades: update gridcn source installed in this project to a newer upstream release. Use when pulling a newer gridcn version or one upstream fix, or when installed files carry local edits that must survive."
 metadata:
-  gridcn-version: "2.0.0"
+  gridcn-version: "2.1.0"
 ---
 
 gridcn ships no npm package and no semver: `npm update` touches nothing, and a breaking change can
@@ -133,6 +133,7 @@ value, press Enter, confirm the grid renders styled) passes.
 
 - Update procedure: `https://gridcn.vercel.app/docs/support-upgrades/upgrade-gridcn.md`
 - Breaking changes from 1.3.0 to 2.0 by area: `https://gridcn.vercel.app/docs/support-upgrades/breaking-changes-2-0.md`; the steps: `https://gridcn.vercel.app/docs/support-upgrades/migrate-2-0.md`
+- Breaking changes from 2.0 to 2.1: `https://gridcn.vercel.app/docs/support-upgrades/breaking-changes-2-1.md`
 - Version policy and changelog rules: `https://gridcn.vercel.app/docs/support-upgrades/version-policy-changelog.md`
 - Package table: `https://gridcn.vercel.app/docs/support-upgrades/license-credits.md`
 - Install commands: `https://gridcn.vercel.app/docs/learning-path/install-gridcn.md`

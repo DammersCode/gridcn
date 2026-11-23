@@ -1,0 +1,108 @@
+---
+title: Query the selected rows
+icon: ListChecks
+description: Count the rows of a grid selection on your server, read their ids or rows, and run a bulk write over them with the query layer.
+type: task
+aliases: ["select all matching server", "selection endpoint", "bulk delete", "excludedids", "selection count"]
+---
+
+A selection in `allMatching` mode covers rows that the grid never loaded. `query.selection` of the [query layer](/docs/data-modes/query-layer) reads the `DataGridSelectedRows` value of the grid. It answers the count of the selected rows, and on request one page of their ids or rows. `query.selectionPlan` gives the filter of a bulk write over the same rows. The grid side is [Select server rows](/docs/rows-live-data/select-server-rows).
+
+## Add the selection route [#route]
+
+1. Pass `query.selection` to `handleGridRequest`.
+2. Post `{ selection }` from the client. `selection` is the value of `useDataGridSelectedRows()`.
+3. To read one page of the selected rows, add `include: "ids"` or `include: "rows"`.
+
+This route answers the selection requests of an orders grid:
+
+```ts title="app/api/orders/selection/route.ts"
+import {
+  handleGridRequest,
+} from "@/components/data-grid-server-query/data-grid-server-query";
+import { ordersQuery } from "./orders-query";
+
+export const POST = (req: Request) =>
+  handleGridRequest(req, ordersQuery.selection);
+```
+
+This hook reads the first 100 ids of the selection:
+
+```tsx
+"use client";
+
+import { useDataGridSelectedRows } from "@/components/data-grid/data-grid";
+
+type SelectionIds = { count: number; ids?: string[]; hasMore?: boolean };
+
+export function useReadSelectedIds() {
+  const selection = useDataGridSelectedRows();
+  return async (): Promise<SelectionIds> => {
+    const body = { selection, include: "ids", start: 0, end: 100 };
+    const response = await fetch("/api/orders/selection", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) throw new Error("The request failed");
+    return response.json();
+  };
+}
+```
+
+## What the route answers [#answer]
+
+- Without `include`, the answer is `{ count }`.
+- With `include`, the answer adds one page of the rows from `start` to `end`, and `hasMore`. `start` defaults to 0, and `end` to `start + maxPageSize`.
+- `include: "ids"` reads the primary key only. `include: "rows"` reads the mapped columns without the `serverOnly` columns.
+- In `allMatching` mode, the page follows the sort of `spec`. In `ids` mode, it follows the primary key.
+- The route answers `unsupported` without one `primaryKey`, or for a key that is not a number, text, or select column.
+
+## Which rows match [#which-rows-match]
+
+- In `ids` mode, the selection holds the rows whose primary key is in `ids`.
+- In `allMatching` mode, it holds the rows that match the filters and the search text of `spec`, minus `excludedIds`. `groupBy` does not change which rows match.
+- The route reads only the list of the mode. `rowScope` applies in both modes, so the count, the ids, and the rows stay in the tenant of the call.
+- Each list is one id list test: exact primary-key membership, bound as one parameter. A list of more than 65,535 ids works on PostgreSQL and SQLite.
+- The route compares an id with the key and never validates it. The physical type of the key column parses the id. `choices`, `maxLength`, and `scale` do not apply, and an empty text is a text id.
+- An id of the wrong shape, such as the draft id `new-0` for a number key, drops out in both modes. A draft or stale id fails no request.
+- The layer declines some ids that the key type can hold. They are a decimal or float id over `maxNumberLength`, a decimal such as `1e9999`, and a text id over `maxValueLength`. Such an id drops out of `ids`. In `excludedIds`, it answers `invalid-value`, because a dropped exclusion selects its row.
+- A uuid id keeps the case of the request. On SQLite, `ids` matches a uuid stored as text in its stored form only. `excludedIds` excludes it in any case.
+
+## Selection limits [#limits]
+
+- `maxSelectionIds` (default 200,000) bounds `ids` and `excludedIds`. A longer list answers `limit-exceeded`. The default holds the 100,000 ids that the grid remembers, plus 100,000 loaded rows.
+- `end - start` is at most `maxPageSize`.
+- `query.selection.maxBodyBytes` is the body cap: 40 bytes for each id of `maxSelectionIds`, plus twice `maxTreeStringBytes`. That is about 8.1 MiB by default. If the route passes no `maxBodyBytes`, `handleGridRequest` reads it. A larger body answers `payload-too-large` (413).
+
+## Write over the selection [#bulk-write]
+
+`selectionPlan` reads the same body and returns a plan with `rowScope`. `query.where(plan)` turns it into the filter of a bulk write. The default body cap of `handleGridRequest` is 512 KiB, so pass `maxBodyBytes` of `selection`:
+
+```ts title="app/api/orders/delete/route.ts"
+import {
+  handleGridRequest,
+} from "@/components/data-grid-server-query/data-grid-server-query";
+import { db } from "./db";
+import { orders } from "./schema";
+import { ordersQuery } from "./orders-query";
+
+async function deleteSelected(input: unknown) {
+  const plan = ordersQuery.selectionPlan(input);
+  await db.delete(orders).where(ordersQuery.where(plan));
+  return { ok: true };
+}
+
+export const POST = (req: Request) =>
+  handleGridRequest(req, deleteSelected, {
+    maxBodyBytes: ordersQuery.selection.maxBodyBytes,
+  });
+```
+
+The filter covers every selected row. `start` and `end` do not narrow it. After the write, call `clearSelection()` and `refresh()` on the client.
+
+## Related
+
+- [Select server rows](/docs/rows-live-data/select-server-rows)
+- [Query layer](/docs/data-modes/query-layer)
+- [Query layer reference](/docs/contracts/query-layer-reference#limits)

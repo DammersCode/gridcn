@@ -20,7 +20,7 @@ const LATENCY_MS = 300;
 const MAX_FILTER_DEPTH = 2;
 const MAX_FILTER_LEAVES = 64;
 const MAX_FILTER_GROUPS = 16;
-const FILTERABLE_COLUMNS: ReadonlySet<string> = new Set(["id", "name", "email", "age", "active", "role", "joined", "score"]);
+const DEMO_FILTERABLE_COLUMNS: ReadonlySet<string> = new Set(["id", "name", "email", "age", "active", "role", "joined", "score"]);
 
 const isGroup = (node: RemoteFilterNode): node is RemoteFilterGroup => "filters" in node;
 
@@ -56,18 +56,27 @@ function delay(signal?: AbortSignal): Promise<void> {
  * Fake "database" of 1,000 rows behind a 300 ms round trip for the server-side examples:
  * `fetchPage` applies search/filter/sort on the "server" and returns one page plus the total;
  * `applyOps` writes the grid's committed operations back into the store (a stand-in for your API route),
- * so edits survive a refetch.
+ * so edits survive a refetch. `rows` replaces the people rows, and every key of its first row is filterable.
  */
-export function createRemoteServer() {
-  const rows = new Map<string, DemoRow>(generateDemoRows(1000).map((row) => [row.id, row]));
+export function createRemoteServer<T extends { id: string }>(options: { rows: readonly T[] }): RemoteServer<T>;
+export function createRemoteServer(): RemoteServer<DemoRow>;
+export function createRemoteServer<T extends { id: string }>(options: { rows?: readonly T[] } = {}): RemoteServer<T> {
+  return createServer(options);
+}
+
+export type RemoteServer<T extends { id: string } = DemoRow> = ReturnType<typeof createServer<T>>;
+
+function createServer<T extends { id: string }>(options: { rows?: readonly T[] }) {
+  const rows = new Map<string, T>((options.rows ?? (generateDemoRows(1000) as unknown as readonly T[])).map((row) => [row.id, row]));
+  const filterable = options.rows ? new Set(Object.keys(options.rows[0] ?? {})) : DEMO_FILTERABLE_COLUMNS;
   let order = [...rows.keys()];
 
-  const cell = (row: DemoRow, columnId: string): string => {
-    const value = row[columnId as keyof DemoRow];
+  const cell = (row: T, columnId: string): string => {
+    const value = row[columnId as keyof T];
     return value == null ? "" : String(value);
   };
 
-  const matchFilter = (row: DemoRow, filter: RemoteFilter): boolean => {
+  const matchFilter = (row: T, filter: RemoteFilter): boolean => {
     const text = cell(row, filter.columnId);
     const num = Number(text);
     const v = filter.value;
@@ -110,7 +119,7 @@ export function createRemoteServer() {
     }
   };
 
-  async function select(query: Pick<RemoteQuery, "search" | "sorts" | "filters" | "signal">): Promise<DemoRow[]> {
+  async function select(query: Pick<RemoteQuery, "search" | "sorts" | "filters" | "signal">): Promise<T[]> {
     await delay(query.signal);
     let list = order.map((id) => rows.get(id)!);
     if (query.search) {
@@ -119,8 +128,8 @@ export function createRemoteServer() {
     }
     const filters = query.filters ?? [];
     if (filters.length > 0) {
-      assertFilterTree(filters, FILTERABLE_COLUMNS);
-      const matchNode = (row: DemoRow, node: RemoteFilterNode): boolean => {
+      assertFilterTree(filters, filterable);
+      const matchNode = (row: T, node: RemoteFilterNode): boolean => {
         if (!isGroup(node)) return matchFilter(row, node);
         if (node.filters.length === 0) return true;
         const match = node.join === "or" ? node.filters.some((f) => matchNode(row, f)) : node.filters.every((f) => matchNode(row, f));
@@ -132,8 +141,8 @@ export function createRemoteServer() {
     if (sorts.length > 0) {
       list = [...list].sort((a, b) => {
         for (const s of sorts) {
-          const av = a[s.columnId as keyof DemoRow];
-          const bv = b[s.columnId as keyof DemoRow];
+          const av = a[s.columnId as keyof T];
+          const bv = b[s.columnId as keyof T];
           const delta = typeof av === "number" && typeof bv === "number" ? av - bv : collator.compare(String(av), String(bv));
           if (delta !== 0) return s.direction === "asc" ? delta : -delta;
         }
@@ -143,20 +152,20 @@ export function createRemoteServer() {
     return list;
   }
 
-  async function fetchPage(query: RemoteQuery): Promise<{ rows: DemoRow[]; total: number }> {
+  async function fetchPage(query: RemoteQuery): Promise<{ rows: T[]; total: number }> {
     const list = await select(query);
     const start = (query.page - 1) * query.pageSize;
     return { rows: list.slice(start, start + query.pageSize), total: list.length };
   }
 
   /** The rows `[start, end)` of the filtered, sorted list plus its total, for a lazy grid. */
-  async function fetchRange(query: Omit<RemoteQuery, "page" | "pageSize"> & { start: number; end: number }): Promise<{ rows: DemoRow[]; total: number }> {
+  async function fetchRange(query: Omit<RemoteQuery, "page" | "pageSize"> & { start: number; end: number }): Promise<{ rows: T[]; total: number }> {
     const list = await select(query);
     return { rows: list.slice(query.start, query.end), total: list.length };
   }
 
   /** A keyset page: the rows after the opaque `after` cursor, and the cursor of the next page (`null` at the end). No count. */
-  async function fetchAfter(query: Omit<RemoteQuery, "page" | "pageSize"> & { after?: string; limit: number }): Promise<{ rows: DemoRow[]; next: string | null }> {
+  async function fetchAfter(query: Omit<RemoteQuery, "page" | "pageSize"> & { after?: string; limit: number }): Promise<{ rows: T[]; next: string | null }> {
     const list = await select(query);
     const last = query.after === undefined ? -1 : query.after.startsWith("after:") ? Number(query.after.slice("after:".length)) : Number.NaN;
     if (!Number.isSafeInteger(last) || last < -1) throw new Error("invalid cursor");
@@ -166,7 +175,7 @@ export function createRemoteServer() {
 
   /** The distinct values of a column with their row counts, filtered by a case-insensitive `search` and capped at `limit`. */
   async function fetchValues(query: { columnId: string; search: string; filters?: readonly RemoteFilterNode[]; limit?: number; signal?: AbortSignal }): Promise<{ values: { value: string; count: number }[] }> {
-    if (!FILTERABLE_COLUMNS.has(query.columnId)) throw new Error("invalid column");
+    if (!filterable.has(query.columnId)) throw new Error("invalid column");
     const list = await select({ filters: query.filters, signal: query.signal });
     const counts = new Map<string, number>();
     const needle = query.search.toLowerCase();
@@ -178,22 +187,22 @@ export function createRemoteServer() {
     return { values: values.slice(0, query.limit ?? 200) };
   }
 
-  function applyOps(ops: DataChange<DemoRow>["ops"]): void {
+  function applyOps(ops: DataChange<T>["ops"]): void {
     const next = applyChange(order.map((id) => rows.get(id)!), { ops, source: "app" }, (row) => row.id);
     rows.clear();
     for (const row of next) rows.set(row.id, row);
     order = next.map((row) => row.id);
   }
 
-  /** Changes the score of each known row on the server and returns the matching pushes. */
-  function bumpScores(ids: readonly string[]): { rowId: string; changes: { score: number } }[] {
-    const pushes: { rowId: string; changes: { score: number } }[] = [];
+  /** Sets a new value on the server for the number column `columnId` of each known row and returns the matching pushes. */
+  function bumpNumbers(ids: readonly string[], columnId: string, next: (value: number) => number): { rowId: string; changes: Record<string, number> }[] {
+    const pushes: { rowId: string; changes: Record<string, number> }[] = [];
     for (const id of ids) {
       const row = rows.get(id);
       if (!row) continue;
-      const score = Math.max(0, Math.min(100, row.score + Math.round((Math.random() - 0.5) * 40)));
-      rows.set(id, { ...row, score });
-      pushes.push({ rowId: id, changes: { score } });
+      const value = next(Number(row[columnId as keyof T]));
+      rows.set(id, { ...row, [columnId]: value });
+      pushes.push({ rowId: id, changes: { [columnId]: value } });
     }
     return pushes;
   }
@@ -204,5 +213,5 @@ export function createRemoteServer() {
     order = order.filter((id) => rows.has(id));
   }
 
-  return { total: rows.size, fetchPage, fetchRange, fetchAfter, fetchValues, applyOps, bumpScores, remove };
+  return { total: rows.size, fetchPage, fetchRange, fetchAfter, fetchValues, applyOps, bumpNumbers, remove };
 }

@@ -24,6 +24,9 @@ mirror the change there.
 | group path | The group keys from the outermost level down to one row group: one `{ columnId, key }` per level. A server request names the group whose children it reads with `groupPath`. | |
 | group level | The place of a group column in `groupBy`. The first column is level 0. | |
 | child list | The rows or the groups that a server grid holds for one open row group, or for the top level. One request reads one child list, named by `groupPath`. | |
+| generated column | A column that a pivot makes from one key of the pivot column and one aggregate. The core builds it from the server answer, or from the client buckets. It shows pivot cells and refuses every write. | |
+| pivot cell | The value of one generated column in one group row. It is the aggregate over the rows of that row group that hold the key of the column. It is empty when no value counted. | |
+| held set | The generated columns that a pivot grid shows. On a server grid the first answer after a spec change or `refresh()` sets it. Later answers map their cells into it by column id. On a client grid each full build sets it. | |
 | expanded state | `{ mode, ids }`: the row groups that differ from `mode`, named by group id. It decides which groups show their rows. | |
 | checked row | A row whose marker checkbox is on, kept in the row channel of the selection. | ticked row |
 | data mode | One way the grid gets its rows: local array, client pagination, server pagination (pages mode), scroll mode, controlled state, server sort, server filter, or write-through to your own API. `research/parity-matrix.json` lists each feature against each data mode. | source kind |
@@ -46,6 +49,7 @@ mirror the change there.
 | row range | `RowRange`: `{ start, end }` over rows, `end` excluded. A scroll-mode request asks for one. | range (a range is a cell selection) |
 | value query | The text a `fetchFilterValues` request carries as `query`. The server lists the values that match it. | value search |
 | server grid | A grid with `sortMode="server"` and `filterMode="server"`. Your backend applies the spec and the grid shows the answer. | |
+| server hold | The time after a spec change in which `useDataGridServerRows` keeps the old rows on screen until the answers for the rendered rows land. The grid refuses the writes of user gestures then, with the reason `"server-held"`. | |
 | server mode | How a feature behaves when your server holds the rows, the sort, or the filter: `sortMode` or `filterMode` `"server"`, or `useDataGridServerRows`. The heading of that section on a feature page. | |
 | result | Every row that matches the spec on the server. `data` holds the loaded rows of it. | result set, dataset |
 | sort locale | The BCP 47 tag that orders text compares in a client sort, text range filters, and filter value lists. The `sortLocale` prop sets it, then `locale`, then `"en-US"`. | |
@@ -171,3 +175,10 @@ mirror the change there.
 | row scope | `rowScope`: equalities on `serverOnly` columns that every query of a factory adds with AND, such as the tenant. | tenant filter |
 | blank operand | The empty value (`""`, `["", ""]`, `[]`) of a filter row that the user has not filled in. The query layer gives it the meaning the grid gives it. | empty value |
 | native fragment | A piece of SQL in the type of one ORM, such as the `sql` fragment of Drizzle. `where(plan)`, `orderBy(plan)`, and `customOperators` use it. | |
+| keyset cursor | The opaque string of key texts and a plan hash that resumes a page after the last row. | offset cursor |
+| resume predicate | The OR form that selects the rows after a keyset cursor's row. | |
+| plan hash | The digest of a parsed plan's filter and order. A keyset cursor with another plan hash is stale. | |
+| key test | The `key` test: a raw comparison in the sort order of the database. | |
+| id list test | The `ids` test: exact primary-key membership, bound as one parameter. | |
+| validated change | What `query.validateChange` returns: the writes with scoped `where`s, and the refusals. | |
+| write refusal | One refused row or cell of a validated change, in the shape of a `SaveRejection`. | |

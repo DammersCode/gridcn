@@ -410,18 +410,22 @@ describe("useDataGridServerRows scroll mode: aborts and races", () => {
 });
 
 describe("useDataGridServerRows scroll mode: spec and refresh", () => {
-  it("sends the spec and resets to block 0 when its content changes, keeping the skeleton count", async () => {
+  it("sends the spec and resets to block 0 when its content changes, keeping the old rows until the answer lands", async () => {
     const fetchRows = countedServer();
     const { result, rerender } = renderHook(({ spec }: { spec: ServerSpec }) => useDataGridServerRows<Row>(optionsOf(fetchRows, { spec })), { initialProps: { spec: { sorts: [], filters: [], searchText: "a" } } });
     await settled(result);
     expect(fetchRows.mock.calls[0]![0].spec.searchText).toBe("a");
     rerender({ spec: { sorts: [], filters: [], searchText: "a" } });
     expect(fetchRows).toHaveBeenCalledTimes(1);
+    const shown = result.current.gridProps.data;
     rerender({ spec: { sorts: [], filters: [], searchText: "b" } });
-    expect(result.current.gridProps.data.length).toBe(1000);
-    expect(result.current.gridProps.data[0]).toBeUndefined();
+    expect(result.current.gridProps.data).toBe(shown);
+    expect(result.current.gridProps.serverHeld).toBe(true);
+    expect(result.current.loading).toBe(true);
     await waitFor(() => expect(fetchRows.mock.calls.at(-1)![0].spec.searchText).toBe("b"));
     await settled(result);
+    expect(result.current.gridProps.data).not.toBe(shown);
+    expect(result.current.gridProps.serverHeld).toBeUndefined();
     expect(result.current.gridProps.data[0]).toEqual(person(0));
   });
 

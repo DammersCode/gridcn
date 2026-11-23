@@ -29,17 +29,22 @@ export function fakeServer<T extends { id: string }>(rows: T[], answerFor?: (req
     if (!childKind) return Promise.resolve({ rows: rows.slice(start, end), totalRowCount: rows.length });
     const groupBy = spec.groupBy ?? [];
     const inside = rows.filter((row) => groupPath.every((segment) => valueOf(row, segment.columnId) === segment.key));
-    if (childKind === "rows") return Promise.resolve({ rows: inside.slice(start, end), totalRowCount: inside.length });
+    if (childKind === "rows") return spec.pivot ? Promise.reject(new Error("a rows request under pivot")) : Promise.resolve({ rows: inside.slice(start, end), totalRowCount: inside.length });
     const columnId = groupBy[groupPath.length]!;
     const keys = [...new Set(inside.map((row) => valueOf(row, columnId) as string))].sort();
+    const values = spec.aggregates ?? [];
+    const pivotId = spec.pivot?.columnIds[0];
+    const pivotColumns = pivotId === undefined ? [] : [...new Set(inside.map((row) => valueOf(row, pivotId) as string))].sort().flatMap((key) => values.map((_, valueIndex) => ({ path: [key], valueIndex })));
+    const reduceOver = (members: T[], columnIdOf: string, reducer: string) => reduce(reducer, members.map((row) => Number(valueOf(row, columnIdOf))));
     const groups: ServerGroupRow[] = keys.slice(start, end).map((key) => {
       const members = inside.filter((row) => valueOf(row, columnId) === key);
       const last = groupPath.length + 1 === groupBy.length;
       const childCount = last ? members.length : new Set(members.map((row) => valueOf(row, groupBy[groupPath.length + 1]!))).size;
-      const aggregates = Object.fromEntries((spec.aggregates ?? []).map((aggregate) => [aggregate.columnId, reduce(aggregate.reducer, members.map((row) => Number(valueOf(row, aggregate.columnId))))]));
-      return { key, childCount, totalRowCount: members.length, ...(spec.aggregates?.length ? { aggregates } : null) };
+      const aggregates = Object.fromEntries(values.map((aggregate) => [aggregate.columnId, reduceOver(members, aggregate.columnId, aggregate.reducer)]));
+      const pivotCells = pivotColumns.map(({ path, valueIndex }) => reduceOver(members.filter((row) => valueOf(row, pivotId!) === path[0]), values[valueIndex]!.columnId, values[valueIndex]!.reducer));
+      return { key, childCount, totalRowCount: members.length, ...(values.length ? { aggregates } : null), ...(pivotId === undefined ? null : { pivotCells }) };
     });
-    return Promise.resolve({ groups, groupCount: keys.length, ...(groupPath.length === 0 ? { totalRowCount: inside.length } : null) });
+    return Promise.resolve({ groups, groupCount: keys.length, ...(groupPath.length === 0 ? { totalRowCount: inside.length } : null), ...(pivotId === undefined ? null : { pivotColumns, pivotOmitted: 0 }) });
   });
   return { calls, fetchRows, rows };
 }

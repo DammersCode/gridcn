@@ -1,12 +1,13 @@
 import type { StoreApi } from "zustand/vanilla";
-import type { ExpandedState } from "../group-types";
+import type { ExpandedState, PivotSpec } from "../group-types";
 import { selectCell } from "../selection";
 import { flattenGroupTree, groupIdsOfRow, type GroupTree } from "../sort-filter/build-group-view";
 import { computeSearchMatches, computeViewIndex, viewFilters, viewSorts, viewWindowOf, windowView } from "./compute";
 import { emitAfterWrites, resetDeferredRows, type DataWriteContext } from "./data-write";
 import { groupAnnouncementLabel, nextAnnouncement } from "./announcements";
 import { EXPANDED, COLLAPSED, expandedTest, normalizeExpanded, normalizeGroupBy, sameExpanded, sameGroupBy, toggleExpanded } from "./group-state";
-import { rememberEmitted } from "./group-sync";
+import { groupRowExpandable } from "./group-positions";
+import { normalizePivot, rememberEmitted, requestedGroupByOf } from "./group-sync";
 import { groupingOf, warnGroupOnce } from "./group-view";
 import { viewRowOfDataIndex } from "./row-index";
 import { clearStaleRows } from "./server-stale";
@@ -14,7 +15,9 @@ import type { FollowView, SyncMemory } from "./sync-props";
 import type { DataGridActions, DataGridStoreState } from "./types";
 import { dataIndexAt, registerGroupLayout, viewRowOfGroupId } from "./view-rows";
 
-type GroupActions = Pick<DataGridActions, "setGroupBy" | "toggleGroupBy" | "setExpanded" | "toggleGroup" | "expandAll" | "collapseAll">;
+const NO_PIVOT: readonly string[] = [];
+
+type GroupActions =Pick<DataGridActions, "setGroupBy" | "toggleGroupBy" | "setPivot" | "setExpanded" | "toggleGroup" | "expandAll" | "collapseAll">;
 
 type Deps = {
   set: StoreApi<DataGridStoreState>["setState"];
@@ -42,15 +45,15 @@ export function createGroupActions({ set, get, dataWrite, followView, memory }: 
   const patchFor = (s: DataGridStoreState, viewIndex: number[]): Partial<DataGridStoreState> => ({
     viewIndex,
     ...followView(s, viewIndex, s.visibleColumns),
-    ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
+    ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions, s.locale),
   });
 
-  const regroup = (s: DataGridStoreState, groupBy: readonly string[]): Partial<DataGridStoreState> => {
-    const grouping = groupingOf({ ...s, groupBy });
+  const regroup = (s: DataGridStoreState, groupBy: readonly string[], pivotColumnIds = s.pivotColumnIds): Partial<DataGridStoreState> => {
+    const grouping = groupingOf({ ...s, groupBy, pivotColumnIds });
     const page = s.pageSize === null || s.pageControlled ? s.page : 1;
     const viewIndex = computeViewIndex(s.data, s.columns, viewSorts(s.sortMode, s.sortState), viewFilters(s.filterMode, s.filterState, s.filterJoin), s.viewIndex, s.cellTypes, viewWindowOf({ ...s, page }), s.sortLocale, grouping);
     resetDeferredRows(dataWrite);
-    return { groupBy, page, ...clearStaleRows(dataWrite), ...patchFor(s, viewIndex) };
+    return { groupBy, pivotColumnIds, page, ...clearStaleRows(dataWrite), ...patchFor(s, viewIndex) };
   };
 
   const reopen = (s: DataGridStoreState, expanded: ExpandedState): Partial<DataGridStoreState> => {
@@ -63,14 +66,40 @@ export function createGroupActions({ set, get, dataWrite, followView, memory }: 
     return { expanded, ...patch, ...anchorOnGroup(s, viewIndex, tree, patch) };
   };
 
+  // A server layout matches only the group columns it was built for, so the grid keeps them until the prop brings the new layout.
+  const heldForServer = (s: DataGridStoreState) => s.groupMode === "server" && s.groupByControlled;
+
   const commitGroupBy = (requested: readonly string[]): void => {
     const s = get();
     const groupBy = normalizeGroupBy(requested, s.columns);
-    if (sameGroupBy(groupBy, s.groupBy)) return;
-    set((s2) => regroup(s2, groupBy));
-    memory.lastSyncInputs = { ...memory.lastSyncInputs, groupBy };
+    if (sameGroupBy(groupBy, requestedGroupByOf(s))) return;
+    const resetPage = () => {
+      if (s.pageSize !== null && s.page !== 1) s.onPageChange?.(1);
+    };
+    // A pivot needs groupBy, so the last ungroup turns it off too.
+    const pivotOff = groupBy.length === 0 && s.pivotColumnIds.length > 0 ? { columnIds: NO_PIVOT } : null;
+    const emitPivotOff = () => pivotOff && s.onPivotChange?.(pivotOff);
+    if (heldForServer(s)) {
+      set({ requestedGroupBy: groupBy });
+      emitAfterWrites(dataWrite, () => s.onGroupByChange?.(groupBy), emitPivotOff, resetPage);
+      return;
+    }
+    set((s2) => ({ ...regroup(s2, groupBy, pivotOff ? NO_PIVOT : s2.pivotColumnIds), requestedGroupBy: null }));
+    memory.lastSyncInputs = { ...memory.lastSyncInputs, groupBy, ...(pivotOff ? { pivotColumnIds: NO_PIVOT } : null) };
     if (s.groupByControlled) rememberEmitted(memory.group.groupByEcho, groupBy);
-    emitAfterWrites(dataWrite, () => s.onGroupByChange?.(groupBy), () => {
+    if (pivotOff && s.pivotControlled) rememberEmitted(memory.group.pivotEcho, pivotOff);
+    emitAfterWrites(dataWrite, () => s.onGroupByChange?.(groupBy), emitPivotOff, resetPage);
+  };
+
+  const commitPivot = (requested: PivotSpec | undefined): void => {
+    const s = get();
+    const pivotColumnIds = normalizePivot(requested);
+    if (sameGroupBy(pivotColumnIds, s.pivotColumnIds)) return;
+    const emitted = { columnIds: pivotColumnIds };
+    set((s2) => regroup(s2, s2.groupBy, pivotColumnIds));
+    memory.lastSyncInputs = { ...memory.lastSyncInputs, pivotColumnIds };
+    if (s.pivotControlled) rememberEmitted(memory.group.pivotEcho, emitted);
+    emitAfterWrites(dataWrite, () => s.onPivotChange?.(emitted), () => {
       if (s.pageSize !== null && s.page !== 1) s.onPageChange?.(1);
     });
   };
@@ -90,13 +119,15 @@ export function createGroupActions({ set, get, dataWrite, followView, memory }: 
   return {
     setGroupBy: commitGroupBy,
     toggleGroupBy(columnId) {
-      const { groupBy } = get();
+      const groupBy = requestedGroupByOf(get());
       commitGroupBy(groupBy.includes(columnId) ? groupBy.filter((id) => id !== columnId) : [...groupBy, columnId]);
     },
+    setPivot: commitPivot,
     setExpanded: commitExpanded,
     toggleGroup(groupId) {
       const s = get();
       const node = s.groupLayout?.rows.find((row) => row.id === groupId);
+      if (s.pivot && !(node && groupRowExpandable(s, node))) return;
       const opens = !expandedTest(s.expanded)(groupId);
       const next = toggleExpanded(s.expanded, groupId);
       if (next === s.expanded) {

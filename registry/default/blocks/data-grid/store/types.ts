@@ -1,9 +1,10 @@
 import type { ComponentType, ReactNode, Ref } from "react";
 import type { StoreApi } from "zustand/vanilla";
+import type { AutosizeFonts } from "../columns/autosize-columns";
 import type { ColumnGroupModel } from "../columns/column-groups";
 import type { ColumnOrderResult } from "./column-order";
 import type { SelectionChangeDetails } from "./selection-change";
-import type { ExpandedState, GroupActionResult, GroupStoreState, ServerGroupLayout } from "../group-types";
+import type { ExpandedState, GroupActionResult, GroupStoreState, PivotSpec, ServerGroupLayout } from "../group-types";
 import type {
   CellRef, ViewCellRef, ViewCoord,
   AutosizeOptions,
@@ -47,19 +48,13 @@ import type { RowSaveStatus, SaveAck, SaveConflictContext, SaveContext, SaveReje
 export type { RowSaveStatus, SaveAck, SaveConflictContext, SaveContext, SaveRejectedContext, SaveRejection, SaveResolution } from "./write-ack";
 
 /** The result of `actions.selectAllMatching()`. */
-export type SelectAllMatchingResult = { ok: true } | { ok: false; reason: "disabled" | "needs-across-filters" | "needs-total-row-count" };
+export type SelectAllMatchingResult = { ok: true } | { ok: false; reason: "disabled" | "needs-across-filters" | "needs-total-row-count" | "server-held" };
 
 /** The input that wrote the current selection. */
 export type SelectionPointer = "touch" | "mouse" | "pen" | "keyboard";
 
 /** The lazily-read context `DataGridRoot` registers for {@link DataGridActions.autosizeColumns}. */
-export type AutosizeMeasureContext = {
-  /** The computed `font` of one mounted body cell (canvas `measureText` font). */
-  cellFont: string;
-  /** The computed `font` of one mounted header cell (headers render `font-medium`). */
-  headerFont: string;
-  /** Total horizontal padding (px) of one mounted body cell; omitted falls back to 16. */
-  cellPadding?: number;
+export type AutosizeMeasureContext = AutosizeFonts & {
   /** The currently mounted view-row window `[start, end)`, or `null` when no rows are mounted. */
   window: { start: number; end: number } | null;
   /** The consumer renders a per-column header-menu trigger (adds its fixed width allowance). */
@@ -335,6 +330,12 @@ export type DataGridSyncProps<TData = unknown> = {
   defaultGroupBy?: readonly string[] | (() => readonly string[] | null | undefined);
   /** Fires after the user (or `setGroupBy`, `toggleGroupBy`) changes the group columns. */
   onGroupByChange?: (next: readonly string[]) => void;
+  /** Controlled pivot: one generated column per key of the pivot column and per built-in `aggregate`; needs `groupBy`. `{ columnIds: [] }` is off. */
+  pivot?: PivotSpec;
+  /** Seeds the pivot once at store creation. A function runs once on the client after mount. */
+  defaultPivot?: PivotSpec | (() => PivotSpec | null | undefined);
+  /** Fires after `setPivot` changes the pivot, with `{ columnIds: [] }` when it turns off. */
+  onPivotChange?: (next: PivotSpec) => void;
   /** Controlled open groups. A toggle applies at once and emits. Default: every group collapsed. */
   expanded?: ExpandedState;
   /** Seeds the open groups once at store creation. */
@@ -497,6 +498,8 @@ export type DataGridSyncProps<TData = unknown> = {
      * Useful for lazy-loading/prefetch/analytics add-ons; core has no fetching logic of its own.
      */
     onRenderedRowsChange?: (range: { start: number; end: number }) => void;
+    /** @internal `useDataGridServerRows` sets it while it holds the rows of the previous spec on screen. */
+    serverHeld?: boolean;
     /**
      * Fires on every live width write during a resize drag (`actions.previewColumnWidth`, per drag
     * frame) — the in-progress counterpart to `onColumnLayoutChange`'s once-per-commit snapshot.
@@ -659,7 +662,7 @@ export type DeleteRowsOptions = {
 export type DataGridStoreState = Omit<
   InternalSyncProps,
   | "data"
-  | "groupLayout"
+  | "groupLayout" | "pivot" | "defaultPivot"
   | "defaultData"
   | "cellTypes"
   | "commands"
@@ -725,6 +728,7 @@ export type DataGridStoreState = Omit<
   enableColumnReorder: boolean;
   enableColumnPinning: boolean;
   headerClickBehavior: HeaderClickBehavior;
+  /** The cell with focus. On a group row, any `col` inside the label span means the label is active; ArrowUp and ArrowDown keep `col`. */
   activeCell: ViewCoord | null;
   selection: GridSelection;
   /**
@@ -905,6 +909,8 @@ export type DataGridStoreState = Omit<
    * context menu) goes through this field.
    */
   readOnly: boolean;
+  /** @internal The server hook holds the rows of the previous spec: user gestures that write are refused, consumer writes pass. Only write paths read it. */
+  serverHeld: boolean;
   /**
    * The effective keymap — `DEFAULT_KEYMAP` merged with the `keymap` sync prop — seeded at store
    * creation and kept in sync by the config phase, the single source of truth for bindings
@@ -929,7 +935,7 @@ export type DataGridStoreState = Omit<
 /** `DataGridStoreState` with `data` typed as `readonly TData[]` — the state view {@link useDataGridSelector} hands its selector. Every row in `data` originated from the grid's own `TData`-typed `data`/`defaultData` prop, so the widening is safe. */
 export type DataGridStoreStateOf<TData> = Omit<DataGridStoreState, "data" | DataGridInternalStateKey> & { data: readonly TData[] };
 
-type DataGridInternalStateKey = "dataControlled" | "selectAllStage" | "editingRejectionCount" | "selectionPointer" | "lastHighlightedRow" | "lastHighlightedCol" | "rowRangeGesture" | "sortControlled" | "filterControlled" | "filterJoinControlled" | "searchControlled" | "pageControlled" | "pageSizeControlled" | "searchMatchSet" | "groupByControlled" | "expandedControlled" | "serverGroupLayout" | "rowIdentityVersion" | "scrollToCellImpl" | "focusImpl" | "runShortcutImpl" | "focusSearchImpl" | "measureFonts" | "dataWrite";
+type DataGridInternalStateKey = "dataControlled" | "selectAllStage" | "editingRejectionCount" | "selectionPointer" | "lastHighlightedRow" | "lastHighlightedCol" | "rowRangeGesture" | "sortControlled" | "filterControlled" | "filterJoinControlled" | "searchControlled" | "pageControlled" | "pageSizeControlled" | "searchMatchSet" | "groupByControlled" | "pivotControlled" | "expandedControlled" | "serverGroupLayout" | "rowIdentityVersion" | "scrollToCellImpl" | "focusImpl" | "runShortcutImpl" | "focusSearchImpl" | "measureFonts" | "dataWrite";
 
 /** Mutations for a single grid instance, nested under the stable `actions` key. */
 export type DataGridActions = {
@@ -974,7 +980,7 @@ export type DataGridActions = {
   /**
    * Checks every row of the result: every page of a client-paged grid, or every row of a server result, loaded or not. Rows that load later show as checked; unchecking a row excludes it.
    * Returns `{ ok: false, reason }` and changes nothing when row selection is off (`"disabled"`), when the result outruns the shown rows and `checkedRowsLifetime` is not `"across-filters"` (`"needs-across-filters"`),
-   * or when a server-sorted or server-filtered grid lacks `totalRowCount` (`"needs-total-row-count"`). A client grid without paging checks its rows. Read the outcome with `useDataGridSelectedRows`.
+   * or when a server-sorted or server-filtered grid lacks `totalRowCount` (`"needs-total-row-count"`), or while the server hook holds the rows of the previous spec (`"server-held"`). A client grid without paging checks its rows. Read the outcome with `useDataGridSelectedRows`.
    */
   selectAllMatching(): SelectAllMatchingResult;
   /** Shows page `page` (1-based) of the view. Calls `onPageChange`; a controlled `page` changes when the parent passes the next one. */
@@ -1072,6 +1078,8 @@ export type DataGridActions = {
   setGroupBy(next: readonly string[]): void;
   /** Adds the column as the innermost group level, or removes it. */
   toggleGroupBy(columnId: string): void;
+  /** Sets the pivot column, or turns the pivot off with `undefined`. */
+  setPivot(next: PivotSpec | undefined): void;
   /** Sets the open groups. */
   setExpanded(next: ExpandedState): void;
   /** Opens a closed group and closes an open one. */
@@ -1159,7 +1167,7 @@ export type DataGridActions = {
    * above/below `viewRowIndex` (view-index) as ONE `{source: 'row-operation'}` DataChange with one
    * row-id-based `insert` operation per row - a single undo entry. Does nothing and returns a skip reason:
    * `"readOnly"`, `"no-factory"` (no `createRow`, dev-warned), `"nothing-to-do"` (`count` is not a positive
-   * integer), or `"unloaded-rows"` (the target row is not loaded yet in scroll mode). A new insert aborts a
+   * integer), `"unloaded-rows"` (the target row is not loaded yet in scroll mode), or `"server-held"` (the server hook holds the rows of the previous spec). A new insert aborts a
    * pending `createRow` promise (`onGateAborted` reason `"superseded"`); a rejected promise reports `"gate-threw"`.
    */
   insertRows(viewRowIndex: number, count: number, position?: "above" | "below"): RowActionResult;
@@ -1181,7 +1189,7 @@ export type DataGridActions = {
    * source row, as one `{source: 'row-operation'}` DataChange with row-id-based `insert` operations. Returns
    * `"no-factory"` (dev-warned) when the `duplicateRow` prop is absent — required so
    * every duplicated row gets a distinct id, never colliding with its source's React key — and
-   * `"readOnly"`, `"unloaded-rows"`, or `"nothing-to-do"` when it does nothing else. A new duplicate aborts a pending `duplicateRow` promise (`"superseded"`).
+   * `"readOnly"`, `"unloaded-rows"`, `"server-held"`, or `"nothing-to-do"` when it does nothing else. A new duplicate aborts a pending `duplicateRow` promise (`"superseded"`).
    */
   duplicateRowsAt(viewRowIndexes: readonly number[]): RowActionResult;
   /**
@@ -1311,6 +1319,8 @@ export type DataGridInternalActions = {
   _registerFocusSearch(impl: () => void): () => void;
   /** @internal `DataGridRoot` registers/clears its autosize measure context (fonts, mounted row window, header-menu flag) on mount/unmount; `autosizeColumns` reads it lazily. Not part of the public hook surface. */
   _registerMeasureFonts(impl: (() => AutosizeMeasureContext | null) | null): void;
+  /** @internal Sets held generated widths in one write, clamped as `setColumnWidth` clamps; `resetOthers` drops the rest. Returns the widths of columns not held. */
+  _setPivotWidths(widths: Readonly<Record<string, number>>, options?: { resetOthers?: boolean }): Map<string, number>;
   /**
    * @internal Drops the flash keys whose row left `keptViewRows` (the body's rendered window),
    * so a cell that scrolls out and back in never replays its one-shot pulse. Not part of the
@@ -1327,8 +1337,8 @@ export type LiveAnnouncement = { kind: LiveAnnouncementKind; count: number; seq:
 /** Full store shape: interaction state + the stable actions object. */
 export type DataGridStore = DataGridStoreState;
 
-/** Why a row action did nothing: the grid is read-only, a target row is unloaded, the factory prop is missing, an `onBeforeDeleteRows`, `createRow`, or `duplicateRow` gate returned `false` (`"gate-declined"`) or threw or rejected (`"gate-threw"`), or no row matched. `"group-row"` marks an insert or duplicate refused on a group row, and `"server-groups"` any row operation refused while the server lays out the groups. `"view-ordered"` marks a row move refused because an active sort (client or server) or client filter owns the row order, and `"disabled"` a row move shortcut without a reorder `rowMarkers` mode. `"all-matching"` and `"hidden-rows-only"` mark a key or menu row action refused because the checked rows are not in the grid: every matching row is checked, or every checked row is outside the view. */
-export type RowActionSkipReason = "readOnly" | "unloaded-rows" | "no-factory" | "gate-declined" | "gate-threw" | "nothing-to-do" | "view-ordered" | "group-row" | "server-groups" | "disabled" | "all-matching" | "hidden-rows-only";
+/** Why a row action did nothing: the grid is read-only, a target row is unloaded, the factory prop is missing, an `onBeforeDeleteRows`, `createRow`, or `duplicateRow` gate returned `false` (`"gate-declined"`) or threw or rejected (`"gate-threw"`), or no row matched. `"server-held"` marks a row action refused while the server hook holds the rows of the previous spec. `"group-row"` marks an insert or duplicate refused on a group row, and `"server-groups"` any row operation refused while the server lays out the groups. `"view-ordered"` marks a row move refused because an active sort (client or server) or client filter owns the row order, and `"disabled"` a row move shortcut without a reorder `rowMarkers` mode. `"all-matching"` and `"hidden-rows-only"` mark a key or menu row action refused because the checked rows are not in the grid: every matching row is checked, or every checked row is outside the view. */
+export type RowActionSkipReason = "readOnly" | "unloaded-rows" | "server-held" | "no-factory" | "gate-declined" | "gate-threw" | "nothing-to-do" | "view-ordered" | "group-row" | "server-groups" | "disabled" | "all-matching" | "hidden-rows-only";
 
 /** The row actions that report through `onRowActionSkipped`; `deleteRowsAt` reports as `deleteRows`, and `reorderRows` and `moveRowsBy` as `moveRows`. */
 export type RowActionName = "insertRows" | "duplicateRows" | "deleteRows" | "moveRows";
@@ -1339,18 +1349,7 @@ export type RowActionResult = { ok: true } | { ok: false; reason: RowActionSkipR
 export type { SyncInputs } from "./sync-inputs";
 export { syncInputsEqual } from "./sync-inputs";
 
-/**
- * `warnings` (only on the success/noop arms) carries `validationMode: "warn"` rejections that committed
- * anyway — the store merges them into `cellErrors` AFTER the gesture's auto-clear and `validateRow`
- * verdict, so the freshest per-cell signal wins.
- */
-export type CommitResult =
-  | { data: readonly unknown[]; change: DataChange<unknown>; warnings?: readonly CellErrorEntry[] }
-  | { error: string }
-  | { noop: true; warnings?: readonly CellErrorEntry[] };
-
-/** Per-row accumulator: the row as edited so far, plus its per-column cell deltas (columnId -> entry). */
-export type RowEdit = { row: unknown; cells: Map<string, { columnId: string; value: unknown; prev: unknown }> };
+export type { CommitResult, RowEdit } from "./commit";
 
 /**
  * The `store` branch of {@link DataGridProviderProps}/{@link DataGridProps}: a consumer-created

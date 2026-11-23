@@ -1,0 +1,34 @@
+---
+title: 2.1 breaking changes
+icon: TriangleAlert
+description: Each breaking change from 2.0 to 2.1 with the 2.0 form, the 2.1 form, and the change to make in your code.
+type: reference
+aliases: ["2.1 breaking changes", "renamed in 2.1", "removed in 2.1"]
+---
+
+Each row is one **Breaking:** entry of the [changelog](https://github.com/DammersCode/gridcn/blob/main/CHANGELOG.md) under `## 2.1.0`. [2.0 breaking changes](/docs/support-upgrades/breaking-changes-2-0) lists the changes from 1.3 to 2.0.
+
+## Server data and query layer [#server-query]
+
+| Change | 2.0 | 2.1 | What to change |
+|---|---|---|---|
+| <span id="server-group-by-gesture" />Group gesture with server groups and a controlled `groupBy` | Shows the new group columns at once, with the rows ungrouped until the answer lands | Emits `onGroupByChange` and keeps the shown group columns until `groupBy` brings the new layout | Pass the value back as `groupBy`. |
+| <span id="query-sub-ms-instants" />Instant with a digit after the millisecond in the query layer | Cut to the millisecond | A filter answers `unsupported-value`. An import or write cell is a `too-many-decimals` refusal, and `rowScope` throws. | Cut the value to the millisecond before the import. |
+| <span id="number-bound-expansion" />Number text that expands past `maxNumberLength` digits, such as `1e50` | Built the number | Refused: a filter value answers `invalid-value`, an import or change cell `out-of-range` | Write the value within `maxNumberLength` digits, or raise the limit. |
+| <span id="like-escape-refusal" />`%` or `_` in a LIKE value with an executor that sets `likeEscape: false` | Passed to the executor | Refused with `unsupported-value` | Escape in the executor, or set `likeEscape: true`. |
+| <span id="decimal-aggregate-wire" />Number aggregate with more than 15 significant digits that is not a safe integer | Answered text for a decimal column, or a rounded number | Answers a decimal string | Read the string as an exact decimal. |
+
+## Grid behavior [#grid-behavior]
+
+| Change | 2.0 | 2.1 | What to change |
+|---|---|---|---|
+| <span id="loading-bar-delay" />Loading bar of a grid with rows | Shows at once | Shows after 150 ms | Set `--grid-loading-bar-delay: 0ms` to show it at once. |
+| <span id="refresh-first-load" />`refresh()` during the first load of a scroll source | Joined the request in flight | Aborts the request and asks again | Call `refresh()` after the first answer if that request must finish. |
+| <span id="active-cell-group-fallback" />Active cell of a grouped grid whose group leaves the view | Landed on another record | Moves to the nearest parent group that stays | Read the active cell by row id, not by index. |
+| <span id="group-aria-position-paged" />`aria-posinset` and `aria-setsize` of top-level group rows under client pagination | Counted the whole result | Count the page | Expect the page position in tests. |
+
+## Related
+
+- [2.0 breaking changes](/docs/support-upgrades/breaking-changes-2-0)
+- [Upgrade gridcn](/docs/support-upgrades/upgrade-gridcn)
+- [Version policy and changelog](/docs/support-upgrades/version-policy-changelog)

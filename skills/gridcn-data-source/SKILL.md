@@ -2,7 +2,7 @@
 name: gridcn-data-source
 description: "gridcn data sources: pick plain data, server pages, scroll loading, or streaming, and wire it. Use when connecting a grid to a backend or to a dataset too large for one payload, or when sort, filter, or search must run on the server. Triggers: server-side filtering or sorting, `filterMode`, `sortMode`, `fetchFilterValues`, nested filter groups sent to an API, async gates with a server check."
 metadata:
-  gridcn-version: "2.0.0"
+  gridcn-version: "2.1.0"
 ---
 
 Pick exactly one loading strategy for the dataset, then make every sort/filter/search path see the full dataset, not just what happened to load.
@@ -48,7 +48,7 @@ Record which strategy was picked and why (one sentence) before writing code — 
   | `maxLoadedRows` | `10,000` | Unloads the least recently viewed blocks. `Infinity` keeps every row. Rows with an open edit, a pending save, or an unsaved change stay. |
   | `revalidateIntervalMs` | off | Refreshes on a timer, in both modes. At least `1000`. |
 - Scroll mode with a next cursor and no row count (keyset, "has more"): `useDataGridServerRows({ mode: "scroll", fetchRows: ({ cursor, start, end, signal }) => ... })` resolves `{ rows, nextCursor }` (or `{ rows, hasMore }` without a cursor); `nextCursor: null` ends the source, and a spec change restarts it by itself. Send `end - start` as the page size: rows past it are dropped and the next cursor skips them. The first answer picks the fetch order; `source: "random"` or `source: "sequential"` fixes it.
-- Server on Drizzle or Kysely: install `data-grid-server-query-drizzle` (or `-kysely`), build the column map (`columnsFromDrizzleTable` with a required `pick`, or `defineColumnMap`), and answer the route with `handleGridRequest(req, query.fetchRows)`. It replaces a hand-written translation: it escapes LIKE, binds every value, applies `rowScope`, and caps the request. Send `describeFilterOperators(columns)` to the client and merge it with `withColumnMap`. Docs: https://gridcn.vercel.app/docs/data-modes/query-layer.md
+- Server on Drizzle, Kysely, Prisma, or Supabase: install `data-grid-server-query-drizzle` (or `-kysely`, `-prisma`, `-supabase`), build the column map (`columnsFromDrizzleTable` with a required `pick`, `definePrismaColumnMap`, or `defineColumnMap`), and answer the route with `handleGridRequest(req, query.fetchRows)`. It replaces a hand-written translation: it escapes LIKE, binds every value, applies `rowScope`, and caps the request. Send `describeFilterOperators(columns)` to the client and merge it with `withColumnMap`. Docs: https://gridcn.vercel.app/docs/data-modes/query-layer.md
 - Server spec on your endpoint (any other backend): parse the request body with `parseServerSpec(body, { columns, limits })` from `data-grid-server`; it throws `ServerSpecError` for a spec it refuses. Never trust the spec unparsed. The defaults (64 sorts, 500 characters) accept what URL state and saved views restore; `limits` lowers or raises them.
 - Placeholder rows: in scroll mode an unloaded row has a placeholder id; test it with `isPlaceholderRowId(id)` from `data-grid`, never by prefix. Install per https://gridcn.vercel.app/docs/scroll-mode/load-without-row-count.md.
 - `data-grid-pagination`: install per https://gridcn.vercel.app/docs/server-pagination/load-rows-page.md. Decide client mode (`<DataGridProvider defaultPageSize={25}>` plus `<DataGridPaginationBar />` inside it; the grid keeps all rows and pages the view) vs. server mode (`useDataGridServerPager({ page, pageSize, totalRowCount, onPageChange })` fully controlled, you fetch; pass `totalRowCount: null` with `hasMore` when the server sends no count).
@@ -148,7 +148,7 @@ Applies to streaming on top of either:
 - Answer `"groups"` with `{ groups: [{ key, childCount, totalRowCount, aggregates? }], groupCount, totalRowCount }` (`totalRowCount` at the top level only). `key` is the stored value, `null` and `""` are one empty group, last. Answer `"rows"` with `{ rows, totalRowCount }`. Filter before grouping; a sort on a group column orders the groups.
 - On the server read the request with `parseServerSpec` and `parseGroupPath(body, spec)`; limits are 4 levels, 1,024-character keys, 32 aggregates. Pass every key to the query as a parameter. List groupable columns with `groupable` and `aggregatable` in `ServerSpecColumnRules`.
 - The grid throws on an answer without `groups`, a repeated key (`1` and `"1"` repeat), a bad count, or a top level without `totalRowCount`.
-- With the query layer, `fetchRows` answers group requests itself (Drizzle and Kysely) and resolves `RowsAnswer | GroupsAnswer`; narrow with `"groups" in answer` when you call it directly.
+- With the query layer, `fetchRows` answers group requests itself (Drizzle, Kysely, Prisma, and Supabase with `rpc`) and resolves `RowsAnswer | GroupsAnswer`; narrow with `"groups" in answer` when you call it directly.
 - Pages mode: the top level is one page of groups (`pager.unit` is `"groups"`). `initialAnswer` may be the groups answer. While the server lays out groups, insert, duplicate, delete, and move report `server-groups`.
 - Known limits: a save refreshes the whole open list; a swap between grouped and ungrouped ends an open edit; group queries are not performance measured.
 

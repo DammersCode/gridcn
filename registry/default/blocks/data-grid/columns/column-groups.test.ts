@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import { createElement, type ReactNode } from "react";
 import type { ColumnGroupDef } from "../types";
 import { MAX_GROUP_DEPTH, buildColumnGroupModel, columnGroupModelsEqual, computeHeaderRows, groupPathOf, moveGroupBlock, moveWithinGroups, repairGroupOrder } from "./column-groups";
+import { ciFactor } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
-const CI_FACTOR = process.env["CI"] ? 2 : 1;
+const CI_FACTOR = ciFactor(2);
 const ids = (...list: string[]) => list;
 const col = (id: string, pin?: "start" | "end") => ({ id, pin });
 

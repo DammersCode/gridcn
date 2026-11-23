@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createHistory } from "./history";
 import type { DataChange } from "../types";
+import { bestMs, budget } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
 type Row = { id: string; name: string; age: number };
 
@@ -174,9 +175,14 @@ describe("replaceRowIds at scale", () => {
     const ops = Array.from({ length: 5000 }, (_, i) => ({ type: "insert" as const, rowId: `t${i}`, row: { id: `t${i}`, name: "n" }, index: i }));
     history.push({ source: "row-operation", ops });
     const swaps = Array.from({ length: 5000 }, (_, i) => ({ oldId: `t${i}`, newId: `s${i}`, oldRow: { id: `t${i}`, name: "n" }, newRow: { id: `s${i}`, name: "n" } }));
+    const plainRewriteMs = bestMs(() => {
+      const byOldId = new Map(swaps.map((swap) => [swap.oldId, swap]));
+      return ops.map((op) => ({ ...op, rowId: byOldId.get(op.rowId)?.newId ?? op.rowId }));
+    });
     const start = performance.now();
     expect(history.replaceRowIds(swaps)).toBe(true);
-    expect(performance.now() - start).toBeLessThan(300);
+    const elapsed = performance.now() - start;
+    expect(elapsed).toBeLessThan(budget({ floor: 20, cap: 60, k: 20, reference: plainRewriteMs }));
     expect(history.undo()!.ops.map((op) => op.rowId)).toContain("s4999");
   });
 });

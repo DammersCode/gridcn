@@ -676,3 +676,39 @@ describe("useRowWindow zero-height viewport", () => {
     expect(result.current).toMatchObject({ start: 0, end: 10, measured: true });
   });
 });
+
+describe("useRowWindow shrink below the scroll position", () => {
+  const mount = (scrollTop: number, rowCount: number) => {
+    const el = makeScrollElement(scrollTop, VIEWPORT_PX);
+    const ref = { current: el };
+    const clamp = vi.spyOn(getElementStore(el), "clampScrollTop");
+    const view = renderHook(({ rows }) => useRowWindow(ref, { rowCount: rows, rowHeight: ROW_HEIGHT, dataRowTop: HEADER_HEIGHT }), { initialProps: { rows: rowCount } });
+    return { el, clamp, ...view };
+  };
+
+  it("clamps once on the shrink, and a later growth renders from the clamped offset", () => {
+    const { el, clamp, result, rerender } = mount(36 + 500 * ROW_HEIGHT, 10000);
+    rerender({ rows: 3 });
+    expect(clamp).toHaveBeenCalledTimes(1);
+    expect(el.scrollTop).toBe(0);
+    expect(result.current).toMatchObject({ start: 0, end: 3 });
+    rerender({ rows: 3 });
+    expect(clamp).toHaveBeenCalledTimes(1);
+    rerender({ rows: 10000 });
+    expect(result.current).toMatchObject({ start: 0, end: 10 });
+  });
+
+  it("leaves a scroll position past the end alone while the row count stays", () => {
+    const { el, clamp, rerender } = mount(36 + 20 * ROW_HEIGHT, 10);
+    rerender({ rows: 10 });
+    rerender({ rows: 10 });
+    expect(clamp).not.toHaveBeenCalled();
+    expect(el.scrollTop).toBe(36 + 20 * ROW_HEIGHT);
+  });
+
+  it("leaves a sub-pixel offset past the end alone on a shrink", () => {
+    const { clamp, rerender } = mount(36 + 20 * ROW_HEIGHT - VIEWPORT_PX + 0.5, 30);
+    rerender({ rows: 20 });
+    expect(clamp).not.toHaveBeenCalled();
+  });
+});

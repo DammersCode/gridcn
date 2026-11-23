@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { buildGroupTree, flattenGroupTree } from "./build-group-view";
 import { buildViewIndex, type CellAccessor } from "./build-view-index";
+import { ciFactor } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
 /** The group build at 100k rows: 2 levels, 1,000 inner groups, 3 aggregates. Ceilings guard the order of magnitude, not machine jitter. */
 
 const ROW_COUNT = 100_000;
-const CI_FACTOR = process.env["CI"] ? 2 : 1;
+const CI_FACTOR = ciFactor(2);
 
 type Row = { score: number; age: number; units: number; g1: string; g2: string };
 

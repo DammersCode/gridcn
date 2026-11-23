@@ -24,6 +24,7 @@ import { resolveColumnTexts } from "./resolve-texts";
 import { parseWithHook, safeFromText, settleHookFailure } from "../cell-types/safe-from-text";
 import { candidateRowIds, reresolveBulkWrites, snapshotBulkBatch, useBulkGeneration, type BulkGeneration } from "../validation/bulk-generation";
 import { dataIndexAt } from "../store/view-rows";
+import { pivotCellText } from "../store/pivot-view";
 
 /** Options for {@link useGridClipboard}. */
 export type UseGridClipboardOptions = {
@@ -61,6 +62,11 @@ function serializeRowSlice(s: DataGridStoreState, viewRow: number, colStart: num
   const cells: string[] = [];
   for (let col = colStart; col < colStart + colCount; col++) {
     const column = s.visibleColumns[col];
+    const pivotText = row === undefined ? pivotCellText(s, viewRow, column, "export") : undefined;
+    if (pivotText !== undefined) {
+      cells.push(pivotText);
+      continue;
+    }
     if (!column || row === undefined) {
       cells.push("");
       continue;
@@ -119,6 +125,11 @@ function serializeDisjointRows(s: DataGridStoreState, rows: readonly RowRun[], c
     const row = dataRowIndex === undefined ? undefined : s.data[dataRowIndex];
     const cells: string[] = [];
     for (const entry of resolved) {
+      const pivotText = row === undefined ? pivotCellText(s, viewRow, entry?.column, "export") : undefined;
+      if (pivotText !== undefined) {
+        cells.push(pivotText);
+        continue;
+      }
       if (!entry || row === undefined) {
         cells.push("");
         continue;

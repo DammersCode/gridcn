@@ -10,6 +10,7 @@
     "query-server-rows",
     "query-layer",
     "group-server-rows",
+    "pivot-server-rows",
     "show-server-totals",
     "troubleshoot-server-data"
   ]

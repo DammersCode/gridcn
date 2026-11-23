@@ -7,7 +7,9 @@ import { createDataGridStore } from "./create-store";
 import { DataGridProvider } from ".";
 import { useDataGridStoreApi } from "./provider";
 import { groupLayoutOfView, rowAtViewRow, rowIdAtViewRow } from "./view-rows";
-import { COLLAPSED } from "./group-state";
+import { COLLAPSED, groupIdOf } from "./group-state";
+import { requestedGroupByOf } from "./group-sync";
+import { getInternalActions } from "./internal-actions";
 import type { DataGridStoreState, InternalSyncProps } from "./types";
 
 type Row = { id: string; region: string; qty: number };
@@ -96,10 +98,10 @@ describe("a server layout", () => {
     expect(make({ groupLayout: { rows: [forged], leafCount: 1 } }).ids()[0]).toBe("__group:region=EU");
   });
 
-  it("reads a hostile aggregates bag as plain numbers and nulls", () => {
-    const aggregates = JSON.parse('{"qty":"x","__proto__":{"polluted":1},"n":3}') as Record<string, unknown>;
+  it("reads a hostile aggregates bag as plain numbers, short strings, and nulls", () => {
+    const aggregates = JSON.parse(`{"qty":{"x":1},"__proto__":{"polluted":1},"n":3,"sum":"123456789012345.67","name":"alpha","long":"${"x".repeat(1025)}"}`) as Record<string, unknown>;
     const node = make({ groupLayout: { rows: [slot(0, "EU", { aggregates })], leafCount: 1 } }).state().groupLayout!.rows[0]!;
-    expect(node.aggregates).toEqual({ qty: null, n: 3 });
+    expect(node.aggregates).toEqual({ qty: null, n: 3, sum: "123456789012345.67", name: "alpha", long: null });
     expect(({} as Record<string, unknown>)["polluted"]).toBeUndefined();
   });
 });
@@ -133,12 +135,44 @@ describe("a layout the core refuses", () => {
     expect(String(warn.mock.calls[0]![0])).toContain("groupLayout");
   });
 
-  it("waits quietly for a layout of the new group columns after groupBy changed", () => {
+  it("waits quietly for a layout of the new group columns after an uncontrolled groupBy changed", () => {
     spyWarn();
-    const { state, store } = make();
+    const { state, store } = make({ groupBy: undefined, defaultGroupBy: ["region"] });
     act(() => state().actions.setGroupBy(["qty"]));
     expect(store.getState().viewIndex).toEqual([0, 1, 2, 3, 4]);
     expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("keeps the shown layout and emits the new group columns when a controlled groupBy changes", () => {
+    const onGroupByChange = vi.fn();
+    const { state } = make({ onGroupByChange });
+    const view = state().viewIndex;
+    act(() => state().actions.setGroupBy(["qty"]));
+    expect(onGroupByChange).toHaveBeenCalledWith(["qty"]);
+    expect(state().groupBy).toEqual(["region"]);
+    expect(state().viewIndex).toBe(view);
+  });
+
+  it("builds on the emitted group columns while the controlled prop has not brought them", () => {
+    const onGroupByChange = vi.fn();
+    const { state } = make({ onGroupByChange });
+    act(() => state().actions.toggleGroupBy("qty"));
+    act(() => state().actions.toggleGroupBy("region"));
+    act(() => state().actions.setGroupBy(["region"]));
+    expect(onGroupByChange.mock.calls.map(([groupBy]) => groupBy)).toEqual([["region", "qty"], ["qty"], ["region"]]);
+  });
+
+  it("reads the requested group columns until the prop brings them, and forgets them once groupBy is uncontrolled", () => {
+    const onGroupByChange = vi.fn();
+    const props = { data: data(), columns, getRowId: (r: Row, i: number) => r.id || `slot-${i}`, groupLayout: layout(), onGroupByChange } as unknown as InternalSyncProps;
+    const { store, state } = make({ onGroupByChange });
+    act(() => state().actions.setGroupBy(["qty"]));
+    expect(state().groupBy).toEqual(["region"]);
+    expect(requestedGroupByOf(state())).toEqual(["qty"]);
+    act(() => getInternalActions(store)._syncProps({ ...props, groupMode: "client" }));
+    expect(requestedGroupByOf(state())).toEqual(state().groupBy);
+    act(() => state().actions.setGroupBy(["qty"]));
+    expect(state().groupBy).toEqual(["qty"]);
   });
 });
 
@@ -225,5 +259,18 @@ describe("row actions under a server layout", () => {
   it("leave a grid that does not group to its own rules", () => {
     const { state } = make({ groupBy: undefined, groupLayout: undefined, createRow: () => row("n", "EU") } as Partial<InternalSyncProps>);
     expect(state().actions.insertRows(1, 1).ok).toBe(true);
+  });
+});
+
+describe("a group key with a lone surrogate", () => {
+  it("groups the rows on the client and opens the group by its id", () => {
+    const { state } = make({ data: [row("1", "x\uD800"), row("2", "EU")], groupLayout: undefined, defaultExpanded: { mode: "collapsed", ids: [groupIdOf([{ columnId: "region", key: "x\uD800" }])] } } as Partial<InternalSyncProps>);
+    expect(state().groupLayout?.rows.map((node) => node.id)).toEqual(["__group:region=EU", "__group:region=x%uD800"]);
+    expect(state().viewIndex).toHaveLength(3);
+  });
+
+  it("lays out the server group rows", () => {
+    const { ids } = make({ groupLayout: layout([slot(0, "\uD800"), slot(3, "US")]) });
+    expect(ids()[0]).toBe("__group:region=%uD800");
   });
 });

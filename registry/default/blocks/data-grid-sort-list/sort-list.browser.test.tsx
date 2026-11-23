@@ -307,6 +307,44 @@ describe("DataGridSortList", () => {
   });
 });
 
+describe("DataGridSortList under a pivot", () => {
+  type Sale = { id: string; region: string; year: number; amount: number };
+  const saleColumns = defineColumns<Sale>()([
+    { id: "region", header: "Region", accessorKey: "region", type: "text", width: 120 },
+    { id: "year", header: "Year", accessorKey: "year", type: "number", width: 100 },
+    { id: "amount", header: "Amount", accessorKey: "amount", type: "number", width: 100, aggregate: "sum" },
+  ] as const);
+  const sales: Sale[] = [
+    { id: "s0", region: "EU", year: 2024, amount: 1 },
+    { id: "s1", region: "US", year: 2025, amount: 2 },
+  ];
+  const generatedHeaders = () => [...document.querySelectorAll<HTMLElement>('[role="columnheader"][data-column-id^="__pivot:"]')].map((header) => header.textContent);
+  const options = () => [...document.querySelectorAll<HTMLElement>('[role="option"]')].map((option) => option.textContent);
+
+  it("offers the groupBy column and the named pivot column, never a generated column, and orders the generated columns by the pivot column's sort", async () => {
+    await render(
+      <DataGridProvider data={sales} columns={saleColumns} getRowId={(row) => row.id} groupBy={["region"]} defaultPivot={{ columnIds: ["year"] }}>
+        <DataGridToolbar>
+          <DataGridSortList />
+        </DataGridToolbar>
+        <DataGridRoot className="h-[300px]">
+          <DataGridHeader />
+          <DataGridBody />
+        </DataGridRoot>
+      </DataGridProvider>,
+    );
+    await expect.poll(generatedHeaders).toEqual(["2024", "2025"]);
+    await openSortMenu();
+    document.querySelector<HTMLElement>('[aria-label="Sort column"]')!.click();
+    await expect.poll(options).toEqual(["Region", "Year (pivot)"]);
+    await page.getByRole("option", { name: "Year (pivot)" }).click();
+    await expect.poll(() => document.querySelector('[aria-label="Sort column"]')?.textContent).toBe("Year (pivot)");
+    document.querySelector<HTMLElement>('[aria-label="Sort direction"]')!.click();
+    await page.getByRole("option", { name: "Descending" }).click();
+    await expect.poll(generatedHeaders).toEqual(["2025", "2024"]);
+  });
+});
+
 describe("DataGridSortList i18n labels", () => {
   it("a partial labels override replaces the sort button label", async () => {
     await render(

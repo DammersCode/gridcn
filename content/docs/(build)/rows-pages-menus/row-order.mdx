@@ -95,6 +95,7 @@ These calls return `false`, change nothing, and report through [`onRowActionSkip
 | `"readOnly"` | The grid is `readOnly`. |
 | `"view-ordered"` | A sort is active, also with `sortMode="server"`, or a client filter is active. The sort or filter owns the view order. |
 | `"unloaded-rows"` | The grid holds unloaded rows in scroll mode. |
+| `"server-held"` | The spec changed, and the grid holds the old rows until the answers land. |
 | `"nothing-to-do"` | The drop leaves the rows where they are. The list is empty. An index or `to` is outside the grid. `moveRowsBy` shifts a row out of the grid. |
 
 In development, the grid also warns for `"view-ordered"` and `"unloaded-rows"`.

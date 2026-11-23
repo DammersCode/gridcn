@@ -28,6 +28,7 @@ export type SyncInputs = {
   expanded: ExpandedState;
   groupMode: "client" | "server";
   serverGroupLayout: ServerGroupLayout | null;
+  pivotColumnIds: readonly string[];
 };
 
 export function syncInputsEqual(a: SyncInputs, b: SyncInputs): boolean {
@@ -46,6 +47,7 @@ export function syncInputsEqual(a: SyncInputs, b: SyncInputs): boolean {
     a.groupBy === b.groupBy &&
     a.expanded === b.expanded &&
     a.groupMode === b.groupMode &&
-    a.serverGroupLayout === b.serverGroupLayout
+    a.serverGroupLayout === b.serverGroupLayout &&
+    a.pivotColumnIds === b.pivotColumnIds
   );
 }

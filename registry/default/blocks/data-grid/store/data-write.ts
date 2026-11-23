@@ -217,6 +217,9 @@ export const MAX_STREAM_PATCHES = 100_000;
 /** Rejected rows up to this count resolve their view row with one `indexOf` each instead of one full pass. */
 const STREAM_REJECTION_SCAN_LIMIT = 16;
 
+/** Sources only a user gesture writes; a server hold refuses them, while the sources of consumer writes pass. */
+const HELD_GESTURE_SOURCES: ReadonlySet<DataChange<unknown>["source"]> = new Set(["paste", "fill", "cut", "delete", "replace", "row-operation", "history", "import"]);
+
 /** Queues `emits` behind the pending emits; runs the queue at once when no store write is in progress. */
 export function emitAfterWrites(ctx: DataWriteContext, ...emits: (() => void)[]): void {
   ctx.pendingEmits.push(...emits);
@@ -256,15 +259,25 @@ export function resolveViewIndex(s: DataGridStoreState, data: readonly unknown[]
  * recomputed in place. Both halves no-op unless a search or a view-feeding column is involved.
  */
 export function reconcileAfterWrite(s: DataGridStoreState, nextData: readonly unknown[], ops: readonly DataOp<unknown>[]): Partial<DataGridStoreState> {
-  const written: CellPatch[] = ops.flatMap((op) => (op.type === "update" && op.cells ? op.cells.map((cell) => ({ rowId: op.rowId, columnId: cell.columnId, value: cell.value })) : []));
-  const viewStale = s.viewStale || touchesViewInputs(written, viewInputSorts(s), viewFilters(s.filterMode, s.filterState, s.filterJoin));
-  const groups = refreshedGroups(s, nextData, null, written);
+  const written = writtenCells(ops);
+  const touches = touchesViewInputs(written, viewInputSorts(s), viewFilters(s.filterMode, s.filterState, s.filterJoin));
+  const viewStale = s.viewStale || touches;
+  // A pivot rebuild follows a write that moves a row between groups or keys; refreshing first would paint a frame that matches neither state.
+  const groups = touches && s.groupLayout?.pivot ? {} : refreshedGroups(s, nextData, null, written);
   if (s.searchText.trim() === "") return viewStale === s.viewStale ? groups : { ...groups, viewStale };
   return {
     ...groups,
     ...(viewStale === s.viewStale ? {} : { viewStale }),
-    ...computeSearchMatches(nextData, s.columns, s.viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
+    ...computeSearchMatches(nextData, s.columns, s.viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions, s.locale),
   };
+}
+
+const writtenCells = (ops: readonly DataOp<unknown>[]): CellPatch[] =>
+  ops.flatMap((op) => (op.type === "update" && op.cells ? op.cells.map((cell) => ({ rowId: op.rowId, columnId: cell.columnId, value: cell.value })) : []));
+
+/** Whether `ops` move a row between the groups or keys of a client pivot, which then rebuilds at the next frame. */
+export function movesPivotRows(s: DataGridStoreState, ops: readonly DataOp<unknown>[]): boolean {
+  return s.groupLayout?.pivot !== undefined && touchesViewInputs(writtenCells(ops), viewInputSorts(s), viewFilters(s.filterMode, s.filterState, s.filterJoin));
 }
 
 /**
@@ -280,7 +293,7 @@ export function rebuildRowOpView(s: DataGridStoreState, nextData: readonly unkno
     viewIndex,
     viewStale: staleRowIds.size > 0,
     ...(staleRowIds === s.staleRowIds ? {} : { staleRowIds }),
-    ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
+    ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions, s.locale),
   };
 }
 
@@ -434,7 +447,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       staleRowIds: stale.staleRowIds,
       viewStale: stale.staleRowIds.size > 0,
       ...followView(s, viewIndex, s.visibleColumns),
-      ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
+      ...computeSearchMatches(s.data, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions, s.locale),
     });
   };
 
@@ -570,7 +583,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   const skippedBy = (action: RowActionName, reason: RowActionSkipReason): RowActionResult => reportRowActionSkipped(get(), action, reason);
   const requestDelete = (requested: number[]): RowActionResult => {
     const s = get();
-    if (s.readOnly) return skippedBy("deleteRows", "readOnly");
+    if (s.readOnly || s.serverHeld) return skippedBy("deleteRows", s.readOnly ? "readOnly" : "server-held");
     if (serverOwnsGroups(s)) return skippedBy("deleteRows", "server-groups");
     const dataRowIndexes = requested.filter((i) => s.data[i] !== undefined);
     const unloaded = requested.filter((i) => s.data[i] === undefined && i >= 0 && i < s.data.length).length;
@@ -781,7 +794,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     );
   };
   const moveBlockedReason = (s: DataGridStoreState): RowActionSkipReason | null => {
-    if (s.readOnly) return "readOnly";
+    if (s.readOnly || s.serverHeld) return s.readOnly ? "readOnly" : "server-held";
     if (serverOwnsGroups(s)) return "server-groups";
     // A server sort owns the order too: the next fetch would put the moved rows back.
     if (s.sortState.length > 0 || viewFilters(s.filterMode, s.filterState, s.filterJoin).length > 0) {
@@ -861,7 +874,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         lastHighlightedRow: s.lastHighlightedRow === null ? null : follow(s.lastHighlightedRow),
         rowMoveAnnouncement: announcement,
         liveAnnouncement: nextAnnouncement(s.liveAnnouncement, "rowMove", movedCount),
-        ...computeSearchMatches(nextData, s.columns, s.viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
+        ...computeSearchMatches(nextData, s.columns, s.viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions, s.locale),
         ...editRemap,
       }),
     );
@@ -888,6 +901,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       return { applied: 0, skipped: patches.map((_, patchIndex) => ({ patchIndex, reason: "no-source" })), pending: false };
     }
     if (s.readOnly && options.source !== "stream") return { applied: 0, skipped: patches.map((_, patchIndex) => ({ patchIndex, reason: "readonly" })), pending: false };
+    if (s.serverHeld && HELD_GESTURE_SOURCES.has(options.source)) return { applied: 0, skipped: patches.map((_, patchIndex) => ({ patchIndex, reason: "server-held" })), pending: false };
     if (patches.length > MAX_STREAM_PATCHES && options.source === "stream") {
       warnGateOnce("stream patch limit", `a "stream" call takes at most ${MAX_STREAM_PATCHES} patches; the ${patches.length - MAX_STREAM_PATCHES} after them skip with reason "limit". Send smaller batches`);
       const beyond: UpdateCellsSkip[] = [];
@@ -930,7 +944,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     }
     const applied = batch.ops.reduce((n, op) => (op.type === "update" ? n + (op.cells?.length ?? 0) : n), 0);
 
-    const reorder = resolveReorder(options?.reorder, patches, viewInputSorts(s), viewFilters(s.filterMode, s.filterState, s.filterJoin));
+    // Under a client pivot no row shows, so a write that moves a row between groups or keys rebuilds at the next frame.
+    const reorder = resolveReorder(options?.reorder ?? (s.groupLayout?.pivot ? "frame" : undefined), patches, viewInputSorts(s), viewFilters(s.filterMode, s.filterState, s.filterJoin));
     ctx.rowIndexCache.rebase(nextData);
     ctx.lastEmittedData = nextData;
     const marks = markStaleRows(ctx, s, batch.ops, batch.touchedRows, (options?.reorder ?? "defer") !== "never");
@@ -951,14 +966,12 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     if (reorder !== "immediate") {
       // Recorded for `"never"` too, so a later reconcile stays correct when the caller's assertion was wrong.
       rememberDeferredRows(ctx, batch.touchedRows);
+      // A pivot rebuild at the next frame replaces the cells; refreshing them first would paint a frame that matches neither state.
+      const groups = reorder === "frame" && s.groupLayout?.pivot ? {} : refreshedGroups(s, nextData, batch.touchedRows, patches);
       writeThenEmit(ctx, s, nextData, change, () =>
-        set(
-          reorder === "defer" && !s.viewStale
-            ? { data: nextData, viewStale: true, cellErrors, ...stale, ...refreshedGroups(s, nextData, batch.touchedRows, patches) }
-            : { data: nextData, cellErrors, ...stale, ...refreshedGroups(s, nextData, batch.touchedRows, patches) },
-        ),
+        set(reorder === "defer" && !s.viewStale ? { data: nextData, viewStale: true, cellErrors, ...stale, ...groups } : { data: nextData, cellErrors, ...stale, ...groups }),
       );
-      if (reorder === "frame") ctx.frame.schedule(() => reconcileNow(false));
+      if (reorder === "frame" && !ctx.disposed) ctx.frame.schedule(() => reconcileNow(false));
       if (marks.touched && options?.reorder !== "never") ctx.reshape?.("stale");
       emitStreamRejections(patches, batch.rejected, options?.source);
       return { applied, skipped: batch.skipped, pending: false };
@@ -981,7 +994,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
         viewStale: s.staleRowIds.size > 0,
         ...stale,
         ...followView(s, viewIndex, s.visibleColumns, nextData, s.getRowId, true),
-        ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions),
+        ...computeSearchMatches(nextData, s.columns, viewIndex, s.visibleColumns, s.searchText, s.cellTypes, s.searchOptions, s.locale),
       }),
     );
     if (marks.touched) requestReshape(ctx, warnDev);
@@ -992,6 +1005,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   const commitChangeCore = (change: DataChange<unknown>, flags?: readonly CellErrorEntry[]): void => {
     const s = get();
     if (s.readOnly && change.source !== "stream" && change.source !== "rollback") return;
+    if (s.serverHeld && HELD_GESTURE_SOURCES.has(change.source)) return warnGateOnce("held gesture source", `commitChange with source "${change.source}" is refused while the server hook holds the rows of the previous spec; pass source "app" for a write from your code`);
     if (change.ops.length === 0) return;
     const nextData = applyChange(s.data, change, s.getRowId);
     followStaleRows(ctx, change.ops);
@@ -1048,7 +1062,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
   /** Returns whether the value committed (a no-op counts), or `null` on a `readOnly` grid. */
   const commitValueAt = (coord: ViewCoord, value: unknown, reportRejection: boolean): boolean | null => {
     const s = get();
-    if (s.readOnly) return null;
+    if (s.readOnly || s.serverHeld) return null;
     const result = computeCommit(s, coord, value);
     if ("error" in result) {
       const target = reportRejection ? resolveEditTarget(s, coord) : undefined;
@@ -1077,7 +1091,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     _commitCellEdit(value, movement, rejection) {
       const s = get();
       const editing = s.editing;
-      if (!editing || s.readOnly) return;
+      if (!editing || s.readOnly || s.serverHeld) return;
       // Resolve by rowId, so a view rebuild the remap missed discards the draft instead of writing another row.
       const dataRowIndex = ctx.rowIndexCache.resolve(s.data, s.getRowId).get(editing.rowId);
       const anchorStale =
@@ -1151,7 +1165,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     _commitActivation: (coord, value) => commitValueAt(coord, value, true),
     deleteSelection() {
       const s = get();
-      if (s.readOnly) return;
+      if (s.readOnly || s.serverHeld) return;
       const rects = selectionRects(s.selection, s.viewIndex.length, s.visibleColumns.length);
       if (rects.length === 0) return;
 
@@ -1176,7 +1190,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     _deleteCellsById(rowIds, columnIds) {
       const s = get();
-      if (s.readOnly || rowIds.length === 0 || columnIds.length === 0) return;
+      if (s.readOnly || s.serverHeld || rowIds.length === 0 || columnIds.length === 0) return;
       const cleared = columnIds.flatMap((columnId) => {
         const column = s.visibleColumns.find((c) => c.id === columnId);
         const cellType = column ? s.cellTypes[column.type ?? "text"] : undefined;
@@ -1198,7 +1212,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     applyCellUpdates(updates, source, rejected, warnings) {
       const s = get();
-      if (s.readOnly) return;
+      if (s.readOnly || (s.serverHeld && HELD_GESTURE_SOURCES.has(source))) return;
       if (rejected === undefined && warnings === undefined && updates.length > 0) return resolveClearWritesThen(s, updates, (r) => get().actions.applyCellUpdates(r.writes, source, r.rejected, r.warnings));
       // every cell rejected: the write is a no-op, but the consumer still gets the rejection report
       if (updates.length === 0) return rejected ? emitBulkRejections(source, rejected) : undefined;
@@ -1265,7 +1279,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     insertRows(viewRowIndex, count, position = "below") {
       const s = get();
-      if (s.readOnly) return skippedBy("insertRows", "readOnly");
+      if (s.readOnly || s.serverHeld) return skippedBy("insertRows", s.readOnly ? "readOnly" : "server-held");
       if (serverOwnsGroups(s)) return skippedBy("insertRows", "server-groups");
       if (!s.createRow) {
         warnGateOnce("no createRow", "row insertion is a no-op because no `createRow` prop was provided");
@@ -1332,7 +1346,7 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
     },
     duplicateRowsAt(viewRowIndexes) {
       const s = get();
-      if (s.readOnly) return skippedBy("duplicateRows", "readOnly");
+      if (s.readOnly || s.serverHeld) return skippedBy("duplicateRows", s.readOnly ? "readOnly" : "server-held");
       if (serverOwnsGroups(s)) return skippedBy("duplicateRows", "server-groups");
       if (!s.duplicateRow) {
         warnGateOnce("no duplicateRow", "duplicateRows is a no-op because no `duplicateRow` prop was provided");
@@ -1434,7 +1448,8 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
       ctx.lastEmittedData = nextData;
       const swapped = plan.map(({ newId, row, index }): DataOp<unknown> => ({ type: "update", rowId: newId, row, prev: s.data[index] }));
       cellErrors = applyRowValidation(s, cellErrors, nextData, swapped);
-      const touched: DataOp<unknown> = { ...swapped[0]!, cells: columnIds.map((columnId) => ({ columnId, value: undefined, prev: undefined })) } as DataOp<unknown>;
+      const cells = columnIds.map((columnId) => ({ columnId, value: undefined, prev: undefined }));
+      const touched = swapped.map((op) => ({ ...op, cells }) as DataOp<unknown>);
       writeThenEmit(ctx, s, nextData, change, () =>
         set({
           data: nextData,
@@ -1443,9 +1458,10 @@ export function createDataWriteActions(set: SetState, get: GetState, deps: DataW
           flashingCells,
           hiddenCheckedRowIds,
           editing,
-          ...reconcileAfterWrite(s, nextData, [touched]),
+          ...reconcileAfterWrite(s, nextData, touched),
         }),
       );
+      if (movesPivotRows(s, touched) && !ctx.disposed) ctx.frame.schedule(() => reconcileNow(false));
       saveTracker.publishSaveStatus();
     },
     clearSaveStatus() {

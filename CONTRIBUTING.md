@@ -67,15 +67,15 @@ These rules apply to every block under `registry/default/blocks/`. They keep a b
 6. **A domain folder that other domains import gets an `index.ts` barrel.** The block-root barrel (for example `data-grid-toolbar.ts`) is the consumer's import surface:
    - Export from it only what the docs teach the reader to call. See "Registry exports" in `AGENTS.md`.
    - Add-ons import the internals of the core through `data-grid-sdk`.
-   - Inside a block, import from the `index.ts` of the domain.
+   - Inside a block, import the file that defines the symbol. Use the `index.ts` of a domain where several other domains import from it.
 
    One exception keeps the server and client boundary clean. A Server Component that needs only a leaf value, such as a plain constant with no React dependency, can import the leaf file directly. This keeps client-only sibling modules out of the server tree. Add a one-line comment that says why. `components/keymap-table.tsx` shows the pattern.
 7. **Registry target paths mirror the repository structure.** Each `files[].path` entry of a block in `registry.json` matches the file on disk. The `target` field of a file sets where it installs. Update `target` together with `path`. Item names never change when files move.
-8. **Use kebab-case filenames.** New code keeps component files near 200 lines and function files near 100 lines. A merged file (rule 5) can be longer, because it still holds several small, distinct concerns.
+8. **Use kebab-case filenames.** A source file has at most 800 lines and a test file at most 1500 (`scripts/verify-source-size.mjs`). A larger file keeps its ceiling in `scripts/source-size-baseline.json` and never grows past it.
 
 ### How to add a new file or domain
 
-- **A function or component in an existing domain:** put the file in that domain folder and export it from the `index.ts` of the domain. Re-export it from the block-root barrel if it is part of the public API. Add a `*.test.ts(x)` file next to it.
+- **A function or component in an existing domain:** put the file in that domain folder. Export it from the `index.ts` of the domain if the domain has one. Re-export it from the block-root barrel if it is part of the public API. Add a `*.test.ts(x)` file next to it.
 - **A new domain:** create a top-level folder only when two or more files belong together (rule 2). Give it an `index.ts` barrel from the start.
 - **A new file that might merge into an existing one:** merge it (rule 5), unless the new code is large or has no natural sibling.
 - **Cycle check:** before you wire the `index.ts` of a domain into another module, check that the module is not a dependency of anything inside the domain. `store/` is the usual cause: several domains import it, so they import `../store` directly and not through a barrel that can import back into the dependency chain of `store/`. When in doubt, import the specific file you need.

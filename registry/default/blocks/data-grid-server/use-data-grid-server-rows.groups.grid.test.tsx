@@ -50,4 +50,39 @@ describe("a grouped server grid", () => {
     expect(document.querySelectorAll<HTMLElement>("[data-grid-group-row]")[0]!.getAttribute("aria-expanded")).toBe("true");
     expect(fetchRows.mock.calls.some(([request]) => request.childKind === "rows" && request.groupPath?.[0]?.key === "east")).toBe(true);
   });
+
+  it("lands the same collapsed groups twice without the data identity warning", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let refresh!: () => void;
+    function Refreshing() {
+      const server = useDataGridServerRows<Row>({ mode: "scroll", fetchRows: fetchRows as never, blockSize: 10, loadDelayMs: 0, defaultSpec: { groupBy: ["region"] } });
+      refresh = server.refresh;
+      return (
+        <DataGridProvider {...server.providerProps} columns={columns}>
+          <DataGridRoot aria-label="Sales" {...server.rootProps}>
+            <DataGridBody />
+          </DataGridRoot>
+        </DataGridProvider>
+      );
+    }
+    render(<Refreshing />);
+    await waitFor(() => expect(document.querySelectorAll("[data-grid-group-row]")).toHaveLength(2));
+    const calls = fetchRows.mock.calls.length;
+    act(() => refresh());
+    await waitFor(() => expect(fetchRows.mock.calls.length).toBeGreaterThan(calls));
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 40))));
+    expect(warn.mock.calls.filter(([message]) => String(message).includes("data array identity changed"))).toEqual([]);
+    warn.mockRestore();
+  });
+
+  it("shows and opens a group whose key holds a lone surrogate", async () => {
+    const lone = vi.fn(async (request: ServerRowsRequest<never>): Promise<ServerRowsAnswer<Row, never> | ServerGroupsAnswer> => {
+      if (request.childKind === "groups") return { groups: [{ key: "\uD800", childCount: 2, totalRowCount: 2 }, { key: "west", childCount: 1, totalRowCount: 1 }], groupCount: 2, totalRowCount: 3 };
+      return { rows: [{ id: `${request.groupPath?.[0]?.key}-0`, region: "lone", qty: 1 }], totalRowCount: 1 };
+    });
+    render(<Harness rowCalls={lone} />);
+    await waitFor(() => expect(document.querySelectorAll("[data-grid-group-row]")).toHaveLength(2));
+    await act(async () => void fireEvent.click(within(document.querySelectorAll<HTMLElement>("[data-grid-group-row]")[0]!).getByRole("button")));
+    await waitFor(() => expect(lone.mock.calls.some(([request]) => request.childKind === "rows" && request.groupPath?.[0]?.key === "\uD800")).toBe(true));
+  });
 });

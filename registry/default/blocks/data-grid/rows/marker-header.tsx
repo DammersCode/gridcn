@@ -7,7 +7,7 @@ import { markerContent } from "./marker-width";
 import { GRID_LAYER } from "../layers";
 import { COLUMN_BORDER } from "../columns/column-border";
 import { useDataGridRootContext } from "../layout-context";
-import { useDataGridActions, useDataGridAllRowsSelected, useDataGridLabels } from "../store";
+import { useDataGridActions, useDataGridAllRowsSelected, useDataGridLabels, useDataGridSelector } from "../store";
 
 /** Props for {@link DataGridMarkerHeader}. */
 export type DataGridMarkerHeaderProps = {
@@ -34,6 +34,7 @@ export function DataGridMarkerHeader(props: DataGridMarkerHeaderProps): ReactNod
   const actions = useDataGridActions();
   const state = useDataGridAllRowsSelected();
   const labels = useDataGridLabels();
+  const pivot = useDataGridSelector((s) => s.pivot !== null);
   const { renderMarkerHeader } = useDataGridRootContext();
 
   const style: CSSProperties = {
@@ -62,6 +63,7 @@ export function DataGridMarkerHeader(props: DataGridMarkerHeaderProps): ReactNod
             <Checkbox
               checked={state === "checked"}
               tabIndex={-1}
+              disabled={pivot}
               indeterminate={state === "indeterminate"}
               onCheckedChange={(checked) => actions.setAllRowsChecked(checked === true)}
               aria-label={labels.markers.selectAll}

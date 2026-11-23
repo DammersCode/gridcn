@@ -2,7 +2,7 @@
 name: gridcn-addons
 description: "gridcn add-ons (fill, undo/redo, pinned rows, presence, comments, toolbar, header filter, find & replace, context menu, keybindings, sort list, saved views, URL state, import/export): install and wiring. Use when adding an add-on, combining several in one grid, or when an installed add-on renders nothing."
 metadata:
-  gridcn-version: "2.0.0"
+  gridcn-version: "2.1.0"
 ---
 
 Each gridcn add-on is a separate registry item that installs into your own project paths (default
@@ -36,7 +36,7 @@ npx shadcn add @gridcn/<item>
 | Saved views | `data-grid-views` | none |
 | Import / export | `data-grid-io` (installs `dropzone` too) | `hucre` (lazy-loaded), `papaparse`; dev: `@types/papaparse` |
 | Server rows (pages or scroll) | `data-grid-server` (installs `data-grid-pagination` too) | none |
-| Server query layer for Drizzle or Kysely | `data-grid-server-query-drizzle` or `data-grid-server-query-kysely` (install `data-grid-server-query`) | the ORM package |
+| Server query layer for Drizzle, Kysely, Prisma, or Supabase | `data-grid-server-query-drizzle`, `-kysely`, `-prisma`, or `-supabase` (install `data-grid-server-query`) | the ORM or client package |
 | Pagination | `data-grid-pagination` | none |
 | Find & replace | `data-grid-find-replace` (installs `use-debounce` too) | none |
 | Status bar | `data-grid-status-bar` | none |

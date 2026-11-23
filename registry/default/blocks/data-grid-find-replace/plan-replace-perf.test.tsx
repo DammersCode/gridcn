@@ -3,8 +3,9 @@ import { describe, expect, it } from "vitest";
 import type { ReactNode } from "react";
 import { DataGridProvider, useDataGridApi, type AnyColumnDef } from "@/registry/default/blocks/data-grid/data-grid";
 import { planReplace } from "./plan-replace";
+import { ciFactor } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
-const CI_FACTOR = process.env["CI"] ? 2 : 1;
+const CI_FACTOR = ciFactor(2);
 const ROWS = 100_000;
 const COLUMN_IDS = Array.from({ length: 10 }, (_, i) => `c${i}`);
 const columns = COLUMN_IDS.map((id) => ({ id, header: id, accessorKey: id })) as AnyColumnDef[];

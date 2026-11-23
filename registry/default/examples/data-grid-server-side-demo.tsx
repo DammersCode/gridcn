@@ -8,30 +8,17 @@ import { DataGridProvider, DataGridRoot, DataGridHeader, DataGridBody, defineCol
 import { DataGridToolbar, DataGridSearch, DataGridFilterMenu, DataGridColumnsMenu } from "@/registry/default/blocks/data-grid-toolbar/data-grid-toolbar";
 import { DataGridPaginationBar } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import { useDataGridServerRows } from "@/registry/default/blocks/data-grid-server/data-grid-server";
-import { type DemoRow } from "./demo-data";
-import { createRemoteServer, type RemoteFilterNode } from "./fake-remote-server";
+import { createRemoteServer, type RemoteFilterNode, type RemoteServer } from "./fake-remote-server";
+import { DEALERSHIPS, MAKES, REGIONS, generateSales, type SaleRow } from "./sales-data";
 
-const columns = defineColumns<DemoRow>()([
-  { id: "name", header: "Name", accessorKey: "name", type: "text", width: 120, flex: 1 },
-  { id: "email", header: "Email", accessorKey: "email", type: "text", width: 150, flex: 2 },
-  {
-    id: "role",
-    header: "Role",
-    accessorKey: "role",
-    type: "select",
-    options: {
-      choices: [
-        "Admin",
-        "User",
-        "Editor",
-        "Viewer",
-        "Manager",
-      ],
-    },
-    width: 100,
-    filterable: true,
-  },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 70, flex: 1 },
+const columns = defineColumns<SaleRow>()([
+  { id: "customer", header: "Customer", accessorKey: "customer", type: "text", width: 130, flex: 2 },
+  { id: "region", header: "Region", accessorKey: "region", type: "select", options: { choices: REGIONS }, width: 90, filterable: true },
+  { id: "dealership", header: "Dealership", accessorKey: "dealership", type: "select", options: { choices: DEALERSHIPS }, width: 150, filterable: true },
+  { id: "make", header: "Make", accessorKey: "make", type: "select", options: { choices: MAKES }, width: 100, filterable: true },
+  { id: "model", header: "Model", accessorKey: "model", type: "text", width: 90, flex: 1 },
+  { id: "financed", header: "Financed", accessorKey: "financed", type: "checkbox", width: 90 },
+  { id: "price", header: "Price", accessorKey: "price", type: "number", width: 90, flex: 1 },
 ] as const);
 
 type Mode = "pages" | "scroll";
@@ -43,14 +30,14 @@ type Mode = "pages" | "scroll";
  * load. `mode: "pages"` fetches one page per state and goes back to page 1 on a spec change; `mode: "scroll"`
  * sizes the grid from `totalRowCount` and fetches the blocks the rendered rows need. Edits go to the server from
  * `onSave`, then the rows are fetched again so you see the server's truth. Pages mode prefetches the next page, so
- * Next shows it with no wait; the toggle revalidates the rows every 10 seconds. The grid sorts by score. The Server
- * pushes switch pushes score changes every 500 ms: a row whose score the sort reads keeps its place and turns
+ * Next shows it with no wait; the toggle revalidates the rows every 10 seconds. The grid sorts by price. The Server
+ * pushes switch pushes price changes every 500 ms: a row whose price the sort reads keeps its place and turns
  * dim and italic (`data-row-stale`) until the hook reshapes (a refresh) and the server places it. Delete on server
  * pushes a delete. The reshape delay select sets `reshapeDelayMs`: off waits for a refresh, one second reshapes after the pushes.
  */
 export default function DataGridServerSideDemo(): ReactNode {
   const [mode, setMode] = useState<Mode>("pages");
-  const remote = useMemo(() => createRemoteServer(), []);
+  const remote = useMemo(() => createRemoteServer({ rows: generateSales(1000) }), []);
   const [revalidate, setRevalidate] = useState(false);
   const [live, setLive] = useState(false);
   const [reshapeDelayMs, setReshapeDelay] = useState<"off" | "1000">("off");
@@ -87,20 +74,20 @@ export default function DataGridServerSideDemo(): ReactNode {
   );
 }
 
-type Remote = ReturnType<typeof createRemoteServer>;
+type Remote = RemoteServer<SaleRow>;
 type PushProps = { remote: Remote; live: boolean; reshapeDelayMs: number | false };
 
-const BY_SCORE = { sorts: [{ columnId: "score", direction: "desc" as const }] };
+const BY_PRICE = { sorts: [{ columnId: "price", direction: "desc" as const }] };
 const STALE_ROW = "[&_[data-row-stale]]:text-muted-foreground [&_[data-row-stale]]:italic";
 
-/** Pushes the server's score changes into the grid while `live` is on, and deletes the first row on the server on demand. */
+/** Pushes the server's price changes into the grid while `live` is on, and deletes the first row on the server on demand. */
 function PushControls({ remote, live }: { remote: Remote; live: boolean }): ReactNode {
-  const api = useDataGridApi<DemoRow>();
+  const api = useDataGridApi<SaleRow>();
   useEffect(() => {
     if (!live) return;
     const timer = setInterval(() => {
       const ids = api.getViewRowIds({ loaded: true }).slice(0, 8);
-      api.actions.updateRows(remote.bumpScores(ids.slice(0, 3)), { source: "stream" });
+      api.actions.updateRows(remote.bumpNumbers(ids.slice(0, 3), "price", (price) => Math.max(15000, price + Math.round(((Math.random() - 0.5) * 6000) / 100) * 100)), { source: "stream" });
     }, 500);
     return () => clearInterval(timer);
   }, [api, remote, live]);
@@ -122,9 +109,9 @@ function PushControls({ remote, live }: { remote: Remote; live: boolean }): Reac
 }
 
 function PagesGrid({ remote, revalidate, live, reshapeDelayMs }: PushProps & { revalidate: boolean }): ReactNode {
-  const server = useDataGridServerRows<DemoRow>({
+  const server = useDataGridServerRows<SaleRow>({
     defaultPageSize: 25,
-    defaultSpec: BY_SCORE,
+    defaultSpec: BY_PRICE,
     prefetchNextPage: true,
     revalidateIntervalMs: revalidate ? 10_000 : undefined,
     reshapeDelayMs,
@@ -162,9 +149,9 @@ function PagesGrid({ remote, revalidate, live, reshapeDelayMs }: PushProps & { r
 }
 
 function ScrollGrid({ remote, revalidate, live, reshapeDelayMs }: PushProps & { revalidate: boolean }): ReactNode {
-  const server = useDataGridServerRows<DemoRow>({
+  const server = useDataGridServerRows<SaleRow>({
     mode: "scroll",
-    defaultSpec: BY_SCORE,
+    defaultSpec: BY_PRICE,
     revalidateIntervalMs: revalidate ? 10_000 : undefined,
     reshapeDelayMs,
     onSave: async (change) => remote.applyOps(change.ops),

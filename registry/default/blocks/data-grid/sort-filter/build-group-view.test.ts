@@ -3,6 +3,7 @@ import { cellTypes } from "../cell-types/cell-types";
 import type { ColumnDef } from "../types";
 import { textAccessorFor } from "../store/compute";
 import { COLLAPSED, EXPANDED } from "../store/group-state";
+import { bestMs, budget } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 import { buildViewIndex } from "./build-view-index";
 import { buildGroupView, groupIdsOfRow, leavesOfTree, refreshGroupAggregates, type GroupAggregateSpec, type GroupBuildInput } from "./build-group-view";
 
@@ -91,10 +92,20 @@ describe("buildGroupView", () => {
 
   it("builds 100k rows in 1,000 groups with two levels in linear time", () => {
     const data: Row[] = Array.from({ length: 100_000 }, (_, i) => ({ id: String(i), region: `r${i % 1000}`, team: `t${i % 7}`, qty: i }));
+    const plainGroupMs = bestMs(() => {
+      const regions = new Map<string, Map<string, number>>();
+      for (const row of data) {
+        const teams = regions.get(row.region!) ?? new Map<string, number>();
+        regions.set(row.region!, teams);
+        teams.set(row.team!, (teams.get(row.team!) ?? 0) + (row.qty as number));
+      }
+      return regions;
+    });
     const started = performance.now();
     const view = buildGroupView(input({ data, groupBy: ["region", "team"], aggregates: [{ columnId: "qty", reducer: "sum" }] }), COLLAPSED)!;
+    const elapsed = performance.now() - started;
     expect(view.layout.rows.filter((r) => r.depth === 0)).toHaveLength(1000);
-    expect(performance.now() - started).toBeLessThan(2000);
+    expect(elapsed).toBeLessThan(budget({ floor: 250, cap: 750, k: 25, reference: plainGroupMs }));
   });
 });
 

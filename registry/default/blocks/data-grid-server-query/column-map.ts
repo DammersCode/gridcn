@@ -27,7 +27,7 @@ export type ColumnSpec = {
   filterable?: boolean;
   /** `false` rejects a sort on the column. Default `true`. */
   sortable?: boolean;
-  /** The column is NOT NULL. */
+  /** A write or import refuses a blank value. It promises no NOT NULL. */
   required?: boolean;
   caseSensitive?: boolean;
   /** A stored `''` is a value, not empty. */
@@ -71,6 +71,9 @@ export type PlanColumn = Readonly<{
   operators: ReadonlyMap<string, ColumnOperator>;
   type: string;
 }>;
+
+/** Whether the column holds text: a `text` or a `select` column. */
+export const isTextual = (column: PlanColumn): boolean => column.kind === "text" || column.kind === "select";
 
 export type ColumnMapOptions<Id extends string = string> = {
   /** Unique, non-null, non-`serverOnly` columns that order rows when the map has no `primaryKey`. */

@@ -1,4 +1,4 @@
-import { defineColumnMap } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
+import { type ColumnSpec, defineColumnMap } from "@/registry/default/blocks/data-grid-server-query/data-grid-server-query";
 
 export type FixtureRow = {
   id: number;
@@ -40,8 +40,9 @@ export const FIXTURE_ROWS: readonly FixtureRow[] = NAMES.map((name, index) => ({
 
 export type Engine = "sqlite" | "pg";
 
-export function fixtureColumns(engine: Engine, search: "default" | "none" = "default") {
-  return defineColumnMap({
+/** The column specs of the fixture map, shared by every adapter's map. */
+export function fixtureSpecs(engine: Engine, search: "default" | "none" = "default") {
+  return {
     id: { type: "number", numeric: "int8", primaryKey: true },
     name: { type: "text", searchable: search === "default" },
     tag: { type: "select", choices: ["red", "green", "blue", "Red"], searchable: search === "default" },
@@ -51,8 +52,10 @@ export function fixtureColumns(engine: Engine, search: "default" | "none" = "def
     price: { type: "number", numeric: "decimal", scale: 2, aggregate: "max" },
     createdAt: { type: "date", time: true, storage: engine === "pg" ? "native" : "iso-text", aggregate: "max" },
     tenantId: { type: "number", numeric: "int4", serverOnly: true },
-  });
+  } as const satisfies Record<string, ColumnSpec>;
 }
+
+export const fixtureColumns = (engine: Engine, search: "default" | "none" = "default") => defineColumnMap(fixtureSpecs(engine, search));
 
 export const SQLITE_DDL = `create table items (
   id integer primary key, name text, tag text, score real, qty integer, active integer, price numeric, "createdAt" text, "tenantId" integer not null
@@ -61,20 +64,27 @@ export const PG_DDL = `create table items (
   id bigint primary key, name text, tag text, score double precision, qty integer, active boolean, price numeric(12,2), "createdAt" timestamptz, "tenantId" integer not null
 )`;
 
-/** The fixture map with one column per reducer, so each reducer is a request-able aggregate. */
-export function groupColumns(engine: Engine) {
-  return defineColumnMap({
+/** The fixture specs with one column per reducer, so each reducer is a request-able aggregate. */
+export function groupSpecs(engine: Engine) {
+  return {
     id: { type: "number", numeric: "int8", primaryKey: true },
     name: { type: "text", searchable: true },
     tag: { type: "select", choices: ["red", "green", "blue", "Red"], searchable: true },
     score: { type: "number", numeric: "float", aggregate: "avg" },
+    scoreSum: { type: "number", numeric: "float", field: "score", aggregate: "sum" },
     qty: { type: "number", numeric: "int4", aggregate: "sum" },
     qtyMin: { type: "number", numeric: "int4", field: "qty", aggregate: "min" },
     qtyMax: { type: "number", numeric: "int4", field: "qty", aggregate: "max" },
     nameCount: { type: "text", field: "name", aggregate: "count" },
     active: { type: "checkbox" },
     price: { type: "number", numeric: "decimal", scale: 2, aggregate: "max" },
+    priceSum: { type: "number", numeric: "decimal", scale: 2, field: "price", aggregate: "sum" },
+    priceMin: { type: "number", numeric: "decimal", scale: 2, field: "price", aggregate: "min" },
+    priceAvg: { type: "number", numeric: "decimal", scale: 2, field: "price", aggregate: "avg" },
+    idSum: { type: "number", numeric: "int8", field: "id", aggregate: "sum" },
     createdAt: { type: "date", time: true, storage: engine === "pg" ? "native" : "iso-text", aggregate: "max" },
     tenantId: { type: "number", numeric: "int4", serverOnly: true, aggregate: "sum" },
-  });
+  } as const satisfies Record<string, ColumnSpec>;
 }
+
+export const groupColumns = (engine: Engine) => defineColumnMap(groupSpecs(engine));

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { applyChangeWith, defaultGetRowId, isDev, type ExpandedState, type ServerGroupLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { EMPTY_SERVER_SPEC, applyChangeWith, defaultGetRowId, isDev, type ExpandedState, type PivotSpec, type ServerGroupLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { serverSpecKey, type DataChange, type DataGridPlugin, type FilterNode, type RowRange, type ServerSpec, type SortSpec } from "@/registry/default/blocks/data-grid/data-grid";
 import { useDataGridServerPager, type DataGridPaginationControls } from "@/registry/default/blocks/data-grid-pagination/data-grid-pagination";
 import { DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-pagination/pagination-math";
@@ -48,6 +48,12 @@ export type UseDataGridServerRowsOptions<TData, TCursor = never> = {
   /** Controls the sort, filter, and search; pair it with `onSpecChange`. */
   spec?: ServerSpec;
   onSpecChange?: (spec: ServerSpec) => void;
+  /**
+   * Keeps the old rows on screen after a spec or page change until the answers for the rendered rows land. The grid refuses
+   * the writes of user gestures meanwhile. `false` never starts the hold, and the grid behaves as in 2.0. A flat page keeps its
+   * rows until the next page lands, and a grouped or pivoted grid shows the empty state after a spec change. Default `true`.
+   */
+  enableHold?: boolean;
   /** Fires after a request fails. */
   onError?: (error: unknown) => void;
   /**
@@ -145,12 +151,18 @@ export type UseDataGridServerRowsProviderProps<TData> = {
   plugins: readonly DataGridPlugin<unknown>[];
   /** Sorts on a header click. Override it after the spread. */
   headerClickBehavior: "sort";
+  /** @internal Present while the old rows stay on screen across a switch between grouped and flat rows: the grid refuses user gestures that write. */
+  serverHeld?: true;
   /** @internal Present while the source groups: reports the rendered rows so the open groups load their rows. */
   onRenderedRowsChange?: (range: RowRange) => void;
   /** Present while the source groups: the group columns, outermost first. */
   groupBy?: readonly string[];
   /** Present while the source groups. */
   onGroupByChange?: (next: readonly string[]) => void;
+  /** Present while the source groups: the pivot of the spec, `{ columnIds: [] }` when off. */
+  pivot?: PivotSpec;
+  /** Present while the source groups. */
+  onPivotChange?: (next: PivotSpec) => void;
   /** Present while the source groups: the open groups. */
   expanded?: ExpandedState;
   /** Present while the source groups. */
@@ -238,7 +250,7 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   const [rawPage, setPage] = useControlled(options.page, () => options.defaultPage ?? 1, options.onPageChange);
   const maxPage = Math.max(1, Math.ceil(MAX_ROW_COUNT / Math.max(1, pageSize)));
   const wantedPage = Number.isSafeInteger(rawPage) && rawPage >= 1 ? Math.min(rawPage, maxPage) : 1;
-  const live = useRef({ options, spec: EMPTY_LIVE_SPEC, page: wantedPage, pageSize, settledOnce: false, requested: false, error: null as unknown, leftInitial: false });
+  const live = useRef({ options, spec: EMPTY_SERVER_SPEC, page: wantedPage, pageSize, settledOnce: false, requested: false, error: null as unknown, leftInitial: false });
   const [grouping] = useState(() => groupsEnabled(options));
   const specState = useServerSpec(
     options,
@@ -548,14 +560,17 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
     setReshapeListener(requestReshape);
     return () => setReshapeListener(null);
   }, [setReshapeListener, requestReshape]);
+  const refreshGroups = useRef<() => void>(() => {});
   const refreshFor = useCallback(
     (reason: FetchReason) => {
+      // While the group engine answers the spec, a save settling here refreshes that engine.
+      if (grouped) return void refreshGroups.current();
       cancelReshape();
       restartClockRef.current();
       nextReason.current = reason;
       setTick((n) => n + 1);
     },
-    [cancelReshape],
+    [cancelReshape, grouped],
   );
   const refresh = useCallback(() => refreshFor("refresh"), [refreshFor]);
   const refreshAfterSave = useCallback(() => refreshFor("save"), [refreshFor]);
@@ -622,9 +637,12 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
 
   const { onSave, wrapSave } = useSaveRefresh(options, refreshAfterSave);
 
-  const groupPages = useGroupBlocks(options as unknown as Parameters<typeof useGroupBlocks<TData, TCursor>>[0], specState, grouped, { page, pageSize, pageSizeOptions, onPageChange: setPage, onPageSizeChange });
+  // A save settles in the engine whose plugins wrote it; the refresh it asks for goes to the engine that answers the spec.
+  const groupSpec = useMemo(() => ({ ...specState, refreshElsewhere: () => refreshRef.current("save") }), [specState]);
+  const groupPages = useGroupBlocks(options as unknown as Parameters<typeof useGroupBlocks<TData, TCursor>>[0], groupSpec, grouped, { page, pageSize, pageSizeOptions, onPageChange: setPage, onPageSizeChange });
   useLayoutEffect(() => {
     if (groupPages.groupCount !== null) live.current.settledOnce = true;
+    refreshGroups.current = groupPages.result.refresh;
   });
   useMemo(() => armPagerRead(groupPages.pagerPlugins, pagerWatch), [groupPages.pagerPlugins, pagerWatch]);
 
@@ -635,6 +653,15 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
   }, [guardPlugins, pagerGridProps.plugins, pagerWatch]);
   const plugins = useMountedPlugins(pagerGuardPlugins, options.plugins);
 
+  // Across a hand-off between the flat and the group engine, the engine on screen stays until the other one has answered.
+  // Both report loading meanwhile, as the flat key carries `groupBy` and the group engine holds its view, and neither takes a user write.
+  const [shownGrouped, setShownGrouped] = useState(grouped);
+  const arrived = grouped ? groupPages.answered || groupPages.result.error !== null : !loading || error !== null;
+  useLayoutEffect(() => {
+    if (shownGrouped !== grouped && arrived) setShownGrouped(grouped);
+  }, [shownGrouped, grouped, arrived]);
+  const waiting = shownGrouped !== grouped && !arrived && options.enableHold !== false;
+  const flatWaits = waiting && !shownGrouped;
   const providerProps = useMemo<UseDataGridServerRowsProviderProps<TData>>(
     () => ({
       data: shown.rows,
@@ -655,18 +682,21 @@ function usePagesRows<TData, TCursor>(options: WithRowId<UseDataGridServerRowsOp
       checkedRowsLifetime: "across-filters",
       headerClickBehavior: "sort",
       plugins,
+      ...(flatWaits ? { serverHeld: true as const } : null),
     }),
-    [shown.rows, shown.totalRowCount, spec, getRowId, onDataChange, onSave, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, plugins],
+    [flatWaits, shown.rows, shown.totalRowCount, spec, getRowId, onDataChange, onSave, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, plugins],
   );
   useRegisteredWiring(providerProps, wrapSave);
   const rootProps = useMemo<UseDataGridServerRowsRootProps>(() => ({ loading, error, onRetry: retry }), [loading, error, retry]);
   const gridProps = useMemo(() => ({ ...providerProps, ...rootProps }), [providerProps, rootProps]);
 
-  if (grouped) {
-    const { gridProps: groupedGrid, providerProps: groupedProvider, rootProps: groupedRoot, totalRowCount, status: groupedStatus, loading: groupedLoading, error: groupedError, retry: groupedRetry, refresh: groupedRefresh, reshape: groupedReshape } = groupPages.result;
-    return { gridProps: groupedGrid, providerProps: groupedProvider, rootProps: groupedRoot, spec, totalRowCount, pager: groupPages.pager, status: groupedStatus, loading: groupedLoading, error: groupedError, retry: groupedRetry, refresh: groupedRefresh, reshape: groupedReshape } as UseDataGridServerRowsResult<TData>;
+  // A refresh or a retry reaches the engine that answers the spec.
+  const control = grouped ? groupPages.result : { retry, refresh, reshape };
+  if (waiting ? shownGrouped : grouped) {
+    const { gridProps: groupedGrid, providerProps: groupedProvider, rootProps: groupedRoot, totalRowCount, status: groupedStatus, loading: groupedLoading, error: groupedError } = groupPages.result;
+    return { gridProps: groupedGrid, providerProps: groupedProvider, rootProps: groupedRoot, spec, totalRowCount, pager: groupPages.pager, status: groupedStatus, loading: groupedLoading, error: groupedError, retry: control.retry, refresh: control.refresh, reshape: control.reshape } as UseDataGridServerRowsResult<TData>;
   }
-  return { gridProps, providerProps, rootProps, spec, totalRowCount: shown.totalRowCount, pager, status, loading, error, retry, refresh, reshape };
+  return { gridProps, providerProps, rootProps, spec, totalRowCount: shown.totalRowCount, pager, status, loading, error, retry: control.retry, refresh: control.refresh, reshape: control.reshape };
 }
 
 /** Records whether the consumer read `pager`, so the hook can warn about a pager that nothing reads. */
@@ -694,4 +724,3 @@ class PagerWatch {
   }
 }
 
-const EMPTY_LIVE_SPEC: ServerSpec = { sorts: [], filters: [], searchText: "" };

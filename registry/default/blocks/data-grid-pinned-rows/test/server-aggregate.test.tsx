@@ -147,9 +147,19 @@ describe("useDataGridServerAggregate", () => {
     hostile['unknown'] = 1;
     hostile['__proto__'] = { polluted: true };
     await act(async () => s.call(0).resolve(hostile));
-    expect((s.result.row['qty'] as string).length).toBeLessThanOrEqual(1000);
+    expect((s.result.row['qty'] as string).length).toBe(1024);
     expect(Object.keys(s.result.row)).toEqual(["qty"]);
     expect(({} as Record<string, unknown>)['polluted']).toBeUndefined();
+  });
+
+  it("keeps a decimal string of 1,024 characters and drops a longer one instead of cutting it", async () => {
+    const s = setup();
+    await act(async () => s.call(0).resolve({ qty: "1".repeat(1024) }));
+    expect(s.result.row['qty']).toBe("1".repeat(1024));
+    cleanup();
+    const long = setup();
+    await act(async () => long.call(0).resolve({ qty: `${"1".repeat(1024)}.5` }));
+    expect(long.result.row).not.toHaveProperty("qty");
   });
 
   it("drops non-primitive and non-finite values", async () => {

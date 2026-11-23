@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useRef, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { COLUMN_BORDER } from "./columns/column-border";
 import { ChevronDown, GripVertical } from "lucide-react";
 import { GRID_ATTR } from "./data-attributes";
@@ -17,6 +17,7 @@ import { offersSetFilter } from "./cell-types/capabilities";
 import { warnDev } from "./is-dev";
 import { columnHeaderText, columnLabelText as headerLabelText } from "./columns/column-format-helpers";
 import { gridAttrSelector } from "./data-attributes";
+import { isPivotColumn } from "./store/pivot-view";
 
 const INTERACTIVE_CONTENT = 'button, a, input, select, textarea, [role="button"], [contenteditable]:not([contenteditable="false"])';
 
@@ -100,7 +101,7 @@ function HeaderFilterSlot(props: { render: HeaderFilterRenderer; column: AnyColu
  * drag-to-reorder press zone over the label. See {@link import("./columns/use-column-reorder").useColumnReorder}
  * for the full select-vs-reorder disambiguation rule this cell's two pointerdown handlers resolve.
  */
-export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
+export const DataGridHeaderCell = memo(function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
   const {
     column,
     index,
@@ -204,6 +205,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
         </span>
       )}
       {renderHeaderMenu &&
+        !isPivotColumn(column) &&
         renderHeaderMenu({
           column,
           index,
@@ -230,7 +232,7 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
       role="columnheader"
       aria-colindex={index + 1}
       aria-rowspan={rowSpan > 1 ? rowSpan : undefined}
-      aria-label={typeof column.header === "string" ? undefined : headerLabelText(column)}
+      aria-label={isPivotColumn(column) ? column.pivotLabel : typeof column.header === "string" ? undefined : headerLabelText(column)}
       // sort state is announced to AT in every click behavior
       aria-sort={column.sortable !== false || sorted ? ariaSortFor(column.id, sortState) : undefined}
       data-column-id={column.id}
@@ -265,4 +267,4 @@ export function DataGridHeaderCell(props: DataGridHeaderCellProps): ReactNode {
       )}
     </div>
   );
-}
+});

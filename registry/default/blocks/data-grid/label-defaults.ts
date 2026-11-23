@@ -244,6 +244,15 @@ export function buildDefaultLabels(locale: string): DataGridLabels {
       loadFailed: (label) => `${label} failed to load`,
       tooManyOpen: "Too many groups are open. Close one first.",
     },
+    pivot: {
+      empty: "(empty)",
+      value: (reducer, column) => `${{ sum: "Sum", avg: "Average", min: "Min", max: "Max", count: "Count" }[reducer]} of ${column}`,
+      columnName: (key, value) => `${key}, ${value}`,
+      moreColumns: (count) => `+${fmt(count)} more ${count === 1 ? "column" : "columns"}`,
+      pivotBy: (column) => `Pivot by ${column}`,
+      turnOff: "Turn off pivot",
+      sortColumn: (column) => `${column} (pivot)`,
+    },
     markers: {
       columnHeader: "Row markers",
       selectAll: "Select all rows",

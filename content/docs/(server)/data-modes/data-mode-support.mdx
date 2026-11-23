@@ -140,6 +140,17 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
     </tr>
+    <tr id="parity-server-pivot">
+      <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal"><a href="/docs/data-modes/pivot-server-rows">Pivot</a></th>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
+      <td className="text-center"><ParityCell status="n/a" note={"An edit, paste, fill, or cut writes no pivot cell, so no change reaches onSave or onDataChange."} /></td>
+    </tr>
     <tr id="parity-pinned-rows">
       <th scope="row" className="sticky left-0 z-10 w-32 min-w-32 max-w-32 whitespace-normal sm:w-52 sm:min-w-52 sm:max-w-52 bg-fd-card text-left font-normal"><a href="/docs/rows-pages-menus/pinned-rows">Pinned rows and aggregates</a></th>
       <td className="text-center"><ParityCell status="supported" /></td>
@@ -655,7 +666,7 @@ A grid feature can behave differently on a local array, on server pages and on s
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
       <td className="text-center"><ParityCell status="supported" /></td>
-      <td className="text-center"><ParityCell status="n/a" note={"The layer reads rows; writing rows stays the consumer's code."} /></td>
+      <td className="text-center"><ParityCell status="supported" /></td>
     </tr>
   </tbody>
 </table>
@@ -689,9 +700,18 @@ A sort or filter on a column that is not in `columns` drops with a development w
 - **PC**: n/a: Client pagination searches the whole local `data`.
 - **API**: n/a: Search writes no data.
 
+### Row check and ranges
+
+On the server, `query.selection` counts the rows of a `DataGridSelectedRows` value within `rowScope`, and `selectionPlan` gives the filter of a bulk write over them.
+
 ### Row count
 
 A development warning names `totalRowCount` above the loaded rows under a client sort or filter. It never fires when `sortMode` and `filterMode` are both server.
+
+### Pivot
+
+- `spec.pivot` pivots 1 to 4 `groupBy` levels. A pivot row above the innermost level opens and lists the pivot rows of the next level. The header menu pivots by a column and turns the pivot off. A generated column has no menu.
+- **API**: n/a: An edit, paste, fill, or cut writes no pivot cell, so no change reaches onSave or onDataChange.
 
 ### Server totals (`useDataGridServerAggregate`)
 
@@ -728,7 +748,7 @@ Delete and Cut run the column `validate` on the empty value in every mode. A ser
 
 ### Edit commit and write-through
 
-`editRows` writes with source `edit`, so a server grid receives it in `onSave`.
+`editRows` writes with source `edit`, so a server grid receives it in `onSave`. On the server, `query.save` validates each change before the writes run.
 
 ### Streaming updates
 
@@ -749,6 +769,10 @@ Mode-neutral by design.
 ### Cell comments
 
 Mode-neutral by design. Comments are addressed by row id and column id, so a sort, a filter, a page change, or an eviction moves markers and never comments. `fetchComments` loads the comments of the rendered rows. Without `currentUser` and `onCommentSave`, comments are anonymous and stay on the client. `onCommentSave` covers your own API, and `applyRemote` takes the changes of other clients.
+
+### Loading and error state
+
+A server spec change keeps the old rows on screen until the answers for the rendered rows land. With `enableHold: false` the hold never starts, and the grid behaves as in 2.0.
 
 ### Scroll row fetching
 
@@ -817,7 +841,7 @@ Mode-neutral.
 
 ### Unknown total and cursor paging
 
-- Pages mode pages without a total through `hasMore`, or through a `nextCursor` chain: each page request carries the `cursor` of the page before. Scroll mode loads a source without a count in order.
+- Pages mode pages without a total through `hasMore`, or through a `nextCursor` chain: each page request carries the `cursor` of the page before. Scroll mode loads a source without a count in order. The query layer answers such a chain with `paging: "cursor"`: keyset pages, `nextCursor`, and no count query.
 - **L**: n/a: The array holds every row.
 - **PC**: n/a: The length of `data` is the total.
 
@@ -848,7 +872,6 @@ Mode-neutral: the editor fetches options, not rows. A text filter operator sends
 
 - **L**: n/a: The layer runs on the consumer's server. A local array has no server.
 - **PC**: n/a: Client pagination pages data the grid already holds.
-- **API**: n/a: The layer reads rows. Writing rows stays the consumer's code.
 
 ## Related
 

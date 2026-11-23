@@ -3,6 +3,7 @@ import { applyChange, createHistory, invertChange } from "./history";
 import { computeDuplicateBatch, startDuplicateCopies } from "../store/commit";
 import type { DataGridStoreState } from "../store/types";
 import type { DataChange, DataOp } from "../types";
+import { ciFactor } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
 type Row = { id: string; name: string; age: number };
 
@@ -458,7 +459,7 @@ describe("createHistory", () => {
 
 // Shared CI runners are several × slower than a dev machine; the ceiling guards the
 // order of magnitude, not machine jitter.
-const CI_FACTOR = process.env["CI"] ? 2 : 1;
+const CI_FACTOR = ciFactor(2);
 
 describe("applyChange scale guard (100k rows)", () => {
   it("applies a 500-op batch scattered through the end of the data without an O(n^2) freeze", () => {

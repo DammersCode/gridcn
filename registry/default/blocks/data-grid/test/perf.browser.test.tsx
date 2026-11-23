@@ -2,10 +2,12 @@ import { page } from "vitest/browser";
 import { describe, expect, it } from "vitest";
 import { render } from "vitest-browser-react";
 import { DataGrid } from "../data-grid";
+import { budget, plainLoopMs } from "./perf-budget.test-helper";
 import { columns, JUMP_FRACTIONS, makeRows, measureJumpSequence, measureScrollFps, measureScrollLongTasks } from "./perf-probe.test-helper";
 // real stylesheet — layout/scroll must be real for a frame-timing probe to mean anything
 import "@/app/global.css";
 
+const IDLE_LOOP_MS = 3;
 const JUMP_BUDGET = { longestFrameMs: 1000, framesOver50: 20, longTaskTotalMs: 2000 };
 
 describe("full-window-swap vs near-idle scroll FPS ratio", () => {
@@ -103,14 +105,9 @@ describe("long tasks during rAF-paced fling scroll", () => {
     if (count > 0) {
       console.warn(`perf long-tasks: ${count} over 50ms during the fling window — investigate if reproducible.`);
     }
-    // The 200ms budget is calibrated on the reference machine (~0ms on a healthy fling). Measured
-    // on CI: 585-6399ms of long tasks on a healthy grid (plain and compiler-mirrored jobs), so the
-    // strict bar would fail on runner speed, not code quality; a checkbox-class regression (~2400ms
-    // on the reference) is indistinguishable from slow-runner noise there. On CI the check keeps
-    // only a catastrophic-collapse ceiling — the machine-relative FPS ratio test above is the
-    // binding guard (same precedent as CI_FACTOR in stream-validation-error.test.ts).
-    const budgetMs = import.meta.env.CI ? 20_000 : 200;
-    expect(totalMs).toBeLessThan(budgetMs);
+    // Idle: 0ms of long tasks; CI healthy runs measured 585-6399ms, so CI widens the floor tenfold and the budget rises with the same-run loop slowdown.
+    const loopMs = plainLoopMs();
+    expect(totalMs).toBeLessThan(budget({ floor: 700, cap: 1000, k: 200 / IDLE_LOOP_MS, reference: loopMs, ciFactor: 10 }));
   });
 });
 

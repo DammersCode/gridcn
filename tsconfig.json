@@ -49,6 +49,7 @@
   ],
   "exclude": [
     "node_modules",
-    "references"
+    "references",
+    "tests/server-query/prisma/generated"
   ]
 }

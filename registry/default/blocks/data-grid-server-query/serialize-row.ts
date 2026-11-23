@@ -11,20 +11,27 @@ function dayText(value: unknown): string | null {
   return /^\d{4}-\d{2}-\d{2}/.test(text) ? text.slice(0, 10) : text;
 }
 
-/** A driver timestamp as an ISO text with `Z`: `Date`, epoch number, or the text PostgreSQL and SQLite return. */
+const EPOCH_TEXT = /^-?\d{1,16}$/;
+/** The JavaScript date range; a value outside it has no ISO text. */
+const MAX_DATE_MS = 8.64e15;
+
+/** A driver timestamp as an ISO text with `Z`: `Date`, epoch number or its digits as text, or the text PostgreSQL and SQLite return. */
 export function instantText(value: unknown, column: PlanColumn): string | null {
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value.toISOString();
+  const epoch = column.storage === "epoch-ms" || column.storage === "epoch-s";
   let ms: number;
   if (typeof value === "number") ms = column.storage === "epoch-s" ? value * 1000 : value;
   else if (typeof value === "bigint") ms = Number(value) * (column.storage === "epoch-s" ? 1000 : 1);
   else {
     const text = toSafeText(value).trim();
     if (text === "") return null;
+    // node-postgres and the Supabase grid function answer an int8 epoch as its digits.
+    if (epoch && EPOCH_TEXT.test(text)) return instantText(Number(text), column);
     const normalized = /^\d{4}-\d{2}-\d{2} \d/.test(text) ? text.replace(" ", "T") : text;
     const zoned = /(?:Z|[-+]\d{2}(?::?\d{2})?)$/i.test(normalized) ? normalized.replace(/([-+]\d{2})$/, "$1:00") : `${normalized}Z`;
     ms = Date.parse(zoned);
   }
-  return Number.isFinite(ms) ? new Date(ms).toISOString() : null;
+  return Math.abs(ms) <= MAX_DATE_MS ? new Date(ms).toISOString() : null;
 }
 
 function numberValue(value: unknown, column: PlanColumn): number | string | null {
@@ -62,6 +69,10 @@ export function serializeValue(value: unknown, column: PlanColumn): unknown {
 /** A wire row from a driver row keyed by column id: only the projected columns. */
 export function serializeRow(row: Record<string, unknown>, projection: readonly PlanColumn[]): Record<string, unknown> {
   const out: Record<string, unknown> = {};
-  for (const column of projection) out[column.id] = serializeValue(Object.hasOwn(row, column.id) ? row[column.id] : null, column);
+  for (const column of projection) {
+    const value = serializeValue(Object.hasOwn(row, column.id) ? row[column.id] : null, column);
+    // A plain assignment to `__proto__` sets the prototype instead of the mapped column's key.
+    Object.defineProperty(out, column.id, { value, enumerable: true, writable: true, configurable: true });
+  }
   return out;
 }

@@ -4,6 +4,8 @@ import { parseImportRows } from "@/registry/default/blocks/data-grid-server-quer
 import { ORACLE_CASES, ROOT_OR_CASES, SERVER_CASES } from "./cases";
 import { oracleIds } from "./client-oracle";
 import { type Harness, openPg, openSqlite } from "./engines";
+import { unlessDeclined } from "./prisma/declines";
+import { openPrisma } from "./prisma/engines";
 import { FIXTURE_ROWS, fixtureColumns } from "./fixture";
 
 const harnesses: Harness[] = [];
@@ -12,8 +14,9 @@ const closers: (() => Promise<void> | void)[] = [];
 beforeAll(async () => {
   const sqlite = await openSqlite();
   const pg = await openPg();
-  harnesses.push(...sqlite.harnesses, ...pg.harnesses);
-  closers.push(() => void sqlite.database.close(), () => pg.pg.close());
+  const prisma = await Promise.all([openPrisma("sqlite"), openPrisma("pg")]);
+  harnesses.push(...sqlite.harnesses, ...pg.harnesses, ...prisma.map((entry) => entry.harness));
+  closers.push(() => void sqlite.database.close(), () => pg.pg.close(), ...prisma.map((entry) => entry.close));
 }, 60_000);
 
 afterAll(async () => {
@@ -28,21 +31,24 @@ describe.each([
   ["sqlite", "kysely"],
   ["pg", "drizzle"],
   ["pg", "kysely"],
+  ["sqlite", "prisma"],
+  ["pg", "prisma"],
 ] as const)("%s + %s", (engine, adapter) => {
   const query = () => harnesses.find((h) => h.engine === engine && h.adapter === adapter)!.make();
+  const declinable = <T>(name: string, call: () => Promise<T>) => unlessDeclined(adapter, engine, name, call);
 
-  it.each(ORACLE_CASES)("matches the client filter engine: $name", async ({ filters }) => {
-    const answer = await query().fetchRows(request(filters));
-    expect(idsOf(answer)).toEqual(oracleIds(filters));
+  it.each(ORACLE_CASES)("matches the client filter engine: $name", async ({ name, filters }) => {
+    const answer = await declinable(name, () => query().fetchRows(request(filters)));
+    if (answer) expect(idsOf(answer)).toEqual(oracleIds(filters));
   });
 
-  it.each(ROOT_OR_CASES)("matches the client with a root or: $name", async ({ filters }) => {
-    const answer = await query().fetchRows({ ...request(filters), spec: { sorts: [], filters, filterJoin: "or", searchText: "" } });
-    expect(idsOf(answer)).toEqual(oracleIds(filters, undefined, "or"));
+  it.each(ROOT_OR_CASES)("matches the client with a root or: $name", async ({ name, filters }) => {
+    const answer = await declinable(`root or: ${name}`, () => query().fetchRows({ ...request(filters), spec: { sorts: [], filters, filterJoin: "or", searchText: "" } }));
+    if (answer) expect(idsOf(answer)).toEqual(oracleIds(filters, undefined, "or"));
   });
 
   it("ANDs the row scope on top of a root or", async () => {
-    const filters = [{ columnId: "name", operator: "equals", value: "alpha" }, { columnId: "qty", operator: "gt", value: "50" }];
+    const filters = [{ columnId: "name", operator: "contains", value: "alpha" }, { columnId: "qty", operator: "gt", value: "50" }];
     const harness = harnesses.find((h) => h.engine === engine && h.adapter === adapter)!;
     const spec = { sorts: [], filters, filterJoin: "or", searchText: "" };
     const scoped = await harness.make({ rowScope: true }).fetchRows({ spec, start: 0, end: 1000 }, { context: { tenantId: 1 } });
@@ -107,9 +113,9 @@ describe.each([
 
   it("matches hostile text only as literal text", async () => {
     for (const hostile of ["'; drop table items; --", "\" or 1=1 --", "%", "_", "\\", "!"]) {
-      const answer = await query().fetchRows(request([{ columnId: "name", operator: "contains", value: hostile }]));
+      const answer = await declinable(`hostile text: ${hostile}`, () => query().fetchRows(request([{ columnId: "name", operator: "contains", value: hostile }])));
       const expected = FIXTURE_ROWS.filter((row) => (row.name ?? "").toLowerCase().includes(hostile.toLowerCase())).map((row) => row.id);
-      expect(idsOf(answer)).toEqual(expected);
+      if (answer) expect(idsOf(answer)).toEqual(expected);
     }
     expect((await query().fetchRows(request([]))).rows).toHaveLength(FIXTURE_ROWS.length);
   });
@@ -119,8 +125,8 @@ describe.each([
     const scoped = harness.make({ rowScope: true });
     const mine = FIXTURE_ROWS.filter((row) => row.tenantId === 1).map((row) => row.id);
     expect(idsOf(await scoped.fetchRows(request([]), { context: { tenantId: 1 } }))).toEqual(mine);
-    const values = await scoped.filterValues({ columnId: "tag", query: "", filters: [] }, { context: { tenantId: 1 } });
-    expect(values.values.reduce((sum, entry) => sum + (entry.count ?? 0), 0)).toBe(mine.length);
+    const values = await declinable("set values of tag", () => scoped.filterValues({ columnId: "tag", query: "", filters: [] }, { context: { tenantId: 1 } }));
+    if (values) expect(values.values.reduce((sum, entry) => sum + (entry.count ?? 0), 0)).toBe(mine.length);
     const totals = await scoped.aggregates({ spec: { sorts: [], filters: [], searchText: "" }, columnIds: ["qty"] }, { context: { tenantId: 1 } });
     expect(totals["qty"]).toBe(FIXTURE_ROWS.filter((row) => row.tenantId === 1).reduce((sum, row) => sum + (row.qty ?? 0), 0));
     await expect(scoped.fetchRows(request([]), { context: { tenantId: undefined as never } })).rejects.toThrow();
@@ -128,7 +134,8 @@ describe.each([
   });
 
   it("lists set values grouped without regard to case, blanks merged", async () => {
-    const result = await query().filterValues({ columnId: "tag", query: "", filters: [] });
+    const result = await declinable("set values of tag", () => query().filterValues({ columnId: "tag", query: "", filters: [] }));
+    if (!result) return;
     const counts = new Map<string, number>();
     for (const row of FIXTURE_ROWS) {
       const key = (row.tag ?? "").toLowerCase();
@@ -141,7 +148,8 @@ describe.each([
   });
 
   it("lists days of a time column", async () => {
-    const result = await query().filterValues({ columnId: "createdAt", query: "", filters: [] });
+    const result = await declinable("set values of createdAt", () => query().filterValues({ columnId: "createdAt", query: "", filters: [] }));
+    if (!result) return;
     const days = new Set(FIXTURE_ROWS.map((row) => (row.createdAt ? row.createdAt.slice(0, 10) : "")));
     expect(new Set(result.values.map((entry) => entry.value))).toEqual(days);
   });

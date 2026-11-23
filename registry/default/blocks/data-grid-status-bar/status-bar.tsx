@@ -20,9 +20,9 @@ import { useDataGridSelectionStats } from "./use-data-grid-selection-stats";
 
 const dataRowCounts = new WeakMap<object, number>();
 
-/** The rows of the shown view; the group rows of a grouped view are not rows. */
-function dataRowsInView(s: Pick<DataGridStoreState, "viewIndex" | "groupLayout">): number {
-  if (!s.groupLayout) return s.viewIndex.length;
+/** The rows of the shown view; the group rows of a grouped view are not rows, except under pivot, where every row is a pivot row. */
+function dataRowsInView(s: Pick<DataGridStoreState, "viewIndex" | "groupLayout" | "pivot">): number {
+  if (!s.groupLayout || s.pivot) return s.viewIndex.length;
   const cached = dataRowCounts.get(s.viewIndex);
   if (cached !== undefined) return cached;
   let count = 0;

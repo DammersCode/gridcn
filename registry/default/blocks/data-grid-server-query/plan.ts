@@ -12,7 +12,11 @@ export type Test =
   | { k: "in"; values: readonly Operand[]; negate: boolean; blank: boolean; caseSensitive: boolean }
   | { k: "exact"; value: Operand }
   | { k: "blank"; negate: boolean }
-  | { k: "custom"; id: string; value: unknown };
+  | { k: "custom"; id: string; value: unknown }
+  /** Exact primary-key membership, the whole list bound as one parameter; a number or text key, never an empty list. */
+  | { k: "ids"; values: readonly Operand[]; negate: boolean }
+  /** A raw comparison in the database's sort order, with no blank guard: `gt`, `lt`, and `eq` carry `value`; `null` is `IS NULL`. */
+  | { k: "key"; op: "gt" | "lt" | "eq" | "null"; value?: Operand };
 
 export type Predicate =
   | { t: "true" }
@@ -31,6 +35,8 @@ export type RowsPlan = {
   rowRange: { start: number; end: number };
   runCount: boolean;
   projection: readonly PlanColumn[];
+  /** Cursor pages: `selectRows` also reads each `time` key as exact text under `as`, an alias no column id takes. */
+  keyText?: readonly { column: PlanColumn; as: string }[];
 };
 export type ValuesPlan = { kind: "values"; where: Predicate; column: PlanColumn; query: string };
 export type AggregatesPlan = { kind: "aggregates"; where: Predicate; columns: readonly { column: PlanColumn; reducer: AggregateReducer }[] };
@@ -45,7 +51,14 @@ export type GroupsPlan = {
   /** The top level also answers the row count of the whole result. */
   countRows: boolean;
   aggregates: readonly { column: PlanColumn; reducer: AggregateReducer }[];
+  /**
+   * The keys of `column` become generated columns, each with one cell per aggregate. The parsed plan holds no `keys`;
+   * `selectGroups` gets them in key order, each with the `test` that keeps its rows. `omitted` counts the generated columns cut past the cap.
+   */
+  pivot?: { column: PlanColumn; direction: "asc" | "desc"; keys: readonly PivotKey[]; omitted: number };
 };
+/** One pivot key as the answer carries it, with the test that keeps its rows; `null` is the empty key. */
+export type PivotKey = { key: string | number | boolean | null; test: Predicate };
 export type QueryPlan = RowsPlan | ValuesPlan | AggregatesPlan | GroupsPlan;
 /** `"rows"` reads a rows request and refuses a grouped one; `"page"` reads either and yields a `GroupsPlan` or a `RowsPlan`. */
 export type QueryRequestKind = "rows" | "page" | "values" | "aggregates";

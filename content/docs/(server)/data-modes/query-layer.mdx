@@ -1,7 +1,7 @@
 ---
 title: Query layer
 icon: DatabaseZap
-description: Turn the request of a server grid into a safe query for Drizzle or Kysely, and answer it in one route handler.
+description: Turn the request of a server grid into a safe query for Drizzle, Kysely, Prisma, or Supabase, and answer it in one route handler.
 type: feature
 aliases: ["orm", "drizzle", "kysely", "sql injection", "column map", "row scope", "tenant", "fetchRows server", "query plan"]
 ---
@@ -10,30 +10,37 @@ A server grid sends its sort, filter tree, search text, and row range to your ro
 
 <ComponentPreview name="data-grid-server-query-demo" />
 
-<InstallCommand item="data-grid-server-query-drizzle" />
+<InstallCommand
+  choices={[
+    { value: "data-grid-server-query-drizzle", label: "Drizzle" },
+    { value: "data-grid-server-query-kysely", label: "Kysely" },
+    { value: "data-grid-server-query-prisma", label: "Prisma" },
+    { value: "data-grid-server-query-supabase", label: "Supabase" },
+  ]}
+/>
 
-Install `data-grid-server-query-kysely` instead to use Kysely. Both items install `data-grid-server-query`, which has no dependency. Use the layer on a server only.
+Each item installs `data-grid-server-query`, which has no dependency. Use the layer on a server only.
 
 ## Define the column map [#column-map]
 
 The column map is the allow-list and the projection. A request can use only the columns in the map. `columnsFromDrizzleTable` builds the map from a Drizzle table. It needs `pick`, so no helper maps a whole table:
 
-```ts title="lib/users-query.ts"
+```ts title="lib/sales-query.ts"
 import { columnsFromDrizzleTable, createDrizzleGridQuery } from "@/components/data-grid-server-query-drizzle/data-grid-server-query-drizzle";
 import { db } from "./db";
-import { users } from "./schema";
+import { carSales } from "./schema";
 
-export const columns = columnsFromDrizzleTable(users, {
-  pick: ["id", "name", "email", "role", "score", "tenantId"],
+export const columns = columnsFromDrizzleTable(carSales, {
+  pick: ["id", "customer", "salesperson", "make", "price", "tenantId"],
   overrides: {
-    name: { searchable: true },
-    email: { searchable: true },
+    customer: { searchable: true },
+    salesperson: { searchable: true },
     tenantId: { serverOnly: true },
   },
 });
 
-export const usersQuery = createDrizzleGridQuery({
-  db, table: users, columns,
+export const salesQuery = createDrizzleGridQuery({
+  db, table: carSales, columns,
 });
 ```
 
@@ -43,12 +50,12 @@ A column with `serverOnly` is never selected, filtered, sorted, or searched for 
 
 `handleGridRequest` reads the body with a size cap, runs the query, and answers JSON. It passes `req.signal` to the query, which stops before it starts when the request is already aborted. A running statement is not cancelled, so set a `statement_timeout` in PostgreSQL. A refused request becomes a 400 with an error code and no value. Any other error becomes a 500 with no message:
 
-```ts title="app/api/users/route.ts"
+```ts title="app/api/sales/route.ts"
 import { handleGridRequest } from "@/components/data-grid-server-query/data-grid-server-query";
-import { usersQuery } from "./users-query";
+import { salesQuery } from "./sales-query";
 
 export const POST = (req: Request) =>
-  handleGridRequest(req, usersQuery.fetchRows);
+  handleGridRequest(req, salesQuery.fetchRows);
 ```
 
 ## Connect the grid [#connect-the-grid]
@@ -62,7 +69,7 @@ import { useMemo } from "react";
 import { withColumnMap, type ColumnMapDescriptor } from "@/components/data-grid-server-query/data-grid-server-query";
 import { useDataGridServerRows } from "@/components/data-grid-server/data-grid-server";
 
-export function useUsers(
+export function useSales(
   descriptor: ColumnMapDescriptor,
   columnDefs: { id: string }[],
 ) {
@@ -76,7 +83,7 @@ export function useUsers(
     fetchRows: async ({ signal, ...request }) => {
       const body = JSON.stringify(request);
       const init = { method: "POST", body, signal };
-      const response = await fetch("/api/users", init);
+      const response = await fetch("/api/sales", init);
       if (!response.ok) throw new Error("The request failed");
       return response.json();
     },
@@ -85,7 +92,7 @@ export function useUsers(
 }
 ```
 
-Keep the column map in a module without the database. Then the client can import it. Do not import the module that holds `db` into a client component.
+Keep the column map in a module without `db`, so a client component can import it.
 
 ## Limit rows to a tenant [#row-scope]
 
@@ -93,14 +100,14 @@ The layer joins the top-level filters with `filterJoin`: "or" when the spec hold
 
 `rowScope` returns equalities on mapped columns. Every query of the factory adds them with AND:
 
-```ts title="lib/scoped-users-query.ts"
+```ts title="lib/scoped-sales-query.ts"
 import { createDrizzleGridQuery } from "@/components/data-grid-server-query-drizzle/data-grid-server-query-drizzle";
-import { columns } from "./users-query";
+import { columns } from "./sales-query";
 import { db } from "./db";
-import { users } from "./schema";
+import { carSales } from "./schema";
 
-export const usersQuery = createDrizzleGridQuery({
-  db, table: users, columns,
+export const salesQuery = createDrizzleGridQuery({
+  db, table: carSales, columns,
   rowScope: (session: { tenantId: number }) => ({
     tenantId: session.tenantId,
   }),
@@ -109,16 +116,15 @@ export const usersQuery = createDrizzleGridQuery({
 
 The route reads the session and passes it as `context`:
 
-```ts title="app/api/users/route.ts"
+```ts title="app/api/sales/route.ts"
 import { handleGridRequest } from "@/components/data-grid-server-query/data-grid-server-query";
 import { getSession } from "./session";
-import { usersQuery } from "./scoped-users-query";
+import { salesQuery } from "./scoped-sales-query";
 
 export const POST = async (req: Request) => {
   const session = await getSession(req);
   if (!session) return new Response(null, { status: 401 });
-  const options = { context: session };
-  return handleGridRequest(req, usersQuery.fetchRows, options);
+  return handleGridRequest(req, salesQuery.fetchRows, { context: session });
 };
 ```
 
@@ -129,8 +135,7 @@ The route must pass `context` when the factory sets `rowScope`. A missing value,
 - A filter row that the user has not filled in yet means what it means in the grid. `contains` with no text matches every row. `equals` with no text matches the empty rows.
 - `notEquals`, `notContains`, and `isNoneOf` match the rows with NULL. `empty` matches NULL and, for text columns, the empty string.
 - A number column parses the value with the HTML number grammar. An integer column rounds a bound the exact way: `gt 2.5` becomes `gt 2`. A bound outside the width of the column matches all rows or none.
-- A text operator on a number, date, or checkbox column fails with `operator-not-allowed`. Use `describeFilterOperators` so the filter menu never offers it.
-- A `date` column with `time: true` holds instants. A day filter covers the local day in the `timeZone` option, which defaults to `UTC`.
+- A `date` column with `time: true` holds instants. Its filter values are exact to the millisecond. A day filter covers the local day in the `timeZone` option, which defaults to `UTC`.
 - Text tests ignore letter case. A filter row of a column with `matchCase` carries `matchCase: true`, and the layer then compares case. Set `caseSensitive` on the column to compare case for every request.
 - Quick search is a case-insensitive substring match over the columns with `searchable`. The search narrows the result.
 - Every sort ends with the primary key, so a page never repeats a row. NULL values sort last in both directions.
@@ -144,12 +149,12 @@ Values reach the database only as bound parameters. A column, an operator, and a
 
 `filterValues` answers `fetchFilterValues`: it lists the values of one column with their counts, for the filters the user set on the other columns. `aggregates` answers `fetchAggregates` with one value per column that sets `aggregate`:
 
-```ts title="app/api/users/values/route.ts"
+```ts title="app/api/sales/values/route.ts"
 import { handleGridRequest } from "@/components/data-grid-server-query/data-grid-server-query";
-import { usersQuery } from "../users-query";
+import { salesQuery } from "../sales-query";
 
 export const POST = (req: Request) =>
-  handleGridRequest(req, usersQuery.filterValues);
+  handleGridRequest(req, salesQuery.filterValues);
 ```
 
 ### Custom operators [#custom-operators]
@@ -183,15 +188,16 @@ The factory throws at creation when a declared operator has no handler.
 
 ### Group rows [#groups]
 
-`fetchRows` answers a request that holds `groupBy` and `childKind: "groups"` with the groups of one level. Each group has `key`, `childCount`, `totalRowCount`, and one reduced value for each aggregate column. A request with `childKind: "rows"` and a full `groupPath` answers the rows of one group. See [Group server rows](/docs/data-modes/group-server-rows) for the grid side.
+`fetchRows` answers a request that holds `groupBy` and `childKind: "groups"` with the groups of one level. Each group has `key`, `childCount`, `totalRowCount`, and one reduced value for each aggregate column. A request with `childKind: "rows"` and a full `groupPath` answers the rows of one group. See [Group server rows](/docs/data-modes/group-server-rows) and [Pivot server rows](/docs/data-modes/pivot-server-rows#query-layer) for the grid side.
 
-- A group key is the stored value. A text column keys `""` as the empty group, and a date-time column keys the stored instant.
-- A `serverOnly` column cannot group, and a `keepBlankText` column cannot group. Both answer `unsupported`.
+- A group key is the stored value. A text column keys `""` as the empty group, and a date-time column keys the instant to the millisecond.
+- Drizzle, Kysely, and the Supabase grid function on PostgreSQL group a `native` timestamp by its millisecond. Elsewhere, a stored key with a digit after the millisecond answers `unsupported`.
+- A `serverOnly` or `keepBlankText` column cannot group and answers `unsupported`.
 - A filter applies before grouping, and the group column sorts the groups. The empty group comes last.
 - `rowScope` applies to every group list and every row list.
-- The adapter runs one `group by` statement for each page of groups, and counts the groups and the child lists in the same pass. The group queries have no performance measurement.
+- The adapter runs one `group by` statement for each page of groups, and counts the groups and the child lists in the same pass.
 - `fetchRows` resolves `RowsAnswer | GroupsAnswer`. A direct caller narrows with `"groups" in answer`.
-- Text keys sort by the collation of the database. The client orders text keys with a locale collator, so the order can differ.
+- Text keys sort by the collation of the database, and the client by a locale collator, so the order can differ.
 
 ## Factory options [#options]
 
@@ -200,6 +206,7 @@ The factory throws at creation when a declared operator has no handler.
 | `columns` | `ColumnMap` | Required |
 | `rowScope` | `(context) => Record<columnId, value>` | None |
 | `rowCount` | `"firstBlock" \| "always" \| "none"` | `"firstBlock"` |
+| `paging` | `"offset" \| "cursor"` | `"offset"` |
 | `timeZone` | IANA zone or fixed offset | `"UTC"` |
 | `limits` | `QueryLimits` | See the [reference](/docs/contracts/query-layer-reference#limits) |
 | `customOperators` | `{ [id]: ({ column, value }) => fragment }` | None |

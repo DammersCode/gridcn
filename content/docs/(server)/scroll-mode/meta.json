@@ -4,6 +4,7 @@
   "pages": [
     "load-rows-while-scrolling",
     "load-without-row-count",
+    "page-queries-cursor",
     "recover-load-errors",
     "tune-row-retention",
     "refresh-server-rows"

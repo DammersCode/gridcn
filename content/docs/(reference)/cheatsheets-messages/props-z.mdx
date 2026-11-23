@@ -37,6 +37,7 @@ Props of DataGrid, DataGridProvider.
 | `defaultGroupBy` | Seeds the group columns once at store creation. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `defaultPage` | Seeds the page of a paged grid once. Default `1`. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | `defaultPageSize` | Seeds the page size once and turns paging on. The grid keeps all of `data` and shows one page of the view. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
+| `defaultPivot` | Seeds the pivot once at store creation. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `defaultSearchText` | The quick search text, seeded once. | [Sort and filter events](/docs/events-state/sort-filter-events#prop-defaultsearchtext) |
 | `defaultSelection` | The selection, seeded once. | [Selection and cell events](/docs/events-state/selection-cell-events#prop-defaultselection) |
 | `defaultSortState` | The sort, seeded once. | [Sort and filter events](/docs/events-state/sort-filter-events#prop-defaultsortstate) |
@@ -67,6 +68,7 @@ Props of DataGrid, DataGridProvider.
 | `page` | The current page, 1-based. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | `pageSize` | Shows `pageSize` rows of the sorted and filtered view at a time. | [Client pagination](/docs/rows-pages-menus/client-pagination) |
 | `pageSizeOptions` | Lists the page sizes that the footer select offers. `DataGridPaginationBar` and `useDataGridPager` read it, and an option on either wins. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
+| `pivot` | Controlled pivot: one generated column per key of the pivot column and per built-in `aggregate`. Needs `groupBy`. | [DataGrid props](/docs/components-props/data-grid-props#all-props) |
 | `plugins` | Installs plugins: overlay layers, row bands, data-change observers, commands, keymap bindings, and root mounts. | [Plugin model](/docs/plugins/plugin-shape) |
 | `processCellForClipboard` | Overrides a cell's clipboard-copy text. | [Change copy and paste](/docs/clipboard-undo/change-copy-paste) |
 | `processCellFromClipboard` | Overrides parsing pasted text into a cell value. | [Change copy and paste](/docs/clipboard-undo/change-copy-paste) |

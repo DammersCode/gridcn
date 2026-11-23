@@ -194,7 +194,7 @@ export function useDataGridHistory<TData>(opts: UseDataGridHistoryOptions<TData>
       if (!api) return warnNotMounted(direction);
       const state = api.store.getState();
       // A read-only grid refuses the revert, so popping the entry would only lose it.
-      if (state.readOnly) return;
+      if (state.readOnly || state.serverHeld) return;
       const rebase = (entry: DataChange<TData>) => rebaseOntoCurrent(entry, state);
       const change = direction === "undo" ? history.undo(rebase) : history.redo(rebase);
       if (!change) return;

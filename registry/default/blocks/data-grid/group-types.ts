@@ -1,3 +1,6 @@
+import type { ServerAggregate } from "./server-spec";
+import type { PivotView } from "./store/pivot-view";
+
 /** The stored value a row group shares; `null` is the empty group (`null`, `undefined`, and `""`). */
 export type GroupKey = string | number | boolean | null;
 
@@ -22,6 +25,8 @@ export type GroupNode = {
   readonly childCount: number;
   /** One value per `aggregate` column; `null` when no value counted. */
   readonly aggregates: Readonly<Record<string, unknown>>;
+  /** Under pivot: the slot's pivot cells, in held order; `NaN` when no value counted. */
+  readonly pivotCells?: Float64Array;
   /** A server group whose rows load or failed to load. */
   readonly status?: "loading" | "failed";
 };
@@ -48,6 +53,8 @@ export type GroupLayout = {
   readonly leafCount: number;
   /** @internal The client buckets; a server layout has none. */
   readonly tree?: unknown;
+  /** @internal The held set of a client pivot; a server layout keeps its own in `ServerGroupLayout.pivot`. */
+  readonly pivot?: ServerPivotLayout;
 };
 
 /** One group row of a {@link ServerGroupLayout}: where it sits in `data`, the group it heads, and what the server said about it. */
@@ -60,7 +67,24 @@ export type ServerGroupSlot = {
   count: number;
   childCount: number;
   aggregates?: Readonly<Record<string, unknown>>;
+  /** Under pivot: one pivot cell per held column, in held order; `NaN` when no value counted. */
+  pivotCells?: Float64Array;
   status?: "loading" | "failed";
+};
+
+/** One generated column of a pivot answer: one key per pivot column, and the index of its value in `spec.aggregates`. */
+export type PivotColumnDescriptor = { readonly path: readonly GroupKey[]; readonly valueIndex: number };
+
+/** The held set of a server pivot. Its `columns` keep one identity while the generated ids stay equal; a new `omitted` makes a new object over the same `columns`. */
+export type ServerPivotLayout = {
+  /** The pivot column. */
+  readonly columnId: string;
+  /** The values: `spec.aggregates` of the request. */
+  readonly values: readonly ServerAggregate[];
+  /** The held columns, key-major, at most 200. */
+  readonly columns: readonly PivotColumnDescriptor[];
+  /** Generated columns the server or the grid cut. */
+  readonly omitted: number;
 };
 
 /**
@@ -71,7 +95,14 @@ export type ServerGroupLayout = {
   readonly rows: readonly ServerGroupSlot[];
   /** Rows of the whole result, collapsed groups included. */
   readonly leafCount: number;
+  /** The held set. Present under pivot. */
+  readonly pivot?: ServerPivotLayout;
+  /** `false` while the source cannot send `spec.pivot` (no aggregates, more than 4 `groupBy` levels); the header menu then hides "Pivot by". */
+  readonly pivotable?: false;
 };
+
+/** A pivot: the pivot column, the one entry of `columnIds`. */
+export type PivotSpec = { readonly columnIds: readonly string[] };
 
 /** What `renderGroupLabel` receives for a group row. */
 export type GroupLabelCtx = {
@@ -89,15 +120,23 @@ export type GroupActionResult = { ok: true } | { ok: false; reason: "server-grou
 
 /** The grouping state of the store. */
 export type GroupStoreState = {
+  /** The group columns on screen. A server layout keeps the old ones until the layout for the requested ones lands. */
   groupBy: readonly string[];
+  /** @internal Under a controlled server layout: the group columns a gesture emitted that the `groupBy` prop has not brought yet, else `null`. Read it through `requestedGroupByOf`. */
+  requestedGroupBy: readonly string[] | null;
   expanded: ExpandedState;
   groupLayout: GroupLayout | null;
   /** `"server"` shows the group rows of `serverGroupLayout` and never buckets rows. */
   groupMode: "client" | "server";
   /** The `groupLayout` prop as given; `groupLayout` above is the layout the core derived from it. */
   serverGroupLayout: ServerGroupLayout | null;
+  /** @internal Under pivot: the generated columns of the held set (`serverGroupLayout.pivot`, or `groupLayout.pivot` of a client pivot); `null` otherwise. */
+  pivot: PivotView | null;
   /** Whether a grouping prop was given: the menus and keys show only then. */
   groupingEnabled: boolean;
   groupByControlled: boolean;
   expandedControlled: boolean;
+  /** The pivot column as given (at most 1 id); a rebuild checks it against the live columns and ignores it without `groupBy`. */
+  pivotColumnIds: readonly string[];
+  pivotControlled: boolean;
 };

@@ -860,7 +860,7 @@ export interface GridCellTypes {
       /** Step applied by ArrowUp/ArrowDown in the editor; default 1. With `decimals`, the step is at least `10 ** -decimals`. */
       step?: number;
       decimals?: number;
-      /** Display-only locale format (currency, percent, compact); `toText`, copy, export, and the editor stay on the raw value. */
+      /** Display-only locale format (currency, percent, compact); `toText`, copy, export, and the editor stay on the raw value. The grid reads one object once: pass a new object to change the format, never mutate it. */
       format?: Intl.NumberFormatOptions;
       /** Language of `format`; alone it implies `format: {}` (digits grouped by it). Default `"en-US"` — an explicit default keeps SSR and client HTML identical. */
       locale?: string;
@@ -885,6 +885,7 @@ export interface GridCellTypes {
     options: {
       min?: string;
       max?: string;
+      /** The grid reads one object once: pass a new object to change the format, never mutate it. */
       displayFormat?: Intl.DateTimeFormatOptions;
       locale?: string;
       /** Shows the editor as a typed input with a calendar button; the calendar opens on the button. Defaults to `false`: the calendar shows at edit start. */

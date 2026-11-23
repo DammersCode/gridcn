@@ -9,7 +9,7 @@ import {
   useDataGridSearchText,
   useDataGridSortState,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { MAX_SPEC_SEARCH_LENGTH, isDev, pruneFilterSpecs, resolveCustomFilterOperators, setFilterListBound, setFilterValuesOf, useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { MAX_SPEC_SEARCH_LENGTH, isDev, pruneFilterSpecs, requestedGroupByOf, resolveCustomFilterOperators, setFilterListBound, setFilterValuesOf, useDataGridSelector, useDataGridStoreApi } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import type { ColumnLayout, FilterOperatorInput } from "@/registry/default/blocks/data-grid/data-grid";
 import { serializeSortState, parseSortState } from "./sort-param";
 import { serializeGroupBy, parseGroupBy } from "./group-param";
@@ -118,7 +118,7 @@ export function useDataGridUrlState(options: UseDataGridUrlStateOptions = {}): U
     [allColumns, storeApi],
   );
   const sortState = useDataGridSortState();
-  const groupBy = useDataGridSelector((s) => s.groupBy);
+  const groupBy = useDataGridSelector(requestedGroupByOf);
   const filterState = useDataGridFilterState();
   const filterJoin = useDataGridSelector((s) => s.filterJoin);
   const searchText = useDataGridSearchText();

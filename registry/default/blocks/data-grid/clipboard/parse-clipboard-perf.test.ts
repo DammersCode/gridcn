@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { parseClipboardText } from "./parse-clipboard";
+import { ciFactor } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
 // Shared GitHub Actions runners are several × slower than a dev machine; the ceiling guards an
 // algorithmic regression, not machine jitter.
-const CI_FACTOR = process.env["CI"] ? 2 : 1;
+const CI_FACTOR = ciFactor(2);
 
 /**
  * Perf regression test for the slice-based `parseClipboardText` rewrite (2026-08-20, data-pipeline

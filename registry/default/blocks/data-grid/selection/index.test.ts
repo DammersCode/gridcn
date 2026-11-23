@@ -22,6 +22,7 @@ import {
   computeDataRegion,
   type IsEmptyAt,
 } from ".";
+import { bestMs, budget } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
 describe("rect helpers", () => {
   it("rectFromCorners normalizes regardless of drag direction", () => {
@@ -516,17 +517,22 @@ describe("computeDataRegion", () => {
 
 describe("computeDataRegion at scale", () => {
   const ROWS = 100_000;
-  const budgetMs = process.env["CI"] ? 400 : 200;
 
   it("grows through 100k rows next to an empty column within the budget", () => {
     const isEmptyAt: IsEmptyAt = (c) => c.col !== 0;
+    const plainSweeps = () => {
+      let hits = 0;
+      for (let sweep = 0; sweep < 3; sweep++) for (let row = 0; row < ROWS; row++) if (!isEmptyAt({ col: 0, row })) hits++;
+      return hits;
+    };
+    const referenceMs = bestMs(plainSweeps);
 
     const start = performance.now();
     const region = computeDataRegion({ col: 0, row: ROWS / 2 }, ROWS, 3, isEmptyAt);
     const ms = performance.now() - start;
 
     expect(region).toEqual({ x: 0, y: 0, width: 1, height: ROWS });
-    expect(ms).toBeLessThan(budgetMs);
+    expect(ms).toBeLessThan(budget({ floor: 10, cap: 40, k: 3, reference: referenceMs }));
   });
 });
 

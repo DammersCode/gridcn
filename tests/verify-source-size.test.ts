@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lowerBaseline, sizeProblems } from "../scripts/verify-source-size.mjs";
+import { CEILING_SLACK, lowerBaseline, sizeProblems } from "../scripts/verify-source-size.mjs";
 
 const src = "registry/default/blocks/x/big.ts";
 const test = "registry/default/blocks/x/big.test.ts";
@@ -21,6 +21,11 @@ describe("sizeProblems", () => {
 
   it("fails when a listed file grows past its ceiling", () => {
     expect(sizeProblems([{ path: src, lines: 901 }], { [src]: 900 })).toHaveLength(1);
+  });
+
+  it("fails when a listed file sits more than CEILING_SLACK lines under its ceiling, so the ceiling follows a shrink", () => {
+    expect(sizeProblems([{ path: src, lines: 1000 - CEILING_SLACK }], { [src]: 1000 })).toEqual([]);
+    expect(sizeProblems([{ path: src, lines: 999 - CEILING_SLACK }], { [src]: 1000 })).toEqual([expect.stringContaining("run --write")]);
   });
 
   it("fails on stale entries: file under budget or missing", () => {

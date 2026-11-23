@@ -8,7 +8,7 @@ import "@/app/global.css";
 /** Finds the demo's own grid among any others the harness may have mounted. */
 function demoGrid(): HTMLElement {
   const grids = Array.from(document.querySelectorAll<HTMLElement>("[role='grid']"));
-  const grid = grids.find((g) => g.textContent?.includes("Score"));
+  const grid = grids.find((g) => g.textContent?.includes("Logins (30 days)"));
   if (!grid) throw new Error("custom-markers demo grid not mounted");
   return grid;
 }

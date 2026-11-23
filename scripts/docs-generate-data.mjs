@@ -66,6 +66,8 @@ export const ADDONS = [
   { name: "data-grid-server-query", adds: "The server half of a server grid: a column map, the request check, and `handleGridRequest`. Needs no ORM.", guides: [A("/docs/data-modes/query-layer", "Query layer")], options: [A("/docs/contracts/query-layer-reference", "Query layer reference")] },
   { name: "data-grid-server-query-drizzle", adds: "`createDrizzleGridQuery` and `columnsFromDrizzleTable`: run the query layer with Drizzle.", guides: [A("/docs/data-modes/query-layer", "Query layer"), A("/docs/server-data-examples/orm-examples/drizzle-example", "Drizzle example")], options: [A("/docs/contracts/query-layer-reference", "Query layer reference")] },
   { name: "data-grid-server-query-kysely", adds: "`createKyselyGridQuery`: run the query layer with Kysely.", guides: [A("/docs/data-modes/query-layer", "Query layer"), A("/docs/server-data-examples/orm-examples/kysely-example", "Kysely example")], options: [A("/docs/contracts/query-layer-reference", "Query layer reference")] },
+  { name: "data-grid-server-query-prisma", adds: "`createPrismaGridQuery` and `definePrismaColumnMap`: run the query layer with Prisma.", guides: [A("/docs/data-modes/query-layer", "Query layer"), A("/docs/server-data-examples/orm-examples/prisma-example", "Prisma example")], options: [A("/docs/contracts/query-layer-reference", "Query layer reference")] },
+  { name: "data-grid-server-query-supabase", adds: "`createSupabaseGridQuery` and the grid function in `grid-query.sql`: run the query layer with a Supabase client.", guides: [A("/docs/data-modes/query-layer", "Query layer"), A("/docs/server-data-examples/orm-examples/supabase-example", "Supabase example")], options: [A("/docs/contracts/query-layer-reference", "Query layer reference")] },
   { name: "data-grid-pagination", adds: "`useDataGridPagination`, `useDataGridPager`, `useDataGridServerPager`, and the pagination bar.", guides: [A("/docs/rows-pages-menus/client-pagination", "Client pagination")], options: [A("/docs/add-options/rows-pages-menus/client-pagination-options", "Client pagination options")] },
   { name: "data-grid-views", adds: "Saved views: named sorts, filters, search, and column layouts that persist in a storage adapter.", guides: [A("/docs/sort-filter-search/saved-views", "Saved views")], options: [A("/docs/add-options/sort-filter-search/saved-views-options", "Saved views options")] },
   { name: "data-grid-sort-list", adds: "A sort button and a popover that lists the applied sorts.", guides: [A("/docs/sort-filter-search/sorting", "Sorting")], options: [A("/docs/add-options/sort-filter-search/sort-list-options", "Sort list options")] },
@@ -81,6 +83,7 @@ export const ADDONS = [
 export const FEATURE_SINCE = {
   "1.2.0": ["find-replace", "filter-values", "column-groups", "touch"],
   "2.0.0": ["import-check", "grouping", "comments", "unknown-total", "push-reshape", "saved-views", "export-hooks", "import-hooks", "find-replace-hook", "fetch-limits", "revalidate", "page-prefetch", "server-rows", "server-initial-answer", "error-state", "input-debounce", "lookup-cell", "server-aggregate", "zero-row-header", "server-query"],
+  "2.1.0": ["server-pivot"],
 };
 
 const F = (guide, reference, item) => ({ item, guide, reference });
@@ -95,6 +98,7 @@ export const FEATURES = {
   "row-ids": F(["/docs/learning-path/define-columns"], ["/docs/components-props/data-grid-props#rows-and-ids"]),
   counts: F(["/docs/server-pagination/load-rows-page"], ["/docs/contracts/server-rows-contract"]),
   grouping: F(["/docs/data-modes/data-mode-support#parity-grouping", "Data mode support"], ["/docs/data-modes/data-mode-support"]),
+  "server-pivot": F(["/docs/rows-pages-menus/pivot"], ["/docs/components-props/data-grid-props#all-props"]),
   "pinned-rows": F(["/docs/rows-pages-menus/pinned-rows"], ["/docs/add-options/rows-pages-menus/pinned-rows-options"], "data-grid-pinned-rows"),
   "server-aggregate": F(["/docs/data-modes/show-server-totals"], ["/docs/add-options/rows-pages-menus/pinned-rows-options"], "data-grid-pinned-rows"),
   columns: F(["/docs/columns/column-order-pinning"], ["/docs/components-props/column-def"]),
@@ -151,6 +155,13 @@ export const TERM_PAGES = {
   "row scope": "/docs/data-modes/query-layer#row-scope",
   "blank operand": "/docs/contracts/query-layer-reference#operators",
   "native fragment": "/docs/data-modes/query-layer#custom-operators",
+  "keyset cursor": "/docs/scroll-mode/page-queries-cursor#how-the-cursor-resumes",
+  "resume predicate": "/docs/scroll-mode/page-queries-cursor#how-the-cursor-resumes",
+  "plan hash": "/docs/scroll-mode/page-queries-cursor#how-the-cursor-resumes",
+  "key test": "/docs/scroll-mode/page-queries-cursor#how-the-cursor-resumes",
+  "id list test": "/docs/rows-live-data/query-selected-rows#which-rows-match",
+  "validated change": "/docs/save-server/validate-server-saves#checks",
+  "write refusal": "/docs/save-server/validate-server-saves#checks",
   "comment marker": "/docs/rows-pages-menus/add-comments#markers",
   "anonymous comment": "/docs/rows-pages-menus/add-comments#client-only",
   "comment author": "/docs/add-options/server/comments-options#usedatagridcommentsoptions",
@@ -175,6 +186,9 @@ export const TERM_PAGES = {
   "group row": "/docs/rows-pages-menus/row-grouping",
   "group key": "/docs/rows-pages-menus/row-grouping",
   "child list": "/docs/data-modes/group-server-rows",
+  "generated column": "/docs/data-modes/pivot-server-rows#generated-columns",
+  "pivot cell": "/docs/data-modes/pivot-server-rows#answer",
+  "held set": "/docs/data-modes/pivot-server-rows#generated-columns",
   "group level": "/docs/rows-pages-menus/row-grouping",
   "expanded state": "/docs/rows-pages-menus/row-grouping",
   "group path": "/docs/contracts/server-rows-contract#parse-group-path",
@@ -247,6 +261,7 @@ export const TERM_PAGES = {
   "request, answer": "/docs/contracts/server-rows-contract",
   "value query": "/docs/contracts/server-rows-contract",
   "server grid": "/docs/data-modes",
+  "server hold": "/docs/theme-style-language/loading-state",
   "server mode": "/docs/data-modes",
   result: "/docs/data-modes",
   clearContents: "/docs/cheatsheets-messages/keyboard-shortcuts",
@@ -275,6 +290,7 @@ export const TERM_PAGES = {
 // The generator fails when an action has no entry or an entry names no action.
 export const ACTION_PAGES = {
   setGroupBy: "/docs/rows-pages-menus/row-grouping#control",
+  setPivot: "/docs/rows-pages-menus/pivot#control",
   toggleGroupBy: "/docs/rows-pages-menus/row-grouping#control",
   setExpanded: "/docs/rows-pages-menus/row-grouping#control",
   toggleGroup: "/docs/rows-pages-menus/row-grouping#control",
@@ -551,7 +567,7 @@ export const OPTION_GROUPS = [
     title: "Server",
     intro: "Options of the server rows, presence, and comments add-ons.",
     rows: [
-      { names: ["mode","getRowId","fetchRows","defaultSpec","spec","onSpecChange","onError","onLoaded","onDataChange","revalidateIntervalMs","reshapeDelayMs","plugins","initialAnswer"], owners: ["useDataGridServerRows"], page: "/docs/add-options/server/server-rows-options" },
+      { names: ["mode","getRowId","fetchRows","defaultSpec","spec","onSpecChange","onError","onLoaded","onDataChange","revalidateIntervalMs","reshapeDelayMs","enableHold","plugins","initialAnswer"], owners: ["useDataGridServerRows"], page: "/docs/add-options/server/server-rows-options" },
       { names: ["onSave","refreshAfterSave"], owners: ["useDataGridServerRows"], page: "/docs/add-options/server/server-rows-options#save-options" },
       { names: ["page","defaultPage","pageSize","defaultPageSize","pageSizeOptions","onPageChange","onPageSizeChange","prefetchNextPage"], owners: ["useDataGridServerRows pages mode"], page: "/docs/add-options/server/server-rows-options#server-mode" },
       { names: ["source","blockSize","overscan","loadDelayMs","maxConcurrentFetches","maxLoadedRows","plugins","onRenderedRowsChange"], owners: ["useDataGridServerRows scroll mode"], page: "/docs/add-options/server/server-rows-options#usedatagridserverrowsscrolloptions" },
@@ -607,6 +623,7 @@ export const PROP_PAGES = {
 
 // Purpose of an option whose type carries no usable JSDoc sentence, keyed "owner.option".
 export const OPTION_PURPOSE = {
+  "useDataGridServerRows.enableHold": "Keeps the old rows on screen until the answers land. `false` never starts the hold, and the grid behaves as in 2.0.",
   "DataGridToolbar.className": "Adds a class name to the toolbar bar.",
   "DataGridSearch.className": "Adds a class name to the search box wrapper.",
   "DataGridFilterMenu.className": "Adds a class name to the trigger button.",

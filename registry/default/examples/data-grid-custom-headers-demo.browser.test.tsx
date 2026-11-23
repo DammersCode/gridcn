@@ -34,7 +34,7 @@ describe("data-grid-custom-headers-demo", () => {
 
     const grid = demoGrid();
     const name = headerByLabel(grid, "Name");
-    const score = headerByLabel(grid, "Score");
+    const score = headerByLabel(grid, "Logins (30 days)");
     // unsorted: both custom headers show the muted minus, and no built-in indicator (custom headers own their display)
     expect(name.querySelector("svg.lucide-minus")).not.toBeNull();
     expect(name.querySelector("svg.lucide-arrow-up")).toBeNull();
@@ -75,7 +75,7 @@ describe("data-grid-custom-headers-demo", () => {
     expect(name.querySelector("svg.lucide-arrow-down")).toBeNull();
     expect(nameOrder(grid)).toEqual(initialOrder);
 
-    // the Score column cycles its own trending icons (up, down).
+    // the Logins column cycles its own trending icons (up, down).
     await userEvent.click(score);
     await new Promise((r) => setTimeout(r, 200));
     expect(score.querySelector("svg.lucide-trending-up")).not.toBeNull();

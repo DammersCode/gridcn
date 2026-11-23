@@ -99,6 +99,8 @@ type ElementStore = {
    * update directly and must never route through this.
    */
   requestFlush: (fn: () => void) => void;
+  /** Lowers scrollTop to `maxTop`, rewrites the canvas offset and the sticky track, and returns the refreshed snapshot without notifying the listeners. */
+  clampScrollTop: (maxTop: number) => ScrollSnapshot;
 };
 
 /** Scroll offsets clamped to the scrollable range, so rubber-band overscroll never moves the canvas past its edges. */
@@ -296,6 +298,12 @@ export function getElementStore(element: HTMLElement): ElementStore {
       else syncOffsets();
     },
     requestFlush,
+    clampScrollTop(maxTop) {
+      if (element.scrollTop > maxTop) element.scrollTop = maxTop;
+      syncOffsets();
+      snapshot = toSnapshot(readGeometry(element), snapshot.isScrolling, snapshot);
+      return snapshot;
+    },
   };
   elementStores.set(element, store);
   return store;

@@ -20,7 +20,7 @@ import {
   type DataGridLabels,
   type SortSpec,
 } from "@/registry/default/blocks/data-grid/data-grid";
-import { columnLabelText } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { columnLabelText, useDataGridSelector } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 
 /** Props for {@link DataGridSortList}. */
 export type DataGridSortListProps = {
@@ -61,9 +61,15 @@ export function DataGridSortList(props: DataGridSortListProps): ReactNode {
   const sorts = useDataGridSortState();
   const visibleColumns = useDataGridVisibleColumns();
   const gridColumns = useDataGridAllColumns();
-  const columns = allColumns ? gridColumns : visibleColumns;
   const labels = useDataGridLabels();
-  const sortableColumns = columns.filter((c) => c.sortable !== false);
+  const pivotColumnId = useDataGridSelector((s) => (s.pivot === null ? undefined : s.pivotColumnIds[0]));
+  // Under a pivot the pivot column is hidden, and its sort orders the generated columns.
+  const pivotColumn = useMemo(() => {
+    const column = pivotColumnId === undefined ? undefined : gridColumns.find((c) => c.id === pivotColumnId);
+    return column && { ...column, headerText: labels.pivot.sortColumn(columnLabelText(column)) };
+  }, [gridColumns, pivotColumnId, labels]);
+  const columns = (allColumns ? gridColumns : visibleColumns).filter((c) => c.id !== pivotColumnId);
+  const sortableColumns = (pivotColumn ? [...columns, pivotColumn] : columns).filter((c) => c.sortable !== false);
   const sortedColumnIds = useMemo(() => new Set(sorts.map((s) => s.columnId)), [sorts]);
 
   const [announcement, setAnnouncement] = useState("");
@@ -71,7 +77,7 @@ export function DataGridSortList(props: DataGridSortListProps): ReactNode {
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const pendingFocusColumnIdRef = useRef<string | null>(null);
 
-  // ponytail: lock root scroll during a drag - at drag end the browser re-focuses the drag handle and natively re-centers it in the viewport, jumping the page
+  // At drag end the browser re-focuses the drag handle and re-centers it, jumping the page; lock root scroll during a drag.
   const rootScrollLockRef = useRef<(() => void) | null>(null);
   const lockRootScroll = useCallback(() => {
     if (rootScrollLockRef.current) return;
@@ -169,9 +175,7 @@ export function DataGridSortList(props: DataGridSortListProps): ReactNode {
           </div>
           {sorts.length > 0 && (
             <DragDropProvider<SortRowDragData>
-              // ponytail: drop AutoScroller — the popover portals to body, so the page is a scrollable
-              // ancestor and dragging near a viewport edge scrolls the page; re-add it if the list
-              // (max-h-75) overflows often enough that mid-drag auto-scrolling is needed
+              // No AutoScroller: the popover portals to body, so an edge drag would scroll the page.
               plugins={(defaults) => defaults.filter((p) => p !== AutoScroller)}
               onDragStart={lockRootScroll}
               onDragEnd={(event) => {
@@ -191,7 +195,7 @@ export function DataGridSortList(props: DataGridSortListProps): ReactNode {
                   // a column already used by another row is excluded from this row's own options, not from every row.
                   const offered = sortableColumns.filter((c) => c.id === sort.columnId || !sortedColumnIds.has(c.id));
                   const own = gridColumns.find((c) => c.id === sort.columnId);
-                  const availableColumns = own && !offered.includes(own) ? [...offered, own] : offered;
+                  const availableColumns = own && !offered.some((c) => c.id === own.id) ? [...offered, own] : offered;
                   return (
                     <SortRow
                       key={index}

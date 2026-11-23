@@ -143,6 +143,37 @@ describe("numbers", () => {
     expect(code(() => rows([leaf("qty", "equals", `1${"0".repeat(60)}`)]))).toBe("invalid-value");
     expect(code(() => rows([leaf("qty", "equals", `${"9".repeat(5000)}x`)]))).toBe("invalid-value");
   });
+
+  const exponents = (columnId: string) => Array.from({ length: 5 }, (_, n) => leaf(columnId, "isAnyOf", Array.from({ length: 1000 }, (_, i) => `${n * 1000 + i + 1}e9999`)));
+  const planSize = (plan: unknown) => JSON.stringify(plan, (_key, value: unknown) => (typeof value === "bigint" ? String(value) : value)).length;
+
+  it("refuses an exponent that outgrows maxNumberLength on an int or a decimal before it builds the digits", () => {
+    expect(code(() => rows(exponents("price")))).toBe("invalid-value");
+    expect(code(() => rows(exponents("qty")))).toBe("invalid-value");
+    for (const value of ["1e40", "1e-41", "-1e9999", "1e-9999"]) expect(code(() => rows([leaf("price", "equals", value)]))).toBe("invalid-value");
+    expect(code(() => rows([leaf("qty", "gt", "1e-50")]))).toBe("invalid-value");
+  });
+
+  it("clamps an exponent on a float by sign and keeps the plan small", () => {
+    const where = only(exponents("ratio"));
+    expect(planSize(where)).toBeLessThan(10_000);
+    expect(test([leaf("ratio", "equals", "1e-9999")])).toMatchObject({ value: { kind: "number", v: "0" } });
+    expect(test([leaf("ratio", "equals", "1e-300")])).toMatchObject({ value: { kind: "number", v: "1e-300" } });
+  });
+
+  it("bounds the normalized digits, so trailing zeros and a raised limit pass", () => {
+    expect(test([leaf("price", "equals", `1.${"0".repeat(35)}e-9`)])).toMatchObject({ value: { kind: "number", v: "0.000000001" } });
+    expect(test([leaf("price", "equals", "1e39")])).toMatchObject({ value: { kind: "number", v: `1${"0".repeat(39)}` } });
+    expect(test([leaf("price", "equals", "-1e-40")])).toMatchObject({ value: { kind: "number", v: `-0.${"0".repeat(39)}1` } });
+    const raised = parseQuery({ spec: { sorts: [], filters: [leaf("price", "equals", "1e50")], searchText: "" }, start: 0, end: 10 }, { columns, request: "rows", limits: { maxNumberLength: 60 } });
+    expect(raised.where).toMatchObject({ test: { value: { v: `1${"0".repeat(50)}` } } });
+  });
+
+  it("matches no number column for a search phrase over the digit bound", () => {
+    const searched = defineColumnMap({ id: { type: "number", numeric: "int8", primaryKey: true }, amount: { type: "number", numeric: "decimal", searchable: true } });
+    const plan = parseQuery({ spec: { sorts: [], filters: [], searchText: "1e9999" }, start: 0, end: 10 }, { columns: searched, request: "rows" });
+    expect(plan.where.t).toBe("false");
+  });
 });
 
 describe("text, set, checkbox and native tests", () => {

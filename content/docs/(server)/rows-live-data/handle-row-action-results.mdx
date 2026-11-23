@@ -20,6 +20,7 @@ Each of the six row actions returns `{ ok: true }` once it ran or an async gate 
 | --- | --- |
 | `"readOnly"` | The grid is read-only. |
 | `"unloaded-rows"` | A target row is not loaded. A delete still removes the loaded rows. It returns this reason only when no target row is loaded. |
+| `"server-held"` | The spec changed, and the grid holds the old rows until the answers land. |
 | `"no-factory"` | `createRow` or `duplicateRow` is missing. |
 | `"gate-declined"` | `onBeforeDeleteRows` returned `false`, or its promise resolved with `false`. |
 | `"gate-threw"` | `onBeforeDeleteRows`, `createRow`, or `duplicateRow` threw or rejected. |

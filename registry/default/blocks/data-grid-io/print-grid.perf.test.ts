@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { DataGridStoreState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { buildExportRows, exportDataIndices } from "./export-grid";
+import { ciFactor } from "@/registry/default/blocks/data-grid/test/perf-budget.test-helper";
 
 /**
  * Dedicated unit perf test for the print row pipeline: proves the display-text row build
@@ -16,7 +17,7 @@ const COL_COUNT = 20;
 
 // Shared GitHub Actions runners are several × slower than a dev machine; the ceiling guards the
 // order of magnitude, not machine jitter.
-const CI_FACTOR = process.env["CI"] ? 2 : 1;
+const CI_FACTOR = ciFactor(2);
 const BUDGET_MS = 1_000 * CI_FACTOR;
 
 type Row = Record<string, unknown>;

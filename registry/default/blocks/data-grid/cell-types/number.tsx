@@ -74,8 +74,19 @@ function clampToDecimals(value: number, options: GridCellTypes["number"]["option
 
 const cachedNumberFormatter = createFormatterCache<Intl.NumberFormat>("invalid number format options, showing the raw value");
 
+// Skips the key build per cell: a scan of 200,000 cells spends more time on the key than on `format`.
+const lastFormatterOf = new WeakMap<Intl.NumberFormatOptions, { locale: string; decimals: number | undefined; formatter: Intl.NumberFormat | null }>();
+
 /** The formatter for the options, or `null` when they are invalid. A re-created literal with equal content reuses one formatter. */
 function getNumberFormatter(format: Intl.NumberFormatOptions, locale: string, decimals: number | undefined): Intl.NumberFormat | null {
+  const last = lastFormatterOf.get(format);
+  if (last !== undefined && last.locale === locale && last.decimals === decimals) return last.formatter;
+  const formatter = buildNumberFormatter(format, locale, decimals);
+  lastFormatterOf.set(format, { locale, decimals, formatter });
+  return formatter;
+}
+
+function buildNumberFormatter(format: Intl.NumberFormatOptions, locale: string, decimals: number | undefined): Intl.NumberFormat | null {
   return cachedNumberFormatter(`${locale}|${decimals ?? ""}|${formatKey(format)}`, () => {
     // decimals fills in fraction digits the format left open (0.25 under style:"percent" + decimals:2 renders 25.00%)
     const effective =
@@ -84,6 +95,42 @@ function getNumberFormatter(format: Intl.NumberFormatOptions, locale: string, de
         : format;
     return new Intl.NumberFormat(locale, effective);
   });
+}
+
+const DECIMAL_TEXT = /^-?\d+(?:\.\d+)?$/;
+
+// Intl formats a decimal string exactly since ES2023; an older engine keeps the raw text.
+const formatsDecimalText = (() => {
+  try {
+    return new Intl.NumberFormat("en-US").format("9007199254740993") === "9,007,199,254,740,993";
+  } catch {
+    return false;
+  }
+})();
+
+const MAX_DECIMAL_TEXT = 1024;
+
+const isDecimalText = (value: unknown): value is Intl.StringNumericLiteral => formatsDecimalText && typeof value === "string" && value.length <= MAX_DECIMAL_TEXT && DECIMAL_TEXT.test(value);
+
+/** Rounds a decimal string like {@link roundToDecimals}: half up, no `-0`. A string within `decimals` stays as it is. */
+function roundDecimalText(text: Intl.StringNumericLiteral, decimals: number): string {
+  const dot = text.indexOf(".");
+  if (dot === -1 || text.length - dot - 1 <= decimals) return NEGATIVE_ZERO.test(text) ? "0" : text;
+  const formatter = exactFormatter(decimals);
+  return formatter ? formatter.format(text) : text;
+}
+
+const NEGATIVE_ZERO = /^-0(?:\.0+)?$/;
+
+const exactFormatters = new Map<number, Intl.NumberFormat | null>();
+
+function exactFormatter(decimals: number): Intl.NumberFormat | null {
+  let formatter = exactFormatters.get(decimals);
+  if (formatter === undefined) {
+    formatter = cachedNumberFormatter(`exact|${decimals}`, () => new Intl.NumberFormat("en-US", { useGrouping: false, maximumFractionDigits: decimals, roundingMode: "halfCeil", signDisplay: "negative" }));
+    exactFormatters.set(decimals, formatter);
+  }
+  return formatter;
 }
 
 function NumberCell({ value, options }: CellRenderProps<unknown, number | null, GridCellTypes["number"]["options"]>) {
@@ -148,12 +195,18 @@ export const numberCellType: CellType<unknown, number | null, GridCellTypes["num
   filter: { operators: [...TEXT_FILTER_OPERATORS, ...COMPARISON_FILTER_OPERATORS, ...SET_FILTER_OPERATORS], valueInput: "number" },
   toText: (value, options) => {
     if (value == null) return "";
+    if (options?.decimals !== undefined && isDecimalText(value)) return roundDecimalText(value, options.decimals);
     return toSafeText(options?.decimals !== undefined ? roundToDecimals(value, options) : value);
   },
   toDisplayText: (value, options) => {
     if (value == null) return "";
     // a locale alone implies the default grouped format
     const format = options?.format ?? (options?.locale ? IMPLIED_NUMBER_FORMAT : undefined);
+    if (format && isDecimalText(value)) {
+      const formatter = getNumberFormatter(format, options?.locale ?? "en-US", options?.decimals);
+      const rounded = options?.decimals === undefined ? value : (roundDecimalText(value, options.decimals) as Intl.StringNumericLiteral);
+      return formatter ? formatter.format(rounded) : numberCellType.toText(value, options);
+    }
     if (!format || typeof value !== "number") return numberCellType.toText(value, options);
     const formatter = getNumberFormatter(format, options?.locale ?? "en-US", options?.decimals);
     return formatter ? formatter.format(roundToDecimals(value, options)) : numberCellType.toText(value, options);

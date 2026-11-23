@@ -1,11 +1,29 @@
-import type { PlanColumn } from "./column-map";
+import { isTextual, type PlanColumn } from "./column-map";
+import type { AdapterCapabilities } from "./create-grid-query";
 import { LIKE_ESCAPE, escapeLike } from "./like";
-import type { Operand, OrderTerm, Predicate, Test, ValuesPlan } from "./plan";
+import type { GroupsPlan, Operand, OrderTerm, Predicate, Test, ValuesPlan } from "./plan";
+import { toSafeText } from "./safe-text";
 
 /**
  * The few SQL pieces an ORM supplies, so one renderer holds every semantic decision. `raw` takes text from the closed tables
  * in this file only; `param` binds a value; `column` is a qualified identifier from the column map.
  */
+/** What a SQL adapter that renders through {@link createSqlRenderer} supports on `dialect`. */
+export function sqlCapabilities(dialect: SqlAlgebra<unknown>["dialect"]): AdapterCapabilities {
+  return {
+    caseInsensitiveText: dialect === "pg" ? "collation" : "ascii",
+    likeEscape: true,
+    literalAsterisk: true,
+    nullsLast: "native",
+    aggregates: true,
+    groupBy: true,
+    localDayGrouping: dialect === "pg",
+    exactInstantKeys: true,
+    millisecondInstantKeys: dialect === "pg",
+    pivot: true,
+  };
+}
+
 export type SqlAlgebra<S> = {
   dialect: "pg" | "sqlite";
   raw(text: string): S;
@@ -20,8 +38,14 @@ export type SqlAlgebra<S> = {
 export type CustomHandler = (ctx: { column: PlanColumn; value: unknown }) => unknown;
 
 const CMP_SQL = new Map<string, string>([["gt", " > "], ["gte", " >= "], ["lt", " < "], ["lte", " <= "]]);
+const KEY_SQL = new Map<string, string>([["gt", " > "], ["lt", " < "], ["eq", " = "]]);
 
-const isTextual = (column: PlanColumn): boolean => column.kind === "text" || column.kind === "select";
+const PG_ARRAY_TYPES = new Map<string, string>([["int2", "int2[]"], ["int4", "int4[]"], ["int8", "int8[]"], ["float", "float8[]"], ["decimal", "numeric[]"]]);
+
+const idText = (value: Operand): string => (value.kind === "bigint" ? value.v.toString() : toSafeText(value.v));
+
+/** The CTE that holds the group keys of one pivot page, and its key column. */
+const pivotPage = { name: "gridcn_page", key: "k" } as const;
 
 export function createSqlRenderer<S>(a: SqlAlgebra<S>, customHandlers: ReadonlyMap<string, CustomHandler>) {
   const { raw, param, cat, column: ref } = a;
@@ -88,6 +112,24 @@ export function createSqlRenderer<S>(a: SqlAlgebra<S>, customHandlers: ReadonlyM
     return group(cat(col, raw(" IS NULL OR "), lhs, raw(" NOT IN "), list));
   }
 
+  /** One bound list: a PostgreSQL array cast to the key type, a JSON array text on SQLite. */
+  function idList(column: PlanColumn, t: Extract<Test, { k: "ids" }>): S {
+    if (!pg) {
+      // A decimal stays a JSON string: the column's affinity then converts it, where a JSON number never matches a text column.
+      // An excluded uuid in another case than its stored text would select the row, so exclusion folds case; selection
+      // compares the stored form exactly and keeps the key index.
+      const folded = t.negate && column.native === "uuid";
+      const text = (value: Operand) => (folded ? idText(value).toLowerCase() : idText(value));
+      const json = `[${t.values.map((value) => (value.kind === "bigint" ? idText(value) : JSON.stringify(text(value)))).join(",")}]`;
+      const lhs = folded ? cat(raw("lower("), ref(column), raw(")")) : ref(column);
+      return cat(lhs, raw(t.negate ? " NOT IN " : " IN "), raw("(SELECT value FROM json_each("), param(json), raw("))"));
+    }
+    const type = column.kind === "number" ? PG_ARRAY_TYPES.get(column.numeric!)! : column.native === "uuid" ? "uuid[]" : "text[]";
+    const lhs = column.native === "enum" ? subject(column) : ref(column);
+    const member = cat(lhs, raw(" = ANY("), param(t.values.map(idText)), raw(`::${type})`));
+    return t.negate ? cat(raw("NOT "), group(member)) : member;
+  }
+
   function test(column: PlanColumn, t: Test): S {
     const col = ref(column);
     switch (t.k) {
@@ -113,6 +155,14 @@ export function createSqlRenderer<S>(a: SqlAlgebra<S>, customHandlers: ReadonlyM
       }
       case "in":
         return inList(column, t);
+      case "ids":
+        return idList(column, t);
+      case "key":
+        // The bare column, no `::text` cast and no blank guard, so the comparison follows ORDER BY (a native enum sorts by declaration).
+        if (t.op === "null" || !t.value) return cat(col, raw(" IS NULL"));
+        // As in `idList`, a SQLite decimal binds as text, so the column's own affinity converts it, never a JS double.
+        if (!pg && column.numeric === "decimal") return cat(col, raw(KEY_SQL.get(t.op)!), param(t.value.v));
+        return cat(col, raw(KEY_SQL.get(t.op)!), operand(t.value, column));
       case "custom": {
         const handler = customHandlers.get(t.id);
         if (!handler) throw new Error(`customOperators: no handler for "${t.id}"`);
@@ -176,11 +226,15 @@ export function createSqlRenderer<S>(a: SqlAlgebra<S>, customHandlers: ReadonlyM
     return { key: ref(column), value: ref(column) };
   }
 
-  function aggregate(column: PlanColumn, reducer: string): S {
-    const col = ref(column);
-    const nonBlank = isTextual(column) && !column.keepBlankText ? cat(raw("NULLIF("), subject(column), raw(", '')")) : col;
+  /** The reducer over the column; with `when`, over the rows `when` keeps only. */
+  function aggregate(column: PlanColumn, reducer: string, when?: Predicate): S {
+    const only = (value: S): S => (when ? cat(raw("CASE WHEN "), predicate(when), raw(" THEN "), value, raw(" END")) : value);
+    const col = only(ref(column));
+    const nonBlank = isTextual(column) && !column.keepBlankText ? only(cat(raw("NULLIF("), subject(column), raw(", '')"))) : col;
     switch (reducer) {
       case "sum":
+        // SQLite sums integers exactly, but a driver reads the result past 2^53 as a rounded double; text keeps every digit.
+        if (!pg && column.numeric === "int8") return cat(raw("CAST(SUM("), col, raw(") AS TEXT)"));
         return cat(raw("SUM("), col, raw(")"));
       case "avg":
         return cat(raw("AVG("), col, raw(")"));
@@ -193,8 +247,28 @@ export function createSqlRenderer<S>(a: SqlAlgebra<S>, customHandlers: ReadonlyM
     }
   }
 
-  /** The group key of a column: the stored value, with `''` folded into NULL for text. A time column keeps the full instant. */
+  /** The cells of a pivot plan, key-major: alias `p${i}` of cell `i` reduces one aggregate over the rows of one key. */
+  function pivotCells(plan: GroupsPlan): S[] {
+    return (plan.pivot?.keys ?? []).flatMap(({ test }) => plan.aggregates.map(({ column, reducer }) => aggregate(column, reducer, test)));
+  }
+
+  /**
+   * Keeps the rows whose group key is on the page CTE `pivotPage`. The page is contiguous in key order, so a range on the
+   * key expression is exact; PostgreSQL has no MIN of a boolean, so a checkbox key tests membership. A range never matches NULL.
+   */
+  function pageBound(level: PlanColumn): S {
+    const key = groupKey(level);
+    const { name, key: k } = pivotPage;
+    const onPage =
+      level.kind === "checkbox"
+        ? cat(key, raw(` IN (SELECT "${k}" FROM "${name}")`))
+        : cat(key, raw(` >= (SELECT MIN("${k}") FROM "${name}") AND `), key, raw(` <= (SELECT MAX("${k}") FROM "${name}")`));
+    return group(cat(group(onPage), raw(" OR "), group(cat(key, raw(` IS NULL AND EXISTS (SELECT 1 FROM "${name}" WHERE "${k}" IS NULL)`)))));
+  }
+
+  /** The group key of a column: the stored value, with `''` folded into NULL for text. A PostgreSQL timestamp keys by its millisecond, the precision of the key on the wire. */
   function groupKey(column: PlanColumn): S {
+    if (pg && column.time && column.storage === "native") return cat(raw("date_trunc('milliseconds', "), ref(column), raw(")"));
     return isTextual(column) ? cat(raw("NULLIF("), subject(column), raw(", '')")) : ref(column);
   }
 
@@ -210,5 +284,11 @@ export function createSqlRenderer<S>(a: SqlAlgebra<S>, customHandlers: ReadonlyM
     return group(cat(where, raw(" AND "), like(textForm(plan.column, timeZone), "contains", plan.query, false)));
   }
 
-  return { predicate, orderBy, textForm, valueKey, aggregate, like, valuesFilter, groupKey, keyCount };
+  /** The exact text of a `time` key that compares back equal: microsecond UTC text of a PostgreSQL timestamp, the stored value elsewhere. */
+  function keyText(column: PlanColumn): S {
+    if (!pg || column.storage !== "native") return ref(column);
+    return cat(raw("to_char("), ref(column), raw(`::timestamptz AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`));
+  }
+
+  return { predicate, orderBy, textForm, valueKey, aggregate, like, valuesFilter, groupKey, keyCount, keyText, pivotCells, pageBound, pivotPage };
 }

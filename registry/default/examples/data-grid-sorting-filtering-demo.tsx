@@ -38,7 +38,7 @@ const columns = defineColumns<DemoRow>()([
     flex: 1,
     filterable: true,
   },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 55, flex: 1 },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 55, flex: 1 },
 ] as const);
 
 /** "(Role is Admin or Editor) and Age > 30": the top level combines with "and", the group holds the "or". */

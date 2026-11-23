@@ -1,5 +1,5 @@
 import { sanitizeFormulaCell } from "@/registry/default/blocks/data-grid/data-grid";
-import { columnLabelText, dataIndexAt, getSelectedViewRows, isDev, keepsCheckedRows, leafViewOf, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { columnLabelText, dataIndexAt, getSelectedViewRows, groupIndexAt, isDev, isPivotColumn, keepsCheckedRows, leafViewOf, pivotCellAt, pivotCellText, type DataGridReadState } from "@/registry/default/blocks/data-grid/data-grid-sdk";
 import { normalizeLimit } from "./normalize-limit";
 import type { CsvDelimiter } from "./parse-import-file";
 import {
@@ -13,6 +13,7 @@ import {
   mapExportRow,
   resolveExportColumns,
   settlePending,
+  sourceStateOf,
   type PendingCell,
   type ExportCell,
   type ExportCellContext,
@@ -107,7 +108,7 @@ export type ExportGridOptions<TData = unknown> = ExportShapeOptions<TData> & {
   sheetName?: string;
   /** Caps the number of data rows exported (the header row is not counted); when the scope exceeds the cap, the export is truncated with a dev-only warning. With `source` the default is 1,000,000, and an xlsx file also stops at the Excel sheet limit and at 5,000,000 cells. */
   maxRows?: number;
-  /** Where the rows of the whole result come from, for a grid that holds one page or some loaded blocks. With `source` the export ignores `scope` and the held rows; the grid's `spec` goes to the source. */
+  /** Where the rows of the whole result come from, for a grid that holds one page or some loaded blocks. With `source` the export ignores `scope` and the held rows; the grid's `spec` goes to the source. Under pivot it writes the source columns and never reads the pivot view. */
   source?: ExportSource;
   /** With `source`: stop after the slice of rows that passes this many bytes of file text (xlsx: characters); default 256 MiB. The export keeps what it has and reports `truncated` when more rows follow. */
   maxBytes?: number;
@@ -192,6 +193,39 @@ export function exportDataIndices(state: DataGridReadState, scope: ExportScope):
   return scoped.filter((dataRowIndex) => dataRowIndex >= 0 && state.data[dataRowIndex] !== undefined);
 }
 
+/** The rows an export builds: data indices, or under pivot the view rows of the pivot rows that hold their cells. */
+type ExportRowPlan = { pivot: boolean; rows: number[] };
+
+/** Resolves {@link ExportRowPlan} for `scope`. Under pivot every scope walks the shown rows; no pivot row is ever checked. */
+export function exportRowPlan(state: DataGridReadState, scope: ExportScope): ExportRowPlan {
+  if (!state.pivot) return { pivot: false, rows: exportDataIndices(state, scope) };
+  const viewRows =
+    scope === "checked-rows"
+      ? checkedViewRows(state.selection)
+      : scope === "ranges"
+        ? rangeViewRows(state.selection)
+        : scope === "selection"
+          ? getSelectedViewRows(state.selection, { checkedRowsOnly: keepsCheckedRows(state) })
+          : Array.from({ length: state.viewIndex.length }, (_, viewRow) => viewRow);
+  const loaded = (viewRow: number) => {
+    const groupIndex = groupIndexAt(state.viewIndex, viewRow);
+    return groupIndex !== undefined && state.groupLayout?.rows[groupIndex]?.pivotCells !== undefined;
+  };
+  return { pivot: true, rows: viewRows.filter(loaded) };
+}
+
+/** One pivot row: the key text, then each pivot cell's text; XLSX keeps a pivot cell's number typed. Consumer cell hooks need a data row, so they do not run. */
+function pivotExportRow(state: DataGridReadState, columns: readonly ExportColumn[], viewRow: number, text: "export" | "display", typed: boolean): ExportCell[] {
+  return columns.map((column) => {
+    const cell = typed ? pivotCellAt(state, viewRow, column) : undefined;
+    return typeof cell === "number" ? cell : (pivotCellText(state, viewRow, column, text) ?? "");
+  });
+}
+
+function buildPlanRows<TData>(state: DataGridReadState, plan: ExportRowPlan, text: "export" | "display", columns: readonly ExportColumn[], formatCell: FormatExportCellSync<TData> | undefined, typed: boolean): ExportCell[][] {
+  return plan.pivot ? plan.rows.map((viewRow) => pivotExportRow(state, columns, viewRow, text, typed)) : buildRowsAt(state, plan.rows, text, columns, formatCell, typed);
+}
+
 /**
  * Resolves the rows to export via the cell-type pipeline, in the requested `scope` order. With
  * `options.text: "display"` the cell type's display text (`toDisplayText ?? toText`) is used; the
@@ -201,9 +235,9 @@ export function exportDataIndices(state: DataGridReadState, scope: ExportScope):
  */
 export function buildExportRows(state: DataGridReadState, scope: ExportScope, options: BuildExportRowsOptions = {}): string[][] {
   const { text = "export" } = options;
-  const dataIndices = exportDataIndices(state, scope);
+  const plan = exportRowPlan(state, scope);
   const maxRows = options.maxRows === undefined ? undefined : normalizeLimit(options.maxRows, Number.POSITIVE_INFINITY);
-  return buildRowsAt(state, maxRows === undefined ? dataIndices : dataIndices.slice(0, maxRows), text) as string[][];
+  return buildPlanRows(state, maxRows === undefined ? plan : { ...plan, rows: plan.rows.slice(0, maxRows) }, text, state.visibleColumns, undefined, false) as string[][];
 }
 
 function buildRowsAt<TData>(
@@ -220,7 +254,7 @@ function buildRowsAt<TData>(
 /** {@link buildRowsAt} for a `formatCell` that may return promises: each slice of rows settles its promises before the next slice starts. */
 async function buildRowsAtAsync<TData>(
   state: DataGridReadState,
-  dataIndices: readonly number[],
+  plan: ExportRowPlan,
   columns: readonly ExportColumn[],
   formatCell: FormatExportCell<TData> | undefined,
   typed: boolean,
@@ -228,12 +262,12 @@ async function buildRowsAtAsync<TData>(
   onSlice?: (rows: ExportCell[][]) => void,
 ): Promise<ExportCell[][]> {
   const rows: ExportCell[][] = [];
-  for (let from = 0; from < dataIndices.length; from += SLICE_ROWS) {
+  for (let from = 0; from < plan.rows.length; from += SLICE_ROWS) {
     throwIfAborted(signal);
     const pending: PendingCell[] = [];
     const slice: ExportCell[][] = [];
-    for (const dataRowIndex of dataIndices.slice(from, from + SLICE_ROWS)) {
-      slice.push(mapExportRow(state, columns, state.data[dataRowIndex] as TData, "export", formatCell, typed, signal, pending));
+    for (const ref of plan.rows.slice(from, from + SLICE_ROWS)) {
+      slice.push(plan.pivot ? pivotExportRow(state, columns, ref, "export", typed) : mapExportRow(state, columns, state.data[ref] as TData, "export", formatCell, typed, signal, pending));
     }
     if (pending.length > 0) await settlePending(pending, typed, signal);
     if (onSlice) onSlice(slice);
@@ -244,28 +278,36 @@ async function buildRowsAtAsync<TData>(
 
 type ExportColumn = DataGridReadState["visibleColumns"][number];
 
-/** The columns and the data indices to build: at most `maxRows` rows, with a dev-only warning when the scope exceeds the cap. */
+/** The columns and the rows to build: at most `maxRows` rows, with a dev-only warning when the scope exceeds the cap. */
 function cappedExportPlan(state: DataGridReadState, scope: ExportScope, rawMaxRows: number | undefined, columnIds: readonly string[] | undefined) {
   const maxRows = rawMaxRows === undefined ? undefined : normalizeLimit(rawMaxRows, Number.POSITIVE_INFINITY);
   const columns = resolveExportColumns(state, columnIds);
-  const dataIndices = exportDataIndices(state, scope);
-  if (maxRows !== undefined && dataIndices.length > maxRows && isDev()) console.warn(`[data-grid-io] export truncated to ${maxRows} of ${dataIndices.length} rows (maxRows)`);
-  return { columns, dataIndices: maxRows === undefined ? dataIndices : dataIndices.slice(0, maxRows) };
+  const plan = exportRowPlan(state, scope);
+  if (maxRows !== undefined && plan.rows.length > maxRows && isDev()) console.warn(`[data-grid-io] export truncated to ${maxRows} of ${plan.rows.length} rows (maxRows)`);
+  return { columns, plan: maxRows === undefined ? plan : { ...plan, rows: plan.rows.slice(0, maxRows) } };
 }
 
 function buildCappedExportRows<TData>(state: DataGridReadState, scope: ExportScope, rawMaxRows: number | undefined, shape: ExportShapeOptions<TData, FormatExportCellSync<TData>>, typed: boolean): ExportCell[][] {
-  const { columns, dataIndices } = cappedExportPlan(state, scope, rawMaxRows, shape.columns);
-  return buildRowsAt(state, dataIndices, "export", columns, shape.formatCell, typed);
+  const { columns, plan } = cappedExportPlan(state, scope, rawMaxRows, shape.columns);
+  return buildPlanRows(state, plan, "export", columns, shape.formatCell, typed);
 }
 
 function buildCappedExportRowsAsync<TData>(state: DataGridReadState, scope: ExportScope, rawMaxRows: number | undefined, shape: ExportShapeOptions<TData>, typed: boolean, signal: AbortSignal, onSlice?: (rows: ExportCell[][]) => void): Promise<ExportCell[][]> {
-  const { columns, dataIndices } = cappedExportPlan(state, scope, rawMaxRows, shape.columns);
-  return buildRowsAtAsync(state, dataIndices, columns, shape.formatCell, typed, signal, onSlice);
+  const { columns, plan } = cappedExportPlan(state, scope, rawMaxRows, shape.columns);
+  return buildRowsAtAsync(state, plan, columns, shape.formatCell, typed, signal, onSlice);
 }
 
 /** Header row text for each exported column: the visible columns, or the columns named by `columnIds`. */
 export function buildExportHeaders(state: DataGridReadState, columnIds?: readonly string[], overrides?: Readonly<Record<string, string>>): string[] {
-  return resolveExportColumns(state, columnIds).map((column) => (overrides && Object.hasOwn(overrides, column.id) ? overrides[column.id]! : columnLabelText(column)));
+  return resolveExportColumns(state, columnIds).map((column) => (overrides && Object.hasOwn(overrides, column.id) ? overrides[column.id]! : exportHeaderText(state, column)));
+}
+
+/** A generated column under a key's header group reads `key / value`, so the flat header row keeps the key. */
+function exportHeaderText(state: DataGridReadState, column: ExportColumn): string {
+  const model = isPivotColumn(column) ? state.pivot?.groupModel : undefined;
+  const groupId = model?.paths.get(column.id)?.[0];
+  const group = groupId === undefined ? undefined : model?.groups.get(groupId)?.def;
+  return group ? `${columnLabelText(group)} / ${columnLabelText(column)}` : columnLabelText(column);
 }
 
 /** Triggers a browser download of `blob` named `fileName`, via a temporary anchor + object URL (revoke deferred — see below). */
@@ -381,7 +423,7 @@ function throwIfAborted(signal: AbortSignal | undefined): void {
 }
 
 function loadedResult(state: DataGridReadState, scope: ExportScope, maxRows: number | undefined): ExportResult {
-  const total = exportDataIndices(state, scope).length;
+  const total = exportRowPlan(state, scope).rows.length;
   return { rowCount: maxRows === undefined ? total : Math.min(total, maxRows), truncated: maxRows !== undefined && total > maxRows };
 }
 
@@ -463,7 +505,7 @@ export async function exportGrid<TData = unknown>(state: DataGridReadState, opti
 async function runExport<TData>(state: DataGridReadState, options: ExportGridOptions<TData>, signal: AbortSignal): Promise<ExportResult> {
   const { source, output, format = "csv", scope = "view", fileName = "export" } = options;
   const delivery: ExportDelivery = { fileName, output, signal };
-  if (source) return exportFromSource(state, source, options, delivery);
+  if (source) return exportFromSource(sourceStateOf(state), source, options, delivery);
   const maxRows = options.maxRows === undefined ? undefined : normalizeLimit(options.maxRows, Number.POSITIVE_INFINITY);
   if (format === "csv") {
     await deliver(await buildCsvAsync(state, { ...options, maxRows }, signal), "csv", delivery);

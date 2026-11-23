@@ -12,7 +12,7 @@ const columns = defineColumns<DemoRow>()([
   { id: "name", header: "Name", accessorKey: "name", type: "text", width: 85, flex: 1 },
   { id: "email", header: "Email", accessorKey: "email", type: "text", width: 100, flex: 2 },
   { id: "role", header: "Role", accessorKey: "role", type: "text", width: 65, flex: 1 },
-  { id: "score", header: "Score", accessorKey: "score", type: "number", width: 55, flex: 1 },
+  { id: "score", header: "Logins (30 days)", accessorKey: "score", type: "number", width: 55, flex: 1 },
 ] as const);
 
 const ME: CommentAuthor = { id: "ada", name: "Ada", color: "oklch(0.7 0.17 60)" };
@@ -30,7 +30,7 @@ function useSimulatedBackend() {
   const rows = useMemo(() => generateDemoRows(24), []);
   const server = useMemo(() => {
     const created = createCommentsServer({ mode: "cas" });
-    created.seed([peerComment("seed-1", rows[1]?.id ?? "r1", "name", "Is this the right spelling?"), peerComment("seed-2", rows[4]?.id ?? "r4", "score", "Please double-check this score.")]);
+    created.seed([peerComment("seed-1", rows[1]?.id ?? "r1", "name", "Is this the right spelling?"), peerComment("seed-2", rows[4]?.id ?? "r4", "score", "Please double-check this login count.")]);
     return created;
   }, [rows]);
   return { rows, server };

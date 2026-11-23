@@ -28,6 +28,7 @@ import { GRID_ATTR, gridAttrSelector } from "../data-attributes";
 import { isCellEditorEvent, markPortaledPointerDown, wasPortaledPointerDown } from "./portaled-events";
 import { type RowRangeGesture } from "../selection/row-range-gesture";
 import { getInternalActions } from "../store/internal-actions";
+import { groupRowExpandable, stepColumn } from "../store/group-positions";
 import { groupIndexAt } from "../store/view-rows";
 import { isComposingKey } from "./is-composing-key";
 import { createLongPressTimer, isDoubleTap, isTap, movedBeyondSlop, type TapSample } from "./touch-gestures";
@@ -47,8 +48,9 @@ const isActivationKey = (event: ReactKeyboardEvent<HTMLElement>) =>
 /** A Tab bound to a move at the first or last column leaves the grid, so a remapped Tab never traps the keyboard. */
 function leavesGridOnTab(action: GridAction, key: string, state: DataGridStoreState): boolean {
   if (key !== "Tab" || !state.activeCell) return false;
-  const col = state.activeCell.col;
-  return (action === "moveRight" || action === "moveRightKeepSelection") ? col >= state.visibleColumns.length - 1 : (action === "moveLeft" || action === "moveLeftKeepSelection") && col <= 0;
+  const dx = action === "moveRight" || action === "moveRightKeepSelection" ? 1 : action === "moveLeft" || action === "moveLeftKeepSelection" ? -1 : 0;
+  const { col, row } = state.activeCell;
+  return dx !== 0 && stepColumn(state, row, col, dx) === col;
 }
 
 const KEEP_RANGE_SURFACES = (["cellEditor", "headerFilterPopup", "headerMenuPopup", "findReplacePanel", "commentsPopup", "contextMenu"] as const).map((name) => gridAttrSelector(name)).join(", ");
@@ -442,7 +444,10 @@ export function useGridInteraction(options: UseGridInteractionOptions): GridInte
       }
 
       const commands = state.commands;
-      const onGroupRow = state.activeCell !== null && groupIndexAt(state.viewIndex, state.activeCell.row) !== undefined;
+      // An innermost pivot row never opens, so Enter falls to `edit`, which it refuses, and the arrows move.
+      const groupIndex = state.activeCell === null ? undefined : groupIndexAt(state.viewIndex, state.activeCell.row);
+      const groupNode = groupIndex === undefined ? undefined : state.groupLayout?.rows[groupIndex];
+      const onGroupRow = groupNode !== undefined && groupRowExpandable(state, groupNode);
       const offered = (a: GridAction) => (onGroupRow || !GROUP_ROW_ACTIONS.has(a)) && commands?.[a]?.scope !== "editing";
       // unbound printable key = implicit typeToReplace trigger (Excel behavior); a consumer keymap that DEFINES typeToReplace (even []) takes it over and disables the fallback
       const action =

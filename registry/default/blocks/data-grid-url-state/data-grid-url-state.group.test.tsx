@@ -110,6 +110,21 @@ describe("URL group param, apply and spec", () => {
     expect(api.getState().groupBy).toEqual([]);
   });
 
+  it("writes the requested group columns while a server layout still shows the old ones", async () => {
+    const onUrlUpdate = vi.fn();
+    render(
+      <NuqsTestingAdapter onUrlUpdate={onUrlUpdate}>
+        <DataGridProvider columns={columns} data={rows} getRowId={(r: Row) => r.id} groupBy={["team"]} onGroupByChange={() => {}} groupMode="server" groupLayout={{ rows: [], leafCount: 0 }}>
+          <Capture />
+          <DataGridUrlState spec={["sort", "group"]} />
+        </DataGridProvider>
+      </NuqsTestingAdapter>,
+    );
+    act(() => api.getState().actions.setGroupBy(["role"]));
+    expect(api.getState().groupBy).toEqual(["team"]);
+    await vi.waitFor(() => expect(onUrlUpdate.mock.calls.at(-1)?.[0].searchParams.get("group")).toBe("role"));
+  });
+
   it("leaves group out of the URL when spec omits it", async () => {
     const onUrlUpdate = vi.fn();
     render(

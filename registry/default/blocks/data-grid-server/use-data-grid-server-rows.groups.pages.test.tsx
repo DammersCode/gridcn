@@ -96,8 +96,12 @@ describe("grouped pages source", () => {
     const { result } = mount(server);
     await waitFor(() => expect(keysOf(result)).toEqual(["A", "B"]));
     act(() => result.current.gridProps.onGroupByChange!([]));
-    await waitFor(() => expect(result.current.gridProps.data).toHaveLength(2));
-    expect(result.current.gridProps.data[0]?.id).toBe("A0");
+    // The held group rows have the length of the flat page, so only the first row id shows that the page landed.
+    expect(result.current.gridProps.serverHeld).toBe(true);
+    expect(result.current.gridProps.groupLayout?.rows).toHaveLength(2);
+    await waitFor(() => expect(result.current.gridProps.data[0]?.id).toBe("A0"));
+    expect(result.current.gridProps.serverHeld).toBeUndefined();
+    expect(result.current.gridProps.data).toHaveLength(2);
     expect(result.current.pager.unit).toBeUndefined();
     expect(result.current.pager.totalRowCount).toBe(21);
     expect("childKind" in server.calls.at(-1)!).toBe(false);

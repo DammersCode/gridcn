@@ -5,6 +5,7 @@
     "save-edits",
     "save-revert",
     "handle-refused-saves",
+    "validate-server-saves",
     "show-errors-cells",
     "undo-server-data"
   ]

@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { serverSpecKey, type DataChange, type RowRange } from "@/registry/default/blocks/data-grid/data-grid";
-import { COLLAPSED, expandedTest, groupIdOf, holeRowId, isDev, normalizeExpanded, type ExpandedState, type ServerGroupLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { blockOf, createGroupStore, evictBlock, landGroups, landRows, layoutView, listFor, type GroupList, type GroupStore, type GroupView } from "./group-lists";
+import { serverSpecKey, type DataChange, type RowRange, type ServerSpec } from "@/registry/default/blocks/data-grid/data-grid";
+import { COLLAPSED, expandedTest, groupIdOf, holeRowId, isDev, normalizeExpanded, pivotSorts, type ExpandedState, type ServerGroupLayout } from "@/registry/default/blocks/data-grid/data-grid-sdk";
+import { blockOf, createGroupStore, evictBlock, evictPivotCells, landGroups, landPivotGroups, landRows, layoutView, listFor, type GroupList, type GroupStore, type GroupView, type PivotHold } from "./group-lists";
+import { DEFAULT_PAGE_SIZES } from "@/registry/default/blocks/data-grid-pagination/pagination-math";
 import { isGroupsAnswer, pageWindowOf, seedGroupStore, useGroupPager, type GroupPagesConfig } from "./group-pages";
 import { assertRowIdsNotReserved, readGroupsAnswer } from "./read-groups-answer";
 import { MAX_ROW_COUNT, readAnswer, type FetchReason, type ServerRowsRequest, type WithRowId } from "./read-answer";
@@ -11,16 +12,17 @@ import { unionIds, useRefreshGuard } from "./refresh-guard";
 import { groupSaveScope } from "./group-save-scope";
 import { useSaveRefresh, type SaveRefreshPolicy, type SaveRefreshReport } from "./save-refresh";
 import type { UseDataGridServerRowsScrollOptions } from "./scroll-blocks";
+import { DEFAULT_BLOCK_SIZE, DEFAULT_OVERSCAN, positiveInteger } from "./scroll-core";
 import type { UseDataGridServerRowsScrollProviderProps, UseDataGridServerRowsScrollResult } from "./scroll-types";
-import { isolate, scheduleFrame, useControlled, useMountedPlugins, useRegisteredWiring, useReshape, useRevalidation, type ServerSpecState } from "./server-state";
+import { isolate, scheduleFrame, useControlled, useMountedPlugins, useRegisteredWiring, useReshape, useRevalidation, withoutPivot, type ServerPivotOptions, type ServerSpecState } from "./server-state";
 import type { UseDataGridServerRowsRootProps } from "./use-data-grid-server-rows";
 
-const DEFAULT_BLOCK_SIZE = 50;
-const DEFAULT_OVERSCAN = 30;
 const DEFAULT_CONCURRENT = 6;
 const MAX_CONCURRENT = 16;
 const DEFAULT_LOAD_DELAY_MS = 100;
 const DEFAULT_MAX_LOADED_ROWS = 10_000;
+const MAX_PIVOT_BLOCK_SIZE = 200;
+const MAX_PIVOT_LEVELS = 4;
 const NO_GROUPS: readonly string[] = [];
 
 /** The open groups of a grouped server source. */
@@ -30,7 +32,7 @@ export type UseDataGridServerRowsGroupOptions = {
   /** Seeds the open groups once. Default: every group closed. */
   defaultExpanded?: ExpandedState;
   onExpandedChange?: (next: ExpandedState) => void;
-};
+} & ServerPivotOptions;
 
 type Flight = { list: GroupList<never>; block: number; controller: AbortController; ids: ReadonlySet<string> | null; mark: number };
 type Failure = { listId: string; error: unknown };
@@ -49,16 +51,52 @@ function createEngine<TData>() {
     cancelFrame: null as (() => void) | null,
     pumpTimer: null as ReturnType<typeof setTimeout> | null,
     warned: new Set<string>(),
+    holding: false,
+    /** Rows a user wrote while the view was held; the answers asked for before the write keep the written values. */
+    heldEdits: new Set<string>(),
+    /** Local copies of rows that were saving when the store was dropped; an answer asked for before the save settles keeps them. */
+    displaced: new Map<string, unknown>(),
   };
 }
 type Engine<TData> = ReturnType<typeof createEngine<TData>>;
-type ViewState<TData> = GroupView<TData> & { loading: boolean; groupCount: number | null };
+/** `laidFor` is the `groupBy` of the layout, so a held view keeps the group columns it shows. */
+type ViewState<TData> = GroupView<TData> & { loading: boolean; groupCount: number | null; pivotHold?: PivotHold; laidFor?: readonly string[]; held?: true };
 
 const emptyView = <TData,>(): ViewState<TData> => ({ data: [], slots: [], owners: [], offsets: [], leafCount: 0, holes: 0, loading: false, groupCount: null });
 
-const positiveInteger = (value: number | undefined, fallback: number, min: number) => (typeof value === "number" && Number.isFinite(value) ? Math.max(min, Math.floor(value)) : fallback);
+const pivotOf = <TData,>(store: GroupStore<TData>) => (store.pivot?.layout ? { pivotHold: store.pivot } : null);
 
-const blockSizeOf = (options: { blockSize?: number }, pages?: GroupPagesConfig) => pages?.pageSize ?? positiveInteger(options.blockSize, DEFAULT_BLOCK_SIZE, 1);
+const sameRows = (a: readonly unknown[], b: readonly unknown[]): boolean => a.length === b.length && a.every((row, index) => row === b[index]);
+
+const blockSizeOf = (options: { blockSize?: number }, pages: GroupPagesConfig | undefined, pivot: string | null) => {
+  const size = pages?.pageSize ?? positiveInteger(options.blockSize, DEFAULT_BLOCK_SIZE, 1);
+  return pivot !== null ? Math.min(size, MAX_PIVOT_BLOCK_SIZE) : size;
+};
+
+/** The pages under pivot: the pager offers only sizes up to the pivot block cap, and a larger size drops to the largest one it offers. */
+function pivotPagesOf(pages: GroupPagesConfig, pageSizeOptions: readonly number[]): GroupPagesConfig {
+  return { ...pages, pageSizeOptions, pageSize: pages.pageSize <= MAX_PIVOT_BLOCK_SIZE ? pages.pageSize : pageSizeOptions.reduce((a, b) => Math.max(a, b)) };
+}
+
+function pivotPageSizes(options: readonly number[] = DEFAULT_PAGE_SIZES): readonly number[] {
+  const fitting = options.filter((size) => size <= MAX_PIVOT_BLOCK_SIZE);
+  return fitting.length > 0 ? fitting : [MAX_PIVOT_BLOCK_SIZE];
+}
+
+/** The pivot column when `spec.pivot` can be sent: 1 pivot column outside 1 to 4 `groupBy` columns, and at least 1 aggregate. */
+function pivotColumnOf(spec: ServerSpec): string | null {
+  const ids = spec.pivot?.columnIds;
+  const levels = spec.groupBy?.length ?? 0;
+  if (ids?.length !== 1 || levels < 1 || levels > MAX_PIVOT_LEVELS || !spec.aggregates?.length || spec.groupBy!.includes(ids[0]!)) return null;
+  return ids[0]!;
+}
+
+/** The spec a request carries: under pivot only the `groupBy` and pivot sorts, and no `pivot` that cannot be sent. */
+function requestSpecOf(spec: ServerSpec, pivot: string | null): ServerSpec {
+  if (pivot === null) return spec.pivot ? withoutPivot(spec) : spec;
+  const sorts = pivotSorts(spec.sorts, spec.groupBy!, [pivot]);
+  return sorts === spec.sorts ? spec : { ...spec, sorts };
+}
 
 /** Whether the options opt in to grouping; read once per hook, so the choice holds for its life. */
 export function groupsEnabled(options: { spec?: { groupBy?: unknown }; defaultSpec?: unknown; expanded?: unknown; defaultExpanded?: unknown; onExpandedChange?: unknown }): boolean {
@@ -75,29 +113,35 @@ export function useGroupBlocks<TData, TCursor = never>(
   options: WithRowId<UseDataGridServerRowsScrollOptions<TData, TCursor> & UseDataGridServerRowsGroupOptions, TData>,
   specState: ServerSpecState,
   active: boolean,
-  pages?: GroupPagesConfig,
+  pagesIn?: GroupPagesConfig,
 ) {
-  const { spec, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, onGroupByChange } = specState;
+  const { spec, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, onGroupByChange, pivot: pivotSpec, onPivotChange } = specState;
   const groupBy = spec.groupBy ?? NO_GROUPS;
-  const requestKey = serverSpecKey({ ...spec, aggregates: undefined });
+  const pivot = pivotColumnOf(spec);
+  // Under pivot a page is one block, so the pager, the window, and the requests all count pages of the clamped size.
+  const pivotSizes = useMemo(() => pivotPageSizes(pagesIn?.pageSizeOptions), [pagesIn?.pageSizeOptions]);
+  const pages = pagesIn && pivot !== null ? pivotPagesOf(pagesIn, pivotSizes) : pagesIn;
+  const requestSpec = useMemo(() => requestSpecOf(spec, pivot), [spec, pivot]);
+  // Without pivot an aggregate change reloads the group rows in place; under pivot the aggregates are the values of the held set.
+  const requestKey = serverSpecKey(pivot === null ? { ...requestSpec, aggregates: undefined } : requestSpec);
   const engineKey = pages ? `${requestKey}|${pages.pageSize}` : requestKey;
   const aggregateKey = JSON.stringify(spec.aggregates ?? []);
   const [rawExpanded, setExpanded] = useControlled(options.expanded, () => options.defaultExpanded ?? COLLAPSED, options.onExpandedChange);
   const expanded = useMemo(() => (normalizeExpanded(rawExpanded).mode === "collapsed" ? normalizeExpanded(rawExpanded) : COLLAPSED), [rawExpanded]);
-  const aggregateIds = () => (spec.aggregates ?? []).map((aggregate) => aggregate.columnId);
   const [seed] = useState(() => (active && isGroupsAnswer(options.initialAnswer) ? { answer: options.initialAnswer, key: engineKey } : null));
   const [view, setView] = useState<ViewState<TData>>(() => {
-    const store = seed && seedGroupStore<TData>(seed.answer, groupBy, blockSizeOf(options, pages), (pages?.page ?? 1) - 1, aggregateIds());
-    return store ? { ...layoutView(store, expandedTest(expanded), () => undefined, pageWindowOf(pages)), loading: false, groupCount: store.lists.get("")?.count ?? null } : emptyView();
+    const store = seed && seedGroupStore<TData>(seed.answer, groupBy, blockSizeOf(options, pages, pivot), (pages?.page ?? 1) - 1, spec.aggregates ?? [], pivot ?? undefined);
+    return store ? { ...layoutView(store, expandedTest(expanded), () => undefined, pageWindowOf(pages)), loading: false, groupCount: store.lists.get("")?.count ?? null, ...pivotOf(store) } : emptyView();
   });
   const [error, setError] = useState<unknown>(null);
   const { plugins: guardPlugins, protectedRows, savingRows, saveMark, savedSince, pruneSaves, overlayPushed, streamUpdateRow, setSettleListener, setReshapeListener, evictionProtected } = useRefreshGuard({ trackUnacknowledged: true });
   const { pager, plugins: pagerPlugins } = useGroupPager(pages, view.groupCount);
   const seedRef = useRef(seed);
 
-  const live = useRef({ options, spec, expanded, groupBy, active, pages, engineKey });
+  const pivotHold = view.pivotHold;
+  const live = useRef({ options, spec, requestSpec, pivot, pivotHold, expanded, groupBy, active, pages, engineKey });
   useLayoutEffect(() => {
-    live.current = { options, spec, expanded, groupBy, active, pages, engineKey };
+    live.current = { options, spec, requestSpec, pivot, pivotHold, expanded, groupBy, active, pages, engineKey };
   });
   const engineRef = useRef<Engine<TData> | null>(null);
   const getEngine = useCallback((): Engine<TData> => {
@@ -119,25 +163,50 @@ export function useGroupBlocks<TData, TCursor = never>(
     const count = store.lists.get("")?.count;
     return paging && count ? { ...paging, page: Math.min(paging.page, Math.ceil(count / paging.pageSize)) } : paging;
   };
-  const blockSize = () => blockSizeOf(live.current.options, live.current.pages);
+  const blockSize = () => blockSizeOf(live.current.options, live.current.pages, live.current.pivot);
   const overscan = () => positiveInteger(live.current.options.overscan, DEFAULT_OVERSCAN, 0);
   const idOf = (row: TData, index: number) => live.current.options.getRowId(row, index);
 
   const syncError = () => setError(getEngine().failed.size > 0 ? [...getEngine().failed.values()].at(-1)!.error : null);
 
+  const hold = (loading: boolean) => setView((prev) => (prev.loading === loading && prev.held ? prev : { ...prev, loading, held: true }));
+
+  /** Whether a block under the rendered rows still waits for its answer; a failed block counts as answered. */
+  const unsettled = (store: GroupStore<TData>) => {
+    const engine = getEngine();
+    return [...wantedBlocks(store)].some(([key, entry]) => engine.flight.has(key) || (!entry.list.blocks.has(entry.block) && !engine.failed.has(key)));
+  };
+
   const publish = () => {
     const store = getEngine().store;
+    if (!store && getEngine().holding) return hold(true);
     if (!store) {
       getEngine().view = null;
-      setView((prev) => (prev.data.length === 0 && prev.slots.length === 0 && !prev.loading && prev.groupCount === null ? prev : emptyView()));
+      const { active: on, pivot: columnId } = live.current;
+      setView((prev) => {
+        const hold = on && columnId !== null && live.current.options.enableHold !== false ? prev.pivotHold : undefined;
+        if (prev.data.length === 0 && prev.slots.length === 0 && !prev.loading && prev.groupCount === null && prev.pivotHold === hold) return prev;
+        return hold ? { ...emptyView<TData>(), pivotHold: hold } : emptyView<TData>();
+      });
       return;
     }
     const states = new Map<string, "loading" | "failed">();
     for (const { listId } of getEngine().failed.values()) states.set(listId, "failed");
     for (const { list } of getEngine().flight.values()) if (!states.has(list.id)) states.set(list.id, "loading");
-    const next = { ...layoutView(store, expandedTest(live.current.expanded), (id) => states.get(id), pageWindowOf(livePages(store)), { onCapped: () => warn("view-cap", `the open groups hold more than ${MAX_ROW_COUNT} view rows; the view stops at ${MAX_ROW_COUNT}. Collapse a group or add a filter`) }), loading: getEngine().flight.size > 0, groupCount: store.lists.get("")?.count ?? null } satisfies ViewState<TData>;
-    getEngine().view = next;
-    setView(next);
+    const laid = layoutView(store, expandedTest(live.current.expanded), (id) => states.get(id), pageWindowOf(livePages(store)), { onCapped: () => warn("view-cap", `the open groups hold more than ${MAX_ROW_COUNT} view rows; the view stops at ${MAX_ROW_COUNT}. Collapse a group or add a filter`) });
+    const engine = getEngine();
+    // Group rows are `undefined`, so a landing that only fills groups keeps the array and the grid sees no data change.
+    const data = engine.view && sameRows(engine.view.data, laid.data) ? engine.view.data : laid.data;
+    const next = { ...laid, data, loading: engine.flight.size > 0, groupCount: store.lists.get("")?.count ?? null, ...pivotOf(store), laidFor: store.groupBy } satisfies ViewState<TData>;
+    engine.view = next;
+    // The old view stays until the rows under the window answer; a failed top block keeps it next to the error bar.
+    const waiting = engine.holding && unsettled(store);
+    if (waiting || (engine.holding && !store.lists.get("")?.blocks.size)) hold(waiting);
+    else {
+      engine.holding = false;
+      engine.heldEdits.clear();
+      setView(next);
+    }
     const { onLoaded } = live.current.options;
     for (const { list, start, end } of getEngine().landed.splice(0)) {
       const first = firstViewRow(next, list, start);
@@ -190,17 +259,23 @@ export function useGroupBlocks<TData, TCursor = never>(
   const writeAnswer = (store: GroupStore<TData>, list: GroupList<TData>, flight: Flight, answer: unknown, range: RowRange): Error | null => {
     const stamp = ++getEngine().tick;
     if (list.kind === "groups") {
-      const aggregateIds = (live.current.spec.aggregates ?? []).map((aggregate) => aggregate.columnId);
-      const read = readGroupsAnswer(answer, range, { topLevel: list.id === "", aggregateIds }, warn);
-      if (landGroups(store, list, flight.block, read.groups, read.groupCount, stamp) === "failed") return new TypeError("fetchRows answered groups that shifted twice since the last reload; make the group order total");
+      const { pivot: columnId, spec: { aggregates = [] } } = live.current;
+      const read = readGroupsAnswer(answer, range, { topLevel: list.id === "", aggregates }, warn);
+      const landed = store.pivot && columnId !== null ? landPivotGroups(store, list, flight.block, answer, read, { columnId, values: aggregates }, stamp, warn) : landGroups(store, list, flight.block, read.groups, read.groupCount, stamp);
+      if (landed === "failed") return new TypeError("fetchRows answered groups that shifted twice since the last reload; make the group order total");
       if (list.id === "" && read.totalRowCount !== undefined) store.leafCount = read.totalRowCount;
       return null;
     }
     const read = readAnswer<TData, TCursor>(answer, range, warn, idOf);
     assertRowIdsNotReserved(read.rows.flatMap((row, index) => (row === undefined ? [] : [idOf(row, range.start + index)])));
-    const guarded = unionIds(unionIds(flight.ids, savedSince(flight.mark)), protectedRows());
+    const { heldEdits } = getEngine();
+    const guarded = unionIds(unionIds(unionIds(flight.ids, savedSince(flight.mark)), protectedRows()), heldEdits.size > 0 ? heldEdits : null);
     const count = typeof read.totalRowCount === "number" ? read.totalRowCount : undefined;
-    landRows(store, list, flight.block, overlayPushed(read.rows as TData[], flight.mark, range.start, idOf), count, stamp, (existing, offset) => guarded?.has(idOf(existing, offset)) === true);
+    const { displaced } = getEngine();
+    const pushed = overlayPushed(read.rows as TData[], flight.mark, range.start, idOf);
+    const rows = displaced.size === 0 || guarded === null ? pushed : pushed.map((row, index) => (row !== undefined && guarded.has(idOf(row, range.start + index)) ? ((displaced.get(idOf(row, range.start + index)) as TData | undefined) ?? row) : row));
+    landRows(store, list, flight.block, rows, count, stamp, (existing, offset) => guarded?.has(idOf(existing, offset)) === true);
+    if (getEngine().flight.size === 0) for (const id of displaced.keys()) if (!protectedRows()?.has(id) && !heldEdits.has(id)) displaced.delete(id);
     return null;
   };
 
@@ -224,6 +299,10 @@ export function useGroupBlocks<TData, TCursor = never>(
     getEngine().idIndex = null;
     getEngine().landed.push({ list, start: range.start, end: range.start + (range.end - range.start) });
     evictOverCap(store);
+    if (store.pivot) {
+      const wanted = wantedBlocks(store);
+      evictPivotCells(store, (listId, block) => wanted.has(`${listId}|${block}`));
+    }
     pruneSaves([...getEngine().flight.values()].reduce<number | null>((oldest, { mark }) => (oldest === null || mark < oldest ? mark : oldest), null));
     schedulePublish();
   };
@@ -236,7 +315,7 @@ export function useGroupBlocks<TData, TCursor = never>(
     const controller = new AbortController();
     const flight: Flight = { list: list as unknown as GroupList<never>, block, controller, ids: savingRows(), mark: saveMark() };
     getEngine().flight.set(key, flight);
-    const base: ServerRowsRequest<TCursor> = { spec: live.current.spec, ...range, cursor: undefined, reason: getEngine().reason, signal: controller.signal, groupPath: list.path, childKind: list.kind };
+    const base: ServerRowsRequest<TCursor> = { spec: live.current.requestSpec, ...range, cursor: undefined, reason: getEngine().reason, signal: controller.signal, groupPath: list.path, childKind: list.kind };
     const request = live.current.pages ? { ...base, page: block + 1, pageSize: size } : base;
     const settled = () => getEngine().flight.get(key)?.controller === controller && !controller.signal.aborted;
     new Promise<unknown>((resolve) => resolve(live.current.options.fetchRows(request))).then(
@@ -270,10 +349,15 @@ export function useGroupBlocks<TData, TCursor = never>(
   };
 
   const newStore = () => {
-    const { groupBy: by, pages: paging, engineKey: key } = live.current;
+    const { groupBy: by, pages: paging, engineKey: key, pivot: columnId, pivotHold: shown } = live.current;
     const pending = seedRef.current;
-    const seeded = pending?.key === key ? seedGroupStore<TData>(pending.answer, by, blockSize(), (paging?.page ?? 1) - 1, (live.current.spec.aggregates ?? []).map((aggregate) => aggregate.columnId)) : null;
-    return seeded ?? createGroupStore<TData>(by, blockSize());
+    // The view still shows the held set of the first seed; re-seeding keeps it, so its identity holds across mount and StrictMode.
+    const seeded = pending?.key === key ? seedGroupStore<TData>(pending.answer, by, blockSize(), (paging?.page ?? 1) - 1, live.current.spec.aggregates ?? [], columnId ?? undefined, shown, warn) : null;
+    if (seeded) return seeded;
+    const store = createGroupStore<TData>(by, blockSize(), columnId !== null);
+    // The shown held set stays until the first answer of the new spec lands, so the header never flips to the source columns.
+    if (store.pivot && shown?.layout && live.current.options.enableHold !== false) store.pivot = { ...shown, pending: true };
+    return store;
   };
 
   const seedStore = () => {
@@ -320,6 +404,13 @@ export function useGroupBlocks<TData, TCursor = never>(
     engine.pumpTimer = null;
     engine.cancelFrame?.();
     engine.cancelFrame = null;
+    const saving = protectedRows();
+    if (engine.store && saving) {
+      for (const list of engine.store.lists.values()) {
+        if (list.kind !== "rows") continue;
+        list.entries.forEach((row, offset) => row !== undefined && saving.has(idOf(row as TData, offset)) && engine.displaced.set(idOf(row as TData, offset), row));
+      }
+    }
     engine.store = null;
     engine.view = null;
     engine.idIndex = null;
@@ -339,6 +430,7 @@ export function useGroupBlocks<TData, TCursor = never>(
   };
 
   const refreshForSaves = (report: SaveRefreshReport) => {
+    if (!live.current.active) return void specState.refreshElsewhere?.();
     const engine = getEngine();
     const store = engine.store;
     const total = report.saved + report.rejected + report.failed;
@@ -364,6 +456,8 @@ export function useGroupBlocks<TData, TCursor = never>(
   const restartClock = useRevalidation({ interval: active ? options.revalidateIntervalMs : undefined, onTick: () => apiRef.current.refreshFor("refresh"), busy: loading, resetKey: requestKey });
 
   const refreshFor = (reason: FetchReason) => {
+    // While the flat engine answers the spec, a save settling here refreshes that engine.
+    if (!live.current.active) return void specState.refreshElsewhere?.();
     const engine = getEngine();
     cancelReshape();
     restartClock();
@@ -374,6 +468,7 @@ export function useGroupBlocks<TData, TCursor = never>(
     syncError();
     const store = engine.store;
     if (store) {
+      if (store.pivot) store.pivot = { ...store.pivot, pending: true };
       const keep = wantedBlocks(store);
       for (const list of store.lists.values()) {
         list.conflicts = 0;
@@ -411,8 +506,32 @@ export function useGroupBlocks<TData, TCursor = never>(
     publish();
   };
 
+  /** Writes the updates into the held view, and keeps a user write as the local copy that the answers of the new spec keep. */
+  const holdUpdates = (change: DataChange<TData>) => {
+    const engine = getEngine();
+    const rowOf = streamUpdateRow(change);
+    const updates = new Map(change.ops.flatMap((op) => (op.type === "update" ? [[op.rowId, op] as const] : [])));
+    if (updates.size === 0) return;
+    if (change.source !== "stream") {
+      for (const [id, op] of updates) {
+        engine.displaced.set(id, op.row);
+        engine.heldEdits.add(id);
+      }
+    }
+    setView((prev) => {
+      if (!prev.held) return prev;
+      const groupRows = new Set(prev.slots.map((slot) => slot.viewRow));
+      const data = prev.data.map((row, index) => {
+        const op = row === undefined || groupRows.has(index) ? undefined : updates.get(idOf(row, index));
+        return op ? (rowOf ? rowOf(op, row as TData) : op.row) : row;
+      });
+      return { ...prev, data };
+    });
+  };
+
   const applyUpdates = (change: DataChange<TData>) => {
     const engine = getEngine();
+    if (engine.holding) holdUpdates(change);
     const store = engine.store;
     if (!store) return;
     const index = engine.idIndex ?? indexRows(store, idOf);
@@ -446,10 +565,19 @@ export function useGroupBlocks<TData, TCursor = never>(
     [getEngine],
   );
 
+  const shownRows = useRef(view.data.length);
+  const wasActive = useRef(active);
+  useLayoutEffect(() => {
+    shownRows.current = view.data.length;
+  });
+
   // A new request key drops every list and fetches the top level again; `expanded` stays, because group ids come from the keys.
   useLayoutEffect(() => {
     if (seedRef.current && seedRef.current.key !== engineKey) seedRef.current = null;
     apiRef.current.reset();
+    // A view from an earlier grouped period is not on screen when the engine wakes up, so only a live view is held.
+    getEngine().holding = live.current.options.enableHold !== false && shownRows.current > 0 && (!active || wasActive.current);
+    wasActive.current = active;
     if (active) apiRef.current.seedStore();
     apiRef.current.publish();
     if (!active) return;
@@ -464,17 +592,31 @@ export function useGroupBlocks<TData, TCursor = never>(
     if (active && options.source === "sequential") warn("sequential", 'source: "sequential" has no effect while grouped: groups load by offset. Use source: "random" (or omit it) with groupBy.');
   }, [active, options.source, warn]);
 
+  useEffect(() => {
+    if (!active || !spec.pivot || pivot !== null) return;
+    if (groupBy.length > MAX_PIVOT_LEVELS) warn("pivot-levels", "spec.pivot takes 1 to 4 groupBy columns; with more, the request carries no pivot");
+    else warn("pivot-shape", "spec.pivot needs 1 pivot column outside groupBy and at least 1 aggregate; the request carries no pivot");
+  }, [active, spec.pivot, pivot, groupBy, warn]);
+
   // Aggregates change the group rows only: reload their blocks in place and keep the lists and the scroll position.
   const firstAggregates = useRef(aggregateKey);
   useEffect(() => {
     if (firstAggregates.current === aggregateKey) return;
     firstAggregates.current = aggregateKey;
-    apiRef.current.staleGroupBlocks();
+    if (live.current.pivot === null) apiRef.current.staleGroupBlocks();
   }, [aggregateKey]);
 
-  // A toggle lays the view out again and asks for the rows the open group shows.
+  // A page size that a pivot page cannot hold becomes the size the pager shows, so a controlled size and URL state follow it.
+  useLayoutEffect(() => {
+    if (active && pagesIn && pages && pages.pageSize !== pagesIn.pageSize) pagesIn.onPageSizeChange?.(pages.pageSize);
+  }, [active, pagesIn, pages]);
+
+  // A toggle lays the view out again and asks for the rows the open group shows; a new page keeps the old one until it lands.
+  const shownPage = useRef(pages?.page);
   useLayoutEffect(() => {
     if (!getEngine().store) return;
+    if (shownPage.current !== pages?.page && shownRows.current > 0 && live.current.options.enableHold !== false) getEngine().holding = true;
+    shownPage.current = pages?.page;
     apiRef.current.publish();
     apiRef.current.pumpSoon(true);
   }, [expanded, pages?.page, getEngine]);
@@ -511,7 +653,8 @@ export function useGroupBlocks<TData, TCursor = never>(
   const ownPlugins = useMemo(() => (paged ? [...guardPlugins, ...pagerPlugins] : guardPlugins), [paged, guardPlugins, pagerPlugins]);
   const plugins = useMountedPlugins(ownPlugins, options.plugins);
   const getRowId = useCallback((row: TData, index: number) => (row === undefined ? holeRowId(index) : live.current.options.getRowId(row, index)), []);
-  const groupLayout = useMemo<ServerGroupLayout>(() => ({ rows: view.slots, leafCount: view.leafCount }), [view]);
+  const pivotable = (spec.aggregates?.length ?? 0) > 0 && groupBy.length <= MAX_PIVOT_LEVELS;
+  const groupLayout = useMemo<ServerGroupLayout>(() => ({ rows: view.slots, leafCount: view.leafCount, ...(view.pivotHold?.layout ? { pivot: view.pivotHold.layout } : null), ...(pivotable ? null : { pivotable: false as const }) }), [view, pivotable]);
 
   const providerProps = useMemo<UseDataGridServerRowsScrollProviderProps<TData>>(
     () => ({
@@ -534,14 +677,17 @@ export function useGroupBlocks<TData, TCursor = never>(
       checkedRowsLifetime: "across-filters",
       headerClickBehavior: "sort",
       plugins,
-      groupBy,
+      groupBy: view.laidFor ?? groupBy,
       onGroupByChange,
+      pivot: pivotSpec,
+      onPivotChange,
       expanded,
       onExpandedChange: setExpanded,
       groupMode: "server",
+      ...(view.held ? { serverHeld: true as const } : null),
       groupLayout,
     }),
-    [view, getRowId, onDataChange, onSave, onRenderedRowsChange, spec, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, plugins, groupBy, onGroupByChange, expanded, setExpanded, groupLayout],
+    [view, getRowId, onDataChange, onSave, onRenderedRowsChange, spec, onSortChange, onFilterChange, onFilterJoinChange, onSearchTextChange, plugins, groupBy, onGroupByChange, pivotSpec, onPivotChange, expanded, setExpanded, groupLayout],
   );
   useRegisteredWiring(providerProps, wrapSave);
   const rootProps = useMemo<UseDataGridServerRowsRootProps>(() => ({ loading, error, onRetry: retry }), [loading, error, retry]);
@@ -563,8 +709,9 @@ export function useGroupBlocks<TData, TCursor = never>(
 
   const status = error !== null ? "error" : loading ? "loading" : "ready";
   const result: UseDataGridServerRowsScrollResult<TData> = { gridProps, providerProps, rootProps, spec, totalRowCount: view.leafCount, status, loading, error, retry, refresh, reshape, canRevalidate: () => true, unloadedCount: view.holes, getLoadedRanges, evict };
-  const groupProps = useMemo(() => ({ groupBy, onGroupByChange, expanded, onExpandedChange: setExpanded }), [groupBy, onGroupByChange, expanded, setExpanded]);
-  return { result, groupProps, pager, pagerPlugins, groupCount: view.groupCount };
+  const groupProps = useMemo(() => ({ groupBy, onGroupByChange, pivot: pivotSpec, onPivotChange, expanded, onExpandedChange: setExpanded }), [groupBy, onGroupByChange, pivotSpec, onPivotChange, expanded, setExpanded]);
+  const answered = !view.loading && view.laidFor !== undefined && view.laidFor.join("\u0000") === groupBy.join("\u0000");
+  return { result, groupProps, pager, pagerPlugins, groupCount: view.groupCount, answered };
 }
 
 function noop() {}

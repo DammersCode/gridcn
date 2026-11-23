@@ -37,6 +37,9 @@ export type UseRowWindowOptions = {
 /** Hard cap on rendered rows. The root bounds an unbounded-height grid, so only a huge viewport reaches it. */
 export const MAX_RENDERED_ROWS = 200;
 
+/** Sub-pixel scroll offsets past the end, such as under fractional zoom, are not a shrink. */
+const CLAMP_TOLERANCE_PX = 1;
+
 /** Rows rendered while the measured viewport height is 0 (a test environment without layout, or a hidden grid). */
 const ZERO_HEIGHT_ROWS = 10;
 
@@ -50,6 +53,11 @@ function useServerPass(): boolean {
   return useSyncExternalStore(subscribeNever, () => false, () => true);
 }
 
+/** The largest scrollTop the content allows; it matches the content height the root sets. */
+function maxScrollTop({ rowCount, rowHeight, dataRowTop, bottomInset }: Required<UseRowWindowOptions>, clientHeight: number): number {
+  return Math.max(0, dataRowTop + rowCount * rowHeight + bottomInset - clientHeight);
+}
+
 function computeWindow(
   element: HTMLElement | null,
   snapshot: ScrollSnapshot,
@@ -61,7 +69,9 @@ function computeWindow(
   if (!element) {
     return { start: 0, end: Math.min(rowCount, previewRows), windowTop: 0, measured: false, element: null };
   }
-  const { scrollTop, clientHeight: rawClientHeight, deltaTop } = snapshot;
+  const { clientHeight: rawClientHeight, deltaTop } = snapshot;
+  // A shrunken row count leaves the snapshot past the end until the browser clamps the scroll.
+  const scrollTop = Math.min(snapshot.scrollTop, maxScrollTop(opts, rawClientHeight));
   const clientHeight = rawClientHeight === 0 ? ZERO_HEIGHT_ROWS * rowHeight : Math.max(0, rawClientHeight - bottomInset);
   // Velocity overscan biases the LEADING edge only (the direction of travel) — the trailing edge
   // a fling is scrolling away from keeps the floor.
@@ -150,6 +160,21 @@ export function useRowWindow(scrollRef: RefObject<HTMLElement | null>, opts: Use
   const windowRef = useRef<RowWindow | null>(null);
   useLayoutEffect(() => {
     windowRef.current = rowWindow;
+  });
+
+  // The browser clamps the scroll at its next layout, after this commit, so the clamp and the canvas offset land here, before paint.
+  // Only a shrink acts: an overscroll bounce or a sub-pixel zoom offset past the end leaves the scroll to the browser.
+  const maxTopRef = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const snapshot = tick.snapshot;
+    if (!element || !snapshot) return;
+    const maxTop = maxScrollTop({ rowCount, rowHeight, dataRowTop, bottomInset, overscan }, snapshot.clientHeight);
+    const previous = maxTopRef.current;
+    maxTopRef.current = maxTop;
+    if (previous === null || maxTop >= previous || snapshot.scrollTop <= maxTop + CLAMP_TOLERANCE_PX) return;
+    const clamped = getElementStore(element).clampScrollTop(maxTop);
+    // The scroll event of the clamp finds the window unchanged, so the snapshot a later growth reads is set here.
+    setTick((prev) => ({ estimate: prev.estimate, snapshot: clamped, token: prev.token + 1 }));
   });
 
   // One estimator per hook instance: state lives in the hook, not the shared element store,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { groupIdOf } from "@/registry/default/blocks/data-grid/data-grid-sdk";
-import { blockOf, createGroupStore, evictBlock, landGroups, landRows, layoutView, listFor } from "./group-lists";
+import { blockOf, createGroupStore, evictBlock, evictPivotCells, landGroups, landPivotGroups, landRows, layoutView, listFor } from "./group-lists";
 import type { ServerGroupRow } from "./read-groups-answer";
 
 const SIZE = 4;
@@ -136,5 +136,53 @@ describe("landRows and evictBlock", () => {
     expect(list.entries).toEqual([undefined, undefined, "c", "d"]);
     expect([...list.blocks.keys()]).toEqual([1]);
     expect(blockOf(3, 2)).toBe(1);
+  });
+});
+
+describe("pivot eviction under an open group", () => {
+  const OPTIONS = { columnId: "qty", values: [{ columnId: "qty", reducer: "sum" as const }] };
+  const answer = (keys: string[], childCount: number, columns: string[]) => ({
+    groups: keys.map((key) => ({ key, childCount, totalRowCount: 1, pivotCells: columns.map(() => 1) })),
+    groupCount: childCount === 0 ? keys.length : 2 * SIZE,
+    totalRowCount: 1,
+    pivotColumns: columns.map((key) => ({ path: [key], valueIndex: 0 })),
+  });
+  const land = (store: ReturnType<typeof createGroupStore<never>>, path: { columnId: string; key: string }[], block: number, keys: string[], childCount: number, columns: string[], stamp: number) => {
+    const raw = answer(keys, childCount, columns);
+    const read = { groups: raw.groups.map(({ key, childCount: count }) => ({ key, childCount: count, totalRowCount: 1 })), groupCount: raw.groupCount, totalRowCount: 1 };
+    return landPivotGroups(store, listFor(store, path, null), block, raw, read, OPTIONS, stamp, () => {});
+  };
+  /** Top blocks 0 and 1; g5 in block 1 is open with a loaded child list. */
+  function nested() {
+    const store = createGroupStore<never>(["region", "city"], SIZE, true);
+    land(store, [], 0, ["g0", "g1", "g2", "g3"], 2, ["a", "b"], 1);
+    land(store, [], 1, ["g4", "g5", "g6", "g7"], 2, ["a", "b"], 2);
+    land(store, [{ columnId: "region", key: "g5" }], 0, ["c0", "c1"], 0, ["a"], 3);
+    const open = new Set([groupIdOf([{ columnId: "region", key: "g5" }])]);
+    const lay = () => layoutView(store, (id) => open.has(id), () => undefined);
+    return { store, lay };
+  }
+  const shape = (view: ReturnType<ReturnType<typeof nested>["lay"]>) => view.slots.map((slot) => `${slot.viewRow}:${slot.path.map((segment) => segment.key).join("/")}`);
+
+  it("keeps the row of an open group, without its cells, when its block evicts, so no row below it moves", () => {
+    const { store, lay } = nested();
+    const before = lay();
+    evictPivotCells(store, (listId, block) => listId !== "" || block === 0, 2 * SIZE + 2);
+    const after = lay();
+    expect(after.data).toHaveLength(before.data.length);
+    expect(shape(after)).toEqual(["0:g0", "1:g1", "2:g2", "3:g3", "5:g5", "6:g5/c0", "7:g5/c1"]);
+    expect(after.slots.find((slot) => slot.path.length === 1 && slot.path[0]!.key === "g5")!.pivotCells).toBeUndefined();
+    expect(store.lists.get("")!.blocks.has(1)).toBe(false);
+  });
+
+  it("keeps the row of an open group when a new held set drops its block", () => {
+    const { store, lay } = nested();
+    const before = lay();
+    store.pivot = { ...store.pivot!, pending: true };
+    land(store, [], 0, ["g0", "g1", "g2", "g3"], 2, ["a", "b", "z"], 4);
+    const after = lay();
+    expect(after.data).toHaveLength(before.data.length);
+    expect(shape(after)).toContain("5:g5");
+    expect(shape(after)).not.toContain("6:g5/c0");
   });
 });

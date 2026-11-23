@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -26,13 +27,14 @@ const columns: readonly ColumnDef<Row, unknown>[] = [
 
 afterEach(cleanup);
 
-function setup(props: { readOnly?: boolean; onValidationError?: (event: GridValidationErrorEvent) => void; columns?: readonly ColumnDef<Row, unknown>[]; replaceAllLimit?: number; processReplace?: UseDataGridFindReplaceOptions["processReplace"]; rows?: readonly Row[]; gateTimeoutMs?: number; onGateAborted?: (ctx: { gate: string; reason: string }) => void } = {}) {
+function setup(props: { readOnly?: boolean; serverHeld?: boolean; onValidationError?: (event: GridValidationErrorEvent) => void; columns?: readonly ColumnDef<Row, unknown>[]; replaceAllLimit?: number; processReplace?: UseDataGridFindReplaceOptions["processReplace"]; rows?: readonly Row[]; gateTimeoutMs?: number; onGateAborted?: (ctx: { gate: string; reason: string }) => void } = {}) {
   let data: readonly Row[] = props.rows ?? rows;
   let actions!: ReturnType<typeof useDataGridActions>;
   const changes: DataChange<Row>[] = [];
   let history!: ReturnType<typeof useDataGridHistory<Row>>;
   let findReplace!: ReturnType<typeof useDataGridFindReplace>;
   let storeApi!: ReturnType<typeof useDataGridStoreApi>;
+  let setHeld!: (held: boolean) => void;
   function Probe() {
     storeApi = useDataGridStoreApi();
     actions = useDataGridActions();
@@ -40,6 +42,8 @@ function setup(props: { readOnly?: boolean; onValidationError?: (event: GridVali
   }
   function Harness() {
     history = useDataGridHistory<Row>();
+    const [held, setHeldState] = useState(props.serverHeld ?? false);
+    setHeld = setHeldState;
     findReplace = useDataGridFindReplace({ replaceAllLimit: props.replaceAllLimit, processReplace: props.processReplace });
     return (
       <DataGridProvider
@@ -48,6 +52,7 @@ function setup(props: { readOnly?: boolean; onValidationError?: (event: GridVali
         getRowId={(row: Row) => row.id}
         plugins={[history.plugin, findReplace.plugin]}
         readOnly={props.readOnly}
+        {...({ serverHeld: held } as object)}
         gateTimeoutMs={props.gateTimeoutMs}
         onGateAborted={props.onGateAborted as never}
         onValidationError={props.onValidationError}
@@ -62,7 +67,7 @@ function setup(props: { readOnly?: boolean; onValidationError?: (event: GridVali
     );
   }
   render(<Harness />);
-  return { data: () => data, changes, history: () => history, findReplace: () => findReplace, searchText: () => storeApi.getState().searchText, actions: () => actions, activeCell: () => storeApi.getState().activeCell };
+  return { data: () => data, changes, history: () => history, findReplace: () => findReplace, searchText: () => storeApi.getState().searchText, actions: () => actions, activeCell: () => storeApi.getState().activeCell, setHeld: (held: boolean) => act(() => setHeld(held)) };
 }
 
 async function search(find: string, replacement: string) {
@@ -197,6 +202,34 @@ describe("useDataGridFindReplace", () => {
     await search("foo", "x");
     expect((screen.getByRole("button", { name: "Replace all" }) as HTMLButtonElement).disabled).toBe(true);
     expect(harness.changes).toHaveLength(0);
+  });
+
+  it("disables Replace while the server hook holds the rows, and enables it when the hold ends", async () => {
+    const harness = setup({ serverHeld: true });
+    act(() => harness.findReplace().open("replace"));
+    await search("foo", "x");
+    const replaceAll = () => screen.getByRole("button", { name: "Replace all" }) as HTMLButtonElement;
+    expect(replaceAll().disabled).toBe(true);
+    expect((screen.getByLabelText("Replace with") as HTMLInputElement).disabled).toBe(false);
+    fireEvent.click(replaceAll());
+    expect(harness.changes).toHaveLength(0);
+    harness.setHeld(false);
+    expect(replaceAll().disabled).toBe(false);
+    fireEvent.click(replaceAll());
+    await waitFor(() => expect(harness.changes).toHaveLength(1));
+  });
+
+  it("cancels a processReplace that settles after the hold starts", async () => {
+    let finish: ((plan: unknown) => void) | undefined;
+    const harness = setup({ processReplace: ({ plan }) => new Promise((resolve) => void (finish = () => resolve(plan))) });
+    act(() => harness.findReplace().open("replace"));
+    await search("foo", "x");
+    fireEvent.click(screen.getByRole("button", { name: "Replace all" }));
+    await waitFor(() => expect(finish).toBeDefined());
+    harness.setHeld(true);
+    await act(async () => finish!(undefined));
+    expect(harness.changes).toHaveLength(0);
+    expect(harness.data().map((r) => r.name)).toEqual(rows.map((r) => r.name));
   });
 
   it("reports validator rejections through onValidationError with source replace", async () => {

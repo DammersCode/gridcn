@@ -251,8 +251,9 @@ export type {
 } from "./types";
 export { createFilterMatcher, type SearchMatch } from "./sort-filter";
 export { isFilterGroup } from "./sort-filter/filter-tree";
+export type { PivotSpec } from "./group-types";
 
-/** Props for {@link DataGrid}: the sync props (the store's home) plus the root's render/layout props — a prop lives on exactly one surface, so nothing is hand-forwarded. */
+/** Props for {@link DataGrid}: the sync props (the store's home) plus the root's render/layout props; each prop belongs to exactly one of the two surfaces. */
 export type DataGridProps<TData> = (ExternalStoreProps | OwnedStoreProps<TData>) &
   DataGridRootProps<TData> & {
     /**
